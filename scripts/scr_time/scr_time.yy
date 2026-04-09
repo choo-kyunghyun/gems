@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_time",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_time",
+  "parent":{
+    "name":"Subsystems",
+    "path":"folders/Core/Subsystems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
