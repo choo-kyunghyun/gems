@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_camera",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_camera",
+  "parent":{
+    "name":"Subsystems",
+    "path":"folders/Core/Subsystems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

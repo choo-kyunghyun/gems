@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_uiElement",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_uiElement",
+  "parent":{
+    "name":"Elements",
+    "path":"folders/Core/Subsystems/UI/Elements.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

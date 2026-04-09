@@ -1,21 +1,16 @@
 {
   "$GMObject":"",
-  "%Name":"obj_demo",
-  "eventList":[
-    {"$GMEvent":"v1","%Name":"","collisionObjectId":null,"eventNum":0,"eventType":0,"isDnD":false,"name":"","resourceType":"GMEvent","resourceVersion":"2.0",},
-  ],
+  "%Name":"obj_actor",
+  "eventList":[],
   "managed":true,
-  "name":"obj_demo",
+  "name":"obj_actor",
   "overriddenProperties":[],
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
-  "parentObjectId":{
-    "name":"obj_game",
-    "path":"objects/obj_game/obj_game.yy",
-  },
-  "persistent":true,
+  "parentObjectId":null,
+  "persistent":false,
   "physicsAngularDamping":0.1,
   "physicsDensity":0.5,
   "physicsFriction":0.2,
