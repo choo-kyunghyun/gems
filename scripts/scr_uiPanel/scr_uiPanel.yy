@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_color",
+  "%Name":"scr_uiPanel",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_color",
+  "name":"scr_uiPanel",
   "parent":{
-    "name":"Subsystems",
-    "path":"folders/Core/Subsystems.yy",
+    "name":"Elements",
+    "path":"folders/Core/Subsystems/UI/Elements.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
