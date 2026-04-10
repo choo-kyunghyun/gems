@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_inputAction",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_inputAction",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Subsystems/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

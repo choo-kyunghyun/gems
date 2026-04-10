@@ -1,0 +1,46 @@
+{
+  "language": "ko",
+  "region": "KR",
+  "name": "한국어",
+  "text": ["text/*.json"],
+  "fonts": {
+    "regular": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
+      "size": 24,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 55203,
+      "sdf": true,
+      "sdf_spread": 8
+    },
+    "bold": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Bold.ttf",
+      "size": 24,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 55203,
+      "sdf": true,
+      "sdf_spread": 8,
+      "effects": {
+        "dropShadowEnable": true,
+        "dropShadowSoftness": 0,
+        "dropShadowOffsetX": 0,
+        "dropShadowOffsetY": 6
+      }
+    },
+    "small": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
+      "size": 16,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 55203,
+      "sdf": true,
+      "sdf_spread": 8
+    }
+  },
+  "images": {},
+  "sounds": {}
+}

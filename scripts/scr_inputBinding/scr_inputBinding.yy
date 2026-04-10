@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_inputBinding",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_inputBinding",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Subsystems/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

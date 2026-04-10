@@ -1,1 +1,1 @@
-sample_ui.draw();
+self.ui.draw();

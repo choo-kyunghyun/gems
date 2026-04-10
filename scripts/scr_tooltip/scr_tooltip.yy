@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_tooltip",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_tooltip",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/Subsystems/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

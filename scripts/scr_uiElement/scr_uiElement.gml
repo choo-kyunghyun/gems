@@ -1,4 +1,5 @@
 function UIElement(_style = {}) constructor {
+    // static direction = flexpanel_direction.LTR;
     self.flexpanel = flexpanel_create_node(_style);
     self.parent = undefined;
     self.children = [];
@@ -10,9 +11,9 @@ function UIElement(_style = {}) constructor {
     
     static destroy = function() {
         self.on_destroy();
-        array_foreach(self.children, function(_child) {
-            _child.destroy();
-        });
+        for (var _i = 0; _i < array_length(self.children); _i++) {
+            self.children[_i].destroy();
+        }
         if (self.parent) self.parent.remove_child(self);
         flexpanel_delete_node(self.flexpanel);
     }
@@ -44,7 +45,10 @@ function UIElement(_style = {}) constructor {
     }
     
     static update = function() {
-        if (self.dirty) flexpanel_calculate_layout(self.flexpanel, display_get_gui_width(), display_get_gui_height(), flexpanel_direction.LTR);
+        if (self.dirty) {
+            if (!self.parent) flexpanel_calculate_layout(self.flexpanel, display_get_gui_width(), display_get_gui_height(), flexpanel_direction.LTR);
+            self.dirty = false;
+        }
         self.on_update();
         array_foreach(self.children, function(_child) {
             _child.update();

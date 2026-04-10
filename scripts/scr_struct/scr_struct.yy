@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_struct",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_struct",
+  "parent":{
+    "name":"Subsystems",
+    "path":"folders/Core/Subsystems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
