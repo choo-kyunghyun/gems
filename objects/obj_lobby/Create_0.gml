@@ -42,3 +42,4 @@ _aside_add(game_end, "", "END");
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_cjk); }, "", "CJK", "TTF font test");
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_input); }, "", "Input", "Input subsystem test");
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_text); }, "", "Text", "UIText test");
+_menu_add(function() { self.on_leave(); demo_load(obj_demo_ui); }, "", "UI", "UI test");

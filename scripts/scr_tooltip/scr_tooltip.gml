@@ -4,7 +4,7 @@ function Tooltip() constructor {
     static text = "";
     static text_colour = #ffffff;
     static text_alpha = 1;
-    static sep = 12;
+    static sep = -1;
     static w = 640;
     static font = -1;
     static panel_colour = #121212;

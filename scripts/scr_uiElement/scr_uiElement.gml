@@ -4,6 +4,7 @@ function UIElement(_style = {}) constructor {
     self.parent = undefined;
     self.children = [];
     self.dirty = true;
+    self.clip = false;
     
     static on_update = function() {}
     static on_draw = function() {}
@@ -50,16 +51,18 @@ function UIElement(_style = {}) constructor {
             self.dirty = false;
         }
         self.on_update();
-        array_foreach(self.children, function(_child) {
-            _child.update();
-        });
+        array_foreach(self.children, function(_child) { _child.update(); });
     }
     
     static draw = function() {
+        var _scissor = gpu_get_scissor();
+        if (self.clip) {
+            var _pos = flexpanel_node_layout_get_position(self.flexpanel, false);
+            gpu_set_scissor(_pos.left, _pos.top, _pos.width, _pos.height);
+        }
         self.on_draw();
-        array_foreach(self.children, function(_child) {
-            _child.draw();
-        });
+        array_foreach(self.children, function(_child) { _child.draw(); });
+        if (self.clip) gpu_set_scissor(_scissor);
     }
     
     static position_meeting = function(_x, _y) {
