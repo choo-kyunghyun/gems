@@ -1,9 +1,12 @@
-self.ui = demo_ui_button_main();
-self.ui.mark_dirty();
-self.ui.set_margin(flexpanel_edge.all_edges, 64);
+// Inherit the parent event
+event_inherited();
 
 self.w = display_get_gui_width() - 128;
+self.chars = 250;
+
+var _start = get_timer();
 self.kor = "";
-repeat(250) {
+repeat(self.chars) {
     self.kor += chr(irandom_range(0xac00, 0xd7ac)) + " ";
 }
+self.elapsed = get_timer() - _start;

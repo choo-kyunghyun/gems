@@ -108,6 +108,7 @@ function i18n() constructor {
         return string_ext(i18n.get_text(_key), _params);
     }
     
+    // TODO: Consider TextRef constructor for changeable params and freeze() method
     static get_text_ref = function(_key, _params = []) {
         var _resolve = is_callable(_params)
         ? method({ params: _params }, function() { return self.params(); })

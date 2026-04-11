@@ -14,7 +14,7 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
     self.rot = _image[$ "rot"] ?? 0;
     self.colour = _image[$ "colour"] ?? _image[$ "color"] ?? c_white;
     self.alpha = _image[$ "alpha"] ?? 1;
-    self.speed = _image[$ "speed"] ?? sprite_get_speed(self.sprite);
+    self.speed = _image[$ "speed"] ?? (sprite_exists(self.sprite) ? sprite_get_speed(self.sprite) : 0);
     self.fit = _image[$ "fit"] ?? OBJECT_FIT.FILL;
     
     static on_update = function() {
@@ -51,11 +51,11 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
                 break;
             case OBJECT_FIT.COVER:
                 var _scale = max(_w / _width, _h / _height);
-                var _partW = _w / _scale;
-                var _partH = _h / _scale;
-                var _partX = (_width - _partW) / 2;
-                var _partY = (_height - _partH) / 2;
-                draw_sprite_general(self.sprite, self.subimg, _partX, _partY, _partW, _partH, _x, _y, _scale, _scale, self.rot, self.colour, self.colour, self.colour, self.colour, self.alpha);
+                var _part_w = _w / _scale;
+                var _part_h = _h / _scale;
+                var _part_x = (_width - _part_w) / 2;
+                var _part_y = (_height - _part_h) / 2;
+                draw_sprite_general(self.sprite, self.subimg, _part_x, _part_y, _part_w, _part_h, _x, _y, _scale, _scale, self.rot, self.colour, self.colour, self.colour, self.colour, self.alpha);
                 break;
             case OBJECT_FIT.NONE:
                 _x += (_w - sprite_get_width(self.sprite) * self.xscale) / 2;

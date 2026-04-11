@@ -1,22 +1,22 @@
 function StateMachine() constructor {
     self.state = undefined;
-    self.nextState = undefined;
-    self.forceChange = false;
+    self.next_state = undefined;
+    self.force_change = false;
     self.owner = undefined;
     
     static change = function(_next, _force = false) {
-        self.nextState = _next;
-        self.forceChange = _force;
+        self.next_state = _next;
+        self.force_change = _force;
     }
     
     static update = function() {
-        if (self.nextState) {
-            if (self.state != self.nextState || self.forceChange) {
+        if (self.next_state) {
+            if (self.state != self.next_state || self.force_change) {
                 if (self.state) self.state.finish(self.owner);
-                self.state = self.nextState;
+                self.state = self.next_state;
                 if (self.state) self.state.enter(self.owner);
             }
-            self.nextState = undefined;
+            self.next_state = undefined;
         }
         
         if (self.state) self.state.update(self.owner);

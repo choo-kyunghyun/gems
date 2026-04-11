@@ -1,20 +1,20 @@
 function Actor() : Entity() constructor {
     self.name = "";
-    self.stateMachine = new StateMachine();
+    self.state_machine = new StateMachine();
     
     static on_spawn = function() {
-        self.stateMachine.owner = self.instance;
+        self.state_machine.owner = self.instance;
     }
     
     static on_despawn = function() {
-        self.stateMachine.owner = undefined;
+        self.state_machine.owner = undefined;
     }
     
     static update = function() {
-        self.stateMachine.update();
+        self.state_machine.update();
     }
     
     static draw = function() {
-        self.stateMachine.draw();
+        self.state_machine.draw();
     }
 }

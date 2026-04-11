@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_uiElement",
   "parent":{
-    "name":"Elements",
-    "path":"folders/Core/Subsystems/UI/Elements.yy",
+    "name":"Primitive Elements",
+    "path":"folders/Core/Subsystems/UI/Primitive Elements.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

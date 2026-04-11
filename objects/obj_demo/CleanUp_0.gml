@@ -1,4 +1,4 @@
 // Inherit the parent event
 event_inherited();
 
-overlay.destroy();
+self.overlay.destroy();

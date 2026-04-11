@@ -16,9 +16,7 @@ function Input() constructor {
         var _names = struct_get_names(_data.actions);
         for (var _i = 0; _i < array_length(_names); _i++) {
             var _name = _names[_i];
-            var _actionData = _data.actions[$ _name];
-            var _action = InputAction.import(_actionData);
-            Input.actions[$ _name] = _action;
+            Input.actions[$ _name] = InputAction.import(_data.actions[$ _name]);
         }
         return true;
     }
@@ -43,7 +41,6 @@ function Input() constructor {
     }
     
     static register = function(_name, _action) {
-        // if (Input.actions[$ _name]) {}
         Input.actions[$ _name] = _action;
         return Input;
     }

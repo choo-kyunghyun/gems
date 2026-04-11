@@ -1,41 +1,45 @@
-function UIButton(_style = {}, _button = {}) : UIElement(_style) constructor {
-    self.enter = false;
-    self.hold = false;
-    
-    self.on_enter = method(self, _button[$ "on_enter"] ?? noop);
-    self.on_leave = method(self, _button[$ "on_leave"] ?? noop);
-    self.on_down = method(self, _button[$ "on_down"] ?? noop);
-    self.on_up = method(self, _button[$ "on_up"] ?? noop);
-    self.on_click = method(self, _button[$ "on_click"] ?? noop);
-    
-    static on_destroy = function() {
-        if (self.enter) self.on_leave();
+function UIButton(_style = {}, _panel = {}, _trigger = undefined, _icon = undefined, _tooltip = undefined, _text = undefined, _desc = undefined) : UIPanel(_style, _panel) constructor {
+    self.trigger = undefined;
+    self.tooltip = undefined;
+    self.icon = undefined;
+    self.box = undefined;
+    self.text = undefined;
+    self.desc = undefined;
+
+    self.set_flex_direction(flexpanel_flex_direction.row);
+
+    if (_trigger != undefined) {
+        self.trigger = new UITrigger({ width: "100%", height: "100%", position: "absolute" }, _trigger);
+        self.insert_child(self.trigger);
     }
-    
-    static on_update = function() {
-        var _pressed = mouse_check_button_pressed(mb_left);
-        var _released = mouse_check_button_released(mb_left);
-        var _enter_prev = self.enter;
-        var _mx = device_mouse_x_to_gui(0);
-        var _my = device_mouse_y_to_gui(0);
-        self.enter = self.position_meeting(_mx, _my);
-        
-        if (self.enter) {
-            if (!_enter_prev) self.on_enter();
-            if (_pressed) {
-                self.hold = true;
-                self.on_down();
-            }
-        } else if (_enter_prev) {
-            self.on_leave();
+
+    if (_tooltip != undefined) {
+        self.tooltip = new UITooltip({ width: "100%", height: "100%", position: "absolute" }, _tooltip);
+        self.insert_child(self.tooltip);
+    }
+
+    // TODO: What if the button's height is greater than its width?
+    if (_icon != undefined) {
+        _icon[$ "fit"] = OBJECT_FIT.CONTAIN;
+        self.icon = new UIImage({ height: "100%", aspectRatio: 1 }, _icon);
+        self.insert_child(self.icon);
+    }
+
+    var _text_exists = (_text != undefined);
+    var _desc_exists = (_desc != undefined);
+    if (_text_exists || _desc_exists) {
+        var _box_style = (self.icon != undefined)
+            ? { flexGrow: 1, justifyContent: "center" }
+            : { width: "100%", height: "100%", justifyContent: "center", alignItems: "center" };
+        self.box = new UIElement(_box_style);
+        self.insert_child(self.box);
+        if (_text_exists) {
+            self.text = new UIText({}, _text);
+            self.box.insert_child(self.text);
         }
-        
-        if (_released) {
-            if (self.hold) {
-                self.on_up();
-                if (self.enter) self.on_click();
-            }
-            self.hold = false;
+        if (_desc_exists) {
+            self.desc = new UIText({}, _desc);
+            self.box.insert_child(self.desc);
         }
     }
 }

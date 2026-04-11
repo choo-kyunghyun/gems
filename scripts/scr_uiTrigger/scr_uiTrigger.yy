@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_uiImage",
+  "%Name":"scr_uiTrigger",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_uiImage",
+  "name":"scr_uiTrigger",
   "parent":{
     "name":"Primitive Elements",
     "path":"folders/Core/Subsystems/UI/Primitive Elements.yy",

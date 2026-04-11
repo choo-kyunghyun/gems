@@ -14,17 +14,11 @@ function Entity() constructor {
     static on_despawn = function() {}
     
     static spawn = function() {
-        if (self.object == -1) {
-            return noone;
-        }
-        
-        if (self.instance != noone) {
-            return self.instance;
-        }
+        if (self.object == -1) return noone;
+        if (self.instance != noone) return self.instance;
         
         self.instance = instance_create_depth(self.x, self.y, self.z, self.object, self.properties);
         self.on_spawn();
-        
         return self.instance;
     }
     
@@ -35,7 +29,6 @@ function Entity() constructor {
             self.z = self.instance.depth;
             
             self.on_despawn();
-            
             instance_destroy(self.instance);
             self.instance = noone;
         }

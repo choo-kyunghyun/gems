@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_uiButton",
   "parent":{
-    "name":"Elements",
-    "path":"folders/Core/Subsystems/UI/Elements.yy",
+    "name":"Composite Elements",
+    "path":"folders/Core/Subsystems/UI/Composite Elements.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

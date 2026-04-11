@@ -3,7 +3,7 @@ function UIElement(_style = {}) constructor {
     self.flexpanel = flexpanel_create_node(_style);
     self.parent = undefined;
     self.children = [];
-    self.dirty = false;
+    self.dirty = true;
     
     static on_update = function() {}
     static on_draw = function() {}

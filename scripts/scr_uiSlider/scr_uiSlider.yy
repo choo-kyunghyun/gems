@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_uiTooltip",
+  "%Name":"scr_uiSlider",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_uiTooltip",
+  "name":"scr_uiSlider",
   "parent":{
     "name":"Composite Elements",
     "path":"folders/Core/Subsystems/UI/Composite Elements.yy",
