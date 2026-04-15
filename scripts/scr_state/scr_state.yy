@@ -6,7 +6,7 @@
   "name":"scr_state",
   "parent":{
     "name":"State",
-    "path":"folders/Core/Subsystems/Entity/State.yy",
+    "path":"folders/Core/Subsystems/World/Entity/State.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

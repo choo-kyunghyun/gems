@@ -13,7 +13,7 @@
   "overriddenProperties":[],
   "parent":{
     "name":"Lobby",
-    "path":"folders/Demo/Lobby.yy",
+    "path":"folders/G.E.M.S./Lobby.yy",
   },
   "parentObjectId":null,
   "persistent":false,

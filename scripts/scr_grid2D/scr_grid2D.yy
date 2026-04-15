@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_grid2D",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_grid2D",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/Subsystems/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

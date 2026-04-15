@@ -1,3 +1,4 @@
+// TODO: Input buffer and initial caret height
 function UIInput(_style = {}, _input = {}, _panel = {}, _placeholder = {}) : UIElement(_style) constructor {
     self.value = _input[$ "value"] ?? "";
     self.caret_period = _input[$ "caret_period"] ?? 1;

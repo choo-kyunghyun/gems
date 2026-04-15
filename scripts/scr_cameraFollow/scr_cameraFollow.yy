@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_cameraFollow",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_cameraFollow",
+  "parent":{
+    "name":"Camera",
+    "path":"folders/Core/Subsystems/Camera.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

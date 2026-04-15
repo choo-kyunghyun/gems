@@ -43,3 +43,4 @@ _menu_add(function() { self.on_leave(); demo_load(obj_demo_cjk); }, "", "CJK", "
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_input); }, "", "Input", "Input subsystem test");
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_text); }, "", "Text", "UIText test");
 _menu_add(function() { self.on_leave(); demo_load(obj_demo_ui); }, "", "UI", "UI test");
+_menu_add(function() { self.on_leave(); demo_load(obj_demo_simgame); }, "", "World", "GEMS test");

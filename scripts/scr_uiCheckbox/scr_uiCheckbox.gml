@@ -1,3 +1,19 @@
-function UICheckbox(_style = {}) : UIElement(_style) constructor {
-    
+function UICheckbox(_style = {}, _checkbox = {}, _panel = {}, _text = {}, _box_style = {}, _box_panel = {}) : UIPanel(_style, _panel) constructor {
+    self.value = _checkbox[$ "value"] ?? false;
+    self.on_change = method(self, _checkbox[$ "on_change"] ?? noop);
+    self.trigger = new UITrigger({ width: "100%", height: "100%", position: "absolute" }, {
+        on_click: method(self, function() {
+            self.parent.value = !self.parent.value;
+            self.parent.box.alpha = self.parent.value ? 1 : 0;
+        }),
+    });
+    self.box_border = new UIPanel(_box_style, _box_panel);
+    _box_panel[$ "colour"] = _style[$ "colour"];
+    self.box = new UIPanel(_box_style, _box_panel);
+    if (!self.value) self.box.alpha = 0;
+    self.text = new UIText({}, _text);
+
+    self.box_border.insert_child(self.box);
+    self.insert_child(self.trigger).insert_child(self.box_border).insert_child(self.text);
+    self.set_flex_direction(flexpanel_flex_direction.row);
 }

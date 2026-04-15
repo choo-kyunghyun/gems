@@ -13,8 +13,8 @@
   ],
   "name":"rm_demo",
   "parent":{
-    "name":"Demonstration",
-    "path":"folders/Demo/Demonstration.yy",
+    "name":"Demo",
+    "path":"folders/G.E.M.S./Demo.yy",
   },
   "parentRoom":null,
   "physicsSettings":{

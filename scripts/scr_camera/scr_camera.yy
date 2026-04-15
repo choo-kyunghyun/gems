@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_camera",
   "parent":{
-    "name":"Subsystems",
-    "path":"folders/Core/Subsystems.yy",
+    "name":"Camera",
+    "path":"folders/Core/Subsystems/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

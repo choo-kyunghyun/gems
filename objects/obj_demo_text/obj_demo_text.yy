@@ -8,12 +8,12 @@
   "name":"obj_demo_text",
   "overriddenProperties":[],
   "parent":{
-    "name":"Demonstration",
-    "path":"folders/Demo/Demonstration.yy",
+    "name":"Demo",
+    "path":"folders/G.E.M.S./Demo.yy",
   },
   "parentObjectId":{
-    "name":"obj_demo_template",
-    "path":"objects/obj_demo_template/obj_demo_template.yy",
+    "name":"obj_demo",
+    "path":"objects/obj_demo/obj_demo.yy",
   },
   "persistent":false,
   "physicsAngularDamping":0.1,

@@ -18,7 +18,7 @@
   "name":"rm_lobby",
   "parent":{
     "name":"Lobby",
-    "path":"folders/Demo/Lobby.yy",
+    "path":"folders/G.E.M.S./Lobby.yy",
   },
   "parentRoom":null,
   "physicsSettings":{

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_terrain",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_terrain",
+  "parent":{
+    "name":"Terrain",
+    "path":"folders/Core/Subsystems/World/Terrain.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

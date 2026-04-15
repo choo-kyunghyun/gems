@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_motionPlanning",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_motionPlanning",
+  "parent":{
+    "name":"MotionPlanning",
+    "path":"folders/Core/Subsystems/World/Entity/MotionPlanning.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

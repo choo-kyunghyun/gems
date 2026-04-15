@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_actorManager",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_actorManager",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/Subsystems/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,46 +1,39 @@
-// Inherit the parent event
-event_inherited();
+self.fps_avg = fps_real;
+self.elapsed = 0;
+self.frames = 0;
 
-#region Input
-
-enum INPUT_ACTIONS {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
+self.quick_button = function(_on_click, _tooltip_key, _text_key) {
+    var _style = { width: "80%", height: 100 };
+    var _panel = { colour: ASTOLFO_PURPLE, rad: 100 };
+    var _trigger = {
+        on_enter: function() { window_set_cursor(cr_handpoint); self.parent.colour = ASTOLFO_PINK; },
+        on_leave: function() { window_set_cursor(cr_default); self.parent.colour = ASTOLFO_PURPLE; },
+        on_click: _on_click,
+    };
+    var _tooltip = { text_ref: i18n.get_text_ref(_tooltip_key) };
+    var _text = { text_ref: i18n.get_text_ref(_text_key), colour: ASTOLFO_WHITE, font: i18n.get_font("regular") }
+    var _btn = new UIButton(_style, _panel, _trigger, undefined, _tooltip, _text, undefined);
+    return _btn;
 }
 
-Input.register(INPUT_ACTIONS.UP, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("W")));
-Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("S")));
-Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("A")));
-Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("D")));
+self.ui = new UIElement({ width: "100%", height: "100%", padding: 16, gap: 16 });
+self.header = new UIPanel({ width: "100%", height: 64, justifyContent: "center", paddingVertical: 8, paddingHorizontal: 16 }, { colour: ASTOLFO_BLACK });
+self.title = new UIText({}, { text_ref: function() { return $"Level: {object_get_name(obj_gems.level.object_index)}"; } });
+self.body = new UIElement({ flexDirection: "row", flexGrow: 1 });
+self.main = new UIElement({ height: "100%", flexGrow: 1 });
+self.aside = new UIPanel({ width: "20%", height: "100%", alignItems: "center", paddingVertical: 16, justifyContent: "space-between" }, { colour: ASTOLFO_BLACK });
+self.menu = new UIElement({ width: "100%", flexGrow: 1, alignItems: "center", gap: 8 });
+self.close = self.quick_button(function() { self.on_leave(); demo_close(); }, "Close", "Close");
 
-#endregion
+self.ui.insert_child(self.header);
+self.header.insert_child(self.title);
+self.ui.insert_child(self.body);
+self.body.insert_child(self.main);
+self.body.insert_child(self.aside);
+self.aside.insert_child(self.menu);
+self.aside.insert_child(self.close);
 
-#region UI
-
-i18n.load("i18n/ko-KR/manifest.json");
-draw_set_font(i18n.get_font("regular"));
-// TODO: Settings, copyright, and time should be global overlay interface
-self.overlay = new UIElement();
-
-#endregion
-
-#region Window
-
-var _w = display_get_width() / 2;
-var _h = display_get_height() / 2;
-window_set_size(_w, _h);
-surface_resize(application_surface, _w, _h);
-window_center();
-
-#endregion
-
-#region Demo
-
-self.level = noone;
-
-#endregion
-
-// rm_lobby
-room_goto_next();
+self.menu.insert_child(demo_ui_field("90%", "auto", "fps_avg", { text_ref: method(self, function() { return $"{self.fps_avg}"; }) }));
+self.menu.insert_child(demo_ui_field("90%", "auto", "frames", { text_ref: method(self, function() { return $"{self.frames}"; }) }));
+self.menu.insert_child(demo_ui_field("90%", "auto", "elapsed", { text_ref: method(self, function() { return $"{self.elapsed}"; }) }));
+self.menu.insert_child(demo_ui_field("90%", "auto", "fps", { text_ref: function() { return $"{fps}"; } }));

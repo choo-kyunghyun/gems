@@ -3,10 +3,44 @@ function StateMachine() constructor {
     self.next_state = undefined;
     self.force_change = false;
     self.owner = undefined;
-    
-    static change = function(_next, _force = false) {
-        self.next_state = _next;
+    self.states = {};
+
+    static add_state = function(_name, _state) {
+        self.states[$ _name] = _state;
+        return _state;
+    }
+
+    static get_state = function(_name) {
+        return self.states[$ _name];
+    }
+
+    static remove_state = function(_name) {
+        struct_remove(self.states, _name);
+    }
+
+    static clear_states = function() {
+        self.states = {};
+    }
+
+    static change_state = function(_name, _force = false) {
+        self.next_state = self.get_state(_name);
         self.force_change = _force;
+    }
+
+    static spawn = function() {
+        if (self.state == undefined) return false;
+        var _next = self.state[$ "state_spawn"];
+        if (_next == undefined) return false;
+        self.change_state(_next, true);
+        return true;
+    }
+
+    static despawn = function() {
+        if (self.state == undefined) return false;
+        var _next = self.state[$ "state_despawn"];
+        if (_next == undefined) return false;
+        self.change_state(_next, true);
+        return true;
     }
     
     static update = function() {

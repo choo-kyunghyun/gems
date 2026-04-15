@@ -1,4 +1,1 @@
-// Inherit the parent event
-event_inherited();
-
-self.overlay.draw();
+self.ui.draw();
