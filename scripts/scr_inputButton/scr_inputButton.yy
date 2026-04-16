@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_inputBinding",
+  "%Name":"scr_inputButton",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_inputBinding",
+  "name":"scr_inputButton",
   "parent":{
     "name":"Input",
     "path":"folders/Core/Subsystems/Input.yy",

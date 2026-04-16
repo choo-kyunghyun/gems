@@ -2,7 +2,7 @@ new Input();
 
 function Input() constructor {
     static sensitivity = 2.5;
-    // static deadzone = 0;
+    static deadzone = 0;
     static actions = {};
     
     static cleanup = function() {
@@ -12,7 +12,7 @@ function Input() constructor {
     static import = function(_data) {
         Input.cleanup();
         Input.sensitivity = _data.sensitivity;
-        // Input.deadzone = _data.deadzone;
+        Input.deadzone = _data.deadzone;
         var _names = struct_get_names(_data.actions);
         for (var _i = 0; _i < array_length(_names); _i++) {
             var _name = _names[_i];
@@ -31,7 +31,7 @@ function Input() constructor {
         
         return {
             sensitivity: Input.sensitivity,
-            // deadzone: Input.deadzone,
+            deadzone: Input.deadzone,
             actions: _actions,
         };
     }

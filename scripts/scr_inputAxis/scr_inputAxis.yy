@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_inputAxis",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_inputAxis",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Subsystems/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

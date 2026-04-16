@@ -53,10 +53,10 @@
         RIGHT,
     }
     
-    Input.register(INPUT_ACTIONS.UP, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("W")));
-    Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("S")));
-    Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("A")));
-    Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind(INPUT_TYPE.KEYBOARD, ord("D")));
+    Input.register(INPUT_ACTIONS.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
+    Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
+    Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
+    Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
 
 #endregion
 

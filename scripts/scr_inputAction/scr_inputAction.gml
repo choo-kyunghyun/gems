@@ -1,60 +1,69 @@
 function InputAction() constructor {
-    self.bindings = [];
+    self.buttons = [];
+    self.axes = [];
     
     static import = function(_data) {
         var _action = new InputAction();
-        var _bindings = _data[$ "bindings"] ?? [];
-        for (var _i = 0; _i < array_length(_bindings); _i++) {
-            array_push(_action.bindings, InputBinding.import(_bindings[_i]));
+        var _buttons = _data[$ "buttons"] ?? [];
+        var _axes = _data[$ "axes"] ?? [];
+        for (var _i = 0; _i < array_length(_buttons); _i++) {
+            array_push(_action.buttons, InputButton.import(_buttons[_i]));
+        }
+        for (var _i = 0; _i < array_length(_axes); _i++) {
+            array_push(_action.axes, InputAxis.import(_axes[_i]));
         }
         return _action;
     }
     
     static export = function() {
-        var _bindings = array_map(self.bindings, function(_binding) {
-            return _binding.export();
-        });
-        return { bindings: _bindings };
+        return {
+            buttons: array_map(self.buttons, function(_b) { return _b.export(); }),
+            axes: array_map(self.axes, function(_a) { return _a.export(); }),
+        };
     }
     
-    static bind = function(_type, _button, _device = 0) {
-        array_push(self.bindings, new InputBinding(_type, _button, _device));
+    static bind_button = function(_source, _button, _device = 0) {
+        array_push(self.buttons, new InputButton(_source, _button, _device));
         return self;
     }
     
-    static get_bind = function(_type, _button, _device = 0) {
-        var _binds = [];
-        for (var _i = 0; _i < array_length(self.bindings); _i++) {
-            var _binding = self.bindings[_i];
-            if (_binding.type == _type && _binding.button == _button && _binding.device == _device) {
-                array_push(_binds, _binding);
-            }
-        }
-        return _binds;
+    static bind_axis = function(_mode, _axis, _device = 0) {
+        array_push(self.axes, new InputAxis(_mode, _axis, _device));
+        return self;
     }
     
-    static unbind = function(_binding) {
-        var _index = array_get_index(self.bindings, _binding);
+    static unbind_button = function(_button) {
+        var _index = array_get_index(self.buttons, _button);
         if (_index == -1) return false;
-        array_delete(self.bindings, _index, 1);
+        array_delete(self.buttons, _index, 1);
+        return true;
+    }
+    
+    static unbind_axis = function(_axis) {
+        var _index = array_get_index(self.axes, _axis);
+        if (_index == -1) return false;
+        array_delete(self.axes, _index, 1);
         return true;
     }
     
     static down = function() {
-        return array_any(self.bindings, function(_binding) {
-            return _binding.down();
-        });
+        return array_any(self.buttons, function(_b) { return _b.down(); });
     }
     
     static pressed = function() {
-        return array_any(self.bindings, function(_binding) {
-            return _binding.pressed();
-        });
+        return array_any(self.buttons, function(_b) { return _b.pressed(); });
     }
     
     static released = function() {
-        return array_any(self.bindings, function(_binding) {
-            return _binding.released();
-        });
+        return array_any(self.buttons, function(_b) { return _b.released(); });
+    }
+    
+    static value = function() {
+        var _val = 0;
+        for (var _i = 0; _i < array_length(self.axes); _i++) {
+            var _v = self.axes[_i].value();
+            if (abs(_v) > abs(_val)) _val = _v;
+        }
+        return _val;
     }
 }
