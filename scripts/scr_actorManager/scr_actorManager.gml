@@ -85,18 +85,6 @@ function ActorManager(_world) constructor {
 		return true;
 	}
 
-	static set_instantiated = function(_actor, _instantiated) {
-		if (!is_struct(_actor)) return false;
-
-		if (_instantiated) {
-			_actor.spawn();
-			return _actor.instance != noone;
-		}
-
-		_actor.despawn();
-		return true;
-	}
-
 	static flush_pending_removals = function() {
 		for (var _i = 0; _i < array_length(self.pending_removals); _i++) {
 			var _actor = self.pending_removals[_i];

@@ -12,7 +12,7 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
     self.xscale = _image[$ "xscale"] ?? 1;
     self.yscale = _image[$ "yscale"] ?? 1;
     self.rot = _image[$ "rot"] ?? 0;
-    self.colour = _image[$ "colour"] ?? _image[$ "color"] ?? c_white;
+    self.color = _image[$ "color"] ?? c_white;
     self.alpha = _image[$ "alpha"] ?? 1;
     self.speed = _image[$ "speed"] ?? (sprite_exists(self.sprite) ? sprite_get_speed(self.sprite) : 0);
     self.fit = _image[$ "fit"] ?? OBJECT_FIT.FILL;
@@ -37,7 +37,7 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
         
         switch (self.fit) {
             case OBJECT_FIT.FILL:
-                draw_sprite_stretched_ext(self.sprite, self.subimg, _x, _y, _w, _h, self.colour, self.alpha);
+                draw_sprite_stretched_ext(self.sprite, self.subimg, _x, _y, _w, _h, self.color, self.alpha);
                 break;
             case OBJECT_FIT.CONTAIN:
             case OBJECT_FIT.SCALE_DOWN:
@@ -47,7 +47,7 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
                 _h = _height * _scale;
                 _x += (_pos.width - _w) / 2;
                 _y += (_pos.height - _h) / 2;
-                draw_sprite_stretched_ext(self.sprite, self.subimg, _x, _y, _w, _h, self.colour, self.alpha);
+                draw_sprite_stretched_ext(self.sprite, self.subimg, _x, _y, _w, _h, self.color, self.alpha);
                 break;
             case OBJECT_FIT.COVER:
                 var _scale = max(_w / _width, _h / _height);
@@ -55,12 +55,12 @@ function UIImage(_style = {}, _image = {}) : UIElement(_style) constructor {
                 var _part_h = _h / _scale;
                 var _part_x = (_width - _part_w) / 2;
                 var _part_y = (_height - _part_h) / 2;
-                draw_sprite_general(self.sprite, self.subimg, _part_x, _part_y, _part_w, _part_h, _x, _y, _scale, _scale, self.rot, self.colour, self.colour, self.colour, self.colour, self.alpha);
+                draw_sprite_general(self.sprite, self.subimg, _part_x, _part_y, _part_w, _part_h, _x, _y, _scale, _scale, self.rot, self.color, self.color, self.color, self.color, self.alpha);
                 break;
             case OBJECT_FIT.NONE:
                 _x += (_w - sprite_get_width(self.sprite) * self.xscale) / 2;
                 _y += (_h - sprite_get_height(self.sprite) * self.yscale) / 2;
-                draw_sprite_ext(self.sprite, self.subimg, _x, _y, self.xscale, self.yscale, self.rot, self.colour, self.alpha);
+                draw_sprite_ext(self.sprite, self.subimg, _x, _y, self.xscale, self.yscale, self.rot, self.color, self.alpha);
                 break;
         }
     }

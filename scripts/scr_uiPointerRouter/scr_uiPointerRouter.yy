@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_message",
+  "%Name":"scr_uiPointerRouter",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_message",
+  "name":"scr_uiPointerRouter",
   "parent":{
-    "name":"Subsystems",
-    "path":"folders/Core/Subsystems.yy",
+    "name":"UI",
+    "path":"folders/Core/Subsystems/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

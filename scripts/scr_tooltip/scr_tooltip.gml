@@ -2,12 +2,12 @@ new Tooltip();
 
 function Tooltip() constructor {
     static text = "";
-    static text_colour = #ffffff;
+    static text_color = #ffffff;
     static text_alpha = 1;
     static sep = -1;
     static w = 640;
     static font = -1;
-    static panel_colour = #121212;
+    static panel_color = #121212;
     static panel_alpha = 1;
     static padding_x = 12;
     static padding_y = 8;
@@ -22,7 +22,7 @@ function Tooltip() constructor {
         if (Tooltip.text == "") return;
         
         var _font = draw_get_font();
-        var _colour = draw_get_colour();
+        var _color = draw_get_color();
         var _alpha = draw_get_alpha();
         var _halign = draw_get_halign();
         var _valign = draw_get_valign();
@@ -40,16 +40,16 @@ function Tooltip() constructor {
         if (_offscreen_y < 0) _y += _offscreen_y;
         
         draw_set_alpha(Tooltip.panel_alpha);
-        draw_roundrect_colour(_x, _y, _x + _width, _y + _height, Tooltip.panel_colour, Tooltip.panel_colour, false);
+        draw_roundrect_color(_x, _y, _x + _width, _y + _height, Tooltip.panel_color, Tooltip.panel_color, false);
         
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
-        draw_text_ext_colour(_x + Tooltip.padding_x, _y + Tooltip.padding_y, Tooltip.text, Tooltip.sep, Tooltip.w, Tooltip.text_colour, Tooltip.text_colour, Tooltip.text_colour, Tooltip.text_colour, Tooltip.text_alpha);
+        draw_text_ext_color(_x + Tooltip.padding_x, _y + Tooltip.padding_y, Tooltip.text, Tooltip.sep, Tooltip.w, Tooltip.text_color, Tooltip.text_color, Tooltip.text_color, Tooltip.text_color, Tooltip.text_alpha);
         
         Tooltip.text = "";
         
         if (Tooltip.font != -1) draw_set_font(_font);
-        draw_set_colour(_colour);
+        draw_set_color(_color);
         draw_set_alpha(_alpha);
         draw_set_halign(_halign);
         draw_set_valign(_valign);

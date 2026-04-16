@@ -26,7 +26,7 @@
   "origin":0,
   "parent":{
     "name":"Sprites",
-    "path":"folders/G.E.M.S./UI Preset/Sprites.yy",
+    "path":"folders/Demo/UI Preset/Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

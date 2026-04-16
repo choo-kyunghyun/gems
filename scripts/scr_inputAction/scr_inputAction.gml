@@ -3,10 +3,9 @@ function InputAction() constructor {
     
     static import = function(_data) {
         var _action = new InputAction();
-        var _names = struct_get_names(_data);
-        for (var _i = 0; _i < array_length(_names); _i++) {
-            var _binding = InputBinding.import(_data[$ _names[_i]]);
-            array_push(_action.bindings, _binding);
+        var _bindings = _data[$ "bindings"] ?? [];
+        for (var _i = 0; _i < array_length(_bindings); _i++) {
+            array_push(_action.bindings, InputBinding.import(_bindings[_i]));
         }
         return _action;
     }

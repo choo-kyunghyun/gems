@@ -1,13 +1,10 @@
-// Inherit the parent event
-event_inherited();
-
 #region Release
 
     #macro RELEASE_MODE false
-
+    
     gml_release_mode(RELEASE_MODE);
     audio_throw_on_error(!RELEASE_MODE);
-    // show_debug_overlay(!RELEASE_MODE);
+    show_debug_overlay(!RELEASE_MODE);
 
 #endregion
 
@@ -37,10 +34,12 @@ event_inherited();
 
 #region UI
 
-    i18n.load("i18n/ko-KR/manifest.json");
-    draw_set_font(i18n.get_font("regular"));
+    I18n.load("i18n/ko-KR/manifest.json");
+    draw_set_font(I18n.get_font("regular"));
     // TODO: Settings, copyright, and time should be global overlay interface
     self.overlay = new UIElement();
+    UIManager.clear();
+    UIManager.insert(self.overlay, 0);
     display_set_gui_maximise();
 
 #endregion
@@ -69,7 +68,7 @@ event_inherited();
 
 #region Setting
 
-    
+    self.settings = {};
 
 #endregion
 
@@ -80,4 +79,4 @@ event_inherited();
 
 #endregion
 
-room_goto_next(); // rm_lobby
+room_goto_next();

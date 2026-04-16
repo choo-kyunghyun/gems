@@ -6,7 +6,7 @@
   "name":"scr_theme_astolfo",
   "parent":{
     "name":"UI Preset",
-    "path":"folders/G.E.M.S./UI Preset.yy",
+    "path":"folders/Demo/UI Preset.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

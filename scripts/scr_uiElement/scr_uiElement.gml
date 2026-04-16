@@ -1,10 +1,30 @@
 function UIElement(_style = {}) constructor {
-    // static direction = flexpanel_direction.LTR;
+    self.id = uuid();
+    self.ui_layer_enabled = true;
     self.flexpanel = flexpanel_create_node(_style);
     self.parent = undefined;
     self.children = [];
     self.dirty = true;
     self.clip = false;
+    self.pointer_enabled = false;
+    self.pointer_capture = false;
+    self.focusable = false;
+    self.pointer = {
+        x: 0,
+        y: 0,
+        hovered: false,
+        entered: false,
+        left: false,
+        pressed: false,
+        down: false,
+        released: false,
+        clicked: false,
+        focused: false,
+        focus_gained: false,
+        focus_lost: false,
+        target: undefined,
+        pressed_target: undefined,
+    };
     
     static on_update = function() {}
     static on_draw = function() {}
@@ -15,7 +35,7 @@ function UIElement(_style = {}) constructor {
         for (var _i = 0; _i < array_length(self.children); _i++) {
             self.children[_i].destroy();
         }
-        if (self.parent) self.parent.remove_child(self);
+        if (self.parent != undefined) self.parent.remove_child(self);
         flexpanel_delete_node(self.flexpanel);
     }
     
@@ -44,12 +64,51 @@ function UIElement(_style = {}) constructor {
         while (_root.parent) _root = _root.parent;
         _root.dirty = true;
     }
-    
-    static update = function() {
+
+    static refresh_layout = function() {
         if (self.dirty) {
             if (!self.parent) flexpanel_calculate_layout(self.flexpanel, display_get_gui_width(), display_get_gui_height(), flexpanel_direction.LTR);
             self.dirty = false;
         }
+    }
+
+    static clear_pointer = function(_x, _y) {
+        self.pointer.x = _x;
+        self.pointer.y = _y;
+        self.pointer.hovered = false;
+        self.pointer.entered = false;
+        self.pointer.left = false;
+        self.pointer.pressed = false;
+        self.pointer.down = false;
+        self.pointer.released = false;
+        self.pointer.clicked = false;
+        self.pointer.focused = false;
+        self.pointer.focus_gained = false;
+        self.pointer.focus_lost = false;
+        self.pointer.target = undefined;
+        self.pointer.pressed_target = undefined;
+
+        for (var _i = 0; _i < array_length(self.children); _i++) {
+            self.children[_i].clear_pointer(_x, _y);
+        }
+    }
+
+    static collect_pointer_targets = function(_x, _y, _hits = []) {
+        if (self.clip && !self.position_meeting(_x, _y)) return _hits;
+
+        if (self.pointer_enabled && self.position_meeting(_x, _y)) {
+            array_push(_hits, self);
+        }
+
+        for (var _i = 0; _i < array_length(self.children); _i++) {
+            self.children[_i].collect_pointer_targets(_x, _y, _hits);
+        }
+
+        return _hits;
+    }
+    
+    static update = function() {
+        self.refresh_layout();
         self.on_update();
         array_foreach(self.children, function(_child) { _child.update(); });
     }

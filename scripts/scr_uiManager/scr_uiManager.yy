@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_demo",
+  "%Name":"scr_uiManager",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_demo",
+  "name":"scr_uiManager",
   "parent":{
-    "name":"Demo",
-    "path":"folders/G.E.M.S./Demo.yy",
+    "name":"UI",
+    "path":"folders/Core/Subsystems/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

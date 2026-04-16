@@ -1,11 +1,10 @@
 function UIText(_style = {}, _text = {}) : UIElement(_style) constructor {
     self.text_ref = _text[$ "text_ref"] ?? function() { return ""; };
     self.halign = _text[$ "halign"] ?? fa_left;
-    // self.valign = _text[$ "valign"] ?? fa_top;
     self.xscale = _text[$ "xscale"] ?? 1;
     self.yscale = _text[$ "yscale"] ?? 1;
     self.angle = _text[$ "angle"] ?? 0;
-    self.colour = _text[$ "colour"] ?? _text[$ "color"] ?? c_white;
+    self.color = _text[$ "color"] ?? c_white;
     self.alpha = _text[$ "alpha"] ?? 1;
     self.sep = _text[$ "sep"] ?? -1;
     self.w = _text[$ "w"] ?? 0;
@@ -49,7 +48,6 @@ function UIText(_style = {}, _text = {}) : UIElement(_style) constructor {
         if (self.font != -1) draw_set_font(self.font);
 
         var _halign = draw_get_halign();
-        // var _valign = draw_get_valign();
         
         if (self.w > 0) {
             draw_set_halign(self.halign);
@@ -57,18 +55,13 @@ function UIText(_style = {}, _text = {}) : UIElement(_style) constructor {
             else if (self.halign == fa_right) _x += _pos.width;
         }
         
-        // draw_set_valign(self.valign);
-        // if (self.valign == fa_middle) _y += _pos.height / 2;
-        // else if (self.valign == fa_bottom) _y += _pos.height;
-        
         if (self.w > 0) {
-            draw_text_ext_transformed_colour(_x, _y, self.cache, self.sep, self.w, self.xscale, self.yscale, self.angle, self.colour, self.colour, self.colour, self.colour, self.alpha);
+            draw_text_ext_transformed_color(_x, _y, self.cache, self.sep, self.w, self.xscale, self.yscale, self.angle, self.color, self.color, self.color, self.color, self.alpha);
         } else {
-            draw_text_transformed_colour(_x, _y, self.cache, self.xscale, self.yscale, self.angle, self.colour, self.colour, self.colour, self.colour, self.alpha);
+            draw_text_transformed_color(_x, _y, self.cache, self.xscale, self.yscale, self.angle, self.color, self.color, self.color, self.color, self.alpha);
         }
 
         draw_set_halign(_halign);
-        // draw_set_valign(_valign);
         
         if (self.font != -1) draw_set_font(_font);
     }

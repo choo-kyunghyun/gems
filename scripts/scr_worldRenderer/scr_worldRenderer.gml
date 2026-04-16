@@ -16,10 +16,6 @@ function WorldRenderer() constructor {
         return self;
     }
 
-    static add = function(_pass) {
-        return self.insert(_pass);
-    }
-
     static remove = function(_pass_or_index) {
         var _index = -1;
         if (is_real(_pass_or_index)) {

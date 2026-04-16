@@ -47,8 +47,8 @@ function MotionPlanning(_grid) constructor {
 	static needs_replan = function(_actor_id) {
 		var _req = self.get_request(_actor_id);
 		if (!is_struct(_req)) return true;
-		if (array_length(_req[$ "path"]) == 0) return true;
-		return _req[$ "version"] != self.version;
+		if (array_length(_req.path) == 0) return true;
+		return _req.version != self.version;
 	}
 
 	static remove_request = function(_actor_id) {
@@ -58,8 +58,8 @@ function MotionPlanning(_grid) constructor {
 	static get_next_cell = function(_actor_id, _consume = false) {
 		var _req = self.get_request(_actor_id);
 		if (_req == undefined) return undefined;
-		var _path = variable_struct_get(_req, "path");
-		var _index = variable_struct_get(_req, "index");
+		var _path = _req.path;
+		var _index = _req.index;
 		var _len = array_length(_path);
 		if (_index >= _len) {
 			self.remove_request(_actor_id);
@@ -67,9 +67,8 @@ function MotionPlanning(_grid) constructor {
 		}
 		var _cell = _path[_index];
 		if (_consume) {
-			_index++;
-			variable_struct_set(_req, "index", _index);
-			if (_index >= _len) self.remove_request(_actor_id);
+			_req.index = _index + 1;
+			if (_req.index >= _len) self.remove_request(_actor_id);
 		}
 		return _cell;
 	}

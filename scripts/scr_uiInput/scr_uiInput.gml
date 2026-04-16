@@ -4,14 +4,16 @@ function UIInput(_style = {}, _input = {}, _panel = {}, _placeholder = {}) : UIE
     self.caret_period = _input[$ "caret_period"] ?? 1;
     self.text_padding = _input[$ "text_padding"] ?? 8;
     self.caret_elapsed = 0;
-    self.focus = false;
     self.clip = true;
+    self.pointer_enabled = true;
+    self.pointer_capture = true;
+    self.focusable = true;
 
     self.set_flex_direction(flexpanel_flex_direction.row);
     self.panel = new UIPanel({ width: "100%", height: "100%", position: "absolute" }, _panel);
     self.tooltip = undefined;
-    self.text = new UIText({}, { text_ref: method(self, function() { return self.value; }), colour: #121212 });
-    self.caret = new UIPanel({ width: _input[$ "caret_width"] ?? 4, height: "100%" }, { colour: _input[$ "caret_colour"] ?? _input[$ "caret_color"] ?? #121212, alpha: 0, rad: 0 });
+    self.text = new UIText({}, { text_ref: method(self, function() { return self.value; }), color: #121212 });
+    self.caret = new UIPanel({ width: _input[$ "caret_width"] ?? 4, height: "100%" }, { color: _input[$ "caret_color"] ?? #121212, alpha: 0, rad: 0 });
     if (_input[$ "value"] != undefined && _input[$ "value"] != "") {
         _placeholder[$ "alpha"] = 0;
     }
@@ -23,21 +25,16 @@ function UIInput(_style = {}, _input = {}, _panel = {}, _placeholder = {}) : UIE
     self.insert_child(self.placeholder);
 
     static on_update = function() {
-        var _mx = device_mouse_x_to_gui(0);
-        var _my = device_mouse_y_to_gui(0);
-        var _pressed = mouse_check_button_pressed(mb_left);
-        if (_pressed) {
-            if (self.position_meeting(_mx, _my)) {
-                self.focus = true;
-                keyboard_string = self.value;
-            } else {
-                self.focus = false;
-            }
+        var _pointer = self.pointer;
+        var _time = Time;
+
+        if (_pointer.focus_gained) {
+            keyboard_string = self.value;
         }
 
-        if (self.focus) {
+        if (_pointer.focused) {
             self.value = keyboard_string;
-            self.caret_elapsed += Time.raw;
+            self.caret_elapsed += _time.raw;
         } else {
             self.caret_elapsed = 0;
             self.caret.alpha = 0;
@@ -54,7 +51,7 @@ function UIInput(_style = {}, _input = {}, _panel = {}, _placeholder = {}) : UIE
 
         self.text.set_margin(flexpanel_edge.left, -max(0, _overflow), flexpanel_unit.point);
 
-        if (value == "") self.placeholder.alpha = 1;
+        if (self.value == "") self.placeholder.alpha = 1;
         else self.placeholder.alpha = 0;
 
         if ((self.caret_elapsed % self.caret_period) < self.caret_period * 0.5) {

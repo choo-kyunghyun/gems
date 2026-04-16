@@ -12,12 +12,6 @@ function World(_world = {}) constructor {
     self.mp = new MotionPlanning(self.mpg);
     self.actor_manager = new ActorManager(self);
 
-    static _reset_runtime = function() {
-        self.tick = 0;
-        self.nav_dirty = true;
-        self.mp.reset(self.mpg);
-    }
-
     static _rebuild_subsystems = function() {
         self.terrain = new Terrain(self.width, self.height);
         self.mpg = new MotionPlanningGrid(self.width, self.height);
@@ -40,14 +34,8 @@ function World(_world = {}) constructor {
         self.height = _level[$ "height"] ?? self.height;
 
         self._rebuild_subsystems();
-
-        var _terrain = _level[$ "terrain"];
-        if (is_struct(_terrain)) self.terrain = self.terrain.import(_terrain);
-
-        var _actors = _level[$ "actors"] ?? [];
-        self.actor_manager.import(_actors);
-
-        self._reset_runtime();
+        self.import(_level);
+        self.tick = 0;
         return self;
     }
 
@@ -55,8 +43,8 @@ function World(_world = {}) constructor {
         var _terrain = _data[$ "terrain"];
         if (is_struct(_terrain)) self.terrain = self.terrain.import(_terrain);
 
-        var _actors_state = _data[$ "actors"] ?? [];
-        self.actor_manager.import(_actors_state);
+        var _actors = _data[$ "actors"] ?? [];
+        self.actor_manager.import(_actors);
 
         self.nav_dirty = true;
         self.mp.reset(self.mpg);

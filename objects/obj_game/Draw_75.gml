@@ -1,1 +1,2 @@
+UIManager.draw();
 Tooltip.draw();

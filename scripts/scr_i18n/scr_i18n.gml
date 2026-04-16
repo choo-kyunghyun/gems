@@ -1,13 +1,13 @@
-new i18n();
+new I18n();
 
-function i18n() constructor {
+function I18n() constructor {
     static text = {};
     static fonts = {};
     static images = {};
     static sounds = {};
     
     static load = function(_fname) {
-        i18n.cleanup();
+        I18n.cleanup();
         var _path = filename_path(_fname);
         var _manifest = struct_import(_fname);
         
@@ -20,7 +20,7 @@ function i18n() constructor {
                     var _text_fname = _text_path + _files[_j];
                     var _struct = struct_import(_text_fname);
                     struct_foreach(_struct, function(_name, _value) {
-                        i18n.text[$ _name] = _value;
+                        I18n.text[$ _name] = _value;
                     });
                 }
             }
@@ -40,7 +40,7 @@ function i18n() constructor {
                 var _last = _data[$ "last"] ?? 128;
                 
                 var _font = font_add(_font_fname, _size, _bold, _italic, _first, _last);
-                i18n.fonts[$ _name] = _font;
+                I18n.fonts[$ _name] = _font;
                 
                 if (_data[$ "sdf"]) {
                     font_enable_sdf(_font, _data.sdf);
@@ -62,7 +62,7 @@ function i18n() constructor {
                 var _yorig = _data[$ "yorig"] ?? 0;
                 
                 var _sprite = sprite_add(_image_fname, _imgnum, false, false, _xorig, _yorig);
-                i18n.images[$ _name] = _sprite;
+                I18n.images[$ _name] = _sprite;
             }
         }
         
@@ -73,7 +73,7 @@ function i18n() constructor {
                 var _data = _manifest.sounds[$ _name];
                 
                 var _stream = audio_create_stream(_path + _data[$ "path"]);
-                i18n.sounds[$ _name] = _stream;
+                I18n.sounds[$ _name] = _stream;
                 
                 audio_sound_gain(_stream, _data[$ "gain"] ?? 1);
                 audio_sound_pitch(_stream, _data[$ "pitch"] ?? 1);
@@ -82,30 +82,30 @@ function i18n() constructor {
     }
     
     static cleanup = function() {
-        i18n.text = {};
+        I18n.text = {};
         
-        struct_foreach(i18n.fonts, function(_name, _value) {
+        struct_foreach(I18n.fonts, function(_name, _value) {
             font_delete(_value);
         });
-        i18n.fonts = {};
+        I18n.fonts = {};
         
-        struct_foreach(i18n.images, function(_name, _value) {
+        struct_foreach(I18n.images, function(_name, _value) {
             sprite_delete(_value);
         });
-        i18n.images = {};
+        I18n.images = {};
         
-        struct_foreach(i18n.sounds, function(_name, _value) {
+        struct_foreach(I18n.sounds, function(_name, _value) {
             audio_destroy_stream(_value);
         });
-        i18n.sounds = {};
+        I18n.sounds = {};
     }
     
     static get_text = function(_key) {
-        return i18n.text[$ _key] ?? _key;
+        return I18n.text[$ _key] ?? _key;
     }
     
     static get_text_ext = function(_key, _params = []) {
-        return string_ext(i18n.get_text(_key), _params);
+        return string_ext(I18n.get_text(_key), _params);
     }
     
     // TODO: Consider TextRef constructor for changeable params and freeze() method
@@ -115,19 +115,19 @@ function i18n() constructor {
         : method({ params: is_array(_params) ? _params : [ _params ] }, function() { return self.params; });
 
         return method({ key: _key, resolve: _resolve }, function() {
-            return i18n.get_text_ext(self.key, self.resolve());
+            return I18n.get_text_ext(self.key, self.resolve());
         });
     }
     
     static get_font = function(_key) {
-        return i18n.fonts[$ _key] ?? draw_get_font();
+        return I18n.fonts[$ _key] ?? draw_get_font();
     }
     
     static get_image = function(_key) {
-        return i18n.images[$ _key] ?? -1;
+        return I18n.images[$ _key] ?? -1;
     }
     
     static get_sound = function(_key) {
-        return i18n.sounds[$ _key] ?? -1;
+        return I18n.sounds[$ _key] ?? -1;
     }
 }

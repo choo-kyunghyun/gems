@@ -1,2 +1,6 @@
+UIManager.remove(self.overlay.id);
+self.overlay.destroy();
+UIManager.destroy();
+
 Input.cleanup();
-i18n.cleanup();
+I18n.cleanup();
