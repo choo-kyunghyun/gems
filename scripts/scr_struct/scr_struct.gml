@@ -1,4 +1,4 @@
-function struct_overwrite(_src, _dest) {
+function struct_merge(_src, _dest) {
     var _names = struct_get_names(_src);
     for (var _i = 0; _i < array_length(_names); _i++) {
         var _name = _names[_i];
@@ -9,7 +9,7 @@ function struct_overwrite(_src, _dest) {
                 _dest_sub = {};
                 _dest[$ _name] = _dest_sub;
             }
-            struct_overwrite(_val, _dest_sub);
+            struct_merge(_val, _dest_sub);
         } else {
             _dest[$ _name] = variable_clone(_val);
         }
