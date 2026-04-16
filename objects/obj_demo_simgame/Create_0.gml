@@ -3,13 +3,17 @@
 // Inherit the parent event
 event_inherited();
 
-self.world = new World({ cell_width: 32, cell_height: 32 });
+self.world = new World();
 
 self.camera = new CameraFollow();
 self.camera.set_size(room_width, room_height);
 self.camera.set_from(room_width * 0.5, room_height * 0.5, -self.camera.look_distance);
 self.camera.set_to(room_width * 0.5, room_height * 0.5, 0);
 self.camera.assign(0);
+
+self.world_renderer = new WorldRenderer();
+self.world_renderer.add(new TerrainDebugPass());
+self.world_renderer.add(new ActorDebugPass());
 
 self.camera_follow = true;
 self.camera_pan_speed = 400;
@@ -18,19 +22,10 @@ self.active_count = 0;
 self.lod_count = 0;
 self.actor_speed = 120;
 self.obstacle_rate = 0.18;
-
-// self.actor_def = new ActorDef({
-// 	id: "demo_actor",
-// 	type: "actor",
-// 	object: obj_entity,
-// 	hit: 10,
-// 	name: "Demo Actor",
-// 	properties: {},
-// });
+self.level_actor_count = 20;
 
 self.make_actor = function(_x, _y) {
 	var _a = new Actor();
-	// _a.apply_def(self.actor_def);
 	_a.name = $"Actor#{irandom(999999)}";
 	_a.x = _x;
 	_a.y = _y;
@@ -49,6 +44,21 @@ self.make_actor = function(_x, _y) {
 	_a.state_machine.change_state("lod", true);
 	_a.state_machine.update();
 	return _a;
+}
+
+self.build_level_data = function(_actor_count) {
+	var _actors = [];
+	for (var _i = 0; _i < _actor_count; _i++) {
+		var _x = irandom_range(64, display_get_gui_width() - 256);
+		var _y = irandom_range(96, display_get_gui_height() - 64);
+		array_push(_actors, self.make_actor(_x, _y));
+	}
+
+	return {
+		cell_width: 32,
+		cell_height: 32,
+		actors: _actors,
+	};
 }
 
 self.actor_demo = function(_actor) {
@@ -96,6 +106,7 @@ self.rebuild_obstacles = function() {
 		for (var _x = 0; _x < self.world.width; _x++) {
 			var _edge = (_x == 0 || _y == 0 || _x == self.world.width - 1 || _y == self.world.height - 1);
 			var _blocked = _edge || random(1) < self.obstacle_rate;
+			self.world.terrain.set_cell(_x, _y, _blocked ? 1 : 0);
 			self.world.mpg.set_cell(_x, _y, 1, _blocked);
 		}
 	}
@@ -156,5 +167,5 @@ self.despawn_actors = function(_count) {
 	}
 }
 
-self.spawn_actors(20);
+self.world.load_level(self.build_level_data(self.level_actor_count));
 self.rebuild_obstacles();

@@ -50,10 +50,7 @@ if (is_struct(self.world)) {
 		var _do_logic = _actor.is_instantiated() || (self.world.tick mod _demo[$ "lod_skip"] == 0);
 		if (!_do_logic) continue;
 
-		var _req = self.world.mp.get_request(_actor.id);
-		var _need_plan = !is_struct(_req)
-			|| (array_length(_req[$ "path"]) == 0)
-			|| (_req[$ "version"] != self.world.nav_version);
+		var _need_plan = self.world.mp.needs_replan(_actor.id);
 		if (_need_plan) self.request_actor_path(_actor);
 
 		var _next = self.world.mp.get_next_cell(_actor.id);
@@ -96,5 +93,3 @@ if (is_struct(self.world)) {
 	self.camera.to_z = self.camera.from_z + self.camera.look_distance;
 	self.camera.update();
 }
-
-

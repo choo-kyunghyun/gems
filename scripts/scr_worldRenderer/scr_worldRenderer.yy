@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_worldRenderer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_worldRenderer",
+  "parent":{
+    "name":"Renderer",
+    "path":"folders/Core/Subsystems/World/Renderer.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

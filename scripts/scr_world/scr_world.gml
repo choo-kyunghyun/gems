@@ -6,7 +6,6 @@ function World(_world = {}) constructor {
 
     self.tick = 0;
     self.nav_dirty = true;
-    self.nav_version = 0;
     
     self.terrain = new Terrain(self.width, self.height);
     self.mpg = new MotionPlanningGrid(self.width, self.height);
@@ -16,9 +15,7 @@ function World(_world = {}) constructor {
     static _reset_runtime = function() {
         self.tick = 0;
         self.nav_dirty = true;
-        self.nav_version = 0;
-        self.mp.set_grid(self.mpg);
-        self.mp.set_version(0);
+        self.mp.reset(self.mpg);
     }
 
     static _rebuild_subsystems = function() {
@@ -62,9 +59,7 @@ function World(_world = {}) constructor {
         self.actor_manager.import(_actors_state);
 
         self.nav_dirty = true;
-        self.nav_version = 0;
-        self.mp.set_grid(self.mpg);
-        self.mp.set_version(0);
+        self.mp.reset(self.mpg);
         return self;
     }
 
@@ -85,8 +80,7 @@ function World(_world = {}) constructor {
         if (self.nav_dirty) {
             // TODO: Terrain/Structure -> MPGrid dirty patch sync
             self.nav_dirty = false;
-            self.nav_version++;
-            self.mp.set_version(self.nav_version);
+            self.mp.increase_version();
         }
 
         self.actor_manager.update();
