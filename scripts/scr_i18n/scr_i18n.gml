@@ -84,19 +84,13 @@ function I18n() constructor {
     static cleanup = function() {
         I18n.text = {};
         
-        struct_foreach(I18n.fonts, function(_name, _value) {
-            font_delete(_value);
-        });
+        struct_foreach(I18n.fonts, function(_, _val) { font_delete(_val); });
         I18n.fonts = {};
         
-        struct_foreach(I18n.images, function(_name, _value) {
-            sprite_delete(_value);
-        });
+        struct_foreach(I18n.images, function(_, _val) { sprite_delete(_val); });
         I18n.images = {};
         
-        struct_foreach(I18n.sounds, function(_name, _value) {
-            audio_destroy_stream(_value);
-        });
+        struct_foreach(I18n.sounds, function(_, _val) { audio_destroy_stream(_val); });
         I18n.sounds = {};
     }
     
@@ -108,8 +102,13 @@ function I18n() constructor {
         return string_ext(I18n.get_text(_key), _params);
     }
     
-    // TODO: Consider TextRef constructor for changeable params and freeze() method
     static get_text_ref = function(_key, _params = []) {
+        if (is_array(_params) && array_length(_params) == 0) {
+            return method({ key: _key }, function() {
+                return I18n.get_text(self.key);
+            });
+        }
+
         var _resolve = is_callable(_params)
         ? method({ params: _params }, function() { return self.params(); })
         : method({ params: is_array(_params) ? _params : [ _params ] }, function() { return self.params; });
