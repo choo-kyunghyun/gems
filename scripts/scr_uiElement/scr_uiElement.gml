@@ -52,12 +52,15 @@ function UIElement(_style = {}) constructor {
         self.dirty = false;
     }
     
-    static update = function(_block = false) {
+    static update = function(_block) {
         for (var _i = array_length(self.children) - 1; _i >= 0; _i--) {
-            _block = self.children[_i].update(_block);
+            var _child = self.children[_i];
+            if (_child.enabled) {
+                _block = self.children[_i].update(_block) || _block;
+            }
         }
         var _response = self.on_update(_block);
-        if (is_bool(_response) && _response) _block = _response;
+        if (is_bool(_response) && _response) _block = true;
         self.refresh_layout();
         return _block;
     }
@@ -69,7 +72,9 @@ function UIElement(_style = {}) constructor {
             gpu_set_scissor(_pos.left, _pos.top, _pos.width, _pos.height);
         }
         self.on_draw();
-        array_foreach(self.children, function(_child) { _child.draw(); });
+        array_foreach(self.children, function(_child) {
+            if (_child.enabled) _child.draw();
+        });
         if (self.clip) gpu_set_scissor(_scissor);
     }
     

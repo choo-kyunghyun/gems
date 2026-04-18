@@ -45,7 +45,7 @@ function UIManager() constructor {
 		var _block = false;
 		for (var _i = array_length(self.roots) - 1; _i >= 0; _i--) {
 			var _root = self.roots[_i];
-			if (_root.enabled) _block = _root.update(_block);
+			if (_root.enabled) _block = _root.update(_block) || _block;
 		}
 	}
 

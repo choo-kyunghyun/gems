@@ -9,16 +9,12 @@ function UITrigger(_style = {}, _trigger = {}) : UIElement(_style) constructor {
     self.hold = false;
     
     static on_destroy = function() {
+        if (self.hold) self.on_up();
         if (self.enter) self.on_leave();
     }
     
     static on_update = function(_block) {
-        if (_block) {
-            if (self.enter) self.on_leave();
-            return _block;
-        }
-
-        var _pressed = _block ? false : mouse_check_button_pressed(mb_left);
+        var _pressed = mouse_check_button_pressed(mb_left);
         var _released = mouse_check_button_released(mb_left);
         var _mx = device_mouse_x_to_gui(0);
         var _my = device_mouse_y_to_gui(0);
@@ -39,7 +35,7 @@ function UITrigger(_style = {}, _trigger = {}) : UIElement(_style) constructor {
         if (_released) {
             if (self.hold) {
                 self.on_up();
-                if (self.enter) self.on_click();
+                if (self.enter && !_block) self.on_click();
             }
             self.hold = false;
         }

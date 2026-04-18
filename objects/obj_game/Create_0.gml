@@ -8,6 +8,12 @@
 
 #endregion
 
+#region Properties
+
+self.persistent = true;
+
+#endregion
+
 #region Window
 
     var _w = display_get_width() / 2;
@@ -35,11 +41,10 @@
 #region UI
 
     I18n.load("i18n/ko-KR/manifest.json");
-    draw_set_font(I18n.get_font("regular"));
+    draw_set_font(I18n.get_font("normal"));
     display_set_gui_maximise();
     
-    // TODO: Settings, copyright, and time should be global overlay interface
-    self.overlay = new UIElement();
+    self.overlay = demo_ui_overlay();
     UIManager.insert(self.overlay);
 
 #endregion

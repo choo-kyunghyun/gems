@@ -32,7 +32,6 @@
     {"$GMIncludedFile":"","%Name":"OFL.txt","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/fonts/Noto_Sans_KR","name":"OFL.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"README.txt","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/fonts/Noto_Sans_KR","name":"README.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"NotoSansKR-Bold.ttf","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/fonts/Noto_Sans_KR/static","name":"NotoSansKR-Bold.ttf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"NotoSansKR-Light.ttf","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/fonts/Noto_Sans_KR/static","name":"NotoSansKR-Light.ttf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"NotoSansKR-Regular.ttf","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/fonts/Noto_Sans_KR/static","name":"NotoSansKR-Regular.ttf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"manifest.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR","name":"manifest.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
