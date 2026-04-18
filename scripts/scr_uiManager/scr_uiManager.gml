@@ -2,18 +2,13 @@ new UIManager();
 
 function UIManager() constructor {
 	static roots = [];
-	static pointer_router = new UIPointerRouter();
 
-	static _index_of = function(_root_id) {
-		for (var _i = 0; _i < array_length(self.roots); _i++) {
-			if (self.roots[_i].id == _root_id) return _i;
-		}
-		return -1;
+	static destroy = function() {
+		self.roots = [];
 	}
 
-	static _sync_router = function() {
-		self.pointer_router.set_roots(self.roots);
-		return self;
+	static index_of = function(_root) {
+		return array_get_index(self.roots, _root);
 	}
 
 	static count = function() {
@@ -25,60 +20,39 @@ function UIManager() constructor {
 	}
 
 	static insert = function(_root, _index = array_length(self.roots), _enabled = true) {
-		if (_root == undefined) return self;
-
-		_root.ui_layer_enabled = _enabled;
-		_index = clamp(_index, 0, array_length(self.roots));
+		_root.enabled = _enabled;
 		array_insert(self.roots, _index, _root);
-		self._sync_router();
 		return self;
 	}
 
-	static set_enabled = function(_root_id, _enabled) {
-		var _index = self._index_of(_root_id);
-		if (_index != -1) {
-			self.roots[_index].ui_layer_enabled = _enabled;
-			self._sync_router();
-		}
-		return self;
-	}
-
-	static remove = function(_root_id) {
-		var _index = self._index_of(_root_id);
+	static remove = function(_root) {
+		var _index = self.index_of(_root);
 		if (_index != -1) {
 			array_delete(self.roots, _index, 1);
-			self._sync_router();
 		}
 		return self;
 	}
 
-	static clear = function() {
-		self.roots = [];
-		self.pointer_router.clear_roots();
+	static set_enabled = function(_root, _enabled) {
+		var _index = self.index_of(_root);
+		if (_index != -1) {
+			self.roots[_index].enabled = _enabled;
+		}
 		return self;
 	}
 
 	static update = function() {
-		self.pointer_router.update();
-		for (var _i = 0; _i < array_length(self.roots); _i++) {
+		var _block = false;
+		for (var _i = array_length(self.roots) - 1; _i >= 0; _i--) {
 			var _root = self.roots[_i];
-			if (_root != undefined && _root.ui_layer_enabled) {
-				_root.update();
-			}
+			if (_root.enabled) _block = _root.update(_block);
 		}
 	}
 
 	static draw = function() {
 		for (var _i = 0; _i < array_length(self.roots); _i++) {
 			var _root = self.roots[_i];
-			if (_root != undefined && _root.ui_layer_enabled) {
-				_root.draw();
-			}
+			if (_root.enabled) _root.draw();
 		}
-	}
-
-	static destroy = function() {
-		self.clear();
-		self.pointer_router.destroy();
 	}
 }

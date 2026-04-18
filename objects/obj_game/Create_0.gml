@@ -36,11 +36,11 @@
 
     I18n.load("i18n/ko-KR/manifest.json");
     draw_set_font(I18n.get_font("regular"));
+    display_set_gui_maximise();
+    
     // TODO: Settings, copyright, and time should be global overlay interface
     self.overlay = new UIElement();
-    UIManager.clear();
-    UIManager.insert(self.overlay, 0);
-    display_set_gui_maximise();
+    UIManager.insert(self.overlay);
 
 #endregion
 

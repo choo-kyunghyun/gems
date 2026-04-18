@@ -1,4 +1,4 @@
-UIManager.remove(self.overlay.id);
+UIManager.remove(self.overlay);
 self.overlay.destroy();
 UIManager.destroy();
 

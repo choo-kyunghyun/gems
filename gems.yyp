@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"gems",
   "AudioGroups":[
-    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -46,6 +46,7 @@
     {"id":{"name":"obj_entity","path":"objects/obj_entity/obj_entity.yy",},},
     {"id":{"name":"obj_game","path":"objects/obj_game/obj_game.yy",},},
     {"id":{"name":"rm_init","path":"rooms/rm_init/rm_init.yy",},},
+    {"id":{"name":"rm_library","path":"rooms/rm_library/rm_library.yy",},},
     {"id":{"name":"scr_actor","path":"scripts/scr_actor/scr_actor.yy",},},
     {"id":{"name":"scr_actorDebugPass","path":"scripts/scr_actorDebugPass/scr_actorDebugPass.yy",},},
     {"id":{"name":"scr_actorManager","path":"scripts/scr_actorManager/scr_actorManager.yy",},},
@@ -80,7 +81,6 @@
     {"id":{"name":"scr_uiInput","path":"scripts/scr_uiInput/scr_uiInput.yy",},},
     {"id":{"name":"scr_uiManager","path":"scripts/scr_uiManager/scr_uiManager.yy",},},
     {"id":{"name":"scr_uiPanel","path":"scripts/scr_uiPanel/scr_uiPanel.yy",},},
-    {"id":{"name":"scr_uiPointerRouter","path":"scripts/scr_uiPointerRouter/scr_uiPointerRouter.yy",},},
     {"id":{"name":"scr_uiSelect","path":"scripts/scr_uiSelect/scr_uiSelect.yy",},},
     {"id":{"name":"scr_uiSlider","path":"scripts/scr_uiSlider/scr_uiSlider.yy",},},
     {"id":{"name":"scr_uiText","path":"scripts/scr_uiText/scr_uiText.yy",},},
@@ -98,6 +98,7 @@
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
     {"roomId":{"name":"rm_init","path":"rooms/rm_init/rm_init.yy",},},
+    {"roomId":{"name":"rm_library","path":"rooms/rm_library/rm_library.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[
