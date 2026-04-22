@@ -4,7 +4,6 @@
     
     gml_release_mode(RELEASE_MODE);
     audio_throw_on_error(!RELEASE_MODE);
-    show_debug_overlay(!RELEASE_MODE);
 
 #endregion
 
@@ -44,8 +43,12 @@ self.persistent = true;
     draw_set_font(I18n.get_font("normal"));
     display_set_gui_maximise();
     
+    self.overlay_visible = true;
     self.overlay = demo_ui_overlay();
+    self.overlay.set_margin(flexpanel_edge.top, 0);
     UIManager.insert(self.overlay);
+
+    self.show_fps = false;
 
 #endregion
 
@@ -74,6 +77,12 @@ self.persistent = true;
 #region Setting
 
     self.settings = {};
+
+#endregion
+
+#region Screenshot
+
+    self.screenshot_counter = 0;
 
 #endregion
 

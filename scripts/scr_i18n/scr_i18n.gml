@@ -42,11 +42,11 @@ function I18n() constructor {
                 var _font = font_add(_font_fname, _size, _bold, _italic, _first, _last);
                 I18n.fonts[$ _name] = _font;
                 
-                if (_data[$ "sdf"]) {
-                    font_enable_sdf(_font, _data.sdf);
-                    font_sdf_spread(_font, _data[$ "sdf_spread"] ?? 8);
-                    if (_data[$ "effects"]) font_enable_effects(_font, true, _data.effects);
-                }
+                // if (_data[$ "sdf"]) {
+                //     font_enable_sdf(_font, _data.sdf);
+                //     font_sdf_spread(_font, _data[$ "sdf_spread"] ?? 8);
+                //     if (_data[$ "effects"]) font_enable_effects(_font, true, _data.effects);
+                // }
             }
         }
         

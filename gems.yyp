@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"gems",
   "AudioGroups":[
-    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -51,7 +51,7 @@
     {"id":{"name":"scr_actorManager","path":"scripts/scr_actorManager/scr_actorManager.yy",},},
     {"id":{"name":"scr_camera","path":"scripts/scr_camera/scr_camera.yy",},},
     {"id":{"name":"scr_cameraFollow","path":"scripts/scr_cameraFollow/scr_cameraFollow.yy",},},
-    {"id":{"name":"scr_colour","path":"scripts/scr_colour/scr_colour.yy",},},
+    {"id":{"name":"scr_color","path":"scripts/scr_color/scr_color.yy",},},
     {"id":{"name":"scr_entity","path":"scripts/scr_entity/scr_entity.yy",},},
     {"id":{"name":"scr_file","path":"scripts/scr_file/scr_file.yy",},},
     {"id":{"name":"scr_grid2D","path":"scripts/scr_grid2D/scr_grid2D.yy",},},
@@ -70,6 +70,7 @@
     {"id":{"name":"scr_terrainDebugPass","path":"scripts/scr_terrainDebugPass/scr_terrainDebugPass.yy",},},
     {"id":{"name":"scr_terrainType","path":"scripts/scr_terrainType/scr_terrainType.yy",},},
     {"id":{"name":"scr_theme_astolfo","path":"scripts/scr_theme_astolfo/scr_theme_astolfo.yy",},},
+    {"id":{"name":"scr_theme_space","path":"scripts/scr_theme_space/scr_theme_space.yy",},},
     {"id":{"name":"scr_time","path":"scripts/scr_time/scr_time.yy",},},
     {"id":{"name":"scr_tooltip","path":"scripts/scr_tooltip/scr_tooltip.yy",},},
     {"id":{"name":"scr_uiButton","path":"scripts/scr_uiButton/scr_uiButton.yy",},},

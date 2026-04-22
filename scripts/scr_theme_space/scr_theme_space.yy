@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_colour",
+  "%Name":"scr_theme_space",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_colour",
+  "name":"scr_theme_space",
   "parent":{
-    "name":"Subsystems",
-    "path":"folders/Core/Subsystems.yy",
+    "name":"UI Preset",
+    "path":"folders/Demo/UI Preset.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

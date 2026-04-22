@@ -26,3 +26,21 @@ function uuid() {
 
 	return _uuid;
 }
+
+function format_iso_date(_datetime = date_current_datetime(), _ext = true) {
+	var _year = string_replace_all(string_format(date_get_year(_datetime), 4, 0), " ", "0");
+	var _month = string_replace_all(string_format(date_get_month(_datetime), 2, 0), " ", "0");
+	var _day = string_replace_all(string_format(date_get_day(_datetime), 2, 0), " ", "0");
+	return _ext ? $"{_year}-{_month}-{_day}" : $"{_year}{_month}{_day}";
+}
+
+function format_iso_time(_datetime = date_current_datetime(), _ext = true) {
+	var _hour = string_replace_all(string_format(date_get_hour(_datetime), 2, 0), " ", "0");
+	var _min = string_replace_all(string_format(date_get_minute(_datetime), 2, 0), " ", "0");
+	var _sec = string_replace_all(string_format(date_get_second(_datetime), 2, 0), " ", "0");
+	return _ext ? $"{_hour}:{_min}:{_sec}" : $"{_hour}{_min}{_sec}";
+}
+
+function format_iso_datetime(_datetime = date_current_datetime(), _ext = true) {
+	return $"{format_iso_date(_datetime, _ext)}T{format_iso_time(_datetime, _ext)}";
+}
