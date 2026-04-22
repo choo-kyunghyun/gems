@@ -1,4 +1,4 @@
-function UITooltip(_style = {}, _tooltip = {}) : UITrigger(_style, {}) constructor {
+function UITooltip(_style = {}, _tooltip = {}) : UITrigger(_style, { block: false }) constructor {
     self.text_ref = _tooltip[$ "text_ref"] ?? function() { return ""; };
     self.delay = _tooltip[$ "delay"] ?? 0.2;
     self.elapsed = 0;

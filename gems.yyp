@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"gems",
   "AudioGroups":[
-    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -44,8 +44,9 @@
   "resources":[
     {"id":{"name":"obj_entity","path":"objects/obj_entity/obj_entity.yy",},},
     {"id":{"name":"obj_game","path":"objects/obj_game/obj_game.yy",},},
+    {"id":{"name":"obj_title","path":"objects/obj_title/obj_title.yy",},},
     {"id":{"name":"rm_init","path":"rooms/rm_init/rm_init.yy",},},
-    {"id":{"name":"rm_library","path":"rooms/rm_library/rm_library.yy",},},
+    {"id":{"name":"rm_title","path":"rooms/rm_title/rm_title.yy",},},
     {"id":{"name":"scr_actor","path":"scripts/scr_actor/scr_actor.yy",},},
     {"id":{"name":"scr_actorDebugPass","path":"scripts/scr_actorDebugPass/scr_actorDebugPass.yy",},},
     {"id":{"name":"scr_actorManager","path":"scripts/scr_actorManager/scr_actorManager.yy",},},
@@ -98,7 +99,7 @@
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
     {"roomId":{"name":"rm_init","path":"rooms/rm_init/rm_init.yy",},},
-    {"roomId":{"name":"rm_library","path":"rooms/rm_library/rm_library.yy",},},
+    {"roomId":{"name":"rm_title","path":"rooms/rm_title/rm_title.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[

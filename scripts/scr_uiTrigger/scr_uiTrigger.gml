@@ -1,4 +1,5 @@
 function UITrigger(_style = {}, _trigger = {}) : UIElement(_style) constructor {
+    self.block = _trigger[$ "block"] ?? true;
     self.on_enter = method(self, _trigger[$ "on_enter"] ?? noop);
     self.on_hover = method(self, _trigger[$ "on_hover"] ?? noop);
     self.on_leave = method(self, _trigger[$ "on_leave"] ?? noop);
@@ -40,6 +41,6 @@ function UITrigger(_style = {}, _trigger = {}) : UIElement(_style) constructor {
             self.hold = false;
         }
 
-        return self.hold;
+        return self.block && (self.hold || self.enter);
     }
 }

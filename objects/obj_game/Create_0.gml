@@ -42,11 +42,6 @@ self.persistent = true;
     I18n.load("i18n/ko-KR/manifest.json");
     draw_set_font(I18n.get_font("normal"));
     display_set_gui_maximise();
-    
-    self.overlay_visible = true;
-    self.overlay = demo_ui_overlay();
-    self.overlay.set_margin(flexpanel_edge.top, 0);
-    UIManager.insert(self.overlay);
 
     self.show_fps = false;
 
@@ -76,7 +71,46 @@ self.persistent = true;
 
 #region Setting
 
+    self.settings_path = "user_settings.json";
+    self.settings_default = {
+        language: "ko-KR",
+        mouse_sens: 0.5,
+        raw_input: false,
+        ui_scale: 1.0,
+        show_fps: false,
+        vol_master: 1.0,
+        fullscreen: false,
+        fps_limit: 60,
+        resolution_w: 0,
+        resolution_h: 0,
+    };
+
     self.settings = {};
+    struct_merge(self.settings_default, self.settings);
+
+    self.settings_is_modified = function(_key) {
+        return (self.settings[$ _key] ?? self.settings_default[$ _key]) != self.settings_default[$ _key];
+    }
+
+    self.settings_export = function() {
+        return struct_export(self.settings, self.settings_path);
+    }
+
+    self.settings_import = function() {
+        var _loaded = struct_import(self.settings_path);
+        if (is_struct(_loaded)) struct_merge(_loaded, self.settings);
+        self.show_fps = self.settings[$ "show_fps"] ?? self.show_fps;
+        return self;
+    }
+
+    self.settings_reset = function() {
+        self.settings = {};
+        struct_merge(self.settings_default, self.settings);
+        self.show_fps = self.settings[$ "show_fps"] ?? false;
+        return self;
+    }
+
+    self.settings_import();
 
 #endregion
 

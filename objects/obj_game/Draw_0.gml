@@ -1,1 +1,1 @@
-draw_clear(ASTOLFO_BLACK_D);
+draw_clear(global.space_color.slate);
