@@ -1,4 +1,4 @@
-UIManager.draw();
+UI.draw();
 Tooltip.draw();
 
 if (self.show_fps) {

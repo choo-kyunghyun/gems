@@ -1,7 +1,7 @@
 function UIPanel(_style = {}, _panel = {}) : UIElement(_style) constructor {
     self.color = _panel[$ "color"] ?? c_white;
     self.alpha = _panel[$ "alpha"] ?? 1;
-    self.rad = _panel[$ "rad"] ?? 16;
+    self.rad = _panel[$ "rad"] ?? 0;
     
     static on_draw = function() {
         var _alpha = draw_get_alpha();

@@ -1,1 +1,1 @@
-UIManager.update();
+UI.update();

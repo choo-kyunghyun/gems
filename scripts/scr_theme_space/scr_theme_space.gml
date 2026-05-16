@@ -1,12 +1,9 @@
 global.space_color = {
     white: #ffffff,
-    // rgba(245, 245, 247, 0.8)
-    alabaster: $ccf5f5f7,
+    alabaster: $ccf7f5f5,
     silver: #d1d1d6,
-  // CSS uses #2c2c2e
-  slate: #2c2c2e,
-  // CSS variable is ui-grey
-  grey: #a1a1a1,
+    slate: #2c2c2e,
+    grey: #a1a1a1,
     accent: #007aff,
 };
 
@@ -18,11 +15,11 @@ global.space_font_weight = {
 
 global.space_effect = {
     glass_blur: 12,
-  // Note: our primitives don't render borders; we approximate hairline via translucent panels.
-  hairline: 0.5
+    // Note: our primitives don't render borders; we approximate hairline via translucent panels.
+    hairline: 0.5
 };
 
-// Font selection is handled by I18n in this project (see `scr_theme_astolfo.gml`).
+// Font selection is handled by I18n in this project.
 #macro SPACE_FONT_NORMAL I18n.get_font("normal")
 #macro SPACE_FONT_BOLD I18n.get_font("bold")
 
@@ -213,9 +210,10 @@ function space_ui_checkbox(_text = "", _value = false, _action = noop, _override
     { marginLeft: 14 },
     { text_ref: space_text_ref(_text), font: SPACE_FONT_NORMAL, color: global.space_color.white }
   );
-  var _box = new UICheckbox(_style, _check, _trigger);
-  _box.insert_child(_bg, 0).insert_child(_txt, 1);
-  return _box;
+  // var _box = new UICheckbox(_style, _check, _trigger);
+  // _box.insert_child(_bg, 0).insert_child(_txt, 1);
+  // return _box;
+  return new UIElement();
 }
 
 function space_ui_dropdown(_items = [], _index = 0, _on_change = noop, _overrides = {}) {
@@ -238,7 +236,8 @@ function space_ui_dropdown(_items = [], _index = 0, _on_change = noop, _override
   var _item_panel = _overrides[$ "item_panel"] ?? { color: global.space_color.white, alpha: 0.10, rad: 6 };
   var _item_text = _overrides[$ "item_text"] ?? { font: SPACE_FONT_NORMAL, color: global.space_color.white };
 
-  return new UIDropdown(_style, _dropdown, _button, _list_panel, _item_panel, _item_text);
+  // return new UIDropdown(_style, _dropdown, _button, _list_panel, _item_panel, _item_text);
+  return new UIElement();
 }
 
 #endregion

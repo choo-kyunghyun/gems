@@ -1,0 +1,32 @@
+{
+  "$GMShape":"v2",
+  "%Name":"",
+  "baked":false,
+  "hiddenGeometryClipped":false,
+  "maxX":32.0,
+  "maxY":32.0,
+  "minX":0.0,
+  "minY":0.0,
+  "name":"",
+  "precision":0.050000012,
+  "resourceType":"GMShape",
+  "resourceVersion":"2.0",
+  "styleGroups":[
+    {"$GMStyleGroup":"","%Name":"","fillStyles":[
+        {"$1":"","rgba":4294967295,},
+      ],"lineStyleData":[],"name":"","resourceType":"GMStyleGroup","resourceVersion":"2.0","shapes":[
+        {"$GMSubShape":"v2","%Name":"","AALines":[0,1,1,2,2,3,],"AAVectors":[
+            {"x":1.0,"y":1.7285277,},
+            {"x":-2.0127249,"y":-0.0037897609,},
+            {"x":1.0,"y":-1.7210429,},
+            {"x":1.0,"y":1.7285277,},
+          ],"closed":true,"fillStyle0":-1,"fillStyle1":0,"linePoints":[],"lines":[],"lineStyle":-1,"lineTris":[],"name":"","pointColours":[],"points":[
+            {"x":25.5,"y":27.4,},
+            {"x":5.5,"y":15.899999,},
+            {"x":25.5,"y":4.5,},
+            {"x":25.5,"y":27.4,},
+          ],"resourceType":"GMSubShape","resourceVersion":"2.0","tris":[0,1,2,],},
+      ],},
+  ],
+  "triangulated":true,
+}

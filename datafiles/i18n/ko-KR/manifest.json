@@ -4,7 +4,7 @@
   "name": "한국어",
   "text": ["text/*.json"],
   "fonts": {
-    "normal": {
+    "normal_24": {
       "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
       "size": 24,
       "bold": false,
@@ -14,7 +14,7 @@
       "sdf": true,
       "sdf_spread": 8
     },
-    "bold": {
+    "bold_24": {
       "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Bold.ttf",
       "size": 24,
       "bold": false,
@@ -24,9 +24,19 @@
       "sdf": true,
       "sdf_spread": 8
     },
-    "small": {
+    "normal_36": {
       "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
-      "size": 16,
+      "size": 36,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 55203,
+      "sdf": true,
+      "sdf_spread": 8
+    },
+    "bold_36": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Bold.ttf",
+      "size": 36,
       "bold": false,
       "italic": false,
       "first": 32,

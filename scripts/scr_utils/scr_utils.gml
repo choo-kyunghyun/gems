@@ -44,3 +44,8 @@ function format_iso_time(_datetime = date_current_datetime(), _ext = true) {
 function format_iso_datetime(_datetime = date_current_datetime(), _ext = true) {
 	return $"{format_iso_date(_datetime, _ext)}T{format_iso_time(_datetime, _ext)}";
 }
+
+function rem(_value = 1, _font = draw_get_font()) {
+    var _info = font_get_info(_font);
+    return _value * _info[$ "size"];
+}

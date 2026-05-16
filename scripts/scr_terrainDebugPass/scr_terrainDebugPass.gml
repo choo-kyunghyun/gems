@@ -7,7 +7,7 @@ function TerrainDebugPass() : WorldRenderPass() constructor {
 		for (var _y = 0; _y < _world.height; _y++) {
 			for (var _x = 0; _x < _world.width; _x++) {
 				if (!_world.mpg.is_blocked(_x, _y)) continue;
-				draw_set_color(ASTOLFO_BLACK);
+				draw_set_color(#4d514a);
 				draw_rectangle(_x * _cw, _y * _ch, (_x + 1) * _cw, (_y + 1) * _ch, false);
 			}
 		}

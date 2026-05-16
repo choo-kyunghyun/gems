@@ -4,15 +4,12 @@ function UISlider(_style = {}, _slider = {}, _track = {}, _fill = {}, _thumb = {
     self.value = clamp(_slider[$ "value"] ?? self.min, self.min, self.max);
     self.on_change = method(self, _slider[$ "on_change"] ?? noop);
     self.read_only = _slider[$ "read_only"] ?? false;
-    self.step = _slider[$ "step"]; // optional snap step
-    self.values = _slider[$ "values"]; // optional discrete values array
-    self.integer = _slider[$ "integer"] ?? false;
+    self.step = _slider[$ "step"];
+    self.values = _slider[$ "values"];
 
     self.track = new UIPanel({ width: "100%", height: "100%", position: "absolute" }, _track);
     self.fill = new UIPanel({ height: "100%", position: "absolute" }, _fill);
     self.thumb = new UIPanel({ aspectRatio: 1, height: "140%", position: "absolute" }, _thumb);
-
-    // Full-size trigger area; tune interaction size via element height + padding.
     self.trigger = new UITrigger({ width: "100%", height: "100%", position: "absolute" }, _trigger);
 
     self.insert_child(self.track);
@@ -31,10 +28,9 @@ function UISlider(_style = {}, _slider = {}, _track = {}, _fill = {}, _thumb = {
             }
             return self.values[_best];
         }
-        if (is_real(self.step) && self.step > 0) {
+        if (!is_undefined(self.step) && self.step > 0) {
             return round(_v / self.step) * self.step;
         }
-        if (self.integer) return round(_v);
         return _v;
     }
 
@@ -49,7 +45,6 @@ function UISlider(_style = {}, _slider = {}, _track = {}, _fill = {}, _thumb = {
         var _pos = flexpanel_node_layout_get_position(self.flexpanel, false);
         if (_pos.width <= 0) return;
 
-        // Track height is derived purely from layout padding.
         var _inner_h = max(0, _pos.height - _pos.paddingTop - _pos.paddingBottom);
         var _track_top = _pos.paddingTop;
         self.track.set_height(_inner_h, flexpanel_unit.point);
@@ -57,18 +52,14 @@ function UISlider(_style = {}, _slider = {}, _track = {}, _fill = {}, _thumb = {
         self.track.set_position(flexpanel_edge.top, _track_top, flexpanel_unit.point);
         self.fill.set_position(flexpanel_edge.top, _track_top, flexpanel_unit.point);
 
-        // Thumb: size relative to track height
         self.thumb.set_height(_inner_h * 1.4, flexpanel_unit.point);
 
-        // Update visuals
         var _t = (self.max == self.min) ? 0 : (self.value - self.min) / (self.max - self.min);
         var _x = _t * _pos.width;
         self.fill.set_width(_x, flexpanel_unit.point);
         self.thumb.set_position(flexpanel_edge.left, _x - (_inner_h * 0.2), flexpanel_unit.point);
         self.thumb.set_position(flexpanel_edge.top, _track_top - (_inner_h * 0.2), flexpanel_unit.point);
 
-        // Basic drag interaction via trigger's state
-        // (UITrigger itself handles enter/hold; we map hold to value update)
         if (!self.read_only && self.trigger.hold) {
             var _mx = device_mouse_x_to_gui(0);
             var _clamped = clamp(_mx - _pos.left, 0, _pos.width);

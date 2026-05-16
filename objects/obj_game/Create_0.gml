@@ -40,8 +40,9 @@ self.persistent = true;
 #region UI
 
     I18n.load("i18n/ko-KR/manifest.json");
-    draw_set_font(I18n.get_font("normal"));
-    display_set_gui_maximise();
+    draw_set_font(I18n.get_font("normal_36"));
+    // display_set_gui_maximise();
+    display_set_gui_size(1366, 768);
 
     self.show_fps = false;
 

@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_theme_astolfo",
+  "%Name":"scr_title",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_theme_astolfo",
+  "name":"scr_title",
   "parent":{
-    "name":"UI Preset",
-    "path":"folders/Demo/UI Preset.yy",
+    "name":"Title",
+    "path":"folders/Demo/Title.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

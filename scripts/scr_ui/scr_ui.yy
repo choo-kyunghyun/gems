@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_uiManager",
+  "%Name":"scr_ui",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_uiManager",
+  "name":"scr_ui",
   "parent":{
     "name":"UI",
     "path":"folders/Core/Subsystems/UI.yy",

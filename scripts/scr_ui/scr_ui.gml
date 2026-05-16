@@ -1,6 +1,6 @@
-new UIManager();
+new UI();
 
-function UIManager() constructor {
+function UI() constructor {
 	static roots = [];
 
 	static destroy = function() {
