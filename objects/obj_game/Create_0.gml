@@ -32,8 +32,8 @@ self.persistent = true;
 #region Draw
 
     draw_set_circle_precision(64);
-    draw_enable_svg_aa(true);
-    draw_set_svg_aa_level(1);
+    // draw_enable_svg_aa(true);
+    // draw_set_svg_aa_level(1);
 
 #endregion
 
@@ -57,10 +57,10 @@ self.persistent = true;
         RIGHT,
     }
     
-    Input.register(INPUT_ACTIONS.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
-    Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
-    Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
-    Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
+    // Input.register(INPUT_ACTIONS.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
+    // Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
+    // Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
+    // Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
 
 #endregion
 

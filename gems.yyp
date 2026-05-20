@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"gems",
   "AudioGroups":[
-    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -39,7 +39,7 @@
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.14.4.222",
+    "IDEVersion":"2024.1400.5.1065",
   },
   "name":"gems",
   "resources":[
@@ -80,7 +80,6 @@
     {"id":{"name":"scr_uiButton","path":"scripts/scr_uiButton/scr_uiButton.yy",},},
     {"id":{"name":"scr_uiElement","path":"scripts/scr_uiElement/scr_uiElement.yy",},},
     {"id":{"name":"scr_uiImage","path":"scripts/scr_uiImage/scr_uiImage.yy",},},
-    {"id":{"name":"scr_uiInput","path":"scripts/scr_uiInput/scr_uiInput.yy",},},
     {"id":{"name":"scr_uiPanel","path":"scripts/scr_uiPanel/scr_uiPanel.yy",},},
     {"id":{"name":"scr_uiSelect","path":"scripts/scr_uiSelect/scr_uiSelect.yy",},},
     {"id":{"name":"scr_uiSlider","path":"scripts/scr_uiSlider/scr_uiSlider.yy",},},
