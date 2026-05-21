@@ -1,9 +1,5 @@
-UI.draw();
-Tooltip.draw();
-
-if (self.show_fps) {
-    draw_text(32, 32, $"fps: {fps} | fps_real: {fps_real}");
-}
+// UI.draw();
+// Tooltip.draw();
 
 if (keyboard_check_pressed(vk_f5)) {
     var _datetime = format_iso_datetime(date_current_datetime(), false);

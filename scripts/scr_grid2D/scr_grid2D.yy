@@ -10,4 +10,5 @@
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
+  "scriptSource":"scr_grid2D.js",
 }

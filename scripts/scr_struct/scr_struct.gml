@@ -1,3 +1,4 @@
+// TODO: umm... JS?
 function struct_merge(_src, _dest) {
     var _names = struct_get_names(_src);
     for (var _i = 0; _i < array_length(_names); _i++) {

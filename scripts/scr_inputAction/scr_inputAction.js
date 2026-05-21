@@ -6,8 +6,8 @@ global.InputAction = class InputAction {
 
   static import(data) {
     const action = new InputAction();
-    const buttons = data?.buttons ?? [];
-    const axes = data?.axes ?? [];
+    const buttons = data.buttons ?? [];
+    const axes = data.axes ?? [];
 
     for (const button of buttons) {
       action.buttons.push(InputButton.import(button));

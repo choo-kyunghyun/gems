@@ -39,10 +39,10 @@ self.persistent = true;
 
 #region UI
 
-    I18n.load("i18n/ko-KR/manifest.json");
-    draw_set_font(I18n.get_font("normal_36"));
+    // I18n.load("i18n/ko-KR/manifest.json");
+    // draw_set_font(I18n.get_font("normal_36"));
     // display_set_gui_maximise();
-    display_set_gui_size(1366, 768);
+    // display_set_gui_size(1366, 768);
 
     self.show_fps = false;
 
@@ -50,23 +50,17 @@ self.persistent = true;
 
 #region Input
 
-    enum INPUT_ACTIONS {
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT,
-    }
+    // enum INPUT_ACTIONS {
+    //     UP,
+    //     DOWN,
+    //     LEFT,
+    //     RIGHT,
+    // }
     
     // Input.register(INPUT_ACTIONS.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
     // Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
     // Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
     // Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
-
-#endregion
-
-#region Demo
-
-    self.level = noone;
 
 #endregion
 

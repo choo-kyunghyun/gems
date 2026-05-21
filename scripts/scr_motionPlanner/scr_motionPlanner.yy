@@ -10,5 +10,5 @@
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_motionPlanner.gml",
+  "scriptSource":"scr_motionPlanner.js",
 }
