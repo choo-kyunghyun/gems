@@ -6,7 +6,7 @@
   "name":"scr_motionPlanner",
   "parent":{
     "name":"MotionPlanning",
-    "path":"folders/Core/Subsystems/World/Entity/MotionPlanning.yy",
+    "path":"folders/Core/MotionPlanning.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

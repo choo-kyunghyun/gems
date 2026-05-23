@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_name",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_name",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"scr_name.js",
+}

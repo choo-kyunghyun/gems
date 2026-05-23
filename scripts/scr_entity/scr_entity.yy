@@ -6,7 +6,7 @@
   "name":"scr_entity",
   "parent":{
     "name":"Entity",
-    "path":"folders/Core/Subsystems/World/Entity.yy",
+    "path":"folders/Core/Entity.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"scr_camera",
   "parent":{
     "name":"Camera",
-    "path":"folders/Core/Subsystems/Camera.yy",
+    "path":"folders/Core/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

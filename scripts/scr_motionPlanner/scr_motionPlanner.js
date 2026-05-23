@@ -1,134 +1,130 @@
-global.MP_ALGORITHM = Object.freeze({
+globalThis.MP_ALGORITHM = Object.freeze({
   ASTAR: 0,
 });
 
-global.MotionPlanner = class MotionPlanner {
-  static COST_INF = infinity;
-  static SQRT_2 = Math.sqrt(2);
-  static DIRS_CARDINAL = [1, 0, 1, -1, 0, 1, 0, 1, 1, 0, -1, 1];
-  static DIRS_OCTILE = [
-    1,
-    0,
-    1,
-    -1,
-    0,
-    1,
-    0,
-    1,
-    1,
-    0,
-    -1,
-    1,
-    1,
-    1,
-    self.SQRT_2,
-    1,
-    -1,
-    self.SQRT_2,
-    -1,
-    1,
-    self.SQRT_2,
-    -1,
-    -1,
-    self.SQRT_2,
-  ];
-
+globalThis.MotionPlanner = class MotionPlanner {
   constructor(grid) {
+    this.SQRT_2 = Math.sqrt(2);
+    this.DIRS_CARDINAL = [1, 0, 1, -1, 0, 1, 0, 1, 1, 0, -1, 1];
+    this.DIRS_OCTILE = [
+      1,
+      0,
+      1,
+      -1,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      -1,
+      1,
+      1,
+      1,
+      this.SQRT_2,
+      1,
+      -1,
+      this.SQRT_2,
+      -1,
+      1,
+      this.SQRT_2,
+      -1,
+      -1,
+      this.SQRT_2,
+    ];
     this.grid = grid;
   }
 
-  set_grid(grid) {
+  set(grid) {
     this.grid = grid;
   }
 
-  plan(start, goal, algorithm = global.MP_ALGORITHM.ASTAR, opt = {}) {
+  plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
     if (this.grid === undefined) return [];
-    
+
     switch (algorithm) {
-      case global.MP_ALGORITHM.ASTAR:
-        return this.plan_astar(start, goal, opt);
+      case MP_ALGORITHM.ASTAR:
+        return this.astar(start, goal, opt);
       default:
         return [];
     }
   }
 
-  reconstruct_path(came_from, start_i, goal_i) {
+  _reconstructPath(cameFrom, startIdx, goalIdx) {
     const indices = [];
-    let node = goal_i;
+    let node = goalIdx;
     while (node !== -1) {
       indices.push(node);
-      if (node === start_i) break;
-      node = came_from[node];
+      if (node === startIdx) break;
+      node = cameFrom[node];
     }
 
-    if (indices.length === 0 || indices[indices.length - 1] !== start_i) {
+    if (indices.length === 0 || indices[indices.length - 1] !== startIdx) {
       return [];
     }
 
     const path = [];
     [...indices].reverse().forEach((i) => {
-      const p = this.grid.to_xy(i);
+      const p = this.grid.toXy(i);
       path.push(p);
     });
     return path;
   }
 
-  astar_heuristic(x0, y0, x1, y1, allow_diag) {
+  _astarHeuristic(x0, y0, x1, y1, allowDiag) {
     const dx = Math.abs(x1 - x0);
     const dy = Math.abs(y1 - y0);
-    if (allow_diag) {
-      return dx + dy + (MotionPlanner.SQRT_2 - 2) * Math.min(dx, dy);
+    if (allowDiag) {
+      return dx + dy + (this.SQRT_2 - 2) * Math.min(dx, dy);
     }
     return dx + dy;
   }
 
-  plan_astar(start, goal, opt) {
-    const allow_diag = opt.allow_diag ?? false;
-    const corner_cutting = opt.corner_cutting ?? false;
-    const heuristic_weight = opt.heuristic_weight ?? 1;
-    const max_iter = opt.max_iter ?? 100000;
+  astar(start, goal, opt) {
+    const allowDiag = opt.allowDiag ?? false;
+    const cornerCutting = opt.cornerCutting ?? false;
+    const heuristicWeight = opt.heuristicWeight ?? 1;
+    const maxIter = opt.maxIter ?? 100000;
 
     const sx = start.x;
     const sy = start.y;
     const gx = goal.x;
     const gy = goal.y;
 
-    if (!this.grid.in_bounds(sx, sy) || !this.grid.in_bounds(gx, gy)) return [];
-    if (this.grid.is_blocked(sx, sy) || this.grid.is_blocked(gx, gy)) return [];
+    if (!this.grid.inBounds(sx, sy) || !this.grid.inBounds(gx, gy)) return [];
+    if (this.grid.isBlocked(sx, sy) || this.grid.isBlocked(gx, gy)) return [];
 
-    const start_i = this.grid.to_index(sx, sy);
-    const goal_i = this.grid.to_index(gx, gy);
-    if (start_i === goal_i) return [{ x: sx, y: sy }];
+    const startIdx = this.grid.toIndex(sx, sy);
+    const goalIdx = this.grid.toIndex(gx, gy);
+    if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
-    const count = this.grid.rows * this.grid.cols;
-    const g = Array(count).fill(infinity);
-    const came_from = Array(count).fill(-1);
+    const count = this.grid.cellCount();
+    const g = Array(count).fill(Infinity);
+    const cameFrom = Array(count).fill(-1);
     const closed = Array(count).fill(false);
     const pq = ds_priority_create();
 
-    g[start_i] = 0;
-    const h0 = this.astar_heuristic(sx, sy, gx, gy, allow_diag);
-    ds_priority_add(pq, start_i, h0 * heuristic_weight);
+    g[startIdx] = 0;
+    const h0 = this._astarHeuristic(sx, sy, gx, gy, allowDiag);
+    ds_priority_add(pq, startIdx, h0 * heuristicWeight);
 
-    const dirs = allow_diag
-      ? MotionPlanner.DIRS_OCTILE
-      : MotionPlanner.DIRS_CARDINAL;
+    const dirs = allowDiag ? this.DIRS_OCTILE : this.DIRS_CARDINAL;
     let iter = 0;
 
     while (!ds_priority_empty(pq)) {
-      if (++iter > max_iter) break;
+      if (++iter > maxIter) break;
 
       const node = ds_priority_delete_min(pq);
       if (closed[node]) continue;
       closed[node] = true;
 
-      if (node === goal_i) {
-        const path = this.reconstruct_path(came_from, start_i, goal_i);
+      if (node === goalIdx) {
+        const path = this._reconstructPath(cameFrom, startIdx, goalIdx);
         ds_priority_destroy(pq);
         return path;
       }
 
-      const xy = this.grid.to_xy(node);
+      const xy = this.grid.toXy(node);
       const node_x = xy.x;
       const node_y = xy.y;
 
@@ -139,29 +135,29 @@ global.MotionPlanner = class MotionPlanner {
 
         const nx = node_x + dx;
         const ny = node_y + dy;
-        if (!this.grid.in_bounds(nx, ny)) continue;
-        if (this.grid.is_blocked(nx, ny)) continue;
+        if (!this.grid.inBounds(nx, ny)) continue;
+        if (this.grid.isBlocked(nx, ny)) continue;
 
-        if (allow_diag && !corner_cutting && dx !== 0 && dy !== 0) {
-          if (
-            this.grid.is_blocked(node_x + dx, node_y) ||
-            this.grid.is_blocked(node_x, node_y + dy)
-          ) {
-            continue;
-          }
+        const isDiagonalStep =
+          allowDiag && !cornerCutting && dx !== 0 && dy !== 0;
+        const isBlockedCorner =
+          this.grid.isBlocked(node_x + dx, node_y) ||
+          this.grid.isBlocked(node_x, node_y + dy);
+        if (isDiagonalStep && isBlockedCorner) {
+          continue;
         }
 
-        const ni = this.grid.to_index(nx, ny);
+        const ni = this.grid.toIndex(nx, ny);
         if (closed[ni]) continue;
 
-        const cell_cost = this.grid.get_cost(nx, ny);
+        const cell_cost = this.grid.getCost(nx, ny);
         const tentative_g = g[node] + cell_cost * step_dist;
         if (tentative_g >= g[ni]) continue;
 
-        came_from[ni] = node;
+        cameFrom[ni] = node;
         g[ni] = tentative_g;
-        const h = this.astar_heuristic(nx, ny, gx, gy, allow_diag);
-        const f = tentative_g + h * heuristic_weight;
+        const h = this._astarHeuristic(nx, ny, gx, gy, allowDiag);
+        const f = tentative_g + h * heuristicWeight;
         ds_priority_add(pq, ni, f);
       }
     }

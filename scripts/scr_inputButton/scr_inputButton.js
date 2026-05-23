@@ -1,10 +1,12 @@
-global.INPUT_SOURCE = Object.freeze({
+"use strict";
+
+globalThis.INPUT_SOURCE = Object.freeze({
   KEYBOARD: 0,
   MOUSE: 1,
   GAMEPAD: 2,
 });
 
-global.InputButton = class InputButton {
+globalThis.InputButton = class InputButton {
   constructor(source, button, device = 0) {
     this.source = source;
     this.button = button;
@@ -25,11 +27,11 @@ global.InputButton = class InputButton {
 
   down() {
     switch (this.source) {
-      case global.INPUT_SOURCE.KEYBOARD:
+      case INPUT_SOURCE.KEYBOARD:
         return keyboard_check(this.button);
-      case global.INPUT_SOURCE.MOUSE:
+      case INPUT_SOURCE.MOUSE:
         return mouse_check_button(this.button);
-      case global.INPUT_SOURCE.GAMEPAD:
+      case INPUT_SOURCE.GAMEPAD:
         return gamepad_button_check(this.device, this.button);
       default:
         return false;
@@ -38,11 +40,11 @@ global.InputButton = class InputButton {
 
   pressed() {
     switch (this.source) {
-      case global.INPUT_SOURCE.KEYBOARD:
+      case INPUT_SOURCE.KEYBOARD:
         return keyboard_check_pressed(this.button);
-      case global.INPUT_SOURCE.MOUSE:
+      case INPUT_SOURCE.MOUSE:
         return mouse_check_button_pressed(this.button);
-      case global.INPUT_SOURCE.GAMEPAD:
+      case INPUT_SOURCE.GAMEPAD:
         return gamepad_button_check_pressed(this.device, this.button);
       default:
         return false;
@@ -51,11 +53,11 @@ global.InputButton = class InputButton {
 
   released() {
     switch (this.source) {
-      case global.INPUT_SOURCE.KEYBOARD:
+      case INPUT_SOURCE.KEYBOARD:
         return keyboard_check_released(this.button);
-      case global.INPUT_SOURCE.MOUSE:
+      case INPUT_SOURCE.MOUSE:
         return mouse_check_button_released(this.button);
-      case global.INPUT_SOURCE.GAMEPAD:
+      case INPUT_SOURCE.GAMEPAD:
         return gamepad_button_check_released(this.device, this.button);
       default:
         return false;

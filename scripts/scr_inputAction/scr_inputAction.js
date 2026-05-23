@@ -1,4 +1,6 @@
-global.InputAction = class InputAction {
+"use strict";
+
+globalThis.InputAction = class InputAction {
   constructor() {
     this.buttons = [];
     this.axes = [];

@@ -1,4 +1,6 @@
-global.Input = class Input {
+"use strict";
+
+globalThis.Input = class Input {
   static sensitivity = 2.5;
   static deadzone = 0;
   static actions = {};

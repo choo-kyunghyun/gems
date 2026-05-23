@@ -1,9 +1,11 @@
-global.INPUT_AXIS_MODE = Object.freeze({
+"use strict";
+
+globalThis.INPUT_AXIS_MODE = Object.freeze({
   STICK: 0,
   TRIGGER: 1,
 });
 
-global.InputAxis = class InputAxis {
+globalThis.InputAxis = class InputAxis {
   constructor(mode, axis, device = 0) {
     this.mode = mode;
     this.axis = axis;
@@ -24,9 +26,9 @@ global.InputAxis = class InputAxis {
 
   value() {
     switch (this.mode) {
-      case global.INPUT_AXIS_MODE.STICK:
+      case INPUT_AXIS_MODE.STICK:
         return gamepad_axis_value(this.device, this.axis);
-      case global.INPUT_AXIS_MODE.TRIGGER:
+      case INPUT_AXIS_MODE.TRIGGER:
         return gamepad_button_value(this.device, this.axis);
       default:
         return 0;

@@ -14,7 +14,7 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 
 ### Dependencies
 
-- GameMaker 2024.1400.5.1031
+- GameMaker 2026.0.0.15
 - GMRT 0.19.0
 
 ### Project Structure

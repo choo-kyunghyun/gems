@@ -1,42 +1,23 @@
-// global.CameraFollow = class CameraFollow extends Camera {
-//   constructor(cam = {}) {
-//     super(cam);
-//     this.follow_target = cam.follow_target ?? -1;
-//     this.follow_lerp = cam.follow_lerp ?? 0.1;
-//     this.follow_height = cam.follow_height ?? 64;
-//     this.projection = CAMERA_PROJECTION.PERSPECTIVE_FOV;
-//   }
+function _cameraFollowOnUpdate() {
+  if (!instance_exists(this.followTarget)) return;
 
-//   on_update() {
-//     if (!instance_exists(this.follow_target)) return;
+  const x = lerp(this.toX, this.followTarget.x, this.followLerp);
+  const y = lerp(this.toY, this.followTarget.y, this.followLerp);
+  const z = lerp(this.toZ, this.followTarget.depth, this.followLerp);
 
-//     const x = lerp(this.to_x, this.follow_target.x, this.follow_lerp);
-//     const y = lerp(this.to_y, this.follow_target.y, this.follow_lerp);
-//     const z = lerp(this.to_z, this.follow_target.depth, this.follow_lerp);
-
-//     this.set_from(x, y, z + this.follow_height);
-//     this.set_to(x, y, z);
-//   }
-// };
+  this.setFrom(x, y, z + this.followHeight);
+  this.setTo(x, y, z);
+}
 
 function cameraFollow(cam = {}) {
+  cam.onUpdate = _cameraFollowOnUpdate;
+  cam.projection = global.CAMERA_PROJECTION.PERSPECTIVE_FOV;
+
   const _camera = new Camera(cam);
 
-  _camera.follow_target = cam.follow_target ?? -1;
-  _camera.follow_lerp = cam.follow_lerp ?? 0.1;
-  _camera.follow_height = cam.follow_height ?? 64;
-  _camera.projection = global.CAMERA_PROJECTION.PERSPECTIVE_FOV;
-
-  _camera.on_update = function () {
-    if (!instance_exists(this.follow_target)) return;
-
-    const x = lerp(this.to_x, this.follow_target.x, this.follow_lerp);
-    const y = lerp(this.to_y, this.follow_target.y, this.follow_lerp);
-    const z = lerp(this.to_z, this.follow_target.depth, this.follow_lerp);
-
-    this.set_from(x, y, z + this.follow_height);
-    this.set_to(x, y, z);
-  };
+  _camera.followTarget = cam.followTarget ?? -1;
+  _camera.followLerp = cam.followLerp ?? 0.1;
+  _camera.followHeight = cam.followHeight ?? 256;
 
   return _camera;
-}
+};

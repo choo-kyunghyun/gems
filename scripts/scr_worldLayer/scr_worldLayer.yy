@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_actorManager",
+  "%Name":"scr_worldLayer",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_actorManager",
+  "name":"scr_worldLayer",
   "parent":{
     "name":"World",
-    "path":"folders/Core/Subsystems/World.yy",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_actorManager.js",
+  "scriptSource":"scr_worldLayer.js",
 }

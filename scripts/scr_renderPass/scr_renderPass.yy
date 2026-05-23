@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_actorDebugPass",
+  "%Name":"scr_renderPass",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_actorDebugPass",
+  "name":"scr_renderPass",
   "parent":{
     "name":"Renderer",
-    "path":"folders/Core/Subsystems/World/Renderer.yy",
+    "path":"folders/Core/Renderer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_actorDebugPass.js",
+  "scriptSource":"scr_renderPass.js",
 }

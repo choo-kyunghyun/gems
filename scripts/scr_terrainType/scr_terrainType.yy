@@ -6,7 +6,7 @@
   "name":"scr_terrainType",
   "parent":{
     "name":"Terrain",
-    "path":"folders/Core/Subsystems/World/Terrain.yy",
+    "path":"folders/Core/World/Terrain.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

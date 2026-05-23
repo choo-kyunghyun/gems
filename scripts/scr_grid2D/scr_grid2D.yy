@@ -6,7 +6,7 @@
   "name":"scr_grid2D",
   "parent":{
     "name":"World",
-    "path":"folders/Core/Subsystems/World.yy",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

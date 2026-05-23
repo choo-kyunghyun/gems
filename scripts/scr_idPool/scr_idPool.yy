@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_actor",
+  "%Name":"scr_idPool",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_actor",
+  "name":"scr_idPool",
   "parent":{
     "name":"Entity",
-    "path":"folders/Core/Subsystems/World/Entity.yy",
+    "path":"folders/Core/Entity.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_actor.js",
+  "scriptSource":"scr_id.js",
 }

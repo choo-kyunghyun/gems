@@ -1,36 +1,34 @@
-global.Terrain = class Terrain extends Grid2D {
+globalThis.Terrain = class Terrain {
   constructor(width, height) {
-    super(width, height);
-    this.data = this.create_array();
+    this.grid = new Grid(width, height);
   }
 
-  static import(data) {
-    const rows = data.rows;
-    const cols = data.cols;
-    if (rows === undefined || cols === undefined) return new Terrain(0, 0);
-
-    const terrain = new Terrain(cols, rows);
-    const data_array = data.data;
-    if (Array.isArray(data_array)) terrain.data = variable_clone(data_array);
-    return terrain;
+  destroy() {
+    this.grid.destroy();
+    this.grid = undefined;
   }
 
   export() {
-    return {
-      rows: this.rows,
-      cols: this.cols,
-      data: variable_clone(this.data),
-    };
+    return this.grid.export();
   }
 
-  set_cell(x, y, value) {
-    if (!this.in_bounds(x, y)) return false;
-    this.data[this.to_index(x, y)] = value;
-    return true;
+  static import(data) {
+    const terrain = new Terrain(data.width, data.height);
+    terrain.grid = Grid.import(data);
+    return terrain;
   }
 
-  get_cell(x, y) {
-    if (!this.in_bounds(x, y)) return undefined;
-    return this.data[this.to_index(x, y)];
+  set(x, y, value) {
+    this.grid.set(x, y, value);
+    return this;
+  }
+
+  get(x, y) {
+    return this.grid.get(x, y);
+  }
+
+  getCost(x, y) {
+    const type = this.get(x, y);
+    return type === undefined ? Infinity : type.pathCost;
   }
 };

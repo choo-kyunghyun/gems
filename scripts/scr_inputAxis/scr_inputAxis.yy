@@ -6,7 +6,7 @@
   "name":"scr_inputAxis",
   "parent":{
     "name":"Input",
-    "path":"folders/Core/Subsystems/Input.yy",
+    "path":"folders/Core/Input.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

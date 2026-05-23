@@ -1,10 +1,8 @@
-global.TerrainType = class TerrainType {
+globalThis.TerrainType = class TerrainType {
   constructor(def) {
     this.id = def.id;
     this.name = def.name ?? "";
-    this.path_cost = def.path_cost ?? 1;
-    this.blocked = def.blocked ?? false;
-    this.properties = variable_clone(def.properties ?? {});
+    this.pathCost = def.pathCost ?? 1;
   }
 
   static import(data) {
@@ -15,9 +13,7 @@ global.TerrainType = class TerrainType {
     return {
       id: this.id,
       name: this.name,
-      path_cost: this.path_cost,
-      blocked: this.blocked,
-      properties: variable_clone(this.properties),
+      pathCost: this.pathCost,
     };
   }
 };

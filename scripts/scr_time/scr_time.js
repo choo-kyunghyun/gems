@@ -1,4 +1,4 @@
-global.Time = class Time {
+globalThis.Time = class Time {
   static raw = 0;
   static scale = 1;
   static delta = 0;

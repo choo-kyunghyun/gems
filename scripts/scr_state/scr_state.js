@@ -1,3 +1,6 @@
+// TODO: Component
+// TODO: Separate step and draw
+// TODO: No spawn/despawn
 global.State = class State {
   constructor(enter, update, draw, finish, opt = {}) {
     this.enter = enter ?? noop;
