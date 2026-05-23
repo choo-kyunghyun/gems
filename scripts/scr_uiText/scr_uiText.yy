@@ -6,7 +6,7 @@
   "name":"scr_uiText",
   "parent":{
     "name":"Primitive Elements",
-    "path":"folders/Core/Subsystems/UI/Primitive Elements.yy",
+    "path":"folders/Core/UI/Primitive Elements.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

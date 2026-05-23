@@ -6,7 +6,7 @@
   "name":"scr_i18n",
   "parent":{
     "name":"UI",
-    "path":"folders/Core/Subsystems/UI.yy",
+    "path":"folders/Core/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_uiTooltip",
   "parent":{
-    "name":"Composite Elements",
-    "path":"folders/Core/Subsystems/UI/Composite Elements.yy",
+    "name":"UI",
+    "path":"folders/Foundation/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
