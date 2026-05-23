@@ -13,13 +13,11 @@ globalThis.World = class World {
 
   destroy() {}
 
-  update() {
-
-  }
+  update() {}
 };
 
 /// @deprecated
-global.World = class World {
+globalThis.World_D = class World {
   constructor(world) {
     this.tick = 0;
     this.nav_dirty = true;
@@ -55,8 +53,7 @@ global.World = class World {
 
   import(data) {
     const terrain = data.terrain;
-    if (typeof terrain === "object")
-      this.terrain = this.terrain.import(terrain);
+    if (typeof terrain === "object") this.terrain = Terrain.import(terrain);
 
     this.nav_dirty = true;
     this.mp.reset(this.mpg);

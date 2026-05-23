@@ -7,7 +7,7 @@ const COLOR_WHITE = "#ffffff";
 const COLOR_BG = "#3e3546";
 const COLOR_PRIMARY = "#fdcbb0";
 
-function style_title_button(_text) {}
+function style_title_button(text) {}
 
 function style_title() {}
 

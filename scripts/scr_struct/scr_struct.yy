@@ -10,5 +10,5 @@
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_struct.gml",
+  "scriptSource":"scr_struct.js",
 }

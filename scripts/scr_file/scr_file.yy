@@ -5,9 +5,10 @@
   "isDnD":false,
   "name":"scr_file",
   "parent":{
-    "name":"Subsystems",
-    "path":"folders/Core/Subsystems.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
+  "scriptSource":"scr_file.js",
 }

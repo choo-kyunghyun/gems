@@ -1,4 +1,4 @@
-global.I18n = class I18n {
+globalThis.I18n = class I18n {
   static text = {};
   static fonts = {};
   static images = {};
