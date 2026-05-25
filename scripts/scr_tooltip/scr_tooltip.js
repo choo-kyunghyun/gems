@@ -1,4 +1,4 @@
-global.Tooltip = class Tooltip {
+globalThis.Tooltip = class Tooltip {
   static text = "";
   static text_color = "#ffffff";
   static text_alpha = 1;

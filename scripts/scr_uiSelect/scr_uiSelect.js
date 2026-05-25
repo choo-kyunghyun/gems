@@ -1,47 +1,57 @@
-// global.UISelect = class UISelect extends UITrigger {}
 function uiSelect(style = {}, select = {}, panel = {}, text = {}) {
-  const trig = uiTrigger(style);
-  trig.items = select.items ?? [];
-  trig.index = select.index ?? 0;
-  trig.on_change = method(this, select.on_change ?? noop);
-  trig.on_click = method(this, function () {
-    if (this.items.length <= 0) return;
-    this.index = (this.index + 1) % this.items.length;
-    this.on_change();
-  });
-  trig.panel = uiPanel(
-    { width: "100%", height: "100%", position: "absolute" },
-    panel,
+  const items = select.items ?? [];
+  let index = select.index ?? 0;
+  const on_change = method(this, select.on_change ?? noop);
+
+  const element = new UIElement(style)
+    .addComponent(new UIPanel(panel))
+    .addComponent(
+      new UITrigger({
+        block: true,
+        on_click: () => {
+          if (items.length <= 0) return;
+          index = (index + 1) % items.length;
+          on_change();
+        },
+      }),
+    );
+
+  element.insertChild(
+    uiText(
+      {},
+      {
+        ...text,
+        text_ref: () => {
+          if (items.length <= 0) return "";
+          return items[index].name;
+        },
+      },
+    ),
   );
-  trig.insert_child(trig.panel);
 
-  trig.text = new uiText({}, text);
-  trig.text.text_ref = method(this, function () {
-    return this.get_name();
-  });
-  trig.insert_child(trig.text);
+  const elemAny = element;
 
-  trig.insert_item = function (name, value, index = trig.items.length) {
-    this.items.splice(index, 0, { name: name, value: value });
-    this.on_change();
-    return this;
+  elemAny.insert_item = (name, value, idx = items.length) => {
+    items.splice(idx, 0, { name, value });
+    on_change();
+    return element;
   };
 
-  trig.get_name = function () {
-    if (this.items.length <= 0) return "";
-    const item = this.items[this.index];
-    return item.name;
+  elemAny.get_name = () => {
+    if (items.length <= 0) return "";
+    return items[index].name;
   };
 
-  trig.get_value = function () {
-    if (this.items.length <= 0) return "";
-    const item = this.items[this.index];
-    return item.value;
+  elemAny.get_value = () => {
+    if (items.length <= 0) return "";
+    return items[index].value;
   };
 
-  trig.set_index = function (index) {
-    this.index = clamp(index, 0, this.items.length - 1);
-    this.on_change();
-    return this;
+  elemAny.set_index = (idx) => {
+    index = clamp(idx, 0, items.length - 1);
+    on_change();
+    return element;
   };
+
+  return element;
 }

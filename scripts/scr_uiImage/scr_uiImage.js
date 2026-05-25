@@ -1,4 +1,4 @@
-global.OBJECT_FIT = Object.freeze({
+globalThis.OBJECT_FIT = Object.freeze({
   FILL: 0,
   CONTAIN: 1,
   COVER: 2,
@@ -6,32 +6,34 @@ global.OBJECT_FIT = Object.freeze({
   SCALE_DOWN: 4,
 });
 
-// global.UIImage = class UIImage extends UIElement {}
-function uiImage(style = {}, image = {}) {
-  const element = new UIElement(style);
-  element.sprite = image.sprite;
-  element.subimg = image.subimg ?? 0;
-  element.xscale = image.xscale ?? 1;
-  element.yscale = image.yscale ?? 1;
-  element.rot = image.rot ?? 0;
-  element.color = image.color ?? c_white;
-  element.alpha = image.alpha ?? 1;
-  element.speed =
-    image.speed ??
-    (sprite_exists(element.sprite) ? sprite_get_speed(element.sprite) : 0);
-  element.fit = image.fit ?? global.OBJECT_FIT.FILL;
+/** @implements {Component} */
+globalThis.ImageComponent = class UIImage {
+  constructor(image = {}) {
+    this.sprite = image.sprite;
+    this.subimg = image.subimg ?? 0;
+    this.xscale = image.xscale ?? 1;
+    this.yscale = image.yscale ?? 1;
+    this.rot = image.rot ?? 0;
+    this.color = image.color ?? c_white;
+    this.alpha = image.alpha ?? 1;
+    this.speed =
+      image.speed ??
+      (sprite_exists(this.sprite) ? sprite_get_speed(this.sprite) : 0);
+    this.fit = image.fit ?? OBJECT_FIT.FILL;
+  }
 
-  element.on_update = function () {
-    if (!sprite_exists(this.sprite)) return;
+  onUpdate(element, block) {
+    if (!sprite_exists(this.sprite)) return block;
     if (this.speed != 0) {
       this.subimg += Time.raw * this.speed;
       this.subimg %= sprite_get_number(this.sprite);
     }
-  };
+    return block;
+  }
 
-  element.on_draw = function () {
+  onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
-    const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
+    const pos = flexpanel_node_layout_get_position(element.flexpanel, false);
     const sw = sprite_get_width(this.sprite);
     const sh = sprite_get_height(this.sprite);
     let x = pos.left;
@@ -40,7 +42,7 @@ function uiImage(style = {}, image = {}) {
     let h = pos.height;
 
     switch (this.fit) {
-      case global.OBJECT_FIT.FILL:
+      case OBJECT_FIT.FILL:
         draw_sprite_stretched_ext(
           this.sprite,
           this.subimg,
@@ -52,10 +54,10 @@ function uiImage(style = {}, image = {}) {
           this.alpha,
         );
         break;
-      case global.OBJECT_FIT.CONTAIN:
-      case global.OBJECT_FIT.SCALE_DOWN:
+      case OBJECT_FIT.CONTAIN:
+      case OBJECT_FIT.SCALE_DOWN:
         let scale = min(w / sw, h / sh);
-        if (this.fit === global.OBJECT_FIT.SCALE_DOWN) {
+        if (this.fit === OBJECT_FIT.SCALE_DOWN) {
           scale = Math.min(scale, this.xscale);
         }
         w = sw * scale;
@@ -73,7 +75,7 @@ function uiImage(style = {}, image = {}) {
           this.alpha,
         );
         break;
-      case global.OBJECT_FIT.COVER:
+      case OBJECT_FIT.COVER:
         const scale_max = Math.max(w / sw, h / sh);
         const part_w = w / scale_max;
         const part_h = h / scale_max;
@@ -98,7 +100,7 @@ function uiImage(style = {}, image = {}) {
           this.alpha,
         );
         break;
-      case global.OBJECT_FIT.NONE:
+      case OBJECT_FIT.NONE:
         x += (w - sw * this.xscale) / 2;
         y += (h - sh * this.yscale) / 2;
         draw_sprite_ext(
@@ -114,5 +116,5 @@ function uiImage(style = {}, image = {}) {
         );
         break;
     }
-  };
-}
+  }
+};

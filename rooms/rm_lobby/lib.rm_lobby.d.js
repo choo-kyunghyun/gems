@@ -1,0 +1,1 @@
+declare const rm_lobby: GMRoom

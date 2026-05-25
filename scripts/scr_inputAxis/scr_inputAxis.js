@@ -1,5 +1,3 @@
-"use strict";
-
 globalThis.INPUT_AXIS_MODE = Object.freeze({
   STICK: 0,
   TRIGGER: 1,

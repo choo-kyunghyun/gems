@@ -1,5 +1,3 @@
-"use strict";
-
 globalThis.InputAction = class InputAction {
   constructor() {
     this.buttons = [];

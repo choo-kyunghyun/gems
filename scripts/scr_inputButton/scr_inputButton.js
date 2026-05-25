@@ -1,5 +1,3 @@
-"use strict";
-
 globalThis.INPUT_SOURCE = Object.freeze({
   KEYBOARD: 0,
   MOUSE: 1,

@@ -2,7 +2,7 @@
   "language": "ko",
   "region": "KR",
   "name": "한국어",
-  "text": ["text/*.json"],
+  "texts": ["text/*.json"],
   "fonts": {
     "normal_24": {
       "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",

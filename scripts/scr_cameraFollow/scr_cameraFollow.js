@@ -11,7 +11,7 @@ function _cameraFollowOnUpdate() {
 
 function cameraFollow(cam = {}) {
   cam.onUpdate = _cameraFollowOnUpdate;
-  cam.projection = global.CAMERA_PROJECTION.PERSPECTIVE_FOV;
+  cam.projection = CAMERA_PROJECTION.PERSPECTIVE_FOV;
 
   const _camera = new Camera(cam);
 

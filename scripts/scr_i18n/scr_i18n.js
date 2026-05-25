@@ -1,42 +1,42 @@
 globalThis.I18n = class I18n {
-  static text = {};
-  static fonts = {};
-  static images = {};
-  static sounds = {};
+  static texts = new Map();
+  static fonts = new Map();
+  static images = new Map();
+  static sounds = new Map();
 
   static destroy() {
-    I18n.text = {};
+    I18n.texts = new Map();
 
-    Object.entries(I18n.fonts).forEach(([_, value]) => {
-      font_delete(value);
-    });
-    I18n.fonts = {};
+    for (const font of I18n.fonts.values()) {
+      font_delete(font);
+    }
+    I18n.fonts = new Map();
 
-    Object.entries(I18n.images).forEach(([_, value]) => {
-      sprite_delete(value);
-    });
-    I18n.images = {};
+    for (const sprite of I18n.images.values()) {
+      sprite_delete(sprite);
+    }
+    I18n.images = new Map();
 
-    Object.entries(I18n.sounds).forEach(([_, value]) => {
-      audio_destroy_stream(value);
-    });
-    I18n.sounds = {};
+    for (const stream of I18n.sounds.values()) {
+      audio_destroy_stream(stream);
+    }
+    I18n.sounds = new Map();
   }
 
   static load(fname) {
     I18n.destroy();
 
     const path = filename_path(fname);
-    const manifest = struct_import(fname);
+    const manifest = JSON.parse(File.read(fname));
 
-    if (Array.isArray(manifest.text)) {
-      for (const mask of manifest.text) {
+    if (Array.isArray(manifest.texts)) {
+      for (const mask of manifest.texts) {
         const text_path = filename_path(path + mask);
-        const files = file_find(path + mask);
+        const files = File.find(path + mask);
         for (const text_fname of files) {
-          const data = struct_import(text_path + text_fname);
+          const data = File.read(text_path + text_fname);
           Object.entries(data).forEach(([key, value]) => {
-            I18n.text[key] = value;
+            I18n.texts.set(key, value);
           });
         }
       }
@@ -56,19 +56,23 @@ globalThis.I18n = class I18n {
         const last = value.last ?? 128;
 
         const font = font_add(f_fname, size, bold, italic, first, last);
-        I18n.fonts[key] = font;
+        I18n.fonts.set(key, font);
 
-        if (typeof value.sdf === "boolean") {
+        if (value.sdf) {
           font_enable_sdf(font, value.sdf);
           font_sdf_spread(font, value.sdf_spread ?? 8);
-          if (value.effects !== null) {
+          if (value.effects) {
             font_enable_effects(font, true, value.effects);
           }
         }
       });
     }
 
-    if (manifest.images !== null) {
+    if (
+      typeof manifest.images === "object" &&
+      manifest.images !== null &&
+      !Array.isArray(manifest.images)
+    ) {
       Object.entries(manifest.images).forEach(([key, value]) => {
         const i_fname = path + value.path;
         const imgnum = value.imgnum ?? 1;
@@ -76,14 +80,18 @@ globalThis.I18n = class I18n {
         const yorig = value.yorig ?? 0;
 
         const sprite = sprite_add(i_fname, imgnum, false, false, xorig, yorig);
-        I18n.images[key] = sprite;
+        I18n.images.set(key, sprite);
       });
     }
 
-    if (manifest.sounds !== null) {
+    if (
+      typeof manifest.sounds === "object" &&
+      manifest.sounds !== null &&
+      !Array.isArray(manifest.sounds)
+    ) {
       Object.entries(manifest.sounds).forEach(([key, value]) => {
         const stream = audio_create_stream(path + value.path);
-        I18n.sounds[key] = stream;
+        I18n.sounds.set(key, stream);
 
         audio_sound_gain(stream, value.gain ?? 1, 0);
         audio_sound_pitch(stream, value.pitch ?? 1);
@@ -91,48 +99,44 @@ globalThis.I18n = class I18n {
     }
   }
 
-  static get_text(key) {
-    return I18n.text[key] ?? key;
-  }
-
-  static get_text_ext(key, params = []) {
-    return string_ext(I18n.get_text(key), params);
-  }
-
-  static get_text_ref(key, params = []) {
-    if (Array.isArray(params) && params.length == 0) {
-      return () => {
-        return I18n.get_text(key);
-      };
+  static text(key, ...params) {
+    if (params.length === 0) {
+      return I18n.texts.get(key) ?? key;
+    } else {
+      return string_ext(I18n.texts.get(key) ?? key, params);
     }
+  }
 
-    const resolve =
-      typeof params === "function"
-        ? () => {
-            return params();
-          }
-        : Array.isArray(params)
+  static textRef(key, ...params) {
+    if (params.length === 0) {
+      return () => {
+        return I18n.texts.get(key) ?? key;
+      };
+    } else {
+      const resolve =
+        typeof params[0] === "function"
           ? () => {
-              return params;
+              return params.map((p) => p());
             }
           : () => {
-              return [params];
+              return params;
             };
 
-    return () => {
-      return I18n.get_text_ext(key, resolve());
-    };
+      return () => {
+        return string_ext(I18n.texts.get(key) ?? key, resolve());
+      };
+    }
   }
 
-  static get_font(key) {
-    return I18n.fonts[key] ?? draw_get_font();
+  static font(key) {
+    return I18n.fonts.get(key) ?? draw_get_font();
   }
 
-  static get_image(key) {
-    return I18n.images[key] ?? -1;
+  static image(key) {
+    return I18n.images.get(key) ?? -1;
   }
 
-  static get_sound(key) {
-    return I18n.sounds[key] ?? -1;
+  static sound(key) {
+    return I18n.sounds.get(key) ?? -1;
   }
 };

@@ -1,3 +1,3 @@
-// UI.destroy();
-// Input.cleanup();
-// I18n.cleanup();
+UI.destroy();
+Input.destroy();
+I18n.destroy();

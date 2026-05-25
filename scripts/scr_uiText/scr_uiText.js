@@ -1,24 +1,26 @@
-// global.UIText = class UIText extends UIElement {}
-function uiText(style = {}, text = {}) {
-  const element = new UIElement(style);
-  element.text_ref =
-    text.text_ref ??
-    function () {
-      return "";
-    };
-  element.halign = text.halign ?? fa_left;
-  element.xscale = text.xscale ?? 1;
-  element.yscale = text.yscale ?? 1;
-  element.angle = text.angle ?? 0;
-  element.color = text.color ?? c_white;
-  element.alpha = text.alpha ?? 1;
-  element.sep = text.sep ?? -1;
-  element.w = text.w ?? 0;
-  element.font = text.font ?? -1;
-  element.cache = "";
+/** @implements {Component} */
+globalThis.UIText = class UIText {
+  constructor(text = {}) {
+    this.textRef = text.textRef ?? (() => "");
+    this.halign = text.halign ?? fa_left;
+    this.xscale = text.xscale ?? 1;
+    this.yscale = text.yscale ?? 1;
+    this.angle = text.angle ?? 0;
+    this.color = text.color ?? c_white;
+    this.alpha = text.alpha ?? 1;
+    this.sep = text.sep ?? -1;
+    this.w = text.w ?? 0;
+    this.font = text.font ?? -1;
+    this.cache = "";
+  }
 
-  element.on_update = function () {
-    const str = this.text_ref();
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean}
+   */
+  onUpdate(element, block) {
+    const str = this.textRef();
     if (this.cache !== str) {
       this.cache = str;
 
@@ -37,19 +39,23 @@ function uiText(style = {}, text = {}) {
       }
 
       if (
-        this.get_width().value != width ||
-        this.get_height().value != height
+        element.get_width().value != width ||
+        element.get_height().value != height
       ) {
-        this.set_width(width, flexpanel_unit.point);
-        this.set_height(height, flexpanel_unit.point);
+        element.set_width(width, flexpanel_unit.point);
+        element.set_height(height, flexpanel_unit.point);
       }
 
       if (this.font !== -1) draw_set_font(font);
     }
-  };
+    return block;
+  }
 
-  element.on_draw = function () {
-    const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
+  /**
+   * @param {UIElement} element
+   */
+  onDraw(element) {
+    const pos = element.getLayoutPosition();
     let x = pos.left;
     let y = pos.top;
 
@@ -96,10 +102,7 @@ function uiText(style = {}, text = {}) {
       );
     }
 
-    draw_set_halign(halign);
-
+    if (this.w > 0) draw_set_halign(halign);
     if (this.font !== -1) draw_set_font(font);
-  };
-
-  return element;
-}
+  }
+};

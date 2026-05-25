@@ -1,5 +1,3 @@
-"use strict";
-
 globalThis.CAMERA_PROJECTION = Object.freeze({
   ORTHO: 0,
   PERSPECTIVE: 1,
@@ -136,6 +134,11 @@ globalThis.Camera = class Camera {
   setSize(width, height) {
     this.width = width;
     this.height = height;
+    return this;
+  }
+
+  setProjection(projection) {
+    this.projection = projection;
     return this;
   }
 };

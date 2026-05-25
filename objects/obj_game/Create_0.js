@@ -22,25 +22,23 @@ draw_set_circle_precision(64);
 // draw_set_svg_aa_level(1);
 
 // UI
-// I18n.load("i18n/ko-KR/manifest.json");
-// draw_set_font(I18n.get_font("normal_36"));
+I18n.load("i18n/ko-KR/manifest.json");
+draw_set_font(I18n.font("normal_36"));
 // display_set_gui_maximise();
 // display_set_gui_size(1366, 768);
 
-// this.show_fps = false;
-
 // Input
-const INPUT_ACTIONS = Object.freeze({
-  UP: 0,
-  DOWN: 1,
-  LEFT: 2,
-  RIGHT: 3,
+globalThis.GAME_INPUT = Object.freeze({
+  UP: "up",
+  DOWN: "down",
+  LEFT: "left",
+  RIGHT: "right",
 });
 
-// Input.register(INPUT_ACTIONS.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
-// Input.register(INPUT_ACTIONS.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
-// Input.register(INPUT_ACTIONS.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
-// Input.register(INPUT_ACTIONS.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
+Input.register(GAME_INPUT.UP, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")));
+Input.register(GAME_INPUT.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")));
+Input.register(GAME_INPUT.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
+Input.register(GAME_INPUT.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
 
 // Setting
 this.settings_path = "user_settings.json";
@@ -49,7 +47,6 @@ this.settings_default = {
   mouse_sens: 0.5,
   raw_input: false,
   ui_scale: 1.0,
-  show_fps: false,
   vol_master: 1.0,
   fullscreen: false,
   fps_limit: 60,
@@ -70,24 +67,18 @@ this.settings = {};
 // this.settings_import = function() {
 //     var _loaded = struct_import(this.settings_path);
 //     if (is_struct(_loaded)) struct_merge(_loaded, this.settings);
-//     this.show_fps = this.settings[$ "show_fps"] ?? this.show_fps;
 //     return this;
 // }
 
 // this.settings_reset = function() {
 //     this.settings = {};
 //     struct_merge(this.settings_default, this.settings);
-//     this.show_fps = this.settings[$ "show_fps"] ?? false;
 //     return this;
 // }
 
 // this.settings_import();
 
-// Screenshot
-this.screenshot_counter = 0;
-
 // Entity DB
 this.entities = {};
-this.entities["slime"] = { hit: 100 };
 
 room_goto_next();

@@ -8,23 +8,11 @@ function byte_to_hex(value) {
 }
 
 function uuid() {
-  const bytes = new Array(16).fill(0);
-  for (let i = 0; i < 16; i++) {
-    bytes[i] = Math.floor(Math.random() * 256);
-  }
-
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  let result = "";
-  for (let i = 0; i < 16; i++) {
-    result += byte_to_hex(bytes[i]);
-    if (i === 3 || i === 5 || i === 7 || i === 9) {
-      result += "-";
-    }
-  }
-
-  return result;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 function rem(value) {

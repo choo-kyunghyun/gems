@@ -1,9 +1,9 @@
 globalThis.IdPool = class IdPool {
+  static INDEX_BITS = 20;
+  static INDEX_MASK = (1 << this.INDEX_BITS) - 1;
+  static GENERATION_MASK = 0xfff;
+    
   constructor(maximum = 10000) {
-    this.INDEX_BITS = 20;
-    this.INDEX_MASK = (1 << this.INDEX_BITS) - 1;
-    this.GENERATION_MASK = 0xfff;
-
     this.generations = new Uint16Array(maximum);
     this.freeIndices = [];
     this.next = 0;
@@ -30,17 +30,15 @@ globalThis.IdPool = class IdPool {
   }
 
   _makeId(index, generation) {
-    return (generation << this.INDEX_BITS) | index;
+    return (generation << IdPool.INDEX_BITS) | index;
   }
 
-    // static
-  getIndex(id) {
-    return id & this.INDEX_MASK;
+  static getIndex(id) {
+    return id & IdPool.INDEX_MASK;
   }
 
-    // static
-  getGeneration(id) {
-    return id >>> this.INDEX_BITS;
+  static getGeneration(id) {
+    return id >>> IdPool.INDEX_BITS;
   }
 
   alloc() {
@@ -68,7 +66,7 @@ globalThis.IdPool = class IdPool {
     }
 
     this.generations[index] =
-      (this.generations[index] + 1) & this.GENERATION_MASK;
+      (this.generations[index] + 1) & IdPool.GENERATION_MASK;
 
     this.freeIndices.push(index);
     return true;
