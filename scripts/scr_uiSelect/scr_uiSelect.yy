@@ -6,7 +6,7 @@
   "name":"scr_uiSelect",
   "parent":{
     "name":"UI",
-    "path":"folders/Foundation/UI.yy",
+    "path":"folders/Supplements/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

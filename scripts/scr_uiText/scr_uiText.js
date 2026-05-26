@@ -9,7 +9,7 @@ globalThis.UIText = class UIText {
     this.color = text.color ?? c_white;
     this.alpha = text.alpha ?? 1;
     this.sep = text.sep ?? -1;
-    this.w = text.w ?? 0;
+    this.w = text.w ?? -1;
     this.font = text.font ?? -1;
     this.cache = "";
   }
@@ -27,23 +27,15 @@ globalThis.UIText = class UIText {
       const font = draw_get_font();
       if (this.font !== -1) draw_set_font(this.font);
 
-      let width = 0;
-      let height = 0;
-
-      if (this.w > 0) {
-        width = string_width_ext(this.cache, this.sep, this.w);
-        height = string_height_ext(this.cache, this.sep, this.w);
-      } else {
-        width = string_width(this.cache);
-        height = string_height(this.cache);
-      }
+      const width = string_width_ext(this.cache, this.sep, this.w);
+      const height = string_height_ext(this.cache, this.sep, this.w);
 
       if (
-        element.get_width().value != width ||
-        element.get_height().value != height
+        element.getWidth().value != width ||
+        element.getHeight().value != height
       ) {
-        element.set_width(width, flexpanel_unit.point);
-        element.set_height(height, flexpanel_unit.point);
+        element.setWidth(width, flexpanel_unit.point);
+        element.setHeight(height, flexpanel_unit.point);
       }
 
       if (this.font !== -1) draw_set_font(font);
@@ -63,46 +55,27 @@ globalThis.UIText = class UIText {
     if (this.font !== -1) draw_set_font(this.font);
 
     const halign = draw_get_halign();
+    draw_set_halign(this.halign);
+    if (this.halign === fa_center) x += pos.width / 2;
+    else if (this.halign === fa_right) x += pos.width;
 
-    if (this.w > 0) {
-      draw_set_halign(this.halign);
-      if (this.halign === fa_center) x += pos.width / 2;
-      else if (this.halign === fa_right) x += pos.width;
-    }
+    draw_text_ext_transformed_color(
+      x,
+      y,
+      this.cache,
+      this.sep,
+      this.w,
+      this.xscale,
+      this.yscale,
+      this.angle,
+      this.color,
+      this.color,
+      this.color,
+      this.color,
+      this.alpha,
+    );
 
-    if (this.w > 0) {
-      draw_text_ext_transformed_color(
-        x,
-        y,
-        this.cache,
-        this.sep,
-        this.w,
-        this.xscale,
-        this.yscale,
-        this.angle,
-        this.color,
-        this.color,
-        this.color,
-        this.color,
-        this.alpha,
-      );
-    } else {
-      draw_text_transformed_color(
-        x,
-        y,
-        this.cache,
-        this.xscale,
-        this.yscale,
-        this.angle,
-        this.color,
-        this.color,
-        this.color,
-        this.color,
-        this.alpha,
-      );
-    }
-
-    if (this.w > 0) draw_set_halign(halign);
+    draw_set_halign(halign);
     if (this.font !== -1) draw_set_font(font);
   }
 };

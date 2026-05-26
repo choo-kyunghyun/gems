@@ -10,7 +10,8 @@ globalThis.UIElement = class UIElement {
     this.enabled = true;
     this.flexpanel = flexpanel_create_node(style);
     this.direction = flexpanel_direction.LTR;
-    this.parent = undefined;
+    /** @type {UIElement|null} */
+    this.parent = null;
     /** @type {UIElement[]} */
     this.children = [];
     /** @type {Component[]} */
@@ -43,7 +44,7 @@ globalThis.UIElement = class UIElement {
     [...this.children].reverse().forEach((element) => {
       element.destroy();
     });
-    if (this.parent !== undefined) this.parent.removeChild(this);
+    if (this.parent !== null) this.parent.removeChild(this);
     flexpanel_delete_node(this.flexpanel, false);
   }
 
@@ -61,7 +62,7 @@ globalThis.UIElement = class UIElement {
         if (response === true) block = true;
       }
     }
-    this.refresh();
+    if (this.dirty) this.refresh();
     return block;
   }
 
@@ -86,7 +87,7 @@ globalThis.UIElement = class UIElement {
    * @returns {UIElement}
    */
   insertChild(element, index = this.children.length) {
-    if (element.parent !== undefined) element.parent.removeChild(element);
+    if (element.parent !== null) element.parent.removeChild(element);
     element.parent = this;
     this.children.splice(index, 0, element);
     flexpanel_node_insert_child(this.flexpanel, element.flexpanel, index);
@@ -99,7 +100,7 @@ globalThis.UIElement = class UIElement {
     if (index > -1) {
       this.children.splice(index, 1);
       flexpanel_node_remove_child(this.flexpanel, element.flexpanel);
-      element.parent = undefined;
+      element.parent = null;
       this.markDirty();
     }
     return element;
@@ -107,14 +108,13 @@ globalThis.UIElement = class UIElement {
 
   markDirty() {
     let root = this;
-    while (root.parent !== undefined) {
+    while (root.parent !== null) {
       root = root.parent;
     }
     root.dirty = true;
   }
 
   refresh() {
-    if (!this.dirty) return;
     if (!this.parent) {
       const w = display_get_gui_width();
       const h = display_get_gui_height();
@@ -139,19 +139,19 @@ globalThis.UIElement = class UIElement {
     );
   }
 
+  setWidth(width, unit) {
+    flexpanel_node_style_set_width(this.flexpanel, width, unit);
+    this.markDirty();
+    return this;
+  }
+
+  setHeight(height, unit) {
+    flexpanel_node_style_set_height(this.flexpanel, height, unit);
+    this.markDirty();
+    return this;
+  }
+
   // TODO: https://github.com/YoYoGames/GameMaker-Bugs/issues/15065
-
-  // setWidth(width, unit) {
-  //   flexpanel_node_style_set_width(this.flexpanel, width, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setHeight(height, unit) {
-  //   flexpanel_node_style_set_height(this.flexpanel, height, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
 
   // setMinWidth(value, unit) {
   //   flexpanel_node_style_set_min_width(this.flexpanel, value, unit);
@@ -291,13 +291,15 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  // getWidth() {
-  //   return flexpanel_node_style_get_width(this.flexpanel);
-  // }
+  getWidth() {
+    return flexpanel_node_style_get_width(this.flexpanel);
+  }
 
-  // getHeight() {
-  //   return flexpanel_node_style_get_height(this.flexpanel);
-  // }
+  getHeight() {
+    return flexpanel_node_style_get_height(this.flexpanel);
+  }
+
+  // TODO: https://github.com/YoYoGames/GameMaker-Bugs/issues/15065
 
   // getMinWidth() {
   //   return flexpanel_node_style_get_min_width(this.flexpanel);

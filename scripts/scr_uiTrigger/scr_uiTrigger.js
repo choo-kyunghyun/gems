@@ -39,11 +39,13 @@ globalThis.UITrigger = class UITrigger {
       this.hold = false;
     }
 
-    return this.block && (this.hold || this.enter);
+    return (this.block && (this.hold || this.enter)) || block;
   }
 
   onDestroy(element) {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
   }
+
+  onDraw(element) {}
 };

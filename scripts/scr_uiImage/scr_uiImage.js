@@ -7,7 +7,7 @@ globalThis.OBJECT_FIT = Object.freeze({
 });
 
 /** @implements {Component} */
-globalThis.ImageComponent = class UIImage {
+globalThis.UIImage = class UIImage {
   constructor(image = {}) {
     this.sprite = image.sprite;
     this.subimg = image.subimg ?? 0;
@@ -21,6 +21,8 @@ globalThis.ImageComponent = class UIImage {
       (sprite_exists(this.sprite) ? sprite_get_speed(this.sprite) : 0);
     this.fit = image.fit ?? OBJECT_FIT.FILL;
   }
+
+  onDestroy(element) {}
 
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;

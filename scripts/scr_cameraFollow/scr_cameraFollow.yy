@@ -6,7 +6,7 @@
   "name":"scr_cameraFollow",
   "parent":{
     "name":"Camera",
-    "path":"folders/Foundation/Camera.yy",
+    "path":"folders/Supplements/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
