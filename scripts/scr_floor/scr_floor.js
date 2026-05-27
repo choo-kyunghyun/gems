@@ -1,5 +1,5 @@
 /** @implements {WorldLayer} */
-globalThis.Terrain = class Terrain {
+globalThis.Floor = class Floor {
   constructor(width, height) {
     this.grid = new Grid(width, height);
   }
@@ -18,13 +18,13 @@ globalThis.Terrain = class Terrain {
   }
 
   static from(data) {
-    const terrain = new Terrain(data.width, data.height);
-    terrain.import(data);
-    return terrain;
+    const floor = new Floor(data.width, data.height);
+    floor.import(data);
+    return floor;
   }
 
-  set(x, y, value) {
-    this.grid.set(x, y, value);
+  set(x, y, type) {
+    this.grid.set(x, y, type);
     return this;
   }
 
@@ -32,12 +32,9 @@ globalThis.Terrain = class Terrain {
     return this.grid.get(x, y);
   }
 
-  getCost(x, y) {
-    const type = this.get(x, y);
-    return type === undefined ? Infinity : type.pathCost;
-  }
-
   getNavData(x, y) {
-    return { cost: this.getCost(x, y) };
+    const type = this.grid.get(x, y);
+    if (type === undefined) return { cost: undefined };
+    return { cost: type.pathCost };
   }
 };

@@ -183,11 +183,11 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  // setPosition(edge, value, unit) {
-  //   flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
+  setPosition(edge, value, unit) {
+    flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
+    this.markDirty();
+    return this;
+  }
 
   // setPositionType(value) {
   //   flexpanel_node_style_set_position_type(this.flexpanel, value);
@@ -298,8 +298,6 @@ globalThis.UIElement = class UIElement {
   getHeight() {
     return flexpanel_node_style_get_height(this.flexpanel);
   }
-
-  // TODO: https://github.com/YoYoGames/GameMaker-Bugs/issues/15065
 
   // getMinWidth() {
   //   return flexpanel_node_style_get_min_width(this.flexpanel);

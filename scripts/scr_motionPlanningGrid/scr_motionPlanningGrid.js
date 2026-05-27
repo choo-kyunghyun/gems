@@ -1,30 +1,63 @@
 globalThis.MotionPlanningGrid = class MotionPlanningGrid {
   constructor(width, height) {
-    this.rows = height;
     this.cols = width;
-
-    this.cost = new Grid(width, height).clear(1);
-    this.blocked = new Grid(width, height).clear(true);
+    this.rows = height;
+    this.data = new Float32Array(width * height).fill(1);
   }
 
-  getCost(x, y) {
-    return this.cost.get(x, y);
+  destroy() {
+    this.data = undefined;
   }
 
-  setCost(x, y, cost) {
-    this.cost.set(x, y, cost);
+  export() {
+    return {
+      width: this.cols,
+      height: this.rows,
+      data: Array.from(this.data),
+    };
   }
 
-  isBlocked(x, y) {
-    return this.blocked.get(x, y);
+  static import(snapshot) {
+    const mpg = new MotionPlanningGrid(snapshot.width, snapshot.height);
+    mpg.data.set(snapshot.data);
+    return mpg;
   }
 
-  setBlocked(x, y, blocked) {
-    this.blocked.set(x, y, blocked);
+  width() {
+    return this.cols;
   }
 
-  setCell(x, y, cost, blocked) {
-    this.cost.set(x, y, cost);
-    this.blocked.set(x, y, blocked);
+  height() {
+    return this.rows;
+  }
+
+  size() {
+    return this.cols * this.rows;
+  }
+
+  inBounds(x, y) {
+    return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
+  }
+
+  toIndex(x, y) {
+    return y * this.cols + x;
+  }
+
+  toPosition(index) {
+    return { x: index % this.cols, y: Math.floor(index / this.cols) };
+  }
+
+  clear(value = 1) {
+    this.data.fill(value);
+    return this;
+  }
+
+  set(x, y, value) {
+    this.data[this.toIndex(x, y)] = value;
+    return this;
+  }
+
+  get(x, y) {
+    return this.data[this.toIndex(x, y)];
   }
 };

@@ -1,5 +1,2 @@
-this.spyCam.update();
-
-
-
-Entity.flush();
+this.camera.update();
+this.world.update();

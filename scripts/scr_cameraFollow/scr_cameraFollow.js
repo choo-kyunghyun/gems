@@ -1,12 +1,12 @@
 function _cameraFollowOnUpdate() {
-  if (!instance_exists(this.followTarget)) return;
+  const pos = Position.get(this.followTarget);
+  if (pos === undefined) return;
 
-  const x = lerp(this.toX, this.followTarget.x, this.followLerp);
-  const y = lerp(this.toY, this.followTarget.y, this.followLerp);
-  const z = lerp(this.toZ, this.followTarget.depth, this.followLerp);
+  const x = lerp(this.toX, pos.x, this.followLerp);
+  const y = lerp(this.toY, pos.y, this.followLerp);
 
-  this.setFrom(x, y, z + this.followHeight);
-  this.setTo(x, y, z);
+  this.setFrom(x, y, this.followHeight);
+  this.setTo(x, y, 0);
 }
 
 function cameraFollow(cam = {}) {
@@ -20,4 +20,4 @@ function cameraFollow(cam = {}) {
   _camera.followHeight = cam.followHeight ?? 256;
 
   return _camera;
-};
+}

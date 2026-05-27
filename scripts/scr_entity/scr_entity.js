@@ -5,10 +5,17 @@ globalThis.Entity = class Entity {
   static components = new Map();
   static destroyQueue = new Set();
 
-  static destroy() {
-    this.components.clear();
+  static reset() {
+    for (const component of this.components.values()) {
+      component.data.fill(undefined);
+    }
     this.destroyQueue.clear();
     IdPool.destroy();
+  }
+
+  static destroy() {
+    this.reset();
+    this.components.clear();
   }
 
   static export() {

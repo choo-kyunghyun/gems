@@ -1,27 +1,32 @@
-class SliderComponent {
-  constructor(slider, children) {
+/** @implements {UIComponent} */
+globalThis.UISlider = class UISlider {
+  constructor(slider = {}) {
     this.min = slider.min ?? 0;
     this.max = slider.max ?? 1;
     this.value = slider.value ?? this.min;
-    this.on_change = slider.on_change ?? noop;
-    this.read_only = slider.read_only ?? false;
     this.step = slider.step;
     this.values = slider.values;
-    this.track = children.track;
-    this.fill = children.fill;
-    this.thumb = children.thumb;
-    this.trigger = children.trigger;
+    this.readOnly = slider.readOnly ?? false;
+    this.onChange = slider.onChange ?? noop;
+
+    this._trackStyle = slider.track ?? {};
+    this._fillStyle = slider.fill ?? {};
+    this._thumbStyle = slider.thumb ?? {};
+
+    this._track = undefined;
+    this._fill = undefined;
+    this._thumb = undefined;
+    this._trigger = undefined;
   }
 
-  apply_snap(value) {
+  _snap(value) {
     if (Array.isArray(this.values) && this.values.length > 0) {
-      const n = this.values.length;
       let best = 0;
-      let best_d = Math.abs(this.values[0] - value);
-      for (let i = 1; i < n; i++) {
+      let bestD = Math.abs(this.values[0] - value);
+      for (let i = 1; i < this.values.length; i++) {
         const d = Math.abs(this.values[i] - value);
-        if (d < best_d) {
-          best_d = d;
+        if (d < bestD) {
+          bestD = d;
           best = i;
         }
       }
@@ -33,121 +38,101 @@ class SliderComponent {
     return value;
   }
 
-  set_value(value) {
-    value = this.apply_snap(value);
-    this.value = clamp(value, this.min, this.max);
-    this.on_change();
+  setValue(value) {
+    const next = clamp(this._snap(value), this.min, this.max);
+    if (next === this.value) return this;
+    this.value = next;
+    this.onChange(this.value);
+    return this;
   }
 
-  onUpdate(element) {
-    const pos = flexpanel_node_layout_get_position(element.flexpanel, false);
-    if (pos.width <= 0) return;
+  _initChildren(element) {
+    this._track = new UIElement({
+      width: "100%",
+      height: "100%",
+      position: "absolute",
+    }).addComponent(new UIPanel(this._trackStyle));
 
-    const inner_h = max(0, pos.height - pos.paddingTop - pos.paddingBottom);
-    const track_top = pos.paddingTop;
+    this._fill = new UIElement({
+      height: "100%",
+      position: "absolute",
+    }).addComponent(new UIPanel(this._fillStyle));
 
-    this.track.set_height(inner_h, flexpanel_unit.point);
-    this.fill.set_height(inner_h, flexpanel_unit.point);
-    this.track.set_position(
-      flexpanel_edge.top,
-      track_top,
-      flexpanel_unit.point,
+    this._thumb = new UIElement({ position: "absolute" }).addComponent(
+      new UIPanel(this._thumbStyle),
     );
-    this.fill.set_position(flexpanel_edge.top, track_top, flexpanel_unit.point);
-    this.thumb.set_height(inner_h * 1.4, flexpanel_unit.point);
+
+    this._trigger = new UIElement({
+      width: "100%",
+      height: "100%",
+      position: "absolute",
+    }).addComponent(new UITrigger({ block: true }));
+
+    element.insertChild(this._track);
+    element.insertChild(this._fill);
+    element.insertChild(this._thumb);
+    element.insertChild(this._trigger);
+  }
+
+  onUpdate(element, block) {
+    if (!this._track) this._initChildren(element);
+
+    const pos = element.getLayoutPosition();
+    if (pos.width <= 0) return block;
+
+    const innerH = Math.max(
+      0,
+      pos.height - (pos.paddingTop ?? 0) - (pos.paddingBottom ?? 0),
+    );
+    const trackTop = pos.paddingTop ?? 0;
+    const thumbSz = innerH * 1.4;
+
+    this._track.setHeight(innerH, flexpanel_unit.point);
+    this._track.setPosition(flexpanel_edge.top, trackTop, flexpanel_unit.point);
+
+    this._fill.setHeight(innerH, flexpanel_unit.point);
+    this._fill.setPosition(flexpanel_edge.top, trackTop, flexpanel_unit.point);
+
+    this._thumb.setWidth(thumbSz, flexpanel_unit.point);
+    this._thumb.setHeight(thumbSz, flexpanel_unit.point);
 
     const t =
-      this.max === this.min
-        ? 0
-        : (this.value - this.min) / (this.max - this.min);
-    const x = t * pos.width;
+      this.max !== this.min
+        ? (this.value - this.min) / (this.max - this.min)
+        : 0;
+    const fillW = t * pos.width;
 
-    this.fill.set_width(x, flexpanel_unit.point);
-    this.thumb.set_position(
+    this._fill.setWidth(fillW, flexpanel_unit.point);
+    this._thumb.setPosition(
       flexpanel_edge.left,
-      x - inner_h * 0.2,
+      fillW - thumbSz * 0.5,
       flexpanel_unit.point,
     );
-    this.thumb.set_position(
+    this._thumb.setPosition(
       flexpanel_edge.top,
-      track_top - inner_h * 0.2,
+      trackTop - (thumbSz - innerH) * 0.5,
       flexpanel_unit.point,
     );
 
-    if (!this.read_only) {
-      const triggerComp = this.trigger.getComponent(UITrigger);
+    if (!this.readOnly) {
+      const triggerComp = this._trigger.getComponent(UITrigger);
       if (triggerComp && triggerComp.hold) {
         const mx = device_mouse_x_to_gui(0);
-        const clamped = clamp(mx - pos.left, 0, pos.width);
-        const nv = this.min + (clamped / pos.width) * (this.max - this.min);
-        if (nv !== this.value) this.set_value(nv);
+        const raw =
+          this.min +
+          (clamp(mx - pos.left, 0, pos.width) / pos.width) *
+            (this.max - this.min);
+        this.setValue(raw);
       }
     }
+
+    return block;
   }
-}
-global.SliderComponent = SliderComponent;
 
-function uiSlider(
-  style = {},
-  slider = {},
-  track = {},
-  fill = {},
-  thumb = {},
-  trigger = {},
-) {
-  const elem = new UIElement(style);
-
-  const trackEl = new UIElement({
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-  }).addComponent(new UIPanel(track));
-
-  const fillEl = new UIElement({
-    height: "100%",
-    position: "absolute",
-  }).addComponent(new UIPanel(fill));
-
-  const thumbEl = new UIElement({
-    aspectRatio: 1,
-    height: "140%",
-    position: "absolute",
-  }).addComponent(new UIPanel(thumb));
-
-  const triggerEl = new UIElement({
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-  }).addComponent(
-    new UITrigger({
-      block: trigger.block,
-      on_enter: method(this, trigger.on_enter ?? noop),
-      on_hover: method(this, trigger.on_hover ?? noop),
-      on_leave: method(this, trigger.on_leave ?? noop),
-      on_down: method(this, trigger.on_down ?? noop),
-      on_up: method(this, trigger.on_up ?? noop),
-      on_click: method(this, trigger.on_click ?? noop),
-    }),
-  );
-
-  elem.insertChild(trackEl);
-  elem.insertChild(fillEl);
-  elem.insertChild(thumbEl);
-  elem.insertChild(triggerEl);
-
-  const sliderComp = new SliderComponent(slider, {
-    track: trackEl,
-    fill: fillEl,
-    thumb: thumbEl,
-    trigger: triggerEl,
-  });
-  elem.addComponent(sliderComp);
-
-  const elemAny = elem;
-  elemAny.set_value = (value) => {
-    sliderComp.set_value(value);
-    return elem;
-  };
-
-  return elem;
-}
+  onDestroy(element) {
+    this._track = undefined;
+    this._fill = undefined;
+    this._thumb = undefined;
+    this._trigger = undefined;
+  }
+};

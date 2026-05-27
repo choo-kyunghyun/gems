@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_floorType",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_floorType",
+  "parent":{
+    "name":"Floor",
+    "path":"folders/Core/World/Floor.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"scr_floorType.js",
+}

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_grid2D",
+  "%Name":"scr_floor",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_grid2D",
+  "name":"scr_floor",
   "parent":{
-    "name":"World",
-    "path":"folders/Core/World.yy",
+    "name":"Floor",
+    "path":"folders/Core/World/Floor.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_grid2D.js",
+  "scriptSource":"scr_floor.js",
 }

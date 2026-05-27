@@ -1,82 +1,115 @@
+/**
+ * @typedef {Object} TileType
+ * @property {number} id
+ * @property {string} name
+ * @property {number} pathCost
+ */
+
+/**
+ * @typedef {{ cost: number | undefined }} NavData
+ */
+
+/**
+ * @typedef {Object} WorldLayer
+ * @property {function(number, number): TileType | undefined} get
+ * @property {function(number, number, TileType | undefined): WorldLayer} set
+ * @property {function(number, number): NavData} getNavData
+ * @property {function(): Object} export
+ * @property {function(Object): void} import
+ * @property {function(): void} destroy
+ */
+
 globalThis.World = class World {
-  constructor(world = {}) {
-    this.cellWidth = world.cellWidth ?? 32;
-    this.cellHeight = world.cellHeight ?? 32;
-    this.width = world.width ?? Math.floor(room_width / this.cellWidth);
-    this.height = world.height ?? Math.floor(room_height / this.cellHeight);
-    this.layers = new Map();
+  constructor(opt = {}) {
+    this.cellWidth = opt.cellWidth ?? 32;
+    this.cellHeight = opt.cellHeight ?? 32;
+    this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
+    this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
+    this.mpg = new MotionPlanningGrid(this.cols, this.rows);
+
+    /** @type {WorldLayer[]} */
+    this.layers = [];
+
+    PathfindingSystem.setGrid(this.mpg);
   }
 
-  export() {}
-
-  import(data) {}
-
-  destroy() {}
-
-  update() {}
-};
-
-/// @deprecated
-globalThis.World_D = class World {
-  constructor(world) {
-    this.tick = 0;
-    this.nav_dirty = true;
-
-    this.terrain = new Terrain(this.width, this.height);
-    this.mpg = new MotionPlanningGrid(this.width, this.height);
-    this.mp = new MotionPlanning(this.mpg);
-  }
-
-  rebuild_subsystems() {
-    this.terrain = new Terrain(this.width, this.height);
-    this.mpg = new MotionPlanningGrid(this.width, this.height);
-    this.mp = new MotionPlanning(this.mpg);
-  }
-
-  destroy() {
-    this.mp = undefined;
-    this.mpg = undefined;
-    this.terrain = undefined;
-  }
-
-  load_level(level = {}) {
-    this.cell_width = level.cell_width ?? this.cell_width;
-    this.cell_height = level.cell_height ?? this.cell_height;
-    this.width = level.width ?? this.width;
-    this.height = level.height ?? this.height;
-
-    this.rebuild_subsystems();
-    this.import(level);
-    this.tick = 0;
+  addLayer(layer) {
+    this.layers.push(layer);
     return this;
   }
 
-  import(data) {
-    const terrain = data.terrain;
-    if (typeof terrain === "object") this.terrain = Terrain.import(terrain);
-
-    this.nav_dirty = true;
-    this.mp.reset(this.mpg);
+  removeLayer(layer) {
+    const i = this.layers.indexOf(layer);
+    if (i >= 0) this.layers.splice(i, 1);
     return this;
   }
 
-  export() {
+  _computeNav(x, y) {
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      const nav = this.layers[i].getNavData(x, y);
+      if (nav.cost !== undefined) return nav.cost;
+    }
+    return Infinity;
+  }
+
+  syncAt(x, y) {
+    this.mpg.set(x, y, this._computeNav(x, y));
+    PathfindingSystem.invalidate();
+    return this;
+  }
+
+  syncAll() {
+    for (let y = 0; y < this.rows; y++) {
+      for (let x = 0; x < this.cols; x++) {
+        this.mpg.set(x, y, this._computeNav(x, y));
+      }
+    }
+    PathfindingSystem.invalidate();
+    return this;
+  }
+
+  worldToGrid(wx, wy) {
     return {
-      terrain: this.terrain.export(),
+      x: Math.floor(wx / this.cellWidth),
+      y: Math.floor(wy / this.cellHeight),
     };
   }
 
-  mark_nav_dirty() {
-    this.nav_dirty = true;
+  gridToWorld(gx, gy) {
+    return {
+      x: gx * this.cellWidth + this.cellWidth * 0.5,
+      y: gy * this.cellHeight + this.cellHeight * 0.5,
+    };
   }
 
-  update() {
-    this.tick++;
+  update() {}
 
-    if (this.nav_dirty) {
-      // TODO: Terrain/Structure -> MPGrid dirty patch sync
-      this.nav_dirty = false;
-      this.mp.increaseVersion();
+  export() {
+    return {
+      cellWidth: this.cellWidth,
+      cellHeight: this.cellHeight,
+      cols: this.cols,
+      rows: this.rows,
+      layers: this.layers.map((layer) => layer.export()),
+    };
+  }
+
+  import(data) {
+    for (let i = 0; i < this.layers.length; i++) {
+      if (data.layers[i] !== undefined) {
+        this.layers[i].import(data.layers[i]);
+      }
     }
+    this.syncAll();
+    return this;
+  }
+
+  destroy() {
+    for (let i = 0; i < this.layers.length; i++) {
+      this.layers[i].destroy();
+    }
+    this.mpg.destroy();
+    this.mpg = undefined;
+    this.layers = [];
   }
 };

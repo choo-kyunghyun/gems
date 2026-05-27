@@ -1,78 +1,26 @@
-// TODO: Simplify the API
-globalThis.MotionPlanning = class MotionPlanning {
-  constructor(grid = undefined) {
-    this.planner = new MotionPlanner(grid);
-    this.requests = {};
-    this.version = 0;
+globalThis.PathfindingSystem = class PathfindingSystem {
+  static setGrid(grid) {
+    MotionPlanner.set(grid);
   }
 
-  setGrid(grid) {
-    this.planner.set(grid);
-    this.requests = {};
+  static invalidate() {
+    PathResponse.data.fill(undefined);
+    PathCursor.data.fill(undefined);
   }
 
-  reset(grid = undefined) {
-    this.planner.set(grid);
-    this.requests = {};
-    this.version = 0;
-  }
+  static update() {
+    for (let i = 0; i < PathRequest.data.length; i++) {
+      const req = PathRequest.data[i];
+      if (req === undefined) continue;
 
-  getVersion() {
-    return this.version;
-  }
+      const path = MotionPlanner.plan(
+        { x: req.sx, y: req.sy },
+        { x: req.gx, y: req.gy },
+      );
 
-  increaseVersion() {
-    this.version++;
-    return this.version;
-  }
-
-  requestPath(id, start, goal, opt = {}) {
-    const path = this.planner.plan(start, goal, MP_ALGORITHM.ASTAR, opt);
-    const request = {
-      start: start,
-      goal: goal,
-      path: path,
-      index: 0,
-      version: this.version,
-    };
-    this.requests[id] = request;
-    return request;
-  }
-
-  getRequest(id) {
-    return this.requests[id];
-  }
-
-  countRequests() {
-    return Object.keys(this.requests).length;
-  }
-
-  needsReplan(id) {
-    const req = this.getRequest(id);
-    if (typeof req !== "object") return true;
-    if (req.path.length === 0) return true;
-    return req.version !== this.version;
-  }
-
-  removeRequest(id) {
-    delete this.requests[id];
-  }
-
-  getNextCell(id, consume = false) {
-    const req = this.getRequest(id);
-    if (req === undefined) return undefined;
-    const path = req.path;
-    const index = req.index;
-    const len = path.length;
-    if (index >= len) {
-      this.removeRequest(id);
-      return undefined;
+      PathRequest.data[i] = undefined;
+      PathResponse.data[i] = path;
+      PathCursor.data[i] = 0;
     }
-    const cell = path[index];
-    if (consume) {
-      req.index = index + 1;
-      if (req.index >= len) this.removeRequest(id);
-    }
-    return cell;
   }
 };

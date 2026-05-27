@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_struct",
+  "%Name":"scr_uiInput",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_struct",
+  "name":"scr_uiInput",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"UI",
+    "path":"folders/Supplements/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_struct.js",
+  "scriptSource":"scr_uiInput.js",
 }

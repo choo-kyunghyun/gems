@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_style",
   "parent":{
-    "name":"UI Preset",
-    "path":"folders/Demo/UI Preset.yy",
+    "name":"Demo",
+    "path":"folders/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

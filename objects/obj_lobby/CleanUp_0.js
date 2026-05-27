@@ -1,3 +1,5 @@
 this.renderer.destroy();
-this.spyCam.destroy();
-UI.remove(this.myUI);
+this.camera.destroy();
+this.world.destroy();
+State.states = {};
+Entity.reset();
