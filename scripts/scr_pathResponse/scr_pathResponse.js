@@ -1,11 +1,7 @@
 globalThis.PathResponse = class PathResponse extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "PathResponse";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, path) {
-    this.data.set(IdPool.getIndex(id), path);
+  static set(id, path) {
+    this.data[IdPool.getIndex(id)] = path;
   }
 };

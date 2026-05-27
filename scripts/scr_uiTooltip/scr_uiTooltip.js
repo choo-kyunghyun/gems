@@ -1,4 +1,4 @@
-/** @implements {Component} */
+/** @implements {UIComponent} */
 globalThis.UITooltip = class UITooltip {
   constructor(tooltip = {}) {
     this.textRef = tooltip.textRef ?? (() => "");

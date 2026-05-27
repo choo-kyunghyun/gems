@@ -1,11 +1,7 @@
 globalThis.Hit = class Hit extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "Hit";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, hit) {
-    this.data.set(IdPool.getIndex(id), hit);
+  static set(id, hit) {
+    this.data[IdPool.getIndex(id)] = hit;
   }
 };

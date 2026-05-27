@@ -8,7 +8,6 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 
 - **Flexbox-based Layout**: Responsive UI design utilizing the `flexpanel`.
 - **GMRT & JavaScript**
-- **OOP**
 - **ECS**
 
 ## Getting Started
@@ -22,16 +21,16 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 
 - G.E.M.S.
   - Core
-  - Foundation
+  - Supplements
   - Demo
 
 ## License
 
 G.E.M.S. is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file in the repository.
 
-## Generative AI Disclosure
+## Notice of Generative AI Usage
 
-Parts of this project—including [code / documentation / assets]—were developed or assisted with the help of Generative AI technologies. This disclosure is provided to ensure transparency and to assist downstream users in meeting their local regulatory compliance.
+Various files in this repository—including code, documentation, and assets—were created with the assistance of generative AI technology.
 
 ## Open Source Licenses
 

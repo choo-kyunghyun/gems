@@ -40,6 +40,15 @@ Input.register(GAME_INPUT.DOWN, new InputAction().bind_button(INPUT_SOURCE.KEYBO
 Input.register(GAME_INPUT.LEFT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")));
 Input.register(GAME_INPUT.RIGHT, new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")));
 
+// Entity
+Entity.register(Hit);
+Entity.register(Name);
+Entity.register(PathRequest);
+Entity.register(PathResponse);
+Entity.register(Position);
+Entity.register(Visual);
+Entity.register(State);
+
 // Setting
 this.settings_path = "user_settings.json";
 this.settings_default = {

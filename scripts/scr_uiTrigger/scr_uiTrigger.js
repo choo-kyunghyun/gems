@@ -1,4 +1,4 @@
-/** @implements {Component} */
+/** @implements {UIComponent} */
 globalThis.UITrigger = class UITrigger {
   constructor(trigger = {}) {
     this.block = trigger.block ?? true;

@@ -1,4 +1,4 @@
-/** @implements {Component} */
+/** @implements {UIComponent} */
 globalThis.UIText = class UIText {
   constructor(text = {}) {
     this.textRef = text.textRef ?? (() => "");

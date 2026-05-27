@@ -1,11 +1,7 @@
 globalThis.Visual = class Visual extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "Visual";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, sprite) {
-    this.data.set(IdPool.getIndex(id), { sprite });
+  static set(id, sprite, subimg) {
+    this.data[IdPool.getIndex(id)] = { sprite, subimg };
   }
 };

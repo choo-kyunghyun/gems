@@ -1,4 +1,4 @@
-/** @implements {Component} */
+/** @implements {UIComponent} */
 globalThis.UIPanel = class UIPanel {
   constructor(panel = {}) {
     this.color = panel.color ?? c_white;

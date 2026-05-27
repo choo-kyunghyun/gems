@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_renderer",
+  "%Name":"scr_renderDebugEntity",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_renderer",
+  "name":"scr_renderDebugEntity",
   "parent":{
     "name":"Render",
     "path":"folders/Core/Render.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_renderer.js",
+  "scriptSource":"scr_renderDebugEntity.js",
 }

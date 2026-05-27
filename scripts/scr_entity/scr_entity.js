@@ -1,19 +1,19 @@
-globalThis.Entity = class Entity {
-  constructor(maximum = 10000) {
-    this.components = new Map();
-    this.destroyQueue = new Set();
-    this.idPool = new IdPool(maximum);
-  }
+globalThis.MAX_ENTITIES = 10000;
 
-  destroy() {
+globalThis.Entity = class Entity {
+  static MAX_ENTITIES = MAX_ENTITIES;
+  static components = new Map();
+  static destroyQueue = new Set();
+
+  static destroy() {
     this.components.clear();
     this.destroyQueue.clear();
-    this.idPool.destroy();
+    IdPool.destroy();
   }
 
-  export() {
+  static export() {
     const snapshot = {
-      idPool: this.idPool.export(),
+      idPool: IdPool.export(),
       components: {},
     };
 
@@ -24,10 +24,10 @@ globalThis.Entity = class Entity {
     return JSON.stringify(snapshot);
   }
 
-  import(json) {
+  static import(json) {
     const snapshot = JSON.parse(json);
 
-    this.idPool.import(snapshot.idPool);
+    IdPool.import(snapshot.idPool);
     this.destroyQueue.clear();
 
     for (const [name, component] of this.components.entries()) {
@@ -36,41 +36,45 @@ globalThis.Entity = class Entity {
     }
   }
 
-  register(component) {
+  static register(component) {
     this.components.set(component.name, component);
     return component;
   }
 
-  unregister(component) {
+  static unregister(component) {
     this.components.delete(component.name);
   }
 
-  create() {
-    return this.idPool.alloc();
+  static get(name) {
+    return this.components.get(name);
   }
 
-  remove(id) {
+  static create() {
+    return IdPool.alloc();
+  }
+
+  static remove(id) {
     this.destroyQueue.add(id);
   }
 
-  flush() {
+  static flush() {
     if (this.destroyQueue.size === 0) return;
 
     for (const id of this.destroyQueue) {
-      if (!this.idPool.isValid(id)) continue;
-      const index = this.idPool.getIndex(id);
+      if (!IdPool.isValid(id)) continue;
+      const index = IdPool.getIndex(id);
 
       for (const component of this.components.values()) {
         component.delete(index);
       }
 
-      this.idPool.free(id);
+      IdPool.free(id);
     }
 
     this.destroyQueue.clear();
   }
 
-  isValid(id) {
-    return this.idPool.isValid(id);
+  static isValid(id) {
+    return IdPool.isValid(id);
   }
 };

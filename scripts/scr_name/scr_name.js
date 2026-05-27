@@ -1,11 +1,7 @@
 globalThis.Name = class Name extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "Name";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, name) {
-    this.data.set(IdPool.getIndex(id), name);
+  static set(id, name) {
+    this.data[IdPool.getIndex(id)] = name;
   }
 };

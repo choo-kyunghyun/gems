@@ -1,5 +1,5 @@
 UI.draw();
-// Tooltip.draw();
+Tooltip.draw();
 
 if (keyboard_check_pressed(vk_f5)) {
     const date = new Date();

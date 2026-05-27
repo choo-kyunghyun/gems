@@ -6,7 +6,7 @@ globalThis.OBJECT_FIT = Object.freeze({
   SCALE_DOWN: 4,
 });
 
-/** @implements {Component} */
+/** @implements {UIComponent} */
 globalThis.UIImage = class UIImage {
   constructor(image = {}) {
     this.sprite = image.sprite;

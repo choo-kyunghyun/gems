@@ -2,14 +2,12 @@ globalThis.IdPool = class IdPool {
   static INDEX_BITS = 20;
   static INDEX_MASK = (1 << this.INDEX_BITS) - 1;
   static GENERATION_MASK = 0xfff;
-    
-  constructor(maximum = 10000) {
-    this.generations = new Uint16Array(maximum);
-    this.freeIndices = [];
-    this.next = 0;
-  }
 
-  export() {
+  static generations = new Uint16Array(MAX_ENTITIES);
+  static freeIndices = [];
+  static next = 0;
+
+  static export() {
     return {
       generations: Array.from(this.generations),
       freeIndices: this.freeIndices,
@@ -17,31 +15,31 @@ globalThis.IdPool = class IdPool {
     };
   }
 
-  import(data) {
+  static import(data) {
     this.generations.set(data.generations);
     this.freeIndices = data.freeIndices;
     this.next = data.next;
   }
 
-  destroy() {
+  static destroy() {
     this.generations.fill(0);
     this.freeIndices = [];
     this.next = 0;
   }
 
-  _makeId(index, generation) {
-    return (generation << IdPool.INDEX_BITS) | index;
+  static makeId(index, generation) {
+    return (generation << this.INDEX_BITS) | index;
   }
 
   static getIndex(id) {
-    return id & IdPool.INDEX_MASK;
+    return id & this.INDEX_MASK;
   }
 
   static getGeneration(id) {
-    return id >>> IdPool.INDEX_BITS;
+    return id >>> this.INDEX_BITS;
   }
 
-  alloc() {
+  static alloc() {
     let index;
     let generation;
 
@@ -54,10 +52,10 @@ globalThis.IdPool = class IdPool {
       this.generations[index] = generation;
     }
 
-    return this._makeId(index, generation);
+    return this.makeId(index, generation);
   }
 
-  free(id) {
+  static free(id) {
     const index = this.getIndex(id);
     const generation = this.getGeneration(id);
 
@@ -66,13 +64,13 @@ globalThis.IdPool = class IdPool {
     }
 
     this.generations[index] =
-      (this.generations[index] + 1) & IdPool.GENERATION_MASK;
+      (this.generations[index] + 1) & this.GENERATION_MASK;
 
     this.freeIndices.push(index);
     return true;
   }
 
-  isValid(id) {
+  static isValid(id) {
     const index = this.getIndex(id);
     const generation = this.getGeneration(id);
     return this.generations[index] === generation;

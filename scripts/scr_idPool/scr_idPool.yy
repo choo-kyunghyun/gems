@@ -10,5 +10,5 @@
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"scr_id.js",
+  "scriptSource":"scr_idPool.js",
 }

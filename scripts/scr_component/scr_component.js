@@ -1,26 +1,30 @@
 globalThis.Component = class Component {
-  constructor() {
-    this.data = new Map();
-    this.name = this.constructor.name;
+  static data = [];
+
+  static has(id) {
+    return this.data[IdPool.getIndex(id)] !== undefined;
   }
 
-  has(id) {
-    return this.data.has(IdPool.getIndex(id));
+  static delete(id) {
+    this.data[IdPool.getIndex(id)] = undefined;
   }
 
-  delete(id) {
-    this.data.delete(IdPool.getIndex(id));
+  static get(id) {
+    return this.data[IdPool.getIndex(id)];
   }
 
-  get(id) {
-    return this.data.get(IdPool.getIndex(id));
+  static export() {
+    const entries = [];
+    for (let i = 0; i < this.data.length; i++) {
+      if (this.data[i] !== undefined) entries.push([i, this.data[i]]);
+    }
+    return entries;
   }
 
-  export() {
-    return Array.from(this.data.entries());
-  }
-
-  import(data) {
-    this.data = new Map(data);
+  static import(data) {
+    this.data.fill(undefined);
+    for (const [i, v] of data) {
+      this.data[i] = v;
+    }
   }
 };

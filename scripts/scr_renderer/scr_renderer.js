@@ -1,3 +1,9 @@
+/**
+ * @typedef {Object} RenderPass
+ * @property {function(): void} destroy
+ * @property {function(): void} draw
+ */
+
 globalThis.Renderer = class Renderer {
   constructor() {
     this.passes = [];

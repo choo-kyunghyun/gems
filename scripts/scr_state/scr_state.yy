@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_state",
   "parent":{
-    "name":"State",
-    "path":"folders/Core/Components/State.yy",
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -1,11 +1,7 @@
 globalThis.PathRequest = class PathRequest extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "PathRequest";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, x, y) {
-    this.data.set(IdPool.getIndex(id), { x, y });
+  static set(id, x, y) {
+    this.data[IdPool.getIndex(id)] = { x, y };
   }
 };

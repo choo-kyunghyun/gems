@@ -1,5 +1,5 @@
 /**
- * @typedef {Object} Component
+ * @typedef {Object} UIComponent
  * @property {function(UIElement|boolean): boolean} onUpdate
  * @property {function(UIElement): void} onDraw
  * @property {function(UIElement): void} onDestroy
@@ -14,14 +14,14 @@ globalThis.UIElement = class UIElement {
     this.parent = null;
     /** @type {UIElement[]} */
     this.children = [];
-    /** @type {Component[]} */
+    /** @type {UIComponent[]} */
     this.components = [];
     this.dirty = true;
     this.clip = false;
   }
 
   /**
-   * @param {Component} component
+   * @param {UIComponent} component
    * @returns {UIElement}
    */
   addComponent(component) {
@@ -30,8 +30,8 @@ globalThis.UIElement = class UIElement {
   }
 
   /**
-   * @param {typeof Component} ComponentClass
-   * @returns {Component|undefined}
+   * @param {typeof UIComponent} ComponentClass
+   * @returns {UIComponent|undefined}
    */
   getComponent(ComponentClass) {
     return this.components.find((c) => c instanceof ComponentClass);

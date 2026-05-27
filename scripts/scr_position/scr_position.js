@@ -1,11 +1,7 @@
 globalThis.Position = class Position extends Component {
-  constructor() {
-    // super();
-    this.data = new Map();
-    this.name = "Position";
-  }
+  static data = new Array(MAX_ENTITIES).fill(undefined);
 
-  set(id, x, y, z) {
-    this.data.set(IdPool.getIndex(id), { x, y, z });
+  static set(id, x, y, z) {
+    this.data[IdPool.getIndex(id)] = { x, y, z };
   }
 };

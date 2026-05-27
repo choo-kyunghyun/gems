@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_settings",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_settings",
+  "parent":{
+    "name":"Settings",
+    "path":"folders/Supplements/Settings.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"scr_settings.js",
+}
