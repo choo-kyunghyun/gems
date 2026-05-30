@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"MotionPlanner",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"MotionPlanner",
+  "parent":{
+    "name":"Pathfinding",
+    "path":"folders/Core/Pathfinding.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"MotionPlanner.js",
+}

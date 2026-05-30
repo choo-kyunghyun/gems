@@ -1,0 +1,20 @@
+[
+  {
+    "id": "player",
+    "components": {
+      "Name": "Player",
+      "Visual": { "sprite": "spr_choo", "subimg": 0 },
+      "Hit": { "hp": 100, "maxHp": 100 },
+      "State": "idle"
+    }
+  },
+  {
+    "id": "npc",
+    "components": {
+      "Name": "NPC",
+      "Visual": { "sprite": "spr_hana", "subimg": 0 },
+      "Hit": { "hp": 50, "maxHp": 50 },
+      "State": "idle"
+    }
+  }
+]

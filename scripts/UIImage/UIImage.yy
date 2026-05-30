@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIImage",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIImage",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIImage.js",
+}

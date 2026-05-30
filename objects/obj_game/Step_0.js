@@ -1,4 +1,2 @@
-State.update();
-PathfindingSystem.update();
+SIMULATION.update(SIMULATION_SYSTEMS);
 UI.update();
-Entity.flush();

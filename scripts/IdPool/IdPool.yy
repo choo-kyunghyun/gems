@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"IdPool",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"IdPool",
+  "parent":{
+    "name":"Entity",
+    "path":"folders/Core/Entity.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"IdPool.js",
+}

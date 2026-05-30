@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Query",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Query",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Query.js",
+}

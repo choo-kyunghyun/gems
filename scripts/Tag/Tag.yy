@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Tag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Tag",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Tag.js",
+}

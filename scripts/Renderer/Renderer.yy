@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Renderer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Renderer",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Renderer.js",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Position",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Position",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Position.js",
+}

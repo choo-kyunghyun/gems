@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Time",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Time",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Time.js",
+}

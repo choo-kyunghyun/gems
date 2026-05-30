@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Simulation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Simulation",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Simulation.js",
+}

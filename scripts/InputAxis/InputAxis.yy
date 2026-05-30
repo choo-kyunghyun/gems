@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InputAxis",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InputAxis",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InputAxis.js",
+}

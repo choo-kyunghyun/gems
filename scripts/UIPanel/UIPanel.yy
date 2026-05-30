@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIPanel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIPanel",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIPanel.js",
+}

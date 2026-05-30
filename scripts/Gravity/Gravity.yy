@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Gravity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Gravity",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Gravity.js",
+}

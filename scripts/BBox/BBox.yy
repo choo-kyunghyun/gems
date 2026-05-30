@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"BBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"BBox",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"BBox.js",
+}

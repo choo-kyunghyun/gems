@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIText",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIText",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIText.js",
+}

@@ -32,4 +32,8 @@ globalThis.UIButton = class UIButton {
 
     return block;
   }
+
+  onDestroy(element) {}
+
+  onDraw(element) {}
 };

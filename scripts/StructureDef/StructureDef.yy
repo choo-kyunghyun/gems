@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StructureDef",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StructureDef",
+  "parent":{
+    "name":"Structure",
+    "path":"folders/Core/World/Structure.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StructureDef.js",
+}

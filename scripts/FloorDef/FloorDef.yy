@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FloorDef",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FloorDef",
+  "parent":{
+    "name":"Floor",
+    "path":"folders/Core/World/Floor.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FloorDef.js",
+}

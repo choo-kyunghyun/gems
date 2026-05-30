@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"I18n",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"I18n",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"I18n.js",
+}

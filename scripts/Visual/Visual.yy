@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Visual",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Visual",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Visual.js",
+}

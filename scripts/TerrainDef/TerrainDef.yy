@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TerrainDef",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TerrainDef",
+  "parent":{
+    "name":"Terrain",
+    "path":"folders/Core/World/Terrain.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TerrainDef.js",
+}

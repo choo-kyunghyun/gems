@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Floor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Floor",
+  "parent":{
+    "name":"Floor",
+    "path":"folders/Core/World/Floor.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Floor.js",
+}

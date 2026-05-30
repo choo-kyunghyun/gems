@@ -2,10 +2,15 @@
 const RELEASE_MODE = false;
 gml_release_mode(RELEASE_MODE);
 audio_throw_on_error(!RELEASE_MODE);
+// exception_unhandled_handler();
 
 // Game
 randomize();
 this.persistent = true;
+
+// GPU
+gpu_set_ztestenable(true);
+gpu_set_alphatestenable(true);
 
 // Window
 let w = display_get_width() / 2;
@@ -24,7 +29,7 @@ draw_set_circle_precision(64);
 
 // UI
 I18n.load("i18n/ko-KR/manifest.json");
-draw_set_font(I18n.font("normal_36"));
+// draw_set_font(I18n.font("normal_36"));
 display_set_gui_maximise();
 
 // Input
@@ -53,7 +58,13 @@ Input.register(
 );
 
 // Entity
+Entity.register(Animation);
+Entity.register(Collision);
+Entity.register(Direction);
+Entity.register(Gravity);
 Entity.register(Hit);
+Entity.register(Lifetime);
+Entity.register(Tag);
 Entity.register(Name);
 Entity.register(PathCursor);
 Entity.register(PathRequest);
@@ -64,6 +75,19 @@ Entity.register(Visual);
 
 // Settings
 Settings.load();
+
+// Simulation
+globalThis.SIMULATION = new Simulation(60);
+globalThis.SIMULATION_SYSTEMS = [
+  Animation,
+  Lifetime,
+  State,
+  GravitySystem,
+  MovementSystem,
+  CollisionSystem,
+  PathfindingSystem,
+  { update() { Entity.flush(); } },
+];
 
 // Done
 room_goto_next();

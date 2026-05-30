@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Hit",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Hit",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Hit.js",
+}

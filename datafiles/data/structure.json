@@ -1,0 +1,9 @@
+[
+  { "id": "wall_stone", "name": "Stone Wall" },
+  { "id": "wall_wood", "name": "Wooden Wall" },
+  { "id": "door_open", "name": "Open Door", "pathCost": 1 },
+  { "id": "door_closed", "name": "Closed Door" },
+  { "id": "pillar", "name": "Pillar" },
+  { "id": "chest", "name": "Chest" },
+  { "id": "bush", "name": "Bush", "pathCost": 2 }
+]

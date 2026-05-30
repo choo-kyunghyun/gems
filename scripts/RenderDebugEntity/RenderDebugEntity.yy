@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderDebugEntity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderDebugEntity",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderDebugEntity.js",
+}

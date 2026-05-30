@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InputButton",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InputButton",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InputButton.js",
+}

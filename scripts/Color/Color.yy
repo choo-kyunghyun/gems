@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Color",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Color",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Color.js",
+}

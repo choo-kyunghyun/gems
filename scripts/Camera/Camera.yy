@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Camera",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Camera",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Camera.js",
+}

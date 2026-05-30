@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PathRequest",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PathRequest",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PathRequest.js",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"EntityDef",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"EntityDef",
+  "parent":{
+    "name":"Entity",
+    "path":"folders/Core/Entity.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"EntityDef.js",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderEntity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderEntity",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderEntity.js",
+}

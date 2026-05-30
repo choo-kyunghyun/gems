@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Direction",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Direction",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Direction.js",
+}

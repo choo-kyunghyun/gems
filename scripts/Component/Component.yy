@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Component",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Component",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Component.js",
+}

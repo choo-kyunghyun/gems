@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Movement",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Movement",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Movement.js",
+}

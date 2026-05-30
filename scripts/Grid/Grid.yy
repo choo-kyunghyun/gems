@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Grid",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Grid",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Grid.js",
+}

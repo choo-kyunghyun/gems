@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"World",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"World",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"World.js",
+}

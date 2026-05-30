@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Velocity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Velocity",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Velocity.js",
+}

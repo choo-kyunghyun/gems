@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UITrigger",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UITrigger",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UITrigger.js",
+}
