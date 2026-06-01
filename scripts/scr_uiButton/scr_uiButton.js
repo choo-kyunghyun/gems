@@ -1,4 +1,7 @@
-/** @implements {UIComponent} */
+/**
+ * @implements {UIComponent}
+ * TODO: Broken
+ */
 globalThis.UIButton = class UIButton {
   constructor(btn = {}) {
     this.colorNormal = btn.colorNormal ?? c_white;

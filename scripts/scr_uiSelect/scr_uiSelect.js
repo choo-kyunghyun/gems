@@ -1,4 +1,7 @@
-/** @implements {UIComponent} */
+/**
+ * @implements {UIComponent}
+ * TODO: Broken
+ */
 globalThis.UISelect = class UISelect {
   constructor(select = {}) {
     this.items = select.items ?? [];

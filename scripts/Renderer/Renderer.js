@@ -29,9 +29,9 @@ globalThis.Renderer = class Renderer {
     return this;
   }
 
-  draw() {
+  draw(world) {
     for (const pass of this.passes) {
-      pass.draw();
+      pass.draw(world);
     }
   }
 };

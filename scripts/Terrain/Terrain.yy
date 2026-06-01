@@ -6,7 +6,7 @@
   "name":"Terrain",
   "parent":{
     "name":"Terrain",
-    "path":"folders/Core/World/Terrain.yy",
+    "path":"folders/Core/Level/Terrain.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

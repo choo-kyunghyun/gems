@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"MotionPlanner",
   "parent":{
-    "name":"Pathfinding",
-    "path":"folders/Core/Pathfinding.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

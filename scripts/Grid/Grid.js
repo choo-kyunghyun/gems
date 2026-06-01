@@ -13,7 +13,7 @@ globalThis.Grid = class Grid {
     return {
       width: this.cols,
       height: this.rows,
-      data: this.data,
+      data: this.data.slice(),
     };
   }
 

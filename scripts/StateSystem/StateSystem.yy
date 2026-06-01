@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StateSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StateSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StateSystem.js",
+}

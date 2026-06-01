@@ -1,12 +1,5 @@
 globalThis.noop = function noop() {}
 
-globalThis.byte_to_hex = function byte_to_hex(value) {
-  const hexs = "0123456789abcdef";
-  const hi = hexs.charAt(Math.floor(value / 16));
-  const lo = hexs.charAt(value % 16);
-  return hi + lo;
-}
-
 globalThis.uuid = function uuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;

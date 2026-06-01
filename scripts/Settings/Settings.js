@@ -1,5 +1,5 @@
 globalThis.Settings = class Settings {
-  static PATH = "user_settings.json";
+  static PATH = "settings.json";
 
   static defaults = Object.freeze({
     // Localization

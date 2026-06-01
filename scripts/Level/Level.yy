@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Level",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Level",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Level.js",
+}

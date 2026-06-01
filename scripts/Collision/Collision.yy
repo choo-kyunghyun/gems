@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Collision",
   "parent":{
-    "name":"Systems",
-    "path":"folders/Core/Systems.yy",
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

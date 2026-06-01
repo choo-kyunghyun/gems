@@ -6,7 +6,7 @@
   "name":"FloorDef",
   "parent":{
     "name":"Floor",
-    "path":"folders/Core/World/Floor.yy",
+    "path":"folders/Core/Level/Floor.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

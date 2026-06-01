@@ -1,2 +1,1 @@
-SIMULATION.update(SIMULATION_SYSTEMS);
 UI.update();

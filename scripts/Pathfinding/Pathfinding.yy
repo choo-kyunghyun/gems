@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Pathfinding",
   "parent":{
-    "name":"Pathfinding",
-    "path":"folders/Core/Pathfinding.yy",
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

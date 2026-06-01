@@ -1,1 +1,0 @@
-globalThis.MAX_ENTITIES = 10000;

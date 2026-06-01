@@ -6,7 +6,7 @@
   "name":"Structure",
   "parent":{
     "name":"Structure",
-    "path":"folders/Core/World/Structure.yy",
+    "path":"folders/Core/Level/Structure.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

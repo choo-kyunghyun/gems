@@ -1,6 +1,6 @@
 /** @implements {RenderPass} */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
-  draw() {
+  draw(world) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
     const halign = draw_get_halign();
@@ -8,23 +8,22 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
     draw_set_alpha(1);
 
-    for (let index = 0; index < Position.data.length; index++) {
-      const pos = Position.data[index];
-      if (pos === undefined) continue;
+    for (const id of world.query(Position)) {
+      const pos = world.get(Position, id);
 
-      const hit = Hit.data[index];
-      if (hit !== undefined) {
+      const bbox = world.get(BBox, id);
+      if (bbox !== undefined) {
         draw_set_color(c_lime);
-        draw_circle(pos.x, pos.y, hit, true);
+        draw_rectangle(pos.x + bbox.x, pos.y + bbox.y, pos.x + bbox.x + bbox.w, pos.y + bbox.y + bbox.h, true);
       }
 
-      const name = Name.data[index];
+      const name = world.get(Name, id);
       if (name !== undefined) {
         draw_set_color(c_white);
         draw_set_halign(fa_center);
         draw_set_valign(fa_bottom);
-        const offsetY = hit !== undefined ? hit : 0;
-        draw_text(pos.x, pos.y - offsetY, name);
+        const offsetY = bbox !== undefined ? bbox.y : 0;
+        draw_text(pos.x, pos.y + offsetY, name.name);
       }
     }
 

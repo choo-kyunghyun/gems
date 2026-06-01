@@ -1,4 +1,7 @@
-/** @implements {UIComponent} */
+/**
+ * @implements {UIComponent}
+ * TODO: Broken
+ */
 globalThis.UIInput = class UIInput {
   constructor(input = {}) {
     this.value = input.value ?? "";

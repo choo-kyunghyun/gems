@@ -57,37 +57,8 @@ Input.register(
   new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")),
 );
 
-// Entity
-Entity.register(Animation);
-Entity.register(Collision);
-Entity.register(Direction);
-Entity.register(Gravity);
-Entity.register(Hit);
-Entity.register(Lifetime);
-Entity.register(Tag);
-Entity.register(Name);
-Entity.register(PathCursor);
-Entity.register(PathRequest);
-Entity.register(PathResponse);
-Entity.register(Position);
-Entity.register(State);
-Entity.register(Visual);
-
 // Settings
 Settings.load();
-
-// Simulation
-globalThis.SIMULATION = new Simulation(60);
-globalThis.SIMULATION_SYSTEMS = [
-  Animation,
-  Lifetime,
-  State,
-  GravitySystem,
-  MovementSystem,
-  CollisionSystem,
-  PathfindingSystem,
-  { update() { Entity.flush(); } },
-];
 
 // Done
 room_goto_next();

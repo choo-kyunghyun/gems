@@ -1,4 +1,7 @@
-/** @implements {UIComponent} */
+/**
+ * @implements {UIComponent}
+ * TODO: Broken
+ */
 globalThis.UISlider = class UISlider {
   constructor(slider = {}) {
     this.min = slider.min ?? 0;

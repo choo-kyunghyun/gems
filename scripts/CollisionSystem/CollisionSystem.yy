@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"CollisionSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"CollisionSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"CollisionSystem.js",
+}

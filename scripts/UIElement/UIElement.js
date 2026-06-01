@@ -22,10 +22,11 @@ globalThis.UIElement = class UIElement {
 
   /**
    * @param {UIComponent} component
+   * @param {number} index
    * @returns {UIElement}
    */
-  addComponent(component) {
-    this.components.push(component);
+  addComponent(component, index = this.components.length) {
+    this.components.splice(index, 0, component);
     return this;
   }
 
@@ -35,6 +36,27 @@ globalThis.UIElement = class UIElement {
    */
   getComponent(ComponentClass) {
     return this.components.find((c) => c instanceof ComponentClass);
+  }
+
+  /**
+   * @param {typeof UIComponent} ComponentClass
+   * @returns {UIComponent[]}
+   */
+  getComponents(ComponentClass) {
+    return this.components.filter((c) => c instanceof ComponentClass);
+  }
+
+  /**
+   * @param {UIComponent} component
+   * @returns {UIElement}
+   */
+  removeComponent(component) {
+    const index = this.components.indexOf(component);
+    if (index > -1) {
+      if (component.onDestroy) component.onDestroy(this);
+      this.components.splice(index, 1);
+    }
+    return this;
   }
 
   destroy() {

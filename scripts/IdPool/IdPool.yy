@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"IdPool",
   "parent":{
-    "name":"Entity",
-    "path":"folders/Core/Entity.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

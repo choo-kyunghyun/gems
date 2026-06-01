@@ -1,26 +1,40 @@
-globalThis.PathfindingSystem = class PathfindingSystem {
-  static setGrid(grid) {
+globalThis.PathfindingSystem = {
+  setGrid(grid) {
     MotionPlanner.set(grid);
-  }
+  },
 
-  static invalidate() {
-    PathResponse.data.fill(undefined);
-    PathCursor.data.fill(undefined);
-  }
-
-  static update() {
-    for (let i = 0; i < PathRequest.data.length; i++) {
-      const req = PathRequest.data[i];
-      if (req === undefined) continue;
-
-      const path = MotionPlanner.plan(
-        { x: req.sx, y: req.sy },
-        { x: req.gx, y: req.gy },
-      );
-
-      PathRequest.data[i] = undefined;
-      PathResponse.data[i] = path;
-      PathCursor.data[i] = 0;
+  invalidate(world) {
+    for (const id of world.query(PathResponse)) {
+      world.detach(id, PathResponse);
     }
-  }
+  },
+
+  update(world) {
+    for (const id of world.query(PathRequest)) {
+      const req = world.get(PathRequest, id);
+      const path = MotionPlanner.plan({ x: req.sx, y: req.sy }, { x: req.gx, y: req.gy });
+      world.detach(id, PathRequest);
+      if (path.length > 0) {
+        world.add(id, PathResponse, { path, index: 0 });
+      }
+    }
+  },
+
+  current(world, id) {
+    const response = world.get(PathResponse, id);
+    if (response === undefined) return undefined;
+    return response.path[response.index];
+  },
+
+  advance(world, id) {
+    const response = world.get(PathResponse, id);
+    if (response === undefined) return false;
+    const next = response.index + 1;
+    if (next >= response.path.length) {
+      world.detach(id, PathResponse);
+      return false;
+    }
+    response.index = next;
+    return true;
+  },
 };
