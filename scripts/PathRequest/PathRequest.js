@@ -1,8 +1,8 @@
 /**
  * @typedef {Object} PathRequest
- * @property {number} sx
- * @property {number} sy
- * @property {number} gx
- * @property {number} gy
+ * @property {number} startX
+ * @property {number} startY
+ * @property {number} goalX
+ * @property {number} goalY
  */
 globalThis.PathRequest = "PathRequest";

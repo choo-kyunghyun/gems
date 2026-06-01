@@ -17,8 +17,8 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         draw_rectangle(
           pos.x + bbox.x,
           pos.y + bbox.y,
-          pos.x + bbox.x + bbox.w,
-          pos.y + bbox.y + bbox.h,
+          pos.x + bbox.x + bbox.width,
+          pos.y + bbox.y + bbox.height,
           true,
         );
       }

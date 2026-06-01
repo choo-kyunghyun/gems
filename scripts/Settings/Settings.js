@@ -6,17 +6,17 @@ globalThis.Settings = class Settings {
     language: "ko-KR",
     // Graphics
     fullscreen: false,
-    resolution_w: 0,
-    resolution_h: 0,
-    fps_limit: 60,
-    ui_scale: 1.0,
+    resolutionW: 0,
+    resolutionH: 0,
+    fpsLimit: 60,
+    uiScale: 1.0,
     // Audio
-    vol_master: 1.0,
-    vol_music: 1.0,
-    vol_sfx: 1.0,
+    volMaster: 1.0,
+    volMusic: 1.0,
+    volSfx: 1.0,
     // Controls
-    mouse_sens: 0.5,
-    raw_input: false,
+    mouseSensitivity: 0.5,
+    rawInput: false,
   });
 
   static _data = {};

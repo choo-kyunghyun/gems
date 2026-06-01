@@ -31,8 +31,8 @@ globalThis.Level = class Level {
     this.layers = [];
   }
 
-  add(layer) {
-    this.layers.push(layer);
+  insert(layer, index = this.layers.length) {
+    this.layers.splice(index, 0, layer);
     return this;
   }
 
@@ -64,14 +64,14 @@ globalThis.Level = class Level {
     return this;
   }
 
-  toGrid(wx, wy) {
+  worldToGrid(wx, wy) {
     return {
       x: Math.floor(wx / this.cellWidth),
       y: Math.floor(wy / this.cellHeight),
     };
   }
 
-  toWorld(gx, gy) {
+  gridToWorld(gx, gy) {
     return {
       x: gx * this.cellWidth + this.cellWidth * 0.5,
       y: gy * this.cellHeight + this.cellHeight * 0.5,

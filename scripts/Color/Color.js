@@ -39,8 +39,12 @@ globalThis.Color = class Color {
     const b = parseInt(hex.slice(5, 7), 16);
     return make_color_rgb(r, g, b);
   }
-};
 
-globalThis.color_get_alpha = function color_get_alpha(color) {
-  return (color >> 24) / 0xff;
+  /**
+   * @param {number} color
+   * @returns {number}
+   */
+  static alpha(color) {
+    return (color >> 24) / 0xff;
+  }
 };

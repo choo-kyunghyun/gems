@@ -27,17 +27,17 @@ globalThis.InputAction = class InputAction {
     };
   }
 
-  bind_button(source, button, device = 0) {
+  bindButton(source, button, device = 0) {
     this.buttons.push(new InputButton(source, button, device));
     return this;
   }
 
-  bind_axis(mode, axis, device = 0) {
+  bindAxis(mode, axis, device = 0) {
     this.axes.push(new InputAxis(mode, axis, device));
     return this;
   }
 
-  unbind_button(button) {
+  unbindButton(button) {
     const index = this.buttons.indexOf(button);
     if (index > -1) {
       this.buttons.splice(index, 1);
@@ -46,7 +46,7 @@ globalThis.InputAction = class InputAction {
     return false;
   }
 
-  unbind_axis(axis) {
+  unbindAxis(axis) {
     const index = this.axes.indexOf(axis);
     if (index > -1) {
       this.axes.splice(index, 1);

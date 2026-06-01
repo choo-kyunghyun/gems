@@ -33,7 +33,7 @@ globalThis.RenderDebugPath = class RenderDebugPath {
 
     for (const id of world.query(PathRequest)) {
       const req = world.get(PathRequest, id);
-      const wp = level.gridToWorld(req.gx, req.gy);
+      const wp = level.gridToWorld(req.goalX, req.goalY);
       draw_set_color(c_red);
       draw_line(wp.x - 4, wp.y - 4, wp.x + 4, wp.y + 4);
       draw_line(wp.x + 4, wp.y - 4, wp.x - 4, wp.y + 4);

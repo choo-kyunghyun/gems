@@ -2,7 +2,7 @@
  * @typedef {Object} BBox
  * @property {number} x
  * @property {number} y
- * @property {number} w
- * @property {number} h
+ * @property {number} width
+ * @property {number} height
  */
 globalThis.BBox = "BBox";

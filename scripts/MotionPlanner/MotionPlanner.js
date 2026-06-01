@@ -40,7 +40,7 @@ globalThis.MotionPlanner = class MotionPlanner {
   static _closed = undefined;
   static _scratch = undefined;
 
-  static set(grid) {
+  static setGrid(grid) {
     this.grid = grid;
     const count = grid.size();
     this._g = new Array(count);

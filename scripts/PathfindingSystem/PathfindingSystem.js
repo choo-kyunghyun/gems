@@ -1,6 +1,6 @@
 globalThis.PathfindingSystem = {
   setGrid(grid) {
-    MotionPlanner.set(grid);
+    MotionPlanner.setGrid(grid);
   },
 
   invalidate(world) {
@@ -13,8 +13,8 @@ globalThis.PathfindingSystem = {
     for (const id of world.query(PathRequest)) {
       const req = world.get(PathRequest, id);
       const path = MotionPlanner.plan(
-        { x: req.sx, y: req.sy },
-        { x: req.gx, y: req.gy },
+        { x: req.startX, y: req.startY },
+        { x: req.goalX, y: req.goalY },
       );
       world.detach(id, PathRequest);
       if (path.length > 0) {

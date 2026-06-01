@@ -22,7 +22,7 @@ globalThis.World = class World {
     return this.ids.isValid(id);
   }
 
-  queue(id) {
+  remove(id) {
     this._pending.push(id);
   }
 
