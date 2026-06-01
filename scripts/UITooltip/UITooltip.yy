@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UITooltip",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UITooltip",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Supplements/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UITooltip.js",
+}

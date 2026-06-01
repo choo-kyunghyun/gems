@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"cameraFollow",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"cameraFollow",
+  "parent":{
+    "name":"Camera",
+    "path":"folders/Supplements/Camera.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"cameraFollow.js",
+}

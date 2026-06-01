@@ -28,10 +28,14 @@ globalThis.CollisionSystem = {
     if (!this._accepts(ea.col.mask, world.get(Tag, ea.id))) return;
     if (!this._accepts(eb.col.mask, world.get(Tag, eb.id))) return;
 
-    const ax1 = ea.pos.x + ea.bbox.x, ay1 = ea.pos.y + ea.bbox.y;
-    const ax2 = ax1 + ea.bbox.w,      ay2 = ay1 + ea.bbox.h;
-    const bx1 = eb.pos.x + eb.bbox.x, by1 = eb.pos.y + eb.bbox.y;
-    const bx2 = bx1 + eb.bbox.w,      by2 = by1 + eb.bbox.h;
+    const ax1 = ea.pos.x + ea.bbox.x,
+      ay1 = ea.pos.y + ea.bbox.y;
+    const ax2 = ax1 + ea.bbox.w,
+      ay2 = ay1 + ea.bbox.h;
+    const bx1 = eb.pos.x + eb.bbox.x,
+      by1 = eb.pos.y + eb.bbox.y;
+    const bx2 = bx1 + eb.bbox.w,
+      by2 = by1 + eb.bbox.h;
 
     if (ax2 <= bx1 || bx2 <= ax1 || ay2 <= by1 || by2 <= ay1) return;
 

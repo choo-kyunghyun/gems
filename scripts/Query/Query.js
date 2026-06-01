@@ -1,12 +1,16 @@
 globalThis.Query = class Query {
   static nearest(world, x, y, opts = {}) {
     let bestId = -1;
-    let bestDist = opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
+    let bestDist =
+      opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
     for (const id of world.query(Position)) {
       if (!Query._matchesOpts(world, id, opts)) continue;
       const pos = world.get(Position, id);
       const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
-      if (d < bestDist) { bestDist = d; bestId = id; }
+      if (d < bestDist) {
+        bestDist = d;
+        bestId = id;
+      }
     }
     return bestId;
   }
@@ -14,12 +18,16 @@ globalThis.Query = class Query {
   static farthest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist = -1;
-    const maxDistSq = opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
+    const maxDistSq =
+      opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
     for (const id of world.query(Position)) {
       if (!Query._matchesOpts(world, id, opts)) continue;
       const pos = world.get(Position, id);
       const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
-      if (d > bestDist && d <= maxDistSq) { bestDist = d; bestId = id; }
+      if (d > bestDist && d <= maxDistSq) {
+        bestDist = d;
+        bestId = id;
+      }
     }
     return bestId;
   }

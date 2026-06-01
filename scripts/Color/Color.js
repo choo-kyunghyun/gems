@@ -43,4 +43,4 @@ globalThis.Color = class Color {
 
 globalThis.color_get_alpha = function color_get_alpha(color) {
   return (color >> 24) / 0xff;
-}
+};

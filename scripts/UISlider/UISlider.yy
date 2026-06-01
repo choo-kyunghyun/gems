@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UISlider",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UISlider",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Supplements/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UISlider.js",
+}

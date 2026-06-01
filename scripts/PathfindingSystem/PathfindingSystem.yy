@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PathfindingSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PathfindingSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PathfindingSystem.js",
+}

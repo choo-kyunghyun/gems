@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TileLayer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TileLayer",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TileLayer.js",
+}

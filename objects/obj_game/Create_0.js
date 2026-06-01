@@ -32,31 +32,6 @@ I18n.load("i18n/ko-KR/manifest.json");
 // draw_set_font(I18n.font("normal_36"));
 display_set_gui_maximise();
 
-// Input
-globalThis.GAME_INPUT = Object.freeze({
-  UP: "up",
-  DOWN: "down",
-  LEFT: "left",
-  RIGHT: "right",
-});
-
-Input.register(
-  GAME_INPUT.UP,
-  new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("W")),
-);
-Input.register(
-  GAME_INPUT.DOWN,
-  new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("S")),
-);
-Input.register(
-  GAME_INPUT.LEFT,
-  new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("A")),
-);
-Input.register(
-  GAME_INPUT.RIGHT,
-  new InputAction().bind_button(INPUT_SOURCE.KEYBOARD, ord("D")),
-);
-
 // Settings
 Settings.load();
 

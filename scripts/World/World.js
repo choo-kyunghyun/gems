@@ -83,7 +83,7 @@ globalThis.World = class World {
       for (let i = 0; i < storage.length; i++) {
         if (storage[i] !== undefined) entries.push([i, storage[i]]);
       }
-      components[C.name] = entries;
+      components[C] = entries;
     }
     return { ids: this.ids.export(), components };
   }
@@ -92,7 +92,7 @@ globalThis.World = class World {
     this.ids.import(snapshot.ids);
     for (const [C, storage] of this.components) {
       storage.fill(undefined);
-      const entries = snapshot.components[C.name];
+      const entries = snapshot.components[C];
       if (entries === undefined) continue;
       for (const [i, v] of entries) storage[i] = v;
     }

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TileType",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TileType",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TileType.js",
+}

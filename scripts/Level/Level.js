@@ -29,16 +29,14 @@ globalThis.Level = class Level {
 
     /** @type {LevelLayer[]} */
     this.layers = [];
-
-    PathfindingSystem.setGrid(this.mpg);
   }
 
-  addLayer(layer) {
+  add(layer) {
     this.layers.push(layer);
     return this;
   }
 
-  removeLayer(layer) {
+  remove(layer) {
     const i = this.layers.indexOf(layer);
     if (i >= 0) this.layers.splice(i, 1);
     return this;
@@ -52,37 +50,33 @@ globalThis.Level = class Level {
     return Infinity;
   }
 
-  syncAt(x, y, world) {
+  syncAt(x, y) {
     this.mpg.set(x, y, this._computeNav(x, y));
-    if (world !== undefined) PathfindingSystem.invalidate(world);
     return this;
   }
 
-  syncAll(world) {
+  syncAll() {
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
         this.mpg.set(x, y, this._computeNav(x, y));
       }
     }
-    if (world !== undefined) PathfindingSystem.invalidate(world);
     return this;
   }
 
-  worldToGrid(wx, wy) {
+  toGrid(wx, wy) {
     return {
       x: Math.floor(wx / this.cellWidth),
       y: Math.floor(wy / this.cellHeight),
     };
   }
 
-  gridToWorld(gx, gy) {
+  toWorld(gx, gy) {
     return {
       x: gx * this.cellWidth + this.cellWidth * 0.5,
       y: gy * this.cellHeight + this.cellHeight * 0.5,
     };
   }
-
-  update() {}
 
   export() {
     return {
@@ -105,8 +99,8 @@ globalThis.Level = class Level {
   }
 
   destroy() {
-    for (let i = 0; i < this.layers.length; i++) {
-      this.layers[i].destroy();
+    for (const layer of this.layers) {
+      layer.destroy();
     }
     this.mpg.destroy();
     this.mpg = undefined;

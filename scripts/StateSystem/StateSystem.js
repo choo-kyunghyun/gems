@@ -19,16 +19,13 @@ globalThis.StateSystem = {
       const state = world.get(State, id);
 
       if (state.next !== undefined) {
-        // state.current?.finish?.(id);
-        state.current.finish(id);
+        if (state.current && state.current.finish) state.current.finish(id);
         state.current = state.next;
         state.next = undefined;
-        // state.current?.enter?.(id);
-        state.current.enter(id);
+        if (state.current && state.current.enter) state.current.enter(id);
       }
 
-      // state.current?.update?.(id);
-      state.current.update(id);
+      if (state.current && state.current.update) state.current.update(id);
     }
   },
 };

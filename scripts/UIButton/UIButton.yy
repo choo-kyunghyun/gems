@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIButton",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIButton",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Supplements/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIButton.js",
+}

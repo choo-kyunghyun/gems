@@ -14,7 +14,13 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
       const bbox = world.get(BBox, id);
       if (bbox !== undefined) {
         draw_set_color(c_lime);
-        draw_rectangle(pos.x + bbox.x, pos.y + bbox.y, pos.x + bbox.x + bbox.w, pos.y + bbox.y + bbox.h, true);
+        draw_rectangle(
+          pos.x + bbox.x,
+          pos.y + bbox.y,
+          pos.x + bbox.x + bbox.w,
+          pos.y + bbox.y + bbox.h,
+          true,
+        );
       }
 
       const name = world.get(Name, id);

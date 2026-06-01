@@ -26,5 +26,7 @@ globalThis.UIPanel = class UIPanel {
 
   onDestroy(element) {}
 
-  onUpdate(eleement, block) { return block; }
+  onUpdate(eleement, block) {
+    return block;
+  }
 };

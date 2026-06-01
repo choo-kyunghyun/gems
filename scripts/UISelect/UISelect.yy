@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UISelect",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UISelect",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Supplements/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UISelect.js",
+}

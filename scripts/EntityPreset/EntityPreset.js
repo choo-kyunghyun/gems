@@ -9,7 +9,8 @@ globalThis.EntityPreset = class EntityPreset {
 
   static spawn(presetId, world, x, y, z = 0) {
     const preset = this.presets.get(presetId);
-    if (preset === undefined) throw new Error(`Unknown entity preset: ${presetId}`);
+    if (preset === undefined)
+      throw new Error(`Unknown entity preset: ${presetId}`);
 
     const id = world.create();
     world.add(id, Position, { x, y, z });

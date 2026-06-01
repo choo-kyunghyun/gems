@@ -1,0 +1,6 @@
+# Generated GameMaker type-declaration stubs
+*.d.js
+
+# Build output and tool caches
+Build/
+.gmcache/
