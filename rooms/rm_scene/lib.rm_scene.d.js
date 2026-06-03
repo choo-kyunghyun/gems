@@ -1,1 +1,0 @@
-declare const rm_scene: GMRoom

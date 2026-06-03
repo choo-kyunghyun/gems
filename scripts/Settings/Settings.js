@@ -1,25 +1,14 @@
 globalThis.Settings = class Settings {
   static PATH = "settings.json";
 
-  static defaults = Object.freeze({
-    // Localization
-    language: "ko-KR",
-    // Graphics
-    fullscreen: false,
-    resolutionW: 0,
-    resolutionH: 0,
-    fpsLimit: 60,
-    uiScale: 1.0,
-    // Audio
-    volMaster: 1.0,
-    volMusic: 1.0,
-    volSfx: 1.0,
-    // Controls
-    mouseSensitivity: 0.5,
-    rawInput: false,
-  });
+  static defaults = {};
 
   static _data = {};
+
+  static registerDefaults(obj) {
+    Object.assign(this.defaults, obj);
+    return this;
+  }
 
   static get(key) {
     return key in this._data ? this._data[key] : this.defaults[key];

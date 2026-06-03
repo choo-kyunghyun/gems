@@ -1,1 +1,0 @@
-declare const obj_sceneInput: GMObject

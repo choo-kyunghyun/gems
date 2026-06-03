@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Scene",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Scene",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Scene.js",
+}
