@@ -19,7 +19,6 @@
     {"$GMFolder":"","%Name":"UI","folderPath":"folders/Core/UI.yy","name":"UI","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Element","folderPath":"folders/Core/UI/Element.yy","name":"Element","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Demo","folderPath":"folders/Demo.yy","name":"Demo","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Scenes","folderPath":"folders/Demo/Scenes.yy","name":"Scenes","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Sprites","folderPath":"folders/Demo/Sprites.yy","name":"Sprites","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"UI Sprites","folderPath":"folders/Demo/UI Sprites.yy","name":"UI Sprites","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Supplements","folderPath":"folders/Supplements.yy","name":"Supplements","resourceType":"GMFolder","resourceVersion":"2.0",},

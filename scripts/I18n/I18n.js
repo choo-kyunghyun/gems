@@ -7,19 +7,13 @@ globalThis.I18n = class I18n {
   static destroy() {
     I18n.texts = new Map();
 
-    for (const font of I18n.fonts.values()) {
-      font_delete(font);
-    }
+    I18n.fonts.forEach((font) => font_delete(font));
     I18n.fonts = new Map();
 
-    for (const sprite of I18n.images.values()) {
-      sprite_delete(sprite);
-    }
+    I18n.images.forEach((sprite) => sprite_delete(sprite));
     I18n.images = new Map();
 
-    for (const stream of I18n.sounds.values()) {
-      audio_destroy_stream(stream);
-    }
+    I18n.sounds.forEach((stream) => audio_destroy_stream(stream));
     I18n.sounds = new Map();
   }
 

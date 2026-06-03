@@ -37,19 +37,20 @@ Settings.registerDefaults({
 Settings.load();
 
 this.background = Color.parse("#222222");
+this.scenes = SCENES;
 this.scene = null;
+this._pendingScene = null;
 
-this.openScene = (scene) => {
-  this.scene.destroy();
-  this.scene = scene;
-  scene.create();
+// Queue a scene transition — applied after UI.update() to avoid destroying
+// the UI tree while it is still being traversed.
+this.openScene = (factory) => {
+  this._pendingScene = factory;
 };
 
-this.closeScene = () => {
-  this.scene.destroy();
-  this.scene = SceneTitle;
-  SceneTitle.create((s) => this.openScene(s));
+this._applyScene = (factory) => {
+  if (this.scene !== null) this.scene.destroy();
+  this.scene = factory();
+  this.scene.create((s) => this.openScene(s));
 };
 
-SceneTitle.create((s) => this.openScene(s));
-this.scene = SceneTitle;
+this._applyScene(this.scenes.title);
