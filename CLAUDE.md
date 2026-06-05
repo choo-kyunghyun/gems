@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**G.E.M.S.** (GameMaker Entity & Map System) is a high-performance UI and entity management library for GameMaker 2026.0.0.15 using the GMRT runtime (0.19.0). All game logic is written in JavaScript (not GML). The project is structured as three layers: **Core**, **Supplements**, and **Demo**.
+**G.E.M.S.** (GameMaker Entity & Map System) is a high-performance UI and entity management library for GameMaker 2026.0.0.15 using the GMRT runtime (0.19.0). All game logic is written in JavaScript (not GML). Scripts are organized into three IDE folders: **Core** (ECS, systems, level, render, UI, input, utilities), **Demo** (the runnable showcase — `obj_game`, scenes, UI helpers), and **RPG** (genre-specific supplements; currently the camera-follow helpers under `RPG/Camera`).
 
 The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions.
 
@@ -101,7 +101,7 @@ When a new asset is needed, **ask the user to create it via the GameMaker IDE** 
 **Event order in `obj_game`:**
 
 ```
-Create_0 → I18n/Settings/Input init; opens SCENES.title
+Create_0 → display/GPU setup; I18n.load, Settings defaults + load; opens SCENES.title
 Draw_0   → draw_clear(background), scene.draw()
 Step_0   → Time.update(), UI.update(), pending scene transition, scene.step()
 Draw_75  → UI.draw(), Tooltip.draw(), F5 screenshot
@@ -158,42 +158,44 @@ const world = new World(maxEntities, tickrate, opts);
 // opts: { gravity? }  — overrides GravitySystem.strength for this world
 ```
 
+(The examples below use a local `world` instance — there is no `WORLD` global; each scene holds its own as `this.world`.)
+
 **Entity lifecycle:**
 
 ```js
-const id = WORLD.create();      // allocate generational ID
-WORLD.remove(id);                // mark for removal (deferred)
-WORLD.flush();                   // commit all queued removals
-WORLD.isValid(id);               // generational validity check
+const id = world.create();      // allocate generational ID
+world.remove(id);                // mark for removal (deferred)
+world.flush();                   // commit all queued removals
+world.isValid(id);               // generational validity check
 ```
 
 **Component storage:**
 
 ```js
-WORLD.register(Position);                    // allocate storage array
-WORLD.add(id, Position, { x: 0, y: 0, z: 0 }); // set component data
-WORLD.get(Position, id);                     // → data object or undefined
-WORLD.detach(id, Position);                  // remove one component
+world.register(Position);                    // allocate storage array (optional)
+world.add(id, Position, { x: 0, y: 0, z: 0 }); // set data; auto-registers if needed
+world.get(Position, id);                     // → data object or undefined
+world.detach(id, Position);                  // remove one component
 ```
 
 **Query** — returns entity IDs that have **all** listed components:
 
 ```js
-const ids = WORLD.query(Position, Velocity);
+const ids = world.query(Position, Velocity);
 ```
 
 **Fixed-rate tick** — returns the number of ticks to run this frame:
 
 ```js
-const ticks = WORLD.update();   // advances accumulator, computes alpha
-WORLD.alpha;                     // [0, 1) interpolation factor for rendering
+const ticks = world.update();   // advances accumulator, computes alpha
+world.alpha;                     // [0, 1) interpolation factor for rendering
 ```
 
 **Snapshot serialization:**
 
 ```js
-const snapshot = WORLD.export();   // plain object, sparse component entries
-WORLD.import(snapshot);            // restores ids + all registered components
+const snapshot = world.export();   // plain object, sparse component entries
+world.import(snapshot);            // restores ids + all registered components
 ```
 
 `export()` keys components by their **string token**. `import()` iterates registered components and looks up each by token — unknown snapshot keys are silently ignored.
@@ -254,24 +256,24 @@ For scenes that run an ECS simulation, dispatch systems explicitly inside `step(
 
 ```js
 step() {
-    const ticks = WORLD.update();
+    const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
-        GravitySystem.update(WORLD);
-        MovementSystem.update(WORLD);
-        CollisionSystem.update(WORLD);
-        PathfindingSystem.update(WORLD);
-        StateSystem.update(WORLD);
-        LifetimeSystem.update(WORLD);
-        WORLD.flush();
+        GravitySystem.update(this.world);
+        MovementSystem.update(this.world);
+        CollisionSystem.update(this.world);
+        PathfindingSystem.update(this.world);
+        StateSystem.update(this.world);
+        LifetimeSystem.update(this.world);
+        this.world.flush();
     }
 }
 
 draw() {
-    RENDERER.draw(WORLD);
+    this.renderer.draw(this.world);
 }
 ```
 
-**`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock seconds), `Time.scale` (time dilation). Updated by `obj_game` in `Step_1` — always available in scene code.
+**`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock seconds), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` (before `scene.step()`) — always available in scene code.
 
 ### Built-in Systems
 
@@ -279,7 +281,8 @@ draw() {
 |--------|------|-------------|
 | `GravitySystem` | `scripts/GravitySystem/GravitySystem.js` | Applies `strength * direction * tickDuration` to all entities with `Velocity`. `world.gravity` overrides `GravitySystem.strength` when set. Configurable: `GravitySystem.strength`, `GravitySystem.direction`. |
 | `MovementSystem` | `scripts/MovementSystem/MovementSystem.js` | Integrates `Velocity` into `Position` each tick. |
-| `CollisionSystem` | `scripts/CollisionSystem/CollisionSystem.js` | O(n²) AABB test. Solid pairs get MTV push split 50/50. `col.hits` filled each tick. Requires `Collision`, `Position`, `BBox`. Tag mask filtering via `col.mask` (null = accept all). |
+| `CollisionSystem` | `scripts/CollisionSystem/CollisionSystem.js` | O(n²) AABB test. `col.hits` filled each tick for every overlap. Solid pairs get an MTV push: split 50/50 between two dynamic bodies, or applied fully to the dynamic one when its partner is `kinematic`; two kinematic bodies are not resolved. Requires `Collision`, `Position`, `BBox`. Tag mask filtering via `col.mask` (null = accept all). |
+| `GroundedSystem` | `scripts/GroundedSystem/GroundedSystem.js` | Vertical platformer resolution: snaps movers (entities with `Grounded`, `Position`, `BBox`, `Velocity`) onto `kinematic` solids below/above, zeroes `vel.y`, and sets `gr.isGrounded`. The `Grounded` component (`{ isGrounded }`) lives in `scripts/Grounded/Grounded.js`. |
 | `StateSystem` | `scripts/StateSystem/StateSystem.js` | Runs state machine transitions. `StateSystem.change(world, id, schema, force?)` queues a transition; `StateSystem.update(world)` processes it. `StateSchema = { enter?, update?, finish? }`. |
 | `LifetimeSystem` | `scripts/LifetimeSystem/LifetimeSystem.js` | Decrements `lt.ticks` each tick; calls `world.remove(id)` when `≤ 0`. |
 | `PathfindingSystem` | `scripts/PathfindingSystem/PathfindingSystem.js` | `setGrid(grid)`, `update(world)`, `invalidate(world)`, `current(world, id)`, `advance(world, id)`. See Pathfinding Flow below. |
@@ -314,14 +317,14 @@ LEVEL.gridToWorld(gx, gy);  // → { x, y } (cell center)
 
 ### Renderer
 
-`Renderer` (`scripts/Renderer/Renderer.js`): ordered list of `RenderPass` objects. Each pass receives `world` so it can query entities:
+`Renderer` (`scripts/Renderer/Renderer.js`): ordered list of `RenderPass` objects. `insert(pass, index?)` / `remove(pass)` manage the list; `draw(world)` runs every pass; `destroy()` tears them down. Each pass receives `world` so it can query entities:
 
 ```js
 // RenderPass interface
 { draw(world) { ... }, destroy() { ... } }
 
-// Usage
-RENDERER.draw(WORLD);   // in scene's draw()
+// Usage — each scene owns its renderer
+this.renderer.draw(this.world);   // in scene's draw()
 ```
 
 Built-in render passes:
@@ -354,7 +357,7 @@ EntityPreset.register([
   { id: "enemy", components: { Velocity: { x: 0, y: 0, z: 0 }, Lifetime: { ticks: 120 } } }
 ]);
 
-const id = EntityPreset.spawn("enemy", WORLD, x, y, z);
+const id = EntityPreset.spawn("enemy", world, x, y, z);
 
 EntityPreset.has("enemy");   // → boolean
 EntityPreset.get("enemy");   // → preset object or undefined
@@ -375,9 +378,9 @@ Query.inRadius(world, x, y, radius, opts)  // → id[]
 
 ### Utility Modules
 
-- **`Settings`**: Persists to `user_settings.json`. Call `Settings.registerDefaults({ key: value, ... })` before `Settings.load()` at startup. `Settings.get(key)` falls back to defaults; `Settings.set(key, val)` updates in memory; `Settings.save()` writes to disk. Multiple `registerDefaults()` calls merge additively.
+- **`Settings`**: Persists to `settings.json` (`Settings.PATH`). Call `Settings.registerDefaults({ key: value, ... })` before `Settings.load()` at startup. `Settings.get(key)` falls back to defaults; `Settings.set(key, val)` updates in memory; `Settings.save()` writes to disk (only keys present in `defaults`). Multiple `registerDefaults()` calls merge additively.
 - **`Color`**: `Color.rgb(r,g,b)`, `Color.hsv(h,s,v)`, `Color.merge(c1,c2,t)`, `Color.parse("#rrggbb")` — all return GameMaker color integers. `Color.alpha(color)` extracts the alpha byte `[0,1]`.
-- **`I18n`**: Loads from `datafiles/i18n/<locale>/manifest.json`. Ships `ko-KR` (Noto Sans KR, SIL OFL 1.1).
+- **`I18n`**: `I18n.load(manifestPath)` reads a `manifest.json` that lists text-file masks (e.g. `text/*.json`), fonts, images, and sounds; text files are flat `{ key: value }` JSON merged into `I18n.texts`. Access strings with `I18n.text(key, ...params)` or `I18n.textRef(key, ...params)` (returns a `() => string` for live-updating UI labels); fonts via `I18n.font(key)`. Ships `ko-KR` (Noto Sans KR, SIL OFL 1.1) with UI strings in `datafiles/i18n/ko-KR/text/ui.json`.
 - **`Camera`** / **`cameraFollow`** / **`cameraFollow2d`**: `Camera` wraps `camera_*` handle; supports ORTHO, PERSPECTIVE, PERSPECTIVE_FOV projections. `cameraFollow({ world, followTarget, followLerp?, followHeight?, ... })` — 3D perspective follow. `cameraFollow2d({ world, followTarget, followLerp?, width?, height?, ... })` — 2D orthographic follow (pixel-snapped). Both require a `world` reference to read the target's `Position`. Call `.update()` each step and `.assign(viewIndex)` to attach to a viewport.
 - **`MotionPlanner`**: Static A* on `MotionPlanningGrid`. `MotionPlanner.plan(start, goal, algorithm?, opt?)` → `{x,y}[]`. Options: `allowDiag`, `cornerCutting`, `heuristicWeight`, `maxIter`.
 - **`File`**: Sync file I/O. `File.find(mask)` → `string[]`, `File.read(fname)` → `string|undefined`, `File.write(fname, data)` → `boolean`.
