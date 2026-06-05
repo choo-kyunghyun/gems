@@ -4,6 +4,8 @@ globalThis.RenderDebugPath = class RenderDebugPath {
     this.level = level;
   }
 
+  destroy() {}
+
   draw(world) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();

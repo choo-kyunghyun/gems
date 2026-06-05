@@ -1,7 +1,4 @@
-/**
- * @implements {UIComponent}
- * TODO: Broken
- */
+/** @implements {UIComponent} */
 globalThis.UIInput = class UIInput {
   constructor(input = {}) {
     this.value = input.value ?? "";
@@ -214,5 +211,12 @@ globalThis.UIInput = class UIInput {
     draw_set_halign(halign);
     draw_set_valign(valign);
     draw_set_color(color);
+  }
+
+  onDestroy(element) {
+    if (this._focused) {
+      this._focused = false;
+      keyboard_string = "";
+    }
   }
 };

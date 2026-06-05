@@ -6,7 +6,7 @@
   "name":"cameraFollow",
   "parent":{
     "name":"Camera",
-    "path":"folders/Supplements/Camera.yy",
+    "path":"folders/RPG/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

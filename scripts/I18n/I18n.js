@@ -28,10 +28,11 @@ globalThis.I18n = class I18n {
         const text_path = filename_path(path + mask);
         const files = File.find(path + mask);
         for (const text_fname of files) {
-          const data = File.read(text_path + text_fname);
-          Object.entries(data).forEach(([key, value]) => {
-            I18n.texts.set(key, value);
-          });
+          const data = JSON.parse(File.read(text_path + text_fname));
+          const keys = Object.keys(data);
+          for (let i = 0; i < keys.length; i++) {
+            I18n.texts.set(keys[i], data[keys[i]]);
+          }
         }
       }
     }

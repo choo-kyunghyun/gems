@@ -23,10 +23,4 @@ globalThis.UIPanel = class UIPanel {
     );
     draw_set_alpha(alpha);
   }
-
-  onDestroy(element) {}
-
-  onUpdate(eleement, block) {
-    return block;
-  }
 };

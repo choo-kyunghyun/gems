@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GroundedSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GroundedSystem",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"GroundedSystem.js",
+}

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"UIButton",
+  "%Name":"Grounded",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"UIButton",
+  "name":"Grounded",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"UIButton.js",
+  "scriptSource":"Grounded.js",
 }

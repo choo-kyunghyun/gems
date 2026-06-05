@@ -15,8 +15,10 @@ globalThis.EntityPreset = class EntityPreset {
     const id = world.create();
     world.add(id, Position, { x, y, z });
 
-    for (const [token, data] of Object.entries(preset.components ?? {})) {
-      world.add(id, token, { ...data });
+    const components = preset.components ?? {};
+    const keys = Object.keys(components);
+    for (let i = 0; i < keys.length; i++) {
+      world.add(id, keys[i], { ...components[keys[i]] });
     }
 
     return id;

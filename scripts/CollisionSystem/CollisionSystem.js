@@ -59,16 +59,19 @@ globalThis.CollisionSystem = {
   _resolve(ea, eb, ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) {
     const overlapX = Math.min(ax2, bx2) - Math.max(ax1, bx1);
     const overlapY = Math.min(ay2, by2) - Math.max(ay1, by1);
-    const push = (overlapX < overlapY ? overlapX : overlapY) * 0.5;
+    const aKin = ea.col.kinematic;
+    const bKin = eb.col.kinematic;
+    if (aKin && bKin) return;
+    const full = overlapX < overlapY ? overlapX : overlapY;
 
     if (overlapX < overlapY) {
       const dir = ea.pos.x < eb.pos.x ? -1 : 1;
-      ea.pos.x += dir * push;
-      eb.pos.x -= dir * push;
+      if (!aKin) ea.pos.x += dir * (bKin ? full : full * 0.5);
+      if (!bKin) eb.pos.x -= dir * (aKin ? full : full * 0.5);
     } else {
       const dir = ea.pos.y < eb.pos.y ? -1 : 1;
-      ea.pos.y += dir * push;
-      eb.pos.y -= dir * push;
+      if (!aKin) ea.pos.y += dir * (bKin ? full : full * 0.5);
+      if (!bKin) eb.pos.y -= dir * (aKin ? full : full * 0.5);
     }
   },
 };

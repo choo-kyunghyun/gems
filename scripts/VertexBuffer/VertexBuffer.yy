@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"UIButton",
+  "%Name":"VertexBuffer",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"UIButton",
+  "name":"VertexBuffer",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"UIButton.js",
+  "scriptSource":"VertexBuffer.js",
 }

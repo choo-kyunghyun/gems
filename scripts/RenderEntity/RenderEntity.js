@@ -1,5 +1,7 @@
 /** @implements {RenderPass} */
 globalThis.RenderEntity = class RenderEntity {
+  destroy() {}
+
   draw(world) {
     const entities = world.query(Visual, Position);
     for (const entity of entities) {

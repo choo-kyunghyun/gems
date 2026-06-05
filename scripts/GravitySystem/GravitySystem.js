@@ -3,7 +3,8 @@ globalThis.GravitySystem = {
   direction: { x: 0, y: 1, z: 0 },
 
   update(world) {
-    const { strength, direction } = this;
+    const strength = world.gravity ?? this.strength;
+    const { direction } = this;
     const dt = world.tickDuration;
     const ids = world.query(Velocity);
     for (const id of ids) {

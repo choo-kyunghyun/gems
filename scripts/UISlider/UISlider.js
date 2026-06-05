@@ -1,7 +1,4 @@
-/**
- * @implements {UIComponent}
- * TODO: Broken
- */
+/** @implements {UIComponent} */
 globalThis.UISlider = class UISlider {
   constructor(slider = {}) {
     this.min = slider.min ?? 0;
@@ -108,7 +105,7 @@ globalThis.UISlider = class UISlider {
     this._fill.setWidth(fillW, flexpanel_unit.point);
     this._thumb.setPosition(
       flexpanel_edge.left,
-      fillW - thumbSz * 0.5,
+      clamp(fillW - thumbSz * 0.5, 0, pos.width - thumbSz),
       flexpanel_unit.point,
     );
     this._thumb.setPosition(
@@ -133,9 +130,10 @@ globalThis.UISlider = class UISlider {
   }
 
   onDestroy(element) {
-    this._track = undefined;
-    this._fill = undefined;
-    this._thumb = undefined;
-    this._trigger = undefined;
+    if (this._track) this._track.destroy();
+    if (this._fill) this._fill.destroy();
+    if (this._thumb) this._thumb.destroy();
+    if (this._trigger) this._trigger.destroy();
+    this._track = this._fill = this._thumb = this._trigger = undefined;
   }
 };

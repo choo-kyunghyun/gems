@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run",
+      "type": "shell",
+      "command": "gm-cli run --toolchain GMRT@0.19 gems.yyp",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Compile",
+      "type": "shell",
+      "command": "gm-cli compile --toolchain GMRT@0.19 gems.yyp",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Compile (errors only)",
+      "type": "shell",
+      "command": "gm-cli compile --toolchain GMRT@0.19 --errors-only gems.yyp",
+      "problemMatcher": [],
+      "group": "build"
+    }
+  ]
+}

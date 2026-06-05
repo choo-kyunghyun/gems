@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scenePlatformer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scenePlatformer",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"scenePlatformer.js",
+}

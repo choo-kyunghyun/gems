@@ -1,7 +1,4 @@
-/**
- * @implements {UIComponent}
- * TODO: Broken
- */
+/** @implements {UIComponent} */
 globalThis.UISelect = class UISelect {
   constructor(select = {}) {
     this.items = select.items ?? [];
@@ -11,6 +8,8 @@ globalThis.UISelect = class UISelect {
     this.font = select.font ?? -1;
     this.halign = select.halign ?? fa_center;
     this.valign = select.valign ?? fa_middle;
+    this._enter = false;
+    this._hold = false;
   }
 
   get index() {
@@ -43,6 +42,23 @@ globalThis.UISelect = class UISelect {
   insertItem(name, value, i = this.items.length) {
     this.items.splice(i, 0, { name, value });
     return this;
+  }
+
+  onUpdate(element, block) {
+    const pressed = mouse_check_button_pressed(mb_left);
+    const released = mouse_check_button_released(mb_left);
+    const mx = device_mouse_x_to_gui(0);
+    const my = device_mouse_y_to_gui(0);
+    this._enter = !block && element.positionMeeting(mx, my);
+
+    if (this._enter && pressed) this._hold = true;
+
+    if (released) {
+      if (this._hold && this._enter) this.advance();
+      this._hold = false;
+    }
+
+    return (this._hold || this._enter) || block;
   }
 
   onDraw(element) {

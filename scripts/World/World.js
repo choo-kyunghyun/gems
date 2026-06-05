@@ -1,5 +1,5 @@
 globalThis.World = class World {
-  constructor(maxEntities, tickrate = 60) {
+  constructor(maxEntities, tickrate = 60, opts = {}) {
     this.maxEntities = maxEntities;
     this.ids = new IdPool(maxEntities);
     this.components = new Map();
@@ -7,6 +7,7 @@ globalThis.World = class World {
     this.accumulator = 0;
     this.alpha = 0;
     this._pending = [];
+    this.gravity = opts.gravity ?? null;
   }
 
   destroy() {
@@ -48,8 +49,8 @@ globalThis.World = class World {
   }
 
   add(id, ComponentClass, data) {
-    const storage = this.components.get(ComponentClass);
-    if (storage !== undefined) storage[IdPool.getIndex(id)] = data;
+    if (!this.components.has(ComponentClass)) this.register(ComponentClass);
+    this.components.get(ComponentClass)[IdPool.getIndex(id)] = data;
   }
 
   get(ComponentClass, id) {
@@ -78,7 +79,8 @@ globalThis.World = class World {
 
   export() {
     const components = {};
-    for (const [C, storage] of this.components) {
+    for (const C of this.components.keys()) {
+      const storage = this.components.get(C);
       const entries = [];
       for (let i = 0; i < storage.length; i++) {
         if (storage[i] !== undefined) entries.push([i, storage[i]]);
@@ -90,11 +92,14 @@ globalThis.World = class World {
 
   import(snapshot) {
     this.ids.import(snapshot.ids);
-    for (const [C, storage] of this.components) {
+    for (const C of this.components.keys()) {
+      const storage = this.components.get(C);
       storage.fill(undefined);
       const entries = snapshot.components[C];
       if (entries === undefined) continue;
-      for (const [i, v] of entries) storage[i] = v;
+      for (let j = 0; j < entries.length; j++) {
+        storage[entries[j][0]] = entries[j][1];
+      }
     }
   }
 

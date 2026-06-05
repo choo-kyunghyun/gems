@@ -18,7 +18,7 @@ globalThis.UITrigger = class UITrigger {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const enterPrev = this.enter;
-    this.enter = element.positionMeeting(mx, my);
+    this.enter = !block && element.positionMeeting(mx, my);
 
     if (this.enter) {
       if (!enterPrev) this.onEnter();
@@ -34,7 +34,7 @@ globalThis.UITrigger = class UITrigger {
     if (released) {
       if (this.hold) {
         this.onUp();
-        if (this.enter && !block) this.onClick();
+        if (this.enter) this.onClick();
       }
       this.hold = false;
     }
@@ -46,6 +46,4 @@ globalThis.UITrigger = class UITrigger {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
   }
-
-  onDraw(element) {}
 };

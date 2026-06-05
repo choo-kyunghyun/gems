@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"UIButton",
+  "%Name":"sceneLobby",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"UIButton",
+  "name":"sceneLobby",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"Demo",
+    "path":"folders/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"UIButton.js",
+  "scriptSource":"sceneLobby.js",
 }
