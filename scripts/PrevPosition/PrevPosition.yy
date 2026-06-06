@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PrevPosition",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PrevPosition",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PrevPosition.js",
+}

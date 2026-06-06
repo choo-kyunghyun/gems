@@ -6,10 +6,10 @@ const RTS_UNIT_COUNT = 40;
 const RTS_UNIT_SPEED = 120;
 const RTS_SEPARATION_ITERS = 4;
 
-SceneRegistry.add(
-  () => new _SceneRTSClass(),
-  { label: I18n.textRef("RTS_NAME"), category: "SCENE_CAT_STRATEGY" },
-);
+SceneRegistry.add(() => new _SceneRTSClass(), {
+  label: I18n.textRef("RTS_NAME"),
+  category: "SCENE_CAT_STRATEGY",
+});
 
 class _SceneRTSClass extends Scene {
   label = "RTS";
@@ -36,16 +36,23 @@ class _SceneRTSClass extends Scene {
       const gx = (i % cols) - cols / 2;
       const gy = Math.floor(i / cols) - 2;
       const id = this.world.create();
-      this.world.add(id, Position,  { x: cx + gx * gap, y: cy + gy * gap, z: 0 });
-      this.world.add(id, Velocity,  { x: 0, y: 0, z: 0 });
-      this.world.add(id, BBox,      { x: -8, y: -8, width: 16, height: 16 });
-      this.world.add(id, Collision, { solid: true, kinematic: false, mask: null, hits: [] });
+      this.world.add(id, Position, {
+        x: cx + gx * gap,
+        y: cy + gy * gap,
+        z: 0,
+      });
+      this.world.add(id, Velocity, { x: 0, y: 0, z: 0 });
+      this.world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+      this.world.add(id, Collision, {
+        solid: true,
+        kinematic: false,
+        mask: null,
+        hits: [],
+      });
       this.units.push(id);
     }
 
-    this.physics = new Pipeline()
-      .add(SolidSystem)
-      .add(SeparationSystem);
+    this.physics = new Pipeline().add(SolidSystem).add(SeparationSystem);
 
     this.renderer = new Renderer();
     this.renderer.insert(new RenderDebugEntity());
@@ -59,11 +66,23 @@ class _SceneRTSClass extends Scene {
     });
     this.camera.assign(0);
 
-    this.ui = new UIElement({ width: "100%", height: "100%", padding: 16, gap: 12 });
+    this.ui = new UIElement({
+      width: "100%",
+      height: "100%",
+      padding: 16,
+      gap: 12,
+    });
     UI.insert(this.ui);
-    this.ui.insertChild(makeButton(I18n.textRef("RTS_BACK"), () => openScene(SCENES.lobby)));
+    this.ui.insertChild(
+      makeButton(I18n.textRef("RTS_BACK"), () => openScene(SCENES.lobby)),
+    );
     const hint = new UIElement();
-    hint.addComponent(new UIText({ textRef: I18n.textRef("RTS_HINT"), color: Color.parse("#888888") }));
+    hint.addComponent(
+      new UIText({
+        textRef: I18n.textRef("RTS_HINT"),
+        color: Color.parse("#888888"),
+      }),
+    );
     this.ui.insertChild(hint);
   }
 
@@ -75,6 +94,7 @@ class _SceneRTSClass extends Scene {
 
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
+      InterpolationSystem.snapshot(this.world); // record pre-move positions for render lerp
       this._seek();
       this.physics.update(this.world);
       this.world.flush();

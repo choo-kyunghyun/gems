@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Coin",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Coin",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Coin.js",
+}

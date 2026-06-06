@@ -21,6 +21,9 @@ draw_set_font(I18n.font("normal_36"));
 I18n.load("i18n/ko-KR/manifest.json");
 display_set_gui_maximise();
 
+Log.clear();
+Log.info("game start");
+
 Settings.registerDefaults({
   language: "ko-KR",
   fullscreen: false,

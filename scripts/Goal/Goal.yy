@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Goal",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Goal",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Goal.js",
+}

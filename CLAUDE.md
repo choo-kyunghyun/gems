@@ -157,6 +157,7 @@ Scenes running an ECS simulation dispatch systems explicitly inside `step()`:
 step() {
   const ticks = this.world.update();
   for (let t = 0; t < ticks; t++) {
+    InterpolationSystem.snapshot(this.world); // first: record pre-move positions for render lerp
     GravitySystem.update(this.world);
     SolidSystem.update(this.world);       // integrates + resolves solid bodies
     SeparationSystem.update(this.world);  // pushes overlapping bodies apart
@@ -186,6 +187,7 @@ Demo scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.phy
 | `ProjectileSystem` | `scripts/ProjectileSystem/` | Move-and-raycast for `Projectile` entities: casts the per-tick segment via `Raycast`, applies `Projectile.damage` to a hit `Health` (despawns it at ≤ 0 hp), then despawns the bullet. Range bounded by `Lifetime`. `Projectile = { damage, owner }`. |
 | `StateSystem` | `scripts/StateSystem/` | State machine. `StateSystem.change(world, id, schema, force?)` queues; `update(world)` processes. `StateSchema = { enter?, update?, finish? }`. |
 | `LifetimeSystem` | `scripts/LifetimeSystem/` | Decrements `lt.ticks` each tick; `world.remove(id)` when `≤ 0`. |
+| `InterpolationSystem` | `scripts/InterpolationSystem/` | Render-interpolation bookkeeping. `snapshot(world)` records each mover's `Position` into `PrevPosition` (`scripts/PrevPosition/`) — call at the **top of each tick**, before any system moves `Position`. Renderers then draw at `PrevPosition + (Position − PrevPosition) * world.alpha` to keep fixed-step motion smooth when display refresh ≠ tickrate. Tracks `Velocity` movers only; static bodies fall back to `Position`. |
 | `PathfindingSystem` | `scripts/PathfindingSystem/` | `setGrid(grid)`, `update`, `invalidate`, `current(world, id)`, `advance(world, id)`. See Pathfinding Flow. |
 
 ### Pathfinding Flow
@@ -217,9 +219,9 @@ LEVEL.worldToGrid(wx, wy); LEVEL.gridToWorld(gx, gy); // ↔ { x, y } (gridToWor
 `Renderer` (`scripts/Renderer/Renderer.js`) is an ordered list of `RenderPass` objects (`{ draw(world), destroy() }`). `insert(pass, index?)` / `remove(pass)` manage the list; `draw(world)` runs every pass; `destroy()` tears them down. Each scene owns its renderer and calls `this.renderer.draw(this.world)` in `draw()`.
 
 Built-in passes:
-- **`RenderEntity`** — draws entities with `Visual` + `Position` via `draw_sprite_ext`.
+- **`RenderEntity`** — draws entities with `Visual` + `Position` via `draw_sprite_ext`. Interpolates between `PrevPosition` and `Position` by `world.alpha` when present (see `InterpolationSystem`); falls back to raw `Position` otherwise.
 - **`RenderTileMap`** (`new RenderTileMap(layer, level, sprite, opt?)`) — hardware-accelerated tiles via `VertexBuffer`. `opt`: `{ autotile: 0|16|47, alpha, color, softEdge }`. Call `.markDirty()` after tile changes to rebuild the VBO. Autotile: `0` = raw frame id, `16` = blob4, `47` = blob8. Neighbor bits: `N=1, E=2, S=4, W=8` (blob8 adds `NE=16, SE=32, SW=64, NW=128`), so a blob4 tileset's frame index equals its cardinal-neighbor mask. `spr_tile16` is the project's 16-frame blob4 tileset; the **Tile Inspector** scene (`scripts/sceneTileInspect/`) lays out all 16 frames against this rule to validate frame order.
-- **`RenderDebugEntity`** — `BBox` outlines (lime) + `Name` labels (white) for all entities with `Position`.
+- **`RenderDebugEntity`** — `BBox` outlines (lime) + `Name` labels (white) for all entities with `Position`. Interpolates via `PrevPosition` + `world.alpha` like `RenderEntity`.
 - **`RenderDebugPath`** (`new RenderDebugPath(level)`) — active `PathResponse` paths (yellow) + pending `PathRequest` goals (red cross).
 - **`RenderDebugTileMap`** (`new RenderDebugTileMap(level, opt?)`) — overlay: cost shading, grid lines, tile id/name + coordinate labels. `opt`: `{ grid, cost, tiles, coords, names, color, alpha, font }`. Call `level.syncAll()` first.
 

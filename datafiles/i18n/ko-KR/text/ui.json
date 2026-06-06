@@ -48,6 +48,8 @@
 
   "PLAT_NAME": "플랫포머",
   "PLAT_BACK": "← 로비",
+  "PLAT_COINS": "코인: {0}/{1}",
+  "PLAT_WIN": "클리어!",
 
   "TOPDOWN_NAME": "탑다운 RPG",
   "TOPDOWN_BACK": "← 로비",

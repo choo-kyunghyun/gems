@@ -12,15 +12,20 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
     for (const id of world.query(Position)) {
       const pos = world.get(Position, id);
+      const prev = world.get(PrevPosition, id);
+      const rx =
+        prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
+      const ry =
+        prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
 
       const bbox = world.get(BBox, id);
       if (bbox !== undefined) {
         draw_set_color(c_lime);
         draw_rectangle(
-          pos.x + bbox.x,
-          pos.y + bbox.y,
-          pos.x + bbox.x + bbox.width,
-          pos.y + bbox.y + bbox.height,
+          rx + bbox.x,
+          ry + bbox.y,
+          rx + bbox.x + bbox.width,
+          ry + bbox.y + bbox.height,
           true,
         );
       }
@@ -31,7 +36,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         draw_set_halign(fa_center);
         draw_set_valign(fa_bottom);
         const offsetY = bbox !== undefined ? bbox.y : 0;
-        draw_text(pos.x, pos.y + offsetY, name.name);
+        draw_text(rx, ry + offsetY, name.name);
       }
     }
 

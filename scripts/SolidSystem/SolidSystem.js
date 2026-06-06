@@ -9,6 +9,7 @@
 // below the thinnest collider.
 globalThis.SolidSystem = {
   maxStep: 8,
+  oneWayTol: 2, // px a body may sink into a one-way top and still be caught (resting slack)
 
   update(world) {
     const dt = world.tickDuration;
@@ -29,7 +30,10 @@ globalThis.SolidSystem = {
 
       const dx = vel.x * dt;
       const dy = vel.y * dt;
-      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / this.maxStep));
+      const steps = Math.max(
+        1,
+        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / this.maxStep),
+      );
       const sx = dx / steps;
       const sy = dy / steps;
 
@@ -37,14 +41,28 @@ globalThis.SolidSystem = {
 
       for (let s = 0; s < steps; s++) {
         pos.x += sx;
-        if (this._resolve(world, id, pos, box, statics, sx, true) !== 0) vel.x = 0;
+        if (this._resolve(world, id, pos, box, col, statics, sx, true) !== 0)
+          vel.x = 0;
 
         pos.y += sy;
-        const pushY = this._resolve(world, id, pos, box, statics, sy, false);
+        const pushY = this._resolve(
+          world,
+          id,
+          pos,
+          box,
+          col,
+          statics,
+          sy,
+          false,
+        );
         if (pushY !== 0) {
           if (pushY > 0) grounded = true; // pushed up => standing on a floor
           vel.y = 0;
         }
+      }
+
+      if (col.passThroughTicks !== undefined && col.passThroughTicks > 0) {
+        col.passThroughTicks--;
       }
 
       const gr = world.get(Grounded, id);
@@ -56,7 +74,7 @@ globalThis.SolidSystem = {
   // deepest correction. Direction follows motion (move v): a body moving + is
   // pushed -. Returns the applied correction's sign (+1 = pushed toward -, i.e.
   // up/left; -1 = pushed toward +; 0 = no contact). For Y, +1 means grounded.
-  _resolve(world, id, pos, box, statics, v, isX) {
+  _resolve(world, id, pos, box, colMover, statics, v, isX) {
     const ax1 = pos.x + box.x;
     const ay1 = pos.y + box.y;
     const ax2 = ax1 + box.width;
@@ -71,6 +89,21 @@ globalThis.SolidSystem = {
       const by1 = sPos.y + sBox.y;
       const bx2 = bx1 + sBox.width;
       const by2 = by1 + sBox.height;
+
+      const sCol = world.get(Collision, sid);
+      if (sCol && sCol.oneWay) {
+        // Jump-through platform: only ever stops a body landing on it from
+        // above. It must never push horizontally (skip on the X axis) — pushing
+        // a body that has sunk into it sideways is what ejected the player to
+        // the ledge edge. It also lets a body through while moving up, while
+        // already below its top, or while a drop is active. oneWayTol keeps a
+        // body resting flush on top from slipping under on a sub-pixel sink.
+        if (isX) continue;
+        if (colMover.passThroughTicks > 0) continue;
+        if (v < 0) continue;
+        const prevBot = pos.y - v + box.y + box.height;
+        if (prevBot > sPos.y + sBox.y + this.oneWayTol) continue;
+      }
 
       if (ax2 <= bx1 || ax1 >= bx2 || ay2 <= by1 || ay1 >= by2) continue;
 

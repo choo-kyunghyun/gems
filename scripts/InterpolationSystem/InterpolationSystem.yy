@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InterpolationSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InterpolationSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InterpolationSystem.js",
+}

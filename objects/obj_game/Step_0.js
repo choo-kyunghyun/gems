@@ -5,3 +5,4 @@ if (this._pendingScene !== null) {
   this._pendingScene = null;
 }
 if (this.scene !== null) this.scene.step();
+Log.flush();

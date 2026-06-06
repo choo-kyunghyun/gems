@@ -65,8 +65,11 @@ sprites.import.json
 # This is a cache file for speeding up subsequent pipeline operations. It should not be tracked in git.
 sprites.info.json
 
-# Stitch
-tmp/
-
 # Claude Code local config
 .claude/
+
+# gm-cli run stdout dump (machine-specific build/run log)
+_run.log
+
+# Internal planning doc — kept local, not published to the public repo
+PLATFORMER_ROADMAP.md
