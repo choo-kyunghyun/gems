@@ -41,13 +41,27 @@
   "LANG_KO_KR": "한국어",
 
   "SCENE_CAT_ACTION": "액션",
+  "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_BENCHMARK": "벤치마크",
   "SCENE_CAT_MAP": "맵",
+  "SCENE_CAT_STRATEGY": "전략",
 
   "PLAT_NAME": "플랫포머",
   "PLAT_BACK": "← 로비",
 
+  "TOPDOWN_NAME": "탑다운 RPG",
+  "TOPDOWN_BACK": "← 로비",
+  "TOPDOWN_HINT": "좌클릭: 발사",
+
+  "RTS_NAME": "RTS 분리",
+  "RTS_BACK": "← 로비",
+  "RTS_HINT": "좌클릭: 이동 목표",
+
   "TILEMAP_NAME": "타일맵",
   "TILEMAP_BACK": "← 로비",
-  "TILEMAP_HINT": "좌클릭: 벽  ·  우클릭: 지우기"
+  "TILEMAP_HINT": "좌클릭: 벽  ·  우클릭: 지우기",
+
+  "TILEINS_NAME": "타일 검사기",
+  "TILEINS_BACK": "← 로비",
+  "TILEINS_HINT": "가운데 = 프레임  ·  회색 = 이웃(N=1 E=2 S=4 W=8)  ·  빨간 번호 = 누락 프레임"
 }

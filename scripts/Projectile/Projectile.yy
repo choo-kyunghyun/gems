@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Projectile",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Projectile",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Projectile.js",
+}

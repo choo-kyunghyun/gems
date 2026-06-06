@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PlatformerController",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PlatformerController",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PlatformerController.js",
+}

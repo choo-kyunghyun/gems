@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Pipeline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Pipeline",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Pipeline.js",
+}

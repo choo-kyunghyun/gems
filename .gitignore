@@ -67,3 +67,6 @@ sprites.info.json
 
 # Stitch
 tmp/
+
+# Claude Code local config
+.claude/

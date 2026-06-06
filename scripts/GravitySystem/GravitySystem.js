@@ -8,6 +8,8 @@ globalThis.GravitySystem = {
     const dt = world.tickDuration;
     const ids = world.query(Velocity);
     for (const id of ids) {
+      const col = world.get(Collision, id);
+      if (col && col.kinematic) continue;
       const vel = world.get(Velocity, id);
       vel.x += direction.x * strength * dt;
       vel.y += direction.y * strength * dt;

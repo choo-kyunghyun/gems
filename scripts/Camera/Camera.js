@@ -106,6 +106,10 @@ globalThis.Camera = class Camera {
       view_set_camera(this.viewport, -1);
       view_set_visible(this.viewport, false);
       this.viewport = -1;
+      // Re-enable default room rendering. A camera scene turned views on via
+      // assign(); without this, a view-enabled-but-none-visible state leaves
+      // the previous scene's frame frozen on the application surface.
+      view_enabled = false;
     }
     return this;
   }

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TriggerSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TriggerSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TriggerSystem.js",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SolidSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SolidSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SolidSystem.js",
+}

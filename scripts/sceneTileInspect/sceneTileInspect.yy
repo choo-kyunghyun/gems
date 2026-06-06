@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneTileInspect",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneTileInspect",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneTileInspect.js",
+}

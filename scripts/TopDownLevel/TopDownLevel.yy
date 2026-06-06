@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TopDownLevel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TopDownLevel",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TopDownLevel.js",
+}

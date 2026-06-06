@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"GroundedSystem",
+  "%Name":"Raycast",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"GroundedSystem",
+  "name":"Raycast",
   "parent":{
     "name":"Core",
     "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"GroundedSystem.js",
+  "scriptSource":"Raycast.js",
 }
