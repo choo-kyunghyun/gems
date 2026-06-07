@@ -27,32 +27,19 @@ globalThis.EnemySystem = {
   // Resolves player↔enemy overlaps. invincible=true (i-frames active) suppresses
   // hurt but never suppresses stomping. Returns { stomped, hurt }.
   resolveStomp(world, playerId, invincible) {
-    const ppos = world.get(Position, playerId);
-    const pbox = world.get(BBox, playerId);
+    const p = AABB.of(world, playerId);
     const pvel = world.get(Velocity, playerId);
-    const px1 = ppos.x + pbox.x;
-    const py1 = ppos.y + pbox.y;
-    const px2 = px1 + pbox.width;
-    const py2 = py1 + pbox.height;
-    const pcy = (py1 + py2) * 0.5;
 
     let stomped = false;
     let hurt = false;
 
     for (const id of world.query(Enemy, Position, BBox)) {
-      const epos = world.get(Position, id);
-      const ebox = world.get(BBox, id);
-      const ex1 = epos.x + ebox.x;
-      const ey1 = epos.y + ebox.y;
-      const ex2 = ex1 + ebox.width;
-      const ey2 = ey1 + ebox.height;
+      const e = AABB.of(world, id);
 
-      // AABB overlap test (skip if separated on any axis).
-      if (px2 <= ex1 || px1 >= ex2 || py2 <= ey1 || py1 >= ey2) continue;
+      if (!AABB.overlap(p, e)) continue;
 
-      const ecy = (ey1 + ey2) * 0.5;
       const en = world.get(Enemy, id);
-      if (pvel.y > 0 && pcy < ecy) {
+      if (pvel.y > 0 && p.cy < e.cy) {
         if (en.stompable) {
           // Stompable enemy: drain health; remove when depleted.
           const hp = world.get(Health, id);

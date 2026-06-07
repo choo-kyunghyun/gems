@@ -52,6 +52,20 @@ After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an
 - **ECS bootstrap**: Each scene owns its `World` (`this.world = new World(maxEntities, tickrate, opts)`). There is no `WORLD`/`MAX_ENTITIES` global.
 - **Formatter**: [Prettier](https://prettier.io/) with `{ "bracketSameLine": true }` (MDN config). Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 
+## GMRT-Safe Idioms
+
+The GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms. These have each caused real, hard-to-diagnose breakage — avoid them, don't "clean up" code back into them, and prefer the listed idiom:
+
+- **No `for...of` over a Map/Set iterator** (`map.values()`/`.keys()`/`.entries()`, or a `Set`) — it *hangs* the runtime. Keep parallel arrays and index-loop them (see `World._keys`/`_storages`). `for...of` over a plain **array** or string is fine; `for...in` over a plain **object** is fine.
+- **No array destructuring in `for...of`** (`for (const [a, b] of arr)`) — `ReferenceError` at runtime. Use index access (`arr[i][0]`). (Destructuring in a `.forEach(([a,b]) => …)` callback param *is* fine — see `Input.import`.)
+- **No empty `for` initializer** (`for (; c < n; c++)`) — *crashes the compiler* (`NullReferenceException` in `VisitFor`). Use a `while` loop.
+- **Don't cache a primitive boolean in a local across a function** — it can get clobbered mid-function (a `const` flips `true`→`false` in one call). Cache the **component object** and read the property live each use (see `PlatformerController.update` reading `groundedComp.isGrounded`).
+- **No nested-function locals/params inside a top-level IIFE** (`const X = (() => { … })()`) — they read as `not defined` at runtime. Precompute to literals.
+- **Top-level bare `const` is not visible to other scripts** — share via `globalThis.Name`. Top-level `function` declarations *are* global (e.g. `makeButton`, `teardownScene` in `demo.js`).
+- **Unverified, so avoid until tested:** `super.method()` / inherited-method dispatch (no existing usage — W3 used a free `teardownScene(this)` helper instead of a `GameScene` base for this reason).
+
+When a quirk forces an unusual idiom, leave a one-line comment so it isn't "fixed" back. New quirks discovered during work should be added here.
+
 ## Architecture
 
 ### Demo Layer — `obj_game` & `Scene`
@@ -59,9 +73,9 @@ After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an
 `obj_game` is the unified controller — it drives both global system ticks and scene lifecycle.
 
 ```
-Create_0 → display/GPU setup; I18n.load, Settings defaults + load; opens SCENES.title
+Create_0 → display/GPU setup; Log.clear/info; I18n.load, Settings defaults + load; opens SCENES.title
 Draw_0   → draw_clear(background), scene.draw()
-Step_0   → Time.update(), UI.update(), pending scene transition, scene.step()
+Step_0   → Time.update(), UI.update(), pending scene transition, scene.step(), Log.flush()
 Draw_75  → UI.draw(), Tooltip.draw(), F5 screenshot
 CleanUp  → scene.destroy(), UI/Input/I18n cleanup
 ```
@@ -84,7 +98,7 @@ class MyScene extends Scene {
 
 `SceneRegistry.byCategory()` returns entries grouped by category string. To add a scene: create the script asset (see Asset Creation), define the class, then `SceneRegistry.add(...)`.
 
-**UI helpers** (`scripts/demo/demo.js`): `makeButton(label, onClick)`, `makeSection(title)`, `makeRow(label, control)`, `makeSlider(key, min, max, step)`, `makeSelect(key, items)`.
+**UI helpers** (`scripts/demo/demo.js`): `makeButton(label, onClick)`, `makeSection(title)`, `makeRow(label, control)`, `makeSlider(key, min, max, step)`, `makeSelect(key, items)`. **`teardownScene(scene)`** releases the `world`/`renderer`/`camera`/`ui` a scene holds on `this`, in dependency order (missing fields skipped) — call it from `destroy()` after releasing scene-specific resources (controllers, levels).
 
 ### ECS Core — `World`
 
@@ -105,11 +119,14 @@ world.add(id, Position, { x: 0, y: 0, z: 0 });  // set data
 world.get(Position, id);                         // → data object or undefined
 world.detach(id, Position);                      // remove one component
 
-world.query(Position, Velocity); // → ids that have ALL listed components
+world.query(Position, Velocity);          // → ids that have ALL listed components
+world.forEach([Position, Velocity], fn);  // calls fn(id) per match, no id array allocated
 
 // Fixed-rate tick
 const ticks = world.update(); // # ticks to run this frame; advances accumulator, computes alpha
 world.alpha;                  // [0, 1) interpolation factor for rendering
+world.maxTicks;               // tick cap per frame (default 5) — spiral-of-death guard:
+                              // under overload the sim slows instead of freezing
 
 // Snapshot
 world.export();  // plain object, components keyed by string token, sparse entries
@@ -175,6 +192,24 @@ Demo scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.phy
 
 **`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` before `scene.step()` — always available in scene code.
 
+### Genre Controllers & Demo Gameplay Systems
+
+The Core systems above are genre-agnostic. A playable genre scene layers a **controller** plus **gameplay systems** on top — these live under **Demo** and are orchestrated by the scene's `step()`, not auto-run by `World`.
+
+**Genre controllers** (`PlatformerController`, `TopDownController`) own player input registration + entity setup and expose a three-phase lifecycle, not an `update(world)`:
+- `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player entity, returns a plain `ctrl` state bag (`{ id, facing, ... }`).
+- `pollInput(ctrl)` — call **once per frame, before `world.update()`**, outside the tick loop. Samples *edge-triggered* input (jump `pressed()`/`released()`) into buffers so presses aren't lost on 0-tick frames or double-counted on multi-tick frames.
+- `update(world, ctrl)` — call **once per physics tick**. Reads *continuous* input (movement) and applies acceleration/jump to `Velocity` (before `SolidSystem` integrates it).
+- `destroy()` — unregisters input. Plus genre verbs like `respawn`, `setPower`, `tryFireball`.
+
+See the **GMRT boolean-local clobber** note in memory: read flags like `Grounded.isGrounded` live off the component each use — caching a primitive bool in a local is miscompiled.
+
+**Demo gameplay systems** are stateless `globalThis` objects like Core systems but expose *named query/resolve methods* (not `update(world)`), called explicitly from `step()` after physics resolves: `EnemySystem` (`update` patrol + `resolveStomp`), `CollectibleSystem` (`collect`, `collectPowerup`, `reachedGoal`, `reachedCheckpoint`, `hitSpike`), `BlockSystem` (`resolveHit` — hit-from-below `?`-blocks/bricks, takes the pre-physics `vel.y`). They read `col.hits` (filled by `TriggerSystem`) or do their own overlap test, and return values the scene applies to score/state.
+
+`scenePlatformer` is the reference orchestration: per tick → `snapshot` → `controller.update` → capture pre-physics `vel.y` → `physics` Pipeline → `EnemySystem` → resolve stomp/spike/death → collect coins/powerups/checkpoint/goal → `flush`. Multi-level scenes use an `_initLevel(index)` / `loadLevel(index)` pattern (rebuild `world`, level, controller, pipeline, renderer, camera per level); cumulative score/coins persist across levels on the scene.
+
+**Lobby categories** are `SCENE_CAT_*` i18n keys: `ACTION`, `RPG`, `STRATEGY`, `MAP`, `BENCHMARK`. `SceneRegistry.add(factory, { label, category })` slots a scene under one.
+
 ### Built-in Systems
 
 | System | File | Description |
@@ -237,7 +272,7 @@ Built-in passes:
 
 ### Input System
 
-**`Input`** / **`InputAction`**: `Input.register(key, action)`, `Input.get(key)` → `InputAction`. Query: `.down()`, `.pressed()`, `.released()`, `.value()`. Bind: `.bindButton(source, button)` / `.bindAxis(mode, axis)`.
+**`Input`** / **`InputAction`**: `Input.register(key, action)`, `Input.get(key)` → `InputAction`. Query: `.down()`, `.pressed()`, `.released()`, `.value()`. Bind: `.bindButton(source, button)` / `.bindAxis(mode, axis)`. Bulk: `Input.bindAll({ key: [source, button], … })` registers a whole keymap in one call; `Input.unbindAll([keys])` removes them — used by the genre controllers.
 
 ### `EntityPreset`
 
@@ -269,6 +304,8 @@ Query.inRadius(world, x, y, radius, opts);  // → id[]
 - **`I18n`**: `I18n.load(manifestPath)` reads a `manifest.json` listing text-file masks (e.g. `text/*.json`), fonts, images, sounds; flat `{ key: value }` text JSON is merged into `I18n.texts`. `I18n.text(key, ...params)` or `I18n.textRef(...)` (a `() => string` for live-updating UI labels); fonts via `I18n.font(key)`. Ships `ko-KR` (Noto Sans KR, SIL OFL 1.1), strings in `datafiles/i18n/ko-KR/text/ui.json`.
 - **`Camera`** / **`cameraFollow`** / **`cameraFollow2d`**: `Camera` wraps a `camera_*` handle (ORTHO, PERSPECTIVE, PERSPECTIVE_FOV). `cameraFollow({ world, followTarget, followLerp?, followHeight?, ... })` — 3D perspective follow; `cameraFollow2d({ world, followTarget, followLerp?, width?, height?, ... })` — 2D orthographic (pixel-snapped). Both read the target's `Position` from `world`. Call `.update()` each step and `.assign(viewIndex)` to attach to a viewport.
 - **`MotionPlanner`**: static A* on `MotionPlanningGrid`. `MotionPlanner.plan(start, goal, algorithm?, opt?)` → `{x,y}[]`. Options: `allowDiag`, `cornerCutting`, `heuristicWeight`, `maxIter`.
+- **`AABB`**: world-space box geometry that owns the non-uniform `BBox`-anchor convention (see Component Pattern note). `AABB.edges(pos, box)` / `AABB.of(world, id)` → `{ x1, y1, x2, y2, cx, cy }`; `AABB.overlap(a, b)` → strict overlap (touching edges don't count). Every collision/geometry system derives edges through this, never inline `pos.x + box.x` — consumers: `SolidSystem`, `SeparationSystem`, `TriggerSystem`, `BlockSystem`, `EnemySystem`, `Raycast`, `RenderDebugEntity`. (`Query` is *not* a consumer — it does point-vs-rect tests on `Position` only.)
 - **`Raycast`**: static segment-vs-AABB cast over all collider entities. `Raycast.cast(world, x0, y0, x1, y1, opts)` → nearest hit `{ id, x, y, nx, ny, t }` or `null`. `opts`: `{ ignore?, solidOnly? (default true), mask? }`. Shared by `ProjectileSystem` (bullets) and line-of-sight queries.
 - **`File`**: sync I/O. `File.find(mask)` → `string[]`, `File.read(fname)` → `string|undefined`, `File.write(fname, data)` → `boolean`.
+- **`Log`**: text-based behavior verification (there are no tests). `Log.info/warn/error/debug(msg)` buffer timestamped lines; `obj_game` calls `Log.clear()` at startup and `Log.flush()` once per frame (only rewrites `game.log` when dirty). Read `game.log` to confirm runtime behavior without watching the window.
 - **Global utils** (`scripts/utils/`): `noop()`, `uuid()` → UUID v4, `rem(value)` → pixel size relative to current font size.

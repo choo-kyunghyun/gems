@@ -41,4 +41,20 @@ globalThis.Input = class Input {
   static unregister(key) {
     delete Input.actions[key];
   }
+
+  // Register many single-button actions at once. `spec` maps an action key to a
+  // [source, button] pair, e.g. { jump: [INPUT_SOURCE.KEYBOARD, vk_space] }. Lets
+  // a controller declare its whole keymap in one block instead of N register calls.
+  static bindAll(spec) {
+    for (const key in spec) {
+      const b = spec[key];
+      Input.register(key, new InputAction().bindButton(b[0], b[1]));
+    }
+    return Input;
+  }
+
+  // Unregister a list of action keys (the keys of a bindAll spec).
+  static unbindAll(keys) {
+    for (let i = 0; i < keys.length; i++) Input.unregister(keys[i]);
+  }
 };

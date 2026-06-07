@@ -17,23 +17,15 @@ globalThis.BlockSystem = {
   resolveHit(world, playerId, prevVelY) {
     if (prevVelY >= 0) return 0; // player wasn't moving upward this tick
 
-    const ppos = world.get(Position, playerId);
-    const pbox = world.get(BBox, playerId);
-    const ptop = ppos.y + pbox.y; // player top edge
-    const px1 = ppos.x + pbox.x;
-    const px2 = px1 + pbox.width;
+    const p = AABB.of(world, playerId); // p.y1 = player top edge
 
     let coins = 0;
 
     for (const id of world.query(QBlock, Position, BBox)) {
-      const bpos = world.get(Position, id);
-      const bbox = world.get(BBox, id);
-      const bbot = bpos.y + bbox.y + bbox.height; // block bottom edge
-      const bx1 = bpos.x + bbox.x;
-      const bx2 = bx1 + bbox.width;
+      const b = AABB.of(world, id); // b.y2 = block bottom edge
 
-      if (ptop < bbot - 2 || ptop > bbot + 2) continue; // not touching block bottom
-      if (px2 <= bx1 || px1 >= bx2) continue; // no horizontal overlap
+      if (p.y1 < b.y2 - 2 || p.y1 > b.y2 + 2) continue; // not touching block bottom
+      if (p.x2 <= b.x1 || p.x1 >= b.x2) continue; // no horizontal overlap
 
       const qb = world.get(QBlock, id);
       if (qb.used) continue;
@@ -42,14 +34,10 @@ globalThis.BlockSystem = {
     }
 
     for (const id of world.query(Brick, Position, BBox)) {
-      const bpos = world.get(Position, id);
-      const bbox = world.get(BBox, id);
-      const bbot = bpos.y + bbox.y + bbox.height;
-      const bx1 = bpos.x + bbox.x;
-      const bx2 = bx1 + bbox.width;
+      const b = AABB.of(world, id);
 
-      if (ptop < bbot - 2 || ptop > bbot + 2) continue;
-      if (px2 <= bx1 || px1 >= bx2) continue;
+      if (p.y1 < b.y2 - 2 || p.y1 > b.y2 + 2) continue;
+      if (p.x2 <= b.x1 || p.x1 >= b.x2) continue;
 
       world.remove(id);
     }

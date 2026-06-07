@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"BlockSystem",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"Platformer",
+    "path":"folders/Demo/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

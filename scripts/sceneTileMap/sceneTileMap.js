@@ -9,10 +9,10 @@
 
 const TILEMAP_CELL = 48;
 
-SceneRegistry.add(
-  () => new _SceneTileMapClass(),
-  { label: I18n.textRef("TILEMAP_NAME"), category: "SCENE_CAT_MAP" },
-);
+SceneRegistry.add(() => new _SceneTileMapClass(), {
+  label: I18n.textRef("TILEMAP_NAME"),
+  category: "SCENE_CAT_MAP",
+});
 
 class _SceneTileMapClass extends Scene {
   label = "TileMap";
@@ -23,11 +23,16 @@ class _SceneTileMapClass extends Scene {
     this.mud = new TileType({ id: 2, name: "진흙", pathCost: 5 });
 
     // Level derives cols/rows from the room size and the cell size.
-    this.level = new Level({ cellWidth: TILEMAP_CELL, cellHeight: TILEMAP_CELL });
+    this.level = new Level({
+      cellWidth: TILEMAP_CELL,
+      cellHeight: TILEMAP_CELL,
+    });
 
     // Single base layer. emptyCost:1 makes untiled cells walkable floor;
     // placed tiles carry their TileType.pathCost into the nav grid on sync.
-    this.layer = new TileLayer(this.level.cols, this.level.rows, { emptyCost: 1 });
+    this.layer = new TileLayer(this.level.cols, this.level.rows, {
+      emptyCost: 1,
+    });
     this.level.insert(this.layer);
 
     const { cols, rows } = this.level;
@@ -46,7 +51,8 @@ class _SceneTileMapClass extends Scene {
     const mid = Math.floor(cols * 0.5);
     for (let y = 2; y < rows - 3; y++) this.layer.set(mid, y, this.wall);
     for (let y = 2; y < Math.min(6, rows - 1); y++) {
-      for (let x = 2; x < Math.min(7, cols - 1); x++) this.layer.set(x, y, this.mud);
+      for (let x = 2; x < Math.min(7, cols - 1); x++)
+        this.layer.set(x, y, this.mud);
     }
 
     // Compute nav costs into level.mpg (drives the debug cost shading).
@@ -55,24 +61,43 @@ class _SceneTileMapClass extends Scene {
     // Debug overlay — labels with the smaller localized font so ids fit cells.
     this.renderer = new Renderer();
     this.renderer.insert(
-      new RenderDebugTileMap(this.level, { names: true, font: I18n.font("normal_24") }),
+      new RenderDebugTileMap(this.level, {
+        names: true,
+        font: I18n.font("normal_24"),
+      }),
     );
 
     // UI: hint line + back button.
-    this.ui = new UIElement({ width: "100%", height: "100%", padding: 16, gap: 8 });
+    this.ui = new UIElement({
+      width: "100%",
+      height: "100%",
+      padding: 16,
+      gap: 8,
+    });
     UI.insert(this.ui);
     const hint = new UIElement();
     hint.addComponent(
-      new UIText({ textRef: I18n.textRef("TILEMAP_HINT"), color: Color.parse("#cccccc") }),
+      new UIText({
+        textRef: I18n.textRef("TILEMAP_HINT"),
+        color: Color.parse("#cccccc"),
+      }),
     );
     this.ui.insertChild(hint);
-    this.ui.insertChild(makeButton(I18n.textRef("TILEMAP_BACK"), () => openScene(SCENES.lobby)));
+    this.ui.insertChild(
+      makeButton(I18n.textRef("TILEMAP_BACK"), () => openScene(SCENES.lobby)),
+    );
   }
 
   step() {
     const level = this.level;
     const cell = level.worldToGrid(mouse_x, mouse_y);
-    if (cell.x < 0 || cell.y < 0 || cell.x >= level.cols || cell.y >= level.rows) return;
+    if (
+      cell.x < 0 ||
+      cell.y < 0 ||
+      cell.x >= level.cols ||
+      cell.y >= level.rows
+    )
+      return;
 
     // Paint / clear walls and re-sync just the touched cell.
     if (mouse_check_button(mb_left)) {
@@ -96,9 +121,7 @@ class _SceneTileMapClass extends Scene {
   }
 
   destroy() {
-    this.renderer.destroy();
     this.level.destroy();
-    UI.remove(this.ui);
-    this.ui.destroy();
+    teardownScene(this);
   }
 }

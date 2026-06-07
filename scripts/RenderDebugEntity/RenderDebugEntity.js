@@ -20,14 +20,9 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
       const bbox = world.get(BBox, id);
       if (bbox !== undefined) {
+        const e = AABB.edges({ x: rx, y: ry }, bbox);
         draw_set_color(c_lime);
-        draw_rectangle(
-          rx + bbox.x,
-          ry + bbox.y,
-          rx + bbox.x + bbox.width,
-          ry + bbox.y + bbox.height,
-          true,
-        );
+        draw_rectangle(e.x1, e.y1, e.x2, e.y2, true);
       }
 
       const name = world.get(Name, id);

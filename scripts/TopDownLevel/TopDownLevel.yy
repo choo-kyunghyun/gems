@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"TopDownLevel",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"TopDown",
+    "path":"folders/Demo/TopDown.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

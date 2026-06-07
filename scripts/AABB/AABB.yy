@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Hit",
+  "%Name":"AABB",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Hit",
+  "name":"AABB",
   "parent":{
-    "name":"Components",
-    "path":"folders/Core/Components.yy",
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Hit.js",
+  "scriptSource":"AABB.js",
 }

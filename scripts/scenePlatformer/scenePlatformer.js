@@ -53,7 +53,8 @@ class _ScenePlatformerClass extends Scene {
     const checkpoint = new UIElement();
     checkpoint.addComponent(
       new UIText({
-        textRef: () => (this.checkpointActive ? I18n.text("PLAT_CHECKPOINT") : ""),
+        textRef: () =>
+          this.checkpointActive ? I18n.text("PLAT_CHECKPOINT") : "",
         color: Color.parse("#00bfff"),
       }),
     );
@@ -83,7 +84,9 @@ class _ScenePlatformerClass extends Scene {
     PlatformerLevel.build(this.world, levelData);
     this.ctrl = PlatformerController.create(this.world, levelData.playerSpawn);
 
-    const qBlocks = (levelData.blocks ?? []).filter((b) => b.type === "q").length;
+    const qBlocks = (levelData.blocks ?? []).filter(
+      (b) => b.type === "q",
+    ).length;
     this.totalCoins += (levelData.coins ?? []).length + qBlocks;
     this.checkpointActive = false;
 
@@ -94,9 +97,9 @@ class _ScenePlatformerClass extends Scene {
         if (vel.y > PLATF_MAX_FALL) vel.y = PLATF_MAX_FALL;
       })
       .add(SolidSystem)
-      .add(TriggerSystem)     // fills col.hits so coins/goal/powerups can be collected
-      .add(ProjectileSystem)  // moves fireballs, raycasts hits, applies damage
-      .add(LifetimeSystem);   // expires fireballs that travel too far
+      .add(TriggerSystem) // fills col.hits so coins/goal/powerups can be collected
+      .add(ProjectileSystem) // moves fireballs, raycasts hits, applies damage
+      .add(LifetimeSystem); // expires fireballs that travel too far
 
     this.renderer = new Renderer();
     this.renderer.insert(new RenderDebugEntity());
@@ -142,17 +145,29 @@ class _ScenePlatformerClass extends Scene {
       let dead = sr.hurt;
       if (!dead && this.world.get(Position, this.ctrl.id).y > PLATF_DEATH_Y)
         dead = true;
-      if (!dead && this.ctrl.iframes <= 0 && CollectibleSystem.hitSpike(this.world, this.ctrl.id))
+      if (
+        !dead &&
+        this.ctrl.iframes <= 0 &&
+        CollectibleSystem.hitSpike(this.world, this.ctrl.id)
+      )
         dead = true;
       if (dead) {
         if (!PlatformerController.shrink(this.world, this.ctrl))
           PlatformerController.respawn(this.world, this.ctrl, this.spawn);
       } else {
         this.score += CollectibleSystem.collect(this.world, this.ctrl.id);
-        this.score += BlockSystem.resolveHit(this.world, this.ctrl.id, prevVelY);
+        this.score += BlockSystem.resolveHit(
+          this.world,
+          this.ctrl.id,
+          prevVelY,
+        );
         const pu = CollectibleSystem.collectPowerup(this.world, this.ctrl.id);
-        if (pu !== null) PlatformerController.grantPowerup(this.world, this.ctrl, pu);
-        const cp = CollectibleSystem.reachedCheckpoint(this.world, this.ctrl.id);
+        if (pu !== null)
+          PlatformerController.grantPowerup(this.world, this.ctrl, pu);
+        const cp = CollectibleSystem.reachedCheckpoint(
+          this.world,
+          this.ctrl.id,
+        );
         if (cp !== undefined) {
           this.spawn = cp;
           this.checkpointActive = true;
@@ -182,10 +197,6 @@ class _ScenePlatformerClass extends Scene {
 
   destroy() {
     PlatformerController.destroy();
-    this.camera.destroy();
-    this.renderer.destroy();
-    this.world.destroy();
-    UI.remove(this.ui);
-    this.ui.destroy();
+    teardownScene(this);
   }
 }

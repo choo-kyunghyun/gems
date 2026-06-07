@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"VertexBuffer",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

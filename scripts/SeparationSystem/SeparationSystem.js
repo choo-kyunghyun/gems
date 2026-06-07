@@ -25,27 +25,23 @@ globalThis.SeparationSystem = {
   },
 
   _separate(world, ida, idb) {
+    const a = AABB.of(world, ida);
+    const b = AABB.of(world, idb);
+
+    if (!AABB.overlap(a, b)) return;
+
+    const ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+    const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
+
     const pa = world.get(Position, ida);
-    const ba = world.get(BBox, ida);
     const pb = world.get(Position, idb);
-    const bb = world.get(BBox, idb);
-
-    const ax1 = pa.x + ba.x, ay1 = pa.y + ba.y;
-    const ax2 = ax1 + ba.width, ay2 = ay1 + ba.height;
-    const bx1 = pb.x + bb.x, by1 = pb.y + bb.y;
-    const bx2 = bx1 + bb.width, by2 = by1 + bb.height;
-
-    if (ax2 <= bx1 || bx2 <= ax1 || ay2 <= by1 || by2 <= ay1) return;
-
-    const ox = Math.min(ax2, bx2) - Math.max(ax1, bx1);
-    const oy = Math.min(ay2, by2) - Math.max(ay1, by1);
 
     if (ox < oy) {
-      const dir = ax1 + ax2 < bx1 + bx2 ? -1 : 1;
+      const dir = a.cx < b.cx ? -1 : 1;
       pa.x += dir * ox * 0.5;
       pb.x -= dir * ox * 0.5;
     } else {
-      const dir = ay1 + ay2 < by1 + by2 ? -1 : 1;
+      const dir = a.cy < b.cy ? -1 : 1;
       pa.y += dir * oy * 0.5;
       pb.y -= dir * oy * 0.5;
     }

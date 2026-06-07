@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Camera",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"Camera",
+    "path":"folders/Core/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

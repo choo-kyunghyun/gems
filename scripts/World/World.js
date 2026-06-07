@@ -11,6 +11,7 @@ globalThis.World = class World {
     this.tickDuration = 1 / tickrate;
     this.accumulator = 0;
     this.alpha = 0;
+    this.maxTicks = 5; // spiral-of-death guard — see update()
     this._pending = [];
     this.gravity = opts.gravity ?? null;
   }
@@ -37,7 +38,8 @@ globalThis.World = class World {
   flush() {
     for (const id of this._pending) {
       const i = IdPool.getIndex(id);
-      for (let s = 0; s < this._storages.length; s++) this._storages[s][i] = undefined;
+      for (let s = 0; s < this._storages.length; s++)
+        this._storages[s][i] = undefined;
       this.ids.free(id);
     }
     this._pending = [];
@@ -69,17 +71,49 @@ globalThis.World = class World {
     if (storage !== undefined) storage[IdPool.getIndex(id)] = undefined;
   }
 
+  // Returns ids of every entity that has ALL listed components. Hot path: bounded
+  // by the allocator high-water mark (this.ids.next) rather than maxEntities, and
+  // closure-free — a numeric `c === n` test stands in for `.every()` (avoids both
+  // per-slot closure allocation and the GMRT boolean-local clobber).
   query(...ComponentClasses) {
-    const storages = ComponentClasses.map((C) => this.components.get(C));
-    if (storages.some((s) => s === undefined)) return [];
+    const n = ComponentClasses.length;
+    const storages = new Array(n);
+    for (let c = 0; c < n; c++) {
+      const s = this.components.get(ComponentClasses[c]);
+      if (s === undefined) return [];
+      storages[c] = s;
+    }
 
     const result = [];
-    for (let i = 0; i < this.maxEntities; i++) {
-      if (storages.every((s) => s[i] !== undefined)) {
-        result.push(IdPool.makeId(i, this.ids.generations[i]));
-      }
+    const hi = this.ids.next;
+    const gens = this.ids.generations;
+    for (let i = 0; i < hi; i++) {
+      let c = 0;
+      while (c < n && storages[c][i] !== undefined) c++;
+      if (c === n) result.push(IdPool.makeId(i, gens[i]));
     }
     return result;
+  }
+
+  // Allocation-free alternative to query() for hot systems: invokes fn(id) for
+  // each entity that has ALL listed components, without materializing an id array.
+  // `ComponentClasses` is an array of component tokens.
+  forEach(ComponentClasses, fn) {
+    const n = ComponentClasses.length;
+    const storages = new Array(n);
+    for (let c = 0; c < n; c++) {
+      const s = this.components.get(ComponentClasses[c]);
+      if (s === undefined) return;
+      storages[c] = s;
+    }
+
+    const hi = this.ids.next;
+    const gens = this.ids.generations;
+    for (let i = 0; i < hi; i++) {
+      let c = 0;
+      while (c < n && storages[c][i] !== undefined) c++;
+      if (c === n) fn(IdPool.makeId(i, gens[i]));
+    }
   }
 
   export() {
@@ -110,8 +144,14 @@ globalThis.World = class World {
 
   update() {
     this.accumulator += Time.delta;
-    const ticks = Math.floor(this.accumulator / this.tickDuration);
+    let ticks = Math.floor(this.accumulator / this.tickDuration);
     this.accumulator -= ticks * this.tickDuration;
+    // Spiral-of-death guard: if the sim fell far behind on a slow frame, drop the
+    // backlog instead of running every owed tick — catching up would make the next
+    // frame slower still and feed back until the runtime dies (seen in the
+    // benchmark scene). Simulation time slows down under overload rather than
+    // freezing; alpha still uses the drained accumulator, so rendering stays smooth.
+    if (ticks > this.maxTicks) ticks = this.maxTicks;
     this.alpha = this.accumulator / this.tickDuration;
     return ticks;
   }

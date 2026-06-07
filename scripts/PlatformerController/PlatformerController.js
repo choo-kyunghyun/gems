@@ -13,8 +13,8 @@ const PLATF_FIREBALL_SPEED = 500; // px/s horizontal fireball velocity
 const PLATF_FIREBALL_LIFETIME = 90; // ticks before fireball expires (~1.5 s at 60 Hz)
 
 const PLATF_POWER_SMALL = 0; // default — 24 px tall
-const PLATF_POWER_BIG = 1;   // mushroom — 40 px tall
-const PLATF_POWER_FIRE = 2;  // fire flower — 40 px tall, can shoot
+const PLATF_POWER_BIG = 1; // mushroom — 40 px tall
+const PLATF_POWER_FIRE = 2; // fire flower — 40 px tall, can shoot
 const PLATF_COYOTE = 6; // ticks of jump grace after walking off a ledge
 const PLATF_JUMP_BUFFER = 10; // ticks a jump press is remembered before landing
 const PLATF_DROP_TICKS = 8; // ticks the player ignores one-way platforms after a drop press
@@ -36,30 +36,14 @@ const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after respawning (1.5 s
 globalThis.PlatformerController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
-    Input.register(
-      "moveLeft",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("A")),
-    );
-    Input.register(
-      "moveRight",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("D")),
-    );
-    Input.register(
-      "jump",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("W")),
-    );
-    Input.register(
-      "run",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, vk_shift),
-    );
-    Input.register(
-      "drop",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("S")),
-    );
-    Input.register(
-      "fire",
-      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, vk_space),
-    );
+    Input.bindAll({
+      moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
+      moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
+      jump: [INPUT_SOURCE.KEYBOARD, ord("W")],
+      run: [INPUT_SOURCE.KEYBOARD, vk_shift],
+      drop: [INPUT_SOURCE.KEYBOARD, ord("S")],
+      fire: [INPUT_SOURCE.KEYBOARD, vk_space],
+    });
 
     const id = world.create();
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
@@ -76,7 +60,16 @@ globalThis.PlatformerController = {
     world.add(id, Grounded, { isGrounded: false });
     world.add(id, Name, { name: "Player" });
 
-    return { id, jumpBuffer: 0, jumpReleased: false, coyote: 0, facing: 1, iframes: 0, power: PLATF_POWER_SMALL, fireBuffer: false };
+    return {
+      id,
+      jumpBuffer: 0,
+      jumpReleased: false,
+      coyote: 0,
+      facing: 1,
+      iframes: 0,
+      power: PLATF_POWER_SMALL,
+      fireBuffer: false,
+    };
   },
 
   // Sample edge-triggered jump input once per frame. Must run before world.update(),
@@ -206,8 +199,16 @@ globalThis.PlatformerController = {
     if (ctrl.power !== PLATF_POWER_FIRE) return false;
     const pos = world.get(Position, ctrl.id);
     const fb = world.create();
-    world.add(fb, Position, { x: pos.x + ctrl.facing * 16, y: pos.y - 20, z: 0 });
-    world.add(fb, Velocity, { x: ctrl.facing * PLATF_FIREBALL_SPEED, y: 0, z: 0 });
+    world.add(fb, Position, {
+      x: pos.x + ctrl.facing * 16,
+      y: pos.y - 20,
+      z: 0,
+    });
+    world.add(fb, Velocity, {
+      x: ctrl.facing * PLATF_FIREBALL_SPEED,
+      y: 0,
+      z: 0,
+    });
     world.add(fb, Projectile, { damage: 1, owner: ctrl.id, bouncy: true });
     world.add(fb, Lifetime, { ticks: PLATF_FIREBALL_LIFETIME });
     world.add(fb, Name, { name: "Fireball" });
@@ -235,11 +236,6 @@ globalThis.PlatformerController = {
   },
 
   destroy() {
-    Input.unregister("moveLeft");
-    Input.unregister("moveRight");
-    Input.unregister("jump");
-    Input.unregister("run");
-    Input.unregister("drop");
-    Input.unregister("fire");
+    Input.unbindAll(["moveLeft", "moveRight", "jump", "run", "drop", "fire"]);
   },
 };
