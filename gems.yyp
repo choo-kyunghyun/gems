@@ -55,6 +55,7 @@
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
     {"id":{"name":"BlockSystem","path":"scripts/BlockSystem/BlockSystem.yy",},},
     {"id":{"name":"Brick","path":"scripts/Brick/Brick.yy",},},
+    {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
     {"id":{"name":"cameraFollow","path":"scripts/cameraFollow/cameraFollow.yy",},},
     {"id":{"name":"Checkpoint","path":"scripts/Checkpoint/Checkpoint.yy",},},

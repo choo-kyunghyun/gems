@@ -55,6 +55,7 @@ class _SceneBenchmarkClass extends Scene {
     const w = this.field.w;
     const h = this.field.h;
     this.world = new World(this.count + 16, 60); // +16 headroom for walls + anchor
+    this.world.broadphase = new Broadphase(w, h, 64); // cellSize 64 >> entity diameter 12
 
     this._wall(w * 0.5, -8, w, 16);
     this._wall(w * 0.5, h + 8, w, 16);

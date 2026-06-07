@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Broadphase",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Broadphase",
+  "parent":{
+    "name":"gems",
+    "path":"gems.yyp",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Broadphase.js",
+}
