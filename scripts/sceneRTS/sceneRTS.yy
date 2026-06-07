@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneRTS",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"RTS",
+    "path":"folders/Demo/RTS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

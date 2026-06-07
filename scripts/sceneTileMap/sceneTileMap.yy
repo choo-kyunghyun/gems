@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneTileMap",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"Map",
+    "path":"folders/Demo/Map.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

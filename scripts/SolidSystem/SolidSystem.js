@@ -75,20 +75,12 @@ globalThis.SolidSystem = {
   // pushed -. Returns the applied correction's sign (+1 = pushed toward -, i.e.
   // up/left; -1 = pushed toward +; 0 = no contact). For Y, +1 means grounded.
   _resolve(world, id, pos, box, colMover, statics, v, isX) {
-    const ax1 = pos.x + box.x;
-    const ay1 = pos.y + box.y;
-    const ax2 = ax1 + box.width;
-    const ay2 = ay1 + box.height;
+    const a = AABB.edges(pos, box);
 
     let correction = 0;
 
     for (const sid of statics) {
-      const sPos = world.get(Position, sid);
-      const sBox = world.get(BBox, sid);
-      const bx1 = sPos.x + sBox.x;
-      const by1 = sPos.y + sBox.y;
-      const bx2 = bx1 + sBox.width;
-      const by2 = by1 + sBox.height;
+      const b = AABB.of(world, sid);
 
       const sCol = world.get(Collision, sid);
       if (sCol && sCol.oneWay) {
@@ -101,14 +93,14 @@ globalThis.SolidSystem = {
         if (isX) continue;
         if (colMover.passThroughTicks > 0) continue;
         if (v < 0) continue;
-        const prevBot = pos.y - v + box.y + box.height;
-        if (prevBot > sPos.y + sBox.y + this.oneWayTol) continue;
+        const prevBot = a.y2 - v; // bottom edge before this sub-step's move
+        if (prevBot > b.y1 + this.oneWayTol) continue;
       }
 
-      if (ax2 <= bx1 || ax1 >= bx2 || ay2 <= by1 || ay1 >= by2) continue;
+      if (!AABB.overlap(a, b)) continue;
 
-      const lo = isX ? ax2 - bx1 : ay2 - by1; // overlap if pushed toward -
-      const hi = isX ? bx2 - ax1 : by2 - ay1; // overlap if pushed toward +
+      const lo = isX ? a.x2 - b.x1 : a.y2 - b.y1; // overlap if pushed toward -
+      const hi = isX ? b.x2 - a.x1 : b.y2 - a.y1; // overlap if pushed toward +
       let c;
       if (v > 0) c = -lo;
       else if (v < 0) c = hi;

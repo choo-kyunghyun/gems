@@ -22,19 +22,21 @@ globalThis.Raycast = class Raycast {
 
       const col = world.get(Collision, id);
       if (solidOnly && !col.solid) continue;
-      if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id))) continue;
+      if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
+        continue;
 
-      const pos = world.get(Position, id);
-      const box = world.get(BBox, id);
-      const bx1 = pos.x + box.x;
-      const by1 = pos.y + box.y;
-      const bx2 = bx1 + box.width;
-      const by2 = by1 + box.height;
-
-      const r = Raycast._segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2);
+      const e = AABB.of(world, id);
+      const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r !== null && r.t < bestT) {
         bestT = r.t;
-        best = { id, x: x0 + dx * r.t, y: y0 + dy * r.t, nx: r.nx, ny: r.ny, t: r.t };
+        best = {
+          id,
+          x: x0 + dx * r.t,
+          y: y0 + dy * r.t,
+          nx: r.nx,
+          ny: r.ny,
+          t: r.t,
+        };
       }
     }
     return best;
@@ -46,13 +48,29 @@ globalThis.Raycast = class Raycast {
   static _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;
 
-    if (dx > 0) { txEntry = (bx1 - x0) / dx; txExit = (bx2 - x0) / dx; }
-    else if (dx < 0) { txEntry = (bx2 - x0) / dx; txExit = (bx1 - x0) / dx; }
-    else { if (x0 < bx1 || x0 > bx2) return null; txEntry = -Infinity; txExit = Infinity; }
+    if (dx > 0) {
+      txEntry = (bx1 - x0) / dx;
+      txExit = (bx2 - x0) / dx;
+    } else if (dx < 0) {
+      txEntry = (bx2 - x0) / dx;
+      txExit = (bx1 - x0) / dx;
+    } else {
+      if (x0 < bx1 || x0 > bx2) return null;
+      txEntry = -Infinity;
+      txExit = Infinity;
+    }
 
-    if (dy > 0) { tyEntry = (by1 - y0) / dy; tyExit = (by2 - y0) / dy; }
-    else if (dy < 0) { tyEntry = (by2 - y0) / dy; tyExit = (by1 - y0) / dy; }
-    else { if (y0 < by1 || y0 > by2) return null; tyEntry = -Infinity; tyExit = Infinity; }
+    if (dy > 0) {
+      tyEntry = (by1 - y0) / dy;
+      tyExit = (by2 - y0) / dy;
+    } else if (dy < 0) {
+      tyEntry = (by2 - y0) / dy;
+      tyExit = (by1 - y0) / dy;
+    } else {
+      if (y0 < by1 || y0 > by2) return null;
+      tyEntry = -Infinity;
+      tyExit = Infinity;
+    }
 
     const tEntry = Math.max(txEntry, tyEntry);
     const tExit = Math.min(txExit, tyExit);
@@ -62,7 +80,7 @@ globalThis.Raycast = class Raycast {
     return {
       t: Math.max(tEntry, 0),
       nx: txEntry > tyEntry ? (dx > 0 ? -1 : 1) : 0,
-      ny: txEntry > tyEntry ? 0 : (dy > 0 ? -1 : 1),
+      ny: txEntry > tyEntry ? 0 : dy > 0 ? -1 : 1,
     };
   }
 

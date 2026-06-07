@@ -103,11 +103,7 @@ class _SceneTopDownClass extends Scene {
 
   destroy() {
     TopDownController.destroy();
-    this.camera.destroy();
-    this.renderer.destroy();
     this.level.destroy();
-    this.world.destroy();
-    UI.remove(this.ui);
-    this.ui.destroy();
+    teardownScene(this);
   }
 }

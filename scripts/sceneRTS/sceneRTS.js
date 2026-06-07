@@ -125,10 +125,6 @@ class _SceneRTSClass extends Scene {
 
   destroy() {
     SeparationSystem.iterations = 1;
-    this.camera.destroy();
-    this.renderer.destroy();
-    this.world.destroy();
-    UI.remove(this.ui);
-    this.ui.destroy();
+    teardownScene(this);
   }
 }

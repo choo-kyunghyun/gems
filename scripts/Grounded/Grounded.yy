@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Grounded",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneBenchmark",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Demo.yy",
+    "name":"Benchmarks",
+    "path":"folders/Demo/Benchmarks.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -70,12 +70,30 @@ function makeSelect(key, items) {
   return el;
 }
 
+// Releases the world / renderer / camera / UI a genre scene builds, in dependency
+// order. Scenes hold these on `this`; call teardownScene(this) from destroy() after
+// releasing any scene-specific resources (controllers, levels). Missing fields are
+// skipped, so a partially-built scene still tears down safely.
+function teardownScene(scene) {
+  if (scene.camera) scene.camera.destroy();
+  if (scene.renderer) scene.renderer.destroy();
+  if (scene.world) scene.world.destroy();
+  if (scene.ui) {
+    UI.remove(scene.ui);
+    scene.ui.destroy();
+  }
+}
+
 // ── SceneRegistry ────────────────────────────────────────────
 
 globalThis.SceneRegistry = {
   _entries: [],
   add(factory, opts) {
-    this._entries.push({ factory, label: opts.label, category: opts.category ?? "기타" });
+    this._entries.push({
+      factory,
+      label: opts.label,
+      category: opts.category ?? "기타",
+    });
   },
   byCategory() {
     const result = [];

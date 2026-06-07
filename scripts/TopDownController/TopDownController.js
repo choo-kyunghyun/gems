@@ -17,34 +17,45 @@ globalThis.TopDownController = {
       {
         id: "bullet",
         components: {
-          Velocity:   { x: 0, y: 0, z: 0 },
-          BBox:       { x: -2, y: -2, width: 4, height: 4 },
+          Velocity: { x: 0, y: 0, z: 0 },
+          BBox: { x: -2, y: -2, width: 4, height: 4 },
           Projectile: { damage: 1, owner: -1 },
-          Lifetime:   { ticks: 90 }, // max range
+          Lifetime: { ticks: 90 }, // max range
         },
       },
     ]);
 
-    Input.register("moveLeft",  new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("A")));
-    Input.register("moveRight", new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("D")));
-    Input.register("moveUp",    new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("W")));
-    Input.register("moveDown",  new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("S")));
-    Input.register("fire",      new InputAction().bindButton(INPUT_SOURCE.MOUSE, mb_left));
+    Input.bindAll({
+      moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
+      moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
+      moveUp: [INPUT_SOURCE.KEYBOARD, ord("W")],
+      moveDown: [INPUT_SOURCE.KEYBOARD, ord("S")],
+      fire: [INPUT_SOURCE.MOUSE, mb_left],
+    });
 
     const id = world.create();
-    world.add(id, Position,  { x: spawn.x, y: spawn.y, z: 0 });
-    world.add(id, Velocity,  { x: 0, y: 0, z: 0 });
-    world.add(id, BBox,      { x: -12, y: -12, width: 24, height: 24 });
-    world.add(id, Collision, { solid: true, kinematic: false, mask: null, hits: [] });
-    world.add(id, Name,      { name: "Player" });
+    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
+    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
+    world.add(id, Collision, {
+      solid: true,
+      kinematic: false,
+      mask: null,
+      hits: [],
+    });
+    world.add(id, Name, { name: "Player" });
 
     return { id, fireCd: 0 };
   },
 
   /** @param {{ id: number }} ctrl */
   update(world, ctrl) {
-    const dx = (Input.get("moveRight").down() ? 1 : 0) - (Input.get("moveLeft").down() ? 1 : 0);
-    const dy = (Input.get("moveDown").down() ? 1 : 0) - (Input.get("moveUp").down() ? 1 : 0);
+    const dx =
+      (Input.get("moveRight").down() ? 1 : 0) -
+      (Input.get("moveLeft").down() ? 1 : 0);
+    const dy =
+      (Input.get("moveDown").down() ? 1 : 0) -
+      (Input.get("moveUp").down() ? 1 : 0);
 
     const vel = world.get(Velocity, ctrl.id);
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -79,10 +90,6 @@ globalThis.TopDownController = {
   },
 
   destroy() {
-    Input.unregister("moveLeft");
-    Input.unregister("moveRight");
-    Input.unregister("moveUp");
-    Input.unregister("moveDown");
-    Input.unregister("fire");
+    Input.unbindAll(["moveLeft", "moveRight", "moveUp", "moveDown", "fire"]);
   },
 };

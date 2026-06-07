@@ -1,1 +1,0 @@
-globalThis.Achievement = class Achievement {};
