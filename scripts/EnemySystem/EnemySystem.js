@@ -2,13 +2,15 @@ const PLATF_STOMP_BOUNCE = 450; // upward px/s given to the player after a stomp
 
 // Goomba-like enemy behaviour for the platformer.
 //
-//   EnemySystem.update(world)                                // patrol: turn at walls, drive walk velocity
-//   const hurt = EnemySystem.resolveStomp(world, playerId);  // arbitrate player↔enemy contact
+//   EnemySystem.update(world)
+//   const { stomped, hurt } = EnemySystem.resolveStomp(world, playerId, invincible);
 //
-// Enemies are dynamic solid bodies, so SolidSystem moves them and collides them
-// with the kinematic platforms (zeroing vel.x when they hit a wall). They are
-// NOT resolved against the player (both are dynamic), so the player passes
-// through them and resolveStomp decides the outcome instead.
+// stomped: player killed ≥1 enemy by landing on it — caller should grant i-frames.
+// hurt:    player took a side hit while not invincible — caller should respawn.
+// Stomping and being hurt are mutually exclusive (stomp wins).
+//
+// Enemies carry Health so fireballs (ProjectileSystem) can damage them in phase 6
+// without any changes here; resolveStomp decrements hp and removes at ≤ 0.
 globalThis.EnemySystem = {
   // Patrol. Runs AFTER SolidSystem each tick: if a wall zeroed vel.x on the last
   // move, reverse direction; then drive the walk velocity for the next move.
@@ -22,11 +24,9 @@ globalThis.EnemySystem = {
     }
   },
 
-  // Resolves player↔enemy overlaps. A stomp (player falling and centred above the
-  // enemy) kills the enemy and bounces the player; any other contact hurts the
-  // player. Returns true if the player should respawn. Stomping takes priority,
-  // so landing on an enemy never also counts as a hurt.
-  resolveStomp(world, playerId) {
+  // Resolves player↔enemy overlaps. invincible=true (i-frames active) suppresses
+  // hurt but never suppresses stomping. Returns { stomped, hurt }.
+  resolveStomp(world, playerId, invincible) {
     const ppos = world.get(Position, playerId);
     const pbox = world.get(BBox, playerId);
     const pvel = world.get(Velocity, playerId);
@@ -36,7 +36,7 @@ globalThis.EnemySystem = {
     const py2 = py1 + pbox.height;
     const pcy = (py1 + py2) * 0.5;
 
-    let bounced = false;
+    let stomped = false;
     let hurt = false;
 
     for (const id of world.query(Enemy, Position, BBox)) {
@@ -51,18 +51,28 @@ globalThis.EnemySystem = {
       if (px2 <= ex1 || px1 >= ex2 || py2 <= ey1 || py1 >= ey2) continue;
 
       const ecy = (ey1 + ey2) * 0.5;
+      const en = world.get(Enemy, id);
       if (pvel.y > 0 && pcy < ecy) {
-        world.remove(id); // stomped from above
-        bounced = true;
-      } else {
+        if (en.stompable) {
+          // Stompable enemy: drain health; remove when depleted.
+          const hp = world.get(Health, id);
+          if (hp !== undefined) {
+            hp.hp--;
+            if (hp.hp <= 0) world.remove(id);
+          } else {
+            world.remove(id);
+          }
+          stomped = true;
+        } else if (!invincible) {
+          // Non-stompable: stomping it hurts the player.
+          hurt = true;
+        }
+      } else if (!invincible) {
         hurt = true;
       }
     }
 
-    if (bounced) {
-      pvel.y = -PLATF_STOMP_BOUNCE;
-      return false; // a successful stomp cancels the hurt
-    }
-    return hurt;
+    if (stomped) pvel.y = -PLATF_STOMP_BOUNCE;
+    return { stomped, hurt: !stomped && hurt };
   },
 };

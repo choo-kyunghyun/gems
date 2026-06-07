@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Checkpoint",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Checkpoint",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Checkpoint.js",
+}

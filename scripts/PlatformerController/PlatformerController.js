@@ -9,9 +9,16 @@ const PLATF_AIR_DRAG = 250; // gentle horizontal bleed while airborne (keeps mom
 const PLATF_TURN_ACCEL = 2600; // extra bite when reversing direction (skid)
 
 const PLATF_JUMP_CUT = 0.45; // fraction of rising vy kept when jump is released early
+const PLATF_FIREBALL_SPEED = 500; // px/s horizontal fireball velocity
+const PLATF_FIREBALL_LIFETIME = 90; // ticks before fireball expires (~1.5 s at 60 Hz)
+
+const PLATF_POWER_SMALL = 0; // default — 24 px tall
+const PLATF_POWER_BIG = 1;   // mushroom — 40 px tall
+const PLATF_POWER_FIRE = 2;  // fire flower — 40 px tall, can shoot
 const PLATF_COYOTE = 6; // ticks of jump grace after walking off a ledge
 const PLATF_JUMP_BUFFER = 10; // ticks a jump press is remembered before landing
 const PLATF_DROP_TICKS = 8; // ticks the player ignores one-way platforms after a drop press
+const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after respawning (1.5 s at 60 Hz)
 
 // Player input + entity setup for the platformer genre.
 // Usage:
@@ -49,6 +56,10 @@ globalThis.PlatformerController = {
       "drop",
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("S")),
     );
+    Input.register(
+      "fire",
+      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, vk_space),
+    );
 
     const id = world.create();
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
@@ -65,7 +76,7 @@ globalThis.PlatformerController = {
     world.add(id, Grounded, { isGrounded: false });
     world.add(id, Name, { name: "Player" });
 
-    return { id, jumpBuffer: 0, jumpReleased: false, coyote: 0, facing: 1 };
+    return { id, jumpBuffer: 0, jumpReleased: false, coyote: 0, facing: 1, iframes: 0, power: PLATF_POWER_SMALL, fireBuffer: false };
   },
 
   // Sample edge-triggered jump input once per frame. Must run before world.update(),
@@ -74,6 +85,7 @@ globalThis.PlatformerController = {
   pollInput(ctrl) {
     if (Input.get("jump").pressed()) ctrl.jumpBuffer = PLATF_JUMP_BUFFER;
     if (Input.get("jump").released()) ctrl.jumpReleased = true;
+    if (Input.get("fire").pressed()) ctrl.fireBuffer = true;
   },
 
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
@@ -85,6 +97,8 @@ globalThis.PlatformerController = {
     // (a const flips true→false within one call), which silently broke coyote
     // time and the jump. Caching the component object (like vel) is fine.
     const groundedComp = world.get(Grounded, ctrl.id);
+
+    if (ctrl.iframes > 0) ctrl.iframes--;
 
     // Horizontal: accelerate toward a target speed instead of snapping to it,
     // so the player has weight and carries momentum (SMW-style). Movement is
@@ -140,6 +154,21 @@ globalThis.PlatformerController = {
     }
   },
 
+  // Swap the player's BBox to match the new power state and reset fireBuffer.
+  // PLATF_POWER_SMALL → small box; PLATF_POWER_BIG / PLATF_POWER_FIRE → big box.
+  setPower(world, ctrl, power) {
+    ctrl.power = power;
+    ctrl.fireBuffer = false;
+    const bbox = world.get(BBox, ctrl.id);
+    if (power === PLATF_POWER_SMALL) {
+      bbox.y = -24;
+      bbox.height = 24;
+    } else {
+      bbox.y = -40;
+      bbox.height = 40;
+    }
+  },
+
   // Teleport the player back to spawn and clear its motion/jump state.
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(world, ctrl, spawn) {
@@ -155,6 +184,8 @@ globalThis.PlatformerController = {
     ctrl.jumpReleased = false;
     ctrl.coyote = 0;
     ctrl.facing = 1;
+    ctrl.iframes = PLATF_IFRAMES_RESPAWN;
+    ctrl.fireBuffer = false;
     world.get(Collision, ctrl.id).passThroughTicks = 0; // don't drop through the spawn ledge
 
     // Snap the interpolation snapshot too, or the player streaks from its old
@@ -167,11 +198,48 @@ globalThis.PlatformerController = {
     }
   },
 
+  // Consume fireBuffer; if player is in Fire state, spawn a fireball in world.
+  // Returns true if a fireball was created. Call once per physics tick.
+  tryFireball(world, ctrl) {
+    if (!ctrl.fireBuffer) return false;
+    ctrl.fireBuffer = false;
+    if (ctrl.power !== PLATF_POWER_FIRE) return false;
+    const pos = world.get(Position, ctrl.id);
+    const fb = world.create();
+    world.add(fb, Position, { x: pos.x + ctrl.facing * 16, y: pos.y - 20, z: 0 });
+    world.add(fb, Velocity, { x: ctrl.facing * PLATF_FIREBALL_SPEED, y: 0, z: 0 });
+    world.add(fb, Projectile, { damage: 1, owner: ctrl.id, bouncy: true });
+    world.add(fb, Lifetime, { ticks: PLATF_FIREBALL_LIFETIME });
+    world.add(fb, Name, { name: "Fireball" });
+    return true;
+  },
+
+  // If the player is Big or Fire, downgrade to Small and grant respawn i-frames.
+  // Returns true if shrunk (caller should NOT also respawn). Returns false when
+  // already Small (caller should respawn instead).
+  shrink(world, ctrl) {
+    if (ctrl.power === PLATF_POWER_SMALL) return false;
+    this.setPower(world, ctrl, PLATF_POWER_SMALL);
+    ctrl.iframes = PLATF_IFRAMES_RESPAWN;
+    return true;
+  },
+
+  // Apply a collected powerup. Mushroom → Big (if currently Small); flower → Fire
+  // (if not already Fire). No downgrade — powerups only improve state.
+  grantPowerup(world, ctrl, type) {
+    if (type === "mushroom" && ctrl.power < PLATF_POWER_BIG) {
+      this.setPower(world, ctrl, PLATF_POWER_BIG);
+    } else if (type === "flower" && ctrl.power < PLATF_POWER_FIRE) {
+      this.setPower(world, ctrl, PLATF_POWER_FIRE);
+    }
+  },
+
   destroy() {
     Input.unregister("moveLeft");
     Input.unregister("moveRight");
     Input.unregister("jump");
     Input.unregister("run");
     Input.unregister("drop");
+    Input.unregister("fire");
   },
 };

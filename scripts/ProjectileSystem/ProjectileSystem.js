@@ -30,8 +30,14 @@ globalThis.ProjectileSystem = {
       if (hp !== undefined) {
         hp.hp -= proj.damage;
         if (hp.hp <= 0) world.remove(hit.id);
+        world.remove(id);
+      } else if (proj.bouncy && hit.ny === -1) {
+        // Floor hit: bounce upward. Minimum 200 px/s so early hits aren't tiny.
+        vel.y = -Math.max(Math.abs(vel.y), 200);
+      } else {
+        // Wall, ceiling, or non-bouncy projectile: destroy.
+        world.remove(id);
       }
-      world.remove(id);
     }
   },
 };

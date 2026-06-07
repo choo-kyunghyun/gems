@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Spike",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Spike",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Spike.js",
+}

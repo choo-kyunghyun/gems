@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Mushroom",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Mushroom",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Mushroom.js",
+}

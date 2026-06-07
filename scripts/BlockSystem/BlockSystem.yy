@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"BlockSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"BlockSystem",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"BlockSystem.js",
+}

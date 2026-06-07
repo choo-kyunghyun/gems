@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Brick",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Brick",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Brick.js",
+}

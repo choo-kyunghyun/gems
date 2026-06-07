@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"QBlock",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"QBlock",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"QBlock.js",
+}
