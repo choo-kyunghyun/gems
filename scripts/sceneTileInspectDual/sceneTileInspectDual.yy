@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneTileInspectDual",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneTileInspectDual",
+  "parent":{
+    "name":"Map",
+    "path":"folders/Demo/Map.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneTileInspectDual.js",
+}

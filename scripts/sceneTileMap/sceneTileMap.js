@@ -58,8 +58,15 @@ class _SceneTileMapClass extends Scene {
     // Compute nav costs into level.mpg (drives the debug cost shading).
     this.level.syncAll();
 
-    // Debug overlay — labels with the smaller localized font so ids fit cells.
     this.renderer = new Renderer();
+    this.tilePass = new RenderTileMap(
+      this.layer,
+      this.level,
+      asset_get_index("spr_tile16"),
+      { autotile: 16 },
+    );
+    this.renderer.insert(this.tilePass);
+    // Debug overlay on top — labels with the smaller localized font so ids fit cells.
     this.renderer.insert(
       new RenderDebugTileMap(this.level, {
         names: true,
@@ -103,9 +110,11 @@ class _SceneTileMapClass extends Scene {
     if (mouse_check_button(mb_left)) {
       this.layer.set(cell.x, cell.y, this.wall);
       level.syncAt(cell.x, cell.y);
+      this.tilePass.markDirty();
     } else if (mouse_check_button(mb_right)) {
       this.layer.set(cell.x, cell.y, undefined);
       level.syncAt(cell.x, cell.y);
+      this.tilePass.markDirty();
     }
 
     // Report the hovered cell's structure.

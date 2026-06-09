@@ -4,6 +4,7 @@
 // unique normalized bitmasks are numbered in first-appearance order over masks
 // 0-255. Precomputed as a literal: GMRT's interpreter fails to bind the scope
 // of functions nested inside a top-level IIFE, so this can't be built at load.
+// prettier-ignore
 const _BLOB8 = [
    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
    0,  1,  2, 16,  4,  5,  6, 17,  8,  9, 10, 18, 12, 13, 14, 19,
@@ -25,10 +26,15 @@ const _BLOB8 = [
 
 /**
  * @typedef {Object} RenderTileMapOptions
- * @property {0|16|47} [autotile] - 0: use TileType.id as frame, 16: blob4, 47: blob8
+ * @property {0|16|47|"dual"} [autotile] - 0: use TileType.id as frame, 16: blob4, 47: blob8,
+ *   "dual": dual-grid corner sampling (16-frame, half-cell offset). The blob modes draw one
+ *   tile per filled cell against empty; "dual" samples the 4 cells touching each grid corner,
+ *   so a tile's empty corners stay transparent — stack several dual passes (one TileLayer per
+ *   terrain) in priority order to get RPG-Maker-style A-over-B transitions.
  * @property {number} [alpha]
  * @property {number} [color]
- * @property {boolean} [softEdge] - per-vertex alpha blending at tile boundaries (RimWorld style)
+ * @property {boolean} [softEdge] - per-vertex alpha blending at tile boundaries (RimWorld style).
+ *   Per-cell modes only; ignored for "dual" (its corner art already carries the edge transparency).
  */
 
 /** @implements {RenderPass} */
@@ -51,10 +57,13 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._tex = undefined;
 
     const mode = opt.autotile ?? 0;
+    this._dual = mode === "dual";
     if (mode === 16) {
       this._frameOf = (x, y) => this._blob4(x, y);
     } else if (mode === 47) {
       this._frameOf = (x, y) => this._blob8(x, y);
+    } else if (mode === "dual") {
+      this._frameOf = undefined; // dual uses its own rebuild path, not _frameOf
     } else {
       this._frameOf = (x, y) => {
         const t = layer.get(x, y);
@@ -100,18 +109,23 @@ globalThis.RenderTileMap = class RenderTileMap {
 
   _blob8(x, y) {
     const north = this._isSolid(x, y - 1);
-    const east  = this._isSolid(x + 1, y);
+    const east = this._isSolid(x + 1, y);
     const south = this._isSolid(x, y + 1);
-    const west  = this._isSolid(x - 1, y);
-    let mask = (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
-    if (north && east  && this._isSolid(x + 1, y - 1)) mask |= 16;
-    if (south && east  && this._isSolid(x + 1, y + 1)) mask |= 32;
-    if (south && west  && this._isSolid(x - 1, y + 1)) mask |= 64;
-    if (north && west  && this._isSolid(x - 1, y - 1)) mask |= 128;
+    const west = this._isSolid(x - 1, y);
+    let mask =
+      (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
+    if (north && east && this._isSolid(x + 1, y - 1)) mask |= 16;
+    if (south && east && this._isSolid(x + 1, y + 1)) mask |= 32;
+    if (south && west && this._isSolid(x - 1, y + 1)) mask |= 64;
+    if (north && west && this._isSolid(x - 1, y - 1)) mask |= 128;
     return _BLOB8[mask];
   }
 
   _rebuild() {
+    if (this._dual) {
+      this._rebuildDual();
+      return;
+    }
     const { layer, level, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = level;
 
@@ -129,21 +143,78 @@ globalThis.RenderTileMap = class RenderTileMap {
         const wy = y * cellHeight;
         if (this.softEdge) {
           this._vbuf.addQuadV(
-            wx, wy, cellWidth, cellHeight,
-            uvs[0], uvs[1], uvs[2], uvs[3],
+            wx,
+            wy,
+            cellWidth,
+            cellHeight,
+            uvs[0],
+            uvs[1],
+            uvs[2],
+            uvs[3],
             this.color,
             this._cornerAlpha(x, y, -1, -1),
-            this._cornerAlpha(x, y,  1, -1),
-            this._cornerAlpha(x, y, -1,  1),
-            this._cornerAlpha(x, y,  1,  1),
+            this._cornerAlpha(x, y, 1, -1),
+            this._cornerAlpha(x, y, -1, 1),
+            this._cornerAlpha(x, y, 1, 1),
           );
         } else {
           this._vbuf.addQuad(
-            wx, wy, cellWidth, cellHeight,
-            uvs[0], uvs[1], uvs[2], uvs[3],
-            this.color, this.alpha,
+            wx,
+            wy,
+            cellWidth,
+            cellHeight,
+            uvs[0],
+            uvs[1],
+            uvs[2],
+            uvs[3],
+            this.color,
+            this.alpha,
           );
         }
+      }
+    }
+    this._vbuf.end();
+    this.dirty = false;
+  }
+
+  // Dual-grid: the display grid is offset by half a cell so each display tile is
+  // centered on a data-grid corner and covers the 4 cells touching that corner.
+  // Corner bits: TL=1, TR=2, BR=4, BL=8 → frame index = mask (0-15, like blob4).
+  // Empty corners read transparent in the art, so stacking dual passes per terrain
+  // (lower terrain first) shows the lower one through the upper one's borders.
+  _rebuildDual() {
+    const { level, sprite } = this;
+    const { cols, rows, cellWidth, cellHeight } = level;
+    const hw = cellWidth * 0.5;
+    const hh = cellHeight * 0.5;
+
+    this._vbuf.destroy();
+    this._vbuf = new VertexBuffer();
+    this._tex = sprite_get_texture(sprite, 0);
+
+    this._vbuf.begin();
+    // Corner points run 0..cols and 0..rows inclusive (one extra row/col of tiles).
+    for (let j = 0; j <= rows; j++) {
+      for (let i = 0; i <= cols; i++) {
+        let mask = 0;
+        if (this._isSolid(i - 1, j - 1)) mask |= 1; // TL
+        if (this._isSolid(i, j - 1)) mask |= 2; // TR
+        if (this._isSolid(i, j)) mask |= 4; // BR
+        if (this._isSolid(i - 1, j)) mask |= 8; // BL
+        if (mask === 0) continue;
+        const uvs = sprite_get_uvs(sprite, mask);
+        this._vbuf.addQuad(
+          i * cellWidth - hw,
+          j * cellHeight - hh,
+          cellWidth,
+          cellHeight,
+          uvs[0],
+          uvs[1],
+          uvs[2],
+          uvs[3],
+          this.color,
+          this.alpha,
+        );
       }
     }
     this._vbuf.end();

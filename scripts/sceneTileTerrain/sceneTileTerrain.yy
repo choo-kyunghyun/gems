@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneTileTerrain",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneTileTerrain",
+  "parent":{
+    "name":"Map",
+    "path":"folders/Demo/Map.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneTileTerrain.js",
+}
