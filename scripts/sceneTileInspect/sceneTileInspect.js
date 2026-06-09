@@ -14,6 +14,8 @@ class _SceneTileInspectClass extends Scene {
 
   create(openScene) {
     this.sprite = asset_get_index("spr_tile16");
+    this.camera = cameraPan();
+    this.camera.assign(0);
 
     this.ui = new UIElement({ width: "100%", height: "100%", padding: 16, gap: 8 });
     UI.insert(this.ui);
@@ -23,6 +25,10 @@ class _SceneTileInspectClass extends Scene {
     );
     this.ui.insertChild(hint);
     this.ui.insertChild(makeButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)));
+  }
+
+  step() {
+    this.camera.update();
   }
 
   draw() {
@@ -103,5 +109,6 @@ class _SceneTileInspectClass extends Scene {
   destroy() {
     UI.remove(this.ui);
     this.ui.destroy();
+    this.camera.destroy();
   }
 }

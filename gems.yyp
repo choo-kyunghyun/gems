@@ -60,6 +60,7 @@
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
     {"id":{"name":"cameraFollow","path":"scripts/cameraFollow/cameraFollow.yy",},},
+    {"id":{"name":"cameraPan","path":"scripts/cameraPan/cameraPan.yy",},},
     {"id":{"name":"Checkpoint","path":"scripts/Checkpoint/Checkpoint.yy",},},
     {"id":{"name":"Coin","path":"scripts/Coin/Coin.yy",},},
     {"id":{"name":"CollectibleSystem","path":"scripts/CollectibleSystem/CollectibleSystem.yy",},},
