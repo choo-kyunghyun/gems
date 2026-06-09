@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Broadphase",
   "parent":{
-    "name":"gems",
-    "path":"gems.yyp",
+    "name":"Core",
+    "path":"folders/Core.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

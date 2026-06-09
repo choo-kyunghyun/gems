@@ -2,6 +2,7 @@ const PLATF_GRAVITY = 1200;
 const PLATF_IFRAMES_STOMP = 30; // invincibility ticks after a successful stomp (0.5 s at 60 Hz)
 const PLATF_MAX_FALL = 900;
 const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void) → respawn
+const PLATF_LEVEL_COUNT = 2; // number of platformer_N.json files in datafiles/levels/
 
 SceneRegistry.add(() => new _ScenePlatformerClass(), {
   label: I18n.textRef("PLAT_NAME"),
@@ -79,15 +80,19 @@ class _ScenePlatformerClass extends Scene {
   _initLevel(index) {
     this.levelIndex = index;
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
-    const levelData = PlatformerLevels[index];
-    this.spawn = levelData.playerSpawn;
-    PlatformerLevel.build(this.world, levelData);
-    this.ctrl = PlatformerController.create(this.world, levelData.playerSpawn);
+    const levelData = LevelSerializer.load(
+      `levels/platformer_${index + 1}.json`,
+      { genre: "platformer" },
+    );
+    this.spawn = PlatformerLevel.build(this.world, levelData);
+    this.ctrl = PlatformerController.create(this.world, this.spawn);
 
-    const qBlocks = (levelData.blocks ?? []).filter(
-      (b) => b.type === "q",
-    ).length;
-    this.totalCoins += (levelData.coins ?? []).length + qBlocks;
+    let coins = 0;
+    for (let i = 0; i < levelData.spawns.length; i++) {
+      const p = levelData.spawns[i].preset;
+      if (p === "coin" || p === "q_block") coins++;
+    }
+    this.totalCoins += coins;
     this.checkpointActive = false;
 
     this.physics = new Pipeline()
@@ -174,7 +179,7 @@ class _ScenePlatformerClass extends Scene {
         }
         if (CollectibleSystem.reachedGoal(this.world, this.ctrl.id)) {
           const next = this.levelIndex + 1;
-          if (next < PlatformerLevels.length) {
+          if (next < PLATF_LEVEL_COUNT) {
             // More levels — transition immediately. loadLevel destroys the old
             // world, so skip world.flush() for this tick and break out.
             this.loadLevel(next);
