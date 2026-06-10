@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InventorySystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InventorySystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InventorySystem.js",
+}

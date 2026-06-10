@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Animator",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Animator",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Animator.js",
+}

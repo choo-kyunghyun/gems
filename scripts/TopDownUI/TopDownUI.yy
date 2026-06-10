@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TopDownUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TopDownUI",
+  "parent":{
+    "name":"TopDown",
+    "path":"folders/Templates/TopDown.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TopDownUI.js",
+}

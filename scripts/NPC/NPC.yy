@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"NPC",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"NPC",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"NPC.js",
+}

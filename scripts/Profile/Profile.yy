@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Profile",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Profile",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Profile.js",
+}
