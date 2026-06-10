@@ -6,7 +6,7 @@
   "name":"TopDownController",
   "parent":{
     "name":"TopDown",
-    "path":"folders/Demo/TopDown.yy",
+    "path":"folders/Templates/TopDown.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

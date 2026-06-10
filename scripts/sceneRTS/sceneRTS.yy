@@ -6,7 +6,7 @@
   "name":"sceneRTS",
   "parent":{
     "name":"RTS",
-    "path":"folders/Demo/RTS.yy",
+    "path":"folders/Templates/RTS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

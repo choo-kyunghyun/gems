@@ -6,7 +6,7 @@
   "name":"sceneTileTerrain",
   "parent":{
     "name":"Map",
-    "path":"folders/Demo/Map.yy",
+    "path":"folders/Templates/Map.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

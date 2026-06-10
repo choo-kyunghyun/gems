@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker 2026.0.0.15 on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Scripts live in three IDE folders: **Core** (ECS, systems, level, render, UI, input, utilities), **Demo** (the runnable showcase — `obj_game`, scenes, UI helpers), and **RPG** (genre supplements; currently `RPG/cameraFollow`). RPG-genre demo scenes (e.g. `scripts/sceneTopDown/`) live under **Demo** and register in the lobby under `SCENE_CAT_RPG`.
+**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker 2026.0.0.15 on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Assets live in four IDE folders: **Core** (ECS, systems, level, render, UI, input, utilities), **Templates** (genre templates — `Platformer`, `TopDown`, `RTS`, `Map` — each holding that genre's scene plus its controllers, gameplay systems, and components), **Benchmarks & Tests** (`sceneBenchmark` and the `sceneTileInspect*` validation scenes), and **Demo** (the app shell — `obj_game`, `rm_game`, the `demo` UI helpers, `sceneLobby`, shared sprites). Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneTopDown` lives in `Templates/TopDown` but registers under `SCENE_CAT_RPG`.
 
 The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions.
 
@@ -40,7 +40,7 @@ gm-cli resourcetool eval "RESOURCE CREATE TYPE=Script NAME=<name>"              
 gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.scriptSource VALUE=<name>.js"  # point at .js, not the .gml stub
 ```
 
-Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/<name>/<name>.js`. To file the asset under an IDE folder, **edit the asset's own `.yy`** `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — this is safe local metadata. Do **not** `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root. Verify with `gm-cli resourcetool eval "CHECK PROJECTPATH=gems.yyp"`, then `gm-cli compile`.
+Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/<name>/<name>.js`. To file the asset under an IDE folder, **edit the asset's own `.yy`** `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — this is safe local metadata. New IDE folders: `gm-cli resourcetool eval "FOLDER CREATE FOLDER=Parent/Child"`; its name validator rejects spaces/`&` (over-strict — the IDE allows them, e.g. `UI Sprites`, `Benchmarks & Tests`), so for such names hand-add a `GMFolder` line to the `Folders` array in `gems.yyp` (this array — unlike `resources` — is safe to hand-edit; that's also how empty folders are deleted, as resourcetool has no FOLDER DELETE). Do **not** `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root. Verify with `gm-cli resourcetool eval "CHECK PROJECTPATH=gems.yyp"`, then `gm-cli compile`.
 
 After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an asset must also go through the IDE or `resourcetool`, never by moving/removing files manually.
 
@@ -186,15 +186,15 @@ step() {
 draw() { this.renderer.draw(this.world); }
 ```
 
-Demo scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.physics = new Pipeline().add(SystemA).add(stepFn)`, then `this.physics.update(world)` each tick. A step is any `{ update(world) }` object or a bare function. Per genre: platformer `Gravity → clampFall → SolidSystem`; top-down `SolidSystem → ProjectileSystem`; RTS `SolidSystem → SeparationSystem`.
+Genre scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.physics = new Pipeline().add(SystemA).add(stepFn)`, then `this.physics.update(world)` each tick. A step is any `{ update(world) }` object or a bare function. Per genre: platformer `Gravity → clampFall → SolidSystem`; top-down `SolidSystem → ProjectileSystem`; RTS `SolidSystem → SeparationSystem`.
 
 **Motion integrators are exclusive per body**: `MovementSystem` integrates *free* movers (no collision response), `SolidSystem` is move-and-collide for solid bodies, `ProjectileSystem` is move-and-raycast for projectiles. A given mover is integrated by exactly one of them.
 
 **`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` before `scene.step()` — always available in scene code.
 
-### Genre Controllers & Demo Gameplay Systems
+### Genre Controllers & Template Gameplay Systems
 
-The Core systems above are genre-agnostic. A playable genre scene layers a **controller** plus **gameplay systems** on top — these live under **Demo** and are orchestrated by the scene's `step()`, not auto-run by `World`.
+The Core systems above are genre-agnostic. A playable genre scene layers a **controller** plus **gameplay systems** on top — these live under **Templates** (in the genre's folder) and are orchestrated by the scene's `step()`, not auto-run by `World`.
 
 **Genre controllers** (`PlatformerController`, `TopDownController`) own player input registration + entity setup and expose a three-phase lifecycle, not an `update(world)`:
 - `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player entity, returns a plain `ctrl` state bag (`{ id, facing, ... }`).
@@ -204,7 +204,7 @@ The Core systems above are genre-agnostic. A playable genre scene layers a **con
 
 See the **GMRT boolean-local clobber** note in memory: read flags like `Grounded.isGrounded` live off the component each use — caching a primitive bool in a local is miscompiled.
 
-**Demo gameplay systems** are stateless `globalThis` objects like Core systems but expose *named query/resolve methods* (not `update(world)`), called explicitly from `step()` after physics resolves: `EnemySystem` (`update` patrol + `resolveStomp`), `CollectibleSystem` (`collect`, `collectPowerup`, `reachedGoal`, `reachedCheckpoint`, `hitSpike`), `BlockSystem` (`resolveHit` — hit-from-below `?`-blocks/bricks, takes the pre-physics `vel.y`). They read `col.hits` (filled by `TriggerSystem`) or do their own overlap test, and return values the scene applies to score/state.
+**Template gameplay systems** are stateless `globalThis` objects like Core systems but expose *named query/resolve methods* (not `update(world)`), called explicitly from `step()` after physics resolves: `EnemySystem` (`update` patrol + `resolveStomp`), `CollectibleSystem` (`collect`, `collectPowerup`, `reachedGoal`, `reachedCheckpoint`, `hitSpike`), `BlockSystem` (`resolveHit` — hit-from-below `?`-blocks/bricks, takes the pre-physics `vel.y`). They read `col.hits` (filled by `TriggerSystem`) or do their own overlap test, and return values the scene applies to score/state.
 
 `scenePlatformer` is the reference orchestration: per tick → `snapshot` → `controller.update` → capture pre-physics `vel.y` → `physics` Pipeline → `EnemySystem` → resolve stomp/spike/death → collect coins/powerups/checkpoint/goal → `flush`. Multi-level scenes use an `_initLevel(index)` / `loadLevel(index)` pattern (rebuild `world`, level, controller, pipeline, renderer, camera per level); cumulative score/coins persist across levels on the scene.
 

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneTileInspectDual",
   "parent":{
-    "name":"Map",
-    "path":"folders/Demo/Map.yy",
+    "name":"Benchmarks & Tests",
+    "path":"folders/Benchmarks & Tests.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

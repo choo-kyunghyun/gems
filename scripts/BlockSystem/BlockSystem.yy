@@ -6,7 +6,7 @@
   "name":"BlockSystem",
   "parent":{
     "name":"Platformer",
-    "path":"folders/Demo/Platformer.yy",
+    "path":"folders/Templates/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
