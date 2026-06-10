@@ -2,6 +2,16 @@ const TOPDOWN_MOVE_SPEED = 220;
 const TOPDOWN_BULLET_SPEED = 600;
 const TOPDOWN_FIRE_CD = 8; // ticks between shots while held
 
+// Loot rarity tiers for this genre — name is an i18n key, color is UI hex,
+// valueMod scales item values. Tune per-template here.
+const TOPDOWN_RARITIES = [
+  { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
+  { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
+  { id: "rare", name: "RARITY_RARE", color: "#2196f3", valueMod: 5 },
+  { id: "epic", name: "RARITY_EPIC", color: "#9c27b0", valueMod: 12 },
+  { id: "legendary", name: "RARITY_LEGENDARY", color: "#ff9800", valueMod: 30 },
+];
+
 // Player input + entity setup for the top-down genre.
 // Usage:
 //   const ctrl = TopDownController.create(world, spawn);  // call once in scene create()
@@ -13,6 +23,8 @@ const TOPDOWN_FIRE_CD = 8; // ticks between shots while held
 globalThis.TopDownController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
+    Rarity.register(TOPDOWN_RARITIES);
+
     EntityPreset.register([
       {
         id: "bullet",

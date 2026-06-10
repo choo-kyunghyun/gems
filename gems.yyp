@@ -107,6 +107,7 @@
     {"id":{"name":"ProjectileSystem","path":"scripts/ProjectileSystem/ProjectileSystem.yy",},},
     {"id":{"name":"QBlock","path":"scripts/QBlock/QBlock.yy",},},
     {"id":{"name":"Query","path":"scripts/Query/Query.yy",},},
+    {"id":{"name":"Rarity","path":"scripts/Rarity/Rarity.yy",},},
     {"id":{"name":"Raycast","path":"scripts/Raycast/Raycast.yy",},},
     {"id":{"name":"RenderDebugEntity","path":"scripts/RenderDebugEntity/RenderDebugEntity.yy",},},
     {"id":{"name":"RenderDebugPath","path":"scripts/RenderDebugPath/RenderDebugPath.yy",},},

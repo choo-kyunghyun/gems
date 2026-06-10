@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Rarity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Rarity",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Rarity.js",
+}

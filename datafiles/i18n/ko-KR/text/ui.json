@@ -40,6 +40,12 @@
 
   "LANG_KO_KR": "한국어",
 
+  "RARITY_COMMON": "일반",
+  "RARITY_UNCOMMON": "고급",
+  "RARITY_RARE": "희귀",
+  "RARITY_EPIC": "영웅",
+  "RARITY_LEGENDARY": "전설",
+
   "SCENE_CAT_ACTION": "액션",
   "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_BENCHMARK": "벤치마크",
