@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SlimeAI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SlimeAI",
+  "parent":{
+    "name":"TopDown",
+    "path":"folders/Templates/TopDown.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SlimeAI.js",
+}

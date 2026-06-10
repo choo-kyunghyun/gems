@@ -139,6 +139,7 @@
     {"id":{"name":"sceneTopDown","path":"scripts/sceneTopDown/sceneTopDown.yy",},},
     {"id":{"name":"SeparationSystem","path":"scripts/SeparationSystem/SeparationSystem.yy",},},
     {"id":{"name":"Settings","path":"scripts/Settings/Settings.yy",},},
+    {"id":{"name":"SlimeAI","path":"scripts/SlimeAI/SlimeAI.yy",},},
     {"id":{"name":"SolidSystem","path":"scripts/SolidSystem/SolidSystem.yy",},},
     {"id":{"name":"Spike","path":"scripts/Spike/Spike.yy",},},
     {"id":{"name":"State","path":"scripts/State/State.yy",},},

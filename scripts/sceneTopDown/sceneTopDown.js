@@ -23,31 +23,59 @@ class _SceneTopDownClass extends Scene {
     this.world = new World(256, 60);
     const built = TopDownLevel.build(this.world, TopDownLevels[0]);
     this.level = built.level;
+    this.spawn = built.spawn; // remembered for player respawn on death
     this.ctrl = TopDownController.create(this.world, built.spawn);
 
     // ── Enemies: each carries its own Inventory, which IS its loot table ────
     this.enemies = [];
-    const enemyCells = [[8, 3], [14, 3], [3, 11], [17, 11]];
+    const enemyCells = [
+      [8, 3],
+      [14, 3],
+      [3, 11],
+      [17, 11],
+    ];
     const enemyLoot = [
       [{ itemId: "slime_gel", qty: 2 }],
-      [{ itemId: "slime_gel", qty: 1 }, { itemId: "potion", qty: 1 }],
+      [
+        { itemId: "slime_gel", qty: 1 },
+        { itemId: "potion", qty: 1 },
+      ],
       [{ itemId: "gem", qty: 1 }],
-      [{ itemId: "slime_gel", qty: 1 }, { itemId: "key", qty: 1 }],
+      [
+        { itemId: "slime_gel", qty: 1 },
+        { itemId: "key", qty: 1 },
+      ],
     ];
     for (let i = 0; i < enemyCells.length; i++) {
       const w = this.level.gridToWorld(enemyCells[i][0], enemyCells[i][1]);
       const id = this.world.create();
       this.world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       this.world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-      this.world.add(id, Collision, { solid: true, kinematic: true, mask: null, hits: [] });
+      // Dynamic (non-kinematic) so SolidSystem integrates the velocity SlimeAI
+      // sets and collides them against the kinematic walls.
+      this.world.add(id, Collision, {
+        solid: true,
+        kinematic: false,
+        mask: null,
+        hits: [],
+      });
       this.world.add(id, Health, { hp: 3 });
       this.world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
       this.world.add(id, Name, { name: "Slime" });
       this.world.add(id, Inventory, { slots: enemyLoot[i], capacity: 8 });
       this.world.add(id, Visual, {
-        visible: true, sprite: spr_choo, subimg: 0, xscale: 1, yscale: 1,
-        rot: 0, color: make_colour_rgb(120, 220, 130), alpha: 1, speed: 0, time: 0,
+        visible: true,
+        sprite: spr_choo,
+        subimg: 0,
+        xscale: 1,
+        yscale: 1,
+        rot: 0,
+        color: make_colour_rgb(120, 220, 130),
+        alpha: 1,
+        speed: 0,
+        time: 0,
       });
+      SlimeAI.attach(this.world, id, this.ctrl.id); // adds Velocity + Brain + State
       this.enemies.push(id);
     }
 
@@ -56,7 +84,12 @@ class _SceneTopDownClass extends Scene {
     this.npc = this.world.create();
     this.world.add(this.npc, Position, { x: nw.x, y: nw.y, z: 0 });
     this.world.add(this.npc, BBox, { x: -14, y: -14, width: 28, height: 28 });
-    this.world.add(this.npc, Collision, { solid: true, kinematic: true, mask: null, hits: [] });
+    this.world.add(this.npc, Collision, {
+      solid: true,
+      kinematic: true,
+      mask: null,
+      hits: [],
+    });
     this.world.add(this.npc, Tag, { tags: new Set(["npc"]) });
     this.world.add(this.npc, Name, { name: "Elder" });
     this.world.add(this.npc, NPC, {
@@ -65,17 +98,32 @@ class _SceneTopDownClass extends Scene {
       questId: TopDownContent.QUEST_SLIMES,
     });
     this.world.add(this.npc, Visual, {
-      visible: true, sprite: spr_hana, subimg: 0, xscale: 0.6, yscale: 0.6,
-      rot: 0, color: c_white, alpha: 1, speed: 0, time: 0,
+      visible: true,
+      sprite: spr_hana,
+      subimg: 0,
+      xscale: 0.6,
+      yscale: 0.6,
+      rot: 0,
+      color: c_white,
+      alpha: 1,
+      speed: 0,
+      time: 0,
     });
 
     // ── Reach-quest zone (north-east "ruins") ──────────────────────────────
     const rz = this.level.gridToWorld(17, 2);
-    this.reachZone = { x1: rz.x - 44, y1: rz.y - 44, x2: rz.x + 44, y2: rz.y + 44 };
+    this.reachZone = {
+      x1: rz.x - 44,
+      y1: rz.y - 44,
+      x2: rz.x + 44,
+      y2: rz.y + 44,
+    };
     this.reachDone = false;
 
-    // ── Pipeline: collide → detect triggers (pickups) → projectiles → expire ─
+    // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
+    //    projectiles → expire ─
     this.physics = new Pipeline()
+      .add(StateSystem) // drives the slime Idle/Chase/Attack schemas
       .add(SolidSystem)
       .add(TriggerSystem)
       .add(ProjectileSystem)
@@ -103,14 +151,22 @@ class _SceneTopDownClass extends Scene {
     this.toastQueue = [];
 
     // ── Lobby back button + hint (flexpanel, GUI layer) ────────────────────
-    this.ui = new UIElement({ width: "100%", height: "100%", padding: 16, gap: 12 });
+    this.ui = new UIElement({
+      width: "100%",
+      height: "100%",
+      padding: 16,
+      gap: 12,
+    });
     UI.insert(this.ui);
     this.ui.insertChild(
       makeButton(I18n.textRef("TOPDOWN_BACK"), () => openScene(SCENES.lobby)),
     );
     const hint = new UIElement();
     hint.addComponent(
-      new UIText({ textRef: I18n.textRef("TOPDOWN_HINT"), color: Color.parse("#888888") }),
+      new UIText({
+        textRef: I18n.textRef("TOPDOWN_HINT"),
+        color: Color.parse("#888888"),
+      }),
     );
     this.ui.insertChild(hint);
 
@@ -131,6 +187,7 @@ class _SceneTopDownClass extends Scene {
       this.physics.update(this.world);
 
       this._resolveDeaths(); // spill loot + count kills (before flush removes them)
+      this._checkPlayerDeath(); // slimes can kill the player → respawn at spawn
       this._collectDrops(); // pick up ground items into the player's inventory
       this._checkReach(); // reach-quest zone
       this._tryTurnIn(TopDownContent.QUEST_GATHER); // passive quests auto-complete
@@ -172,6 +229,22 @@ class _SceneTopDownClass extends Scene {
     }
   }
 
+  // Slime ATTACK states drain the player's Health. On death, respawn at the
+  // level's spawn point with full hp (no progress lost — kept deliberately soft).
+  _checkPlayerDeath() {
+    const hp = this.world.get(Health, this.ctrl.id);
+    if (hp === undefined || hp.hp > 0) return;
+    const st = this.world.get(Stats, this.ctrl.id);
+    const pos = this.world.get(Position, this.ctrl.id);
+    const vel = this.world.get(Velocity, this.ctrl.id);
+    hp.hp = st !== undefined ? st.maxHp : 10;
+    pos.x = this.spawn.x;
+    pos.y = this.spawn.y;
+    vel.x = 0;
+    vel.y = 0;
+    Log.info("player died — respawned at spawn");
+  }
+
   _spillLoot(enemyId) {
     const inv = this.world.get(Inventory, enemyId);
     const pos = this.world.get(Position, enemyId);
@@ -188,7 +261,12 @@ class _SceneTopDownClass extends Scene {
     const id = this.world.create();
     this.world.add(id, Position, { x: x, y: y, z: 0 });
     this.world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
-    this.world.add(id, Collision, { solid: false, kinematic: false, mask: null, hits: [] });
+    this.world.add(id, Collision, {
+      solid: false,
+      kinematic: false,
+      mask: null,
+      hits: [],
+    });
     this.world.add(id, ItemDrop, { itemId: itemId, qty: qty });
   }
 
@@ -206,7 +284,9 @@ class _SceneTopDownClass extends Scene {
       if (got > 0) {
         Profile.add("itemsCollected", got);
         QuestLog.report("collect", d.itemId, got);
-        Log.info(`picked up ${got}x ${d.itemId} — items=${Profile.get("itemsCollected")}`);
+        Log.info(
+          `picked up ${got}x ${d.itemId} — items=${Profile.get("itemsCollected")}`,
+        );
       }
       if (left <= 0) this.world.remove(id);
       else d.qty = left; // inventory full — leave the remainder on the ground
@@ -230,7 +310,9 @@ class _SceneTopDownClass extends Scene {
     const reward = QuestLog.complete(qid);
     this._applyReward(reward);
     Profile.add("questsCompleted", 1);
-    Log.info(`quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`);
+    Log.info(
+      `quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
+    );
   }
 
   _applyReward(reward) {
@@ -299,7 +381,9 @@ class _SceneTopDownClass extends Scene {
         this._applyReward(QuestLog.complete(qid));
         Profile.add("questsCompleted", 1);
         this._checkAchievements();
-        Log.info(`turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`);
+        Log.info(
+          `turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
+        );
       } else if (!QuestLog.isActive(qid) && !QuestLog.isDone(qid)) {
         QuestLog.accept(qid);
         Log.info(`accepted ${qid}`);
