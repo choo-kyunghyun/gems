@@ -30,6 +30,7 @@ globalThis.TopDownContent = {
         weight: 1,
         value: 10,
         rarity: "uncommon",
+        components: [new Consumable({ heal: 5 })],
       },
       { id: "gem", name: "ITEM_GEM", weight: 1, value: 50, rarity: "rare" },
       {

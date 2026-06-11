@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ConsumableSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ConsumableSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ConsumableSystem.js",
+}

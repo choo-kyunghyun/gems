@@ -14,7 +14,7 @@
   "TOPDOWN_UNLOCKED": "Achievement: {0}",
   "TOPDOWN_NO_QUEST": "No active quests",
   "TOPDOWN_EQUIPMENT": "Equipment",
-  "TOPDOWN_EQUIP_HINT": "Up/Down: select · Enter: equip/unequip",
+  "TOPDOWN_EQUIP_HINT": "Up/Down: select · Enter: use/equip",
   "TOPDOWN_EQUIPPED": "(equipped)",
   "TOPDOWN_SLOTS": "Slots",
   "TOPDOWN_WEIGHT": "Weight",

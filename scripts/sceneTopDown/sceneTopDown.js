@@ -304,11 +304,11 @@ class _SceneTopDownClass extends Scene {
     }
   }
 
-  // While the bag is open, Up/Down move the selection cursor and Enter toggles
-  // the selected line if it is equippable: equip it, or unequip it if it's
-  // already worn (equipped items stay in the bag). EquipmentSystem auto-swaps an
-  // occupied slot. Direct keyboard read — transient UI input, not a rebindable
-  // gameplay action.
+  // While the bag is open, Up/Down move the selection cursor and Enter acts on
+  // the selected line: equippable items toggle equip/unequip (equipped items stay
+  // in the bag; EquipmentSystem auto-swaps an occupied slot), consumables are used
+  // (one unit spent on its effect). Direct keyboard read — transient UI input,
+  // not a rebindable gameplay action.
   _handleInventoryInput() {
     const inv = this.world.get(Inventory, this.ctrl.id);
     const n = inv.slots.length;
@@ -324,16 +324,22 @@ class _SceneTopDownClass extends Scene {
     if (this.invSel >= n) this.invSel = n - 1;
 
     if (!keyboard_check_pressed(vk_enter)) return;
-    const eq = this.world.get(Equipment, this.ctrl.id);
     const itemId = inv.slots[this.invSel].itemId;
     const item = Item.get(itemId);
-    if (item === undefined || !item.hasComponent(Equippable)) return;
-    const eqp = item.getComponent(Equippable);
-    if (eq.slots[eqp.slot] === itemId) {
-      EquipmentSystem.unequip(this.world, this.ctrl.id, eqp.slot);
-      Log.info(`unequipped ${itemId}`);
-    } else if (EquipmentSystem.equip(this.world, this.ctrl.id, itemId)) {
-      Log.info(`equipped ${itemId}`);
+    if (item === undefined) return;
+    if (item.hasComponent(Equippable)) {
+      const eq = this.world.get(Equipment, this.ctrl.id);
+      const eqp = item.getComponent(Equippable);
+      if (eq.slots[eqp.slot] === itemId) {
+        EquipmentSystem.unequip(this.world, this.ctrl.id, eqp.slot);
+        Log.info(`unequipped ${itemId}`);
+      } else if (EquipmentSystem.equip(this.world, this.ctrl.id, itemId)) {
+        Log.info(`equipped ${itemId}`);
+      }
+    } else if (item.hasComponent(Consumable)) {
+      if (ConsumableSystem.use(this.world, this.ctrl.id, itemId)) {
+        Log.info(`used ${itemId}`);
+      }
     }
   }
 

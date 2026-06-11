@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Consumable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Consumable",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Consumable.js",
+}

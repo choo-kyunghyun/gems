@@ -14,7 +14,7 @@
   "TOPDOWN_UNLOCKED": "업적 달성: {0}",
   "TOPDOWN_NO_QUEST": "진행 중인 퀘스트가 없습니다",
   "TOPDOWN_EQUIPMENT": "장비",
-  "TOPDOWN_EQUIP_HINT": "위/아래: 선택 · Enter: 장착/해제",
+  "TOPDOWN_EQUIP_HINT": "위/아래: 선택 · Enter: 사용/장착",
   "TOPDOWN_EQUIPPED": "(장착됨)",
   "TOPDOWN_SLOTS": "칸",
   "TOPDOWN_WEIGHT": "무게",
