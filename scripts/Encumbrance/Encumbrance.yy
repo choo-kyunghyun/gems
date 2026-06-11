@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Encumbrance",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Encumbrance",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Encumbrance.js",
+}

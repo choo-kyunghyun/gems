@@ -71,6 +71,7 @@ globalThis.TopDownController = {
       speed: TOPDOWN_MOVE_SPEED,
     });
     world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
+    world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
     world.add(id, Equipment, { slots: { weapon: "", armor: "", trinket: "" } });
     world.add(id, Visual, {
       visible: true,
@@ -125,7 +126,12 @@ globalThis.TopDownController = {
     const vel = world.get(Velocity, ctrl.id);
     const dir = world.get(Direction, ctrl.id);
     const stats = world.get(Stats, ctrl.id);
-    const speed = stats !== undefined ? stats.speed : TOPDOWN_MOVE_SPEED;
+    // Encumbrance scales the final speed (heavier bag → slower); 1 when the entity
+    // carries no Encumbrance component. Applied here, not on Stats.speed, so it
+    // never disturbs the balanced equipment-mod deltas.
+    const speed =
+      (stats !== undefined ? stats.speed : TOPDOWN_MOVE_SPEED) *
+      EncumbranceSystem.scale(world, ctrl.id);
     const len = Math.sqrt(dx * dx + dy * dy);
     const moving = len > 0;
     if (moving) {
