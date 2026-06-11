@@ -193,6 +193,7 @@
     {"id":{"name":"UINineSlice","path":"scripts/UINineSlice/UINineSlice.yy",},},
     {"id":{"name":"UIPanel","path":"scripts/UIPanel/UIPanel.yy",},},
     {"id":{"name":"UIProgress","path":"scripts/UIProgress/UIProgress.yy",},},
+    {"id":{"name":"UIScroll","path":"scripts/UIScroll/UIScroll.yy",},},
     {"id":{"name":"UISelect","path":"scripts/UISelect/UISelect.yy",},},
     {"id":{"name":"UISlider","path":"scripts/UISlider/UISlider.yy",},},
     {"id":{"name":"UIStepper","path":"scripts/UIStepper/UIStepper.yy",},},

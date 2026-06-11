@@ -118,6 +118,19 @@ class _SceneUIKitClass extends Scene {
     skin.insertChild(box);
     left.insertChild(skin);
 
+    // ── Left: scroll viewport (a list taller than its 160px window) ──
+    const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));
+    const sc = gemsScroll({ height: 160 });
+    for (let i = 1; i <= 12; i++) {
+      sc.scrollBody.insertChild(
+        gemsButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
+          width: "100%",
+        }),
+      );
+    }
+    scrollSec.insertChild(sc);
+    left.insertChild(scrollSec);
+
     // ── Right: buttons + controls ──
     const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
     const bar = gemsGrid();

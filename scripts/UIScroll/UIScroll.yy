@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIScroll",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIScroll",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIScroll.js",
+}

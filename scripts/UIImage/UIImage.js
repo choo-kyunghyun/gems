@@ -35,7 +35,8 @@ globalThis.UIImage = class UIImage {
 
   onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
-    const pos = flexpanel_node_layout_get_position(element.flexpanel, false);
+    // Route through getLayoutPosition so the image inherits ancestor scroll offset.
+    const pos = element.getLayoutPosition();
     const sw = sprite_get_width(this.sprite);
     const sh = sprite_get_height(this.sprite);
     let x = pos.left;

@@ -63,6 +63,8 @@
   "UIKIT_TIP_PROGRESS": "A non-interactive bar bound to the slider value",
   "UIKIT_SKIN": "Nine-slice skin",
   "UIKIT_SKIN_BODY": "Sprite-framed panel — corners stay crisp as it stretches.",
+  "UIKIT_SCROLL": "Scroll (wheel or drag the bar)",
+  "UIKIT_SCROLL_ITEM": "Item",
   "UIKIT_BUTTONS": "Buttons",
   "UIKIT_BTN_NORMAL": "Click me",
   "UIKIT_BTN_PRIMARY": "Primary",

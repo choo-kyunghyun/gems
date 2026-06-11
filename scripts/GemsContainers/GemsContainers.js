@@ -89,6 +89,39 @@ globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
   return el;
 };
 
+// Fixed-height scroll viewport. Insert items into the returned element's
+// `.scrollBody` (a flexShrink-0 column that overflows + scrolls); insert the
+// viewport itself into the layout. Clips via surface, scrolls via draw-time offset
+// (wheel + drag-thumb) — no flex mutation. The keystone for list-heavy scenes given
+// the display/2 GUI clamp.
+globalThis.gemsScroll = function gemsScroll(opts = {}) {
+  const body = new UIElement({
+    width: "100%",
+    flexShrink: 0, // keep natural (tall) height so it can overflow
+    gap: opts.gap ?? GemsTheme.gapSm,
+    padding: opts.padding ?? 0,
+  });
+  const viewport = new UIElement({
+    width: opts.width ?? "100%",
+    height: opts.height ?? 300,
+    flexShrink: 0,
+  });
+  viewport.clip = true;
+  viewport.insertChild(body);
+  viewport.addComponent(
+    new UIScroll({
+      content: body,
+      barW: opts.barW,
+      wheelStep: opts.wheelStep,
+      trackColor: gemsColor(opts.trackColor ?? GemsTheme.panelLo),
+      thumbColor: gemsColor(opts.thumbColor ?? GemsTheme.border),
+      thumbHover: gemsColor(opts.thumbHover ?? GemsTheme.borderHi),
+    }),
+  );
+  viewport.scrollBody = body; // callers add items here
+  return viewport;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({

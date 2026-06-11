@@ -17,7 +17,14 @@ globalThis.UIElement = class UIElement {
     /** @type {UIComponent[]} */
     this.components = [];
     this.dirty = true;
+    // Clip container: when true, children are clipped to this element's rect via an
+    // off-screen surface (see draw()). `scrollY` shifts this element's whole subtree
+    // up at draw + hit-test time (applied in getLayoutPosition); `clipInsetRight`
+    // reserves a right gutter (e.g. for a scrollbar) that stays outside the clip.
     this.clip = false;
+    this.scrollY = 0;
+    this.clipInsetRight = 0;
+    this._clipSurf = -1;
   }
 
   /**
@@ -60,6 +67,10 @@ globalThis.UIElement = class UIElement {
   }
 
   destroy() {
+    if (this._clipSurf !== -1 && surface_exists(this._clipSurf)) {
+      surface_free(this._clipSurf);
+      this._clipSurf = -1;
+    }
     for (const component of this.components) {
       if (component.onDestroy) component.onDestroy(this);
     }
@@ -75,32 +86,84 @@ globalThis.UIElement = class UIElement {
    * @returns {boolean}
    */
   update(block) {
+    // A clip container hides its subtree outside its own rect, so the pointer must
+    // be inside the viewport for children to receive input — otherwise a scrolled-
+    // away (invisible) child would still be clickable.
+    let childBlock = block;
+    let insideClip = true;
+    if (this.clip) {
+      const mx = device_mouse_x_to_gui(0);
+      const my = device_mouse_y_to_gui(0);
+      insideClip = this.positionMeeting(mx, my);
+      if (!insideClip) childBlock = true;
+    }
     [...this.children].reverse().forEach((child) => {
-      if (child.enabled) block = child.update(block) || block;
+      if (child.enabled) childBlock = child.update(childBlock) || childBlock;
     });
+    // Children outside the viewport didn't legitimately capture the pointer, so
+    // don't report their (forced) block upward.
+    let result = this.clip && !insideClip ? block : childBlock;
     for (const component of this.components) {
       if (component.onUpdate) {
-        const response = component.onUpdate(this, block);
-        if (response === true) block = true;
+        const response = component.onUpdate(this, result);
+        if (response === true) result = true;
       }
     }
     if (this.dirty) this.refresh();
-    return block;
+    return result;
   }
 
   draw() {
-    const scissor = gpu_get_scissor();
-    if (this.clip) {
-      const pos = this.getLayoutPosition();
-      gpu_set_scissor(pos.left, pos.top, pos.width, pos.height);
-    }
+    // Components (panel background, scrollbar) draw unclipped in the element's space.
     for (const component of this.components) {
       if (component.onDraw) component.onDraw(this);
     }
+    if (this.clip) {
+      this._drawClipped();
+    } else {
+      for (const child of this.children) {
+        if (child.enabled) child.draw();
+      }
+    }
+  }
+
+  // Render children into an off-screen surface sized to this element (minus any
+  // scrollbar gutter) and blit it, so scrolled-out content is clipped. We use a
+  // surface, NOT gpu_set_scissor — the latter's global clip state is unreliable on
+  // GMRT 0.19 and leaks onto later draws (see UIInput). A world-matrix translate
+  // maps the children's gui-absolute coords (already scroll-offset by
+  // getLayoutPosition) into the surface's local space.
+  _drawClipped() {
+    const pos = this.getLayoutPosition();
+    const w = Math.ceil(pos.width - this.clipInsetRight);
+    const h = Math.ceil(pos.height);
+    if (!(w > 0) || !(h > 0)) return; // unlaid-out (NaN) or zero-size
+
+    if (this._clipSurf !== -1 && !surface_exists(this._clipSurf)) {
+      this._clipSurf = -1; // a volatile surface was reclaimed by the system
+    }
+    if (
+      this._clipSurf === -1 ||
+      surface_get_width(this._clipSurf) !== w ||
+      surface_get_height(this._clipSurf) !== h
+    ) {
+      if (this._clipSurf !== -1) surface_free(this._clipSurf);
+      this._clipSurf = surface_create(w, h);
+    }
+
+    surface_set_target(this._clipSurf);
+    draw_clear_alpha(c_black, 0); // start transparent
+    matrix_set(
+      matrix_world,
+      matrix_build(-pos.left, -pos.top, 0, 0, 0, 0, 1, 1, 1),
+    );
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
-    if (this.clip) gpu_set_scissor(scissor);
+    matrix_set(matrix_world, matrix_build_identity());
+    surface_reset_target();
+
+    draw_surface(this._clipSurf, pos.left, pos.top);
   }
 
   /**
@@ -146,7 +209,16 @@ globalThis.UIElement = class UIElement {
   }
 
   getLayoutPosition() {
-    return flexpanel_node_layout_get_position(this.flexpanel, false);
+    const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
+    // Apply the accumulated scroll of ancestors so a scroll container shifts its
+    // whole subtree at draw AND hit-test time through this single chokepoint (no
+    // flex mutation). A container's own scrollY offsets its descendants, not itself.
+    let p = this.parent;
+    while (p !== null) {
+      if (p.scrollY) pos.top -= p.scrollY;
+      p = p.parent;
+    }
+    return pos;
   }
 
   positionMeeting(x, y) {

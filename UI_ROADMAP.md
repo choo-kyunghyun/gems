@@ -96,9 +96,14 @@ hoisting fault.)
 
 ## Phase 2 — Containers (the architectural unblockers)
 
-- [ ] **5. `UIScroll` container** — clip + content-offset scroller (wheel + drag-thumb)
+- [x] **5. `UIScroll` container** — clip + content-offset scroller (wheel + drag-thumb)
   via draw-time clipping, **not** flex mutation. The keystone for every list-heavy
-  scene given the `display/2` (~540px) GUI clamp. Do before lists. *No deps.*
+  scene given the `display/2` (~540px) GUI clamp. Done: `UIElement` gained `scrollY`
+  (subtracted in `getLayoutPosition`, so draw + hit-test shift through one chokepoint)
+  and surface-based `clip` (`_drawClipped` renders children to an off-screen surface +
+  blits — NOT `gpu_set_scissor`, verified surfaces work on GMRT 0.19 by probe);
+  `update` gates child input to the viewport rect. `gemsScroll({height})` → insert items
+  into `.scrollBody`.
 - [ ] **6. `UIModal` / dialog** — dimmed full-screen backdrop root + centered card +
   button row, layered through `UI.insert` index/block. `gemsModal({title, body,
   buttons})` → handle with `.close()`. *No deps.*
