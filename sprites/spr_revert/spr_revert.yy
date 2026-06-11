@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"UI Sprites",
-    "path":"folders/Demo/UI Sprites.yy",
+    "name":"Vector Sprites",
+    "path":"folders/Demo/Vector Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

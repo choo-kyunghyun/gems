@@ -98,6 +98,28 @@ globalThis.RenderTileMap = class RenderTileMap {
       : 0;
   }
 
+  // sprite_get_uvs returns trim metadata in [4..7]: the texture packer crops each
+  // frame's transparent border, so the UV rect [0..3] covers only the opaque region.
+  // Honour the offset/size factors so a trimmed quad isn't stretched to fill the cell
+  // (which rendered border vs interior tiles at different sizes). When a frame isn't
+  // trimmed, offsets are 0 and ratios 1, so this reduces to the full-cell quad.
+  // Returns [x, y, w, h, u0, v0, u1, v1].
+  _quad(frame, wx, wy, cw, ch) {
+    const uvs = sprite_get_uvs(this.sprite, frame);
+    const sw = sprite_get_width(this.sprite);
+    const sh = sprite_get_height(this.sprite);
+    return [
+      wx + uvs[4] * (cw / sw),
+      wy + uvs[5] * (ch / sh),
+      cw * uvs[6],
+      ch * uvs[7],
+      uvs[0],
+      uvs[1],
+      uvs[2],
+      uvs[3],
+    ];
+  }
+
   _blob4(x, y) {
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
@@ -108,16 +130,18 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _blob8(x, y) {
-    const north = this._isSolid(x, y - 1);
-    const east = this._isSolid(x + 1, y);
-    const south = this._isSolid(x, y + 1);
-    const west = this._isSolid(x - 1, y);
-    let mask =
-      (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
-    if (north && east && this._isSolid(x + 1, y - 1)) mask |= 16;
-    if (south && east && this._isSolid(x + 1, y + 1)) mask |= 32;
-    if (south && west && this._isSolid(x - 1, y + 1)) mask |= 64;
-    if (north && west && this._isSolid(x - 1, y - 1)) mask |= 128;
+    // GMRT miscompiles cached primitive-bool locals (south "not defined" at
+    // runtime) — test _isSolid inline like _blob4 and read cardinals back off
+    // the mask bits for the diagonal checks (N=1, E=2, S=4, W=8).
+    let mask = 0;
+    if (this._isSolid(x, y - 1)) mask |= 1;
+    if (this._isSolid(x + 1, y)) mask |= 2;
+    if (this._isSolid(x, y + 1)) mask |= 4;
+    if (this._isSolid(x - 1, y)) mask |= 8;
+    if (mask & 1 && mask & 2 && this._isSolid(x + 1, y - 1)) mask |= 16;
+    if (mask & 4 && mask & 2 && this._isSolid(x + 1, y + 1)) mask |= 32;
+    if (mask & 4 && mask & 8 && this._isSolid(x - 1, y + 1)) mask |= 64;
+    if (mask & 1 && mask & 8 && this._isSolid(x - 1, y - 1)) mask |= 128;
     return _BLOB8[mask];
   }
 
@@ -138,19 +162,17 @@ globalThis.RenderTileMap = class RenderTileMap {
       for (let x = 0; x < cols; x++) {
         if (!layer.get(x, y)) continue;
         const frame = this._frameOf(x, y);
-        const uvs = sprite_get_uvs(sprite, frame);
-        const wx = x * cellWidth;
-        const wy = y * cellHeight;
+        const q = this._quad(frame, x * cellWidth, y * cellHeight, cellWidth, cellHeight);
         if (this.softEdge) {
           this._vbuf.addQuadV(
-            wx,
-            wy,
-            cellWidth,
-            cellHeight,
-            uvs[0],
-            uvs[1],
-            uvs[2],
-            uvs[3],
+            q[0],
+            q[1],
+            q[2],
+            q[3],
+            q[4],
+            q[5],
+            q[6],
+            q[7],
             this.color,
             this._cornerAlpha(x, y, -1, -1),
             this._cornerAlpha(x, y, 1, -1),
@@ -159,14 +181,14 @@ globalThis.RenderTileMap = class RenderTileMap {
           );
         } else {
           this._vbuf.addQuad(
-            wx,
-            wy,
-            cellWidth,
-            cellHeight,
-            uvs[0],
-            uvs[1],
-            uvs[2],
-            uvs[3],
+            q[0],
+            q[1],
+            q[2],
+            q[3],
+            q[4],
+            q[5],
+            q[6],
+            q[7],
             this.color,
             this.alpha,
           );
@@ -202,16 +224,16 @@ globalThis.RenderTileMap = class RenderTileMap {
         if (this._isSolid(i, j)) mask |= 4; // BR
         if (this._isSolid(i - 1, j)) mask |= 8; // BL
         if (mask === 0) continue;
-        const uvs = sprite_get_uvs(sprite, mask);
+        const q = this._quad(mask, i * cellWidth - hw, j * cellHeight - hh, cellWidth, cellHeight);
         this._vbuf.addQuad(
-          i * cellWidth - hw,
-          j * cellHeight - hh,
-          cellWidth,
-          cellHeight,
-          uvs[0],
-          uvs[1],
-          uvs[2],
-          uvs[3],
+          q[0],
+          q[1],
+          q[2],
+          q[3],
+          q[4],
+          q[5],
+          q[6],
+          q[7],
           this.color,
           this.alpha,
         );

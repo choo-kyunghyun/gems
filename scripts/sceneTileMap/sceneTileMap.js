@@ -62,8 +62,8 @@ class _SceneTileMapClass extends Scene {
     this.tilePass = new RenderTileMap(
       this.layer,
       this.level,
-      asset_get_index("spr_tile16"),
-      { autotile: 16 },
+      asset_get_index("spr_tile47"),
+      { autotile: 47 },
     );
     this.renderer.insert(this.tilePass);
     // Debug overlay on top — labels with the smaller localized font so ids fit cells.

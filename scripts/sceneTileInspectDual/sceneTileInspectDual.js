@@ -74,7 +74,7 @@ class _SceneTileInspectDualClass extends Scene {
     if (labelFont !== undefined) draw_set_font(labelFont);
     const cornerCol = Color.parse("#3a3a3a");
     const cellCol = Color.parse("#1c1c1c");
-    const scale = SW2 / 32;
+    const scale = SW2 / 16;
 
     for (let f = 0; f < 16; f++) {
       const col = f % COLS;

@@ -40,7 +40,7 @@ class _SceneTileInspectClass extends Scene {
 
     const CELL = 36;             // one mini-grid cell (display px)
     const caseW = CELL * 3;
-    const caseH = CELL * 3 + 26; // + label row
+    const caseH = CELL * 3 + 12; // + label row
     const cols = 4;
     const rows = 4;
 
@@ -62,7 +62,7 @@ class _SceneTileInspectClass extends Scene {
     if (labelFont !== undefined) draw_set_font(labelFont);
     const neighborCol = Color.parse("#3a3a3a");
     const cellCol = Color.parse("#1c1c1c");
-    const scale = CELL / 32;
+    const scale = CELL / 16;
 
     for (let f = 0; f < 16; f++) {
       const col = f % cols;

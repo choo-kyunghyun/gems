@@ -1,0 +1,1 @@
+declare const spr_tile47flat: GMSprite

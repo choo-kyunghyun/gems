@@ -84,7 +84,7 @@ class _SceneTileInspect47Class extends Scene {
     if (labelFont !== undefined) draw_set_font(labelFont);
     const neighborCol = Color.parse("#3a3a3a");
     const cellCol = Color.parse("#1c1c1c");
-    const scale = CELL / 32;
+    const scale = CELL / 16;
 
     for (let f = 0; f < 47; f++) {
       const col = f % COLS;
