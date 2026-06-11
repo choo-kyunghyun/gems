@@ -73,7 +73,11 @@ class _SceneUIKitClass extends Scene {
     fields.insertChild(
       gemsRow(
         I18n.textRef("UIKIT_FIELD_RO"),
-        gemsInput({ value: I18n.text("UIKIT_FIELD_RO_VAL"), readOnly: true }),
+        gemsInput({
+          value: I18n.text("UIKIT_FIELD_RO_VAL"),
+          readOnly: true,
+          tooltip: I18n.textRef("UIKIT_TIP_RO"),
+        }),
       ),
     );
     fields.insertChild(
@@ -93,12 +97,14 @@ class _SceneUIKitClass extends Scene {
     bar.insertChild(
       gemsButton(I18n.textRef("UIKIT_BTN_NORMAL"), () => this.clicks++, {
         width: 150,
+        tooltip: I18n.textRef("UIKIT_TIP_NORMAL"),
       }),
     );
     bar.insertChild(
       gemsButton(I18n.textRef("UIKIT_BTN_PRIMARY"), () => this.clicks++, {
         width: 150,
         primary: true,
+        tooltip: I18n.textRef("UIKIT_TIP_PRIMARY"),
       }),
     );
     buttons.insertChild(bar);
@@ -118,6 +124,7 @@ class _SceneUIKitClass extends Scene {
         {
           onText: I18n.textRef("UIKIT_ON"),
           offText: I18n.textRef("UIKIT_OFF"),
+          tooltip: I18n.textRef("UIKIT_TIP_TOGGLE"),
         },
       ),
     );
@@ -156,12 +163,19 @@ class _SceneUIKitClass extends Scene {
       { name: I18n.text("UIKIT_OPT_C"), value: 2 },
     ];
     controls.insertChild(
-      gemsRow(I18n.textRef("UIKIT_SELECT"), gemsSelectCustom(options, 0, noop)),
+      gemsRow(
+        I18n.textRef("UIKIT_SELECT"),
+        gemsSelectCustom(options, 0, noop, {
+          tooltip: I18n.textRef("UIKIT_TIP_SELECT"),
+        }),
+      ),
     );
     right.insertChild(controls);
 
     this.ui.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
+        tooltip: I18n.textRef("UIKIT_TIP_BACK"),
+      }),
     );
   }
 

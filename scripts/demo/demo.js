@@ -195,7 +195,7 @@ function gemsLabel(label, opts = {}) {
       font: opts.font ?? -1,
     }),
   );
-  return el;
+  return gemsAttachTooltip(el, opts);
 }
 
 // One-line help/hint text on a readable card backdrop. Use instead of a bare
@@ -211,6 +211,31 @@ function gemsHint(label, opts = {}) {
     }),
   );
   return card;
+}
+
+// Attach a hover tooltip to any element and return it (chainable). `label` is a
+// string or () => string (live I18n.textRef). Added at index 0 so a sibling
+// interactive component (e.g. the UIButton this describes) setting `block` while
+// hovered doesn't suppress its own tooltip. `opts.delay` overrides the dwell time.
+//
+// The widget factories below also take this directly: pass `opts.tooltip` (string
+// or () => string) — and optionally `opts.tooltipDelay` — to gemsButton/gemsToggle/
+// gemsIconButton/gemsSlider/gemsSelect(Custom)/gemsInput/gemsLabel and they call
+// this for you, so callers rarely wrap by hand.
+function gemsTooltip(element, label, opts = {}) {
+  element.addComponent(
+    new UITooltip({ label: gemsTextRef(label), delay: opts.delay }),
+    0,
+  );
+  return element;
+}
+
+// Internal: honor `opts.tooltip` on a factory's element. No-op when unset.
+function gemsAttachTooltip(element, opts) {
+  if (opts.tooltip != null) {
+    gemsTooltip(element, opts.tooltip, { delay: opts.tooltipDelay });
+  }
+  return element;
 }
 
 // `opts.primary: true` paints the button in the accent color for a highlighted
@@ -263,7 +288,7 @@ function gemsButton(label, onClick, opts = {}) {
       font: opts.font,
     }),
   );
-  return btn;
+  return gemsAttachTooltip(btn, opts);
 }
 
 // Square button holding a sprite (OBJECT_FIT.CONTAIN inside padding).
@@ -306,7 +331,7 @@ function gemsIconButton(sprite, onClick, opts = {}) {
     }),
   );
   btn.insertChild(icon);
-  return btn;
+  return gemsAttachTooltip(btn, opts);
 }
 
 // Boolean button: renders `label: ON/OFF`, live from getValue(); click → onToggle.
@@ -323,7 +348,7 @@ function gemsToggle(label, getValue, onToggle, opts = {}) {
 }
 
 // Settings-bound slider. For a non-Settings slider, build UISlider directly.
-function gemsSlider(key, min = 0, max = 1, step = undefined) {
+function gemsSlider(key, min = 0, max = 1, step = undefined, opts = {}) {
   const el = new UIElement({ height: 28, width: "100%" });
   el.addComponent(
     new UISlider({
@@ -345,11 +370,11 @@ function gemsSlider(key, min = 0, max = 1, step = undefined) {
       },
     }),
   );
-  return el;
+  return gemsAttachTooltip(el, opts);
 }
 
 // Panel-backed cycling select with an explicit index/onChange.
-function gemsSelectCustom(items, index, onChange) {
+function gemsSelectCustom(items, index, onChange, opts = {}) {
   const el = new UIElement({ height: 36, width: "100%" });
   el.addComponent(
     new UIPanel({
@@ -372,7 +397,7 @@ function gemsSelectCustom(items, index, onChange) {
       arrowHover: gemsColor(GemsTheme.accent),
     }),
   );
-  return el;
+  return gemsAttachTooltip(el, opts);
 }
 
 // Panel-backed single-line text field (UIInput). Returns the element; reach the
@@ -412,18 +437,23 @@ function gemsInput(opts = {}) {
       onCancel: opts.onCancel,
     }),
   );
-  return el;
+  return gemsAttachTooltip(el, opts);
 }
 
 // Settings-bound select. `items` are { name, value }; the current Settings value
 // picks the starting index.
-function gemsSelect(key, items) {
+function gemsSelect(key, items, opts = {}) {
   const cur = Settings.get(key);
   const idx = Math.max(
     0,
     items.findIndex((item) => item.value === cur),
   );
-  return gemsSelectCustom(items, idx, (_i, value) => Settings.set(key, value));
+  return gemsSelectCustom(
+    items,
+    idx,
+    (_i, value) => Settings.set(key, value),
+    opts,
+  );
 }
 
 // Releases the world / renderer / camera / UI a genre scene builds, in dependency
