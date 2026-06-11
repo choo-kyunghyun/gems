@@ -27,6 +27,8 @@ gm-cli compile --toolchain GMRT@0.19 gems.yyp                 # compile only
 gm-cli compile --toolchain GMRT@0.19 --errors-only gems.yyp  # compile, errors only
 ```
 
+**Stale-cache reset.** Two ignored, regenerable dirs hold build state: `.gmcache/` (incremental compile cache — `gm-cli cache info`/`gm-cli cache clean`) and `Build/` (build *output*, not "cache", so `cache clean` won't touch it — remove it manually). When a build behaves as if an asset still has its old state (renamed/deleted asset still "present", or a compile/runtime error that doesn't match the source), wipe them and rebuild: `gm-cli cache clean` (also re-downloads the shared GMRT runtime under `%LOCALAPPDATA%\GameMakerCLI\cache`, so the next build is slower) and/or delete `Build/`. The next `gm-cli run`/`compile` does a full clean rebuild. Both dirs are git-ignored (`.gmcache` via its own auto-generated `.gmcache/.gitignore`), so this is safe.
+
 **Visual verification (screenshot review).** To *see* the rendered screen, add a temporary auto-capture (the agent can't press F5 in the live window): in `obj_game/Draw_75.js` add a frame counter on `this`, call `screen_save("auto.png")` at ~frame 150 and `game_end()` at ~152 so the run self-terminates. Then `gm-cli run` (it blocks until `game_end`), `Read` the PNG, and **revert the temp code**. Gotchas: `screen_save` does **not** create missing dirs (`screen_save("screenshots/x.png")` fails unless the folder exists — use a bare filename); a **bare** filename lands in the run/build dir `.gmcache/build-gmrt-windows-vm/build/auto.png`, *not* the `%LOCALAPPDATA%\gems\` save dir (where `game.log`/`settings.json`/`save.json` live).
 
 ## Asset Creation
