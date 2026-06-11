@@ -13,11 +13,77 @@ globalThis.TopDownContent = {
     if (this.registered) return;
     this.registered = true;
 
+    // Base fields are identity + the near-universal scalars (value, stack);
+    // capabilities/markers attach as `components` (Equippable, Weapon, ...).
+    // Equipment weapons sit clearly above the unarmed default damage of 1.
     Item.register([
-      { id: "slime_gel", name: "ITEM_SLIME_GEL", type: "material", value: 2, rarity: "common" },
-      { id: "potion", name: "ITEM_POTION", type: "consumable", value: 10, rarity: "uncommon" },
-      { id: "gem", name: "ITEM_GEM", type: "material", value: 50, rarity: "rare" },
-      { id: "key", name: "ITEM_KEY", type: "key", stack: 1, value: 0, rarity: "epic" },
+      {
+        id: "slime_gel",
+        name: "ITEM_SLIME_GEL",
+        weight: 1,
+        value: 2,
+        rarity: "common",
+      },
+      {
+        id: "potion",
+        name: "ITEM_POTION",
+        weight: 1,
+        value: 10,
+        rarity: "uncommon",
+      },
+      { id: "gem", name: "ITEM_GEM", weight: 1, value: 50, rarity: "rare" },
+      {
+        id: "key",
+        name: "ITEM_KEY",
+        stack: 1,
+        weight: 0,
+        value: 0,
+        rarity: "epic",
+      },
+      {
+        id: "wood_sword",
+        name: "ITEM_WOOD_SWORD",
+        stack: 1,
+        weight: 4,
+        value: 8,
+        rarity: "common",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
+          new Weapon({ damage: 3, fireCd: 14, bulletSpeed: 520 }),
+        ],
+      },
+      {
+        id: "blaster",
+        name: "ITEM_BLASTER",
+        stack: 1,
+        weight: 5,
+        value: 60,
+        rarity: "rare",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
+          new Weapon({ damage: 6, fireCd: 6, bulletSpeed: 700 }),
+        ],
+      },
+      {
+        id: "leather_armor",
+        name: "ITEM_LEATHER_ARMOR",
+        stack: 1,
+        weight: 8,
+        value: 20,
+        rarity: "uncommon",
+        components: [
+          new Equippable({ slot: "armor", mods: { defense: 2, maxHp: 5 } }),
+        ],
+      },
+      {
+        id: "swift_ring",
+        name: "ITEM_SWIFT_RING",
+        stack: 1,
+        weight: 1,
+        value: 40,
+        rarity: "rare",
+        components: [new Equippable({ slot: "trinket", mods: { speed: 40 } })],
+      },
     ]);
 
     QuestLog.register([

@@ -52,23 +52,58 @@ globalThis.TopDownController = {
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
     world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-    world.add(id, Collision, { solid: true, kinematic: false, mask: null, hits: [] });
+    world.add(id, Collision, {
+      solid: true,
+      kinematic: false,
+      mask: null,
+      hits: [],
+    });
     world.add(id, Name, { name: "Player" });
     world.add(id, Direction, { x: 0, y: 1, z: 0 });
     world.add(id, Health, { hp: 10 });
     world.add(id, Stats, {
-      level: 1, xp: 0, xpNext: 20, maxHp: 10, attack: 1, defense: 0, speed: TOPDOWN_MOVE_SPEED,
+      level: 1,
+      xp: 0,
+      xpNext: 20,
+      maxHp: 10,
+      attack: 1,
+      defense: 0,
+      speed: TOPDOWN_MOVE_SPEED,
     });
-    world.add(id, Inventory, { slots: [], capacity: 16 });
+    world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
+    world.add(id, Equipment, { slots: { weapon: "", armor: "", trinket: "" } });
     world.add(id, Visual, {
-      visible: true, sprite: spr_play, subimg: 0, xscale: 1, yscale: 1,
-      rot: 0, color: make_colour_rgb(90, 160, 255), alpha: 1, speed: 0, time: 0,
+      visible: true,
+      sprite: spr_play,
+      subimg: 0,
+      xscale: 1,
+      yscale: 1,
+      rot: 0,
+      color: make_colour_rgb(90, 160, 255),
+      alpha: 1,
+      speed: 0,
+      time: 0,
     });
     world.add(id, Animator, {
       graph: {
-        idle: { sprite: spr_play, frames: sprite_get_number(spr_play), fps: 6, loop: true },
-        walk: { sprite: spr_choo, frames: sprite_get_number(spr_choo), fps: 10, loop: true },
-        attack: { sprite: spr_choo, frames: sprite_get_number(spr_choo), fps: 12, loop: false },
+        idle: {
+          sprite: spr_play,
+          frames: sprite_get_number(spr_play),
+          fps: 6,
+          loop: true,
+        },
+        walk: {
+          sprite: spr_choo,
+          frames: sprite_get_number(spr_choo),
+          fps: 10,
+          loop: true,
+        },
+        attack: {
+          sprite: spr_choo,
+          frames: sprite_get_number(spr_choo),
+          fps: 12,
+          loop: false,
+        },
       },
       state: "idle",
       frame: 0,
@@ -107,7 +142,10 @@ globalThis.TopDownController = {
     if (ctrl.attackCd > 0) ctrl.attackCd--;
     if (Input.get("fire").down() && ctrl.fireCd === 0) {
       this._fire(world, ctrl);
-      ctrl.fireCd = TOPDOWN_FIRE_CD;
+      // Cadence comes from the equipped weapon (unarmed → default). Read live.
+      const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
+      ctrl.fireCd =
+        wpn !== null && wpn.fireCd !== undefined ? wpn.fireCd : TOPDOWN_FIRE_CD;
       ctrl.attackCd = TOPDOWN_ATTACK_ANIM;
     }
 
@@ -128,13 +166,24 @@ globalThis.TopDownController = {
       if (dir.x < -0.01) vis.xscale = -1;
       else if (dir.x > 0.01) vis.xscale = 1;
       vis.color =
-        ctrl.attackCd > 0 ? make_colour_rgb(255, 110, 110) : make_colour_rgb(90, 160, 255);
+        ctrl.attackCd > 0
+          ? make_colour_rgb(255, 110, 110)
+          : make_colour_rgb(90, 160, 255);
     }
   },
 
   // Spawns a bullet at the player aimed at the cursor. Bullets carry no Collision,
   // so they pass through each other; ProjectileSystem raycasts their path each tick.
+  // Damage and bullet speed come from the equipped weapon (unarmed → defaults);
+  // per the chosen model, the weapon alone defines bullet damage (not stats.attack).
   _fire(world, ctrl) {
+    const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
+    const speed =
+      wpn !== null && wpn.bulletSpeed !== undefined
+        ? wpn.bulletSpeed
+        : TOPDOWN_BULLET_SPEED;
+    const damage = wpn !== null && wpn.damage !== undefined ? wpn.damage : 1;
+
     const pos = world.get(Position, ctrl.id);
     const dx = mouse_x - pos.x;
     const dy = mouse_y - pos.y;
@@ -142,9 +191,11 @@ globalThis.TopDownController = {
 
     const bid = EntityPreset.spawn("bullet", world, pos.x, pos.y);
     const vel = world.get(Velocity, bid);
-    vel.x = (dx / dist) * TOPDOWN_BULLET_SPEED;
-    vel.y = (dy / dist) * TOPDOWN_BULLET_SPEED;
-    world.get(Projectile, bid).owner = ctrl.id;
+    vel.x = (dx / dist) * speed;
+    vel.y = (dy / dist) * speed;
+    const proj = world.get(Projectile, bid);
+    proj.owner = ctrl.id;
+    proj.damage = damage;
 
     // Face the shot direction horizontally too.
     const dir = world.get(Direction, ctrl.id);
@@ -154,7 +205,13 @@ globalThis.TopDownController = {
 
   destroy() {
     Input.unbindAll([
-      "moveLeft", "moveRight", "moveUp", "moveDown", "fire", "inventory", "interact",
+      "moveLeft",
+      "moveRight",
+      "moveUp",
+      "moveDown",
+      "fire",
+      "inventory",
+      "interact",
     ]);
   },
 };

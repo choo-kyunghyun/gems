@@ -35,15 +35,23 @@ class _SceneTopDownClass extends Scene {
       [17, 11],
     ];
     const enemyLoot = [
-      [{ itemId: "slime_gel", qty: 2 }],
+      [
+        { itemId: "slime_gel", qty: 2 },
+        { itemId: "wood_sword", qty: 1 },
+      ],
       [
         { itemId: "slime_gel", qty: 1 },
         { itemId: "potion", qty: 1 },
+        { itemId: "leather_armor", qty: 1 },
       ],
-      [{ itemId: "gem", qty: 1 }],
+      [
+        { itemId: "gem", qty: 1 },
+        { itemId: "blaster", qty: 1 },
+      ],
       [
         { itemId: "slime_gel", qty: 1 },
         { itemId: "key", qty: 1 },
+        { itemId: "swift_ring", qty: 1 },
       ],
     ];
     for (let i = 0; i < enemyCells.length; i++) {
@@ -62,6 +70,7 @@ class _SceneTopDownClass extends Scene {
       this.world.add(id, Health, { hp: 3 });
       this.world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
       this.world.add(id, Name, { name: "Slime" });
+      // Loot table — no maxWeight (loot is authored, never weight-gated).
       this.world.add(id, Inventory, { slots: enemyLoot[i], capacity: 8 });
       this.world.add(id, Visual, {
         visible: true,
@@ -142,6 +151,7 @@ class _SceneTopDownClass extends Scene {
 
     // ── Overlay / interaction state ────────────────────────────────────────
     this.invOpen = false;
+    this.invSel = 0; // selected inventory row (arrow keys); equip with Enter
     this.nearNpc = false;
     this.dialogueName = "";
     this.dialogueLine = "";
@@ -179,6 +189,7 @@ class _SceneTopDownClass extends Scene {
   step() {
     // Edge-triggered toggles — sampled once per frame, outside the tick loop.
     if (Input.get("inventory").pressed()) this.invOpen = !this.invOpen;
+    if (this.invOpen) this._handleInventoryInput();
 
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
@@ -290,6 +301,39 @@ class _SceneTopDownClass extends Scene {
       }
       if (left <= 0) this.world.remove(id);
       else d.qty = left; // inventory full — leave the remainder on the ground
+    }
+  }
+
+  // While the bag is open, Up/Down move the selection cursor and Enter toggles
+  // the selected line if it is equippable: equip it, or unequip it if it's
+  // already worn (equipped items stay in the bag). EquipmentSystem auto-swaps an
+  // occupied slot. Direct keyboard read — transient UI input, not a rebindable
+  // gameplay action.
+  _handleInventoryInput() {
+    const inv = this.world.get(Inventory, this.ctrl.id);
+    const n = inv.slots.length;
+    if (n === 0) {
+      this.invSel = 0;
+      return;
+    }
+
+    // Move the cursor, clamped to the list (handles rows removed since last frame).
+    if (keyboard_check_pressed(vk_up)) this.invSel--;
+    if (keyboard_check_pressed(vk_down)) this.invSel++;
+    if (this.invSel < 0) this.invSel = 0;
+    if (this.invSel >= n) this.invSel = n - 1;
+
+    if (!keyboard_check_pressed(vk_enter)) return;
+    const eq = this.world.get(Equipment, this.ctrl.id);
+    const itemId = inv.slots[this.invSel].itemId;
+    const item = Item.get(itemId);
+    if (item === undefined || !item.hasComponent(Equippable)) return;
+    const eqp = item.getComponent(Equippable);
+    if (eq.slots[eqp.slot] === itemId) {
+      EquipmentSystem.unequip(this.world, this.ctrl.id, eqp.slot);
+      Log.info(`unequipped ${itemId}`);
+    } else if (EquipmentSystem.equip(this.world, this.ctrl.id, itemId)) {
+      Log.info(`equipped ${itemId}`);
     }
   }
 

@@ -1,13 +1,34 @@
 // Pure operations on an Inventory component (no world tick). An Inventory is
-// { slots: [{ itemId, qty }], capacity }. Stacking respects each Item's stack
-// size; methods take the component directly so any entity's inventory works.
+// { slots: [{ itemId, qty }], capacity, maxWeight? }. Stacking respects each
+// Item's stack size; adds are also capped by maxWeight (Item.weight * qty).
+// Methods take the component directly so any entity's inventory works.
 globalThis.InventorySystem = {
-  // Add qty of itemId: tops up existing stacks first, then fills new slots up to
-  // capacity. Returns the amount that did NOT fit (0 = everything was added).
+  // Total weight currently carried (sum of Item.weight * qty over all slots).
+  weight(inv) {
+    let total = 0;
+    for (let i = 0; i < inv.slots.length; i++) {
+      const def = Item.get(inv.slots[i].itemId);
+      if (def !== undefined) total += def.weight * inv.slots[i].qty;
+    }
+    return total;
+  },
+
+  // Add qty of itemId: clamps to the weight budget first, then tops up existing
+  // stacks, then fills new slots up to capacity. Returns the amount that did NOT
+  // fit (0 = everything was added) — refused by weight OR by slots alike.
   add(inv, itemId, qty = 1) {
     const def = Item.get(itemId);
     const max = def !== undefined ? def.stack : 99;
-    let left = qty;
+    const unitW = def !== undefined ? def.weight : 1;
+
+    // Weight gate: cap the accepted qty to what maxWeight still allows.
+    let accept = qty;
+    if (inv.maxWeight !== undefined && unitW > 0) {
+      const budget = inv.maxWeight - this.weight(inv);
+      const room = budget > 0 ? Math.floor(budget / unitW) : 0;
+      if (room < accept) accept = room;
+    }
+    let left = accept;
 
     for (let i = 0; i < inv.slots.length && left > 0; i++) {
       const s = inv.slots[i];
@@ -25,7 +46,8 @@ globalThis.InventorySystem = {
       left -= move;
     }
 
-    return left;
+    // Leftover = unfit-by-slots plus whatever the weight gate refused.
+    return left + (qty - accept);
   },
 
   // Remove qty of itemId across slots (back to front). Returns amount removed.

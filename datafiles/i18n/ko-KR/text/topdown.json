@@ -13,6 +13,16 @@
   "TOPDOWN_TURNIN": "완료 보고",
   "TOPDOWN_UNLOCKED": "업적 달성: {0}",
   "TOPDOWN_NO_QUEST": "진행 중인 퀘스트가 없습니다",
+  "TOPDOWN_EQUIPMENT": "장비",
+  "TOPDOWN_EQUIP_HINT": "위/아래: 선택 · Enter: 장착/해제",
+  "TOPDOWN_EQUIPPED": "(장착됨)",
+  "TOPDOWN_SLOTS": "칸",
+  "TOPDOWN_WEIGHT": "무게",
+
+  "SLOT_WEAPON": "무기",
+  "SLOT_ARMOR": "방어구",
+  "SLOT_TRINKET": "장신구",
+  "SLOT_EMPTY": "(비어 있음)",
 
   "STAT_LEVEL": "레벨",
   "STAT_HP": "체력",
@@ -29,6 +39,10 @@
   "ITEM_POTION": "물약",
   "ITEM_GEM": "보석",
   "ITEM_KEY": "낡은 열쇠",
+  "ITEM_WOOD_SWORD": "나무 검",
+  "ITEM_BLASTER": "블래스터",
+  "ITEM_LEATHER_ARMOR": "가죽 갑옷",
+  "ITEM_SWIFT_RING": "신속의 반지",
 
   "QUEST_SLIMES_NAME": "슬라임 퇴치",
   "QUEST_SLIMES_OBJ": "슬라임 처치 {0}/{1}",

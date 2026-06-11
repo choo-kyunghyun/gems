@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"EquipmentSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"EquipmentSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"EquipmentSystem.js",
+}

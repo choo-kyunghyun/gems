@@ -6,7 +6,8 @@ globalThis.TopDownUI = {
   _PANEL_BG: undefined, // lazily built color (make_colour_rgb not allowed at top level)
 
   _bg() {
-    if (this._PANEL_BG === undefined) this._PANEL_BG = make_colour_rgb(22, 22, 30);
+    if (this._PANEL_BG === undefined)
+      this._PANEL_BG = make_colour_rgb(22, 22, 30);
     return this._PANEL_BG;
   },
 
@@ -145,7 +146,9 @@ globalThis.TopDownUI = {
       draw_text(
         x,
         y,
-        I18n.text(def.name) + "  " + I18n.text(def.objLabel, status.progress[0], obj.count),
+        I18n.text(def.name) +
+          "  " +
+          I18n.text(def.objLabel, status.progress[0], obj.count),
       );
       y += 28;
     }
@@ -177,15 +180,17 @@ globalThis.TopDownUI = {
     }
   },
 
-  // Centered inventory + stats + records panel (toggled with I).
+  // Centered bag + equipment + stats + records panel (toggled with I). Inventory
+  // lines show a [n] hotkey when equippable and their rarity-scaled value at the
+  // right edge; the Equipment section lists each slot's current item.
   drawInventory(scene, vx, vy, vw, vh) {
     const world = scene.world;
     const cx = vx + vw / 2;
     const cy = vy + vh / 2;
-    const x1 = cx - 200;
-    const x2 = cx + 200;
-    const y1 = cy - 230;
-    const y2 = cy + 230;
+    const x1 = cx - 220;
+    const x2 = cx + 220;
+    const y1 = cy - 300;
+    const y2 = cy + 300;
     this._box(x1, y1, x2, y2);
 
     const lx = x1 + 22;
@@ -196,29 +201,79 @@ globalThis.TopDownUI = {
     draw_set_font(I18n.font("header"));
     draw_set_color(c_white);
     draw_text(lx, y, I18n.text("TOPDOWN_INVENTORY"));
-    y += 46;
+    y += 30;
 
     draw_set_font(I18n.font("default"));
     const inv = world.get(Inventory, scene.ctrl.id);
+    const eq = world.get(Equipment, scene.ctrl.id);
+    // Slot + weight usage under the header.
+    draw_set_color(make_colour_rgb(180, 180, 180));
+    let usage =
+      I18n.text("TOPDOWN_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
+    if (inv.maxWeight !== undefined) {
+      usage +=
+        "   " +
+        I18n.text("TOPDOWN_WEIGHT") +
+        " " +
+        InventorySystem.weight(inv) +
+        "/" +
+        inv.maxWeight;
+    }
+    draw_text(lx, y, usage);
+    y += 26;
     if (inv.slots.length === 0) {
       draw_set_color(make_colour_rgb(150, 150, 150));
       draw_text(lx, y, I18n.text("TOPDOWN_EMPTY"));
-      y += 30;
+      y += 28;
     }
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
+      const it = Item.get(s.itemId);
+      // Selection highlight bar behind the current row.
+      const selected = i === scene.invSel;
+      if (selected) {
+        draw_set_color(make_colour_rgb(70, 80, 110));
+        draw_rectangle(lx - 6, y - 2, x2 - 16, y + 22, false);
+      }
       draw_set_color(this._rarityColor(s.itemId));
       draw_rectangle(lx, y + 3, lx + 18, y + 21, false);
       draw_set_color(c_black);
       draw_rectangle(lx, y + 3, lx + 18, y + 21, true);
-      const it = Item.get(s.itemId);
-      draw_set_color(c_white);
-      draw_text(lx + 28, y, I18n.text(it.name) + "  x" + s.qty);
+      const equippable = it !== undefined && it.hasComponent(Equippable);
+      const prefix = selected ? "> " : "  ";
+      const name = it !== undefined ? I18n.text(it.name) : s.itemId;
+      // Mark the line if this item is the one currently worn in its slot.
+      let worn = false;
+      if (equippable) {
+        const eqp = it.getComponent(Equippable);
+        worn = eq.slots[eqp.slot] === s.itemId;
+      }
+      const suffix = worn ? "  " + I18n.text("TOPDOWN_EQUIPPED") : "";
+      draw_set_color(worn ? make_colour_rgb(255, 220, 120) : c_white);
+      draw_text(lx + 28, y, prefix + name + "  x" + s.qty + suffix);
+      // Rarity-scaled value, right-aligned (display only — no currency yet).
+      const val =
+        it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0;
+      draw_set_color(make_colour_rgb(150, 150, 150));
+      draw_set_halign(fa_right);
+      draw_text(x2 - 22, y, "" + val);
+      draw_set_halign(fa_left);
       y += 28;
     }
 
+    // Equipment
+    y += 12;
+    draw_set_font(I18n.font("header"));
+    draw_set_color(make_colour_rgb(255, 220, 120));
+    draw_text(lx, y, I18n.text("TOPDOWN_EQUIPMENT"));
+    y += 30;
+    draw_set_font(I18n.font("default"));
+    y = this._drawSlot(eq, "weapon", "SLOT_WEAPON", lx, y);
+    y = this._drawSlot(eq, "armor", "SLOT_ARMOR", lx, y);
+    y = this._drawSlot(eq, "trinket", "SLOT_TRINKET", lx, y);
+
     // Stats
-    y += 10;
+    y += 12;
     const st = world.get(Stats, scene.ctrl.id);
     draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 220, 120));
@@ -226,9 +281,35 @@ globalThis.TopDownUI = {
     y += 30;
     draw_set_font(I18n.font("default"));
     draw_set_color(c_white);
-    draw_text(lx, y, I18n.text("STAT_LEVEL") + ": " + st.level + "   " + I18n.text("STAT_XP") + ": " + st.xp + "/" + st.xpNext);
+    draw_text(
+      lx,
+      y,
+      I18n.text("STAT_LEVEL") +
+        ": " +
+        st.level +
+        "   " +
+        I18n.text("STAT_XP") +
+        ": " +
+        st.xp +
+        "/" +
+        st.xpNext,
+    );
     y += 26;
-    draw_text(lx, y, I18n.text("STAT_ATK") + ": " + st.attack + "   " + I18n.text("STAT_DEF") + ": " + st.defense + "   " + I18n.text("STAT_SPD") + ": " + Math.round(st.speed));
+    draw_text(
+      lx,
+      y,
+      I18n.text("STAT_ATK") +
+        ": " +
+        st.attack +
+        "   " +
+        I18n.text("STAT_DEF") +
+        ": " +
+        st.defense +
+        "   " +
+        I18n.text("STAT_SPD") +
+        ": " +
+        Math.round(st.speed),
+    );
     y += 36;
 
     // Records (persistent profile counters)
@@ -238,11 +319,46 @@ globalThis.TopDownUI = {
     y += 30;
     draw_set_font(I18n.font("default"));
     draw_set_color(c_white);
-    draw_text(lx, y, I18n.text("REC_KILLS") + ": " + Profile.get("enemiesKilled"));
+    draw_text(
+      lx,
+      y,
+      I18n.text("REC_KILLS") + ": " + Profile.get("enemiesKilled"),
+    );
     y += 26;
-    draw_text(lx, y, I18n.text("REC_ITEMS") + ": " + Profile.get("itemsCollected"));
+    draw_text(
+      lx,
+      y,
+      I18n.text("REC_ITEMS") + ": " + Profile.get("itemsCollected"),
+    );
     y += 26;
-    draw_text(lx, y, I18n.text("REC_QUESTS") + ": " + Profile.get("questsCompleted"));
+    draw_text(
+      lx,
+      y,
+      I18n.text("REC_QUESTS") + ": " + Profile.get("questsCompleted"),
+    );
+
+    // Hint
+    draw_set_font(I18n.font("description"));
+    draw_set_color(make_colour_rgb(130, 130, 140));
+    draw_text(lx, y2 - 24, I18n.text("TOPDOWN_EQUIP_HINT"));
+  },
+
+  // One equipment-slot row: "<Slot>: <item or empty>", tinted by item rarity.
+  // Returns the next y. Object-method → object-method via `this` is GMRT-safe.
+  _drawSlot(eq, slot, labelKey, lx, y) {
+    const itemId = eq !== undefined ? eq.slots[slot] : "";
+    const equipped = itemId !== undefined && itemId !== "";
+    let txt = I18n.text(labelKey) + ": ";
+    if (equipped) {
+      const it = Item.get(itemId);
+      txt += it !== undefined ? I18n.text(it.name) : itemId;
+      draw_set_color(this._rarityColor(itemId));
+    } else {
+      txt += I18n.text("SLOT_EMPTY");
+      draw_set_color(make_colour_rgb(140, 140, 140));
+    }
+    draw_text(lx, y, txt);
+    return y + 26;
   },
 
   // Top-center achievement toast (scene drives toastTimer/toastName).
@@ -254,6 +370,10 @@ globalThis.TopDownUI = {
     draw_set_valign(fa_middle);
     draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 215, 90));
-    draw_text(cx, y1 + 26, I18n.text("TOPDOWN_UNLOCKED", I18n.text(scene.toastName)));
+    draw_text(
+      cx,
+      y1 + 26,
+      I18n.text("TOPDOWN_UNLOCKED", I18n.text(scene.toastName)),
+    );
   },
 };

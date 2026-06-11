@@ -9,6 +9,8 @@
  *
  * @typedef {Object} Inventory
  * @property {InventorySlot[]} slots
- * @property {number} capacity   max number of slots
+ * @property {number} capacity    max number of slots (quantity limit)
+ * @property {number} [maxWeight] max total weight (sum of Item.weight * qty);
+ *                                omit for no weight limit (e.g. loot tables)
  */
 globalThis.Inventory = "Inventory";
