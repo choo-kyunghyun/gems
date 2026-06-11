@@ -5,6 +5,15 @@
  * is shown centered through `format`. Holds its own value and calls onChange (like
  * UISlider/UISelect). Without `wrap`, the arrow at a reached limit is dimmed and
  * does nothing.
+ *
+ * GMRT notes (both learned the hard way here):
+ *  - Guard `!(pos.width > 0)` before drawing. On the first frame after a scene
+ *    transition the flexpanel layout hasn't been computed yet, so getLayoutPosition
+ *    returns NaN width/height; drawing with NaN coords faults. `NaN <= 0` is false,
+ *    so the usual `pos.width <= 0` guard does NOT catch it — test `> 0` instead.
+ *  - No class getters. GMRT 0.19 does not reliably invoke a `get x()` accessor
+ *    (the body never runs, the read yields undefined), so the can-step checks are
+ *    inlined as plain locals.
  */
 globalThis.UIStepper = class UIStepper {
   constructor(stepper = {}) {
@@ -37,14 +46,6 @@ globalThis.UIStepper = class UIStepper {
     return clamp(Math.round(snapped * 1e6) / 1e6, this.min, this.max);
   }
 
-  get _canDec() {
-    return this.wrap || this.value > this.min;
-  }
-
-  get _canInc() {
-    return this.wrap || this.value < this.max;
-  }
-
   setValue(v) {
     const next = this._snap(v);
     if (next === this.value) return this;
@@ -71,6 +72,8 @@ globalThis.UIStepper = class UIStepper {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
+    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
+
     const pressed = mouse_check_button_pressed(mb_left);
     const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
@@ -93,6 +96,8 @@ globalThis.UIStepper = class UIStepper {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
+    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — skip this frame
+
     const font = draw_get_font();
     const halign = draw_get_halign();
     const valign = draw_get_valign();
@@ -103,11 +108,14 @@ globalThis.UIStepper = class UIStepper {
 
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
+    // Inlined (no getters — GMRT doesn't invoke class accessors).
+    const canDec = this.wrap || this.value > this.min;
+    const canInc = this.wrap || this.value < this.max;
 
     // Left arrow — dimmed when it can't step, brightened while hovered.
     draw_set_halign(fa_left);
     draw_set_color(
-      !this._canDec
+      !canDec
         ? this.arrowDisabled
         : this._side < 0
           ? this.arrowHover
@@ -118,7 +126,7 @@ globalThis.UIStepper = class UIStepper {
     // Right arrow.
     draw_set_halign(fa_right);
     draw_set_color(
-      !this._canInc
+      !canInc
         ? this.arrowDisabled
         : this._side > 0
           ? this.arrowHover
