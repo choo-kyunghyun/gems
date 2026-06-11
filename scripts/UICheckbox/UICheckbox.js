@@ -3,7 +3,7 @@
  * A real visual boolean toggle — either a checkbox (box + tick) or a switch
  * (pill + sliding knob), picked by `style`. Self-contained: it hit-tests and
  * handles its own click (no UITrigger), reads a live getValue() each frame, and
- * calls onToggle() on a click release. Drawn directly in onDraw with Time.delta
+ * calls onToggle() on a click release. Drawn directly in onDraw with Time.raw
  * easing for the knob slide / tick + color fade (no flexpanel mutation, bug #15065).
  *
  * The control graphic is right-aligned inside the element and vertically centered,
@@ -49,7 +49,9 @@ globalThis.UICheckbox = class UICheckbox {
     if (pos.width <= 0) return;
 
     const on = !!this._get();
-    const f = clamp(Time.delta * this.animSpeed, 0, 1);
+    // Time.raw (wall-clock), not Time.delta — UI must ignore Time.scale so the
+    // toggle still animates when the sim is time-dilated or paused.
+    const f = clamp(Time.raw * this.animSpeed, 0, 1);
     const target = on ? 1 : 0;
     this._t = this._t === undefined ? target : this._t + (target - this._t) * f;
     const t = this._t;
@@ -61,9 +63,12 @@ globalThis.UICheckbox = class UICheckbox {
     const bg = merge_color(this.colorOff, this.colorOn, t);
 
     if (this.style === "switch") {
-      // Pill track + knob sliding left→right.
-      const h = Math.max(14, pos.height * 0.62);
-      const w = h * 1.9;
+      // Pill track + circular knob. The track is a full pill (corner radius = half
+      // its height); the knob is inset from that by a uniform margin and travels
+      // between the two cap centers, so the knob stays concentric with the pill's
+      // rounded ends and their roundness reads as matched.
+      const h = Math.max(16, pos.height * 0.58);
+      const w = h * 1.85;
       const x2 = right;
       const x1 = x2 - w;
       const ty1 = cy - h * 0.5;
@@ -81,9 +86,17 @@ globalThis.UICheckbox = class UICheckbox {
         this.colorBorder,
         true,
       );
-      const kr = rad - 2 + (this._over ? 1 : 0);
-      const kx = x1 + rad + t * (w - 2 * rad);
-      draw_circle_color(kx, cy, kr, this.colorKnob, this.colorKnob, false);
+      const margin = Math.max(2, h * 0.14);
+      const kr = rad - margin;
+      const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers
+      // Soft drop under the knob, then the knob (brightened slightly on hover).
+      draw_set_alpha(0.22);
+      draw_circle_color(kx, cy + 1, kr, c_black, c_black, false);
+      draw_set_alpha(1);
+      const knobCol = this._over
+        ? merge_color(this.colorKnob, c_white, 0.35)
+        : this.colorKnob;
+      draw_circle_color(kx, cy, kr, knobCol, knobCol, false);
     } else {
       // Square box; tick fades in over the on color.
       const s = Math.max(14, pos.height * 0.7);

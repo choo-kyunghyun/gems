@@ -76,7 +76,9 @@ globalThis.UIButton = class UIButton {
 
     if (panel) {
       // Frame-rate independent easing toward the current state's target values.
-      const f = clamp(Time.delta * this.animSpeed, 0, 1);
+      // Time.raw (wall-clock), not Time.delta — UI must ignore Time.scale so menus
+      // don't slow down / freeze when the sim is time-dilated or paused.
+      const f = clamp(Time.raw * this.animSpeed, 0, 1);
       panel.alpha = this.alpha;
 
       const targetColor = this.hold

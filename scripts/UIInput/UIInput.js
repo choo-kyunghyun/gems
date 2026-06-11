@@ -197,7 +197,7 @@ globalThis.UIInput = class UIInput {
       return true;
     }
     if (this._repKey === key && keyboard_check(key)) {
-      this._repTime -= Time.delta;
+      this._repTime -= Time.raw;
       if (this._repTime <= 0) {
         this._repTime = _INPUT_REPEAT_RATE;
         return true;
@@ -279,7 +279,7 @@ globalThis.UIInput = class UIInput {
 
     if (this._focused) {
       this._processKeyboard();
-      this._blinkTimer += Time.delta;
+      this._blinkTimer += Time.raw;
       if (this._blinkTimer >= _INPUT_BLINK) {
         this._blinkTimer -= _INPUT_BLINK;
         this._cursorVis = !this._cursorVis;
