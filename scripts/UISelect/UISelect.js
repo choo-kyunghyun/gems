@@ -59,6 +59,8 @@ globalThis.UISelect = class UISelect {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
+    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
+
     const pressed = mouse_check_button_pressed(mb_left);
     const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
@@ -84,6 +86,8 @@ globalThis.UISelect = class UISelect {
     if (this.items.length === 0) return;
 
     const pos = element.getLayoutPosition();
+    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
+
     const font = draw_get_font();
     const halign = draw_get_halign();
     const valign = draw_get_valign();

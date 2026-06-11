@@ -240,7 +240,7 @@ globalThis.UIInput = class UIInput {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (pos.width <= 0) return block;
+    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
 
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
@@ -422,7 +422,7 @@ globalThis.UIInput = class UIInput {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (pos.width <= 0) return;
+    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
     const tr = this._textRegion(pos);
 
     const prevFont = draw_get_font();

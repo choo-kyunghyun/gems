@@ -37,14 +37,19 @@ Every component commit follows the same steps (stated once here, not repeated be
   destructuring in `for...of`, no `gpu_set_scissor` for clipping — its global state
   leaks, clip via substring/offset like `UIInput`, etc.).
 - Show/hide subtrees with our own `element.enabled` flag, not `display:"none"`.
-- **Guard `!(pos.width > 0)` at the top of every component's `onUpdate`/`onDraw`.** On
-  the first frame after a scene transition the layout isn't computed, so
-  `getLayoutPosition()` returns NaN width/height and drawing with NaN coords faults.
-  Test `> 0`, not `<= 0` — `NaN <= 0` is `false`, so the naive guard misses it. (Cost
-  us the `UIStepper` crash this session; `UISlider`/`UIProgress`/`UISelect`/`UICheckbox`
-  survive frame-1 NaN only by luck and should get the same guard when next touched.)
-- **No class getters.** GMRT 0.19 silently does not invoke `get x()` accessors (the
-  read yields `undefined`). Use a method or inline the expression.
+- **Guard `!(pos.width > 0)` in components that draw filled geometry/sprites** (the
+  interactive widgets + panels). On the first frame after a scene transition the layout
+  isn't computed, so `getLayoutPosition()` returns NaN width/height and drawing
+  roundrects/sprites with NaN coords faults. Test `> 0`, not `<= 0` — `NaN <= 0` is
+  `false`, so the naive guard misses it. Now guarded: `UIStepper`/`UISlider`/`UIProgress`/
+  `UISelect`/`UICheckbox`/`UIInput`. **Do NOT guard text drawers** (`UIText`, or anything
+  that self-sizes via `setWidth` in `onUpdate`): runtime flexpanel mutation is a no-op on
+  0.19, so those elements run at width 0 *permanently*, and the guard would hide them for
+  good — `draw_text` tolerates a 0/NaN width anyway. (`UINineSlice` draws sprites → it
+  needs the guard.)
+- **Class getters/setters work** (verified by probe this session — the earlier "getters
+  never fire" note was a misdiagnosis of the large-file hoisting fault). Use them freely;
+  inlining is a style choice, not a requirement.
 - **Use `Time.raw`, not `Time.delta`, for any UI timer/easing** — `Time.delta` is
   scaled by `Time.scale`, so menus freeze/slow when a sim pauses or dilates time.
 
@@ -62,8 +67,10 @@ trace). Mitigations, now standard for the kit:
 
 Debugging GMRT with no stack trace: instrument the suspects with `Log.info` and make
 `Log.write` flush eagerly (temporarily) so a mid-build/mid-draw crash still leaves a
-complete trail on disk; read the tail of `game.log`. That's how the `UIStepper` NaN +
-getter causes were pinned down.
+complete trail on disk; read the tail of `game.log`. That's how the `UIStepper` NaN
+cause was pinned down. (The getter was *also* blamed at the time but later cleared — a
+probe confirmed getters/setters work on 0.19; the real co-cause was the large-file
+hoisting fault.)
 
 ---
 
@@ -79,10 +86,13 @@ getter causes were pinned down.
 - [x] **3. `UIStepper` (numeric `< n >`)** — cheap; reuse `UISelect`'s arrow
   hit-testing over a min/max/step range. `gemsStepper(getValue, onChange,
   {min,max,step})`. *No deps.*
-- [ ] **4. `UINineSlice` (sprite-framed panel)** — draw bordered panels from a 9-slice
+- [x] **4. `UINineSlice` (sprite-framed panel)** — draw bordered panels from a 9-slice
   sprite instead of `draw_roundrect`, so the kit can wear hand-drawn game skins. A
-  `UIPanel` sibling that samples corner/edge/center frames. Foundational for a
-  sprite-themed look. *No deps (needs a 9-slice sprite asset).*
+  `UIPanel` sibling. GMRT honours the sprite's IDE nine-slice in
+  `draw_sprite_stretched_ext`, so no manual corner/edge/center sampling is needed — the
+  component just stretches the sprite to the element rect (NaN-guarded). `gemsNineSlice`
+  factory; `spr_uibox` (16×16, 3px insets) is the demo skin. Foundational for a
+  sprite-themed look.
 
 ## Phase 2 — Containers (the architectural unblockers)
 

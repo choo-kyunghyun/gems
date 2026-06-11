@@ -29,7 +29,7 @@ globalThis.UIProgress = class UIProgress {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (pos.width <= 0) return;
+    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
 
     const a0 = draw_get_alpha();
     draw_set_alpha(1);
