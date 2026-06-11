@@ -79,6 +79,8 @@
   "UIKIT_TIP_SWITCH": "알약 + 슬라이딩 노브 토글",
   "UIKIT_SLIDER": "슬라이더",
   "UIKIT_SELECT": "선택",
+  "UIKIT_STEPPER": "스테퍼",
+  "UIKIT_TIP_STEPPER": "< > 양쪽을 클릭해 숫자를 조절 (0–10)",
   "UIKIT_ON": "켜짐",
   "UIKIT_OFF": "꺼짐",
   "UIKIT_OPT_A": "옵션 A",

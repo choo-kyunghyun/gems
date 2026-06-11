@@ -23,6 +23,7 @@ class _SceneUIKitClass extends Scene {
     this.checkOn = true;
     this.switchOn = false;
     this.sliderVal = 50;
+    this.qty = 3;
 
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -198,6 +199,17 @@ class _SceneUIKitClass extends Scene {
         I18n.textRef("UIKIT_SELECT"),
         gemsSelectCustom(options, 0, noop, {
           tooltip: I18n.textRef("UIKIT_TIP_SELECT"),
+        }),
+      ),
+    );
+    controls.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_STEPPER"),
+        gemsStepper(this.qty, (v) => (this.qty = v), {
+          min: 0,
+          max: 10,
+          step: 1,
+          tooltip: I18n.textRef("UIKIT_TIP_STEPPER"),
         }),
       ),
     );

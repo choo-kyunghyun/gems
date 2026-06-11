@@ -461,6 +461,43 @@ function gemsSelectCustom(items, index, onChange, opts = {}) {
   return gemsAttachTooltip(el, opts);
 }
 
+// Panel-backed numeric stepper (`< n >`). Holds its own value; `onChange(value)`
+// fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
+// the centered display string (default `${v}`).
+function gemsStepper(value, onChange, opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? 36,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.btn),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: 0.07,
+    }),
+  );
+  el.addComponent(
+    new UIStepper({
+      value,
+      min: opts.min ?? 0,
+      max: opts.max ?? 10,
+      step: opts.step ?? 1,
+      wrap: opts.wrap ?? false,
+      format: opts.format,
+      onChange,
+      halign: fa_center,
+      color: gemsColor(GemsTheme.text),
+      arrowColor: gemsColor(GemsTheme.textMuted),
+      arrowHover: gemsColor(GemsTheme.accent),
+      arrowDisabled: gemsColor(GemsTheme.textDim),
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+}
+
 // Panel-backed single-line text field (UIInput). Returns the element; reach the
 // component with `field.getComponent(UIInput)` to read `.value` / call focus().
 // `placeholder` is resolved once (UIInput holds a plain string, not a textRef),

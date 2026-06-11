@@ -49,7 +49,7 @@ Every component commit follows the same steps (stated once here, not repeated be
 - [x] **2. `UICheckbox` / `UISwitch`** — a real visual toggle (box+check or pill+knob)
   vs. the current text-on-a-button `gemsToggle`. `gemsCheckbox(label, getValue,
   onToggle)`. *No deps.*
-- [ ] **3. `UIStepper` (numeric `< n >`)** — cheap; reuse `UISelect`'s arrow
+- [x] **3. `UIStepper` (numeric `< n >`)** — cheap; reuse `UISelect`'s arrow
   hit-testing over a min/max/step range. `gemsStepper(getValue, onChange,
   {min,max,step})`. *No deps.*
 - [ ] **4. `UINineSlice` (sprite-framed panel)** — draw bordered panels from a 9-slice

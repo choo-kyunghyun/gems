@@ -79,6 +79,8 @@
   "UIKIT_TIP_SWITCH": "A pill + sliding-knob toggle",
   "UIKIT_SLIDER": "Slider",
   "UIKIT_SELECT": "Select",
+  "UIKIT_STEPPER": "Stepper",
+  "UIKIT_TIP_STEPPER": "Click the < > sides to step the number (0–10)",
   "UIKIT_ON": "On",
   "UIKIT_OFF": "Off",
   "UIKIT_OPT_A": "Option A",

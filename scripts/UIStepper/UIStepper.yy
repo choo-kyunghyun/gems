@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIStepper",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIStepper",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIStepper.js",
+}
