@@ -50,6 +50,10 @@
 
   "UIKIT_NAME": "UI 키트",
   "UIKIT_HINT": "입력칸: 끌어서 선택, 더블클릭으로 단어 선택, Ctrl+A/C/X/V, 방향키 / Home / End. 버튼에 올려놓으면 툴팁이 나타납니다.",
+  "UIKIT_TAB_WIDGETS": "위젯",
+  "UIKIT_TAB_VALUES": "입력 · 값",
+  "UIKIT_TAB_CONTAINERS": "컨테이너",
+  "UIKIT_TOGGLES": "토글",
   "UIKIT_FIELDS": "텍스트 입력",
   "UIKIT_FIELD_NAME": "이름",
   "UIKIT_FIELD_NAME_PH": "이름을 입력하세요...",

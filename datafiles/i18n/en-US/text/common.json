@@ -50,6 +50,10 @@
 
   "UIKIT_NAME": "UI Kit",
   "UIKIT_HINT": "Fields: click+drag selects, double-click a word, Ctrl+A/C/X/V, arrows / Home / End. Hover a button for its tooltip.",
+  "UIKIT_TAB_WIDGETS": "Widgets",
+  "UIKIT_TAB_VALUES": "Inputs & Values",
+  "UIKIT_TAB_CONTAINERS": "Containers",
+  "UIKIT_TOGGLES": "Toggles",
   "UIKIT_FIELDS": "Text Fields",
   "UIKIT_FIELD_NAME": "Name",
   "UIKIT_FIELD_NAME_PH": "Type your name...",

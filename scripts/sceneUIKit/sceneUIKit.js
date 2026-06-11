@@ -1,11 +1,9 @@
 // GemsUI kit showcase — a non-gameplay scene that exercises every widget in the
-// kit so the look-and-feel can be eyeballed in one place. The text fields are the
-// focus: gemsInput wraps the rewritten UIInput (drag-select, double-click word
-// select, Ctrl+A/C/X/V, key-repeat, scroll-to-caret). Pure UI — no world/renderer;
-// obj_game already ticks and draws the UI globally, so there's no step()/draw().
-//
-// Laid out in two columns because the GUI maximises to display/2 (~540px tall on a
-// 1080p monitor) — stacking every section vertically would overflow.
+// kit so the look-and-feel can be eyeballed in one place. Organised into tab pages
+// (gemsTabs): Widgets, Inputs & Values, Containers. Each page that overflows the
+// display/2 (~540px) GUI clamp is wrapped in a gemsScroll, so tabs + scroll compose
+// to keep every section reachable. Pure UI — no world/renderer; obj_game already
+// ticks and draws the UI globally, so there's no step()/draw().
 
 SceneRegistry.add(() => new _SceneUIKitClass(), {
   label: I18n.textRef("UIKIT_NAME"),
@@ -31,7 +29,39 @@ class _SceneUIKitClass extends Scene {
     this.ui.insertChild(gemsHeader(I18n.textRef("UIKIT_NAME")));
     this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_HINT")));
 
-    // Two equal columns (flexGrow:1, flexBasis:0 share the width evenly).
+    // ── Tab: Widgets (buttons + toggles), scrolled ──
+    const widgets = gemsScroll({ height: 250 });
+    widgets.scrollBody.insertChild(this._buttonsSection());
+    widgets.scrollBody.insertChild(this._togglesSection());
+
+    // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
+    const values = gemsScroll({ height: 250 });
+    values.scrollBody.insertChild(this._fieldsSection());
+    values.scrollBody.insertChild(this._controlsSection());
+
+    // ── Tab: Containers (nine-slice skin + scroll list), two columns ──
+    const containers = this._twoCol(this._skinSection(), this._scrollSection());
+
+    this.ui.insertChild(
+      gemsTabs(
+        [
+          { label: I18n.textRef("UIKIT_TAB_WIDGETS"), content: widgets },
+          { label: I18n.textRef("UIKIT_TAB_VALUES"), content: values },
+          { label: I18n.textRef("UIKIT_TAB_CONTAINERS"), content: containers },
+        ],
+        { height: 250 },
+      ),
+    );
+
+    this.ui.insertChild(
+      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
+        tooltip: I18n.textRef("UIKIT_TIP_BACK"),
+      }),
+    );
+  }
+
+  // Two equal columns (flexGrow:1, flexBasis:0 share the width evenly).
+  _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
       flexDirection: "row",
@@ -47,91 +77,14 @@ class _SceneUIKitClass extends Scene {
       flexBasis: 0,
       gap: GemsTheme.gap,
     });
+    left.insertChild(leftChild);
+    right.insertChild(rightChild);
     cols.insertChild(left);
     cols.insertChild(right);
-    this.ui.insertChild(cols);
+    return cols;
+  }
 
-    // ── Left: text fields (the UIInput showcase) ──
-    const fields = gemsSection(I18n.textRef("UIKIT_FIELDS"));
-    fields.insertChild(
-      gemsRow(
-        I18n.textRef("UIKIT_FIELD_NAME"),
-        gemsInput({
-          placeholder: I18n.text("UIKIT_FIELD_NAME_PH"),
-          maxLength: 24,
-          onChange: (v) => (this.typed = v),
-        }),
-      ),
-    );
-    fields.insertChild(
-      gemsRow(
-        I18n.textRef("UIKIT_FIELD_PASS"),
-        gemsInput({
-          placeholder: I18n.text("UIKIT_FIELD_PASS_PH"),
-          mask: true,
-          maxLength: 16,
-        }),
-      ),
-    );
-    fields.insertChild(
-      gemsRow(
-        I18n.textRef("UIKIT_FIELD_RO"),
-        gemsInput({
-          value: I18n.text("UIKIT_FIELD_RO_VAL"),
-          readOnly: true,
-          tooltip: I18n.textRef("UIKIT_TIP_RO"),
-        }),
-      ),
-    );
-    fields.insertChild(
-      gemsLabel(
-        () =>
-          I18n.text("UIKIT_ECHO") +
-          " " +
-          (this.typed === "" ? "—" : this.typed),
-        { color: GemsTheme.accentHi },
-      ),
-    );
-    left.insertChild(fields);
-
-    // ── Left: display readouts (bound live to the slider on the right) ──
-    const display = gemsSection(I18n.textRef("UIKIT_DISPLAY"));
-    display.insertChild(
-      gemsRow(
-        I18n.textRef("UIKIT_PROGRESS"),
-        gemsProgress(() => this.sliderVal / 100, {
-          label: () => Math.round(this.sliderVal) + "%",
-          tooltip: I18n.textRef("UIKIT_TIP_PROGRESS"),
-        }),
-      ),
-    );
-    left.insertChild(display);
-
-    // ── Left: nine-slice skin (sprite-framed panel) ──
-    // The box background is spr_uibox drawn nine-sliced, so its border stays crisp
-    // while the body stretches to fill the column.
-    const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
-    const box = gemsNineSlice();
-    box.insertChild(
-      gemsLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: GemsTheme.text }),
-    );
-    skin.insertChild(box);
-    left.insertChild(skin);
-
-    // ── Left: scroll viewport (a list taller than its 160px window) ──
-    const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));
-    const sc = gemsScroll({ height: 160 });
-    for (let i = 1; i <= 12; i++) {
-      sc.scrollBody.insertChild(
-        gemsButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
-          width: "100%",
-        }),
-      );
-    }
-    scrollSec.insertChild(sc);
-    left.insertChild(scrollSec);
-
-    // ── Right: buttons + controls ──
+  _buttonsSection() {
     const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
     const bar = gemsGrid();
     bar.insertChild(
@@ -172,10 +125,12 @@ class _SceneUIKitClass extends Scene {
         color: GemsTheme.textMuted,
       }),
     );
-    right.insertChild(buttons);
+    return buttons;
+  }
 
-    const controls = gemsSection(I18n.textRef("UIKIT_CONTROLS"));
-    controls.insertChild(
+  _togglesSection() {
+    const toggles = gemsSection(I18n.textRef("UIKIT_TOGGLES"));
+    toggles.insertChild(
       gemsToggle(
         I18n.textRef("UIKIT_TOGGLE"),
         () => this.toggleOn,
@@ -187,7 +142,7 @@ class _SceneUIKitClass extends Scene {
         },
       ),
     );
-    controls.insertChild(
+    toggles.insertChild(
       gemsCheckbox(
         I18n.textRef("UIKIT_CHECK"),
         () => this.checkOn,
@@ -195,7 +150,7 @@ class _SceneUIKitClass extends Scene {
         { tooltip: I18n.textRef("UIKIT_TIP_CHECK") },
       ),
     );
-    controls.insertChild(
+    toggles.insertChild(
       gemsCheckbox(
         I18n.textRef("UIKIT_SWITCH"),
         () => this.switchOn,
@@ -203,6 +158,55 @@ class _SceneUIKitClass extends Scene {
         { style: "switch", tooltip: I18n.textRef("UIKIT_TIP_SWITCH") },
       ),
     );
+    return toggles;
+  }
+
+  _fieldsSection() {
+    const fields = gemsSection(I18n.textRef("UIKIT_FIELDS"));
+    fields.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_FIELD_NAME"),
+        gemsInput({
+          placeholder: I18n.text("UIKIT_FIELD_NAME_PH"),
+          maxLength: 24,
+          onChange: (v) => (this.typed = v),
+        }),
+      ),
+    );
+    fields.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_FIELD_PASS"),
+        gemsInput({
+          placeholder: I18n.text("UIKIT_FIELD_PASS_PH"),
+          mask: true,
+          maxLength: 16,
+        }),
+      ),
+    );
+    fields.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_FIELD_RO"),
+        gemsInput({
+          value: I18n.text("UIKIT_FIELD_RO_VAL"),
+          readOnly: true,
+          tooltip: I18n.textRef("UIKIT_TIP_RO"),
+        }),
+      ),
+    );
+    fields.insertChild(
+      gemsLabel(
+        () =>
+          I18n.text("UIKIT_ECHO") +
+          " " +
+          (this.typed === "" ? "—" : this.typed),
+        { color: GemsTheme.accentHi },
+      ),
+    );
+    return fields;
+  }
+
+  _controlsSection() {
+    const controls = gemsSection(I18n.textRef("UIKIT_CONTROLS"));
 
     const slider = new UIElement({ height: 28, width: "100%" });
     slider.addComponent(
@@ -256,13 +260,44 @@ class _SceneUIKitClass extends Scene {
         }),
       ),
     );
-    right.insertChild(controls);
-
-    this.ui.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
-        tooltip: I18n.textRef("UIKIT_TIP_BACK"),
-      }),
+    controls.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_PROGRESS"),
+        gemsProgress(() => this.sliderVal / 100, {
+          label: () => Math.round(this.sliderVal) + "%",
+          tooltip: I18n.textRef("UIKIT_TIP_PROGRESS"),
+        }),
+      ),
     );
+    return controls;
+  }
+
+  // The box background is spr_uibox drawn nine-sliced, so its border stays crisp
+  // while the body stretches to fill the column.
+  _skinSection() {
+    const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
+    const box = gemsNineSlice();
+    box.insertChild(
+      gemsLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: GemsTheme.text }),
+    );
+    skin.insertChild(box);
+    return skin;
+  }
+
+  // A list taller than its 160px window — the scroll keystone, here nested under a
+  // tab page.
+  _scrollSection() {
+    const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));
+    const sc = gemsScroll({ height: 160 });
+    for (let i = 1; i <= 12; i++) {
+      sc.scrollBody.insertChild(
+        gemsButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
+          width: "100%",
+        }),
+      );
+    }
+    scrollSec.insertChild(sc);
+    return scrollSec;
   }
 
   destroy() {

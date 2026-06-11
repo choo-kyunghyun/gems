@@ -206,6 +206,67 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   return modal;
 };
 
+// Tabbed view: a tab strip over a fixed-height content host. `tabs` is
+// [{ label, content }] — label is a string/() => string, content a prebuilt
+// UIElement (e.g. a gemsList). Each content is wrapped in an absolute-positioned
+// overlay so all pages stack in the same rect; selecting a tab toggles their
+// `enabled` flag (no reflow). The host needs an explicit height (`opts.height`)
+// because absolute children don't contribute to it. Returns the root column; the
+// UITabs component is on `root.tabs` for programmatic `.select(i)`.
+globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
+  const root = new UIElement({
+    width: opts.width ?? "100%",
+    gap: opts.gap ?? GemsTheme.gapSm,
+  });
+
+  const strip = new UIElement({
+    width: "100%",
+    height: opts.stripHeight ?? 40,
+    flexShrink: 0,
+  });
+
+  const host = new UIElement({
+    width: "100%",
+    height: opts.height ?? 360,
+    flexShrink: 0,
+  });
+
+  // Wrap each page in an absolute overlay filling the host, so the pages stack
+  // (no reflow on switch — only the active overlay is enabled).
+  const items = [];
+  for (let i = 0; i < tabs.length; i++) {
+    const overlay = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+    });
+    overlay.insertChild(tabs[i].content);
+    host.insertChild(overlay);
+    items.push({ label: tabs[i].label, content: overlay });
+  }
+
+  const tabsComp = new UITabs({
+    tabs: items,
+    index: opts.index ?? 0,
+    onChange: opts.onChange,
+    font: opts.font ?? I18n.font("header"),
+    color: gemsColor(GemsTheme.text),
+    colorIdle: gemsColor(GemsTheme.textMuted),
+    colorHover: gemsColor(GemsTheme.text),
+    activeBg: gemsColor(GemsTheme.panel),
+    accent: gemsColor(GemsTheme.accent),
+    border: gemsColor(GemsTheme.border),
+  });
+  strip.addComponent(tabsComp);
+
+  root.insertChild(strip);
+  root.insertChild(host);
+  root.tabs = tabsComp;
+  return root;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({

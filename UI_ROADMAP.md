@@ -111,9 +111,15 @@ hoisting fault.)
   explicit-height rows (UIText can't self-size at runtime). Closing destroys the root
   mid-`UI.update`, so `UIElement` gained a `_destroyed` guard (idempotent destroy +
   skip refresh/draw/update on a torn-down node). *No deps.*
-- [ ] **7. `UITabs`** — tab strip + swappable content (toggle child `enabled`, no
+- [x] **7. `UITabs`** — tab strip + swappable content (toggle child `enabled`, no
   reflow). `gemsTabs([{label, content}])`. Payoff: **split the crowded `sceneUIKit`
-  into tab pages** (Widgets / Containers / HUD) in this same commit. *No deps.*
+  into tab pages** (Widgets / Inputs & Values / Containers) in this same commit. Done:
+  `UITabs` draws N equal-width segments directly in `onDraw` (active fill + accent
+  underline, like `UISelect`) and hit-tests clicks per segment; selecting toggles each
+  page's `enabled`. `gemsTabs(tabs, {height})` wraps each page in a `positionType:
+  "absolute"` overlay (insets 0) so they stack in one rect — no reflow on switch. Pages
+  that overflow the display/2 clamp are wrapped in a `gemsScroll` (tabs + scroll
+  compose). *No deps.*
 - [ ] **8. `UIAccordion` / collapsible section** — expand/collapse titled groups
   (height driven by draw-time clip, content `enabled` toggled). Good for settings.
   *Soft dep on UIScroll patterns.*
