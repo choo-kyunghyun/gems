@@ -185,6 +185,7 @@
     {"id":{"name":"UIImage","path":"scripts/UIImage/UIImage.yy",},},
     {"id":{"name":"UIInput","path":"scripts/UIInput/UIInput.yy",},},
     {"id":{"name":"UIPanel","path":"scripts/UIPanel/UIPanel.yy",},},
+    {"id":{"name":"UIProgress","path":"scripts/UIProgress/UIProgress.yy",},},
     {"id":{"name":"UISelect","path":"scripts/UISelect/UISelect.yy",},},
     {"id":{"name":"UISlider","path":"scripts/UISlider/UISlider.yy",},},
     {"id":{"name":"UIText","path":"scripts/UIText/UIText.yy",},},

@@ -91,6 +91,19 @@ class _SceneUIKitClass extends Scene {
     );
     left.insertChild(fields);
 
+    // ── Left: display readouts (bound live to the slider on the right) ──
+    const display = gemsSection(I18n.textRef("UIKIT_DISPLAY"));
+    display.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_PROGRESS"),
+        gemsProgress(() => this.sliderVal / 100, {
+          label: () => Math.round(this.sliderVal) + "%",
+          tooltip: I18n.textRef("UIKIT_TIP_PROGRESS"),
+        }),
+      ),
+    );
+    left.insertChild(display);
+
     // ── Right: buttons + controls ──
     const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
     const bar = gemsGrid();

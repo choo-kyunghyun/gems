@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIProgress",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIProgress",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIProgress.js",
+}

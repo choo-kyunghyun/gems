@@ -347,6 +347,36 @@ function gemsToggle(label, getValue, onToggle, opts = {}) {
   );
 }
 
+// Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
+// `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
+// accept a theme key/hex/int; `opts.fillColor2` is an optional radial edge tint.
+function gemsProgress(getValue, opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? 16,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIProgress({
+      getValue,
+      label: opts.label,
+      color: gemsColor(opts.textColor ?? GemsTheme.text),
+      font: opts.font ?? -1,
+      track: {
+        color: gemsColor(opts.trackColor ?? GemsTheme.btnPress),
+        rad: opts.rad,
+        border: 1,
+        borderColor: gemsColor(GemsTheme.border),
+      },
+      fill: {
+        color: gemsColor(opts.fillColor ?? GemsTheme.accent),
+        color2:
+          opts.fillColor2 != null ? gemsColor(opts.fillColor2) : undefined,
+      },
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+}
+
 // Settings-bound slider. For a non-Settings slider, build UISlider directly.
 function gemsSlider(key, min = 0, max = 1, step = undefined, opts = {}) {
   const el = new UIElement({ height: 28, width: "100%" });
