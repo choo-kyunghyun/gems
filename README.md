@@ -7,21 +7,36 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 ## Key Features
 
 - **Flexbox-based Layout**: Responsive UI design utilizing the `flexpanel`.
-- **GMRT & JavaScript**
-- **ECS**
+- **GMRT & JavaScript**: All game logic is JavaScript on the GMRT runtime, not GML.
+- **ECS**: Instance-based entity-component-system core with fixed-rate simulation.
+- **Genre Templates**: Ready-made Platformer, TopDown, RTS, and Map scenes built on shared systems.
+- **Renderer**: Hardware-accelerated tilemaps with autotiling and dual-grid terrain blending.
+- **Pathfinding, Input, Save & I18n**: Grid A\*, rebindable input actions, persistence, and localization.
 
 ## Getting Started
 
 ### Dependencies
 
-- GameMaker 2026.0.0.15
+- GameMaker 2026.0.0.16
 - GMRT 0.19.0
+
+### Build & Run
+
+The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.19 toolchain. The IDE (GameMaker 2026.0.0.16) can also build and run.
+
+```sh
+gm-cli run     --toolchain GMRT@0.19 gems.yyp   # run
+gm-cli compile --toolchain GMRT@0.19 gems.yyp   # compile only
+```
+
+VS Code users can run these via the bundled tasks (`.vscode/tasks.json`): **Run**, **Compile**, **Compile (errors only)**.
 
 ### Project Structure
 
 - G.E.M.S.
   - Core
-  - Supplements
+  - Templates
+  - Benchmarks & Tests
   - Demo
 
 ## License
