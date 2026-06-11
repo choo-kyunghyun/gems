@@ -107,6 +107,17 @@ class _SceneUIKitClass extends Scene {
     );
     left.insertChild(display);
 
+    // ── Left: nine-slice skin (sprite-framed panel) ──
+    // The box background is spr_uibox drawn nine-sliced, so its border stays crisp
+    // while the body stretches to fill the column.
+    const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
+    const box = gemsNineSlice();
+    box.insertChild(
+      gemsLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: GemsTheme.text }),
+    );
+    skin.insertChild(box);
+    left.insertChild(skin);
+
     // ── Right: buttons + controls ──
     const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
     const bar = gemsGrid();

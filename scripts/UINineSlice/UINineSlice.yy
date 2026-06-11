@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UINineSlice",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UINineSlice",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UINineSlice.js",
+}

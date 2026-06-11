@@ -68,6 +68,27 @@ globalThis.gemsCard = function gemsCard(opts = {}) {
   });
 };
 
+// Sprite-skinned panel: same content box as gemsPanel, but the background is a
+// nine-slice sprite frame (spr_uibox by default) instead of a drawn roundrect — so
+// the kit can wear hand-drawn skins. The sprite's IDE nine-slice keeps the border
+// crisp at any size. `color` tints the frame (theme key / hex / int).
+globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
+  const el = new UIElement({
+    width: opts.width ?? "100%",
+    padding: opts.padding ?? GemsTheme.pad,
+    gap: opts.gap ?? GemsTheme.gapSm,
+  });
+  el.addComponent(
+    new UINineSlice({
+      sprite: opts.sprite ?? asset_get_index("spr_uibox"),
+      subimg: opts.subimg ?? 0,
+      color: opts.color != null ? gemsColor(opts.color) : c_white,
+      alpha: opts.alpha ?? 1,
+    }),
+  );
+  return el;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({

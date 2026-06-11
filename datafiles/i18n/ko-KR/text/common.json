@@ -61,6 +61,8 @@
   "UIKIT_DISPLAY": "표시",
   "UIKIT_PROGRESS": "진행도 (슬라이더 연동)",
   "UIKIT_TIP_PROGRESS": "슬라이더 값에 연동된 비상호작용 막대",
+  "UIKIT_SKIN": "나인슬라이스 스킨",
+  "UIKIT_SKIN_BODY": "스프라이트 테두리 패널 — 늘어나도 모서리가 또렷합니다.",
   "UIKIT_BUTTONS": "버튼",
   "UIKIT_BTN_NORMAL": "클릭",
   "UIKIT_BTN_PRIMARY": "기본 동작",
