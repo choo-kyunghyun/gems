@@ -66,24 +66,14 @@ class _SceneRTSClass extends Scene {
     });
     this.camera.assign(0);
 
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 12,
-    });
+    this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      makeButton(I18n.textRef("RTS_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("RTS_BACK"), () => openScene(SCENES.lobby)),
     );
-    const hint = new UIElement();
-    hint.addComponent(
-      new UIText({
-        textRef: I18n.textRef("RTS_HINT"),
-        color: Color.parse("#888888"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(I18n.textRef("RTS_HINT"), { color: "#888888" }),
     );
-    this.ui.insertChild(hint);
   }
 
   step() {

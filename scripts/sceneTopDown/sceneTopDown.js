@@ -162,24 +162,14 @@ class _SceneTopDownClass extends Scene {
     this.toastQueue = [];
 
     // ── Lobby back button + hint (flexpanel, GUI layer) ────────────────────
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 12,
-    });
+    this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      makeButton(I18n.textRef("TOPDOWN_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("TOPDOWN_BACK"), () => openScene(SCENES.lobby)),
     );
-    const hint = new UIElement();
-    hint.addComponent(
-      new UIText({
-        textRef: I18n.textRef("TOPDOWN_HINT"),
-        color: Color.parse("#888888"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(I18n.textRef("TOPDOWN_HINT"), { color: "#888888" }),
     );
-    this.ui.insertChild(hint);
 
     Log.info(
       `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +

@@ -18,57 +18,29 @@ class _ScenePlatformerClass extends Scene {
     this.won = false;
 
     // UI is built once and persists across level transitions.
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 12,
-    });
+    this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      makeButton(I18n.textRef("PLAT_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("PLAT_BACK"), () => openScene(SCENES.lobby)),
     );
-
-    const levelLabel = new UIElement();
-    levelLabel.addComponent(
-      new UIText({
-        textRef: I18n.textRef("PLAT_LEVEL", () => this.levelIndex + 1),
-        color: Color.parse("#ffffff"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(I18n.textRef("PLAT_LEVEL", () => this.levelIndex + 1), { color: "#ffffff" }),
     );
-    this.ui.insertChild(levelLabel);
-
-    const coins = new UIElement();
-    coins.addComponent(
-      new UIText({
-        textRef: I18n.textRef(
-          "PLAT_COINS",
-          () => this.score,
-          () => this.totalCoins,
-        ),
-        color: Color.parse("#ffd700"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(
+        I18n.textRef("PLAT_COINS", () => this.score, () => this.totalCoins),
+        { color: "#ffd700" },
+      ),
     );
-    this.ui.insertChild(coins);
-
-    const checkpoint = new UIElement();
-    checkpoint.addComponent(
-      new UIText({
-        textRef: () =>
-          this.checkpointActive ? I18n.text("PLAT_CHECKPOINT") : "",
-        color: Color.parse("#00bfff"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(
+        () => (this.checkpointActive ? I18n.text("PLAT_CHECKPOINT") : ""),
+        { color: "#00bfff" },
+      ),
     );
-    this.ui.insertChild(checkpoint);
-
-    const win = new UIElement();
-    win.addComponent(
-      new UIText({
-        textRef: () => (this.won ? I18n.text("PLAT_WIN") : ""),
-        color: Color.parse("#7cfc00"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(() => (this.won ? I18n.text("PLAT_WIN") : ""), { color: "#7cfc00" }),
     );
-    this.ui.insertChild(win);
 
     this._initLevel(0);
   }

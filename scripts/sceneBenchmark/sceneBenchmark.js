@@ -23,22 +23,19 @@ class _SceneBenchmarkClass extends Scene {
     };
     this._build();
 
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 12,
-    });
+    this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      makeButton(I18n.textRef("BENCH_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("BENCH_BACK"), () => openScene(SCENES.lobby)),
     );
-    this.ui.insertChild(
-      makeButton("+100", () => this._resize(this.count + 100)),
+    const counts = gemsGrid();
+    counts.insertChild(
+      gemsButton("+100", () => this._resize(this.count + 100), { width: 120 }),
     );
-    this.ui.insertChild(
-      makeButton("-100", () => this._resize(Math.max(50, this.count - 100))),
+    counts.insertChild(
+      gemsButton("-100", () => this._resize(Math.max(50, this.count - 100)), { width: 120 }),
     );
+    this.ui.insertChild(counts);
   }
 
   // Rebuild the world at a new body count (the world is sized to count, so it must

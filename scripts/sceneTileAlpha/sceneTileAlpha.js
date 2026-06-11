@@ -69,25 +69,17 @@ class _SceneTileAlphaClass extends Scene {
     this.camera = cameraPan();
     this.camera.assign(0);
 
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 8,
-    });
+    this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
 
-    const hint = new UIElement();
-    hint.addComponent(
-      new UIText({
-        textRef: I18n.textRef("TILEALPHA_HINT"),
-        color: Color.parse("#cccccc"),
-      }),
+    this.ui.insertChild(
+      gemsLabel(I18n.textRef("TILEALPHA_HINT"), { color: "#cccccc" }),
     );
-    this.ui.insertChild(hint);
 
-    const panel = makeSection(I18n.textRef("TILEALPHA_NAME"));
+    const panel = gemsSection(I18n.textRef("TILEALPHA_NAME"));
 
+    // Not Settings-bound (drives the overlay pass live), so build UISlider directly
+    // but with the gems theme colors to match gemsSlider's look.
     const slider = new UIElement({ height: 24, width: "100%" });
     slider.addComponent(
       new UISlider({
@@ -99,25 +91,32 @@ class _SceneTileAlphaClass extends Scene {
           this.overlayPass.alpha = v;
           this.overlayPass.markDirty(); // alpha is baked into the VBO
         },
+        track: { color: gemsColor(GemsTheme.btnPress), rad: 6 },
+        fill: { color: gemsColor(GemsTheme.accent), rad: 6 },
+        thumb: { color: gemsColor(GemsTheme.text), rad: 8 },
       }),
     );
-    panel.insertChild(makeRow(I18n.textRef("TILEALPHA_ALPHA"), slider));
+    panel.insertChild(gemsRow(I18n.textRef("TILEALPHA_ALPHA"), slider));
 
-    const softLabel = () =>
-      `${I18n.text("TILEALPHA_SOFT")}: ${
-        this.softEdge ? I18n.text("TILEALPHA_ON") : I18n.text("TILEALPHA_OFF")
-      }`;
     panel.insertChild(
-      makeButton(softLabel, () => {
-        this.softEdge = !this.softEdge;
-        this.overlayPass.softEdge = this.softEdge;
-        this.overlayPass.markDirty();
-      }),
+      gemsToggle(
+        I18n.textRef("TILEALPHA_SOFT"),
+        () => this.softEdge,
+        () => {
+          this.softEdge = !this.softEdge;
+          this.overlayPass.softEdge = this.softEdge;
+          this.overlayPass.markDirty();
+        },
+        {
+          onText: I18n.textRef("TILEALPHA_ON"),
+          offText: I18n.textRef("TILEALPHA_OFF"),
+        },
+      ),
     );
     this.ui.insertChild(panel);
 
     this.ui.insertChild(
-      makeButton(I18n.textRef("TILEALPHA_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("TILEALPHA_BACK"), () => openScene(SCENES.lobby)),
     );
   }
 

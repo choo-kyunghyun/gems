@@ -18,23 +18,13 @@ class _SceneTileInspectDualClass extends Scene {
     this.camera = cameraPan();
     this.camera.assign(0);
 
-    this.ui = new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: 16,
-      gap: 8,
-    });
+    this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
-    const hint = new UIElement();
-    hint.addComponent(
-      new UIText({
-        textRef: I18n.textRef("TILEINSDUAL_HINT"),
-        color: Color.parse("#cccccc"),
-      }),
-    );
-    this.ui.insertChild(hint);
     this.ui.insertChild(
-      makeButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)),
+      gemsLabel(I18n.textRef("TILEINSDUAL_HINT"), { color: "#cccccc" }),
+    );
+    this.ui.insertChild(
+      gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)),
     );
   }
 
