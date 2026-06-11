@@ -25,6 +25,10 @@ globalThis.UIElement = class UIElement {
     this.scrollY = 0;
     this.clipInsetRight = 0;
     this._clipSurf = -1;
+    // Set in destroy(); guards the post-update refresh / draw so an element torn
+    // down mid-traversal (e.g. a modal closing itself on a button click) doesn't
+    // touch its already-deleted flexpanel node.
+    this._destroyed = false;
   }
 
   /**
@@ -67,6 +71,8 @@ globalThis.UIElement = class UIElement {
   }
 
   destroy() {
+    if (this._destroyed) return; // idempotent — close() may fire more than once
+    this._destroyed = true;
     if (this._clipSurf !== -1 && surface_exists(this._clipSurf)) {
       surface_free(this._clipSurf);
       this._clipSurf = -1;
@@ -86,6 +92,7 @@ globalThis.UIElement = class UIElement {
    * @returns {boolean}
    */
   update(block) {
+    if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
     // A clip container hides its subtree outside its own rect, so the pointer must
     // be inside the viewport for children to receive input — otherwise a scrolled-
     // away (invisible) child would still be clickable.
@@ -100,6 +107,9 @@ globalThis.UIElement = class UIElement {
     [...this.children].reverse().forEach((child) => {
       if (child.enabled) childBlock = child.update(childBlock) || childBlock;
     });
+    // A descendant's onUpdate (e.g. a modal button calling close()) may have
+    // destroyed this element mid-traversal — stop before touching the deleted node.
+    if (this._destroyed) return block;
     // Children outside the viewport didn't legitimately capture the pointer, so
     // don't report their (forced) block upward.
     let result = this.clip && !insideClip ? block : childBlock;
@@ -109,11 +119,12 @@ globalThis.UIElement = class UIElement {
         if (response === true) result = true;
       }
     }
-    if (this.dirty) this.refresh();
+    if (this.dirty && !this._destroyed) this.refresh();
     return result;
   }
 
   draw() {
+    if (this._destroyed) return;
     // Components (panel background, scrollbar) draw unclipped in the element's space.
     for (const component of this.components) {
       if (component.onDraw) component.onDraw(this);

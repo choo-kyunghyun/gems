@@ -104,9 +104,13 @@ hoisting fault.)
   blits — NOT `gpu_set_scissor`, verified surfaces work on GMRT 0.19 by probe);
   `update` gates child input to the viewport rect. `gemsScroll({height})` → insert items
   into `.scrollBody`.
-- [ ] **6. `UIModal` / dialog** — dimmed full-screen backdrop root + centered card +
-  button row, layered through `UI.insert` index/block. `gemsModal({title, body,
-  buttons})` → handle with `.close()`. *No deps.*
+- [x] **6. `UIModal` / dialog** — dimmed full-screen backdrop root + centered card +
+  button row, layered through `UI.insert` index/block (top root: draws last, returns
+  `true` to block every root beneath). `gemsModal({title, body, buttons})` → UIModal
+  handle with `.close()`; closes on Esc / backdrop click too. Modal text uses
+  explicit-height rows (UIText can't self-size at runtime). Closing destroys the root
+  mid-`UI.update`, so `UIElement` gained a `_destroyed` guard (idempotent destroy +
+  skip refresh/draw/update on a torn-down node). *No deps.*
 - [ ] **7. `UITabs`** — tab strip + swappable content (toggle child `enabled`, no
   reflow). `gemsTabs([{label, content}])`. Payoff: **split the crowded `sceneUIKit`
   into tab pages** (Widgets / Containers / HUD) in this same commit. *No deps.*

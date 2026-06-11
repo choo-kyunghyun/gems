@@ -147,6 +147,25 @@ class _SceneUIKitClass extends Scene {
         tooltip: I18n.textRef("UIKIT_TIP_PRIMARY"),
       }),
     );
+    bar.insertChild(
+      gemsButton(
+        I18n.textRef("UIKIT_BTN_DIALOG"),
+        () =>
+          gemsModal({
+            title: I18n.text("UIKIT_DIALOG_TITLE"),
+            body: I18n.text("UIKIT_DIALOG_BODY"),
+            buttons: [
+              { label: I18n.text("UIKIT_DIALOG_CANCEL") },
+              {
+                label: I18n.text("UIKIT_DIALOG_OK"),
+                primary: true,
+                onClick: () => this.clicks++,
+              },
+            ],
+          }),
+        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_DIALOG") },
+      ),
+    );
     buttons.insertChild(bar);
     buttons.insertChild(
       gemsLabel(() => I18n.text("UIKIT_CLICKS") + " " + this.clicks, {

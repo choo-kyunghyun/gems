@@ -122,6 +122,90 @@ globalThis.gemsScroll = function gemsScroll(opts = {}) {
   return viewport;
 };
 
+// Modal dialog: a dimmed full-screen root (top of the UI stack) + a centered card
+// with an optional title, a body (string/() => string, or a prebuilt UIElement), and
+// a right-aligned button row. Each button runs its onClick then closes the modal
+// unless `keepOpen`. Returns the UIModal handle — call `.close()` to dismiss; it also
+// closes on Escape or a backdrop click. `opts`: { title, body, buttons:[{label,
+// onClick, primary, keepOpen, width}], width, dim, closeOnBackdrop, closeOnEscape }.
+globalThis.gemsModal = function gemsModal(opts = {}) {
+  const root = new UIElement({
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  });
+  root.addComponent(
+    new UIPanel({
+      color: gemsColor(opts.dimColor ?? "#000000"),
+      alpha: opts.dim ?? 0.6,
+    }),
+  );
+  const modal = new UIModal({
+    root,
+    onClose: opts.onClose,
+    closeOnBackdrop: opts.closeOnBackdrop,
+    closeOnEscape: opts.closeOnEscape,
+  });
+  root.addComponent(modal);
+
+  const card = gemsCard({ width: opts.width ?? 440 });
+  // Swallow clicks anywhere on the card so they don't read as a backdrop dismiss.
+  card.addComponent(new UITrigger({}));
+
+  // Text labels need explicit-height rows: UIText can't self-size its element at
+  // runtime (flexpanel mutation is a no-op on GMRT 0.19), so a 0-height label would
+  // let the button row collapse up over it. A prebuilt body element sizes itself.
+  if (opts.title != null) {
+    const titleRow = new UIElement({ height: 30, justifyContent: "center" });
+    titleRow.insertChild(
+      gemsLabel(opts.title, {
+        font: I18n.font("header"),
+        color: GemsTheme.text,
+      }),
+    );
+    card.insertChild(titleRow);
+    card.insertChild(gemsDivider());
+  }
+  if (opts.body != null) {
+    if (opts.body instanceof UIElement) {
+      card.insertChild(opts.body);
+    } else {
+      const bodyRow = new UIElement({
+        height: opts.bodyHeight ?? 28,
+        justifyContent: "center",
+      });
+      bodyRow.insertChild(gemsLabel(opts.body, { color: GemsTheme.textMuted }));
+      card.insertChild(bodyRow);
+    }
+  }
+
+  const buttons = opts.buttons ?? [{ label: "OK", primary: true }];
+  const row = new UIElement({
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: GemsTheme.gapSm,
+  });
+  for (const b of buttons) {
+    row.insertChild(
+      gemsButton(
+        b.label,
+        () => {
+          if (b.onClick) b.onClick(modal);
+          if (!b.keepOpen) modal.close();
+        },
+        { primary: b.primary, width: b.width ?? 120 },
+      ),
+    );
+  }
+  card.insertChild(row);
+
+  root.insertChild(card);
+  UI.insert(root); // top of the stack → blocks lower roots, draws last
+  return modal;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({
