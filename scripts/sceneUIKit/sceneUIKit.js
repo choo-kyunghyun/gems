@@ -20,6 +20,8 @@ class _SceneUIKitClass extends Scene {
     this.typed = "";
     this.clicks = 0;
     this.toggleOn = true;
+    this.checkOn = true;
+    this.switchOn = false;
     this.sliderVal = 50;
 
     this.ui = gemsRoot();
@@ -139,6 +141,22 @@ class _SceneUIKitClass extends Scene {
           offText: I18n.textRef("UIKIT_OFF"),
           tooltip: I18n.textRef("UIKIT_TIP_TOGGLE"),
         },
+      ),
+    );
+    controls.insertChild(
+      gemsCheckbox(
+        I18n.textRef("UIKIT_CHECK"),
+        () => this.checkOn,
+        () => (this.checkOn = !this.checkOn),
+        { tooltip: I18n.textRef("UIKIT_TIP_CHECK") },
+      ),
+    );
+    controls.insertChild(
+      gemsCheckbox(
+        I18n.textRef("UIKIT_SWITCH"),
+        () => this.switchOn,
+        () => (this.switchOn = !this.switchOn),
+        { style: "switch", tooltip: I18n.textRef("UIKIT_TIP_SWITCH") },
       ),
     );
 

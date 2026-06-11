@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UICheckbox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UICheckbox",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UICheckbox.js",
+}

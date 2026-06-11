@@ -347,6 +347,37 @@ function gemsToggle(label, getValue, onToggle, opts = {}) {
   );
 }
 
+// Real visual checkbox/switch row: label on the left, the toggle graphic anchored to
+// the right edge; the whole row is the click target. `opts.style` is "check" (box +
+// tick, default) or "switch" (pill + sliding knob). For a `label: ON/OFF` button
+// instead, use gemsToggle.
+function gemsCheckbox(label, getValue, onToggle, opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? GemsTheme.rowH,
+    width: opts.width ?? "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: GemsTheme.padSm,
+  });
+  el.addComponent(
+    new UICheckbox({
+      getValue,
+      onToggle,
+      readOnly: opts.readOnly ?? false,
+      style: opts.style ?? "check",
+      colorOff: gemsColor(opts.colorOff ?? GemsTheme.btnPress),
+      colorOn: gemsColor(opts.colorOn ?? GemsTheme.accent),
+      colorKnob: gemsColor(opts.colorKnob ?? GemsTheme.text),
+      colorBorder: gemsColor(GemsTheme.border),
+      animSpeed: GemsTheme.animSpeed,
+    }),
+  );
+  el.insertChild(
+    gemsLabel(label, { color: opts.labelColor ?? GemsTheme.text }),
+  );
+  return gemsAttachTooltip(el, opts);
+}
+
 // Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
 // `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
 // accept a theme key/hex/int; `opts.fillColor2` is an optional radial edge tint.

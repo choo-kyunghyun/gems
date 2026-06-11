@@ -42,11 +42,11 @@ Every component commit follows the same steps (stated once here, not repeated be
 
 ## Phase 1 — Display widgets (small, independent, high value)
 
-- [ ] **1. `UIProgress` (bar)** — non-interactive 0–1 fill (health/mana/XP/loading/
+- [x] **1. `UIProgress` (bar)** — non-interactive 0–1 fill (health/mana/XP/loading/
   cooldown). `gemsProgress(getValue, opts)`: fill color, optional `label`/percent,
   track styling. Add a `radial` mode flag later (ability-cooldown sweep) or fold it in
   now. *No deps.*
-- [ ] **2. `UICheckbox` / `UISwitch`** — a real visual toggle (box+check or pill+knob)
+- [x] **2. `UICheckbox` / `UISwitch`** — a real visual toggle (box+check or pill+knob)
   vs. the current text-on-a-button `gemsToggle`. `gemsCheckbox(label, getValue,
   onToggle)`. *No deps.*
 - [ ] **3. `UIStepper` (numeric `< n >`)** — cheap; reuse `UISelect`'s arrow
