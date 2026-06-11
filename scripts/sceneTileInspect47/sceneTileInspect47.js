@@ -8,29 +8,15 @@
 // Canonical 8-bit mask for each frame index 0–46 (first mask that maps to frame f
 // via the _BLOB8 LUT in RenderTileMap, precomputed to avoid the GMRT IIFE bug).
 const _CANON47 = [
-    0,   1,   2,   3,   4,   5,   6,   7,
-    8,   9,  10,  11,  12,  13,  14,  15,
-   19,  23,  27,  31,
-   38,  39,  46,  47,
-   55,  63,
-   76,  77,  78,  79,
-   95,
-  110, 111,
-  127,
-  137, 139, 141, 143,
-  155, 159,
-  175,
-  191,
-  205, 207,
-  223,
-  239,
-  255,
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 23, 27, 31, 38, 39,
+  46, 47, 55, 63, 76, 77, 78, 79, 95, 110, 111, 127, 137, 139, 141, 143, 155,
+  159, 175, 191, 205, 207, 223, 239, 255,
 ];
 
-SceneRegistry.add(
-  () => new _SceneTileInspect47Class(),
-  { label: I18n.textRef("TILEINS47_NAME"), category: "SCENE_CAT_MAP" },
-);
+SceneRegistry.add(() => new _SceneTileInspect47Class(), {
+  label: I18n.textRef("TILEINS47_NAME"),
+  category: "SCENE_CAT_MAP",
+});
 
 class _SceneTileInspect47Class extends Scene {
   label = "TileInspect47";
@@ -42,8 +28,10 @@ class _SceneTileInspect47Class extends Scene {
 
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
-    this.ui.insertChild(gemsLabel(I18n.textRef("TILEINS47_HINT"), { color: "#cccccc" }));
-    this.ui.insertChild(gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)));
+    this.ui.insertChild(gemsHint(I18n.textRef("TILEINS47_HINT")));
+    this.ui.insertChild(
+      gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)),
+    );
   }
 
   step() {
@@ -97,40 +85,77 @@ class _SceneTileInspect47Class extends Scene {
       //   SW=(cx, cy+2*CELL) S=(cx+CELL, cy+2*CELL) SE=(cx+2*CELL, cy+2*CELL)
       draw_set_alpha(1);
       draw_set_color(neighborCol);
-      if (m & 1)   draw_rectangle(cx + CELL,     cy,           cx + 2 * CELL, cy + CELL,           false); // N
-      if (m & 2)   draw_rectangle(cx + 2 * CELL, cy + CELL,   cx + 3 * CELL, cy + 2 * CELL,       false); // E
-      if (m & 4)   draw_rectangle(cx + CELL,     cy + 2*CELL, cx + 2 * CELL, cy + 3 * CELL,       false); // S
-      if (m & 8)   draw_rectangle(cx,             cy + CELL,   cx + CELL,     cy + 2 * CELL,       false); // W
-      if (m & 16)  draw_rectangle(cx + 2 * CELL, cy,           cx + 3 * CELL, cy + CELL,           false); // NE
-      if (m & 32)  draw_rectangle(cx + 2 * CELL, cy + 2*CELL, cx + 3 * CELL, cy + 3 * CELL,       false); // SE
-      if (m & 64)  draw_rectangle(cx,             cy + 2*CELL, cx + CELL,     cy + 3 * CELL,       false); // SW
-      if (m & 128) draw_rectangle(cx,             cy,           cx + CELL,     cy + CELL,           false); // NW
+      if (m & 1) draw_rectangle(cx + CELL, cy, cx + 2 * CELL, cy + CELL, false); // N
+      if (m & 2)
+        draw_rectangle(
+          cx + 2 * CELL,
+          cy + CELL,
+          cx + 3 * CELL,
+          cy + 2 * CELL,
+          false,
+        ); // E
+      if (m & 4)
+        draw_rectangle(
+          cx + CELL,
+          cy + 2 * CELL,
+          cx + 2 * CELL,
+          cy + 3 * CELL,
+          false,
+        ); // S
+      if (m & 8) draw_rectangle(cx, cy + CELL, cx + CELL, cy + 2 * CELL, false); // W
+      if (m & 16)
+        draw_rectangle(cx + 2 * CELL, cy, cx + 3 * CELL, cy + CELL, false); // NE
+      if (m & 32)
+        draw_rectangle(
+          cx + 2 * CELL,
+          cy + 2 * CELL,
+          cx + 3 * CELL,
+          cy + 3 * CELL,
+          false,
+        ); // SE
+      if (m & 64)
+        draw_rectangle(cx, cy + 2 * CELL, cx + CELL, cy + 3 * CELL, false); // SW
+      if (m & 128) draw_rectangle(cx, cy, cx + CELL, cy + CELL, false); // NW
 
       // Center cell: dark background + sprite frame.
       draw_set_color(cellCol);
       draw_rectangle(cx + CELL, cy + CELL, cx + 2 * CELL, cy + 2 * CELL, false);
       if (f < frames) {
-        draw_sprite_ext(spr, f, cx + CELL, cy + CELL, scale, scale, 0, c_white, 1);
+        draw_sprite_ext(
+          spr,
+          f,
+          cx + CELL,
+          cy + CELL,
+          scale,
+          scale,
+          0,
+          c_white,
+          1,
+        );
       }
       draw_set_color(c_white);
       draw_rectangle(cx + CELL, cy + CELL, cx + 2 * CELL, cy + 2 * CELL, true);
 
       // Label: frame index + active neighbor directions.
       let bits = "";
-      if (m & 1)   bits += "N ";
-      if (m & 16)  bits += "NE ";
-      if (m & 2)   bits += "E ";
-      if (m & 32)  bits += "SE ";
-      if (m & 4)   bits += "S ";
-      if (m & 64)  bits += "SW ";
-      if (m & 8)   bits += "W ";
+      if (m & 1) bits += "N ";
+      if (m & 16) bits += "NE ";
+      if (m & 2) bits += "E ";
+      if (m & 32) bits += "SE ";
+      if (m & 4) bits += "S ";
+      if (m & 64) bits += "SW ";
+      if (m & 8) bits += "W ";
       if (m & 128) bits += "NW";
       const label = bits.trim();
 
       draw_set_halign(fa_center);
       draw_set_valign(fa_top);
       draw_set_color(f < frames ? c_white : c_red);
-      draw_text(cx + caseW * 0.5, cy + CELL * 3 + 4, `${f}  ${label === "" ? "—" : label}`);
+      draw_text(
+        cx + caseW * 0.5,
+        cy + CELL * 3 + 4,
+        `${f}  ${label === "" ? "—" : label}`,
+      );
     }
 
     draw_set_color(prevColor);

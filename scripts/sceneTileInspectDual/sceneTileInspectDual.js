@@ -20,9 +20,7 @@ class _SceneTileInspectDualClass extends Scene {
 
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsLabel(I18n.textRef("TILEINSDUAL_HINT"), { color: "#cccccc" }),
-    );
+    this.ui.insertChild(gemsHint(I18n.textRef("TILEINSDUAL_HINT")));
     this.ui.insertChild(
       gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)),
     );

@@ -72,9 +72,7 @@ class _SceneTileAlphaClass extends Scene {
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
 
-    this.ui.insertChild(
-      gemsLabel(I18n.textRef("TILEALPHA_HINT"), { color: "#cccccc" }),
-    );
+    this.ui.insertChild(gemsHint(I18n.textRef("TILEALPHA_HINT")));
 
     const panel = gemsSection(I18n.textRef("TILEALPHA_NAME"));
 

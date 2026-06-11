@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneUIKit",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneUIKit",
+  "parent":{
+    "name":"Demo",
+    "path":"folders/Demo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneUIKit.js",
+}

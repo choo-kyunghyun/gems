@@ -6,30 +6,36 @@
 // this script's top level runs, so we never call Color.parse at module scope.
 
 globalThis.GemsTheme = {
-  // surfaces
-  panel: "#282828", // section / card background (gradient top)
-  panelHi: "#303030", // gradient bottom for raised surfaces
-  // buttons
-  btn: "#3a3a3a",
-  btnHover: "#505050",
-  btnPress: "#2a2a2a",
-  // accent — slider fills, highlights
+  // ── Surfaces (cool slate; `panelLo` is the darker edge of the card vignette) ──
+  panel: "#272b34", // section / card fill (roundrect center)
+  panelLo: "#1f222a", // card edge — darker, reads as depth
+  // ── Buttons ──
+  btn: "#323845",
+  btnHover: "#3e4658",
+  btnPress: "#23272f",
+  // ── Accent — slider fills, focus glow, primary buttons ──
   accent: "#4a9eff",
-  // text
-  text: "#ffffff",
-  textMuted: "#aaaaaa",
-  textDim: "#777777",
-  // lines
-  border: "#454545",
-  // geometry
-  radius: 12,
-  radiusSm: 8,
-  pad: 16,
+  accentHi: "#74b6ff", // brighter accent (primary hover / glow)
+  accentPress: "#3174d4",
+  // ── Text ──
+  text: "#f1f4fa",
+  textMuted: "#9aa3b2",
+  textDim: "#6c7585",
+  // ── Lines & bevels ──
+  border: "#3c4350",
+  borderHi: "#566173", // hover/active outline glow
+  highlight: "#ffffff", // inner top sheen (drawn at low alpha)
+  // ── Geometry ──
+  radius: 14,
+  radiusSm: 9,
+  pad: 18,
   padSm: 12,
   gap: 12,
   gapSm: 8,
-  rowH: 48, // button / control height
-  headerH: 60,
+  rowH: 50, // button / control height
+  headerH: 64,
+  // ── Motion ──
+  animSpeed: 16, // hover/press easing rate
 };
 
 // Accept a theme key, hex string, or raw color int → color int.
@@ -90,23 +96,25 @@ function gemsPanel(opts = {}) {
       border: opts.border ?? 0,
       borderColor: gemsColor(opts.borderColor ?? GemsTheme.border),
       shadow: opts.shadow ?? 0,
+      highlight: opts.highlight ?? 0,
     }),
   );
   return el;
 }
 
-// Raised panel: subtle gradient + 1px border + drop shadow.
+// Raised panel: vignette edge + inner top bevel + 1px border + soft shadow.
 function gemsCard(opts = {}) {
   return gemsPanel({
     width: opts.width,
     padding: opts.padding,
     gap: opts.gap,
     color: opts.color,
-    color2: opts.color2 ?? GemsTheme.panelHi,
+    color2: opts.color2 ?? GemsTheme.panelLo,
     rad: opts.rad,
     border: opts.border ?? 1,
     borderColor: opts.borderColor,
-    shadow: opts.shadow ?? 6,
+    shadow: opts.shadow ?? 10,
+    highlight: opts.highlight ?? 1,
   });
 }
 
@@ -115,15 +123,20 @@ function gemsHeader(title, opts = {}) {
   const bar = new UIElement({
     width: "100%",
     height: opts.height ?? GemsTheme.headerH,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 8,
+    justifyContent: "center",
   });
   bar.addComponent(
     new UIPanel({
       color: gemsColor(GemsTheme.panel),
-      color2: gemsColor(GemsTheme.panelHi),
+      color2: gemsColor(GemsTheme.panelLo),
       rad: GemsTheme.radius,
-      shadow: opts.shadow ?? 4,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      shadow: opts.shadow ?? 8,
+      highlight: 1,
+      highlightAlpha: 0.08,
     }),
   );
   bar.insertChild(
@@ -162,7 +175,9 @@ function gemsDivider(opts = {}) {
 // Label + control on one line.
 function gemsRow(label, control, opts = {}) {
   const row = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-  row.insertChild(gemsLabel(label, { color: opts.labelColor ?? GemsTheme.textMuted }));
+  row.insertChild(
+    gemsLabel(label, { color: opts.labelColor ?? GemsTheme.textMuted }),
+  );
   row.insertChild(control);
   return row;
 }
@@ -183,24 +198,61 @@ function gemsLabel(label, opts = {}) {
   return el;
 }
 
+// One-line help/hint text on a readable card backdrop. Use instead of a bare
+// gemsLabel for overlays that would otherwise float as low-contrast text over a
+// scene's render (e.g. the tile-inspector "press X to…" lines).
+function gemsHint(label, opts = {}) {
+  const card = gemsCard({ padding: GemsTheme.padSm });
+  card.insertChild(
+    gemsLabel(label, {
+      color: opts.color ?? GemsTheme.textMuted,
+      halign: opts.halign ?? fa_left,
+      font: opts.font,
+    }),
+  );
+  return card;
+}
+
+// `opts.primary: true` paints the button in the accent color for a highlighted
+// call-to-action. The label is centered both axes; hover eases the fill + a border
+// glow + a shadow lift (see UIButton), press sinks it.
 function gemsButton(label, onClick, opts = {}) {
+  const primary = opts.primary ?? false;
+  const base = opts.color ?? (primary ? GemsTheme.accent : GemsTheme.btn);
+  const hover =
+    opts.colorHover ?? (primary ? GemsTheme.accentHi : GemsTheme.btnHover);
+  const press =
+    opts.colorPress ?? (primary ? GemsTheme.accentPress : GemsTheme.btnPress);
+  const bdr =
+    opts.borderColor ?? (primary ? GemsTheme.accentHi : GemsTheme.border);
+  const bdrHover = primary ? GemsTheme.text : GemsTheme.borderHi;
+
   const btn = new UIElement({
     height: opts.height ?? GemsTheme.rowH,
     width: opts.width ?? "100%",
+    justifyContent: "center",
+    alignItems: "center",
   });
   btn.addComponent(
     new UIPanel({
-      color: gemsColor(opts.color ?? GemsTheme.btn),
+      color: gemsColor(base),
       rad: opts.rad ?? GemsTheme.radiusSm,
       border: opts.border ?? 1,
-      borderColor: gemsColor(opts.borderColor ?? GemsTheme.border),
+      borderColor: gemsColor(bdr),
+      shadow: opts.shadow ?? 5,
+      shadowAlpha: 0.3,
+      highlight: 1,
+      highlightAlpha: primary ? 0.16 : 0.07,
     }),
   );
   btn.addComponent(
     new UIButton({
-      colorNormal: gemsColor(opts.color ?? GemsTheme.btn),
-      colorHover: gemsColor(opts.colorHover ?? GemsTheme.btnHover),
-      colorPress: gemsColor(opts.colorPress ?? GemsTheme.btnPress),
+      colorNormal: gemsColor(base),
+      colorHover: gemsColor(hover),
+      colorPress: gemsColor(press),
+      borderColorNormal: gemsColor(bdr),
+      borderColorHover: gemsColor(bdrHover),
+      animSpeed: GemsTheme.animSpeed,
       onClick,
     }),
   );
@@ -224,6 +276,10 @@ function gemsIconButton(sprite, onClick, opts = {}) {
       rad: opts.rad ?? GemsTheme.radiusSm,
       border: 1,
       borderColor: gemsColor(GemsTheme.border),
+      shadow: opts.shadow ?? 5,
+      shadowAlpha: 0.3,
+      highlight: 1,
+      highlightAlpha: 0.07,
     }),
   );
   btn.addComponent(
@@ -231,6 +287,9 @@ function gemsIconButton(sprite, onClick, opts = {}) {
       colorNormal: gemsColor(GemsTheme.btn),
       colorHover: gemsColor(GemsTheme.btnHover),
       colorPress: gemsColor(GemsTheme.btnPress),
+      borderColorNormal: gemsColor(GemsTheme.border),
+      borderColorHover: gemsColor(GemsTheme.borderHi),
+      animSpeed: GemsTheme.animSpeed,
       onClick,
     }),
   );
@@ -265,7 +324,7 @@ function gemsToggle(label, getValue, onToggle, opts = {}) {
 
 // Settings-bound slider. For a non-Settings slider, build UISlider directly.
 function gemsSlider(key, min = 0, max = 1, step = undefined) {
-  const el = new UIElement({ height: 24, width: "100%" });
+  const el = new UIElement({ height: 28, width: "100%" });
   el.addComponent(
     new UISlider({
       min,
@@ -273,9 +332,17 @@ function gemsSlider(key, min = 0, max = 1, step = undefined) {
       value: Settings.get(key),
       step,
       onChange: (v) => Settings.set(key, v),
-      track: { color: gemsColor(GemsTheme.btnPress), rad: 6 },
-      fill: { color: gemsColor(GemsTheme.accent), rad: 6 },
-      thumb: { color: gemsColor(GemsTheme.text), rad: 8 },
+      track: {
+        color: gemsColor(GemsTheme.btnPress),
+        border: 1,
+        borderColor: gemsColor(GemsTheme.border),
+      },
+      fill: { color: gemsColor(GemsTheme.accent) },
+      thumb: {
+        color: gemsColor(GemsTheme.text),
+        borderColor: gemsColor(GemsTheme.accentHi),
+        shadowAlpha: 0.35,
+      },
     }),
   );
   return el;
@@ -290,10 +357,60 @@ function gemsSelectCustom(items, index, onChange) {
       rad: GemsTheme.radiusSm,
       border: 1,
       borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: 0.07,
     }),
   );
   el.addComponent(
-    new UISelect({ items, index, onChange, halign: fa_center }),
+    new UISelect({
+      items,
+      index,
+      onChange,
+      halign: fa_center,
+      color: gemsColor(GemsTheme.text),
+      arrowColor: gemsColor(GemsTheme.textMuted),
+      arrowHover: gemsColor(GemsTheme.accent),
+    }),
+  );
+  return el;
+}
+
+// Panel-backed single-line text field (UIInput). Returns the element; reach the
+// component with `field.getComponent(UIInput)` to read `.value` / call focus().
+// `placeholder` is resolved once (UIInput holds a plain string, not a textRef),
+// so it won't re-translate on a live language switch.
+function gemsInput(opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? GemsTheme.rowH,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(opts.color ?? GemsTheme.btnPress),
+      rad: opts.rad ?? GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: 0.05,
+    }),
+  );
+  el.addComponent(
+    new UIInput({
+      value: opts.value ?? "",
+      placeholder: opts.placeholder ?? "",
+      mask: opts.mask ?? false,
+      maxLength: opts.maxLength,
+      filter: opts.filter,
+      readOnly: opts.readOnly ?? false,
+      padX: GemsTheme.padSm,
+      color: gemsColor(GemsTheme.text),
+      colorPlaceholder: gemsColor(GemsTheme.textDim),
+      colorCursor: gemsColor(GemsTheme.accent),
+      colorSelection: gemsColor(GemsTheme.accent),
+      onChange: opts.onChange,
+      onConfirm: opts.onConfirm,
+      onCancel: opts.onCancel,
+    }),
   );
   return el;
 }

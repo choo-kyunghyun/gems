@@ -4,10 +4,10 @@
 // that mask f implies. If the art's open/closed edges match the gray neighbors,
 // the frame order is correct.
 
-SceneRegistry.add(
-  () => new _SceneTileInspectClass(),
-  { label: I18n.textRef("TILEINS_NAME"), category: "SCENE_CAT_MAP" },
-);
+SceneRegistry.add(() => new _SceneTileInspectClass(), {
+  label: I18n.textRef("TILEINS_NAME"),
+  category: "SCENE_CAT_MAP",
+});
 
 class _SceneTileInspectClass extends Scene {
   label = "TileInspect";
@@ -19,8 +19,10 @@ class _SceneTileInspectClass extends Scene {
 
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
-    this.ui.insertChild(gemsLabel(I18n.textRef("TILEINS_HINT"), { color: "#cccccc" }));
-    this.ui.insertChild(gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)));
+    this.ui.insertChild(gemsHint(I18n.textRef("TILEINS_HINT")));
+    this.ui.insertChild(
+      gemsButton(I18n.textRef("TILEINS_BACK"), () => openScene(SCENES.lobby)),
+    );
   }
 
   step() {
@@ -34,7 +36,7 @@ class _SceneTileInspectClass extends Scene {
     const sw = surface_get_width(application_surface);
     const sh = surface_get_height(application_surface);
 
-    const CELL = 36;             // one mini-grid cell (display px)
+    const CELL = 36; // one mini-grid cell (display px)
     const caseW = CELL * 3;
     const caseH = CELL * 3 + 12; // + label row
     const cols = 4;
@@ -72,10 +74,12 @@ class _SceneTileInspectClass extends Scene {
       // Neighbor markers — gray where mask bit f implies a connection.
       draw_set_alpha(1);
       draw_set_color(neighborCol);
-      if (f & 1) draw_rectangle(midX, cy, midX + CELL, cy + CELL, false);             // N
-      if (f & 2) draw_rectangle(midX + CELL, midY, midX + 2 * CELL, midY + CELL, false); // E
-      if (f & 4) draw_rectangle(midX, midY + CELL, midX + CELL, midY + 2 * CELL, false); // S
-      if (f & 8) draw_rectangle(cx, midY, cx + CELL, midY + CELL, false);             // W
+      if (f & 1) draw_rectangle(midX, cy, midX + CELL, cy + CELL, false); // N
+      if (f & 2)
+        draw_rectangle(midX + CELL, midY, midX + 2 * CELL, midY + CELL, false); // E
+      if (f & 4)
+        draw_rectangle(midX, midY + CELL, midX + CELL, midY + 2 * CELL, false); // S
+      if (f & 8) draw_rectangle(cx, midY, cx + CELL, midY + CELL, false); // W
 
       // Center cell backdrop + the sprite frame.
       draw_set_color(cellCol);
@@ -88,11 +92,18 @@ class _SceneTileInspectClass extends Scene {
 
       // Label: index + which neighbor bits are set.
       const letters =
-        (f & 1 ? "N" : "") + (f & 2 ? "E" : "") + (f & 4 ? "S" : "") + (f & 8 ? "W" : "");
+        (f & 1 ? "N" : "") +
+        (f & 2 ? "E" : "") +
+        (f & 4 ? "S" : "") +
+        (f & 8 ? "W" : "");
       draw_set_halign(fa_center);
       draw_set_valign(fa_top);
       draw_set_color(f < frames ? c_white : c_red);
-      draw_text(cx + caseW * 0.5, cy + CELL * 3 + 4, `${f}  ${letters === "" ? "—" : letters}`);
+      draw_text(
+        cx + caseW * 0.5,
+        cy + CELL * 3 + 4,
+        `${f}  ${letters === "" ? "—" : letters}`,
+      );
     }
 
     draw_set_color(color);

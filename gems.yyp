@@ -160,6 +160,7 @@
     {"id":{"name":"sceneTileMap","path":"scripts/sceneTileMap/sceneTileMap.yy",},},
     {"id":{"name":"sceneTileTerrain","path":"scripts/sceneTileTerrain/sceneTileTerrain.yy",},},
     {"id":{"name":"sceneTopDown","path":"scripts/sceneTopDown/sceneTopDown.yy",},},
+    {"id":{"name":"sceneUIKit","path":"scripts/sceneUIKit/sceneUIKit.yy",},},
     {"id":{"name":"SeparationSystem","path":"scripts/SeparationSystem/SeparationSystem.yy",},},
     {"id":{"name":"Settings","path":"scripts/Settings/Settings.yy",},},
     {"id":{"name":"SlimeAI","path":"scripts/SlimeAI/SlimeAI.yy",},},

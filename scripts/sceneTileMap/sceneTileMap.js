@@ -77,9 +77,7 @@ class _SceneTileMapClass extends Scene {
     // UI: hint line + back button.
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });
     UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsLabel(I18n.textRef("TILEMAP_HINT"), { color: "#cccccc" }),
-    );
+    this.ui.insertChild(gemsHint(I18n.textRef("TILEMAP_HINT")));
     this.ui.insertChild(
       gemsButton(I18n.textRef("TILEMAP_BACK"), () => openScene(SCENES.lobby)),
     );
