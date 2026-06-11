@@ -37,6 +37,33 @@ Every component commit follows the same steps (stated once here, not repeated be
   destructuring in `for...of`, no `gpu_set_scissor` for clipping — its global state
   leaks, clip via substring/offset like `UIInput`, etc.).
 - Show/hide subtrees with our own `element.enabled` flag, not `display:"none"`.
+- **Guard `!(pos.width > 0)` at the top of every component's `onUpdate`/`onDraw`.** On
+  the first frame after a scene transition the layout isn't computed, so
+  `getLayoutPosition()` returns NaN width/height and drawing with NaN coords faults.
+  Test `> 0`, not `<= 0` — `NaN <= 0` is `false`, so the naive guard misses it. (Cost
+  us the `UIStepper` crash this session; `UISlider`/`UIProgress`/`UISelect`/`UICheckbox`
+  survive frame-1 NaN only by luck and should get the same guard when next touched.)
+- **No class getters.** GMRT 0.19 silently does not invoke `get x()` accessors (the
+  read yields `undefined`). Use a method or inline the expression.
+- **Use `Time.raw`, not `Time.delta`, for any UI timer/easing** — `Time.delta` is
+  scaled by `Time.scale`, so menus freeze/slow when a sim pauses or dilates time.
+
+## Lessons from this session (UITooltip → UIStepper)
+
+The kit hit GMRT's **large-file ceiling**: once a script grows past a threshold, GMRT
+stops hoisting some bare top-level `function` declarations into global scope and faults
+at *startup* (`cannot coerce undefined or null value into object`, no usable stack
+trace). Mitigations, now standard for the kit:
+
+- Assign factories as `globalThis.X = function X(…)`, never a bare `function X(…)`.
+- Keep files small — the kit lives in `GemsTheme` / `GemsContainers` / `GemsWidgets` /
+  `GemsControls`, not one `demo.js`. **New widget factories go in the matching
+  `Gems*` file (or a new small one), not appended to a big file.**
+
+Debugging GMRT with no stack trace: instrument the suspects with `Log.info` and make
+`Log.write` flush eagerly (temporarily) so a mid-build/mid-draw crash still leaves a
+complete trail on disk; read the tail of `game.log`. That's how the `UIStepper` NaN +
+getter causes were pinned down.
 
 ---
 
