@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GemsWidgets",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GemsWidgets",
+  "parent":{
+    "name":"GemsUI",
+    "path":"folders/Demo/GemsUI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"GemsWidgets.js",
+}
