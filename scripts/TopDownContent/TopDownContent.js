@@ -85,6 +85,18 @@ globalThis.TopDownContent = {
         rarity: "rare",
         components: [new Equippable({ slot: "trinket", mods: { speed: 40 } })],
       },
+      {
+        id: "backpack",
+        name: "ITEM_BACKPACK",
+        stack: 1,
+        weight: 3,
+        value: 30,
+        rarity: "uncommon",
+        components: [
+          new Equippable({ slot: "backpack" }),
+          new Container({ capacity: 8 }),
+        ],
+      },
     ]);
 
     QuestLog.register([

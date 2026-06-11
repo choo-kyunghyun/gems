@@ -271,6 +271,7 @@ globalThis.TopDownUI = {
     y = this._drawSlot(eq, "weapon", "SLOT_WEAPON", lx, y);
     y = this._drawSlot(eq, "armor", "SLOT_ARMOR", lx, y);
     y = this._drawSlot(eq, "trinket", "SLOT_TRINKET", lx, y);
+    y = this._drawSlot(eq, "backpack", "SLOT_BACKPACK", lx, y);
 
     // Stats
     y += 12;

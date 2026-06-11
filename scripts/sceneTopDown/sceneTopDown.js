@@ -38,6 +38,7 @@ class _SceneTopDownClass extends Scene {
       [
         { itemId: "slime_gel", qty: 2 },
         { itemId: "wood_sword", qty: 1 },
+        { itemId: "backpack", qty: 1 },
       ],
       [
         { itemId: "slime_gel", qty: 1 },

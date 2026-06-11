@@ -5,6 +5,6 @@
  * Stores only itemId strings (flat) — safe for world.export.
  *
  * @typedef {Object} Equipment
- * @property {Object} slots   { weapon: string, armor: string, trinket: string }
+ * @property {Object} slots   { weapon, armor, trinket, backpack } → itemId strings
  */
 globalThis.Equipment = "Equipment";

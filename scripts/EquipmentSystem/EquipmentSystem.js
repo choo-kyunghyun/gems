@@ -2,8 +2,9 @@
 // Equipment is { slots: { weapon, armor, trinket } } where each value is an
 // itemId or "". Equipped items STAY in the Inventory — they keep occupying a
 // slot and counting toward capacity/maxWeight; the Equipment slot only
-// references the equipped itemId and ADDS its `mods` to the live Stats sheet.
-// Unequipping reverses the exact same deltas. Because Item defs are static,
+// references the equipped itemId and ADDS its `mods` to the live Stats sheet (and
+// any Container capacity bonus to the Inventory). Unequipping reverses the exact
+// same deltas. Because Item defs are static,
 // equip/unequip always pair, so no recompute-from-base pass is needed (deltas
 // stay balanced). A plain object (not a class) so its methods can call each
 // other — see the GMRT static-method note in CLAUDE.md.
@@ -27,6 +28,7 @@ globalThis.EquipmentSystem = {
     if (eq.slots[eqp.slot] !== "") this.unequip(world, id, eqp.slot);
     eq.slots[eqp.slot] = itemId;
     this._applyMods(world, id, eqp.mods, 1);
+    this._applyContainer(world, id, item, 1);
     return true;
   },
 
@@ -43,6 +45,7 @@ globalThis.EquipmentSystem = {
     if (item !== undefined) {
       const eqp = item.getComponent(Equippable);
       if (eqp !== undefined) this._applyMods(world, id, eqp.mods, -1);
+      this._applyContainer(world, id, item, -1);
     }
     eq.slots[slot] = "";
     return itemId;
@@ -60,6 +63,20 @@ globalThis.EquipmentSystem = {
     if (item === undefined) return null;
     const wpn = item.getComponent(Weapon);
     return wpn !== undefined ? wpn : null;
+  },
+
+  // Add (sign +1) or remove (sign -1) an item's Container capacity bonus to/from
+  // the owner's Inventory.capacity. No-op if the item has no Container. Like mods,
+  // equip/unequip always pair, so the delta stays balanced. Items already held
+  // beyond a reduced capacity simply stay — add() just refuses new ones until
+  // the count drops back under it.
+  _applyContainer(world, id, item, sign) {
+    const con = item.getComponent(Container);
+    if (con === undefined) return;
+    const inv = world.get(Inventory, id);
+    if (inv === undefined) return;
+    inv.capacity += con.capacity * sign;
+    if (inv.capacity < 0) inv.capacity = 0;
   },
 
   // Add (sign +1) or remove (sign -1) a flat { stat: delta } block to/from Stats.

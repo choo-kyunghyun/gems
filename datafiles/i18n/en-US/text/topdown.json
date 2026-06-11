@@ -22,6 +22,7 @@
   "SLOT_WEAPON": "Weapon",
   "SLOT_ARMOR": "Armor",
   "SLOT_TRINKET": "Trinket",
+  "SLOT_BACKPACK": "Backpack",
   "SLOT_EMPTY": "(empty)",
 
   "STAT_LEVEL": "Level",
@@ -43,6 +44,7 @@
   "ITEM_BLASTER": "Blaster",
   "ITEM_LEATHER_ARMOR": "Leather Armor",
   "ITEM_SWIFT_RING": "Ring of Swiftness",
+  "ITEM_BACKPACK": "Backpack",
 
   "QUEST_SLIMES_NAME": "Slime Cull",
   "QUEST_SLIMES_OBJ": "Slimes slain {0}/{1}",

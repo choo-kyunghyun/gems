@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Container",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Container",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Container.js",
+}

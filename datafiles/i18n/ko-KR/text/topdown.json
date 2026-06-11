@@ -22,6 +22,7 @@
   "SLOT_WEAPON": "무기",
   "SLOT_ARMOR": "방어구",
   "SLOT_TRINKET": "장신구",
+  "SLOT_BACKPACK": "배낭",
   "SLOT_EMPTY": "(비어 있음)",
 
   "STAT_LEVEL": "레벨",
@@ -43,6 +44,7 @@
   "ITEM_BLASTER": "블래스터",
   "ITEM_LEATHER_ARMOR": "가죽 갑옷",
   "ITEM_SWIFT_RING": "신속의 반지",
+  "ITEM_BACKPACK": "배낭",
 
   "QUEST_SLIMES_NAME": "슬라임 퇴치",
   "QUEST_SLIMES_OBJ": "슬라임 처치 {0}/{1}",

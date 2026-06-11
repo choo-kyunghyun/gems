@@ -72,7 +72,9 @@ globalThis.TopDownController = {
     });
     world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
     world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
-    world.add(id, Equipment, { slots: { weapon: "", armor: "", trinket: "" } });
+    world.add(id, Equipment, {
+      slots: { weapon: "", armor: "", trinket: "", backpack: "" },
+    });
     world.add(id, Visual, {
       visible: true,
       sprite: spr_play,
