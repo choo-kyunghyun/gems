@@ -1,0 +1,5 @@
+{
+  "BENCH_NAME": "ECS Benchmark",
+  "BENCH_BACK": "<- Lobby",
+  "BENCH_COUNT": "Entities: {0}"
+}

@@ -70,7 +70,7 @@ class _SceneTileMapClass extends Scene {
     this.renderer.insert(
       new RenderDebugTileMap(this.level, {
         names: true,
-        font: I18n.font("normal_24"),
+        font: I18n.font("default"),
       }),
     );
 

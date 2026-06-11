@@ -16,16 +16,12 @@ window_center();
 game_set_speed(display_get_frequency(), gamespeed_fps);
 
 draw_set_circle_precision(64);
-draw_set_font(I18n.font("normal_36"));
-
-I18n.load("i18n/ko-KR/manifest.json");
-display_set_gui_maximise();
 
 Log.clear();
 Log.info("game start");
 
 Settings.registerDefaults({
-  language: "ko-KR",
+  language: "en-US",
   fullscreen: false,
   resolutionW: 0,
   resolutionH: 0,
@@ -38,6 +34,12 @@ Settings.registerDefaults({
   rawInput: false,
 });
 Settings.load();
+
+// Load localization for the saved language, then adopt its base font as the
+// default draw font (Korean needs Noto; en-US declares none and falls back).
+I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
+draw_set_font(I18n.font("default"));
+display_set_gui_maximise();
 
 this.background = Color.parse("#222222");
 this.scenes = SCENES;

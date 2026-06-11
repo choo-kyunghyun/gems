@@ -1,0 +1,49 @@
+{
+  "APP_NAME": "G.E.M.S.",
+
+  "TITLE_DEMO": "데모",
+  "TITLE_SETTINGS": "설정",
+  "TITLE_CREDITS": "크레딧",
+  "TITLE_QUIT": "종료",
+
+  "LOBBY_HEADING": "데모",
+  "LOBBY_EMPTY": "준비 중...",
+  "LOBBY_BACK": "← 타이틀",
+
+  "SETTINGS_HEADING": "설정",
+  "SETTINGS_SAVE": "저장",
+  "SETTINGS_BACK": "← 타이틀",
+  "SETTINGS_VOL_TITLE": "볼륨",
+  "SETTINGS_VOL_MASTER": "마스터",
+  "SETTINGS_VOL_MUSIC": "음악",
+  "SETTINGS_VOL_SFX": "효과음",
+  "SETTINGS_DISP_TITLE": "화면",
+  "SETTINGS_DISP_FULLSCREEN": "전체화면",
+  "SETTINGS_DISP_FULLSCREEN_ON": "켜짐",
+  "SETTINGS_DISP_FULLSCREEN_OFF": "꺼짐",
+  "SETTINGS_DISP_RESOLUTION": "해상도",
+  "SETTINGS_DISP_RES_DEFAULT": "기본",
+  "SETTINGS_DISP_FPS": "FPS",
+  "SETTINGS_DISP_FPS_UNLIMITED": "무제한",
+  "SETTINGS_UI_TITLE": "UI 스케일",
+  "SETTINGS_UI_SCALE": "스케일",
+  "SETTINGS_LANG_TITLE": "언어",
+  "SETTINGS_LANG_LABEL": "언어",
+
+  "CREDITS_HEADING": "크레딧",
+  "CREDITS_BACK": "← 타이틀",
+  "CREDITS_NAME": "G.E.M.S.",
+  "CREDITS_TAGLINE": "GameMaker Entity & Map System",
+  "CREDITS_DEV": "개발  Choo Kyunghyun",
+  "CREDITS_ENGINE": "GameMaker 2026  ·  GMRT 0.19",
+  "CREDITS_LIBS": "flexpanel  ·  Noto Sans KR (SIL OFL 1.1)",
+
+  "LANG_KO_KR": "한국어",
+  "LANG_EN_US": "English",
+
+  "SCENE_CAT_ACTION": "액션",
+  "SCENE_CAT_RPG": "RPG",
+  "SCENE_CAT_BENCHMARK": "벤치마크",
+  "SCENE_CAT_MAP": "맵",
+  "SCENE_CAT_STRATEGY": "전략"
+}

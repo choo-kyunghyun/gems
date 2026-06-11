@@ -1,0 +1,49 @@
+{
+  "APP_NAME": "G.E.M.S.",
+
+  "TITLE_DEMO": "Demo",
+  "TITLE_SETTINGS": "Settings",
+  "TITLE_CREDITS": "Credits",
+  "TITLE_QUIT": "Quit",
+
+  "LOBBY_HEADING": "Demo",
+  "LOBBY_EMPTY": "Coming soon...",
+  "LOBBY_BACK": "<- Title",
+
+  "SETTINGS_HEADING": "Settings",
+  "SETTINGS_SAVE": "Save",
+  "SETTINGS_BACK": "<- Title",
+  "SETTINGS_VOL_TITLE": "Volume",
+  "SETTINGS_VOL_MASTER": "Master",
+  "SETTINGS_VOL_MUSIC": "Music",
+  "SETTINGS_VOL_SFX": "SFX",
+  "SETTINGS_DISP_TITLE": "Display",
+  "SETTINGS_DISP_FULLSCREEN": "Fullscreen",
+  "SETTINGS_DISP_FULLSCREEN_ON": "On",
+  "SETTINGS_DISP_FULLSCREEN_OFF": "Off",
+  "SETTINGS_DISP_RESOLUTION": "Resolution",
+  "SETTINGS_DISP_RES_DEFAULT": "Default",
+  "SETTINGS_DISP_FPS": "FPS",
+  "SETTINGS_DISP_FPS_UNLIMITED": "Unlimited",
+  "SETTINGS_UI_TITLE": "UI Scale",
+  "SETTINGS_UI_SCALE": "Scale",
+  "SETTINGS_LANG_TITLE": "Language",
+  "SETTINGS_LANG_LABEL": "Language",
+
+  "CREDITS_HEADING": "Credits",
+  "CREDITS_BACK": "<- Title",
+  "CREDITS_NAME": "G.E.M.S.",
+  "CREDITS_TAGLINE": "GameMaker Entity & Map System",
+  "CREDITS_DEV": "Dev  Choo Kyunghyun",
+  "CREDITS_ENGINE": "GameMaker 2026  ·  GMRT 0.19",
+  "CREDITS_LIBS": "flexpanel  ·  Noto Sans KR (SIL OFL 1.1)",
+
+  "LANG_KO_KR": "Korean",
+  "LANG_EN_US": "English",
+
+  "SCENE_CAT_ACTION": "Action",
+  "SCENE_CAT_RPG": "RPG",
+  "SCENE_CAT_BENCHMARK": "Benchmark",
+  "SCENE_CAT_MAP": "Map",
+  "SCENE_CAT_STRATEGY": "Strategy"
+}

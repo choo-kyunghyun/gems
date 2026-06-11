@@ -179,12 +179,29 @@ globalThis.SCENES = {
         this.ui.insertChild(uiSection);
 
         const langSection = makeSection(I18n.textRef("SETTINGS_LANG_TITLE"));
-        langSection.insertChild(
-          makeRow(
-            I18n.textRef("SETTINGS_LANG_LABEL"),
-            makeSelect("language", [{ name: I18n.text("LANG_KO_KR"), value: "ko-KR" }]),
-          ),
+        const langItems = [
+          { name: I18n.text("LANG_EN_US"), value: "en-US" },
+          { name: I18n.text("LANG_KO_KR"), value: "ko-KR" },
+        ];
+        const langEl = new UIElement({ height: 36, width: "100%" });
+        langEl.addComponent(
+          new UISelect({
+            items: langItems,
+            index: Math.max(
+              0,
+              langItems.findIndex((it) => it.value === Settings.get("language")),
+            ),
+            // Switching language reloads I18n and re-adopts the locale's base
+            // font, so the open UI (built from live textRefs) updates in place.
+            onChange: (_i, value) => {
+              Settings.set("language", value);
+              I18n.load("i18n/" + value + "/manifest.json");
+              draw_set_font(I18n.font("default"));
+            },
+            halign: fa_center,
+          }),
         );
+        langSection.insertChild(makeRow(I18n.textRef("SETTINGS_LANG_LABEL"), langEl));
         this.ui.insertChild(langSection);
 
         this.ui.insertChild(makeButton(I18n.textRef("SETTINGS_SAVE"), () => Settings.save()));

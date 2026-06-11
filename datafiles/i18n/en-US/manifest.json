@@ -1,0 +1,9 @@
+{
+  "language": "en",
+  "region": "US",
+  "name": "English",
+  "texts": ["text/*.json"],
+  "fonts": {},
+  "images": {},
+  "sounds": {}
+}

@@ -80,7 +80,7 @@ class _SceneTileInspect47Class extends Scene {
     const prevValign = draw_get_valign();
     const prevFont = draw_get_font();
 
-    const labelFont = I18n.font("normal_24");
+    const labelFont = I18n.font("default");
     if (labelFont !== undefined) draw_set_font(labelFont);
     const neighborCol = Color.parse("#3a3a3a");
     const cellCol = Color.parse("#1c1c1c");

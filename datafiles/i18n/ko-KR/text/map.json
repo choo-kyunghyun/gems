@@ -1,0 +1,27 @@
+{
+  "TILEMAP_NAME": "타일맵",
+  "TILEMAP_BACK": "← 로비",
+  "TILEMAP_HINT": "좌클릭: 벽  ·  우클릭: 지우기",
+
+  "TILEINS_NAME": "타일 검사기",
+  "TILEINS_BACK": "← 로비",
+  "TILEINS_HINT": "가운데 = 프레임  ·  회색 = 이웃(N=1 E=2 S=4 W=8)  ·  빨간 번호 = 누락 프레임  ·  가운데 버튼 드래그 = 이동",
+
+  "TILEINS47_NAME": "47타일 검사기",
+  "TILEINS47_HINT": "가운데 = 프레임  ·  회색 = 이웃(N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128)  ·  빨간 번호 = 누락 프레임  ·  가운데 버튼 드래그 = 이동",
+
+  "TILEINSDUAL_NAME": "듀얼그리드 검사기",
+  "TILEINSDUAL_HINT": "왼쪽 = 기대 코너(TL=1 TR=2 BR=4 BL=8)  ·  오른쪽 = 실제 프레임  ·  둘이 일치하면 정상  ·  빨간 번호 = 누락 프레임  ·  가운데 버튼 드래그 = 이동",
+
+  "TERRAIN_NAME": "지형 전이 (듀얼그리드)",
+  "TERRAIN_BACK": "← 로비",
+  "TERRAIN_HINT": "좌클릭: 올리기  ·  우클릭: 내리기  ·  휠/드래그: 카메라  ·  우선순위 스택: 물 < 모래 < 잔디",
+
+  "TILEALPHA_NAME": "타일맵 알파 블렌딩",
+  "TILEALPHA_BACK": "← 로비",
+  "TILEALPHA_HINT": "좌클릭: 칠하기  ·  우클릭: 지우기  ·  휠/드래그: 카메라  ·  슬라이더 = 오버레이 알파  ·  소프트 엣지 = 경계 페이드(슬라이더 무시)",
+  "TILEALPHA_ALPHA": "알파",
+  "TILEALPHA_SOFT": "소프트 엣지",
+  "TILEALPHA_ON": "켜짐",
+  "TILEALPHA_OFF": "꺼짐"
+}

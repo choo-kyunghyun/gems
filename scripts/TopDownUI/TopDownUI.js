@@ -126,12 +126,12 @@ globalThis.TopDownUI = {
 
     draw_set_halign(fa_right);
     draw_set_valign(fa_top);
-    draw_set_font(I18n.font("bold_24"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(c_white);
     draw_text(x, y, I18n.text("TOPDOWN_HUD", st.level, hp, st.maxHp));
     y += 34;
 
-    draw_set_font(I18n.font("normal_24"));
+    draw_set_font(I18n.font("description"));
     const ids = QuestLog.activeIds();
     if (ids.length === 0) {
       draw_set_color(make_colour_rgb(150, 150, 150));
@@ -162,11 +162,11 @@ globalThis.TopDownUI = {
 
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-    draw_set_font(I18n.font("bold_24"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 220, 120));
     draw_text(x1 + 18, y1 + 14, I18n.text(scene.dialogueName));
 
-    draw_set_font(I18n.font("normal_24"));
+    draw_set_font(I18n.font("default"));
     draw_set_color(c_white);
     draw_text(x1 + 18, y1 + 48, I18n.text(scene.dialogueLine));
 
@@ -193,12 +193,12 @@ globalThis.TopDownUI = {
 
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-    draw_set_font(I18n.font("bold_36"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(c_white);
     draw_text(lx, y, I18n.text("TOPDOWN_INVENTORY"));
     y += 46;
 
-    draw_set_font(I18n.font("normal_24"));
+    draw_set_font(I18n.font("default"));
     const inv = world.get(Inventory, scene.ctrl.id);
     if (inv.slots.length === 0) {
       draw_set_color(make_colour_rgb(150, 150, 150));
@@ -220,11 +220,11 @@ globalThis.TopDownUI = {
     // Stats
     y += 10;
     const st = world.get(Stats, scene.ctrl.id);
-    draw_set_font(I18n.font("bold_24"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 220, 120));
     draw_text(lx, y, I18n.text("TOPDOWN_STATS"));
     y += 30;
-    draw_set_font(I18n.font("normal_24"));
+    draw_set_font(I18n.font("default"));
     draw_set_color(c_white);
     draw_text(lx, y, I18n.text("STAT_LEVEL") + ": " + st.level + "   " + I18n.text("STAT_XP") + ": " + st.xp + "/" + st.xpNext);
     y += 26;
@@ -232,11 +232,11 @@ globalThis.TopDownUI = {
     y += 36;
 
     // Records (persistent profile counters)
-    draw_set_font(I18n.font("bold_24"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 220, 120));
     draw_text(lx, y, I18n.text("TOPDOWN_RECORDS"));
     y += 30;
-    draw_set_font(I18n.font("normal_24"));
+    draw_set_font(I18n.font("default"));
     draw_set_color(c_white);
     draw_text(lx, y, I18n.text("REC_KILLS") + ": " + Profile.get("enemiesKilled"));
     y += 26;
@@ -252,7 +252,7 @@ globalThis.TopDownUI = {
     this._box(cx - 220, y1, cx + 220, y1 + 52);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
-    draw_set_font(I18n.font("bold_24"));
+    draw_set_font(I18n.font("header"));
     draw_set_color(make_colour_rgb(255, 215, 90));
     draw_text(cx, y1 + 26, I18n.text("TOPDOWN_UNLOCKED", I18n.text(scene.toastName)));
   },

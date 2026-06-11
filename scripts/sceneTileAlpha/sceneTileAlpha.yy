@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneTileAlpha",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneTileAlpha",
+  "parent":{
+    "name":"Map",
+    "path":"folders/Templates/Map.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneTileAlpha.js",
+}

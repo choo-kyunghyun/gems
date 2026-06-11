@@ -1,0 +1,8 @@
+{
+  "PLAT_NAME": "Platformer",
+  "PLAT_BACK": "<- Lobby",
+  "PLAT_LEVEL": "Level {0}",
+  "PLAT_COINS": "Coins: {0}/{1}",
+  "PLAT_WIN": "Clear!",
+  "PLAT_CHECKPOINT": "Checkpoint!"
+}
