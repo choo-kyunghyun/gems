@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker 2026.0.0.15 on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Assets live in four IDE folders: **Core** (ECS, systems, level, render, UI, input, utilities), **Templates** (genre templates — `Platformer`, `TopDown`, `RTS`, `Map` — each holding that genre's scene plus its controllers, gameplay systems, and components), **Benchmarks & Tests** (`sceneBenchmark` and the `sceneTileInspect*` validation scenes), and **Demo** (the app shell — `obj_game`, `rm_game`, the `demo` UI helpers, `sceneLobby`, shared sprites). Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneTopDown` lives in `Templates/TopDown` but registers under `SCENE_CAT_RPG`.
+**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker 2026.0.0.16 on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Assets live in four IDE folders: **Core** (ECS, systems, level, render, UI, input, utilities), **Templates** (genre templates — `Platformer`, `TopDown`, `RTS`, `Map` — each holding that genre's scene plus its controllers, gameplay systems, and components), **Benchmarks & Tests** (`sceneBenchmark` and the `sceneTileInspect*` validation scenes), and **Demo** (the app shell — `obj_game`, `rm_game`, the `demo` UI helpers, `sceneLobby`, shared sprites). Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneTopDown` lives in `Templates/TopDown` but registers under `SCENE_CAT_RPG`.
 
 The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions.
 
@@ -19,7 +19,7 @@ Bias toward caution over speed; for trivial tasks, use judgment.
 
 ## Build & Run
 
-The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.19 toolchain. The project file is `gems.yyp`; the IDE (GameMaker 2026.0.0.15) can also build and run.
+The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.19 toolchain. The project file is `gems.yyp`; the IDE (GameMaker 2026.0.0.16) can also build and run.
 
 ```sh
 gm-cli run     --toolchain GMRT@0.19 gems.yyp                 # run
