@@ -29,6 +29,38 @@ globalThis.Level = class Level {
 
     /** @type {LevelLayer[]} */
     this.layers = [];
+
+    // Zone channels keyed by name (e.g. "faction", "buildable", "weather").
+    // Plain object — for...in is GMRT-safe, Map iteration is not.
+    /** @type {Object<string, ZoneMap>} */
+    this.zoneMaps = {};
+  }
+
+  /**
+   * Register (or attach) a zone channel sized to this level's grid.
+   * @param {string} key
+   * @param {ZoneMap} [map]
+   * @returns {ZoneMap}
+   */
+  addZoneMap(key, map = new ZoneMap(this.cols, this.rows)) {
+    this.zoneMaps[key] = map;
+    return map;
+  }
+
+  /** @returns {ZoneMap | undefined} */
+  zoneMap(key) {
+    return this.zoneMaps[key];
+  }
+
+  /**
+   * World-space zone lookup on a channel.
+   * @returns {Zone | undefined}
+   */
+  zoneAt(key, wx, wy) {
+    const map = this.zoneMaps[key];
+    if (map === undefined) return undefined;
+    const g = this.worldToGrid(wx, wy);
+    return map.at(g.x, g.y);
   }
 
   insert(layer, index = this.layers.length) {
@@ -79,19 +111,38 @@ globalThis.Level = class Level {
   }
 
   export() {
-    return {
+    const data = {
       cellWidth: this.cellWidth,
       cellHeight: this.cellHeight,
       cols: this.cols,
       rows: this.rows,
       layers: this.layers.map((layer) => layer.export()),
     };
+    // Only emit zoneMaps when present, so existing serialized levels and callers
+    // are unaffected.
+    const keys = Object.keys(this.zoneMaps);
+    if (keys.length > 0) {
+      const zoneMaps = {};
+      for (let i = 0; i < keys.length; i++) {
+        zoneMaps[keys[i]] = this.zoneMaps[keys[i]].export();
+      }
+      data.zoneMaps = zoneMaps;
+    }
+    return data;
   }
 
   import(data) {
     for (let i = 0; i < this.layers.length; i++) {
       if (data.layers[i] !== undefined) {
         this.layers[i].import(data.layers[i]);
+      }
+    }
+    if (data.zoneMaps !== undefined) {
+      const keys = Object.keys(data.zoneMaps);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const map = this.zoneMaps[key] ?? this.addZoneMap(key);
+        map.import(data.zoneMaps[key]);
       }
     }
     this.syncAll();
@@ -102,6 +153,11 @@ globalThis.Level = class Level {
     for (const layer of this.layers) {
       layer.destroy();
     }
+    const keys = Object.keys(this.zoneMaps);
+    for (let i = 0; i < keys.length; i++) {
+      this.zoneMaps[keys[i]].destroy();
+    }
+    this.zoneMaps = {};
     this.mpg.destroy();
     this.mpg = undefined;
     this.layers = [];

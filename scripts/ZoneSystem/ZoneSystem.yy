@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ZoneSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ZoneSystem",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ZoneSystem.js",
+}
