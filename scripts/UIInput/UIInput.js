@@ -76,6 +76,13 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
+  // UINav: confirm starts editing (focus the field). UINav then suspends itself while
+  // UIInput.active is set, so the caret keeps the keys; Enter/Esc blur and hand control
+  // back to nav. Marks the field focusable.
+  navActivate(element) {
+    if (!this.readOnly) this.focus();
+  }
+
   setValue(value) {
     this.value = String(value).slice(0, this.maxLength);
     this._setCursor(this.value.length, false);

@@ -175,10 +175,13 @@ globalThis.UINav = class UINav {
       draw_text_color(pos.left + 3, pos.top + 2, string(k), c, c, c, c, 1);
     }
 
-    // Directional targets from the focused element.
+    // Directional targets from the focused element. Left/right are skipped when the
+    // widget consumes the horizontal axis (navAxis: slider/select/stepper/tabs) — those
+    // adjust the value rather than move focus, so a target line would mislead.
     if (fi !== -1) {
       const fx = items[fi].cx;
       const fy = items[fi].cy;
+      const consumesAxis = UINav._comp(UINav.focused, "navAxis") !== null;
       // dx, dy, label, color.
       const dirs = [
         [0, -1, "U", c_red],
@@ -187,6 +190,7 @@ globalThis.UINav = class UINav {
         [1, 0, "R", c_fuchsia],
       ];
       for (let d = 0; d < dirs.length; d++) {
+        if (dirs[d][0] !== 0 && consumesAxis) continue; // horizontal handled by navAxis
         const j = UINav._pick(items, fi, dirs[d][0], dirs[d][1]);
         if (j === -1) continue;
         const tx = items[j].cx;
@@ -238,6 +242,10 @@ globalThis.UINav = class UINav {
       const pos = el.getLayoutPosition();
       out.push({
         el,
+        left: pos.left,
+        top: pos.top,
+        right: pos.left + pos.width,
+        bottom: pos.top + pos.height,
         cx: pos.left + pos.width * 0.5,
         cy: pos.top + pos.height * 0.5,
       });
@@ -320,21 +328,26 @@ globalThis.UINav = class UINav {
     }
   }
 
-  // Index of the focusable that (dx, dy) from item `i` lands on, or -1: smallest
-  // forward distance plus a perpendicular penalty, so aligned candidates win. Shared
-  // by _move and the debug overlay so the picture matches the behavior exactly.
+  // Index of the focusable that (dx, dy) from item `i` lands on, or -1. Edge-aware so
+  // wide elements route by reading order, not screen-center: `primary` is the
+  // dir-axis distance between centers; `perp` is the GAP between the two rects on the
+  // cross axis (0 when they overlap there). A full-width row therefore overlaps every
+  // item below it (perp 0), so Down picks the leftmost one (ties break by collection
+  // order = visual order) instead of whichever happens to sit nearest mid-screen.
+  // Shared by _move and the debug overlay so the picture matches behavior exactly.
   static _pick(items, i, dx, dy) {
-    const fx = items[i].cx;
-    const fy = items[i].cy;
+    const s = items[i];
     let best = -1;
     let bestScore = Infinity;
     for (let j = 0; j < items.length; j++) {
       if (j === i) continue;
-      const vx = items[j].cx - fx;
-      const vy = items[j].cy - fy;
-      const primary = vx * dx + vy * dy; // forward distance along dir
-      if (primary <= 0) continue; // behind / orthogonal — not this direction
-      const perp = abs(vx * dy - vy * dx);
+      const t = items[j];
+      const primary = (t.cx - s.cx) * dx + (t.cy - s.cy) * dy; // center dist along dir
+      if (primary <= 0) continue; // not ahead in this direction
+      const perp =
+        dy !== 0
+          ? max(0, s.left - t.right, t.left - s.right) // vertical move → horizontal gap
+          : max(0, s.top - t.bottom, t.top - s.bottom); // horizontal move → vertical gap
       const score = primary + perp * 2;
       if (score < bestScore) {
         bestScore = score;
