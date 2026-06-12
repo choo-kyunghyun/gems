@@ -27,9 +27,9 @@ gm-cli compile --toolchain GMRT@0.19 gems.yyp                 # compile only
 gm-cli compile --toolchain GMRT@0.19 --errors-only gems.yyp  # compile, errors only
 ```
 
-**Stale-cache reset.** Two ignored, regenerable dirs hold build state: `.gmcache/` (incremental compile cache — `gm-cli cache info`/`gm-cli cache clean`) and `Build/` (build *output*, not "cache", so `cache clean` won't touch it — remove it manually). When a build behaves as if an asset still has its old state (renamed/deleted asset still "present", or a compile/runtime error that doesn't match the source), wipe them and rebuild: `gm-cli cache clean` (also re-downloads the shared GMRT runtime under `%LOCALAPPDATA%\GameMakerCLI\cache`, so the next build is slower) and/or delete `Build/`. The next `gm-cli run`/`compile` does a full clean rebuild. Both dirs are git-ignored (`.gmcache` via its own auto-generated `.gmcache/.gitignore`), so this is safe.
+**Stale-cache reset.** Two ignored, regenerable dirs hold build state: `.gmcache/` (incremental compile cache — `gm-cli cache info`/`gm-cli cache clean`) and `Build/` (build _output_, not "cache", so `cache clean` won't touch it — remove it manually). When a build behaves as if an asset still has its old state (renamed/deleted asset still "present", or a compile/runtime error that doesn't match the source), wipe them and rebuild: `gm-cli cache clean` (also re-downloads the shared GMRT runtime under `%LOCALAPPDATA%\GameMakerCLI\cache`, so the next build is slower) and/or delete `Build/`. The next `gm-cli run`/`compile` does a full clean rebuild. Both dirs are git-ignored (`.gmcache` via its own auto-generated `.gmcache/.gitignore`), so this is safe.
 
-**Visual verification (screenshot review).** To *see* the rendered screen, add a temporary auto-capture (the agent can't press F5 in the live window): in `obj_game/Draw_75.js` add a frame counter on `this`, call `screen_save("auto.png")` at ~frame 150 and `game_end()` at ~152 so the run self-terminates. Then `gm-cli run` (it blocks until `game_end`), `Read` the PNG, and **revert the temp code**. Gotchas: `screen_save` does **not** create missing dirs (`screen_save("screenshots/x.png")` fails unless the folder exists — use a bare filename); a **bare** filename lands in the run/build dir `.gmcache/build-gmrt-windows-vm/build/auto.png`, *not* the `%LOCALAPPDATA%\gems\` save dir (where `game.log`/`settings.json`/`save.json` live).
+**Visual verification (screenshot review).** To _see_ the rendered screen, add a temporary auto-capture (the agent can't press F5 in the live window): in `obj_game/Draw_75.js` add a frame counter on `this`, call `screen_save("auto.png")` at ~frame 150 and `game_end()` at ~152 so the run self-terminates. Then `gm-cli run` (it blocks until `game_end`), `Read` the PNG, and **revert the temp code**. Gotchas: `screen_save` does **not** create missing dirs (`screen_save("screenshots/x.png")` fails unless the folder exists — use a bare filename); a **bare** filename lands in the run/build dir `.gmcache/build-gmrt-windows-vm/build/auto.png`, _not_ the `%LOCALAPPDATA%\gems\` save dir (where `game.log`/`settings.json`/`save.json` live).
 
 ## Asset Creation
 
@@ -60,278 +60,52 @@ After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an
 
 The GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms. These have each caused real, hard-to-diagnose breakage — avoid them, don't "clean up" code back into them, and prefer the listed idiom:
 
-- **No `for...of` over a Map/Set iterator** (`map.values()`/`.keys()`/`.entries()`, or a `Set`) — it *breaks* the runtime. Keep parallel arrays and index-loop them (see `World._keys`/`_storages`). `for...of` over a plain **array** or string is fine; `for...in` over a plain **object** is fine. (Probed 2026-06-12: now hard-crashes the run rather than the original *hang* — either way, never use it.)
-- **No array destructuring in `for...of`** (`for (const [a, b] of arr)`) — `ReferenceError` at runtime (probe-confirmed 2026-06-12). Use index access (`arr[i][0]`). (Object destructuring `const {x,y} = o` and destructuring in a `.forEach(([a,b]) => …)` callback param *are* fine — see `Input.import`.)
-- **No empty `for` initializer** (`for (; c < n; c++)`) — *crashes the compiler* (`NullReferenceException` in `jsc.Parser.ASTVisitor.VisitFor`; probe-confirmed 2026-06-12). Use a `while` loop.
+- **No `for...of` over a Map/Set iterator** (`map.values()`/`.keys()`/`.entries()`, or a `Set`) — it _breaks_ the runtime. Keep parallel arrays and index-loop them (see `World._keys`/`_storages`). `for...of` over a plain **array** or string is fine; `for...in` over a plain **object** is fine. (Probed 2026-06-12: now hard-crashes the run rather than the original _hang_ — either way, never use it.)
+- **No array destructuring in `for...of`** (`for (const [a, b] of arr)`) — `ReferenceError` at runtime (probe-confirmed 2026-06-12). Use index access (`arr[i][0]`). (Object destructuring `const {x,y} = o` and destructuring in a `.forEach(([a,b]) => …)` callback param _are_ fine — see `Input.import`.)
+- **No empty `for` initializer** (`for (; c < n; c++)`) — _crashes the compiler_ (`NullReferenceException` in `jsc.Parser.ASTVisitor.VisitFor`; probe-confirmed 2026-06-12). Use a `while` loop.
 - **Don't cache a primitive boolean in a local across a function** — it can get clobbered mid-function (a `const` flips `true`→`false` in one call). Cache the **component object** and read the property live each use (see `PlatformerController.update` reading `groundedComp.isGrounded`).
-- **Top-level bare `const` is not visible to other scripts** — share via `globalThis.Name`. Bare top-level `function` declarations are *mostly* global, **but past a certain file size GMRT stops hoisting some of them into global scope and faults at startup** (`cannot coerce undefined or null value into object`). Assign factories/helpers explicitly — `globalThis.X = function X(…)` — and keep files small (the GemsUI kit was split into `GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls` for this reason).
+- **Top-level bare `const` is not visible to other scripts** — share via `globalThis.Name`. Bare top-level `function` declarations are _mostly_ global, **but past a certain file size GMRT stops hoisting some of them into global scope and faults at startup** (`cannot coerce undefined or null value into object`). Assign factories/helpers explicitly — `globalThis.X = function X(…)` — and keep files small (the GemsUI kit was split into `GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls` for this reason).
 - **Class getters/setters DO work** — a `get x()`/`set x()` accessor fires correctly on GMRT 0.19 (verified by probe: getter returns its computed value, setter mutates and reads back; `UISelect` ships with `get index/value/name` and works). The earlier "getters never fire" claim was a misdiagnosis — the `UIStepper` failure it was pinned on was the **large-file global-hoisting fault** (above), not the getter. Use getters freely; the only reason to inline (as `UIStepper` does) is style, not a runtime constraint. **But `static get`/`static set` do NOT fire** — a static getter silently yields `undefined` (hit on `VirtualKeyboard.active`, which always read falsy so typing bailed). Expose static state as a plain field or a `static` method (`VirtualKeyboard.isOpen()`), not a static accessor.
 - **Guard `!(pos.width > 0)` before drawing filled geometry/sprites in a UI component** — on the first frame after a scene transition the flexpanel layout isn't computed yet, so `getLayoutPosition()` returns NaN width/height; drawing roundrects/sprites with NaN coords faults. Test `> 0`, not `<= 0` (`NaN <= 0` is `false`, so the naive guard misses it) — see `UIStepper`/`UISlider`/`UIProgress`/`UISelect`/`UICheckbox`/`UIInput`. **Do NOT add this guard to text-drawing components** (`UIText`, or anything that self-sizes its element via `setWidth` in `onUpdate`): runtime `flexpanel` mutation is a no-op on 0.19, so such elements legitimately run at width 0 forever, and the guard would suppress their draw permanently. `draw_text` tolerates a 0/NaN width (it draws at `pos.left/top`; width only affects centering), so text drawers need no guard.
 - **`String.prototype.toUpperCase()`/`toLowerCase()` return garbage Unicode** — probe-confirmed: `"q".toUpperCase()` yields `"ଊ"` (an Oriya glyph), not `"Q"`, so case-mapped text comes out as unrenderable characters. Map case yourself via char codes — `String.fromCharCode(ch.charCodeAt(0) - 32)` for a-z→A-Z (`fromCharCode`/`charCodeAt` both work). See `VirtualKeyboard._upper` (Shift key).
-- **`JSON.stringify` faults on nested objects/arrays** — `JSON.stringify(["a","b"])` and a flat `{key: scalar}` object are fine (see `Settings`), but an object whose value is an object/array *hard-faults*. Persist only flat `{key: scalar}` blobs; serialize structure to a scalar string yourself (`ids.join(",")`, `"k=v;k=v"`) — see `SaveData`/`Profile`/`Achievement`. (`LevelSerializer.save`'s `JSON.stringify(data, null, 2)` is dead code — don't trust it as proof.)
-- **GMRT 0.19 does not support SVG sprites** (e.g. `spr_choo`, `spr_play`, `spr_hana`) — `sprite_get_number()` returns `0`, so frame math can go negative and `draw_sprite_ext` throws *"Trying to draw negative subimage index on a non-instance"*. Use raster sprites; clamp any computed frame count to `≥ 1` and `subimg` to `≥ 0` (see `AnimationSystem`).
-- **`asset_get_index(name)` returns an opaque asset *ref*, not a numeric index** — so a `>= 0` validity test is always `false` for a found sprite (a ref object compared with `>= 0` is `NaN`-false) and silently suppresses the draw, while `sprite_exists(ref)` is `true`. Validate a name-resolved sprite with `sprite_exists()`, never `>= 0` (a not-found name returns `-1`, which `sprite_exists` also rejects). See `UISlots`/`SlotDrag` (correct) and `UIRichText._icon` (the inline-icon resolver).
+- **`JSON.stringify` faults on nested objects/arrays** — `JSON.stringify(["a","b"])` and a flat `{key: scalar}` object are fine (see `Settings`), but an object whose value is an object/array _hard-faults_. Persist only flat `{key: scalar}` blobs; serialize structure to a scalar string yourself (`ids.join(",")`, `"k=v;k=v"`) — see `SaveData`/`Profile`/`Achievement`. (`LevelSerializer.save`'s `JSON.stringify(data, null, 2)` is dead code — don't trust it as proof.)
+- **GMRT 0.19 does not support SVG sprites** (e.g. `spr_choo`, `spr_play`, `spr_hana`) — `sprite_get_number()` returns `0`, so frame math can go negative and `draw_sprite_ext` throws _"Trying to draw negative subimage index on a non-instance"_. Use raster sprites; clamp any computed frame count to `≥ 1` and `subimg` to `≥ 0` (see `AnimationSystem`).
+- **`asset_get_index(name)` returns an opaque asset _ref_, not a numeric index** — so a `>= 0` validity test is always `false` for a found sprite (a ref object compared with `>= 0` is `NaN`-false) and silently suppresses the draw, while `sprite_exists(ref)` is `true`. Validate a name-resolved sprite with `sprite_exists()`, never `>= 0` (a not-found name returns `-1`, which `sprite_exists` also rejects). See `UISlots`/`SlotDrag` (correct) and `UIRichText._icon` (the inline-icon resolver).
 - **`view_camera[]` is not exposed in the GMRT JS runtime** — indexing it faults (probe-confirmed 2026-06-12: throws catchable `Error: unhandled type (13) for JS_ToObject`). Hold the `Camera` instance and read `camera_get_view_*(camera.id)` (see `sceneTopDown.draw`).
-- **`gpu_set_scissor`/`gpu_get_scissor` leaks globally** — the clip state set for one element bleeds onto every subsequent UI draw, so a wrong/missed restore makes the *whole scene* go invisible (hit while clipping `UIInput`'s text). Don't use it to clip; clip by computing the visible substring/offset yourself and drawing only what fits (see `UIInput.onDraw`).
-- **`draw_text` loses the world matrix inside a NESTED clip surface** — `UIElement._drawClipped` (the `clip`/`UIScroll` path) renders children into an off-screen surface under a `matrix_world` translate that maps gui-absolute coords into surface space. `draw_roundrect_*`/`draw_sprite_*` honor that translate, and so does `draw_text` for a *single* surface — but when an immediate-mode text widget sits inside **two** clip surfaces (a `gemsScroll` within a `gemsScroll`), the inner translate isn't applied to `draw_text`, so the text draws at its absolute position, lands outside the inner surface, and is clipped away (the widget's panel/roundrect still moves correctly, so only the text vanishes). Hit on `UIQuestTracker` nested in its own `gemsScroll` inside the sceneUIKit Widgets-tab scroll. Don't double-nest an immediate-mode text widget in two surfaces; one enclosing scroll is enough (a long list scrolls fine through a single surface). `UIText`/`UIButton` labels are unaffected (they don't double-nest in the kit's layouts).
-- **A `UIComponent` must resolve `I18n.font(key)` at DRAW time, not cache the handle at construction** — `I18n.font(key)` falls back to `draw_get_font()` for an undeclared key (e.g. every key under en-US), so a handle captured in a component constructor (which runs in a Create event) freezes whatever font happened to be active then; `draw_set_font(thatHandle)` later silently renders **nothing**. Store the font *key* (a string) on the component and call `I18n.font(key)` inside `onDraw`. Hit on `UIQuestTracker` (passed `I18n.font("default")` at construction → blank text); fixed by passing `titleFontKey`/`bodyFontKey`.
-- **`draw_triangle_color` and `draw_line_width_color` render NOTHING** — probe-confirmed in UI `onDraw`: a filled `draw_triangle_color` and a 6px `draw_line_width_color` at valid on-screen coords both drew nothing, while `draw_roundrect_color_ext` and `draw_text` in the *same* `onDraw` drew fine. This silently made the `UIAccordion` chevron (a triangle), the `UICheckbox` "check"-style tick (`draw_line_width_color`, lines 127/136), and the `UINav` debug direction lines invisible. For arrows/ticks use a **`draw_text` glyph** (`UIAccordion` draws `">"`/`"v"` like `UISelect`'s `"<"`/`">"`), or `draw_rectangle`/sprites — not triangles or width-lines. Also note GML `pi`/`degtorad` **and** `Math.PI` are all `undefined` in the GMRT JS runtime (any arithmetic with them → `NaN` coords → nothing draws), so avoid trig; interpolate vertices or precompute angles as literals.
+- **`gpu_set_scissor`/`gpu_get_scissor` leaks globally** — the clip state set for one element bleeds onto every subsequent UI draw, so a wrong/missed restore makes the _whole scene_ go invisible (hit while clipping `UIInput`'s text). Don't use it to clip; clip by computing the visible substring/offset yourself and drawing only what fits (see `UIInput.onDraw`).
+- **`draw_text` loses the world matrix inside a NESTED clip surface** — `UIElement._drawClipped` (the `clip`/`UIScroll` path) renders children into an off-screen surface under a `matrix_world` translate that maps gui-absolute coords into surface space. `draw_roundrect_*`/`draw_sprite_*` honor that translate, and so does `draw_text` for a _single_ surface — but when an immediate-mode text widget sits inside **two** clip surfaces (a `gemsScroll` within a `gemsScroll`), the inner translate isn't applied to `draw_text`, so the text draws at its absolute position, lands outside the inner surface, and is clipped away (the widget's panel/roundrect still moves correctly, so only the text vanishes). Hit on `UIQuestTracker` nested in its own `gemsScroll` inside the sceneUIKit Widgets-tab scroll. Don't double-nest an immediate-mode text widget in two surfaces; one enclosing scroll is enough (a long list scrolls fine through a single surface). `UIText`/`UIButton` labels are unaffected (they don't double-nest in the kit's layouts).
+- **A `UIComponent` must resolve `I18n.font(key)` at DRAW time, not cache the handle at construction** — `I18n.font(key)` falls back to `draw_get_font()` for an undeclared key (e.g. every key under en-US), so a handle captured in a component constructor (which runs in a Create event) freezes whatever font happened to be active then; `draw_set_font(thatHandle)` later silently renders **nothing**. Store the font _key_ (a string) on the component and call `I18n.font(key)` inside `onDraw`. Hit on `UIQuestTracker` (passed `I18n.font("default")` at construction → blank text); fixed by passing `titleFontKey`/`bodyFontKey`.
+- **`draw_triangle_color` and `draw_line_width_color` render NOTHING** — probe-confirmed in UI `onDraw`: a filled `draw_triangle_color` and a 6px `draw_line_width_color` at valid on-screen coords both drew nothing, while `draw_roundrect_color_ext` and `draw_text` in the _same_ `onDraw` drew fine. This silently made the `UIAccordion` chevron (a triangle), the `UICheckbox` "check"-style tick (`draw_line_width_color`, lines 127/136), and the `UINav` debug direction lines invisible. For arrows/ticks use a **`draw_text` glyph** (`UIAccordion` draws `">"`/`"v"` like `UISelect`'s `"<"`/`">"`), or `draw_rectangle`/sprites — not triangles or width-lines. Also note GML `pi`/`degtorad` **and** `Math.PI` are all `undefined` in the GMRT JS runtime (any arithmetic with them → `NaN` coords → nothing draws), so avoid trig; interpolate vertices or precompute angles as literals.
 - **UI timers/easing must use `Time.raw`, not `Time.delta`** — `Time.delta` is scaled by `Time.scale`, so UI on it freezes/slows when a sim dilates or pauses time. Use `Time.raw` (wall-clock) for hover/press fades, caret blink, key-repeat, toggle easing (see `UIButton`, `UIInput`, `UICheckbox`).
-- **`mouse_check_button*` are sampled realtime, NOT latched per frame** — calling the *same* query (`mouse_check_button`, `_pressed`, or `_released`) more than once in a frame can return *different values each call* (log-confirmed 2026-06-12: on the release frame the drop path read `mouse_check_button_released` as `0` while the cancel path, a few lines later the same frame, read `1`, so the drop silently lost to the cancel). Calling each **once** per frame is reliable — that's why `UISelect`/`UIStepper`/`UIButton` work. But when several consumers need the *same* edge in one frame (e.g. multiple `UISlots` grids + the drag resolver all deciding on the release), call each edge query **once** at frame start and share the result; don't re-query, and don't derive edges from the `mouse_check_button` *level* (it flickers frame-to-frame even held). See `SlotDrag.poll()` (called in `Step_0` before `UI.update`), which calls `mouse_check_button_pressed`/`_released` once and exposes `SlotDrag.pressed`/`released` for `UISlots` and `SlotDrag` to read.
-- **`keyboard_lastkey` lags `keyboard_check_pressed(vk_anykey)` by a frame** — on the frame a key's pressed-edge fires (`vk_anykey` true), `keyboard_lastkey` still holds the *previous* key, so a "press a key to bind" handler that reads `keyboard_lastkey` on the anykey edge binds the stale key on the first press and only works on the second (user-confirmed). Don't trust `keyboard_lastkey` for edge-synced capture; instead scan the keycode range for the one whose `keyboard_check_pressed(code)` is live this frame — that stays in sync with the edge. See `UIRebind._scanKey` (scans `8..255`, skipping nokey/anykey/Esc).
-- **A `static` field initializer can't reference the class's own name** — `static x = ClassName.y` throws `ReferenceError: ClassName is not defined` at **load** (not compile), because the class binding isn't live while its own static fields are being evaluated. Hit on `Dialogue` (`static speed = Dialogue.speedDefault`) — the whole script faulted at startup. Initialize such fields with a **literal** and read `ClassName.y` from *methods* instead (methods run post-load, where the `globalThis.ClassName` binding exists). Referencing *another, already-loaded* class in a static initializer is fine (e.g. `static panelColor = Color.parse("#…")`); only self-reference breaks.
-- **Class inheritance / `super` is broken** (probe-confirmed 2026-06-12) — `super.method()` is a **compile error** (`Unsupported expression [R_SUPER]`), not a runtime fault; don't design with subclassing. Model "kinds of X" as **composition**: a flat base class carrying a `components: []` array of standalone data classes queried by `instanceof` (the `UIElement` `addComponent`/`getComponent(Class)` pattern, also `Item` → `Equippable`/`Weapon`). `instanceof` against a *flat* class works fine; only inheritance breaks. W3 used a free `teardownScene(this)` helper instead of a `GameScene` base for this reason.
+- **`mouse_check_button*` are sampled realtime, NOT latched per frame** — calling the _same_ query (`mouse_check_button`, `_pressed`, or `_released`) more than once in a frame can return _different values each call_ (log-confirmed 2026-06-12: on the release frame the drop path read `mouse_check_button_released` as `0` while the cancel path, a few lines later the same frame, read `1`, so the drop silently lost to the cancel). Calling each **once** per frame is reliable — that's why `UISelect`/`UIStepper`/`UIButton` work. But when several consumers need the _same_ edge in one frame (e.g. multiple `UISlots` grids + the drag resolver all deciding on the release), call each edge query **once** at frame start and share the result; don't re-query, and don't derive edges from the `mouse_check_button` _level_ (it flickers frame-to-frame even held). See `SlotDrag.poll()` (called in `Step_0` before `UI.update`), which calls `mouse_check_button_pressed`/`_released` once and exposes `SlotDrag.pressed`/`released` for `UISlots` and `SlotDrag` to read.
+- **`keyboard_lastkey` lags `keyboard_check_pressed(vk_anykey)` by a frame** — on the frame a key's pressed-edge fires (`vk_anykey` true), `keyboard_lastkey` still holds the _previous_ key, so a "press a key to bind" handler that reads `keyboard_lastkey` on the anykey edge binds the stale key on the first press and only works on the second (user-confirmed). Don't trust `keyboard_lastkey` for edge-synced capture; instead scan the keycode range for the one whose `keyboard_check_pressed(code)` is live this frame — that stays in sync with the edge. See `UIRebind._scanKey` (scans `8..255`, skipping nokey/anykey/Esc).
+- **A `static` field initializer can't reference the class's own name** — `static x = ClassName.y` throws `ReferenceError: ClassName is not defined` at **load** (not compile), because the class binding isn't live while its own static fields are being evaluated. Hit on `Dialogue` (`static speed = Dialogue.speedDefault`) — the whole script faulted at startup. Initialize such fields with a **literal** and read `ClassName.y` from _methods_ instead (methods run post-load, where the `globalThis.ClassName` binding exists). Referencing _another, already-loaded_ class in a static initializer is fine (e.g. `static panelColor = Color.parse("#…")`); only self-reference breaks.
+- **Class inheritance / `super` is broken** (probe-confirmed 2026-06-12) — `super.method()` is a **compile error** (`Unsupported expression [R_SUPER]`), not a runtime fault; don't design with subclassing. Model "kinds of X" as **composition**: a flat base class carrying a `components: []` array of standalone data classes queried by `instanceof` (the `UIElement` `addComponent`/`getComponent(Class)` pattern, also `Item` → `Equippable`/`Weapon`). `instanceof` against a _flat_ class works fine; only inheritance breaks. W3 used a free `teardownScene(this)` helper instead of a `GameScene` base for this reason.
 
 When a quirk forces an unusual idiom, leave a one-line comment so it isn't "fixed" back. New quirks discovered during work should be added here.
 
-> **Probe coverage (2026-06-12):** the bullets above were isolated-tested via a throwaway probe (battery in `obj_game/Create_0` + a temp script for module-scope/cross-unit cases) and all reproduced. Five earlier claims could *not* be reproduced and were removed — regex `.replace()`, `clipboard_has_text()` "always false", a static method calling a sibling static, nested-function locals inside a top-level IIFE, and multi-declarator `const` — all worked correctly in event **and** script context; re-add them only if they resurface. Not isolated-probed (design rules / need game state, left as-is): boolean-local clobber, large-file global-hoisting fault, NaN-width UI guard, `gpu_set_scissor` leak, `Time.raw` UI-timer rule.
+> **Probe coverage (2026-06-12):** the bullets above were isolated-tested via a throwaway probe (battery in `obj_game/Create_0` + a temp script for module-scope/cross-unit cases) and all reproduced. Five earlier claims could _not_ be reproduced and were removed — regex `.replace()`, `clipboard_has_text()` "always false", a static method calling a sibling static, nested-function locals inside a top-level IIFE, and multi-declarator `const` — all worked correctly in event **and** script context; re-add them only if they resurface. Not isolated-probed (design rules / need game state, left as-is): boolean-local clobber, large-file global-hoisting fault, NaN-width UI guard, `gpu_set_scissor` leak, `Time.raw` UI-timer rule.
 
 ## Architecture
 
-### Demo Layer — `obj_game` & `Scene`
+The full architecture reference — every layer, system, component, renderer pass, and UI widget — lives in **[ARCHITECTURE.md](ARCHITECTURE.md)**. High-level map:
 
-`obj_game` is the unified controller — it drives both global system ticks and scene lifecycle.
+- **Demo shell** (`obj_game`, `Scene`, `SceneRegistry`, the GemsUI factory kit) — the single-room app and its UI scaffolding.
+- **ECS Core** (`World`, `IdPool`, string-token components, plain-object systems) — instance-based ECS with a fixed-rate tick and render interpolation.
+- **Built-in systems** (gravity, movement, solid/separation/trigger collision, projectiles, state machine, lifetime, pathfinding) — genre-agnostic, dispatched explicitly from a scene's `step()` (often via a `Pipeline`).
+- **Genre Templates** (`scripts/<genre>/` under the **Templates** IDE folder) — a genre **controller** (`PlatformerController`/`TopDownController`) plus **gameplay systems** layered over Core. The platformer/top-down templates are action-RPGs (see the RPG layer below).
+- **RPG / gameplay layer** (Templates) — items & inventory (`Item`, `Inventory`, `Equipment`, `Consumable`, `Container`, `Encumbrance` + their systems), combat (`Health`, `Stats`, `MeleeSystem`, `ProjectileSystem`, `Enemy`/`SlimeAI`), progression (`QuestLog`, `NPC`, `Dialogue`), loot (`ItemDrop`, `Rarity`), and sprite animation (`Animator`/`AnimationSystem`). Per-genre content registries: `PlatformerContent`/`TopDownContent`.
+- **Genre UI** — `PauseMenu`, `StorageUI`, and the world-space overlays `PlatformerUI`/`TopDownUI`; HUD + draggable inventory windows are real UI panels built by each scene and drawn on the GUI layer.
+- **Renderer** (`Renderer` + `RenderPass`es: `RenderEntity`, `RenderDebugBox`, `RenderTileMap` with blob/dual-grid autotiling, debug passes) — hardware-accelerated tiles via `VertexBuffer`.
+- **UI system** (`UIElement`/`UI` over `flexpanel`, the `UIComponent` widgets, plus standalone singletons `Tooltip`/`Toast`/`SlotDrag`/`UINav`/`VirtualKeyboard`/`SceneTransition`/`FloatingText`) — Flexbox-backed, keyboard/gamepad navigable.
+- **Input** (`Input`/`InputAction`, rebindable keymaps) and **utilities** (`Settings`, `Color`, `I18n`, `Camera`/`cameraFollow*`/`cameraPan`, `Query`, `AABB`, `Broadphase`, `Raycast`, `Tween`, `EntityPreset`, `Level`/`TileLayer`, `File`, `Log`).
+
+`obj_game` is the unified controller — it drives both global system ticks and scene lifecycle:
 
 ```
 Create_0 → display/GPU setup; Log.clear/info; Settings defaults + load; I18n.load for `Settings.language`; opens SCENES.title
 Draw_0   → draw_clear(background), scene.draw()
-Step_0   → Time.update(), UI.update(), pending scene transition, scene.step(), Log.flush()
-Draw_75  → UI.draw(), Tooltip.draw(), F5 screenshot
+Step_0   → Time.update(), SlotDrag.poll(), UI.update(), SlotDrag.update(), UINav.update(), Dialogue.update(), pending scene → SceneTransition.start, SceneTransition.update(), scene.step(), Log.flush()
+Draw_75  → UI.draw(), UINav.draw(), SlotDrag.draw(), Tooltip.draw(), Toast.draw(), Dialogue.draw(), SceneTransition.draw(), F5 screenshot
 CleanUp  → scene.destroy(), UI/Input/I18n cleanup
 ```
-
-**`Scene`** (`scripts/Scene/Scene.js`) is the base class for all demo scenes (`label`, `create()`, `step()`, `draw()`, `destroy()`). Scenes are **factory functions** returning a fresh instance each time they open. `create(openScene)` receives the navigation callback; `destroy()` tears down UI and resources.
-
-**Scene navigation**: call the `openScene(factory)` callback to queue a transition (applied after the current UI update completes). **Built-in scenes** (`scripts/sceneLobby/sceneLobby.js`) live on `SCENES`: `.title`, `.lobby`, `.settings`, `.credits`. The app starts at `SCENES.title`.
-
-**`SceneRegistry`** (`scripts/demo/demo.js`) is the lobby catalogue. Register at the top level of a scene's script:
-
-```js
-SceneRegistry.add(() => new MyScene(), { label: "My Scene", category: "SCENE_CAT_FOO" });
-
-class MyScene extends Scene {
-  label = "My Scene";
-  create(openScene) { /* build UI; openScene(SCENES.lobby) to go back */ }
-  destroy() { /* remove UI, clean up */ }
-}
-```
-
-`SceneRegistry.byCategory()` returns entries grouped by category string. To add a scene: create the script asset (see Asset Creation), define the class, then `SceneRegistry.add(...)`.
-
-**GemsUI kit** (`scripts/GemsTheme`, `GemsContainers`, `GemsWidgets`, `GemsControls` — split out of `demo.js`, which now holds only `SceneRegistry` + `teardownScene`): a themed factory library so scenes build UI declaratively instead of hand-wiring `UIElement`/`UIPanel`/`UIText`. Every factory is assigned via `globalThis.X = function X(…)` (not a bare declaration) and the kit is split across small files — both to dodge the GMRT large-file global-hoisting fault (see GMRT-Safe Idioms). All visual constants live in **`globalThis.GemsTheme`** (colors as hex strings, geometry as numbers); the `gems*` free functions parse + compose them. Containers: `gemsRoot(opts?)` (full-screen scene root), `gemsList(opts?)` (vertical stack), `gemsGrid(opts?)` (horizontal wrap row), `gemsPanel(opts?)`/`gemsCard(opts?)` (rounded panel; card adds gradient+border+shadow), `gemsHeader(title, opts?)` (title bar), `gemsSection(title, opts?)` (titled card with divider), `gemsRow(label, control, opts?)`, `gemsDivider(opts?)`. Widgets: `gemsLabel(label, opts?)`, `gemsHint(label, opts?)` (one-line help text on a readable card — use instead of a bare `gemsLabel` for overlays that would otherwise float over a scene's render), `gemsButton(label, onClick, opts?)` (`opts.primary` → accent CTA), `gemsIconButton(sprite, onClick, opts?)`, `gemsToggle(label, getValue, onToggle, opts?)` (renders `label: ON/OFF` as a button), `gemsCheckbox(label, getValue, onToggle, opts?)` (visual toggle; `opts.style` `"check"`/`"switch"`), `gemsProgress(getValue, opts?)` (non-interactive 0–1 bar; `opts.label` centered), `gemsSlider(key, min?, max?, step?, opts?)` + `gemsSelect(key, items, opts?)` (Settings-bound), `gemsSelectCustom(items, index, onChange, opts?)`. **Tooltips**: `gemsTooltip(element, label, opts?)` attaches a hover `UITooltip` (at index 0) and returns the element; every interactive widget factory also takes `opts.tooltip` (string or `() => string`) as a shortcut. `label`/`onText`/`offText` accept a string or `() => string` (live `I18n.textRef`); color opts accept a `GemsTheme` key, hex string, or raw color int. Styling lives only in `GemsTheme` + `UIPanel` — `UIPanel` options: `color2` (an edge tint; `draw_roundrect`'s two colors run **center→edge/radial**, not top→bottom), `border`/`borderColor`, soft multi-pass `shadow`/`shadowColor`/`shadowAlpha`, and `highlight`/`highlightColor`/`highlightAlpha` (inner top-bevel sheen) — all default off, so existing callers are unchanged. `UIButton` eases color/border-glow/shadow between hover/press states (`Time.raw` lerp — UI ignores `Time.scale`); `UISlider`/`UISelect`/`UIProgress`/`UICheckbox` render directly in `onDraw` (no absolute-positioned child panels — those relied on the unreliable per-frame `flexpanel` style setters, bug #15065) — `UISelect` shows `< value >` arrows and steps back/forward by click side. See `FLEXPANEL.md` for the flexpanel property reference. **`teardownScene(scene)`** releases the `world`/`renderer`/`camera`/`ui` a scene holds on `this`, in dependency order (missing fields skipped) — call it from `destroy()` after releasing scene-specific resources (controllers, levels).
-
-### ECS Core — `World`
-
-`World` (`scripts/World/World.js`) is the instance-based ECS core, owning all component storage and the generational ID allocator. Each scene holds its own as `this.world` (there is no `WORLD` global). **`Entity` is deprecated** — its functionality moved to `World`.
-
-```js
-const world = new World(maxEntities, tickrate, opts); // opts: { gravity? } overrides GravitySystem.strength
-
-// Entity lifecycle
-const id = world.create();   // allocate generational ID
-world.remove(id);            // mark for removal (deferred)
-world.flush();               // commit queued removals
-world.isValid(id);           // generational validity check
-
-// Component storage
-world.register(Position);                       // allocate storage (optional; add auto-registers)
-world.add(id, Position, { x: 0, y: 0, z: 0 });  // set data
-world.get(Position, id);                         // → data object or undefined
-world.detach(id, Position);                      // remove one component
-
-world.query(Position, Velocity);          // → ids that have ALL listed components
-world.forEach([Position, Velocity], fn);  // calls fn(id) per match, no id array allocated
-
-// Fixed-rate tick
-const ticks = world.update(); // # ticks to run this frame; advances accumulator, computes alpha
-world.alpha;                  // [0, 1) interpolation factor for rendering
-world.maxTicks;               // tick cap per frame (default 5) — spiral-of-death guard:
-                              // under overload the sim slows instead of freezing
-
-// Snapshot
-world.export();  // plain object, components keyed by string token, sparse entries
-world.import(s); // restores ids + registered components; unknown keys ignored
-```
-
-### `IdPool`
-
-`IdPool` (`scripts/IdPool/IdPool.js`) is the generational ID allocator owned by `World` as `world.ids`. IDs encode index (lower 20 bits) + generation (upper 12 bits). Static helpers: `IdPool.getIndex(id)`, `IdPool.makeId(index, gen)`, `IdPool.getGeneration(id)`. Instance methods (`world.ids.*`): `alloc()`, `free(id)`, `isValid(id)`, `reset()`, `export()`, `import()`.
-
-### Component Pattern
-
-Components are **string tokens** — a global name used as a `Map` key and for serialization. Data shape is defined at the call site; there are no static arrays, `defineComponent`, or static component classes (all deprecated).
-
-```js
-globalThis.Position = "Position";
-/** @typedef {Object} Position @property {number} x @property {number} y @property {number} z */
-// usage: world.add(id, Position, { x, y, z })
-```
-
-### System Pattern
-
-Systems are **plain objects** with an `update(world)` method:
-
-```js
-globalThis.MovementSystem = {
-  update(world) {
-    for (const id of world.query(Position, Velocity)) {
-      const pos = world.get(Position, id);
-      const vel = world.get(Velocity, id);
-      pos.x += vel.x * world.tickDuration;
-      pos.y += vel.y * world.tickDuration;
-    }
-  },
-};
-```
-
-On-demand utility systems (e.g. cursor methods on `PathfindingSystem`) expose named methods instead of `update(world)`.
-
-### Fixed-Rate Simulation (ECS Scene Pattern)
-
-Scenes running an ECS simulation dispatch systems explicitly inside `step()`:
-
-```js
-step() {
-  const ticks = this.world.update();
-  for (let t = 0; t < ticks; t++) {
-    InterpolationSystem.snapshot(this.world); // first: record pre-move positions for render lerp
-    GravitySystem.update(this.world);
-    SolidSystem.update(this.world);       // integrates + resolves solid bodies
-    SeparationSystem.update(this.world);  // pushes overlapping bodies apart
-    StateSystem.update(this.world);
-    LifetimeSystem.update(this.world);
-    this.world.flush();
-  }
-}
-draw() { this.renderer.draw(this.world); }
-```
-
-Genre scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.physics = new Pipeline().add(SystemA).add(stepFn)`, then `this.physics.update(world)` each tick. A step is any `{ update(world) }` object or a bare function. Per genre: platformer `Gravity → clampFall → SolidSystem`; top-down `SolidSystem → ProjectileSystem`; RTS `SolidSystem → SeparationSystem`.
-
-**Motion integrators are exclusive per body**: `MovementSystem` integrates *free* movers (no collision response), `SolidSystem` is move-and-collide for solid bodies, `ProjectileSystem` is move-and-raycast for projectiles. A given mover is integrated by exactly one of them.
-
-**`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` before `scene.step()` — always available in scene code.
-
-### Genre Controllers & Template Gameplay Systems
-
-The Core systems above are genre-agnostic. A playable genre scene layers a **controller** plus **gameplay systems** on top — these live under **Templates** (in the genre's folder) and are orchestrated by the scene's `step()`, not auto-run by `World`.
-
-**Genre controllers** (`PlatformerController`, `TopDownController`) own player input registration + entity setup and expose a three-phase lifecycle, not an `update(world)`:
-- `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player entity, returns a plain `ctrl` state bag (`{ id, facing, ... }`).
-- `pollInput(ctrl)` — call **once per frame, before `world.update()`**, outside the tick loop. Samples *edge-triggered* input (jump `pressed()`/`released()`) into buffers so presses aren't lost on 0-tick frames or double-counted on multi-tick frames.
-- `update(world, ctrl)` — call **once per physics tick**. Reads *continuous* input (movement) and applies acceleration/jump to `Velocity` (before `SolidSystem` integrates it).
-- `destroy()` — unregisters input. Plus genre verbs like `respawn`, `setPower`, `tryFireball`.
-
-See the **GMRT boolean-local clobber** note in memory: read flags like `Grounded.isGrounded` live off the component each use — caching a primitive bool in a local is miscompiled.
-
-**Template gameplay systems** are stateless `globalThis` objects like Core systems but expose *named query/resolve methods* (not `update(world)`), called explicitly from `step()` after physics resolves: `EnemySystem` (`update` patrol + `resolveStomp`), `CollectibleSystem` (`collect`, `collectPowerup`, `reachedGoal`, `reachedCheckpoint`, `hitSpike`), `BlockSystem` (`resolveHit` — hit-from-below `?`-blocks/bricks, takes the pre-physics `vel.y`). They read `col.hits` (filled by `TriggerSystem`) or do their own overlap test, and return values the scene applies to score/state.
-
-`scenePlatformer` is the reference orchestration: per tick → `snapshot` → `controller.update` → capture pre-physics `vel.y` → `physics` Pipeline → `EnemySystem` → resolve stomp/spike/death → collect coins/powerups/checkpoint/goal → `flush`. Multi-level scenes use an `_initLevel(index)` / `loadLevel(index)` pattern (rebuild `world`, level, controller, pipeline, renderer, camera per level); cumulative score/coins persist across levels on the scene.
-
-**Lobby categories** are `SCENE_CAT_*` i18n keys: `ACTION`, `RPG`, `STRATEGY`, `MAP`, `BENCHMARK`. `SceneRegistry.add(factory, { label, category })` slots a scene under one.
-
-### Built-in Systems
-
-| System | File | Description |
-|--------|------|-------------|
-| `GravitySystem` | `scripts/GravitySystem/` | Applies `strength * direction * tickDuration` to entities with `Velocity`. `world.gravity` overrides `GravitySystem.strength`. Configurable: `.strength`, `.direction`. |
-| `MovementSystem` | `scripts/MovementSystem/` | Integrates `Velocity` into `Position` each tick. For *free* movers with no collision response; solid bodies are integrated by `SolidSystem` instead. |
-| `SolidSystem` | `scripts/SolidSystem/` | Discrete "move-and-collide" for dynamic solid bodies vs `kinematic` solids. Integrates each body's `Velocity` itself, sub-stepped (`SolidSystem.maxStep`, default 8) so fast movers can't tunnel, resolving per axis (wall-slide for free). Sets `Grounded.isGrounded` when a body is pushed up out of a downward move — replaces the old `GroundedSystem`. Requires `Collision` (solid, non-kinematic), `Position`, `BBox`, `Velocity`. `Grounded = { isGrounded }` (`scripts/Grounded/`). |
-| `SeparationSystem` | `scripts/SeparationSystem/` | Equal-mass MTV push-apart between dynamic solid bodies (unit crowding). `SeparationSystem.iterations` passes per tick so dense clusters settle. Pure resolution — run after `SolidSystem`. Uses `world.broadphase` if set (see `Broadphase`); otherwise O(n²) per iteration. |
-| `TriggerSystem` | `scripts/TriggerSystem/` | Overlap detection → fills/clears `col.hits` for game logic (sensors, pickups). Detection only; records pairs where at least one side is non-solid. Owns `col.hits`. Uses `world.broadphase` if set (see `Broadphase`); otherwise O(n²). |
-| `ProjectileSystem` | `scripts/ProjectileSystem/` | Move-and-raycast for `Projectile` entities: casts the per-tick segment via `Raycast`, applies `Projectile.damage` to a hit `Health` (despawns it at ≤ 0 hp), then despawns the bullet. Range bounded by `Lifetime`. `Projectile = { damage, owner }`. |
-| `StateSystem` | `scripts/StateSystem/` | State machine. `StateSystem.change(world, id, schema, force?)` queues; `update(world)` processes. `StateSchema = { enter?, update?, finish? }`. |
-| `LifetimeSystem` | `scripts/LifetimeSystem/` | Decrements `lt.ticks` each tick; `world.remove(id)` when `≤ 0`. |
-| `InterpolationSystem` | `scripts/InterpolationSystem/` | Render-interpolation bookkeeping. `snapshot(world)` records each mover's `Position` into `PrevPosition` (`scripts/PrevPosition/`) — call at the **top of each tick**, before any system moves `Position`. Renderers then draw at `PrevPosition + (Position − PrevPosition) * world.alpha` to keep fixed-step motion smooth when display refresh ≠ tickrate. Tracks `Velocity` movers only; static bodies fall back to `Position`. |
-| `PathfindingSystem` | `scripts/PathfindingSystem/` | `setGrid(grid)`, `update`, `invalidate`, `current(world, id)`, `advance(world, id)`. See Pathfinding Flow. |
-
-### Pathfinding Flow
-
-1. `world.add(id, PathRequest, { startX, startY, goalX, goalY })` — request in grid coords.
-2. `PathfindingSystem.update(world)` resolves → writes `PathResponse: { path, index }` (`index` = cursor).
-3. `PathfindingSystem.current(world, id)` → current waypoint `{x, y}` or `undefined`.
-4. `PathfindingSystem.advance(world, id)` → `true` if more waypoints remain; `false` (and detaches `PathResponse`) when complete.
-5. After any grid change: `PathfindingSystem.invalidate(world)` — detaches all `PathResponse`.
-
-### Level & Map Layers
-
-`Level` (`scripts/Level/Level.js`) manages the tile grid and pathfinding grid, **separate from `World`** (the ECS).
-
-```js
-const LEVEL = new Level({ cellWidth: 32, cellHeight: 32 });            // cols/rows derived from room size
-const terrain = new TileLayer(LEVEL.cols, LEVEL.rows, { emptyCost: Infinity }); // blocking base
-LEVEL.insert(terrain);                 // append a LevelLayer (LEVEL.remove to detach)
-PathfindingSystem.setGrid(LEVEL.mpg);  // wire up after layers are ready
-LEVEL.syncAll();                       // recompute all pathfinding costs (or syncAt(x, y) for one cell)
-PathfindingSystem.invalidate(world);   // call separately after any grid change
-LEVEL.worldToGrid(wx, wy); LEVEL.gridToWorld(gx, gy); // ↔ { x, y } (gridToWorld returns cell center)
-```
-
-**`LevelLayer` interface**: `get(x,y)`, `set(x,y,v)`, `getNavData(x,y) → { cost }`, `export()`, `import()`, `destroy()`. The one built-in is **`TileLayer`** (`scripts/TileLayer/`), wrapping a `Grid` of **`TileType`** values. Later-added layers have higher nav-cost priority. Empty cells report the layer's `emptyCost`: `undefined` (default) passes through to lower layers; `Infinity` makes a blocking base. `TileType` (`scripts/TileType/`) holds `{ id, name, pathCost }` (`pathCost: null` → `Infinity`, default `1`). The former `Floor`/`Terrain`/`Structure` layers and their value classes are consolidated into `TileLayer`/`TileType`.
-
-### Renderer
-
-`Renderer` (`scripts/Renderer/Renderer.js`) is an ordered list of `RenderPass` objects (`{ draw(world), destroy() }`). `insert(pass, index?)` / `remove(pass)` manage the list; `draw(world)` runs every pass; `destroy()` tears them down. Each scene owns its renderer and calls `this.renderer.draw(this.world)` in `draw()`.
-
-Built-in passes:
-- **`RenderEntity`** — draws entities with `Visual` + `Position` via `draw_sprite_ext`. Interpolates between `PrevPosition` and `Position` by `world.alpha` when present (see `InterpolationSystem`); falls back to raw `Position` otherwise.
-- **`RenderTileMap`** (`new RenderTileMap(layer, level, sprite, opt?)`) — hardware-accelerated tiles via `VertexBuffer`. `opt`: `{ autotile: 0|16|47|"dual", alpha, color, softEdge }`. Call `.markDirty()` after tile changes to rebuild the VBO. Autotile: `0` = raw frame id, `16` = blob4, `47` = blob8, `"dual"` = dual-grid corner sampling. Neighbor bits: `N=1, E=2, S=4, W=8` (blob8 adds `NE=16, SE=32, SW=64, NW=128`), so a blob4 tileset's frame index equals its cardinal-neighbor mask. `spr_tile16` is the project's 16-frame blob4 tileset; the **Tile Inspector** scene (`scripts/sceneTileInspect/`) lays out all 16 frames against this rule to validate frame order (`sceneTileInspect47` does the same for the 47-frame blob8 set).
-  - **`"dual"` (dual-grid)** — the blob modes draw one centered tile per *filled cell* and cannot show two materials meeting (binary occupancy: a 2×2 filled block renders as a donut with blob4). Dual-grid instead renders a half-cell-**offset** grid where each display tile samples the 4 cells touching a grid *corner*; corner bits `TL=1, TR=2, BR=4, BL=8` → 16-frame index = mask (like blob4 but corner-keyed). Because a tile's empty corners stay transparent, **stacking several `"dual"` passes — one `TileLayer` per terrain, lowest priority first** — makes each upper terrain's border reveal the one beneath it, i.e. RPG-Maker-style A-over-B transitions with only a 16-frame corner tileset per terrain (no hand-drawn transition art). This is how the project supports *terrain-to-terrain* blending; the priority stack is just ordered `Renderer` passes (no new class). Validate corner art with `sceneTileInspectDual`; see `sceneTileTerrain` (water < sand < grass) for the reference composition. `softEdge` is ignored in dual mode. `spr_tiledual` is the project's 16-frame corner tileset (frame N fills the corners of mask N); both dual demos use it.
-- **`RenderDebugEntity`** — `BBox` outlines (lime) + `Name` labels (white) for all entities with `Position`. Interpolates via `PrevPosition` + `world.alpha` like `RenderEntity`.
-- **`RenderDebugPath`** (`new RenderDebugPath(level)`) — active `PathResponse` paths (yellow) + pending `PathRequest` goals (red cross).
-- **`RenderDebugTileMap`** (`new RenderDebugTileMap(level, opt?)`) — overlay: cost shading, grid lines, tile id/name + coordinate labels. `opt`: `{ grid, cost, tiles, coords, names, color, alpha, font }`. Call `level.syncAll()` first.
-
-**`VertexBuffer`** (`scripts/VertexBuffer/`) wraps GameMaker vertex buffers with a fixed `position + texcoord + colour` format: `.begin()`, `.addQuad(x,y,w,h,u0,v0,u1,v1,color?,alpha?)`, `.addQuadV(...)` (per-corner alpha), `.end(freeze?)`, `.submit(texture)`, `.destroy()`.
-
-### UI System
-
-- **`UIElement`** (`scripts/UIElement/`): tree node backed by `flexpanel` (GameMaker Flexbox). `insertChild`, `removeChild`, `addComponent(c)`, `getComponent(Class)`, `getComponents(Class)`, `removeComponent(c)`. `markDirty()` propagates to root; `refresh()` calls `flexpanel_calculate_layout`.
-- **`UI`** (`scripts/UI/`): static root registry. `UI.insert(root, index?, enabled?)`, `UI.remove(root)`, `UI.setEnabled(root, bool)`. `update()` traverses in reverse (highest index blocks lower); `draw()` forward.
-- **`UIComponent` interface**: `{ onUpdate?(element, block), onDraw?(element), onDestroy?(element) }`. Built-ins: `UIButton`, `UIText`, `UIRichText` (one markup string → colored spans `[c=#hex]…[/c]` + inline icons `[spr=name]`; self-sizes like `UIText`, so it's a text drawer with no NaN-width guard, and like `UIText` can't self-size at runtime — host stacked lines in explicit-height rows), `UIImage`, `UIPanel`, `UITrigger`, `UISlider`, `UISelect`, `UIInput`, `UIRebind` (key-rebinding row — shows an `Input` action's current keyboard binding, click to arm "press a key…" capture, the next key press rebinds the action's first button in place; Esc/mouse-click cancels), `UIProgress` (non-interactive 0–1 fill bar), `UICheckbox` (visual toggle; `style:"check"` box+tick or `"switch"` pill+knob), `UITooltip` (self-contained hover tooltip — detects its own hover via `positionMeeting`+`block`, no `UITrigger` needed; feeds the global `Tooltip` past a dwell delay).
-- **`Tooltip`**: standalone static class (not a `UIComponent`). `Tooltip.set(str)` from anywhere; renders once per frame at mouse position via `Tooltip.draw()` in `Draw_75`.
-- **`Toast`**: standalone static class (not a `UIComponent`), same pattern as `Tooltip`. `Toast.push(str, opts)` from anywhere; `Toast.draw()` in `Draw_75` (after `Tooltip`) ages the stack by `Time.raw` and renders a bottom-center timed stack (newest at bottom). `opts`: `{ duration, type ("info"|"success"|"warn"|"error"), accent }` — `type` picks the left accent-stripe color; entries fade/slide in+out and are culled when expired (`Toast.maxItems` cap drops the oldest).
-- **`SlotDrag`**: standalone static class (not a `UIComponent`) backing drag-and-drop between `UISlots` grids (built with `draggable: true`). `SlotDrag.poll()` runs in `Step_0` before `UI.update` and latches the mouse edges once per frame (`pressed`/`released`) — UISlots and SlotDrag read those, never `mouse_check_button*` directly (see the realtime-sampling note in GMRT-Safe Idioms). A grid calls `SlotDrag.begin(grid, i)` on `pressed` over a filled slot (picks it up; source slot empties, floating icon drawn in `SlotDrag.draw()` in `Draw_75`), then `SlotDrag.hover(grid, j)` each frame the cursor is over one of its slots to **record** the drop target. `SlotDrag.update()` (`Step_0`, after `UI.update`) resolves on the release edge: drop onto the last-recorded slot (swaps occupants, works across grids), or — if none was ever hovered — restore to source. The recorded target is *persisted* (not cleared when the cursor leaves a slot), so a small drift off the slot as the button comes up still drops. (Note: `UISlots.onUpdate` keeps the hit-test in instance fields `this._inside`/`this._hover`, not boolean local consts — those get clobbered mid-function on GMRT; that was the long drag-drop bug.)
-- **`VirtualKeyboard`**: standalone static class (not a `UIComponent`) — on-screen keyboard for gamepad/mouse text entry into a `UIInput`. `VirtualKeyboard.open(input)` pops a `gemsModal` (exclusive backdrop, blocks background nav, Esc/backdrop cancels) whose body is a preview line + a grid of character keys; the keys are ordinary `gemsButton`s, so the whole keyboard is `UINav`-navigable for free (dpad/stick to move, A/Enter to type). Keys edit an in-memory buffer; **Done** commits to the field (`setValue` + `onConfirm`), Cancel/Esc/backdrop discard — the field is untouched until Done. Shift toggles letter case via live key labels (no relabel). `VirtualKeyboard.isOpen()` is a **method, not a `static get`** — GMRT 0.19 does not invoke static getters (instance getters work; a static getter silently returns `undefined`).
-- **`UINav`**: standalone static class (not a `UIComponent`) — keyboard/gamepad menu navigation, touching neither `UI` nor `UIElement`. An element is **focusable** purely by duck-typing: a component implements `navActivate(element)` (confirm) and/or `navAxis(element, dir)` (horizontal adjust, `dir` = −1/+1). `UINav.update()` (`Step_0`, after `UI.update`, before the pending-scene swap) walks the enabled roots, collects focusables with a valid on-screen rect (skips ones scrolled out of a `clip` ancestor), and routes input: arrows/dpad/left-stick move focus to the geometrically nearest focusable in that direction; a horizontal press over a widget with `navAxis` tweaks it instead of moving; Enter/Space/`gp_face1` → `navActivate`; Esc/`gp_face2` disengages. `UINav.draw()` (`Draw_75`) draws a pulsing accent focus ring. Roots are collected **top-down and collection stops at an exclusive root** — a component implementing `navExclusive() → true` (e.g. an open `UIModal`) blocks nav from reaching the roots beneath it, mirroring the modal's pointer block. Focusables scrolled out of a `UIScroll` viewport stay collectable (so a list taller than its window is fully reachable without a mouse); when focus lands on one, `_scrollIntoView` nudges each `UIScroll` ancestor's `scroll` so the focused element comes into view — the scroll follows focus. Engagement model: the first nav input only engages + focuses (doesn't act); moving the mouse disengages (ring hidden) so pointer and pad don't fight; while a field is being typed (`UIInput.active` set) nav is suspended so the caret keeps the arrows/Enter. `obj_game` calls `UINav.reset()` on every scene swap and seeds `UINav.color` from the theme. Directional routing is **edge-aware** (`_pick`): the perpendicular term is the *gap between rects* (0 when they overlap on the cross axis), with ties broken by collection order, so e.g. Down from a full-width row lands on the leftmost item below (reading order) rather than whichever sits nearest screen-center. Nav hooks live on `UIButton`/`UICheckbox`/`UISelect`/`UIStepper`/`UISlider`/`UITabs` (tab strip = one focus stop, left/right switches tabs)/`UIAccordion` (confirm expands/collapses)/`UIInput` (confirm focuses the field for typing; Enter/Esc blur and resume nav); any new interactive widget becomes navigable just by adding `navActivate`/`navAxis` (and a "blocking" root by adding `navExclusive`). **Debug overlay**: hold `UINav.debugKey` (Tab) to draw every focusable boxed + numbered in collection order, with colour-coded `U`/`D`/`L`/`R` lines from the focused element to each direction's target — to diagnose awkward routing.
-- Many `flexpanel_node_style_*` calls in `UIElement` are commented out pending GameMaker bug [#15065](https://github.com/YoYoGames/GameMaker-Bugs/issues/15065). Don't uncomment until resolved.
-
-### Input System
-
-**`Input`** / **`InputAction`**: `Input.register(key, action)`, `Input.get(key)` → `InputAction`. Query: `.down()`, `.pressed()`, `.released()`, `.value()`. Bind: `.bindButton(source, button)` / `.bindAxis(mode, axis)`. Bulk: `Input.bindAll({ key: [source, button], … })` registers a whole keymap in one call; `Input.unbindAll([keys])` removes them — used by the genre controllers.
-
-### `EntityPreset`
-
-`EntityPreset` (`scripts/EntityPreset/`) spawns entities from named presets:
-
-```js
-EntityPreset.register([{ id: "enemy", components: { Velocity: { x: 0, y: 0, z: 0 }, Lifetime: { ticks: 120 } } }]);
-const id = EntityPreset.spawn("enemy", world, x, y, z);
-EntityPreset.has("enemy"); EntityPreset.get("enemy"); // → boolean / preset or undefined
-```
-
-### `Query` — Spatial Entity Lookup
-
-`Query` (`scripts/Query/`) searches entities with `Position`:
-
-```js
-Query.nearest(world, x, y, opts);          // → id or -1
-Query.farthest(world, x, y, opts);         // → id or -1
-Query.inRect(world, x1, y1, x2, y2, opts); // → id[]
-Query.inRadius(world, x, y, radius, opts);  // → id[]
-```
-
-`opts`: `{ tag?, maxDist?, hasCollision? }`. `tag` filters by `Tag` component (`{ tags: Set }`).
-
-### Utility Modules
-
-- **`Settings`**: persists to `settings.json` (`Settings.PATH`). `registerDefaults({...})` before `load()` at startup (calls merge additively). `get(key)` falls back to defaults; `set(key, val)` updates memory; `save()` writes only keys present in defaults.
-- **`Color`**: `Color.rgb(r,g,b)`, `Color.hsv(h,s,v)`, `Color.merge(c1,c2,t)`, `Color.parse("#rrggbb")` → GameMaker color ints; `Color.alpha(color)` → alpha byte `[0,1]`.
-- **`I18n`**: `I18n.load(manifestPath)` reads a `manifest.json` listing text-file masks (e.g. `text/*.json`), fonts, images, sounds; flat `{ key: value }` text JSON is merged into `I18n.texts`. `I18n.text(key, ...params)` or `I18n.textRef(...)` (a `() => string` for live-updating UI labels); fonts via `I18n.font(key)`. Ships `en-US` (default, loaded in `obj_game` `Create_0`; no manifest fonts → falls back to the built-in draw font, which can't render Korean) and `ko-KR` (Noto Sans KR, SIL OFL 1.1). Strings are split by genre under each locale's `text/`: `common`, `platformer`, `topdown`, `rts`, `benchmark`, `map` (the `text/*.json` mask merges them all). Fonts are keyed by role, not size: `default` (Regular 12), `header` (Bold 16), `description` (Regular 10). en-US declares no fonts, so all three `I18n.font(...)` keys resolve to the built-in draw font.
-- **`Camera`** / **`cameraFollow`** / **`cameraFollow2d`**: `Camera` wraps a `camera_*` handle (ORTHO, PERSPECTIVE, PERSPECTIVE_FOV). `cameraFollow({ world, followTarget, followLerp?, followHeight?, ... })` — 3D perspective follow; `cameraFollow2d({ world, followTarget, followLerp?, width?, height?, ... })` — 2D orthographic (pixel-snapped). Both read the target's `Position` from `world`. Call `.update()` each step and `.assign(viewIndex)` to attach to a viewport.
-- **`MotionPlanner`**: static A* on `MotionPlanningGrid`. `MotionPlanner.plan(start, goal, algorithm?, opt?)` → `{x,y}[]`. Options: `allowDiag`, `cornerCutting`, `heuristicWeight`, `maxIter`.
-- **`AABB`**: world-space box geometry that owns the non-uniform `BBox`-anchor convention (see Component Pattern note). `AABB.edges(pos, box)` / `AABB.of(world, id)` → `{ x1, y1, x2, y2, cx, cy }`; `AABB.overlap(a, b)` → strict overlap (touching edges don't count). Every collision/geometry system derives edges through this, never inline `pos.x + box.x` — consumers: `SolidSystem`, `SeparationSystem`, `TriggerSystem`, `BlockSystem`, `EnemySystem`, `Raycast`, `RenderDebugEntity`. (`Query` is *not* a consumer — it does point-vs-rect tests on `Position` only.)
-- **`Broadphase`** (`scripts/Broadphase/`): Uniform-grid broadphase for O(n) physics pair queries. `new Broadphase(worldWidth, worldHeight, cellSize)` — `cellSize` must exceed entity full diameter so center-based bucketing guarantees all overlapping pairs are in adjacent cells. `clear()`, `insert(id, cx, cy)`, `pairs(fn)` (calls `fn(a, b)` per candidate pair, no duplicates). Assign to `world.broadphase` to opt `SeparationSystem` and `TriggerSystem` into the broadphase path; scenes without it fall back to O(n²). Apply selectively — crowd/RTS scenes benefit; scenes with few interacting bodies (platformer) don't need it.
-- **`Raycast`**: static segment-vs-AABB cast over all collider entities. `Raycast.cast(world, x0, y0, x1, y1, opts)` → nearest hit `{ id, x, y, nx, ny, t }` or `null`. `opts`: `{ ignore?, solidOnly? (default true), mask? }`. Shared by `ProjectileSystem` (bullets) and line-of-sight queries.
-- **`File`**: sync I/O. `File.find(mask)` → `string[]`, `File.read(fname)` → `string|undefined`, `File.write(fname, data)` → `boolean`.
-- **`Log`**: text-based behavior verification (there are no tests). `Log.info/warn/error/debug(msg)` buffer timestamped lines; `obj_game` calls `Log.clear()` at startup and `Log.flush()` once per frame (only rewrites `game.log` when dirty). Read `game.log` to confirm runtime behavior without watching the window.
-- **Global utils** (`scripts/utils/`): `noop()`, `uuid()` → UUID v4, `rem(value)` → pixel size relative to current font size.
