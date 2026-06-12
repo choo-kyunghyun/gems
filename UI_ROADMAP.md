@@ -277,8 +277,22 @@ the matching game work resumes, but they're listed so the plan is complete.
   Demoed by a "Dialogue…" button in the sceneUIKit Widgets tab (3 pages, narrator + a
   named speaker). *Dep: #12 (UIRichText) ideal — body is plain typewriter text for now;
   inline rich markup is a later enhancement.*
-- [ ] **19. Floating combat text** — world-space damage/heal numbers that rise + fade
-  (drawn in the scene camera, not the GUI layer). *Dep: #16 (Tween).*
+- [x] **19. Floating combat text** — world-space damage/heal numbers that rise + fade.
+  Done as **`FloatingText`** (standalone static singleton like Toast/Dialogue, NOT a
+  UIComponent): `FloatingText.push(worldX, worldY, text, opts)` with `opts: { type, color,
+  life, rise, scale }`; `type` picks the color (`damage` white / `hurt` red / `heal` green /
+  `crit` gold / `mana` blue). Unlike Toast/Dialogue it draws in **world space**, so its
+  `draw()` is called from a *scene's* `draw()` (inside the camera view, after the entities),
+  NOT from obj_game Draw_75; obj_game calls `FloatingText.clear()` on every scene swap (world
+  coords are scene-local). Each number rises (`Tween.easeOutCubic`), pops in (`easeOutBack`
+  scale), and fades out over its last 35% — the #16 payoff. It ages by **`Time.delta`** (sim
+  time), NOT `Time.raw` like the GUI singletons: it's gameplay feedback, so a slow-mo /
+  time-dilation effect should slow the numbers too. Numbers are at caller-supplied world
+  coords (no flexpanel → no NaN-width guard); rendered with `draw_text_transformed_color`
+  (probe-confirmed it renders on 0.19, unlike `draw_triangle_color`). Wired into
+  **`sceneTopDown`** as the real demo: a per-tick `_trackDamage()` diffs each combatant's
+  `Health` and pops a number on any change — white over a hit slime, red over the hurt player,
+  green `+N` on heal/level-up — so the genre scene shows it in live combat. *Dep: #16 (Tween).*
 - [ ] **20. Quest tracker HUD** — on-screen list bound to the existing `QuestLog`.
   *Dep: #5 (scroll), #12 (rich text).*
 - [ ] **21. Minimap / radar** *(stretch)* — entity blips from `Query`/`World` on a

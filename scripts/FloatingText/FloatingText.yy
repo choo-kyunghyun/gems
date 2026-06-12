@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FloatingText",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FloatingText",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FloatingText.js",
+}

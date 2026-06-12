@@ -160,6 +160,7 @@ class _SceneTopDownClass extends Scene {
     this.toastTimer = 0;
     this.toastName = "";
     this.toastQueue = [];
+    this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
 
     // ── Lobby back button + hint (flexpanel, GUI layer) ────────────────────
     this.ui = gemsRoot();
@@ -188,6 +189,7 @@ class _SceneTopDownClass extends Scene {
       TopDownController.update(this.world, this.ctrl);
       this.physics.update(this.world);
 
+      this._trackDamage(); // pop floating numbers for any hp change this tick
       this._resolveDeaths(); // spill loot + count kills (before flush removes them)
       this._checkPlayerDeath(); // slimes can kill the player → respawn at spawn
       this._collectDrops(); // pick up ground items into the player's inventory
@@ -231,6 +233,35 @@ class _SceneTopDownClass extends Scene {
     }
   }
 
+  // Floating combat text: diff each combatant's Health against last tick and pop a
+  // number on any change — damage (white over slimes, red over the player) falls, heals
+  // (green "+N") rise. Runs after physics (bullet hits + slime-attack drain are both in)
+  // and before _resolveDeaths removes the killed slime, so the killing blow still pops.
+  _trackDamage() {
+    this._diffHp(this.ctrl.id, true);
+    for (let i = 0; i < this.enemies.length; i++)
+      this._diffHp(this.enemies[i], false);
+  }
+
+  _diffHp(id, isPlayer) {
+    if (!this.world.isValid(id)) return;
+    const hp = this.world.get(Health, id);
+    if (hp === undefined) return;
+    const prev = this._hpTrack[id];
+    if (prev !== undefined && hp.hp !== prev) {
+      const pos = this.world.get(Position, id);
+      if (pos !== undefined) {
+        const d = hp.hp - prev; // <0 = damage, >0 = heal
+        if (d < 0)
+          FloatingText.push(pos.x, pos.y - 14, -d, {
+            type: isPlayer ? "hurt" : "damage",
+          });
+        else FloatingText.push(pos.x, pos.y - 14, "+" + d, { type: "heal" });
+      }
+    }
+    this._hpTrack[id] = hp.hp;
+  }
+
   // Slime ATTACK states drain the player's Health. On death, respawn at the
   // level's spawn point with full hp (no progress lost — kept deliberately soft).
   _checkPlayerDeath() {
@@ -244,6 +275,7 @@ class _SceneTopDownClass extends Scene {
     pos.y = this.spawn.y;
     vel.x = 0;
     vel.y = 0;
+    this._hpTrack[this.ctrl.id] = hp.hp; // don't pop a "+heal" for the respawn refill
     Log.info("player died — respawned at spawn");
   }
 
@@ -435,6 +467,7 @@ class _SceneTopDownClass extends Scene {
   draw() {
     TopDownUI.drawWorld(this); // walls, drops, bullets, reach zone (world space)
     TopDownUI.drawEntities(this); // player / slimes / elder as colored boxes (interpolated)
+    FloatingText.draw(); // damage/heal numbers over entities (world space, before HUD)
 
     const cam = this.camera.id; // camera handle (view_camera[] isn't exposed in GMRT JS)
     const vx = camera_get_view_x(cam);
