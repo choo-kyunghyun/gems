@@ -64,6 +64,8 @@ globalThis.UINav = class UINav {
 
     // Suspend while typing — let the caret keep arrows / Enter.
     if (UIInput.active !== null) return;
+    // Suspend while a dialogue box owns Enter / A / arrows for advancing.
+    if (Dialogue.isOpen()) return;
 
     const inp = UINav._readInput();
     if (inp.cancel) {

@@ -89,6 +89,7 @@
     {"id":{"name":"ConsumableSystem","path":"scripts/ConsumableSystem/ConsumableSystem.yy",},},
     {"id":{"name":"Container","path":"scripts/Container/Container.yy",},},
     {"id":{"name":"demo","path":"scripts/demo/demo.yy",},},
+    {"id":{"name":"Dialogue","path":"scripts/Dialogue/Dialogue.yy",},},
     {"id":{"name":"Direction","path":"scripts/Direction/Direction.yy",},},
     {"id":{"name":"Encumbrance","path":"scripts/Encumbrance/Encumbrance.yy",},},
     {"id":{"name":"EncumbranceSystem","path":"scripts/EncumbranceSystem/EncumbranceSystem.yy",},},

@@ -159,6 +159,24 @@ class _SceneUIKitClass extends Scene {
         { width: 150, tooltip: I18n.textRef("UIKIT_TIP_TOAST") },
       ),
     );
+    bar.insertChild(
+      gemsButton(
+        I18n.textRef("UIKIT_BTN_SAY"),
+        () =>
+          Dialogue.start([
+            I18n.text("UIKIT_SAY_1"),
+            {
+              speaker: I18n.text("UIKIT_SAY_SPEAKER"),
+              text: I18n.text("UIKIT_SAY_2"),
+            },
+            {
+              speaker: I18n.text("UIKIT_SAY_SPEAKER"),
+              text: I18n.text("UIKIT_SAY_3"),
+            },
+          ]),
+        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_SAY") },
+      ),
+    );
     buttons.insertChild(bar);
     buttons.insertChild(
       gemsLabel(() => I18n.text("UIKIT_CLICKS") + " " + this.clicks, {

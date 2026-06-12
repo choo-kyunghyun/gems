@@ -3,6 +3,7 @@ SlotDrag.poll();
 UI.update();
 SlotDrag.update();
 UINav.update();
+Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-box)
 // Route a queued scene change through a fade: start the transition (it swaps the
 // scene at full cover), and hold the pending factory while a fade is already running
 // so a second openScene mid-fade can't stack two swaps.

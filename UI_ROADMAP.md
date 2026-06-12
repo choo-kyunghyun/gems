@@ -254,8 +254,29 @@ hoisting fault.)
 These lean toward the Templates genres rather than the generic kit — pull them in when
 the matching game work resumes, but they're listed so the plan is complete.
 
-- [ ] **18. RPG dialogue box + typewriter text** — paged dialogue with reveal speed +
-  advance; pairs with the RPG templates and `QuestLog`. *Dep: #12 (UIRichText) ideal.*
+- [x] **18. RPG dialogue box + typewriter text** — paged dialogue with reveal speed +
+  advance. Done as **`Dialogue`** (standalone static singleton like Tooltip/Toast/
+  SceneTransition, NOT a UIComponent): `Dialogue.start(pages, opts)` where each page is a
+  string or `{ speaker, text }`; `opts: { speed (chars/sec, default 45), onComplete }`.
+  The box is a bottom-anchored, centered rounded panel (capped at `maxWidth`, fixed
+  `lines`-row height) drawn off `display_get_gui_*` — so no flexpanel/NaN-width hazard and
+  no `!(pos.width > 0)` guard. Each page's text is greedy word-wrapped once into stable
+  lines (`_wrap`, honours `\n`), then the typewriter reveals a JS substring across them at
+  `speed` chars/sec on `Time.raw` (ignores `Time.scale`). A speaker name plate (accent
+  border) tucks onto the top-left edge; a blinking `draw_text` `"v"` chevron (NOT a
+  triangle — renders nothing on 0.19) shows once the page is fully revealed. Advance with
+  Enter / Space / gamepad A, or a click **inside the box** (hit-tested so a click on
+  background UI doesn't also page it); first advance snaps to full, the next pages on,
+  past the last closes + fires `onComplete`. Wiring: `Dialogue.update()` in Step_0,
+  `Dialogue.draw()` in Draw_75 (after Toast), `Dialogue.clear()` on every scene swap;
+  UINav suspends while it's open (it owns Enter/A), mirroring the `UIInput.active` guard.
+  `isOpen()` is a **method** (static getters don't fire on 0.19). New GMRT note found: a
+  **static field initializer can't reference the class's own name** (`static x =
+  ClassName.y` throws `ReferenceError` at load — the binding isn't live during class
+  evaluation); use a literal and read `ClassName.y` from methods (which run post-load).
+  Demoed by a "Dialogue…" button in the sceneUIKit Widgets tab (3 pages, narrator + a
+  named speaker). *Dep: #12 (UIRichText) ideal — body is plain typewriter text for now;
+  inline rich markup is a later enhancement.*
 - [ ] **19. Floating combat text** — world-space damage/heal numbers that rise + fade
   (drawn in the scene camera, not the GUI layer). *Dep: #16 (Tween).*
 - [ ] **20. Quest tracker HUD** — on-screen list bound to the existing `QuestLog`.
