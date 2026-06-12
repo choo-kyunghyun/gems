@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SceneTransition",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SceneTransition",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SceneTransition.js",
+}

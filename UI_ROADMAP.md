@@ -227,9 +227,18 @@ hoisting fault.)
   alpha/scale transforms (no runtime flexpanel mutation), which is the transition-fade
   infrastructure #17 builds. Demoed by a "Motion (Tween)" section in the sceneUIKit Widgets
   tab (one ping-pong clock through linear / ease-out / ease-in-out bars). *No deps.*
-- [ ] **17. Scene transition / fade** — full-screen fade (or wipe) between scenes,
-  hooked into `obj_game`'s pending-transition step. Removes the hard cut on
-  `openScene`. *Soft dep: #16.*
+- [x] **17. Scene transition / fade** — full-screen fade between scenes. Done as
+  **`SceneTransition`** (standalone static singleton like Tooltip/Toast/UINav): a
+  fade-OUT → swap-at-full-cover → fade-IN state machine. `obj_game` Step_0 now routes a
+  queued `openScene` through `SceneTransition.start(applyFn)` instead of swapping inline —
+  the scene is rebuilt at full cover (UI tear-down/rebuild hidden), and the pending factory
+  is held while a fade runs so a second `openScene` mid-fade can't stack two swaps.
+  `SceneTransition.draw()` runs **last** in Draw_75 (after the UI) so the cover veils the
+  UI too; the timer uses `Time.raw` and the curve is `Tween.easeInOutQuad` (the #16 payoff).
+  `reveal()` is called on boot for a fade-in from black (note: the first frame's `delta_time`
+  bundles the whole startup load, so the boot reveal is usually instant — mid-session
+  transitions have normal dt and play fully). Verified by screenshot mid-transition (old
+  scene + its UI veiled under the cover). *Soft dep: #16.*
 
 ## Phase 6 — Game-specific HUD (genre, optional)
 

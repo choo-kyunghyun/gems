@@ -47,8 +47,12 @@ this.scene = null;
 this._pendingScene = null;
 
 // Queue a scene transition — applied after UI.update() to avoid destroying
-// the UI tree while it is still being traversed.
+// the UI tree while it is still being traversed. Ignored while a fade is already
+// running: during the fade-out the outgoing scene's buttons are still live, so
+// without this guard spamming one re-queues _pendingScene and a second fade fires
+// once the first finishes.
 this.openScene = (factory) => {
+  if (SceneTransition.isBusy()) return;
   this._pendingScene = factory;
 };
 
@@ -62,3 +66,4 @@ this._applyScene = (factory) => {
 UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit theme
 
 this._applyScene(this.scenes.title);
+SceneTransition.reveal(); // boot fades the title in from black instead of popping

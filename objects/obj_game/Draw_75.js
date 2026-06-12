@@ -3,6 +3,7 @@ UINav.draw();
 SlotDrag.draw();
 Tooltip.draw();
 Toast.draw();
+SceneTransition.draw(); // last: the fade cover veils the UI + scene during a swap
 
 if (keyboard_check_pressed(vk_f5)) {
   const date = new Date();
