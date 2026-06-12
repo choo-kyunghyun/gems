@@ -196,7 +196,7 @@ globalThis.UINav = class UINav {
         const tx = items[j].cx;
         const ty = items[j].cy;
         const col = dirs[d][3];
-        draw_line_width_color(fx, fy, tx, ty, 2, col, col);
+        UINav._dottedLine(fx, fy, tx, ty, col);
         draw_set_color(col);
         draw_text(
           (fx + tx) * 0.5 + 4,
@@ -211,6 +211,29 @@ globalThis.UINav = class UINav {
     draw_set_valign(valign);
     draw_set_color(color);
     draw_set_alpha(a0);
+  }
+
+  // A dotted connector drawn as small squares stepped along the segment — NOT
+  // draw_line_width_color, which renders nothing on GMRT 0.19 (see CLAUDE.md), so the
+  // debug direction lines were invisible. draw_rectangle_color works.
+  static _dottedLine(x1, y1, x2, y2, col) {
+    const n = max(1, floor(point_distance(x1, y1, x2, y2) / 7));
+    for (let i = 0; i <= n; i++) {
+      const r = i / n;
+      const px = x1 + (x2 - x1) * r;
+      const py = y1 + (y2 - y1) * r;
+      draw_rectangle_color(
+        px - 1.5,
+        py - 1.5,
+        px + 1.5,
+        py + 1.5,
+        col,
+        col,
+        col,
+        col,
+        false,
+      );
+    }
   }
 
   // ── internals ──────────────────────────────────────────────────

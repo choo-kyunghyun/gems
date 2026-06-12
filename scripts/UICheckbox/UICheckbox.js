@@ -121,28 +121,23 @@ globalThis.UICheckbox = class UICheckbox {
         true,
       );
       if (t > 0.01) {
-        draw_set_alpha(t);
-        const lw = Math.max(2, s * 0.12);
-        // Tick: down-stroke into the lower-left, up-stroke to the upper-right.
-        draw_line_width_color(
-          bx1 + s * 0.24,
-          by1 + s * 0.52,
-          bx1 + s * 0.42,
-          by1 + s * 0.72,
-          lw,
+        // Checked = a filled rounded inner square that pops in (scaled by the eased t).
+        // NOT a draw_line tick — draw_line_width_color renders nothing on GMRT 0.19
+        // (see CLAUDE.md), which left the old checkmark invisible. draw_roundrect works.
+        const inner = s * 0.5 * t;
+        const cx = (bx1 + bx2) * 0.5;
+        const irad = Math.max(1, inner * 0.3);
+        draw_roundrect_color_ext(
+          cx - inner * 0.5,
+          cy - inner * 0.5,
+          cx + inner * 0.5,
+          cy + inner * 0.5,
+          irad,
+          irad,
           this.colorKnob,
           this.colorKnob,
+          false,
         );
-        draw_line_width_color(
-          bx1 + s * 0.42,
-          by1 + s * 0.72,
-          bx1 + s * 0.76,
-          by1 + s * 0.3,
-          lw,
-          this.colorKnob,
-          this.colorKnob,
-        );
-        draw_set_alpha(1);
       }
     }
 
