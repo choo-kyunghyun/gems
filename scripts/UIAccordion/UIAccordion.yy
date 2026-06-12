@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIAccordion",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIAccordion",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIAccordion.js",
+}

@@ -102,3 +102,11 @@ mutating the flex node. The few setters that are proven safe and kept live in
 `UIElement` are `setWidth` / `setHeight` / `setPosition`; `display: "none"` toggling
 via `child.enabled` (our own flag, checked in `update`/`draw`) is the reliable way to
 show/hide a subtree without touching flex styles.
+
+**Structural mutation IS reliable** (probe-verified 2026-06-12): adding/removing a
+child at runtime — `insertChild` / `removeChild` → `markDirty` → `flexpanel_calculate_layout`
+— reflows the tree correctly, even after the first layout pass. The #15065 bug is
+specifically the per-frame **style setters**, not the node graph. So when a layout
+genuinely must change height (e.g. an accordion section opening), insert/remove the
+subtree rather than animating a flex dimension. `UIAccordion` relies on this; pages
+that only show/hide at the **same** size should still prefer `enabled` (no reflow).

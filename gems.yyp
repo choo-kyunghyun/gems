@@ -185,6 +185,7 @@
     {"id":{"name":"TopDownUI","path":"scripts/TopDownUI/TopDownUI.yy",},},
     {"id":{"name":"TriggerSystem","path":"scripts/TriggerSystem/TriggerSystem.yy",},},
     {"id":{"name":"UI","path":"scripts/UI/UI.yy",},},
+    {"id":{"name":"UIAccordion","path":"scripts/UIAccordion/UIAccordion.yy",},},
     {"id":{"name":"UIButton","path":"scripts/UIButton/UIButton.yy",},},
     {"id":{"name":"UICheckbox","path":"scripts/UICheckbox/UICheckbox.yy",},},
     {"id":{"name":"UIElement","path":"scripts/UIElement/UIElement.yy",},},

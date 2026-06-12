@@ -267,6 +267,58 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
   return root;
 };
 
+// Accordion: a vertical stack of collapsible sections. `sections` is
+// [{ title, content, open }] — title is a string/() => string, content a prebuilt
+// UIElement, open the initial state. Each section is a clickable UIAccordion header
+// over a padded body that is inserted/removed on toggle (so the stack reflows to the
+// open sections — sections are independent, multiple can be open). Returns the column;
+// each header's UIAccordion is reachable for programmatic control if needed.
+globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
+  const list = new UIElement({
+    width: opts.width ?? "100%",
+    gap: opts.gap ?? GemsTheme.gapSm,
+  });
+
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    const item = new UIElement({ width: "100%", gap: 2 });
+
+    const header = new UIElement({
+      width: "100%",
+      height: opts.headerHeight ?? GemsTheme.rowH,
+      flexShrink: 0,
+    });
+    const acc = new UIAccordion({
+      title: s.title,
+      expanded: s.open ?? false,
+      onToggle: opts.onToggle,
+      font: opts.font ?? I18n.font("header"),
+      rad: GemsTheme.radiusSm,
+      titleColor: gemsColor(GemsTheme.text),
+      headerColor: gemsColor(GemsTheme.btn),
+      headerHover: gemsColor(GemsTheme.btnHover),
+      chevronColor: gemsColor(GemsTheme.textMuted),
+      chevronHover: gemsColor(GemsTheme.accent),
+    });
+    header.addComponent(acc);
+
+    // Padded body; the component inserts/removes this whole wrapper on toggle.
+    const body = gemsPanel({
+      color: GemsTheme.panelLo,
+      rad: GemsTheme.radiusSm,
+      padding: GemsTheme.padSm,
+    });
+    body.insertChild(s.content);
+    acc.body = body;
+
+    item.insertChild(header);
+    if (acc.expanded) item.insertChild(body);
+    list.insertChild(item);
+  }
+
+  return list;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({

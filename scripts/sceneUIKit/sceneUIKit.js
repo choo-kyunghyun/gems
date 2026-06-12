@@ -39,8 +39,12 @@ class _SceneUIKitClass extends Scene {
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
 
-    // ── Tab: Containers (nine-slice skin + scroll list), two columns ──
-    const containers = this._twoCol(this._skinSection(), this._scrollSection());
+    // ── Tab: Containers (nine-slice skin + accordion | scroll list) ──
+    // Left column scrolls so expanding accordion sections can't overflow the host.
+    const left = gemsScroll({ height: 250 });
+    left.scrollBody.insertChild(this._skinSection());
+    left.scrollBody.insertChild(this._accordionSection());
+    const containers = this._twoCol(left, this._scrollSection());
 
     this.ui.insertChild(
       gemsTabs(
@@ -282,6 +286,33 @@ class _SceneUIKitClass extends Scene {
     );
     skin.insertChild(box);
     return skin;
+  }
+
+  _accordionSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_ACCORDION"));
+    sec.insertChild(
+      gemsAccordion([
+        {
+          title: I18n.textRef("UIKIT_ACC_DISPLAY"),
+          open: true,
+          content: this._accBody(),
+        },
+        { title: I18n.textRef("UIKIT_ACC_AUDIO"), content: this._accBody() },
+        { title: I18n.textRef("UIKIT_ACC_GAME"), content: this._accBody() },
+      ]),
+    );
+    return sec;
+  }
+
+  // A fresh body element per section (the same element can't live in two places).
+  _accBody() {
+    const body = gemsList();
+    body.insertChild(
+      gemsLabel(I18n.textRef("UIKIT_ACC_BODY"), {
+        color: GemsTheme.textMuted,
+      }),
+    );
+    return body;
   }
 
   // A list taller than its 160px window — the scroll keystone, here nested under a

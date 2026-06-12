@@ -120,9 +120,15 @@ hoisting fault.)
   "absolute"` overlay (insets 0) so they stack in one rect — no reflow on switch. Pages
   that overflow the display/2 clamp are wrapped in a `gemsScroll` (tabs + scroll
   compose). *No deps.*
-- [ ] **8. `UIAccordion` / collapsible section** — expand/collapse titled groups
-  (height driven by draw-time clip, content `enabled` toggled). Good for settings.
-  *Soft dep on UIScroll patterns.*
+- [x] **8. `UIAccordion` / collapsible section** — expand/collapse titled groups.
+  `gemsAccordion([{title, content, open}])`. Done: each section is a `UIAccordion`
+  header (draws its own bg + title + a `draw_triangle` chevron, no font glyph) over a
+  padded body. Unlike `UITabs` (stack + `enabled` toggle), an accordion must change
+  the layout height, so toggling **inserts/removes the body element** from the item
+  container — a structural change that reflows reliably (probe-verified this session:
+  runtime `insertChild`/`removeChild` + `markDirty` recompute correctly; the #15065
+  bug is only the per-frame style *setters*). Sections are independent (multiple open).
+  Demoed in the sceneUIKit Containers tab.
 
 ## Phase 3 — HUD & feedback
 
