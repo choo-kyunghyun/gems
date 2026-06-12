@@ -53,6 +53,7 @@ class _SceneUIKitClass extends Scene {
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
+    values.scrollBody.insertChild(this._vkSection());
 
     // ── Tab: Containers (nine-slice skin + accordion | scroll list) ──
     // Left column scrolls so expanding accordion sections can't overflow the host.
@@ -273,6 +274,27 @@ class _SceneUIKitClass extends Scene {
       ),
     );
     return fields;
+  }
+
+  // VirtualKeyboard: a field plus a button that opens the on-screen keyboard bound to
+  // it. The keyboard's keys are gemsButtons, so it's fully gamepad/keyboard navigable
+  // (UINav) — type with the dpad, Done commits into the field.
+  _vkSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_VK"));
+    const field = gemsInput({
+      placeholder: I18n.text("UIKIT_VK_FIELD"),
+      maxLength: 24,
+    });
+    const input = field.getComponent(UIInput);
+    sec.insertChild(gemsRow(I18n.textRef("UIKIT_VK_FIELD"), field));
+    sec.insertChild(
+      gemsButton(
+        I18n.textRef("UIKIT_VK_OPEN"),
+        () => VirtualKeyboard.open(input),
+        { tooltip: I18n.textRef("UIKIT_TIP_VK") },
+      ),
+    );
+    return sec;
   }
 
   // UIRebind: click a row to arm "press a key…", then the next key rebinds that

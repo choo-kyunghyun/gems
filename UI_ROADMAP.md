@@ -200,8 +200,17 @@ hoisting fault.)
   every scene for free (probe-verified in Settings: 10 focusables collected, directional
   moves walk them, ring renders on the focused widget). Keyboard + gamepad (dpad + left
   stick). *Soft dep: every interactive widget exists.*
-- [ ] **15. On-screen / virtual keyboard** — gamepad text entry feeding `UIInput`.
-  *Dep: #13/#14 + `UIInput`.*
+- [x] **15. On-screen / virtual keyboard** — gamepad text entry feeding `UIInput`. Done
+  as **`VirtualKeyboard`** (standalone static singleton): `VirtualKeyboard.open(input)`
+  pops a `gemsModal` (exclusive backdrop → blocks background nav, Esc/backdrop cancels)
+  whose body is a live preview line + a grid of character keys. The keys are ordinary
+  `gemsButton`s, so the keyboard is fully `UINav`-navigable for free (dpad/stick to move,
+  A/Enter to type) — no bespoke focus handling. Keys edit an in-memory buffer; **Done**
+  commits to the field (`setValue` + `onConfirm`), Cancel/Esc/backdrop discard (field
+  untouched until Done). Shift toggles letter case via live key labels. Probe-verified:
+  open → type "Hi" → Done writes "Hi" into the field. Demoed in the sceneUIKit Inputs &
+  Values tab (a field + an "Open keyboard…" button). New GMRT quirk found + documented:
+  `static get` accessors don't fire (use a method — `isOpen()`). *Dep: #13/#14 + `UIInput`.*
 
 ## Phase 5 — Theming & motion (polish layer)
 

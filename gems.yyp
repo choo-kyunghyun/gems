@@ -212,6 +212,7 @@
     {"id":{"name":"utils","path":"scripts/utils/utils.yy",},},
     {"id":{"name":"Velocity","path":"scripts/Velocity/Velocity.yy",},},
     {"id":{"name":"VertexBuffer","path":"scripts/VertexBuffer/VertexBuffer.yy",},},
+    {"id":{"name":"VirtualKeyboard","path":"scripts/VirtualKeyboard/VirtualKeyboard.yy",},},
     {"id":{"name":"Visual","path":"scripts/Visual/Visual.yy",},},
     {"id":{"name":"Weapon","path":"scripts/Weapon/Weapon.yy",},},
     {"id":{"name":"World","path":"scripts/World/World.yy",},},
