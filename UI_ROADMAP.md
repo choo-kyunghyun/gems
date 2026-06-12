@@ -223,10 +223,19 @@ hoisting fault.)
   `easeOutBack`) for *timed* 0→1 motion. Consumers wired: `UIButton` (color/border/shadow
   via `approach*`) and `Toast`'s entry slide (`easeOutCubic`). Note: the roadmap said
   `Time.delta`, but the ground rules mandate `Time.raw` for UI — `approach` defaults to it.
-  **Modal/accordion enter-exit motion deferred to #17** — those need draw-time subtree
-  alpha/scale transforms (no runtime flexpanel mutation), which is the transition-fade
-  infrastructure #17 builds. Demoed by a "Motion (Tween)" section in the sceneUIKit Widgets
-  tab (one ping-pong clock through linear / ease-out / ease-in-out bars). *No deps.*
+  **Modal/accordion enter-exit motion** (initially deferred) is now also wired: `UIModal`
+  animates in/out via the backdrop dim alpha + a card slide on `root.scrollY` (Time.raw +
+  `easeInOutQuad`; `close()` defers the destroy/`onClose` until the exit completes), and
+  `UIAccordion` eases its chevron between the ▶/▼ poses via `Tween.approach`. The accordion
+  *body* still pops (no height tween — runtime flexpanel height mutation is a no-op on 0.19
+  and the body height is dynamic, so there's no fixed height to clip-reveal against); the
+  modal card uses slide + dim (not a per-glyph alpha fade — the card has its own bg, which
+  a subtree fade would mismatch). The accordion ended up with **no** toggle animation: its
+  indicator is a `draw_text` `">"`/`"v"` glyph (matching `UISelect`/`UIStepper`'s `"<"`/`">"`)
+  because `draw_triangle_color`/`draw_line_width_color` render nothing on GMRT 0.19 (probe —
+  the original triangle chevron was invisible; now in CLAUDE.md), and a glyph can't rotate.
+  Demoed by a "Motion (Tween)" section in the sceneUIKit
+  Widgets tab (one ping-pong clock through linear / ease-out / ease-in-out bars). *No deps.*
 - [x] **17. Scene transition / fade** — full-screen fade between scenes. Done as
   **`SceneTransition`** (standalone static singleton like Tooltip/Toast/UINav): a
   fade-OUT → swap-at-full-cover → fade-IN state machine. `obj_game` Step_0 now routes a

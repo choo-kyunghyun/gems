@@ -10,8 +10,15 @@
  * element is kept alive across collapses (removed, not destroyed) so reopening is
  * cheap.
  *
+ * The expand/collapse indicator is a text glyph (">" / "v"), drawn the same way as
+ * UISelect/UIStepper's "<" / ">" arrows so the affordances match. It is NOT a
+ * draw_triangle/draw_line shape: those primitives don't render on GMRT 0.19 (probe-
+ * confirmed — see onDraw), which is why the original triangle chevron was invisible.
+ * There's no toggle animation: the body height can't tween (runtime flexpanel height
+ * mutation is a no-op, #15065) and a glyph can't rotate, so the section just snaps.
+ *
  * GMRT note: hover state is read live from the pointer each frame (no cached
- * primitive bool to be clobbered) and there is no timer (no Time.raw/delta).
+ * primitive bool to be clobbered).
  */
 globalThis.UIAccordion = class UIAccordion {
   constructor(acc = {}) {
@@ -93,42 +100,22 @@ globalThis.UIAccordion = class UIAccordion {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // Chevron: a triangle pointing down when open, right when closed.
-    const s = 4;
-    const cx = pos.left + pos.width - pad - s;
+    if (this.font !== -1) draw_set_font(this.font);
+    draw_set_valign(fa_middle);
+
+    // Indicator: a text glyph ">" (collapsed) / "v" (expanded), drawn exactly like
+    // UISelect/UIStepper's "<" / ">" arrows so the affordances read as one family.
+    // It's draw_text, NOT a draw_triangle/draw_line shape — those primitives don't
+    // render on GMRT 0.19 (probe-confirmed: a filled triangle and a width line both
+    // drew nothing here while draw_roundrect + draw_text in the same onDraw worked),
+    // which is why the original triangle chevron was invisible.
     const ch = this._hover ? this.chevronHover : this.chevronColor;
-    if (this.expanded) {
-      draw_triangle_color(
-        cx - s,
-        cy - 2,
-        cx + s,
-        cy - 2,
-        cx,
-        cy + 3,
-        ch,
-        ch,
-        ch,
-        false,
-      );
-    } else {
-      draw_triangle_color(
-        cx - 1,
-        cy - s,
-        cx - 1,
-        cy + s,
-        cx + 4,
-        cy,
-        ch,
-        ch,
-        ch,
-        false,
-      );
-    }
+    draw_set_halign(fa_right);
+    draw_set_color(ch);
+    draw_text(pos.left + pos.width - pad, cy, this.expanded ? "v" : ">");
 
     // Title, left-aligned and vertically centered.
-    if (this.font !== -1) draw_set_font(this.font);
     draw_set_halign(fa_left);
-    draw_set_valign(fa_middle);
     draw_set_color(this.titleColor);
     draw_text(pos.left + pad, cy, this._title());
 
