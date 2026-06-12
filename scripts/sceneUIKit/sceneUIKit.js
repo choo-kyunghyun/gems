@@ -47,6 +47,7 @@ class _SceneUIKitClass extends Scene {
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
     widgets.scrollBody.insertChild(this._richTextSection());
+    widgets.scrollBody.insertChild(this._motionSection());
 
     // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
     const values = gemsScroll({ height: 250 });
@@ -222,6 +223,38 @@ class _SceneUIKitClass extends Scene {
         color: GemsTheme.textMuted,
         palette: { key: "#ffd86b" },
       }),
+    );
+    return sec;
+  }
+
+  // Tween demo: the same 0→1→0 ping-pong clock fed through different easing curves,
+  // so the bars pace differently (linear = constant, others ease) — the visible proof
+  // of the Tween curve library. Every gemsButton above also eases its hover color via
+  // Tween.approachColor, so the helper is exercised live across the whole scene.
+  _motionSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
+    // Wall-clock ping-pong in [0,1] over ~3.6s — no scene state needed.
+    const clock = () => {
+      const t = (current_time % 3600) / 1800; // 0..2
+      return t < 1 ? t : 2 - t; // fold to 0..1..0
+    };
+    sec.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_MOTION_LINEAR"),
+        gemsProgress(() => Tween.linear(clock())),
+      ),
+    );
+    sec.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_MOTION_OUT"),
+        gemsProgress(() => Tween.easeOutCubic(clock())),
+      ),
+    );
+    sec.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_MOTION_INOUT"),
+        gemsProgress(() => Tween.easeInOutQuad(clock())),
+      ),
     );
     return sec;
   }

@@ -75,10 +75,10 @@ globalThis.UIButton = class UIButton {
     }
 
     if (panel) {
-      // Frame-rate independent easing toward the current state's target values.
-      // Time.raw (wall-clock), not Time.delta — UI must ignore Time.scale so menus
-      // don't slow down / freeze when the sim is time-dilated or paused.
-      const f = clamp(Time.raw * this.animSpeed, 0, 1);
+      // Frame-rate independent easing toward the current state's target values, via
+      // Tween.approach* (Time.raw wall-clock by default — UI must ignore Time.scale so
+      // menus don't slow / freeze when the sim is time-dilated or paused). Each value
+      // is seeded to its target on the first frame so there's no fade-in from black.
       panel.alpha = this.alpha;
 
       const targetColor = this.hold
@@ -89,7 +89,7 @@ globalThis.UIButton = class UIButton {
       this._color =
         this._color === undefined
           ? targetColor
-          : merge_color(this._color, targetColor, f);
+          : Tween.approachColor(this._color, targetColor, this.animSpeed);
       panel.color = this._color;
 
       if (
@@ -103,7 +103,7 @@ globalThis.UIButton = class UIButton {
         this._border =
           this._border === undefined
             ? targetBorder
-            : merge_color(this._border, targetBorder, f);
+            : Tween.approachColor(this._border, targetBorder, this.animSpeed);
         panel.borderColor = this._border;
       }
 
@@ -118,7 +118,7 @@ globalThis.UIButton = class UIButton {
         this._shadow =
           this._shadow === undefined
             ? targetShadow
-            : this._shadow + (targetShadow - this._shadow) * f;
+            : Tween.approach(this._shadow, targetShadow, this.animSpeed);
         panel.shadow = this._shadow;
       }
     }

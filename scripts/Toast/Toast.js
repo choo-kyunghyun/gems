@@ -95,7 +95,8 @@ globalThis.Toast = class Toast {
       const fadeIn = clamp(t.age / Toast.fade, 0, 1);
       const fadeOut = clamp((t.life - t.age) / Toast.fade, 0, 1);
       const a = Math.min(fadeIn, fadeOut);
-      const slide = (1 - fadeIn) * 8; // rise into place on entry
+      // Rise into place on entry, decelerating (easeOutCubic) so it settles smoothly.
+      const slide = (1 - Tween.easeOutCubic(fadeIn)) * 8;
 
       const top = baseline - h + slide;
       const bot = baseline + slide;

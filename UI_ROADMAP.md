@@ -214,9 +214,19 @@ hoisting fault.)
 
 ## Phase 5 — Theming & motion (polish layer)
 
-- [ ] **16. `Tween` helper** — shared `Time.delta` easing util (fade/slide/scale)
-  factored out of `UIButton`'s ad-hoc lerps; consumed by modals/toasts/accordion for
-  enter/exit motion. *No deps; refactor opportunity.*
+- [x] **16. `Tween` helper** — shared easing util factored out of `UIButton`'s ad-hoc
+  lerps. Done as **`Tween`** (static, pure-function helper in `Core/Util`): `approach` /
+  `approachColor` (frame-rate-independent exponential smoothing toward a *moving* target —
+  the pattern `UIButton` used inline for hover/press color + shadow; defaults its delta to
+  `Time.raw` so UI ignores `Time.scale`, takes an explicit `dt` for sim-space), `lerp`, and
+  the easing *curves* (`linear`/`easeInQuad`/`easeOutQuad`/`easeInOutQuad`/`easeOutCubic`/
+  `easeOutBack`) for *timed* 0→1 motion. Consumers wired: `UIButton` (color/border/shadow
+  via `approach*`) and `Toast`'s entry slide (`easeOutCubic`). Note: the roadmap said
+  `Time.delta`, but the ground rules mandate `Time.raw` for UI — `approach` defaults to it.
+  **Modal/accordion enter-exit motion deferred to #17** — those need draw-time subtree
+  alpha/scale transforms (no runtime flexpanel mutation), which is the transition-fade
+  infrastructure #17 builds. Demoed by a "Motion (Tween)" section in the sceneUIKit Widgets
+  tab (one ping-pong clock through linear / ease-out / ease-in-out bars). *No deps.*
 - [ ] **17. Scene transition / fade** — full-screen fade (or wipe) between scenes,
   hooked into `obj_game`'s pending-transition step. Removes the hard cut on
   `openScene`. *Soft dep: #16.*
