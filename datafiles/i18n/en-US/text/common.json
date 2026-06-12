@@ -158,5 +158,11 @@
   "UIKIT_OPT_A": "Option A",
   "UIKIT_OPT_B": "Option B",
   "UIKIT_OPT_C": "Option C",
-  "UIKIT_BACK": "<- Back"
+  "UIKIT_BACK": "<- Back",
+
+  "STORAGE_TITLE": "Storage",
+  "STORAGE_BAG": "Bag",
+  "STORAGE_BOX": "Chest",
+  "STORAGE_PROMPT": "[E] Open chest",
+  "STORAGE_EMPTY": "(empty)"
 }

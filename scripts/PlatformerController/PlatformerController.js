@@ -64,6 +64,7 @@ globalThis.PlatformerController = {
       drop: [INPUT_SOURCE.KEYBOARD, ord("S")],
       attack: [INPUT_SOURCE.MOUSE, mb_left],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
+      interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
     });
 
     const id = world.create();
@@ -297,6 +298,7 @@ globalThis.PlatformerController = {
       "drop",
       "attack",
       "inventory",
+      "interact",
     ]);
   },
 };

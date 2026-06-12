@@ -158,5 +158,11 @@
   "UIKIT_OPT_A": "옵션 A",
   "UIKIT_OPT_B": "옵션 B",
   "UIKIT_OPT_C": "옵션 C",
-  "UIKIT_BACK": "← 뒤로"
+  "UIKIT_BACK": "← 뒤로",
+
+  "STORAGE_TITLE": "보관함",
+  "STORAGE_BAG": "가방",
+  "STORAGE_BOX": "상자",
+  "STORAGE_PROMPT": "[E] 상자 열기",
+  "STORAGE_EMPTY": "(비어 있음)"
 }

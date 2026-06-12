@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StorageUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StorageUI",
+  "parent":{
+    "name":"Templates",
+    "path":"folders/Templates.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StorageUI.js",
+}

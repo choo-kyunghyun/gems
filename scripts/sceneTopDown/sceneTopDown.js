@@ -129,6 +129,42 @@ class _SceneTopDownClass extends Scene {
     };
     this.reachDone = false;
 
+    // ── Storage chest: a kinematic-solid container the player can open (E) to
+    //    transfer items between bag and chest. Placed away from the elder NPC so the
+    //    interact key doesn't double-fire. ────────────────────────────────────────
+    const cw = this.level.gridToWorld(10, 9);
+    const chest = this.world.create();
+    this.world.add(chest, Position, { x: cw.x, y: cw.y, z: 0 });
+    this.world.add(chest, BBox, { x: -14, y: -14, width: 28, height: 28 });
+    this.world.add(chest, Collision, {
+      solid: true,
+      kinematic: true,
+      mask: null,
+      hits: [],
+    });
+    this.world.add(chest, Tag, { tags: new Set(["storage"]) });
+    this.world.add(chest, Name, { name: "Chest" });
+    this.world.add(chest, Inventory, {
+      slots: [
+        { itemId: "potion", qty: 2 },
+        { itemId: "gem", qty: 1 },
+        { itemId: "swift_ring", qty: 1 },
+      ],
+      capacity: 12,
+    });
+    this.world.add(chest, Visual, {
+      visible: true,
+      sprite: spr_choo,
+      subimg: 0,
+      xscale: 1,
+      yscale: 1,
+      rot: 0,
+      color: make_colour_rgb(200, 160, 70),
+      alpha: 1,
+      speed: 0,
+      time: 0,
+    });
+
     // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
     //    projectiles → expire ─
     this.physics = new Pipeline()
@@ -202,6 +238,7 @@ class _SceneTopDownClass extends Scene {
     this._buildHud();
     this._buildDialogue();
     this._buildInventoryWindow();
+    StorageUI.build(this); // chest prompt + transfer window
 
     Log.info(
       `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
@@ -241,6 +278,7 @@ class _SceneTopDownClass extends Scene {
     AnimationSystem.update(this.world); // advance sprite frames (per frame)
     this._updateNpc(); // proximity + E interaction
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
+    StorageUI.update(this); // chest proximity + open/close + transfers
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty),

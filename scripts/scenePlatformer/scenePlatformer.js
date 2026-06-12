@@ -28,6 +28,42 @@ class _ScenePlatformerClass extends Scene {
     // Enemy roster (for the death scan that spills loot) — every Enemy entity.
     this.enemies = this.world.query(Enemy).slice();
 
+    // Storage chest: a kinematic-solid container resting on the ground near spawn.
+    // Open it with E to transfer items between bag and chest. BBox anchored at the
+    // feet (bottom = Position.y) like the player, so it sits on the same ground line.
+    const chest = this.world.create();
+    this.world.add(chest, Position, { x: this.spawn.x + 120, y: this.spawn.y, z: 0 });
+    this.world.add(chest, BBox, { x: -16, y: -28, width: 32, height: 28 });
+    this.world.add(chest, Collision, {
+      solid: true,
+      kinematic: true,
+      oneWay: false,
+      passThroughTicks: 0,
+      mask: null,
+      hits: [],
+    });
+    this.world.add(chest, Tag, { tags: new Set(["storage"]) });
+    this.world.add(chest, Name, { name: "Chest" });
+    this.world.add(chest, Inventory, {
+      slots: [
+        { itemId: "potion", qty: 2 },
+        { itemId: "wood_sword", qty: 1 },
+      ],
+      capacity: 12,
+    });
+    this.world.add(chest, Visual, {
+      visible: true,
+      sprite: spr_play,
+      subimg: 0,
+      xscale: 1,
+      yscale: 1,
+      rot: 0,
+      color: make_colour_rgb(200, 160, 70),
+      alpha: 1,
+      speed: 0,
+      time: 0,
+    });
+
     this.physics = new Pipeline()
       .add(GravitySystem)
       .add((world) => {
@@ -72,6 +108,7 @@ class _ScenePlatformerClass extends Scene {
     // inventory window.
     this._buildHud();
     this._buildInventoryWindow();
+    StorageUI.build(this); // chest prompt + transfer window
 
     Log.info(
       `Platformer RPG ready — items=${Item.all().length} enemies=${this.enemies.length}`,
@@ -125,6 +162,7 @@ class _ScenePlatformerClass extends Scene {
       this.world.flush();
     }
 
+    StorageUI.update(this); // chest proximity + open/close + transfers
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty).
