@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIMinimap",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIMinimap",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIMinimap.js",
+}

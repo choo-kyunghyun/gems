@@ -75,6 +75,41 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
+// Minimap / radar: a framed UINineSlice panel (the frame) + a UIMinimap (the blips)
+// that plots a World's tagged entities around a target. `opts`: { world, target (center
+// entity id), range (world units to the edge), size (px, square), rules ([{ tag, color }],
+// color = theme key / hex / int), frameSprite, frameColor, blipSize, playerColor }.
+globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
+  const size = opts.size ?? 160;
+  const rules = [];
+  const src = opts.rules ?? [];
+  for (let i = 0; i < src.length; i++)
+    rules.push({ tag: src[i].tag, color: gemsColor(src[i].color) });
+
+  const el = new UIElement({ width: size, height: size, flexShrink: 0 });
+  el.addComponent(
+    new UINineSlice({
+      sprite: opts.frameSprite ?? asset_get_index("spr_uibox"),
+      subimg: 0,
+      color: opts.frameColor != null ? gemsColor(opts.frameColor) : c_white,
+      alpha: opts.frameAlpha ?? 1,
+    }),
+  );
+  el.addComponent(
+    new UIMinimap({
+      world: opts.world,
+      target: opts.target,
+      range: opts.range,
+      rules,
+      inset: opts.inset ?? GemsTheme.padSm,
+      blipSize: opts.blipSize,
+      playerColor:
+        opts.playerColor != null ? gemsColor(opts.playerColor) : undefined,
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};
+
 // One-line help/hint text on a readable card backdrop. Use instead of a bare
 // gemsLabel for overlays that would otherwise float as low-contrast text over a
 // scene's render (e.g. the tile-inspector "press X to…" lines).

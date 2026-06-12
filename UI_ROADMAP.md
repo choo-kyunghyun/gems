@@ -309,8 +309,20 @@ the matching game work resumes, but they're listed so the plan is complete.
   `draw_get_font()` and renders nothing), and `draw_text` loses the world-matrix offset
   when *double-nested* in two clip surfaces (so the tracker sits under one scroll, not
   nested in a second). *Dep: #5 (scroll), #12 (rich text).*
-- [ ] **21. Minimap / radar** *(stretch)* — entity blips from `Query`/`World` on a
-  framed `UINineSlice` panel. Genre-specific; lowest priority.
+- [x] **21. Minimap / radar** *(stretch)* — entity blips from `Query`/`World` on a
+  framed `UINineSlice` panel. Done as **`UIMinimap`** (a UIComponent) +
+  **`gemsMinimap(opts)`**: an immediate-mode radar (the `UISlots`/`UIQuestTracker`
+  pattern — drawn in one `onDraw`, reading the World live) centered on a `target` entity.
+  Every entity within `range` world units (via `Query.inRadius`) is plotted at its scaled
+  relative offset and colored by the first matching tag in `rules` (`[{ tag, color }]`,
+  via `Tag.tags.has` — `Set.has` is allowed, only `for…of` over a Set is banned);
+  unmatched entities are skipped, and the target is drawn as a distinct marker with a
+  facing notch from its `Direction`. `gemsMinimap` frames it with a `UINineSlice`
+  (`spr_uibox`) behind the radar. Blips/markers use `draw_circle` (no triangles/width-lines
+  — those render nothing on 0.19). Demoed in **`sceneTopDown`** as a bottom-right corner
+  radar (absolute-positioned on the scene's `gemsRoot` so it floats; the top-right is the
+  HP/quest HUD) showing slimes (red) + the elder NPC (gold) around the white player marker
+  — verified by screenshot. Genre-specific; lowest priority. *Dep: #4 (UINineSlice).*
 
 ---
 

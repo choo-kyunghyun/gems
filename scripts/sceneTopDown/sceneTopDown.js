@@ -172,6 +172,30 @@ class _SceneTopDownClass extends Scene {
       gemsLabel(I18n.textRef("TOPDOWN_HINT"), { color: "#888888" }),
     );
 
+    // Corner minimap (bottom-right — the HP/quest HUD owns the top-right): a framed
+    // radar of nearby slimes (red) + the elder NPC (gold) around the player marker.
+    // Absolute-positioned so it floats over the scene instead of stacking in the column.
+    const miniWrap = new UIElement({
+      positionType: "absolute",
+      bottom: 16,
+      right: 16,
+      width: 150,
+      height: 150,
+    });
+    miniWrap.insertChild(
+      gemsMinimap({
+        world: this.world,
+        target: this.ctrl.id,
+        range: 460,
+        size: 150,
+        rules: [
+          { tag: "enemy", color: "#e0584f" },
+          { tag: "npc", color: "#ffd166" },
+        ],
+      }),
+    );
+    this.ui.insertChild(miniWrap);
+
     Log.info(
       `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
