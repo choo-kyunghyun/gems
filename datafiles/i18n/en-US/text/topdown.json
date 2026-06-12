@@ -1,6 +1,5 @@
 {
   "TOPDOWN_NAME": "Top-Down RPG",
-  "TOPDOWN_BACK": "<- Lobby",
   "TOPDOWN_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk",
   "TOPDOWN_HUD": "Lv {0}   HP {1}/{2}",
   "TOPDOWN_INVENTORY": "Bag",

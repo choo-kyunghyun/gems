@@ -167,12 +167,12 @@ class _SceneTopDownClass extends Scene {
     this.toastQueue = [];
     this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
 
-    // ── Lobby back button + hint (flexpanel, GUI layer) ────────────────────
+    // ── Pause menu owns the exit (Esc / Start); no in-world Back button ─────
+    PauseMenu.arm(openScene);
+
+    // ── Hint (flexpanel, GUI layer) ────────────────────────────────────────
     this.ui = gemsRoot();
     UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsButton(I18n.textRef("TOPDOWN_BACK"), () => openScene(SCENES.lobby)),
-    );
     this.ui.insertChild(
       gemsLabel(I18n.textRef("TOPDOWN_HINT"), { color: "#888888" }),
     );
@@ -208,6 +208,8 @@ class _SceneTopDownClass extends Scene {
   }
 
   step() {
+    if (PauseMenu.update()) return; // paused — freeze the sim
+
     // Edge-triggered toggles — sampled once per frame, outside the tick loop.
     if (Input.get("inventory").pressed()) this.invOpen = !this.invOpen;
     if (this.invOpen) this._handleInventoryInput();

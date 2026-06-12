@@ -59,6 +59,7 @@ this.openScene = (factory) => {
 this._applyScene = (factory) => {
   if (this.scene !== null) this.scene.destroy();
   UINav.reset(); // drop focus held on the outgoing scene's UI
+  PauseMenu.reset(); // clear any pause state from the outgoing scene
   Dialogue.clear(); // a dialogue must not survive into the next scene
   FloatingText.clear(); // drop floating combat numbers (world coords are scene-local)
   this.scene = factory();

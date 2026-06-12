@@ -41,6 +41,10 @@
   "LANG_KO_KR": "Korean",
   "LANG_EN_US": "English",
 
+  "PAUSE_TITLE": "Paused",
+  "PAUSE_RESUME": "Resume",
+  "PAUSE_QUIT": "Quit to Lobby",
+
   "SCENE_CAT_ACTION": "Action",
   "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_BENCHMARK": "Benchmark",

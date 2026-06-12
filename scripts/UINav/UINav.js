@@ -28,6 +28,7 @@ globalThis.UINav = class UINav {
   /** @type {UIElement|null} */
   static focused = null; // the focused element, or null
   static engaged = false; // ring visible / nav acting (set on first nav input)
+  static suspended = false; // gameplay context: genre scenes set this so gameplay keys (Space/arrows/Enter) don't drive the menu
   static color = c_aqua; // focus-ring color (overridden by the demo theme)
   static debugKey = vk_tab; // hold to show the traversal overlay (-1 disables)
 
@@ -39,9 +40,18 @@ globalThis.UINav = class UINav {
   static reset() {
     UINav.focused = null;
     UINav.engaged = false;
+    UINav.suspended = false;
   }
 
   static update() {
+    // Suspended (a genre scene is in active play): gameplay owns the keys, so don't
+    // collect or act — keeps gameplay presses (Space/arrows/Enter) off the menu.
+    if (UINav.suspended) {
+      UINav.engaged = false;
+      UINav.focused = null;
+      return;
+    }
+
     const items = UINav._collect();
     if (items.length === 0) {
       UINav.focused = null;

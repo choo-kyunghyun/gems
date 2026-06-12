@@ -41,6 +41,10 @@
   "LANG_KO_KR": "한국어",
   "LANG_EN_US": "English",
 
+  "PAUSE_TITLE": "일시정지",
+  "PAUSE_RESUME": "계속하기",
+  "PAUSE_QUIT": "로비로 나가기",
+
   "SCENE_CAT_ACTION": "액션",
   "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_BENCHMARK": "벤치마크",

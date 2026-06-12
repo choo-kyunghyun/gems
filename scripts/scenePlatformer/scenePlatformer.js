@@ -17,12 +17,13 @@ class _ScenePlatformerClass extends Scene {
     this.totalCoins = 0;
     this.won = false;
 
+    // Leaving the scene goes through the pause menu (Esc / Start) — no in-world Back
+    // button, so gameplay keys can't accidentally trigger it.
+    PauseMenu.arm(openScene);
+
     // UI is built once and persists across level transitions.
     this.ui = gemsRoot();
     UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsButton(I18n.textRef("PLAT_BACK"), () => openScene(SCENES.lobby)),
-    );
     this.ui.insertChild(
       gemsLabel(
         I18n.textRef("PLAT_LEVEL", () => this.levelIndex + 1),
@@ -111,6 +112,7 @@ class _ScenePlatformerClass extends Scene {
   }
 
   step() {
+    if (PauseMenu.update()) return; // paused — freeze the sim (also reachable after a win)
     if (this.won) return; // all levels cleared — freeze the simulation
 
     PlatformerController.pollInput(this.ctrl); // sample jump edges once per frame

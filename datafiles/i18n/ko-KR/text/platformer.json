@@ -1,6 +1,5 @@
 {
   "PLAT_NAME": "플랫포머",
-  "PLAT_BACK": "← 로비",
   "PLAT_LEVEL": "레벨 {0}",
   "PLAT_COINS": "코인: {0}/{1}",
   "PLAT_WIN": "클리어!",

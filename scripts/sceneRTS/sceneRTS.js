@@ -66,17 +66,19 @@ class _SceneRTSClass extends Scene {
     });
     this.camera.assign(0);
 
+    // Pause menu owns the exit (Esc / Start); no in-world Back button.
+    PauseMenu.arm(openScene);
+
     this.ui = gemsRoot();
     UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsButton(I18n.textRef("RTS_BACK"), () => openScene(SCENES.lobby)),
-    );
     this.ui.insertChild(
       gemsLabel(I18n.textRef("RTS_HINT"), { color: "#888888" }),
     );
   }
 
   step() {
+    if (PauseMenu.update()) return; // paused — freeze the sim
+
     if (mouse_check_button(mb_left)) {
       this.target.x = mouse_x;
       this.target.y = mouse_y;

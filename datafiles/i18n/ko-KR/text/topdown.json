@@ -1,6 +1,5 @@
 {
   "TOPDOWN_NAME": "탑다운 RPG",
-  "TOPDOWN_BACK": "← 로비",
   "TOPDOWN_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화",
   "TOPDOWN_HUD": "Lv {0}   HP {1}/{2}",
   "TOPDOWN_INVENTORY": "가방",
