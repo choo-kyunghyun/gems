@@ -239,6 +239,69 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   return modal;
 };
 
+// Draggable window: an absolute-positioned card with a title bar you can grab to move
+// the whole window (UIDrag → window.dragX/dragY → getLayoutPosition offset, never flex
+// mutation), plus an optional close button. Insert content into the returned wrapper's
+// `.body` column (e.g. a gemsScroll or fixed-height rows). Toggle visibility via the
+// wrapper's `.enabled`. The body's widgets stay UINav-navigable; only the title bar
+// drag is mouse-only. `opts`: { left, top, width, titleH, onClose, padding }.
+globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
+  const wrap = new UIElement({
+    positionType: "absolute",
+    left: opts.left ?? 40,
+    top: opts.top ?? 40,
+    width: opts.width ?? 440,
+  });
+
+  const card = gemsCard({
+    width: "100%",
+    padding: opts.padding ?? GemsTheme.padSm,
+    gap: GemsTheme.gapSm,
+  });
+
+  // Title bar: grab-to-drag (UIDrag moves `wrap`), title label, optional close button.
+  const bar = new UIElement({
+    width: "100%",
+    height: opts.titleH ?? 36,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    gap: GemsTheme.gapSm,
+  });
+  bar.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.panelLo),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+    }),
+  );
+  bar.addComponent(new UIDrag({ target: wrap }));
+  const labelCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  labelCell.insertChild(
+    gemsLabel(title, { color: GemsTheme.text, font: I18n.font("header") }),
+  );
+  bar.insertChild(labelCell);
+  if (opts.onClose != null) {
+    bar.insertChild(
+      gemsButton("x", opts.onClose, {
+        width: 28,
+        height: 28,
+        rad: GemsTheme.radiusSm,
+      }),
+    );
+  }
+  card.insertChild(bar);
+
+  const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+  card.insertChild(body);
+
+  wrap.insertChild(card);
+  wrap.body = body;
+  return wrap;
+};
+
 // Tabbed view: a tab strip over a fixed-height content host. `tabs` is
 // [{ label, content }] — label is a string/() => string, content a prebuilt
 // UIElement (e.g. a gemsList). Each content is wrapped in an absolute-positioned

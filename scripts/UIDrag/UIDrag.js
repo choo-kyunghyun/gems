@@ -1,0 +1,52 @@
+/**
+ * @implements {UIComponent}
+ * Drag handle for a movable window. Lives on a title-bar element; `target` is the
+ * window-root element to move (defaults to the element this is attached to). On a
+ * left-press over the title bar it latches and, while held, accumulates the pointer
+ * delta into `target.dragX/dragY` — which UIElement.getLayoutPosition adds to the
+ * window and its whole subtree (draw + hit-test), so the window moves bodily. This is
+ * the offset-not-mutation pattern (mirrors UIScroll's thumb drag); flexpanel style
+ * mutation is unreliable on GMRT 0.19 (bug #15065).
+ *
+ * Returns block=true while hovering or dragging so the grab doesn't leak to widgets
+ * behind. Mouse-only — it doesn't touch UINav (the window's child widgets stay
+ * keyboard/gamepad navigable on their own).
+ *
+ * GMRT note: pointer state is read live each frame (no cached primitive bool to be
+ * clobbered), and mouse_check_button* are each queried once per frame (see CLAUDE.md).
+ */
+globalThis.UIDrag = class UIDrag {
+  constructor(opts = {}) {
+    this.target = opts.target ?? null; // window root to move; falls back to element
+    this._dragging = false;
+    this._lastX = 0; // last pointer pos, for per-frame delta accumulation
+    this._lastY = 0;
+  }
+
+  onUpdate(element, block) {
+    const target = this.target ?? element;
+    const pos = element.getLayoutPosition();
+    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
+
+    const mx = device_mouse_x_to_gui(0);
+    const my = device_mouse_y_to_gui(0);
+    const over = !block && element.positionMeeting(mx, my);
+
+    if (!this._dragging) {
+      if (over && mouse_check_button_pressed(mb_left)) {
+        this._dragging = true;
+        this._lastX = mx;
+        this._lastY = my;
+      }
+    } else if (mouse_check_button(mb_left)) {
+      target.dragX += mx - this._lastX;
+      target.dragY += my - this._lastY;
+      this._lastX = mx;
+      this._lastY = my;
+    } else {
+      this._dragging = false;
+    }
+
+    return this._dragging || over || block;
+  }
+};

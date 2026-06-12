@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIDrag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIDrag",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIDrag.js",
+}

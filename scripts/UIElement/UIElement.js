@@ -24,6 +24,12 @@ globalThis.UIElement = class UIElement {
     this.clip = false;
     this.scrollY = 0;
     this.clipInsetRight = 0;
+    // Drag offset (UIDrag / draggable windows). Unlike scrollY (which offsets only a
+    // container's descendants), dragX/dragY offset THIS element AND its subtree, so a
+    // window moves bodily when its title bar is dragged. Applied in getLayoutPosition —
+    // never via flexpanel mutation (unreliable on GMRT 0.19, bug #15065).
+    this.dragX = 0;
+    this.dragY = 0;
     this._clipSurf = -1;
     // Set in destroy(); guards the post-update refresh / draw so an element torn
     // down mid-traversal (e.g. a modal closing itself on a button click) doesn't
@@ -221,12 +227,18 @@ globalThis.UIElement = class UIElement {
 
   getLayoutPosition() {
     const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
-    // Apply the accumulated scroll of ancestors so a scroll container shifts its
+    // This element's own drag offset moves itself + its whole subtree.
+    if (this.dragX) pos.left += this.dragX;
+    if (this.dragY) pos.top += this.dragY;
+    // Apply the accumulated scroll/drag of ancestors so a scroll container shifts its
     // whole subtree at draw AND hit-test time through this single chokepoint (no
-    // flex mutation). A container's own scrollY offsets its descendants, not itself.
+    // flex mutation). A container's own scrollY offsets its descendants, not itself;
+    // a dragged ancestor (e.g. an enclosing window) carries this element along too.
     let p = this.parent;
     while (p !== null) {
       if (p.scrollY) pos.top -= p.scrollY;
+      if (p.dragX) pos.left += p.dragX;
+      if (p.dragY) pos.top += p.dragY;
       p = p.parent;
     }
     return pos;
