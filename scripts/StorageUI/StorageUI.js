@@ -78,8 +78,17 @@ globalThis.StorageUI = {
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
-    const bag = StorageUI._column(I18n.textRef("STORAGE_BAG"));
-    const box = StorageUI._column(I18n.textRef("STORAGE_BOX"));
+    const bag = StorageUI._column(I18n.textRef("STORAGE_BAG"), () => {
+      InventorySystem.sort(scene.world.get(Inventory, scene.ctrl.id));
+      scene._storeDirty = true;
+      scene._invDirty = true; // bag also feeds the main inventory window
+    });
+    const box = StorageUI._column(I18n.textRef("STORAGE_BOX"), () => {
+      const inv = scene.world.get(Inventory, scene._storageId);
+      if (inv === undefined) return;
+      InventorySystem.sort(inv);
+      scene._storeDirty = true;
+    });
     cols.insertChild(bag.col);
     cols.insertChild(box.col);
     win.body.insertChild(cols);
@@ -89,17 +98,29 @@ globalThis.StorageUI = {
     scene.ui.insertChild(win);
   },
 
-  // One titled column: header label over a fixed-height scroll. Returns { col, body }.
-  _column(titleRef) {
+  // One titled column: a header (title + Sort button) over a fixed-height scroll.
+  // Returns { col, body }.
+  _column(titleRef, onSort) {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
       gap: GemsTheme.gapSm,
     });
-    const title = new UIElement({ width: "100%", height: 22 });
-    title.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    const header = new UIElement({
+      width: "100%",
+      height: 28,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    header.insertChild(titleCell);
+    header.insertChild(
+      gemsButton(I18n.textRef("SORT"), onSort, { width: 72, height: 26 }),
+    );
     const scroll = gemsScroll({ height: 240 });
-    col.insertChild(title);
+    col.insertChild(header);
     col.insertChild(scroll);
     return { col, body: scroll.scrollBody };
   },

@@ -164,5 +164,6 @@
   "STORAGE_BAG": "가방",
   "STORAGE_BOX": "상자",
   "STORAGE_PROMPT": "[E] 상자 열기",
-  "STORAGE_EMPTY": "(비어 있음)"
+  "STORAGE_EMPTY": "(비어 있음)",
+  "SORT": "정렬"
 }

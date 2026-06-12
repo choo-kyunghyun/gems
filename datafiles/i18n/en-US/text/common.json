@@ -164,5 +164,6 @@
   "STORAGE_BAG": "Bag",
   "STORAGE_BOX": "Chest",
   "STORAGE_PROMPT": "[E] Open chest",
-  "STORAGE_EMPTY": "(empty)"
+  "STORAGE_EMPTY": "(empty)",
+  "SORT": "Sort"
 }
