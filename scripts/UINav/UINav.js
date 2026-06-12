@@ -74,7 +74,10 @@ globalThis.UINav = class UINav {
     // The first nav input only engages + focuses; it doesn't also act.
     if (!UINav.engaged || UINav.focused === null) {
       UINav.engaged = true;
-      if (UINav.focused === null) UINav.focused = items[0].el;
+      if (UINav.focused === null) {
+        UINav.focused = items[0].el;
+        UINav._scrollIntoView(UINav.focused);
+      }
       return;
     }
 
@@ -180,19 +183,41 @@ globalThis.UINav = class UINav {
     return null;
   }
 
-  // Valid laid-out rect whose center is inside every clipping ancestor (so a
-  // scrolled-away item in a UIScroll isn't focusable).
+  // A laid-out element (valid, non-zero rect). NOTE: scrolled-out items in a UIScroll
+  // are intentionally still focusable — nav scrolls them into view on focus (see
+  // _scrollIntoView), otherwise a list taller than its viewport would be unreachable
+  // without the mouse. Disabled subtrees are already skipped in _walk.
   static _visible(el) {
     const pos = el.getLayoutPosition();
-    if (!(pos.width > 0) || !(pos.height > 0)) return false;
-    const cx = pos.left + pos.width * 0.5;
-    const cy = pos.top + pos.height * 0.5;
+    return pos.width > 0 && pos.height > 0;
+  }
+
+  // Bring `el` into view inside each UIScroll ancestor by nudging its scroll, so the
+  // scroll follows keyboard/gamepad focus.
+  static _scrollIntoView(el) {
     let p = el.parent;
     while (p !== null) {
-      if (p.clip && !p.positionMeeting(cx, cy)) return false;
+      const sc = p.getComponent(UIScroll);
+      if (sc !== undefined) UINav._scrollOne(sc, p, el);
       p = p.parent;
     }
-    return true;
+  }
+
+  static _scrollOne(sc, viewport, el) {
+    const vp = viewport.getLayoutPosition(); // window (own scrollY not applied to self)
+    const fp = el.getLayoutPosition(); // already offset by the current scroll
+    const margin = 8;
+    let delta = 0;
+    if (fp.top < vp.top + margin) {
+      delta = fp.top - (vp.top + margin); // above the window → scroll up (negative)
+    } else if (fp.top + fp.height > vp.top + vp.height - margin) {
+      delta = fp.top + fp.height - (vp.top + vp.height - margin); // below → scroll down
+    }
+    if (delta === 0) return;
+    const contentH = sc.content ? sc.content.getLayoutPosition().height : 0;
+    const max = Math.max(0, contentH - vp.height);
+    sc.scroll = clamp(sc.scroll + delta, 0, max);
+    viewport.scrollY = sc.scroll; // apply now so the ring + next layout reflect it
   }
 
   static _indexOf(items, el) {
@@ -206,6 +231,7 @@ globalThis.UINav = class UINav {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
       UINav.focused = items[0].el;
+      UINav._scrollIntoView(UINav.focused);
       return;
     }
     const fx = items[i].cx;
@@ -225,7 +251,10 @@ globalThis.UINav = class UINav {
         best = j;
       }
     }
-    if (best !== -1) UINav.focused = items[best].el;
+    if (best !== -1) {
+      UINav.focused = items[best].el;
+      UINav._scrollIntoView(UINav.focused);
+    }
   }
 
   static _readInput() {
