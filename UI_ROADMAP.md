@@ -293,8 +293,22 @@ the matching game work resumes, but they're listed so the plan is complete.
   **`sceneTopDown`** as the real demo: a per-tick `_trackDamage()` diffs each combatant's
   `Health` and pops a number on any change — white over a hit slime, red over the hurt player,
   green `+N` on heal/level-up — so the genre scene shows it in live combat. *Dep: #16 (Tween).*
-- [ ] **20. Quest tracker HUD** — on-screen list bound to the existing `QuestLog`.
-  *Dep: #5 (scroll), #12 (rich text).*
+- [x] **20. Quest tracker HUD** — on-screen list bound to the existing `QuestLog`.
+  Done as **`UIQuestTracker`** (a UIComponent) + **`gemsQuestTracker(opts)`**: an
+  immediate-mode list (the `UISlots` pattern — drawn in one `onDraw`, reading
+  `QuestLog.activeIds()` live each frame, no per-frame flexpanel rebuild) on a fixed-size
+  `UIPanel`. Per active quest it draws the `name` as a title (gold once `status.ready`,
+  i.e. every objective met → turn-in available) over one line per objective —
+  `def.objLabel` formatted with `(progress, count)`, lime when met / muted while pending,
+  with a `v`/`-` marker (status-color spans done inline, the rich-text payoff of #12).
+  `gemsQuestTracker` sizes the element to the active quests by default (`contentHeight()`)
+  so an enclosing `gemsScroll` (#5) can reveal overflow; `opts.emptyText` shows when no
+  quest is active. Demoed in the sceneUIKit Widgets tab with four registered demo quests
+  (one ready, one partway, two untouched). Two GMRT quirks found + documented: a component
+  must resolve `I18n.font(key)` at *draw* time (a handle cached at construction is a stale
+  `draw_get_font()` and renders nothing), and `draw_text` loses the world-matrix offset
+  when *double-nested* in two clip surfaces (so the tracker sits under one scroll, not
+  nested in a second). *Dep: #5 (scroll), #12 (rich text).*
 - [ ] **21. Minimap / radar** *(stretch)* — entity blips from `Query`/`World` on a
   framed `UINineSlice` panel. Genre-specific; lowest priority.
 

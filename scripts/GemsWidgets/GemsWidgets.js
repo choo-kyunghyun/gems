@@ -42,6 +42,39 @@ globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
+// Quest tracker: a live HUD list bound to the global QuestLog (UIQuestTracker), on a
+// fixed-size panel. Sized to the currently-active quests by default so an enclosing
+// gemsScroll can reveal overflow; pass opts.height to fix it. Build it AFTER the quests
+// are registered + accepted (it measures QuestLog at construction). opts.emptyText
+// (string or () => string) shows when no quest is active.
+globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
+  const tracker = new UIQuestTracker({
+    titleFontKey: "default",
+    bodyFontKey: "description",
+    emptyText: opts.emptyText ?? "",
+    titleColor: gemsColor(opts.titleColor ?? GemsTheme.text),
+    readyColor: gemsColor(opts.readyColor ?? "#ffd166"),
+    metColor: gemsColor(opts.metColor ?? "#54c98a"),
+    pendColor: gemsColor(opts.pendColor ?? GemsTheme.textMuted),
+    emptyColor: gemsColor(opts.emptyColor ?? GemsTheme.textMuted),
+  });
+  const el = new UIElement({
+    width: opts.width ?? "100%",
+    height: opts.height ?? tracker.contentHeight(),
+    flexShrink: 0,
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.panelLo),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+    }),
+  );
+  el.addComponent(tracker);
+  return gemsAttachTooltip(el, opts);
+};
+
 // One-line help/hint text on a readable card backdrop. Use instead of a bare
 // gemsLabel for overlays that would otherwise float as low-contrast text over a
 // scene's render (e.g. the tile-inspector "press X to…" lines).

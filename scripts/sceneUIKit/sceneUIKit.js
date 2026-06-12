@@ -35,6 +35,12 @@ class _SceneUIKitClass extends Scene {
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
     );
 
+    // Demo quests for the quest-tracker widget. Bound to the global QuestLog, so we
+    // reset it first (clears any quests a gameplay scene left active) for a deterministic
+    // list, then register + accept four and pre-set progress (one ready, the rest partial
+    // or untouched). Built before the tracker, which measures QuestLog at construction.
+    this._setupQuests();
+
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
@@ -48,6 +54,7 @@ class _SceneUIKitClass extends Scene {
     widgets.scrollBody.insertChild(this._togglesSection());
     widgets.scrollBody.insertChild(this._richTextSection());
     widgets.scrollBody.insertChild(this._motionSection());
+    widgets.scrollBody.insertChild(this._questSection());
 
     // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
     const values = gemsScroll({ height: 250 });
@@ -273,6 +280,60 @@ class _SceneUIKitClass extends Scene {
         I18n.textRef("UIKIT_MOTION_INOUT"),
         gemsProgress(() => Tween.easeInOutQuad(clock())),
       ),
+    );
+    return sec;
+  }
+
+  // Register + accept four demo quests with fixed progress so the tracker shows a
+  // representative mix: one ready (gold), one partway, two untouched. reset() first so
+  // re-entering the scene (or arriving from a gameplay scene) always shows the same set.
+  _setupQuests() {
+    QuestLog.reset().register([
+      {
+        id: "uikit_q1",
+        name: "UIKIT_Q1_NAME",
+        objLabel: "UIKIT_Q1_OBJ",
+        objectives: [{ kind: "kill", target: "goblin", count: 5 }],
+      },
+      {
+        id: "uikit_q2",
+        name: "UIKIT_Q2_NAME",
+        objLabel: "UIKIT_Q2_OBJ",
+        objectives: [{ kind: "collect", target: "moonherb", count: 3 }],
+      },
+      {
+        id: "uikit_q3",
+        name: "UIKIT_Q3_NAME",
+        objLabel: "UIKIT_Q3_OBJ",
+        objectives: [{ kind: "reach", target: "tower", count: 1 }],
+      },
+      {
+        id: "uikit_q4",
+        name: "UIKIT_Q4_NAME",
+        objLabel: "UIKIT_Q4_OBJ",
+        objectives: [{ kind: "talk", target: "sage", count: 1 }],
+      },
+    ]);
+    QuestLog.accept("uikit_q1");
+    QuestLog.accept("uikit_q2");
+    QuestLog.accept("uikit_q3");
+    QuestLog.accept("uikit_q4");
+    QuestLog.report("kill", "goblin", 5); // q1 → ready
+    QuestLog.report("collect", "moonherb", 2); // q2 → 2/3
+  }
+
+  // UIQuestTracker: a live HUD list bound to QuestLog (title gold once ready to turn in).
+  // Placed straight in the section — the Widgets tab is already a gemsScroll, and an
+  // immediate-mode text widget must not sit inside a SECOND clip surface (draw_text
+  // loses the inner scroll's world-matrix offset and clips away; see CLAUDE.md). One
+  // enclosing scroll is enough to scroll a long list.
+  _questSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
+    sec.insertChild(
+      gemsQuestTracker({
+        emptyText: I18n.textRef("UIKIT_QUEST_EMPTY"),
+        tooltip: I18n.textRef("UIKIT_TIP_QUESTS"),
+      }),
     );
     return sec;
   }

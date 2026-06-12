@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIQuestTracker",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIQuestTracker",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIQuestTracker.js",
+}
