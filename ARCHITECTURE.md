@@ -1,6 +1,6 @@
 # G.E.M.S. Architecture
 
-Detailed architecture reference for **G.E.M.S.** See [CLAUDE.md](CLAUDE.md) for the project overview, build & run, asset-creation workflow, code style, and the **GMRT-Safe Idioms** that always apply — those live in CLAUDE.md (kept always-in-context) and are referenced by name in code comments.
+Detailed architecture reference for **G.E.M.S.**, imported into context by [CLAUDE.md](CLAUDE.md) (via its `@ARCHITECTURE.md` line), so it is always loaded alongside it. See CLAUDE.md for the project overview, build & run, asset-creation workflow, code style, and the **GMRT-Safe Idioms** that always apply — those live there (kept always-in-context) and are referenced by name in code comments.
 
 ## Demo Layer — `obj_game` & `Scene`
 
