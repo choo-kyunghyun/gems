@@ -83,18 +83,11 @@ globalThis.UISlots = class UISlots {
         }
         return true;
       }
-      // Release over a slot of this grid → drop. Dropping back onto the source
-      // slot (no move) reads as a plain click → select it.
-      if (
-        inside &&
-        this._hover >= 0 &&
-        mouse_check_button_released(mb_left) &&
-        SlotDrag.active
-      ) {
-        const onSource =
-          SlotDrag.source === this && SlotDrag.sourceIndex === this._hover;
-        SlotDrag.drop(this, this._hover);
-        if (onSource) this._select(this._hover);
+      // During a drag, report the slot under the cursor as the drop target;
+      // SlotDrag.draw resolves the drop (or cancel) on button-up. Capturing the
+      // pointer only while hovered keeps a sibling grid reachable as a target.
+      if (SlotDrag.active && inside && this._hover >= 0) {
+        SlotDrag.hover(this, this._hover);
         return true;
       }
     } else if (

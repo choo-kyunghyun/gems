@@ -1,14 +1,20 @@
 /**
  * SlotDrag — shared drag-and-drop state for UISlots grids, a standalone static
- * singleton (NOT a UIComponent), drawn on top like Tooltip/Toast. A draggable
- * UISlots calls `SlotDrag.begin(grid, i)` on press over a filled slot (picks the
- * item up — the source slot goes empty) and `SlotDrag.drop(grid, j)` when the
- * pointer is released over a slot (places the carried item there, swapping any
- * existing item back to the source). Because grids only see the release when the
- * pointer is over one of their slots, the "released over nothing" case is caught in
- * `SlotDrag.draw()` (runs every frame in Draw_75): if a drag is active but the
- * button is up and nobody dropped it, the item is returned to its source. This is
- * also what draws the floating icon that follows the cursor.
+ * singleton (NOT a UIComponent), drawn on top like Tooltip/Toast.
+ *
+ * A draggable UISlots calls `SlotDrag.begin(grid, i)` on press over a filled slot
+ * (picks the item up — the source slot goes empty) and, every frame the cursor is
+ * over one of its slots during a drag, `SlotDrag.hover(grid, j)` to report the
+ * current drop target. `SlotDrag.draw()` (Draw_75, after UI.draw) resolves the drag
+ * on button-up: drop onto the reported hover slot, or — if the cursor is over no slot
+ * — return the item to its source. The reported hover is cleared each frame so a
+ * stale target can't be reused.
+ *
+ * Resolving on button-up (a level check) rather than on the single
+ * mouse_check_button_released edge is deliberate: the grid only needs to *report*
+ * the hovered slot, not catch the exact release frame, so a release that lands a
+ * frame off (or while the cursor is mid-move) still drops correctly instead of
+ * racing the cancel.
  *
  * GMRT note: state is read live each frame; no cached primitive bool, no timer.
  */
@@ -17,6 +23,8 @@ globalThis.SlotDrag = class SlotDrag {
   static source = null; // the UISlots the item came from
   static sourceIndex = -1;
   static item = null; // the carried slot item
+  static hoverGrid = null; // drop target reported under the cursor this frame
+  static hoverIndex = -1;
   static iconSize = 48;
 
   static begin(grid, i) {
@@ -30,13 +38,26 @@ globalThis.SlotDrag = class SlotDrag {
     grid.items[i] = null; // pick up — source slot shows empty while dragging
   }
 
-  // Place the carried item into grid[j], swapping whatever was there back to the
-  // source slot (null if it was empty → a plain move).
+  // A draggable grid reports the slot under the cursor each frame during a drag.
+  static hover(grid, j) {
+    SlotDrag.hoverGrid = grid;
+    SlotDrag.hoverIndex = j;
+  }
+
+  // Place the carried item into grid[j]. Dropping back onto the source slot reads as
+  // a click (restore + select); otherwise swap whatever was there back to the source
+  // (null if it was empty → a plain move).
   static drop(grid, j) {
     if (!SlotDrag.active) return;
-    const target = grid.items[j];
-    grid.items[j] = SlotDrag.item;
-    SlotDrag.source.items[SlotDrag.sourceIndex] = target;
+    if (grid === SlotDrag.source && j === SlotDrag.sourceIndex) {
+      grid.items[j] = SlotDrag.item;
+      grid.selected = j;
+      grid.onSelect(j, SlotDrag.item);
+    } else {
+      const target = grid.items[j];
+      grid.items[j] = SlotDrag.item;
+      SlotDrag.source.items[SlotDrag.sourceIndex] = target;
+    }
     SlotDrag._reset();
   }
 
@@ -51,34 +72,45 @@ globalThis.SlotDrag = class SlotDrag {
     SlotDrag.source = null;
     SlotDrag.sourceIndex = -1;
     SlotDrag.item = null;
+    SlotDrag.hoverGrid = null;
+    SlotDrag.hoverIndex = -1;
   }
 
   static draw() {
     if (!SlotDrag.active) return;
 
-    // Button up but no slot claimed the drop this release → return to source.
+    // Resolve on button-up: drop onto the reported slot, else return to source.
     if (!mouse_check_button(mb_left)) {
-      SlotDrag.cancel();
+      if (SlotDrag.hoverGrid !== null) {
+        SlotDrag.drop(SlotDrag.hoverGrid, SlotDrag.hoverIndex);
+      } else {
+        SlotDrag.cancel();
+      }
       return;
     }
 
     const it = SlotDrag.item;
-    if (it == null || it.sprite == null || !sprite_exists(it.sprite)) return;
+    if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
+      const mx = device_mouse_x_to_gui(0);
+      const my = device_mouse_y_to_gui(0);
+      const sz = SlotDrag.iconSize;
+      const n = max(1, sprite_get_number(it.sprite));
+      const sub = clamp(it.subimg ?? 0, 0, n - 1);
+      draw_sprite_stretched_ext(
+        it.sprite,
+        sub,
+        mx - sz * 0.5,
+        my - sz * 0.5,
+        sz,
+        sz,
+        it.color ?? c_white,
+        0.85,
+      );
+    }
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    const sz = SlotDrag.iconSize;
-    const n = max(1, sprite_get_number(it.sprite));
-    const sub = clamp(it.subimg ?? 0, 0, n - 1);
-    draw_sprite_stretched_ext(
-      it.sprite,
-      sub,
-      mx - sz * 0.5,
-      my - sz * 0.5,
-      sz,
-      sz,
-      it.color ?? c_white,
-      0.85,
-    );
+    // Clear the reported hover so a stale target can't be used next frame; grids
+    // re-report it each frame the cursor is over one of their slots.
+    SlotDrag.hoverGrid = null;
+    SlotDrag.hoverIndex = -1;
   }
 };
