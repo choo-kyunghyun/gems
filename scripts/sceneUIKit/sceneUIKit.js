@@ -22,6 +22,7 @@ class _SceneUIKitClass extends Scene {
     this.switchOn = false;
     this.sliderVal = 50;
     this.qty = 3;
+    this.toastN = 0;
 
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -121,6 +122,20 @@ class _SceneUIKitClass extends Scene {
             ],
           }),
         { width: 150, tooltip: I18n.textRef("UIKIT_TIP_DIALOG") },
+      ),
+    );
+    const toastTypes = ["info", "success", "warn", "error"];
+    bar.insertChild(
+      gemsButton(
+        I18n.textRef("UIKIT_BTN_TOAST"),
+        () => {
+          const type = toastTypes[this.toastN % toastTypes.length];
+          this.toastN++;
+          Toast.push(I18n.text("UIKIT_TOAST_MSG") + " #" + this.toastN, {
+            type,
+          });
+        },
+        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_TOAST") },
       ),
     );
     buttons.insertChild(bar);

@@ -132,9 +132,13 @@ hoisting fault.)
 
 ## Phase 3 — HUD & feedback
 
-- [ ] **9. `Toast` notifications** — `Toast.push(str, opts)` singleton mirroring
-  `Tooltip` (timed stack, drawn in `Draw_75`). "Item acquired", quest updates,
-  achievements. *No deps.*
+- [x] **9. `Toast` notifications** — `Toast.push(str, opts)` singleton mirroring
+  `Tooltip` (timed stack, drawn in `Draw_75` after `Tooltip`). Done: bottom-center
+  stack, newest at the bottom; each entry has a type-colored left accent stripe
+  (`info`/`success`/`warn`/`error`, or `accent` override) and fades + slides in/out,
+  aged by `Time.raw` (so it ignores time dilation/pause) and culled when expired
+  (`maxItems` cap drops the oldest). Demoed by the "Toast" button in sceneUIKit.
+  *No deps.*
 - [ ] **10. `UIList` / slot grid with selection** — item-slot grid (`UIImage`/
   `UIPanel`) with hover + selection state. Lives inside a `UIScroll` for overflow.
   Foundation for inventory. *Dep: #5.*

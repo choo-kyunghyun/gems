@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Toast",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Toast",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Toast.js",
+}
