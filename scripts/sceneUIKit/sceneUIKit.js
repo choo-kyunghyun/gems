@@ -23,6 +23,7 @@ class _SceneUIKitClass extends Scene {
     this.sliderVal = 50;
     this.qty = 3;
     this.toastN = 0;
+    this.selSlot = -1;
 
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -47,12 +48,17 @@ class _SceneUIKitClass extends Scene {
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
+    // ── Tab: Inventory (slot grid with selection), scrolled ──
+    const inventory = gemsScroll({ height: 250 });
+    inventory.scrollBody.insertChild(this._inventorySection());
+
     this.ui.insertChild(
       gemsTabs(
         [
           { label: I18n.textRef("UIKIT_TAB_WIDGETS"), content: widgets },
           { label: I18n.textRef("UIKIT_TAB_VALUES"), content: values },
           { label: I18n.textRef("UIKIT_TAB_CONTAINERS"), content: containers },
+          { label: I18n.textRef("UIKIT_TAB_INVENTORY"), content: inventory },
         ],
         { height: 250 },
       ),
@@ -301,6 +307,33 @@ class _SceneUIKitClass extends Scene {
     );
     skin.insertChild(box);
     return skin;
+  }
+
+  _inventorySection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
+    const icon = asset_get_index("spr_tile16");
+    const items = [];
+    for (let i = 0; i < 24; i++) {
+      // Every third slot empty; the rest carry a tile frame as a placeholder icon.
+      if (i % 3 === 0) items.push(null);
+      else items.push({ sprite: icon, subimg: i % 16, count: (i % 5) + 1 });
+    }
+    sec.insertChild(
+      gemsSlots(items, {
+        onSelect: (i) => (this.selSlot = i),
+        tooltip: I18n.textRef("UIKIT_TIP_INV"),
+      }),
+    );
+    sec.insertChild(
+      gemsLabel(
+        () =>
+          I18n.text("UIKIT_INV_SELECTED") +
+          " " +
+          (this.selSlot < 0 ? "—" : this.selSlot + 1),
+        { color: GemsTheme.accentHi },
+      ),
+    );
+    return sec;
   }
 
   _accordionSection() {

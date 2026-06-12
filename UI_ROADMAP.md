@@ -139,9 +139,13 @@ hoisting fault.)
   aged by `Time.raw` (so it ignores time dilation/pause) and culled when expired
   (`maxItems` cap drops the oldest). Demoed by the "Toast" button in sceneUIKit.
   *No deps.*
-- [ ] **10. `UIList` / slot grid with selection** — item-slot grid (`UIImage`/
-  `UIPanel`) with hover + selection state. Lives inside a `UIScroll` for overflow.
-  Foundation for inventory. *Dep: #5.*
+- [x] **10. `UIList` / slot grid with selection** — shipped as **`UISlots`** +
+  `gemsSlots(items, opts)`. A flat array of slot data (`{sprite, subimg, count,
+  color}`) or null; the whole grid is drawn directly in `onDraw` across one
+  fixed-size element (cols × cellSize + gaps — no child-per-slot), so it's cheap and a
+  `gemsScroll` can measure it. Hover highlights, click selects (`onSelect(i, item)`),
+  count badges, 2px accent selection outline. `sprite` must be raster (SVG faults).
+  Demoed in a new sceneUIKit **Inventory** tab inside a scroll. *Dep: #5.*
 - [ ] **11. Drag-and-drop slots** — pointer-follow drag + drop-target resolution over
   the slot grid; rearrange items between grids. *Dep: #10.*
 - [ ] **12. `UIRichText`** — colored spans + inline icons in one string (item rarity,

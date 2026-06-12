@@ -199,6 +199,7 @@
     {"id":{"name":"UIScroll","path":"scripts/UIScroll/UIScroll.yy",},},
     {"id":{"name":"UISelect","path":"scripts/UISelect/UISelect.yy",},},
     {"id":{"name":"UISlider","path":"scripts/UISlider/UISlider.yy",},},
+    {"id":{"name":"UISlots","path":"scripts/UISlots/UISlots.yy",},},
     {"id":{"name":"UIStepper","path":"scripts/UIStepper/UIStepper.yy",},},
     {"id":{"name":"UITabs","path":"scripts/UITabs/UITabs.yy",},},
     {"id":{"name":"UIText","path":"scripts/UIText/UIText.yy",},},

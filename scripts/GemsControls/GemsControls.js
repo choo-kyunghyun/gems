@@ -209,6 +209,40 @@ globalThis.gemsInput = function gemsInput(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
+// Slot grid with hover + single selection (inventory foundation). `items` is a flat
+// array of slot data ({ sprite, subimg, count, color }) or null for an empty slot;
+// `sprite` must be raster (SVG faults on GMRT). The element is sized to exactly the
+// grid (cols × cellSize + gaps) so it can be dropped into a gemsScroll for overflow.
+// `onSelect(index, item)` fires on click.
+globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
+  const cols = opts.cols ?? 4;
+  const cellSize = opts.cellSize ?? 64;
+  const gap = opts.gap ?? GemsTheme.gapSm;
+  const rows = Math.max(1, Math.ceil(items.length / cols));
+  const el = new UIElement({
+    width: cols * cellSize + (cols - 1) * gap,
+    height: rows * cellSize + (rows - 1) * gap,
+    flexShrink: 0,
+  });
+  el.addComponent(
+    new UISlots({
+      items,
+      cols,
+      cellSize,
+      gap,
+      selected: opts.selected ?? -1,
+      onSelect: opts.onSelect,
+      font: opts.font ?? -1,
+      slotColor: gemsColor(opts.slotColor ?? GemsTheme.btnPress),
+      slotHover: gemsColor(GemsTheme.btnHover),
+      borderColor: gemsColor(GemsTheme.border),
+      selectColor: gemsColor(GemsTheme.accent),
+      countColor: gemsColor(GemsTheme.text),
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};
+
 // Settings-bound select. `items` are { name, value }; the current Settings value
 // picks the starting index.
 globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {

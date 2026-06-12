@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UISlots",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UISlots",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UISlots.js",
+}
