@@ -25,6 +25,16 @@ class _SceneUIKitClass extends Scene {
     this.toastN = 0;
     this.selSlot = -1;
 
+    // Demo Input actions the rebind rows retarget; held state is echoed live below.
+    Input.register(
+      "uikit_jump",
+      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, vk_space),
+    );
+    Input.register(
+      "uikit_fire",
+      new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
+    );
+
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
@@ -41,6 +51,7 @@ class _SceneUIKitClass extends Scene {
     const values = gemsScroll({ height: 250 });
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
+    values.scrollBody.insertChild(this._rebindSection());
 
     // ── Tab: Containers (nine-slice skin + accordion | scroll list) ──
     // Left column scrolls so expanding accordion sections can't overflow the host.
@@ -263,6 +274,47 @@ class _SceneUIKitClass extends Scene {
     return fields;
   }
 
+  // UIRebind: click a row to arm "press a key…", then the next key rebinds that
+  // action. The readout reads Input.get(...).down() live, so after rebinding you can
+  // hold the new key and watch the action light up.
+  _rebindSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_REBIND"));
+    const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
+    sec.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_REBIND_JUMP"),
+        gemsRebind("uikit_jump", {
+          prompt,
+          tooltip: I18n.textRef("UIKIT_TIP_REBIND"),
+        }),
+      ),
+    );
+    sec.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_REBIND_FIRE"),
+        gemsRebind("uikit_fire", { prompt }),
+      ),
+    );
+    sec.insertChild(
+      gemsLabel(
+        () => {
+          const held = [];
+          if (Input.get("uikit_jump").down())
+            held.push(I18n.text("UIKIT_REBIND_JUMP"));
+          if (Input.get("uikit_fire").down())
+            held.push(I18n.text("UIKIT_REBIND_FIRE"));
+          return (
+            I18n.text("UIKIT_REBIND_HELD") +
+            " " +
+            (held.length === 0 ? "—" : held.join(", "))
+          );
+        },
+        { color: GemsTheme.accentHi },
+      ),
+    );
+    return sec;
+  }
+
   _controlsSection() {
     const controls = gemsSection(I18n.textRef("UIKIT_CONTROLS"));
 
@@ -441,6 +493,7 @@ class _SceneUIKitClass extends Scene {
   }
 
   destroy() {
+    Input.unbindAll(["uikit_jump", "uikit_fire"]);
     UI.remove(this.ui);
     this.ui.destroy();
   }

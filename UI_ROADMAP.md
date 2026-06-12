@@ -172,8 +172,17 @@ hoisting fault.)
 
 ## Phase 4 — Input & navigation
 
-- [ ] **13. Input rebinding widget** — "Press a key…" capture row bridging the existing
-  `Input` / `InputAction` (`bindButton` / `bindAxis`). `gemsRebind(actionKey)`.
+- [x] **13. Input rebinding widget** — "Press a key…" capture row bridging the existing
+  `Input` / `InputAction` (`bindButton` / `bindAxis`). `gemsRebind(actionKey)`. Done:
+  **`UIRebind`** draws the action's current keyboard binding (via a `_keyName` map) over
+  a `UIPanel`; click arms capture (`_capturing` instance flag — not a clobber-prone
+  local), then `keyboard_check_pressed(vk_anykey)` + `keyboard_lastkey` rebinds the
+  action's first button in place (Esc / mouse-click cancels). Mouse/gamepad bindings show
+  read-only as `Mouse N` / `Pad N`. Keyboard-only rebinding (the common case); no
+  persistence (Input.export is nested → `JSON.stringify` faults, see the idiom note).
+  `gemsRebind(actionKey, opts)`; demoed in the sceneUIKit Inputs & Values tab with two
+  actions (Jump=Space, Fire=F) + a live `down()` held-state readout. (Probed at runtime:
+  `vk_anykey` and `keyboard_lastkey` are exposed GMRT globals — `lastkey` is a number.)
   *No deps (uses existing Input).*
 - [ ] **14. Gamepad/keyboard UI navigation** — focus model + directional traversal over
   `UIElement` so menus are playable without a mouse. A **system**, not a widget;

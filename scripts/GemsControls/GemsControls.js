@@ -244,6 +244,40 @@ globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
+// Key-rebinding row for an Input action (UIRebind). Shows the action's current
+// keyboard binding; click to arm "press a key…" capture, then the next key rebinds
+// the action's first button (Esc / mouse click cancels). `actionKey` must already be
+// registered via Input.register/bindAll. `opts.prompt` (string / () => string) is the
+// capture label; `opts.onRebind(code)` fires after a successful rebind.
+globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? GemsTheme.rowH,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.btn),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: 0.07,
+    }),
+  );
+  el.addComponent(
+    new UIRebind({
+      actionKey,
+      prompt: gemsTextRef(opts.prompt ?? "Press a key…"),
+      onRebind: opts.onRebind,
+      color: gemsColor(GemsTheme.text),
+      captureColor: gemsColor(GemsTheme.accent),
+      rad: GemsTheme.radiusSm,
+      font: opts.font ?? -1,
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};
+
 // Settings-bound select. `items` are { name, value }; the current Settings value
 // picks the starting index.
 globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
