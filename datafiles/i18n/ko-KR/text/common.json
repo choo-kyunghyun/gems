@@ -165,5 +165,9 @@
   "STORAGE_BOX": "상자",
   "STORAGE_PROMPT": "[E] 상자 열기",
   "STORAGE_EMPTY": "(비어 있음)",
-  "SORT": "정렬"
+  "SORT": "정렬",
+
+  "CRAFT_TITLE": "제작",
+  "CRAFT_PROMPT": "[E] 제작",
+  "CRAFT_EMPTY": "제작법 없음"
 }

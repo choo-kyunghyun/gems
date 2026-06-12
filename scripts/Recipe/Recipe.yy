@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Recipe",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Recipe",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Recipe.js",
+}

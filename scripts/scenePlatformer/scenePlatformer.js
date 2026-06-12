@@ -32,7 +32,11 @@ class _ScenePlatformerClass extends Scene {
     // Open it with E to transfer items between bag and chest. BBox anchored at the
     // feet (bottom = Position.y) like the player, so it sits on the same ground line.
     const chest = this.world.create();
-    this.world.add(chest, Position, { x: this.spawn.x + 120, y: this.spawn.y, z: 0 });
+    this.world.add(chest, Position, {
+      x: this.spawn.x + 120,
+      y: this.spawn.y,
+      z: 0,
+    });
     this.world.add(chest, BBox, { x: -16, y: -28, width: 32, height: 28 });
     this.world.add(chest, Collision, {
       solid: true,
@@ -42,12 +46,14 @@ class _ScenePlatformerClass extends Scene {
       mask: null,
       hits: [],
     });
-    this.world.add(chest, Tag, { tags: new Set(["storage"]) });
+    this.world.add(chest, Station, { kind: "storage" });
     this.world.add(chest, Name, { name: "Chest" });
     this.world.add(chest, Inventory, {
       slots: [
         { itemId: "potion", qty: 2 },
         { itemId: "wood_sword", qty: 1 },
+        { itemId: "wood", qty: 5 },
+        { itemId: "iron", qty: 3 },
       ],
       capacity: 12,
     });
@@ -63,6 +69,45 @@ class _ScenePlatformerClass extends Scene {
       speed: 0,
       time: 0,
     });
+
+    // Furniture: solid kinematic props resting on the ground line (BBox anchored at the
+    // feet like the chest/player). A Station `kind` makes it interactable (Interactable
+    // picks it by mouse/proximity, E opens its window); a decorative prop omits it.
+    const addProp = (dx, name, col, kind) => {
+      const e = this.world.create();
+      this.world.add(e, Position, {
+        x: this.spawn.x + dx,
+        y: this.spawn.y,
+        z: 0,
+      });
+      this.world.add(e, BBox, { x: -16, y: -28, width: 32, height: 28 });
+      this.world.add(e, Collision, {
+        solid: true,
+        kinematic: true,
+        oneWay: false,
+        passThroughTicks: 0,
+        mask: null,
+        hits: [],
+      });
+      this.world.add(e, Name, { name });
+      this.world.add(e, Visual, {
+        visible: true,
+        sprite: spr_play,
+        subimg: 0,
+        xscale: 1,
+        yscale: 1,
+        rot: 0,
+        color: col,
+        alpha: 1,
+        speed: 0,
+        time: 0,
+      });
+      if (kind !== undefined) this.world.add(e, Station, { kind });
+      else this.world.add(e, Tag, { tags: new Set(["furniture"]) });
+      return e;
+    };
+    addProp(200, "Workbench", make_colour_rgb(150, 110, 70), "workbench");
+    addProp(64, "Barrel", make_colour_rgb(110, 80, 50)); // decorative
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -108,7 +153,7 @@ class _ScenePlatformerClass extends Scene {
     // inventory window.
     this._buildHud();
     this._buildInventoryWindow();
-    StorageUI.build(this); // chest prompt + transfer window
+    Interactable.build(this); // station prompt + storage + crafting windows
 
     Log.info(
       `Platformer RPG ready — items=${Item.all().length} enemies=${this.enemies.length}`,
@@ -162,7 +207,7 @@ class _ScenePlatformerClass extends Scene {
       this.world.flush();
     }
 
-    StorageUI.update(this); // chest proximity + open/close + transfers
+    Interactable.update(this); // station select + open/close + transfers/crafting
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty).
@@ -363,7 +408,11 @@ class _ScenePlatformerClass extends Scene {
         () => {
           const v = world.get(Inventory, this.ctrl.id);
           let s =
-            I18n.text("TOPDOWN_SLOTS") + " " + v.slots.length + "/" + v.capacity;
+            I18n.text("TOPDOWN_SLOTS") +
+            " " +
+            v.slots.length +
+            "/" +
+            v.capacity;
           if (v.maxWeight !== undefined)
             s +=
               "   " +
@@ -538,6 +587,7 @@ class _ScenePlatformerClass extends Scene {
   draw() {
     PlatformerUI.drawWorld(this); // item drops + bullets (world space)
     this.renderer.draw(this.world); // player / enemies: colored boxes + labels + bbox
+    Interactable.drawTarget(this); // highlight the targeted station (world space)
     FloatingText.draw(); // damage/heal numbers (world space)
     // HUD + inventory are now manager-drawn UI panels (GUI layer, Draw_75), built in
     // create() — nothing more to draw here.

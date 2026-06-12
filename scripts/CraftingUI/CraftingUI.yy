@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"CraftingUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"CraftingUI",
+  "parent":{
+    "name":"Templates",
+    "path":"folders/Templates.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"CraftingUI.js",
+}

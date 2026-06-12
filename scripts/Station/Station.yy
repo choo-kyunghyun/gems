@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Station",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Station",
+  "parent":{
+    "name":"Components",
+    "path":"folders/Core/Components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Station.js",
+}

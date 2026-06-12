@@ -1,20 +1,20 @@
-// Shared storage-chest UI for the genre templates (TopDown + Platformer). A "storage"
-// entity is any entity tagged "storage" carrying an Inventory; walk near it and press
-// `interact` (E) to open a two-column transfer window — left = the player's Bag, right
-// = the Chest — where clicking an item moves that whole stack to the other side
-// (capacity/weight-gated by InventorySystem.add). Manager-drawn UI on the GUI layer
-// (Draw_75), built once and toggled; the window is a draggable gemsWindow.
+// Storage-chest transfer WINDOW for the genre templates (TopDown + Platformer). A
+// "storage" station (a Station {kind:"storage"} entity carrying an Inventory) opens a
+// two-column transfer window — left = the player's Bag, right = the Chest — where
+// clicking an item moves that whole stack to the other side (capacity/weight-gated by
+// InventorySystem.add). Manager-drawn UI on the GUI layer (Draw_75), built once and
+// toggled.
 //
-// All per-open state lives on the SCENE (namespaced `_store*`), never on this static
-// module, so two scenes can't clobber each other and teardownScene (which destroys
-// scene.ui) cleans up the window/prompt with no extra work.
+// Proximity selection, the open/close keybind, the prompt, and the world highlight are
+// owned by the shared `Interactable` module — this file only builds the window and
+// reacts to open/close/refresh calls. All per-open state lives on the SCENE
+// (namespaced `_store*`) so two scenes can't clobber each other and teardownScene
+// (which destroys scene.ui) cleans up with no extra work.
 //
-// Scene contract: scene.world, scene.ctrl.id (player), scene.ui. Build it once in
-// create() (after the player + ui exist), call update() each frame, and set
-// scene._storeDirty = true if the player inventory changes from elsewhere while open.
+// Scene contract: scene.world, scene.ctrl.id (player), scene.ui. Built once in create()
+// via Interactable.build (after the player + ui exist); set scene._storeDirty = true if
+// the player inventory changes from elsewhere while open.
 globalThis.StorageUI = {
-  RADIUS: 72, // interact range (px) to a chest
-
   _rarityColor(itemId) {
     const it = Item.get(itemId);
     const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
@@ -26,43 +26,6 @@ globalThis.StorageUI = {
     scene._storeOpen = false;
     scene._storeDirty = false;
 
-    // Proximity prompt: a compact centered card near the bottom, shown only while the
-    // player is near a chest and the window is closed.
-    const prompt = new UIElement({
-      positionType: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 84,
-      alignItems: "center",
-    });
-    const pill = new UIElement({
-      width: 240,
-      height: 42,
-      justifyContent: "center",
-      alignItems: "center",
-    });
-    pill.addComponent(
-      new UIPanel({
-        color: gemsColor(GemsTheme.panel),
-        color2: gemsColor(GemsTheme.panelLo),
-        rad: GemsTheme.radius,
-        border: 1,
-        borderColor: gemsColor(GemsTheme.border),
-        shadow: 8,
-        highlight: 1,
-      }),
-    );
-    pill.insertChild(
-      gemsLabel(I18n.textRef("STORAGE_PROMPT"), {
-        halign: fa_center,
-        color: GemsTheme.text,
-      }),
-    );
-    prompt.insertChild(pill);
-    prompt.enabled = false;
-    scene._storePrompt = prompt;
-    scene.ui.insertChild(prompt);
-
     // Transfer window: Bag | Chest columns.
     const gw = display_get_gui_width();
     const left = gw > 0 ? gw / 2 - 280 : 80;
@@ -70,7 +33,7 @@ globalThis.StorageUI = {
       left,
       top: 80,
       width: 560,
-      onClose: () => StorageUI._close(scene),
+      onClose: () => StorageUI.close(scene),
     });
     win.enabled = false;
     const cols = new UIElement({
@@ -125,48 +88,21 @@ globalThis.StorageUI = {
     return { col, body: scroll.scrollBody };
   },
 
-  // Per-frame: track the nearest chest, toggle on interact, manage prompt + rebuild.
-  update(scene) {
-    const near = StorageUI._findNear(scene);
-
-    if (near !== -1 && Input.get("interact").pressed()) {
-      if (scene._storeOpen) StorageUI._close(scene);
-      else StorageUI._open(scene, near);
-    }
-    // Walked out of range while open → close (chest is left behind).
-    if (scene._storeOpen && near === -1) StorageUI._close(scene);
-
-    scene._storePrompt.enabled = near !== -1 && !scene._storeOpen;
-
-    if (scene._storeOpen && scene._storeDirty) {
-      StorageUI._rebuild(scene);
-      scene._storeDirty = false;
-    }
-  },
-
-  _findNear(scene) {
-    const p = scene.world.get(Position, scene.ctrl.id);
-    if (p === undefined) return -1;
-    return Query.nearest(scene.world, p.x, p.y, {
-      tag: "storage",
-      maxDist: StorageUI.RADIUS,
-    });
-  },
-
-  _open(scene, id) {
+  // Called by Interactable when the player activates a storage station.
+  open(scene, id) {
     scene._storageId = id;
     scene._storeOpen = true;
     scene._storeWin.enabled = true;
     scene._storeDirty = true;
   },
 
-  _close(scene) {
+  close(scene) {
     scene._storeOpen = false;
     scene._storeWin.enabled = false;
     scene._storageId = -1;
   },
 
-  _rebuild(scene) {
+  refresh(scene) {
     const world = scene.world;
     const bagInv = world.get(Inventory, scene.ctrl.id);
     const boxInv = world.get(Inventory, scene._storageId);
@@ -217,10 +153,7 @@ globalThis.StorageUI = {
     // (and its stat mods) referencing an item we no longer have.
     if (srcInv === scene.world.get(Inventory, scene.ctrl.id)) {
       const eq = scene.world.get(Equipment, scene.ctrl.id);
-      if (
-        eq !== undefined &&
-        !InventorySystem.has(srcInv, itemId, 1)
-      ) {
+      if (eq !== undefined && !InventorySystem.has(srcInv, itemId, 1)) {
         for (const slot in eq.slots) {
           if (eq.slots[slot] === itemId) {
             EquipmentSystem.unequip(scene.world, scene.ctrl.id, slot);

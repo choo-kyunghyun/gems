@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"CraftSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"CraftSystem",
+  "parent":{
+    "name":"Systems",
+    "path":"folders/Core/Systems.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"CraftSystem.js",
+}

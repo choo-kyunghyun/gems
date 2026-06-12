@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Interactable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Interactable",
+  "parent":{
+    "name":"Templates",
+    "path":"folders/Templates.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Interactable.js",
+}

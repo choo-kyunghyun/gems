@@ -165,5 +165,9 @@
   "STORAGE_BOX": "Chest",
   "STORAGE_PROMPT": "[E] Open chest",
   "STORAGE_EMPTY": "(empty)",
-  "SORT": "Sort"
+  "SORT": "Sort",
+
+  "CRAFT_TITLE": "Crafting",
+  "CRAFT_PROMPT": "[E] Craft",
+  "CRAFT_EMPTY": "No recipes"
 }

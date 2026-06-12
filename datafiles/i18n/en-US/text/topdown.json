@@ -44,6 +44,8 @@
   "ITEM_LEATHER_ARMOR": "Leather Armor",
   "ITEM_SWIFT_RING": "Ring of Swiftness",
   "ITEM_BACKPACK": "Backpack",
+  "ITEM_WOOD": "Wood",
+  "ITEM_IRON": "Iron",
 
   "QUEST_SLIMES_NAME": "Slime Cull",
   "QUEST_SLIMES_OBJ": "Slimes slain {0}/{1}",

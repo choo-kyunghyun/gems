@@ -142,13 +142,15 @@ class _SceneTopDownClass extends Scene {
       mask: null,
       hits: [],
     });
-    this.world.add(chest, Tag, { tags: new Set(["storage"]) });
+    this.world.add(chest, Station, { kind: "storage" });
     this.world.add(chest, Name, { name: "Chest" });
     this.world.add(chest, Inventory, {
       slots: [
         { itemId: "potion", qty: 2 },
         { itemId: "gem", qty: 1 },
         { itemId: "swift_ring", qty: 1 },
+        { itemId: "wood", qty: 5 },
+        { itemId: "iron", qty: 3 },
       ],
       capacity: 12,
     });
@@ -164,6 +166,41 @@ class _SceneTopDownClass extends Scene {
       speed: 0,
       time: 0,
     });
+
+    // ── Furniture: a solid kinematic prop. `kind` (a Station) makes it interactable
+    //    (Interactable picks it by mouse/proximity, E opens its window); a plain
+    //    decorative prop omits it. ────────────────────────────────────────────────
+    const addProp = (gx, gy, name, col, kind) => {
+      const w = this.level.gridToWorld(gx, gy);
+      const e = this.world.create();
+      this.world.add(e, Position, { x: w.x, y: w.y, z: 0 });
+      this.world.add(e, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      this.world.add(e, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      this.world.add(e, Name, { name });
+      this.world.add(e, Visual, {
+        visible: true,
+        sprite: spr_choo,
+        subimg: 0,
+        xscale: 1,
+        yscale: 1,
+        rot: 0,
+        color: col,
+        alpha: 1,
+        speed: 0,
+        time: 0,
+      });
+      if (kind !== undefined) this.world.add(e, Station, { kind });
+      else this.world.add(e, Tag, { tags: new Set(["furniture"]) });
+      return e;
+    };
+    addProp(12, 9, "Workbench", make_colour_rgb(150, 110, 70), "workbench");
+    addProp(8, 11, "Table", make_colour_rgb(120, 90, 60)); // decorative
+    addProp(9, 11, "Barrel", make_colour_rgb(110, 80, 50)); // decorative
 
     // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
     //    projectiles → expire ─
@@ -238,7 +275,7 @@ class _SceneTopDownClass extends Scene {
     this._buildHud();
     this._buildDialogue();
     this._buildInventoryWindow();
-    StorageUI.build(this); // chest prompt + transfer window
+    Interactable.build(this); // station prompt + storage + crafting windows
 
     Log.info(
       `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
@@ -278,7 +315,7 @@ class _SceneTopDownClass extends Scene {
     AnimationSystem.update(this.world); // advance sprite frames (per frame)
     this._updateNpc(); // proximity + E interaction
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
-    StorageUI.update(this); // chest proximity + open/close + transfers
+    Interactable.update(this); // station select + open/close + transfers/crafting
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty),
@@ -527,7 +564,11 @@ class _SceneTopDownClass extends Scene {
         () => {
           const v = world.get(Inventory, this.ctrl.id);
           let s =
-            I18n.text("TOPDOWN_SLOTS") + " " + v.slots.length + "/" + v.capacity;
+            I18n.text("TOPDOWN_SLOTS") +
+            " " +
+            v.slots.length +
+            "/" +
+            v.capacity;
           if (v.maxWeight !== undefined)
             s +=
               "   " +
@@ -823,6 +864,7 @@ class _SceneTopDownClass extends Scene {
   draw() {
     TopDownUI.drawWorld(this); // walls, drops, bullets, reach zone (world space)
     this.renderer.draw(this.world); // player / slimes / elder: colored boxes + labels + bbox
+    Interactable.drawTarget(this); // highlight the targeted station (world space)
     FloatingText.draw(); // damage/heal numbers over entities (world space)
     // HUD / dialogue / inventory are now manager-drawn UI panels (GUI layer, Draw_75),
     // built in create() — nothing more to draw here.
