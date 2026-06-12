@@ -309,21 +309,33 @@ class _SceneUIKitClass extends Scene {
     return skin;
   }
 
+  // Two draggable 3×3 grids: drag items within a grid or across to the other
+  // (drop on a filled slot swaps; drop on nothing returns to source; a click that
+  // doesn't move selects).
   _inventorySection() {
     const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
-    const icon = asset_get_index("spr_tile16");
-    const items = [];
-    for (let i = 0; i < 24; i++) {
-      // Every third slot empty; the rest carry a tile frame as a placeholder icon.
-      if (i % 3 === 0) items.push(null);
-      else items.push({ sprite: icon, subimg: i % 16, count: (i % 5) + 1 });
-    }
-    sec.insertChild(
-      gemsSlots(items, {
-        onSelect: (i) => (this.selSlot = i),
-        tooltip: I18n.textRef("UIKIT_TIP_INV"),
-      }),
-    );
+    const grids = new UIElement({
+      width: "100%",
+      flexDirection: "row",
+      gap: GemsTheme.gap,
+    });
+    const elA = gemsSlots(this._bag(0), {
+      cols: 3,
+      cellSize: 60,
+      draggable: true,
+      onSelect: (i) => (this.selSlot = i),
+      tooltip: I18n.textRef("UIKIT_TIP_INV"),
+    });
+    const elB = gemsSlots(this._bag(1), {
+      cols: 3,
+      cellSize: 60,
+      draggable: true,
+      onSelect: (i) => (this.selSlot = i),
+      tooltip: I18n.textRef("UIKIT_TIP_INV"),
+    });
+    grids.insertChild(elA);
+    grids.insertChild(elB);
+    sec.insertChild(grids);
     sec.insertChild(
       gemsLabel(
         () =>
@@ -334,6 +346,22 @@ class _SceneUIKitClass extends Scene {
       ),
     );
     return sec;
+  }
+
+  // 9 slots; alternating filled/empty (offset per bag so the two differ).
+  _bag(which) {
+    const icon = asset_get_index("spr_tile16");
+    const items = [];
+    for (let i = 0; i < 9; i++) {
+      if ((i + which) % 2 === 0)
+        items.push({
+          sprite: icon,
+          subimg: (i + which * 3) % 16,
+          count: (i % 4) + 1,
+        });
+      else items.push(null);
+    }
+    return items;
   }
 
   _accordionSection() {

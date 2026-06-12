@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SlotDrag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SlotDrag",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SlotDrag.js",
+}

@@ -23,6 +23,7 @@ globalThis.UISlots = class UISlots {
     this.pad = s.pad ?? 8; // icon inset inside a cell
     this.selected = s.selected ?? -1;
     this.onSelect = s.onSelect ?? noop;
+    this.draggable = s.draggable ?? false; // opt into SlotDrag pick-up/drop
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
@@ -70,13 +71,46 @@ globalThis.UISlots = class UISlots {
           break;
         }
       }
-      if (this._hover >= 0 && mouse_check_button_pressed(mb_left)) {
-        this.selected = this._hover;
-        this.onSelect(this.selected, this.items[this.selected]);
+    }
+
+    if (this.draggable) {
+      // Press a filled slot → pick it up; press an empty slot → just select it.
+      if (inside && this._hover >= 0 && mouse_check_button_pressed(mb_left)) {
+        if (this.items[this._hover] != null) {
+          SlotDrag.begin(this, this._hover);
+        } else {
+          this._select(this._hover);
+        }
         return true;
       }
+      // Release over a slot of this grid → drop. Dropping back onto the source
+      // slot (no move) reads as a plain click → select it.
+      if (
+        inside &&
+        this._hover >= 0 &&
+        mouse_check_button_released(mb_left) &&
+        SlotDrag.active
+      ) {
+        const onSource =
+          SlotDrag.source === this && SlotDrag.sourceIndex === this._hover;
+        SlotDrag.drop(this, this._hover);
+        if (onSource) this._select(this._hover);
+        return true;
+      }
+    } else if (
+      inside &&
+      this._hover >= 0 &&
+      mouse_check_button_pressed(mb_left)
+    ) {
+      this._select(this._hover);
+      return true;
     }
     return inside || block;
+  }
+
+  _select(i) {
+    this.selected = i;
+    this.onSelect(i, this.items[i]);
   }
 
   onDraw(element) {

@@ -146,8 +146,15 @@ hoisting fault.)
   `gemsScroll` can measure it. Hover highlights, click selects (`onSelect(i, item)`),
   count badges, 2px accent selection outline. `sprite` must be raster (SVG faults).
   Demoed in a new sceneUIKit **Inventory** tab inside a scroll. *Dep: #5.*
-- [ ] **11. Drag-and-drop slots** — pointer-follow drag + drop-target resolution over
-  the slot grid; rearrange items between grids. *Dep: #10.*
+- [x] **11. Drag-and-drop slots** — shipped as **`SlotDrag`** (a standalone static
+  singleton like Tooltip/Toast) + a `draggable` opt on `UISlots`/`gemsSlots`. Press a
+  filled slot → `SlotDrag.begin` picks it up (source slot empties, floating icon
+  follows the cursor, drawn in `Draw_75` after `UI`); release over a slot → `drop`
+  (swaps any occupant back to the source — a plain move if empty), works across grids;
+  release over nothing → `cancel` returns it (caught in `SlotDrag.draw` since grids
+  only see the release when the pointer is over them); a click that doesn't move
+  selects. Probe-verified the cross-grid move this session. Demoed by two draggable
+  3×3 grids in the sceneUIKit Inventory tab. *Dep: #10.*
 - [ ] **12. `UIRichText`** — colored spans + inline icons in one string (item rarity,
   damage colors, keybind glyphs in help text). Extends `UIText` parsing. *No deps.*
 
