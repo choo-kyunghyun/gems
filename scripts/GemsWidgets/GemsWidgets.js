@@ -15,6 +15,33 @@ globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
+// Rich text node: a markup string with colored spans + inline icons (UIRichText).
+// Width/height auto-fit to the parsed content, like gemsLabel. `opts.palette` maps
+// `[c=name]` tags to colors (theme key / hex / int, parsed via gemsColor); the kit's
+// semantic names (`accent`, `textMuted`, …) are merged in for free. `opts.iconSize`
+// overrides the inline-icon size (defaults to the line height).
+globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
+  const palette = {};
+  const src = opts.palette ?? {};
+  for (const name in src) palette[name] = gemsColor(src[name]);
+  if (palette.accent == null) palette.accent = gemsColor(GemsTheme.accent);
+  if (palette.muted == null) palette.muted = gemsColor(GemsTheme.textMuted);
+  if (palette.dim == null) palette.dim = gemsColor(GemsTheme.textDim);
+
+  const el = new UIElement();
+  el.addComponent(
+    new UIRichText({
+      textRef: gemsTextRef(markup),
+      color: gemsColor(opts.color ?? GemsTheme.text),
+      halign: opts.halign ?? fa_left,
+      font: opts.font ?? -1,
+      iconSize: opts.iconSize ?? -1,
+      palette,
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};
+
 // One-line help/hint text on a readable card backdrop. Use instead of a bare
 // gemsLabel for overlays that would otherwise float as low-contrast text over a
 // scene's render (e.g. the tile-inspector "press X to…" lines).

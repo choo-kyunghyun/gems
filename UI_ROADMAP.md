@@ -155,8 +155,20 @@ hoisting fault.)
   only see the release when the pointer is over them); a click that doesn't move
   selects. Probe-verified the cross-grid move this session. Demoed by two draggable
   3×3 grids in the sceneUIKit Inventory tab. *Dep: #10.*
-- [ ] **12. `UIRichText`** — colored spans + inline icons in one string (item rarity,
-  damage colors, keybind glyphs in help text). Extends `UIText` parsing. *No deps.*
+- [x] **12. `UIRichText`** — colored spans + inline icons in one string (item rarity,
+  damage colors, keybind glyphs in help text). Extends `UIText` parsing. Done: a
+  square-bracket markup — `[c=#hex]…[/c]` / `[c=name]…[/c]` (nesting color stack,
+  resolved through an `opts.palette` of name→color) for spans, `[spr=spr_name]` /
+  `[spr=spr_name:sub]` for an inline icon, `\n` for a hard break — is parsed once and
+  cached, then drawn run-by-run advancing x (`draw_text_color` + `draw_sprite_stretched_ext`),
+  with per-line internal halign against the widest line. Like `UIText` it self-sizes via
+  `setWidth/Height` (a no-op at runtime on 0.19) so it's a text drawer (no NaN-width
+  guard) and stacked lines need explicit-height host rows. `gemsRichText(markup, opts)`
+  merges the kit's semantic palette names for free. Found a new GMRT idiom in the process:
+  `asset_get_index` returns an opaque sprite *ref*, not a numeric index, so the icon
+  validity test must be `sprite_exists`, never `>= 0` (now in CLAUDE.md). Demoed in the
+  sceneUIKit Widgets tab (loot lines with rarity colors + terrain-tile icons, a keybind
+  help line). *No deps.*
 
 ## Phase 4 — Input & navigation
 

@@ -35,6 +35,7 @@ class _SceneUIKitClass extends Scene {
     const widgets = gemsScroll({ height: 250 });
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
+    widgets.scrollBody.insertChild(this._richTextSection());
 
     // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
     const values = gemsScroll({ height: 250 });
@@ -184,6 +185,38 @@ class _SceneUIKitClass extends Scene {
       ),
     );
     return toggles;
+  }
+
+  // UIRichText: colored spans ([c=name]/[c=#hex]) + inline icons ([spr=…]) in one
+  // string. The markup is an i18n value so it localizes; the rarity/keybind colors are
+  // passed as a palette. Each line sits in an explicit-height row — UIRichText, like
+  // UIText, can't self-size at runtime (flexpanel mutation is a no-op on 0.19), so a
+  // fixed-height host keeps stacked lines from overlapping (the gemsModal pattern).
+  _richTextSection() {
+    const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
+    sec.insertChild(
+      this._richRow(40, I18n.textRef("UIKIT_RICH_LOOT"), {
+        iconSize: 20,
+        palette: {
+          legendary: "#ff9f43",
+          rare: GemsTheme.accent,
+          dmg: "#ff5555",
+        },
+      }),
+    );
+    sec.insertChild(
+      this._richRow(24, I18n.textRef("UIKIT_RICH_HELP"), {
+        color: GemsTheme.textMuted,
+        palette: { key: "#ffd86b" },
+      }),
+    );
+    return sec;
+  }
+
+  _richRow(height, markup, opts) {
+    const row = new UIElement({ width: "100%", height });
+    row.insertChild(gemsRichText(markup, opts));
+    return row;
   }
 
   _fieldsSection() {

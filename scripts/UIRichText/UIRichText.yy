@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIRichText",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIRichText",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIRichText.js",
+}
