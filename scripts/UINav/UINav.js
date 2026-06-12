@@ -29,6 +29,7 @@ globalThis.UINav = class UINav {
   static focused = null; // the focused element, or null
   static engaged = false; // ring visible / nav acting (set on first nav input)
   static color = c_aqua; // focus-ring color (overridden by the demo theme)
+  static debugKey = vk_tab; // hold to show the traversal overlay (-1 disables)
 
   static _mx = 0; // last mouse pos — movement disengages
   static _my = 0;
@@ -99,6 +100,12 @@ globalThis.UINav = class UINav {
   }
 
   static draw() {
+    // Debug: hold UINav.debugKey (Tab) to overlay the traversal order + the four
+    // directional targets from the focused element — to diagnose awkward routing.
+    if (UINav.debugKey !== -1 && keyboard_check(UINav.debugKey)) {
+      UINav._drawDebug();
+    }
+
     if (!UINav.engaged || UINav.focused === null) return;
     if (UINav.focused._destroyed) return;
     const pos = UINav.focused.getLayoutPosition();
@@ -126,6 +133,79 @@ globalThis.UINav = class UINav {
         true,
       );
     }
+    draw_set_alpha(a0);
+  }
+
+  // Debug overlay: number every focusable in collection order and, from the focused
+  // element, draw a labelled line to each direction's target (U/D/L/R) using the same
+  // _pick the real moves use — so you can see exactly where each press would go.
+  static _drawDebug() {
+    const items = UINav._collect();
+    if (items.length === 0) return;
+
+    const font = draw_get_font();
+    const halign = draw_get_halign();
+    const valign = draw_get_valign();
+    const color = draw_get_color();
+    const a0 = draw_get_alpha();
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+
+    const fi = UINav._indexOf(items, UINav.focused);
+
+    // Each focusable: a numbered outline (the focused one brighter).
+    for (let k = 0; k < items.length; k++) {
+      const pos = items[k].el.getLayoutPosition();
+      if (!(pos.width > 0)) continue;
+      const on = k === fi;
+      draw_set_alpha(on ? 0.9 : 0.5);
+      const c = on ? c_yellow : c_orange;
+      draw_rectangle_color(
+        pos.left,
+        pos.top,
+        pos.left + pos.width,
+        pos.top + pos.height,
+        c,
+        c,
+        c,
+        c,
+        true,
+      );
+      draw_set_alpha(1);
+      draw_text_color(pos.left + 3, pos.top + 2, string(k), c, c, c, c, 1);
+    }
+
+    // Directional targets from the focused element.
+    if (fi !== -1) {
+      const fx = items[fi].cx;
+      const fy = items[fi].cy;
+      // dx, dy, label, color.
+      const dirs = [
+        [0, -1, "U", c_red],
+        [0, 1, "D", c_lime],
+        [-1, 0, "L", c_aqua],
+        [1, 0, "R", c_fuchsia],
+      ];
+      for (let d = 0; d < dirs.length; d++) {
+        const j = UINav._pick(items, fi, dirs[d][0], dirs[d][1]);
+        if (j === -1) continue;
+        const tx = items[j].cx;
+        const ty = items[j].cy;
+        const col = dirs[d][3];
+        draw_line_width_color(fx, fy, tx, ty, 2, col, col);
+        draw_set_color(col);
+        draw_text(
+          (fx + tx) * 0.5 + 4,
+          (fy + ty) * 0.5,
+          dirs[d][2] + ">" + string(j),
+        );
+      }
+    }
+
+    draw_set_font(font);
+    draw_set_halign(halign);
+    draw_set_valign(valign);
+    draw_set_color(color);
     draw_set_alpha(a0);
   }
 
@@ -225,8 +305,7 @@ globalThis.UINav = class UINav {
     return -1;
   }
 
-  // Move focus to the nearest focusable in direction (dx, dy): smallest forward
-  // distance plus a perpendicular penalty, so aligned candidates win.
+  // Move focus to the nearest focusable in direction (dx, dy).
   static _move(items, dx, dy) {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
@@ -234,6 +313,17 @@ globalThis.UINav = class UINav {
       UINav._scrollIntoView(UINav.focused);
       return;
     }
+    const best = UINav._pick(items, i, dx, dy);
+    if (best !== -1) {
+      UINav.focused = items[best].el;
+      UINav._scrollIntoView(UINav.focused);
+    }
+  }
+
+  // Index of the focusable that (dx, dy) from item `i` lands on, or -1: smallest
+  // forward distance plus a perpendicular penalty, so aligned candidates win. Shared
+  // by _move and the debug overlay so the picture matches the behavior exactly.
+  static _pick(items, i, dx, dy) {
     const fx = items[i].cx;
     const fy = items[i].cy;
     let best = -1;
@@ -251,10 +341,7 @@ globalThis.UINav = class UINav {
         best = j;
       }
     }
-    if (best !== -1) {
-      UINav.focused = items[best].el;
-      UINav._scrollIntoView(UINav.focused);
-    }
+    return best;
   }
 
   static _readInput() {

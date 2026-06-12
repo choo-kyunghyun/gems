@@ -138,4 +138,10 @@ globalThis.UIAccordion = class UIAccordion {
     draw_set_color(color);
     draw_set_alpha(a0);
   }
+
+  // UINav: confirm expands/collapses the section (the body's focusables then become
+  // collectable next frame). Marks the header focusable.
+  navActivate(element) {
+    this.toggle(element);
+  }
 };
