@@ -26,55 +26,6 @@ globalThis.TopDownUI = {
     draw_rectangle(x1, y1, x2, y2, true);
   },
 
-  // Entities as colored boxes (placeholder — GMRT 0.19 can't render the SVG
-  // character sprites). The box still reflects the Animator state: it inflates on
-  // walk/attack, and a notch shows the facing Direction. Swap back to RenderEntity
-  // once raster sprites exist (the Animator/Visual wiring is unchanged).
-  drawEntities(scene) {
-    const world = scene.world;
-    const ids = world.query(Visual, Position, BBox);
-    for (const id of ids) {
-      const vis = world.get(Visual, id);
-      if (!vis.visible) continue;
-
-      const pos = world.get(Position, id);
-      const prev = world.get(PrevPosition, id);
-      const a = world.alpha;
-      const cx = prev !== undefined ? prev.x + (pos.x - prev.x) * a : pos.x;
-      const cy = prev !== undefined ? prev.y + (pos.y - prev.y) * a : pos.y;
-
-      const box = world.get(BBox, id);
-      const anim = world.get(Animator, id);
-      let inflate = 0;
-      if (anim !== undefined) {
-        if (anim.state === "attack") inflate = 3;
-        else if (anim.state === "walk") inflate = 1;
-      }
-      const x1 = cx + box.x - inflate;
-      const y1 = cy + box.y - inflate;
-      const x2 = cx + box.x + box.width + inflate;
-      const y2 = cy + box.y + box.height + inflate;
-
-      draw_set_alpha(vis.alpha);
-      draw_set_color(vis.color);
-      draw_rectangle(x1, y1, x2, y2, false);
-      draw_set_alpha(1);
-      draw_set_color(c_black);
-      draw_rectangle(x1, y1, x2, y2, true);
-
-      const dir = world.get(Direction, id);
-      if (dir !== undefined && (dir.x !== 0 || dir.y !== 0)) {
-        const mx = (x1 + x2) / 2;
-        const my = (y1 + y2) / 2;
-        const r = (x2 - x1) / 2;
-        draw_set_color(c_black);
-        draw_circle(mx + dir.x * r * 0.6, my + dir.y * r * 0.6, 3, false);
-      }
-    }
-    draw_set_color(c_white);
-    draw_set_alpha(1);
-  },
-
   // World-space markers: walls, item drops (rarity squares), bullets (dots), reach zone.
   drawWorld(scene) {
     const world = scene.world;

@@ -148,6 +148,7 @@
     {"id":{"name":"QuestLog","path":"scripts/QuestLog/QuestLog.yy",},},
     {"id":{"name":"Rarity","path":"scripts/Rarity/Rarity.yy",},},
     {"id":{"name":"Raycast","path":"scripts/Raycast/Raycast.yy",},},
+    {"id":{"name":"RenderDebugBox","path":"scripts/RenderDebugBox/RenderDebugBox.yy",},},
     {"id":{"name":"RenderDebugEntity","path":"scripts/RenderDebugEntity/RenderDebugEntity.yy",},},
     {"id":{"name":"RenderDebugPath","path":"scripts/RenderDebugPath/RenderDebugPath.yy",},},
     {"id":{"name":"RenderDebugTileMap","path":"scripts/RenderDebugTileMap/RenderDebugTileMap.yy",},},

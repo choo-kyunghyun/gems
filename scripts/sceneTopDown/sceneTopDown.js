@@ -139,8 +139,13 @@ class _SceneTopDownClass extends Scene {
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // Entities are drawn as colored boxes in draw() (TopDownUI.drawEntities) —
-    // GMRT 0.19 can't render the SVG character sprites. No Renderer pass needed yet.
+    // Entities are drawn as colored boxes (Visual.color) + Name labels via
+    // RenderDebugBox, with a lime bbox overlay on top — GMRT 0.19 can't render
+    // the SVG character sprites.
+    this.renderer = new Renderer();
+    this.renderer.insert(new RenderDebugBox());
+    this.renderer.insert(new RenderDebugEntity());
+
     this.camera = cameraFollow2d({
       world: this.world,
       followTarget: this.ctrl.id,
@@ -490,7 +495,7 @@ class _SceneTopDownClass extends Scene {
 
   draw() {
     TopDownUI.drawWorld(this); // walls, drops, bullets, reach zone (world space)
-    TopDownUI.drawEntities(this); // player / slimes / elder as colored boxes (interpolated)
+    this.renderer.draw(this.world); // player / slimes / elder: colored boxes + labels + bbox
     FloatingText.draw(); // damage/heal numbers over entities (world space, before HUD)
 
     const cam = this.camera.id; // camera handle (view_camera[] isn't exposed in GMRT JS)

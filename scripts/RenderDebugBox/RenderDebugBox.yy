@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderDebugBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderDebugBox",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderDebugBox.js",
+}

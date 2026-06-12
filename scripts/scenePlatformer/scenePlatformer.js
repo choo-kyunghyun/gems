@@ -24,11 +24,18 @@ class _ScenePlatformerClass extends Scene {
       gemsButton(I18n.textRef("PLAT_BACK"), () => openScene(SCENES.lobby)),
     );
     this.ui.insertChild(
-      gemsLabel(I18n.textRef("PLAT_LEVEL", () => this.levelIndex + 1), { color: "#ffffff" }),
+      gemsLabel(
+        I18n.textRef("PLAT_LEVEL", () => this.levelIndex + 1),
+        { color: "#ffffff" },
+      ),
     );
     this.ui.insertChild(
       gemsLabel(
-        I18n.textRef("PLAT_COINS", () => this.score, () => this.totalCoins),
+        I18n.textRef(
+          "PLAT_COINS",
+          () => this.score,
+          () => this.totalCoins,
+        ),
         { color: "#ffd700" },
       ),
     );
@@ -39,7 +46,9 @@ class _ScenePlatformerClass extends Scene {
       ),
     );
     this.ui.insertChild(
-      gemsLabel(() => (this.won ? I18n.text("PLAT_WIN") : ""), { color: "#7cfc00" }),
+      gemsLabel(() => (this.won ? I18n.text("PLAT_WIN") : ""), {
+        color: "#7cfc00",
+      }),
     );
 
     this._initLevel(0);
@@ -79,7 +88,8 @@ class _ScenePlatformerClass extends Scene {
       .add(LifetimeSystem); // expires fireballs that travel too far
 
     this.renderer = new Renderer();
-    this.renderer.insert(new RenderDebugEntity());
+    this.renderer.insert(new RenderDebugBox()); // colored boxes + Name labels
+    this.renderer.insert(new RenderDebugEntity()); // lime bbox outlines on top
 
     this.camera = cameraFollow2d({
       world: this.world,
