@@ -169,5 +169,7 @@
 
   "CRAFT_TITLE": "제작",
   "CRAFT_PROMPT": "[E] 제작",
-  "CRAFT_EMPTY": "제작법 없음"
+  "CRAFT_EMPTY": "제작법 없음",
+
+  "CLAIM_PROMPT": "[E] 건설 구역 점유"
 }

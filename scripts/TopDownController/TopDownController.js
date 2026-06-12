@@ -46,6 +46,7 @@ globalThis.TopDownController = {
       fire: [INPUT_SOURCE.MOUSE, mb_left],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
+      build: [INPUT_SOURCE.KEYBOARD, ord("B")],
     });
 
     const id = world.create();
@@ -148,7 +149,8 @@ globalThis.TopDownController = {
 
     if (ctrl.fireCd > 0) ctrl.fireCd--;
     if (ctrl.attackCd > 0) ctrl.attackCd--;
-    if (Input.get("fire").down() && ctrl.fireCd === 0) {
+    // While build mode is active, LMB places tiles (BuildMode) — don't also fire.
+    if (Input.get("fire").down() && ctrl.fireCd === 0 && !BuildMode.active) {
       this._fire(world, ctrl);
       // Cadence comes from the equipped weapon (unarmed → default). Read live.
       const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
@@ -220,6 +222,7 @@ globalThis.TopDownController = {
       "fire",
       "inventory",
       "interact",
+      "build",
     ]);
   },
 };

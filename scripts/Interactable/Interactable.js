@@ -67,6 +67,7 @@ globalThis.Interactable = {
   _promptText(scene) {
     if (scene._interKind === "workbench") return I18n.text("CRAFT_PROMPT");
     if (scene._interKind === "storage") return I18n.text("STORAGE_PROMPT");
+    if (scene._interKind === "claim") return I18n.text("CLAIM_PROMPT");
     return "";
   },
 
@@ -177,6 +178,11 @@ globalThis.Interactable = {
 
   _open(scene) {
     const id = scene._interTarget;
+    // Claim is an instant action, not a window — claim the build zone and bail.
+    if (scene._interKind === "claim") {
+      BuildMode.claim(scene, id);
+      return;
+    }
     scene._interOpenId = id;
     if (scene._interKind === "storage") StorageUI.open(scene, id);
     else if (scene._interKind === "workbench") CraftingUI.open(scene, id);

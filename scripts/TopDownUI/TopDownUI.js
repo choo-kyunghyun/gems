@@ -1,4 +1,4 @@
-// World-space gameplay overlay for the TopDown RPG demo: walls, item drops, bullets,
+// World-space gameplay overlay for the TopDown RPG demo: item drops, bullets,
 // and the reach-quest zone, drawn in world space in scene.draw(). The HUD / dialogue /
 // inventory are now real UI panels built by the scene and drawn by the UI manager on
 // the GUI layer (Draw_75) — they no longer live here. `_rarityColor` is shared by the
@@ -10,20 +10,10 @@ globalThis.TopDownUI = {
     return r !== undefined ? r.color : c_white;
   },
 
-  // World-space markers: walls, item drops (rarity squares), bullets (dots), reach zone.
+  // World-space markers: item drops (rarity squares), bullets (dots), reach zone.
+  // Walls are now drawn by the RenderDebugTileMap pass (the wall tilemap), not here.
   drawWorld(scene) {
     const world = scene.world;
-
-    // Walls = kinematic solids with no Visual (NPC/enemies have a Visual).
-    const solids = world.query(Collision, BBox, Position);
-    draw_set_color(make_colour_rgb(70, 74, 90));
-    for (const id of solids) {
-      const col = world.get(Collision, id);
-      if (!col.solid || !col.kinematic) continue;
-      if (world.get(Visual, id) !== undefined) continue;
-      const e = AABB.of(world, id);
-      draw_rectangle(e.x1, e.y1, e.x2, e.y2, false);
-    }
 
     const drops = world.query(ItemDrop, Position);
     for (const id of drops) {

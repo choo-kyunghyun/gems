@@ -1,6 +1,14 @@
 {
   "TOPDOWN_NAME": "탑다운 RPG",
-  "TOPDOWN_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화",
+  "TOPDOWN_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화 · B: 건설",
+
+  "BUILD_MODE": "건설 모드",
+  "BUILD_WALL": "벽",
+  "BUILD_FLOOR": "바닥",
+  "BUILD_HINT": "좌클릭 설치 · 우클릭 철거 · 휠 전환 · 목재 {0}",
+  "BUILD_ZONE": "건설 구역",
+  "BUILD_CLAIMED": "건설 구역을 점유했습니다",
+
   "TOPDOWN_HUD": "Lv {0}   HP {1}/{2}",
   "TOPDOWN_INVENTORY": "가방",
   "TOPDOWN_STATS": "능력치",

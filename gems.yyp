@@ -75,6 +75,7 @@
     {"id":{"name":"Animator","path":"scripts/Animator/Animator.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
+    {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
     {"id":{"name":"cameraFollow","path":"scripts/cameraFollow/cameraFollow.yy",},},
     {"id":{"name":"cameraPan","path":"scripts/cameraPan/cameraPan.yy",},},

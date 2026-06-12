@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"BuildMode",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"BuildMode",
+  "parent":{
+    "name":"TopDown",
+    "path":"folders/Templates/TopDown.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"BuildMode.js",
+}

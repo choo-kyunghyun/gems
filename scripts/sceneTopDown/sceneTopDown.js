@@ -23,7 +23,22 @@ class _SceneTopDownClass extends Scene {
     const built = TopDownLevel.build(this.world, TopDownLevels[0]);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death
+    // Tilemap handles kept for build mode (place/remove tiles + remesh wall colliders).
+    this.wallLayer = built.wallLayer;
+    this.floorLayer = built.floorLayer;
+    this.wallType = built.wallType;
+    this.floorType = built.floorType;
+    this.colliders = built.colliders;
     this.ctrl = TopDownController.create(this.world, built.spawn);
+
+    // ── Buildable zone channel: one zone the Claim Post paints cells into; build mode
+    //    only allows placement inside it. RenderZone visualizes the claimed area. ─────
+    const bmap = this.level.addZoneMap("buildable");
+    this.buildZoneId = bmap.define({
+      name: I18n.text("BUILD_ZONE"),
+      tags: ["buildable"],
+      data: { color: "#55aa55" },
+    }).id;
 
     // ── Enemies: each carries its own Inventory, which IS its loot table ────
     this.enemies = [];
@@ -201,6 +216,8 @@ class _SceneTopDownClass extends Scene {
     addProp(12, 9, "Workbench", make_colour_rgb(150, 110, 70), "workbench");
     addProp(8, 11, "Table", make_colour_rgb(120, 90, 60)); // decorative
     addProp(9, 11, "Barrel", make_colour_rgb(110, 80, 50)); // decorative
+    // Survey Post: a "claim" station — E claims the buildable zone around it (BuildMode).
+    addProp(6, 9, "Survey Post", make_colour_rgb(80, 150, 90), "claim");
 
     // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
     //    projectiles → expire ─
@@ -211,10 +228,26 @@ class _SceneTopDownClass extends Scene {
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // Entities are drawn as colored boxes (Visual.color) + Name labels via
-    // RenderDebugBox, with a lime bbox overlay on top — GMRT 0.19 can't render
-    // the SVG character sprites.
+    // Tilemap (walls + built floors) shown via the debug render pass — grid lines,
+    // blocking-cost shading (walls red), and tile id/name labels. The buildable zone
+    // overlay (RenderZone) sits above it. Both are world-space and draw UNDER the
+    // entities. Entities are colored boxes (Visual.color) + Name labels via
+    // RenderDebugBox, with a lime bbox overlay on top — GMRT 0.19 can't render the
+    // SVG character sprites.
     this.renderer = new Renderer();
+    this.renderer.insert(
+      new RenderDebugTileMap(this.level, {
+        names: true,
+        coords: false,
+        font: I18n.font("default"),
+      }),
+    );
+    this.renderer.insert(
+      new RenderZone(this.level, "buildable", {
+        labels: true,
+        font: I18n.font("default"),
+      }),
+    );
     this.renderer.insert(new RenderDebugBox());
     this.renderer.insert(new RenderDebugEntity());
 
@@ -276,6 +309,7 @@ class _SceneTopDownClass extends Scene {
     this._buildDialogue();
     this._buildInventoryWindow();
     Interactable.build(this); // station prompt + storage + crafting windows
+    BuildMode.build(this); // grid build mode (HUD + per-scene state)
 
     Log.info(
       `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
@@ -316,6 +350,7 @@ class _SceneTopDownClass extends Scene {
     this._updateNpc(); // proximity + E interaction
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
     Interactable.update(this); // station select + open/close + transfers/crafting
+    BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty),
@@ -862,9 +897,10 @@ class _SceneTopDownClass extends Scene {
   }
 
   draw() {
-    TopDownUI.drawWorld(this); // walls, drops, bullets, reach zone (world space)
-    this.renderer.draw(this.world); // player / slimes / elder: colored boxes + labels + bbox
+    TopDownUI.drawWorld(this); // drops, bullets, reach zone (world space)
+    this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
     Interactable.drawTarget(this); // highlight the targeted station (world space)
+    BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     FloatingText.draw(); // damage/heal numbers over entities (world space)
     // HUD / dialogue / inventory are now manager-drawn UI panels (GUI layer, Draw_75),
     // built in create() — nothing more to draw here.

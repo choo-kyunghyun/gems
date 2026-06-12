@@ -169,5 +169,7 @@
 
   "CRAFT_TITLE": "Crafting",
   "CRAFT_PROMPT": "[E] Craft",
-  "CRAFT_EMPTY": "No recipes"
+  "CRAFT_EMPTY": "No recipes",
+
+  "CLAIM_PROMPT": "[E] Claim build area"
 }

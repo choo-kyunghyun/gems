@@ -1,6 +1,14 @@
 {
   "TOPDOWN_NAME": "Top-Down RPG",
-  "TOPDOWN_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk",
+  "TOPDOWN_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk · B: Build",
+
+  "BUILD_MODE": "Build Mode",
+  "BUILD_WALL": "Wall",
+  "BUILD_FLOOR": "Floor",
+  "BUILD_HINT": "LMB place · RMB remove · Wheel cycle · Wood {0}",
+  "BUILD_ZONE": "Build Area",
+  "BUILD_CLAIMED": "Build area claimed",
+
   "TOPDOWN_HUD": "Lv {0}   HP {1}/{2}",
   "TOPDOWN_INVENTORY": "Bag",
   "TOPDOWN_STATS": "Stats",
