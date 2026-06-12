@@ -3,13 +3,41 @@
 // globalThis-assignment rule (keep new factories in `globalThis.X = function X` form).
 
 // Full-screen scene root: insert it into UI, hang everything else off it.
+//
+// With `opts.maxWidth`, the content is centered in a column capped at that width — the
+// menu look (no full-bleed buttons/sliders on a wide display). The returned wrapper
+// stays full-screen (so it's the UI root), but `insertChild` is redirected to the inner
+// column, so callers keep doing `root.insertChild(...)` unchanged. Without `maxWidth`,
+// it's a plain full-bleed root — what gameplay scenes want (an absolute-positioned HUD
+// anchors to the whole screen, not a centered column).
 globalThis.gemsRoot = function gemsRoot(opts = {}) {
-  return new UIElement({
+  if (opts.maxWidth == null) {
+    return new UIElement({
+      width: "100%",
+      height: "100%",
+      padding: opts.padding ?? GemsTheme.pad,
+      gap: opts.gap ?? GemsTheme.gap,
+    });
+  }
+  const wrap = new UIElement({
     width: "100%",
     height: "100%",
     padding: opts.padding ?? GemsTheme.pad,
+    alignItems: "center", // center the content column horizontally
+  });
+  const col = new UIElement({
+    width: "100%",
+    maxWidth: opts.maxWidth,
+    height: "100%", // fill vertically so a grow scroll can take the middle
     gap: opts.gap ?? GemsTheme.gap,
   });
+  wrap.insertChild(col);
+  wrap.content = col;
+  // Redirect inserts to the centered column (callers treat the wrapper as the root).
+  wrap.insertChild = function (child, index) {
+    return col.insertChild(child, index);
+  };
+  return wrap;
 };
 
 // Vertical stack (the default flexpanel direction).
@@ -89,11 +117,12 @@ globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
   return el;
 };
 
-// Fixed-height scroll viewport. Insert items into the returned element's
-// `.scrollBody` (a flexShrink-0 column that overflows + scrolls); insert the
-// viewport itself into the layout. Clips via surface, scrolls via draw-time offset
-// (wheel + drag-thumb) — no flex mutation. The keystone for list-heavy scenes given
-// the display/2 GUI clamp.
+// Scroll viewport. Insert items into the returned element's `.scrollBody` (a
+// flexShrink-0 column that overflows + scrolls); insert the viewport itself into the
+// layout. Clips via surface, scrolls via draw-time offset (wheel + drag-thumb) — no
+// flex mutation. The keystone for list-heavy scenes given the display/2 GUI clamp.
+// `opts.height` fixes the viewport; `opts.grow` instead lets it flex-fill the space
+// between siblings (e.g. a menu body between a header and a back button).
 globalThis.gemsScroll = function gemsScroll(opts = {}) {
   const body = new UIElement({
     width: "100%",
@@ -101,11 +130,15 @@ globalThis.gemsScroll = function gemsScroll(opts = {}) {
     gap: opts.gap ?? GemsTheme.gapSm,
     padding: opts.padding ?? 0,
   });
-  const viewport = new UIElement({
-    width: opts.width ?? "100%",
-    height: opts.height ?? 300,
-    flexShrink: 0,
-  });
+  const viewport = new UIElement(
+    opts.grow
+      ? { width: opts.width ?? "100%", flexGrow: 1, flexBasis: 0 }
+      : {
+          width: opts.width ?? "100%",
+          height: opts.height ?? 300,
+          flexShrink: 0,
+        },
+  );
   viewport.clip = true;
   viewport.insertChild(body);
   viewport.addComponent(
@@ -350,7 +383,10 @@ globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   return bar;
 };
 
-// Titled card section. A divider under the title separates it from the body.
+// Titled card section. A divider under the title separates it from the body. The
+// title sits in a fixed-height host (like gemsHeader) — a bare gemsLabel can't
+// self-size at runtime (UIText is a no-op on 0.19), so it would collapse to 0 height
+// and ride up onto the card's top border.
 globalThis.gemsSection = function gemsSection(title, opts = {}) {
   const section = gemsCard({
     padding: GemsTheme.padSm,
@@ -358,7 +394,13 @@ globalThis.gemsSection = function gemsSection(title, opts = {}) {
     shadow: opts.shadow ?? 4,
   });
   if (title != null) {
-    section.insertChild(gemsLabel(title, { color: GemsTheme.textMuted }));
+    const titleRow = new UIElement({
+      width: "100%",
+      height: GemsTheme.titleH,
+      justifyContent: "center",
+    });
+    titleRow.insertChild(gemsLabel(title, { color: GemsTheme.textMuted }));
+    section.insertChild(titleRow);
     section.insertChild(gemsDivider());
   }
   return section;
@@ -373,12 +415,28 @@ globalThis.gemsDivider = function gemsDivider(opts = {}) {
   return el;
 };
 
-// Label + control on one line.
+// Label + control on one line — a real two-column row (label cell | control cell), not
+// a stack. The old vertical stack relied on the label self-sizing its height, which
+// UIText can't do at runtime (0.19), so the label collapsed to 0 height and the control
+// drew on top of it. Here the label sits in a fixed-width left cell and the control
+// fills the rest; `alignItems: center` lines them up vertically against the control.
 globalThis.gemsRow = function gemsRow(label, control, opts = {}) {
-  const row = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-  row.insertChild(
+  const row = new UIElement({
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: opts.gap ?? GemsTheme.gap,
+  });
+  const labelCell = new UIElement({
+    width: opts.labelWidth ?? GemsTheme.rowLabelW,
+    flexShrink: 0,
+  });
+  labelCell.insertChild(
     gemsLabel(label, { color: opts.labelColor ?? GemsTheme.textMuted }),
   );
-  row.insertChild(control);
+  const ctrlCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  ctrlCell.insertChild(control);
+  row.insertChild(labelCell);
+  row.insertChild(ctrlCell);
   return row;
 };

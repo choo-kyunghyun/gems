@@ -43,6 +43,9 @@ globalThis.GemsTheme = {
   gap: 12,
   gapSm: 8,
   rowH: 50, // button / control height
+  rowLabelW: 150, // gemsRow label column width (label | control)
+  titleH: 22, // gemsSection title host height (keeps it off the card border)
+  menuWidth: 760, // centered max-width for menu scenes (lobby/settings/…)
   headerH: 64,
   // ── Motion ──
   animSpeed: 16, // hover/press easing rate
