@@ -37,15 +37,22 @@ globalThis.UIRebind = class UIRebind {
 
     if (this._capturing) {
       // Esc or any mouse click cancels; any other key press rebinds. Escape is
-      // checked first because vk_anykey would otherwise swallow it.
+      // checked first since the scan below would otherwise pick it up.
       if (
         keyboard_check_pressed(vk_escape) ||
         mouse_check_button_pressed(mb_left)
       ) {
         this._capturing = false;
-      } else if (keyboard_check_pressed(vk_anykey)) {
-        this._rebind(keyboard_lastkey);
-        this._capturing = false;
+      } else {
+        // Scan for the keycode whose pressed-edge is live THIS frame, rather than
+        // reading keyboard_lastkey — on GMRT lastkey lags vk_anykey by a frame, so
+        // the first press would rebind to the stale previous key (the "rebind twice"
+        // bug). The scan stays in sync with the actual edge.
+        const code = this._scanKey();
+        if (code > 0) {
+          this._rebind(code);
+          this._capturing = false;
+        }
       }
       return true; // swallow input from the rest of the tree while capturing
     }
@@ -128,6 +135,18 @@ globalThis.UIRebind = class UIRebind {
     if (b.source === INPUT_SOURCE.MOUSE) return "Mouse " + b.button;
     if (b.source === INPUT_SOURCE.GAMEPAD) return "Pad " + b.button;
     return "—";
+  }
+
+  // The keycode in its pressed-edge this frame (0 = none). Skips vk_nokey (0) and
+  // vk_anykey (1); Esc is handled as cancel before this runs. Only called while
+  // capturing, so scanning the whole range each frame is negligible.
+  _scanKey() {
+    let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases
+    while (code <= 255) {
+      if (code !== vk_escape && keyboard_check_pressed(code)) return code;
+      code++;
+    }
+    return 0;
   }
 
   _rebind(code) {
