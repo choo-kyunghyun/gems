@@ -1,31 +1,42 @@
 /**
  * SlotDrag — shared drag-and-drop state for UISlots grids, a standalone static
- * singleton (NOT a UIComponent), drawn on top like Tooltip/Toast.
+ * singleton (NOT a UIComponent).
  *
- * A draggable UISlots calls `SlotDrag.begin(grid, i)` on press over a filled slot
- * (picks the item up — the source slot goes empty) and, every frame the cursor is
- * over one of its slots during a drag, `SlotDrag.hover(grid, j)` to report the
- * current drop target. `SlotDrag.draw()` (Draw_75, after UI.draw) resolves the drag
- * on button-up: drop onto the reported hover slot, or — if the cursor is over no slot
- * — return the item to its source. The reported hover is cleared each frame so a
- * stale target can't be reused.
+ * Flow: a draggable UISlots calls `SlotDrag.begin(grid, i)` on the press edge over a
+ * filled slot (picks the item up — the source slot goes empty). Each frame the cursor
+ * is over one of its slots it calls `SlotDrag.hover(grid, j)` to record the drop
+ * target. `SlotDrag.update()` runs in Step_0 after `UI.update()` and resolves on the
+ * release edge: drop onto the last recorded slot, or — if none was ever hovered —
+ * restore to source. `SlotDrag.draw()` (Draw_75) renders the carried icon at the
+ * cursor. The recorded target is PERSISTED (not cleared when the cursor leaves a
+ * slot), so a small drift off the slot as the button comes up still drops correctly.
  *
- * Resolving on button-up (a level check) rather than on the single
- * mouse_check_button_released edge is deliberate: the grid only needs to *report*
- * the hovered slot, not catch the exact release frame, so a release that lands a
- * frame off (or while the cursor is mid-move) still drops correctly instead of
- * racing the cancel.
- *
- * GMRT note: state is read live each frame; no cached primitive bool, no timer.
+ * Mouse edges (`pressed`/`released`) are latched once per frame in `poll()` and read
+ * by UISlots + this class — never `mouse_check_button*` directly. On GMRT those
+ * functions are sampled realtime, so reading the same query twice in a frame returns
+ * different values (it made the drop and cancel paths disagree on the release edge).
+ * See the GMRT-Safe Idioms note in CLAUDE.md.
  */
 globalThis.SlotDrag = class SlotDrag {
   static active = false;
   static source = null; // the UISlots the item came from
   static sourceIndex = -1;
   static item = null; // the carried slot item
-  static hoverGrid = null; // drop target reported under the cursor this frame
-  static hoverIndex = -1;
   static iconSize = 48;
+
+  // Frame-latched mouse edges (read once per frame in poll, shared by all readers).
+  static pressed = false;
+  static released = false;
+
+  // The last slot the cursor was over during the drag (persisted, seeded to source).
+  static hoverGrid = null;
+  static hoverSlot = -1;
+
+  // Called once per frame in Step_0, before UI.update().
+  static poll() {
+    SlotDrag.pressed = mouse_check_button_pressed(mb_left);
+    SlotDrag.released = mouse_check_button_released(mb_left);
+  }
 
   static begin(grid, i) {
     if (SlotDrag.active) return;
@@ -35,13 +46,15 @@ globalThis.SlotDrag = class SlotDrag {
     SlotDrag.source = grid;
     SlotDrag.sourceIndex = i;
     SlotDrag.item = it;
+    SlotDrag.hoverGrid = grid; // seed: release with no move → restore to source
+    SlotDrag.hoverSlot = i;
     grid.items[i] = null; // pick up — source slot shows empty while dragging
   }
 
   // A draggable grid reports the slot under the cursor each frame during a drag.
   static hover(grid, j) {
     SlotDrag.hoverGrid = grid;
-    SlotDrag.hoverIndex = j;
+    SlotDrag.hoverSlot = j;
   }
 
   // Place the carried item into grid[j]. Dropping back onto the source slot reads as
@@ -73,44 +86,40 @@ globalThis.SlotDrag = class SlotDrag {
     SlotDrag.sourceIndex = -1;
     SlotDrag.item = null;
     SlotDrag.hoverGrid = null;
-    SlotDrag.hoverIndex = -1;
+    SlotDrag.hoverSlot = -1;
+  }
+
+  // Step_0, after UI.update: the grids have recorded their hover this frame, so on the
+  // release edge drop onto the last slot the cursor was over (drift-forgiving).
+  static update() {
+    if (!SlotDrag.active) return;
+    if (!SlotDrag.released) return;
+    if (SlotDrag.hoverGrid !== null) {
+      SlotDrag.drop(SlotDrag.hoverGrid, SlotDrag.hoverSlot);
+    } else {
+      SlotDrag.cancel();
+    }
   }
 
   static draw() {
     if (!SlotDrag.active) return;
-
-    // Resolve on button-up: drop onto the reported slot, else return to source.
-    if (!mouse_check_button(mb_left)) {
-      if (SlotDrag.hoverGrid !== null) {
-        SlotDrag.drop(SlotDrag.hoverGrid, SlotDrag.hoverIndex);
-      } else {
-        SlotDrag.cancel();
-      }
-      return;
-    }
-
     const it = SlotDrag.item;
-    if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
-      const mx = device_mouse_x_to_gui(0);
-      const my = device_mouse_y_to_gui(0);
-      const sz = SlotDrag.iconSize;
-      const n = max(1, sprite_get_number(it.sprite));
-      const sub = clamp(it.subimg ?? 0, 0, n - 1);
-      draw_sprite_stretched_ext(
-        it.sprite,
-        sub,
-        mx - sz * 0.5,
-        my - sz * 0.5,
-        sz,
-        sz,
-        it.color ?? c_white,
-        0.85,
-      );
-    }
+    if (it == null || it.sprite == null || !sprite_exists(it.sprite)) return;
 
-    // Clear the reported hover so a stale target can't be used next frame; grids
-    // re-report it each frame the cursor is over one of their slots.
-    SlotDrag.hoverGrid = null;
-    SlotDrag.hoverIndex = -1;
+    const mx = device_mouse_x_to_gui(0);
+    const my = device_mouse_y_to_gui(0);
+    const sz = SlotDrag.iconSize;
+    const n = max(1, sprite_get_number(it.sprite));
+    const sub = clamp(it.subimg ?? 0, 0, n - 1);
+    draw_sprite_stretched_ext(
+      it.sprite,
+      sub,
+      mx - sz * 0.5,
+      my - sz * 0.5,
+      sz,
+      sz,
+      it.color ?? c_white,
+      0.85,
+    );
   }
 };

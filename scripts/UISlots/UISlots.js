@@ -34,6 +34,7 @@ globalThis.UISlots = class UISlots {
     this.countColor = s.countColor ?? c_white;
 
     this._hover = -1; // hovered slot index, -1 = none
+    this._inside = false; // pointer within this grid (instance field — see onUpdate)
   }
 
   // Top-left of slot i, in gui space, relative to the element's laid-out rect.
@@ -51,10 +52,15 @@ globalThis.UISlots = class UISlots {
 
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
-    const inside = !block && element.positionMeeting(mx, my);
 
+    // Hit-test into INSTANCE fields, not boolean local consts. On GMRT a primitive
+    // boolean cached in a local can flip true→false mid-function (see CLAUDE.md), which
+    // was making the hover branch below evaluate false even though the same `inside`
+    // read true a few lines up. Instance props + live object-property reads are safe
+    // (this is the UISelect `this._enter` pattern).
+    this._inside = !block && element.positionMeeting(mx, my);
     this._hover = -1;
-    if (inside) {
+    if (this._inside) {
       for (let i = 0; i < this.items.length; i++) {
         const p = this._slotXY(pos, i);
         if (
@@ -75,7 +81,7 @@ globalThis.UISlots = class UISlots {
 
     if (this.draggable) {
       // Press a filled slot → pick it up; press an empty slot → just select it.
-      if (inside && this._hover >= 0 && mouse_check_button_pressed(mb_left)) {
+      if (this._inside && this._hover >= 0 && SlotDrag.pressed) {
         if (this.items[this._hover] != null) {
           SlotDrag.begin(this, this._hover);
         } else {
@@ -83,22 +89,18 @@ globalThis.UISlots = class UISlots {
         }
         return true;
       }
-      // During a drag, report the slot under the cursor as the drop target;
-      // SlotDrag.draw resolves the drop (or cancel) on button-up. Capturing the
-      // pointer only while hovered keeps a sibling grid reachable as a target.
-      if (SlotDrag.active && inside && this._hover >= 0) {
+      // While a drag is active and the cursor is over a slot of this grid, report it
+      // as the drop target. SlotDrag.update resolves the drop on the release edge
+      // (Step_0, after UI.update) using the last reported slot — drift-forgiving.
+      if (SlotDrag.active && this._inside && this._hover >= 0) {
         SlotDrag.hover(this, this._hover);
         return true;
       }
-    } else if (
-      inside &&
-      this._hover >= 0 &&
-      mouse_check_button_pressed(mb_left)
-    ) {
+    } else if (this._inside && this._hover >= 0 && SlotDrag.pressed) {
       this._select(this._hover);
       return true;
     }
-    return inside || block;
+    return this._inside || block;
   }
 
   _select(i) {
