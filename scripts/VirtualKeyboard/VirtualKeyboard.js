@@ -170,15 +170,25 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     return row;
   }
 
+  // a-z → A-Z. NOT String.toUpperCase() — on GMRT 0.19 that returns garbage Unicode
+  // (probe: "q".toUpperCase() === "ଊ"), so shifted letters typed as unrenderable
+  // glyphs. Shift the char code by 32 instead (fromCharCode/charCodeAt are fine).
+  static _upper(ch) {
+    if (ch < "a" || ch > "z") return ch;
+    return String.fromCharCode(ch.charCodeAt(0) - 32);
+  }
+
   // A single character key. Letters honour Shift (live label + typed value); digits
   // are unaffected.
   static _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
     return gemsButton(
-      isLetter ? () => (VirtualKeyboard._shift ? ch.toUpperCase() : ch) : ch,
+      isLetter
+        ? () => (VirtualKeyboard._shift ? VirtualKeyboard._upper(ch) : ch)
+        : ch,
       () =>
         VirtualKeyboard.type(
-          isLetter && VirtualKeyboard._shift ? ch.toUpperCase() : ch,
+          isLetter && VirtualKeyboard._shift ? VirtualKeyboard._upper(ch) : ch,
         ),
       { width: 46, height: 46, font: I18n.font("header") },
     );
