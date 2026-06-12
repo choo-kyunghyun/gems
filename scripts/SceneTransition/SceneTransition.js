@@ -13,7 +13,7 @@
  * (wall-clock) so the fade ignores Time.scale; the curve comes from Tween.
  */
 globalThis.SceneTransition = class SceneTransition {
-  static duration = 0.22; // seconds per direction (out, then in)
+  static duration = 0.12; // seconds per direction (out, then in) — kept short so scene changes feel responsive
   static color = c_black; // cover color
   static alpha = 0; // current cover alpha [0,1] — read by draw()
 
