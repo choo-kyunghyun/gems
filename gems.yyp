@@ -194,6 +194,7 @@
     {"id":{"name":"UIImage","path":"scripts/UIImage/UIImage.yy",},},
     {"id":{"name":"UIInput","path":"scripts/UIInput/UIInput.yy",},},
     {"id":{"name":"UIModal","path":"scripts/UIModal/UIModal.yy",},},
+    {"id":{"name":"UINav","path":"scripts/UINav/UINav.yy",},},
     {"id":{"name":"UINineSlice","path":"scripts/UINineSlice/UINineSlice.yy",},},
     {"id":{"name":"UIPanel","path":"scripts/UIPanel/UIPanel.yy",},},
     {"id":{"name":"UIProgress","path":"scripts/UIProgress/UIProgress.yy",},},

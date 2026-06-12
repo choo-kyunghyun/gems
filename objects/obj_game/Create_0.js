@@ -54,8 +54,11 @@ this.openScene = (factory) => {
 
 this._applyScene = (factory) => {
   if (this.scene !== null) this.scene.destroy();
+  UINav.reset(); // drop focus held on the outgoing scene's UI
   this.scene = factory();
   this.scene.create((s) => this.openScene(s));
 };
+
+UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit theme
 
 this._applyScene(this.scenes.title);

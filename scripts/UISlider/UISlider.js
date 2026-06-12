@@ -174,4 +174,15 @@ globalThis.UISlider = class UISlider {
 
     draw_set_alpha(a0);
   }
+
+  // UINav: left/right nudges the value by `step` (or 1/20 of the range when
+  // continuous). Marks the element focusable.
+  navAxis(element, dir) {
+    if (this.readOnly) return;
+    const inc =
+      typeof this.step === "number" && this.step > 0
+        ? this.step
+        : (this.max - this.min) / 20;
+    this.setValue(this.value + dir * inc);
+  }
 };

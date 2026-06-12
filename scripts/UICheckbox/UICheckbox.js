@@ -148,4 +148,9 @@ globalThis.UICheckbox = class UICheckbox {
 
     draw_set_alpha(a0);
   }
+
+  // UINav: confirm toggles (unless read-only). Marks the element focusable.
+  navActivate(element) {
+    if (!this.readOnly) this.onToggle();
+  }
 };

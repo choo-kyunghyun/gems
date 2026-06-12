@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UINav",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UINav",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UINav.js",
+}

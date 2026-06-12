@@ -40,6 +40,7 @@ class _SceneUIKitClass extends Scene {
 
     this.ui.insertChild(gemsHeader(I18n.textRef("UIKIT_NAME")));
     this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_HINT")));
+    this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_NAV_HINT")));
 
     // ── Tab: Widgets (buttons + toggles), scrolled ──
     const widgets = gemsScroll({ height: 250 });

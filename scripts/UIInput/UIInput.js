@@ -16,6 +16,11 @@ const _INPUT_DBLCLICK = 300; // ms window for double-click word-select
 
 /** @implements {UIComponent} */
 globalThis.UIInput = class UIInput {
+  // The currently-focused field (or null). UINav reads this to suspend menu
+  // navigation while text is being typed, so arrows/Enter go to the caret, not focus.
+  /** @type {UIInput|null} */
+  static active = null;
+
   constructor(input = {}) {
     this.value = input.value ?? "";
     this.placeholder = input.placeholder ?? "";
@@ -57,6 +62,7 @@ globalThis.UIInput = class UIInput {
   focus() {
     if (this._focused) return this;
     this._focused = true;
+    UIInput.active = this;
     this._setCursor(this.value.length, false);
     keyboard_string = "";
     return this;
@@ -66,6 +72,7 @@ globalThis.UIInput = class UIInput {
     if (!this._focused) return this;
     this._focused = false;
     this._dragging = false;
+    if (UIInput.active === this) UIInput.active = null;
     return this;
   }
 

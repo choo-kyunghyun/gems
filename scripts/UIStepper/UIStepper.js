@@ -144,4 +144,11 @@ globalThis.UIStepper = class UIStepper {
     draw_set_valign(valign);
     draw_set_color(color);
   }
+
+  // UINav: left/right steps the value (horizontal nav adjusts instead of moving
+  // focus). Marks the element focusable.
+  navAxis(element, dir) {
+    if (dir < 0) this.decrement();
+    else this.increment();
+  }
 };

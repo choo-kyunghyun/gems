@@ -130,4 +130,10 @@ globalThis.UIButton = class UIButton {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
   }
+
+  // UINav: confirm fires the click (unless disabled). Presence of this method also
+  // marks the element focusable for keyboard/gamepad navigation.
+  navActivate(element) {
+    if (!this.disabled) this.onClick();
+  }
 };

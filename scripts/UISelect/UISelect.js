@@ -119,4 +119,15 @@ globalThis.UISelect = class UISelect {
     draw_set_valign(valign);
     draw_set_color(color);
   }
+
+  // UINav: left/right cycles the value (so horizontal nav adjusts instead of moving
+  // focus); confirm advances. Both mark the element focusable.
+  navAxis(element, dir) {
+    if (dir < 0) this.retreat();
+    else this.advance();
+  }
+
+  navActivate(element) {
+    this.advance();
+  }
 };

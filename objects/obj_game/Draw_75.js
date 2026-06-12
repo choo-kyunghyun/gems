@@ -1,4 +1,5 @@
 UI.draw();
+UINav.draw();
 SlotDrag.draw();
 Tooltip.draw();
 Toast.draw();

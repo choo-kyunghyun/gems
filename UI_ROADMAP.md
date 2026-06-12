@@ -184,11 +184,22 @@ hoisting fault.)
   actions (Jump=Space, Fire=F) + a live `down()` held-state readout. (Probed at runtime:
   `vk_anykey` and `keyboard_lastkey` are exposed GMRT globals — `lastkey` is a number.)
   *No deps (uses existing Input).*
-- [ ] **14. Gamepad/keyboard UI navigation** — focus model + directional traversal over
-  `UIElement` so menus are playable without a mouse. A **system**, not a widget;
-  touches `UI`/`UIElement` (focus ring, focus state in `onUpdate`). Biggest/riskiest —
-  last in the core path so it doesn't churn the foundation under everything else.
-  *Soft dep: every interactive widget exists.*
+- [x] **14. Gamepad/keyboard UI navigation** — focus model + directional traversal over
+  `UIElement` so menus are playable without a mouse. Done as **`UINav`**, a standalone
+  static system that — notably — touches *neither* `UI` nor `UIElement`: an element is
+  focusable purely by duck-typing (a component exposes `navActivate`/`navAxis`), so the
+  foundation stayed untouched and any future widget opts in just by adding those methods.
+  `UINav.update()` (Step_0) walks the enabled roots, collects focusables with a valid
+  on-screen rect (skips ones scrolled out of a `clip` ancestor), and routes arrows /
+  dpad / left-stick to geometric nearest-neighbor focus moves, a horizontal press to
+  `navAxis` on slider/select/stepper (else a focus move), Enter/Space/A to `navActivate`,
+  Esc/B to disengage. `UINav.draw()` (Draw_75) renders a pulsing accent focus ring.
+  Engagement model: first input engages+focuses without acting, mouse movement
+  disengages (ring hidden), and nav is suspended while a `UIInput` is typed (`UIInput.active`).
+  Nav hooks added to `UIButton`/`UICheckbox`/`UISelect`/`UIStepper`/`UISlider`; works in
+  every scene for free (probe-verified in Settings: 10 focusables collected, directional
+  moves walk them, ring renders on the focused widget). Keyboard + gamepad (dpad + left
+  stick). *Soft dep: every interactive widget exists.*
 - [ ] **15. On-screen / virtual keyboard** — gamepad text entry feeding `UIInput`.
   *Dep: #13/#14 + `UIInput`.*
 
