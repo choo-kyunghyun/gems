@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Mushroom",
+  "%Name":"PlatformerContent",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Mushroom",
+  "name":"PlatformerContent",
   "parent":{
     "name":"Platformer",
     "path":"folders/Templates/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Mushroom.js",
+  "scriptSource":"PlatformerContent.js",
 }

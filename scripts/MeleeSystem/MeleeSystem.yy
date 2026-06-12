@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Brick",
+  "%Name":"MeleeSystem",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Brick",
+  "name":"MeleeSystem",
   "parent":{
     "name":"Platformer",
     "path":"folders/Templates/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Brick.js",
+  "scriptSource":"MeleeSystem.js",
 }

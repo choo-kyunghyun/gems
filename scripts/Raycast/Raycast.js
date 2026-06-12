@@ -8,7 +8,6 @@
 globalThis.Raycast = class Raycast {
   static cast(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
-    const solidOnly = opts.solidOnly !== false;
     const mask = opts.mask ?? null;
 
     const dx = x1 - x0;
@@ -21,7 +20,11 @@ globalThis.Raycast = class Raycast {
       if (id === ignore) continue;
 
       const col = world.get(Collision, id);
-      if (solidOnly && !col.solid) continue;
+      // Read opts.solidOnly inline (default on) rather than caching it in a boolean
+      // local — a cached const boolean gets clobbered mid-function on GMRT (the
+      // boolean-local quirk in CLAUDE.md), which dropped this skip and let bullets
+      // stop on non-solid item drops/spikes.
+      if (opts.solidOnly !== false && !col.solid) continue;
       if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
         continue;
 

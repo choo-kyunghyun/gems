@@ -1,7 +1,7 @@
 {
   "PLAT_NAME": "Platformer",
-  "PLAT_LEVEL": "Level {0}",
-  "PLAT_COINS": "Coins: {0}/{1}",
-  "PLAT_WIN": "Clear!",
-  "PLAT_CHECKPOINT": "Checkpoint!"
+  "PLAT_HUD": "Lv {0}   HP {1}/{2}",
+  "PLAT_HINT": "A/D move · W jump · Shift run · S drop · Click attack · I bag",
+  "PLAT_INV_HINT": "Up/Down select · Enter equip/use · I close",
+  "ITEM_COIN": "Coin"
 }

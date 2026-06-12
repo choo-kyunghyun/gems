@@ -15,7 +15,9 @@ globalThis.ProjectileSystem = {
       const x1 = pos.x + vel.x * dt;
       const y1 = pos.y + vel.y * dt;
 
-      const hit = Raycast.cast(world, pos.x, pos.y, x1, y1, { ignore: proj.owner });
+      const hit = Raycast.cast(world, pos.x, pos.y, x1, y1, {
+        ignore: proj.owner,
+      });
 
       if (hit === null) {
         pos.x = x1;

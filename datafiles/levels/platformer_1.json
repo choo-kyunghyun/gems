@@ -9,29 +9,82 @@
     { "preset": "platform", "x": 0, "y": 440, "w": 900, "h": 32 },
     { "preset": "platform", "x": 0, "y": 360, "w": 24, "h": 80 },
     { "preset": "platform", "x": 876, "y": 360, "w": 24, "h": 80 },
-    { "preset": "platform", "x": 60, "y": 350, "w": 160, "h": 20, "oneWay": true },
-    { "preset": "platform", "x": 310, "y": 270, "w": 160, "h": 20, "oneWay": true },
-    { "preset": "platform", "x": 560, "y": 190, "w": 160, "h": 20, "oneWay": true },
-    { "preset": "platform", "x": 700, "y": 330, "w": 160, "h": 20, "oneWay": true },
-    { "preset": "enemy", "x": 200, "y": 440 },
-    { "preset": "enemy", "x": 650, "y": 440 },
-    { "preset": "enemy", "x": 390, "y": 270 },
-    { "preset": "enemy", "x": 500, "y": 440, "stompable": false },
-    { "preset": "coin", "x": 140, "y": 326 },
-    { "preset": "coin", "x": 390, "y": 246 },
-    { "preset": "coin", "x": 640, "y": 166 },
-    { "preset": "coin", "x": 780, "y": 306 },
-    { "preset": "coin", "x": 450, "y": 416 },
-    { "preset": "q_block", "x": 234, "y": 360 },
-    { "preset": "brick", "x": 266, "y": 360 },
-    { "preset": "brick", "x": 298, "y": 360 },
-    { "preset": "q_block", "x": 490, "y": 360 },
+    {
+      "preset": "platform",
+      "x": 60,
+      "y": 350,
+      "w": 160,
+      "h": 20,
+      "oneWay": true
+    },
+    {
+      "preset": "platform",
+      "x": 310,
+      "y": 270,
+      "w": 160,
+      "h": 20,
+      "oneWay": true
+    },
+    {
+      "preset": "platform",
+      "x": 560,
+      "y": 190,
+      "w": 160,
+      "h": 20,
+      "oneWay": true
+    },
+    {
+      "preset": "platform",
+      "x": 700,
+      "y": 330,
+      "w": 160,
+      "h": 20,
+      "oneWay": true
+    },
+
+    { "preset": "drop", "x": 150, "y": 420, "itemId": "wood_sword", "qty": 1 },
+    { "preset": "drop", "x": 390, "y": 250, "itemId": "potion", "qty": 2 },
+    { "preset": "drop", "x": 640, "y": 170, "itemId": "blaster", "qty": 1 },
+
+    {
+      "preset": "enemy",
+      "x": 200,
+      "y": 440,
+      "hp": 3,
+      "loot": [
+        { "itemId": "coin", "qty": 4 },
+        { "itemId": "slime_gel", "qty": 1 }
+      ]
+    },
+    {
+      "preset": "enemy",
+      "x": 650,
+      "y": 440,
+      "hp": 4,
+      "loot": [
+        { "itemId": "coin", "qty": 3 },
+        { "itemId": "leather_armor", "qty": 1 }
+      ]
+    },
+    {
+      "preset": "enemy",
+      "x": 390,
+      "y": 270,
+      "hp": 3,
+      "loot": [{ "itemId": "potion", "qty": 1 }]
+    },
+    {
+      "preset": "enemy",
+      "x": 500,
+      "y": 440,
+      "hp": 6,
+      "loot": [
+        { "itemId": "coin", "qty": 8 },
+        { "itemId": "swift_ring", "qty": 1 }
+      ]
+    },
+
     { "preset": "spike", "x": 350, "y": 440 },
-    { "preset": "spike", "x": 600, "y": 440 },
-    { "preset": "spike", "x": 390, "y": 270 },
-    { "preset": "checkpoint", "x": 450, "y": 440 },
-    { "preset": "mushroom", "x": 150, "y": 440 },
-    { "preset": "flower", "x": 780, "y": 330 },
-    { "preset": "goal", "x": 850, "y": 440 }
+    { "preset": "spike", "x": 600, "y": 440 }
   ]
 }

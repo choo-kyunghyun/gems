@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"QBlock",
+  "%Name":"PlatformerUI",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"QBlock",
+  "name":"PlatformerUI",
   "parent":{
     "name":"Platformer",
     "path":"folders/Templates/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"QBlock.js",
+  "scriptSource":"PlatformerUI.js",
 }

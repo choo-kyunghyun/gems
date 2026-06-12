@@ -9,40 +9,61 @@ const PLATF_AIR_DRAG = 250; // gentle horizontal bleed while airborne (keeps mom
 const PLATF_TURN_ACCEL = 2600; // extra bite when reversing direction (skid)
 
 const PLATF_JUMP_CUT = 0.45; // fraction of rising vy kept when jump is released early
-const PLATF_FIREBALL_SPEED = 500; // px/s horizontal fireball velocity
-const PLATF_FIREBALL_LIFETIME = 90; // ticks before fireball expires (~1.5 s at 60 Hz)
-
-const PLATF_POWER_SMALL = 0; // default — 24 px tall
-const PLATF_POWER_BIG = 1; // mushroom — 40 px tall
-const PLATF_POWER_FIRE = 2; // fire flower — 40 px tall, can shoot
 const PLATF_COYOTE = 6; // ticks of jump grace after walking off a ledge
 const PLATF_JUMP_BUFFER = 10; // ticks a jump press is remembered before landing
 const PLATF_DROP_TICKS = 8; // ticks the player ignores one-way platforms after a drop press
-const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after respawning (1.5 s at 60 Hz)
+const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after respawn / taking a hit (1.5 s)
 
-// Player input + entity setup for the platformer genre.
+// Combat defaults (used when unarmed or when the weapon leaves a field unset).
+const PLATF_UNARMED_DMG = 1;
+const PLATF_UNARMED_REACH = 28; // px the unarmed jab reaches
+const PLATF_UNARMED_CD = 22; // ticks between unarmed jabs
+const PLATF_MELEE_REACH = 34; // fallback melee reach for a weapon without `reach`
+const PLATF_BULLET_SPEED = 600;
+const PLATF_BULLET_LIFETIME = 70; // ticks before a bullet expires (range bound)
+
+// Player input + entity setup for the platformer RPG.
 // Usage:
 //   const ctrl = PlatformerController.create(world, spawn); // once in scene create()
 //   PlatformerController.pollInput(ctrl);                   // once per FRAME, before world.update()
 //   PlatformerController.update(world, ctrl);               // once per physics TICK
+//   PlatformerController.attack(world, ctrl);               // once per physics TICK (after physics)
 //   PlatformerController.destroy();                         // in scene destroy()
 //
 // Edge-triggered input (jump press/release) is sampled per frame in pollInput() so it
-// can't be dropped on 0-tick frames or double-counted on multi-tick frames. Continuous
-// input (movement) is read per tick in update().
+// can't be dropped on 0-tick frames or double-counted on multi-tick frames. The attack
+// hold-state is also latched per frame; continuous input (movement) is read per tick.
 //
-// ctrl = { id, jumpBuffer, jumpReleased, coyote, facing }
+// ctrl = { id, jumpBuffer, jumpReleased, coyote, facing, iframes, attackHeld, attackCd }
 
 globalThis.PlatformerController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
+    // Bullet preset for ranged weapons. A kinematic Collision makes GravitySystem
+    // skip it so bullets fly straight (not arc). It has NO BBox on purpose: Raycast
+    // only tests (Collision, Position, BBox) entities, so without a BBox the bullet
+    // can't appear as a target — otherwise it sits on its own ray origin and
+    // self-hits at t=0 (ProjectileSystem already moves it via Projectile/Velocity).
+    EntityPreset.register([
+      {
+        id: "bullet",
+        components: {
+          Velocity: { x: 0, y: 0, z: 0 },
+          Collision: { solid: false, kinematic: true, mask: null, hits: [] },
+          Projectile: { damage: 1, owner: -1 },
+          Lifetime: { ticks: PLATF_BULLET_LIFETIME },
+        },
+      },
+    ]);
+
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
       jump: [INPUT_SOURCE.KEYBOARD, ord("W")],
       run: [INPUT_SOURCE.KEYBOARD, vk_shift],
       drop: [INPUT_SOURCE.KEYBOARD, ord("S")],
-      fire: [INPUT_SOURCE.KEYBOARD, vk_space],
+      attack: [INPUT_SOURCE.MOUSE, mb_left],
+      inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
     });
 
     const id = world.create();
@@ -58,7 +79,38 @@ globalThis.PlatformerController = {
       hits: [],
     });
     world.add(id, Grounded, { isGrounded: false });
+    world.add(id, Direction, { x: 1, y: 0, z: 0 });
     world.add(id, Name, { name: "Player" });
+
+    // RPG layer (mirrors TopDownController): Health/Stats drive HP + the sheet,
+    // Inventory/Equipment/Encumbrance the bag and gear. Visual gives a tinted box.
+    world.add(id, Health, { hp: 10 });
+    world.add(id, Stats, {
+      level: 1,
+      xp: 0,
+      xpNext: 20,
+      maxHp: 10,
+      attack: 1,
+      defense: 0,
+      speed: PLATF_WALK_SPEED,
+    });
+    world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
+    world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
+    world.add(id, Equipment, {
+      slots: { weapon: "", armor: "", trinket: "", backpack: "" },
+    });
+    world.add(id, Visual, {
+      visible: true,
+      sprite: spr_play,
+      subimg: 0,
+      xscale: 1,
+      yscale: 1,
+      rot: 0,
+      color: make_colour_rgb(90, 160, 255),
+      alpha: 1,
+      speed: 0,
+      time: 0,
+    });
 
     return {
       id,
@@ -67,18 +119,19 @@ globalThis.PlatformerController = {
       coyote: 0,
       facing: 1,
       iframes: 0,
-      power: PLATF_POWER_SMALL,
-      fireBuffer: false,
+      attackHeld: false,
+      attackCd: 0,
     };
   },
 
-  // Sample edge-triggered jump input once per frame. Must run before world.update(),
-  // outside the fixed-tick loop, or presses land on 0-tick frames get lost.
-  /** @param {{ jumpBuffer: number, jumpReleased: boolean }} ctrl */
+  // Sample edge-triggered jump input + the attack hold-state once per frame. Must
+  // run before world.update(), outside the fixed-tick loop, or presses on 0-tick
+  // frames get lost (and the realtime mouse query is read just once per frame).
+  /** @param {{ jumpBuffer: number, jumpReleased: boolean, attackHeld: boolean }} ctrl */
   pollInput(ctrl) {
     if (Input.get("jump").pressed()) ctrl.jumpBuffer = PLATF_JUMP_BUFFER;
     if (Input.get("jump").released()) ctrl.jumpReleased = true;
-    if (Input.get("fire").pressed()) ctrl.fireBuffer = true;
+    ctrl.attackHeld = Input.get("attack").down();
   },
 
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
@@ -95,13 +148,17 @@ globalThis.PlatformerController = {
 
     // Horizontal: accelerate toward a target speed instead of snapping to it,
     // so the player has weight and carries momentum (SMW-style). Movement is
-    // continuous input, so reading it per tick is correct.
+    // continuous input, so reading it per tick is correct. Speed comes from Stats
+    // (equipment/encumbrance-modified) so a swift_ring etc. actually changes it.
     const dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
+    const stats = world.get(Stats, ctrl.id);
+    const base = stats !== undefined ? stats.speed : PLATF_WALK_SPEED;
+    const walk = base * EncumbranceSystem.scale(world, ctrl.id);
     const maxSpeed = Input.get("run").down()
-      ? PLATF_RUN_SPEED
-      : PLATF_WALK_SPEED;
+      ? walk * (PLATF_RUN_SPEED / PLATF_WALK_SPEED)
+      : walk;
     const target = dx * maxSpeed;
 
     let accel;
@@ -115,12 +172,18 @@ globalThis.PlatformerController = {
     if (vel.x < target) vel.x = Math.min(vel.x + step, target);
     else if (vel.x > target) vel.x = Math.max(vel.x - step, target);
 
-    if (dx !== 0) ctrl.facing = dx;
+    if (dx !== 0) {
+      ctrl.facing = dx;
+      const dir = world.get(Direction, ctrl.id);
+      dir.x = dx;
+      dir.y = 0;
+      const vis = world.get(Visual, ctrl.id);
+      if (vis !== undefined) vis.xscale = dx;
+    }
 
     // Drop through a one-way platform: hold the drop key while standing on one to
     // fall through it. Held input is continuous, so reading it per tick is fine;
-    // SolidSystem skips one-way statics while passThroughTicks counts down. No
-    // effect on solid ground (passThroughTicks only gates one-way colliders).
+    // SolidSystem skips one-way statics while passThroughTicks counts down.
     if (groundedComp.isGrounded && Input.get("drop").down())
       world.get(Collision, ctrl.id).passThroughTicks = PLATF_DROP_TICKS;
 
@@ -147,22 +210,57 @@ globalThis.PlatformerController = {
     }
   },
 
-  // Swap the player's BBox to match the new power state and reset fireBuffer.
-  // PLATF_POWER_SMALL → small box; PLATF_POWER_BIG / PLATF_POWER_FIRE → big box.
-  setPower(world, ctrl, power) {
-    ctrl.power = power;
-    ctrl.fireBuffer = false;
-    const bbox = world.get(BBox, ctrl.id);
-    if (power === PLATF_POWER_SMALL) {
-      bbox.y = -24;
-      bbox.height = 24;
+  // Resolve an attack this tick: the equipped weapon (or unarmed defaults) decides
+  // a melee swing vs a cursor-aimed bullet. Gated by attackCd. Call once per tick.
+  attack(world, ctrl) {
+    if (ctrl.attackCd > 0) ctrl.attackCd--;
+    if (!ctrl.attackHeld || ctrl.attackCd > 0) return;
+
+    const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
+    if (wpn !== null && !wpn.melee) {
+      // Ranged: fire a bullet toward the cursor.
+      this._fire(world, ctrl, wpn);
+      ctrl.attackCd = wpn.fireCd !== undefined ? wpn.fireCd : PLATF_UNARMED_CD;
     } else {
-      bbox.y = -40;
-      bbox.height = 40;
+      // Melee (armed or unarmed): swing a hitbox in the facing direction.
+      const damage = wpn !== null ? wpn.damage : PLATF_UNARMED_DMG;
+      const reach =
+        wpn !== null
+          ? wpn.reach !== undefined
+            ? wpn.reach
+            : PLATF_MELEE_REACH
+          : PLATF_UNARMED_REACH;
+      MeleeSystem.swing(world, ctrl.id, ctrl.facing, reach, damage);
+      ctrl.attackCd =
+        wpn !== null && wpn.fireCd !== undefined
+          ? wpn.fireCd
+          : PLATF_UNARMED_CD;
     }
   },
 
-  // Teleport the player back to spawn and clear its motion/jump state.
+  // Spawn a bullet at the player aimed at the cursor (mirrors TopDownController).
+  _fire(world, ctrl, wpn) {
+    const speed =
+      wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : PLATF_BULLET_SPEED;
+    const pos = world.get(Position, ctrl.id);
+    const dx = mouse_x - pos.x;
+    const dy = mouse_y - pos.y - 12; // aim from chest height
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    const bid = EntityPreset.spawn("bullet", world, pos.x, pos.y - 12);
+    const vel = world.get(Velocity, bid);
+    vel.x = (dx / dist) * speed;
+    vel.y = (dy / dist) * speed;
+    const proj = world.get(Projectile, bid);
+    proj.owner = ctrl.id;
+    proj.damage = wpn.damage;
+
+    if (dx < -0.01) ctrl.facing = -1;
+    else if (dx > 0.01) ctrl.facing = 1;
+  },
+
+  // Teleport the player back to spawn and clear its motion/jump state. The caller
+  // refills Health (HP-based death is resolved in the scene).
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(world, ctrl, spawn) {
     const pos = world.get(Position, ctrl.id);
@@ -178,7 +276,6 @@ globalThis.PlatformerController = {
     ctrl.coyote = 0;
     ctrl.facing = 1;
     ctrl.iframes = PLATF_IFRAMES_RESPAWN;
-    ctrl.fireBuffer = false;
     world.get(Collision, ctrl.id).passThroughTicks = 0; // don't drop through the spawn ledge
 
     // Snap the interpolation snapshot too, or the player streaks from its old
@@ -191,51 +288,15 @@ globalThis.PlatformerController = {
     }
   },
 
-  // Consume fireBuffer; if player is in Fire state, spawn a fireball in world.
-  // Returns true if a fireball was created. Call once per physics tick.
-  tryFireball(world, ctrl) {
-    if (!ctrl.fireBuffer) return false;
-    ctrl.fireBuffer = false;
-    if (ctrl.power !== PLATF_POWER_FIRE) return false;
-    const pos = world.get(Position, ctrl.id);
-    const fb = world.create();
-    world.add(fb, Position, {
-      x: pos.x + ctrl.facing * 16,
-      y: pos.y - 20,
-      z: 0,
-    });
-    world.add(fb, Velocity, {
-      x: ctrl.facing * PLATF_FIREBALL_SPEED,
-      y: 0,
-      z: 0,
-    });
-    world.add(fb, Projectile, { damage: 1, owner: ctrl.id, bouncy: true });
-    world.add(fb, Lifetime, { ticks: PLATF_FIREBALL_LIFETIME });
-    world.add(fb, Name, { name: "Fireball" });
-    return true;
-  },
-
-  // If the player is Big or Fire, downgrade to Small and grant respawn i-frames.
-  // Returns true if shrunk (caller should NOT also respawn). Returns false when
-  // already Small (caller should respawn instead).
-  shrink(world, ctrl) {
-    if (ctrl.power === PLATF_POWER_SMALL) return false;
-    this.setPower(world, ctrl, PLATF_POWER_SMALL);
-    ctrl.iframes = PLATF_IFRAMES_RESPAWN;
-    return true;
-  },
-
-  // Apply a collected powerup. Mushroom → Big (if currently Small); flower → Fire
-  // (if not already Fire). No downgrade — powerups only improve state.
-  grantPowerup(world, ctrl, type) {
-    if (type === "mushroom" && ctrl.power < PLATF_POWER_BIG) {
-      this.setPower(world, ctrl, PLATF_POWER_BIG);
-    } else if (type === "flower" && ctrl.power < PLATF_POWER_FIRE) {
-      this.setPower(world, ctrl, PLATF_POWER_FIRE);
-    }
-  },
-
   destroy() {
-    Input.unbindAll(["moveLeft", "moveRight", "jump", "run", "drop", "fire"]);
+    Input.unbindAll([
+      "moveLeft",
+      "moveRight",
+      "jump",
+      "run",
+      "drop",
+      "attack",
+      "inventory",
+    ]);
   },
 };
