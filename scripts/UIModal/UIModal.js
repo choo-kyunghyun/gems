@@ -43,4 +43,11 @@ globalThis.UIModal = class UIModal {
     // Exclusive: swallow all pointer input from the roots beneath the modal.
     return true;
   }
+
+  // UINav reads this to stop collecting focusables from roots beneath an open modal,
+  // mirroring the pointer block above — so keyboard/gamepad focus can't reach the
+  // background while the dialog is up.
+  navExclusive() {
+    return !this._closed;
+  }
 };

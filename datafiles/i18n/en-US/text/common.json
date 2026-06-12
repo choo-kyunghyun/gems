@@ -50,7 +50,7 @@
 
   "UIKIT_NAME": "UI Kit",
   "UIKIT_HINT": "Fields: click+drag selects, double-click a word, Ctrl+A/C/X/V, arrows / Home / End. Hover a button for its tooltip.",
-  "UIKIT_NAV_HINT": "No mouse? Arrow keys / a gamepad move the focus ring; Enter or A activates; ← → adjust sliders & selects.",
+  "UIKIT_NAV_HINT": "No mouse? Arrow keys / a gamepad move the focus ring; Enter or A activates; Left/Right adjust sliders & selects.",
   "UIKIT_TAB_WIDGETS": "Widgets",
   "UIKIT_TAB_VALUES": "Inputs & Values",
   "UIKIT_TAB_CONTAINERS": "Containers",

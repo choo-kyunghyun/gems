@@ -155,4 +155,14 @@ globalThis.UITabs = class UITabs {
     draw_set_color(color);
     draw_set_alpha(a0);
   }
+
+  // UINav: left/right switches tabs (so the strip is one focus stop and horizontal
+  // nav cycles it); confirm advances, wrapping. Both mark the strip focusable.
+  navAxis(element, dir) {
+    this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
+  }
+
+  navActivate(element) {
+    if (this.tabs.length > 0) this.select((this.index + 1) % this.tabs.length);
+  }
 };

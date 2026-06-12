@@ -127,12 +127,26 @@ globalThis.UINav = class UINav {
   }
 
   // ── internals ──────────────────────────────────────────────────
+  // Walk roots top-down (highest index first); stop after an exclusive (modal) root
+  // so focusables on the roots beneath it aren't collected — mirroring the modal's
+  // pointer block, so nav can't reach the background while a dialog is open.
   static _collect() {
     const out = [];
-    for (let i = 0; i < UI.roots.length; i++) {
-      if (UI.roots[i].enabled) UINav._walk(UI.roots[i], out);
+    for (let i = UI.roots.length - 1; i >= 0; i--) {
+      const r = UI.roots[i];
+      if (!r.enabled) continue;
+      UINav._walk(r, out);
+      if (UINav._exclusive(r)) break;
     }
     return out;
+  }
+
+  static _exclusive(el) {
+    for (let i = 0; i < el.components.length; i++) {
+      const c = el.components[i];
+      if (typeof c.navExclusive === "function" && c.navExclusive()) return true;
+    }
+    return false;
   }
 
   static _walk(el, out) {
