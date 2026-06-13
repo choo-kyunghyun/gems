@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"CraftingUI",
   "parent":{
-    "name":"RPG",
-    "path":"folders/RPG.yy",
+    "name":"UI",
+    "path":"folders/RPG/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

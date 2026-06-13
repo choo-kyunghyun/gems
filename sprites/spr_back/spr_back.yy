@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Vector Sprites",
-    "path":"folders/Showcase/Vector Sprites.yy",
+    "name":"Sprite",
+    "path":"folders/GemsUI/Sprite.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

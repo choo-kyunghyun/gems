@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Health",
   "parent":{
-    "name":"Components",
-    "path":"folders/Core/Components.yy",
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

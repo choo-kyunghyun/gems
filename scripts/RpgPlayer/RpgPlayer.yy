@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RpgPlayer",
   "parent":{
-    "name":"RPG",
-    "path":"folders/RPG.yy",
+    "name":"TopDown",
+    "path":"folders/RPG/TopDown.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

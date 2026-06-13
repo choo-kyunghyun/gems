@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"MeleeSystem",
   "parent":{
-    "name":"RPG",
-    "path":"folders/RPG.yy",
+    "name":"System",
+    "path":"folders/RPG/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EncumbranceSystem",
   "parent":{
-    "name":"Systems",
-    "path":"folders/Core/Systems.yy",
+    "name":"System",
+    "path":"folders/RPG/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

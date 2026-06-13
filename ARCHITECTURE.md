@@ -154,7 +154,7 @@ See the **GMRT boolean-local clobber** note in memory: read flags like `Grounded
 
 ## Gameplay / RPG Layer
 
-**TopDown** is the action-RPG (the platformer is a movement showcase with no RPG layer). The pieces below live under the top-level **RPG** folder (primitives in **Core**) and are driven explicitly from the scene's `step()`, never auto-run by `World`. The design constraint throughout is **composition over inheritance** (GMRT can't do `super`/subclassing): "kinds of item" are a flat `Item` carrying a `components: []` array of standalone capability/marker classes queried by `instanceof` — exactly the `UIElement.getComponent` pattern.
+**TopDown** is the action-RPG (the platformer is a movement showcase with no RPG layer). The pieces below live under the top-level **RPG** folder (organized into `Component`/`System`/`Content`/`UI`/`TopDown`/`Editor` subfolders, like Core) and are driven explicitly from the scene's `step()`, never auto-run by `World`. The design constraint throughout is **composition over inheritance** (GMRT can't do `super`/subclassing): "kinds of item" are a flat `Item` carrying a `components: []` array of standalone capability/marker classes queried by `instanceof` — exactly the `UIElement.getComponent` pattern.
 
 **Items & registry.** `Item` (`scripts/Item/`) is a definition registry (`Item.register([...])`, `Item.get(id)`), like `Rarity`. A definition is identity + universal scalars (`name` i18n key, `sprite`, `stack`, `weight`, `value`, `rarity`) plus `components` — capability/marker instances attached via `addComponent` and read via `getComponent(Class)`/`hasComponent(Class)`:
 
