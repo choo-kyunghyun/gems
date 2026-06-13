@@ -1,18 +1,10 @@
-// Registers the platformer RPG's rarity tiers + item set. Called once from
-// scenePlatformer.create() (not at top level — avoids GMRT load-order issues),
-// mirroring TopDownContent. Idempotent.
+// Platformer-specific content, layered over the shared RpgContent (rarity tiers,
+// universal items, recipes). Called once from scenePlatformer.create() (not at top level
+// — avoids GMRT load-order issues). Idempotent.
 //
-// Weapons carry a Weapon component: a `melee` weapon swings a hitbox (reach px)
-// in the facing direction (MeleeSystem); a ranged weapon fires a cursor-aimed
-// bullet (ProjectileSystem). Unarmed falls back to the controller's melee jab.
-const PLATF_RARITIES = [
-  { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
-  { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
-  { id: "rare", name: "RARITY_RARE", color: "#2196f3", valueMod: 5 },
-  { id: "epic", name: "RARITY_EPIC", color: "#9c27b0", valueMod: 12 },
-  { id: "legendary", name: "RARITY_LEGENDARY", color: "#ff9800", valueMod: 30 },
-];
-
+// Extras here: a `coin` loot item, plus this genre's WEAPONS — the platformer's
+// `wood_sword` is MELEE (swings a hitbox in the facing direction via MeleeSystem) and the
+// `blaster` is ranged (cursor-aimed bullet). Unarmed falls back to the controller's jab.
 globalThis.PlatformerContent = {
   registered: false,
 
@@ -20,27 +12,11 @@ globalThis.PlatformerContent = {
     if (this.registered) return;
     this.registered = true;
 
-    Rarity.register(PLATF_RARITIES);
+    RpgContent.register(); // shared rarities + universal items + recipes
 
     Item.register([
       // Currency + loot trash (the former "coins", now a stackable item).
       { id: "coin", name: "ITEM_COIN", weight: 0, value: 1, rarity: "common" },
-      {
-        id: "slime_gel",
-        name: "ITEM_SLIME_GEL",
-        weight: 1,
-        value: 2,
-        rarity: "common",
-      },
-      // Consumable — heals from the bag.
-      {
-        id: "potion",
-        name: "ITEM_POTION",
-        weight: 1,
-        value: 10,
-        rarity: "uncommon",
-        components: [new Consumable({ heal: 5 })],
-      },
       // Melee weapon — swings a short hitbox in the facing direction.
       {
         id: "wood_sword",
@@ -66,55 +42,6 @@ globalThis.PlatformerContent = {
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
           new Weapon({ damage: 6, fireCd: 8, bulletSpeed: 700 }),
         ],
-      },
-      {
-        id: "leather_armor",
-        name: "ITEM_LEATHER_ARMOR",
-        stack: 1,
-        weight: 8,
-        value: 20,
-        rarity: "uncommon",
-        components: [
-          new Equippable({ slot: "armor", mods: { defense: 2, maxHp: 5 } }),
-        ],
-      },
-      {
-        id: "swift_ring",
-        name: "ITEM_SWIFT_RING",
-        stack: 1,
-        weight: 1,
-        value: 40,
-        rarity: "rare",
-        components: [new Equippable({ slot: "trinket", mods: { speed: 40 } })],
-      },
-      // Crafting materials (no behavior — consumed by Recipes at a workbench).
-      { id: "wood", name: "ITEM_WOOD", weight: 1, value: 1, rarity: "common" },
-      { id: "iron", name: "ITEM_IRON", weight: 2, value: 4, rarity: "common" },
-    ]);
-
-    // Workbench recipes (Station kind "workbench"). Inputs are pulled from, and the
-    // output deposited into, the player's bag (CraftSystem).
-    Recipe.register([
-      {
-        id: "craft_wood_sword",
-        station: "workbench",
-        inputs: [{ itemId: "wood", qty: 3 }],
-        output: { itemId: "wood_sword", qty: 1 },
-      },
-      {
-        id: "craft_potion",
-        station: "workbench",
-        inputs: [
-          { itemId: "slime_gel", qty: 2 },
-          { itemId: "wood", qty: 1 },
-        ],
-        output: { itemId: "potion", qty: 1 },
-      },
-      {
-        id: "craft_leather_armor",
-        station: "workbench",
-        inputs: [{ itemId: "iron", qty: 2 }],
-        output: { itemId: "leather_armor", qty: 1 },
       },
     ]);
   },

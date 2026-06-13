@@ -163,7 +163,7 @@ The platformer and top-down templates are action-RPGs. The pieces below live und
 - `Consumable` (`{ heal }`) — usable from the bag (one unit consumed for an instant effect).
 - `Container` (`{ capacity }`) — while equipped, grows the wearer's `Inventory.capacity` (e.g. a backpack pairs `Equippable` + `Container`).
 
-`Rarity` (`scripts/Rarity/`) is a parallel registry of tiers (`{ id, name, color, valueMod }`); rarity color drives loot/inventory tinting. Genre content registries `PlatformerContent`/`TopDownContent` register the genre's rarities + item set (and, for top-down, quests/achievements) once from the scene's `create()` — **not** at top level, to dodge GMRT load-order issues.
+`Rarity` (`scripts/Rarity/`) is a parallel registry of tiers (`{ id, name, color, valueMod }`); rarity color drives loot/inventory tinting. **`RpgContent`** (`scripts/RpgContent/`, the shared Templates/RPG layer) registers the content common to both genres — the rarity tiers, the universal item set (consumables/armor/trinket/materials), and the workbench recipes. The per-genre registries `PlatformerContent`/`TopDownContent` call `RpgContent.register()` first, then add only their extras: genre **weapons** (`wood_sword` is melee in the platformer but ranged in top-down; `blaster` differs in cadence — same id, so the last genre entered defines them globally), unique items (platformer `coin`; top-down `gem`/`key`/`backpack`), and — top-down — quests/achievements. All register once from the scene's `create()` — **not** at top level, to dodge GMRT load-order issues.
 
 **Inventory & equipment (pure systems over components).** Components are string tokens; their systems take the component (or `world` + entity id) directly, with no world tick:
 
