@@ -16,6 +16,19 @@
 const RPG_CELL = 32; // fallback cell size when a level omits `cell`
 
 globalThis.RpgLevel = {
+  // World graph: map id -> level file. The overworld hub, sub-levels (interiors/dungeons),
+  // and side-islands are all just map files connected by `portal` spawns (see spawn() below).
+  // This is the seed registry — extract to a `maps.json` manifest later if it grows. START is
+  // the map a normal lobby launch boots into; sceneRpg.loadMap(id, entry) resolves files here.
+  MAPS: {
+    overworld: "levels/overworld.json",
+    interior_01: "levels/interior_01.json",
+  },
+  START: "overworld",
+  mapFile(id) {
+    return RpgLevel.MAPS[id];
+  },
+
   // Set by the level editor's Test Play to a save-dir level file; sceneRpg consumes it
   // once on create (then clears it, falling back to the bundled level). Not gameplay state —
   // a one-shot hand-off channel between the editor and the play scene.
@@ -25,8 +38,13 @@ globalThis.RpgLevel = {
    * Creates a Level from data, paints walls into a persistent TileLayer, and spawns
    * kinematic wall colliders into world. Returns the level handles; the caller owns
    * level.destroy() and the collider entities.
+   *
+   * `entryId` selects where the player spawns from `meta.entries` (a named-point map, e.g.
+   * "default" or "from_interior" — the matching side of a portal). Falls back to
+   * entries.default, then to the legacy `meta.playerSpawn`, so older single-entry files
+   * still build unchanged.
    */
-  build(world, data) {
+  build(world, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
     const level = new Level({
       cellWidth: cell,
@@ -69,10 +87,12 @@ globalThis.RpgLevel = {
     const colliders = [];
     TileEdit.meshSolid(world, level, wallLayer, colliders);
 
-    const spawn = level.gridToWorld(
-      data.meta.playerSpawn.gx,
-      data.meta.playerSpawn.gy,
-    );
+    // Resolve the spawn point: named entry → entries.default → legacy playerSpawn.
+    const entries = data.meta.entries;
+    let entry = data.meta.playerSpawn;
+    if (entries !== undefined)
+      entry = entries[entryId] ?? entries.default ?? entry;
+    const spawn = level.gridToWorld(entry.gx, entry.gy);
     return {
       level,
       spawn,
@@ -89,7 +109,8 @@ globalThis.RpgLevel = {
    * called AFTER the player controller exists (slimes need the player id for their AI).
    * Stations (chest/props) are discovered live by Interactable, so only the handles the
    * scene's own logic needs are returned:
-   *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined }
+   *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
+   *     portals: [{ id, toMap, toEntry }] }
    *
    * Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
    *   slime  hp? loot:[{itemId,qty}]
@@ -97,10 +118,12 @@ globalThis.RpgLevel = {
    *   chest  capacity items:[{itemId,qty}]
    *   prop   label color(#hex) kind?   (kind → Station, else decorative furniture)
    *   reach  half?                      (quest zone marker — no entity)
+   *   portal toMap toEntry? label? color(#hex)?  (walk-onto door → loadMap; non-solid sensor)
    */
   spawn(world, level, data, playerId) {
     const spawns = data.spawns ?? [];
     const enemies = [];
+    const portals = [];
     let npc = -1;
     let reach;
 
@@ -191,10 +214,29 @@ globalThis.RpgLevel = {
           x2: w.x + half,
           y2: w.y + half,
         };
+      } else if (s.preset === "portal") {
+        // A doorway: a non-solid sensor entity the player walks onto to travel to another
+        // map. Visible (Visual box + Name) and minimap-tagged; the destination is read from
+        // the parallel `portals` array (keyed by id) when the scene resolves the overlap.
+        const id = world.create();
+        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+        world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+        world.add(id, Tag, { tags: new Set(["portal"]) });
+        world.add(id, Name, { name: s.label ?? "Door" });
+        world.add(
+          id,
+          Visual,
+          this._visual(spr_choo, Color.parse(s.color ?? "#7c6fd0")),
+        );
+        portals.push({
+          id,
+          toMap: s.toMap,
+          toEntry: s.toEntry ?? "default",
+        });
       }
     }
 
-    return { enemies, npc, reach };
+    return { enemies, npc, reach, portals };
   },
 
   // Shared Visual component shape — caller overrides scale/sprite/color as needed.

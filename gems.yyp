@@ -61,6 +61,8 @@
     {"$GMIncludedFile":"","%Name":"rpg.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/text","name":"rpg.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"rts.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/text","name":"rts.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"topdown_1.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"topdown_1.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"overworld.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"overworld.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"interior_01.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"interior_01.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
   "isEcma":false,
   "LibraryEmitters":[],

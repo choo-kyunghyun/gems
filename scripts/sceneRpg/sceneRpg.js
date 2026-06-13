@@ -21,32 +21,113 @@ class _SceneRpgClass extends Scene {
     QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
-    // ── World, level, player ───────────────────────────────────────────────
-    this.world = new World(256, 60);
-    // The editor's Test Play sets RpgLevel.playtestFile to a save-dir export; consume it
-    // once (a normal lobby launch falls back to the bundled level). Fall back to the bundled
-    // level too if the playtest file failed to load (e.g. a stale path).
-    const levelFile = RpgLevel.playtestFile ?? "levels/topdown_1.json";
-    RpgLevel.playtestFile = undefined;
-    let levelData = LevelSerializer.load(levelFile, { genre: "topdown" });
-    if (levelData === null && levelFile !== "levels/topdown_1.json")
-      levelData = LevelSerializer.load("levels/topdown_1.json", {
+    // ── Overlay / interaction state (scene-wide — survives map changes) ─────
+    this.invOpen = false;
+    this._invDirty = false; // rebuild the inventory window body next step when set
+    this.nearNpc = false;
+    this.dialogueName = "";
+    this.dialogueLine = "";
+    this.dialogueAction = "";
+
+    // ── SystemMenu overlay owns pause + exit (Esc / Start / F1) and suspends menu nav
+    // while playing. Flag it (a subclass field initializer wouldn't run on GMRT). ─────
+    this.gameplay = true;
+
+    // ── Persistent UI (built once). These widgets read this.world / this.ctrl LIVE each
+    //    frame, so they keep working after loadMap() swaps the world on a map change. The
+    //    corner minimap is the exception — gemsMinimap captures world/target by value, so
+    //    loadMap() rebuilds it (_buildMinimap). Hint, then manager-drawn panels: HUD +
+    //    quest tracker (top-right), NPC dialogue (bottom-center, toggled), inventory window,
+    //    station prompt/storage/crafting windows, build-mode HUD. ──────────────────────────
+    this.ui = gemsRoot();
+    UI.insert(this.ui);
+    this.ui.insertChild(
+      gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
+    );
+    this._buildHud();
+    this._buildDialogue();
+    RpgInventoryUI.build(this);
+    Interactable.build(this); // station prompt + storage + crafting windows
+    BuildMode.build(this); // grid build mode (HUD + per-scene state)
+
+    // ── World graph boot: a normal launch starts at the overworld hub; the editor's Test
+    //    Play overrides with a single playtest file (registered under a synthetic id — it
+    //    has no portals, so the door system stays inert there). loadMap() builds the world,
+    //    level, player, renderer, camera, and minimap. ─────────────────────────────────────
+    let bootMap = RpgLevel.START;
+    if (RpgLevel.playtestFile !== undefined) {
+      RpgLevel.MAPS._playtest = RpgLevel.playtestFile;
+      RpgLevel.playtestFile = undefined;
+      bootMap = "_playtest";
+    }
+    this.loadMap(bootMap, "default");
+
+    Log.info(
+      `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
+        `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
+    );
+  }
+
+  // Build (or rebuild) the live map. Tears down the previous map, carries the player's
+  // character sheet across the swap, then constructs the world / level / player / renderer /
+  // camera for `mapId`, spawning the player at the named `entryId`. Called from create()
+  // (first map) and from _checkPortals() when the player walks through a door.
+  loadMap(mapId, entryId) {
+    // 1. Carry the player's character sheet across (null on first load). World.destroy() only
+    //    drops storage references, so these component objects stay valid to re-attach.
+    let carry = null;
+    if (this.ctrl !== undefined) {
+      carry = {
+        stats: this.world.get(Stats, this.ctrl.id),
+        health: this.world.get(Health, this.ctrl.id),
+        inventory: this.world.get(Inventory, this.ctrl.id),
+        equipment: this.world.get(Equipment, this.ctrl.id),
+        encumbrance: this.world.get(Encumbrance, this.ctrl.id),
+      };
+      this._teardownMap();
+    }
+
+    // 2. Load the map file (fall back to the start map if a referenced file is bad).
+    const file = RpgLevel.mapFile(mapId);
+    let data = LevelSerializer.load(file, { genre: "topdown" });
+    if (data === null) {
+      Log.error(
+        `map "${mapId}" (${file}) failed — falling back to ${RpgLevel.START}`,
+      );
+      mapId = RpgLevel.START;
+      entryId = "default";
+      data = LevelSerializer.load(RpgLevel.mapFile(mapId), {
         genre: "topdown",
       });
-    Log.info(`RPG level file: ${levelFile}`);
-    const built = RpgLevel.build(this.world, levelData);
+    }
+    this.mapId = mapId;
+    Log.info(`RPG map: ${mapId} (entry ${entryId})`);
+
+    // 3. World + level + player. The level is sized from the file's cols/rows, so each map
+    //    has its own extent and the follow camera scrolls across it.
+    this.world = new World(256, 60);
+    const built = RpgLevel.build(this.world, data, entryId);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death
-    // Tilemap handles kept for build mode (place/remove tiles + remesh wall colliders).
-    this.wallLayer = built.wallLayer;
+    this.wallLayer = built.wallLayer; // tilemap handles for build mode
     this.floorLayer = built.floorLayer;
     this.wallType = built.wallType;
     this.floorType = built.floorType;
     this.colliders = built.colliders;
     this.ctrl = RpgController.create(this.world, built.spawn);
 
-    // ── Buildable zone channel: one zone the Claim Post paints cells into; build mode
-    //    only allows placement inside it. RenderZone visualizes the claimed area. ─────
+    // Re-attach the carried character sheet onto the new player entity. Equip mods are
+    // already baked into the carried Stats, so no re-equip pass is needed.
+    if (carry !== null) {
+      this.world.add(this.ctrl.id, Stats, carry.stats);
+      this.world.add(this.ctrl.id, Health, carry.health);
+      this.world.add(this.ctrl.id, Inventory, carry.inventory);
+      this.world.add(this.ctrl.id, Equipment, carry.equipment);
+      this.world.add(this.ctrl.id, Encumbrance, carry.encumbrance);
+    }
+
+    // 4. Buildable zone channel (one per map) — the Claim Post paints into it; build mode
+    //    only allows placement inside it; RenderZone visualizes the claimed area.
     const bmap = this.level.addZoneMap("buildable");
     this.buildZoneId = bmap.define({
       name: I18n.text("BUILD_ZONE"),
@@ -54,23 +135,26 @@ class _SceneRpgClass extends Scene {
       data: { color: "#55aa55" },
     }).id;
 
-    // ── Entity instances from the level file's `spawns` (enemies, NPC, chest, props,
-    //    reach marker). Stations are discovered live by Interactable, so only the handles
-    //    the scene's own logic needs come back. Spawned after the controller — slimes need
-    //    the player id for their AI. ───────────────────────────────────────────────────
-    const ents = RpgLevel.spawn(
-      this.world,
-      this.level,
-      levelData,
-      this.ctrl.id,
-    );
+    // 5. Entity instances from the file's `spawns` (enemies, NPC, chest, props, reach
+    //    marker, portals). Stations are discovered live by Interactable; only the handles the
+    //    scene's own logic needs come back. Spawned after the controller — slimes need the
+    //    player id for their AI.
+    const ents = RpgLevel.spawn(this.world, this.level, data, this.ctrl.id);
     this.enemies = ents.enemies;
-    this.npc = ents.npc;
-    this.reachZone = ents.reach;
-    this.reachDone = false;
+    this.npc = ents.npc; // -1 when the map has no NPC (guarded in _updateNpc)
+    this.reachZone = ents.reach; // undefined when the map has no reach marker
+    this.reachDone = this.reachZone === undefined; // nothing to reach on this map
+    this.portals = ents.portals; // walk-onto doors → other maps (see _checkPortals)
 
-    // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
-    //    projectiles → expire ─
+    // 6. Per-map resets (old ids / built tiles belonged to the previous map).
+    this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
+    this._built = {}; // player-built deconstructable cells reset per map
+    this._buildActive = false;
+    BuildMode.active = false;
+    this.nearNpc = false;
+
+    // 7. Pipeline: AI decides velocity → collide → detect triggers (pickups) → projectiles
+    //    → expire.
     this.physics = new Pipeline()
       .add(StateSystem) // drives the slime Idle/Chase/Attack schemas
       .add(SolidSystem)
@@ -78,12 +162,11 @@ class _SceneRpgClass extends Scene {
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // Tilemap (walls + built floors) shown via the debug render pass — grid lines,
-    // blocking-cost shading (walls red), and tile id/name labels. The buildable zone
-    // overlay (RenderZone) sits above it. Both are world-space and draw UNDER the
-    // entities. Entities are colored boxes (Visual.color) + Name labels via
-    // RenderDebugBox, with a lime bbox overlay on top — GMRT 0.19 can't render the
-    // SVG character sprites.
+    // 8. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
+    //    shading (walls red), tile id/name labels — then the buildable-zone overlay; both
+    //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) +
+    //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT 0.19 can't render
+    //    the SVG character sprites).
     this.renderer = new Renderer();
     this.renderer.insert(
       new RenderDebugTileMap(this.level, {
@@ -105,6 +188,7 @@ class _SceneRpgClass extends Scene {
     bbox.enabled = false;
     this.renderer.insert(bbox);
 
+    // 9. Follow camera on the (new) player.
     this.camera = cameraFollow2d({
       world: this.world,
       followTarget: this.ctrl.id,
@@ -114,29 +198,28 @@ class _SceneRpgClass extends Scene {
     });
     this.camera.assign(0);
 
-    // ── Overlay / interaction state ────────────────────────────────────────
-    this.invOpen = false;
-    this._invDirty = false; // rebuild the inventory window body next step when set
-    this.nearNpc = false;
-    this.dialogueName = "";
-    this.dialogueLine = "";
-    this.dialogueAction = "";
-    this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
+    // 10. Corner minimap — rebuilt per map (captures world/target by value).
+    this._buildMinimap();
 
-    // ── SystemMenu overlay owns pause + exit (Esc / Start / F1) and suspends menu nav
-    // while playing. Flag it (a subclass field initializer wouldn't run on GMRT). ─────
-    this.gameplay = true;
+    FloatingText.clear(); // drop combat numbers from the previous map
+  }
 
-    // ── Hint (flexpanel, GUI layer) ────────────────────────────────────────
-    this.ui = gemsRoot();
-    UI.insert(this.ui);
-    this.ui.insertChild(
-      gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
-    );
+  // Release the current map's resources (world / level / renderer / camera / controller),
+  // leaving the persistent UI in place. Mirrors teardownScene's order, minus the UI.
+  _teardownMap() {
+    RpgController.destroy();
+    if (this.camera) this.camera.destroy();
+    if (this.renderer) this.renderer.destroy();
+    if (this.world) this.world.destroy();
+    if (this.level) this.level.destroy();
+  }
 
-    // Corner minimap (bottom-right — the HP/quest HUD owns the top-right): a framed
-    // radar of nearby slimes (red) + the elder NPC (gold) around the player marker.
-    // Absolute-positioned so it floats over the scene instead of stacking in the column.
+  // (Re)build the bottom-right minimap: a framed radar of nearby slimes (red), the NPC
+  // (gold), and doors (violet) around the player marker. gemsMinimap captures world/target
+  // by value, so it's rebuilt whenever loadMap() creates a new world; old wrapper removed
+  // first. Absolute-positioned so it floats over the scene instead of stacking in the column.
+  _buildMinimap() {
+    if (this._miniWrap !== undefined) this._miniWrap.destroy(); // self-removes from this.ui
     const miniWrap = new UIElement({
       positionType: "absolute",
       bottom: 16,
@@ -153,23 +236,12 @@ class _SceneRpgClass extends Scene {
         rules: [
           { tag: "enemy", color: "#e0584f" },
           { tag: "npc", color: "#ffd166" },
+          { tag: "portal", color: "#9b8cff" },
         ],
       }),
     );
+    this._miniWrap = miniWrap;
     this.ui.insertChild(miniWrap);
-
-    // Manager-drawn panels (GUI layer, screen-pinned): HUD + quest tracker (top-right),
-    // NPC dialogue (bottom-center, toggled), and the draggable inventory window.
-    this._buildHud();
-    this._buildDialogue();
-    RpgInventoryUI.build(this);
-    Interactable.build(this); // station prompt + storage + crafting windows
-    BuildMode.build(this); // grid build mode (HUD + per-scene state)
-
-    Log.info(
-      `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
-        `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
-    );
   }
 
   step() {
@@ -263,6 +335,26 @@ class _SceneRpgClass extends Scene {
       });
       this._invDirty = false;
     }
+
+    // Door check LAST — loadMap() swaps this.world/level/renderer/camera out from under the
+    // scene, so nothing below it may touch the old map.
+    this._checkPortals();
+  }
+
+  // Walk-onto door: travel to the first portal whose BBox the player overlaps. Runs once
+  // per frame, after physics (the player is settled). On a hit, loadMap rebuilds everything
+  // and we return immediately — the old world is gone.
+  _checkPortals() {
+    const p = AABB.of(this.world, this.ctrl.id);
+    for (let i = 0; i < this.portals.length; i++) {
+      const portal = this.portals[i];
+      const z = AABB.of(this.world, portal.id);
+      if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
+        Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
+        this.loadMap(portal.toMap, portal.toEntry);
+        return;
+      }
+    }
   }
 
   // ── UI panels (manager-drawn, GUI layer) ─────────────────────────────────
@@ -338,7 +430,7 @@ class _SceneRpgClass extends Scene {
   }
 
   _checkReach() {
-    if (this.reachDone) return;
+    if (this.reachDone || this.reachZone === undefined) return;
     const p = AABB.of(this.world, this.ctrl.id);
     const z = this.reachZone;
     if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
@@ -397,8 +489,13 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Proximity to the elder + E to accept / turn in the kill quest.
+  // Proximity to the elder + E to accept / turn in the kill quest. No-op on maps without
+  // an NPC (this.npc === -1, e.g. interiors).
   _updateNpc() {
+    if (this.npc === -1) {
+      this.nearNpc = false;
+      return;
+    }
     const p = this.world.get(Position, this.ctrl.id);
     const np = this.world.get(Position, this.npc);
     const dx = np.x - p.x;

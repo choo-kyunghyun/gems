@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "genre": "topdown",
+  "cell": 32,
+  "cols": 16,
+  "rows": 12,
+  "meta": {
+    "playerSpawn": { "gx": 8, "gy": 8 },
+    "entries": {
+      "default": { "gx": 8, "gy": 8 }
+    }
+  },
+  "walls": [
+    [0, 0, 16, 1],
+    [0, 11, 16, 1],
+    [0, 0, 1, 12],
+    [15, 0, 1, 12],
+
+    [4, 4, 1, 1],
+    [11, 4, 1, 1]
+  ],
+  "layers": [],
+  "spawns": [
+    {
+      "preset": "portal",
+      "gx": 8,
+      "gy": 10,
+      "label": "Exit",
+      "color": "#7c6fd0",
+      "toMap": "overworld",
+      "toEntry": "from_interior"
+    },
+
+    {
+      "preset": "slime",
+      "gx": 12,
+      "gy": 3,
+      "loot": [
+        { "itemId": "gem", "qty": 1 },
+        { "itemId": "potion", "qty": 1 }
+      ]
+    },
+
+    {
+      "preset": "chest",
+      "gx": 3,
+      "gy": 3,
+      "capacity": 8,
+      "items": [
+        { "itemId": "key", "qty": 1 },
+        { "itemId": "iron", "qty": 2 }
+      ]
+    }
+  ]
+}
