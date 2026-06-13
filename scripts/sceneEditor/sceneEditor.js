@@ -1,14 +1,21 @@
-// In-engine level editor (Phase 2: tiles + floors + entity placement + import/export).
+// In-engine level editor (tiles + floors + entity placement + player spawn + new/resize +
+// import/export).
 //
-// A dedicated authoring Scene — NOT a simulation. It loads a level file, holds the level
-// data, renders a grid representation with a pan/zoom camera, and lets you paint wall/floor
-// tiles and place/delete entities, then exports the edited level back to a JSON file. No
-// World, no physics, no gameplay systems: everything placed is pure data (entities are
-// `spawns` records drawn as markers, not live AI entities). Modeled on sceneTileTerrain.
+// A dedicated authoring Scene — NOT a simulation. It loads a level file (or starts a fresh
+// blank one), holds the level data, renders a grid representation with a pan/zoom camera,
+// and lets you paint wall/floor tiles, place/delete entities, and set the player spawn,
+// then exports the edited level back to a JSON file. No World, no physics, no gameplay
+// systems: everything placed is pure data (entities are `spawns` records drawn as markers,
+// not live AI entities). Modeled on sceneTileTerrain.
+//
+// Grid size is independent of the room — a level can be far larger than the view, and the
+// pan/zoom camera roams it. The "New WxH" control rebuilds the canvas blank at the chosen
+// size (with a border wall ring) so you can author bigger maps from scratch.
 //
 // Tools (a flat "categorized" palette, no tab show/hide): the Tiles section selects a
-// wall/floor/erase brush (LMB drag-paints, RMB erases both layers); the Entities section
-// selects a TopDownCatalog preset (LMB places one at the cell, RMB deletes the one there).
+// wall/floor/erase brush (LMB drag-paints, RMB erases both layers) or the Spawn tool (LMB
+// sets the player spawn cell); the Entities section selects a TopDownCatalog preset (LMB
+// places one at the cell, RMB deletes the one there).
 //
 // Export writes via File.write → buffer_save, which targets the SAVE dir
 // (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
@@ -16,6 +23,15 @@
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
+
+// Blank-level size presets for the "New" control (cols × rows). The cell size carries over
+// from the currently loaded level.
+const EDITOR_SIZES = [
+  [48, 32],
+  [64, 48],
+  [96, 64],
+  [128, 96],
+];
 
 SceneRegistry.add(() => new _SceneEditorClass(), {
   label: I18n.textRef("EDITOR_NAME"),
@@ -26,50 +42,32 @@ class _SceneEditorClass extends Scene {
   label = "Editor";
 
   create(openScene) {
-    // ── Import the level data. Kept on `this` so unedited fields (meta) round-trip; the
-    //    spawns are copied into an editable working list. ──────────────────────────────
+    // ── Import the level data. The spawns are copied into an editable working list; the
+    //    player spawn cell is pulled out as editable state (the Spawn tool moves it). ────
     const data = LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" });
-    this._data = data;
-    this._spawns = (data.spawns ?? []).slice(); // add/remove entries (no field mutation)
+    this._cell = data.cell ?? 32;
+    this._sizeIdx = 0; // selected "New" size preset
 
-    const cell = data.cell ?? 32;
-    this.level = new Level({
-      cellWidth: cell,
-      cellHeight: cell,
-      cols: data.cols,
-      rows: data.rows,
-    });
-    this.wallType = new TileType({ id: 1, name: "벽", pathCost: null });
-    this.floorType = new TileType({ id: 2, name: "바닥" });
-    this.floorLayer = new TileLayer(this.level.cols, this.level.rows, {
-      emptyCost: 1,
-    });
-    this.wallLayer = new TileLayer(this.level.cols, this.level.rows);
-    this.level.insert(this.floorLayer);
-    this.level.insert(this.wallLayer);
+    // Renderer + camera are built once; _initLevel (re)binds the tilemap pass to whatever
+    // level is current, so a New/resize doesn't rebuild the camera or the palette.
+    this.renderer = new Renderer();
+    this.camera = cameraPan(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
+    this.camera.assign(0);
 
+    this._initLevel(data.cols, data.rows, this._cell);
     // Paint loaded wall + floor rects (bulk: layer.set + one syncAll, like
     // TopDownLevel.build; incremental edits in step() go through TileEdit.set/clear).
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);
     this.level.syncAll();
 
-    // RenderDebugTileMap reads the level live each frame (no VBO), so edits show at once.
-    // It shades walls red (cost ∞) but not floors (cost 1) — the editor fills floor cells
-    // itself in draw() so they're visible.
-    this.renderer = new Renderer();
-    this.renderer.insert(
-      new RenderDebugTileMap(this.level, {
-        grid: true,
-        names: true,
-        font: I18n.font("default"),
-      }),
-    );
+    this._spawns = (data.spawns ?? []).slice(); // add/remove entries (no field mutation)
+    this._spawnPoint = {
+      gx: data.meta.playerSpawn.gx,
+      gy: data.meta.playerSpawn.gy,
+    };
 
-    this.camera = cameraPan(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
-    this.camera.assign(0);
-
-    this._tool = "wall"; // "wall" | "floor" | "erase" | "entity"
+    this._tool = "wall"; // "wall" | "floor" | "erase" | "spawn" | "entity"
     this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
 
     this._buildPalette(openScene);
@@ -78,6 +76,49 @@ class _SceneEditorClass extends Scene {
       `level editor ready — ${this.level.cols}x${this.level.rows}, ` +
         `walls=${(data.walls ?? []).length} spawns=${this._spawns.length}`,
     );
+  }
+
+  // (Re)build the level grid + tile layers at a given size and rebind the render pass to
+  // it. Destroys any previous level (and its inserted layers) first. Called from create()
+  // and from _newBlank() — the only place a fresh Level is constructed.
+  _initLevel(cols, rows, cell) {
+    if (this.level !== undefined) this.level.destroy(); // also destroys inserted layers
+    this.level = new Level({ cellWidth: cell, cellHeight: cell, cols, rows });
+    this.wallType = new TileType({ id: 1, name: "벽", pathCost: null });
+    this.floorType = new TileType({ id: 2, name: "바닥" });
+    this.floorLayer = new TileLayer(cols, rows, { emptyCost: 1 });
+    this.wallLayer = new TileLayer(cols, rows);
+    this.level.insert(this.floorLayer);
+    this.level.insert(this.wallLayer);
+
+    // RenderDebugTileMap holds a level ref, so rebind it to the new level. It reads the
+    // level live each frame (no VBO), so edits show at once; it shades walls red (cost ∞)
+    // but not floors (cost 1) — the editor fills floor cells itself in draw().
+    if (this._tilePass !== undefined) this.renderer.remove(this._tilePass);
+    this._tilePass = new RenderDebugTileMap(this.level, {
+      grid: true,
+      names: true,
+      font: I18n.font("default"),
+    });
+    this.renderer.insert(this._tilePass);
+  }
+
+  // Start a fresh blank level at the chosen size: enclosed by a border wall ring (bounded +
+  // immediately playable), no entities, spawn reset just inside the corner.
+  _newBlank(cols, rows) {
+    this._initLevel(cols, rows, this._cell);
+    for (let x = 0; x < cols; x++) {
+      this.wallLayer.set(x, 0, this.wallType);
+      this.wallLayer.set(x, rows - 1, this.wallType);
+    }
+    for (let y = 0; y < rows; y++) {
+      this.wallLayer.set(0, y, this.wallType);
+      this.wallLayer.set(cols - 1, y, this.wallType);
+    }
+    this.level.syncAll();
+    this._spawns = [];
+    this._spawnPoint = { gx: 2, gy: 2 };
+    Toast.push(I18n.text("EDITOR_SIZE", cols, rows), { type: "info" });
   }
 
   _paintRects(layer, rects, type) {
@@ -100,36 +141,39 @@ class _SceneEditorClass extends Scene {
       width: 300,
     });
     const card = gemsCard({ padding: GemsTheme.pad, gap: GemsTheme.gapSm });
-    card.insertChild(
-      gemsLabel(I18n.textRef("EDITOR_HINT"), { color: GemsTheme.textMuted }),
-    );
-    card.insertChild(
-      gemsLabel(() => this._toolStatus(), { color: GemsTheme.accent }),
-    );
+    // gemsLabel makes a bare (height-less) node; in a flex column it collapses and
+    // overlaps its siblings, so wrap each label in a fixed-height row (as sceneTopDown
+    // does for its HUD labels).
+    const labelRow = (lbl, opts, h) => {
+      const row = new UIElement({ width: "100%", height: h ?? 22 });
+      row.insertChild(gemsLabel(lbl, opts));
+      card.insertChild(row);
+    };
+    labelRow(I18n.textRef("EDITOR_HINT"), { color: GemsTheme.textMuted });
+    labelRow(() => this._toolStatus(), { color: GemsTheme.accent });
 
-    // Tiles section.
-    card.insertChild(
-      gemsLabel(I18n.textRef("EDITOR_TILES"), {
-        color: GemsTheme.textMuted,
-        font: I18n.font("header"),
-      }),
+    // Tiles section — wall/floor/erase brushes + the Spawn tool (all single-cell tools).
+    labelRow(
+      I18n.textRef("EDITOR_TILES"),
+      { color: GemsTheme.textMuted, font: I18n.font("header") },
+      26,
     );
-    const tile = (key, tool) =>
+    const tool = (key, name) =>
       card.insertChild(
         gemsButton(I18n.textRef(key), () => {
-          this._tool = tool;
+          this._tool = name;
         }),
       );
-    tile("EDITOR_WALL", "wall");
-    tile("EDITOR_FLOOR", "floor");
-    tile("EDITOR_ERASE", "erase");
+    tool("EDITOR_WALL", "wall");
+    tool("EDITOR_FLOOR", "floor");
+    tool("EDITOR_ERASE", "erase");
+    tool("EDITOR_SPAWN", "spawn");
 
     // Entities section — one button per catalog preset.
-    card.insertChild(
-      gemsLabel(I18n.textRef("EDITOR_ENTITIES"), {
-        color: GemsTheme.textMuted,
-        font: I18n.font("header"),
-      }),
+    labelRow(
+      I18n.textRef("EDITOR_ENTITIES"),
+      { color: GemsTheme.textMuted, font: I18n.font("header") },
+      26,
     );
     for (let i = 0; i < TopDownCatalog.entries.length; i++) {
       const entry = TopDownCatalog.entries[i];
@@ -140,6 +184,37 @@ class _SceneEditorClass extends Scene {
         }),
       );
     }
+
+    // Level section — current size + create a fresh blank level at a chosen preset size.
+    labelRow(
+      () => I18n.text("EDITOR_SIZE", this.level.cols, this.level.rows),
+      { color: GemsTheme.textMuted, font: I18n.font("header") },
+      26,
+    );
+    // UISelect renders item.name (a { name, value } shape), not a bare string.
+    const sizeItems = [];
+    for (let i = 0; i < EDITOR_SIZES.length; i++)
+      sizeItems.push({
+        name: EDITOR_SIZES[i][0] + "x" + EDITOR_SIZES[i][1],
+        value: i,
+      });
+    card.insertChild(
+      gemsSelectCustom(sizeItems, this._sizeIdx, (i) => {
+        this._sizeIdx = i;
+      }),
+    );
+    card.insertChild(
+      gemsButton(
+        () => {
+          const s = EDITOR_SIZES[this._sizeIdx];
+          return I18n.text("EDITOR_NEW", s[0], s[1]);
+        },
+        () => {
+          const s = EDITOR_SIZES[this._sizeIdx];
+          this._newBlank(s[0], s[1]);
+        },
+      ),
+    );
 
     card.insertChild(
       gemsButton(I18n.textRef("EDITOR_EXPORT"), () => this._export(), {
@@ -164,7 +239,9 @@ class _SceneEditorClass extends Scene {
         ? "EDITOR_WALL"
         : this._tool === "floor"
           ? "EDITOR_FLOOR"
-          : "EDITOR_ERASE";
+          : this._tool === "spawn"
+            ? "EDITOR_SPAWN"
+            : "EDITOR_ERASE";
     return I18n.text("EDITOR_TOOL", I18n.text(key));
   }
 
@@ -204,6 +281,10 @@ class _SceneEditorClass extends Scene {
       } else if (mouse_check_button_pressed(mb_right)) {
         this._deleteSpawnAt(cell.x, cell.y);
       }
+    } else if (this._tool === "spawn") {
+      // Spawn: LMB click sets the player spawn cell (edge-triggered).
+      if (mouse_check_button_pressed(mb_left))
+        this._spawnPoint = { gx: cell.x, gy: cell.y };
     } else if (mouse_check_button(mb_left)) {
       // Tile tools: LMB drag-paints the active brush.
       if (this._tool === "wall")
@@ -240,7 +321,8 @@ class _SceneEditorClass extends Scene {
   }
 
   // Assemble the edited level data and write it out. Walls/floors are re-derived from the
-  // painted grids via the greedy mesh; meta carries over; spawns are the edited list.
+  // painted grids via the greedy mesh; meta carries the edited player spawn; spawns are the
+  // edited list.
   _export() {
     const data = {
       version: 1,
@@ -248,7 +330,9 @@ class _SceneEditorClass extends Scene {
       cell: this.level.cellWidth,
       cols: this.level.cols,
       rows: this.level.rows,
-      meta: this._data.meta,
+      meta: {
+        playerSpawn: { gx: this._spawnPoint.gx, gy: this._spawnPoint.gy },
+      },
       walls: TileEdit.meshRects(this.level, this.wallLayer),
       floors: TileEdit.meshRects(this.level, this.floorLayer),
       layers: [],
@@ -260,7 +344,9 @@ class _SceneEditorClass extends Scene {
     });
     Log.info(
       `editor export ${ok ? "ok" : "FAILED"} → ${EDITOR_EXPORT_FILE} ` +
-        `walls=${data.walls.length} floors=${data.floors.length} spawns=${data.spawns.length}`,
+        `${data.cols}x${data.rows} walls=${data.walls.length} ` +
+        `floors=${data.floors.length} spawns=${data.spawns.length} ` +
+        `spawn=(${data.meta.playerSpawn.gx},${data.meta.playerSpawn.gy})`,
     );
   }
 
@@ -268,6 +354,7 @@ class _SceneEditorClass extends Scene {
     this.renderer.draw(); // grid + walls (red) + tile labels, under the pan/zoom camera
     this._drawFloors(); // translucent fill so painted floors are visible
     this._drawMarkers(); // entity spawn records as colored boxes + labels
+    this._drawSpawn(); // player spawn marker
   }
 
   _drawFloors() {
@@ -299,6 +386,24 @@ class _SceneEditorClass extends Scene {
       draw_set_color(c_white);
       draw_text(wx + cw * 0.5, wy - 4, e !== undefined ? e.label : s.preset);
     }
+    draw_set_halign(fa_left);
+    draw_set_color(c_white);
+  }
+
+  // Player spawn cell: a filled green disc + label, distinct from the entity boxes.
+  _drawSpawn() {
+    const cw = this.level.cellWidth;
+    const ch = this.level.cellHeight;
+    const cx = this._spawnPoint.gx * cw + cw * 0.5;
+    const cy = this._spawnPoint.gy * ch + ch * 0.5;
+    const rad = (cw < ch ? cw : ch) * 0.38;
+    draw_set_color(make_colour_rgb(70, 230, 120));
+    draw_set_alpha(0.9);
+    draw_circle(cx, cy, rad, false);
+    draw_set_alpha(1);
+    draw_set_color(c_white);
+    draw_set_halign(fa_center);
+    draw_text(cx, cy - ch * 0.7, I18n.text("EDITOR_SPAWN"));
     draw_set_halign(fa_left);
     draw_set_color(c_white);
   }
