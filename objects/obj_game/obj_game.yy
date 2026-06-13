@@ -12,8 +12,8 @@
   "name":"obj_game",
   "overriddenProperties":[],
   "parent":{
-    "name":"Demo",
-    "path":"folders/Showcase/Demo.yy",
+    "name":"Lobby",
+    "path":"folders/Showcase/Lobby.yy",
   },
   "parentObjectId":null,
   "persistent":false,

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SolidSystem",
   "parent":{
-    "name":"Systems",
-    "path":"folders/Core/Systems.yy",
+    "name":"System",
+    "path":"folders/Core/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

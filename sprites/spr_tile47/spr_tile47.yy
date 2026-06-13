@@ -71,8 +71,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Tiles",
-    "path":"folders/Showcase/Sprites/Tiles.yy",
+    "name":"Tile",
+    "path":"folders/Showcase/Sprite/Tile.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

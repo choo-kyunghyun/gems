@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneUIKit",
   "parent":{
-    "name":"Demo",
-    "path":"folders/Showcase/Demo.yy",
+    "name":"Lobby",
+    "path":"folders/Showcase/Lobby.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

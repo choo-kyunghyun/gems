@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"BBox",
   "parent":{
-    "name":"Components",
-    "path":"folders/Core/Components.yy",
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
