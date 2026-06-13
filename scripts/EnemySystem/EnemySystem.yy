@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EnemySystem",
   "parent":{
-    "name":"Platformer",
-    "path":"folders/Templates/Platformer.yy",
+    "name":"RPG",
+    "path":"folders/RPG.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

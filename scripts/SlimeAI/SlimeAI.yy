@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SlimeAI",
   "parent":{
-    "name":"TopDown",
-    "path":"folders/Templates/TopDown.yy",
+    "name":"RPG",
+    "path":"folders/RPG.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

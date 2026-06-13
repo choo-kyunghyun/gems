@@ -6,7 +6,7 @@
   "name":"RpgPlayer",
   "parent":{
     "name":"RPG",
-    "path":"folders/Templates/RPG.yy",
+    "path":"folders/RPG.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

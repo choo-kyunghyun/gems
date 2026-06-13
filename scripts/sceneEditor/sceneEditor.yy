@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneEditor",
   "parent":{
-    "name":"TopDown",
-    "path":"folders/Templates/TopDown.yy",
+    "name":"Editor",
+    "path":"folders/Editor.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
