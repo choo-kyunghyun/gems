@@ -26,7 +26,7 @@
   "origin":0,
   "parent":{
     "name":"Textures",
-    "path":"folders/Demo/Sprites/Textures.yy",
+    "path":"folders/Showcase/Sprites/Textures.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

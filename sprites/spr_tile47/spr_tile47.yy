@@ -72,7 +72,7 @@
   "origin":0,
   "parent":{
     "name":"Tiles",
-    "path":"folders/Demo/Sprites/Tiles.yy",
+    "path":"folders/Showcase/Sprites/Tiles.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

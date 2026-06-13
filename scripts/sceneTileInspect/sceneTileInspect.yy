@@ -6,7 +6,7 @@
   "name":"sceneTileInspect",
   "parent":{
     "name":"Map",
-    "path":"folders/Templates/Map.yy",
+    "path":"folders/Showcase/Map.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

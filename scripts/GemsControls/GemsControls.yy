@@ -6,7 +6,7 @@
   "name":"GemsControls",
   "parent":{
     "name":"GemsUI",
-    "path":"folders/Demo/GemsUI.yy",
+    "path":"folders/GemsUI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

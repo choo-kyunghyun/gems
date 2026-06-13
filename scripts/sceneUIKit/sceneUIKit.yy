@@ -6,7 +6,7 @@
   "name":"sceneUIKit",
   "parent":{
     "name":"Demo",
-    "path":"folders/Demo.yy",
+    "path":"folders/Showcase/Demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

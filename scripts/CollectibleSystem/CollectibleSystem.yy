@@ -6,7 +6,7 @@
   "name":"CollectibleSystem",
   "parent":{
     "name":"Platformer",
-    "path":"folders/Templates/Platformer.yy",
+    "path":"folders/Showcase/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

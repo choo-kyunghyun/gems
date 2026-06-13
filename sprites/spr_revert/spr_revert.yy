@@ -26,7 +26,7 @@
   "origin":0,
   "parent":{
     "name":"Vector Sprites",
-    "path":"folders/Demo/Vector Sprites.yy",
+    "path":"folders/Showcase/Vector Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

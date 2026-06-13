@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Interactable",
   "parent":{
-    "name":"Templates",
-    "path":"folders/Templates.yy",
+    "name":"RPG",
+    "path":"folders/RPG.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
