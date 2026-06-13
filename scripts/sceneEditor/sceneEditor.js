@@ -21,7 +21,9 @@
 //
 // Export writes via File.write → buffer_save, which targets the SAVE dir
 // (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
-// level, copy it into datafiles/levels/ and register it in IncludedFiles.
+// level, copy it into datafiles/levels/ and register it in IncludedFiles. Open re-imports
+// a level file (the bundled source or the save-dir export) — the round-trip's other half,
+// and the only path that reads exported zoneMaps back in.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
@@ -48,21 +50,36 @@ class _SceneEditorClass extends Scene {
     // Idempotent; the play scene calls it too — this just makes the data available here.
     TopDownContent.register();
 
-    // ── Import the level data. The spawns are copied into an editable working list; the
-    //    player spawn cell is pulled out as editable state (the Spawn tool moves it). ────
-    const data = LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" });
-    this._cell = data.cell ?? 32;
-    this._sizeIdx = 0; // selected "New" size preset
-
-    // Renderer + camera are built once; _initLevel (re)binds the tilemap pass to whatever
-    // level is current, so a New/resize doesn't rebuild the camera or the palette.
+    // Renderer + camera are built once; _initLevel (re)binds the tilemap + zone passes to
+    // whatever level is current, so New/resize/Open don't rebuild the camera or the palette.
     this.renderer = new Renderer();
     this.camera = cameraPan(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
     this.camera.assign(0);
 
+    this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
+    this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
+    this._sizeIdx = 0; // selected "New" size preset
+    this._openIdx = 0; // selected "Open" file
+
+    this._loadData(
+      LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" }),
+    );
+
+    this._buildPalette(openScene);
+    this._buildPropPanel();
+
+    Log.info(
+      `level editor ready — ${this.level.cols}x${this.level.rows}, ` +
+        `spawns=${this._spawns.length}`,
+    );
+  }
+
+  // The single load path: (re)build all editor state from a level-data object. Shared by
+  // create() (the bundled source) and Open (a chosen file). Mirrors TopDownLevel.build's
+  // bulk rect paint, plus the editable spawns / player spawn and any saved buildable zone.
+  _loadData(data) {
+    this._cell = data.cell ?? 32;
     this._initLevel(data.cols, data.rows, this._cell);
-    // Paint loaded wall + floor rects (bulk: layer.set + one syncAll, like
-    // TopDownLevel.build; incremental edits in step() go through TileEdit.set/clear).
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);
     this.level.syncAll();
@@ -73,18 +90,33 @@ class _SceneEditorClass extends Scene {
       gy: data.meta.playerSpawn.gy,
     };
 
-    this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
-    this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
-    this._selected = undefined; // spawn record being edited in the property panel
-    this._propDirty = true; // rebuild the property panel body next step
-    this._zoneDrag = undefined; // in-progress zone rectangle { sx, sy, erase }
+    // Restore a saved buildable zone when the file carries one (the editor exports it; the
+    // play scene doesn't read it back yet). import() replaces the map _initLevel just
+    // defined, so re-point _zoneId at the imported buildable zone for the Zone tool.
+    if (data.zoneMaps !== undefined && data.zoneMaps.buildable !== undefined) {
+      const map = this.level.zoneMap("buildable");
+      map.import(data.zoneMaps.buildable);
+      const z = map.byTag("buildable")[0];
+      if (z !== undefined) this._zoneId = z.id;
+    }
 
-    this._buildPalette(openScene);
-    this._buildPropPanel();
+    this._zoneDrag = undefined;
+    this._select(undefined); // also sets _propDirty so the panel rebuilds next step
+  }
 
+  // Open (re-import) a level file, replacing the editor's current level. Reading the bundled
+  // source ("levels/…") and the save-dir export (flat name) both go through File.read.
+  _openFile(path) {
+    const data = LevelSerializer.load(path, { genre: "topdown" });
+    if (data === null) {
+      Toast.push(I18n.text("EDITOR_LOAD_FAIL", path), { type: "error" });
+      return;
+    }
+    this._loadData(data);
+    Toast.push(I18n.text("EDITOR_LOADED", path), { type: "success" });
     Log.info(
-      `level editor ready — ${this.level.cols}x${this.level.rows}, ` +
-        `walls=${(data.walls ?? []).length} spawns=${this._spawns.length}`,
+      `editor open ${path} — ${this.level.cols}x${this.level.rows} ` +
+        `spawns=${this._spawns.length}`,
     );
   }
 
@@ -244,6 +276,23 @@ class _SceneEditorClass extends Scene {
           const s = EDITOR_SIZES[this._sizeIdx];
           this._newBlank(s[0], s[1]);
         },
+      ),
+    );
+
+    // Open: re-import a level file (the bundled source or the save-dir export) — the other
+    // half of the round-trip, and the only path that reads exported zoneMaps back.
+    const openItems = [
+      { name: "topdown_1", value: EDITOR_SOURCE_FILE },
+      { name: "export", value: EDITOR_EXPORT_FILE },
+    ];
+    card.insertChild(
+      gemsSelectCustom(openItems, this._openIdx, (i) => {
+        this._openIdx = i;
+      }),
+    );
+    card.insertChild(
+      gemsButton(I18n.textRef("EDITOR_OPEN"), () =>
+        this._openFile(openItems[this._openIdx].value),
       ),
     );
 
