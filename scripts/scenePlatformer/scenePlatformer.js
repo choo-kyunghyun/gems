@@ -202,10 +202,17 @@ class _ScenePlatformerClass extends Scene {
         this._hpTrack[this.ctrl.id] = this.world.get(Health, this.ctrl.id).hp;
       }
 
-      this._trackDamage(); // floating numbers for any hp change this tick
-      this._resolveDeaths(); // spill loot for killed enemies (before flush removes them)
-      this._collectDrops(); // pick up ground items into the bag
-      this._checkPlayerDeath(); // hp ≤ 0 → respawn at spawn, full hp
+      RpgScene.trackDamage(this, 28); // floating numbers for any hp change this tick
+      RpgScene.resolveDeaths(this, {
+        spill: { yBase: -12, ySpread: 12 },
+        onKill: () => Log.info("enemy killed"),
+      });
+      RpgScene.collectDrops(this, (itemId, got) =>
+        Log.info(`picked up ${got}x ${itemId}`),
+      );
+      RpgScene.checkPlayerDeath(this, () =>
+        PlatformerController.respawn(this.world, this.ctrl, this.spawn),
+      );
 
       this.world.flush();
     }
@@ -229,109 +236,6 @@ class _ScenePlatformerClass extends Scene {
     const dmg = Math.max(1, PLATF_TOUCH_DMG - def);
     hp.hp -= dmg;
     this.ctrl.iframes = PLATF_HIT_IFRAMES;
-  }
-
-  // Floating combat text: diff each combatant's Health against last tick and pop a
-  // number on any change (white over enemies, red over the player; "+N" heals rise).
-  _trackDamage() {
-    this._diffHp(this.ctrl.id, true);
-    for (let i = 0; i < this.enemies.length; i++)
-      this._diffHp(this.enemies[i], false);
-  }
-
-  _diffHp(id, isPlayer) {
-    if (!this.world.isValid(id)) return;
-    const hp = this.world.get(Health, id);
-    if (hp === undefined) return;
-    const prev = this._hpTrack[id];
-    if (prev !== undefined && hp.hp !== prev) {
-      const pos = this.world.get(Position, id);
-      if (pos !== undefined) {
-        const d = hp.hp - prev; // <0 = damage, >0 = heal
-        if (d < 0)
-          FloatingText.push(pos.x, pos.y - 28, -d, {
-            type: isPlayer ? "hurt" : "damage",
-          });
-        else FloatingText.push(pos.x, pos.y - 28, "+" + d, { type: "heal" });
-      }
-    }
-    this._hpTrack[id] = hp.hp;
-  }
-
-  // Weapons zero a hit enemy's hp and queue its removal; this runs before flush so
-  // the entity is still readable — spill its loot Inventory as ground drops.
-  _resolveDeaths() {
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const id = this.enemies[i];
-      if (!this.world.isValid(id)) {
-        this.enemies.splice(i, 1);
-        continue;
-      }
-      const hp = this.world.get(Health, id);
-      if (hp !== undefined && hp.hp <= 0) {
-        this._spillLoot(id);
-        this.world.remove(id);
-        this.enemies.splice(i, 1);
-        Log.info("enemy killed");
-      }
-    }
-  }
-
-  _spillLoot(enemyId) {
-    const inv = this.world.get(Inventory, enemyId);
-    const pos = this.world.get(Position, enemyId);
-    if (inv === undefined || pos === undefined) return;
-    for (let i = 0; i < inv.slots.length; i++) {
-      const s = inv.slots[i];
-      const ox = (i % 2 === 0 ? -1 : 1) * 16;
-      const oy = (i < 2 ? -1 : 1) * 12;
-      this._spawnDrop(s.itemId, s.qty, pos.x + ox, pos.y - 12 + oy);
-    }
-  }
-
-  _spawnDrop(itemId, qty, x, y) {
-    const id = this.world.create();
-    this.world.add(id, Position, { x: x, y: y, z: 0 });
-    this.world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
-    this.world.add(id, Collision, {
-      solid: false,
-      kinematic: false,
-      mask: null,
-      hits: [],
-    });
-    this.world.add(id, ItemDrop, { itemId: itemId, qty: qty });
-  }
-
-  // TriggerSystem filled the player's hits with overlapping non-solid sensors
-  // (item drops + spikes); pick up the drops into the bag.
-  _collectDrops() {
-    const hits = this.world.get(Collision, this.ctrl.id).hits;
-    const inv = this.world.get(Inventory, this.ctrl.id);
-    for (let i = 0; i < hits.length; i++) {
-      const id = hits[i];
-      const d = this.world.get(ItemDrop, id);
-      if (d === undefined) continue;
-      const left = InventorySystem.add(inv, d.itemId, d.qty);
-      const got = d.qty - left;
-      if (got > 0) {
-        this._invDirty = true; // bag changed — refresh the window if open
-        Log.info(`picked up ${got}x ${d.itemId}`);
-      }
-      if (left <= 0) this.world.remove(id);
-      else d.qty = left; // bag full — leave the remainder on the ground
-    }
-  }
-
-  // Enemy contact / spikes drain Health. On death, respawn at spawn with full hp
-  // (kept deliberately soft — no progress lost).
-  _checkPlayerDeath() {
-    const hp = this.world.get(Health, this.ctrl.id);
-    if (hp === undefined || hp.hp > 0) return;
-    const st = this.world.get(Stats, this.ctrl.id);
-    hp.hp = st !== undefined ? st.maxHp : 10;
-    PlatformerController.respawn(this.world, this.ctrl, this.spawn);
-    this._hpTrack[this.ctrl.id] = hp.hp; // don't pop a "+heal" for the respawn refill
-    Log.info("player died — respawned at spawn");
   }
 
   // ── UI panels (manager-drawn, GUI layer) ─────────────────────────────────

@@ -335,10 +335,30 @@ class _SceneTopDownClass extends Scene {
       TopDownController.update(this.world, this.ctrl);
       this.physics.update(this.world);
 
-      this._trackDamage(); // pop floating numbers for any hp change this tick
-      this._resolveDeaths(); // spill loot + count kills (before flush removes them)
-      this._checkPlayerDeath(); // slimes can kill the player → respawn at spawn
-      this._collectDrops(); // pick up ground items into the player's inventory
+      RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
+      RpgScene.resolveDeaths(this, {
+        spill: { yBase: 0, ySpread: 14 },
+        onKill: () => {
+          Profile.add("enemiesKilled", 1);
+          QuestLog.report("kill", "slime", 1);
+          Log.info(`slime killed — kills=${Profile.get("enemiesKilled")}`);
+        },
+      });
+      RpgScene.checkPlayerDeath(this, () => {
+        const pos = this.world.get(Position, this.ctrl.id);
+        const vel = this.world.get(Velocity, this.ctrl.id);
+        pos.x = this.spawn.x;
+        pos.y = this.spawn.y;
+        vel.x = 0;
+        vel.y = 0;
+      });
+      RpgScene.collectDrops(this, (itemId, got) => {
+        Profile.add("itemsCollected", got);
+        QuestLog.report("collect", itemId, got);
+        Log.info(
+          `picked up ${got}x ${itemId} — items=${Profile.get("itemsCollected")}`,
+        );
+      });
       this._checkReach(); // reach-quest zone
       this._tryTurnIn(TopDownContent.QUEST_GATHER); // passive quests auto-complete
       this._tryTurnIn(TopDownContent.QUEST_REACH);
@@ -359,122 +379,6 @@ class _SceneTopDownClass extends Scene {
     if (this.invOpen && this._invDirty) {
       this._rebuildInventory();
       this._invDirty = false;
-    }
-  }
-
-  // ProjectileSystem zeroes a hit enemy's hp and queues its removal; this runs
-  // before flush so the entity is still readable — spill its inventory as drops.
-  _resolveDeaths() {
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const id = this.enemies[i];
-      if (!this.world.isValid(id)) {
-        this.enemies.splice(i, 1);
-        continue;
-      }
-      const hp = this.world.get(Health, id);
-      if (hp !== undefined && hp.hp <= 0) {
-        this._spillLoot(id);
-        Profile.add("enemiesKilled", 1);
-        QuestLog.report("kill", "slime", 1);
-        this.world.remove(id);
-        this.enemies.splice(i, 1);
-        Log.info(`slime killed — kills=${Profile.get("enemiesKilled")}`);
-      }
-    }
-  }
-
-  // Floating combat text: diff each combatant's Health against last tick and pop a
-  // number on any change — damage (white over slimes, red over the player) falls, heals
-  // (green "+N") rise. Runs after physics (bullet hits + slime-attack drain are both in)
-  // and before _resolveDeaths removes the killed slime, so the killing blow still pops.
-  _trackDamage() {
-    this._diffHp(this.ctrl.id, true);
-    for (let i = 0; i < this.enemies.length; i++)
-      this._diffHp(this.enemies[i], false);
-  }
-
-  _diffHp(id, isPlayer) {
-    if (!this.world.isValid(id)) return;
-    const hp = this.world.get(Health, id);
-    if (hp === undefined) return;
-    const prev = this._hpTrack[id];
-    if (prev !== undefined && hp.hp !== prev) {
-      const pos = this.world.get(Position, id);
-      if (pos !== undefined) {
-        const d = hp.hp - prev; // <0 = damage, >0 = heal
-        if (d < 0)
-          FloatingText.push(pos.x, pos.y - 14, -d, {
-            type: isPlayer ? "hurt" : "damage",
-          });
-        else FloatingText.push(pos.x, pos.y - 14, "+" + d, { type: "heal" });
-      }
-    }
-    this._hpTrack[id] = hp.hp;
-  }
-
-  // Slime ATTACK states drain the player's Health. On death, respawn at the
-  // level's spawn point with full hp (no progress lost — kept deliberately soft).
-  _checkPlayerDeath() {
-    const hp = this.world.get(Health, this.ctrl.id);
-    if (hp === undefined || hp.hp > 0) return;
-    const st = this.world.get(Stats, this.ctrl.id);
-    const pos = this.world.get(Position, this.ctrl.id);
-    const vel = this.world.get(Velocity, this.ctrl.id);
-    hp.hp = st !== undefined ? st.maxHp : 10;
-    pos.x = this.spawn.x;
-    pos.y = this.spawn.y;
-    vel.x = 0;
-    vel.y = 0;
-    this._hpTrack[this.ctrl.id] = hp.hp; // don't pop a "+heal" for the respawn refill
-    Log.info("player died — respawned at spawn");
-  }
-
-  _spillLoot(enemyId) {
-    const inv = this.world.get(Inventory, enemyId);
-    const pos = this.world.get(Position, enemyId);
-    if (inv === undefined || pos === undefined) return;
-    for (let i = 0; i < inv.slots.length; i++) {
-      const s = inv.slots[i];
-      const ox = (i % 2 === 0 ? -1 : 1) * 16;
-      const oy = (i < 2 ? -1 : 1) * 14;
-      this._spawnDrop(s.itemId, s.qty, pos.x + ox, pos.y + oy);
-    }
-  }
-
-  _spawnDrop(itemId, qty, x, y) {
-    const id = this.world.create();
-    this.world.add(id, Position, { x: x, y: y, z: 0 });
-    this.world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
-    this.world.add(id, Collision, {
-      solid: false,
-      kinematic: false,
-      mask: null,
-      hits: [],
-    });
-    this.world.add(id, ItemDrop, { itemId: itemId, qty: qty });
-  }
-
-  // TriggerSystem filled the player's hits with overlapping non-solid sensors
-  // (the only non-solids here are item drops).
-  _collectDrops() {
-    const hits = this.world.get(Collision, this.ctrl.id).hits;
-    const inv = this.world.get(Inventory, this.ctrl.id);
-    for (let i = 0; i < hits.length; i++) {
-      const id = hits[i];
-      const d = this.world.get(ItemDrop, id);
-      if (d === undefined) continue;
-      const left = InventorySystem.add(inv, d.itemId, d.qty);
-      const got = d.qty - left;
-      if (got > 0) {
-        Profile.add("itemsCollected", got);
-        QuestLog.report("collect", d.itemId, got);
-        this._invDirty = true; // bag changed — refresh the window if open
-        Log.info(
-          `picked up ${got}x ${d.itemId} — items=${Profile.get("itemsCollected")}`,
-        );
-      }
-      if (left <= 0) this.world.remove(id);
-      else d.qty = left; // inventory full — leave the remainder on the ground
     }
   }
 

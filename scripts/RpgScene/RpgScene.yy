@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgScene",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgScene",
+  "parent":{
+    "name":"RPG",
+    "path":"folders/Templates/RPG.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgScene.js",
+}
