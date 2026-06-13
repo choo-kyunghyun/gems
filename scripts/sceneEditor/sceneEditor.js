@@ -42,6 +42,10 @@ class _SceneEditorClass extends Scene {
   label = "Editor";
 
   create(openScene) {
+    // Item + quest registries back the property editor's item picker + quest select.
+    // Idempotent; the play scene calls it too — this just makes the data available here.
+    TopDownContent.register();
+
     // ── Import the level data. The spawns are copied into an editable working list; the
     //    player spawn cell is pulled out as editable state (the Spawn tool moves it). ────
     const data = LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" });
@@ -67,10 +71,13 @@ class _SceneEditorClass extends Scene {
       gy: data.meta.playerSpawn.gy,
     };
 
-    this._tool = "wall"; // "wall" | "floor" | "erase" | "spawn" | "entity"
+    this._tool = "wall"; // "wall" | "floor" | "erase" | "spawn" | "select" | "entity"
     this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
+    this._selected = undefined; // spawn record being edited in the property panel
+    this._propDirty = true; // rebuild the property panel body next step
 
     this._buildPalette(openScene);
+    this._buildPropPanel();
 
     Log.info(
       `level editor ready — ${this.level.cols}x${this.level.rows}, ` +
@@ -118,6 +125,7 @@ class _SceneEditorClass extends Scene {
     this.level.syncAll();
     this._spawns = [];
     this._spawnPoint = { gx: 2, gy: 2 };
+    this._select(undefined);
     Toast.push(I18n.text("EDITOR_SIZE", cols, rows), { type: "info" });
   }
 
@@ -168,6 +176,7 @@ class _SceneEditorClass extends Scene {
     tool("EDITOR_FLOOR", "floor");
     tool("EDITOR_ERASE", "erase");
     tool("EDITOR_SPAWN", "spawn");
+    tool("EDITOR_SELECT", "select");
 
     // Entities section — one button per catalog preset.
     labelRow(
@@ -241,24 +250,28 @@ class _SceneEditorClass extends Scene {
           ? "EDITOR_FLOOR"
           : this._tool === "spawn"
             ? "EDITOR_SPAWN"
-            : "EDITOR_ERASE";
+            : this._tool === "select"
+              ? "EDITOR_SELECT"
+              : "EDITOR_ERASE";
     return I18n.text("EDITOR_TOOL", I18n.text(key));
   }
 
   step() {
     this.camera.update();
 
-    // Paint guard: skip when the cursor is over the palette panel (GUI space). `width > 0`
-    // dodges the first-frame NaN rect.
+    // Rebuild the property panel body when the selection or an edited list changed.
+    if (this._propDirty) {
+      this._rebuildProps();
+      this._propDirty = false;
+    }
+
+    // Paint guard: skip when the cursor is over either UI panel (GUI space) so clicking a
+    // widget doesn't also edit the canvas behind it.
     const gmx = device_mouse_x_to_gui(0);
     const gmy = device_mouse_y_to_gui(0);
-    const p = this._palette.getLayoutPosition();
     if (
-      p.width > 0 &&
-      gmx >= p.x &&
-      gmx <= p.x + p.width &&
-      gmy >= p.y &&
-      gmy <= p.y + p.height
+      this._overPanel(gmx, gmy, this._palette) ||
+      this._overPanel(gmx, gmy, this._propPanel)
     )
       return;
 
@@ -272,15 +285,18 @@ class _SceneEditorClass extends Scene {
       return;
 
     if (this._tool === "entity") {
-      // Entities: place on LMB click, delete the one at the cell on RMB click (edge-
-      // triggered — held would spam-place/delete).
+      // Entities: place on LMB click (and select it for editing), delete the one at the
+      // cell on RMB click (edge-triggered — held would spam-place/delete).
       if (mouse_check_button_pressed(mb_left)) {
-        this._spawns.push(
-          TopDownCatalog.get(this._placePreset).make(cell.x, cell.y),
-        );
+        const rec = TopDownCatalog.get(this._placePreset).make(cell.x, cell.y);
+        this._spawns.push(rec);
+        this._select(rec);
       } else if (mouse_check_button_pressed(mb_right)) {
         this._deleteSpawnAt(cell.x, cell.y);
       }
+    } else if (this._tool === "select") {
+      // Select: LMB picks the topmost entity at the cell to edit (empty cell = deselect).
+      if (mouse_check_button_pressed(mb_left)) this._selectAt(cell.x, cell.y);
     } else if (this._tool === "spawn") {
       // Spawn: LMB click sets the player spawn cell (edge-triggered).
       if (mouse_check_button_pressed(mb_left))
@@ -310,14 +326,228 @@ class _SceneEditorClass extends Scene {
     TileEdit.clear(this.level, this.floorLayer, gx, gy);
   }
 
-  // Remove the last-placed spawn occupying (gx, gy), if any.
+  // True when the GUI-space cursor is over a panel's laid-out rect (`width > 0` dodges the
+  // first-frame NaN rect).
+  _overPanel(gmx, gmy, panel) {
+    const p = panel.getLayoutPosition();
+    return (
+      p.width > 0 &&
+      gmx >= p.x &&
+      gmx <= p.x + p.width &&
+      gmy >= p.y &&
+      gmy <= p.y + p.height
+    );
+  }
+
+  // Remove the last-placed spawn occupying (gx, gy), if any (clearing the selection if it
+  // was the deleted one).
   _deleteSpawnAt(gx, gy) {
     for (let i = this._spawns.length - 1; i >= 0; i--) {
       if (this._spawns[i].gx === gx && this._spawns[i].gy === gy) {
+        if (this._spawns[i] === this._selected) this._select(undefined);
         this._spawns.splice(i, 1);
         return;
       }
     }
+  }
+
+  _select(rec) {
+    this._selected = rec; // may be undefined (deselect)
+    this._propDirty = true;
+  }
+
+  // Select the topmost spawn at a cell (undefined when the cell is empty).
+  _selectAt(gx, gy) {
+    let found;
+    for (let i = this._spawns.length - 1; i >= 0; i--)
+      if (this._spawns[i].gx === gx && this._spawns[i].gy === gy) {
+        found = this._spawns[i];
+        break;
+      }
+    this._select(found);
+  }
+
+  // ── Property panel (right) ───────────────────────────────────────────────
+  // Header + a body rebuilt (on _propDirty) from the selected spawn's catalog `fields`
+  // schema. Its rect also guards painting (handled in step()).
+  _buildPropPanel() {
+    const wrap = new UIElement({
+      positionType: "absolute",
+      top: 12,
+      right: 12,
+      width: 320,
+    });
+    const card = gemsCard({ padding: GemsTheme.pad, gap: GemsTheme.gapSm });
+    const title = new UIElement({ width: "100%", height: 26 });
+    title.insertChild(
+      gemsLabel(I18n.textRef("EDITOR_PROPS"), {
+        color: GemsTheme.textMuted,
+        font: I18n.font("header"),
+      }),
+    );
+    card.insertChild(title);
+    const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    card.insertChild(body);
+    wrap.insertChild(card);
+    this.ui.insertChild(wrap);
+    this._propPanel = wrap;
+    this._propBody = body;
+  }
+
+  // Repopulate the property body from the selected spawn (clear children + re-add rows —
+  // the RpgInventoryUI.rebuild pattern; child-tree edits are GMRT-safe, style mutation is
+  // not). Scalar fields edit the record in place (no rebuild); list add/remove sets
+  // _propDirty.
+  _rebuildProps() {
+    const body = this._propBody;
+    const kids = [...body.children];
+    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+
+    if (this._selected === undefined) {
+      const r = new UIElement({ width: "100%", height: 24 });
+      r.insertChild(
+        gemsLabel(I18n.textRef("EDITOR_NO_SEL"), { color: GemsTheme.textDim }),
+      );
+      body.insertChild(r);
+      return;
+    }
+
+    const rec = this._selected;
+    const entry = TopDownCatalog.get(rec.preset);
+    const head = new UIElement({ width: "100%", height: 22 });
+    head.insertChild(
+      gemsLabel(
+        () =>
+          (entry !== undefined ? entry.label : rec.preset) +
+          "  (" +
+          rec.gx +
+          ", " +
+          rec.gy +
+          ")",
+        { color: GemsTheme.accent },
+      ),
+    );
+    body.insertChild(head);
+
+    const fields =
+      entry !== undefined && entry.fields !== undefined ? entry.fields : [];
+    for (let i = 0; i < fields.length; i++) {
+      const f = fields[i];
+      if (f.kind === "items") this._itemListField(rec, f, body);
+      else body.insertChild(this._fieldRow(rec, f));
+    }
+  }
+
+  // One scalar field row: a stepper for int, a { name, value } picker for select/quest.
+  // Edits the record in place — the widget shows the new value, so no panel rebuild.
+  _fieldRow(rec, f) {
+    if (f.kind === "int") {
+      return gemsRow(
+        f.label,
+        gemsStepper(
+          rec[f.key] ?? f.min ?? 0,
+          (v) => {
+            rec[f.key] = v;
+          },
+          { min: f.min ?? 0, max: f.max ?? 99, step: f.step ?? 1 },
+        ),
+      );
+    }
+    // select / quest — quest sources its options live from the QuestLog registry.
+    let opts;
+    if (f.kind === "quest") {
+      opts = [{ name: "(none)", value: undefined }];
+      for (let i = 0; i < QuestLog.defOrder.length; i++)
+        opts.push({ name: QuestLog.defOrder[i], value: QuestLog.defOrder[i] });
+    } else {
+      opts = f.options;
+    }
+    let idx = 0;
+    for (let i = 0; i < opts.length; i++)
+      if (opts[i].value === rec[f.key]) idx = i;
+    return gemsRow(
+      f.label,
+      gemsSelectCustom(opts, idx, (_i, value) => {
+        rec[f.key] = value;
+      }),
+    );
+  }
+
+  // An inventory/loot list field: a labeled add/remove list of { itemId, qty } rows.
+  // Length changes (add/remove) rebuild the panel; per-row edits mutate in place.
+  _itemListField(rec, f, body) {
+    const arr = rec[f.key];
+    const title = new UIElement({ width: "100%", height: 22 });
+    title.insertChild(gemsLabel(f.label, { color: GemsTheme.textMuted }));
+    body.insertChild(title);
+
+    const items = Item.all();
+    const itemOpts = [];
+    for (let i = 0; i < items.length; i++)
+      itemOpts.push({ name: items[i].id, value: items[i].id });
+
+    for (let i = 0; i < arr.length; i++)
+      body.insertChild(this._itemEntryRow(arr, i, itemOpts));
+
+    body.insertChild(
+      gemsButton(
+        "+ " + f.label,
+        () => {
+          arr.push({
+            itemId: itemOpts.length > 0 ? itemOpts[0].value : "",
+            qty: 1,
+          });
+          this._propDirty = true;
+        },
+        { height: 28 },
+      ),
+    );
+  }
+
+  // One { itemId, qty } row: item picker (grows) + qty stepper + remove button.
+  _itemEntryRow(arr, i, itemOpts) {
+    const e = arr[i];
+    const row = new UIElement({
+      width: "100%",
+      height: 36,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    let idx = 0;
+    for (let k = 0; k < itemOpts.length; k++)
+      if (itemOpts[k].value === e.itemId) idx = k;
+    const selCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    selCell.insertChild(
+      gemsSelectCustom(itemOpts, idx, (_j, value) => {
+        e.itemId = value;
+      }),
+    );
+    row.insertChild(selCell);
+    const qtyCell = new UIElement({ width: 92, flexShrink: 0 });
+    qtyCell.insertChild(
+      gemsStepper(
+        e.qty,
+        (v) => {
+          e.qty = v;
+        },
+        { min: 1, max: 99 },
+      ),
+    );
+    row.insertChild(qtyCell);
+    const rmCell = new UIElement({ width: 34, flexShrink: 0 });
+    rmCell.insertChild(
+      gemsButton(
+        "x",
+        () => {
+          arr.splice(i, 1);
+          this._propDirty = true;
+        },
+        { height: 36 },
+      ),
+    );
+    row.insertChild(rmCell);
+    return row;
   }
 
   // Assemble the edited level data and write it out. Walls/floors are re-derived from the
