@@ -13,9 +13,11 @@
 // size (with a border wall ring) so you can author bigger maps from scratch.
 //
 // Tools (a flat "categorized" palette, no tab show/hide): the Tiles section selects a
-// wall/floor/erase brush (LMB drag-paints, RMB erases both layers) or the Spawn tool (LMB
-// sets the player spawn cell); the Entities section selects a TopDownCatalog preset (LMB
-// places one at the cell, RMB deletes the one there).
+// wall/floor/erase brush (LMB drag-paints, RMB erases both layers), the Spawn tool (LMB
+// sets the player spawn cell), the Select tool (LMB picks an entity to edit in the right
+// property panel), or the Zone tool (LMB click-drag paints a buildable-zone rectangle, RMB
+// erases it); the Entities section selects a TopDownCatalog preset (LMB places one at the
+// cell and selects it, RMB deletes the one there).
 //
 // Export writes via File.write → buffer_save, which targets the SAVE dir
 // (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
@@ -71,10 +73,11 @@ class _SceneEditorClass extends Scene {
       gy: data.meta.playerSpawn.gy,
     };
 
-    this._tool = "wall"; // "wall" | "floor" | "erase" | "spawn" | "select" | "entity"
+    this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
     this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
     this._selected = undefined; // spawn record being edited in the property panel
     this._propDirty = true; // rebuild the property panel body next step
+    this._zoneDrag = undefined; // in-progress zone rectangle { sx, sy, erase }
 
     this._buildPalette(openScene);
     this._buildPropPanel();
@@ -108,6 +111,23 @@ class _SceneEditorClass extends Scene {
       font: I18n.font("default"),
     });
     this.renderer.insert(this._tilePass);
+
+    // Buildable zone channel — one zone the Zone tool drag-paints; RenderZone tints +
+    // outlines it over the grid (under the entity markers drawn in draw()). Rebound per
+    // level like the tile pass.
+    const zmap = this.level.addZoneMap("buildable");
+    this._zoneId = zmap.define({
+      name: I18n.text("BUILD_ZONE"),
+      tags: ["buildable"],
+      data: { color: "#55aa55" },
+    }).id;
+    if (this._zonePass !== undefined) this.renderer.remove(this._zonePass);
+    this._zonePass = new RenderZone(this.level, "buildable", {
+      alpha: 0.28,
+      labels: true,
+      font: I18n.font("default"),
+    });
+    this.renderer.insert(this._zonePass);
   }
 
   // Start a fresh blank level at the chosen size: enclosed by a border wall ring (bounded +
@@ -125,6 +145,7 @@ class _SceneEditorClass extends Scene {
     this.level.syncAll();
     this._spawns = [];
     this._spawnPoint = { gx: 2, gy: 2 };
+    this._zoneDrag = undefined; // the zone map is freshly recreated by _initLevel
     this._select(undefined);
     Toast.push(I18n.text("EDITOR_SIZE", cols, rows), { type: "info" });
   }
@@ -177,6 +198,7 @@ class _SceneEditorClass extends Scene {
     tool("EDITOR_ERASE", "erase");
     tool("EDITOR_SPAWN", "spawn");
     tool("EDITOR_SELECT", "select");
+    tool("EDITOR_ZONE", "zone");
 
     // Entities section — one button per catalog preset.
     labelRow(
@@ -252,7 +274,9 @@ class _SceneEditorClass extends Scene {
             ? "EDITOR_SPAWN"
             : this._tool === "select"
               ? "EDITOR_SELECT"
-              : "EDITOR_ERASE";
+              : this._tool === "zone"
+                ? "EDITOR_ZONE"
+                : "EDITOR_ERASE";
     return I18n.text("EDITOR_TOOL", I18n.text(key));
   }
 
@@ -263,6 +287,14 @@ class _SceneEditorClass extends Scene {
     if (this._propDirty) {
       this._rebuildProps();
       this._propDirty = false;
+    }
+
+    // Commit an in-progress zone drag on the release edge — checked before the panel guard
+    // so releasing the mouse over a panel still finalizes (never leaves a drag stuck). The
+    // start/preview-tracking is canvas-only (below); only the release is global.
+    if (this._tool === "zone" && this._zoneDrag !== undefined) {
+      const btn = this._zoneDrag.erase ? mb_right : mb_left;
+      if (mouse_check_button_released(btn)) this._commitZone();
     }
 
     // Paint guard: skip when the cursor is over either UI panel (GUI space) so clicking a
@@ -276,6 +308,14 @@ class _SceneEditorClass extends Scene {
       return;
 
     const cell = this.level.worldToGrid(mouse_x, mouse_y);
+
+    // Zone: a click-drag rectangle (LMB paints, RMB erases). Start + live preview track
+    // here (clamped to the grid); the release commits via the global check above.
+    if (this._tool === "zone") {
+      this._zoneTrack(cell);
+      return;
+    }
+
     if (
       cell.x < 0 ||
       cell.y < 0 ||
@@ -324,6 +364,35 @@ class _SceneEditorClass extends Scene {
   _eraseBoth(gx, gy) {
     TileEdit.clear(this.level, this.wallLayer, gx, gy);
     TileEdit.clear(this.level, this.floorLayer, gx, gy);
+  }
+
+  // Zone tool: record the drag start on the press edge and track the current cell (both
+  // clamped to the grid so a drag that strays off-grid still rectangles to the edge).
+  _zoneTrack(cell) {
+    const gx = clamp(cell.x, 0, this.level.cols - 1);
+    const gy = clamp(cell.y, 0, this.level.rows - 1);
+    this._zoneCur = { x: gx, y: gy };
+    if (this._zoneDrag === undefined) {
+      if (mouse_check_button_pressed(mb_left))
+        this._zoneDrag = { sx: gx, sy: gy, erase: false };
+      else if (mouse_check_button_pressed(mb_right))
+        this._zoneDrag = { sx: gx, sy: gy, erase: true };
+    }
+  }
+
+  // Finalize the drag rectangle into the zone map (paint or erase), then clear the drag.
+  _commitZone() {
+    const d = this._zoneDrag;
+    const cur = this._zoneCur ?? { x: d.sx, y: d.sy };
+    const x1 = d.sx < cur.x ? d.sx : cur.x;
+    const y1 = d.sy < cur.y ? d.sy : cur.y;
+    const x2 = d.sx > cur.x ? d.sx : cur.x;
+    const y2 = d.sy > cur.y ? d.sy : cur.y;
+    const map = this.level.zoneMap("buildable");
+    if (d.erase) map.eraseRect(x1, y1, x2, y2);
+    else map.paintRect(this._zoneId, x1, y1, x2, y2);
+    this._zoneDrag = undefined;
+    this._zoneCur = undefined;
   }
 
   // True when the GUI-space cursor is over a panel's laid-out rect (`width > 0` dodges the
@@ -568,6 +637,13 @@ class _SceneEditorClass extends Scene {
       layers: [],
       spawns: this._spawns,
     };
+    // Emit the zone channel only when it has painted cells (matches Level.export, and a
+    // future loader reads it via Level.import). The grid serializes as a scalar array, so
+    // skip it when empty to keep files lean.
+    const zmap = this.level.zoneMap("buildable");
+    const zoned = zmap !== undefined ? zmap.cells(this._zoneId).length : 0;
+    if (zoned > 0) data.zoneMaps = { buildable: zmap.export() };
+
     const ok = LevelSerializer.save(EDITOR_EXPORT_FILE, data);
     Toast.push(I18n.text("EDITOR_SAVED", EDITOR_EXPORT_FILE), {
       type: ok ? "success" : "error",
@@ -576,6 +652,7 @@ class _SceneEditorClass extends Scene {
       `editor export ${ok ? "ok" : "FAILED"} → ${EDITOR_EXPORT_FILE} ` +
         `${data.cols}x${data.rows} walls=${data.walls.length} ` +
         `floors=${data.floors.length} spawns=${data.spawns.length} ` +
+        `zone=${zoned} ` +
         `spawn=(${data.meta.playerSpawn.gx},${data.meta.playerSpawn.gy})`,
     );
   }
@@ -585,6 +662,29 @@ class _SceneEditorClass extends Scene {
     this._drawFloors(); // translucent fill so painted floors are visible
     this._drawMarkers(); // entity spawn records as colored boxes + labels
     this._drawSpawn(); // player spawn marker
+    this._drawZonePreview(); // in-progress zone drag rectangle
+  }
+
+  // The live zone drag rectangle (green paint / red erase), from drag start to the current
+  // cell. The committed zone itself is drawn by the RenderZone pass in renderer.draw().
+  _drawZonePreview() {
+    if (this._zoneDrag === undefined || this._zoneCur === undefined) return;
+    const cw = this.level.cellWidth;
+    const ch = this.level.cellHeight;
+    const d = this._zoneDrag;
+    const c = this._zoneCur;
+    const x1 = (d.sx < c.x ? d.sx : c.x) * cw;
+    const y1 = (d.sy < c.y ? d.sy : c.y) * ch;
+    const x2 = ((d.sx > c.x ? d.sx : c.x) + 1) * cw;
+    const y2 = ((d.sy > c.y ? d.sy : c.y) + 1) * ch;
+    draw_set_color(
+      d.erase ? make_colour_rgb(220, 90, 80) : make_colour_rgb(90, 200, 110),
+    );
+    draw_set_alpha(0.25);
+    draw_rectangle(x1, y1, x2, y2, false);
+    draw_set_alpha(1);
+    draw_rectangle(x1, y1, x2, y2, true);
+    draw_set_color(c_white);
   }
 
   _drawFloors() {

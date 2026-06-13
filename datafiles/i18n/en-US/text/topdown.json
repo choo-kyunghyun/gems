@@ -11,6 +11,7 @@
   "EDITOR_ENTITIES": "Entities",
   "EDITOR_TOOL": "Tool: {0}",
   "EDITOR_SELECT": "Select",
+  "EDITOR_ZONE": "Zone",
   "EDITOR_PROPS": "Properties",
   "EDITOR_NO_SEL": "(select an entity)",
   "EDITOR_SPAWN": "Spawn",
