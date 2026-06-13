@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TileEdit",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TileEdit",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TileEdit.js",
+}

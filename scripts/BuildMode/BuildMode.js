@@ -106,9 +106,8 @@ globalThis.BuildMode = {
     const level = scene.level;
     const zmap = level.zoneMap("buildable");
     if (zmap === undefined || zmap.idAt(gx, gy) === 0) return false;
-    // Truthy test: Grid.get returns 0 (falsy) for an empty cell, a TileType for a tile.
-    if (scene.wallLayer.get(gx, gy)) return false;
-    if (scene.floorLayer.get(gx, gy)) return false;
+    if (TileEdit.occupied(scene.wallLayer, gx, gy)) return false;
+    if (TileEdit.occupied(scene.floorLayer, gx, gy)) return false;
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     if (
       inv === undefined ||
@@ -131,17 +130,11 @@ globalThis.BuildMode = {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     InventorySystem.remove(inv, BuildMode.RESOURCE, BuildMode.COST);
     if (scene._buildPalette === 0) {
-      scene.wallLayer.set(gx, gy, scene.wallType);
-      TopDownLevel.remeshWalls(
-        scene.world,
-        level,
-        scene.wallLayer,
-        scene.colliders,
-      );
+      TileEdit.set(level, scene.wallLayer, gx, gy, scene.wallType);
+      TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
     } else {
-      scene.floorLayer.set(gx, gy, scene.floorType);
+      TileEdit.set(level, scene.floorLayer, gx, gy, scene.floorType);
     }
-    level.syncAt(gx, gy);
     scene._built[gx + "," + gy] = scene._buildPalette;
     scene._invDirty = true;
     Log.info(
@@ -155,17 +148,11 @@ globalThis.BuildMode = {
     if (palette === undefined) return; // only player-built cells are deconstructable
     const level = scene.level;
     if (palette === 0) {
-      scene.wallLayer.set(gx, gy, undefined);
-      TopDownLevel.remeshWalls(
-        scene.world,
-        level,
-        scene.wallLayer,
-        scene.colliders,
-      );
+      TileEdit.clear(level, scene.wallLayer, gx, gy);
+      TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
     } else {
-      scene.floorLayer.set(gx, gy, undefined);
+      TileEdit.clear(level, scene.floorLayer, gx, gy);
     }
-    level.syncAt(gx, gy);
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     InventorySystem.add(inv, BuildMode.RESOURCE, BuildMode.COST); // refund
     delete scene._built[key];

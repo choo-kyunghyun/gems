@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "genre": "topdown",
+  "cell": 32,
+  "cols": 48,
+  "rows": 32,
+  "meta": {
+    "playerSpawn": { "gx": 2, "gy": 2 }
+  },
+  "walls": [
+    [0, 0, 48, 1],
+    [0, 31, 48, 1],
+    [0, 0, 1, 32],
+    [47, 0, 1, 32],
+
+    [4, 4, 3, 3],
+    [10, 4, 1, 5],
+    [10, 8, 5, 1],
+    [16, 3, 1, 1],
+
+    [38, 6, 1, 8],
+
+    [22, 13, 1, 1],
+    [25, 13, 1, 1],
+    [22, 16, 1, 1],
+    [25, 16, 1, 1],
+
+    [30, 20, 6, 1],
+    [38, 20, 7, 1],
+    [30, 29, 15, 1],
+    [30, 20, 1, 10],
+    [44, 20, 1, 10]
+  ],
+  "layers": [],
+  "spawns": [
+    {
+      "preset": "npc",
+      "gx": 5,
+      "gy": 2,
+      "label": "Elder",
+      "nameKey": "NPC_ELDER_NAME",
+      "questId": "td_slimes"
+    },
+
+    { "preset": "reach", "gx": 17, "gy": 2, "half": 44 },
+
+    {
+      "preset": "slime",
+      "gx": 8,
+      "gy": 3,
+      "loot": [
+        { "itemId": "slime_gel", "qty": 2 },
+        { "itemId": "wood_sword", "qty": 1 },
+        { "itemId": "backpack", "qty": 1 }
+      ]
+    },
+    {
+      "preset": "slime",
+      "gx": 14,
+      "gy": 3,
+      "loot": [
+        { "itemId": "slime_gel", "qty": 1 },
+        { "itemId": "potion", "qty": 1 },
+        { "itemId": "leather_armor", "qty": 1 }
+      ]
+    },
+    {
+      "preset": "slime",
+      "gx": 3,
+      "gy": 11,
+      "loot": [
+        { "itemId": "gem", "qty": 1 },
+        { "itemId": "blaster", "qty": 1 }
+      ]
+    },
+    {
+      "preset": "slime",
+      "gx": 17,
+      "gy": 11,
+      "loot": [
+        { "itemId": "slime_gel", "qty": 1 },
+        { "itemId": "key", "qty": 1 },
+        { "itemId": "swift_ring", "qty": 1 }
+      ]
+    },
+
+    {
+      "preset": "chest",
+      "gx": 10,
+      "gy": 9,
+      "capacity": 12,
+      "items": [
+        { "itemId": "potion", "qty": 2 },
+        { "itemId": "gem", "qty": 1 },
+        { "itemId": "swift_ring", "qty": 1 },
+        { "itemId": "wood", "qty": 5 },
+        { "itemId": "iron", "qty": 3 }
+      ]
+    },
+
+    {
+      "preset": "prop",
+      "gx": 12,
+      "gy": 9,
+      "label": "Workbench",
+      "color": "#966e46",
+      "kind": "workbench"
+    },
+    {
+      "preset": "prop",
+      "gx": 8,
+      "gy": 11,
+      "label": "Table",
+      "color": "#785a3c"
+    },
+    {
+      "preset": "prop",
+      "gx": 9,
+      "gy": 11,
+      "label": "Barrel",
+      "color": "#6e5032"
+    },
+    {
+      "preset": "prop",
+      "gx": 6,
+      "gy": 9,
+      "label": "Survey Post",
+      "color": "#50965a",
+      "kind": "claim"
+    }
+  ]
+}

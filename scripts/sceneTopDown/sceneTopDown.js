@@ -20,7 +20,10 @@ class _SceneTopDownClass extends Scene {
 
     // ── World, level, player ───────────────────────────────────────────────
     this.world = new World(256, 60);
-    const built = TopDownLevel.build(this.world, TopDownLevels[0]);
+    const levelData = LevelSerializer.load("levels/topdown_1.json", {
+      genre: "topdown",
+    });
+    const built = TopDownLevel.build(this.world, levelData);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death
     // Tilemap handles kept for build mode (place/remove tiles + remesh wall colliders).
@@ -40,184 +43,20 @@ class _SceneTopDownClass extends Scene {
       data: { color: "#55aa55" },
     }).id;
 
-    // ── Enemies: each carries its own Inventory, which IS its loot table ────
-    this.enemies = [];
-    const enemyCells = [
-      [8, 3],
-      [14, 3],
-      [3, 11],
-      [17, 11],
-    ];
-    const enemyLoot = [
-      [
-        { itemId: "slime_gel", qty: 2 },
-        { itemId: "wood_sword", qty: 1 },
-        { itemId: "backpack", qty: 1 },
-      ],
-      [
-        { itemId: "slime_gel", qty: 1 },
-        { itemId: "potion", qty: 1 },
-        { itemId: "leather_armor", qty: 1 },
-      ],
-      [
-        { itemId: "gem", qty: 1 },
-        { itemId: "blaster", qty: 1 },
-      ],
-      [
-        { itemId: "slime_gel", qty: 1 },
-        { itemId: "key", qty: 1 },
-        { itemId: "swift_ring", qty: 1 },
-      ],
-    ];
-    for (let i = 0; i < enemyCells.length; i++) {
-      const w = this.level.gridToWorld(enemyCells[i][0], enemyCells[i][1]);
-      const id = this.world.create();
-      this.world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      this.world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-      // Dynamic (non-kinematic) so SolidSystem integrates the velocity SlimeAI
-      // sets and collides them against the kinematic walls.
-      this.world.add(id, Collision, {
-        solid: true,
-        kinematic: false,
-        mask: null,
-        hits: [],
-      });
-      this.world.add(id, Health, { hp: 3 });
-      this.world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
-      this.world.add(id, Name, { name: "Slime" });
-      // Loot table — no maxWeight (loot is authored, never weight-gated).
-      this.world.add(id, Inventory, { slots: enemyLoot[i], capacity: 8 });
-      this.world.add(id, Visual, {
-        visible: true,
-        sprite: spr_choo,
-        subimg: 0,
-        xscale: 1,
-        yscale: 1,
-        rot: 0,
-        color: make_colour_rgb(120, 220, 130),
-        alpha: 1,
-        speed: 0,
-        time: 0,
-      });
-      SlimeAI.attach(this.world, id, this.ctrl.id); // adds Velocity + Brain + State
-      this.enemies.push(id);
-    }
-
-    // ── NPC: the elder, who offers + turns in the kill quest ───────────────
-    const nw = this.level.gridToWorld(5, 2);
-    this.npc = this.world.create();
-    this.world.add(this.npc, Position, { x: nw.x, y: nw.y, z: 0 });
-    this.world.add(this.npc, BBox, { x: -14, y: -14, width: 28, height: 28 });
-    this.world.add(this.npc, Collision, {
-      solid: true,
-      kinematic: true,
-      mask: null,
-      hits: [],
-    });
-    this.world.add(this.npc, Tag, { tags: new Set(["npc"]) });
-    this.world.add(this.npc, Name, { name: "Elder" });
-    this.world.add(this.npc, NPC, {
-      name: "NPC_ELDER_NAME",
-      lines: [],
-      questId: TopDownContent.QUEST_SLIMES,
-    });
-    this.world.add(this.npc, Visual, {
-      visible: true,
-      sprite: spr_hana,
-      subimg: 0,
-      xscale: 0.6,
-      yscale: 0.6,
-      rot: 0,
-      color: c_white,
-      alpha: 1,
-      speed: 0,
-      time: 0,
-    });
-
-    // ── Reach-quest zone (north-east "ruins") ──────────────────────────────
-    const rz = this.level.gridToWorld(17, 2);
-    this.reachZone = {
-      x1: rz.x - 44,
-      y1: rz.y - 44,
-      x2: rz.x + 44,
-      y2: rz.y + 44,
-    };
+    // ── Entity instances from the level file's `spawns` (enemies, NPC, chest, props,
+    //    reach marker). Stations are discovered live by Interactable, so only the handles
+    //    the scene's own logic needs come back. Spawned after the controller — slimes need
+    //    the player id for their AI. ───────────────────────────────────────────────────
+    const ents = TopDownLevel.spawn(
+      this.world,
+      this.level,
+      levelData,
+      this.ctrl.id,
+    );
+    this.enemies = ents.enemies;
+    this.npc = ents.npc;
+    this.reachZone = ents.reach;
     this.reachDone = false;
-
-    // ── Storage chest: a kinematic-solid container the player can open (E) to
-    //    transfer items between bag and chest. Placed away from the elder NPC so the
-    //    interact key doesn't double-fire. ────────────────────────────────────────
-    const cw = this.level.gridToWorld(10, 9);
-    const chest = this.world.create();
-    this.world.add(chest, Position, { x: cw.x, y: cw.y, z: 0 });
-    this.world.add(chest, BBox, { x: -14, y: -14, width: 28, height: 28 });
-    this.world.add(chest, Collision, {
-      solid: true,
-      kinematic: true,
-      mask: null,
-      hits: [],
-    });
-    this.world.add(chest, Station, { kind: "storage" });
-    this.world.add(chest, Name, { name: "Chest" });
-    this.world.add(chest, Inventory, {
-      slots: [
-        { itemId: "potion", qty: 2 },
-        { itemId: "gem", qty: 1 },
-        { itemId: "swift_ring", qty: 1 },
-        { itemId: "wood", qty: 5 },
-        { itemId: "iron", qty: 3 },
-      ],
-      capacity: 12,
-    });
-    this.world.add(chest, Visual, {
-      visible: true,
-      sprite: spr_choo,
-      subimg: 0,
-      xscale: 1,
-      yscale: 1,
-      rot: 0,
-      color: make_colour_rgb(200, 160, 70),
-      alpha: 1,
-      speed: 0,
-      time: 0,
-    });
-
-    // ── Furniture: a solid kinematic prop. `kind` (a Station) makes it interactable
-    //    (Interactable picks it by mouse/proximity, E opens its window); a plain
-    //    decorative prop omits it. ────────────────────────────────────────────────
-    const addProp = (gx, gy, name, col, kind) => {
-      const w = this.level.gridToWorld(gx, gy);
-      const e = this.world.create();
-      this.world.add(e, Position, { x: w.x, y: w.y, z: 0 });
-      this.world.add(e, BBox, { x: -14, y: -14, width: 28, height: 28 });
-      this.world.add(e, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      this.world.add(e, Name, { name });
-      this.world.add(e, Visual, {
-        visible: true,
-        sprite: spr_choo,
-        subimg: 0,
-        xscale: 1,
-        yscale: 1,
-        rot: 0,
-        color: col,
-        alpha: 1,
-        speed: 0,
-        time: 0,
-      });
-      if (kind !== undefined) this.world.add(e, Station, { kind });
-      else this.world.add(e, Tag, { tags: new Set(["furniture"]) });
-      return e;
-    };
-    addProp(12, 9, "Workbench", make_colour_rgb(150, 110, 70), "workbench");
-    addProp(8, 11, "Table", make_colour_rgb(120, 90, 60)); // decorative
-    addProp(9, 11, "Barrel", make_colour_rgb(110, 80, 50)); // decorative
-    // Survey Post: a "claim" station — E claims the buildable zone around it (BuildMode).
-    addProp(6, 9, "Survey Post", make_colour_rgb(80, 150, 90), "claim");
 
     // ── Pipeline: AI decides velocity → collide → detect triggers (pickups) →
     //    projectiles → expire ─
