@@ -141,11 +141,13 @@ class _SceneEditorClass extends Scene {
     // but not floors (cost 1) — the editor fills floor cells itself in draw().
     if (this._tilePass !== undefined) this.renderer.remove(this._tilePass);
     this._tilePass = new RenderDebugTileMap(this.level, {
-      grid: true,
       names: true,
       font: I18n.font("default"),
     });
     this.renderer.insert(this._tilePass);
+    if (this._gridPass !== undefined) this.renderer.remove(this._gridPass);
+    this._gridPass = new RenderGrid(this.level); // cell boundary lines
+    this.renderer.insert(this._gridPass);
 
     // Buildable zone channel — one zone the Zone tool drag-paints; RenderZone tints +
     // outlines it over the grid (under the entity markers drawn in draw()). Rebound per

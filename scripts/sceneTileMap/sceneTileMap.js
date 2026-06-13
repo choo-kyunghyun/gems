@@ -73,6 +73,7 @@ class _SceneTileMapClass extends Scene {
         font: I18n.font("default"),
       }),
     );
+    this.renderer.insert(new RenderGrid(this.level)); // cell boundary lines
 
     // UI: hint line + back button.
     this.ui = gemsRoot({ gap: GemsTheme.gapSm });

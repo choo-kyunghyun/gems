@@ -92,6 +92,7 @@ class _SceneRpgClass extends Scene {
         font: I18n.font("default"),
       }),
     );
+    this.renderer.insert(new RenderGrid(this.level)); // cell boundary lines
     this.renderer.insert(new RenderZone(this.level, "buildable"));
     this.renderer.insert(
       new RenderZoneLabel(this.level, "buildable", {

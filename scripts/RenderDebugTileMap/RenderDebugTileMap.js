@@ -1,17 +1,16 @@
 /**
  * @typedef {Object} RenderDebugTileMapOptions
- * @property {boolean} [grid] - draw cell boundary lines (default true)
  * @property {boolean} [cost] - shade cells by nav cost from Level.mpg (default true)
  * @property {boolean} [tiles] - label occupied cells with the topmost TileType (default true)
  * @property {boolean} [coords] - label every cell with its grid (x, y) (default false)
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
- * @property {number} [color] - grid line color (default c_gray)
  * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
  * @property {number} [font] - font for cell labels (default: leaves the current font)
  */
 
 /**
- * Debug overlay for inspecting a Level's tile grid and pathfinding costs.
+ * Debug overlay for inspecting a Level's tile costs and types. Cell boundary
+ * lines are a separate `RenderGrid` pass.
  *
  * Cost shading reads `level.mpg` (the merged pathfinding grid), so call
  * `level.syncAll()` first or the costs all read as the default (1). Tile
@@ -28,12 +27,10 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
   constructor(level, opt = {}) {
     this.enabled = true;
     this.level = level;
-    this.grid = opt.grid ?? true;
     this.cost = opt.cost ?? true;
     this.tiles = opt.tiles ?? true;
     this.coords = opt.coords ?? false;
     this.names = opt.names ?? false;
-    this.color = opt.color ?? c_gray;
     this.alpha = opt.alpha ?? 0.25;
     this.font = opt.font;
   }
@@ -72,18 +69,6 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
           const wy = y * cellHeight;
           draw_rectangle(wx, wy, wx + cellWidth, wy + cellHeight, false);
         }
-      }
-    }
-
-    // Cell grid lines.
-    if (this.grid) {
-      draw_set_alpha(1);
-      draw_set_color(this.color);
-      for (let x = 0; x <= cols; x++) {
-        draw_line(x * cellWidth, 0, x * cellWidth, rows * cellHeight);
-      }
-      for (let y = 0; y <= rows; y++) {
-        draw_line(0, y * cellHeight, cols * cellWidth, y * cellHeight);
       }
     }
 

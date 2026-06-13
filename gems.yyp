@@ -155,6 +155,7 @@
     {"id":{"name":"RenderDebugTileMap","path":"scripts/RenderDebugTileMap/RenderDebugTileMap.yy",},},
     {"id":{"name":"RenderEntity","path":"scripts/RenderEntity/RenderEntity.yy",},},
     {"id":{"name":"Renderer","path":"scripts/Renderer/Renderer.yy",},},
+    {"id":{"name":"RenderGrid","path":"scripts/RenderGrid/RenderGrid.yy",},},
     {"id":{"name":"RenderTileMap","path":"scripts/RenderTileMap/RenderTileMap.yy",},},
     {"id":{"name":"RenderZone","path":"scripts/RenderZone/RenderZone.yy",},},
     {"id":{"name":"RenderZoneLabel","path":"scripts/RenderZoneLabel/RenderZoneLabel.yy",},},
