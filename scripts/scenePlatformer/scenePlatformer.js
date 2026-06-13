@@ -154,7 +154,7 @@ class _ScenePlatformerClass extends Scene {
     // Manager-drawn panels (GUI layer, screen-pinned): HUD (top-right) + the draggable
     // inventory window.
     this._buildHud();
-    this._buildInventoryWindow();
+    RpgInventoryUI.build(this);
     Interactable.build(this); // station prompt + storage + crafting windows
 
     Log.info(
@@ -222,7 +222,13 @@ class _ScenePlatformerClass extends Scene {
 
     // Rebuild the inventory window body only when its contents changed (open + dirty).
     if (this.invOpen && this._invDirty) {
-      this._rebuildInventory();
+      RpgInventoryUI.rebuild(this, {
+        equipSlots: [
+          { slot: "weapon", labelKey: "SLOT_WEAPON" },
+          { slot: "armor", labelKey: "SLOT_ARMOR" },
+          { slot: "trinket", labelKey: "SLOT_TRINKET" },
+        ],
+      });
       this._invDirty = false;
     }
   }
@@ -264,231 +270,6 @@ class _ScenePlatformerClass extends Scene {
     card.insertChild(row);
     hud.insertChild(card);
     this.ui.insertChild(hud);
-  }
-
-  // Draggable inventory/equipment/stats window (body filled by _rebuildInventory).
-  _buildInventoryWindow() {
-    const gw = display_get_gui_width();
-    const left = gw > 0 ? gw / 2 - 220 : 60;
-    this._invWin = gemsWindow(I18n.textRef("TOPDOWN_INVENTORY"), {
-      left,
-      top: 50,
-      width: 440,
-      onClose: () => {
-        this.invOpen = false;
-        this._invWin.enabled = false;
-      },
-    });
-    this._invWin.enabled = false;
-    this.ui.insertChild(this._invWin);
-  }
-
-  // Repopulate the window body from the live Inventory/Equipment/Stats. Called only
-  // when the bag changed (open + _invDirty), not per frame — child tree edits are safe
-  // (it's flexpanel *style* mutation that's unreliable on GMRT 0.19).
-  _rebuildInventory() {
-    const body = this._invWin.body;
-    // Preserve the item-list scroll offset across the rebuild — equipping/using an
-    // item marks the bag dirty, and rebuilding the whole body would otherwise snap the
-    // list back to the top on every click.
-    let savedScroll = 0;
-    if (this._invScroll !== undefined) {
-      const old = this._invScroll.getComponent(UIScroll);
-      if (old !== undefined) savedScroll = old.scroll;
-    }
-    const kids = [...body.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
-
-    const world = this.world;
-    const inv = world.get(Inventory, this.ctrl.id);
-
-    const top = new UIElement({
-      width: "100%",
-      height: 30,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: GemsTheme.gapSm,
-    });
-    const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    usageCell.insertChild(
-      gemsLabel(
-        () => {
-          const v = world.get(Inventory, this.ctrl.id);
-          let s =
-            I18n.text("TOPDOWN_SLOTS") +
-            " " +
-            v.slots.length +
-            "/" +
-            v.capacity;
-          if (v.maxWeight !== undefined)
-            s +=
-              "   " +
-              I18n.text("TOPDOWN_WEIGHT") +
-              " " +
-              InventorySystem.weight(v) +
-              "/" +
-              v.maxWeight;
-          return s;
-        },
-        { color: GemsTheme.textMuted },
-      ),
-    );
-    top.insertChild(usageCell);
-    top.insertChild(
-      gemsButton(
-        I18n.textRef("SORT"),
-        () => {
-          InventorySystem.sort(world.get(Inventory, this.ctrl.id));
-          this._invDirty = true;
-        },
-        { width: 90, height: 28 },
-      ),
-    );
-    body.insertChild(top);
-
-    // Item rows (clickable: equip/unequip or use).
-    const scroll = gemsScroll({ height: 180 });
-    if (inv.slots.length === 0) {
-      const r = new UIElement({ width: "100%", height: 24 });
-      r.insertChild(
-        gemsLabel(I18n.textRef("TOPDOWN_EMPTY"), { color: GemsTheme.textDim }),
-      );
-      scroll.scrollBody.insertChild(r);
-    }
-    // Equipment references items by id, so with two of the same equippable only ONE
-    // is actually worn — let the first matching row claim the "(equipped)" marker.
-    const wornClaimed = {};
-    for (let i = 0; i < inv.slots.length; i++)
-      scroll.scrollBody.insertChild(this._itemRow(inv.slots[i], wornClaimed));
-    body.insertChild(scroll);
-    this._invScroll = scroll;
-    const sc = scroll.getComponent(UIScroll);
-    if (sc !== undefined) {
-      sc.scroll = savedScroll; // clamped to the new content height on next update
-      scroll.scrollY = savedScroll; // apply now so this frame doesn't flash to top
-    }
-
-    // Equipment (clickable rows unequip).
-    body.insertChild(gemsDivider());
-    const eqTitle = new UIElement({ width: "100%", height: 22 });
-    eqTitle.insertChild(
-      gemsLabel(I18n.textRef("TOPDOWN_EQUIPMENT"), { color: "#ffd166" }),
-    );
-    body.insertChild(eqTitle);
-    body.insertChild(this._equipRow("weapon", "SLOT_WEAPON"));
-    body.insertChild(this._equipRow("armor", "SLOT_ARMOR"));
-    body.insertChild(this._equipRow("trinket", "SLOT_TRINKET"));
-
-    // Stats (live).
-    body.insertChild(gemsDivider());
-    const stats = new UIElement({ width: "100%", height: 22 });
-    stats.insertChild(
-      gemsLabel(
-        () => {
-          const st = world.get(Stats, this.ctrl.id);
-          return (
-            I18n.text("STAT_LEVEL") +
-            ": " +
-            st.level +
-            "   " +
-            I18n.text("STAT_ATK") +
-            ": " +
-            st.attack +
-            "   " +
-            I18n.text("STAT_DEF") +
-            ": " +
-            st.defense +
-            "   " +
-            I18n.text("STAT_SPD") +
-            ": " +
-            Math.round(st.speed)
-          );
-        },
-        { color: GemsTheme.text },
-      ),
-    );
-    body.insertChild(stats);
-  }
-
-  // One inventory row: a button labeled "name xN value [equipped]", tinted by rarity.
-  // `wornClaimed` is a per-rebuild map so only the first row of a given equipped item
-  // shows the marker (equipment is keyed by itemId, not by slot instance).
-  _itemRow(slot, wornClaimed) {
-    const itemId = slot.itemId;
-    const it = Item.get(itemId);
-    const eq = this.world.get(Equipment, this.ctrl.id);
-    let worn = false;
-    if (it !== undefined && it.hasComponent(Equippable)) {
-      const eqp = it.getComponent(Equippable);
-      if (eq.slots[eqp.slot] === itemId && !wornClaimed[itemId]) {
-        worn = true;
-        wornClaimed[itemId] = true;
-      }
-    }
-    const name = it !== undefined ? I18n.text(it.name) : itemId;
-    const val =
-      it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0;
-    const label =
-      name +
-      "  x" +
-      slot.qty +
-      "  " +
-      val +
-      (worn ? "  " + I18n.text("TOPDOWN_EQUIPPED") : "");
-    return gemsButton(label, () => this._useItem(itemId, worn), {
-      height: 32,
-      textColor: RpgWorldOverlay._rarityColor(itemId),
-    });
-  }
-
-  // One equipment slot: a button (click unequips) when worn, else a muted label row.
-  _equipRow(slot, labelKey) {
-    const eq = this.world.get(Equipment, this.ctrl.id);
-    const itemId = eq !== undefined ? eq.slots[slot] : "";
-    if (itemId !== undefined && itemId !== "") {
-      const it = Item.get(itemId);
-      const nm = it !== undefined ? I18n.text(it.name) : itemId;
-      return gemsButton(
-        I18n.text(labelKey) + ": " + nm,
-        () => {
-          EquipmentSystem.unequip(this.world, this.ctrl.id, slot);
-          this._invDirty = true;
-          Log.info(`unequipped ${itemId}`);
-        },
-        { height: 30, textColor: RpgWorldOverlay._rarityColor(itemId) },
-      );
-    }
-    const row = new UIElement({ width: "100%", height: 26 });
-    row.insertChild(
-      gemsLabel(I18n.text(labelKey) + ": " + I18n.text("SLOT_EMPTY"), {
-        color: GemsTheme.textDim,
-      }),
-    );
-    return row;
-  }
-
-  // Click action on an inventory item: equippables toggle equip/unequip, consumables
-  // are used (one unit). `wasWorn` is the row's displayed equipped-state — acting on it
-  // (not on the shared itemId) means that with two identical equippables only the row
-  // shown as equipped unequips; clicking the spare falls to equip(), which no-ops for
-  // an already-equipped item rather than toggling the worn one off.
-  _useItem(itemId, wasWorn) {
-    const item = Item.get(itemId);
-    if (item === undefined) return;
-    if (item.hasComponent(Equippable)) {
-      const eqp = item.getComponent(Equippable);
-      if (wasWorn) {
-        EquipmentSystem.unequip(this.world, this.ctrl.id, eqp.slot);
-        Log.info(`unequipped ${itemId}`);
-      } else if (EquipmentSystem.equip(this.world, this.ctrl.id, itemId)) {
-        Log.info(`equipped ${itemId}`);
-      }
-    } else if (item.hasComponent(Consumable)) {
-      if (ConsumableSystem.use(this.world, this.ctrl.id, itemId)) {
-        Log.info(`used ${itemId}`);
-      }
-    }
-    this._invDirty = true;
   }
 
   draw() {

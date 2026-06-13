@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgInventoryUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgInventoryUI",
+  "parent":{
+    "name":"RPG",
+    "path":"folders/Templates/RPG.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgInventoryUI.js",
+}
