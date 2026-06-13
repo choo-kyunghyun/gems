@@ -533,7 +533,7 @@ class _ScenePlatformerClass extends Scene {
       (worn ? "  " + I18n.text("TOPDOWN_EQUIPPED") : "");
     return gemsButton(label, () => this._useItem(itemId, worn), {
       height: 32,
-      textColor: PlatformerUI._rarityColor(itemId),
+      textColor: RpgWorldOverlay._rarityColor(itemId),
     });
   }
 
@@ -551,7 +551,7 @@ class _ScenePlatformerClass extends Scene {
           this._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
-        { height: 30, textColor: PlatformerUI._rarityColor(itemId) },
+        { height: 30, textColor: RpgWorldOverlay._rarityColor(itemId) },
       );
     }
     const row = new UIElement({ width: "100%", height: 26 });
@@ -588,7 +588,7 @@ class _ScenePlatformerClass extends Scene {
   }
 
   draw() {
-    PlatformerUI.drawWorld(this); // item drops + bullets (world space)
+    RpgWorldOverlay.drawWorld(this); // item drops + bullets (world space)
     this.renderer.draw(this.world); // player / enemies: colored boxes + labels + bbox
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     FloatingText.draw(); // damage/heal numbers (world space)

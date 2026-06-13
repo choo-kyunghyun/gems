@@ -1,17 +1,17 @@
-// World-space gameplay overlay for the TopDown RPG demo: item drops, bullets,
-// and the reach-quest zone, drawn in world space in scene.draw(). The HUD / dialogue /
-// inventory are now real UI panels built by the scene and drawn by the UI manager on
-// the GUI layer (Draw_75) — they no longer live here. `_rarityColor` is shared by the
-// drops below and the scene's inventory window rows.
-globalThis.TopDownUI = {
+// Shared world-space gameplay overlay for the RPG genre templates (platformer + top-down),
+// drawn in world space from a scene's draw(). Replaces the former per-genre PlatformerUI /
+// TopDownUI, which were near-identical. Draws item drops (rarity squares) + bullets (dots);
+// the reach-quest zone is drawn only when the scene exposes one (top-down), so the single
+// overlay serves both genres. The HUD / inventory / dialogue are real UI panels the scene
+// builds on the GUI layer — not here. `_rarityColor` is shared with the scenes' inventory
+// rows.
+globalThis.RpgWorldOverlay = {
   _rarityColor(itemId) {
     const it = Item.get(itemId);
     const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
     return r !== undefined ? r.color : c_white;
   },
 
-  // World-space markers: item drops (rarity squares), bullets (dots), reach zone.
-  // Walls are now drawn by the RenderDebugTileMap pass (the wall tilemap), not here.
   drawWorld(scene) {
     const world = scene.world;
 
@@ -32,6 +32,7 @@ globalThis.TopDownUI = {
       draw_circle(p.x, p.y, 3, false);
     }
 
+    // Reach-quest zone: only when the scene defines one (top-down) and it's unmet.
     if (scene.reachZone !== undefined && !scene.reachDone) {
       const z = scene.reachZone;
       draw_set_alpha(0.35);

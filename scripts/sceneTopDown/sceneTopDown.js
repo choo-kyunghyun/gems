@@ -742,7 +742,7 @@ class _SceneTopDownClass extends Scene {
       (worn ? "  " + I18n.text("TOPDOWN_EQUIPPED") : "");
     return gemsButton(label, () => this._useItem(itemId, worn), {
       height: 32,
-      textColor: TopDownUI._rarityColor(itemId),
+      textColor: RpgWorldOverlay._rarityColor(itemId),
     });
   }
 
@@ -760,7 +760,7 @@ class _SceneTopDownClass extends Scene {
           this._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
-        { height: 30, textColor: TopDownUI._rarityColor(itemId) },
+        { height: 30, textColor: RpgWorldOverlay._rarityColor(itemId) },
       );
     }
     const row = new UIElement({ width: "100%", height: 26 });
@@ -898,7 +898,7 @@ class _SceneTopDownClass extends Scene {
   }
 
   draw() {
-    TopDownUI.drawWorld(this); // drops, bullets, reach zone (world space)
+    RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)

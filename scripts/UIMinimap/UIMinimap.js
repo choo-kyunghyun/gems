@@ -12,7 +12,7 @@
  *
  * GMRT: guard `!(pos.width > 0)` (NaN layout on the first post-transition frame). Blips
  * use draw_circle (draw_triangle_color / draw_line_width_color render nothing on 0.19,
- * so no triangles/width-lines — the facing notch is a small circle, like TopDownUI).
+ * so no triangles/width-lines — the facing notch is a small circle, like RpgWorldOverlay).
  * Tag membership is read via Set.has() (allowed — only for...of over a Set is banned).
  */
 globalThis.UIMinimap = class UIMinimap {

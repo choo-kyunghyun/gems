@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgWorldOverlay",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgWorldOverlay",
+  "parent":{
+    "name":"RPG",
+    "path":"folders/Templates/RPG.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgWorldOverlay.js",
+}
