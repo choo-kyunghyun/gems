@@ -1,7 +1,7 @@
 const RPG_NPC_RADIUS = 60; // interact range to the elder NPC
 
 // Exposed as a factory so another scene (the level editor's Test Play) can open this scene
-// directly; SceneRegistry.add uses the SAME reference so _applyScene resolves its label.
+// directly; SceneRegistry.add uses the SAME reference so SceneManager._apply resolves its label.
 globalThis.SceneRpg = () => new _SceneRpgClass();
 SceneRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),

@@ -15,17 +15,17 @@
  * `this.gameplay = true`). While closed over a gameplay scene, update() keeps
  * `UINav.suspended = true` so gameplay keys don't drive a stray menu focus ring.
  *
- * Wiring (obj_game):
- *   Step_0   : SystemMenu.update(this)   (before UINav.update; passes the controller so
- *              the System tab can read/restart/quit the live scene)
- *   Step_0   : scene.step() gated by `!SystemMenu.isOpen() || SystemMenu.consumeStep()`
- *              (frame-step runs exactly one scene.step while paused — see consumeStep)
- *   _applyScene: SystemMenu.reset()      (close + restore Time.scale on every scene swap)
+ * Wiring (obj_game + SceneManager):
+ *   Step_0          : SystemMenu.update(this)  (before UINav.update; passes the controller
+ *                     so the System tab can read/restart/quit the live scene via game.scenes)
+ *   SceneManager.step: scene.step() gated by `!SystemMenu.isOpen() || consumeStep()`
+ *                     (frame-step runs exactly one scene.step while paused — see consumeStep)
+ *   SceneManager._apply: SystemMenu.reset()    (close + restore Time.scale on every scene swap)
  * The lobby footer also calls open() (Settings → System tab, Credits → About tab).
  */
 globalThis.SystemMenu = class SystemMenu {
   static _modal = null; // open UIModal handle, or null
-  static _game = null; // the obj_game controller (scene / openScene / _sceneFactory)
+  static _game = null; // the obj_game controller (its scene lifecycle lives in game.scenes)
   static _scale = 1; // Time.scale to restore on resume; the System tab "Speed" edits it
   static _stepRequested = false; // one-shot frame-step flag
 
@@ -35,8 +35,8 @@ globalThis.SystemMenu = class SystemMenu {
   // wouldn't run — GMRT — so it's set in the method).
   static update(game) {
     SystemMenu._game = game;
-    const gameplay =
-      game !== null && game.scene !== null && game.scene.gameplay === true;
+    const scene = game !== null ? game.scenes.current : null;
+    const gameplay = scene !== null && scene.gameplay === true;
 
     if (SystemMenu._modal !== null) {
       // Open: F1 / gamepad Start toggle it closed (Esc-close is handled by the UIModal).
@@ -231,14 +231,7 @@ globalThis.SystemMenu = class SystemMenu {
     sim.insertChild(
       SystemMenu._stat(I18n.textRef("SYS_SCENE"), () => {
         const g = SystemMenu._game;
-        if (g === null || g.scene === null) return "-";
-        // Prefer the registry label (set by obj_game; a string or () => string textRef);
-        // fall back to the instance label for built-in scenes.
-        const lbl = g._sceneLabel;
-        if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
-        return g.scene.label != null && g.scene.label !== ""
-          ? g.scene.label
-          : "-";
+        return g !== null ? g.scenes.label() : "-";
       }),
     );
     sim.insertChild(
@@ -299,8 +292,7 @@ globalThis.SystemMenu = class SystemMenu {
         I18n.textRef("SYS_RESTART"),
         () => {
           const g = SystemMenu._game;
-          if (g !== null && g._sceneFactory != null)
-            g.openScene(g._sceneFactory);
+          if (g !== null) g.scenes.restart();
           SystemMenu.close();
         },
         { width: 200 },
@@ -311,7 +303,7 @@ globalThis.SystemMenu = class SystemMenu {
         I18n.textRef("SYS_QUIT"),
         () => {
           const g = SystemMenu._game;
-          if (g !== null) g.openScene(SCENES.lobby);
+          if (g !== null) g.scenes.request(SCENES.lobby);
           SystemMenu.close();
         },
         { width: 200 },
@@ -540,17 +532,17 @@ globalThis.SystemMenu = class SystemMenu {
   // The current scene's World, or null. Defensive: not every scene owns one.
   static _world() {
     const g = SystemMenu._game;
-    return g !== null && g.scene !== null && g.scene.world != null
-      ? g.scene.world
-      : null;
+    const scene = g !== null ? g.scenes.current : null;
+    return scene !== null && scene.world != null ? scene.world : null;
   }
 
   // The live scene's BBox-overlay pass, or null. Found by scanning the renderer's pass
   // list (instanceof on a flat class is GMRT-safe) so no scene needs to expose it.
   static _debugPass() {
     const g = SystemMenu._game;
-    if (g === null || g.scene === null || g.scene.renderer == null) return null;
-    const passes = g.scene.renderer.passes;
+    const scene = g !== null ? g.scenes.current : null;
+    if (scene === null || scene.renderer == null) return null;
+    const passes = scene.renderer.passes;
     for (let i = 0; i < passes.length; i++) {
       if (passes[i] instanceof RenderDebugEntity) return passes[i];
     }

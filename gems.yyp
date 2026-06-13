@@ -172,6 +172,7 @@
     {"id":{"name":"Scene","path":"scripts/Scene/Scene.yy",},},
     {"id":{"name":"sceneEditor","path":"scripts/sceneEditor/sceneEditor.yy",},},
     {"id":{"name":"sceneLobby","path":"scripts/sceneLobby/sceneLobby.yy",},},
+    {"id":{"name":"SceneManager","path":"scripts/SceneManager/SceneManager.yy",},},
     {"id":{"name":"scenePlatformer","path":"scripts/scenePlatformer/scenePlatformer.yy",},},
     {"id":{"name":"sceneRpg","path":"scripts/sceneRpg/sceneRpg.yy",},},
     {"id":{"name":"sceneRTS","path":"scripts/sceneRTS/sceneRTS.yy",},},

@@ -46,38 +46,13 @@ draw_set_font(I18n.font("default"));
 display_set_gui_maximise();
 
 this.background = Color.parse("#222222");
-this.scenes = SCENES;
-this.scene = null;
-this._pendingScene = null;
-
-// Queue a scene transition — applied after UI.update() to avoid destroying
-// the UI tree while it is still being traversed. Ignored while a fade is already
-// running: during the fade-out the outgoing scene's buttons are still live, so
-// without this guard spamming one re-queues _pendingScene and a second fade fires
-// once the first finishes.
-this.openScene = (factory) => {
-  if (SceneTransition.isBusy()) return;
-  this._pendingScene = factory;
-};
-
-this._applyScene = (factory) => {
-  if (this.scene !== null) this.scene.destroy();
-  UINav.reset(); // drop focus held on the outgoing scene's UI
-  SystemMenu.reset(); // close the system overlay (+ its pause) + restore time scale before swapping
-  Dialogue.clear(); // a dialogue must not survive into the next scene
-  FloatingText.clear(); // drop floating combat numbers (world coords are scene-local)
-  this._sceneFactory = factory; // remembered so the SystemMenu can restart the scene
-  // Resolve a display label for the SystemMenu readout. Class-based scenes (extends Scene)
-  // never get their `label` field — GMRT doesn't run subclass field initializers — so the
-  // registry label is the reliable (and localized) source; built-ins fall back to the
-  // instance label they set via Object.assign.
-  const sceneEntry = SceneRegistry._entries.find((e) => e.factory === factory);
-  this._sceneLabel = sceneEntry != null ? sceneEntry.label : null;
-  this.scene = factory();
-  this.scene.create((s) => this.openScene(s));
-};
 
 UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit theme
 
-this._applyScene(this.scenes.lobby);
+// All scene lifecycle (the live scene, a queued swap, the fade-coordinated transition)
+// lives in SceneManager; obj_game just delegates update/step/draw/destroy to `this.scenes`
+// each event. SystemMenu reads the live scene + restarts/quits through this.scenes rather
+// than reaching into obj_game's fields.
+this.scenes = new SceneManager();
+this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades the title in from black instead of popping
