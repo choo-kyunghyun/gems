@@ -10,7 +10,6 @@
   "LOBBY_TAB_TECH": "Tech",
   "LOBBY_TAB_DEMOS": "Demos",
 
-  "SETTINGS_HEADING": "Settings",
   "SETTINGS_SAVE": "Save",
   "SETTINGS_CLOSE": "Close",
   "SETTINGS_VOL_TITLE": "Volume",
@@ -39,9 +38,6 @@
   "LANG_KO_KR": "Korean",
   "LANG_EN_US": "English",
 
-  "PAUSE_TITLE": "Paused",
-  "PAUSE_RESUME": "Resume",
-  "PAUSE_QUIT": "Quit to Lobby",
 
   "SYS_TITLE": "System Menu",
   "SYS_PAUSED": "Paused",
@@ -103,7 +99,6 @@
   "UIKIT_FIELD_RO": "Read-only",
   "UIKIT_FIELD_RO_VAL": "Select & copy, but can't edit",
   "UIKIT_ECHO": "You typed:",
-  "UIKIT_DISPLAY": "Display",
   "UIKIT_PROGRESS": "Progress (follows the slider)",
   "UIKIT_TIP_PROGRESS": "A non-interactive bar bound to the slider value",
   "UIKIT_SKIN": "Nine-slice skin",

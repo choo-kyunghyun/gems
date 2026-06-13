@@ -1,6 +1,5 @@
 {
   "PLAT_NAME": "Platformer",
   "PLAT_HINT": "A/D move · W jump · Shift run · S drop",
-  "PLAT_INV_HINT": "Up/Down select · Enter equip/use · I close",
   "ITEM_COIN": "Coin"
 }

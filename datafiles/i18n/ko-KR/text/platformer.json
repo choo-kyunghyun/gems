@@ -1,6 +1,5 @@
 {
   "PLAT_NAME": "플랫포머",
   "PLAT_HINT": "A/D: 이동 · W: 점프 · Shift: 달리기 · S: 내려가기",
-  "PLAT_INV_HINT": "위/아래: 선택 · Enter: 장착/사용 · I: 닫기",
   "ITEM_COIN": "코인"
 }

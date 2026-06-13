@@ -10,7 +10,6 @@
   "LOBBY_TAB_TECH": "기술",
   "LOBBY_TAB_DEMOS": "데모",
 
-  "SETTINGS_HEADING": "설정",
   "SETTINGS_SAVE": "저장",
   "SETTINGS_CLOSE": "닫기",
   "SETTINGS_VOL_TITLE": "볼륨",
@@ -39,9 +38,6 @@
   "LANG_KO_KR": "한국어",
   "LANG_EN_US": "English",
 
-  "PAUSE_TITLE": "일시정지",
-  "PAUSE_RESUME": "계속하기",
-  "PAUSE_QUIT": "로비로 나가기",
 
   "SYS_TITLE": "시스템 메뉴",
   "SYS_PAUSED": "일시정지됨",
@@ -103,7 +99,6 @@
   "UIKIT_FIELD_RO": "읽기 전용",
   "UIKIT_FIELD_RO_VAL": "선택·복사는 되지만 편집 불가",
   "UIKIT_ECHO": "입력한 내용:",
-  "UIKIT_DISPLAY": "표시",
   "UIKIT_PROGRESS": "진행도 (슬라이더 연동)",
   "UIKIT_TIP_PROGRESS": "슬라이더 값에 연동된 비상호작용 막대",
   "UIKIT_SKIN": "나인슬라이스 스킨",
