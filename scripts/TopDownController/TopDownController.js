@@ -37,44 +37,12 @@ globalThis.TopDownController = {
       build: [INPUT_SOURCE.KEYBOARD, ord("B")],
     });
 
-    const id = world.create();
-    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-    world.add(id, Collision, {
-      solid: true,
-      kinematic: false,
-      mask: null,
-      hits: [],
-    });
-    world.add(id, Name, { name: "Player" });
-    world.add(id, Direction, { x: 0, y: 1, z: 0 });
-    world.add(id, Health, { hp: 10 });
-    world.add(id, Stats, {
-      level: 1,
-      xp: 0,
-      xpNext: 20,
-      maxHp: 10,
-      attack: 1,
-      defense: 0,
+    // Shared RPG player entity; then the top-down-only Animator. BBox is centered;
+    // faces down; move speed from Stats.
+    const id = RpgPlayer.spawn(world, spawn, {
+      bbox: { x: -12, y: -12, width: 24, height: 24 },
+      dir: { x: 0, y: 1, z: 0 },
       speed: TOPDOWN_MOVE_SPEED,
-    });
-    world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
-    world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
-    world.add(id, Equipment, {
-      slots: { weapon: "", armor: "", trinket: "", backpack: "" },
-    });
-    world.add(id, Visual, {
-      visible: true,
-      sprite: spr_play,
-      subimg: 0,
-      xscale: 1,
-      yscale: 1,
-      rot: 0,
-      color: make_colour_rgb(90, 160, 255),
-      alpha: 1,
-      speed: 0,
-      time: 0,
     });
     world.add(id, Animator, {
       graph: {
@@ -182,23 +150,13 @@ globalThis.TopDownController = {
         : TOPDOWN_BULLET_SPEED;
     const damage = wpn !== null && wpn.damage !== undefined ? wpn.damage : 1;
 
-    const pos = world.get(Position, ctrl.id);
-    const dx = mouse_x - pos.x;
-    const dy = mouse_y - pos.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    // Shared spawn + aim (RpgPlayer.fireBullet); muzzleY defaults to 0 (fire from center).
+    const aim = RpgPlayer.fireBullet(world, ctrl.id, { speed, damage });
 
-    const bid = EntityPreset.spawn("bullet", world, pos.x, pos.y);
-    const vel = world.get(Velocity, bid);
-    vel.x = (dx / dist) * speed;
-    vel.y = (dy / dist) * speed;
-    const proj = world.get(Projectile, bid);
-    proj.owner = ctrl.id;
-    proj.damage = damage;
-
-    // Face the shot direction horizontally too.
+    // Face the shot direction.
     const dir = world.get(Direction, ctrl.id);
-    dir.x = dx / dist;
-    dir.y = dy / dist;
+    dir.x = aim.nx;
+    dir.y = aim.ny;
   },
 
   destroy() {

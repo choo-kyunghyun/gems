@@ -137,9 +137,9 @@ Genre scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.ph
 
 The Core systems above are genre-agnostic. A playable genre scene layers a **controller** plus **gameplay systems** on top — these live under **Templates** (in the genre's folder) and are orchestrated by the scene's `step()`, not auto-run by `World`.
 
-**Genre controllers** (`PlatformerController`, `TopDownController`) own player input registration + entity setup and expose a three-phase lifecycle, not an `update(world)`:
+**Genre controllers** (`PlatformerController`, `TopDownController`) own player input registration + entity setup and expose a three-phase lifecycle, not an `update(world)`. The **shared** player pieces live in **`RpgPlayer`** (`scripts/RpgPlayer/`, Templates/RPG): `RpgPlayer.spawn(world, spawn, { bbox, dir, speed })` builds the common player entity (transform + `Collision` + `Health`/`Stats`/`Inventory`/`Equipment`/`Encumbrance`/`Visual`) and `RpgPlayer.fireBullet(world, shooterId, { speed, damage, muzzleY? })` spawns the cursor-aimed bullet and returns the normalized aim `{ nx, ny }`. Each controller calls these, then adds its genre-only bits (platformer `Grounded`, top-down `Animator`) and its own movement.
 
-- `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player entity, returns a plain `ctrl` state bag (`{ id, facing, ... }`).
+- `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player via `RpgPlayer.spawn` (+ genre components), returns a plain `ctrl` state bag (`{ id, facing, ... }`). The `"bullet"` `EntityPreset` is still registered per genre (platformer bullets are kinematic + bbox-less to skip gravity / raycast self-hit; top-down bullets differ), so only the spawn math is shared, not the preset.
 - `pollInput(ctrl)` — call **once per frame, before `world.update()`**, outside the tick loop. Samples _edge-triggered_ input (jump `pressed()`/`released()`) into buffers so presses aren't lost on 0-tick frames or double-counted on multi-tick frames.
 - `update(world, ctrl)` — call **once per physics tick**. Reads _continuous_ input (movement) and applies acceleration/jump to `Velocity` (before `SolidSystem` integrates it).
 - `destroy()` — unregisters input. Plus genre verbs like `respawn`, `setPower`, `tryFireball`.

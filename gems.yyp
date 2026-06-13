@@ -157,6 +157,7 @@
     {"id":{"name":"RenderTileMap","path":"scripts/RenderTileMap/RenderTileMap.yy",},},
     {"id":{"name":"RenderZone","path":"scripts/RenderZone/RenderZone.yy",},},
     {"id":{"name":"RpgContent","path":"scripts/RpgContent/RpgContent.yy",},},
+    {"id":{"name":"RpgPlayer","path":"scripts/RpgPlayer/RpgPlayer.yy",},},
     {"id":{"name":"RpgWorldOverlay","path":"scripts/RpgWorldOverlay/RpgWorldOverlay.yy",},},
     {"id":{"name":"SaveData","path":"scripts/SaveData/SaveData.yy",},},
     {"id":{"name":"Scene","path":"scripts/Scene/Scene.yy",},},

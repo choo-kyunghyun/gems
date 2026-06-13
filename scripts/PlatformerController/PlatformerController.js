@@ -67,51 +67,14 @@ globalThis.PlatformerController = {
       interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
     });
 
-    const id = world.create();
-    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
-    world.add(id, Collision, {
-      solid: true,
-      kinematic: false,
-      oneWay: false,
-      passThroughTicks: 0, // > 0 ⇒ falls through one-way platforms (set by drop)
-      mask: null,
-      hits: [],
-    });
-    world.add(id, Grounded, { isGrounded: false });
-    world.add(id, Direction, { x: 1, y: 0, z: 0 });
-    world.add(id, Name, { name: "Player" });
-
-    // RPG layer (mirrors TopDownController): Health/Stats drive HP + the sheet,
-    // Inventory/Equipment/Encumbrance the bag and gear. Visual gives a tinted box.
-    world.add(id, Health, { hp: 10 });
-    world.add(id, Stats, {
-      level: 1,
-      xp: 0,
-      xpNext: 20,
-      maxHp: 10,
-      attack: 1,
-      defense: 0,
+    // Shared RPG player entity; then the platformer-only Grounded for jump/coyote.
+    // BBox is taller (feet at y+0, head at y-24); faces right; walk speed from Stats.
+    const id = RpgPlayer.spawn(world, spawn, {
+      bbox: { x: -12, y: -24, width: 24, height: 24 },
+      dir: { x: 1, y: 0, z: 0 },
       speed: PLATF_WALK_SPEED,
     });
-    world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
-    world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
-    world.add(id, Equipment, {
-      slots: { weapon: "", armor: "", trinket: "", backpack: "" },
-    });
-    world.add(id, Visual, {
-      visible: true,
-      sprite: spr_play,
-      subimg: 0,
-      xscale: 1,
-      yscale: 1,
-      rot: 0,
-      color: make_colour_rgb(90, 160, 255),
-      alpha: 1,
-      speed: 0,
-      time: 0,
-    });
+    world.add(id, Grounded, { isGrounded: false });
 
     return {
       id,
@@ -239,25 +202,19 @@ globalThis.PlatformerController = {
     }
   },
 
-  // Spawn a bullet at the player aimed at the cursor (mirrors TopDownController).
+  // Spawn a bullet at the player aimed at the cursor (shared with TopDownController via
+  // RpgPlayer.fireBullet). muzzleY -12 = chest height (spawn + aim origin), then face the
+  // shot horizontally.
   _fire(world, ctrl, wpn) {
     const speed =
       wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : PLATF_BULLET_SPEED;
-    const pos = world.get(Position, ctrl.id);
-    const dx = mouse_x - pos.x;
-    const dy = mouse_y - pos.y - 12; // aim from chest height
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-    const bid = EntityPreset.spawn("bullet", world, pos.x, pos.y - 12);
-    const vel = world.get(Velocity, bid);
-    vel.x = (dx / dist) * speed;
-    vel.y = (dy / dist) * speed;
-    const proj = world.get(Projectile, bid);
-    proj.owner = ctrl.id;
-    proj.damage = wpn.damage;
-
-    if (dx < -0.01) ctrl.facing = -1;
-    else if (dx > 0.01) ctrl.facing = 1;
+    const aim = RpgPlayer.fireBullet(world, ctrl.id, {
+      speed,
+      damage: wpn.damage,
+      muzzleY: -12,
+    });
+    if (aim.nx < -0.01) ctrl.facing = -1;
+    else if (aim.nx > 0.01) ctrl.facing = 1;
   },
 
   // Teleport the player back to spawn and clear its motion/jump state. The caller
