@@ -196,6 +196,7 @@
     {"id":{"name":"Time","path":"scripts/Time/Time.yy",},},
     {"id":{"name":"Toast","path":"scripts/Toast/Toast.yy",},},
     {"id":{"name":"Tooltip","path":"scripts/Tooltip/Tooltip.yy",},},
+    {"id":{"name":"TopDownCatalog","path":"scripts/TopDownCatalog/TopDownCatalog.yy",},},
     {"id":{"name":"TopDownContent","path":"scripts/TopDownContent/TopDownContent.yy",},},
     {"id":{"name":"TopDownController","path":"scripts/TopDownController/TopDownController.yy",},},
     {"id":{"name":"TopDownLevel","path":"scripts/TopDownLevel/TopDownLevel.yy",},},

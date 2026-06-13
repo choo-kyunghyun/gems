@@ -49,6 +49,16 @@ globalThis.TopDownLevel = {
       for (let y = y0; y < y0 + r[3]; y++)
         for (let x = x0; x < x0 + r[2]; x++) wallLayer.set(x, y, wallType);
     }
+    // Optional floor rects (walkable cosmetic, no collider) — same [x,y,w,h] shape as
+    // walls; absent in older level files, so the game is unaffected when omitted.
+    const frects = data.floors ?? [];
+    for (let i = 0; i < frects.length; i++) {
+      const r = frects[i];
+      const x0 = r[0];
+      const y0 = r[1];
+      for (let y = y0; y < y0 + r[3]; y++)
+        for (let x = x0; x < x0 + r[2]; x++) floorLayer.set(x, y, floorType);
+    }
     level.syncAll();
 
     const colliders = [];

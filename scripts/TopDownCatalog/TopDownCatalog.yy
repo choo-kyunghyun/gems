@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TopDownCatalog",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TopDownCatalog",
+  "parent":{
+    "name":"TopDown",
+    "path":"folders/Templates/TopDown.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TopDownCatalog.js",
+}

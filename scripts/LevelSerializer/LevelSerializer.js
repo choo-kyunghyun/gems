@@ -13,6 +13,10 @@ globalThis.LevelSerializer = {
       Log.error(`LevelSerializer: file not found: ${path}`);
       return null;
     }
+    // NOTE: native JSON.parse is unreliable on large/deeply-nested level JSON (drops
+    // trailing fields / faults non-deterministically — the parse-side sibling of the
+    // JSON.stringify nested fault). It works on the current hand-authored levels but is a
+    // known blocker for bigger levels / editor exports; the loader strategy is unresolved.
     const data = JSON.parse(raw);
     if (opts.genre !== undefined && data.genre !== opts.genre) {
       Log.error(
@@ -36,40 +40,68 @@ globalThis.LevelSerializer = {
   },
 
   /**
-   * Serialize level data to a JSON string. GMRT's native JSON.stringify hard-faults on
-   * nested objects/arrays (see SaveData header), and level data is deeply nested (walls
-   * rects, spawns with loot arrays, zoneMaps) — so this hand-rolls the encoding, calling
-   * native JSON.stringify only on scalar leaves (safe) and building nesting by string
-   * concatenation. Array.map / Object.keys are GMRT-safe (cf. Level.export).
+   * Serialize level data to an INDENTED JSON string. Native JSON.stringify hard-faults on
+   * nested objects/arrays (see SaveData header), so we hand-roll the encoding, calling
+   * native JSON.stringify only on scalar leaves. Output is 2-space indented (objects +
+   * non-scalar arrays multi-line; scalar arrays like [x,y,w,h] inline) for human-readable,
+   * diff-friendly, hand-editable level files — matching the hand-authored ones.
+   * Object.keys is GMRT-safe (cf. Level.export).
    * @param {object} data
    * @returns {string}
    */
   serialize(data) {
-    return LevelSerializer._enc(data);
+    return LevelSerializer._enc(data, "");
   },
 
-  _enc(v) {
+  _enc(v, indent) {
     if (v === null || v === undefined) return "null";
     const t = typeof v;
     // Scalars: native stringify on a string/number/bool is safe and handles escaping.
     if (t === "string") return JSON.stringify(v);
     if (t === "number" || t === "boolean") return String(v);
+
+    const ni = indent + "  ";
     if (Array.isArray(v)) {
-      let out = "[";
+      if (v.length === 0) return "[]";
+      // Arrays of pure scalars (e.g. a [x,y,w,h] rect) stay inline; arrays holding
+      // objects/arrays (walls, spawns, loot) go multi-line so no single line gets long.
+      let scalar = true;
       for (let i = 0; i < v.length; i++) {
-        if (i > 0) out += ",";
-        out += LevelSerializer._enc(v[i]);
+        const e = v[i];
+        if (e !== null && typeof e === "object") {
+          scalar = false;
+          break;
+        }
       }
-      return out + "]";
+      if (scalar) {
+        let out = "[";
+        for (let i = 0; i < v.length; i++) {
+          if (i > 0) out += ", ";
+          out += LevelSerializer._enc(v[i], ni);
+        }
+        return out + "]";
+      }
+      let out = "[\n";
+      for (let i = 0; i < v.length; i++) {
+        if (i > 0) out += ",\n";
+        out += ni + LevelSerializer._enc(v[i], ni);
+      }
+      return out + "\n" + indent + "]";
     }
-    // Plain object.
+
+    // Plain object — one key per line.
     const keys = Object.keys(v);
-    let out = "{";
+    if (keys.length === 0) return "{}";
+    let out = "{\n";
     for (let i = 0; i < keys.length; i++) {
-      if (i > 0) out += ",";
-      out += JSON.stringify(keys[i]) + ":" + LevelSerializer._enc(v[keys[i]]);
+      if (i > 0) out += ",\n";
+      out +=
+        ni +
+        JSON.stringify(keys[i]) +
+        ": " +
+        LevelSerializer._enc(v[keys[i]], ni);
     }
-    return out + "}";
+    return out + "\n" + indent + "}";
   },
 
   /**
