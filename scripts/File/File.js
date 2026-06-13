@@ -39,4 +39,38 @@ globalThis.File = class File {
     buffer_delete(buffer);
     return true;
   }
+
+  // ── Binary I/O ──────────────────────────────────────────────────────────────
+  // For data that should not go through text/JSON: tile grids, dense per-cell
+  // layers, anything large or non-scalar. JSON text on GMRT both hard-faults on
+  // nested values and has an O(n²) serialize cost for big inline arrays — a
+  // contract-based binary buffer sidesteps both (and round-trips an order of
+  // magnitude faster). The caller owns the read/write encoding; File only moves
+  // the bytes to and from disk.
+
+  /**
+   * Load a file into a fresh buffer for binary reading. The caller OWNS the
+   * returned buffer and MUST buffer_delete() it when done.
+   * @param {string} fname
+   * @returns {*} buffer handle, or undefined if the file does not exist
+   */
+  static readBuffer(fname) {
+    const buffer = buffer_load(fname);
+    if (buffer === -1) return undefined;
+    return buffer;
+  }
+
+  /**
+   * Write a buffer to disk. Saves only the bytes actually written, not the
+   * buffer's allocated capacity — a buffer_grow buffer over-allocates, so a
+   * plain buffer_save would pad the file (and the buffer_load that reads it
+   * back) with trailing garbage. buffer_save_ext with the used size avoids that.
+   * @param {string} fname
+   * @param {*} buffer  a buffer handle the caller wrote into
+   * @returns {boolean}
+   */
+  static writeBuffer(fname, buffer) {
+    buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
+    return true;
+  }
 };
