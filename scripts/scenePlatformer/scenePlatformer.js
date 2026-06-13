@@ -16,7 +16,7 @@ class _ScenePlatformerClass extends Scene {
   label = "Platformer";
 
   create() {
-    PlatformerContent.register(); // rarity tiers + item set (idempotent)
+    RpgContent.register(); // rarities + the full item set + recipes (idempotent)
 
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
     const levelData = LevelSerializer.load("levels/platformer_1.json", {

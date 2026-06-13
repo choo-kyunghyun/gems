@@ -2,6 +2,7 @@ const TOPDOWN_MOVE_SPEED = 220;
 const TOPDOWN_BULLET_SPEED = 600;
 const TOPDOWN_FIRE_CD = 8; // ticks between shots while held
 const TOPDOWN_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
+const TOPDOWN_MELEE_REACH = 34; // fallback reach for a melee weapon without `reach`
 
 // Player input + entity setup for the top-down genre.
 // Usage:
@@ -14,18 +15,6 @@ const TOPDOWN_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
 globalThis.TopDownController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
-    EntityPreset.register([
-      {
-        id: "bullet",
-        components: {
-          Velocity: { x: 0, y: 0, z: 0 },
-          BBox: { x: -2, y: -2, width: 4, height: 4 },
-          Projectile: { damage: 1, owner: -1 },
-          Lifetime: { ticks: 90 }, // max range
-        },
-      },
-    ]);
-
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
@@ -107,9 +96,22 @@ globalThis.TopDownController = {
     if (ctrl.attackCd > 0) ctrl.attackCd--;
     // While build mode is active, LMB places tiles (BuildMode) — don't also fire.
     if (Input.get("fire").down() && ctrl.fireCd === 0 && !BuildMode.active) {
-      this._fire(world, ctrl);
       // Cadence comes from the equipped weapon (unarmed → default). Read live.
       const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
+      if (wpn !== null && wpn.melee) {
+        // Melee weapon: swing a hitbox toward the cursor (aim updates Direction so the
+        // swing + sprite face the click). Unarmed stays ranged (the else branch).
+        const pos = world.get(Position, ctrl.id);
+        const adx = mouse_x - pos.x;
+        const ady = mouse_y - pos.y;
+        const adist = Math.sqrt(adx * adx + ady * ady) || 1;
+        dir.x = adx / adist;
+        dir.y = ady / adist;
+        const reach = wpn.reach !== undefined ? wpn.reach : TOPDOWN_MELEE_REACH;
+        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, wpn.damage);
+      } else {
+        this._fire(world, ctrl);
+      }
       ctrl.fireCd =
         wpn !== null && wpn.fireCd !== undefined ? wpn.fireCd : TOPDOWN_FIRE_CD;
       ctrl.attackCd = TOPDOWN_ATTACK_ANIM;

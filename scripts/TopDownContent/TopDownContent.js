@@ -1,10 +1,7 @@
-// Top-down-specific content, layered over the shared RpgContent (rarity tiers, universal
-// items, recipes). Called once from sceneTopDown.create() (not at top level — avoids GMRT
-// load-order issues). Idempotent.
-//
-// Extras here: unique items (gem / key / backpack), this genre's WEAPONS (both ranged:
-// `wood_sword` and `blaster` fire cursor-aimed bullets, differing in cadence), and the
-// genre's quests + achievements.
+// Top-down-specific content, layered over the shared RpgContent (rarities + the full item
+// set + recipes). Top-down's only genre-specific content is its quests + achievements (the
+// platformer has none). Called once from sceneTopDown.create() (not at top level — avoids
+// GMRT load-order issues). Idempotent.
 globalThis.TopDownContent = {
   registered: false,
 
@@ -17,56 +14,7 @@ globalThis.TopDownContent = {
     if (this.registered) return;
     this.registered = true;
 
-    RpgContent.register(); // shared rarities + universal items + recipes
-
-    Item.register([
-      { id: "gem", name: "ITEM_GEM", weight: 1, value: 50, rarity: "rare" },
-      {
-        id: "key",
-        name: "ITEM_KEY",
-        stack: 1,
-        weight: 0,
-        value: 0,
-        rarity: "epic",
-      },
-      // Ranged weapons (cursor-aimed bullets); damage/cadence from the Weapon component.
-      {
-        id: "wood_sword",
-        name: "ITEM_WOOD_SWORD",
-        stack: 1,
-        weight: 4,
-        value: 8,
-        rarity: "common",
-        components: [
-          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
-          new Weapon({ damage: 3, fireCd: 14, bulletSpeed: 520 }),
-        ],
-      },
-      {
-        id: "blaster",
-        name: "ITEM_BLASTER",
-        stack: 1,
-        weight: 5,
-        value: 60,
-        rarity: "rare",
-        components: [
-          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
-          new Weapon({ damage: 6, fireCd: 6, bulletSpeed: 700 }),
-        ],
-      },
-      {
-        id: "backpack",
-        name: "ITEM_BACKPACK",
-        stack: 1,
-        weight: 3,
-        value: 30,
-        rarity: "uncommon",
-        components: [
-          new Equippable({ slot: "backpack" }),
-          new Container({ capacity: 8 }),
-        ],
-      },
-    ]);
+    RpgContent.register(); // shared rarities + items + recipes (the whole item set)
 
     QuestLog.register([
       {

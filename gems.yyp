@@ -135,7 +135,6 @@
     {"id":{"name":"PathRequest","path":"scripts/PathRequest/PathRequest.yy",},},
     {"id":{"name":"PathResponse","path":"scripts/PathResponse/PathResponse.yy",},},
     {"id":{"name":"Pipeline","path":"scripts/Pipeline/Pipeline.yy",},},
-    {"id":{"name":"PlatformerContent","path":"scripts/PlatformerContent/PlatformerContent.yy",},},
     {"id":{"name":"PlatformerController","path":"scripts/PlatformerController/PlatformerController.yy",},},
     {"id":{"name":"PlatformerLevel","path":"scripts/PlatformerLevel/PlatformerLevel.yy",},},
     {"id":{"name":"Position","path":"scripts/Position/Position.yy",},},

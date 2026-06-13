@@ -1,5 +1,5 @@
-// Crafting-recipe registry (modeled on Item). Genre templates register their recipe
-// set at create() time (see TopDownContent/PlatformerContent.register). A recipe turns
+// Crafting-recipe registry (modeled on Item). The shared RpgContent registers the recipe
+// set at create() time (see RpgContent.register). A recipe turns
 // a set of input items into one output item at a station of a given `kind`.
 //
 // {

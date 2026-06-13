@@ -20,7 +20,6 @@ const PLATF_UNARMED_REACH = 28; // px the unarmed jab reaches
 const PLATF_UNARMED_CD = 22; // ticks between unarmed jabs
 const PLATF_MELEE_REACH = 34; // fallback melee reach for a weapon without `reach`
 const PLATF_BULLET_SPEED = 600;
-const PLATF_BULLET_LIFETIME = 70; // ticks before a bullet expires (range bound)
 
 // Player input + entity setup for the platformer RPG.
 // Usage:
@@ -39,23 +38,6 @@ const PLATF_BULLET_LIFETIME = 70; // ticks before a bullet expires (range bound)
 globalThis.PlatformerController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
-    // Bullet preset for ranged weapons. A kinematic Collision makes GravitySystem
-    // skip it so bullets fly straight (not arc). It has NO BBox on purpose: Raycast
-    // only tests (Collision, Position, BBox) entities, so without a BBox the bullet
-    // can't appear as a target — otherwise it sits on its own ray origin and
-    // self-hits at t=0 (ProjectileSystem already moves it via Projectile/Velocity).
-    EntityPreset.register([
-      {
-        id: "bullet",
-        components: {
-          Velocity: { x: 0, y: 0, z: 0 },
-          Collision: { solid: false, kinematic: true, mask: null, hits: [] },
-          Projectile: { damage: 1, owner: -1 },
-          Lifetime: { ticks: PLATF_BULLET_LIFETIME },
-        },
-      },
-    ]);
-
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
@@ -194,7 +176,7 @@ globalThis.PlatformerController = {
             ? wpn.reach
             : PLATF_MELEE_REACH
           : PLATF_UNARMED_REACH;
-      MeleeSystem.swing(world, ctrl.id, ctrl.facing, reach, damage);
+      MeleeSystem.swing(world, ctrl.id, ctrl.facing, 0, reach, damage);
       ctrl.attackCd =
         wpn !== null && wpn.fireCd !== undefined
           ? wpn.fireCd

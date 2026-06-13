@@ -7,6 +7,23 @@ globalThis.RpgPlayer = {
   // Create the shared player entity and return its id. `opts` carries the few fields that
   // differ per genre: bbox (collision box), dir (initial facing), speed (Stats.speed).
   spawn(world, spawn, opts) {
+    // Shared "bullet" preset for fireBullet (registered here since RpgPlayer owns firing).
+    // A kinematic Collision makes GravitySystem skip it so platformer bullets fly straight
+    // (a no-op in top-down, which has no gravity); solid:false keeps it from being an
+    // obstacle, and NO BBox keeps it off Raycast's target list (it can't self-hit at t=0,
+    // and the per-tick segment cast still finds enemies). Lifetime bounds the range.
+    EntityPreset.register([
+      {
+        id: "bullet",
+        components: {
+          Velocity: { x: 0, y: 0, z: 0 },
+          Collision: { solid: false, kinematic: true, mask: null, hits: [] },
+          Projectile: { damage: 1, owner: -1 },
+          Lifetime: { ticks: 90 },
+        },
+      },
+    ]);
+
     const id = world.create();
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
