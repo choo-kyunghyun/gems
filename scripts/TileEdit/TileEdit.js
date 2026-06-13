@@ -1,7 +1,7 @@
 // Core tile-layer editing service: read/write cells of a Level's TileLayer and keep the
 // derived data (pathfinding nav cost + solid colliders) in sync. Genre-agnostic — shared
 // by any tile-based editor or build mode (TopDown's BuildMode) and by level loaders
-// (TopDownLevel.build), so the "edit a solid tile → resync nav + rebuild colliders"
+// (RpgLevel.build), so the "edit a solid tile → resync nav + rebuild colliders"
 // invariant lives in exactly one place.
 //
 // Cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined, for

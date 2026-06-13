@@ -1,5 +1,5 @@
 // Item-component: the attack profile a weapon confers on its wielder. Read by
-// TopDownController._fire (via EquipmentSystem.weaponProfile) to drive bullet
+// RpgController._fire (via EquipmentSystem.weaponProfile) to drive bullet
 // damage, fire cadence, and projectile speed; unset fields fall back to the
 // controller's unarmed defaults. Flat, standalone class queried by `instanceof`
 // (see Item.getComponent) — no inheritance (GMRT can't do it).

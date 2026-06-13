@@ -1,40 +1,40 @@
-const TOPDOWN_NPC_RADIUS = 60; // interact range to the elder NPC
+const RPG_NPC_RADIUS = 60; // interact range to the elder NPC
 
 // Exposed as a factory so another scene (the level editor's Test Play) can open this scene
 // directly; SceneRegistry.add uses the SAME reference so _applyScene resolves its label.
-globalThis.SceneTopDown = () => new _SceneTopDownClass();
-SceneRegistry.add(SceneTopDown, {
-  label: I18n.textRef("TOPDOWN_NAME"),
+globalThis.SceneRpg = () => new _SceneRpgClass();
+SceneRegistry.add(SceneRpg, {
+  label: I18n.textRef("RPG_NAME"),
   category: "SCENE_CAT_RPG",
 });
 
-class _SceneTopDownClass extends Scene {
-  label = "TopDown";
+class _SceneRpgClass extends Scene {
+  label = "RPG";
 
   create() {
     // ── Persistence + content (load before building anything) ──────────────
     SaveData.load();
-    TopDownContent.register();
+    RpgQuests.register();
     Profile.load();
     Achievement.load();
     QuestLog.reset();
-    QuestLog.accept(TopDownContent.QUEST_GATHER); // collect — tracked passively
-    QuestLog.accept(TopDownContent.QUEST_REACH); // reach — tracked passively
+    QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
+    QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
     // ── World, level, player ───────────────────────────────────────────────
     this.world = new World(256, 60);
-    // The editor's Test Play sets TopDownLevel.playtestFile to a save-dir export; consume it
+    // The editor's Test Play sets RpgLevel.playtestFile to a save-dir export; consume it
     // once (a normal lobby launch falls back to the bundled level). Fall back to the bundled
     // level too if the playtest file failed to load (e.g. a stale path).
-    const levelFile = TopDownLevel.playtestFile ?? "levels/topdown_1.json";
-    TopDownLevel.playtestFile = undefined;
+    const levelFile = RpgLevel.playtestFile ?? "levels/topdown_1.json";
+    RpgLevel.playtestFile = undefined;
     let levelData = LevelSerializer.load(levelFile, { genre: "topdown" });
     if (levelData === null && levelFile !== "levels/topdown_1.json")
       levelData = LevelSerializer.load("levels/topdown_1.json", {
         genre: "topdown",
       });
-    Log.info(`TopDown level file: ${levelFile}`);
-    const built = TopDownLevel.build(this.world, levelData);
+    Log.info(`RPG level file: ${levelFile}`);
+    const built = RpgLevel.build(this.world, levelData);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death
     // Tilemap handles kept for build mode (place/remove tiles + remesh wall colliders).
@@ -43,7 +43,7 @@ class _SceneTopDownClass extends Scene {
     this.wallType = built.wallType;
     this.floorType = built.floorType;
     this.colliders = built.colliders;
-    this.ctrl = TopDownController.create(this.world, built.spawn);
+    this.ctrl = RpgController.create(this.world, built.spawn);
 
     // ── Buildable zone channel: one zone the Claim Post paints cells into; build mode
     //    only allows placement inside it. RenderZone visualizes the claimed area. ─────
@@ -58,7 +58,7 @@ class _SceneTopDownClass extends Scene {
     //    reach marker). Stations are discovered live by Interactable, so only the handles
     //    the scene's own logic needs come back. Spawned after the controller — slimes need
     //    the player id for their AI. ───────────────────────────────────────────────────
-    const ents = TopDownLevel.spawn(
+    const ents = RpgLevel.spawn(
       this.world,
       this.level,
       levelData,
@@ -127,7 +127,7 @@ class _SceneTopDownClass extends Scene {
     this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      gemsLabel(I18n.textRef("TOPDOWN_HINT"), { color: "#888888" }),
+      gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
     );
 
     // Corner minimap (bottom-right — the HP/quest HUD owns the top-right): a framed
@@ -163,7 +163,7 @@ class _SceneTopDownClass extends Scene {
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
 
     Log.info(
-      `TopDown RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
+      `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
     );
   }
@@ -182,7 +182,7 @@ class _SceneTopDownClass extends Scene {
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
-      TopDownController.update(this.world, this.ctrl);
+      RpgController.update(this.world, this.ctrl);
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
@@ -210,8 +210,8 @@ class _SceneTopDownClass extends Scene {
         );
       });
       this._checkReach(); // reach-quest zone
-      this._tryTurnIn(TopDownContent.QUEST_GATHER); // passive quests auto-complete
-      this._tryTurnIn(TopDownContent.QUEST_REACH);
+      this._tryTurnIn(RpgQuests.QUEST_GATHER); // passive quests auto-complete
+      this._tryTurnIn(RpgQuests.QUEST_REACH);
       this._checkAchievements();
 
       this.world.flush();
@@ -279,7 +279,7 @@ class _SceneTopDownClass extends Scene {
           const st = this.world.get(Stats, this.ctrl.id);
           const hpC = this.world.get(Health, this.ctrl.id);
           const hp = hpC !== undefined ? hpC.hp : 0;
-          return I18n.text("TOPDOWN_HUD", st.level, hp, st.maxHp);
+          return I18n.text("RPG_HUD", st.level, hp, st.maxHp);
         },
         { color: GemsTheme.text, font: I18n.font("header") },
       ),
@@ -287,7 +287,7 @@ class _SceneTopDownClass extends Scene {
     card.insertChild(hpRow);
     card.insertChild(gemsDivider());
     card.insertChild(
-      gemsQuestTracker({ emptyText: I18n.textRef("TOPDOWN_NO_QUEST") }),
+      gemsQuestTracker({ emptyText: I18n.textRef("RPG_NO_QUEST") }),
     );
     hud.insertChild(card);
     this.ui.insertChild(hud);
@@ -386,7 +386,7 @@ class _SceneTopDownClass extends Scene {
     const newly = Achievement.evaluate(Profile.counters());
     for (let i = 0; i < newly.length; i++) {
       const a = Achievement.get(newly[i]);
-      Toast.push(I18n.text("TOPDOWN_UNLOCKED", I18n.text(a.name)), {
+      Toast.push(I18n.text("RPG_UNLOCKED", I18n.text(a.name)), {
         type: "success",
       });
       Log.info(`achievement unlocked: ${newly[i]}`);
@@ -399,7 +399,7 @@ class _SceneTopDownClass extends Scene {
     const np = this.world.get(Position, this.npc);
     const dx = np.x - p.x;
     const dy = np.y - p.y;
-    this.nearNpc = dx * dx + dy * dy < TOPDOWN_NPC_RADIUS * TOPDOWN_NPC_RADIUS;
+    this.nearNpc = dx * dx + dy * dy < RPG_NPC_RADIUS * RPG_NPC_RADIUS;
     if (!this.nearNpc) return;
 
     const npc = this.world.get(NPC, this.npc);
@@ -410,13 +410,13 @@ class _SceneTopDownClass extends Scene {
       this.dialogueAction = "";
     } else if (QuestLog.isReady(qid)) {
       this.dialogueLine = "NPC_ELDER_DONE";
-      this.dialogueAction = "TOPDOWN_TURNIN";
+      this.dialogueAction = "RPG_TURNIN";
     } else if (QuestLog.isActive(qid)) {
       this.dialogueLine = "NPC_ELDER_WIP";
       this.dialogueAction = "";
     } else {
       this.dialogueLine = "NPC_ELDER_OFFER";
-      this.dialogueAction = "TOPDOWN_ACCEPT";
+      this.dialogueAction = "RPG_ACCEPT";
     }
 
     if (Input.get("interact").pressed()) {
@@ -446,7 +446,7 @@ class _SceneTopDownClass extends Scene {
 
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
-    TopDownController.destroy();
+    RpgController.destroy();
     this.level.destroy();
     teardownScene(this);
   }

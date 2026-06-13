@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"RpgPlayer",
+  "%Name":"RpgCatalog",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"RpgPlayer",
+  "name":"RpgCatalog",
   "parent":{
     "name":"Scene",
     "path":"folders/RPG/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"RpgPlayer.js",
+  "scriptSource":"RpgCatalog.js",
 }

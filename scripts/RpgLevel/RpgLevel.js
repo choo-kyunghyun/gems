@@ -13,10 +13,10 @@
 // from cols/rows, NOT the room, so a level can exceed the view and the follow camera
 // scrolls across it.
 
-const TOPDOWN_CELL = 32; // fallback cell size when a level omits `cell`
+const RPG_CELL = 32; // fallback cell size when a level omits `cell`
 
-globalThis.TopDownLevel = {
-  // Set by the level editor's Test Play to a save-dir level file; sceneTopDown consumes it
+globalThis.RpgLevel = {
+  // Set by the level editor's Test Play to a save-dir level file; sceneRpg consumes it
   // once on create (then clears it, falling back to the bundled level). Not gameplay state —
   // a one-shot hand-off channel between the editor and the play scene.
   playtestFile: undefined,
@@ -27,7 +27,7 @@ globalThis.TopDownLevel = {
    * level.destroy() and the collider entities.
    */
   build(world, data) {
-    const cell = data.cell ?? TOPDOWN_CELL;
+    const cell = data.cell ?? RPG_CELL;
     const level = new Level({
       cellWidth: cell,
       cellHeight: cell,

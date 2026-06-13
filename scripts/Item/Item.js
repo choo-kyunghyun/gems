@@ -1,5 +1,5 @@
 // Item-definition registry (modeled on Rarity). Genre templates register their
-// item set at create() time (see TopDownContent.register). Definitions are data;
+// item set at create() time (see RpgQuests.register). Definitions are data;
 // runtime quantities live in Inventory components.
 //
 // Behavior/markers compose via data-only `components` (like UIElement): the base

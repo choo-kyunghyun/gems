@@ -1,5 +1,5 @@
 // On-demand helper: maps an entity's carried weight to a speed multiplier, read
-// live by the mover (see TopDownController.update) rather than mutating Stats.speed
+// live by the mover (see RpgController.update) rather than mutating Stats.speed
 // — so it composes cleanly with equipment mods instead of fighting their balanced
 // add/remove deltas. A plain object (not a class) per the GMRT static-method note.
 globalThis.EncumbranceSystem = {

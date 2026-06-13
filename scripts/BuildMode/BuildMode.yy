@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"BuildMode",
   "parent":{
-    "name":"TopDown",
-    "path":"folders/RPG/TopDown.yy",
+    "name":"Scene",
+    "path":"folders/RPG/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

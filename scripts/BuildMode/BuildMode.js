@@ -6,13 +6,13 @@
 //
 // All per-scene state lives on the SCENE (namespaced `_build*`); BuildMode is a
 // stateless singleton like Interactable/CraftSystem. The one exception is the static
-// `active` flag, mirrored each frame so TopDownController can suppress weapon fire while
+// `active` flag, mirrored each frame so RpgController can suppress weapon fire while
 // building (LMB places tiles instead of shooting).
 //
 // Scene contract (set in create()): world, ctrl.id, level, ui, wallLayer, floorLayer,
 // colliders, wallType, floorType, buildZoneId.
 globalThis.BuildMode = {
-  active: false, // mirror of scene._buildActive, read by TopDownController to gate fire
+  active: false, // mirror of scene._buildActive, read by RpgController to gate fire
   RESOURCE: "wood",
   COST: 1, // wood per tile (place consumes, deconstruct refunds)
   CLAIM_HALF_W: 3, // claimed rect half-extent in cells (so 7×5 around the post)

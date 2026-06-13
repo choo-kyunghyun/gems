@@ -3,7 +3,7 @@
 // materials), and the workbench recipes. Both genres now register the SAME items —
 // `wood_sword` is melee and `blaster` is ranged in BOTH (each controller honors a weapon's
 // `melee` flag, swinging or firing accordingly). The only per-genre content left is
-// top-down's quests + achievements (in TopDownContent; platformer has none). Idempotent;
+// top-down's quests + achievements (in RpgQuests; platformer has none). Idempotent;
 // called from a scene's create() (not at top level — avoids GMRT load-order issues).
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },

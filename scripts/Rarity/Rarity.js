@@ -17,7 +17,7 @@ globalThis.Rarity = class Rarity {
   }
 
   // Rarities are not defined here — each genre template configures its own set
-  // in its initializer (e.g. TopDownController.create → Rarity.register([...])).
+  // in its initializer (e.g. RpgController.create → Rarity.register([...])).
   static registry = new Map();
   static order = []; // insertion order of ids (low → high tier)
 

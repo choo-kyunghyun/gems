@@ -7,7 +7,7 @@
 //
 // Activation is E, not left-click, because TopDown/Platformer combat fires on
 // left-click (mouse aim) — the mouse only CHOOSES the target. `mouse_x`/`mouse_y` are
-// world-space here (the view transform is applied; see TopDownController aim).
+// world-space here (the view transform is applied; see RpgController aim).
 //
 // All per-frame/open state lives on the SCENE (namespaced `_inter*`, plus the windows'
 // own `_store*`/`_craft*`). Build once in create() after the player + ui exist; call

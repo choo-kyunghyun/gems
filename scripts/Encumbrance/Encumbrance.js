@@ -2,7 +2,7 @@
  * Component: makes an entity's movement slow down as its Inventory fills up by
  * weight. Tuning only — EncumbranceSystem.scale reads this alongside the entity's
  * Inventory to produce a speed multiplier the mover applies (see
- * TopDownController.update). An entity without this component is never slowed.
+ * RpgController.update). An entity without this component is never slowed.
  *
  * @typedef {Object} Encumbrance
  * @property {number} threshold  load fraction (carried/maxWeight) below which there

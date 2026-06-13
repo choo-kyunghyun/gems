@@ -16,7 +16,7 @@
 // wall/floor/erase brush (LMB drag-paints, RMB erases both layers), the Spawn tool (LMB
 // sets the player spawn cell), the Select tool (LMB picks an entity to edit in the right
 // property panel), or the Zone tool (LMB click-drag paints a buildable-zone rectangle, RMB
-// erases it); the Entities section selects a TopDownCatalog preset (LMB places one at the
+// erases it); the Entities section selects a RpgCatalog preset (LMB places one at the
 // cell and selects it, RMB deletes the one there).
 //
 // Export writes via File.write → buffer_save, which targets the SAVE dir
@@ -24,7 +24,7 @@
 // level, copy it into datafiles/levels/ and register it in IncludedFiles. Open re-imports
 // a level file (the bundled source or the save-dir export) — the round-trip's other half,
 // and the only path that reads exported zoneMaps back in. Test Play serializes the level to
-// a playtest file and opens sceneTopDown on it (via TopDownLevel.playtestFile) so you can
+// a playtest file and opens sceneRpg on it (via RpgLevel.playtestFile) so you can
 // play what you authored without the copy-to-datafiles step; returning lands in the lobby.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
@@ -51,7 +51,7 @@ class _SceneEditorClass extends Scene {
   create(openScene) {
     // Item + quest registries back the property editor's item picker + quest select.
     // Idempotent; the play scene calls it too — this just makes the data available here.
-    TopDownContent.register();
+    RpgQuests.register();
 
     // Renderer + camera are built once; _initLevel (re)binds the tilemap + zone passes to
     // whatever level is current, so New/resize/Open don't rebuild the camera or the palette.
@@ -60,7 +60,7 @@ class _SceneEditorClass extends Scene {
     this.camera.assign(0);
 
     this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
-    this._placePreset = TopDownCatalog.entries[0].id; // active entity preset
+    this._placePreset = RpgCatalog.entries[0].id; // active entity preset
     this._sizeIdx = 0; // selected "New" size preset
     this._openIdx = 0; // selected "Open" file
 
@@ -78,7 +78,7 @@ class _SceneEditorClass extends Scene {
   }
 
   // The single load path: (re)build all editor state from a level-data object. Shared by
-  // create() (the bundled source) and Open (a chosen file). Mirrors TopDownLevel.build's
+  // create() (the bundled source) and Open (a chosen file). Mirrors RpgLevel.build's
   // bulk rect paint, plus the editable spawns / player spawn and any saved buildable zone.
   _loadData(data) {
     this._cell = data.cell ?? 32;
@@ -206,7 +206,7 @@ class _SceneEditorClass extends Scene {
     });
     const card = gemsCard({ padding: GemsTheme.pad, gap: GemsTheme.gapSm });
     // gemsLabel makes a bare (height-less) node; in a flex column it collapses and
-    // overlaps its siblings, so wrap each label in a fixed-height row (as sceneTopDown
+    // overlaps its siblings, so wrap each label in a fixed-height row (as sceneRpg
     // does for its HUD labels).
     const labelRow = (lbl, opts, h) => {
       const row = new UIElement({ width: "100%", height: h ?? 22 });
@@ -241,8 +241,8 @@ class _SceneEditorClass extends Scene {
       { color: GemsTheme.textMuted, font: I18n.font("header") },
       26,
     );
-    for (let i = 0; i < TopDownCatalog.entries.length; i++) {
-      const entry = TopDownCatalog.entries[i];
+    for (let i = 0; i < RpgCatalog.entries.length; i++) {
+      const entry = RpgCatalog.entries[i];
       card.insertChild(
         gemsButton(entry.label, () => {
           this._tool = "entity";
@@ -317,7 +317,7 @@ class _SceneEditorClass extends Scene {
 
   _toolStatus() {
     if (this._tool === "entity") {
-      const e = TopDownCatalog.get(this._placePreset);
+      const e = RpgCatalog.get(this._placePreset);
       return I18n.text("EDITOR_TOOL", e ? e.label : this._placePreset);
     }
     const key =
@@ -383,7 +383,7 @@ class _SceneEditorClass extends Scene {
       // Entities: place on LMB click (and select it for editing), delete the one at the
       // cell on RMB click (edge-triggered — held would spam-place/delete).
       if (mouse_check_button_pressed(mb_left)) {
-        const rec = TopDownCatalog.get(this._placePreset).make(cell.x, cell.y);
+        const rec = RpgCatalog.get(this._placePreset).make(cell.x, cell.y);
         this._spawns.push(rec);
         this._select(rec);
       } else if (mouse_check_button_pressed(mb_right)) {
@@ -537,7 +537,7 @@ class _SceneEditorClass extends Scene {
     }
 
     const rec = this._selected;
-    const entry = TopDownCatalog.get(rec.preset);
+    const entry = RpgCatalog.get(rec.preset);
     const head = new UIElement({ width: "100%", height: 22 });
     head.insertChild(
       gemsLabel(
@@ -715,13 +715,13 @@ class _SceneEditorClass extends Scene {
   }
 
   // Test Play: serialize the current level to the playtest file, hand the path to
-  // sceneTopDown (consume-once side-channel), and open it. Returning goes to the lobby, not
+  // sceneRpg (consume-once side-channel), and open it. Returning goes to the lobby, not
   // back to the editor; the export persists, so reopen it via Open to keep editing.
   _play(openScene) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
-    TopDownLevel.playtestFile = EDITOR_PLAYTEST_FILE;
+    RpgLevel.playtestFile = EDITOR_PLAYTEST_FILE;
     Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
-    openScene(SceneTopDown);
+    openScene(SceneRpg);
   }
 
   draw() {
@@ -773,7 +773,7 @@ class _SceneEditorClass extends Scene {
     draw_set_halign(fa_center);
     for (let i = 0; i < this._spawns.length; i++) {
       const s = this._spawns[i];
-      const e = TopDownCatalog.get(s.preset);
+      const e = RpgCatalog.get(s.preset);
       const wx = s.gx * cw;
       const wy = s.gy * ch;
       draw_set_color(e !== undefined ? Color.parse(e.color) : c_white);

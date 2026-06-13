@@ -16,7 +16,7 @@ globalThis.RpgInventoryUI = {
   build(scene) {
     const gw = display_get_gui_width();
     const left = gw > 0 ? gw / 2 - 220 : 60;
-    scene._invWin = gemsWindow(I18n.textRef("TOPDOWN_INVENTORY"), {
+    scene._invWin = gemsWindow(I18n.textRef("RPG_INVENTORY"), {
       left,
       top: 50,
       width: 440,
@@ -65,7 +65,7 @@ globalThis.RpgInventoryUI = {
         () => {
           const v = world.get(Inventory, scene.ctrl.id);
           let s =
-            I18n.text("TOPDOWN_SLOTS") +
+            I18n.text("RPG_SLOTS") +
             " " +
             v.slots.length +
             "/" +
@@ -73,7 +73,7 @@ globalThis.RpgInventoryUI = {
           if (v.maxWeight !== undefined)
             s +=
               "   " +
-              I18n.text("TOPDOWN_WEIGHT") +
+              I18n.text("RPG_WEIGHT") +
               " " +
               InventorySystem.weight(v) +
               "/" +
@@ -101,7 +101,7 @@ globalThis.RpgInventoryUI = {
     if (inv.slots.length === 0) {
       const r = new UIElement({ width: "100%", height: 24 });
       r.insertChild(
-        gemsLabel(I18n.textRef("TOPDOWN_EMPTY"), { color: GemsTheme.textDim }),
+        gemsLabel(I18n.textRef("RPG_EMPTY"), { color: GemsTheme.textDim }),
       );
       scroll.scrollBody.insertChild(r);
     }
@@ -124,7 +124,7 @@ globalThis.RpgInventoryUI = {
     body.insertChild(gemsDivider());
     const eqTitle = new UIElement({ width: "100%", height: 22 });
     eqTitle.insertChild(
-      gemsLabel(I18n.textRef("TOPDOWN_EQUIPMENT"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "#ffd166" }),
     );
     body.insertChild(eqTitle);
     for (let i = 0; i < opts.equipSlots.length; i++)
@@ -194,7 +194,7 @@ globalThis.RpgInventoryUI = {
       slot.qty +
       "  " +
       val +
-      (worn ? "  " + I18n.text("TOPDOWN_EQUIPPED") : "");
+      (worn ? "  " + I18n.text("RPG_EQUIPPED") : "");
     return gemsButton(
       label,
       () => RpgInventoryUI.useItem(scene, itemId, worn),
