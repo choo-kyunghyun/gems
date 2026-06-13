@@ -20,6 +20,10 @@ draw_set_circle_precision(64);
 Log.clear();
 Log.info("game start");
 
+// Route uncaught runtime exceptions to game.log (and exit non-zero). The runner closes the
+// game right after the handler, so this is the last chance to record why it crashed.
+exception_unhandled_handler((ex) => Log.exception(ex));
+
 Settings.registerDefaults({
   language: "en-US",
   fullscreen: false,

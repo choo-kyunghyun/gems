@@ -42,4 +42,25 @@ globalThis.Log = {
     this._dirty = false;
     File.write(this.PATH, "");
   },
+
+  // Unhandled-exception handler — wired in obj_game via exception_unhandled_handler. The
+  // runtime invokes this OUTSIDE any event when a runtime exception goes uncaught: nothing
+  // can be drawn and the game closes immediately afterward, so the one useful action is to
+  // record the crash to game.log (file I/O is safe here) before it dies — otherwise a crash
+  // mid-frame just stops the log at its last flush with no reason. `ex` is the Exception
+  // Struct (message/longMessage/script/line/stacktrace). Returns the process exit code: the
+  // runtime converts the return value to the runner's exit code, so non-zero = crashed.
+  exception(ex) {
+    this.error("UNHANDLED EXCEPTION: " + ex.message);
+    // GMRT 0.19 leaves longMessage/script/line/stacktrace empty for JS runtime faults, so
+    // only emit each when actually populated (avoids blank "at  line 0" noise).
+    if (ex.longMessage && ex.longMessage !== ex.message)
+      this.error("  " + ex.longMessage);
+    if (ex.script) this.error("  at " + ex.script + " line " + ex.line);
+    const stack = ex.stacktrace;
+    if (stack !== undefined)
+      for (let i = 0; i < stack.length; i++) this.error("    " + stack[i]);
+    this.flush();
+    return 1;
+  },
 };
