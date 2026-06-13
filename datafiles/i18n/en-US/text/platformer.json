@@ -1,7 +1,6 @@
 {
   "PLAT_NAME": "Platformer",
-  "PLAT_HUD": "Lv {0}   HP {1}/{2}",
-  "PLAT_HINT": "A/D move · W jump · Shift run · S drop · Click attack · I bag",
+  "PLAT_HINT": "A/D move · W jump · Shift run · S drop",
   "PLAT_INV_HINT": "Up/Down select · Enter equip/use · I close",
   "ITEM_COIN": "Coin"
 }

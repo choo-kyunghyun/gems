@@ -42,47 +42,10 @@
       "oneWay": true
     },
 
-    { "preset": "drop", "x": 150, "y": 420, "itemId": "wood_sword", "qty": 1 },
-    { "preset": "drop", "x": 390, "y": 250, "itemId": "potion", "qty": 2 },
-    { "preset": "drop", "x": 640, "y": 170, "itemId": "blaster", "qty": 1 },
-
-    {
-      "preset": "enemy",
-      "x": 200,
-      "y": 440,
-      "hp": 3,
-      "loot": [
-        { "itemId": "coin", "qty": 4 },
-        { "itemId": "slime_gel", "qty": 1 }
-      ]
-    },
-    {
-      "preset": "enemy",
-      "x": 650,
-      "y": 440,
-      "hp": 4,
-      "loot": [
-        { "itemId": "coin", "qty": 3 },
-        { "itemId": "leather_armor", "qty": 1 }
-      ]
-    },
-    {
-      "preset": "enemy",
-      "x": 390,
-      "y": 270,
-      "hp": 3,
-      "loot": [{ "itemId": "potion", "qty": 1 }]
-    },
-    {
-      "preset": "enemy",
-      "x": 500,
-      "y": 440,
-      "hp": 6,
-      "loot": [
-        { "itemId": "coin", "qty": 8 },
-        { "itemId": "swift_ring", "qty": 1 }
-      ]
-    },
+    { "preset": "enemy", "x": 200, "y": 440 },
+    { "preset": "enemy", "x": 650, "y": 440 },
+    { "preset": "enemy", "x": 390, "y": 270 },
+    { "preset": "enemy", "x": 500, "y": 440 },
 
     { "preset": "spike", "x": 350, "y": 440 },
     { "preset": "spike", "x": 600, "y": 440 }

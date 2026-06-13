@@ -12,28 +12,21 @@ const PLATF_JUMP_CUT = 0.45; // fraction of rising vy kept when jump is released
 const PLATF_COYOTE = 6; // ticks of jump grace after walking off a ledge
 const PLATF_JUMP_BUFFER = 10; // ticks a jump press is remembered before landing
 const PLATF_DROP_TICKS = 8; // ticks the player ignores one-way platforms after a drop press
-const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after respawn / taking a hit (1.5 s)
+const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after a respawn (1.5 s)
 
-// Combat defaults (used when unarmed or when the weapon leaves a field unset).
-const PLATF_UNARMED_DMG = 1;
-const PLATF_UNARMED_REACH = 28; // px the unarmed jab reaches
-const PLATF_UNARMED_CD = 22; // ticks between unarmed jabs
-const PLATF_MELEE_REACH = 34; // fallback melee reach for a weapon without `reach`
-const PLATF_BULLET_SPEED = 600;
-
-// Player input + entity setup for the platformer RPG.
+// Player input + entity setup for the platformer movement showcase (no RPG layer —
+// just movement, jumping, stomp-able enemies, and spike/void hazards).
 // Usage:
 //   const ctrl = PlatformerController.create(world, spawn); // once in scene create()
 //   PlatformerController.pollInput(ctrl);                   // once per FRAME, before world.update()
 //   PlatformerController.update(world, ctrl);               // once per physics TICK
-//   PlatformerController.attack(world, ctrl);               // once per physics TICK (after physics)
 //   PlatformerController.destroy();                         // in scene destroy()
 //
 // Edge-triggered input (jump press/release) is sampled per frame in pollInput() so it
-// can't be dropped on 0-tick frames or double-counted on multi-tick frames. The attack
-// hold-state is also latched per frame; continuous input (movement) is read per tick.
+// can't be dropped on 0-tick frames or double-counted on multi-tick frames; continuous
+// input (movement) is read per tick.
 //
-// ctrl = { id, jumpBuffer, jumpReleased, coyote, facing, iframes, attackHeld, attackCd }
+// ctrl = { id, jumpBuffer, jumpReleased, coyote, facing, iframes }
 
 globalThis.PlatformerController = {
   /** @param {{ x: number, y: number }} spawn */
@@ -44,19 +37,37 @@ globalThis.PlatformerController = {
       jump: [INPUT_SOURCE.KEYBOARD, ord("W")],
       run: [INPUT_SOURCE.KEYBOARD, vk_shift],
       drop: [INPUT_SOURCE.KEYBOARD, ord("S")],
-      attack: [INPUT_SOURCE.MOUSE, mb_left],
-      inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
-      interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
     });
 
-    // Shared RPG player entity; then the platformer-only Grounded for jump/coyote.
-    // BBox is taller (feet at y+0, head at y-24); faces right; walk speed from Stats.
-    const id = RpgPlayer.spawn(world, spawn, {
-      bbox: { x: -12, y: -24, width: 24, height: 24 },
-      dir: { x: 1, y: 0, z: 0 },
-      speed: PLATF_WALK_SPEED,
+    // Plain platformer player: transform + a dynamic solid body + facing/visual, plus
+    // Grounded for jump/coyote. BBox is taller (feet at y+0, head at y-24); faces right.
+    const id = world.create();
+    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
+    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    world.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
+    world.add(id, Collision, {
+      solid: true,
+      kinematic: false,
+      oneWay: false,
+      passThroughTicks: 0,
+      mask: null,
+      hits: [],
     });
+    world.add(id, Direction, { x: 1, y: 0, z: 0 });
+    world.add(id, Name, { name: "Player" });
     world.add(id, Grounded, { isGrounded: false });
+    world.add(id, Visual, {
+      visible: true,
+      sprite: spr_play,
+      subimg: 0,
+      xscale: 1,
+      yscale: 1,
+      rot: 0,
+      color: make_colour_rgb(90, 160, 255),
+      alpha: 1,
+      speed: 0,
+      time: 0,
+    });
 
     return {
       id,
@@ -65,19 +76,15 @@ globalThis.PlatformerController = {
       coyote: 0,
       facing: 1,
       iframes: 0,
-      attackHeld: false,
-      attackCd: 0,
     };
   },
 
-  // Sample edge-triggered jump input + the attack hold-state once per frame. Must
-  // run before world.update(), outside the fixed-tick loop, or presses on 0-tick
-  // frames get lost (and the realtime mouse query is read just once per frame).
-  /** @param {{ jumpBuffer: number, jumpReleased: boolean, attackHeld: boolean }} ctrl */
+  // Sample edge-triggered jump input once per frame. Must run before world.update(),
+  // outside the fixed-tick loop, or presses on 0-tick frames get lost.
+  /** @param {{ jumpBuffer: number, jumpReleased: boolean }} ctrl */
   pollInput(ctrl) {
     if (Input.get("jump").pressed()) ctrl.jumpBuffer = PLATF_JUMP_BUFFER;
     if (Input.get("jump").released()) ctrl.jumpReleased = true;
-    ctrl.attackHeld = Input.get("attack").down();
   },
 
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
@@ -94,17 +101,11 @@ globalThis.PlatformerController = {
 
     // Horizontal: accelerate toward a target speed instead of snapping to it,
     // so the player has weight and carries momentum (SMW-style). Movement is
-    // continuous input, so reading it per tick is correct. Speed comes from Stats
-    // (equipment/encumbrance-modified) so a swift_ring etc. actually changes it.
+    // continuous input, so reading it per tick is correct.
     const dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
-    const stats = world.get(Stats, ctrl.id);
-    const base = stats !== undefined ? stats.speed : PLATF_WALK_SPEED;
-    const walk = base * EncumbranceSystem.scale(world, ctrl.id);
-    const maxSpeed = Input.get("run").down()
-      ? walk * (PLATF_RUN_SPEED / PLATF_WALK_SPEED)
-      : walk;
+    const maxSpeed = Input.get("run").down() ? PLATF_RUN_SPEED : PLATF_WALK_SPEED;
     const target = dx * maxSpeed;
 
     let accel;
@@ -156,51 +157,8 @@ globalThis.PlatformerController = {
     }
   },
 
-  // Resolve an attack this tick: the equipped weapon (or unarmed defaults) decides
-  // a melee swing vs a cursor-aimed bullet. Gated by attackCd. Call once per tick.
-  attack(world, ctrl) {
-    if (ctrl.attackCd > 0) ctrl.attackCd--;
-    if (!ctrl.attackHeld || ctrl.attackCd > 0) return;
-
-    const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
-    if (wpn !== null && !wpn.melee) {
-      // Ranged: fire a bullet toward the cursor.
-      this._fire(world, ctrl, wpn);
-      ctrl.attackCd = wpn.fireCd !== undefined ? wpn.fireCd : PLATF_UNARMED_CD;
-    } else {
-      // Melee (armed or unarmed): swing a hitbox in the facing direction.
-      const damage = wpn !== null ? wpn.damage : PLATF_UNARMED_DMG;
-      const reach =
-        wpn !== null
-          ? wpn.reach !== undefined
-            ? wpn.reach
-            : PLATF_MELEE_REACH
-          : PLATF_UNARMED_REACH;
-      MeleeSystem.swing(world, ctrl.id, ctrl.facing, 0, reach, damage);
-      ctrl.attackCd =
-        wpn !== null && wpn.fireCd !== undefined
-          ? wpn.fireCd
-          : PLATF_UNARMED_CD;
-    }
-  },
-
-  // Spawn a bullet at the player aimed at the cursor (shared with TopDownController via
-  // RpgPlayer.fireBullet). muzzleY -12 = chest height (spawn + aim origin), then face the
-  // shot horizontally.
-  _fire(world, ctrl, wpn) {
-    const speed =
-      wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : PLATF_BULLET_SPEED;
-    const aim = RpgPlayer.fireBullet(world, ctrl.id, {
-      speed,
-      damage: wpn.damage,
-      muzzleY: -12,
-    });
-    if (aim.nx < -0.01) ctrl.facing = -1;
-    else if (aim.nx > 0.01) ctrl.facing = 1;
-  },
-
-  // Teleport the player back to spawn and clear its motion/jump state. The caller
-  // refills Health (HP-based death is resolved in the scene).
+  // Teleport the player back to spawn, clear motion/jump state, and grant brief
+  // i-frames so it can't be re-hit on the spawn frame.
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(world, ctrl, spawn) {
     const pos = world.get(Position, ctrl.id);
@@ -229,15 +187,6 @@ globalThis.PlatformerController = {
   },
 
   destroy() {
-    Input.unbindAll([
-      "moveLeft",
-      "moveRight",
-      "jump",
-      "run",
-      "drop",
-      "attack",
-      "inventory",
-      "interact",
-    ]);
+    Input.unbindAll(["moveLeft", "moveRight", "jump", "run", "drop"]);
   },
 };

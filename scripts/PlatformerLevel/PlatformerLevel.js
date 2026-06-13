@@ -1,21 +1,14 @@
-// Level builder for the platformer RPG demo.
+// Level builder for the platformer movement showcase.
 // Reads level data produced by LevelSerializer.load (genre "platformer").
 //
 // Spawn preset strings and their per-instance fields:
 //   platform   x,y,w,h  oneWay?:bool
-//   enemy      x,y      hp?:number  loot?:[{itemId,qty}]
+//   enemy      x,y                 (plain patroller — stomp to defeat)
 //   spike      x,y
-//   drop       x,y      itemId  qty?    (hand-placed ground loot / chest contents)
 //
 // meta.playerSpawn {x,y} is returned by build() so the scene can store it.
 
 const PLATF_ENEMY_SPEED = 60; // patrol walk speed, px/s
-const PLATF_ENEMY_HP = 3; // default enemy health
-// Default loot when an enemy entry omits `loot` — a bit of currency + trash.
-const PLATF_DEFAULT_LOOT = [
-  { itemId: "coin", qty: 3 },
-  { itemId: "slime_gel", qty: 1 },
-];
 
 globalThis.PlatformerLevel = {
   /**
@@ -53,14 +46,6 @@ globalThis.PlatformerLevel = {
           hits: [],
         });
         world.add(id, Enemy, { dir: -1, speed: PLATF_ENEMY_SPEED });
-        world.add(id, Health, { hp: s.hp ?? PLATF_ENEMY_HP });
-        world.add(id, Tag, { tags: new Set(["enemy"]) });
-        // Loot table — spilled as ItemDrops on death by the scene. No maxWeight
-        // (loot is authored, never weight-gated).
-        world.add(id, Inventory, {
-          slots: s.loot ?? PLATF_DEFAULT_LOOT,
-          capacity: 8,
-        });
         world.add(id, Visual, {
           visible: true,
           sprite: spr_choo,
@@ -86,18 +71,6 @@ globalThis.PlatformerLevel = {
         });
         world.add(id, Spike, {});
         world.add(id, Name, { name: "Spike" });
-      } else if (s.preset === "drop") {
-        const id = world.create();
-        world.add(id, Position, { x: s.x, y: s.y, z: 0 });
-        world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
-        world.add(id, Collision, {
-          solid: false,
-          kinematic: false,
-          mask: null,
-          hits: [],
-        });
-        world.add(id, ItemDrop, { itemId: s.itemId, qty: s.qty ?? 1 });
-        world.add(id, Name, { name: "Drop" });
       }
     }
 

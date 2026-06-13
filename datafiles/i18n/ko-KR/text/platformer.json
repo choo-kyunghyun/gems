@@ -1,7 +1,6 @@
 {
   "PLAT_NAME": "플랫포머",
-  "PLAT_HUD": "Lv {0}   HP {1}/{2}",
-  "PLAT_HINT": "A/D: 이동 · W: 점프 · Shift: 달리기 · S: 내려가기 · 클릭: 공격 · I: 가방",
+  "PLAT_HINT": "A/D: 이동 · W: 점프 · Shift: 달리기 · S: 내려가기",
   "PLAT_INV_HINT": "위/아래: 선택 · Enter: 장착/사용 · I: 닫기",
   "ITEM_COIN": "코인"
 }
