@@ -18,6 +18,7 @@
   "EDITOR_NEW": "새 레벨 {0}x{1}",
   "EDITOR_SIZE": "크기: {0}x{1}",
   "EDITOR_OPEN": "열기",
+  "EDITOR_PLAY": "테스트 플레이",
   "EDITOR_LOADED": "{0} 불러옴",
   "EDITOR_LOAD_FAIL": "불러오기 실패: {0}",
   "EDITOR_EXPORT": "내보내기",

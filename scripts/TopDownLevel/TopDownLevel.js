@@ -16,6 +16,11 @@
 const TOPDOWN_CELL = 32; // fallback cell size when a level omits `cell`
 
 globalThis.TopDownLevel = {
+  // Set by the level editor's Test Play to a save-dir level file; sceneTopDown consumes it
+  // once on create (then clears it, falling back to the bundled level). Not gameplay state —
+  // a one-shot hand-off channel between the editor and the play scene.
+  playtestFile: undefined,
+
   /**
    * Creates a Level from data, paints walls into a persistent TileLayer, and spawns
    * kinematic wall colliders into world. Returns the level handles; the caller owns

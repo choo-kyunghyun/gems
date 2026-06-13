@@ -1,6 +1,9 @@
 const TOPDOWN_NPC_RADIUS = 60; // interact range to the elder NPC
 
-SceneRegistry.add(() => new _SceneTopDownClass(), {
+// Exposed as a factory so another scene (the level editor's Test Play) can open this scene
+// directly; SceneRegistry.add uses the SAME reference so _applyScene resolves its label.
+globalThis.SceneTopDown = () => new _SceneTopDownClass();
+SceneRegistry.add(SceneTopDown, {
   label: I18n.textRef("TOPDOWN_NAME"),
   category: "SCENE_CAT_RPG",
 });
@@ -20,9 +23,17 @@ class _SceneTopDownClass extends Scene {
 
     // ── World, level, player ───────────────────────────────────────────────
     this.world = new World(256, 60);
-    const levelData = LevelSerializer.load("levels/topdown_1.json", {
-      genre: "topdown",
-    });
+    // The editor's Test Play sets TopDownLevel.playtestFile to a save-dir export; consume it
+    // once (a normal lobby launch falls back to the bundled level). Fall back to the bundled
+    // level too if the playtest file failed to load (e.g. a stale path).
+    const levelFile = TopDownLevel.playtestFile ?? "levels/topdown_1.json";
+    TopDownLevel.playtestFile = undefined;
+    let levelData = LevelSerializer.load(levelFile, { genre: "topdown" });
+    if (levelData === null && levelFile !== "levels/topdown_1.json")
+      levelData = LevelSerializer.load("levels/topdown_1.json", {
+        genre: "topdown",
+      });
+    Log.info(`TopDown level file: ${levelFile}`);
     const built = TopDownLevel.build(this.world, levelData);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death

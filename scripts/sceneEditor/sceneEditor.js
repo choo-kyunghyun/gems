@@ -23,10 +23,13 @@
 // (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
 // level, copy it into datafiles/levels/ and register it in IncludedFiles. Open re-imports
 // a level file (the bundled source or the save-dir export) — the round-trip's other half,
-// and the only path that reads exported zoneMaps back in.
+// and the only path that reads exported zoneMaps back in. Test Play serializes the level to
+// a playtest file and opens sceneTopDown on it (via TopDownLevel.playtestFile) so you can
+// play what you authored without the copy-to-datafiles step; returning lands in the lobby.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
+const EDITOR_PLAYTEST_FILE = "topdown_playtest.json"; // Test Play target (separate from export)
 
 // Blank-level size presets for the "New" control (cols × rows). The cell size carries over
 // from the currently loaded level.
@@ -297,9 +300,12 @@ class _SceneEditorClass extends Scene {
     );
 
     card.insertChild(
-      gemsButton(I18n.textRef("EDITOR_EXPORT"), () => this._export(), {
+      gemsButton(I18n.textRef("EDITOR_PLAY"), () => this._play(openScene), {
         primary: true,
       }),
+    );
+    card.insertChild(
+      gemsButton(I18n.textRef("EDITOR_EXPORT"), () => this._export()),
     );
     card.insertChild(
       gemsButton(I18n.textRef("EDITOR_BACK"), () => openScene(SCENES.lobby)),
@@ -668,10 +674,11 @@ class _SceneEditorClass extends Scene {
     return row;
   }
 
-  // Assemble the edited level data and write it out. Walls/floors are re-derived from the
-  // painted grids via the greedy mesh; meta carries the edited player spawn; spawns are the
-  // edited list.
-  _export() {
+  // Assemble the edited level into a data object (the export + playtest payload). Walls/
+  // floors are re-derived from the painted grids via the greedy mesh; meta carries the
+  // player spawn; the buildable zone is emitted only when it has cells (matches
+  // Level.export, read back via ZoneMap.import; skipped empty to keep files lean).
+  _buildData() {
     const data = {
       version: 1,
       genre: "topdown",
@@ -686,13 +693,15 @@ class _SceneEditorClass extends Scene {
       layers: [],
       spawns: this._spawns,
     };
-    // Emit the zone channel only when it has painted cells (matches Level.export, and a
-    // future loader reads it via Level.import). The grid serializes as a scalar array, so
-    // skip it when empty to keep files lean.
     const zmap = this.level.zoneMap("buildable");
-    const zoned = zmap !== undefined ? zmap.cells(this._zoneId).length : 0;
-    if (zoned > 0) data.zoneMaps = { buildable: zmap.export() };
+    if (zmap !== undefined && zmap.cells(this._zoneId).length > 0)
+      data.zoneMaps = { buildable: zmap.export() };
+    return data;
+  }
 
+  // Write the level to the export file (save dir). To ship it, copy into datafiles/levels/.
+  _export() {
+    const data = this._buildData();
     const ok = LevelSerializer.save(EDITOR_EXPORT_FILE, data);
     Toast.push(I18n.text("EDITOR_SAVED", EDITOR_EXPORT_FILE), {
       type: ok ? "success" : "error",
@@ -701,9 +710,18 @@ class _SceneEditorClass extends Scene {
       `editor export ${ok ? "ok" : "FAILED"} → ${EDITOR_EXPORT_FILE} ` +
         `${data.cols}x${data.rows} walls=${data.walls.length} ` +
         `floors=${data.floors.length} spawns=${data.spawns.length} ` +
-        `zone=${zoned} ` +
         `spawn=(${data.meta.playerSpawn.gx},${data.meta.playerSpawn.gy})`,
     );
+  }
+
+  // Test Play: serialize the current level to the playtest file, hand the path to
+  // sceneTopDown (consume-once side-channel), and open it. Returning goes to the lobby, not
+  // back to the editor; the export persists, so reopen it via Open to keep editing.
+  _play(openScene) {
+    LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
+    TopDownLevel.playtestFile = EDITOR_PLAYTEST_FILE;
+    Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
+    openScene(SceneTopDown);
   }
 
   draw() {
