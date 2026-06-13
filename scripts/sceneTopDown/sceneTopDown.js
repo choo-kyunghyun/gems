@@ -8,7 +8,7 @@ SceneRegistry.add(() => new _SceneTopDownClass(), {
 class _SceneTopDownClass extends Scene {
   label = "TopDown";
 
-  create(openScene) {
+  create() {
     // ── Persistence + content (load before building anything) ──────────────
     SaveData.load();
     TopDownContent.register();
@@ -269,8 +269,9 @@ class _SceneTopDownClass extends Scene {
     this.dialogueAction = "";
     this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
 
-    // ── Pause menu owns the exit (Esc / Start); no in-world Back button ─────
-    PauseMenu.arm(openScene);
+    // ── SystemMenu overlay owns pause + exit (Esc / Start / F1) and suspends menu nav
+    // while playing. Flag it (a subclass field initializer wouldn't run on GMRT). ─────
+    this.gameplay = true;
 
     // ── Hint (flexpanel, GUI layer) ────────────────────────────────────────
     this.ui = gemsRoot();
@@ -318,7 +319,7 @@ class _SceneTopDownClass extends Scene {
   }
 
   step() {
-    if (PauseMenu.update()) return; // paused — freeze the sim
+    // No pause gate — obj_game skips scene.step() while the SystemMenu is open.
 
     // Edge-triggered toggle — sampled once per frame, outside the tick loop. The
     // window's widgets are clicked/navigated directly; no keyboard cursor anymore.

@@ -1,253 +1,108 @@
+// The app shell's single landing scene (`SCENES.lobby`, the boot scene). Title and lobby
+// are merged here: G.E.M.S. branding header + a tabbed scene catalogue + a footer of
+// global actions. Settings and Credits live in the SystemMenu overlay (the footer just
+// opens it — Credits on its About tab), so there is no separate title or credits scene.
+//
+// Tabs group the SceneRegistry categories so none is near-empty: Games (Action/RPG/
+// Strategy), Tech (Map/Benchmark), Demos (Interface). Each tab is a scrollable list of
+// gemsSection-per-category buttons.
+const LOBBY_TABS = [
+  {
+    key: "LOBBY_TAB_GAMES",
+    cats: ["SCENE_CAT_ACTION", "SCENE_CAT_RPG", "SCENE_CAT_STRATEGY"],
+  },
+  { key: "LOBBY_TAB_TECH", cats: ["SCENE_CAT_MAP", "SCENE_CAT_BENCHMARK"] },
+  { key: "LOBBY_TAB_DEMOS", cats: ["SCENE_CAT_UI"] },
+];
+
 globalThis.SCENES = {
-  title: () =>
-    Object.assign(new Scene(), {
-      label: "Title",
-
-      create(openScene) {
-        this.ui = gemsRoot({ maxWidth: 420 });
-        UI.insert(this.ui);
-
-        this.ui.insertChild(
-          gemsHeader(I18n.textRef("APP_NAME"), {
-            height: 80,
-            halign: fa_center,
-          }),
-        );
-
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("TITLE_DEMO"), () => openScene(SCENES.lobby)),
-        );
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("TITLE_SETTINGS"), () =>
-            openScene(SCENES.settings),
-          ),
-        );
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("TITLE_CREDITS"), () =>
-            openScene(SCENES.credits),
-          ),
-        );
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("TITLE_QUIT"), () =>
-            openScene(() =>
-              Object.assign(new Scene(), {
-                create() {
-                  game_end();
-                },
-              }),
-            ),
-          ),
-        );
-      },
-
-      destroy() {
-        UI.remove(this.ui);
-        this.ui.destroy();
-      },
-    }),
-
   lobby: () =>
     Object.assign(new Scene(), {
       label: "Lobby",
 
       create(openScene) {
-        this.ui = gemsRoot({ maxWidth: GemsTheme.menuWidth });
+        // Fixed tab-host height computed from the GUI surface (flexpanel can't resize
+        // after layout on 0.19), leaving room for the header + footer.
+        const guiH = display_get_gui_height();
+        const tabsH = Math.max(240, guiH - 320);
+
+        this.ui = gemsRoot({ maxWidth: 720 });
         UI.insert(this.ui);
 
-        this.ui.insertChild(gemsHeader(I18n.textRef("LOBBY_HEADING")));
+        this.ui.insertChild(
+          gemsHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
+        );
 
-        // Scrollable body so the catalogue can't run off the bottom as scenes are added.
-        const body = gemsScroll({ grow: true });
+        // Bucket the registry's categories into the three display tabs.
         const groups = SceneRegistry.byCategory();
-        if (groups.length === 0) {
-          const empty = gemsCard();
-          empty.insertChild(
-            gemsLabel(I18n.textRef("LOBBY_EMPTY"), {
-              color: "#888888",
-              halign: fa_center,
-            }),
-          );
-          body.scrollBody.insertChild(empty);
-        } else {
-          for (const group of groups) {
-            const section = gemsSection(I18n.textRef(group.category));
-            for (const e of group.entries) {
+        const byCat = {};
+        for (let i = 0; i < groups.length; i++) {
+          byCat[groups[i].category] = groups[i].entries;
+        }
+
+        const tabs = [];
+        for (let t = 0; t < LOBBY_TABS.length; t++) {
+          const def = LOBBY_TABS[t];
+          const scroll = gemsScroll({ height: tabsH });
+          let filled = false;
+          for (let c = 0; c < def.cats.length; c++) {
+            const entries = byCat[def.cats[c]];
+            if (entries == null || entries.length === 0) continue;
+            filled = true;
+            const section = gemsSection(I18n.textRef(def.cats[c]));
+            for (let e = 0; e < entries.length; e++) {
+              const entry = entries[e]; // capture for the click closure
               section.insertChild(
-                gemsButton(e.label, () => openScene(e.factory)),
+                gemsButton(entry.label, () => openScene(entry.factory)),
               );
             }
-            body.scrollBody.insertChild(section);
+            scroll.scrollBody.insertChild(section);
           }
+          if (!filled) {
+            const empty = gemsCard();
+            empty.insertChild(
+              gemsLabel(I18n.textRef("LOBBY_EMPTY"), {
+                color: "#888888",
+                halign: fa_center,
+              }),
+            );
+            scroll.scrollBody.insertChild(empty);
+          }
+          tabs.push({ label: I18n.textRef(def.key), content: scroll });
         }
-        this.ui.insertChild(body);
+        this.ui.insertChild(gemsTabs(tabs, { height: tabsH }));
 
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("LOBBY_BACK"), () => openScene(SCENES.title)),
+        // Push the footer to the bottom of the screen (the tab host is a fixed height).
+        this.ui.insertChild(new UIElement({ width: "100%", flexGrow: 1 }));
+
+        // Footer: global actions. Settings/Credits open the SystemMenu (Credits on its
+        // About tab, index 2); Quit ends the game.
+        const footer = gemsGrid();
+        footer.insertChild(
+          gemsButton(I18n.textRef("TITLE_SETTINGS"), () => SystemMenu.open(), {
+            width: 200,
+          }),
         );
-      },
-
-      destroy() {
-        UI.remove(this.ui);
-        this.ui.destroy();
-      },
-    }),
-
-  settings: () =>
-    Object.assign(new Scene(), {
-      label: "Settings",
-
-      create(openScene) {
-        this.ui = gemsRoot({ maxWidth: GemsTheme.menuWidth });
-        UI.insert(this.ui);
-
-        this.ui.insertChild(gemsHeader(I18n.textRef("SETTINGS_HEADING")));
-
-        // Scrollable body; the Save / Back buttons stay pinned below it.
-        const body = gemsScroll({ grow: true });
-
-        const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
-        volSection.insertChild(
-          gemsRow(I18n.textRef("SETTINGS_VOL_MASTER"), gemsSlider("volMaster")),
+        footer.insertChild(
+          gemsButton(I18n.textRef("TITLE_CREDITS"), () => SystemMenu.open(2), {
+            width: 200,
+          }),
         );
-        volSection.insertChild(
-          gemsRow(I18n.textRef("SETTINGS_VOL_MUSIC"), gemsSlider("volMusic")),
-        );
-        volSection.insertChild(
-          gemsRow(I18n.textRef("SETTINGS_VOL_SFX"), gemsSlider("volSfx")),
-        );
-        body.scrollBody.insertChild(volSection);
-
-        const dispSection = gemsSection(I18n.textRef("SETTINGS_DISP_TITLE"));
-        dispSection.insertChild(
-          gemsToggle(
-            I18n.textRef("SETTINGS_DISP_FULLSCREEN"),
-            () => Settings.get("fullscreen"),
-            () => {
-              Settings.set("fullscreen", !Settings.get("fullscreen"));
-              window_set_fullscreen(Settings.get("fullscreen"));
-            },
-            {
-              onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
-              offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
-            },
+        footer.insertChild(
+          gemsButton(
+            I18n.textRef("TITLE_QUIT"),
+            () =>
+              openScene(() =>
+                Object.assign(new Scene(), {
+                  create() {
+                    game_end();
+                  },
+                }),
+              ),
+            { width: 200 },
           ),
         );
-
-        const resItems = [
-          {
-            name: I18n.text("SETTINGS_DISP_RES_DEFAULT"),
-            value: { w: 0, h: 0 },
-          },
-          { name: "1280×720", value: { w: 1280, h: 720 } },
-          { name: "1920×1080", value: { w: 1920, h: 1080 } },
-        ];
-        const curResW = Settings.get("resolutionW");
-        const resIdx = Math.max(
-          0,
-          resItems.findIndex((r) => r.value.w === curResW),
-        );
-        dispSection.insertChild(
-          gemsRow(
-            I18n.textRef("SETTINGS_DISP_RESOLUTION"),
-            gemsSelectCustom(resItems, resIdx, (_i, res) => {
-              Settings.set("resolutionW", res.w);
-              Settings.set("resolutionH", res.h);
-            }),
-          ),
-        );
-        dispSection.insertChild(
-          gemsRow(
-            I18n.textRef("SETTINGS_DISP_FPS"),
-            gemsSelect("fpsLimit", [
-              { name: "30", value: 30 },
-              { name: "60", value: 60 },
-              { name: "120", value: 120 },
-              { name: I18n.text("SETTINGS_DISP_FPS_UNLIMITED"), value: 0 },
-            ]),
-          ),
-        );
-        body.scrollBody.insertChild(dispSection);
-
-        const uiSection = gemsSection(I18n.textRef("SETTINGS_UI_TITLE"));
-        uiSection.insertChild(
-          gemsRow(
-            I18n.textRef("SETTINGS_UI_SCALE"),
-            gemsSlider("uiScale", 0.5, 2, 0.1),
-          ),
-        );
-        body.scrollBody.insertChild(uiSection);
-
-        const langSection = gemsSection(I18n.textRef("SETTINGS_LANG_TITLE"));
-        const langItems = [
-          { name: I18n.text("LANG_EN_US"), value: "en-US" },
-          { name: I18n.text("LANG_KO_KR"), value: "ko-KR" },
-        ];
-        const langIdx = Math.max(
-          0,
-          langItems.findIndex((it) => it.value === Settings.get("language")),
-        );
-        langSection.insertChild(
-          gemsRow(
-            I18n.textRef("SETTINGS_LANG_LABEL"),
-            // Switching language reloads I18n and re-adopts the locale's base font,
-            // so the open UI (built from live textRefs) updates in place.
-            gemsSelectCustom(langItems, langIdx, (_i, value) => {
-              Settings.set("language", value);
-              I18n.load("i18n/" + value + "/manifest.json");
-              draw_set_font(I18n.font("default"));
-            }),
-          ),
-        );
-        body.scrollBody.insertChild(langSection);
-        this.ui.insertChild(body);
-
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("SETTINGS_SAVE"), () => Settings.save()),
-        );
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("SETTINGS_BACK"), () =>
-            openScene(SCENES.title),
-          ),
-        );
-      },
-
-      destroy() {
-        UI.remove(this.ui);
-        this.ui.destroy();
-      },
-    }),
-
-  credits: () =>
-    Object.assign(new Scene(), {
-      label: "Credits",
-
-      create(openScene) {
-        this.ui = gemsRoot({ maxWidth: 560 });
-        UI.insert(this.ui);
-
-        this.ui.insertChild(gemsHeader(I18n.textRef("CREDITS_HEADING")));
-
-        const body = gemsCard({ gap: GemsTheme.gapSm });
-
-        const lines = [
-          [I18n.textRef("CREDITS_NAME"), "#ffffff"],
-          [I18n.textRef("CREDITS_TAGLINE"), "#cccccc"],
-          [() => "", "#000000"],
-          [I18n.textRef("CREDITS_DEV"), "#aaaaaa"],
-          [() => "", "#000000"],
-          [I18n.textRef("CREDITS_ENGINE"), "#777777"],
-          [I18n.textRef("CREDITS_LIBS"), "#777777"],
-        ];
-        for (let i = 0; i < lines.length; i++) {
-          body.insertChild(gemsLabel(lines[i][0], { color: lines[i][1] }));
-        }
-        this.ui.insertChild(body);
-
-        this.ui.insertChild(
-          gemsButton(I18n.textRef("CREDITS_BACK"), () =>
-            openScene(SCENES.title),
-          ),
-        );
+        this.ui.insertChild(footer);
       },
 
       destroy() {

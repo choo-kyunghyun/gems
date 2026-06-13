@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"PauseMenu",
+  "%Name":"SystemMenu",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"PauseMenu",
+  "name":"SystemMenu",
   "parent":{
     "name":"Element",
     "path":"folders/Core/UI/Element.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"PauseMenu.js",
+  "scriptSource":"SystemMenu.js",
 }

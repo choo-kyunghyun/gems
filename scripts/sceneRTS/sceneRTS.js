@@ -14,7 +14,7 @@ SceneRegistry.add(() => new _SceneRTSClass(), {
 class _SceneRTSClass extends Scene {
   label = "RTS";
 
-  create(openScene) {
+  create() {
     this.world = new World(256, 60);
     SeparationSystem.iterations = RTS_SEPARATION_ITERS;
 
@@ -66,8 +66,9 @@ class _SceneRTSClass extends Scene {
     });
     this.camera.assign(0);
 
-    // Pause menu owns the exit (Esc / Start); no in-world Back button.
-    PauseMenu.arm(openScene);
+    // SystemMenu overlay owns pause + exit (Esc / Start / F1) and suspends menu nav while
+    // playing. Flag it (a subclass field initializer wouldn't run on GMRT).
+    this.gameplay = true;
 
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -77,7 +78,7 @@ class _SceneRTSClass extends Scene {
   }
 
   step() {
-    if (PauseMenu.update()) return; // paused — freeze the sim
+    // No pause gate — obj_game skips scene.step() while the SystemMenu is open.
 
     if (mouse_check_button(mb_left)) {
       this.target.x = mouse_x;

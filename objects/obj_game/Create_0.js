@@ -59,14 +59,21 @@ this.openScene = (factory) => {
 this._applyScene = (factory) => {
   if (this.scene !== null) this.scene.destroy();
   UINav.reset(); // drop focus held on the outgoing scene's UI
-  PauseMenu.reset(); // clear any pause state from the outgoing scene
+  SystemMenu.reset(); // close the system overlay (+ its pause) + restore time scale before swapping
   Dialogue.clear(); // a dialogue must not survive into the next scene
   FloatingText.clear(); // drop floating combat numbers (world coords are scene-local)
+  this._sceneFactory = factory; // remembered so the SystemMenu can restart the scene
+  // Resolve a display label for the SystemMenu readout. Class-based scenes (extends Scene)
+  // never get their `label` field — GMRT doesn't run subclass field initializers — so the
+  // registry label is the reliable (and localized) source; built-ins fall back to the
+  // instance label they set via Object.assign.
+  const sceneEntry = SceneRegistry._entries.find((e) => e.factory === factory);
+  this._sceneLabel = sceneEntry != null ? sceneEntry.label : null;
   this.scene = factory();
   this.scene.create((s) => this.openScene(s));
 };
 
 UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit theme
 
-this._applyScene(this.scenes.title);
+this._applyScene(this.scenes.lobby);
 SceneTransition.reveal(); // boot fades the title in from black instead of popping

@@ -15,7 +15,7 @@ SceneRegistry.add(() => new _ScenePlatformerClass(), {
 class _ScenePlatformerClass extends Scene {
   label = "Platformer";
 
-  create(openScene) {
+  create() {
     PlatformerContent.register(); // rarity tiers + item set (idempotent)
 
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
@@ -139,8 +139,10 @@ class _ScenePlatformerClass extends Scene {
     this._hpTrack = {};
     this._hpTrack[this.ctrl.id] = this.world.get(Health, this.ctrl.id).hp;
 
-    // Pause menu owns the exit (Esc / Start); no in-world Back button.
-    PauseMenu.arm(openScene);
+    // Gameplay scene: the SystemMenu overlay owns pause + exit (Esc / Start / F1) and
+    // suspends menu nav while playing. Flag it here (a subclass field initializer
+    // wouldn't run on GMRT).
+    this.gameplay = true;
 
     // Control hint (flexpanel, GUI layer).
     this.ui = gemsRoot();
@@ -161,7 +163,8 @@ class _ScenePlatformerClass extends Scene {
   }
 
   step() {
-    if (PauseMenu.update()) return; // paused — freeze the sim
+    // No pause gate here — obj_game skips scene.step() entirely while the SystemMenu is
+    // open (global pause), so reaching this line means we're live.
 
     // Edge-triggered toggle — the window's widgets are clicked/navigated directly.
     if (Input.get("inventory").pressed()) {
