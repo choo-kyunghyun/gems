@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneTileInspect47",
   "parent":{
-    "name":"Benchmarks & Tests",
-    "path":"folders/Benchmarks & Tests.yy",
+    "name":"Map",
+    "path":"folders/Templates/Map.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

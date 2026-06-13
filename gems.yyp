@@ -10,7 +10,6 @@
   },
   "defaultScriptType":1,
   "Folders":[
-    {"$GMFolder":"","%Name":"Benchmarks & Tests","folderPath":"folders/Benchmarks & Tests.yy","name":"Benchmarks & Tests","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Core","folderPath":"folders/Core.yy","name":"Core","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Camera","folderPath":"folders/Core/Camera.yy","name":"Camera","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Components","folderPath":"folders/Core/Components.yy","name":"Components","resourceType":"GMFolder","resourceVersion":"2.0",},
@@ -33,7 +32,7 @@
     {"$GMFolder":"","%Name":"Map","folderPath":"folders/Templates/Map.yy","name":"Map","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Platformer","folderPath":"folders/Templates/Platformer.yy","name":"Platformer","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"RTS","folderPath":"folders/Templates/RTS.yy","name":"RTS","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"TopDown","folderPath":"folders/Templates/TopDown.yy","name":"TopDown","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"TopDown","folderPath":"folders/TopDown.yy","name":"TopDown","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[

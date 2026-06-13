@@ -6,7 +6,7 @@
   "name":"TopDownLevel",
   "parent":{
     "name":"TopDown",
-    "path":"folders/Templates/TopDown.yy",
+    "path":"folders/TopDown.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
