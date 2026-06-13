@@ -49,6 +49,18 @@ globalThis.PlatformerLevel = {
           mask: null,
           hits: [],
         });
+        world.add(id, Visual, {
+          visible: true,
+          sprite: spr_choo,
+          subimg: 0,
+          xscale: 1,
+          yscale: 1,
+          rot: 0,
+          color: make_colour_rgb(95, 110, 125), // structural slate
+          alpha: 1,
+          speed: 0,
+          time: 0,
+        });
         world.add(id, Name, { name: "Platform" });
       } else if (s.preset === "enemy") {
         const id = world.create();
@@ -86,6 +98,18 @@ globalThis.PlatformerLevel = {
           hits: [],
         });
         world.add(id, Spike, {});
+        world.add(id, Visual, {
+          visible: true,
+          sprite: spr_choo,
+          subimg: 0,
+          xscale: 1,
+          yscale: 1,
+          rot: 0,
+          color: make_colour_rgb(200, 65, 65), // hazard red
+          alpha: 1,
+          speed: 0,
+          time: 0,
+        });
         world.add(id, Name, { name: "Spike" });
       }
     }

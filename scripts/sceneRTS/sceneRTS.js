@@ -49,15 +49,28 @@ class _SceneRTSClass extends Scene {
         mask: null,
         hits: [],
       });
+      this.world.add(id, Visual, {
+        visible: true,
+        sprite: spr_choo,
+        subimg: 0,
+        xscale: 1,
+        yscale: 1,
+        rot: 0,
+        color: make_colour_rgb(90, 160, 240), // unit blue
+        alpha: 1,
+        speed: 0,
+        time: 0,
+      });
       this.units.push(id);
     }
 
     this.physics = new Pipeline().add(SolidSystem).add(SeparationSystem);
 
     this.renderer = new Renderer();
-    // Stays enabled (unlike platformer/rpg, which disable it): it's this scene's only
-    // entity renderer, so the bbox outlines ARE the units. The Debug-menu toggle still works.
-    this.renderer.insert(new RenderDebugEntity());
+    this.renderer.insert(new RenderDebugBox()); // filled colored unit boxes
+    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    bbox.enabled = false;
+    this.renderer.insert(bbox);
 
     this.camera = cameraFollow2d({
       world: this.world,
