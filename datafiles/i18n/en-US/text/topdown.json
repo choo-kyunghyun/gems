@@ -2,6 +2,14 @@
   "TOPDOWN_NAME": "Top-Down RPG",
   "TOPDOWN_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk · B: Build",
 
+  "EDITOR_NAME": "Level Editor",
+  "EDITOR_HINT": "LMB paint · RMB erase · MMB drag pan · Wheel zoom",
+  "EDITOR_WALL": "Wall",
+  "EDITOR_ERASE": "Erase",
+  "EDITOR_EXPORT": "Export",
+  "EDITOR_SAVED": "Exported to {0}",
+  "EDITOR_BACK": "Back",
+
   "BUILD_MODE": "Build Mode",
   "BUILD_WALL": "Wall",
   "BUILD_FLOOR": "Floor",

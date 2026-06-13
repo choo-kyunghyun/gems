@@ -26,23 +26,23 @@ globalThis.TileEdit = {
   },
 
   /**
-   * Greedy-mesh the solid cells of `layer` into the fewest rectangles and spawn one
-   * kinematic-solid collider entity per rectangle, pushing their ids onto `out`. Per-cell
-   * colliders leave internal seams between abutting tiles, and the AABB resolver snags a
-   * slider on each seam — merging them away removes that whole class of bug (see memory
-   * project_tile_collider_seams). Box geometry uses the level's cell size.
+   * Greedy-mesh the solid cells of `layer` into the fewest rectangles, returned as
+   * `[gx, gy, wCells, hCells]` in GRID coords (extend right for width, then down while the
+   * whole row stays solid). Per-cell boxes leave internal seams between abutting tiles and
+   * the AABB resolver snags on each — merging removes that class of bug (see memory
+   * project_tile_collider_seams). Shared by `meshSolid` (build colliders) and level export
+   * (serialize a wall layer back to the file's `walls` rects).
    */
-  meshSolid(world, level, layer, out) {
+  meshRects(level, layer) {
     const cols = level.cols;
     const rows = level.rows;
-    const cw = level.cellWidth;
-    const ch = level.cellHeight;
     const consumed = new Array(cols * rows).fill(false);
     // Grid.get returns 0 for empty in-bounds cells (not undefined) and a TileType for a
     // filled cell — test truthiness, not `!== undefined`, or every empty cell reads solid.
     const solid = (x, y) =>
       x < cols && y < rows && layer.get(x, y) && !consumed[y * cols + x];
 
+    const rects = [];
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         if (!solid(x, y)) continue;
@@ -63,17 +63,33 @@ globalThis.TileEdit = {
         for (let yy = y; yy < y + h; yy++)
           for (let xx = x; xx < x + w; xx++) consumed[yy * cols + xx] = true;
 
-        const id = world.create();
-        world.add(id, Position, { x: x * cw, y: y * ch, z: 0 });
-        world.add(id, BBox, { x: 0, y: 0, width: w * cw, height: h * ch });
-        world.add(id, Collision, {
-          solid: true,
-          kinematic: true,
-          mask: null,
-          hits: [],
-        });
-        out.push(id);
+        rects.push([x, y, w, h]);
       }
+    }
+    return rects;
+  },
+
+  /**
+   * Greedy-mesh the solid cells of `layer` into the fewest kinematic-solid collider
+   * entities (one per `meshRects` rectangle), pushing their ids onto `out`. Box geometry
+   * uses the level's cell size.
+   */
+  meshSolid(world, level, layer, out) {
+    const cw = level.cellWidth;
+    const ch = level.cellHeight;
+    const rects = this.meshRects(level, layer);
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      const id = world.create();
+      world.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
+      world.add(id, BBox, { x: 0, y: 0, width: r[2] * cw, height: r[3] * ch });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      out.push(id);
     }
   },
 

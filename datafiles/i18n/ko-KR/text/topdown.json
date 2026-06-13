@@ -2,6 +2,14 @@
   "TOPDOWN_NAME": "탑다운 RPG",
   "TOPDOWN_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화 · B: 건설",
 
+  "EDITOR_NAME": "레벨 에디터",
+  "EDITOR_HINT": "좌클릭 그리기 · 우클릭 지우기 · 휠클릭 이동 · 휠 확대/축소",
+  "EDITOR_WALL": "벽",
+  "EDITOR_ERASE": "지우기",
+  "EDITOR_EXPORT": "내보내기",
+  "EDITOR_SAVED": "{0}에 내보냄",
+  "EDITOR_BACK": "뒤로",
+
   "BUILD_MODE": "건설 모드",
   "BUILD_WALL": "벽",
   "BUILD_FLOOR": "바닥",

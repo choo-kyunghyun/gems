@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneEditor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneEditor",
+  "parent":{
+    "name":"TopDown",
+    "path":"folders/Templates/TopDown.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneEditor.js",
+}

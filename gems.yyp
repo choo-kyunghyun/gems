@@ -164,6 +164,7 @@
     {"id":{"name":"SaveData","path":"scripts/SaveData/SaveData.yy",},},
     {"id":{"name":"Scene","path":"scripts/Scene/Scene.yy",},},
     {"id":{"name":"sceneBenchmark","path":"scripts/sceneBenchmark/sceneBenchmark.yy",},},
+    {"id":{"name":"sceneEditor","path":"scripts/sceneEditor/sceneEditor.yy",},},
     {"id":{"name":"sceneLobby","path":"scripts/sceneLobby/sceneLobby.yy",},},
     {"id":{"name":"scenePlatformer","path":"scripts/scenePlatformer/scenePlatformer.yy",},},
     {"id":{"name":"sceneRTS","path":"scripts/sceneRTS/sceneRTS.yy",},},
