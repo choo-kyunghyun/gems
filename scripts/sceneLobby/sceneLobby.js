@@ -4,14 +4,14 @@
 // opens it — Credits on its About tab), so there is no separate title or credits scene.
 //
 // Tabs group the SceneRegistry categories so none is near-empty: Games (Action/RPG/
-// Strategy), Tech (Map/Benchmark), Demos (Interface). Each tab is a scrollable list of
+// Strategy), Tech (Map), Demos (Interface). Each tab is a scrollable list of
 // gemsSection-per-category buttons.
 const LOBBY_TABS = [
   {
     key: "LOBBY_TAB_GAMES",
     cats: ["SCENE_CAT_ACTION", "SCENE_CAT_RPG", "SCENE_CAT_STRATEGY"],
   },
-  { key: "LOBBY_TAB_TECH", cats: ["SCENE_CAT_MAP", "SCENE_CAT_BENCHMARK"] },
+  { key: "LOBBY_TAB_TECH", cats: ["SCENE_CAT_MAP"] },
   { key: "LOBBY_TAB_DEMOS", cats: ["SCENE_CAT_UI"] },
 ];
 
