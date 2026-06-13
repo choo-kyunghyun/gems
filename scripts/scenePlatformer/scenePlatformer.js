@@ -30,8 +30,11 @@ class _ScenePlatformerClass extends Scene {
       .add(TriggerSystem); // fills col.hits so spikes can be detected
 
     this.renderer = new Renderer();
-    this.renderer.insert(new RenderDebugBox()); // colored boxes + Name labels
-    this.renderer.insert(new RenderDebugEntity()); // lime bbox outlines on top
+    this.renderer.insert(new RenderDebugBox()); // filled colored boxes
+    this.renderer.insert(new RenderDebugName()); // entity Name labels on top
+    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    bbox.enabled = false;
+    this.renderer.insert(bbox);
 
     this.camera = cameraFollow2d({
       world: this.world,
@@ -77,14 +80,19 @@ class _ScenePlatformerClass extends Scene {
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
       } else {
-        let hurt = EnemySystem.resolveTouch(this.world, id, this.ctrl.iframes > 0);
+        let hurt = EnemySystem.resolveTouch(
+          this.world,
+          id,
+          this.ctrl.iframes > 0,
+        );
         if (
           !hurt &&
           this.ctrl.iframes <= 0 &&
           CollectibleSystem.hitSpike(this.world, id)
         )
           hurt = true;
-        if (hurt) PlatformerController.respawn(this.world, this.ctrl, this.spawn);
+        if (hurt)
+          PlatformerController.respawn(this.world, this.ctrl, this.spawn);
       }
       if (this.world.get(Position, id).y > PLATF_DEATH_Y)
         PlatformerController.respawn(this.world, this.ctrl, this.spawn);

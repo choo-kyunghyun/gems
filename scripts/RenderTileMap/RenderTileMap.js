@@ -46,6 +46,7 @@ globalThis.RenderTileMap = class RenderTileMap {
    * @param {RenderTileMapOptions} [opt]
    */
   constructor(layer, level, sprite, opt = {}) {
+    this.enabled = true;
     this.layer = layer;
     this.level = level;
     this.sprite = sprite;

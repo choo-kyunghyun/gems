@@ -26,6 +26,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
    * @param {RenderDebugTileMapOptions} [opt]
    */
   constructor(level, opt = {}) {
+    this.enabled = true;
     this.level = level;
     this.grid = opt.grid ?? true;
     this.cost = opt.cost ?? true;

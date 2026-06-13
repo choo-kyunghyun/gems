@@ -55,6 +55,8 @@
   "SYS_STEP": "한 프레임",
   "SYS_RESTART": "장면 재시작",
   "SYS_QUIT": "로비로 나가기",
+  "SYS_RENDER": "렌더",
+  "SYS_DEBUG_BBOX": "BBox 외곽선 표시",
   "SYS_PERF": "성능",
   "SYS_FRAME_MS": "프레임 (ms)",
   "SYS_LOG": "최근 로그",

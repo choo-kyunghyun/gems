@@ -4,6 +4,13 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
+  constructor() {
+    // `Renderer.draw` skips a pass while `enabled` is false; the SystemMenu Debug tab toggles
+    // this live. A scene using it as a pure overlay inserts it disabled (see scenePlatformer/
+    // sceneRpg); RTS keeps it enabled since it's that scene's only entity renderer.
+    this.enabled = true;
+  }
+
   destroy() {}
 
   draw(world) {

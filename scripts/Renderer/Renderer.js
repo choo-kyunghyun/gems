@@ -1,5 +1,6 @@
 /**
  * @typedef {Object} RenderPass
+ * @property {boolean} enabled - drawn only while true; toggled in place (e.g. debug overlays)
  * @property {function(): void} destroy
  * @property {function(): void} draw
  */
@@ -31,6 +32,9 @@ globalThis.Renderer = class Renderer {
 
   draw(world) {
     for (const pass of this.passes) {
+      // Every pass declares `enabled` (RenderPass contract); a disabled pass stays in the
+      // list but is skipped, so debug overlays toggle in place without re-inserting.
+      if (!pass.enabled) continue;
       pass.draw(world);
     }
   }

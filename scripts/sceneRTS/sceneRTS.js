@@ -55,6 +55,8 @@ class _SceneRTSClass extends Scene {
     this.physics = new Pipeline().add(SolidSystem).add(SeparationSystem);
 
     this.renderer = new Renderer();
+    // Stays enabled (unlike platformer/rpg, which disable it): it's this scene's only
+    // entity renderer, so the bbox outlines ARE the units. The Debug-menu toggle still works.
     this.renderer.insert(new RenderDebugEntity());
 
     this.camera = cameraFollow2d({

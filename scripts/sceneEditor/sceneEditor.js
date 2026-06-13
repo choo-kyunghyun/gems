@@ -157,12 +157,14 @@ class _SceneEditorClass extends Scene {
       data: { color: "#55aa55" },
     }).id;
     if (this._zonePass !== undefined) this.renderer.remove(this._zonePass);
-    this._zonePass = new RenderZone(this.level, "buildable", {
-      alpha: 0.28,
-      labels: true,
+    this._zonePass = new RenderZone(this.level, "buildable", { alpha: 0.28 });
+    this.renderer.insert(this._zonePass);
+    if (this._zoneLabelPass !== undefined)
+      this.renderer.remove(this._zoneLabelPass);
+    this._zoneLabelPass = new RenderZoneLabel(this.level, "buildable", {
       font: I18n.font("default"),
     });
-    this.renderer.insert(this._zonePass);
+    this.renderer.insert(this._zoneLabelPass);
   }
 
   // Start a fresh blank level at the chosen size: enclosed by a border wall ring (bounded +

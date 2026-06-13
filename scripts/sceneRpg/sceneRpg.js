@@ -92,14 +92,17 @@ class _SceneRpgClass extends Scene {
         font: I18n.font("default"),
       }),
     );
+    this.renderer.insert(new RenderZone(this.level, "buildable"));
     this.renderer.insert(
-      new RenderZone(this.level, "buildable", {
-        labels: true,
+      new RenderZoneLabel(this.level, "buildable", {
         font: I18n.font("default"),
       }),
     );
     this.renderer.insert(new RenderDebugBox());
-    this.renderer.insert(new RenderDebugEntity());
+    this.renderer.insert(new RenderDebugName());
+    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    bbox.enabled = false;
+    this.renderer.insert(bbox);
 
     this.camera = cameraFollow2d({
       world: this.world,

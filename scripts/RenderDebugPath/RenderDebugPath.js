@@ -1,6 +1,7 @@
 /** @implements {RenderPass} */
 globalThis.RenderDebugPath = class RenderDebugPath {
   constructor(level) {
+    this.enabled = true;
     this.level = level;
   }
 

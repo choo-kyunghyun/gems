@@ -1,5 +1,9 @@
 /** @implements {RenderPass} */
 globalThis.RenderEntity = class RenderEntity {
+  constructor() {
+    this.enabled = true;
+  }
+
   destroy() {}
 
   draw(world) {

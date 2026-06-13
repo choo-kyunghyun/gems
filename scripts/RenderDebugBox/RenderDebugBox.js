@@ -1,19 +1,21 @@
 /**
  * Colored-box stand-in renderer: draws each entity as a filled `Visual.color`
- * rectangle (GMRT 0.19 can't render the SVG character sprites) plus its `Name`
- * label. Pair it with `RenderDebugEntity` inserted *after* for the lime bbox
- * overlay on top. Position is interpolated via `PrevPosition` + `world.alpha`
- * like `RenderEntity`/`RenderDebugEntity`.
+ * rectangle (GMRT 0.19 can't render the SVG character sprites). `Name` labels are
+ * a separate `RenderDebugName` pass; the lime bbox overlay is `RenderDebugEntity`
+ * — insert both *after* this for text/outlines on top. Position is interpolated
+ * via `PrevPosition` + `world.alpha` like `RenderEntity`/`RenderDebugEntity`.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugBox = class RenderDebugBox {
+  constructor() {
+    this.enabled = true;
+  }
+
   destroy() {}
 
   draw(world) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
 
     const ids = world.query(Position);
 
@@ -61,29 +63,7 @@ globalThis.RenderDebugBox = class RenderDebugBox {
       }
     }
 
-    // Name labels: centered above the box, for any entity with a Name.
-    draw_set_alpha(1);
-    draw_set_color(c_white);
-    draw_set_halign(fa_center);
-    draw_set_valign(fa_bottom);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const name = world.get(Name, id);
-      if (name === undefined) continue;
-      const pos = world.get(Position, id);
-      const prev = world.get(PrevPosition, id);
-      const rx =
-        prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-      const ry =
-        prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
-      const bbox = world.get(BBox, id);
-      const offsetY = bbox !== undefined ? bbox.y : 0;
-      draw_text(rx, ry + offsetY, name.name);
-    }
-
     draw_set_color(color);
     draw_set_alpha(alpha);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
   }
 };

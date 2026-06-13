@@ -458,9 +458,27 @@ globalThis.SystemMenu = class SystemMenu {
     return scroll;
   }
 
-  // Debug — live perf readouts + a snapshot of the recent Log buffer.
+  // Debug — render toggles + live perf readouts + a snapshot of the recent Log buffer.
   static _debugTab(tabsH) {
     const scroll = gemsScroll({ height: tabsH });
+
+    // Render overlays: a checkbox bound to the live scene's RenderDebugEntity pass
+    // (BBox outlines). No-op / off when the current scene has no such pass.
+    const render = gemsSection(I18n.textRef("SYS_RENDER"));
+    render.insertChild(
+      gemsCheckbox(
+        I18n.textRef("SYS_DEBUG_BBOX"),
+        () => {
+          const p = SystemMenu._debugPass();
+          return p !== null && p.enabled;
+        },
+        () => {
+          const p = SystemMenu._debugPass();
+          if (p !== null) p.enabled = !p.enabled;
+        },
+      ),
+    );
+    scroll.scrollBody.insertChild(render);
 
     const perf = gemsSection(I18n.textRef("SYS_PERF"));
     perf.insertChild(
@@ -525,6 +543,18 @@ globalThis.SystemMenu = class SystemMenu {
     return g !== null && g.scene !== null && g.scene.world != null
       ? g.scene.world
       : null;
+  }
+
+  // The live scene's BBox-overlay pass, or null. Found by scanning the renderer's pass
+  // list (instanceof on a flat class is GMRT-safe) so no scene needs to expose it.
+  static _debugPass() {
+    const g = SystemMenu._game;
+    if (g === null || g.scene === null || g.scene.renderer == null) return null;
+    const passes = g.scene.renderer.passes;
+    for (let i = 0; i < passes.length; i++) {
+      if (passes[i] instanceof RenderDebugEntity) return passes[i];
+    }
+    return null;
   }
 
   // A fixed-height "label … value" readout row (value is a live () => string).

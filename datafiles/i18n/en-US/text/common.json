@@ -55,6 +55,8 @@
   "SYS_STEP": "Step Frame",
   "SYS_RESTART": "Restart Scene",
   "SYS_QUIT": "Quit to Lobby",
+  "SYS_RENDER": "Render",
+  "SYS_DEBUG_BBOX": "Show BBox outlines",
   "SYS_PERF": "Performance",
   "SYS_FRAME_MS": "Frame (ms)",
   "SYS_LOG": "Recent log",
