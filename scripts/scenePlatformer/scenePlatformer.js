@@ -17,10 +17,7 @@ class _ScenePlatformerClass extends Scene {
 
   create() {
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
-    const levelData = LevelSerializer.load("levels/platformer_1.json", {
-      genre: "platformer",
-    });
-    this.spawn = PlatformerLevel.build(this.world, levelData);
+    this.spawn = PlatformerLevel.build(this.world); // hard-coded level (no shared levels/ file)
     this.ctrl = PlatformerController.create(this.world, this.spawn);
 
     this.physics = new Pipeline()

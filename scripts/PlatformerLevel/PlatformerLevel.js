@@ -1,25 +1,41 @@
-// Level builder for the platformer movement showcase.
-// Reads level data produced by LevelSerializer.load (genre "platformer").
+// Level builder for the platformer movement showcase. The level is hard-coded here
+// (a self-contained showcase — it doesn't share the editor/TopDown `levels/` directory
+// or the `LevelSerializer` round-trip). `playerSpawn` is returned by build().
 //
 // Spawn preset strings and their per-instance fields:
 //   platform   x,y,w,h  oneWay?:bool
 //   enemy      x,y                 (plain patroller — stomp to defeat)
 //   spike      x,y
-//
-// meta.playerSpawn {x,y} is returned by build() so the scene can store it.
 
 const PLATF_ENEMY_SPEED = 60; // patrol walk speed, px/s
 
+const PLATFORMER_LEVEL = {
+  playerSpawn: { x: 80, y: 300 },
+  spawns: [
+    { preset: "platform", x: 0, y: 440, w: 900, h: 32 },
+    { preset: "platform", x: 0, y: 360, w: 24, h: 80 },
+    { preset: "platform", x: 876, y: 360, w: 24, h: 80 },
+    { preset: "platform", x: 60, y: 350, w: 160, h: 20, oneWay: true },
+    { preset: "platform", x: 310, y: 270, w: 160, h: 20, oneWay: true },
+    { preset: "platform", x: 560, y: 190, w: 160, h: 20, oneWay: true },
+    { preset: "platform", x: 700, y: 330, w: 160, h: 20, oneWay: true },
+    { preset: "enemy", x: 200, y: 440 },
+    { preset: "enemy", x: 650, y: 440 },
+    { preset: "enemy", x: 390, y: 270 },
+    { preset: "enemy", x: 500, y: 440 },
+    { preset: "spike", x: 350, y: 440 },
+    { preset: "spike", x: 600, y: 440 },
+  ],
+};
+
 globalThis.PlatformerLevel = {
   /**
-   * Spawn all level entities into world from data loaded by LevelSerializer.
-   * Returns the player spawn position from data.meta.
+   * Spawn the hard-coded platformer level into world; returns the player spawn.
    * @param {object} world
-   * @param {object} data  — parsed level JSON
    * @returns {{ x: number, y: number }}
    */
-  build(world, data) {
-    const spawns = data.spawns;
+  build(world) {
+    const spawns = PLATFORMER_LEVEL.spawns;
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
       if (s.preset === "platform") {
@@ -74,6 +90,6 @@ globalThis.PlatformerLevel = {
       }
     }
 
-    return data.meta.playerSpawn;
+    return PLATFORMER_LEVEL.playerSpawn;
   },
 };

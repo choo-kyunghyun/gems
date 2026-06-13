@@ -59,8 +59,6 @@
     {"$GMIncludedFile":"","%Name":"platformer.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/text","name":"platformer.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"rts.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/text","name":"rts.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"topdown.json","CopyToMask":-1,"filePath":"datafiles/i18n/ko-KR/text","name":"topdown.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"platformer_1.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"platformer_1.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"platformer_2.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"platformer_2.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"topdown_1.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"topdown_1.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
   "isEcma":false,
