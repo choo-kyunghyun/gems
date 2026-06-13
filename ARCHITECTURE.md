@@ -11,7 +11,7 @@ Create_0 → display/GPU setup; Log.clear/info; Settings defaults + load; I18n.l
 Draw_0   → draw_clear(background), scene.draw()
 Step_0   → Time.update(), SlotDrag.poll(), UI.update(), SlotDrag.update(), SystemMenu.update(this), UINav.update(), Dialogue.update(), pending scene → SceneTransition.start, SceneTransition.update(), scene.step() [skipped while SystemMenu open, except a one-frame Step], Log.flush()
 Draw_75  → UI.draw(), UINav.draw(), SlotDrag.draw(), Tooltip.draw(), Toast.draw(), Dialogue.draw(), SceneTransition.draw(), F5 screenshot
-CleanUp  → scene.destroy(), UI/Input/I18n cleanup
+CleanUp  → Log.info("game end"); scene.destroy() (before UI.destroy — it removes the scene's UI roots), UI/Input/I18n cleanup; Log.flush() last (Step_0's flush won't run again, so teardown logs would otherwise be lost)
 ```
 
 **`Scene`** (`scripts/Scene/Scene.js`) is the base class for all demo scenes (`label`, `create()`, `step()`, `draw()`, `destroy()`). Scenes are **factory functions** returning a fresh instance each time they open. `create(openScene)` receives the navigation callback; `destroy()` tears down UI and resources.
