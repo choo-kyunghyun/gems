@@ -255,7 +255,7 @@ globalThis.RpgMap = {
     scene._gridPass.camera = scene.camera;
 
     // 10. Corner minimap — rebuilt per map (captures world/target by value).
-    scene._buildMinimap();
+    RpgHud.buildMinimap(scene);
 
     FloatingText.clear(); // drop combat numbers from the previous map
   },

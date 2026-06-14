@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgHud",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgHud",
+  "parent":{
+    "name":"UI",
+    "path":"folders/RPG/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgHud.js",
+}

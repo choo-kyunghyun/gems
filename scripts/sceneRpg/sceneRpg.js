@@ -41,7 +41,7 @@ class _SceneRpgClass extends Scene {
     // ── Persistent UI (built once). These widgets read this.world / this.ctrl LIVE each
     //    frame, so they keep working after RpgMap.load() swaps the world on a map change. The
     //    corner minimap is the exception — gemsMinimap captures world/target by value, so
-    //    RpgMap.load() rebuilds it (_buildMinimap). Hint, then manager-drawn panels: HUD +
+    //    RpgMap.load() rebuilds it (RpgHud.buildMinimap). Hint, then manager-drawn panels: HUD +
     //    quest tracker (top-right), NPC dialogue (bottom-center, toggled), inventory window,
     //    station prompt/storage/crafting windows, build-mode HUD. ──────────────────────────
     this.ui = gemsRoot();
@@ -49,8 +49,7 @@ class _SceneRpgClass extends Scene {
     this.ui.insertChild(
       gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
     );
-    this._buildHud();
-    this._buildDialogue();
+    RpgHud.build(this); // top-right HP/quest card + bottom-center dialogue box
     RpgInventoryUI.build(this);
     Interactable.build(this); // station prompt + storage + crafting windows
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
@@ -85,37 +84,6 @@ class _SceneRpgClass extends Scene {
       `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
     );
-  }
-
-  // (Re)build the bottom-right minimap: a framed radar of nearby slimes (red), the NPC
-  // (gold), and doors (violet) around the player marker. gemsMinimap captures world/target
-  // by value, so it's rebuilt whenever RpgMap.load() creates a new world; old wrapper removed
-  // first. Absolute-positioned so it floats over the scene instead of stacking in the column.
-  _buildMinimap() {
-    if (this._miniWrap !== undefined) this._miniWrap.destroy(); // self-removes from this.ui
-    const miniWrap = new UIElement({
-      positionType: "absolute",
-      bottom: 16,
-      right: 16,
-      width: 150,
-      height: 150,
-    });
-    miniWrap.insertChild(
-      gemsMinimap({
-        world: this.world,
-        target: this.ctrl.id,
-        range: 460,
-        size: 150,
-        rules: [
-          { tag: "enemy", color: "#e0584f" },
-          { tag: "npc", color: "#ffd166" },
-          { tag: "portal", color: "#9b8cff" },
-          { tag: "follower", color: "#6fd0a0" },
-        ],
-      }),
-    );
-    this._miniWrap = miniWrap;
-    this.ui.insertChild(miniWrap);
   }
 
   step() {
@@ -270,78 +238,6 @@ class _SceneRpgClass extends Scene {
       f.homeMap = "";
       Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
-  }
-
-  // ── UI panels (manager-drawn, GUI layer) ─────────────────────────────────
-
-  // Top-right HUD card: HP/level line (live) + the QuestLog-bound quest tracker.
-  _buildHud() {
-    const hud = new UIElement({
-      positionType: "absolute",
-      top: 16,
-      right: 16,
-      width: 300,
-    });
-    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
-    const hpRow = new UIElement({ width: "100%", height: 24 });
-    hpRow.insertChild(
-      gemsLabel(
-        () => {
-          const st = this.world.get(Stats, this.ctrl.id);
-          const hpC = this.world.get(Health, this.ctrl.id);
-          const hp = hpC !== undefined ? hpC.hp : 0;
-          return I18n.text("RPG_HUD", st.level, hp, st.maxHp);
-        },
-        { color: GemsTheme.text, font: I18n.font("header") },
-      ),
-    );
-    card.insertChild(hpRow);
-    card.insertChild(gemsDivider());
-    card.insertChild(
-      gemsQuestTracker({ emptyText: I18n.textRef("RPG_NO_QUEST") }),
-    );
-    hud.insertChild(card);
-    this.ui.insertChild(hud);
-  }
-
-  // Bottom-center dialogue card, toggled via its element's .enabled from step().
-  _buildDialogue() {
-    const wrap = new UIElement({
-      positionType: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 24,
-      alignItems: "center",
-    });
-    const card = gemsCard({ width: 640, padding: GemsTheme.pad });
-    const name = new UIElement({ width: "100%", height: 26 });
-    name.insertChild(
-      gemsLabel(() => I18n.text(this.dialogueName), {
-        color: "#ffd166",
-        font: I18n.font("header"),
-      }),
-    );
-    const line = new UIElement({ width: "100%", height: 26 });
-    line.insertChild(
-      gemsLabel(() => I18n.text(this.dialogueLine), { color: GemsTheme.text }),
-    );
-    const action = new UIElement({ width: "100%", height: 22 });
-    action.insertChild(
-      gemsLabel(
-        () =>
-          this.dialogueAction !== ""
-            ? "[E] " + I18n.text(this.dialogueAction)
-            : "",
-        { color: "#54c98a" },
-      ),
-    );
-    card.insertChild(name);
-    card.insertChild(line);
-    card.insertChild(action);
-    wrap.insertChild(card);
-    wrap.enabled = false;
-    this._dlg = wrap;
-    this.ui.insertChild(wrap);
   }
 
   _checkReach() {

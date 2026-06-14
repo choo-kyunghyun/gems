@@ -175,6 +175,7 @@
     {"id":{"name":"RpgCatalog","path":"scripts/RpgCatalog/RpgCatalog.yy",},},
     {"id":{"name":"RpgContent","path":"scripts/RpgContent/RpgContent.yy",},},
     {"id":{"name":"RpgController","path":"scripts/RpgController/RpgController.yy",},},
+    {"id":{"name":"RpgHud","path":"scripts/RpgHud/RpgHud.yy",},},
     {"id":{"name":"RpgInventoryUI","path":"scripts/RpgInventoryUI/RpgInventoryUI.yy",},},
     {"id":{"name":"RpgLevel","path":"scripts/RpgLevel/RpgLevel.yy",},},
     {"id":{"name":"RpgMap","path":"scripts/RpgMap/RpgMap.yy",},},
