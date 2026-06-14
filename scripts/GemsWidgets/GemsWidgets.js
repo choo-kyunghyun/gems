@@ -190,6 +190,9 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       borderColorNormal: gemsColor(bdr),
       borderColorHover: gemsColor(bdrHover),
       animSpeed: GemsTheme.animSpeed,
+      // opts.disabled may be a bool or a live () => bool (e.g. gate on empty inventory).
+      disabled: opts.disabled === true,
+      getDisabled: typeof opts.disabled === "function" ? opts.disabled : null,
       onClick,
     }),
   );

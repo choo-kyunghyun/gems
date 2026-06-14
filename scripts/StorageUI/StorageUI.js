@@ -32,10 +32,12 @@ globalThis.StorageUI = {
     scene._storeClickKey = ""; // last-clicked "side|idx" for double-click detection
     scene._storeClickTime = 0;
 
-    // Transfer window: Bag | Chest columns, each a UITable.
+    // Transfer window: Bag | Chest columns, each a UITable. Wide enough for two tables
+    // that mirror the inventory's (Settings-driven) columns side by side without
+    // clipping their headers.
     const gw = display_get_gui_width();
-    const width = 600;
-    const left = gw > 0 ? gw / 2 - width / 2 : 80;
+    const width = 1100;
+    const left = gw > 0 ? Math.max(10, gw / 2 - width / 2) : 80;
     const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
       left,
       top: 80,
@@ -59,6 +61,7 @@ globalThis.StorageUI = {
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
         () => StorageUI._allFrom(scene, "bag"),
+        () => StorageUI._empty(scene.world.get(Inventory, scene.ctrl.id)),
       ),
     );
     cols.insertChild(
@@ -67,6 +70,7 @@ globalThis.StorageUI = {
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
         () => StorageUI._allFrom(scene, "box"),
+        () => StorageUI._empty(scene.world.get(Inventory, scene._storageId)),
       ),
     );
     win.body.insertChild(cols);
@@ -83,8 +87,9 @@ globalThis.StorageUI = {
   },
 
   // One titled column: a header (title + a bulk "All" button) over a sortable table.
-  // `onAll` moves every stack of this side to the other (gated by capacity/weight).
-  _column(titleRef, tableEl, allLabelRef, onAll) {
+  // `onAll` moves every stack of this side to the other (gated by capacity/weight);
+  // `disabledFn` is a live () => bool that greys the button out when this side is empty.
+  _column(titleRef, tableEl, allLabelRef, onAll, disabledFn) {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
@@ -101,11 +106,20 @@ globalThis.StorageUI = {
     titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
     header.insertChild(titleCell);
     header.insertChild(
-      gemsButton(allLabelRef, onAll, { width: 100, height: 24 }),
+      gemsButton(allLabelRef, onAll, {
+        width: 100,
+        height: 24,
+        disabled: disabledFn,
+      }),
     );
     col.insertChild(header);
     col.insertChild(tableEl);
     return col;
+  },
+
+  // True when an inventory is missing or holds no stacks (drives the All-button gate).
+  _empty(inv) {
+    return inv === undefined || inv.slots.length === 0;
   },
 
   // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;
@@ -122,51 +136,98 @@ globalThis.StorageUI = {
     });
   },
 
-  // Name (rarity-colored) + right-aligned Qty + Value. Compact for two side-by-side
-  // tables in the window; Weight/Type are dropped vs the main inventory.
+  // The chest columns mirror the inventory's Settings-driven set (shared toggles) and
+  // widths (so headers don't clip). Name + Qty always; Rarity / Type / Weight / Value
+  // gated by the same `invCol*` Settings. Each carries a stable `key` so setColumns can
+  // remap the sort when a column is toggled.
   _columns() {
     const gold = gemsColor("#ffd166");
-    return [
-      {
-        label: I18n.text("INV_COL_NAME"),
-        flex: 1,
-        text: (r) => r.name,
+    const cols = [];
+    cols.push({
+      key: "name",
+      label: I18n.text("INV_COL_NAME"),
+      flex: 1,
+      text: (r) => r.name,
+      color: (r) => r.color,
+      sortValue: (r) => r.name,
+    });
+    if (Settings.get("invColRarity"))
+      cols.push({
+        key: "rarity",
+        label: I18n.text("INV_COL_RARITY"),
+        width: 90,
+        text: (r) => r.rarityName,
         color: (r) => r.color,
-        sortValue: (r) => r.name,
-      },
-      {
-        label: I18n.text("INV_COL_QTY"),
-        width: 44,
-        align: fa_right,
-        text: (r) => string(r.qty),
-        sortValue: (r) => r.qty,
-      },
-      {
-        label: I18n.text("INV_COL_VAL"),
+        sortValue: (r) => r.rarityRank,
+      });
+    if (Settings.get("invColType"))
+      cols.push({
+        key: "type",
+        label: I18n.text("INV_COL_TYPE"),
+        width: 116,
+        text: (r) => I18n.text(r.catKey),
+        sortValue: (r) => r.cat,
+      });
+    cols.push({
+      key: "qty",
+      label: I18n.text("INV_COL_QTY"),
+      width: 46,
+      align: fa_right,
+      text: (r) => string(r.qty),
+      sortValue: (r) => r.qty,
+    });
+    if (Settings.get("invColWeight"))
+      cols.push({
+        key: "weight",
+        label: I18n.text("INV_COL_WT"),
         width: 56,
+        align: fa_right,
+        text: (r) => string_format(r.weight, 0, 1),
+        sortValue: (r) => r.weight,
+      });
+    if (Settings.get("invColValue"))
+      cols.push({
+        key: "value",
+        label: I18n.text("INV_COL_VAL"),
+        width: 74,
         align: fa_right,
         text: (r) => string(r.value),
         color: () => gold,
         sortValue: (r) => r.value,
-      },
-    ];
+      });
+    return cols;
+  },
+
+  // Push the current Settings-driven column set onto both tables (a toggle changed, or
+  // the chest just opened). Shared with the inventory via RpgInventoryUI._applyColumns.
+  _applyColumns(scene) {
+    scene._storeBagTable.setColumns(StorageUI._columns());
+    scene._storeBoxTable.setColumns(StorageUI._columns());
   },
 
   // Row models for one inventory. `idx` is the slot index at build time — valid until
   // the next refresh, which is exactly when a transfer happens (one click/frame), so the
-  // captured index never drifts (same contract as the old per-row closure).
+  // captured index never drifts (same contract as the old per-row closure). Carries the
+  // full field set so any of the shared columns can render.
   _rows(inv) {
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
       const it = Item.get(s.itemId);
+      const rar = it !== undefined ? Rarity.get(it.rarity) : undefined;
+      const cat = RpgInventoryUI._category(it);
       rows.push({
         idx: i,
         itemId: s.itemId,
         name: it !== undefined ? I18n.text(it.name) : s.itemId,
         qty: s.qty,
+        weight: it !== undefined ? it.weight * s.qty : 0,
         value:
           it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
+        cat: cat.code,
+        catKey: cat.key,
+        rarityName: rar !== undefined ? I18n.text(rar.name) : "",
+        rarityRank: it !== undefined ? Rarity.order.indexOf(it.rarity) : -1,
         color: StorageUI._rarityColor(s.itemId),
       });
     }
@@ -178,6 +239,7 @@ globalThis.StorageUI = {
     scene._storageId = id;
     scene._storeOpen = true;
     scene._storeWin.enabled = true;
+    StorageUI._applyColumns(scene); // pick up any column-setting change since build
     scene._storeDirty = true;
   },
 

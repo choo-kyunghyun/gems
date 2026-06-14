@@ -8,6 +8,7 @@ globalThis.UIButton = class UIButton {
     this.alpha = btn.alpha ?? 1;
     this.alphaDisabled = btn.alphaDisabled ?? 0.5;
     this.disabled = btn.disabled ?? false;
+    this.getDisabled = btn.getDisabled ?? null; // optional live () => bool; overrides `disabled`
     this.onEnter = btn.onEnter ?? noop;
     this.onLeave = btn.onLeave ?? noop;
     this.onDown = btn.onDown ?? noop;
@@ -29,10 +30,17 @@ globalThis.UIButton = class UIButton {
     this._shadowBase = undefined;
   }
 
+  // Live disabled state: a getDisabled() predicate (evaluated each frame) wins over the
+  // static `disabled` flag, so a caller can gate a button on changing state (e.g. an
+  // empty inventory) without poking the field every frame.
+  _disabled() {
+    return this.getDisabled !== null ? this.getDisabled() : this.disabled;
+  }
+
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
 
-    if (this.disabled) {
+    if (this._disabled()) {
       if (this.hold) {
         this.onUp();
         this.hold = false;
@@ -134,6 +142,6 @@ globalThis.UIButton = class UIButton {
   // UINav: confirm fires the click (unless disabled). Presence of this method also
   // marks the element focusable for keyboard/gamepad navigation.
   navActivate(element) {
-    if (!this.disabled) this.onClick();
+    if (!this._disabled()) this.onClick();
   }
 };

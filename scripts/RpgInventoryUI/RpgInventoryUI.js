@@ -351,8 +351,11 @@ globalThis.RpgInventoryUI = {
   },
 
   // Push the current Settings-driven column set onto the live table (a toggle changed).
+  // The chest shares these column Settings, so keep its two tables in sync too (live,
+  // for when both windows are open; StorageUI also re-applies them on open).
   _applyColumns(scene) {
     scene._invTable.setColumns(RpgInventoryUI._columns());
+    if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
   // The bag table columns, gated by the Settings visibility toggles. Each carries a
