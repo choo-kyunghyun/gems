@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgMap",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgMap",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/RPG/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgMap.js",
+}

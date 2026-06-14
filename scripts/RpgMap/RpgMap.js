@@ -1,0 +1,308 @@
+// Map-graph engine for the RPG scene — the world-loading, teardown, persistence-cache, and
+// portal-travel half of sceneRpg, extracted as free functions taking the scene (composition;
+// GMRT has no usable class inheritance — same pattern as RpgScene). The scene owns the fields
+// these read/write (world, level, ctrl, followers, renderer, camera, _mapCache, _built, _gone,
+// physics, _tilePass/_gridPass, etc.); RpgMap just orchestrates building/tearing them down.
+//
+// Maps are discrete level files connected by portals (not one streamed world — the deliberate
+// fit for the JSON.parse-on-large-files limit and the one-World-per-scene model). A chunked map
+// (meta.chunked) streams its terrain + entities around the player via a ChunkManager; a plain map
+// builds everything up front. Persistent maps (meta.persistent, default true) cache their player
+// edits (built tiles + claimed zone) + stationed companions so a door trip can't wipe a base.
+globalThis.RpgMap = {
+  // Build (or rebuild) the live map. Tears down the previous map, carries the player's
+  // character sheet across the swap, then constructs the world / level / player / renderer /
+  // camera for `mapId`, spawning the player at the named `entryId`. Called from the scene's
+  // create() (first map) and from checkPortals() when the player walks through a door.
+  load(scene, mapId, entryId) {
+    // 1. Carry the player's character sheet across (null on first load). World.destroy() only
+    //    drops storage references, so these component objects stay valid to re-attach.
+    let carry = null;
+    let travelers = []; // "follow" companions captured to re-spawn in the new map (party scope)
+    if (scene.ctrl !== undefined) {
+      // The player's character sheet travels with the party (it's party member 0). Capture
+      // just the sheet components — NOT Position/Visual/Collision/Animator, which the
+      // controller rebuilds fresh in the new map. Equip mods are baked into the carried Stats.
+      carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
+        Stats,
+        Health,
+        Inventory,
+        Equipment,
+        Encumbrance,
+      ]);
+      // Partition the followers: a "follow" companion travels with us (re-spawned near the new
+      // entry below); a "wait" companion is stationed in THIS map (map scope) and rides in its
+      // persistence cache, re-spawned where it was left when the player returns.
+      const stationed = [];
+      for (let i = 0; i < scene.followers.length; i++) {
+        const fid = scene.followers[i];
+        const f = scene.world.get(Follower, fid);
+        if (f === undefined) continue;
+        const snap = EntitySnapshot.capture(scene.world, fid);
+        if (f.state === "follow") travelers.push(snap);
+        else stationed.push(snap);
+      }
+      // Cache the OUTGOING map's player edits if it's persistent (the default) so they're
+      // restored on revisit instead of rebuilt fresh — the claimed buildable zone + built tiles
+      // (Level.export captures both as a detached snapshot that survives the destroy below) and
+      // the stationed companions. Captured before teardown (which destroys the level).
+      if (scene._mapPersistent && scene.mapId !== undefined) {
+        scene._mapCache[scene.mapId] = {
+          level: scene.level.export(),
+          built: { ...scene._built },
+          entities: stationed,
+          gone: scene._gone, // uids removed this map → not re-spawned (file-scope reconcile)
+        };
+      }
+      RpgMap.teardown(scene);
+    }
+
+    // 2. Load the map file (fall back to the start map if a referenced file is bad).
+    const file = RpgLevel.mapFile(mapId);
+    let data = LevelSerializer.load(file, { genre: "topdown" });
+    if (data === null) {
+      Log.error(
+        `map "${mapId}" (${file}) failed — falling back to ${RpgLevel.START}`,
+      );
+      mapId = RpgLevel.START;
+      entryId = "default";
+      data = LevelSerializer.load(RpgLevel.mapFile(mapId), {
+        genre: "topdown",
+      });
+    }
+    scene.mapId = mapId;
+    // A chunked map streams its terrain + entities around the player (overworld); a plain map
+    // builds everything up front (interiors). Branches below key off this.
+    scene._chunked = data.meta.chunked === true;
+    // Persistent (default true): the map's player edits are cached on leave + restored on
+    // revisit (see step 1 and 4b). Set `meta.persistent: false` in a level file to opt out
+    // (e.g. a dungeon that should reset each entry).
+    scene._mapPersistent = data.meta.persistent !== false;
+    Log.info(
+      `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
+    );
+
+    // 3. World + level + player. A chunked map needs a bigger entity cap (a window of chunks'
+    //    worth of entities + colliders + transient drops) and an empty resident grid (player
+    //    builds only); a plain map sizes the grid from the file's cols/rows.
+    scene.world = new World(scene._chunked ? 1024 : 256, 60);
+    const built = scene._chunked
+      ? RpgLevel.buildChunked(scene.world, data, entryId)
+      : RpgLevel.build(scene.world, data, entryId);
+    scene.level = built.level;
+    scene.spawn = built.spawn; // remembered for player respawn on death
+    scene.wallLayer = built.wallLayer; // tilemap handles for build mode
+    scene.floorLayer = built.floorLayer;
+    scene.wallType = built.wallType;
+    scene.floorType = built.floorType;
+    scene.colliders = built.colliders;
+    scene.ctrl = RpgController.create(scene.world, built.spawn);
+
+    // Re-attach the carried character sheet onto the new player entity (no re-equip pass —
+    // equip mods are already baked into the carried Stats).
+    if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+
+    // 4. Buildable zone channel (one per map) — the Claim Post paints into it; build mode
+    //    only allows placement inside it; RenderZone visualizes the claimed area.
+    const bmap = scene.level.addZoneMap("buildable");
+    scene.buildZoneId = bmap.define({
+      name: I18n.text("BUILD_ZONE"),
+      tags: ["buildable"],
+      data: { color: "#55aa55" },
+    }).id;
+
+    // 4b. Restore a persistent map's player edits on revisit. Level.import overlays the
+    //     cached TileLayers + buildable ZoneMap onto the freshly built level (same dims/layer
+    //     order, so it round-trips; the cached buildable zone keeps id 1, matching the define
+    //     above). Re-mesh wall colliders from the restored layer, and bring back the
+    //     deconstruct tracking so built tiles stay removable. No cache → fresh _built.
+    const saved = scene._mapCache[mapId];
+    if (saved !== undefined) {
+      scene.level.import(saved.level); // also syncs nav (Level.import → syncAll)
+      TileEdit.remesh(
+        scene.world,
+        scene.level,
+        scene.wallLayer,
+        scene.colliders,
+      );
+      scene._built = { ...saved.built };
+    } else {
+      scene._built = {}; // player-built deconstructable cells, fresh on first visit
+    }
+    // File-scope reconcile ledger for THIS map: uids of unique entities removed during play.
+    // Loaded from the cache (persists across revisits), passed to RpgLevel.spawn below to skip
+    // their file spawns, and written back on leave. Empty on a first visit / non-persistent map.
+    scene._gone =
+      saved !== undefined && saved.gone !== undefined ? saved.gone : {};
+
+    // 5. Entities. A chunked map STREAMS them via the ChunkManager (authored hub + procedural
+    //    wilderness, windowed around the player); a plain map spawns them all up front. Either
+    //    way the scene reads NPC / portal / enemy handles LIVE by tag (Query / world.query), so
+    //    no stored id lists are kept here — they'd dangle as chunks stream in and out.
+    if (scene._chunked) {
+      scene.source = new ChunkSource({
+        seed: data.meta.seed ?? 1337,
+        chunkCols: data.meta.chunkCols ?? 16,
+        chunkRows: data.meta.chunkRows ?? 16,
+        authored: data, // hand-built hub overlaid onto its chunks; procedural elsewhere
+      });
+      scene.chunks = new ChunkManager(scene.world, scene.level, scene.source, {
+        chunkCols: data.meta.chunkCols ?? 16,
+        chunkRows: data.meta.chunkRows ?? 16,
+        simRadius: 1,
+        loadRadius: 2,
+        playerId: scene.ctrl.id,
+      });
+      const sp = scene.world.get(Position, scene.ctrl.id);
+      scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
+      scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not chunk-managed)
+      scene.followers = [];
+    } else {
+      const ents = RpgLevel.spawn(
+        scene.world,
+        scene.level,
+        data,
+        scene.ctrl.id,
+        {
+          gone: scene._gone, // file-scope reconcile (unique entities removed on a prior visit)
+        },
+      );
+      scene.reachZone = ents.reach; // undefined when the map has no reach marker
+      scene.followers = ents.followers; // this map's file-spawned companions
+    }
+    scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
+    scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
+
+    // Companions (continued): the traveling party re-spawned around the player's entry (fresh
+    // Position/Velocity so they don't keep old-map coords), then this map's cached stationed
+    // companions (restored where they were left — full snapshot).
+    const ep = scene.world.get(Position, scene.ctrl.id);
+    for (let i = 0; i < travelers.length; i++)
+      scene.followers.push(
+        EntitySnapshot.restore(scene.world, travelers[i], {
+          [Position]: { x: ep.x - 24 - i * 22, y: ep.y + 24, z: 0 },
+          [Velocity]: { x: 0, y: 0, z: 0 },
+        }),
+      );
+    if (saved !== undefined && saved.entities !== undefined)
+      for (let i = 0; i < saved.entities.length; i++)
+        scene.followers.push(
+          EntitySnapshot.restore(scene.world, saved.entities[i]),
+        );
+
+    // 6. Per-map resets (old ids belonged to the previous map; _built handled in 4b).
+    scene._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
+    scene._buildActive = false;
+    BuildMode.active = false;
+    scene.nearNpc = false;
+    // If the inventory window is open across the swap, refresh its body against the new world
+    // next frame (its labels already read scene.world live, so this frame's draw is safe).
+    if (scene.invOpen) scene._invDirty = true;
+
+    // 7. Pipeline: AI decides velocity → collide → detect triggers (pickups) → projectiles
+    //    → expire.
+    scene.physics = new Pipeline()
+      .add(StateSystem) // drives the slime Idle/Chase/Attack schemas
+      .add(SolidSystem)
+      .add(TriggerSystem)
+      .add(ProjectileSystem)
+      .add(LifetimeSystem);
+
+    // 8. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
+    //    shading (walls red), tile id/name labels — then the buildable-zone overlay; both
+    //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) +
+    //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT 0.19 can't render
+    //    the SVG character sprites).
+    scene.renderer = new Renderer();
+    // Chunk-streamed terrain (ground checker + walls + frozen-entity snapshots) draws UNDER
+    // everything; the resident-grid passes below then draw player builds + zones on top.
+    if (scene._chunked)
+      scene.renderer.insert(
+        new RenderChunks(scene.chunks, { font: I18n.font("default") }),
+      );
+    scene._tilePass = new RenderDebugTileMap(scene.level, {
+      names: true,
+      coords: false,
+      font: I18n.font("default"),
+    });
+    scene.renderer.insert(scene._tilePass);
+    scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
+    scene.renderer.insert(scene._gridPass);
+    scene.renderer.insert(new RenderZone(scene.level, "buildable"));
+    scene.renderer.insert(
+      new RenderZoneLabel(scene.level, "buildable", {
+        font: I18n.font("default"),
+      }),
+    );
+    scene.renderer.insert(new RenderDebugBox());
+    scene.renderer.insert(new RenderDebugName());
+    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    bbox.enabled = false;
+    scene.renderer.insert(bbox);
+
+    // 9. Follow camera on the (new) player.
+    scene.camera = cameraFollow2d({
+      world: scene.world,
+      followTarget: scene.ctrl.id,
+      followLerp: 0.15,
+      width: surface_get_width(application_surface),
+      height: surface_get_height(application_surface),
+    });
+    scene.camera.assign(0);
+    // Cull the resident-grid tile/grid passes to the camera view (essential for the chunked
+    // map's large home grid; harmless for a small interior).
+    scene._tilePass.camera = scene.camera;
+    scene._gridPass.camera = scene.camera;
+
+    // 10. Corner minimap — rebuilt per map (captures world/target by value).
+    scene._buildMinimap();
+
+    FloatingText.clear(); // drop combat numbers from the previous map
+  },
+
+  // Release the current map's resources (world / level / renderer / camera / controller),
+  // leaving the persistent UI in place. Mirrors teardownScene's order, minus the UI.
+  teardown(scene) {
+    RpgController.destroy();
+    // Drop the chunk streamer (its entities/colliders die with the world below); clearing the
+    // ref means the next map's step() skips chunk streaming until a chunked map sets it again.
+    if (scene.chunks) {
+      scene.chunks.destroy();
+      scene.chunks = undefined;
+    }
+    scene.source = undefined;
+    if (scene.camera) scene.camera.destroy();
+    if (scene.renderer) scene.renderer.destroy();
+    if (scene.world) scene.world.destroy();
+    if (scene.level) scene.level.destroy();
+  },
+
+  // Walk-onto door: travel to the first portal whose BBox the player overlaps. Runs once
+  // per frame, after physics (the player is settled). On a hit, load() rebuilds everything
+  // and we return immediately — the old world is gone.
+  checkPortals(scene) {
+    const p = AABB.of(scene.world, scene.ctrl.id);
+    // Live query every doorway in the world (entities carrying a Portal component) — works for
+    // both a chunk-streamed portal and a plain map's, with no stored list to dangle.
+    const ids = scene.world.query(Portal);
+    for (let i = 0; i < ids.length; i++) {
+      const z = AABB.of(scene.world, ids[i]);
+      if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
+        const portal = scene.world.get(Portal, ids[i]);
+        Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
+        RpgMap.load(scene, portal.toMap, portal.toEntry);
+        return;
+      }
+    }
+  },
+
+  // Reach-quest zone from a chunked map's authored data (the "reach" spawn). The marker is an
+  // origin-area region, not an entity, so it's resolved once here rather than chunk-streamed.
+  _authoredReach(scene, data) {
+    const spawns = data.spawns ?? [];
+    for (let i = 0; i < spawns.length; i++)
+      if (spawns[i].preset === "reach")
+        return RpgLevel.reachZone(scene.level, spawns[i]);
+    return undefined;
+  },
+};
