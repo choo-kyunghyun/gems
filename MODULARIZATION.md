@@ -26,17 +26,17 @@ behavior**. Working plan — delete or archive once executed.
 
 ## Execution order (refactor phase)
 
-1. **Group 1** — `RpgMap`, `RpgHud`, `RpgSpawn` (milestone-critical, biggest readability win)
+1. **Group 1** — `RpgMap`, `RpgHud`, `RpgSpawn` (milestone-critical, biggest readability win) — ✅ **DONE** (`c5e248f`, `1821852`, `16a9bd1`)
 2. **Group 2** — `RpgContent` split + `RpgProgression` (cross-cuts Group 1)
 3. **Group 3** — shared `InvTable` (kills RpgInventoryUI/StorageUI duplication)
 4. **Group 4** — `UITable` sort-stack + `UIInput` text-model (deep-read each first)
 
 ---
 
-## Group 1 — RPG scene & world substrate  *(milestone-critical)*
+## Group 1 — RPG scene & world substrate  *(milestone-critical)* — ✅ DONE
 
 The milestone's time/region/world-event systems will be new scripts dispatched from `sceneRpg.step()`; the work
-here is making that scene a clean orchestration shell.
+here is making that scene a clean orchestration shell. **Result: `sceneRpg` 831 → 443 lines; `RpgLevel` 375 → 150.**
 
 | # | Refactor | Move out of | Into (new) | ~Lines | Risk |
 |---|----------|-------------|------------|-------:|------|
