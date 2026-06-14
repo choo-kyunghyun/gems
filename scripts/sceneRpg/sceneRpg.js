@@ -255,38 +255,11 @@ class _SceneRpgClass extends Scene {
   _tryTurnIn(qid) {
     if (!QuestLog.isReady(qid)) return;
     const reward = QuestLog.complete(qid);
-    this._applyReward(reward);
+    RpgProgression.applyReward(this, reward);
     Profile.add("questsCompleted", 1);
     Log.info(
       `quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
     );
-  }
-
-  _applyReward(reward) {
-    if (reward === undefined) return;
-    const st = this.world.get(Stats, this.ctrl.id);
-    const inv = this.world.get(Inventory, this.ctrl.id);
-    if (reward.xp) {
-      st.xp += reward.xp;
-      while (st.xp >= st.xpNext) {
-        st.xp -= st.xpNext;
-        st.level++;
-        st.xpNext = Math.round(st.xpNext * 1.5);
-        st.maxHp += 2;
-        st.attack += 1;
-        const hp = this.world.get(Health, this.ctrl.id);
-        if (hp !== undefined) hp.hp = st.maxHp; // heal to full on level-up
-        Log.info(`level up! now Lv ${st.level}`);
-      }
-    }
-    if (reward.items !== undefined) {
-      for (let i = 0; i < reward.items.length; i++) {
-        const it = reward.items[i];
-        InventorySystem.add(inv, it.itemId, it.qty);
-        Profile.add("itemsCollected", it.qty);
-      }
-      this._invDirty = true;
-    }
   }
 
   _checkAchievements() {
@@ -389,7 +362,7 @@ class _SceneRpgClass extends Scene {
     const npc = this.world.get(NPC, this._npcId);
     const qid = npc.questId;
     if (QuestLog.isReady(qid)) {
-      this._applyReward(QuestLog.complete(qid));
+      RpgProgression.applyReward(this, QuestLog.complete(qid));
       Profile.add("questsCompleted", 1);
       this._checkAchievements();
       Log.info(
