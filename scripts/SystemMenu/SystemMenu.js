@@ -11,9 +11,12 @@
  * based animation behind the overlay freezes too (the menu itself runs on Time.raw). The
  * underlying UI is blocked by the UIModal (pointer + nav exclusive).
  *
- * Open triggers: `F1` anywhere; Esc / gamepad Start during gameplay (a scene that set
- * `this.gameplay = true`). While closed over a gameplay scene, update() keeps
- * `UINav.suspended = true` so gameplay keys don't drive a stray menu focus ring.
+ * Open triggers: `F1` anywhere and gamepad Start during gameplay open it directly. Esc
+ * during gameplay is context-aware — a scene's optional `handleEscape()` hook gets first
+ * refusal (close a window / exit build mode) and Esc opens the menu only if the scene
+ * didn't consume the press (so F1/Start remain the always-on pause). A scene opts into the
+ * gameplay pause/nav by setting `this.gameplay = true`. While closed over a gameplay scene,
+ * update() keeps `UINav.suspended = true` so gameplay keys don't drive a stray focus ring.
  *
  * Wiring (obj_game + SceneManager):
  *   Step_0          : SystemMenu.update(this)  (before UINav.update; passes the controller
@@ -36,7 +39,6 @@ globalThis.SystemMenu = class SystemMenu {
   static update(game) {
     SystemMenu._game = game;
     const scene = game !== null ? game.scenes.current : null;
-    const gameplay = scene !== null && scene.gameplay === true;
 
     if (SystemMenu._modal !== null) {
       // Open: F1 / gamepad Start toggle it closed (Esc-close is handled by the UIModal).
@@ -49,16 +51,37 @@ globalThis.SystemMenu = class SystemMenu {
       return;
     }
 
-    // Closed: F1 opens anywhere; Esc / Start open during gameplay (the integrated pause).
-    if (
-      keyboard_check_pressed(vk_f1) ||
-      (gameplay &&
-        (keyboard_check_pressed(vk_escape) || SystemMenu._startPressed()))
-    ) {
+    // Closed. F1 opens the menu anywhere (even a non-gameplay scene like the lobby).
+    if (keyboard_check_pressed(vk_f1)) {
       SystemMenu.open();
-    } else if (gameplay) {
-      UINav.suspended = true; // active gameplay owns the keys (no stray menu focus ring)
+      return;
     }
+
+    // Everything below is gameplay-only. Read scene.gameplay LIVE here, never cached into a
+    // local boolean — GMRT clobbers a cached primitive bool mid-function (a `const` flips
+    // true→false across the following keyboard/handleEscape calls), which silently made every
+    // branch below fail and broke Esc entirely. See the boolean-local clobber GMRT idiom.
+    if (scene === null || scene.gameplay !== true) return;
+
+    // gamepad Start opens the pause menu directly.
+    if (SystemMenu._startPressed()) {
+      SystemMenu.open();
+      return;
+    }
+
+    // Esc during gameplay is context-aware: the scene gets first refusal via an optional
+    // handleEscape() hook (close an open window / exit build mode); Esc opens the menu only
+    // when the scene doesn't consume the press (so F1/Start remain the always-on pause).
+    if (keyboard_check_pressed(vk_escape)) {
+      if (scene.handleEscape !== undefined && scene.handleEscape()) {
+        UINav.suspended = true; // consumed by the scene; menu stays closed
+      } else {
+        SystemMenu.open();
+      }
+      return;
+    }
+
+    UINav.suspended = true; // active gameplay owns the keys (no stray menu focus ring)
   }
 
   static _startPressed() {

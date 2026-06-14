@@ -723,6 +723,27 @@ class _SceneRpgClass extends Scene {
     }
   }
 
+  // Esc back-out — SystemMenu calls this (before it would open the pause menu) so Esc closes
+  // the active context instead of pausing: an open window first, then build mode. Returns
+  // true if it consumed the press; false lets Esc fall through to the pause menu (F1 / gamepad
+  // Start always open it regardless). Same window > build priority as _resolveContext.
+  handleEscape() {
+    if (this.invOpen) {
+      this.invOpen = false;
+      this._invWin.enabled = false;
+      return true;
+    }
+    if (this._storeOpen || this._craftOpen) {
+      Interactable.closeAll(this); // closes whichever station window is open
+      return true;
+    }
+    if (this._buildActive) {
+      this._buildActive = false; // _resolveContext drops to "play" next frame; HUD hides
+      return true;
+    }
+    return false;
+  }
+
   draw() {
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
