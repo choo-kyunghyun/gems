@@ -3,16 +3,21 @@
 // global actions. Settings and Credits live in the SystemMenu overlay (the footer just
 // opens it — Credits on its About tab), so there is no separate title or credits scene.
 //
-// Tabs group the SceneRegistry categories so none is near-empty: Games (Action/RPG/
-// Strategy), Tech (Map), Demos (Interface). Each tab is a scrollable list of
-// gemsSection-per-category buttons.
+// Tabs group the SceneRegistry categories to mirror the project's IDE structure: RPG (the
+// RPG game + its level Editor) and Showcase (everything demonstrable — the Action/Strategy
+// movement showcases, the Map tech scenes, and the Interface demos). Each tab is a
+// scrollable list of gemsSection-per-category buttons.
 const LOBBY_TABS = [
+  { key: "LOBBY_TAB_RPG", cats: ["SCENE_CAT_RPG", "SCENE_CAT_EDITOR"] },
   {
-    key: "LOBBY_TAB_GAMES",
-    cats: ["SCENE_CAT_ACTION", "SCENE_CAT_RPG", "SCENE_CAT_STRATEGY"],
+    key: "LOBBY_TAB_SHOWCASE",
+    cats: [
+      "SCENE_CAT_ACTION",
+      "SCENE_CAT_STRATEGY",
+      "SCENE_CAT_MAP",
+      "SCENE_CAT_UI",
+    ],
   },
-  { key: "LOBBY_TAB_TECH", cats: ["SCENE_CAT_MAP"] },
-  { key: "LOBBY_TAB_DEMOS", cats: ["SCENE_CAT_UI"] },
 ];
 
 globalThis.SCENES = {

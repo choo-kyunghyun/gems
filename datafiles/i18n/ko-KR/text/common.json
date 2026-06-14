@@ -6,9 +6,8 @@
   "TITLE_QUIT": "종료",
 
   "LOBBY_EMPTY": "준비 중...",
-  "LOBBY_TAB_GAMES": "게임",
-  "LOBBY_TAB_TECH": "기술",
-  "LOBBY_TAB_DEMOS": "데모",
+  "LOBBY_TAB_RPG": "RPG",
+  "LOBBY_TAB_SHOWCASE": "쇼케이스",
 
   "SETTINGS_SAVE": "저장",
   "SETTINGS_CLOSE": "닫기",
@@ -65,6 +64,7 @@
 
   "SCENE_CAT_ACTION": "액션",
   "SCENE_CAT_RPG": "RPG",
+  "SCENE_CAT_EDITOR": "에디터",
   "SCENE_CAT_MAP": "맵",
   "SCENE_CAT_STRATEGY": "전략",
   "SCENE_CAT_UI": "인터페이스",

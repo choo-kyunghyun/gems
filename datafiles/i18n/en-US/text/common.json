@@ -6,9 +6,8 @@
   "TITLE_QUIT": "Quit",
 
   "LOBBY_EMPTY": "Coming soon...",
-  "LOBBY_TAB_GAMES": "Games",
-  "LOBBY_TAB_TECH": "Tech",
-  "LOBBY_TAB_DEMOS": "Demos",
+  "LOBBY_TAB_RPG": "RPG",
+  "LOBBY_TAB_SHOWCASE": "Showcase",
 
   "SETTINGS_SAVE": "Save",
   "SETTINGS_CLOSE": "Close",
@@ -65,6 +64,7 @@
 
   "SCENE_CAT_ACTION": "Action",
   "SCENE_CAT_RPG": "RPG",
+  "SCENE_CAT_EDITOR": "Editor",
   "SCENE_CAT_MAP": "Map",
   "SCENE_CAT_STRATEGY": "Strategy",
   "SCENE_CAT_UI": "Interface",

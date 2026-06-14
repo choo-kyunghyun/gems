@@ -42,7 +42,7 @@ const EDITOR_SIZES = [
 
 SceneRegistry.add(() => new _SceneEditorClass(), {
   label: I18n.textRef("EDITOR_NAME"),
-  category: "SCENE_CAT_MAP",
+  category: "SCENE_CAT_EDITOR",
 });
 
 class _SceneEditorClass extends Scene {
