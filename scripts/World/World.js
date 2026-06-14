@@ -71,6 +71,19 @@ globalThis.World = class World {
     if (storage !== undefined) storage[IdPool.getIndex(id)] = undefined;
   }
 
+  // Every component this entity has, keyed by component token (the inverse of a series of
+  // add() calls). Iterates the registration-order parallel arrays (Map iteration is banned
+  // on GMRT). Used by EntitySnapshot to serialize/migrate a whole entity.
+  componentsOf(id) {
+    const out = {};
+    const i = IdPool.getIndex(id);
+    for (let s = 0; s < this._keys.length; s++) {
+      const data = this._storages[s][i];
+      if (data !== undefined) out[this._keys[s]] = data;
+    }
+    return out;
+  }
+
   // Returns ids of every entity that has ALL listed components. Hot path: bounded
   // by the allocator high-water mark (this.ids.next) rather than maxEntities, and
   // closure-free — a numeric `c === n` test stands in for `.every()` (avoids both

@@ -67,6 +67,16 @@ class _SceneRpgClass extends Scene {
     }
     this.loadMap(bootMap, "default");
 
+    // Seed one starting companion into the party (programmatic, not file-authored — so
+    // reloading a persistent map never re-creates it; from here the travel/station persistence
+    // in loadMap owns it). create() runs once per scene, so this seeds exactly once.
+    const pp = this.world.get(Position, this.ctrl.id);
+    this.followers.push(
+      RpgLevel.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
+        label: "Companion",
+      }),
+    );
+
     Log.info(
       `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
@@ -81,23 +91,39 @@ class _SceneRpgClass extends Scene {
     // 1. Carry the player's character sheet across (null on first load). World.destroy() only
     //    drops storage references, so these component objects stay valid to re-attach.
     let carry = null;
+    let travelers = []; // "follow" companions captured to re-spawn in the new map (party scope)
     if (this.ctrl !== undefined) {
-      carry = {
-        stats: this.world.get(Stats, this.ctrl.id),
-        health: this.world.get(Health, this.ctrl.id),
-        inventory: this.world.get(Inventory, this.ctrl.id),
-        equipment: this.world.get(Equipment, this.ctrl.id),
-        encumbrance: this.world.get(Encumbrance, this.ctrl.id),
-      };
+      // The player's character sheet travels with the party (it's party member 0). Capture
+      // just the sheet components — NOT Position/Visual/Collision/Animator, which the
+      // controller rebuilds fresh in the new map. Equip mods are baked into the carried Stats.
+      carry = EntitySnapshot.capture(this.world, this.ctrl.id, [
+        Stats,
+        Health,
+        Inventory,
+        Equipment,
+        Encumbrance,
+      ]);
+      // Partition the followers: a "follow" companion travels with us (re-spawned near the new
+      // entry below); a "wait" companion is stationed in THIS map (map scope) and rides in its
+      // persistence cache, re-spawned where it was left when the player returns.
+      const stationed = [];
+      for (let i = 0; i < this.followers.length; i++) {
+        const fid = this.followers[i];
+        const f = this.world.get(Follower, fid);
+        if (f === undefined) continue;
+        const snap = EntitySnapshot.capture(this.world, fid);
+        if (f.state === "follow") travelers.push(snap);
+        else stationed.push(snap);
+      }
       // Cache the OUTGOING map's player edits if it's persistent (the default) so they're
-      // restored on revisit instead of rebuilt fresh — chiefly the claimed buildable zone and
-      // built tiles. Level.export() captures both (TileLayers + the buildable ZoneMap) as a
-      // detached snapshot that survives the world/level destroy below; _built carries the
-      // deconstruct tracking. Captured before _teardownMap (which destroys the level).
+      // restored on revisit instead of rebuilt fresh — the claimed buildable zone + built tiles
+      // (Level.export captures both as a detached snapshot that survives the destroy below) and
+      // the stationed companions. Captured before _teardownMap (which destroys the level).
       if (this._mapPersistent && this.mapId !== undefined) {
         this._mapCache[this.mapId] = {
           level: this.level.export(),
           built: { ...this._built },
+          entities: stationed,
         };
       }
       this._teardownMap();
@@ -136,15 +162,9 @@ class _SceneRpgClass extends Scene {
     this.colliders = built.colliders;
     this.ctrl = RpgController.create(this.world, built.spawn);
 
-    // Re-attach the carried character sheet onto the new player entity. Equip mods are
-    // already baked into the carried Stats, so no re-equip pass is needed.
-    if (carry !== null) {
-      this.world.add(this.ctrl.id, Stats, carry.stats);
-      this.world.add(this.ctrl.id, Health, carry.health);
-      this.world.add(this.ctrl.id, Inventory, carry.inventory);
-      this.world.add(this.ctrl.id, Equipment, carry.equipment);
-      this.world.add(this.ctrl.id, Encumbrance, carry.encumbrance);
-    }
+    // Re-attach the carried character sheet onto the new player entity (no re-equip pass —
+    // equip mods are already baked into the carried Stats).
+    if (carry !== null) EntitySnapshot.apply(this.world, this.ctrl.id, carry);
 
     // 4. Buildable zone channel (one per map) — the Claim Post paints into it; build mode
     //    only allows placement inside it; RenderZone visualizes the claimed area.
@@ -179,6 +199,24 @@ class _SceneRpgClass extends Scene {
     this.reachZone = ents.reach; // undefined when the map has no reach marker
     this.reachDone = this.reachZone === undefined; // nothing to reach on this map
     this.portals = ents.portals; // walk-onto doors → other maps (see _checkPortals)
+
+    // Companions: this map's file-spawned ones, then the traveling party re-spawned around the
+    // player's entry (fresh Position/Velocity so they don't keep old-map coords), then this
+    // map's cached stationed companions (restored where they were left — full snapshot).
+    this.followers = ents.followers;
+    const ep = this.world.get(Position, this.ctrl.id);
+    for (let i = 0; i < travelers.length; i++)
+      this.followers.push(
+        EntitySnapshot.restore(this.world, travelers[i], {
+          [Position]: { x: ep.x - 24 - i * 22, y: ep.y + 24, z: 0 },
+          [Velocity]: { x: 0, y: 0, z: 0 },
+        }),
+      );
+    if (saved !== undefined && saved.entities !== undefined)
+      for (let i = 0; i < saved.entities.length; i++)
+        this.followers.push(
+          EntitySnapshot.restore(this.world, saved.entities[i]),
+        );
 
     // 6. Per-map resets (old ids belonged to the previous map; _built handled in 4b).
     this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
@@ -273,6 +311,7 @@ class _SceneRpgClass extends Scene {
           { tag: "enemy", color: "#e0584f" },
           { tag: "npc", color: "#ffd166" },
           { tag: "portal", color: "#9b8cff" },
+          { tag: "follower", color: "#6fd0a0" },
         ],
       }),
     );
@@ -295,6 +334,7 @@ class _SceneRpgClass extends Scene {
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
       RpgController.update(this.world, this.ctrl);
+      FollowerSystem.update(this.world, this.ctrl.id, this.followers); // seek (before physics)
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
@@ -334,6 +374,7 @@ class _SceneRpgClass extends Scene {
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
     Interactable.update(this); // station select + open/close + transfers/crafting
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
+    this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     this.camera.update();
 
     // Rebuild the inventory window body only when its contents changed (open + dirty),
@@ -390,6 +431,37 @@ class _SceneRpgClass extends Scene {
         this.loadMap(portal.toMap, portal.toEntry);
         return;
       }
+    }
+  }
+
+  // F: toggle the nearest companion (within reach) between follow and wait. A "wait" companion
+  // is stationed in the current map (homeMap), so it persists there via the map cache instead
+  // of traveling. Edge-sampled once per frame, outside the tick loop.
+  _toggleFollower() {
+    if (!Input.get("follow").pressed()) return;
+    const p = this.world.get(Position, this.ctrl.id);
+    if (p === undefined) return;
+    let best = -1;
+    let bestSq = 80 * 80; // reach to a companion (px)
+    for (let i = 0; i < this.followers.length; i++) {
+      const pos = this.world.get(Position, this.followers[i]);
+      if (pos === undefined) continue;
+      const d = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
+      if (d < bestSq) {
+        bestSq = d;
+        best = this.followers[i];
+      }
+    }
+    if (best === -1) return;
+    const f = this.world.get(Follower, best);
+    if (f.state === "follow") {
+      f.state = "wait";
+      f.homeMap = this.mapId;
+      Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
+    } else {
+      f.state = "follow";
+      f.homeMap = "";
+      Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
   }
 

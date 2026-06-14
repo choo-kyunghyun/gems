@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"EntitySnapshot",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"EntitySnapshot",
+  "parent":{
+    "name":"Core",
+    "path":"folders/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"EntitySnapshot.js",
+}

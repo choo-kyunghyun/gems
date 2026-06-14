@@ -24,6 +24,7 @@ globalThis.RpgController = {
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
       build: [INPUT_SOURCE.KEYBOARD, ord("B")],
+      follow: [INPUT_SOURCE.KEYBOARD, ord("F")], // toggle nearest companion wait/follow
     });
 
     // Shared RPG player entity; then the top-down-only Animator. BBox is centered;
@@ -171,6 +172,7 @@ globalThis.RpgController = {
       "inventory",
       "interact",
       "build",
+      "follow",
     ]);
   },
 };

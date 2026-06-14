@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Follower",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Follower",
+  "parent":{
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Follower.js",
+}

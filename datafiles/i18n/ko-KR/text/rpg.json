@@ -1,6 +1,6 @@
 {
   "RPG_NAME": "탑다운 RPG",
-  "RPG_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화 · B: 건설",
+  "RPG_HINT": "WASD: 이동 · 좌클릭: 공격 · I: 가방 · E: 대화 · B: 건설 · F: 동료",
 
   "EDITOR_NAME": "레벨 에디터",
   "EDITOR_HINT": "좌클릭 그리기 · 우클릭 지우기 · 휠클릭 이동 · 휠 확대/축소",
@@ -97,5 +97,8 @@
   "RARITY_UNCOMMON": "고급",
   "RARITY_RARE": "희귀",
   "RARITY_EPIC": "영웅",
-  "RARITY_LEGENDARY": "전설"
+  "RARITY_LEGENDARY": "전설",
+
+  "FOLLOWER_WAIT": "동료가 여기서 기다립니다",
+  "FOLLOWER_FOLLOW": "동료가 따라옵니다"
 }

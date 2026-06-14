@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FollowerSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FollowerSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FollowerSystem.js",
+}

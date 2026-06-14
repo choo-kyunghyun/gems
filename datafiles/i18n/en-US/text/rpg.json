@@ -1,6 +1,6 @@
 {
   "RPG_NAME": "Top-Down RPG",
-  "RPG_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk · B: Build",
+  "RPG_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk · B: Build · F: Companion",
 
   "EDITOR_NAME": "Level Editor",
   "EDITOR_HINT": "LMB paint · RMB erase · MMB drag pan · Wheel zoom",
@@ -97,5 +97,8 @@
   "RARITY_UNCOMMON": "Uncommon",
   "RARITY_RARE": "Rare",
   "RARITY_EPIC": "Epic",
-  "RARITY_LEGENDARY": "Legendary"
+  "RARITY_LEGENDARY": "Legendary",
+
+  "FOLLOWER_WAIT": "Companion will wait here",
+  "FOLLOWER_FOLLOW": "Companion follows you"
 }

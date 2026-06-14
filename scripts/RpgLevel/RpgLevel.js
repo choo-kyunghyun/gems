@@ -110,20 +110,22 @@ globalThis.RpgLevel = {
    * Stations (chest/props) are discovered live by Interactable, so only the handles the
    * scene's own logic needs are returned:
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
-   *     portals: [{ id, toMap, toEntry }] }
+   *     portals: [{ id, toMap, toEntry }], followers: id[] }
    *
    * Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
-   *   slime  hp? loot:[{itemId,qty}]
-   *   npc    label nameKey questId
-   *   chest  capacity items:[{itemId,qty}]
-   *   prop   label color(#hex) kind?   (kind → Station, else decorative furniture)
-   *   reach  half?                      (quest zone marker — no entity)
-   *   portal toMap toEntry? label? color(#hex)?  (walk-onto door → loadMap; non-solid sensor)
+   *   slime    hp? loot:[{itemId,qty}]
+   *   npc      label nameKey questId
+   *   chest    capacity items:[{itemId,qty}]
+   *   prop     label color(#hex) kind?   (kind → Station, else decorative furniture)
+   *   reach    half?                      (quest zone marker — no entity)
+   *   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → loadMap; non-solid sensor)
+   *   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
    */
   spawn(world, level, data, playerId) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
+    const followers = [];
     let npc = -1;
     let reach;
 
@@ -233,10 +235,53 @@ globalThis.RpgLevel = {
           toMap: s.toMap,
           toEntry: s.toEntry ?? "default",
         });
+      } else if (s.preset === "follower") {
+        followers.push(
+          this.spawnFollower(world, w.x, w.y, {
+            label: s.label,
+            color: s.color,
+            speed: s.speed,
+            range: s.range,
+          }),
+        );
       }
     }
 
-    return { enemies, npc, reach, portals };
+    return { enemies, npc, reach, portals, followers };
+  },
+
+  // Spawn a companion (a dynamic solid body — SolidSystem integrates the velocity
+  // FollowerSystem sets and collides it against walls) at world coords; returns the id.
+  // Shared by the `follower` spawn preset and the scene's programmatic starting-party seed.
+  // NOTE: a companion is a *persistent* entity (it travels/stations via EntitySnapshot), so
+  // prefer the programmatic seed over authoring one in a PERSISTENT map's file — a file spawn
+  // re-runs on every revisit and would duplicate the restored party/stationed copy (the
+  // file-scope reconcile problem, deferred). The preset is fine for non-persistent maps.
+  spawnFollower(world, wx, wy, opt = {}) {
+    const id = world.create();
+    world.add(id, Position, { x: wx, y: wy, z: 0 });
+    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    world.add(id, BBox, { x: -10, y: -10, width: 20, height: 20 });
+    world.add(id, Collision, {
+      solid: true,
+      kinematic: false,
+      mask: null,
+      hits: [],
+    });
+    world.add(id, Tag, { tags: new Set(["follower"]) });
+    world.add(id, Name, { name: opt.label ?? "Companion" });
+    world.add(
+      id,
+      Visual,
+      this._visual(spr_choo, Color.parse(opt.color ?? "#6fd0a0")),
+    );
+    world.add(id, Follower, {
+      state: opt.state ?? "follow",
+      speed: opt.speed ?? 260, // > player speed (220) so it can catch up when it lags
+      range: opt.range ?? 40,
+      homeMap: "",
+    });
+    return id;
   },
 
   // Shared Visual component shape — caller overrides scale/sprite/color as needed.
