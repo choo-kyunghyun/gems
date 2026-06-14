@@ -15,16 +15,24 @@ const RPG_MELEE_REACH = 34; // fallback reach for a melee weapon without `reach`
 globalThis.RpgController = {
   /** @param {{ x: number, y: number }} spawn */
   create(world, spawn) {
+    // InputContext tags decide which actions are live per context (set by sceneRpg each
+    // frame): "play" = free roam, "build" = build mode, "window" = a gameplay window open.
+    // Movement stays live everywhere (the player keeps walking with a window open). fire is
+    // "play"-only, so it self-mutes while building (LMB places tiles) or with a window open
+    // (clicks don't shoot) — no per-frame BuildMode/window check in update(). interact opens
+    // in play + closes a station window in "window"; build/follow are inert while a window
+    // owns input. See InputContext / InputAction.inContext.
+    const ANYWHERE = ["play", "build", "window"];
     Input.bindAll({
-      moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
-      moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
-      moveUp: [INPUT_SOURCE.KEYBOARD, ord("W")],
-      moveDown: [INPUT_SOURCE.KEYBOARD, ord("S")],
-      fire: [INPUT_SOURCE.MOUSE, mb_left],
-      inventory: [INPUT_SOURCE.KEYBOARD, ord("I")],
-      interact: [INPUT_SOURCE.KEYBOARD, ord("E")],
-      build: [INPUT_SOURCE.KEYBOARD, ord("B")],
-      follow: [INPUT_SOURCE.KEYBOARD, ord("F")], // toggle nearest companion wait/follow
+      moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A"), ANYWHERE],
+      moveRight: [INPUT_SOURCE.KEYBOARD, ord("D"), ANYWHERE],
+      moveUp: [INPUT_SOURCE.KEYBOARD, ord("W"), ANYWHERE],
+      moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
+      fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
+      inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
+      interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
+      build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
+      follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
     });
 
     // Shared RPG player entity; then the top-down-only Animator. BBox is centered;
@@ -95,8 +103,9 @@ globalThis.RpgController = {
 
     if (ctrl.fireCd > 0) ctrl.fireCd--;
     if (ctrl.attackCd > 0) ctrl.attackCd--;
-    // While build mode is active, LMB places tiles (BuildMode) — don't also fire.
-    if (Input.get("fire").down() && ctrl.fireCd === 0 && !BuildMode.active) {
+    // fire is tagged "play"-only, so it already returns false while building or with a
+    // window open (InputContext) — no explicit BuildMode/window guard needed here.
+    if (Input.get("fire").down() && ctrl.fireCd === 0) {
       // Cadence comes from the equipped weapon (unarmed → default). Read live.
       const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
       if (wpn !== null && wpn.melee) {

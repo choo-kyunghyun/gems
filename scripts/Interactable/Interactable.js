@@ -71,17 +71,12 @@ globalThis.Interactable = {
     return "";
   },
 
-  // Per-frame: pick the target, drive prompt/highlight, toggle windows on E, and
-  // refresh whichever window is open + dirty.
+  // Per-frame: pick the target, drive prompt/highlight, and refresh whichever window is
+  // open + dirty. The E (interact) action is NOT read here — the scene's interact arbiter
+  // (sceneRpg._dispatchInteract) decides station-vs-NPC by cursor/distance and calls
+  // activate()/closeAll() — so a single E press can't fire two handlers at once.
   update(scene) {
     Interactable._pick(scene);
-
-    const anyOpen = scene._storeOpen || scene._craftOpen;
-
-    if (Input.get("interact").pressed()) {
-      if (anyOpen) Interactable._closeAll(scene);
-      else if (scene._interTarget !== -1) Interactable._open(scene);
-    }
 
     // The opened station left range → close (it's left behind in the world).
     if (
@@ -102,6 +97,27 @@ globalThis.Interactable = {
       CraftingUI.refresh(scene);
       scene._craftDirty = false;
     }
+  },
+
+  // ── Arbiter hooks (called by the scene's interact dispatcher) ──────────────
+  // Open/claim the current target (the body of _open). The scene calls this when it has
+  // decided the station — not the NPC — wins this E press.
+  activate(scene) {
+    Interactable._open(scene);
+  },
+
+  // Close any open station window (public wrapper of _closeAll).
+  closeAll(scene) {
+    Interactable._closeAll(scene);
+  },
+
+  // True when the mouse cursor is over entity `id`'s world BBox — used by the scene to let
+  // the cursor break a station-vs-NPC tie.
+  isCursorOver(scene, id) {
+    if (id === -1) return false;
+    const pos = scene.world.get(Position, id);
+    if (pos === undefined) return false;
+    return Interactable._mouseInside(pos, scene.world.get(BBox, id));
   },
 
   // Choose target = station under the mouse (if in range), else nearest in range.

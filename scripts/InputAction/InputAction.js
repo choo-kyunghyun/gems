@@ -2,6 +2,23 @@ globalThis.InputAction = class InputAction {
   constructor() {
     this.buttons = [];
     this.axes = [];
+    // Live-context list (string[]) or null = live in every context. When set, the query
+    // methods mute the action while InputContext.active() isn't in this list — the
+    // context-aware counterpart to captured(). See InputContext.
+    this.contexts = null;
+  }
+
+  // Declare the InputContext names this action is live in (e.g. ["play", "window"]).
+  // Returns this for chaining; kept as a plain array (indexOf-tested, never a Set).
+  inContext(list) {
+    this.contexts = list;
+    return this;
+  }
+
+  // True when this action is muted by the active InputContext (false for an untagged
+  // action — those are live everywhere). captured() is checked separately by the queries.
+  _blocked() {
+    return this.contexts !== null && !InputContext.allows(this.contexts);
   }
 
   static import(data) {
@@ -65,22 +82,22 @@ globalThis.InputAction = class InputAction {
   }
 
   down() {
-    if (InputAction.captured()) return false;
+    if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some((button) => button.down());
   }
 
   pressed() {
-    if (InputAction.captured()) return false;
+    if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some((button) => button.pressed());
   }
 
   released() {
-    if (InputAction.captured()) return false;
+    if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some((button) => button.released());
   }
 
   value() {
-    if (InputAction.captured()) return 0;
+    if (InputAction.captured() || this._blocked()) return 0;
     let val = 0;
     for (const axis of this.axes) {
       const v = axis.value();

@@ -121,6 +121,7 @@
     {"id":{"name":"InputAction","path":"scripts/InputAction/InputAction.yy",},},
     {"id":{"name":"InputAxis","path":"scripts/InputAxis/InputAxis.yy",},},
     {"id":{"name":"InputButton","path":"scripts/InputButton/InputButton.yy",},},
+    {"id":{"name":"InputContext","path":"scripts/InputContext/InputContext.yy",},},
     {"id":{"name":"Interactable","path":"scripts/Interactable/Interactable.yy",},},
     {"id":{"name":"InterpolationSystem","path":"scripts/InterpolationSystem/InterpolationSystem.yy",},},
     {"id":{"name":"Inventory","path":"scripts/Inventory/Inventory.yy",},},

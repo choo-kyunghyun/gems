@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InputContext",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InputContext",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InputContext.js",
+}

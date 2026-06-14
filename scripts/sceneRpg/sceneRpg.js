@@ -77,6 +77,10 @@ class _SceneRpgClass extends Scene {
       }),
     );
 
+    // The scene takes over gameplay input: push its base context. step() replaces it each
+    // frame via _resolveContext; destroy() resets to "default" for the next scene.
+    InputContext.push("play");
+
     Log.info(
       `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
@@ -338,6 +342,12 @@ class _SceneRpgClass extends Scene {
       if (this.invOpen) this._invDirty = true;
     }
 
+    // Resolve the active input context for this frame BEFORE the tick loop, so the
+    // movement/fire reads inside it (RpgController.update) see it. Window beats build beats
+    // play: a gameplay window open mutes fire (clicks don't shoot) but keeps movement;
+    // build mode mutes fire too (LMB places tiles). See InputContext + RpgController tags.
+    this._resolveContext();
+
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
@@ -379,9 +389,10 @@ class _SceneRpgClass extends Scene {
     }
 
     AnimationSystem.update(this.world); // advance sprite frames (per frame)
-    this._updateNpc(); // proximity + E interaction
+    this._updateNpc(); // proximity + dialogue text (no input here)
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
-    Interactable.update(this); // station select + open/close + transfers/crafting
+    Interactable.update(this); // station select + range-close + transfers/crafting (no E here)
+    this._dispatchInteract(); // single E press → station OR NPC (cursor, else nearest)
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     this.camera.update();
@@ -644,19 +655,71 @@ class _SceneRpgClass extends Scene {
       this.dialogueLine = "NPC_ELDER_OFFER";
       this.dialogueAction = "RPG_ACCEPT";
     }
+  }
 
-    if (Input.get("interact").pressed()) {
-      if (QuestLog.isReady(qid)) {
-        this._applyReward(QuestLog.complete(qid));
-        Profile.add("questsCompleted", 1);
-        this._checkAchievements();
-        Log.info(
-          `turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
-        );
-      } else if (!QuestLog.isActive(qid) && !QuestLog.isDone(qid)) {
-        QuestLog.accept(qid);
-        Log.info(`accepted ${qid}`);
+  // Derive this frame's input context from the open-window / build-mode flags. Window beats
+  // build beats play (a window pauses build). Pushed once in create(); replaced here each
+  // frame. InputContext then gates the action tags (fire muted off "play"; etc.).
+  _resolveContext() {
+    let ctx = "play";
+    if (this.invOpen || this._storeOpen || this._craftOpen) ctx = "window";
+    else if (this._buildActive) ctx = "build";
+    InputContext.set(ctx);
+  }
+
+  // Single interact (E) dispatch — replaces the two independent E reads that used to fire
+  // together. Priority: a station window open → E closes it; else pick the world target
+  // (station vs NPC) by cursor-then-distance and activate the winner. interact is muted in
+  // the "build" context (tag), so this only runs in play / window.
+  _dispatchInteract() {
+    if (!Input.get("interact").pressed()) return;
+    if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
+    if (this._storeOpen || this._craftOpen) {
+      Interactable.closeAll(this); // E closes an open station window
+      return;
+    }
+    const stationId = this._interTarget; // -1 when no station in range
+    const npcId = this.nearNpc ? this.npc : -1; // -1 when no NPC nearby
+    if (stationId === -1 && npcId === -1) return;
+
+    let toStation;
+    if (npcId === -1) toStation = true;
+    else if (stationId === -1) toStation = false;
+    else {
+      // Both in reach: the one under the cursor wins; on a tie, the nearer to the player.
+      const sCur = Interactable.isCursorOver(this, stationId);
+      const nCur = Interactable.isCursorOver(this, npcId);
+      if (sCur !== nCur) {
+        toStation = sCur;
+      } else {
+        const p = this.world.get(Position, this.ctrl.id);
+        const sp = this.world.get(Position, stationId);
+        const np = this.world.get(Position, npcId);
+        toStation =
+          (sp.x - p.x) ** 2 + (sp.y - p.y) ** 2 <=
+          (np.x - p.x) ** 2 + (np.y - p.y) ** 2;
       }
+    }
+    if (toStation) Interactable.activate(this);
+    else this._npcActivate();
+  }
+
+  // The NPC side of the interact dispatch: accept the offered quest or turn it in when
+  // ready. Called by _dispatchInteract only — never reads input itself.
+  _npcActivate() {
+    if (this.npc === -1 || !this.nearNpc) return;
+    const npc = this.world.get(NPC, this.npc);
+    const qid = npc.questId;
+    if (QuestLog.isReady(qid)) {
+      this._applyReward(QuestLog.complete(qid));
+      Profile.add("questsCompleted", 1);
+      this._checkAchievements();
+      Log.info(
+        `turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
+      );
+    } else if (!QuestLog.isActive(qid) && !QuestLog.isDone(qid)) {
+      QuestLog.accept(qid);
+      Log.info(`accepted ${qid}`);
     }
   }
 
@@ -672,6 +735,7 @@ class _SceneRpgClass extends Scene {
 
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
+    InputContext.reset(); // hand input back to "default" for the next scene
     RpgController.destroy();
     this.level.destroy();
     teardownScene(this);

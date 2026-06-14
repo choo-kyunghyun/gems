@@ -45,10 +45,15 @@ globalThis.Input = class Input {
   // Register many single-button actions at once. `spec` maps an action key to a
   // [source, button] pair, e.g. { jump: [INPUT_SOURCE.KEYBOARD, vk_space] }. Lets
   // a controller declare its whole keymap in one block instead of N register calls.
+  // An optional 3rd element is the InputContext live-list (see InputAction.inContext),
+  // e.g. { fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]] } — omit it for a context-free
+  // action (live everywhere).
   static bindAll(spec) {
     for (const key in spec) {
       const b = spec[key];
-      Input.register(key, new InputAction().bindButton(b[0], b[1]));
+      const action = new InputAction().bindButton(b[0], b[1]);
+      if (b[2] !== undefined) action.inContext(b[2]);
+      Input.register(key, action);
     }
     return Input;
   }

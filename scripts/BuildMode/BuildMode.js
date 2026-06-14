@@ -70,7 +70,11 @@ globalThis.BuildMode = {
   // outside the tick loop.
   update(scene) {
     if (Input.get("build").pressed()) scene._buildActive = !scene._buildActive;
-    const on = scene._buildActive === true;
+    // Active only when the player has toggled build mode AND the build context owns input.
+    // A gameplay window open this frame makes the context "window" (priority over build),
+    // so building pauses (and LMB/RMB on the window can't place/remove tiles); it resumes
+    // when the window closes. sceneRpg._resolveContext derives the context from _buildActive.
+    const on = scene._buildActive === true && InputContext.is("build");
     BuildMode.active = on;
     scene._buildHud.enabled = on;
     if (!on) return;
