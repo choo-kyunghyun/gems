@@ -61,7 +61,7 @@ globalThis.StorageUI = {
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
         () => StorageUI._allFrom(scene, "bag"),
-        () => StorageUI._empty(scene.world.get(Inventory, scene.ctrl.id)),
+        () => scene.world.get(Inventory, scene.ctrl.id),
       ),
     );
     cols.insertChild(
@@ -70,7 +70,7 @@ globalThis.StorageUI = {
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
         () => StorageUI._allFrom(scene, "box"),
-        () => StorageUI._empty(scene.world.get(Inventory, scene._storageId)),
+        () => scene.world.get(Inventory, scene._storageId),
       ),
     );
     win.body.insertChild(cols);
@@ -86,10 +86,11 @@ globalThis.StorageUI = {
     scene.ui.insertChild(win);
   },
 
-  // One titled column: a header (title + a bulk "All" button) over a sortable table.
-  // `onAll` moves every stack of this side to the other (gated by capacity/weight);
-  // `disabledFn` is a live () => bool that greys the button out when this side is empty.
-  _column(titleRef, tableEl, allLabelRef, onAll, disabledFn) {
+  // One titled column: a header (title + a bulk "All" button), a live slots/weight usage
+  // line, then the sortable table. `onAll` moves every stack of this side to the other
+  // (gated by capacity/weight); `invFn` is a live () => Inventory used for both the usage
+  // readout and the All button's empty-gate.
+  _column(titleRef, tableEl, allLabelRef, onAll, invFn) {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
@@ -109,10 +110,19 @@ globalThis.StorageUI = {
       gemsButton(allLabelRef, onAll, {
         width: 100,
         height: 24,
-        disabled: disabledFn,
+        disabled: () => StorageUI._empty(invFn()),
       }),
     );
     col.insertChild(header);
+
+    const usage = new UIElement({ width: "100%", height: 20 });
+    usage.insertChild(
+      gemsLabel(() => StorageUI._usageText(invFn()), {
+        color: GemsTheme.textMuted,
+      }),
+    );
+    col.insertChild(usage);
+
     col.insertChild(tableEl);
     return col;
   },
@@ -120,6 +130,18 @@ globalThis.StorageUI = {
   // True when an inventory is missing or holds no stacks (drives the All-button gate).
   _empty(inv) {
     return inv === undefined || inv.slots.length === 0;
+  },
+
+  // "Slots used/cap   Weight cur[/max]" for the column header. Weight shows the current
+  // total always (so the chest reports it too); the "/max" tail only when the inventory
+  // is weight-capped (the bag), matching the inventory window's usage line.
+  _usageText(inv) {
+    if (inv === undefined) return "";
+    let s =
+      I18n.text("RPG_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
+    s += "   " + I18n.text("RPG_WEIGHT") + " " + InventorySystem.weight(inv);
+    if (inv.maxWeight !== undefined) s += "/" + inv.maxWeight;
+    return s;
   },
 
   // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;

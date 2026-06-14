@@ -182,6 +182,11 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       highlightAlpha: primary ? 0.16 : 0.07,
     }),
   );
+  const labelEl = gemsLabel(label, {
+    halign: fa_center,
+    color: opts.textColor ?? GemsTheme.text,
+    font: opts.font,
+  });
   btn.addComponent(
     new UIButton({
       colorNormal: gemsColor(base),
@@ -193,16 +198,14 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       // opts.disabled may be a bool or a live () => bool (e.g. gate on empty inventory).
       disabled: opts.disabled === true,
       getDisabled: typeof opts.disabled === "function" ? opts.disabled : null,
+      // Grey the label alongside the panel when disabled.
+      label: labelEl.getComponent(UIText),
+      textColorNormal: gemsColor(opts.textColor ?? GemsTheme.text),
+      textColorDisabled: gemsColor(GemsTheme.textDim),
       onClick,
     }),
   );
-  btn.insertChild(
-    gemsLabel(label, {
-      halign: fa_center,
-      color: opts.textColor ?? GemsTheme.text,
-      font: opts.font,
-    }),
-  );
+  btn.insertChild(labelEl);
   return gemsAttachTooltip(btn, opts);
 };
 

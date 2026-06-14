@@ -9,6 +9,12 @@ globalThis.UIButton = class UIButton {
     this.alphaDisabled = btn.alphaDisabled ?? 0.5;
     this.disabled = btn.disabled ?? false;
     this.getDisabled = btn.getDisabled ?? null; // optional live () => bool; overrides `disabled`
+    // Optional label UIText to grey out alongside the panel when disabled. The button
+    // drives its color so a disabled button reads disabled (panel dim alone left the
+    // text fully bright). Both colors must be set for it to apply.
+    this.label = btn.label ?? null;
+    this.textColorNormal = btn.textColorNormal ?? c_white;
+    this.textColorDisabled = btn.textColorDisabled ?? c_gray;
     this.onEnter = btn.onEnter ?? noop;
     this.onLeave = btn.onLeave ?? noop;
     this.onDown = btn.onDown ?? noop;
@@ -39,8 +45,17 @@ globalThis.UIButton = class UIButton {
 
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
+    const disabled = this._disabled();
 
-    if (this._disabled()) {
+    // Tint the label to match the enabled/disabled state (the panel dim alone left the
+    // text bright). Driven every frame off the live disabled state.
+    if (this.label !== null) {
+      this.label.color = disabled
+        ? this.textColorDisabled
+        : this.textColorNormal;
+    }
+
+    if (disabled) {
       if (this.hold) {
         this.onUp();
         this.hold = false;
