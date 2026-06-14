@@ -28,7 +28,7 @@ behavior**. Working plan — delete or archive once executed.
 
 1. **Group 1** — `RpgMap`, `RpgHud`, `RpgSpawn` (milestone-critical, biggest readability win) — ✅ **DONE** (`c5e248f`, `1821852`, `16a9bd1`)
 2. **Group 2** — `RpgContent` split + `RpgProgression` (cross-cuts Group 1) — ✅ **DONE** (`8732f69`, `b523def`)
-3. **Group 3** — shared `InvTable` (kills RpgInventoryUI/StorageUI duplication)
+3. **Group 3** — shared `InvTable` (kills RpgInventoryUI/StorageUI duplication) — ✅ **DONE** (`6e7dfa7`)
 4. **Group 4** — `UITable` sort-stack + `UIInput` text-model (deep-read each first)
 
 ---
@@ -65,7 +65,7 @@ here is making that scene a clean orchestration shell. **Result: `sceneRpg` 831 
 - **Cross-group:** `InventorySystem` owns `_category`/`_rarityRank`. The Group 3 `InvTable` extraction should
   **reuse these** (expose them as public) rather than duplicate — they're already copied into the UI today.
 
-## Group 3 — RPG inventory UI  *(high value: kills duplication)*
+## Group 3 — RPG inventory UI  *(high value: kills duplication)* — ✅ DONE
 
 `RpgInventoryUI` (599) and `StorageUI` (383) **both** build inventory tables with the same column set and carry
 parallel copies of `_columns` / `_applyColumns` / `_rows`/`_rowModel` / `_category` / `_rarityColor` / `_lower`.
