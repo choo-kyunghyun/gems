@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ChunkSource",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ChunkSource",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ChunkSource.js",
+}

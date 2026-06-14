@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Portal",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Portal",
+  "parent":{
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Portal.js",
+}

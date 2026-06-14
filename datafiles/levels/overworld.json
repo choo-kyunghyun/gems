@@ -5,6 +5,12 @@
   "cols": 48,
   "rows": 32,
   "meta": {
+    "chunked": true,
+    "worldCols": 128,
+    "worldRows": 128,
+    "chunkCols": 16,
+    "chunkRows": 16,
+    "seed": 1337,
     "playerSpawn": { "gx": 2, "gy": 2 },
     "entries": {
       "default": { "gx": 2, "gy": 2 },
@@ -12,11 +18,6 @@
     }
   },
   "walls": [
-    [0, 0, 48, 1],
-    [0, 31, 48, 1],
-    [0, 0, 1, 32],
-    [47, 0, 1, 32],
-
     [4, 4, 3, 3],
     [10, 4, 1, 5],
     [10, 8, 5, 1],

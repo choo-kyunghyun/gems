@@ -6,6 +6,9 @@
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
  * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
  * @property {number} [font] - font for cell labels (default: leaves the current font)
+ * @property {object} [camera] - a Camera instance; when set, only the cells inside its
+ *   view rect are iterated (essential for large/streamed grids). Omit for full-grid
+ *   iteration (small inspector grids). Settable later via `pass.camera = …`.
  */
 
 /**
@@ -33,9 +36,30 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     this.names = opt.names ?? false;
     this.alpha = opt.alpha ?? 0.25;
     this.font = opt.font;
+    this.camera = opt.camera; // optional view-cull source (see _range)
   }
 
   destroy() {}
+
+  // Visible cell range [x0,x1]×[y0,y1] (inclusive). Culled to the camera's view rect when
+  // a Camera is set — view_camera[] isn't exposed on GMRT, so read camera_get_view_*(id)
+  // off the held instance (the project's standard idiom). Full grid when no camera.
+  _range() {
+    const { cols, rows, cellWidth, cellHeight } = this.level;
+    if (this.camera === undefined)
+      return { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
+    const id = this.camera.id;
+    const vx = camera_get_view_x(id);
+    const vy = camera_get_view_y(id);
+    const vw = camera_get_view_width(id);
+    const vh = camera_get_view_height(id);
+    return {
+      x0: Math.max(0, Math.floor(vx / cellWidth)),
+      y0: Math.max(0, Math.floor(vy / cellHeight)),
+      x1: Math.min(cols - 1, Math.floor((vx + vw) / cellWidth)),
+      y1: Math.min(rows - 1, Math.floor((vy + vh) / cellHeight)),
+    };
+  }
 
   // Topmost tile at a cell across all layers (matches Level nav resolution).
   _topTile(x, y) {
@@ -55,13 +79,14 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     const font = draw_get_font();
     if (this.font !== undefined) draw_set_font(this.font);
 
-    const { cols, rows, cellWidth, cellHeight, mpg } = this.level;
+    const { cellWidth, cellHeight, mpg } = this.level;
+    const r = this._range();
 
     // Cost shading: blocking cells red, costlier-than-default cells orange.
     if (this.cost) {
       draw_set_alpha(this.alpha);
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
+      for (let y = r.y0; y <= r.y1; y++) {
+        for (let x = r.x0; x <= r.x1; x++) {
           const c = mpg.get(x, y);
           if (c === 1) continue; // default walkable — leave clear
           draw_set_color(c === Infinity ? c_red : c_orange);
@@ -77,8 +102,8 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       draw_set_alpha(1);
       draw_set_halign(fa_center);
       draw_set_valign(fa_middle);
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
+      for (let y = r.y0; y <= r.y1; y++) {
+        for (let x = r.x0; x <= r.x1; x++) {
           const cx = x * cellWidth + cellWidth * 0.5;
           const cy = y * cellHeight + cellHeight * 0.5;
 

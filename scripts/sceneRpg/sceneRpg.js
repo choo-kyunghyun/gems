@@ -148,16 +148,24 @@ class _SceneRpgClass extends Scene {
       });
     }
     this.mapId = mapId;
+    // A chunked map streams its terrain + entities around the player (overworld); a plain map
+    // builds everything up front (interiors). Branches below key off this.
+    this._chunked = data.meta.chunked === true;
     // Persistent (default true): the map's player edits are cached on leave + restored on
     // revisit (see step 1 and 4b). Set `meta.persistent: false` in a level file to opt out
     // (e.g. a dungeon that should reset each entry).
     this._mapPersistent = data.meta.persistent !== false;
-    Log.info(`RPG map: ${mapId} (entry ${entryId})`);
+    Log.info(
+      `RPG map: ${mapId} (entry ${entryId})${this._chunked ? " [chunked]" : ""}`,
+    );
 
-    // 3. World + level + player. The level is sized from the file's cols/rows, so each map
-    //    has its own extent and the follow camera scrolls across it.
-    this.world = new World(256, 60);
-    const built = RpgLevel.build(this.world, data, entryId);
+    // 3. World + level + player. A chunked map needs a bigger entity cap (a window of chunks'
+    //    worth of entities + colliders + transient drops) and an empty resident grid (player
+    //    builds only); a plain map sizes the grid from the file's cols/rows.
+    this.world = new World(this._chunked ? 1024 : 256, 60);
+    const built = this._chunked
+      ? RpgLevel.buildChunked(this.world, data, entryId)
+      : RpgLevel.build(this.world, data, entryId);
     this.level = built.level;
     this.spawn = built.spawn; // remembered for player respawn on death
     this.wallLayer = built.wallLayer; // tilemap handles for build mode
@@ -199,23 +207,41 @@ class _SceneRpgClass extends Scene {
     this._gone =
       saved !== undefined && saved.gone !== undefined ? saved.gone : {};
 
-    // 5. Entity instances from the file's `spawns` (enemies, NPC, chest, props, reach
-    //    marker, portals). Stations are discovered live by Interactable; only the handles the
-    //    scene's own logic needs come back. Spawned after the controller — slimes need the
-    //    player id for their AI.
-    const ents = RpgLevel.spawn(this.world, this.level, data, this.ctrl.id, {
-      gone: this._gone, // skip unique entities removed on a prior visit (file-scope reconcile)
-    });
-    this.enemies = ents.enemies;
-    this.npc = ents.npc; // -1 when the map has no NPC (guarded in _updateNpc)
-    this.reachZone = ents.reach; // undefined when the map has no reach marker
+    // 5. Entities. A chunked map STREAMS them via the ChunkManager (authored hub + procedural
+    //    wilderness, windowed around the player); a plain map spawns them all up front. Either
+    //    way the scene reads NPC / portal / enemy handles LIVE by tag (Query / world.query), so
+    //    no stored id lists are kept here — they'd dangle as chunks stream in and out.
+    if (this._chunked) {
+      this.source = new ChunkSource({
+        seed: data.meta.seed ?? 1337,
+        chunkCols: data.meta.chunkCols ?? 16,
+        chunkRows: data.meta.chunkRows ?? 16,
+        authored: data, // hand-built hub overlaid onto its chunks; procedural elsewhere
+      });
+      this.chunks = new ChunkManager(this.world, this.level, this.source, {
+        chunkCols: data.meta.chunkCols ?? 16,
+        chunkRows: data.meta.chunkRows ?? 16,
+        simRadius: 1,
+        loadRadius: 2,
+        playerId: this.ctrl.id,
+      });
+      const sp = this.world.get(Position, this.ctrl.id);
+      this.chunks.update(sp.x, sp.y); // populate the rings around the spawn
+      this.reachZone = this._authoredReach(data); // origin-area quest zone (not chunk-managed)
+      this.followers = [];
+    } else {
+      const ents = RpgLevel.spawn(this.world, this.level, data, this.ctrl.id, {
+        gone: this._gone, // file-scope reconcile (unique entities removed on a prior visit)
+      });
+      this.reachZone = ents.reach; // undefined when the map has no reach marker
+      this.followers = ents.followers; // this map's file-spawned companions
+    }
     this.reachDone = this.reachZone === undefined; // nothing to reach on this map
-    this.portals = ents.portals; // walk-onto doors → other maps (see _checkPortals)
+    this._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
 
-    // Companions: this map's file-spawned ones, then the traveling party re-spawned around the
-    // player's entry (fresh Position/Velocity so they don't keep old-map coords), then this
-    // map's cached stationed companions (restored where they were left — full snapshot).
-    this.followers = ents.followers;
+    // Companions (continued): the traveling party re-spawned around the player's entry (fresh
+    // Position/Velocity so they don't keep old-map coords), then this map's cached stationed
+    // companions (restored where they were left — full snapshot).
     const ep = this.world.get(Position, this.ctrl.id);
     for (let i = 0; i < travelers.length; i++)
       this.followers.push(
@@ -254,14 +280,20 @@ class _SceneRpgClass extends Scene {
     //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT 0.19 can't render
     //    the SVG character sprites).
     this.renderer = new Renderer();
-    this.renderer.insert(
-      new RenderDebugTileMap(this.level, {
-        names: true,
-        coords: false,
-        font: I18n.font("default"),
-      }),
-    );
-    this.renderer.insert(new RenderGrid(this.level)); // cell boundary lines
+    // Chunk-streamed terrain (ground checker + walls + frozen-entity snapshots) draws UNDER
+    // everything; the resident-grid passes below then draw player builds + zones on top.
+    if (this._chunked)
+      this.renderer.insert(
+        new RenderChunks(this.chunks, { font: I18n.font("default") }),
+      );
+    this._tilePass = new RenderDebugTileMap(this.level, {
+      names: true,
+      coords: false,
+      font: I18n.font("default"),
+    });
+    this.renderer.insert(this._tilePass);
+    this._gridPass = new RenderGrid(this.level); // cell boundary lines
+    this.renderer.insert(this._gridPass);
     this.renderer.insert(new RenderZone(this.level, "buildable"));
     this.renderer.insert(
       new RenderZoneLabel(this.level, "buildable", {
@@ -283,6 +315,10 @@ class _SceneRpgClass extends Scene {
       height: surface_get_height(application_surface),
     });
     this.camera.assign(0);
+    // Cull the resident-grid tile/grid passes to the camera view (essential for the chunked
+    // map's large home grid; harmless for a small interior).
+    this._tilePass.camera = this.camera;
+    this._gridPass.camera = this.camera;
 
     // 10. Corner minimap — rebuilt per map (captures world/target by value).
     this._buildMinimap();
@@ -294,6 +330,13 @@ class _SceneRpgClass extends Scene {
   // leaving the persistent UI in place. Mirrors teardownScene's order, minus the UI.
   _teardownMap() {
     RpgController.destroy();
+    // Drop the chunk streamer (its entities/colliders die with the world below); clearing the
+    // ref means the next map's step() skips chunk streaming until a chunked map sets it again.
+    if (this.chunks) {
+      this.chunks.destroy();
+      this.chunks = undefined;
+    }
+    this.source = undefined;
     if (this.camera) this.camera.destroy();
     if (this.renderer) this.renderer.destroy();
     if (this.world) this.world.destroy();
@@ -397,6 +440,14 @@ class _SceneRpgClass extends Scene {
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     this.camera.update();
 
+    // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
+    // entities + colliders as the player crosses chunk borders; runs before the portal check,
+    // which can swap the whole map out from under everything.
+    if (this.chunks !== undefined) {
+      const pp = this.world.get(Position, this.ctrl.id);
+      this.chunks.update(pp.x, pp.y);
+    }
+
     // Rebuild the inventory window body only when its contents changed (open + dirty),
     // not every frame. UI.update ran before this step(), so a click this frame is in.
     if (this.invOpen && this._invDirty) {
@@ -443,10 +494,13 @@ class _SceneRpgClass extends Scene {
   // and we return immediately — the old world is gone.
   _checkPortals() {
     const p = AABB.of(this.world, this.ctrl.id);
-    for (let i = 0; i < this.portals.length; i++) {
-      const portal = this.portals[i];
-      const z = AABB.of(this.world, portal.id);
+    // Live query every doorway in the world (entities carrying a Portal component) — works for
+    // both a chunk-streamed portal and a plain map's, with no stored list to dangle.
+    const ids = this.world.query(Portal);
+    for (let i = 0; i < ids.length; i++) {
+      const z = AABB.of(this.world, ids[i]);
       if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
+        const portal = this.world.get(Portal, ids[i]);
         Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
         this.loadMap(portal.toMap, portal.toEntry);
         return;
@@ -576,6 +630,16 @@ class _SceneRpgClass extends Scene {
     }
   }
 
+  // Reach-quest zone from a chunked map's authored data (the "reach" spawn). The marker is an
+  // origin-area region, not an entity, so it's resolved once here rather than chunk-streamed.
+  _authoredReach(data) {
+    const spawns = data.spawns ?? [];
+    for (let i = 0; i < spawns.length; i++)
+      if (spawns[i].preset === "reach")
+        return RpgLevel.reachZone(this.level, spawns[i]);
+    return undefined;
+  }
+
   // Auto turn-in for the passive (non-NPC) quests once their objectives are met.
   _tryTurnIn(qid) {
     if (!QuestLog.isReady(qid)) return;
@@ -625,21 +689,24 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Proximity to the elder + E to accept / turn in the kill quest. No-op on maps without
-  // an NPC (this.npc === -1, e.g. interiors).
+  // Proximity to an NPC + dialogue text for accept / turn in. No-op on maps with no NPC in
+  // reach (e.g. interiors); the target is resolved live each frame (this._npcId).
   _updateNpc() {
-    if (this.npc === -1) {
-      this.nearNpc = false;
-      return;
-    }
+    this._npcId = -1;
+    this.nearNpc = false;
     const p = this.world.get(Position, this.ctrl.id);
-    const np = this.world.get(Position, this.npc);
-    const dx = np.x - p.x;
-    const dy = np.y - p.y;
-    this.nearNpc = dx * dx + dy * dy < RPG_NPC_RADIUS * RPG_NPC_RADIUS;
-    if (!this.nearNpc) return;
+    if (p === undefined) return;
+    // Live: nearest "npc"-tagged entity within reach (works whether the NPC is streamed or
+    // spawned up front). No NPC in range → no dialogue this frame.
+    const id = Query.nearest(this.world, p.x, p.y, {
+      tag: "npc",
+      maxDist: RPG_NPC_RADIUS,
+    });
+    if (id === -1) return;
+    this._npcId = id;
+    this.nearNpc = true;
 
-    const npc = this.world.get(NPC, this.npc);
+    const npc = this.world.get(NPC, id);
     const qid = npc.questId;
     this.dialogueName = npc.name;
     if (QuestLog.isDone(qid)) {
@@ -679,7 +746,7 @@ class _SceneRpgClass extends Scene {
       return;
     }
     const stationId = this._interTarget; // -1 when no station in range
-    const npcId = this.nearNpc ? this.npc : -1; // -1 when no NPC nearby
+    const npcId = this._npcId; // -1 when no NPC nearby (resolved live in _updateNpc)
     if (stationId === -1 && npcId === -1) return;
 
     let toStation;
@@ -707,8 +774,8 @@ class _SceneRpgClass extends Scene {
   // The NPC side of the interact dispatch: accept the offered quest or turn it in when
   // ready. Called by _dispatchInteract only — never reads input itself.
   _npcActivate() {
-    if (this.npc === -1 || !this.nearNpc) return;
-    const npc = this.world.get(NPC, this.npc);
+    if (this._npcId === -1 || !this.nearNpc) return;
+    const npc = this.world.get(NPC, this._npcId);
     const qid = npc.questId;
     if (QuestLog.isReady(qid)) {
       this._applyReward(QuestLog.complete(qid));

@@ -87,12 +87,7 @@ globalThis.RpgLevel = {
     const colliders = [];
     TileEdit.meshSolid(world, level, wallLayer, colliders);
 
-    // Resolve the spawn point: named entry → entries.default → legacy playerSpawn.
-    const entries = data.meta.entries;
-    let entry = data.meta.playerSpawn;
-    if (entries !== undefined)
-      entry = entries[entryId] ?? entries.default ?? entry;
-    const spawn = level.gridToWorld(entry.gx, entry.gy);
+    const spawn = this._resolveSpawn(level, data, entryId);
     return {
       level,
       spawn,
@@ -102,6 +97,55 @@ globalThis.RpgLevel = {
       floorType,
       colliders,
     };
+  },
+
+  /**
+   * Build a Level for a CHUNK-STREAMED map: a large resident grid whose wall/floor TileLayers
+   * are left EMPTY (reserved for the player's own builds — build mode). The streamed terrain
+   * (authored hub + procedural wilderness) is owned by the ChunkManager, not this grid, so
+   * nothing is painted and no colliders are meshed here (returns `colliders: []`). Grid size
+   * comes from meta.worldCols/worldRows (the build-allowed home region); the world extends
+   * infinitely beyond it via chunks. Same return shape + layer order as build() so the scene
+   * code and Level.import (the _mapCache round-trip for player builds) are unchanged.
+   */
+  buildChunked(world, data, entryId = "default") {
+    const cell = data.cell ?? RPG_CELL;
+    const cols = data.meta.worldCols ?? data.cols ?? 128;
+    const rows = data.meta.worldRows ?? data.rows ?? 128;
+    const level = new Level({
+      cellWidth: cell,
+      cellHeight: cell,
+      cols,
+      rows,
+    });
+    const wallType = new TileType({ id: 1, name: "벽", pathCost: null });
+    const floorType = new TileType({ id: 2, name: "바닥" });
+    const floorLayer = new TileLayer(level.cols, level.rows, { emptyCost: 1 });
+    const wallLayer = new TileLayer(level.cols, level.rows);
+    level.insert(floorLayer);
+    level.insert(wallLayer);
+    level.syncAll();
+
+    const spawn = this._resolveSpawn(level, data, entryId);
+    return {
+      level,
+      spawn,
+      wallLayer,
+      floorLayer,
+      wallType,
+      floorType,
+      colliders: [],
+    };
+  },
+
+  // Resolve the player spawn point (world coords): named entry → entries.default → legacy
+  // meta.playerSpawn. Shared by build() and buildChunked().
+  _resolveSpawn(level, data, entryId) {
+    const entries = data.meta.entries;
+    let entry = data.meta.playerSpawn;
+    if (entries !== undefined)
+      entry = entries[entryId] ?? entries.default ?? entry;
+    return level.gridToWorld(entry.gx, entry.gy);
   },
 
   /**
@@ -138,125 +182,145 @@ globalThis.RpgLevel = {
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
       if (s.id !== undefined && gone[s.id]) continue; // removed this map — don't re-spawn
-      const w = level.gridToWorld(s.gx, s.gy);
-
-      if (s.preset === "slime") {
-        const id = world.create();
-        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-        world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-        // Dynamic (non-kinematic) so SolidSystem integrates the velocity SlimeAI sets
-        // and collides it against the kinematic walls.
-        world.add(id, Collision, {
-          solid: true,
-          kinematic: false,
-          mask: null,
-          hits: [],
-        });
-        world.add(id, Health, { hp: s.hp ?? 3 });
-        world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
-        world.add(id, Name, { name: "Slime" });
-        // Loot table — no maxWeight (loot is authored, never weight-gated).
-        world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-        world.add(
-          id,
-          Visual,
-          this._visual(spr_choo, make_colour_rgb(120, 220, 130)),
-        );
-        SlimeAI.attach(world, id, playerId); // adds Velocity + Brain + State
-        if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
-        enemies.push(id);
-      } else if (s.preset === "npc") {
-        const id = world.create();
-        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-        world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
-        world.add(id, Collision, {
-          solid: true,
-          kinematic: true,
-          mask: null,
-          hits: [],
-        });
-        world.add(id, Tag, { tags: new Set(["npc"]) });
-        world.add(id, Name, { name: s.label });
-        world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
-        const vis = this._visual(spr_hana, c_white);
-        vis.xscale = 0.6;
-        vis.yscale = 0.6;
-        world.add(id, Visual, vis);
-        if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
-        npc = id;
-      } else if (s.preset === "chest") {
-        const id = world.create();
-        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-        world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
-        world.add(id, Collision, {
-          solid: true,
-          kinematic: true,
-          mask: null,
-          hits: [],
-        });
-        world.add(id, Station, { kind: "storage" });
-        world.add(id, Name, { name: "Chest" });
-        world.add(id, Inventory, {
-          slots: s.items ?? [],
-          capacity: s.capacity ?? 12,
-        });
-        world.add(id, Visual, this._visual(spr_choo, Color.parse("#c8a046")));
-      } else if (s.preset === "prop") {
-        // Solid kinematic prop. A Station `kind` makes it interactable (Interactable
-        // picks it by mouse/proximity, E opens its window); a decorative prop omits it.
-        const id = world.create();
-        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-        world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
-        world.add(id, Collision, {
-          solid: true,
-          kinematic: true,
-          mask: null,
-          hits: [],
-        });
-        world.add(id, Name, { name: s.label });
-        world.add(id, Visual, this._visual(spr_choo, Color.parse(s.color)));
-        if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
-        else world.add(id, Tag, { tags: new Set(["furniture"]) });
-      } else if (s.preset === "reach") {
-        const half = s.half ?? 44;
-        reach = {
-          x1: w.x - half,
-          y1: w.y - half,
-          x2: w.x + half,
-          y2: w.y + half,
-        };
-      } else if (s.preset === "portal") {
-        // A doorway: a non-solid sensor entity the player walks onto to travel to another
-        // map. Visible (Visual box + Name) and minimap-tagged; the destination is read from
-        // the parallel `portals` array (keyed by id) when the scene resolves the overlap.
-        const id = world.create();
-        world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-        world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
-        world.add(id, Tag, { tags: new Set(["portal"]) });
-        world.add(id, Name, { name: s.label ?? "Door" });
-        world.add(
-          id,
-          Visual,
-          this._visual(spr_choo, Color.parse(s.color ?? "#7c6fd0")),
-        );
-        portals.push({
-          id,
-          toMap: s.toMap,
-          toEntry: s.toEntry ?? "default",
-        });
-      } else if (s.preset === "follower") {
-        followers.push(
-          this.spawnFollower(world, w.x, w.y, {
-            label: s.label,
-            color: s.color,
-            speed: s.speed,
-            range: s.range,
-          }),
-        );
+      if (s.preset === "reach") {
+        reach = this.reachZone(level, s); // a region, not an entity
+        continue;
       }
+      const id = this.spawnEntity(world, level, s, playerId);
+      if (id === -1) continue;
+      // Classify the constructed entity into the scene's typed handles by its preset.
+      if (s.preset === "slime") enemies.push(id);
+      else if (s.preset === "npc") npc = id;
+      else if (s.preset === "portal")
+        portals.push({ id, toMap: s.toMap, toEntry: s.toEntry ?? "default" });
+      else if (s.preset === "follower") followers.push(id);
     }
 
     return { enemies, npc, reach, portals, followers };
+  },
+
+  // Reach-quest zone rect (world coords) for a "reach" spawn — no entity, just a region the
+  // scene tests the player against.
+  reachZone(level, s) {
+    const w = level.gridToWorld(s.gx, s.gy);
+    const half = s.half ?? 44;
+    return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
+  },
+
+  // Construct ONE spawn descriptor's entity and return its id (-1 for non-entity presets like
+  // "reach"). Extracted from spawn() so the chunk streamer (ChunkSource.spawn) builds entities
+  // through the same code — entity construction lives in exactly one place. `gx/gy` are grid
+  // coords (absolute; gridToWorld handles negatives, so chunk-streamed entities work too).
+  spawnEntity(world, level, s, playerId) {
+    const w = level.gridToWorld(s.gx, s.gy);
+
+    if (s.preset === "slime") {
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
+      // Dynamic (non-kinematic) so SolidSystem integrates the velocity SlimeAI sets
+      // and collides it against the kinematic walls.
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: false,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Health, { hp: s.hp ?? 3 });
+      world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
+      world.add(id, Name, { name: "Slime" });
+      // Loot table — no maxWeight (loot is authored, never weight-gated).
+      world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
+      world.add(
+        id,
+        Visual,
+        this._visual(spr_choo, make_colour_rgb(120, 220, 130)),
+      );
+      SlimeAI.attach(world, id, playerId); // adds Velocity + Brain + State
+      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
+      return id;
+    } else if (s.preset === "npc") {
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Tag, { tags: new Set(["npc"]) });
+      world.add(id, Name, { name: s.label });
+      world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
+      const vis = this._visual(spr_hana, c_white);
+      vis.xscale = 0.6;
+      vis.yscale = 0.6;
+      world.add(id, Visual, vis);
+      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
+      return id;
+    } else if (s.preset === "chest") {
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Station, { kind: "storage" });
+      world.add(id, Name, { name: "Chest" });
+      world.add(id, Inventory, {
+        slots: s.items ?? [],
+        capacity: s.capacity ?? 12,
+      });
+      world.add(id, Visual, this._visual(spr_choo, Color.parse("#c8a046")));
+      return id;
+    } else if (s.preset === "prop") {
+      // Solid kinematic prop. A Station `kind` makes it interactable (Interactable
+      // picks it by mouse/proximity, E opens its window); a decorative prop omits it.
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Name, { name: s.label });
+      world.add(id, Visual, this._visual(spr_choo, Color.parse(s.color)));
+      if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
+      else world.add(id, Tag, { tags: new Set(["furniture"]) });
+      return id;
+    } else if (s.preset === "portal") {
+      // A doorway: a non-solid sensor entity the player walks onto to travel to another
+      // map. Visible (Visual box + Name) and minimap-tagged. The destination rides on the
+      // entity (Portal component) so a streamed portal resolves via a live Tag "portal" query.
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, Tag, { tags: new Set(["portal"]) });
+      world.add(id, Name, { name: s.label ?? "Door" });
+      world.add(
+        id,
+        Visual,
+        this._visual(spr_choo, Color.parse(s.color ?? "#7c6fd0")),
+      );
+      world.add(id, Portal, {
+        toMap: s.toMap,
+        toEntry: s.toEntry ?? "default",
+      });
+      return id;
+    } else if (s.preset === "follower") {
+      return this.spawnFollower(world, w.x, w.y, {
+        label: s.label,
+        color: s.color,
+        speed: s.speed,
+        range: s.range,
+      });
+    }
+    return -1;
   },
 
   // Spawn a companion (a dynamic solid body — SolidSystem integrates the velocity

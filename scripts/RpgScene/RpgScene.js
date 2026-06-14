@@ -3,17 +3,32 @@
 // free functions taking the scene (composition — GMRT has no usable class inheritance).
 // Genre-specific side effects are passed as small callbacks/options.
 //
-// Contract: the scene owns `world`, `ctrl` (with `.id`), `enemies` (id[]), `_hpTrack`
-// (id → last-seen hp), and `_invDirty` (bag-changed flag) — same fields both scenes had.
+// Contract: the scene owns `world`, `ctrl` (with `.id`), `_hpTrack` (id → last-seen hp),
+// and `_invDirty` (bag-changed flag). The enemy set is derived LIVE from the world by
+// Tag "enemy" (not a stored scene.enemies list) so chunk streaming — which adds/removes
+// enemies from the world as chunks load/unload — needs no list bookkeeping.
 globalThis.RpgScene = {
+  // Live enemy set: entities carrying Health + Tag "enemy". (Set.has is GMRT-safe; only
+  // Set ITERATION is banned.) The player has Health but no "enemy" tag, so it's excluded.
+  _enemies(world) {
+    const out = [];
+    const ids = world.query(Health, Tag);
+    for (let i = 0; i < ids.length; i++) {
+      const tag = world.get(Tag, ids[i]);
+      if (tag.tags.has("enemy")) out.push(ids[i]);
+    }
+    return out;
+  },
+
   // Floating combat numbers: diff each combatant's Health vs last tick, pop a rising
   // number on any change (damage falls, heals rise). `yOffset` lifts the number above the
   // entity (genre sprite height: ~28 platformer, ~14 top-down). Run after physics, before
   // deaths are flushed, so the killing blow still pops.
   trackDamage(scene, yOffset) {
     RpgScene._diffHp(scene, scene.ctrl.id, true, yOffset);
-    for (let i = 0; i < scene.enemies.length; i++)
-      RpgScene._diffHp(scene, scene.enemies[i], false, yOffset);
+    const enemies = RpgScene._enemies(scene.world);
+    for (let i = 0; i < enemies.length; i++)
+      RpgScene._diffHp(scene, enemies[i], false, yOffset);
   },
 
   _diffHp(scene, id, isPlayer, yOffset) {
@@ -44,18 +59,17 @@ globalThis.RpgScene = {
   resolveDeaths(scene, opts) {
     opts = opts ?? {};
     const world = scene.world;
-    for (let i = scene.enemies.length - 1; i >= 0; i--) {
-      const id = scene.enemies[i];
-      if (!world.isValid(id)) {
-        scene.enemies.splice(i, 1);
-        continue;
-      }
+    // Live enemy snapshot for this tick; a removed enemy simply won't appear next tick
+    // (no list to splice). Iterate forward — world.remove is deferred to flush, so each
+    // entity stays readable here.
+    const enemies = RpgScene._enemies(world);
+    for (let i = 0; i < enemies.length; i++) {
+      const id = enemies[i];
       const hp = world.get(Health, id);
       if (hp !== undefined && hp.hp <= 0) {
         RpgScene.spillLoot(scene, id, opts.spill);
         if (opts.onKill !== undefined) opts.onKill(id);
         world.remove(id);
-        scene.enemies.splice(i, 1);
       }
     }
   },

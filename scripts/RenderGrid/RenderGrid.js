@@ -2,6 +2,9 @@
  * @typedef {Object} RenderGridOptions
  * @property {number} [color] - grid line color (default c_gray)
  * @property {number} [alpha] - line alpha (default 1)
+ * @property {object} [camera] - a Camera instance; when set, only the lines inside its
+ *   view rect are drawn (for large/streamed grids). Omit for the full grid. Settable
+ *   later via `pass.camera = …`.
  */
 
 /**
@@ -22,6 +25,7 @@ globalThis.RenderGrid = class RenderGrid {
     this.level = level;
     this.color = opt.color ?? c_gray;
     this.alpha = opt.alpha ?? 1;
+    this.camera = opt.camera; // optional view-cull source (see draw)
   }
 
   destroy() {}
@@ -31,13 +35,37 @@ globalThis.RenderGrid = class RenderGrid {
     const alpha = draw_get_alpha();
 
     const { cols, rows, cellWidth, cellHeight } = this.level;
+
+    // Visible cell range — culled to the camera's view rect when set (read
+    // camera_get_view_* off the held Camera; view_camera[] isn't exposed on GMRT),
+    // else the full grid. Lines span only the visible band, not the whole map.
+    let x0 = 0;
+    let y0 = 0;
+    let x1 = cols;
+    let y1 = rows;
+    if (this.camera !== undefined) {
+      const id = this.camera.id;
+      const vx = camera_get_view_x(id);
+      const vy = camera_get_view_y(id);
+      const vw = camera_get_view_width(id);
+      const vh = camera_get_view_height(id);
+      x0 = Math.max(0, Math.floor(vx / cellWidth));
+      y0 = Math.max(0, Math.floor(vy / cellHeight));
+      x1 = Math.min(cols, Math.ceil((vx + vw) / cellWidth));
+      y1 = Math.min(rows, Math.ceil((vy + vh) / cellHeight));
+    }
+
     draw_set_alpha(this.alpha);
     draw_set_color(this.color);
-    for (let x = 0; x <= cols; x++) {
-      draw_line(x * cellWidth, 0, x * cellWidth, rows * cellHeight);
+    const top = y0 * cellHeight;
+    const bottom = y1 * cellHeight;
+    const left = x0 * cellWidth;
+    const right = x1 * cellWidth;
+    for (let x = x0; x <= x1; x++) {
+      draw_line(x * cellWidth, top, x * cellWidth, bottom);
     }
-    for (let y = 0; y <= rows; y++) {
-      draw_line(0, y * cellHeight, cols * cellWidth, y * cellHeight);
+    for (let y = y0; y <= y1; y++) {
+      draw_line(left, y * cellHeight, right, y * cellHeight);
     }
 
     draw_set_color(color);
