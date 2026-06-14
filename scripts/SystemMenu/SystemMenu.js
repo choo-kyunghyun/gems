@@ -481,21 +481,39 @@ globalThis.SystemMenu = class SystemMenu {
   static _debugTab(tabsH) {
     const scroll = gemsScroll({ height: tabsH });
 
-    // Render overlays: a checkbox bound to the live scene's RenderDebugEntity pass
-    // (BBox outlines). No-op / off when the current scene has no such pass.
+    // Render overlays: one checkbox per debug pass class, each bound to the live scene's
+    // pass of that class (found by instanceof — GMRT-safe on a flat class). A scene that
+    // doesn't insert a given pass reads off + no-ops on click, so each scene effectively
+    // shows only the overlays it has. Toggling pass.enabled is the hook the renderer
+    // already honors. Note: Boxes / Tiles double as the RPG's primary entity / wall
+    // visuals (no SVG sprites on GMRT), so switching them off hides those — intentional.
     const render = gemsSection(I18n.textRef("SYS_RENDER"));
     render.insertChild(
-      gemsCheckbox(
-        I18n.textRef("SYS_DEBUG_BBOX"),
-        () => {
-          const p = SystemMenu._debugPass();
-          return p !== null && p.enabled;
-        },
-        () => {
-          const p = SystemMenu._debugPass();
-          if (p !== null) p.enabled = !p.enabled;
-        },
+      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_BOXES"), RenderDebugBox),
+    );
+    render.insertChild(
+      SystemMenu._renderToggle(
+        I18n.textRef("SYS_DEBUG_NAMES"),
+        RenderDebugName,
       ),
+    );
+    render.insertChild(
+      SystemMenu._renderToggle(
+        I18n.textRef("SYS_DEBUG_BBOX"),
+        RenderDebugEntity,
+      ),
+    );
+    render.insertChild(
+      SystemMenu._renderToggle(
+        I18n.textRef("SYS_DEBUG_TILES"),
+        RenderDebugTileMap,
+      ),
+    );
+    render.insertChild(
+      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_GRID"), RenderGrid),
+    );
+    render.insertChild(
+      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_PATH"), RenderDebugPath),
     );
     scroll.scrollBody.insertChild(render);
 
@@ -563,15 +581,31 @@ globalThis.SystemMenu = class SystemMenu {
     return scene !== null && scene.world != null ? scene.world : null;
   }
 
-  // The live scene's BBox-overlay pass, or null. Found by scanning the renderer's pass
-  // list (instanceof on a flat class is GMRT-safe) so no scene needs to expose it.
-  static _debugPass() {
+  // A render-overlay toggle checkbox bound to the live scene's pass of class `cls`
+  // (no-op when the scene has no such pass). Shared by every Debug-tab render toggle.
+  static _renderToggle(label, cls) {
+    return gemsCheckbox(
+      label,
+      () => {
+        const p = SystemMenu._passOf(cls);
+        return p !== null && p.enabled;
+      },
+      () => {
+        const p = SystemMenu._passOf(cls);
+        if (p !== null) p.enabled = !p.enabled;
+      },
+    );
+  }
+
+  // The live scene's first renderer pass that is an instance of `cls`, or null. Scans the
+  // pass list (instanceof on a flat class is GMRT-safe) so no scene needs to expose it.
+  static _passOf(cls) {
     const g = SystemMenu._game;
     const scene = g !== null ? g.scenes.current : null;
     if (scene === null || scene.renderer == null) return null;
     const passes = scene.renderer.passes;
     for (let i = 0; i < passes.length; i++) {
-      if (passes[i] instanceof RenderDebugEntity) return passes[i];
+      if (passes[i] instanceof cls) return passes[i];
     }
     return null;
   }
