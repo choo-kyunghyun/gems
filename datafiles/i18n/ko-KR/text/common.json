@@ -201,6 +201,8 @@
   "STORAGE_PROMPT": "[E] 상자 열기",
   "STORAGE_EMPTY": "(비어 있음)",
   "STORAGE_HINT": "아이템을 더블 클릭하여 이동",
+  "STORAGE_TAKE_ALL": "모두 가져오기",
+  "STORAGE_STORE_ALL": "모두 보관",
   "SORT": "정렬",
 
   "CRAFT_TITLE": "제작",

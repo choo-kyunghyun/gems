@@ -53,8 +53,22 @@ globalThis.StorageUI = {
     const boxTable = StorageUI._table(scene, "box");
     scene._storeBagTable = bagTable.getComponent(UITable);
     scene._storeBoxTable = boxTable.getComponent(UITable);
-    cols.insertChild(StorageUI._column(I18n.textRef("STORAGE_BAG"), bagTable));
-    cols.insertChild(StorageUI._column(I18n.textRef("STORAGE_BOX"), boxTable));
+    cols.insertChild(
+      StorageUI._column(
+        I18n.textRef("STORAGE_BAG"),
+        bagTable,
+        I18n.textRef("STORAGE_STORE_ALL"),
+        () => StorageUI._allFrom(scene, "bag"),
+      ),
+    );
+    cols.insertChild(
+      StorageUI._column(
+        I18n.textRef("STORAGE_BOX"),
+        boxTable,
+        I18n.textRef("STORAGE_TAKE_ALL"),
+        () => StorageUI._allFrom(scene, "box"),
+      ),
+    );
     win.body.insertChild(cols);
 
     // Discoverability: double-click (or confirm) transfers — single click just selects.
@@ -68,16 +82,28 @@ globalThis.StorageUI = {
     scene.ui.insertChild(win);
   },
 
-  // One titled column: a header label over a sortable table. Returns the column element.
-  _column(titleRef, tableEl) {
+  // One titled column: a header (title + a bulk "All" button) over a sortable table.
+  // `onAll` moves every stack of this side to the other (gated by capacity/weight).
+  _column(titleRef, tableEl, allLabelRef, onAll) {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
       gap: GemsTheme.gapSm,
     });
-    const title = new UIElement({ width: "100%", height: 22 });
-    title.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
-    col.insertChild(title);
+    const header = new UIElement({
+      width: "100%",
+      height: 26,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    header.insertChild(titleCell);
+    header.insertChild(
+      gemsButton(allLabelRef, onAll, { width: 100, height: 24 }),
+    );
+    col.insertChild(header);
     col.insertChild(tableEl);
     return col;
   },
@@ -207,25 +233,67 @@ globalThis.StorageUI = {
     if (moved <= 0) return; // destination full / weight-gated
     s.qty -= moved;
     if (s.qty <= 0) srcInv.slots.splice(idx, 1);
-
-    // Storing an equipped item out of the player's own bag must unequip it once the
-    // player no longer owns any copy — equipped items normally stay in the bag, so a
-    // worn item moved to the chest would otherwise leave a dangling Equipment slot
-    // (and its stat mods) referencing an item we no longer have.
-    if (srcInv === scene.world.get(Inventory, scene.ctrl.id)) {
-      const eq = scene.world.get(Equipment, scene.ctrl.id);
-      if (eq !== undefined && !InventorySystem.has(srcInv, itemId, 1)) {
-        for (const slot in eq.slots) {
-          if (eq.slots[slot] === itemId) {
-            EquipmentSystem.unequip(scene.world, scene.ctrl.id, slot);
-            break;
-          }
-        }
-      }
-    }
+    StorageUI._reconcileEquip(scene, srcInv);
 
     scene._storeDirty = true;
     scene._invDirty = true; // keep the main inventory window in sync if it's open
     Log.info(`transferred ${moved}x ${itemId}`);
+  },
+
+  // Bulk "Take All" / "Store All": move every stack of `side` ("bag"/"box") to the
+  // other inventory, as much as fits. Each stack is gated by InventorySystem.add
+  // (maxWeight then capacity), so when the destination hits its slot/weight cap the
+  // remaining stacks simply stay put — greedy fill that halts cleanly at the limit.
+  _allFrom(scene, side) {
+    const world = scene.world;
+    const bag = world.get(Inventory, scene.ctrl.id);
+    const box = world.get(Inventory, scene._storageId);
+    if (bag === undefined || box === undefined) return;
+    if (side === "bag") StorageUI._transferAll(scene, bag, box);
+    else StorageUI._transferAll(scene, box, bag);
+  },
+
+  _transferAll(scene, srcInv, dstInv) {
+    let total = 0;
+    let i = 0;
+    while (i < srcInv.slots.length) {
+      const s = srcInv.slots[i];
+      const leftover = InventorySystem.add(dstInv, s.itemId, s.qty);
+      const moved = s.qty - leftover;
+      if (moved > 0) {
+        total += moved;
+        s.qty -= moved;
+        if (s.qty <= 0) {
+          srcInv.slots.splice(i, 1); // emptied — next slot shifts into i, don't advance
+          continue;
+        }
+      }
+      i++; // partial (dst full) or nothing fit — leave the stack and move on
+    }
+    if (total === 0) return;
+    StorageUI._reconcileEquip(scene, srcInv);
+    scene._storeDirty = true;
+    scene._invDirty = true;
+    Log.info(`transferred all (${total} items)`);
+  },
+
+  // Storing an equipped item out of the player's own bag must unequip it once the player
+  // no longer owns any copy — equipped items normally stay in the bag, so a worn item
+  // moved to the chest would otherwise leave a dangling Equipment slot (and its stat
+  // mods) referencing an item we no longer have. No-op when srcInv isn't the player bag.
+  _reconcileEquip(scene, srcInv) {
+    if (srcInv !== scene.world.get(Inventory, scene.ctrl.id)) return;
+    const eq = scene.world.get(Equipment, scene.ctrl.id);
+    if (eq === undefined) return;
+    for (const slot in eq.slots) {
+      const itemId = eq.slots[slot];
+      if (
+        itemId !== undefined &&
+        itemId !== "" &&
+        !InventorySystem.has(srcInv, itemId, 1)
+      ) {
+        EquipmentSystem.unequip(scene.world, scene.ctrl.id, slot);
+      }
+    }
   },
 };

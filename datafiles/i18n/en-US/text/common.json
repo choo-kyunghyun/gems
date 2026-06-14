@@ -201,6 +201,8 @@
   "STORAGE_PROMPT": "[E] Open chest",
   "STORAGE_EMPTY": "(empty)",
   "STORAGE_HINT": "Double-click an item to transfer",
+  "STORAGE_TAKE_ALL": "Take All",
+  "STORAGE_STORE_ALL": "Store All",
   "SORT": "Sort",
 
   "CRAFT_TITLE": "Crafting",
