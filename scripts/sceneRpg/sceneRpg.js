@@ -71,7 +71,7 @@ class _SceneRpgClass extends Scene {
     // in RpgMap.load owns it). create() runs once per scene, so this seeds exactly once.
     const pp = this.world.get(Position, this.ctrl.id);
     this.followers.push(
-      RpgLevel.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
+      RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
         label: "Companion",
       }),
     );

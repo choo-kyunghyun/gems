@@ -130,7 +130,7 @@ globalThis.RpgMap = {
       scene._built = {}; // player-built deconstructable cells, fresh on first visit
     }
     // File-scope reconcile ledger for THIS map: uids of unique entities removed during play.
-    // Loaded from the cache (persists across revisits), passed to RpgLevel.spawn below to skip
+    // Loaded from the cache (persists across revisits), passed to RpgSpawn.spawn below to skip
     // their file spawns, and written back on leave. Empty on a first visit / non-persistent map.
     scene._gone =
       saved !== undefined && saved.gone !== undefined ? saved.gone : {};
@@ -158,7 +158,7 @@ globalThis.RpgMap = {
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not chunk-managed)
       scene.followers = [];
     } else {
-      const ents = RpgLevel.spawn(
+      const ents = RpgSpawn.spawn(
         scene.world,
         scene.level,
         data,
@@ -302,7 +302,7 @@ globalThis.RpgMap = {
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++)
       if (spawns[i].preset === "reach")
-        return RpgLevel.reachZone(scene.level, spawns[i]);
+        return RpgSpawn.reachZone(scene.level, spawns[i]);
     return undefined;
   },
 };

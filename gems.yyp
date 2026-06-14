@@ -182,6 +182,7 @@
     {"id":{"name":"RpgPlayer","path":"scripts/RpgPlayer/RpgPlayer.yy",},},
     {"id":{"name":"RpgQuests","path":"scripts/RpgQuests/RpgQuests.yy",},},
     {"id":{"name":"RpgScene","path":"scripts/RpgScene/RpgScene.yy",},},
+    {"id":{"name":"RpgSpawn","path":"scripts/RpgSpawn/RpgSpawn.yy",},},
     {"id":{"name":"RpgWorldOverlay","path":"scripts/RpgWorldOverlay/RpgWorldOverlay.yy",},},
     {"id":{"name":"SaveData","path":"scripts/SaveData/SaveData.yy",},},
     {"id":{"name":"Scene","path":"scripts/Scene/Scene.yy",},},

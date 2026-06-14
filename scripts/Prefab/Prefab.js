@@ -3,7 +3,7 @@
 // footprint's top-left). The generator picks one (weighted) and translates its local coords to
 // absolute grid coords at a placement offset, so the same template reads identically wherever
 // it lands. Definitions are pure data (no entities are built here) — OverworldGen stamps them
-// and RpgLevel.spawnEntity constructs the spawns, so prefabs add structured content to an
+// and RpgSpawn.spawnEntity constructs the spawns, so prefabs add structured content to an
 // otherwise-uniform random scatter without touching the streaming engine.
 //
 // A def: { id, tags?:string[], weight?, cols, rows,

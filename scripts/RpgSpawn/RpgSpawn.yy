@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgSpawn",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgSpawn",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/RPG/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgSpawn.js",
+}

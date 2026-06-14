@@ -9,7 +9,7 @@
 //
 // Coordinates returned are ABSOLUTE grid coords (gridToWorld handles negatives), so chunks
 // extend infinitely in every direction. Entity construction is delegated to
-// RpgLevel.spawnEntity — the single place entities are built.
+// RpgSpawn.spawnEntity — the single place entities are built.
 globalThis.ChunkSource = class ChunkSource {
   constructor(opts = {}) {
     this.chunkCols = opts.chunkCols ?? 16;
@@ -110,6 +110,6 @@ globalThis.ChunkSource = class ChunkSource {
   // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgLevel so
   // entity construction stays in one place). Non-entity presets (e.g. "reach") return -1.
   spawn(world, level, desc, playerId) {
-    return RpgLevel.spawnEntity(world, level, desc, playerId);
+    return RpgSpawn.spawnEntity(world, level, desc, playerId);
   }
 };

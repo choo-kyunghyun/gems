@@ -1,5 +1,5 @@
 // Placeable-entity catalog for the level editor — the "database" of what can be placed,
-// mirroring the spawn presets RpgLevel.spawn understands (slime/npc/chest/prop/reach).
+// mirroring the spawn presets RpgSpawn.spawn understands (slime/npc/chest/prop/reach).
 //
 // Each entry carries editor display (label + marker color), a `make(gx, gy)` factory that
 // returns a FRESH spawn record with sensible default fields (fresh per call, so two placed
