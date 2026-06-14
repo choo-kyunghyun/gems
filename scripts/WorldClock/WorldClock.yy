@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"WorldClock",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"WorldClock",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"WorldClock.js",
+}

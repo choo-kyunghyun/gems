@@ -239,6 +239,10 @@ globalThis.RpgMap = {
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     scene.renderer.insert(bbox);
+    // Day/night tint LAST — over tiles + entities (the scene draws bright cues after the
+    // renderer). Its camera is assigned with the others in step 9 below.
+    scene._dayNight = new RenderDayNight();
+    scene.renderer.insert(scene._dayNight);
 
     // 9. Follow camera on the (new) player.
     scene.camera = cameraFollow2d({
@@ -253,6 +257,7 @@ globalThis.RpgMap = {
     // map's large home grid; harmless for a small interior).
     scene._tilePass.camera = scene.camera;
     scene._gridPass.camera = scene.camera;
+    scene._dayNight.camera = scene.camera; // day/night tint covers the camera view rect
 
     // 10. Corner minimap — rebuilt per map (captures world/target by value).
     RpgHud.buildMinimap(scene);

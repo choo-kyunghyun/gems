@@ -33,6 +33,15 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(hpRow);
+    // World clock: "Day N  HH:MM", read live from the WorldClock each frame.
+    const timeRow = new UIElement({ width: "100%", height: 20 });
+    timeRow.insertChild(
+      gemsLabel(
+        () => I18n.text("RPG_TIME", WorldClock.day, WorldClock.clockText()),
+        { color: GemsTheme.textMuted },
+      ),
+    );
+    card.insertChild(timeRow);
     card.insertChild(gemsDivider());
     card.insertChild(
       gemsQuestTracker({ emptyText: I18n.textRef("RPG_NO_QUEST") }),

@@ -33,6 +33,7 @@
   "BUILD_CLAIMED": "Build area claimed",
 
   "RPG_HUD": "Lv {0}   HP {1}/{2}",
+  "RPG_TIME": "Day {0}   {1}",
   "RPG_INVENTORY": "Bag",
   "RPG_EMPTY": "Empty",
   "RPG_ACCEPT": "Accept",

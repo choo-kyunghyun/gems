@@ -64,6 +64,7 @@ class _SceneRpgClass extends Scene {
       RpgLevel.playtestFile = undefined;
       bootMap = "_playtest";
     }
+    WorldClock.reset(); // start at morning, day 1 (once — survives map changes below)
     RpgMap.load(this, bootMap, "default");
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
@@ -150,6 +151,7 @@ class _SceneRpgClass extends Scene {
     this._dispatchInteract(); // single E press → station OR NPC (cursor, else nearest)
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
+    WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     this.camera.update();
 
     // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads

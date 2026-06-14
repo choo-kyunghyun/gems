@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_daynight",
+  "name":"sh_daynight",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}
