@@ -21,6 +21,11 @@ class _SceneRpgClass extends Scene {
     QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
+    // ── Map-state cache: mapId → { level: Level.export(), built } of a persistent map's
+    //    player edits, saved on leave + restored on revisit by loadMap. In-memory for the
+    //    play session (a future save would serialize this alongside the character sheet). ──
+    this._mapCache = {};
+
     // ── Overlay / interaction state (scene-wide — survives map changes) ─────
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
@@ -84,6 +89,17 @@ class _SceneRpgClass extends Scene {
         equipment: this.world.get(Equipment, this.ctrl.id),
         encumbrance: this.world.get(Encumbrance, this.ctrl.id),
       };
+      // Cache the OUTGOING map's player edits if it's persistent (the default) so they're
+      // restored on revisit instead of rebuilt fresh — chiefly the claimed buildable zone and
+      // built tiles. Level.export() captures both (TileLayers + the buildable ZoneMap) as a
+      // detached snapshot that survives the world/level destroy below; _built carries the
+      // deconstruct tracking. Captured before _teardownMap (which destroys the level).
+      if (this._mapPersistent && this.mapId !== undefined) {
+        this._mapCache[this.mapId] = {
+          level: this.level.export(),
+          built: { ...this._built },
+        };
+      }
       this._teardownMap();
     }
 
@@ -101,6 +117,10 @@ class _SceneRpgClass extends Scene {
       });
     }
     this.mapId = mapId;
+    // Persistent (default true): the map's player edits are cached on leave + restored on
+    // revisit (see step 1 and 4b). Set `meta.persistent: false` in a level file to opt out
+    // (e.g. a dungeon that should reset each entry).
+    this._mapPersistent = data.meta.persistent !== false;
     Log.info(`RPG map: ${mapId} (entry ${entryId})`);
 
     // 3. World + level + player. The level is sized from the file's cols/rows, so each map
@@ -135,6 +155,20 @@ class _SceneRpgClass extends Scene {
       data: { color: "#55aa55" },
     }).id;
 
+    // 4b. Restore a persistent map's player edits on revisit. Level.import overlays the
+    //     cached TileLayers + buildable ZoneMap onto the freshly built level (same dims/layer
+    //     order, so it round-trips; the cached buildable zone keeps id 1, matching the define
+    //     above). Re-mesh wall colliders from the restored layer, and bring back the
+    //     deconstruct tracking so built tiles stay removable. No cache → fresh _built.
+    const saved = this._mapCache[mapId];
+    if (saved !== undefined) {
+      this.level.import(saved.level); // also syncs nav (Level.import → syncAll)
+      TileEdit.remesh(this.world, this.level, this.wallLayer, this.colliders);
+      this._built = { ...saved.built };
+    } else {
+      this._built = {}; // player-built deconstructable cells, fresh on first visit
+    }
+
     // 5. Entity instances from the file's `spawns` (enemies, NPC, chest, props, reach
     //    marker, portals). Stations are discovered live by Interactable; only the handles the
     //    scene's own logic needs come back. Spawned after the controller — slimes need the
@@ -146,12 +180,14 @@ class _SceneRpgClass extends Scene {
     this.reachDone = this.reachZone === undefined; // nothing to reach on this map
     this.portals = ents.portals; // walk-onto doors → other maps (see _checkPortals)
 
-    // 6. Per-map resets (old ids / built tiles belonged to the previous map).
+    // 6. Per-map resets (old ids belonged to the previous map; _built handled in 4b).
     this._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
-    this._built = {}; // player-built deconstructable cells reset per map
     this._buildActive = false;
     BuildMode.active = false;
     this.nearNpc = false;
+    // If the inventory window is open across the swap, refresh its body against the new world
+    // next frame (its labels already read scene.world live, so this frame's draw is safe).
+    if (this.invOpen) this._invDirty = true;
 
     // 7. Pipeline: AI decides velocity → collide → detect triggers (pickups) → projectiles
     //    → expire.

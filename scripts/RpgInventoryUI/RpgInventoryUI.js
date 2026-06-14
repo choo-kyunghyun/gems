@@ -48,8 +48,11 @@ globalThis.RpgInventoryUI = {
     const kids = [...body.children];
     for (let i = 0; i < kids.length; i++) kids[i].destroy();
 
-    const world = scene.world;
-    const inv = world.get(Inventory, scene.ctrl.id);
+    // The per-frame label closures below read scene.world LIVE (never a captured const): an
+    // open inventory window survives a map change (loadMap swaps scene.world + rebuilds the
+    // player), and a captured reference would deref the destroyed old world and fault
+    // ("cannot coerce undefined into object"). Same contract as the scene's HUD labels.
+    const inv = scene.world.get(Inventory, scene.ctrl.id);
 
     // Slot / weight usage + a Sort button (tidy + order the bag).
     const top = new UIElement({
@@ -63,13 +66,9 @@ globalThis.RpgInventoryUI = {
     usageCell.insertChild(
       gemsLabel(
         () => {
-          const v = world.get(Inventory, scene.ctrl.id);
+          const v = scene.world.get(Inventory, scene.ctrl.id);
           let s =
-            I18n.text("RPG_SLOTS") +
-            " " +
-            v.slots.length +
-            "/" +
-            v.capacity;
+            I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
             s +=
               "   " +
@@ -88,7 +87,7 @@ globalThis.RpgInventoryUI = {
       gemsButton(
         I18n.textRef("SORT"),
         () => {
-          InventorySystem.sort(world.get(Inventory, scene.ctrl.id));
+          InventorySystem.sort(scene.world.get(Inventory, scene.ctrl.id));
           scene._invDirty = true;
         },
         { width: 90, height: 28 },
@@ -142,7 +141,7 @@ globalThis.RpgInventoryUI = {
     stats.insertChild(
       gemsLabel(
         () => {
-          const st = world.get(Stats, scene.ctrl.id);
+          const st = scene.world.get(Stats, scene.ctrl.id);
           return (
             I18n.text("STAT_LEVEL") +
             ": " +
