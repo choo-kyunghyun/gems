@@ -102,7 +102,6 @@ globalThis.UITable = class UITable {
     this._barDrag = false;
     this._barDY = 0;
     this._overThumb = false;
-    this._geo = null; // geometry cached in onUpdate for onDraw (same frame)
 
     if (t.sortBy != null) this._pushSort(t.sortBy, t.sortDir ?? 1);
     this._recompute();
@@ -206,6 +205,23 @@ globalThis.UITable = class UITable {
     return Math.max(0, this._view.length - this._bodyRows(pos));
   }
 
+  // Derive the full draw/hit geometry from a layout position. Recomputed fresh each
+  // onUpdate AND onDraw (not cached between them): while a draggable window is being
+  // moved, its dragX/dragY changes mid-frame — the body updates before the title bar's
+  // UIDrag, so a cached geometry would draw the table one frame behind the panel.
+  _geometry(pos) {
+    const bodyRows = this._bodyRows(pos);
+    const barOn = this._view.length > bodyRows;
+    return {
+      cols: this._columns(pos, barOn),
+      headerTop: pos.top + this.pad,
+      bodyTop: pos.top + this.pad + this.headerH,
+      bodyRows,
+      maxTop: this._maxTop(pos),
+      barOn,
+    };
+  }
+
   // Column pixel layout: fixed-width columns keep their px; the rest split the
   // remaining inner width by flex weight. `barOn` reserves the scrollbar gutter.
   _columns(pos, barOn) {
@@ -240,14 +256,14 @@ globalThis.UITable = class UITable {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
 
-    const bodyRows = this._bodyRows(pos);
-    const maxTop = this._maxTop(pos);
+    const g = this._geometry(pos);
+    const cols = g.cols;
+    const headerTop = g.headerTop;
+    const bodyTop = g.bodyTop;
+    const bodyRows = g.bodyRows;
+    const maxTop = g.maxTop;
+    const barOn = g.barOn;
     this._top = clamp(this._top, 0, maxTop);
-    const barOn = this._view.length > bodyRows;
-    const cols = this._columns(pos, barOn);
-    const headerTop = pos.top + this.pad;
-    const bodyTop = headerTop + this.headerH;
-    this._geo = { cols, headerTop, bodyTop, bodyRows, maxTop, barOn };
 
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
@@ -337,7 +353,7 @@ globalThis.UITable = class UITable {
     const x = pos.left + pos.width - this.pad - this.barW;
     const y = bodyTop;
     const h = bodyH;
-    const rowsVis = this._geo.bodyRows;
+    const rowsVis = this._bodyRows(pos);
     const total = Math.max(1, this._view.length);
     const thumbH = clamp((rowsVis / total) * h, this.minThumb, h);
     const t = maxTop > 0 ? this._top / maxTop : 0;
@@ -412,8 +428,7 @@ globalThis.UITable = class UITable {
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) width — NaN <= 0 is false
-    const g = this._geo;
-    if (g === null) return;
+    const g = this._geometry(pos); // live geometry — stays glued to a dragged window
 
     const font = draw_get_font();
     const halign = draw_get_halign();

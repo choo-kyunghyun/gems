@@ -532,5 +532,9 @@ globalThis.UIInput = class UIInput {
       this._focused = false;
       keyboard_string = "";
     }
+    // Release the global keyboard capture if this field held it — a focused field torn
+    // down (scene change / portal while typing) must not strand UIInput.active, which
+    // would keep gameplay input + UINav muted for every later scene.
+    if (UIInput.active === this) UIInput.active = null;
   }
 };

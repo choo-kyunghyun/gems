@@ -297,7 +297,7 @@ Built-in passes:
 
 ## Input System
 
-**`Input`** / **`InputAction`**: `Input.register(key, action)`, `Input.get(key)` → `InputAction`. Query: `.down()`, `.pressed()`, `.released()`, `.value()`. Bind: `.bindButton(source, button)` / `.bindAxis(mode, axis)`. Bulk: `Input.bindAll({ key: [source, button], … })` registers a whole keymap in one call; `Input.unbindAll([keys])` removes them — used by the genre controllers.
+**`Input`** / **`InputAction`**: `Input.register(key, action)`, `Input.get(key)` → `InputAction`. Query: `.down()`, `.pressed()`, `.released()`, `.value()`. Bind: `.bindButton(source, button)` / `.bindAxis(mode, axis)`. Bulk: `Input.bindAll({ key: [source, button], … })` registers a whole keymap in one call; `Input.unbindAll([keys])` removes them — used by the genre controllers. **All four query methods return falsy while a text field owns the keyboard** (`UIInput.active !== null`, via `InputAction.captured()`): typing in a UI field (e.g. the RPG inventory search) must not also drive gameplay hotkeys/movement — pressing `i` while typing "Hi" can't toggle the inventory. This is the same `UIInput.active` signal that suspends `UINav`; `UIInput` clears it on blur **and on destroy** (so tearing a focused field down at a scene change can't strand the capture).
 
 ## `EntityPreset`
 
