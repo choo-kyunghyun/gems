@@ -27,7 +27,7 @@ behavior**. Working plan — delete or archive once executed.
 ## Execution order (refactor phase)
 
 1. **Group 1** — `RpgMap`, `RpgHud`, `RpgSpawn` (milestone-critical, biggest readability win) — ✅ **DONE** (`c5e248f`, `1821852`, `16a9bd1`)
-2. **Group 2** — `RpgContent` split + `RpgProgression` (cross-cuts Group 1)
+2. **Group 2** — `RpgContent` split + `RpgProgression` (cross-cuts Group 1) — ✅ **DONE** (`8732f69`, `b523def`)
 3. **Group 3** — shared `InvTable` (kills RpgInventoryUI/StorageUI duplication)
 4. **Group 4** — `UITable` sort-stack + `UIInput` text-model (deep-read each first)
 
@@ -52,7 +52,7 @@ here is making that scene a clean orchestration shell. **Result: `sceneRpg` 831 
 - **Milestone note:** `ZoneSystem.update(world, level, map, {onEnter,onExit})` already fires enter/exit edges —
   **region events build on it as-is, no change required.**
 
-## Group 2 — RPG content & progression  *(high)*
+## Group 2 — RPG content & progression  *(high)* — ✅ DONE
 
 | # | Refactor | Detail | Risk |
 |---|----------|--------|------|
