@@ -15,7 +15,7 @@
 ## RPG UI
 
 - Tabbed inventory with items, gear management, stats, and quests
-- UITable-base inventory with filter and advanced sort support
+- ~~UITable-base inventory with filter and advanced sort support~~
 
 ## UI
 
