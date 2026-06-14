@@ -19,12 +19,6 @@
 // via Interactable.build (after the player + ui exist); set scene._storeDirty = true if
 // the player inventory changes from elsewhere while open.
 globalThis.StorageUI = {
-  _rarityColor(itemId) {
-    const it = Item.get(itemId);
-    const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
-    return r !== undefined ? r.color : c_white;
-  },
-
   build(scene) {
     scene._storageId = -1;
     scene._storeOpen = false;
@@ -147,7 +141,7 @@ globalThis.StorageUI = {
   // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;
   // onSelect tracks a double-click, onActivate (double-click / confirm) moves the stack.
   _table(scene, side) {
-    return gemsTable(StorageUI._columns(), {
+    return gemsTable(InvTable.columns(), {
       rows: 8,
       rowH: 26,
       headerH: 26,
@@ -158,73 +152,11 @@ globalThis.StorageUI = {
     });
   },
 
-  // The chest columns mirror the inventory's Settings-driven set (shared toggles) and
-  // widths (so headers don't clip). Name + Qty always; Rarity / Type / Weight / Value
-  // gated by the same `invCol*` Settings. Each carries a stable `key` so setColumns can
-  // remap the sort when a column is toggled.
-  _columns() {
-    const gold = gemsColor("#ffd166");
-    const cols = [];
-    cols.push({
-      key: "name",
-      label: I18n.text("INV_COL_NAME"),
-      flex: 1,
-      text: (r) => r.name,
-      color: (r) => r.color,
-      sortValue: (r) => r.name,
-    });
-    if (Settings.get("invColRarity"))
-      cols.push({
-        key: "rarity",
-        label: I18n.text("INV_COL_RARITY"),
-        width: 90,
-        text: (r) => r.rarityName,
-        color: (r) => r.color,
-        sortValue: (r) => r.rarityRank,
-      });
-    if (Settings.get("invColType"))
-      cols.push({
-        key: "type",
-        label: I18n.text("INV_COL_TYPE"),
-        width: 116,
-        text: (r) => I18n.text(r.catKey),
-        sortValue: (r) => r.cat,
-      });
-    cols.push({
-      key: "qty",
-      label: I18n.text("INV_COL_QTY"),
-      width: 46,
-      align: fa_right,
-      text: (r) => string(r.qty),
-      sortValue: (r) => r.qty,
-    });
-    if (Settings.get("invColWeight"))
-      cols.push({
-        key: "weight",
-        label: I18n.text("INV_COL_WT"),
-        width: 56,
-        align: fa_right,
-        text: (r) => string_format(r.weight, 0, 1),
-        sortValue: (r) => r.weight,
-      });
-    if (Settings.get("invColValue"))
-      cols.push({
-        key: "value",
-        label: I18n.text("INV_COL_VAL"),
-        width: 74,
-        align: fa_right,
-        text: (r) => string(r.value),
-        color: () => gold,
-        sortValue: (r) => r.value,
-      });
-    return cols;
-  },
-
   // Push the current Settings-driven column set onto both tables (a toggle changed, or
   // the chest just opened). Shared with the inventory via RpgInventoryUI._applyColumns.
   _applyColumns(scene) {
-    scene._storeBagTable.setColumns(StorageUI._columns());
-    scene._storeBoxTable.setColumns(StorageUI._columns());
+    scene._storeBagTable.setColumns(InvTable.columns());
+    scene._storeBoxTable.setColumns(InvTable.columns());
   },
 
   // Row models for one inventory. `idx` is the slot index at build time — valid until
@@ -235,23 +167,7 @@ globalThis.StorageUI = {
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
-      const it = Item.get(s.itemId);
-      const rar = it !== undefined ? Rarity.get(it.rarity) : undefined;
-      const cat = RpgInventoryUI._category(it);
-      rows.push({
-        idx: i,
-        itemId: s.itemId,
-        name: it !== undefined ? I18n.text(it.name) : s.itemId,
-        qty: s.qty,
-        weight: it !== undefined ? it.weight * s.qty : 0,
-        value:
-          it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
-        cat: cat.code,
-        catKey: cat.key,
-        rarityName: rar !== undefined ? I18n.text(rar.name) : "",
-        rarityRank: it !== undefined ? Rarity.order.indexOf(it.rarity) : -1,
-        color: StorageUI._rarityColor(s.itemId),
-      });
+      rows.push({ ...InvTable.rowModel(s.itemId, s.qty), idx: i }); // idx = transfer slot
     }
     return rows;
   },

@@ -76,7 +76,9 @@ globalThis.CraftingUI = {
     const outName = outDef !== undefined ? I18n.text(outDef.name) : out.itemId;
     const label =
       outName + " x" + out.qty + "   " + CraftingUI._inputsLabel(inv, recipe);
-    const color = can ? StorageUI._rarityColor(out.itemId) : GemsTheme.textDim;
+    const color = can
+      ? RpgWorldOverlay._rarityColor(out.itemId)
+      : GemsTheme.textDim;
     return gemsButton(
       label,
       () => {

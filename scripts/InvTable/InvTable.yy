@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InvTable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InvTable",
+  "parent":{
+    "name":"UI",
+    "path":"folders/RPG/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InvTable.js",
+}

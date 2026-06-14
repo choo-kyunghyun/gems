@@ -128,6 +128,7 @@
     {"id":{"name":"InterpolationSystem","path":"scripts/InterpolationSystem/InterpolationSystem.yy",},},
     {"id":{"name":"Inventory","path":"scripts/Inventory/Inventory.yy",},},
     {"id":{"name":"InventorySystem","path":"scripts/InventorySystem/InventorySystem.yy",},},
+    {"id":{"name":"InvTable","path":"scripts/InvTable/InvTable.yy",},},
     {"id":{"name":"Item","path":"scripts/Item/Item.yy",},},
     {"id":{"name":"ItemDrop","path":"scripts/ItemDrop/ItemDrop.yy",},},
     {"id":{"name":"Level","path":"scripts/Level/Level.yy",},},

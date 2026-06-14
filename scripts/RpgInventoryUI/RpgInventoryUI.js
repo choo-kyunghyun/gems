@@ -145,7 +145,7 @@ globalThis.RpgInventoryUI = {
       height: 30,
       placeholder: I18n.text("INV_SEARCH"),
       onChange: (v) => {
-        scene._invSearch = RpgInventoryUI._lower(v);
+        scene._invSearch = InvTable.lower(v);
         RpgInventoryUI._applyFilter(scene);
       },
     });
@@ -169,7 +169,7 @@ globalThis.RpgInventoryUI = {
     // swaps its rows (and a column toggle calls setColumns), so sort/filter/scroll
     // persist. Click a header to sort (multi-key); a row selects, double-click / the
     // action button / a gamepad confirm acts on it.
-    const table = gemsTable(RpgInventoryUI._columns(), {
+    const table = gemsTable(InvTable.columns({ worn: true }), {
       rows: 8,
       rowH: 26,
       headerH: 26,
@@ -354,79 +354,8 @@ globalThis.RpgInventoryUI = {
   // The chest shares these column Settings, so keep its two tables in sync too (live,
   // for when both windows are open; StorageUI also re-applies them on open).
   _applyColumns(scene) {
-    scene._invTable.setColumns(RpgInventoryUI._columns());
+    scene._invTable.setColumns(InvTable.columns({ worn: true }));
     if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
-  },
-
-  // The bag table columns, gated by the Settings visibility toggles. Each carries a
-  // stable `key` so setColumns can remap the sort when a column is toggled. Worn marker,
-  // Name and Qty are always shown; Rarity / Type / Weight / Value are optional. Rarity
-  // is sortable by tier rank (folds in rarity-sort).
-  _columns() {
-    const gold = gemsColor("#ffd166");
-    const accent = gemsColor(GemsTheme.accent);
-    const cols = [];
-    cols.push({
-      key: "worn",
-      label: "",
-      width: 20,
-      sortable: false,
-      text: (r) => (r.worn ? "E" : ""),
-      color: () => accent,
-    });
-    cols.push({
-      key: "name",
-      label: I18n.text("INV_COL_NAME"),
-      flex: 1,
-      text: (r) => r.name,
-      color: (r) => r.color,
-      sortValue: (r) => r.name,
-    });
-    if (Settings.get("invColRarity"))
-      cols.push({
-        key: "rarity",
-        label: I18n.text("INV_COL_RARITY"),
-        width: 90,
-        text: (r) => r.rarityName,
-        color: (r) => r.color,
-        sortValue: (r) => r.rarityRank,
-      });
-    if (Settings.get("invColType"))
-      cols.push({
-        key: "type",
-        label: I18n.text("INV_COL_TYPE"),
-        width: 116,
-        text: (r) => I18n.text(r.catKey),
-        sortValue: (r) => r.cat,
-      });
-    cols.push({
-      key: "qty",
-      label: I18n.text("INV_COL_QTY"),
-      width: 46,
-      align: fa_right,
-      text: (r) => string(r.qty),
-      sortValue: (r) => r.qty,
-    });
-    if (Settings.get("invColWeight"))
-      cols.push({
-        key: "weight",
-        label: I18n.text("INV_COL_WT"),
-        width: 56,
-        align: fa_right,
-        text: (r) => string_format(r.weight, 0, 1),
-        sortValue: (r) => r.weight,
-      });
-    if (Settings.get("invColValue"))
-      cols.push({
-        key: "value",
-        label: I18n.text("INV_COL_VAL"),
-        width: 74,
-        align: fa_right,
-        text: (r) => string(r.value),
-        color: () => gold,
-        sortValue: (r) => r.value,
-      });
-    return cols;
   },
 
   // Build the row models from the live bag. `worn` is claimed by the first matching row
@@ -447,31 +376,9 @@ globalThis.RpgInventoryUI = {
           wornClaimed[slot.itemId] = true;
         }
       }
-      rows.push(RpgInventoryUI._rowModel(slot, it, worn));
+      rows.push({ ...InvTable.rowModel(slot.itemId, slot.qty), worn });
     }
     return rows;
-  },
-
-  _rowModel(slot, it, worn) {
-    const cat = RpgInventoryUI._category(it);
-    const name = it !== undefined ? I18n.text(it.name) : slot.itemId;
-    const rarId = it !== undefined ? it.rarity : undefined;
-    const rar = rarId !== undefined ? Rarity.get(rarId) : undefined;
-    return {
-      itemId: slot.itemId,
-      qty: slot.qty,
-      worn,
-      name,
-      search: RpgInventoryUI._lower(name), // precomputed for the search filter
-      cat: cat.code,
-      catKey: cat.key,
-      rarityName: rar !== undefined ? I18n.text(rar.name) : "",
-      rarityRank: rarId !== undefined ? Rarity.order.indexOf(rarId) : -1,
-      weight: it !== undefined ? it.weight * slot.qty : 0, // total stack weight
-      value:
-        it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
-      color: RpgWorldOverlay._rarityColor(slot.itemId),
-    };
   },
 
   // Compose the category select + the search box into ONE table predicate (UITable
@@ -487,30 +394,6 @@ globalThis.RpgInventoryUI = {
       (r) =>
         (cat === "" || r.cat === cat) && (q === "" || r.search.indexOf(q) >= 0),
     );
-  },
-
-  // ASCII-only lowercase (A–Z → a–z) for case-insensitive search. JS toLowerCase()
-  // returns garbage Unicode on GMRT (CLAUDE.md), so map by char code; non-Latin text
-  // (e.g. Korean, which is caseless) passes through unchanged.
-  _lower(s) {
-    let out = "";
-    for (let i = 0; i < s.length; i++) {
-      const c = s.charCodeAt(i);
-      out += c >= 65 && c <= 90 ? String.fromCharCode(c + 32) : s[i];
-    }
-    return out;
-  },
-
-  // Filter/display category from the item's capability components.
-  _category(it) {
-    if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
-    if (it.hasComponent(Weapon))
-      return { code: "weapon", key: "INV_CAT_WEAPON" };
-    if (it.hasComponent(Equippable))
-      return { code: "gear", key: "INV_CAT_GEAR" };
-    if (it.hasComponent(Consumable))
-      return { code: "consumable", key: "INV_CAT_CONSUMABLE" };
-    return { code: "misc", key: "INV_CAT_MISC" };
   },
 
   // Click selects a row; a second click on the same item within 350ms uses/equips it
