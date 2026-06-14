@@ -142,5 +142,67 @@ globalThis.RpgContent = {
         output: { itemId: "leather_armor", qty: 1 },
       },
     ]);
+
+    // Overworld prefabs — structured clusters OverworldGen stamps into procedural chunks
+    // (tagged "overworld"; local grid coords, footprint cols/rows kept inside a chunk). Loot-less
+    // slimes get the generator's standard scatter loot.
+    Prefab.register([
+      // A loose field of rocks — terrain flavor, no enemies.
+      {
+        id: "boulder_cluster",
+        tags: ["overworld"],
+        weight: 4,
+        cols: 4,
+        rows: 4,
+        walls: [
+          [0, 0, 1, 2],
+          [2, 0, 1, 1],
+          [1, 2, 2, 1],
+          [3, 3, 1, 1],
+        ],
+      },
+      // A slime den — a sheltering rock corner with a pack of slimes (one tougher).
+      {
+        id: "slime_den",
+        tags: ["overworld"],
+        weight: 3,
+        cols: 5,
+        rows: 5,
+        walls: [
+          [0, 0, 3, 1],
+          [0, 1, 1, 2],
+        ],
+        spawns: [
+          { preset: "slime", lx: 3, ly: 2, hp: 3 },
+          { preset: "slime", lx: 2, ly: 3, hp: 3 },
+          { preset: "slime", lx: 4, ly: 4, hp: 5 },
+        ],
+      },
+      // A ruin — broken walls around a loot chest (the rare reward prefab).
+      {
+        id: "ruin",
+        tags: ["overworld"],
+        weight: 1,
+        cols: 6,
+        rows: 4,
+        walls: [
+          [0, 0, 4, 1],
+          [0, 1, 1, 2],
+          [5, 0, 1, 3],
+        ],
+        spawns: [
+          {
+            preset: "chest",
+            lx: 2,
+            ly: 2,
+            capacity: 8,
+            items: [
+              { itemId: "coin", qty: 5 },
+              { itemId: "iron", qty: 2 },
+            ],
+          },
+        ],
+      },
+    ]);
   },
 };

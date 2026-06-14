@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Prefab",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Prefab",
+  "parent":{
+    "name":"Content",
+    "path":"folders/RPG/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Prefab.js",
+}

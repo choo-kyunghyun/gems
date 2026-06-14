@@ -10,8 +10,3 @@
 
 - Prefabs
 - Categorized menu
-
-## Debug
-
-- Keyboard and mouse simulation functions
-- Timeline and screenshot class
