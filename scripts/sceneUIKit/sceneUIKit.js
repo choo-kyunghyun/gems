@@ -24,6 +24,7 @@ class _SceneUIKitClass extends Scene {
     this.qty = 3;
     this.toastN = 0;
     this.selSlot = -1;
+    this.tableSel = null;
 
     // Demo Input actions the rebind rows retarget; held state is echoed live below.
     Input.register(
@@ -74,6 +75,10 @@ class _SceneUIKitClass extends Scene {
     const inventory = gemsScroll({ height: 250 });
     inventory.scrollBody.insertChild(this._inventorySection());
 
+    // ── Tab: Table (sortable + filterable data table). The table self-scrolls, so
+    // this page is a plain list (no enclosing gemsScroll). ──
+    const table = this._tableTab();
+
     this.ui.insertChild(
       gemsTabs(
         [
@@ -81,6 +86,7 @@ class _SceneUIKitClass extends Scene {
           { label: I18n.textRef("UIKIT_TAB_VALUES"), content: values },
           { label: I18n.textRef("UIKIT_TAB_CONTAINERS"), content: containers },
           { label: I18n.textRef("UIKIT_TAB_INVENTORY"), content: inventory },
+          { label: I18n.textRef("UIKIT_TAB_TABLE"), content: table },
         ],
         { height: 250 },
       ),
@@ -547,6 +553,137 @@ class _SceneUIKitClass extends Scene {
     );
     skin.insertChild(box);
     return skin;
+  }
+
+  // UITable: a sortable, filterable inventory-style table — the foundation for the
+  // RPG inventory overhaul. Click a header to sort (again to flip; a different header
+  // becomes the primary key and demotes the last to a secondary tiebreak). The Type
+  // select drives setFilter; a gamepad/keyboard confirm enters row browse mode.
+  _tableTab() {
+    const gold = gemsColor("#ffd166");
+    const cols = [
+      { label: "", width: 34, sortable: false, sprite: (r) => r.icon },
+      {
+        label: I18n.text("UIKIT_TABLE_NAME"),
+        flex: 2,
+        text: (r) => r.name,
+        color: (r) => r.rarity.color,
+      },
+      { label: I18n.text("UIKIT_TABLE_TYPE"), flex: 1, text: (r) => r.type },
+      {
+        label: I18n.text("UIKIT_TABLE_RARITY"),
+        flex: 1,
+        text: (r) => r.rarity.name,
+        color: (r) => r.rarity.color,
+        sortValue: (r) => r.rarity.rank,
+      },
+      {
+        label: I18n.text("UIKIT_TABLE_QTY"),
+        width: 50,
+        align: fa_right,
+        text: (r) => string(r.qty),
+        sortValue: (r) => r.qty,
+      },
+      {
+        label: I18n.text("UIKIT_TABLE_WT"),
+        width: 60,
+        align: fa_right,
+        text: (r) => string_format(r.weight, 0, 1),
+        sortValue: (r) => r.weight,
+      },
+      {
+        label: I18n.text("UIKIT_TABLE_VAL"),
+        width: 76,
+        align: fa_right,
+        text: (r) => string(r.value),
+        color: () => gold,
+        sortValue: (r) => r.value,
+      },
+    ];
+
+    const table = gemsTable(cols, {
+      data: this._items(),
+      rows: 4,
+      rowH: 24,
+      headerH: 28,
+      sortBy: 1, // start sorted by Name
+      onSelect: (row) => (this.tableSel = row),
+      onActivate: (row) =>
+        Toast.push(I18n.text("UIKIT_TABLE_USE") + " " + row.name, {
+          type: "success",
+        }),
+      emptyText: I18n.text("UIKIT_TABLE_EMPTY"),
+      tooltip: I18n.textRef("UIKIT_TIP_TABLE"),
+    });
+    const comp = table.getComponent(UITable);
+
+    const types = [
+      { name: I18n.text("UIKIT_TABLE_ALL"), value: "" },
+      { name: I18n.text("UIKIT_TABLE_WEAPON"), value: "Weapon" },
+      { name: I18n.text("UIKIT_TABLE_ARMOR"), value: "Armor" },
+      { name: I18n.text("UIKIT_TABLE_POTION"), value: "Potion" },
+      { name: I18n.text("UIKIT_TABLE_MATERIAL"), value: "Material" },
+    ];
+
+    const tab = gemsList();
+    tab.insertChild(gemsHint(I18n.textRef("UIKIT_TABLE_HINT")));
+    tab.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_TABLE_FILTER"),
+        gemsSelectCustom(types, 0, (_i, v) =>
+          comp.setFilter(v === "" ? null : (r) => r.type === v),
+        ),
+      ),
+    );
+    tab.insertChild(table);
+    tab.insertChild(
+      gemsLabel(
+        () =>
+          I18n.text("UIKIT_TABLE_SELECTED") +
+          " " +
+          (this.tableSel === null ? "—" : this.tableSel.name),
+        { color: GemsTheme.accentHi },
+      ),
+    );
+    return tab;
+  }
+
+  // Demo rows for the table — a spread of types/rarities so sorting + filtering are
+  // visible. Names/types are plain demo data (not i18n), like the resolution presets.
+  _items() {
+    const spr = asset_get_index("spr_tile16");
+    const R = {
+      common: { name: "Common", color: gemsColor("#9aa4b2"), rank: 0 },
+      uncommon: { name: "Uncommon", color: gemsColor("#54c98a"), rank: 1 },
+      rare: { name: "Rare", color: gemsColor(GemsTheme.accent), rank: 2 },
+      epic: { name: "Epic", color: gemsColor("#b072ff"), rank: 3 },
+      legend: { name: "Legendary", color: gemsColor("#ff9f43"), rank: 4 },
+    };
+    const mk = (name, type, rarity, qty, weight, value, sub) => ({
+      name,
+      type,
+      rarity,
+      qty,
+      weight,
+      value,
+      icon: { sprite: spr, subimg: sub },
+    });
+    return [
+      mk("Iron Sword", "Weapon", R.common, 1, 3.5, 40, 0),
+      mk("Oak Shield", "Armor", R.common, 1, 5.0, 30, 1),
+      mk("Health Potion", "Potion", R.common, 8, 0.3, 12, 2),
+      mk("Mana Potion", "Potion", R.uncommon, 5, 0.3, 18, 3),
+      mk("Steel Axe", "Weapon", R.uncommon, 1, 4.2, 75, 4),
+      mk("Iron Ore", "Material", R.common, 24, 1.0, 4, 5),
+      mk("Mythril Bar", "Material", R.rare, 6, 1.5, 90, 6),
+      mk("Flame Blade", "Weapon", R.rare, 1, 3.8, 220, 7),
+      mk("Dragon Scale", "Material", R.epic, 3, 2.0, 340, 8),
+      mk("Plate Armor", "Armor", R.rare, 1, 12.0, 180, 9),
+      mk("Elixir", "Potion", R.epic, 2, 0.4, 150, 10),
+      mk("Shadow Cloak", "Armor", R.epic, 1, 1.8, 410, 11),
+      mk("Excalibur", "Weapon", R.legend, 1, 4.0, 1200, 12),
+      mk("Phoenix Feather", "Material", R.legend, 1, 0.1, 980, 13),
+    ];
   }
 
   // Two draggable 3×3 grids: drag items within a grid or across to the other

@@ -74,6 +74,9 @@ globalThis.UINav = class UINav {
 
     // Suspend while typing — let the caret keep arrows / Enter.
     if (UIInput.active !== null) return;
+    // Suspend while a UITable is in keyboard browse mode (it claims the keys each frame;
+    // consume() clears the claim, so if the table stops updating nav resumes on its own).
+    if (UITable.consume()) return;
     // Suspend while a dialogue box owns Enter / A / arrows for advancing.
     if (Dialogue.isOpen()) return;
 

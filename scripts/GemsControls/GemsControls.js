@@ -427,3 +427,62 @@ globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
     opts,
   );
 };
+
+// Data table (UITable): sortable columns, filtering, single selection, a sticky
+// header, row scrolling, and keyboard/gamepad browse mode. `columns` is the UITable
+// column spec — { label, width?/flex?, align?, text(row), color?(row), sprite?(row),
+// sortable?, sortValue?(row) }. The element is sized to show `opts.rows` (8) whole rows
+// (no partial rows). Reach the component via `el.getComponent(UITable)` to setRows /
+// setFilter / read `.selected`. `opts`: { data, rows, rowH, headerH, width, sortBy,
+// sortDir, onSelect, onActivate, emptyText, font, headerFont, tooltip }. This is the
+// intended foundation for the table-based RPG inventory (filter + advanced sort).
+globalThis.gemsTable = function gemsTable(columns, opts = {}) {
+  const rowH = opts.rowH ?? GemsTheme.rowH;
+  const headerH = opts.headerH ?? 30;
+  const visible = opts.rows ?? 8;
+  const pad = GemsTheme.padSm;
+  const el = new UIElement({
+    width: opts.width ?? "100%",
+    height: headerH + visible * rowH + pad * 2,
+    flexShrink: 0,
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.panelLo),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+    }),
+  );
+  el.addComponent(
+    new UITable({
+      columns,
+      rows: opts.data ?? [],
+      rowH,
+      headerH,
+      pad,
+      sortBy: opts.sortBy,
+      sortDir: opts.sortDir,
+      onSelect: opts.onSelect,
+      onActivate: opts.onActivate,
+      emptyText: opts.emptyText ?? "",
+      font: opts.font ?? -1,
+      headerFont: opts.headerFont ?? I18n.font("default"),
+      colorText: gemsColor(GemsTheme.text),
+      colorMuted: gemsColor(GemsTheme.textMuted),
+      colorHeader: gemsColor(GemsTheme.textMuted),
+      colorHeaderBg: gemsColor(GemsTheme.panel),
+      colorRow: gemsColor(GemsTheme.panelLo),
+      colorRowAlt: gemsColor(GemsTheme.panel),
+      colorRowHover: gemsColor(GemsTheme.btnHover),
+      colorSel: gemsColor(GemsTheme.accent),
+      colorBorder: gemsColor(GemsTheme.border),
+      colorArrow: gemsColor(GemsTheme.accent),
+      colorArrow2: gemsColor(GemsTheme.textMuted),
+      trackColor: gemsColor(GemsTheme.panelLo),
+      thumbColor: gemsColor(GemsTheme.border),
+      thumbHover: gemsColor(GemsTheme.borderHi),
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};

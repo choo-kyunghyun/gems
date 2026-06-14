@@ -234,6 +234,7 @@
     {"id":{"name":"UISlider","path":"scripts/UISlider/UISlider.yy",},},
     {"id":{"name":"UISlots","path":"scripts/UISlots/UISlots.yy",},},
     {"id":{"name":"UIStepper","path":"scripts/UIStepper/UIStepper.yy",},},
+    {"id":{"name":"UITable","path":"scripts/UITable/UITable.yy",},},
     {"id":{"name":"UITabs","path":"scripts/UITabs/UITabs.yy",},},
     {"id":{"name":"UIText","path":"scripts/UIText/UIText.yy",},},
     {"id":{"name":"UITooltip","path":"scripts/UITooltip/UITooltip.yy",},},

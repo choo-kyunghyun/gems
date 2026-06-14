@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UITable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UITable",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UITable.js",
+}
