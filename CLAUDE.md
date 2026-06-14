@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Assets live in **four** top-level IDE folders: **Core** (the pure engine — ECS, built-in systems, level, render, the **UI system** (`UIElement`/widgets/singletons), input, utilities), **GemsUI** (the themed UI **factory kit** — `GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls` — over the Core UI system, plus the UI sprites in `GemsUI/Sprite`), **RPG** (the self-contained RPG game, organized like Core into subfolders: **`RPG/Component`** `Health`/`Stats`/`Inventory`/`Equipment`/`Encumbrance`/`ItemDrop`/`NPC`/`Animator`/`Portal`; **`RPG/System`** `InventorySystem`/`EquipmentSystem`/`ConsumableSystem`/`EncumbranceSystem`/`CraftSystem`/`AnimationSystem`/`MeleeSystem`/`SlimeAI`/`RpgScene`/`ChunkSource`/`OverworldGen`; **`RPG/Content`** item/rarity/recipe defs (`Item`/`Rarity`/`Recipe`/`Equippable`/`Weapon`/`Consumable`/`Container`/`Prefab`) + registries `RpgContent`/`RpgQuests`/`RpgCatalog` + `QuestLog`/`Achievement`/`Profile`; **`RPG/UI`** `RpgInventoryUI`/`RpgWorldOverlay`/`Interactable`/`StorageUI`/`CraftingUI`; **`RPG/Scene`** the genre `sceneRpg`/`RpgController`/`RpgLevel`/`BuildMode`/`RpgPlayer`; **`RPG/Editor`** `sceneEditor`), and **Showcase** (everything else demonstrable — the `Platformer`/`RTS`/`Map` genre showcases under those subfolders (`Map` also holds the `sceneTileInspect*` tileset-validation scenes), the demo **app shell** `obj_game`/`rm_game`/`sceneLobby`/`demo`, and the raster sprites). Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `RPG/Scene` but registers under `SCENE_CAT_RPG`.
+**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker on the GMRT runtime (0.19.0). All game logic is JavaScript, not GML. Assets live in **four** top-level IDE folders:
+
+- **Core** — the pure engine: ECS, built-in systems, level, render, the **UI system** (`UIElement`/widgets/singletons), input, utilities.
+- **GemsUI** — the themed UI **factory kit** (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`) over the Core UI system, plus the UI sprites in `GemsUI/Sprite`.
+- **RPG** — the self-contained RPG game, subfoldered like Core: `Component`/`System`/`Content`/`UI`/`Scene`/`Editor`.
+- **Showcase** — everything else demonstrable: the `Platformer`/`RTS`/`Map` genre showcases (`Map` also holds the `sceneTileInspect*` tileset-validation scenes), the demo **app shell** (`obj_game`/`rm_game`/`sceneLobby`/`demo`), and the raster sprites.
+
+Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `RPG/Scene` but registers under `SCENE_CAT_RPG`.
 
 The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions.
 
