@@ -4,7 +4,8 @@
     {
       "label": "Run",
       "type": "shell",
-      "command": "gm-cli run --toolchain GMRT@0.19 gems.yyp",
+      "command": "gm-cli",
+      "args": ["run", "--toolchain", "GMRT@0.19", "gems.yyp"],
       "problemMatcher": [],
       "group": {
         "kind": "build",
@@ -14,16 +15,47 @@
     {
       "label": "Compile",
       "type": "shell",
-      "command": "gm-cli compile --toolchain GMRT@0.19 gems.yyp",
+      "command": "gm-cli",
+      "args": ["compile", "--toolchain", "GMRT@0.19", "gems.yyp"],
       "problemMatcher": [],
       "group": "build"
     },
     {
       "label": "Compile (errors only)",
       "type": "shell",
-      "command": "gm-cli compile --toolchain GMRT@0.19 --errors-only gems.yyp",
+      "command": "gm-cli",
+      "args": ["compile", "--toolchain", "GMRT@0.19", "--errors-only", "gems.yyp"],
       "problemMatcher": [],
       "group": "build"
+    },
+    {
+      "label": "Open game.log",
+      "detail": "Open the runtime log (%LOCALAPPDATA%\\gems\\game.log) in the editor.",
+      "type": "shell",
+      "command": "code",
+      "args": ["-r", "${env:LOCALAPPDATA}\\gems\\game.log"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "close": true
+      }
+    },
+    {
+      "label": "Project structure",
+      "detail": "Print the resource tree (folders + resources) via gm-cli resourcetool.",
+      "type": "shell",
+      "command": "gm-cli",
+      "args": [
+        "resourcetool",
+        "eval",
+        { "value": "FOLDER LIST RESOURCES", "quoting": "strong" }
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
     }
   ]
 }
