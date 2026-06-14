@@ -287,12 +287,15 @@ globalThis.RpgInventoryUI = {
       gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "#ffd166" }),
     );
     page.insertChild(title);
+    // UICheckbox.onToggle is called with NO argument (it doesn't pass the new value),
+    // so flip the setting ourselves off the live value — taking a `v` arg would always
+    // be undefined, which made the toggles one-way (could disable but never re-enable).
     const toggle = (labelKey, settingKey) =>
       gemsCheckbox(
         I18n.textRef(labelKey),
         () => Settings.get(settingKey),
-        (v) => {
-          Settings.set(settingKey, v);
+        () => {
+          Settings.set(settingKey, !Settings.get(settingKey));
           Settings.save();
           RpgInventoryUI._applyColumns(scene);
         },
