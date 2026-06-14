@@ -3,8 +3,8 @@
 ## RPG
 
 - Stamina and sprint
-- In-game time and days
 - Region events like weather change
+- Pathfinding for new chunk streaming
 
 ## RPG Editor
 
