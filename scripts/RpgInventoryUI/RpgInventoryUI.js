@@ -1,5 +1,5 @@
 // Shared draggable inventory/equipment/stats window for the RPG genre scenes. The bag
-// list is a UITable (sortable columns + a category filter) — the table-based overhaul of
+// list is a UITable (sortable columns + a category filter + a name search) — the overhaul of
 // the old row-of-buttons placeholder. The window's persistent structure (table, filter,
 // the select/action row, the equipment + stats sections) is built ONCE in build(); a bag
 // change only refreshes data via `table.setRows`, so the player's sort + filter + scroll
@@ -9,8 +9,8 @@
 // Contract: the scene owns `ui`, `world`, `ctrl` (with `.id`), `invOpen`, and the fields
 // this module sets/reads — `_invWin` (the gemsWindow), `_invTable` (the UITable
 // component), `_invSel` (the selected row model, or null) + `_invSelTime` (double-click
-// timer), `_invEquipHost`/`_invExtraHost` (the rebuilt sections), `_invDirty`
-// (refresh-needed flag).
+// timer), `_invCat`/`_invSearch` (the live filter + search state), `_invEquipHost`/
+// `_invExtraHost` (the rebuilt sections), `_invDirty` (refresh-needed flag).
 //
 // Usage:
 //   create():            RpgInventoryUI.build(scene)
@@ -35,6 +35,8 @@ globalThis.RpgInventoryUI = {
 
     scene._invSel = null; // selected row model
     scene._invSelTime = 0; // last select time (ms) for double-click-to-use
+    scene._invCat = ""; // active category filter code ("" = all)
+    scene._invSearch = ""; // active name search (lowercased; "" = none)
 
     const body = scene._invWin.body;
 
@@ -81,12 +83,48 @@ globalThis.RpgInventoryUI = {
     // would eat the whole row and squish the usage label.
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(
-      gemsSelectCustom(cats, 0, (_i, code) =>
-        scene._invTable.setFilter(code === "" ? null : (r) => r.cat === code),
-      ),
+      gemsSelectCustom(cats, 0, (_i, code) => {
+        scene._invCat = code;
+        RpgInventoryUI._applyFilter(scene);
+      }),
     );
     top.insertChild(filterCell);
     body.insertChild(top);
+
+    // Search row: a free-text name filter + a Clear button. Search and the category
+    // select compose into one table predicate (see _applyFilter). Typing focuses the
+    // UIInput (UIInput.active), which suspends UINav so the caret keeps the keys.
+    const searchRow = new UIElement({
+      width: "100%",
+      height: 32,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    const searchCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    const searchInput = gemsInput({
+      height: 30,
+      placeholder: I18n.text("INV_SEARCH"),
+      onChange: (v) => {
+        scene._invSearch = RpgInventoryUI._lower(v);
+        RpgInventoryUI._applyFilter(scene);
+      },
+    });
+    const searchComp = searchInput.getComponent(UIInput);
+    searchCell.insertChild(searchInput);
+    searchRow.insertChild(searchCell);
+    searchRow.insertChild(
+      gemsButton(
+        I18n.textRef("INV_CLEAR"),
+        () => {
+          searchComp.setValue(""); // setValue doesn't fire onChange — reset by hand
+          scene._invSearch = "";
+          RpgInventoryUI._applyFilter(scene);
+        },
+        { width: 76, height: 28 },
+      ),
+    );
+    body.insertChild(searchRow);
 
     // The bag table. Built once; rebuild() only swaps its rows, so sort/filter/scroll
     // persist. Click a header to sort (multi-key); a row selects, double-click / the
@@ -304,11 +342,13 @@ globalThis.RpgInventoryUI = {
 
   _rowModel(slot, it, worn) {
     const cat = RpgInventoryUI._category(it);
+    const name = it !== undefined ? I18n.text(it.name) : slot.itemId;
     return {
       itemId: slot.itemId,
       qty: slot.qty,
       worn,
-      name: it !== undefined ? I18n.text(it.name) : slot.itemId,
+      name,
+      search: RpgInventoryUI._lower(name), // precomputed for the search filter
       cat: cat.code,
       catKey: cat.key,
       weight: it !== undefined ? it.weight * slot.qty : 0, // total stack weight
@@ -316,6 +356,33 @@ globalThis.RpgInventoryUI = {
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
       color: RpgWorldOverlay._rarityColor(slot.itemId),
     };
+  },
+
+  // Compose the category select + the search box into ONE table predicate (UITable
+  // takes a single filter fn). null when neither is active, so the table shows all.
+  _applyFilter(scene) {
+    const cat = scene._invCat;
+    const q = scene._invSearch;
+    if (cat === "" && q === "") {
+      scene._invTable.setFilter(null);
+      return;
+    }
+    scene._invTable.setFilter(
+      (r) =>
+        (cat === "" || r.cat === cat) && (q === "" || r.search.indexOf(q) >= 0),
+    );
+  },
+
+  // ASCII-only lowercase (A–Z → a–z) for case-insensitive search. JS toLowerCase()
+  // returns garbage Unicode on GMRT (CLAUDE.md), so map by char code; non-Latin text
+  // (e.g. Korean, which is caseless) passes through unchanged.
+  _lower(s) {
+    let out = "";
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      out += c >= 65 && c <= 90 ? String.fromCharCode(c + 32) : s[i];
+    }
+    return out;
   },
 
   // Filter/display category from the item's capability components.

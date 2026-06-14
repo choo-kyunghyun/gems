@@ -1,9 +1,13 @@
-// Storage-chest transfer WINDOW for the genre templates (TopDown + Platformer). A
-// "storage" station (a Station {kind:"storage"} entity carrying an Inventory) opens a
-// two-column transfer window — left = the player's Bag, right = the Chest — where
-// clicking an item moves that whole stack to the other side (capacity/weight-gated by
-// InventorySystem.add). Manager-drawn UI on the GUI layer (Draw_75), built once and
-// toggled.
+// Storage-chest transfer WINDOW for the genre templates (RPG). A "storage" station (a
+// Station {kind:"storage"} entity carrying an Inventory) opens a two-column transfer
+// window — left = the player's Bag, right = the Chest — each a sortable UITable.
+// Double-clicking a row (or a gamepad/keyboard confirm in browse mode) moves that whole
+// stack to the other side (capacity/weight-gated by InventorySystem.add). Manager-drawn
+// UI on the GUI layer (Draw_75), built once and toggled.
+//
+// Like the main inventory window, each table is built ONCE; a transfer only swaps its
+// rows via `setRows`, so the player's column sort survives every move (a row sort is
+// view-only — it never reorders the underlying Inventory).
 //
 // Proximity selection, the open/close keybind, the prompt, and the world highlight are
 // owned by the shared `Interactable` module — this file only builds the window and
@@ -25,67 +29,122 @@ globalThis.StorageUI = {
     scene._storageId = -1;
     scene._storeOpen = false;
     scene._storeDirty = false;
+    scene._storeClickKey = ""; // last-clicked "side|idx" for double-click detection
+    scene._storeClickTime = 0;
 
-    // Transfer window: Bag | Chest columns.
+    // Transfer window: Bag | Chest columns, each a UITable.
     const gw = display_get_gui_width();
-    const left = gw > 0 ? gw / 2 - 280 : 80;
+    const width = 600;
+    const left = gw > 0 ? gw / 2 - width / 2 : 80;
     const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
       left,
       top: 80,
-      width: 560,
+      width,
       onClose: () => StorageUI.close(scene),
     });
     win.enabled = false;
+
     const cols = new UIElement({
       width: "100%",
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
-    const bag = StorageUI._column(I18n.textRef("STORAGE_BAG"), () => {
-      InventorySystem.sort(scene.world.get(Inventory, scene.ctrl.id));
-      scene._storeDirty = true;
-      scene._invDirty = true; // bag also feeds the main inventory window
-    });
-    const box = StorageUI._column(I18n.textRef("STORAGE_BOX"), () => {
-      const inv = scene.world.get(Inventory, scene._storageId);
-      if (inv === undefined) return;
-      InventorySystem.sort(inv);
-      scene._storeDirty = true;
-    });
-    cols.insertChild(bag.col);
-    cols.insertChild(box.col);
+    const bagTable = StorageUI._table(scene, "bag");
+    const boxTable = StorageUI._table(scene, "box");
+    scene._storeBagTable = bagTable.getComponent(UITable);
+    scene._storeBoxTable = boxTable.getComponent(UITable);
+    cols.insertChild(StorageUI._column(I18n.textRef("STORAGE_BAG"), bagTable));
+    cols.insertChild(StorageUI._column(I18n.textRef("STORAGE_BOX"), boxTable));
     win.body.insertChild(cols);
+
+    // Discoverability: double-click (or confirm) transfers — single click just selects.
+    const hint = new UIElement({ width: "100%", height: 20 });
+    hint.insertChild(
+      gemsLabel(I18n.textRef("STORAGE_HINT"), { color: GemsTheme.textMuted }),
+    );
+    win.body.insertChild(hint);
+
     scene._storeWin = win;
-    scene._storeBagBody = bag.body;
-    scene._storeBoxBody = box.body;
     scene.ui.insertChild(win);
   },
 
-  // One titled column: a header (title + Sort button) over a fixed-height scroll.
-  // Returns { col, body }.
-  _column(titleRef, onSort) {
+  // One titled column: a header label over a sortable table. Returns the column element.
+  _column(titleRef, tableEl) {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
       gap: GemsTheme.gapSm,
     });
-    const header = new UIElement({
-      width: "100%",
-      height: 28,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: GemsTheme.gapSm,
+    const title = new UIElement({ width: "100%", height: 22 });
+    title.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    col.insertChild(title);
+    col.insertChild(tableEl);
+    return col;
+  },
+
+  // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;
+  // onSelect tracks a double-click, onActivate (double-click / confirm) moves the stack.
+  _table(scene, side) {
+    return gemsTable(StorageUI._columns(), {
+      rows: 8,
+      rowH: 26,
+      headerH: 26,
+      sortBy: 0, // Name
+      emptyText: I18n.text("STORAGE_EMPTY"),
+      onSelect: (row) => StorageUI._click(scene, side, row),
+      onActivate: (row) => StorageUI._move(scene, side, row),
     });
-    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
-    header.insertChild(titleCell);
-    header.insertChild(
-      gemsButton(I18n.textRef("SORT"), onSort, { width: 72, height: 26 }),
-    );
-    const scroll = gemsScroll({ height: 240 });
-    col.insertChild(header);
-    col.insertChild(scroll);
-    return { col, body: scroll.scrollBody };
+  },
+
+  // Name (rarity-colored) + right-aligned Qty + Value. Compact for two side-by-side
+  // tables in the window; Weight/Type are dropped vs the main inventory.
+  _columns() {
+    const gold = gemsColor("#ffd166");
+    return [
+      {
+        label: I18n.text("INV_COL_NAME"),
+        flex: 1,
+        text: (r) => r.name,
+        color: (r) => r.color,
+        sortValue: (r) => r.name,
+      },
+      {
+        label: I18n.text("INV_COL_QTY"),
+        width: 44,
+        align: fa_right,
+        text: (r) => string(r.qty),
+        sortValue: (r) => r.qty,
+      },
+      {
+        label: I18n.text("INV_COL_VAL"),
+        width: 56,
+        align: fa_right,
+        text: (r) => string(r.value),
+        color: () => gold,
+        sortValue: (r) => r.value,
+      },
+    ];
+  },
+
+  // Row models for one inventory. `idx` is the slot index at build time — valid until
+  // the next refresh, which is exactly when a transfer happens (one click/frame), so the
+  // captured index never drifts (same contract as the old per-row closure).
+  _rows(inv) {
+    const rows = [];
+    for (let i = 0; i < inv.slots.length; i++) {
+      const s = inv.slots[i];
+      const it = Item.get(s.itemId);
+      rows.push({
+        idx: i,
+        itemId: s.itemId,
+        name: it !== undefined ? I18n.text(it.name) : s.itemId,
+        qty: s.qty,
+        value:
+          it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
+        color: StorageUI._rarityColor(s.itemId),
+      });
+    }
+    return rows;
   },
 
   // Called by Interactable when the player activates a storage station.
@@ -107,32 +166,34 @@ globalThis.StorageUI = {
     const bagInv = world.get(Inventory, scene.ctrl.id);
     const boxInv = world.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
-    StorageUI._fill(scene, scene._storeBagBody, bagInv, boxInv); // click bag → store
-    StorageUI._fill(scene, scene._storeBoxBody, boxInv, bagInv); // click chest → take
+    scene._storeBagTable.setRows(StorageUI._rows(bagInv)); // setRows re-applies the sort
+    scene._storeBoxTable.setRows(StorageUI._rows(boxInv));
   },
 
-  // Populate `body` with one clickable row per slot of `srcInv`; clicking moves that
-  // stack into `dstInv`. Rebuilt fully on each transfer, so captured indices stay fresh.
-  _fill(scene, body, srcInv, dstInv) {
-    const kids = [...body.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
-
-    if (srcInv.slots.length === 0) {
-      const r = new UIElement({ width: "100%", height: 24 });
-      r.insertChild(
-        gemsLabel(I18n.textRef("STORAGE_EMPTY"), { color: GemsTheme.textDim }),
-      );
-      body.insertChild(r);
+  // Single click selects; a second click on the same row within 350ms transfers it
+  // (matching the inventory window's double-click-to-act). Browse-mode arrowing fires
+  // onSelect with a different row each step, so it can't accidentally transfer.
+  _click(scene, side, row) {
+    if (row === null || row === undefined) return;
+    const now = current_time;
+    const key = side + "|" + row.idx;
+    if (scene._storeClickKey === key && now - scene._storeClickTime < 350) {
+      StorageUI._move(scene, side, row);
       return;
     }
-    for (let i = 0; i < srcInv.slots.length; i++) {
-      const idx = i;
-      body.insertChild(
-        StorageUI._itemRow(srcInv.slots[i], () =>
-          StorageUI._transfer(scene, srcInv, dstInv, idx),
-        ),
-      );
-    }
+    scene._storeClickKey = key;
+    scene._storeClickTime = now;
+  },
+
+  // Transfer the activated row's stack to the opposite side.
+  _move(scene, side, row) {
+    if (row === null || row === undefined) return;
+    const world = scene.world;
+    const bag = world.get(Inventory, scene.ctrl.id);
+    const box = world.get(Inventory, scene._storageId);
+    if (bag === undefined || box === undefined) return;
+    if (side === "bag") StorageUI._transfer(scene, bag, box, row.idx);
+    else StorageUI._transfer(scene, box, bag, row.idx);
   },
 
   // Move slot `idx` of srcInv into dstInv (as much as fits), removing the moved amount
@@ -166,18 +227,5 @@ globalThis.StorageUI = {
     scene._storeDirty = true;
     scene._invDirty = true; // keep the main inventory window in sync if it's open
     Log.info(`transferred ${moved}x ${itemId}`);
-  },
-
-  _itemRow(slot, onClick) {
-    const itemId = slot.itemId;
-    const it = Item.get(itemId);
-    const name = it !== undefined ? I18n.text(it.name) : itemId;
-    const val =
-      it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0;
-    const label = name + "  x" + slot.qty + "  " + val;
-    return gemsButton(label, onClick, {
-      height: 30,
-      textColor: StorageUI._rarityColor(itemId),
-    });
   },
 };

@@ -37,7 +37,6 @@
   "LANG_KO_KR": "한국어",
   "LANG_EN_US": "English",
 
-
   "SYS_TITLE": "시스템 메뉴",
   "SYS_PAUSED": "일시정지됨",
   "SYS_TAB_SYSTEM": "시스템",
@@ -201,6 +200,7 @@
   "STORAGE_BOX": "상자",
   "STORAGE_PROMPT": "[E] 상자 열기",
   "STORAGE_EMPTY": "(비어 있음)",
+  "STORAGE_HINT": "아이템을 더블 클릭하여 이동",
   "SORT": "정렬",
 
   "CRAFT_TITLE": "제작",

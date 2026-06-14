@@ -59,6 +59,8 @@
   "INV_UNEQUIP": "해제",
   "INV_SELECT_NONE": "아이템 선택",
   "INV_NOACTION": "-",
+  "INV_SEARCH": "검색...",
+  "INV_CLEAR": "지우기",
 
   "SLOT_WEAPON": "무기",
   "SLOT_ARMOR": "방어구",

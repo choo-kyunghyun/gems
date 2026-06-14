@@ -37,7 +37,6 @@
   "LANG_KO_KR": "Korean",
   "LANG_EN_US": "English",
 
-
   "SYS_TITLE": "System Menu",
   "SYS_PAUSED": "Paused",
   "SYS_TAB_SYSTEM": "System",
@@ -201,6 +200,7 @@
   "STORAGE_BOX": "Chest",
   "STORAGE_PROMPT": "[E] Open chest",
   "STORAGE_EMPTY": "(empty)",
+  "STORAGE_HINT": "Double-click an item to transfer",
   "SORT": "Sort",
 
   "CRAFT_TITLE": "Crafting",

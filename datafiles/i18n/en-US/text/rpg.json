@@ -59,6 +59,8 @@
   "INV_UNEQUIP": "Unequip",
   "INV_SELECT_NONE": "Select an item",
   "INV_NOACTION": "-",
+  "INV_SEARCH": "Search...",
+  "INV_CLEAR": "Clear",
 
   "SLOT_WEAPON": "Weapon",
   "SLOT_ARMOR": "Armor",
