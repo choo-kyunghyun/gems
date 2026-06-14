@@ -398,8 +398,12 @@ class _SceneRpgClass extends Scene {
   }
 
   draw() {
-    RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
+    // Drops / bullets / reach zone AFTER the renderer: the chunked overworld's RenderChunks
+    // pass paints an OPAQUE ground fill that would cover them if drawn first (they were
+    // invisible on the overworld, fine in plain interiors with no ground fill). Drawn here
+    // they sit with the other post-renderer world cues (build cursor, floating numbers).
+    RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     FloatingText.draw(); // damage/heal numbers over entities (world space)
