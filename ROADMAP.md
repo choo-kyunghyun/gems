@@ -20,11 +20,11 @@
 ## UI
 
 - UITable
-- UIDropdown
+- ~~UIDropdown~~
 
 ## Settings
 
-- Better resolution support with UIDropdown
+- ~~Better resolution support with UIDropdown~~
 
 ## Lobby
 

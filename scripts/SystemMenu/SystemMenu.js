@@ -349,8 +349,11 @@ globalThis.SystemMenu = class SystemMenu {
 
     const resItems = [
       { name: I18n.text("SETTINGS_DISP_RES_DEFAULT"), value: { w: 0, h: 0 } },
-      { name: "1280×720", value: { w: 1280, h: 720 } },
-      { name: "1920×1080", value: { w: 1920, h: 1080 } },
+      { name: "1280 x 720", value: { w: 1280, h: 720 } },
+      { name: "1366 x 768", value: { w: 1366, h: 768 } },
+      { name: "1600 x 900", value: { w: 1600, h: 900 } },
+      { name: "1920 x 1080", value: { w: 1920, h: 1080 } },
+      { name: "2560 x 1440", value: { w: 2560, h: 1440 } },
     ];
     const curResW = Settings.get("resolutionW");
     const resIdx = Math.max(
@@ -360,7 +363,8 @@ globalThis.SystemMenu = class SystemMenu {
     dispSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_DISP_RESOLUTION"),
-        gemsSelectCustom(resItems, resIdx, (_i, res) => {
+        // A dropdown list rather than a < > cycler — scales as more presets are added.
+        gemsDropdownCustom(resItems, resIdx, (_i, res) => {
           Settings.set("resolutionW", res.w);
           Settings.set("resolutionH", res.h);
         }),
