@@ -36,6 +36,11 @@ Settings.registerDefaults({
   volSfx: 1.0,
   mouseSensitivity: 0.5,
   rawInput: false,
+  // RPG inventory — Items-table column visibility (toggled in the inventory Settings tab).
+  invColRarity: false,
+  invColType: true,
+  invColWeight: true,
+  invColValue: true,
 });
 Settings.load();
 

@@ -1,29 +1,38 @@
-// Shared draggable inventory/equipment/stats window for the RPG genre scenes. The bag
-// list is a UITable (sortable columns + a category filter + a name search) — the overhaul of
-// the old row-of-buttons placeholder. The window's persistent structure (table, filter,
-// the select/action row, the equipment + stats sections) is built ONCE in build(); a bag
-// change only refreshes data via `table.setRows`, so the player's sort + filter + scroll
-// survive every equip/use (a full body rebuild would reset them). Scenes keep only the
-// open/close state.
+// Shared draggable character window for the RPG genre scenes — a wider, TABBED panel
+// (Items / Equipment / Stats / Quests / Settings) so the player can manage gear, read
+// the sheet, track quests, and tune the item table all in one place.
+//
+//  - Items:      the bag UITable (sortable columns + category filter + name search) over
+//                a usage line, plus a select/action row (Use / Equip / Unequip).
+//  - Equipment:  the worn-slot rows (click a worn slot to unequip).
+//  - Stats:      the live character sheet + the genre's extra records (Profile).
+//  - Quests:     a live UIQuestTracker bound to the global QuestLog.
+//  - Settings:   per-column visibility toggles (Rarity / Type / Weight / Value),
+//                persisted via Settings; the table rebuilds its column set on change.
+//
+// The whole structure is built ONCE in build(); a bag change only refreshes data via
+// `table.setRows` + repopulating the equip host, so the player's sort/filter/scroll and
+// the active tab survive every equip/use. Column visibility comes from Settings, so a
+// toggle persists across launches. Scenes keep only the open/close state.
 //
 // Contract: the scene owns `ui`, `world`, `ctrl` (with `.id`), `invOpen`, and the fields
 // this module sets/reads — `_invWin` (the gemsWindow), `_invTable` (the UITable
-// component), `_invSel` (the selected row model, or null) + `_invSelTime` (double-click
-// timer), `_invCat`/`_invSearch` (the live filter + search state), `_invEquipHost`/
-// `_invExtraHost` (the rebuilt sections), `_invDirty` (refresh-needed flag).
+// component), `_invSel` (selected row model | null) + `_invSelTime` (double-click timer),
+// `_invCat`/`_invSearch` (filter + search state), `_invEquipHost`/`_invExtraHost` (the
+// rebuilt sections), `_invDirty` (refresh-needed flag).
 //
 // Usage:
 //   create():            RpgInventoryUI.build(scene)
 //   step() (when dirty):  RpgInventoryUI.rebuild(scene, { equipSlots, extraRows? })
 globalThis.RpgInventoryUI = {
-  // Build the (hidden) draggable window + its persistent structure; store on the scene.
+  // Build the (hidden) draggable window + its persistent tabbed structure.
   build(scene) {
     const gw = display_get_gui_width();
-    const width = 500;
+    const width = 640;
     const left = gw > 0 ? gw / 2 - width / 2 : 60;
-    scene._invWin = gemsWindow(I18n.textRef("RPG_INVENTORY"), {
+    scene._invWin = gemsWindow(I18n.textRef("INV_TITLE"), {
       left,
-      top: 50,
+      top: 40,
       width,
       onClose: () => {
         scene.invOpen = false;
@@ -38,9 +47,39 @@ globalThis.RpgInventoryUI = {
     scene._invCat = ""; // active category filter code ("" = all)
     scene._invSearch = ""; // active name search (lowercased; "" = none)
 
-    const body = scene._invWin.body;
+    const tabs = gemsTabs(
+      [
+        {
+          label: I18n.textRef("INV_TAB_ITEMS"),
+          content: RpgInventoryUI._buildItemsTab(scene),
+        },
+        {
+          label: I18n.textRef("INV_TAB_EQUIP"),
+          content: RpgInventoryUI._buildEquipTab(scene),
+        },
+        {
+          label: I18n.textRef("INV_TAB_STATS"),
+          content: RpgInventoryUI._buildStatsTab(scene),
+        },
+        {
+          label: I18n.textRef("INV_TAB_QUESTS"),
+          content: RpgInventoryUI._buildQuestsTab(scene),
+        },
+        {
+          label: I18n.textRef("INV_TAB_SETTINGS"),
+          content: RpgInventoryUI._buildSettingsTab(scene),
+        },
+      ],
+      { height: 384 },
+    );
+    scene._invWin.body.insertChild(tabs);
+  },
 
-    // Top row: slot/weight usage (live) + a category filter driving the table.
+  // ── tab pages ───────────────────────────────────────────────
+  // Items: usage + category filter, search + clear, the bag table, select/action row.
+  _buildItemsTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+
     const top = new UIElement({
       width: "100%",
       height: 30,
@@ -89,7 +128,7 @@ globalThis.RpgInventoryUI = {
       }),
     );
     top.insertChild(filterCell);
-    body.insertChild(top);
+    page.insertChild(top);
 
     // Search row: a free-text name filter + a Clear button. Search and the category
     // select compose into one table predicate (see _applyFilter). Typing focuses the
@@ -124,22 +163,23 @@ globalThis.RpgInventoryUI = {
         { width: 76, height: 28 },
       ),
     );
-    body.insertChild(searchRow);
+    page.insertChild(searchRow);
 
-    // The bag table. Built once; rebuild() only swaps its rows, so sort/filter/scroll
+    // The bag table. Built once with the Settings-driven column set; rebuild() only
+    // swaps its rows (and a column toggle calls setColumns), so sort/filter/scroll
     // persist. Click a header to sort (multi-key); a row selects, double-click / the
     // action button / a gamepad confirm acts on it.
     const table = gemsTable(RpgInventoryUI._columns(), {
-      rows: 6,
+      rows: 8,
       rowH: 26,
       headerH: 26,
-      sortBy: 1, // Name
+      sortBy: 1, // Name (always column index 1: worn marker is 0, Name is 1)
       emptyText: I18n.text("RPG_EMPTY"),
       onSelect: (row) => RpgInventoryUI._onSelect(scene, row),
       onActivate: (row) => RpgInventoryUI._activate(scene, row),
     });
     scene._invTable = table.getComponent(UITable);
-    body.insertChild(table);
+    page.insertChild(table);
 
     // Select/action row: the selected item name + a context action (Use/Equip/Unequip).
     const action = new UIElement({
@@ -170,57 +210,99 @@ globalThis.RpgInventoryUI = {
         { width: 120, height: 28 },
       ),
     );
-    body.insertChild(action);
+    page.insertChild(action);
+    return page;
+  },
 
-    // Equipment (clickable rows unequip) — repopulated per rebuild into this host.
-    body.insertChild(gemsDivider());
-    const eqTitle = new UIElement({ width: "100%", height: 22 });
-    eqTitle.insertChild(
+  // Equipment: the worn-slot rows (repopulated per rebuild into this host).
+  _buildEquipTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const title = new UIElement({ width: "100%", height: 22 });
+    title.insertChild(
       gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "#ffd166" }),
     );
-    body.insertChild(eqTitle);
+    page.insertChild(title);
     scene._invEquipHost = new UIElement({
       width: "100%",
       gap: GemsTheme.gapSm,
     });
-    body.insertChild(scene._invEquipHost);
+    page.insertChild(scene._invEquipHost);
+    return page;
+  },
 
-    // Stats (live).
-    body.insertChild(gemsDivider());
-    const stats = new UIElement({ width: "100%", height: 22 });
-    stats.insertChild(
-      gemsLabel(
-        () => {
-          const st = scene.world.get(Stats, scene.ctrl.id);
-          return (
-            I18n.text("STAT_LEVEL") +
-            ": " +
-            st.level +
-            "   " +
-            I18n.text("STAT_ATK") +
-            ": " +
-            st.attack +
-            "   " +
-            I18n.text("STAT_DEF") +
-            ": " +
-            st.defense +
-            "   " +
-            I18n.text("STAT_SPD") +
-            ": " +
-            Math.round(st.speed)
-          );
-        },
-        { color: GemsTheme.text },
-      ),
-    );
-    body.insertChild(stats);
-
-    // Genre-specific trailing rows (e.g. top-down's records) — repopulated per rebuild.
+  // Stats: the live character sheet + the genre's extra records (Profile) host.
+  _buildStatsTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const statRow = (labelKey, getter) => {
+      const row = new UIElement({
+        width: "100%",
+        height: 26,
+        flexDirection: "row",
+        alignItems: "center",
+      });
+      const lc = new UIElement({ flexGrow: 1, flexBasis: 0 });
+      lc.insertChild(
+        gemsLabel(I18n.textRef(labelKey), { color: GemsTheme.textMuted }),
+      );
+      row.insertChild(lc);
+      row.insertChild(
+        gemsLabel(
+          () => {
+            const st = scene.world.get(Stats, scene.ctrl.id);
+            return st === undefined ? "" : String(getter(st));
+          },
+          { color: GemsTheme.text },
+        ),
+      );
+      return row;
+    };
+    page.insertChild(statRow("STAT_LEVEL", (st) => st.level));
+    page.insertChild(statRow("STAT_ATK", (st) => st.attack));
+    page.insertChild(statRow("STAT_DEF", (st) => st.defense));
+    page.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
+    page.insertChild(gemsDivider());
     scene._invExtraHost = new UIElement({
       width: "100%",
       gap: GemsTheme.gapSm,
     });
-    body.insertChild(scene._invExtraHost);
+    page.insertChild(scene._invExtraHost);
+    return page;
+  },
+
+  // Quests: a live tracker bound to the global QuestLog.
+  _buildQuestsTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    page.insertChild(
+      gemsQuestTracker({ emptyText: I18n.text("INV_NO_QUESTS") }),
+    );
+    return page;
+  },
+
+  // Settings: per-column visibility toggles, persisted via Settings. Toggling rebuilds
+  // the Items table's column set (setColumns keeps the current sort by column key).
+  _buildSettingsTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const title = new UIElement({ width: "100%", height: 22 });
+    title.insertChild(
+      gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "#ffd166" }),
+    );
+    page.insertChild(title);
+    const toggle = (labelKey, settingKey) =>
+      gemsCheckbox(
+        I18n.textRef(labelKey),
+        () => Settings.get(settingKey),
+        (v) => {
+          Settings.set(settingKey, v);
+          Settings.save();
+          RpgInventoryUI._applyColumns(scene);
+        },
+        { style: "switch" },
+      );
+    page.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
+    page.insertChild(toggle("INV_COL_TYPE", "invColType"));
+    page.insertChild(toggle("INV_COL_WT", "invColWeight"));
+    page.insertChild(toggle("INV_COL_VAL", "invColValue"));
+    return page;
   },
 
   // Refresh the live data: swap the table rows (keeping sort/filter/scroll), re-map the
@@ -258,63 +340,87 @@ globalThis.RpgInventoryUI = {
         ),
       );
 
-    // Genre extra rows.
+    // Genre extra rows (Profile records) into the Stats tab.
     const xh = scene._invExtraHost;
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
   },
 
-  // The bag table columns (data-only accessors over the row models from _buildRows). A
-  // narrow worn-marker, the rarity-colored Name, the category, and right-aligned
-  // Qty/Weight/Value. Built once (labels resolve at build time).
+  // Push the current Settings-driven column set onto the live table (a toggle changed).
+  _applyColumns(scene) {
+    scene._invTable.setColumns(RpgInventoryUI._columns());
+  },
+
+  // The bag table columns, gated by the Settings visibility toggles. Each carries a
+  // stable `key` so setColumns can remap the sort when a column is toggled. Worn marker,
+  // Name and Qty are always shown; Rarity / Type / Weight / Value are optional. Rarity
+  // is sortable by tier rank (folds in rarity-sort).
   _columns() {
     const gold = gemsColor("#ffd166");
     const accent = gemsColor(GemsTheme.accent);
-    return [
-      {
-        label: "",
-        width: 20,
-        sortable: false,
-        text: (r) => (r.worn ? "E" : ""),
-        color: () => accent,
-      },
-      {
-        label: I18n.text("INV_COL_NAME"),
-        flex: 1,
-        text: (r) => r.name,
+    const cols = [];
+    cols.push({
+      key: "worn",
+      label: "",
+      width: 20,
+      sortable: false,
+      text: (r) => (r.worn ? "E" : ""),
+      color: () => accent,
+    });
+    cols.push({
+      key: "name",
+      label: I18n.text("INV_COL_NAME"),
+      flex: 1,
+      text: (r) => r.name,
+      color: (r) => r.color,
+      sortValue: (r) => r.name,
+    });
+    if (Settings.get("invColRarity"))
+      cols.push({
+        key: "rarity",
+        label: I18n.text("INV_COL_RARITY"),
+        width: 90,
+        text: (r) => r.rarityName,
         color: (r) => r.color,
-        sortValue: (r) => r.name,
-      },
-      {
+        sortValue: (r) => r.rarityRank,
+      });
+    if (Settings.get("invColType"))
+      cols.push({
+        key: "type",
         label: I18n.text("INV_COL_TYPE"),
-        width: 112,
+        width: 116,
         text: (r) => I18n.text(r.catKey),
         sortValue: (r) => r.cat,
-      },
-      {
-        label: I18n.text("INV_COL_QTY"),
-        width: 46,
-        align: fa_right,
-        text: (r) => string(r.qty),
-        sortValue: (r) => r.qty,
-      },
-      {
+      });
+    cols.push({
+      key: "qty",
+      label: I18n.text("INV_COL_QTY"),
+      width: 46,
+      align: fa_right,
+      text: (r) => string(r.qty),
+      sortValue: (r) => r.qty,
+    });
+    if (Settings.get("invColWeight"))
+      cols.push({
+        key: "weight",
         label: I18n.text("INV_COL_WT"),
         width: 56,
         align: fa_right,
         text: (r) => string_format(r.weight, 0, 1),
         sortValue: (r) => r.weight,
-      },
-      {
+      });
+    if (Settings.get("invColValue"))
+      cols.push({
+        key: "value",
         label: I18n.text("INV_COL_VAL"),
         width: 74,
         align: fa_right,
         text: (r) => string(r.value),
         color: () => gold,
         sortValue: (r) => r.value,
-      },
-    ];
+      });
+    return cols;
   },
 
   // Build the row models from the live bag. `worn` is claimed by the first matching row
@@ -343,6 +449,8 @@ globalThis.RpgInventoryUI = {
   _rowModel(slot, it, worn) {
     const cat = RpgInventoryUI._category(it);
     const name = it !== undefined ? I18n.text(it.name) : slot.itemId;
+    const rarId = it !== undefined ? it.rarity : undefined;
+    const rar = rarId !== undefined ? Rarity.get(rarId) : undefined;
     return {
       itemId: slot.itemId,
       qty: slot.qty,
@@ -351,6 +459,8 @@ globalThis.RpgInventoryUI = {
       search: RpgInventoryUI._lower(name), // precomputed for the search filter
       cat: cat.code,
       catKey: cat.key,
+      rarityName: rar !== undefined ? I18n.text(rar.name) : "",
+      rarityRank: rarId !== undefined ? Rarity.order.indexOf(rarId) : -1,
       weight: it !== undefined ? it.weight * slot.qty : 0, // total stack weight
       value:
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
@@ -418,7 +528,7 @@ globalThis.RpgInventoryUI = {
     RpgInventoryUI.useItem(scene, row.itemId, row.worn);
   },
 
-  // The context action verb for the selected item ("—" when none / no action).
+  // The context action verb for the selected item ("-" when none / no action).
   _actionLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
     const it = Item.get(scene._invSel.itemId);

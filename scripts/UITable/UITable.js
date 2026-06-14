@@ -134,6 +134,33 @@ globalThis.UITable = class UITable {
     this._selRow = row;
     return this;
   }
+  // Swap the column set (e.g. toggling a column's visibility). The sort stack stores
+  // column INDICES, which shift when columns are added/removed — so remap it by each
+  // sorted column's `key`, dropping any whose column is now gone. Columns without a
+  // `key` can't be remapped (their sort entry is dropped).
+  setColumns(columns) {
+    const keys = [];
+    for (let i = 0; i < this._sort.length; i++) {
+      const col = this.columns[this._sort[i].ci];
+      keys.push(col != null ? col.key : null);
+    }
+    this.columns = columns ?? [];
+    const next = [];
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] == null) continue;
+      const ci = this._colIndex(keys[i]);
+      if (ci >= 0) next.push({ ci, dir: this._sort[i].dir });
+    }
+    this._sort = next;
+    this._recompute();
+    return this;
+  }
+  _colIndex(key) {
+    for (let i = 0; i < this.columns.length; i++) {
+      if (this.columns[i].key === key) return i;
+    }
+    return -1;
+  }
 
   // ── sorting ─────────────────────────────────────────────────
   sortBy(ci) {
