@@ -121,7 +121,7 @@ globalThis.RpgLevel = {
    *   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → loadMap; non-solid sensor)
    *   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
    */
-  spawn(world, level, data, playerId) {
+  spawn(world, level, data, playerId, reconcile) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
@@ -129,8 +129,15 @@ globalThis.RpgLevel = {
     let npc = -1;
     let reach;
 
+    // File-scope reconcile: a spawn with an `id` is a UNIQUE entity. `reconcile.gone` is the
+    // current map's set of uids removed during play (killed/recruited) — skip those so they
+    // don't re-spawn. id-less spawns are anonymous and always (re)spawn. Entities that ARE
+    // spawned get a Persistent{uid} tag so the scene can remember their fate (see _markGone).
+    const gone = (reconcile && reconcile.gone) || {};
+
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
+      if (s.id !== undefined && gone[s.id]) continue; // removed this map — don't re-spawn
       const w = level.gridToWorld(s.gx, s.gy);
 
       if (s.preset === "slime") {
@@ -156,6 +163,7 @@ globalThis.RpgLevel = {
           this._visual(spr_choo, make_colour_rgb(120, 220, 130)),
         );
         SlimeAI.attach(world, id, playerId); // adds Velocity + Brain + State
+        if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
         enemies.push(id);
       } else if (s.preset === "npc") {
         const id = world.create();
@@ -174,6 +182,7 @@ globalThis.RpgLevel = {
         vis.xscale = 0.6;
         vis.yscale = 0.6;
         world.add(id, Visual, vis);
+        if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
         npc = id;
       } else if (s.preset === "chest") {
         const id = world.create();

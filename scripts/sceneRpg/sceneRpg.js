@@ -124,6 +124,7 @@ class _SceneRpgClass extends Scene {
           level: this.level.export(),
           built: { ...this._built },
           entities: stationed,
+          gone: this._gone, // uids removed this map → not re-spawned (file-scope reconcile)
         };
       }
       this._teardownMap();
@@ -188,12 +189,19 @@ class _SceneRpgClass extends Scene {
     } else {
       this._built = {}; // player-built deconstructable cells, fresh on first visit
     }
+    // File-scope reconcile ledger for THIS map: uids of unique entities removed during play.
+    // Loaded from the cache (persists across revisits), passed to RpgLevel.spawn below to skip
+    // their file spawns, and written back on leave. Empty on a first visit / non-persistent map.
+    this._gone =
+      saved !== undefined && saved.gone !== undefined ? saved.gone : {};
 
     // 5. Entity instances from the file's `spawns` (enemies, NPC, chest, props, reach
     //    marker, portals). Stations are discovered live by Interactable; only the handles the
     //    scene's own logic needs come back. Spawned after the controller — slimes need the
     //    player id for their AI.
-    const ents = RpgLevel.spawn(this.world, this.level, data, this.ctrl.id);
+    const ents = RpgLevel.spawn(this.world, this.level, data, this.ctrl.id, {
+      gone: this._gone, // skip unique entities removed on a prior visit (file-scope reconcile)
+    });
     this.enemies = ents.enemies;
     this.npc = ents.npc; // -1 when the map has no NPC (guarded in _updateNpc)
     this.reachZone = ents.reach; // undefined when the map has no reach marker
@@ -340,9 +348,10 @@ class _SceneRpgClass extends Scene {
       RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
       RpgScene.resolveDeaths(this, {
         spill: { yBase: 0, ySpread: 14 },
-        onKill: () => {
+        onKill: (id) => {
           Profile.add("enemiesKilled", 1);
           QuestLog.report("kill", "slime", 1);
+          this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
           Log.info(`slime killed — kills=${Profile.get("enemiesKilled")}`);
         },
       });
@@ -432,6 +441,14 @@ class _SceneRpgClass extends Scene {
         return;
       }
     }
+  }
+
+  // Mark a unique (Persistent) entity as removed in the current map so it won't re-spawn from
+  // the file on revisit (file-scope reconcile). No-op for an anonymous (id-less) entity — those
+  // are meant to respawn. Read the uid while the entity is still alive (before world.remove).
+  _markGone(id) {
+    const pc = this.world.get(Persistent, id);
+    if (pc !== undefined) this._gone[pc.uid] = true;
   }
 
   // F: toggle the nearest companion (within reach) between follow and wait. A "wait" companion

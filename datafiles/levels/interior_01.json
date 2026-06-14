@@ -42,6 +42,18 @@
     },
 
     {
+      "preset": "slime",
+      "id": "cave_captain",
+      "gx": 6,
+      "gy": 7,
+      "hp": 5,
+      "loot": [
+        { "itemId": "gem", "qty": 2 },
+        { "itemId": "key", "qty": 1 }
+      ]
+    },
+
+    {
       "preset": "chest",
       "gx": 3,
       "gy": 3,

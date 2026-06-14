@@ -140,6 +140,7 @@
     {"id":{"name":"PathfindingSystem","path":"scripts/PathfindingSystem/PathfindingSystem.yy",},},
     {"id":{"name":"PathRequest","path":"scripts/PathRequest/PathRequest.yy",},},
     {"id":{"name":"PathResponse","path":"scripts/PathResponse/PathResponse.yy",},},
+    {"id":{"name":"Persistent","path":"scripts/Persistent/Persistent.yy",},},
     {"id":{"name":"Pipeline","path":"scripts/Pipeline/Pipeline.yy",},},
     {"id":{"name":"PlatformerController","path":"scripts/PlatformerController/PlatformerController.yy",},},
     {"id":{"name":"PlatformerLevel","path":"scripts/PlatformerLevel/PlatformerLevel.yy",},},
