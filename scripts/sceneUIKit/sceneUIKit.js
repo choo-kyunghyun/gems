@@ -494,6 +494,26 @@ class _SceneUIKitClass extends Scene {
         }),
       ),
     );
+
+    // Dropdown: a resolution-style list (more options than a < > cycler wants). Opens
+    // a popup list, navigable by mouse or keyboard/gamepad; longer than maxVisible
+    // would scroll.
+    const resolutions = [
+      { name: "1280 x 720", value: 0 },
+      { name: "1366 x 768", value: 1 },
+      { name: "1600 x 900", value: 2 },
+      { name: "1920 x 1080", value: 3 },
+      { name: "2560 x 1440", value: 4 },
+      { name: "3840 x 2160", value: 5 },
+    ];
+    controls.insertChild(
+      gemsRow(
+        I18n.textRef("UIKIT_DROPDOWN"),
+        gemsDropdownCustom(resolutions, 3, noop, {
+          tooltip: I18n.textRef("UIKIT_TIP_DROPDOWN"),
+        }),
+      ),
+    );
     controls.insertChild(
       gemsRow(
         I18n.textRef("UIKIT_STEPPER"),

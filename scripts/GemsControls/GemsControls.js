@@ -132,6 +132,140 @@ globalThis.gemsSelectCustom = function gemsSelectCustom(
   return gemsAttachTooltip(el, opts);
 };
 
+// Dropdown / combobox with an explicit index/onChange. The closed field is a
+// panel-backed UIDropdown; clicking (or nav-confirm) drops a popup list to pick from.
+// Unlike gemsSelectCustom (cycles in place with `< >`), this opens a navigable list —
+// the better fit when there are many options (resolutions, locales). The popup is a
+// positioned UIModal root: it blocks the rows behind it, draws on top, closes on
+// outside-click/Esc, and is UINav (keyboard/gamepad) navigable for free. Lists longer
+// than `opts.maxVisible` (6) scroll. `items` are { name, value } (name a resolved
+// string). `opts`: { width, height, rowH, maxVisible, dim, placeholder, tooltip }.
+globalThis.gemsDropdownCustom = function gemsDropdownCustom(
+  items,
+  index,
+  onChange,
+  opts = {},
+) {
+  const el = new UIElement({
+    height: opts.height ?? 36,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(GemsTheme.btn),
+      rad: GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: 0.07,
+    }),
+  );
+  el.addComponent(
+    new UIDropdown({
+      items,
+      index,
+      onChange,
+      placeholder: opts.placeholder ?? "",
+      color: gemsColor(GemsTheme.text),
+      placeholderColor: gemsColor(GemsTheme.textDim),
+      chevronColor: gemsColor(GemsTheme.textMuted),
+      onOpen: (dropdown, field) => gemsDropdownPopup(dropdown, field, opts),
+    }),
+  );
+  return gemsAttachTooltip(el, opts);
+};
+
+// Builds + shows the popup list for an open UIDropdown (its `onOpen`). Kept as an
+// assigned global (not a bare function) per the GMRT large-file hoisting rule.
+globalThis.gemsDropdownPopup = function gemsDropdownPopup(
+  dropdown,
+  field,
+  opts,
+) {
+  const pos = field.getLayoutPosition();
+  const rowH = opts.rowH ?? GemsTheme.rowH;
+  const gap = GemsTheme.gapSm;
+  const pad = GemsTheme.padSm;
+  const n = dropdown.items.length;
+  const maxVisible = opts.maxVisible ?? 6;
+  const visible = Math.min(n, maxVisible);
+  const listH = visible * rowH + Math.max(0, visible - 1) * gap;
+  const cardH = listH + pad * 2;
+
+  // Drop below the field; flip above if it would run off the bottom of the screen.
+  let top = pos.top + pos.height + 4;
+  if (top + cardH > display_get_gui_height()) top = pos.top - 4 - cardH;
+
+  // Full-screen modal root: blocks the rows behind it, draws last (on top), closes on
+  // outside-click/Esc. dim 0 → no screen darkening, just the popup; a small slide gives
+  // it a subtle drop-in.
+  const root = new UIElement({ width: "100%", height: "100%" });
+  root.addComponent(
+    new UIPanel({ color: gemsColor("#000000"), alpha: opts.dim ?? 0 }),
+  );
+  const modal = new UIModal({
+    root,
+    slide: 8,
+    duration: 0.12,
+    onClose: () => dropdown.notifyClosed(),
+  });
+  root.addComponent(modal);
+
+  // Absolute wrapper positions the card at the field (construction-time layout props
+  // only — never runtime flex mutation, per GMRT #15065).
+  const wrap = new UIElement({
+    positionType: "absolute",
+    left: pos.left,
+    top,
+    width: pos.width,
+  });
+  const card = gemsCard({ width: "100%", padding: pad, gap });
+  // Long lists scroll inside a fixed-height viewport; short ones list directly.
+  const scroll = n > maxVisible ? gemsScroll({ height: listH }) : null;
+  const host = scroll !== null ? scroll.scrollBody : card;
+  if (scroll !== null) card.insertChild(scroll);
+  for (let i = 0; i < n; i++) {
+    const item = dropdown.items[i];
+    const selected = i === dropdown.index;
+    const pick = i; // capture for the click closure
+    host.insertChild(
+      gemsButton(
+        item.name,
+        () => {
+          dropdown.setIndex(pick);
+          modal.close();
+        },
+        {
+          height: rowH,
+          width: "100%",
+          border: 0,
+          shadow: 0,
+          primary: selected,
+        },
+      ),
+    );
+  }
+  wrap.insertChild(card);
+  root.insertChild(wrap);
+  UI.insert(root); // top of the stack → blocks lower roots, draws last
+};
+
+// Settings-bound dropdown. `items` are { name, value }; the current Settings value
+// picks the starting index (mirrors gemsSelect, but as a popup list).
+globalThis.gemsDropdown = function gemsDropdown(key, items, opts = {}) {
+  const cur = Settings.get(key);
+  const idx = Math.max(
+    0,
+    items.findIndex((item) => item.value === cur),
+  );
+  return gemsDropdownCustom(
+    items,
+    idx,
+    (_i, value) => Settings.set(key, value),
+    opts,
+  );
+};
+
 // Panel-backed numeric stepper (`< n >`). Holds its own value; `onChange(value)`
 // fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
 // the centered display string (default `${v}`).

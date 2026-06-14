@@ -169,6 +169,8 @@
   "UIKIT_SELECT": "선택",
   "UIKIT_STEPPER": "스테퍼",
   "UIKIT_TIP_STEPPER": "< > 양쪽을 클릭해 숫자를 조절 (0–10)",
+  "UIKIT_DROPDOWN": "드롭다운",
+  "UIKIT_TIP_DROPDOWN": "클릭하면 옵션 목록이 펼쳐집니다 — 하나를 선택 (키보드 / 게임패드 탐색 가능)",
   "UIKIT_ON": "켜짐",
   "UIKIT_OFF": "꺼짐",
   "UIKIT_OPT_A": "옵션 A",

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIDropdown",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIDropdown",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIDropdown.js",
+}
