@@ -36,19 +36,21 @@ globalThis.RenderGrid = class RenderGrid {
 
     const { cols, rows, cellWidth, cellHeight } = this.level;
 
-    // Visible cell range — culled to the camera's view rect when set (read
-    // camera_get_view_* off the held Camera; view_camera[] isn't exposed on GMRT),
-    // else the full grid. Lines span only the visible band, not the whole map.
+    // Visible cell range — culled to the camera's view rect when set, else the full
+    // grid. Lines span only the visible band, not the whole map.
     let x0 = 0;
     let y0 = 0;
     let x1 = cols;
     let y1 = rows;
-    if (this.camera !== undefined) {
-      const id = this.camera.id;
-      const vx = camera_get_view_x(id);
-      const vy = camera_get_view_y(id);
-      const vw = camera_get_view_width(id);
-      const vh = camera_get_view_height(id);
+    if (this.camera !== undefined && this.camera.width > 0) {
+      // View rect from the Camera's OWN fields, not camera_get_view_*: the project's
+      // Camera drives the view by matrix (camera_set_view_mat/proj_mat) and never sets
+      // camera_set_view_pos/size, so camera_get_view_* returns 0 (see CLAUDE.md). An ORTHO
+      // camera is centered on (toX, toY) spanning width × height world px.
+      const vw = this.camera.width;
+      const vh = this.camera.height;
+      const vx = this.camera.toX - vw / 2;
+      const vy = this.camera.toY - vh / 2;
       x0 = Math.max(0, Math.floor(vx / cellWidth));
       y0 = Math.max(0, Math.floor(vy / cellHeight));
       x1 = Math.min(cols, Math.ceil((vx + vw) / cellWidth));

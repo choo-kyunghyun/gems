@@ -42,17 +42,17 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
   destroy() {}
 
   // Visible cell range [x0,x1]×[y0,y1] (inclusive). Culled to the camera's view rect when
-  // a Camera is set — view_camera[] isn't exposed on GMRT, so read camera_get_view_*(id)
-  // off the held instance (the project's standard idiom). Full grid when no camera.
+  // a Camera is set, else the full grid. The rect comes from the Camera's OWN fields, not
+  // camera_get_view_* (returns 0 for the project's matrix-driven Camera — see CLAUDE.md);
+  // an ORTHO camera is centered on (toX, toY) spanning width × height world px.
   _range() {
     const { cols, rows, cellWidth, cellHeight } = this.level;
-    if (this.camera === undefined)
+    if (this.camera === undefined || !(this.camera.width > 0))
       return { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
-    const id = this.camera.id;
-    const vx = camera_get_view_x(id);
-    const vy = camera_get_view_y(id);
-    const vw = camera_get_view_width(id);
-    const vh = camera_get_view_height(id);
+    const vw = this.camera.width;
+    const vh = this.camera.height;
+    const vx = this.camera.toX - vw / 2;
+    const vy = this.camera.toY - vh / 2;
     return {
       x0: Math.max(0, Math.floor(vx / cellWidth)),
       y0: Math.max(0, Math.floor(vy / cellHeight)),
