@@ -49,6 +49,12 @@ Various files in this repository—including code, documentation, and assets—w
 
 ## Open Source Licenses
 
+### Noto Sans
+
+- Licensed under the SIL Open Font License, Version 1.1.
+- The full license text and the author's README are located in `/datafiles/i18n/en-US/fonts/Noto_Sans/`.
+- Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+
 ### Noto Sans KR
 
 - Licensed under the SIL Open Font License, Version 1.1.

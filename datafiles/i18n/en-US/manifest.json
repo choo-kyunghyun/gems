@@ -3,7 +3,38 @@
   "region": "US",
   "name": "English",
   "texts": ["text/*.json"],
-  "fonts": {},
+  "fonts": {
+    "default": {
+      "path": "fonts/Noto_Sans/static/NotoSans-Regular.ttf",
+      "size": 12,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 255,
+      "sdf": true,
+      "sdf_spread": 8
+    },
+    "header": {
+      "path": "fonts/Noto_Sans/static/NotoSans-Bold.ttf",
+      "size": 16,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 255,
+      "sdf": true,
+      "sdf_spread": 8
+    },
+    "description": {
+      "path": "fonts/Noto_Sans/static/NotoSans-Regular.ttf",
+      "size": 10,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 255,
+      "sdf": true,
+      "sdf_spread": 8
+    }
+  },
   "images": {},
   "sounds": {}
 }
