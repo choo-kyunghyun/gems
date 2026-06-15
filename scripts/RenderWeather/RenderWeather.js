@@ -5,10 +5,12 @@
 // bright above it.
 //
 // Particles are screen-space relative to the view rect (rain falls on the screen, not world-
-// locked) and animate on Time.raw (wall-clock — a visual effect like the UI, so they keep falling
-// while the sim is paused). Streaks use draw_line (draw_line_width_color renders NOTHING on GMRT);
-// snow uses draw_rectangle. NO trig (Math.sin/cos are undefined on GMRT) — straight diagonal fall
-// with a fixed per-particle base offset + a uniform wind drift.
+// locked) and scroll on a cumulative wall-clock (current_time — monotonic real ms, so they keep
+// falling while the sim is paused, like the UI). NOTE: the old code multiplied Time.raw — a PER-
+// FRAME delta, not a clock — by the fall speed, so every particle sat at a near-constant offset
+// each frame: that was the "rain/snow static" bug. Snow weaves with a sinusoidal horizontal sway
+// (Math.sin — trig works on GMRT 0.20); rain falls straight diagonal. Streaks use draw_line
+// (draw_line_width_color renders NOTHING on GMRT); snow uses draw_rectangle.
 //
 // View rect from the held Camera's own fields (toX/toY/width/height), NOT camera_get_view_* — the
 // project's Camera drives the view by matrix so camera_get_view_* returns 0 (see CLAUDE.md). The
@@ -77,7 +79,7 @@ globalThis.RenderWeather = class RenderWeather {
   _rain(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = Time.raw;
+    const t = current_time / 1000; // cumulative wall-clock seconds (NOT Time.raw, a per-frame delta)
     const fall = 850; // px/s
     const slant = -5; // streak lean + wind direction
     draw_set_color(this._rainColor);
@@ -99,7 +101,7 @@ globalThis.RenderWeather = class RenderWeather {
   _snow(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = Time.raw;
+    const t = current_time / 1000; // cumulative wall-clock seconds (NOT Time.raw, a per-frame delta)
     const fall = 70; // px/s — gentle
     const wind = 18;
     draw_set_color(this._snowColor);
@@ -107,7 +109,9 @@ globalThis.RenderWeather = class RenderWeather {
     let i = 0;
     while (i < n) {
       const sz = 2 + Math.floor(this._pr[i] * 2); // 2..3px flakes
-      let px = (this._px[i] * w + wind * t) % w;
+      // Horizontal weave: a gentle per-flake sine sway over the steady wind drift (trig, 0.20).
+      const sway = 12 * Math.sin(t * 1.2 + this._pr[i] * 6.2832);
+      let px = (this._px[i] * w + wind * t + sway) % w;
       if (px < 0) px += w;
       let py = (this._py[i] * h + fall * t) % h;
       const sx = x1 + px;

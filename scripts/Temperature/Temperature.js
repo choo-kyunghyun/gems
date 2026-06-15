@@ -4,9 +4,10 @@
 // (like EncumbranceSystem.scale), never simulated. Kept off WorldClock so the clock stays the
 // pure temporal authority; the weather + region modifiers (slices #3/#4) fold into now() here.
 //
-// The diurnal swing is a KEYFRAME-LERP table over hour, NOT trig: Math.cos/Math.sin/Math.PI are
-// all undefined/garbage on GMRT (see CLAUDE.md), so a cosine day-curve would yield NaN. Same
-// bracket-and-lerp shape as WorldClock._KF / tint().
+// The diurnal swing is a cosine of the hour (trig works on GMRT 0.20; on the dropped 0.19
+// Math.cos/Math.PI were undefined/garbage, which forced a keyframe-lerp table here). It peaks
+// mid-afternoon and bottoms out ~12h opposite — the textbook daily temperature curve, in one
+// expression instead of a table + bracket-lerp.
 globalThis.Temperature = class Temperature {
   static ZERO_C = 273.15; // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
 
@@ -15,16 +16,12 @@ globalThis.Temperature = class Temperature {
   // _DIURNAL deltas below (and the later weather/region modifiers) are unit-agnostic — no offset.
   static _BASE = { spring: 14, summer: 26, autumn: 12, winter: 0 };
 
-  // Time-of-day delta from the season baseline: coldest just before dawn, warmest mid-afternoon.
-  // Wraps seamlessly (h:0 and h:24 share a delta). A literal table — no trig.
-  static _DIURNAL = [
-    { h: 0, d: -4 },
-    { h: 5, d: -6 }, // coldest before dawn
-    { h: 9, d: -2 },
-    { h: 15, d: 5 }, // warmest mid-afternoon
-    { h: 19, d: 0 },
-    { h: 24, d: -4 }, // wraps to midnight
-  ];
+  // Time-of-day delta from the season baseline, as a cosine of the hour: warmest at DIURNAL_PEAK
+  // (mid-afternoon), coldest ~12h opposite (before dawn). MEAN is the daily average offset, AMP the
+  // half-swing (peak = MEAN + AMP, trough = MEAN − AMP). Wraps seamlessly — cos is periodic.
+  static DIURNAL_PEAK = 15; // hour of the daily high
+  static DIURNAL_MEAN = -0.5; // °C offset at the daily mean
+  static DIURNAL_AMP = 5.5; // °C half-swing amplitude
 
   // Current temperature in KELVIN: ZERO_C offset + season baseline + diurnal swing + the live
   // weather modifier (a scale-agnostic Kelvin delta). The region modifier (the active climate
@@ -43,16 +40,11 @@ globalThis.Temperature = class Temperature {
     return Temperature._BASE[WorldClock.season().id];
   }
 
-  // Time-of-day delta, interpolated between the two bracketing _DIURNAL keyframes.
+  // Time-of-day delta: a cosine peaking at DIURNAL_PEAK.
   static diurnal() {
-    const kf = Temperature._DIURNAL;
     const h = WorldClock.hour;
-    let i = 0;
-    while (i < kf.length - 2 && h >= kf[i + 1].h) i++;
-    const a = kf[i];
-    const b = kf[i + 1];
-    const t = (h - a.h) / (b.h - a.h);
-    return a.d + (b.d - a.d) * t;
+    const phase = (2 * Math.PI * (h - Temperature.DIURNAL_PEAK)) / 24;
+    return Temperature.DIURNAL_MEAN + Temperature.DIURNAL_AMP * Math.cos(phase);
   }
 
   // Kelvin → Celsius.

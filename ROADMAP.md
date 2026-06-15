@@ -9,7 +9,6 @@
 ## RPG
 
 - BUG: Claim build area isn't save status, allowing multiple times
-- BUG: Rain and snow is static, check shader accept current_time via uniform
 - New options on inventory: Temparature unit
 - New rader type: Draw arrows around player
 - Context-aware hotkey hint
@@ -50,10 +49,11 @@ Full matrix in CLAUDE.md → Build & Run.
   - `UIElement` re-enable the commented-out setters — **deferred by design**: the full set is ~45 methods and uncommenting it would push the class past the 50-method ceiling (#15065, still live on 0.20). Enable an individual setter only when a consumer needs it, watching the count.
   - `UIScroll`/`UIDrag`/`UIInput`/`UISlider` offset→flex migration — **deferred by design**: the offset/clip math works, so migrating is pure churn with regression risk and no user-visible gain.
   - _Optional sweep remaining:_ scene-level fixed-height label rows that no longer need to be (`SystemMenu._stat`, `sceneEditor` `labelRow`, `sceneUIKit` `_richRow`) — harmless/deliberate now, but their "0.19 no-op" comments are stale.
-- **`Math.PI` + trig (`cos`/`sin`/`atan2`/`sqrt`)** (trig is usable now — no more keyframe-lerp stand-ins / NaN coords)
-  - `Temperature._DIURNAL`, `WorldClock.tint` — keyframe-lerp tables could become smooth cosine curves
-  - `RenderWeather` — particle motion can use sin/cos (also unblocks the "rain/snow static" BUG under RPG)
-  - unblocks the RPG "radar arrows around player" item (needs `atan2`)
+- **`Math.PI` + trig (`cos`/`sin`/`atan2`/`sqrt`)** — PARTLY DONE:
+  - ~~`Temperature._DIURNAL`~~ — DONE: the keyframe table + bracket-lerp are now a single cosine day-curve (`diurnal()`), peaking at `DIURNAL_PEAK`.
+  - ~~`RenderWeather` particle motion + "rain/snow static" BUG~~ — DONE: the static bug was multiplying `Time.raw` (a per-frame _delta_) by the fall speed, so every particle sat at a near-constant offset — now scrolled by a cumulative wall-clock (`current_time`); snow also weaves with a `Math.sin` sway. Screenshot-verified (flakes move frame-to-frame).
+  - `WorldClock.tint`/`_KF` — **kept by design**: it's a hand-authored day/night _color_ script (deep-blue → dawn-orange → clear → dusk → blue), not a trig stand-in; a cosine can't express the color sequence.
+  - still open: the RPG "radar arrows around player" item (a gameplay feature; `atan2` is now available for it).
 - ~~**`draw_triangle_color` / `draw_line_width_color`**~~ — DONE: all arrow/chevron/step/sort affordances (`UIAccordion`/`UISelect`/`UIStepper`/`UIDropdown`/`UITable` + `Dialogue` advance) use the shared `drawUIArrow` triangle helper; checkmark/dash markers (`UICheckbox` tick, `UIQuestTracker` objective marker) use the shared `drawUICheck` + `draw_line_width_color`; `UINav` debug lines use `draw_line_width_color` (helpers in `scripts/utils`). (Optional polish remaining: `RenderWeather` rain / `RenderGrid` / `RenderZone` width lines.)
 - **static getters** (LOW value — the existing method/plain-field form works fine; cosmetic only)
   - `VirtualKeyboard.isOpen()`, `SystemMenu.isOpen()`, `Dialogue.isOpen()`, `UITable.active`, `InputAction`/`UIInput.active` — could become `static get`
