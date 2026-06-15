@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Temperature",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Temperature",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Temperature.js",
+}

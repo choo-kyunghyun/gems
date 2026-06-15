@@ -38,6 +38,7 @@
   "RPG_SEASON_SUMMER": "Summer",
   "RPG_SEASON_AUTUMN": "Autumn",
   "RPG_SEASON_WINTER": "Winter",
+  "RPG_TEMP": "{0}°C",
   "RPG_INVENTORY": "Bag",
   "RPG_EMPTY": "Empty",
   "RPG_ACCEPT": "Accept",
