@@ -61,3 +61,24 @@ UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit th
 this.scenes = new SceneManager();
 this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades the title in from black instead of popping
+
+// Debug back-end: register the global built-in panels once. Bindings are live,
+// so these track the current scene across swaps. The text port (debug.txt) is
+// the agent-readable view; the ImGui port (Phase 2) renders the same registry.
+const game = this;
+Debug.panel("Time", (p) => {
+  p.slider("Scale", Time, "scale", 0, 3, 0.1);
+  p.watch("Delta", () => Time.delta);
+  p.watch("Raw", () => Time.raw);
+});
+Debug.panel("Perf", (p) => {
+  p.watch("FPS", () => fps);
+  p.watch("FPS Real", () => fps_real);
+  p.watch("Scene", () => game.scenes.label());
+  p.watch("Entities", () => {
+    const s = game.scenes.current;
+    const w =
+      s !== null && s !== undefined && s.world !== undefined ? s.world : null;
+    return w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
+  });
+});

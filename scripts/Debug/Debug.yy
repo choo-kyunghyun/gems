@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Debug",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Debug",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Debug.js",
+}
