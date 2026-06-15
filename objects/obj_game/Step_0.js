@@ -8,4 +8,5 @@ Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-
 this.scenes.update(); // flush a queued scene swap through a fade + advance the fade timer
 this.scenes.step(); // sim tick, pause-gated while the SystemMenu overlay is open
 Debug.update(); // refresh the agent-facing debug.txt snapshot (periodic)
+DebugImGui.update(); // F3: human-facing native ImGui overlay over the same registry
 Log.flush();

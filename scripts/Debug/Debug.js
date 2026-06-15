@@ -166,6 +166,7 @@ globalThis.Debug = class Debug {
 
   static _line(e) {
     if (e.kind === "button") return e.label + " : <button>";
+    if (e.kind === "text" && e.get === undefined) return e.label; // static note
     const v = Debug.read(e);
     if (e.kind === "dropdown") return e.label + " = " + Debug._optName(e, v);
     return e.label + " = " + Debug._fmt(v);

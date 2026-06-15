@@ -1,0 +1,124 @@
+/**
+ * DebugImGui — the HUMAN front-end of the debug system: renders the `Debug`
+ * back-end registry through GameMaker's native ImGui overlay (show_debug_overlay
+ * + dbg_view / dbg_section / dbg_* widgets + ref_create). It holds no state of
+ * its own beyond the view handles and per-entry mirrors — `Debug` is the single
+ * source of truth (the text port writes the same registry to debug.txt).
+ *
+ * The overlay renders OUTSIDE the game surface, so an AI agent can't see it
+ * (screen_save misses it; is_debug_overlay_open() misreports) — this port is for
+ * a human at the keyboard. Toggle with F3.
+ *
+ * Binding model — why mirrors: ref_create needs a (struct, "field") pair, but a
+ * Debug entry's value is often a getter fn (`() => fps`) or targets a class
+ * static (`(Time, "scale")`) that ref_create may not accept. So each entry gets
+ * a plain MIRROR struct `{ v }` (a plain object always ref_create-able), the
+ * widget is ref_create'd to the mirror, and refresh() syncs mirror <-> binding
+ * each frame:
+ *   - read-only (watch/text): pull   mirror.v = Debug.read(entry)
+ *   - editable (slider/checkbox/dropdown): change-detected push — if the overlay
+ *     moved mirror.v since the last sync, write it back through the binding;
+ *     otherwise pull. Comparing against the last SYNCED value (not the live one)
+ *     means an external write (e.g. SystemMenu setting Time.scale = 0 on pause)
+ *     is pulled in, not clobbered by the stale slider value.
+ *
+ * Wiring: DebugImGui.update() in obj_game Step_0 (after Debug.update()).
+ */
+globalThis.DebugImGui = class DebugImGui {
+  static _open = false;
+  static _built = false;
+  static _views = []; // dbg_view handles, for teardown on rebuild
+  static _mirrors = []; // [{ entry, mirror, last }]
+
+  // Step_0: handle the F3 toggle and, while open, keep the mirrors in sync.
+  static update() {
+    if (!Debug.enabled) return;
+    if (keyboard_check_pressed(vk_f3)) DebugImGui.toggle();
+    if (!DebugImGui._open) return;
+    if (!DebugImGui._built) DebugImGui.build();
+    DebugImGui.refresh();
+  }
+
+  static toggle() {
+    DebugImGui._open = !DebugImGui._open;
+    if (DebugImGui._open && !DebugImGui._built) DebugImGui.build();
+    show_debug_overlay(DebugImGui._open);
+  }
+
+  // (Re)create one dbg_view per panel and a mirror + widget per entry. Call again
+  // to rebuild after the registry changes (e.g. a panel re-registers).
+  static build() {
+    for (let i = 0; i < DebugImGui._views.length; i++) {
+      const v = DebugImGui._views[i];
+      if (dbg_view_exists(v)) dbg_view_delete(v);
+    }
+    DebugImGui._views = [];
+    DebugImGui._mirrors = [];
+
+    const panels = Debug.panels;
+    for (let i = 0; i < panels.length; i++) {
+      const p = panels[i];
+      DebugImGui._views.push(dbg_view(p.name, true));
+      for (let j = 0; j < p.entries.length; j++) DebugImGui._emit(p.entries[j]);
+    }
+    DebugImGui._built = true;
+  }
+
+  static _emit(entry) {
+    if (entry.kind === "button") {
+      dbg_button(entry.label, entry.fn);
+      return;
+    }
+    // A static text label (no getter) needs no live ref.
+    if (entry.kind === "text" && entry.get === undefined) {
+      dbg_text(entry.label);
+      return;
+    }
+
+    // Live value -> plain mirror -> ref. The mirror object is never replaced, so
+    // the ref stays valid; refresh() mutates mirror.v in place.
+    const v0 = Debug.read(entry);
+    const mirror = { v: v0 };
+    const ref = ref_create(mirror, "v");
+    DebugImGui._mirrors.push({ entry, mirror, last: v0 });
+
+    if (entry.kind === "slider")
+      dbg_slider(ref, entry.min, entry.max, entry.label, entry.step);
+    else if (entry.kind === "checkbox") dbg_checkbox(ref, entry.label);
+    else if (entry.kind === "dropdown")
+      dbg_drop_down(ref, DebugImGui._spec(entry), entry.label);
+    else if (entry.kind === "text") dbg_text(ref);
+    else dbg_watch(ref, entry.label); // watch + any fallback
+  }
+
+  // dbg_drop_down specifier: "Name:value,Name2:value2" from options [{value,name}].
+  static _spec(entry) {
+    let s = "";
+    const opts = entry.options;
+    for (let i = 0; i < opts.length; i++) {
+      if (i > 0) s += ",";
+      s += opts[i].name + ":" + opts[i].value;
+    }
+    return s;
+  }
+
+  static refresh() {
+    const ms = DebugImGui._mirrors;
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const e = m.entry;
+      const live = Debug.read(e);
+      const editable =
+        e.kind === "slider" || e.kind === "checkbox" || e.kind === "dropdown";
+      if (editable && m.mirror.v !== m.last) {
+        // The overlay moved the value since the last sync -> push it through.
+        Debug.write(e, m.mirror.v);
+        m.last = m.mirror.v;
+      } else {
+        // Unchanged by the user -> pull (also reflects external writes).
+        m.mirror.v = live;
+        m.last = live;
+      }
+    }
+  }
+};
