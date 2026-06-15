@@ -34,8 +34,8 @@
  * stops updating (tab hidden / destroyed) the claim simply lapses and nav resumes.
  *
  * GMRT notes: hit-test/hover live in instance fields (a cached primitive bool gets
- * clobbered mid-function — see CLAUDE.md); sort arrows are draw_text glyphs ("^"/"v",
- * not draw_triangle which renders nothing); no Map/Set iteration; LMB edges come from
+ * clobbered mid-function — see CLAUDE.md); sort arrows are filled triangles (shared
+ * drawUIArrow — draw_triangle_color works on GMRT 0.20); no Map/Set iteration; LMB edges come from
  * the frame-latched SlotDrag.pressed/released, never a re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
@@ -516,12 +516,18 @@ globalThis.UITable = class UITable {
       // Header labels are always left-aligned (even over right-aligned numeric cells) so
       // the sort arrow at the right edge never collides with / truncates the label.
       this._cellText(col.label ?? "", c, cy, fa_left, c.w - this.cellPad - 14);
-      // Sort arrow at the cell's right edge: "^" asc / "v" desc, accent on primary.
+      // Sort arrow at the cell's right edge: up asc / down desc, accent on primary. A filled
+      // triangle (draw_triangle_color works on GMRT 0.20; was a no-op on the dropped 0.19).
       if (rank >= 0) {
         const dir = this._sort[rank].dir;
-        draw_set_halign(fa_right);
-        draw_set_color(rank === 0 ? this.colorArrow : this.colorArrow2);
-        draw_text(c.x + c.w - this.cellPad, cy, dir > 0 ? "^" : "v");
+        const ah = 4;
+        drawUIArrow(
+          c.x + c.w - this.cellPad - ah,
+          cy,
+          dir > 0 ? "up" : "down",
+          ah,
+          rank === 0 ? this.colorArrow : this.colorArrow2,
+        );
       }
     }
   }

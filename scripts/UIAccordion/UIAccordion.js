@@ -101,16 +101,16 @@ globalThis.UIAccordion = class UIAccordion {
     draw_set_valign(fa_middle);
 
     // Indicator: a filled triangle chevron — right when collapsed, down when expanded.
-    // draw_triangle_color renders on GMRT 0.20 (it was a no-op on 0.19, which is why
-    // this was a ">"/"v" text glyph before the 0.20 migration).
+    // Shared drawUIArrow so it matches UISelect/UIStepper/UIDropdown/UITable affordances.
     const ch = this._hover ? this.chevronHover : this.chevronColor;
-    const cvx = pos.left + pos.width - pad; // chevron anchor near the right edge
-    const hh = 5;
-    if (this.expanded) {
-      draw_triangle_color(cvx - hh, cy - hh * 0.55, cvx + hh, cy - hh * 0.55, cvx, cy + hh * 0.75, ch, ch, ch, false);
-    } else {
-      draw_triangle_color(cvx - hh * 0.75, cy - hh, cvx - hh * 0.75, cy + hh, cvx + hh * 0.75, cy, ch, ch, ch, false);
-    }
+    const ah = 5;
+    drawUIArrow(
+      pos.left + pos.width - pad - ah,
+      cy,
+      this.expanded ? "down" : "right",
+      ah,
+      ch,
+    );
 
     // Title, left-aligned and vertically centered.
     draw_set_halign(fa_left);

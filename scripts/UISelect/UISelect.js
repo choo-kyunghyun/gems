@@ -5,7 +5,7 @@ globalThis.UISelect = class UISelect {
     this._index = select.index ?? 0;
     this.onChange = select.onChange ?? noop;
     this.color = select.color ?? c_white;
-    // Arrow affordances drawn at each edge ("<" / ">"); brighten on the hovered
+    // Triangle arrow affordances drawn at each edge (◀ / ▶); brighten on the hovered
     // side so the player reads it as a left/right cycler.
     this.arrowColor = select.arrowColor ?? c_gray;
     this.arrowHover = select.arrowHover ?? c_white;
@@ -99,15 +99,22 @@ globalThis.UISelect = class UISelect {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // Left arrow.
-    draw_set_halign(fa_left);
-    draw_set_color(this._side < 0 ? this.arrowHover : this.arrowColor);
-    draw_text(pos.left + pad, cy, "<");
-
-    // Right arrow.
-    draw_set_halign(fa_right);
-    draw_set_color(this._side > 0 ? this.arrowHover : this.arrowColor);
-    draw_text(pos.left + pos.width - pad, cy, ">");
+    // Left / right step arrows — filled triangles (draw_triangle_color works on GMRT 0.20).
+    const ah = 5;
+    drawUIArrow(
+      pos.left + pad + ah,
+      cy,
+      "left",
+      ah,
+      this._side < 0 ? this.arrowHover : this.arrowColor,
+    );
+    drawUIArrow(
+      pos.left + pos.width - pad - ah,
+      cy,
+      "right",
+      ah,
+      this._side > 0 ? this.arrowHover : this.arrowColor,
+    );
 
     // Current value, centered.
     draw_set_halign(this.halign);

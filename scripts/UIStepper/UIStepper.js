@@ -112,27 +112,23 @@ globalThis.UIStepper = class UIStepper {
     const canDec = this.wrap || this.value > this.min;
     const canInc = this.wrap || this.value < this.max;
 
-    // Left arrow — dimmed when it can't step, brightened while hovered.
-    draw_set_halign(fa_left);
-    draw_set_color(
-      !canDec
-        ? this.arrowDisabled
-        : this._side < 0
-          ? this.arrowHover
-          : this.arrowColor,
+    // Left / right step arrows — filled triangles (draw_triangle_color works on GMRT 0.20),
+    // dimmed when they can't step, brightened while hovered.
+    const ah = 5;
+    drawUIArrow(
+      pos.left + pad + ah,
+      cy,
+      "left",
+      ah,
+      !canDec ? this.arrowDisabled : this._side < 0 ? this.arrowHover : this.arrowColor,
     );
-    draw_text(pos.left + pad, cy, "<");
-
-    // Right arrow.
-    draw_set_halign(fa_right);
-    draw_set_color(
-      !canInc
-        ? this.arrowDisabled
-        : this._side > 0
-          ? this.arrowHover
-          : this.arrowColor,
+    drawUIArrow(
+      pos.left + pos.width - pad - ah,
+      cy,
+      "right",
+      ah,
+      !canInc ? this.arrowDisabled : this._side > 0 ? this.arrowHover : this.arrowColor,
     );
-    draw_text(pos.left + pos.width - pad, cy, ">");
 
     // Current value, centered.
     draw_set_halign(this.halign);

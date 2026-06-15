@@ -111,11 +111,16 @@ globalThis.UIDropdown = class UIDropdown {
           : pos.left + this.padX;
     draw_text(tx, cy, has ? this.name : this.placeholder);
 
-    // Chevron at the right edge: "v" closed, "^" open. A draw_text glyph, not
-    // draw_triangle (which renders nothing on GMRT — see CLAUDE.md).
-    draw_set_halign(fa_right);
-    draw_set_color(this.chevronColor);
-    draw_text(pos.left + pos.width - this.padX, cy, this._open ? "^" : "v");
+    // Chevron at the right edge: down closed, up open. A filled triangle
+    // (draw_triangle_color works on GMRT 0.20; was a no-op on the dropped 0.19).
+    const ah = 4;
+    drawUIArrow(
+      pos.left + pos.width - this.padX - ah,
+      cy,
+      this._open ? "up" : "down",
+      ah,
+      this.chevronColor,
+    );
 
     draw_set_font(font);
     draw_set_halign(halign);
