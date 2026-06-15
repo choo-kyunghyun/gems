@@ -23,8 +23,9 @@
  *
  * GMRT notes: the box is sized off display_get_gui_* (never a flexpanel rect), so
  * there's no NaN-width hazard and no `!(pos.width > 0)` guard. The advance indicator
- * is a draw_text "v" glyph (like UIAccordion/UISelect) — draw_triangle_color renders
- * nothing on 0.19. Reveal counts a JS substring of pre-wrapped lines, no Map/Set
+ * is a filled down-triangle via drawUIArrow (like UIAccordion/UISelect) — draw_triangle_color
+ * works on GMRT 0.20; it was a draw_text "v" glyph on the dropped 0.19. Reveal counts a
+ * JS substring of pre-wrapped lines, no Map/Set
  * iteration. isOpen() is a METHOD, not a static getter (static getters miscompile for
  * computed state on GMRT 0.20 — see CLAUDE.md).
  */
