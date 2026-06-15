@@ -34,6 +34,7 @@ globalThis.DebugImGui = class DebugImGui {
   static _debugPanels = undefined; // stable panel objects the Debug view was built from
   static _debugMirrors = []; // [{ entry, mirror, last }]
   static _inspectView = undefined;
+  static _inspectSection = undefined; // the live section inside the Inspector view
   static _inspectPanel = null; // the Entity panel object the Inspector was built from
   static _inspectMirrors = [];
 
@@ -56,6 +57,7 @@ globalThis.DebugImGui = class DebugImGui {
   static headerH = 44; // view title bar + padding
   static sectionH = 34; // per-panel collapsing section header
   static rowH = 30; // per-entry row
+  static inspectorH = 460; // Inspector view height (fixed; content scrolls)
 
   // Step_0: handle the F3 toggle and, while open, rebuild on a registry change
   // (e.g. the inspector (re)registering the Entity panel) then sync the mirrors.
@@ -113,19 +115,58 @@ globalThis.DebugImGui = class DebugImGui {
     }
 
     if (entity !== DebugImGui._inspectPanel) {
-      const r = DebugImGui._buildView(
-        DebugImGui._inspectView,
-        "Inspector",
-        DebugImGui.marginX + DebugImGui.viewW + 20,
-        DebugImGui.marginY,
-        entity !== null ? [entity] : [],
-      );
-      DebugImGui._inspectView = r.view;
-      DebugImGui._inspectMirrors = r.mirrors;
+      DebugImGui._rebuildInspector(entity);
       DebugImGui._inspectPanel = entity;
     }
 
     DebugImGui._builtVersion = Debug.version();
+  }
+
+  // Update the Inspector window IN PLACE: keep the dbg_view alive (so it keeps its
+  // position as you pick around) and only swap the section's contents. There's no
+  // dbg_set_view on GMRT, so we rely on the Inspector view being the current one:
+  // it's created once here and nothing else creates a dbg_view afterward (the
+  // stable Debug view is built once at boot), so the current view stays this one
+  // across picks and the new section lands in it. Tear the view down on deselect.
+  static _rebuildInspector(entity) {
+    if (entity === null) {
+      if (
+        DebugImGui._inspectView !== undefined &&
+        dbg_view_exists(DebugImGui._inspectView)
+      )
+        dbg_view_delete(DebugImGui._inspectView);
+      DebugImGui._inspectView = undefined;
+      DebugImGui._inspectSection = undefined;
+      DebugImGui._inspectMirrors = [];
+      return;
+    }
+
+    if (
+      DebugImGui._inspectView === undefined ||
+      !dbg_view_exists(DebugImGui._inspectView)
+    ) {
+      DebugImGui._inspectView = dbg_view(
+        "Inspector",
+        true,
+        DebugImGui.marginX + DebugImGui.viewW + 20,
+        DebugImGui.marginY,
+        DebugImGui.viewW,
+        DebugImGui.inspectorH,
+      );
+      DebugImGui._inspectSection = undefined;
+    }
+
+    if (
+      DebugImGui._inspectSection !== undefined &&
+      dbg_section_exists(DebugImGui._inspectSection)
+    )
+      dbg_section_delete(DebugImGui._inspectSection);
+    DebugImGui._inspectSection = dbg_section(entity.name, true);
+
+    DebugImGui._inspectMirrors = [];
+    const es = entity.entries;
+    for (let j = 0; j < es.length; j++)
+      DebugImGui._emit(es[j], DebugImGui._inspectMirrors);
   }
 
   // (Re)create one dbg_view holding the given panels as explicit dbg_sections
