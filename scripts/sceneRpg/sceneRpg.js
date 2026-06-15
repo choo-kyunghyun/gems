@@ -161,6 +161,7 @@ class _SceneRpgClass extends Scene {
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
+    this._updateClimate(); // climate-zone enter/exit → Weather region override
     this.camera.update();
 
     // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
@@ -260,6 +261,21 @@ class _SceneRpgClass extends Scene {
       QuestLog.report("reach", "ruins", 1);
       Log.info("reached the ruins");
     }
+  }
+
+  // Track which climate zone the player stands in (single-entity, so a direct cell lookup beats
+  // ZoneSystem's all-entity sweep) and push/clear the Weather region override on a border cross.
+  // No-op on maps without a "climate" channel (interiors, plain maps).
+  _updateClimate() {
+    const cmap = this.level.zoneMap("climate");
+    if (cmap === undefined) return;
+    const pos = this.world.get(Position, this.ctrl.id);
+    const g = this.level.worldToGrid(pos.x, pos.y);
+    const id = cmap.idAt(g.x, g.y);
+    if (id === this._climateZone) return; // no border crossed this frame
+    this._climateZone = id;
+    if (id === 0) Weather.exitRegion();
+    else Weather.enterRegion(cmap.zone(id));
   }
 
   // Auto turn-in for the passive (non-NPC) quests once their objectives are met.

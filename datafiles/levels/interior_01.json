@@ -5,6 +5,7 @@
   "cols": 16,
   "rows": 12,
   "meta": {
+    "indoor": true,
     "playerSpawn": { "gx": 8, "gy": 8 },
     "entries": {
       "default": { "gx": 8, "gy": 8 }

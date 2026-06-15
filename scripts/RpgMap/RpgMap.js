@@ -111,6 +111,30 @@ globalThis.RpgMap = {
       data: { color: "#55aa55" },
     }).id;
 
+    // 4-climate. Climate zones (optional, data-driven from meta.climate): named regions that
+    //    override the open sky — a forced Weather condition + a Kelvin temperature offset — while
+    //    the player stands inside (sceneRpg._updateClimate tracks the player's cell → Weather
+    //    enter/exitRegion). Static metadata, so building it before 4b round-trips through the
+    //    persistence cache like the buildable zone.
+    const climate = data.meta.climate;
+    if (climate !== undefined) {
+      const cmap = scene.level.addZoneMap("climate");
+      for (let i = 0; i < climate.length; i++) {
+        const c = climate[i];
+        const z = cmap.define({
+          name: c.name,
+          tags: ["climate"],
+          data: {
+            weather: c.weather ?? null,
+            tempMod: c.tempMod ?? 0,
+            color: c.color ?? "#88aaff",
+          },
+        });
+        const r = c.rect;
+        cmap.paintRect(z.id, r[0], r[1], r[2], r[3]);
+      }
+    }
+
     // 4b. Restore a persistent map's player edits on revisit. Level.import overlays the
     //     cached TileLayers + buildable ZoneMap onto the freshly built level (same dims/layer
     //     order, so it round-trips; the cached buildable zone keeps id 1, matching the define
@@ -203,6 +227,7 @@ globalThis.RpgMap = {
     scene._buildActive = false;
     BuildMode.active = false;
     scene.nearNpc = false;
+    scene._climateZone = 0; // climate-zone id the player is in (0 = none); _updateClimate tracks it
     // If the inventory window is open across the swap, refresh its body against the new world
     // next frame (its labels already read scene.world live, so this frame's draw is safe).
     if (scene.invOpen) scene._invDirty = true;
@@ -267,8 +292,12 @@ globalThis.RpgMap = {
     paths.enabled = false;
     scene.renderer.insert(paths);
     // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain too.
-    scene._weather = new RenderWeather();
-    scene.renderer.insert(scene._weather);
+    // Skipped on indoor maps (meta.indoor) — no open sky inside a cave.
+    scene._weather = undefined;
+    if (!data.meta.indoor) {
+      scene._weather = new RenderWeather();
+      scene.renderer.insert(scene._weather);
+    }
     // Day/night tint LAST — over tiles + entities + weather (the scene draws bright cues after the
     // renderer). Its camera is assigned with the others in step 9 below.
     scene._dayNight = new RenderDayNight();
@@ -287,7 +316,7 @@ globalThis.RpgMap = {
     // map's large home grid; harmless for a small interior).
     scene._tilePass.camera = scene.camera;
     scene._gridPass.camera = scene.camera;
-    scene._weather.camera = scene.camera; // weather tint + particles cover the camera view rect
+    if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
     scene._dayNight.camera = scene.camera; // day/night tint covers the camera view rect
 
     // 11. Corner minimap — rebuilt per map (captures world/target by value).
@@ -300,6 +329,7 @@ globalThis.RpgMap = {
   // leaving the persistent UI in place. Mirrors teardownScene's order, minus the UI.
   teardown(scene) {
     RpgController.destroy();
+    Weather.exitRegion(); // leave any climate region (the new map re-detects on its first step)
     // Drop the chunk streamer (its entities/colliders die with the world below); clearing the
     // ref means the next map's step() skips chunk streaming until a chunked map sets it again.
     if (scene.chunks) {

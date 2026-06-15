@@ -5,7 +5,9 @@
 // set (a literal table, like WorldClock._KF) — clear/cloudy/rain/storm/snow — each carrying its
 // render look (tint + particle type/density) and a Kelvin tempMod folded into Temperature.now().
 // A change CROSS-FADES over _fadeTime: the render pass + tempMod lerp the outgoing (_prev) and
-// incoming (_cur) conditions by blend(), so weather eases in/out instead of snapping.
+// incoming (_cur) conditions by blend(), so weather eases in/out instead of snapping. A CLIMATE
+// ZONE can override the open sky in a region (enterRegion/exitRegion — a forced condition + a
+// temperature offset); the displayed condition is the effective one (override ?? ambient).
 globalThis.Weather = class Weather {
   // Built-in conditions, keyed by id. { c, a } is the screen tint; particle/density drive
   // RenderWeather; temp is a Kelvin delta (scale-agnostic). A literal — no class self-reference.
@@ -71,38 +73,68 @@ globalThis.Weather = class Weather {
   static _maxHold = 70;
   static _fadeTime = 2.5; // cross-fade seconds when the condition changes
 
-  static _cur = "clear";
+  // Ambient (season-rolled) sky vs. an optional climate-zone override; the DISPLAYED condition is
+  // the effective one (override ?? ambient), cross-faded into _cur/_prev/_blend by _sync().
+  static _ambient = "clear"; // season-rolled open-sky condition
+  static _override = null; // forced condition id from a climate zone (or null)
+  static _regionTemp = 0; // additive Kelvin offset from a climate zone
+
+  static _cur = "clear"; // displayed effective condition
   static _prev = "clear";
   static _blend = 1; // 1 = settled on _cur; eases 0..1 after each change
   static _timer = 0; // real seconds until the next re-roll
 
-  // Reset to a settled clear sky (scene create() once — like WorldClock.reset()).
+  // Reset to a settled clear sky, no region override (scene create() once — like WorldClock).
   static reset() {
+    Weather._ambient = "clear";
+    Weather._override = null;
+    Weather._regionTemp = 0;
     Weather._cur = "clear";
     Weather._prev = "clear";
     Weather._blend = 1;
     Weather._timer = Weather._rollHold();
   }
 
-  // Advance by `dt` real seconds (Time.delta): ease the cross-fade and re-roll on hold expiry.
+  // Advance by `dt` real seconds (Time.delta): re-roll the ambient sky on hold expiry, recompute
+  // the effective (displayed) condition, then ease the cross-fade.
   static update(dt) {
+    Weather._timer -= dt;
+    if (Weather._timer <= 0) {
+      Weather._ambient = Weather._rollAmbient();
+      Weather._timer = Weather._rollHold();
+    }
+    Weather._sync();
     if (Weather._blend < 1) {
       Weather._blend += dt / Weather._fadeTime;
       if (Weather._blend > 1) Weather._blend = 1;
     }
-    Weather._timer -= dt;
-    if (Weather._timer <= 0) {
-      Weather._change(Weather._roll());
-      Weather._timer = Weather._rollHold();
-    }
   }
 
-  // Begin a cross-fade to condition id `next` (no-op if already there).
-  static _change(next) {
-    if (next === Weather._cur) return;
-    Weather._prev = Weather._cur;
-    Weather._cur = next;
-    Weather._blend = 0;
+  // Climate-zone enter (from sceneRpg): force a condition + a temperature offset while inside.
+  static enterRegion(zone) {
+    const d = zone.data;
+    Weather._override =
+      d.weather !== undefined && d.weather !== null ? d.weather : null;
+    Weather._regionTemp = d.tempMod !== undefined ? d.tempMod : 0;
+    Weather._sync();
+  }
+
+  // Climate-zone exit: back to the open-sky ambient weather.
+  static exitRegion() {
+    Weather._override = null;
+    Weather._regionTemp = 0;
+    Weather._sync();
+  }
+
+  // Recompute the effective condition (override ?? ambient); begin a cross-fade if it changed.
+  static _sync() {
+    const eff =
+      Weather._override !== null ? Weather._override : Weather._ambient;
+    if (eff !== Weather._cur) {
+      Weather._prev = Weather._cur;
+      Weather._cur = eff;
+      Weather._blend = 0;
+    }
   }
 
   static _rollHold() {
@@ -111,20 +143,20 @@ globalThis.Weather = class Weather {
     );
   }
 
-  // Season-weighted pick over the conditions, EXCLUDING the current one. for...in over a plain
-  // object is GMRT-safe (Map/Set iteration is not).
-  static _roll() {
+  // Season-weighted pick over the conditions, EXCLUDING the current ambient (so it changes).
+  // for...in over a plain object is GMRT-safe (Map/Set iteration is not).
+  static _rollAmbient() {
     const w = Weather._WEIGHTS[WorldClock.season().id];
     let total = 0;
     const ids = [];
     const cum = [];
     for (const id in w) {
-      if (id === Weather._cur || w[id] <= 0) continue;
+      if (id === Weather._ambient || w[id] <= 0) continue;
       total += w[id];
       ids.push(id);
       cum.push(total);
     }
-    if (total <= 0) return Weather._cur; // nothing else available — stay
+    if (total <= 0) return Weather._ambient; // nothing else available — stay
     const r = Math.random() * total;
     let i = 0;
     while (i < ids.length) {
@@ -145,10 +177,11 @@ globalThis.Weather = class Weather {
     return Weather._blend;
   } // 0..1 incoming weight
 
-  // Blended Kelvin temperature delta (outgoing → incoming), folded into Temperature.now().
+  // Blended Kelvin temperature delta (outgoing → incoming) + the active climate-zone offset.
+  // Folded into Temperature.now().
   static tempMod() {
     const p = Weather._COND[Weather._prev].temp;
     const c = Weather._COND[Weather._cur].temp;
-    return p + (c - p) * Weather._blend;
+    return p + (c - p) * Weather._blend + Weather._regionTemp;
   }
 };
