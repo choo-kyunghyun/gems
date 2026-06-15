@@ -18,15 +18,15 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 ### Dependencies
 
 - GameMaker
-- GMRT 0.19.0
+- GMRT 0.20.0
 
 ### Build & Run
 
-The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.19 toolchain. The IDE can also build and run.
+The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.20 toolchain. The IDE can also build and run.
 
 ```sh
-gm-cli run     --toolchain GMRT@0.19 gems.yyp   # run
-gm-cli compile --toolchain GMRT@0.19 gems.yyp   # compile only
+gm-cli run     --toolchain GMRT@0.20 gems.yyp   # run
+gm-cli compile --toolchain GMRT@0.20 gems.yyp   # compile only
 ```
 
 VS Code users can run these via the bundled tasks (`.vscode/tasks.json`): **Run**, **Compile**, **Compile (errors only)**.

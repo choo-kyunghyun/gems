@@ -5,7 +5,7 @@
       "label": "Run",
       "type": "shell",
       "command": "gm-cli",
-      "args": ["run", "--toolchain", "GMRT@0.19", "gems.yyp"],
+      "args": ["run", "--toolchain", "GMRT@0.20", "gems.yyp"],
       "problemMatcher": [],
       "group": {
         "kind": "build",
@@ -16,7 +16,7 @@
       "label": "Compile",
       "type": "shell",
       "command": "gm-cli",
-      "args": ["compile", "--toolchain", "GMRT@0.19", "gems.yyp"],
+      "args": ["compile", "--toolchain", "GMRT@0.20", "gems.yyp"],
       "problemMatcher": [],
       "group": "build"
     },
@@ -24,7 +24,7 @@
       "label": "Compile (errors only)",
       "type": "shell",
       "command": "gm-cli",
-      "args": ["compile", "--toolchain", "GMRT@0.19", "--errors-only", "gems.yyp"],
+      "args": ["compile", "--toolchain", "GMRT@0.20", "--errors-only", "gems.yyp"],
       "problemMatcher": [],
       "group": "build"
     },
