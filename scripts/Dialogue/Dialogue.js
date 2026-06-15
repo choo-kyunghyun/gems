@@ -25,7 +25,8 @@
  * there's no NaN-width hazard and no `!(pos.width > 0)` guard. The advance indicator
  * is a draw_text "v" glyph (like UIAccordion/UISelect) — draw_triangle_color renders
  * nothing on 0.19. Reveal counts a JS substring of pre-wrapped lines, no Map/Set
- * iteration. isOpen() is a METHOD, not a static getter (static getters don't fire).
+ * iteration. isOpen() is a METHOD, not a static getter (static getters miscompile for
+ * computed state on GMRT 0.20 — see CLAUDE.md).
  */
 globalThis.Dialogue = class Dialogue {
   static speedDefault = 45; // chars/sec
@@ -62,7 +63,9 @@ globalThis.Dialogue = class Dialogue {
   static _wrapPage = -1;
   static _wrapW = -1;
 
-  // True while a dialogue is showing — read by UINav (to suspend) and game code.
+  // A METHOD, not a `static get` — kept as a method for consistency with SystemMenu /
+  // VirtualKeyboard, whose comparison-body static getters miscompile on GMRT 0.20 (see
+  // CLAUDE.md). True while a dialogue is showing — read by UINav (to suspend) + game code.
   static isOpen() {
     return Dialogue._open;
   }
@@ -235,7 +238,13 @@ globalThis.Dialogue = class Dialogue {
       floor(current_time / 450) % 2 === 0
     ) {
       const ah = 5;
-      drawUIArrow(g.x2 - Dialogue.padX - ah, g.y2 - 6 - ah, "down", ah, Dialogue.chevronColor);
+      drawUIArrow(
+        g.x2 - Dialogue.padX - ah,
+        g.y2 - 6 - ah,
+        "down",
+        ah,
+        Dialogue.chevronColor,
+      );
     }
 
     draw_set_font(font0);

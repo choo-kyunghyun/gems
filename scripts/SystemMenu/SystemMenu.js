@@ -89,7 +89,9 @@ globalThis.SystemMenu = class SystemMenu {
   }
 
   static isOpen() {
-    // Method, not a `static get` — GMRT 0.19 does not fire static getters.
+    // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
+    // (`_modal !== null`) miscompiles to a constant — verified, it returned false while
+    // _modal held a live UIModal (the inline comparison returned true). See CLAUDE.md.
     return SystemMenu._modal !== null;
   }
 

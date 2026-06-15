@@ -22,8 +22,9 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
   static _buffer = "";
   static _shift = false;
 
-  // A method, NOT a `static get` — GMRT 0.19 does not invoke static getters (the
-  // accessor never fires and the read yields undefined; instance getters DO work).
+  // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
+  // (`_input !== null`) miscompiles to a constant (verified on SystemMenu.isOpen — the
+  // getter read false while the field held a live object). See CLAUDE.md.
   static isOpen() {
     return VirtualKeyboard._input !== null;
   }
