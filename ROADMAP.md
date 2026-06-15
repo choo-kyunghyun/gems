@@ -53,11 +53,7 @@ Full matrix in CLAUDE.md → Build & Run.
   - `Temperature._DIURNAL`, `WorldClock.tint` — keyframe-lerp tables could become smooth cosine curves
   - `RenderWeather` — particle motion can use sin/cos (also unblocks the "rain/snow static" BUG under RPG)
   - unblocks the RPG "radar arrows around player" item (needs `atan2`)
-- **`draw_triangle_color` / `draw_line_width_color`** (real primitives instead of text-glyph / plain-line stand-ins)
-  - `UIAccordion` — chevron `>`/`v` text glyph → `draw_triangle`
-  - `UICheckbox` — tick → `draw_line_width_color`
-  - `UINav` — debug direction lines → `draw_line_width_color` (~line 232)
-  - (polish) `RenderWeather` rain / `RenderGrid` / `RenderZone` could use width lines
+- ~~**`draw_triangle_color` / `draw_line_width_color`**~~ — DONE: `UIAccordion` triangle chevron, `UICheckbox` checkmark, `UINav` debug lines now use the real primitives. (Optional polish remaining: `RenderWeather` rain / `RenderGrid` / `RenderZone` width lines.)
 - **static getters** (LOW value — the existing method/plain-field form works fine; cosmetic only)
   - `VirtualKeyboard.isOpen()`, `SystemMenu.isOpen()`, `Dialogue.isOpen()`, `UITable.active`, `InputAction`/`UIInput.active` — could become `static get`
 - **subclass field initializers** (PARTIAL FIX — a subclass `field = …` now runs, but the base constructor still does NOT fire / `super()` is not invoked; verify per case, don't assume full inheritance)

@@ -121,22 +121,21 @@ globalThis.UICheckbox = class UICheckbox {
         true,
       );
       if (t > 0.01) {
-        // Checked = a filled rounded inner square that pops in (scaled by the eased t).
-        // NOT a draw_line tick — draw_line_width_color renders nothing on GMRT 0.19
-        // (see CLAUDE.md), which left the old checkmark invisible. draw_roundrect works.
-        const inner = s * 0.5 * t;
+        // Checked = a real checkmark of two width-lines, popping in (vertices scaled by
+        // the eased t around the box center). draw_line_width_color renders on GMRT 0.20
+        // (it was a no-op on 0.19, which is why this used to be a filled rounded square).
         const cx = (bx1 + bx2) * 0.5;
-        const irad = Math.max(1, inner * 0.3);
-        draw_roundrect_color_ext(
-          cx - inner * 0.5,
-          cy - inner * 0.5,
-          cx + inner * 0.5,
-          cy + inner * 0.5,
-          irad,
-          irad,
-          this.colorKnob,
-          this.colorKnob,
-          false,
+        const lw = Math.max(2, s * 0.12);
+        const tk = this.colorKnob;
+        draw_line_width_color(
+          cx - 0.26 * s * t, cy + 0.02 * s * t,
+          cx - 0.07 * s * t, cy + 0.2 * s * t,
+          lw, tk, tk,
+        );
+        draw_line_width_color(
+          cx - 0.07 * s * t, cy + 0.2 * s * t,
+          cx + 0.28 * s * t, cy - 0.22 * s * t,
+          lw, tk, tk,
         );
       }
     }

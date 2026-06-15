@@ -10,12 +10,9 @@
  * element is kept alive across collapses (removed, not destroyed) so reopening is
  * cheap.
  *
- * The expand/collapse indicator is a text glyph (">" / "v"), drawn the same way as
- * UISelect/UIStepper's "<" / ">" arrows so the affordances match. It is NOT a
- * draw_triangle/draw_line shape: those primitives don't render on GMRT 0.19 (probe-
- * confirmed — see onDraw), which is why the original triangle chevron was invisible.
- * There's no toggle animation: the body height can't tween (runtime flexpanel height
- * mutation is a no-op, #15065) and a glyph can't rotate, so the section just snaps.
+ * The expand/collapse indicator is a filled triangle chevron (draw_triangle_color),
+ * pointing right when collapsed and down when expanded. There's no toggle animation:
+ * the section snaps open/closed (the body is inserted/removed structurally, not tweened).
  *
  * GMRT note: hover state is read live from the pointer each frame (no cached
  * primitive bool to be clobbered).
@@ -103,16 +100,17 @@ globalThis.UIAccordion = class UIAccordion {
     if (this.font !== -1) draw_set_font(this.font);
     draw_set_valign(fa_middle);
 
-    // Indicator: a text glyph ">" (collapsed) / "v" (expanded), drawn exactly like
-    // UISelect/UIStepper's "<" / ">" arrows so the affordances read as one family.
-    // It's draw_text, NOT a draw_triangle/draw_line shape — those primitives don't
-    // render on GMRT 0.19 (probe-confirmed: a filled triangle and a width line both
-    // drew nothing here while draw_roundrect + draw_text in the same onDraw worked),
-    // which is why the original triangle chevron was invisible.
+    // Indicator: a filled triangle chevron — right when collapsed, down when expanded.
+    // draw_triangle_color renders on GMRT 0.20 (it was a no-op on 0.19, which is why
+    // this was a ">"/"v" text glyph before the 0.20 migration).
     const ch = this._hover ? this.chevronHover : this.chevronColor;
-    draw_set_halign(fa_right);
-    draw_set_color(ch);
-    draw_text(pos.left + pos.width - pad, cy, this.expanded ? "v" : ">");
+    const cvx = pos.left + pos.width - pad; // chevron anchor near the right edge
+    const hh = 5;
+    if (this.expanded) {
+      draw_triangle_color(cvx - hh, cy - hh * 0.55, cvx + hh, cy - hh * 0.55, cvx, cy + hh * 0.75, ch, ch, ch, false);
+    } else {
+      draw_triangle_color(cvx - hh * 0.75, cy - hh, cvx - hh * 0.75, cy + hh, cvx + hh * 0.75, cy, ch, ch, ch, false);
+    }
 
     // Title, left-aligned and vertically centered.
     draw_set_halign(fa_left);
