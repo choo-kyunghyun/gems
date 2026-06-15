@@ -93,17 +93,29 @@ globalThis.UIQuestTracker = class UIQuestTracker {
         draw_text(x, y, I18n.text(def.name));
         y += this.titleH;
 
-        // One line per objective: "v"/"-" marker + formatted label, lime when met.
+        // One line per objective: a marker + formatted label, lime when met. The marker
+        // is a checkmark (met) / dash (pending) drawn as primitives — draw_line_width_color
+        // works on GMRT 0.20 (was a no-op on the dropped 0.19, when this was a "v"/"-" glyph).
         if (bodyFont !== -1) draw_set_font(bodyFont);
+        const markW = 16; // marker column width before the label
+        const fh = string_height("0"); // body line height, to vertically center the marker
         for (let o = 0; o < def.objectives.length; o++) {
           const obj = def.objectives[o];
           const prog = status.progress[o];
           const met = prog >= obj.count;
-          draw_set_color(met ? this.metColor : this.pendColor);
+          const mcol = met ? this.metColor : this.pendColor;
+          const mx = x + this.objIndent + 6;
+          const my = y + fh * 0.5;
+          if (met) {
+            drawUICheck(mx, my, 11, mcol);
+          } else {
+            draw_line_width_color(mx - 4, my, mx + 4, my, 2, mcol, mcol);
+          }
+          draw_set_color(mcol);
           draw_text(
-            x + this.objIndent,
+            x + this.objIndent + markW,
             y,
-            (met ? "v " : "- ") + I18n.text(def.objLabel, prog, obj.count),
+            I18n.text(def.objLabel, prog, obj.count),
           );
           y += this.objH;
         }

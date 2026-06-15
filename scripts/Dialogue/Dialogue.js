@@ -228,15 +228,14 @@ globalThis.Dialogue = class Dialogue {
       shown += line.length;
     }
 
-    // Blinking advance chevron once the page is fully revealed.
+    // Blinking advance chevron (down triangle) once the page is fully revealed.
+    // drawUIArrow / draw_triangle_color works on GMRT 0.20 (was a "v" glyph on 0.19).
     if (
       Dialogue._chars >= Dialogue._total &&
       floor(current_time / 450) % 2 === 0
     ) {
-      const ch = Dialogue.chevronColor;
-      draw_set_halign(fa_right);
-      draw_set_valign(fa_bottom);
-      draw_text_color(g.x2 - Dialogue.padX, g.y2 - 6, "v", ch, ch, ch, ch, 1);
+      const ah = 5;
+      drawUIArrow(g.x2 - Dialogue.padX - ah, g.y2 - 6 - ah, "down", ah, Dialogue.chevronColor);
     }
 
     draw_set_font(font0);

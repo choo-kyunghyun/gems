@@ -121,22 +121,11 @@ globalThis.UICheckbox = class UICheckbox {
         true,
       );
       if (t > 0.01) {
-        // Checked = a real checkmark of two width-lines, popping in (vertices scaled by
-        // the eased t around the box center). draw_line_width_color renders on GMRT 0.20
-        // (it was a no-op on 0.19, which is why this used to be a filled rounded square).
+        // Checked = the shared checkmark, popping in (size scaled by the eased t, width
+        // held constant). draw_line_width_color renders on GMRT 0.20 (it was a no-op on
+        // 0.19, which is why this used to be a filled rounded square).
         const cx = (bx1 + bx2) * 0.5;
-        const lw = Math.max(2, s * 0.12);
-        const tk = this.colorKnob;
-        draw_line_width_color(
-          cx - 0.26 * s * t, cy + 0.02 * s * t,
-          cx - 0.07 * s * t, cy + 0.2 * s * t,
-          lw, tk, tk,
-        );
-        draw_line_width_color(
-          cx - 0.07 * s * t, cy + 0.2 * s * t,
-          cx + 0.28 * s * t, cy - 0.22 * s * t,
-          lw, tk, tk,
-        );
+        drawUICheck(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
       }
     }
 

@@ -32,3 +32,12 @@ globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
     draw_triangle_color(cx - b, cy - h, cx + b, cy - h, cx, cy + h, col, col, col, false); // down
   }
 };
+
+// A checkmark (two width-lines) centered at (cx, cy), scaled by `s`; `w` overrides the
+// stroke width. Shared by UICheckbox (tick) and UIQuestTracker (objective-met marker).
+// draw_line_width_color works on GMRT 0.20 (was a no-op on the dropped 0.19).
+globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
+  const lw = w ?? Math.max(2, s * 0.12);
+  draw_line_width_color(cx - 0.26 * s, cy + 0.02 * s, cx - 0.07 * s, cy + 0.2 * s, lw, col, col);
+  draw_line_width_color(cx - 0.07 * s, cy + 0.2 * s, cx + 0.28 * s, cy - 0.22 * s, lw, col, col);
+};
