@@ -19,12 +19,14 @@
 globalThis.DebugInspector = class DebugInspector {
   static _world = null;
   static _id = -1;
+  static _registered = false; // the Entity panel has been registered at least once
   static pickRadius = 64; // max world px from the cursor to accept a pick
   static markerR = 18; // highlight half-size (GUI px)
   static highlightColor = Color.parse("#ffd34d");
 
-  // Select an entity and (re)register the Entity panel from its components. Pass
-  // (null, -1) — or an invalid id — to deselect and remove the panel.
+  // Select an entity (or pass (null, -1) to deselect). The Entity panel always
+  // stays registered — Deselect empties it to a placeholder rather than removing
+  // it, so its Inspector window persists instead of vanishing.
   static select(world, id) {
     const valid =
       world !== null &&
@@ -32,22 +34,36 @@ globalThis.DebugInspector = class DebugInspector {
       id !== undefined &&
       id !== -1 &&
       world.isValid(id);
-    if (!valid) {
-      if (DebugInspector._id !== -1) Debug.remove("Entity");
-      DebugInspector._world = null;
-      DebugInspector._id = -1;
+    const nextWorld = valid ? world : null;
+    const nextId = valid ? id : -1;
+    // No change (and already registered) → skip, to avoid a needless rebuild.
+    if (
+      nextWorld === DebugInspector._world &&
+      nextId === DebugInspector._id &&
+      DebugInspector._registered
+    )
       return;
-    }
-    // Re-selecting the same entity is a no-op (avoids a needless overlay rebuild).
-    if (DebugInspector._world === world && DebugInspector._id === id) return;
+    DebugInspector._world = nextWorld;
+    DebugInspector._id = nextId;
+    DebugInspector._register();
+  }
 
-    DebugInspector._world = world;
-    DebugInspector._id = id;
-    const comps = world.componentsOf(id);
+  // (Re)register the Entity panel so its Inspector window exists from the moment
+  // the overlay opens (like Time/Perf): a placeholder line when nothing is
+  // selected, or the picked entity's live-bound scalar fields.
+  static _register() {
+    DebugInspector._registered = true;
+    const world = DebugInspector._world;
+    const id = DebugInspector._id;
     Debug.panel("Entity", (p) => {
+      if (world === null || id === -1) {
+        p.text("No entity selected — click one in the world.");
+        return;
+      }
       p.watch("id", () => id);
       p.button("Deselect", () => DebugInspector.select(null, -1));
       // for...in over a plain object is GMRT-safe (componentsOf + data are plain).
+      const comps = world.componentsOf(id);
       for (const token in comps) {
         const data = comps[token];
         p.text("— " + token + " —");
@@ -70,6 +86,9 @@ globalThis.DebugInspector = class DebugInspector {
 
   static update(game) {
     if (!Debug.enabled) return;
+    // Register the Entity panel once up front so its Inspector window is already
+    // there when the overlay first opens, rather than appearing on the first pick.
+    if (!DebugInspector._registered) DebugInspector.select(null, -1);
     const scene = game.scenes.current;
     const world =
       scene !== null && scene !== undefined && scene.world !== undefined
