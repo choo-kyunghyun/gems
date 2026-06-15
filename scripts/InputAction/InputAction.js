@@ -81,19 +81,39 @@ globalThis.InputAction = class InputAction {
     return UIInput.active !== null;
   }
 
+  // While the debug overlay is open, mute the matching gameplay source per button:
+  // MOUSE always (a pick-click or slider-drag mustn't drive the game — covers the
+  // world click that is_mouse_over_debug_overlay() wouldn't), KEYBOARD only while
+  // the overlay is actually capturing it (typing in a dbg_text_input), so WASD
+  // still roams while inspecting. Gamepad is left alone. No-op when the overlay is
+  // closed (so the is_keyboard_used_debug_overlay() native call is skipped).
+  static _debugMuted(button) {
+    if (!DebugImGui._open) return false;
+    if (button.source === INPUT_SOURCE.MOUSE) return true;
+    if (button.source === INPUT_SOURCE.KEYBOARD)
+      return is_keyboard_used_debug_overlay();
+    return false;
+  }
+
   down() {
     if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some((button) => button.down());
+    return this.buttons.some(
+      (button) => !InputAction._debugMuted(button) && button.down(),
+    );
   }
 
   pressed() {
     if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some((button) => button.pressed());
+    return this.buttons.some(
+      (button) => !InputAction._debugMuted(button) && button.pressed(),
+    );
   }
 
   released() {
     if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some((button) => button.released());
+    return this.buttons.some(
+      (button) => !InputAction._debugMuted(button) && button.released(),
+    );
   }
 
   value() {

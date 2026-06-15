@@ -27,8 +27,15 @@
 globalThis.DebugImGui = class DebugImGui {
   static _open = false;
   static _builtVersion = -1; // Debug.version() the views were last built at
-  static _views = []; // dbg_view handles, for teardown on rebuild
-  static _mirrors = []; // [{ entry, mirror, last }]
+  // Two windows, rebuilt INDEPENDENTLY so a frequent change in one doesn't reset
+  // the other's position: "Debug" holds the stable panels (Time/Perf as sections);
+  // "Inspector" holds the dynamic Entity panel (re-registered on every pick).
+  static _debugView = undefined;
+  static _debugPanels = undefined; // stable panel objects the Debug view was built from
+  static _debugMirrors = []; // [{ entry, mirror, last }]
+  static _inspectView = undefined;
+  static _inspectPanel = null; // the Entity panel object the Inspector was built from
+  static _inspectMirrors = [];
 
   // Overlay rendering. scale = -1 auto-derives a DPI-aware factor from the GUI
   // height; default 1 (the GameMaker default) since a larger scale magnifies the
@@ -79,47 +86,81 @@ globalThis.DebugImGui = class DebugImGui {
     return clamp(display_get_gui_height() / 900, 1.4, 3);
   }
 
-  // (Re)create the single debug view and, per panel, an explicit dbg_section
-  // (named after the panel) plus a mirror + widget per entry. Call again to
-  // rebuild after the registry changes (e.g. a panel re-registers). The explicit
-  // section matters: without it GameMaker auto-creates a "Default" section and
-  // the first control bleeds onto its header row.
+  // Rebuild the two windows, but only the one that actually changed: the Debug
+  // window when the stable panel set shifts, the Inspector window when the Entity
+  // panel is re-registered (a new pick → a fresh panel object). This keeps the
+  // Debug window put while you click around picking entities.
   static build() {
-    for (let i = 0; i < DebugImGui._views.length; i++) {
-      const v = DebugImGui._views[i];
-      if (dbg_view_exists(v)) dbg_view_delete(v);
-    }
-    DebugImGui._views = [];
-    DebugImGui._mirrors = [];
-
     const panels = Debug.panels;
+    let entity = null;
+    const stable = [];
+    for (let i = 0; i < panels.length; i++) {
+      if (panels[i].name === "Entity") entity = panels[i];
+      else stable.push(panels[i]);
+    }
+
+    if (!DebugImGui._sameRefs(stable, DebugImGui._debugPanels)) {
+      const r = DebugImGui._buildView(
+        DebugImGui._debugView,
+        DebugImGui.title,
+        DebugImGui.marginX,
+        DebugImGui.marginY,
+        stable,
+      );
+      DebugImGui._debugView = r.view;
+      DebugImGui._debugMirrors = r.mirrors;
+      DebugImGui._debugPanels = stable;
+    }
+
+    if (entity !== DebugImGui._inspectPanel) {
+      const r = DebugImGui._buildView(
+        DebugImGui._inspectView,
+        "Inspector",
+        DebugImGui.marginX + DebugImGui.viewW + 20,
+        DebugImGui.marginY,
+        entity !== null ? [entity] : [],
+      );
+      DebugImGui._inspectView = r.view;
+      DebugImGui._inspectMirrors = r.mirrors;
+      DebugImGui._inspectPanel = entity;
+    }
+
+    DebugImGui._builtVersion = Debug.version();
+  }
+
+  // (Re)create one dbg_view holding the given panels as explicit dbg_sections
+  // (without a section GM auto-creates a "Default" one and the first control
+  // bleeds onto its header). Returns { view, mirrors }; view is undefined for an
+  // empty panel list. Deletes the prior handle first.
+  static _buildView(oldView, title, x, y, panels) {
+    if (oldView !== undefined && dbg_view_exists(oldView))
+      dbg_view_delete(oldView);
+    const mirrors = [];
+    if (panels.length === 0) return { view: undefined, mirrors };
+
     let lines = 0; // one row per entry (labelled two-column widgets)
     for (let i = 0; i < panels.length; i++) lines += panels[i].entries.length;
     const h =
       DebugImGui.headerH +
       panels.length * DebugImGui.sectionH +
       lines * DebugImGui.rowH;
-
-    DebugImGui._views.push(
-      dbg_view(
-        DebugImGui.title,
-        true,
-        DebugImGui.marginX,
-        DebugImGui.marginY,
-        DebugImGui.viewW,
-        h,
-      ),
-    );
+    const view = dbg_view(title, true, x, y, DebugImGui.viewW, h);
 
     for (let i = 0; i < panels.length; i++) {
-      const p = panels[i];
-      dbg_section(p.name, true);
-      for (let j = 0; j < p.entries.length; j++) DebugImGui._emit(p.entries[j]);
+      dbg_section(panels[i].name, true);
+      const es = panels[i].entries;
+      for (let j = 0; j < es.length; j++) DebugImGui._emit(es[j], mirrors);
     }
-    DebugImGui._builtVersion = Debug.version();
+    return { view, mirrors };
   }
 
-  static _emit(entry) {
+  static _sameRefs(a, b) {
+    if (b === undefined || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  static _emit(entry, mirrors) {
     if (entry.kind === "button") {
       dbg_button(entry.label, entry.fn);
       return;
@@ -137,7 +178,7 @@ globalThis.DebugImGui = class DebugImGui {
     const v0 = Debug.read(entry);
     const mirror = { v: v0 };
     const ref = ref_create(mirror, "v");
-    DebugImGui._mirrors.push({ entry, mirror, last: v0 });
+    mirrors.push({ entry, mirror, last: v0 });
 
     if (entry.kind === "slider")
       dbg_slider(ref, entry.min, entry.max, entry.label, entry.step);
@@ -162,7 +203,11 @@ globalThis.DebugImGui = class DebugImGui {
   }
 
   static refresh() {
-    const ms = DebugImGui._mirrors;
+    DebugImGui._sync(DebugImGui._debugMirrors);
+    DebugImGui._sync(DebugImGui._inspectMirrors);
+  }
+
+  static _sync(ms) {
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
       const e = m.entry;
