@@ -4,7 +4,6 @@
 
 - Particle system
 - Sound
-- IMGUI Debug panels
 
 ## RPG
 
