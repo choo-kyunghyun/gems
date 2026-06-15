@@ -165,7 +165,10 @@ globalThis.BuildMode = {
   },
 
   // Claim the buildable area around a Claim Post (Station kind "claim"). Paints a fixed
-  // rect into the "buildable" zone channel; idempotent (re-claim just repaints).
+  // rect into the "buildable" zone channel, then *spends* the post: its Station is detached
+  // so Interactable stops prompting and the area can't be re-claimed. The painted zone is the
+  // stored state (it round-trips through map persistence), so a post re-spawned over an
+  // already-claimed area skips the paint/toast but is still spent — no infinite re-claiming.
   claim(scene, postId) {
     const level = scene.level;
     const pos = scene.world.get(Position, postId);
@@ -173,13 +176,16 @@ globalThis.BuildMode = {
     const zmap = level.zoneMap("buildable");
     if (zmap === undefined) return;
     const c = level.worldToGrid(pos.x, pos.y);
-    const x1 = Math.max(0, c.x - BuildMode.CLAIM_HALF_W);
-    const y1 = Math.max(0, c.y - BuildMode.CLAIM_HALF_H);
-    const x2 = Math.min(level.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
-    const y2 = Math.min(level.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
-    zmap.paintRect(scene.buildZoneId, x1, y1, x2, y2);
-    Toast.push(I18n.text("BUILD_CLAIMED"), { type: "success" });
-    Log.info(`claimed build area (${x1},${y1})-(${x2},${y2})`);
+    if (zmap.idAt(c.x, c.y) === 0) {
+      const x1 = Math.max(0, c.x - BuildMode.CLAIM_HALF_W);
+      const y1 = Math.max(0, c.y - BuildMode.CLAIM_HALF_H);
+      const x2 = Math.min(level.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
+      const y2 = Math.min(level.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
+      zmap.paintRect(scene.buildZoneId, x1, y1, x2, y2);
+      Toast.push(I18n.text("BUILD_CLAIMED"), { type: "success" });
+      Log.info(`claimed build area (${x1},${y1})-(${x2},${y2})`);
+    }
+    scene.world.detach(postId, Station); // spent — stop prompting / block re-claim
   },
 
   // World-space cursor highlight over the snapped hovered cell — green = placeable,

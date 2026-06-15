@@ -7,7 +7,6 @@
 
 ## RPG
 
-- BUG: Claim build area isn't save status, allowing multiple times
 - New options on inventory: Temparature unit
 - New rader type: Draw arrows around player
 - Context-aware hotkey hint
