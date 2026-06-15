@@ -268,7 +268,13 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  // TODO: https://github.com/YoYoGames/GameMaker-Bugs/issues/15065
+  // The style setters below stay commented even on GMRT 0.20 (where live flexpanel
+  // mutation now works again — setWidth/setHeight above are the proof). Two reasons:
+  // the whole UI kit drives runtime change through draw-time offset/clip math + dirty
+  // structural reflow (not live style mutation), so nothing calls them; and the full
+  // set is ~45 methods — uncommenting it would push this class past the 50-method
+  // ceiling (#15065, STILL live on 0.20) and crash. Enable an individual setter on
+  // demand if a consumer needs one, watching the count.
 
   // setMinWidth(value, unit) {
   //   flexpanel_node_style_set_min_width(this.flexpanel, value, unit);

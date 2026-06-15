@@ -186,30 +186,23 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   // Swallow clicks anywhere on the card so they don't read as a backdrop dismiss.
   card.addComponent(new UITrigger({}));
 
-  // Text labels need explicit-height rows: UIText can't self-size its element at
-  // runtime (flexpanel mutation is a no-op on GMRT 0.19), so a 0-height label would
-  // let the button row collapse up over it. A prebuilt body element sizes itself.
+  // Labels self-size their element (UIText sets width/height in onUpdate, which the
+  // flexpanel layout now applies on GMRT 0.20), so a label is inserted directly — no
+  // fixed-height wrapper row is needed to stop the button row collapsing over it.
   if (opts.title != null) {
-    const titleRow = new UIElement({ height: 30, justifyContent: "center" });
-    titleRow.insertChild(
+    card.insertChild(
       gemsLabel(opts.title, {
         font: I18n.font("header"),
         color: GemsTheme.text,
       }),
     );
-    card.insertChild(titleRow);
     card.insertChild(gemsDivider());
   }
   if (opts.body != null) {
     if (opts.body instanceof UIElement) {
       card.insertChild(opts.body);
     } else {
-      const bodyRow = new UIElement({
-        height: opts.bodyHeight ?? 28,
-        justifyContent: "center",
-      });
-      bodyRow.insertChild(gemsLabel(opts.body, { color: GemsTheme.textMuted }));
-      card.insertChild(bodyRow);
+      card.insertChild(gemsLabel(opts.body, { color: GemsTheme.textMuted }));
     }
   }
 
@@ -447,9 +440,8 @@ globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
 };
 
 // Titled card section. A divider under the title separates it from the body. The
-// title sits in a fixed-height host (like gemsHeader) — a bare gemsLabel can't
-// self-size at runtime (UIText is a no-op on 0.19), so it would collapse to 0 height
-// and ride up onto the card's top border.
+// title label self-sizes (UIText sets the element height in onUpdate, applied by the
+// flexpanel layout on GMRT 0.20), so it's inserted directly above the divider.
 globalThis.gemsSection = function gemsSection(title, opts = {}) {
   const section = gemsCard({
     padding: GemsTheme.padSm,
@@ -457,13 +449,7 @@ globalThis.gemsSection = function gemsSection(title, opts = {}) {
     shadow: opts.shadow ?? 4,
   });
   if (title != null) {
-    const titleRow = new UIElement({
-      width: "100%",
-      height: GemsTheme.titleH,
-      justifyContent: "center",
-    });
-    titleRow.insertChild(gemsLabel(title, { color: GemsTheme.textMuted }));
-    section.insertChild(titleRow);
+    section.insertChild(gemsLabel(title, { color: GemsTheme.textMuted }));
     section.insertChild(gemsDivider());
   }
   return section;
@@ -479,10 +465,9 @@ globalThis.gemsDivider = function gemsDivider(opts = {}) {
 };
 
 // Label + control on one line — a real two-column row (label cell | control cell), not
-// a stack. The old vertical stack relied on the label self-sizing its height, which
-// UIText can't do at runtime (0.19), so the label collapsed to 0 height and the control
-// drew on top of it. Here the label sits in a fixed-width left cell and the control
-// fills the rest; `alignItems: center` lines them up vertically against the control.
+// a stack: the label sits in a fixed-width left cell and the control fills the rest,
+// with `alignItems: center` lining them up vertically. (The fixed-width cell is a
+// layout choice, not a self-size workaround — the label self-sizes within it.)
 globalThis.gemsRow = function gemsRow(label, control, opts = {}) {
   const row = new UIElement({
     width: "100%",

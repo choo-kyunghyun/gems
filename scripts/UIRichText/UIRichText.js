@@ -11,12 +11,13 @@
  *                      GMRT and faults draw_sprite — see CLAUDE.md).
  *   \n                 hard line break.
  * Spans nest (a color stack); unknown tags are dropped. Everything else is literal
- * text. The element self-sizes to the parsed content (setWidth/Height in onUpdate),
- * exactly like UIText — so, per the kit rule, this is a text drawer and takes NO
- * `!(pos.width > 0)` guard: runtime flexpanel mutation is a no-op on 0.19 so the
- * element runs at width 0, and everything is drawn from `pos.left/top` + our own
- * measured advances (never from `pos.width`), which draw_text/draw_sprite tolerate.
- * halign is resolved against the widest line internally, independent of element width.
+ * text. The element self-sizes to the parsed content (setWidth/Height in onUpdate,
+ * applied by the flexpanel layout on GMRT 0.20) — but, per the kit rule, this is a
+ * text drawer and still takes NO `!(pos.width > 0)` guard: everything is drawn from
+ * `pos.left/top` + our own measured advances (never from `pos.width`), which
+ * draw_text/draw_sprite tolerate, so a NaN width on the first frame after a scene
+ * transition is harmless. halign is resolved against the widest line internally,
+ * independent of element width.
  *
  * GMRT note: parse result is cached and only rebuilt when the source string changes;
  * no cached primitive bool, no Map/Set iteration, no array destructuring.

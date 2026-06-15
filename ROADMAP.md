@@ -44,11 +44,12 @@ Map/Set, `toUpperCase`/`toLowerCase`, `asset_get_index` `>=0`, xorshift32) are *
 0.20**, so the composition-over-inheritance + parallel-array + flat-JSON patterns stay mandatory.
 Full matrix in CLAUDE.md → Build & Run.
 
-- **flexpanel runtime style mutation** (drive live layout via `flexpanel_node_style_set_*` + recalc instead of draw-time offset/clip math)
-  - `UIElement` — re-enable the commented-out setters (`setMargin`/`setPadding`/`setGrow`/`setShrink`/`setFlexDirection`/`setJustifyContent`/`setAlignItems`/`setDisplay`/…); `dragX`/`dragY`/`scrollY` in `getLayoutPosition` could become real position mutation
-  - `UIText` / `UIRichText` — real runtime self-sizing (the `setWidth`-in-`onUpdate` path that currently runs at width 0 forever)
-  - `GemsContainers` — drop the 0-height-label guard (~line 190)
-  - `UIScroll` (`scrollY` offset), `UIDrag` (`dragX`/`dragY`), `UIInput` (clip/scroll offset), `UISlider` — candidates to move from offset math to flex mutation
+- **flexpanel runtime style mutation** — PARTLY DONE (the self-sizing slice landed; the rest is deliberately deferred):
+  - ~~`UIText` / `UIRichText` real runtime self-sizing~~ — DONE: `setWidth`/`setHeight` in `onUpdate` now apply on 0.20, so labels self-size for real (no code change — the path was always there). Screenshot-verified.
+  - ~~`GemsContainers` 0-height-label guard~~ — DONE: the fixed-height label-wrapper rows in `gemsModal` (title + body, dropped `bodyHeight`) and `gemsSection` (title) are retired — labels are inserted directly and self-size. `gemsRow` was already correct (its fixed-_width_ cell is a layout choice, not a height workaround); comment corrected.
+  - `UIElement` re-enable the commented-out setters — **deferred by design**: the full set is ~45 methods and uncommenting it would push the class past the 50-method ceiling (#15065, still live on 0.20). Enable an individual setter only when a consumer needs it, watching the count.
+  - `UIScroll`/`UIDrag`/`UIInput`/`UISlider` offset→flex migration — **deferred by design**: the offset/clip math works, so migrating is pure churn with regression risk and no user-visible gain.
+  - _Optional sweep remaining:_ scene-level fixed-height label rows that no longer need to be (`SystemMenu._stat`, `sceneEditor` `labelRow`, `sceneUIKit` `_richRow`) — harmless/deliberate now, but their "0.19 no-op" comments are stale.
 - **`Math.PI` + trig (`cos`/`sin`/`atan2`/`sqrt`)** (trig is usable now — no more keyframe-lerp stand-ins / NaN coords)
   - `Temperature._DIURNAL`, `WorldClock.tint` — keyframe-lerp tables could become smooth cosine curves
   - `RenderWeather` — particle motion can use sin/cos (also unblocks the "rain/snow static" BUG under RPG)
