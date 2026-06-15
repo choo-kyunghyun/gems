@@ -93,7 +93,7 @@ globalThis.RpgSpawn = {
         Visual,
         RpgSpawn._visual(spr_choo, make_colour_rgb(120, 220, 130)),
       );
-      SlimeAI.attach(world, id, playerId); // adds Velocity + Brain + State
+      SlimeAI.attach(world, id, playerId, level); // adds Velocity + Brain + State
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "npc") {

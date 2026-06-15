@@ -140,6 +140,7 @@
     {"id":{"name":"MotionPlanner","path":"scripts/MotionPlanner/MotionPlanner.yy",},},
     {"id":{"name":"MovementSystem","path":"scripts/MovementSystem/MovementSystem.yy",},},
     {"id":{"name":"Name","path":"scripts/Name/Name.yy",},},
+    {"id":{"name":"NavGrid","path":"scripts/NavGrid/NavGrid.yy",},},
     {"id":{"name":"NPC","path":"scripts/NPC/NPC.yy",},},
     {"id":{"name":"OverworldGen","path":"scripts/OverworldGen/OverworldGen.yy",},},
     {"id":{"name":"PathfindingSystem","path":"scripts/PathfindingSystem/PathfindingSystem.yy",},},

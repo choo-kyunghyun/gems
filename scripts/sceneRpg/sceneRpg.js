@@ -104,6 +104,13 @@ class _SceneRpgClass extends Scene {
     // build mode mutes fire too (LMB places tiles). See InputContext + RpgController tags.
     this._resolveContext();
 
+    // Rebuild the pathfinding nav window around the player BEFORE the tick loop — the per-tick
+    // PathfindingSystem (in the physics pipeline) plans slime paths over it. It's the same NavGrid
+    // MotionPlanner already points at; only occupancy/origin change, so this is cheap.
+    const np = this.world.get(Position, this.ctrl.id);
+    const nc = this.level.worldToGrid(np.x, np.y);
+    this.nav.rebuild(this.world, nc.x, nc.y);
+
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp

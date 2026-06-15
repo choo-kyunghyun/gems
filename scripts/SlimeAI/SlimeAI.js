@@ -23,14 +23,18 @@ globalThis.Brain = "Brain";
  */
 
 globalThis.SlimeAI = {
-  // StateSchema callbacks receive only `id`, so world/target live here (single
-  // player, so one shared target is enough — move onto Brain for multi-target).
+  // StateSchema callbacks receive only `id`, so world/target/level live here as shared statics
+  // (single player, so one shared target is enough — move onto Brain for multi-target). Refreshed
+  // on every attach, which is also what lets captured/restored slimes (chunk streaming) keep
+  // working without re-attaching — see the chunk-streaming note in ARCHITECTURE.
   _world: undefined,
   _target: -1,
+  _level: undefined, // for grid<->world conversion when pathfinding around walls
 
-  attach(world, id, target) {
+  attach(world, id, target, level) {
     this._world = world;
     this._target = target;
+    this._level = level;
     const pos = world.get(Position, id);
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
     world.add(id, Brain, {
@@ -42,6 +46,8 @@ globalThis.SlimeAI = {
       speed: 90,
       cdMax: 45,
       cd: 0,
+      pathCd: 0, // replan throttle (ticks) — counts down while a chase is wall-blocked
+      pathRate: 12,
     });
     world.add(id, State, { current: undefined, next: this.IDLE });
   },
@@ -73,6 +79,52 @@ globalThis.SlimeAI = {
     const vel = this._world.get(Velocity, id);
     vel.x = 0;
     vel.y = 0;
+  },
+
+  // Steer along an A* path to the player, replanning on a throttle. The request is resolved by
+  // PathfindingSystem later this tick (pipeline: StateSystem → PathfindingSystem) into a
+  // PathResponse the slime follows from next tick; until one exists it heads straight. Waypoints
+  // are absolute level cells (NavGrid.toPosition) → gridToWorld for the seek.
+  _followPath(id, brain, sp, tp) {
+    const w = this._world;
+    const level = this._level;
+    if (brain.pathCd > 0) brain.pathCd--;
+    if (brain.pathCd <= 0) {
+      const s = level.worldToGrid(sp.x, sp.y);
+      const g = level.worldToGrid(tp.x, tp.y);
+      w.add(id, PathRequest, {
+        startX: s.x,
+        startY: s.y,
+        goalX: g.x,
+        goalY: g.y,
+      });
+      brain.pathCd = brain.pathRate;
+    }
+    let wp = PathfindingSystem.current(w, id);
+    if (wp === undefined) {
+      this._seek(id, tp.x, tp.y, brain.speed); // no path yet — head straight for now
+      return;
+    }
+    // Skip a waypoint we've essentially reached (the path's first cell is our own), then steer.
+    let ww = level.gridToWorld(wp.x, wp.y);
+    const near = level.cellWidth * 0.4;
+    if ((sp.x - ww.x) ** 2 + (sp.y - ww.y) ** 2 < near * near) {
+      PathfindingSystem.advance(w, id);
+      wp = PathfindingSystem.current(w, id);
+      if (wp === undefined) {
+        this._seek(id, tp.x, tp.y, brain.speed);
+        return;
+      }
+      ww = level.gridToWorld(wp.x, wp.y);
+    }
+    this._seek(id, ww.x, ww.y, brain.speed);
+  },
+
+  // Drop any path components (when line-of-sight clears mid-chase, or on leaving chase).
+  _clearPath(id) {
+    const w = this._world;
+    if (w.get(PathResponse, id) !== undefined) w.detach(id, PathResponse);
+    if (w.get(PathRequest, id) !== undefined) w.detach(id, PathRequest);
   },
 
   // Slimes render as colored boxes — tint per state so behavior reads at a glance.
@@ -117,8 +169,24 @@ globalThis.SlimeAI = {
         StateSystem.change(w, id, SlimeAI.ATTACK);
         return;
       }
+      const sp = w.get(Position, id);
       const tp = w.get(Position, SlimeAI._target);
-      SlimeAI._seek(id, tp.x, tp.y, brain.speed);
+
+      // Line-of-sight: only a WALL (kinematic solid) between us forces a detour. A clear shot —
+      // the common case on the open overworld — is a straight seek (identical to the old behavior);
+      // dynamic bodies (the player / other slimes, hit at t≈1) don't count as blockers.
+      const hit = Raycast.cast(w, sp.x, sp.y, tp.x, tp.y, { ignore: id });
+      const blocked = hit !== null && w.get(Collision, hit.id).kinematic;
+      if (!blocked || SlimeAI._level === undefined) {
+        SlimeAI._clearPath(id);
+        brain.pathCd = 0; // replan immediately the next time a wall gets in the way
+        SlimeAI._seek(id, tp.x, tp.y, brain.speed);
+        return;
+      }
+      SlimeAI._followPath(id, brain, sp, tp);
+    },
+    finish(id) {
+      SlimeAI._clearPath(id); // leaving chase tidies any path components
     },
   },
 

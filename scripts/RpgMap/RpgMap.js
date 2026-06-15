@@ -146,13 +146,21 @@ globalThis.RpgMap = {
         chunkRows: data.meta.chunkRows ?? 16,
         authored: data, // hand-built hub overlaid onto its chunks; procedural elsewhere
       });
+      // Finite world: the overworld is a worldCols × worldRows rectangle (matches the resident
+      // grid buildChunked sized). Streaming clamps to it and a wall border rings it, so the world
+      // isn't infinite (and the player/slimes can't leave).
+      const wc = data.meta.worldCols ?? data.cols ?? 128;
+      const wr = data.meta.worldRows ?? data.rows ?? 128;
       scene.chunks = new ChunkManager(scene.world, scene.level, scene.source, {
         chunkCols: data.meta.chunkCols ?? 16,
         chunkRows: data.meta.chunkRows ?? 16,
         simRadius: 1,
         loadRadius: 2,
         playerId: scene.ctrl.id,
+        worldCols: wc,
+        worldRows: wr,
       });
+      RpgLevel.buildWorldBorder(scene.world, scene.level, wc, wr); // edge walls (always present)
       const sp = scene.world.get(Position, scene.ctrl.id);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not chunk-managed)
@@ -199,16 +207,30 @@ globalThis.RpgMap = {
     // next frame (its labels already read scene.world live, so this frame's draw is safe).
     if (scene.invOpen) scene._invDirty = true;
 
-    // 7. Pipeline: AI decides velocity → collide → detect triggers (pickups) → projectiles
-    //    → expire.
+    // 7. Pathfinding nav window: a windowed occupancy grid built from the live colliders (streamed
+    //    terrain + player builds + world border + interior walls), pointed at by MotionPlanner.
+    //    Slimes plan over it (PathfindingSystem in the pipeline below); sceneRpg.step rebuilds it
+    //    around the player each frame. size() is constant, so setGrid is called once here per map.
+    scene.nav = new NavGrid(
+      32,
+      32,
+      scene.level.cellWidth,
+      scene.level.cellHeight,
+    );
+    MotionPlanner.setGrid(scene.nav);
+
+    // 8. Pipeline: AI decides velocity → resolve paths → collide → triggers (pickups) →
+    //    projectiles → expire. PathfindingSystem resolves the PathRequests SlimeAI queues this
+    //    tick (over scene.nav) into PathResponses the slime follows next tick.
     scene.physics = new Pipeline()
       .add(StateSystem) // drives the slime Idle/Chase/Attack schemas
+      .add(PathfindingSystem) // slime PathRequest → PathResponse over scene.nav
       .add(SolidSystem)
       .add(TriggerSystem)
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // 8. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
+    // 9. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
     //    shading (walls red), tile id/name labels — then the buildable-zone overlay; both
     //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) +
     //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT 0.19 can't render
@@ -239,12 +261,17 @@ globalThis.RpgMap = {
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     scene.renderer.insert(bbox);
+    // Slime A* paths (yellow), off until toggled (Debug menu → paths). Makes the dormant
+    // RenderDebugPath pass + that toggle live now that slimes are a PathRequest consumer.
+    const paths = new RenderDebugPath(scene.level);
+    paths.enabled = false;
+    scene.renderer.insert(paths);
     // Day/night tint LAST — over tiles + entities (the scene draws bright cues after the
     // renderer). Its camera is assigned with the others in step 9 below.
     scene._dayNight = new RenderDayNight();
     scene.renderer.insert(scene._dayNight);
 
-    // 9. Follow camera on the (new) player.
+    // 10. Follow camera on the (new) player.
     scene.camera = cameraFollow2d({
       world: scene.world,
       followTarget: scene.ctrl.id,
@@ -259,7 +286,7 @@ globalThis.RpgMap = {
     scene._gridPass.camera = scene.camera;
     scene._dayNight.camera = scene.camera; // day/night tint covers the camera view rect
 
-    // 10. Corner minimap — rebuilt per map (captures world/target by value).
+    // 11. Corner minimap — rebuilt per map (captures world/target by value).
     RpgHud.buildMinimap(scene);
 
     FloatingText.clear(); // drop combat numbers from the previous map
@@ -276,6 +303,7 @@ globalThis.RpgMap = {
       scene.chunks = undefined;
     }
     scene.source = undefined;
+    scene.nav = undefined; // the next load() rebuilds it + re-points MotionPlanner
     if (scene.camera) scene.camera.destroy();
     if (scene.renderer) scene.renderer.destroy();
     if (scene.world) scene.world.destroy();

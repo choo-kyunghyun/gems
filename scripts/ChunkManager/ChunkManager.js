@@ -36,6 +36,18 @@ globalThis.ChunkManager = class ChunkManager {
     this.loadRadius = opts.loadRadius ?? 2;
     this.playerId = opts.playerId ?? -1;
 
+    // Optional finite world bounds (cells, anchored at cell 0). When set, chunks outside the
+    // [0,worldCols)x[0,worldRows) rectangle never load — the world stops being infinite. Absent ⇒
+    // unbounded (interiors / other maps unchanged). maxC* is the last in-bounds chunk index.
+    this.maxCx =
+      opts.worldCols !== undefined
+        ? Math.floor((opts.worldCols - 1) / this.chunkCols)
+        : Infinity;
+    this.maxCy =
+      opts.worldRows !== undefined
+        ? Math.floor((opts.worldRows - 1) / this.chunkRows)
+        : Infinity;
+
     this.cellW = level.cellWidth;
     this.cellH = level.cellHeight;
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
@@ -97,6 +109,8 @@ globalThis.ChunkManager = class ChunkManager {
         const ring = cheb <= this.simRadius ? "sim" : "load";
         const cx = pcx + dx;
         const cy = pcy + dy;
+        // Skip chunks outside the finite world (no-op when unbounded — maxC* = Infinity).
+        if (cx < 0 || cy < 0 || cx > this.maxCx || cy > this.maxCy) continue;
         const key = this._key(cx, cy);
         const rec = this._chunks[key];
         if (rec === undefined) this._load(key, cx, cy, ring);

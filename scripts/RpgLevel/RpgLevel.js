@@ -138,6 +138,43 @@ globalThis.RpgLevel = {
     };
   },
 
+  /**
+   * Wall border ringing a finite chunked world (worldCols × worldRows cells, anchored at cell 0)
+   * so the player + slimes can't leave the bounded overworld. The 4 colliders are ALWAYS present
+   * (not chunk-managed — like the party), kinematic-solid like any wall, so SolidSystem collides
+   * against them and NavGrid rasterizes them (pathfinding respects the edge for free). Same
+   * Position(top-left)+BBox(0,0,w,h)+kinematic-solid shape as ChunkManager._meshWalls. Returns the
+   * ids (freed by world.destroy() on a map swap). Top/bottom span the full width; left/right span
+   * one cell past each so the outer corners are covered (no diagonal slip-through).
+   */
+  buildWorldBorder(world, level, worldCols, worldRows) {
+    const cw = level.cellWidth;
+    const ch = level.cellHeight;
+    const W = worldCols * cw;
+    const H = worldRows * ch;
+    const rects = [
+      [0, -ch, W, ch], // top
+      [0, H, W, ch], // bottom
+      [-cw, -ch, cw, H + 2 * ch], // left (covers outer corners)
+      [W, -ch, cw, H + 2 * ch], // right (covers outer corners)
+    ];
+    const ids = [];
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      const id = world.create();
+      world.add(id, Position, { x: r[0], y: r[1], z: 0 });
+      world.add(id, BBox, { x: 0, y: 0, width: r[2], height: r[3] });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      ids.push(id);
+    }
+    return ids;
+  },
+
   // Resolve the player spawn point (world coords): named entry → entries.default → legacy
   // meta.playerSpawn. Shared by build() and buildChunked().
   _resolveSpawn(level, data, entryId) {
