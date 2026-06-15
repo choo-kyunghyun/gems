@@ -33,7 +33,11 @@
   "BUILD_CLAIMED": "건설 구역을 점유했습니다",
 
   "RPG_HUD": "Lv {0}   HP {1}/{2}",
-  "RPG_TIME": "{0}일차   {1}",
+  "RPG_TIME": "{0} · {1}일차   {2}",
+  "RPG_SEASON_SPRING": "봄",
+  "RPG_SEASON_SUMMER": "여름",
+  "RPG_SEASON_AUTUMN": "가을",
+  "RPG_SEASON_WINTER": "겨울",
   "RPG_INVENTORY": "가방",
   "RPG_EMPTY": "비어 있음",
   "RPG_ACCEPT": "수락",

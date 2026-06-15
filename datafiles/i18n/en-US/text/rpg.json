@@ -33,7 +33,11 @@
   "BUILD_CLAIMED": "Build area claimed",
 
   "RPG_HUD": "Lv {0}   HP {1}/{2}",
-  "RPG_TIME": "Day {0}   {1}",
+  "RPG_TIME": "{0} · Day {1}   {2}",
+  "RPG_SEASON_SPRING": "Spring",
+  "RPG_SEASON_SUMMER": "Summer",
+  "RPG_SEASON_AUTUMN": "Autumn",
+  "RPG_SEASON_WINTER": "Winter",
   "RPG_INVENTORY": "Bag",
   "RPG_EMPTY": "Empty",
   "RPG_ACCEPT": "Accept",

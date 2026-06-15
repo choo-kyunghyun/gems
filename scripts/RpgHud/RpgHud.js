@@ -33,11 +33,17 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(hpRow);
-    // World clock: "Day N  HH:MM", read live from the WorldClock each frame.
+    // World clock: "Season · Day N  HH:MM", read live from the WorldClock each frame.
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(
       gemsLabel(
-        () => I18n.text("RPG_TIME", WorldClock.day, WorldClock.clockText()),
+        () =>
+          I18n.text(
+            "RPG_TIME",
+            I18n.text(WorldClock.season().name),
+            WorldClock.seasonDay(),
+            WorldClock.clockText(),
+          ),
         { color: GemsTheme.textMuted },
       ),
     );

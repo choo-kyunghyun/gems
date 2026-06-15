@@ -10,6 +10,17 @@ globalThis.WorldClock = class WorldClock {
   static startHour = 8; // morning when a fresh scene starts
   static hour = 8; // current time of day in [0, 24)
   static day = 1; // day counter, 1-based
+  static daysPerSeason = 7; // in-game days per season; the four-season "year" is 4× this
+
+  // The four seasons in cycle order — a literal array (no class self-reference, dodging the
+  // static-field quirk) keyed by a stable id (future weather/temperature bias reads it) plus
+  // an i18n name key for the HUD. Season is a pure derivation of `day`, like phase() of hour.
+  static _SEASONS = [
+    { id: "spring", name: "RPG_SEASON_SPRING" },
+    { id: "summer", name: "RPG_SEASON_SUMMER" },
+    { id: "autumn", name: "RPG_SEASON_AUTUMN" },
+    { id: "winter", name: "RPG_SEASON_WINTER" },
+  ];
 
   // Day/night overlay keyframes, sorted by hour and wrapping seamlessly (h:0 and h:24
   // share a color/alpha). Each is { h: hour, c: "#rrggbb" tint, a: overlay alpha }.
@@ -57,6 +68,18 @@ globalThis.WorldClock = class WorldClock {
     if (h < 8) return "dawn";
     if (h < 17) return "day";
     return "dusk";
+  }
+
+  // The current season def, derived purely from `day`: each season spans daysPerSeason days
+  // and the four cycle forever. The seam for weather bias + the temperature baseline.
+  static season() {
+    const i = Math.floor((WorldClock.day - 1) / WorldClock.daysPerSeason) % 4;
+    return WorldClock._SEASONS[i];
+  }
+
+  // Day within the current season, 1-based — the calendar reading the HUD shows ("Day 3").
+  static seasonDay() {
+    return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
   }
 
   // Day/night overlay as { color, alpha } for the current hour, interpolated between
