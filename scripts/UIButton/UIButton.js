@@ -9,6 +9,14 @@ globalThis.UIButton = class UIButton {
     this.alphaDisabled = btn.alphaDisabled ?? 0.5;
     this.disabled = btn.disabled ?? false;
     this.getDisabled = btn.getDisabled ?? null; // optional live () => bool; overrides `disabled`
+    // Optional "selected/active" state — a live () => bool. While selected (and not
+    // hovered/pressed) the panel/border ease toward colorSelected/borderColorSelected
+    // instead of the normal colors, so a toggle button can show it's the active choice
+    // (the category-bar / build-palette use this). Both colorSelected and the predicate
+    // must be set for it to apply; hover/press still win on top.
+    this.getSelected = btn.getSelected ?? null;
+    this.colorSelected = btn.colorSelected;
+    this.borderColorSelected = btn.borderColorSelected;
     // Optional label UIText to grey out alongside the panel when disabled. The button
     // drives its color so a disabled button reads disabled (panel dim alone left the
     // text fully bright). Both colors must be set for it to apply.
@@ -104,11 +112,14 @@ globalThis.UIButton = class UIButton {
       // is seeded to its target on the first frame so there's no fade-in from black.
       panel.alpha = this.alpha;
 
+      const selected = this.getSelected !== null && this.getSelected();
       const targetColor = this.hold
         ? this.colorPress
         : this.enter
           ? this.colorHover
-          : this.colorNormal;
+          : selected && this.colorSelected !== undefined
+            ? this.colorSelected
+            : this.colorNormal;
       this._color =
         this._color === undefined
           ? targetColor
@@ -122,7 +133,9 @@ globalThis.UIButton = class UIButton {
         const targetBorder =
           this.enter || this.hold
             ? this.borderColorHover
-            : this.borderColorNormal;
+            : selected && this.borderColorSelected !== undefined
+              ? this.borderColorSelected
+              : this.borderColorNormal;
         this._border =
           this._border === undefined
             ? targetBorder

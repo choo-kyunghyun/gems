@@ -198,6 +198,13 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       // opts.disabled may be a bool or a live () => bool (e.g. gate on empty inventory).
       disabled: opts.disabled === true,
       getDisabled: typeof opts.disabled === "function" ? opts.disabled : null,
+      // opts.selected: a live () => bool marking this button the active choice (used by
+      // the category bar / build palette). Tints panel + border toward the accent.
+      getSelected: typeof opts.selected === "function" ? opts.selected : null,
+      colorSelected: gemsColor(opts.colorSelected ?? GemsTheme.accentPress),
+      borderColorSelected: gemsColor(
+        opts.borderColorSelected ?? GemsTheme.accentHi,
+      ),
       // Grey the label alongside the panel when disabled.
       label: labelEl.getComponent(UIText),
       textColorNormal: gemsColor(opts.textColor ?? GemsTheme.text),

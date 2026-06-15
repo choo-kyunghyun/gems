@@ -12,12 +12,13 @@
 // pan/zoom camera roams it. The "New WxH" control rebuilds the canvas blank at the chosen
 // size (with a border wall ring) so you can author bigger maps from scratch.
 //
-// Tools (a flat "categorized" palette, no tab show/hide): the Tiles section selects a
-// wall/floor/erase brush (LMB drag-paints, RMB erases both layers), the Spawn tool (LMB
-// sets the player spawn cell), the Select tool (LMB picks an entity to edit in the right
-// property panel), or the Zone tool (LMB click-drag paints a buildable-zone rectangle, RMB
-// erases it); the Entities section selects a RpgCatalog preset (LMB places one at the
-// cell and selects it, RMB deletes the one there).
+// Tools live in a bottom categorized palette bar (gemsCatBar, shared with the in-game build
+// mode): clicking a category pops a flyout of its items above the bar. Tiles selects a
+// wall/floor/erase brush (LMB drag-paints, RMB erases both layers); Tools selects Spawn (LMB
+// sets the player spawn cell), Select (LMB picks an entity to edit in the right property
+// panel), or Zone (LMB click-drag paints a buildable-zone rectangle, RMB erases it); Entities
+// selects a RpgCatalog preset (LMB places one at the cell and selects it, RMB deletes the one
+// there). File actions (New/Open/Test Play/Export/Back) stay in the top-left card.
 //
 // Export writes via File.write → buffer_save, which targets the SAVE dir
 // (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
@@ -198,10 +199,86 @@ class _SceneEditorClass extends Scene {
     }
   }
 
-  // Categorized palette card, anchored top-left. Its rect is the paint-guard hit test.
+  // Build the palette: a bottom categorized bar (placement tools + entities) and a top-left
+  // card of file actions. Both rects (plus the property panel) are the paint-guard hit tests.
   _buildPalette(openScene) {
     this.ui = gemsRoot();
     UI.insert(this.ui);
+
+    this._buildCatBar();
+    this._buildFileCard(openScene);
+  }
+
+  // Bottom categorized palette (gemsCatBar): Tiles (wall/floor/erase brushes) · Entities
+  // (catalog presets) · Tools (spawn/select/zone). Each item's onSelect sets this._tool
+  // (and _placePreset for entities); the active item highlights. catCol is the paint guard.
+  _buildCatBar() {
+    const tiles = [
+      {
+        label: I18n.textRef("EDITOR_WALL"),
+        onSelect: () => (this._tool = "wall"),
+      },
+      {
+        label: I18n.textRef("EDITOR_FLOOR"),
+        onSelect: () => (this._tool = "floor"),
+      },
+      {
+        label: I18n.textRef("EDITOR_ERASE"),
+        onSelect: () => (this._tool = "erase"),
+      },
+    ];
+    const ents = [];
+    for (let i = 0; i < RpgCatalog.entries.length; i++) {
+      const entry = RpgCatalog.entries[i];
+      ents.push({
+        label: entry.label,
+        onSelect: () => {
+          this._tool = "entity";
+          this._placePreset = entry.id;
+        },
+      });
+    }
+    const tools = [
+      {
+        label: I18n.textRef("EDITOR_SPAWN"),
+        onSelect: () => (this._tool = "spawn"),
+      },
+      {
+        label: I18n.textRef("EDITOR_SELECT"),
+        onSelect: () => (this._tool = "select"),
+      },
+      {
+        label: I18n.textRef("EDITOR_ZONE"),
+        onSelect: () => (this._tool = "zone"),
+      },
+    ];
+
+    const wrap = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 12,
+      alignItems: "center",
+    });
+    const col = new UIElement({ width: 820, alignItems: "center" });
+    const bar = gemsCatBar(
+      [
+        { label: I18n.textRef("EDITOR_TILES"), items: tiles },
+        { label: I18n.textRef("EDITOR_ENTITIES"), items: ents },
+        { label: I18n.textRef("EDITOR_TOOLS"), items: tools },
+      ],
+      { width: 820, itemWidth: 150 },
+    );
+    col.insertChild(bar);
+    wrap.insertChild(col);
+    this.ui.insertChild(wrap);
+    this._catbar = bar; // gemsCatBar root (root.catbar for programmatic open/select)
+    this._catbarBox = col; // paint-guard rect (grows with the open flyout)
+  }
+
+  // Top-left card: hint + current-tool status, the New/Open file pickers, and Test Play /
+  // Export / Back. Its rect is a paint-guard hit test.
+  _buildFileCard(openScene) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 12,
@@ -219,41 +296,6 @@ class _SceneEditorClass extends Scene {
     };
     labelRow(I18n.textRef("EDITOR_HINT"), { color: GemsTheme.textMuted });
     labelRow(() => this._toolStatus(), { color: GemsTheme.accent });
-
-    // Tiles section — wall/floor/erase brushes + the Spawn tool (all single-cell tools).
-    labelRow(
-      I18n.textRef("EDITOR_TILES"),
-      { color: GemsTheme.textMuted, font: I18n.font("header") },
-      26,
-    );
-    const tool = (key, name) =>
-      card.insertChild(
-        gemsButton(I18n.textRef(key), () => {
-          this._tool = name;
-        }),
-      );
-    tool("EDITOR_WALL", "wall");
-    tool("EDITOR_FLOOR", "floor");
-    tool("EDITOR_ERASE", "erase");
-    tool("EDITOR_SPAWN", "spawn");
-    tool("EDITOR_SELECT", "select");
-    tool("EDITOR_ZONE", "zone");
-
-    // Entities section — one button per catalog preset.
-    labelRow(
-      I18n.textRef("EDITOR_ENTITIES"),
-      { color: GemsTheme.textMuted, font: I18n.font("header") },
-      26,
-    );
-    for (let i = 0; i < RpgCatalog.entries.length; i++) {
-      const entry = RpgCatalog.entries[i];
-      card.insertChild(
-        gemsButton(entry.label, () => {
-          this._tool = "entity";
-          this._placePreset = entry.id;
-        }),
-      );
-    }
 
     // Level section — current size + create a fresh blank level at a chosen preset size.
     labelRow(
@@ -356,13 +398,15 @@ class _SceneEditorClass extends Scene {
       if (mouse_check_button_released(btn)) this._commitZone();
     }
 
-    // Paint guard: skip when the cursor is over either UI panel (GUI space) so clicking a
-    // widget doesn't also edit the canvas behind it.
+    // Paint guard: skip when the cursor is over any UI panel (GUI space) so clicking a widget
+    // doesn't also edit the canvas behind it — the file card, the property panel, or the
+    // bottom category bar (whose box grows to include an open flyout).
     const gmx = device_mouse_x_to_gui(0);
     const gmy = device_mouse_y_to_gui(0);
     if (
       this._overPanel(gmx, gmy, this._palette) ||
-      this._overPanel(gmx, gmy, this._propPanel)
+      this._overPanel(gmx, gmy, this._propPanel) ||
+      this._overPanel(gmx, gmy, this._catbarBox)
     )
       return;
 

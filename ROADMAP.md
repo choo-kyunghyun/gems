@@ -23,10 +23,8 @@
 
 ### Build Mode
 
-- Buildable storage
 - Lightsource
 
 ### Editor
 
 - Prefabs
-- Categorized menu

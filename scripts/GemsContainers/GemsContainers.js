@@ -408,6 +408,138 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
   return list;
 };
 
+// Category bar with a pop-up flyout — a "long bar" of category buttons; clicking a
+// category toggles a flyout of its items ABOVE the bar (one open at a time; click the
+// same category again to hide it). Selecting an item highlights it and fires onSelect;
+// the flyout stays open until the category is toggled off — the "click a category to
+// show/hide its content list" model. Shared by the RPG build-mode HUD and the level
+// editor palette.
+//
+// `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]; a
+// label is a string or () => string. opts:
+//   onSelect(catIdx, itemIdx, item)  global hook fired after the item's own onSelect
+//   selCat / selItem                 initial highlighted item (default 0 / 0)
+//   width, barHeight, itemWidth, itemHeight   geometry
+//   font                             category-button font (defaults to the header font)
+//
+// Returns the root column (flyout host on top, bar below). The CALLER anchors the root
+// (e.g. an absolute bottom-center wrapper); since the bar is the last child and the host
+// grows with the open list, a bottom anchor keeps the bar pinned and the list pops upward.
+// The flyout is driven by structural insert/remove (reliable reflow on GMRT — unlike the
+// per-frame flex style setters), and prebuilt once per category (toggled, not rebuilt).
+// `root.catbar` exposes { state, open(c), close(), select(c, k) }.
+globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
+  const itemW = opts.itemWidth ?? 130;
+  const itemH = opts.itemHeight ?? 40;
+  const state = {
+    open: -1,
+    selCat: opts.selCat ?? 0,
+    selItem: opts.selItem ?? 0,
+  };
+
+  const root = new UIElement({
+    width: opts.width ?? 720,
+    gap: GemsTheme.gapSm,
+  });
+
+  // Flyout host (above the bar): empty until a category opens; the active category's
+  // prebuilt card is inserted here and removed on close.
+  const host = new UIElement({ width: "100%" });
+
+  // Prebuild one flyout card per category — a wrapping row of fixed-size item buttons.
+  const flyouts = [];
+  for (let c = 0; c < categories.length; c++) {
+    const items = categories[c].items;
+    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+    const grid = new UIElement({
+      width: "100%",
+      gap: GemsTheme.gapSm,
+      flexDirection: "row",
+      flexWrap: "wrap",
+    });
+    for (let k = 0; k < items.length; k++) {
+      const it = items[k];
+      const ci = c;
+      const ki = k;
+      const cell = new UIElement({
+        width: itemW,
+        height: itemH,
+        flexShrink: 0,
+      });
+      cell.insertChild(
+        gemsButton(
+          it.label,
+          () => {
+            state.selCat = ci;
+            state.selItem = ki;
+            if (it.onSelect !== undefined) it.onSelect();
+            if (opts.onSelect !== undefined) opts.onSelect(ci, ki, it);
+          },
+          {
+            height: itemH,
+            disabled: it.disabled,
+            tooltip: it.tooltip,
+            selected: () => state.selCat === ci && state.selItem === ki,
+          },
+        ),
+      );
+      grid.insertChild(cell);
+    }
+    card.insertChild(grid);
+    flyouts.push(card);
+  }
+
+  // Toggle a category's flyout: close if it's the open one, else swap in its card.
+  const toggle = (c) => {
+    if (state.open === c) {
+      host.removeChild(flyouts[c]);
+      state.open = -1;
+    } else {
+      if (state.open !== -1) host.removeChild(flyouts[state.open]);
+      host.insertChild(flyouts[c]);
+      state.open = c;
+    }
+  };
+
+  // Category bar — equal-width buttons (flexGrow split) that toggle their flyout.
+  const bar = new UIElement({
+    width: "100%",
+    height: opts.barHeight ?? GemsTheme.rowH,
+    flexDirection: "row",
+    gap: GemsTheme.gapSm,
+    flexShrink: 0,
+  });
+  for (let c = 0; c < categories.length; c++) {
+    const ci = c;
+    const cell = new UIElement({ flexGrow: 1, flexBasis: 0, height: "100%" });
+    cell.insertChild(
+      gemsButton(categories[c].label, () => toggle(ci), {
+        font: opts.font ?? I18n.font("header"),
+        selected: () => state.open === ci,
+      }),
+    );
+    bar.insertChild(cell);
+  }
+
+  root.insertChild(host);
+  root.insertChild(bar);
+  root.catbar = {
+    state,
+    open: toggle,
+    close: () => {
+      if (state.open !== -1) {
+        host.removeChild(flyouts[state.open]);
+        state.open = -1;
+      }
+    },
+    select: (c, k) => {
+      state.selCat = c;
+      state.selItem = k;
+    },
+  };
+  return root;
+};
+
 // Header / title bar.
 globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   const bar = new UIElement({

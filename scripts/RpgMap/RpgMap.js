@@ -1,7 +1,7 @@
 // Map-graph engine for the RPG scene — the world-loading, teardown, persistence-cache, and
 // portal-travel half of sceneRpg, extracted as free functions taking the scene (composition;
 // GMRT has no usable class inheritance — same pattern as RpgScene). The scene owns the fields
-// these read/write (world, level, ctrl, followers, renderer, camera, _mapCache, _built, _gone,
+// these read/write (world, level, ctrl, followers, renderer, camera, _mapCache, _built/_builtEnts, _gone,
 // physics, _tilePass/_gridPass, etc.); RpgMap just orchestrates building/tearing them down.
 //
 // Maps are discrete level files connected by portals (not one streamed world — the deliberate
@@ -42,14 +42,29 @@ globalThis.RpgMap = {
         if (f.state === "follow") travelers.push(snap);
         else stationed.push(snap);
       }
+      // Built ENTITIES (placed furniture/stations) are scene-tracked, not chunk-managed, so
+      // they live in the World until teardown — capture each as a snapshot keyed by its cell +
+      // catalog item id, so the map cache restores it (with its contents, e.g. a stocked chest)
+      // on revisit. Built TILES ride along in Level.export below.
+      const builtEnts = [];
+      for (const key in scene._builtEnts) {
+        const e = scene._builtEnts[key];
+        if (e === undefined || !scene.world.isValid(e.ent)) continue;
+        builtEnts.push({
+          key,
+          itemId: e.itemId,
+          snap: EntitySnapshot.capture(scene.world, e.ent),
+        });
+      }
       // Cache the OUTGOING map's player edits if it's persistent (the default) so they're
       // restored on revisit instead of rebuilt fresh — the claimed buildable zone + built tiles
-      // (Level.export captures both as a detached snapshot that survives the destroy below) and
-      // the stationed companions. Captured before teardown (which destroys the level).
+      // (Level.export captures both as a detached snapshot that survives the destroy below),
+      // the built entities, and the stationed companions. Captured before teardown.
       if (scene._mapPersistent && scene.mapId !== undefined) {
         scene._mapCache[scene.mapId] = {
           level: scene.level.export(),
           built: { ...scene._built },
+          builtEnts,
           entities: stationed,
           gone: scene._gone, // uids removed this map → not re-spawned (file-scope reconcile)
         };
@@ -152,6 +167,17 @@ globalThis.RpgMap = {
       scene._built = { ...saved.built };
     } else {
       scene._built = {}; // player-built deconstructable cells, fresh on first visit
+    }
+    // Restore built entities (furniture/stations) from the cache as fresh world entities,
+    // re-keyed by cell for deconstruct. Reset first — _builtEnts persists on the scene across
+    // map swaps (BuildMode.build runs once), so the previous map's entries must be cleared.
+    scene._builtEnts = {};
+    if (saved !== undefined && saved.builtEnts !== undefined) {
+      for (let i = 0; i < saved.builtEnts.length; i++) {
+        const b = saved.builtEnts[i];
+        const id = EntitySnapshot.restore(scene.world, b.snap);
+        scene._builtEnts[b.key] = { ent: id, itemId: b.itemId };
+      }
     }
     // File-scope reconcile ledger for THIS map: uids of unique entities removed during play.
     // Loaded from the cache (persists across revisits), passed to RpgSpawn.spawn below to skip
