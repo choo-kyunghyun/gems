@@ -48,8 +48,8 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(timeRow);
-    // Ambient temperature, derived live from season + time of day. Slice #3 prepends the
-    // weather condition to this row.
+    // Ambient temperature in Kelvin, derived live from season + time of day. Slice #3 prepends
+    // the weather condition to this row.
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
       gemsLabel(() => I18n.text("RPG_TEMP", Math.round(Temperature.now())), {
