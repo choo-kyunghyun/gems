@@ -48,8 +48,18 @@ globalThis.Debug = class Debug {
         entries.push(e);
         return p;
       },
-      checkbox: (label, obj, key) => {
-        entries.push(Debug._mk("checkbox", label, obj, key));
+      checkbox: (label, a, b) => {
+        // (label, obj, key) for a field binding, or (label, getFn, setFn) for a
+        // computed toggle (e.g. a render pass found live in the current scene).
+        const e = { kind: "checkbox", label };
+        if (typeof b === "function") {
+          e.get = a;
+          e.set = b;
+        } else {
+          e.obj = a;
+          e.key = b;
+        }
+        entries.push(e);
         return p;
       },
       input: (label, obj, key, type) => {
@@ -134,6 +144,10 @@ globalThis.Debug = class Debug {
   }
 
   static write(entry, value) {
+    if (entry.set !== undefined) {
+      entry.set(value);
+      return true;
+    }
     if (entry.obj !== undefined && entry.obj !== null) {
       entry.obj[entry.key] = value;
       return true;

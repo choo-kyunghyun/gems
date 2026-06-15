@@ -82,3 +82,8 @@ Debug.panel("Perf", (p) => {
     return w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
   });
 });
+Debug.panel("Log", (p) => {
+  p.watch("Lines", () => Log._lines.length);
+  p.button("Clear", () => Log.clear());
+});
+DebugRender.register(this); // "Render" panel: per-pass overlay toggles (was the SystemMenu Debug tab)

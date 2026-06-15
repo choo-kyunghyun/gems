@@ -198,10 +198,6 @@ globalThis.SystemMenu = class SystemMenu {
           label: I18n.textRef("SYS_TAB_ABOUT"),
           content: SystemMenu._aboutTab(tabsH),
         },
-        {
-          label: I18n.textRef("SYS_TAB_DEBUG"),
-          content: SystemMenu._debugTab(tabsH),
-        },
       ],
       { height: tabsH },
     );
@@ -479,101 +475,6 @@ globalThis.SystemMenu = class SystemMenu {
     return scroll;
   }
 
-  // Debug — render toggles + live perf readouts + a snapshot of the recent Log buffer.
-  static _debugTab(tabsH) {
-    const scroll = gemsScroll({ height: tabsH });
-
-    // Render overlays: one checkbox per debug pass class, each bound to the live scene's
-    // pass of that class (found by instanceof — GMRT-safe on a flat class). A scene that
-    // doesn't insert a given pass reads off + no-ops on click, so each scene effectively
-    // shows only the overlays it has. Toggling pass.enabled is the hook the renderer
-    // already honors. Note: Boxes / Tiles double as the RPG's primary entity / wall
-    // visuals (no SVG sprites on GMRT), so switching them off hides those — intentional.
-    const render = gemsSection(I18n.textRef("SYS_RENDER"));
-    render.insertChild(
-      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_BOXES"), RenderDebugBox),
-    );
-    render.insertChild(
-      SystemMenu._renderToggle(
-        I18n.textRef("SYS_DEBUG_NAMES"),
-        RenderDebugName,
-      ),
-    );
-    render.insertChild(
-      SystemMenu._renderToggle(
-        I18n.textRef("SYS_DEBUG_BBOX"),
-        RenderDebugEntity,
-      ),
-    );
-    render.insertChild(
-      SystemMenu._renderToggle(
-        I18n.textRef("SYS_DEBUG_TILES"),
-        RenderDebugTileMap,
-      ),
-    );
-    render.insertChild(
-      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_GRID"), RenderGrid),
-    );
-    render.insertChild(
-      SystemMenu._renderToggle(I18n.textRef("SYS_DEBUG_PATH"), RenderDebugPath),
-    );
-    scroll.scrollBody.insertChild(render);
-
-    const perf = gemsSection(I18n.textRef("SYS_PERF"));
-    perf.insertChild(
-      SystemMenu._stat(I18n.textRef("SYS_FPS"), () =>
-        string_format(fps_real, 0, 1),
-      ),
-    );
-    perf.insertChild(
-      SystemMenu._stat(I18n.textRef("SYS_FRAME_MS"), () =>
-        string_format(delta_time / 1000, 0, 2),
-      ),
-    );
-    scroll.scrollBody.insertChild(perf);
-
-    const logSection = gemsSection(I18n.textRef("SYS_LOG"));
-    const recent = Log._lines.slice(-40); // snapshot (the sim is paused, so it's stable)
-    if (recent.length === 0) {
-      const row = new UIElement({ width: "100%", height: 18, flexShrink: 0 });
-      row.insertChild(
-        gemsLabel(I18n.textRef("SYS_LOG_EMPTY"), {
-          color: GemsTheme.textDim,
-          font: I18n.font("description"),
-        }),
-      );
-      logSection.insertChild(row);
-    } else {
-      for (let i = 0; i < recent.length; i++) {
-        const row = new UIElement({ width: "100%", height: 16, flexShrink: 0 });
-        row.insertChild(
-          gemsLabel(recent[i], {
-            color: GemsTheme.textMuted,
-            font: I18n.font("description"),
-          }),
-        );
-        logSection.insertChild(row);
-      }
-    }
-    scroll.scrollBody.insertChild(logSection);
-
-    const clearRow = new UIElement({
-      width: "100%",
-      height: 44,
-      flexShrink: 0,
-      flexDirection: "row",
-      justifyContent: "flex-end",
-    });
-    clearRow.insertChild(
-      gemsButton(I18n.textRef("SYS_LOG_CLEAR"), () => Log.clear(), {
-        width: 160,
-      }),
-    );
-    scroll.scrollBody.insertChild(clearRow);
-
-    return scroll;
-  }
-
   // ── helpers ───────────────────────────────────────────────────
 
   // The current scene's World, or null. Defensive: not every scene owns one.
@@ -581,35 +482,6 @@ globalThis.SystemMenu = class SystemMenu {
     const g = SystemMenu._game;
     const scene = g !== null ? g.scenes.current : null;
     return scene !== null && scene.world != null ? scene.world : null;
-  }
-
-  // A render-overlay toggle checkbox bound to the live scene's pass of class `cls`
-  // (no-op when the scene has no such pass). Shared by every Debug-tab render toggle.
-  static _renderToggle(label, cls) {
-    return gemsCheckbox(
-      label,
-      () => {
-        const p = SystemMenu._passOf(cls);
-        return p !== null && p.enabled;
-      },
-      () => {
-        const p = SystemMenu._passOf(cls);
-        if (p !== null) p.enabled = !p.enabled;
-      },
-    );
-  }
-
-  // The live scene's first renderer pass that is an instance of `cls`, or null. Scans the
-  // pass list (instanceof on a flat class is GMRT-safe) so no scene needs to expose it.
-  static _passOf(cls) {
-    const g = SystemMenu._game;
-    const scene = g !== null ? g.scenes.current : null;
-    if (scene === null || scene.renderer == null) return null;
-    const passes = scene.renderer.passes;
-    for (let i = 0; i < passes.length; i++) {
-      if (passes[i] instanceof cls) return passes[i];
-    }
-    return null;
   }
 
   // A fixed-height "label … value" readout row (value is a live () => string).
