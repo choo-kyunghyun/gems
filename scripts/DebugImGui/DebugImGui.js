@@ -31,17 +31,20 @@ globalThis.DebugImGui = class DebugImGui {
   static _mirrors = []; // [{ entry, mirror, last }]
 
   // Overlay rendering. scale = -1 auto-derives a DPI-aware factor from the GUI
-  // height (the GUI is display_set_gui_maximise()'d to native res, so a default
-  // scale 1 is tiny on a high-res screen); set a positive number to override.
-  static scale = -1;
+  // height; default 1 (the GameMaker default) since a larger scale magnifies the
+  // label text and, in a fixed-width window, starves the control column (the
+  // dbg_* widgets use a fixed two-column label|control grid with no API to set
+  // the split — the only lever for control width is the window width below).
+  static scale = 1;
   static alpha = 0.95;
 
-  // Window layout (base px, before the overlay scale magnifies them). Explicit
-  // position + width keep the views off the right edge and wide enough that a
-  // slider is actually draggable, instead of ImGui auto-sizing to the labels.
+  // Window layout (px). Explicit position keeps views off the right edge; the
+  // width must be comfortably WIDER than ImGui's 500 default so that, after the
+  // label column takes its share of the two-column grid, the control half is
+  // still wide enough to drag a slider.
   static marginX = 24;
   static marginY = 24;
-  static viewW = 440;
+  static viewW = 620;
   static gap = 16;
   static headerH = 44; // title bar + padding
   static rowH = 30; // per-entry row
