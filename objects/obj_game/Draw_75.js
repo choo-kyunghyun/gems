@@ -4,6 +4,7 @@ SlotDrag.draw();
 Tooltip.draw();
 Toast.draw();
 Dialogue.draw(); // RPG dialogue box, over the UI
+DebugInspector.draw(this); // selected-entity highlight (debug overlay open)
 SceneTransition.draw(); // last: the fade cover veils the UI + scene during a swap
 
 if (keyboard_check_pressed(vk_f5)) {

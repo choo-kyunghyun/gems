@@ -28,6 +28,7 @@ globalThis.Debug = class Debug {
   static dumpFile = "debug.txt"; // bare name -> save dir, next to game.log
   static dumpInterval = 30; // frames between automatic text dumps
   static _frame = 0;
+  static _version = 0; // bumped on any registry change; a front-end rebuilds when it shifts
 
   // Register (or replace) a named panel. `builder(p)` populates it with live-
   // bound entries via p.watch / p.slider / p.checkbox / p.dropdown / p.button /
@@ -51,6 +52,12 @@ globalThis.Debug = class Debug {
         entries.push(Debug._mk("checkbox", label, obj, key));
         return p;
       },
+      input: (label, obj, key, type) => {
+        const e = Debug._mk("input", label, obj, key);
+        e.inputType = type === undefined ? "f" : type; // "f" real, "i" int, "s" string
+        entries.push(e);
+        return p;
+      },
       dropdown: (label, obj, key, options) => {
         const e = Debug._mk("dropdown", label, obj, key);
         e.options = options; // [{ value, name }]
@@ -71,6 +78,7 @@ globalThis.Debug = class Debug {
     builder(p);
 
     const panel = { name, entries };
+    Debug._version++;
     for (let i = 0; i < Debug.panels.length; i++) {
       if (Debug.panels[i].name === name) {
         Debug.panels[i] = panel;
@@ -85,6 +93,7 @@ globalThis.Debug = class Debug {
     for (let i = 0; i < Debug.panels.length; i++) {
       if (Debug.panels[i].name === name) {
         Debug.panels.splice(i, 1);
+        Debug._version++;
         return;
       }
     }
@@ -92,6 +101,14 @@ globalThis.Debug = class Debug {
 
   static clear() {
     Debug.panels = [];
+    Debug._version++;
+  }
+
+  // A monotonically increasing token that shifts whenever the panel set changes,
+  // so a front-end (DebugImGui) knows to rebuild. A METHOD, not a static getter
+  // (computed static getters miscompile on GMRT — see CLAUDE.md).
+  static version() {
+    return Debug._version;
   }
 
   // A descriptor is (obj, key) when a key is given, or a getter fn otherwise.

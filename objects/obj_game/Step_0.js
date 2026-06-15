@@ -9,4 +9,5 @@ this.scenes.update(); // flush a queued scene swap through a fade + advance the 
 this.scenes.step(); // sim tick, pause-gated while the SystemMenu overlay is open
 Debug.update(); // refresh the agent-facing debug.txt snapshot (periodic)
 DebugImGui.update(); // F3: human-facing native ImGui overlay over the same registry
+DebugInspector.update(this); // click-to-pick entity inspector (overlay open)
 Log.flush();

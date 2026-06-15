@@ -26,7 +26,7 @@
  */
 globalThis.DebugImGui = class DebugImGui {
   static _open = false;
-  static _built = false;
+  static _builtVersion = -1; // Debug.version() the views were last built at
   static _views = []; // dbg_view handles, for teardown on rebuild
   static _mirrors = []; // [{ entry, mirror, last }]
 
@@ -50,18 +50,18 @@ globalThis.DebugImGui = class DebugImGui {
   static sectionH = 34; // per-panel collapsing section header
   static rowH = 30; // per-entry row
 
-  // Step_0: handle the F3 toggle and, while open, keep the mirrors in sync.
+  // Step_0: handle the F3 toggle and, while open, rebuild on a registry change
+  // (e.g. the inspector (re)registering the Entity panel) then sync the mirrors.
   static update() {
     if (!Debug.enabled) return;
     if (keyboard_check_pressed(vk_f3)) DebugImGui.toggle();
     if (!DebugImGui._open) return;
-    if (!DebugImGui._built) DebugImGui.build();
+    if (DebugImGui._builtVersion !== Debug.version()) DebugImGui.build();
     DebugImGui.refresh();
   }
 
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
-    if (DebugImGui._open && !DebugImGui._built) DebugImGui.build();
     // minimised = true: open the built-in FPS window collapsed to a thin header.
     // Left expanded it covers the top-left (where our custom views sit) with its
     // graphs, occluding the label side of every row. The Perf panel already
@@ -116,7 +116,7 @@ globalThis.DebugImGui = class DebugImGui {
       dbg_section(p.name, true);
       for (let j = 0; j < p.entries.length; j++) DebugImGui._emit(p.entries[j]);
     }
-    DebugImGui._built = true;
+    DebugImGui._builtVersion = Debug.version();
   }
 
   static _emit(entry) {
@@ -144,6 +144,8 @@ globalThis.DebugImGui = class DebugImGui {
     else if (entry.kind === "checkbox") dbg_checkbox(ref, entry.label);
     else if (entry.kind === "dropdown")
       dbg_drop_down(ref, DebugImGui._spec(entry), entry.label);
+    else if (entry.kind === "input")
+      dbg_text_input(ref, entry.label, entry.inputType);
     else if (entry.kind === "text") dbg_text(ref);
     else dbg_watch(ref, entry.label); // watch + any fallback
   }
@@ -166,7 +168,10 @@ globalThis.DebugImGui = class DebugImGui {
       const e = m.entry;
       const live = Debug.read(e);
       const editable =
-        e.kind === "slider" || e.kind === "checkbox" || e.kind === "dropdown";
+        e.kind === "slider" ||
+        e.kind === "checkbox" ||
+        e.kind === "dropdown" ||
+        e.kind === "input";
       if (editable && m.mirror.v !== m.last) {
         // The overlay moved the value since the last sync -> push it through.
         Debug.write(e, m.mirror.v);
