@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Weather",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Weather",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Weather.js",
+}

@@ -26,12 +26,15 @@ globalThis.Temperature = class Temperature {
     { h: 24, d: -4 }, // wraps to midnight
   ];
 
-  // Current temperature in KELVIN: season baseline + diurnal swing, offset from Celsius. The
-  // weather/region modifiers land here later (Weather.tempMod() + the active climate Zone's
-  // data.tempMod) — both scale-agnostic deltas, added before the offset is already applied.
+  // Current temperature in KELVIN: ZERO_C offset + season baseline + diurnal swing + the live
+  // weather modifier (a scale-agnostic Kelvin delta). The region modifier (the active climate
+  // Zone's data.tempMod) folds in here too once slice #4 lands.
   static now() {
     return (
-      Temperature.ZERO_C + Temperature.seasonBase() + Temperature.diurnal()
+      Temperature.ZERO_C +
+      Temperature.seasonBase() +
+      Temperature.diurnal() +
+      Weather.tempMod()
     );
   }
 

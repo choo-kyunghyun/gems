@@ -266,7 +266,10 @@ globalThis.RpgMap = {
     const paths = new RenderDebugPath(scene.level);
     paths.enabled = false;
     scene.renderer.insert(paths);
-    // Day/night tint LAST — over tiles + entities (the scene draws bright cues after the
+    // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain too.
+    scene._weather = new RenderWeather();
+    scene.renderer.insert(scene._weather);
+    // Day/night tint LAST — over tiles + entities + weather (the scene draws bright cues after the
     // renderer). Its camera is assigned with the others in step 9 below.
     scene._dayNight = new RenderDayNight();
     scene.renderer.insert(scene._dayNight);
@@ -284,6 +287,7 @@ globalThis.RpgMap = {
     // map's large home grid; harmless for a small interior).
     scene._tilePass.camera = scene.camera;
     scene._gridPass.camera = scene.camera;
+    scene._weather.camera = scene.camera; // weather tint + particles cover the camera view rect
     scene._dayNight.camera = scene.camera; // day/night tint covers the camera view rect
 
     // 11. Corner minimap — rebuilt per map (captures world/target by value).

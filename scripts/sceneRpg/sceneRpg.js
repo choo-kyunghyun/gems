@@ -65,6 +65,7 @@ class _SceneRpgClass extends Scene {
       bootMap = "_playtest";
     }
     WorldClock.reset(); // start at morning, day 1 (once — survives map changes below)
+    Weather.reset(); // settled clear sky (once — survives map changes, like the clock)
     RpgMap.load(this, bootMap, "default");
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
@@ -159,6 +160,7 @@ class _SceneRpgClass extends Scene {
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
+    Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     this.camera.update();
 
     // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
