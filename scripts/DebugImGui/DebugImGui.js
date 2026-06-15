@@ -42,11 +42,12 @@ globalThis.DebugImGui = class DebugImGui {
   // width must be comfortably WIDER than ImGui's 500 default so that, after the
   // label column takes its share of the two-column grid, the control half is
   // still wide enough to drag a slider.
+  static title = "Debug"; // the single dbg_view window title
   static marginX = 24;
   static marginY = 72; // clear the menu bar + the minimised built-in FPS header
   static viewW = 620;
-  static gap = 16;
-  static headerH = 44; // title bar + padding
+  static headerH = 44; // view title bar + padding
+  static sectionH = 34; // per-panel collapsing section header
   static rowH = 30; // per-entry row
 
   // Step_0: handle the F3 toggle and, while open, keep the mirrors in sync.
@@ -78,9 +79,11 @@ globalThis.DebugImGui = class DebugImGui {
     return clamp(display_get_gui_height() / 900, 1.4, 3);
   }
 
-  // (Re)create one dbg_view per panel and a mirror + widget per entry. Call again
-  // to rebuild after the registry changes (e.g. a panel re-registers). Views are
-  // stacked in a left-hand column, each sized to its content.
+  // (Re)create the single debug view and, per panel, an explicit dbg_section
+  // (named after the panel) plus a mirror + widget per entry. Call again to
+  // rebuild after the registry changes (e.g. a panel re-registers). The explicit
+  // section matters: without it GameMaker auto-creates a "Default" section and
+  // the first control bleeds onto its header row.
   static build() {
     for (let i = 0; i < DebugImGui._views.length; i++) {
       const v = DebugImGui._views[i];
@@ -89,19 +92,30 @@ globalThis.DebugImGui = class DebugImGui {
     DebugImGui._views = [];
     DebugImGui._mirrors = [];
 
-    let y = DebugImGui.marginY;
     const panels = Debug.panels;
+    let lines = 0; // a slider is two lines (name above the full-width track)
+    for (let i = 0; i < panels.length; i++)
+      for (let j = 0; j < panels[i].entries.length; j++)
+        lines += panels[i].entries[j].kind === "slider" ? 2 : 1;
+    const h =
+      DebugImGui.headerH +
+      panels.length * DebugImGui.sectionH +
+      lines * DebugImGui.rowH;
+
+    DebugImGui._views.push(
+      dbg_view(
+        DebugImGui.title,
+        true,
+        DebugImGui.marginX,
+        DebugImGui.marginY,
+        DebugImGui.viewW,
+        h,
+      ),
+    );
+
     for (let i = 0; i < panels.length; i++) {
       const p = panels[i];
-      // A slider takes two lines (its name sits above the full-width track).
-      let lines = 0;
-      for (let j = 0; j < p.entries.length; j++)
-        lines += p.entries[j].kind === "slider" ? 2 : 1;
-      const h = DebugImGui.headerH + lines * DebugImGui.rowH;
-      DebugImGui._views.push(
-        dbg_view(p.name, true, DebugImGui.marginX, y, DebugImGui.viewW, h),
-      );
-      y += h + DebugImGui.gap;
+      dbg_section(p.name, true);
       for (let j = 0; j < p.entries.length; j++) DebugImGui._emit(p.entries[j]);
     }
     DebugImGui._built = true;
