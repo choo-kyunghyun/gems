@@ -93,10 +93,8 @@ globalThis.DebugImGui = class DebugImGui {
     DebugImGui._mirrors = [];
 
     const panels = Debug.panels;
-    let lines = 0; // a slider is two lines (name above the full-width track)
-    for (let i = 0; i < panels.length; i++)
-      for (let j = 0; j < panels[i].entries.length; j++)
-        lines += panels[i].entries[j].kind === "slider" ? 2 : 1;
+    let lines = 0; // one row per entry (labelled two-column widgets)
+    for (let i = 0; i < panels.length; i++) lines += panels[i].entries.length;
     const h =
       DebugImGui.headerH +
       panels.length * DebugImGui.sectionH +
@@ -126,36 +124,28 @@ globalThis.DebugImGui = class DebugImGui {
       dbg_button(entry.label, entry.fn);
       return;
     }
-
-    // Editable widgets need their two-column control.
-    if (
-      entry.kind === "slider" ||
-      entry.kind === "checkbox" ||
-      entry.kind === "dropdown"
-    ) {
-      const v0 = Debug.read(entry);
-      const mirror = { v: v0 };
-      const ref = ref_create(mirror, "v");
-      DebugImGui._mirrors.push({ entry, mirror, last: v0, str: false });
-      if (entry.kind === "slider") {
-        // An empty label lets the slider take the full content width; a labelled
-        // slider is crushed into the narrow right-hand control column. Put the
-        // name on its own line above it instead.
-        dbg_text(entry.label);
-        dbg_slider(ref, entry.min, entry.max, "", entry.step);
-      } else if (entry.kind === "checkbox") dbg_checkbox(ref, entry.label);
-      else dbg_drop_down(ref, DebugImGui._spec(entry), entry.label);
+    // A static text label (no getter) needs no live ref.
+    if (entry.kind === "text" && entry.get === undefined) {
+      dbg_text(entry.label);
       return;
     }
 
-    // Everything else (watch / text) -> full-width single-column dbg_text. The
-    // two-column label|control widgets starve the value column to a sliver on the
-    // right (truncating values, e.g. "Lobby" -> "Lobb") with no API to set the
-    // split, so read-only rows render as one formatted line (text-port format).
-    const str0 = Debug._line(entry);
-    const mirror = { v: str0 };
-    DebugImGui._mirrors.push({ entry, mirror, last: str0, str: true });
-    dbg_text(ref_create(mirror, "v"));
+    // Live value -> plain mirror -> ref (the mirror is never replaced, so the
+    // ref stays valid; refresh() mutates mirror.v in place). The labelled dbg_*
+    // widgets render as proper two-column label|control rows now that each panel
+    // has its own dbg_section.
+    const v0 = Debug.read(entry);
+    const mirror = { v: v0 };
+    const ref = ref_create(mirror, "v");
+    DebugImGui._mirrors.push({ entry, mirror, last: v0 });
+
+    if (entry.kind === "slider")
+      dbg_slider(ref, entry.min, entry.max, entry.label, entry.step);
+    else if (entry.kind === "checkbox") dbg_checkbox(ref, entry.label);
+    else if (entry.kind === "dropdown")
+      dbg_drop_down(ref, DebugImGui._spec(entry), entry.label);
+    else if (entry.kind === "text") dbg_text(ref);
+    else dbg_watch(ref, entry.label); // watch + any fallback
   }
 
   // dbg_drop_down specifier: "Name:value,Name2:value2" from options [{value,name}].
@@ -173,14 +163,11 @@ globalThis.DebugImGui = class DebugImGui {
     const ms = DebugImGui._mirrors;
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
-      if (m.str) {
-        // Read-only text row: re-render the formatted line each frame.
-        m.mirror.v = Debug._line(m.entry);
-        continue;
-      }
       const e = m.entry;
       const live = Debug.read(e);
-      if (m.mirror.v !== m.last) {
+      const editable =
+        e.kind === "slider" || e.kind === "checkbox" || e.kind === "dropdown";
+      if (editable && m.mirror.v !== m.last) {
         // The overlay moved the value since the last sync -> push it through.
         Debug.write(e, m.mirror.v);
         m.last = m.mirror.v;
