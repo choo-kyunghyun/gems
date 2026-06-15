@@ -43,7 +43,7 @@ globalThis.DebugImGui = class DebugImGui {
   // label column takes its share of the two-column grid, the control half is
   // still wide enough to drag a slider.
   static marginX = 24;
-  static marginY = 24;
+  static marginY = 72; // clear the menu bar + the minimised built-in FPS header
   static viewW = 620;
   static gap = 16;
   static headerH = 44; // title bar + padding
@@ -61,9 +61,13 @@ globalThis.DebugImGui = class DebugImGui {
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
     if (DebugImGui._open && !DebugImGui._built) DebugImGui.build();
+    // minimised = true: open the built-in FPS window collapsed to a thin header.
+    // Left expanded it covers the top-left (where our custom views sit) with its
+    // graphs, occluding the label side of every row. The Perf panel already
+    // surfaces fps, so the graph isn't needed; the user can expand it if wanted.
     show_debug_overlay(
       DebugImGui._open,
-      false,
+      true,
       DebugImGui._scale(),
       DebugImGui.alpha,
     );
