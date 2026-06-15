@@ -30,6 +30,22 @@ globalThis.DebugImGui = class DebugImGui {
   static _views = []; // dbg_view handles, for teardown on rebuild
   static _mirrors = []; // [{ entry, mirror, last }]
 
+  // Overlay rendering. scale = -1 auto-derives a DPI-aware factor from the GUI
+  // height (the GUI is display_set_gui_maximise()'d to native res, so a default
+  // scale 1 is tiny on a high-res screen); set a positive number to override.
+  static scale = -1;
+  static alpha = 0.95;
+
+  // Window layout (base px, before the overlay scale magnifies them). Explicit
+  // position + width keep the views off the right edge and wide enough that a
+  // slider is actually draggable, instead of ImGui auto-sizing to the labels.
+  static marginX = 24;
+  static marginY = 24;
+  static viewW = 440;
+  static gap = 16;
+  static headerH = 44; // title bar + padding
+  static rowH = 30; // per-entry row
+
   // Step_0: handle the F3 toggle and, while open, keep the mirrors in sync.
   static update() {
     if (!Debug.enabled) return;
@@ -42,11 +58,22 @@ globalThis.DebugImGui = class DebugImGui {
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
     if (DebugImGui._open && !DebugImGui._built) DebugImGui.build();
-    show_debug_overlay(DebugImGui._open);
+    show_debug_overlay(
+      DebugImGui._open,
+      false,
+      DebugImGui._scale(),
+      DebugImGui.alpha,
+    );
+  }
+
+  static _scale() {
+    if (DebugImGui.scale > 0) return DebugImGui.scale;
+    return clamp(display_get_gui_height() / 900, 1.4, 3);
   }
 
   // (Re)create one dbg_view per panel and a mirror + widget per entry. Call again
-  // to rebuild after the registry changes (e.g. a panel re-registers).
+  // to rebuild after the registry changes (e.g. a panel re-registers). Views are
+  // stacked in a left-hand column, each sized to its content.
   static build() {
     for (let i = 0; i < DebugImGui._views.length; i++) {
       const v = DebugImGui._views[i];
@@ -55,10 +82,15 @@ globalThis.DebugImGui = class DebugImGui {
     DebugImGui._views = [];
     DebugImGui._mirrors = [];
 
+    let y = DebugImGui.marginY;
     const panels = Debug.panels;
     for (let i = 0; i < panels.length; i++) {
       const p = panels[i];
-      DebugImGui._views.push(dbg_view(p.name, true));
+      const h = DebugImGui.headerH + p.entries.length * DebugImGui.rowH;
+      DebugImGui._views.push(
+        dbg_view(p.name, true, DebugImGui.marginX, y, DebugImGui.viewW, h),
+      );
+      y += h + DebugImGui.gap;
       for (let j = 0; j < p.entries.length; j++) DebugImGui._emit(p.entries[j]);
     }
     DebugImGui._built = true;
