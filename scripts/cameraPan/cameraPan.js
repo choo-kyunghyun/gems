@@ -2,9 +2,12 @@ function _cameraPanOnUpdate() {
   const sw = surface_get_width(application_surface);
   const sh = surface_get_height(application_surface);
 
-  // Screen-space mouse coords (camera-independent) for accurate drag delta.
-  const mx = device_mouse_x_to_gui(0);
-  const my = device_mouse_y_to_gui(0);
+  // Screen-space mouse coords (camera-independent) for accurate drag delta, in
+  // application_surface pixels. device_mouse_*_to_gui returns GUI-layer coords, and the GUI
+  // is a fixed design size (≠ the surface), so scale GUI→surface to keep pan/zoom in the
+  // camera's pixel space.
+  const mx = (device_mouse_x_to_gui(0) * sw) / display_get_gui_width();
+  const my = (device_mouse_y_to_gui(0) * sh) / display_get_gui_height();
 
   // Drag to pan: move camera opposite to mouse screen delta (world delta = screen / zoom).
   if (mouse_check_button_pressed(this._panButton)) {

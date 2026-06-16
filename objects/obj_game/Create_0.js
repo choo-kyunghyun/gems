@@ -47,10 +47,12 @@ Settings.registerDefaults({
 Settings.load();
 
 // Load localization for the saved language, then adopt its base font as the
-// default draw font (Korean needs Noto; en-US declares none and falls back).
+// default draw font (both locales now ship Noto; an undeclared key falls back).
 I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
 draw_set_font(I18n.font("default"));
-display_set_gui_maximise();
+// Fixed 1080p design resolution for the GUI layer (÷ uiScale), not display_set_gui_maximise:
+// UI lays out the same on every monitor and the SDF fonts scale crisply to the window.
+UI.applyScale(Settings.get("uiScale"));
 
 this.background = Color.parse("#222222");
 

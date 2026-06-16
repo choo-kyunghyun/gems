@@ -25,6 +25,7 @@
   "SETTINGS_DISP_FPS_UNLIMITED": "Unlimited",
   "SETTINGS_UI_TITLE": "UI Scale",
   "SETTINGS_UI_SCALE": "Scale",
+  "SETTINGS_UI_SCALE_HINT": "Restart to apply UI scale",
   "SETTINGS_LANG_TITLE": "Language",
   "SETTINGS_LANG_LABEL": "Language",
 

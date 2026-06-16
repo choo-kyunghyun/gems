@@ -25,6 +25,7 @@
   "SETTINGS_DISP_FPS_UNLIMITED": "무제한",
   "SETTINGS_UI_TITLE": "UI 스케일",
   "SETTINGS_UI_SCALE": "스케일",
+  "SETTINGS_UI_SCALE_HINT": "재시작 후 UI 스케일이 적용됩니다",
   "SETTINGS_LANG_TITLE": "언어",
   "SETTINGS_LANG_LABEL": "언어",
 

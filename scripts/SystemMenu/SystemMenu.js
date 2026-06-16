@@ -411,6 +411,9 @@ globalThis.SystemMenu = class SystemMenu {
         gemsSlider("uiScale", 0.5, 2, 0.1),
       ),
     );
+    // uiScale is read once when the GUI layer is sized (boot / scene build), so a change
+    // takes effect on restart — the lobby + this menu snapshot the GUI height at build time.
+    uiSection.insertChild(gemsHint(I18n.textRef("SETTINGS_UI_SCALE_HINT")));
     scroll.scrollBody.insertChild(uiSection);
 
     const langSection = gemsSection(I18n.textRef("SETTINGS_LANG_TITLE"));
