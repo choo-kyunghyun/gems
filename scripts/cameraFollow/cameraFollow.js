@@ -1,4 +1,11 @@
 function _cameraFollowOnUpdate() {
+  // Track the application_surface so a resolution change (surface_resize) keeps the
+  // perspective aspect correct — the proj matrix is rebuilt from width/height each update
+  // (the project drives the view by matrix, like cameraPan, not GM's 2D view-size camera).
+  this.setSize(
+    surface_get_width(application_surface),
+    surface_get_height(application_surface),
+  );
   if (this.world === undefined) return;
   const pos = this.world.get(Position, this.followTarget);
   if (pos === undefined) return;
@@ -25,6 +32,13 @@ globalThis.cameraFollow = function cameraFollow(cam = {}) {
 };
 
 function _cameraFollow2dOnUpdate() {
+  // Track the application_surface so a resolution change (surface_resize) updates the ortho
+  // view extent immediately (1:1 world px) — the proj matrix is rebuilt from width/height
+  // each update; the project drives the view by matrix, not GM's 2D view-size camera.
+  this.setSize(
+    surface_get_width(application_surface),
+    surface_get_height(application_surface),
+  );
   if (this.world === undefined) return;
   const pos = this.world.get(Position, this.followTarget);
   if (pos === undefined) return;
