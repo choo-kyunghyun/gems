@@ -1,7 +1,6 @@
-// Top-down-specific content, layered over the shared RpgContent (rarities + the full item
-// set + recipes). Top-down's only genre-specific content is its quests + achievements (the
-// platformer has none). Called once from sceneRpg.create() (not at top level — avoids
-// GMRT load-order issues). Idempotent.
+// The RPG scene's own content — its quests + achievements — layered over the shared
+// RpgContent (rarities + the full item set + recipes). Called once from sceneRpg.create()
+// (not at top level — avoids GMRT load-order issues). Idempotent.
 globalThis.RpgQuests = {
   registered: false,
 

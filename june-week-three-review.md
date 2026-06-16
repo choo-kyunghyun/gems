@@ -218,15 +218,15 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Scene
 
-- [ ] BuildMode
-- [ ] RpgCatalog
-- [ ] RpgController
-- [ ] RpgLevel
-- [ ] RpgMap
-- [ ] RpgPlayer
-- [ ] RpgQuests
-- [ ] RpgSpawn
-- [ ] sceneRpg
+- [x] BuildMode
+- [x] RpgCatalog
+- [x] RpgController
+- [x] RpgLevel
+- [x] RpgMap
+- [x] RpgPlayer
+- [x] RpgQuests
+- [x] RpgSpawn
+- [x] sceneRpg
 
 ### System
 

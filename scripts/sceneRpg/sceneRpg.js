@@ -192,7 +192,7 @@ class _SceneRpgClass extends Scene {
           { slot: "trinket", labelKey: "SLOT_TRINKET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
         ],
-        // Top-down adds a kills/items/quests records line below the stats.
+        // A kills/items/quests records line below the stats (the genre's extraRows hook).
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(

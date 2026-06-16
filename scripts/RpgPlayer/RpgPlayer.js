@@ -1,17 +1,16 @@
-// Shared player setup for the RPG genre controllers (platformer + top-down). Both built
-// the same player entity (Health/Stats/Inventory/Equipment/Encumbrance/Visual + the core
-// transform/collision) and fired the same cursor-aimed bullet; that's centralized here.
-// Each controller calls spawn(), then adds its genre-only components (Grounded for the
-// platformer, Animator for top-down) and builds its own ctrl bag.
+// Player setup for the RPG genre (RpgController). Builds the player entity
+// (Health/Stats/Inventory/Equipment/Encumbrance/Visual + the core transform/collision) and
+// owns the cursor-aimed bullet preset (also reused by TurretSystem). The controller calls
+// spawn(), then adds its genre-only Animator and builds its own ctrl bag.
 globalThis.RpgPlayer = {
-  // Create the shared player entity and return its id. `opts` carries the few fields that
-  // differ per genre: bbox (collision box), dir (initial facing), speed (Stats.speed).
+  // Create the player entity and return its id. `opts` carries the caller-supplied fields:
+  // bbox (collision box), dir (initial facing), speed (Stats.speed).
   spawn(world, spawn, opts) {
-    // Shared "bullet" preset for fireBullet (registered here since RpgPlayer owns firing).
-    // A kinematic Collision makes GravitySystem skip it so platformer bullets fly straight
-    // (a no-op in top-down, which has no gravity); solid:false keeps it from being an
-    // obstacle, and NO BBox keeps it off Raycast's target list (it can't self-hit at t=0,
-    // and the per-tick segment cast still finds enemies). Lifetime bounds the range.
+    // "bullet" preset for fireBullet (registered here since RpgPlayer owns firing; also
+    // reused by TurretSystem). solid:false keeps it from being an obstacle, and NO BBox
+    // keeps it off Raycast's target list (it can't self-hit at t=0, and the per-tick segment
+    // cast still finds enemies); Lifetime bounds the range. kinematic makes GravitySystem
+    // skip it — inert in the RPG (no gravity), but keeps the preset gravity-safe.
     EntityPreset.register([
       {
         id: "bullet",
@@ -28,8 +27,8 @@ globalThis.RpgPlayer = {
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
     world.add(id, BBox, opts.bbox);
-    // oneWay/passThroughTicks are platformer drop-through fields; harmless at false/0 for
-    // top-down (never set there), so the Collision block is shared.
+    // oneWay/passThroughTicks are the optional one-way-platform fields (unused in the RPG);
+    // set to their falsy defaults to keep the Collision shape explicit.
     world.add(id, Collision, {
       solid: true,
       kinematic: false,
@@ -79,12 +78,10 @@ globalThis.RpgPlayer = {
     return id;
   },
 
-  // Spawn a cursor-aimed bullet from the shooter. The "bullet" EntityPreset is registered
-  // per genre (its definition differs — platformer bullets skip gravity), but the spawn +
-  // aim math is shared. `opts`: { speed, damage, muzzleY? } — muzzleY offsets the spawn
-  // (and aim origin) from the shooter's Position (e.g. chest height). Returns the
-  // normalized aim { nx, ny } so the caller updates facing in its own form (scalar facing
-  // vs Direction vector).
+  // Spawn a cursor-aimed bullet from the shooter (the "bullet" EntityPreset registered by
+  // spawn() above). `opts`: { speed, damage, muzzleY? } — muzzleY offsets the spawn (and
+  // aim origin) from the shooter's Position (e.g. chest height). Returns the normalized aim
+  // { nx, ny } so the caller can update its own facing.
   fireBullet(world, shooterId, opts) {
     const pos = world.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);

@@ -35,7 +35,7 @@ globalThis.RpgController = {
       follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
     });
 
-    // Shared RPG player entity; then the top-down-only Animator. BBox is centered;
+    // The RPG player entity (RpgPlayer.spawn); then this genre's Animator. BBox is centered;
     // faces down; move speed from Stats.
     const id = RpgPlayer.spawn(world, spawn, {
       bbox: { x: -12, y: -12, width: 24, height: 24 },

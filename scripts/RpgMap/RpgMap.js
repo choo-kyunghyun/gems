@@ -278,8 +278,8 @@ globalThis.RpgMap = {
     // 9. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
     //    shading (walls red), tile id/name labels — then the buildable-zone overlay; both
     //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) +
-    //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT 0.19 can't render
-    //    the SVG character sprites).
+    //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT can't render the
+    //    SVG character sprites — still unsupported on 0.20).
     scene.renderer = new Renderer();
     // Chunk-streamed terrain (ground checker + walls + frozen-entity snapshots) draws UNDER
     // everything; the resident-grid passes below then draw player builds + zones on top.
