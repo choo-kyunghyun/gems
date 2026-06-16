@@ -41,6 +41,8 @@ Settings.registerDefaults({
   invColType: true,
   invColWeight: true,
   invColValue: true,
+  // RPG HUD — ambient-temperature display unit ("K"|"C"|"F"; toggled in the inventory Settings tab).
+  tempUnit: "K",
 });
 Settings.load();
 

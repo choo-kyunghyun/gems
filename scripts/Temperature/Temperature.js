@@ -58,4 +58,15 @@ globalThis.Temperature = class Temperature {
   static toFahrenheit(k) {
     return ((k - Temperature.ZERO_C) * 9) / 5 + 32;
   }
+
+  // HUD-ready string in the player's chosen unit (Settings "tempUnit": "K"|"C"|"F",
+  // default "K"). Owns the unit suffix so the HUD/format string stays unit-agnostic; the
+  // i18n locales now ship a font with the ° glyph, so °C/°F render (the K default needs none).
+  static display() {
+    const k = Temperature.now();
+    const unit = Settings.get("tempUnit");
+    if (unit === "C") return Math.round(Temperature.toCelsius(k)) + " °C";
+    if (unit === "F") return Math.round(Temperature.toFahrenheit(k)) + " °F";
+    return Math.round(k) + " K";
+  }
 };

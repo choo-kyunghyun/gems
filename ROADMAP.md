@@ -7,7 +7,6 @@
 
 ## RPG
 
-- New options on inventory: Temparature unit
 - New rader type: Draw arrows around player
 - Context-aware hotkey hint
 - Better crafting ui

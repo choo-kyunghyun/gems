@@ -57,7 +57,7 @@ globalThis.RpgHud = {
           I18n.text(
             "RPG_COND",
             I18n.text(Weather.current().name),
-            Math.round(Temperature.now()),
+            Temperature.display(),
           ),
         { color: GemsTheme.textMuted },
       ),

@@ -305,6 +305,32 @@ globalThis.RpgInventoryUI = {
     page.insertChild(toggle("INV_COL_TYPE", "invColType"));
     page.insertChild(toggle("INV_COL_WT", "invColWeight"));
     page.insertChild(toggle("INV_COL_VAL", "invColValue"));
+
+    // Units: ambient-temperature display unit. The HUD reads Temperature.display() live,
+    // so persisting the setting updates it next frame — no table/HUD rebuild needed.
+    page.insertChild(gemsDivider());
+    const unitsTitle = new UIElement({ width: "100%", height: 22 });
+    unitsTitle.insertChild(
+      gemsLabel(I18n.textRef("INV_SET_UNITS"), { color: "#ffd166" }),
+    );
+    page.insertChild(unitsTitle);
+    const units = [
+      { name: "K", value: "K" },
+      { name: "°C", value: "C" },
+      { name: "°F", value: "F" },
+    ];
+    let unitIdx = 0;
+    for (let i = 0; i < units.length; i++)
+      if (units[i].value === Settings.get("tempUnit")) unitIdx = i;
+    page.insertChild(
+      gemsRow(
+        I18n.textRef("INV_SET_TEMP"),
+        gemsSelectCustom(units, unitIdx, (_i, code) => {
+          Settings.set("tempUnit", code);
+          Settings.save();
+        }),
+      ),
+    );
     return page;
   },
 
