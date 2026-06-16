@@ -1,13 +1,12 @@
-// Shared station-selection module for the genre templates (TopDown + Platformer).
-// Any entity carrying a Station component is interactable. Each frame this picks one
-// target station: the one under the mouse cursor (BBox hit-test) if it's within range,
-// otherwise the nearest within range. The target gets a world-space highlight outline
-// and a context prompt; pressing `interact` (E) opens the matching window — StorageUI
-// for kind "storage", CraftingUI for kind "workbench".
+// Station-selection module for the RPG scene. Any entity carrying a Station component is
+// interactable. Each frame this picks one target station: the one under the mouse cursor
+// (BBox hit-test) if it's within range, otherwise the nearest within range. The target gets a
+// world-space highlight outline and a context prompt; pressing `interact` (E) opens the matching
+// window — StorageUI for kind "storage", CraftingUI for kind "workbench".
 //
-// Activation is E, not left-click, because TopDown/Platformer combat fires on
-// left-click (mouse aim) — the mouse only CHOOSES the target. `mouse_x`/`mouse_y` are
-// world-space here (the view transform is applied; see RpgController aim).
+// Activation is E, not left-click, because the RPG's combat fires on left-click (mouse aim) —
+// the mouse only CHOOSES the target. `mouse_x`/`mouse_y` are world-space here (the view
+// transform is applied; see RpgController aim).
 //
 // All per-frame/open state lives on the SCENE (namespaced `_inter*`, plus the windows'
 // own `_store*`/`_craft*`). Build once in create() after the player + ui exist; call

@@ -1,4 +1,4 @@
-// Shared draggable character window for the RPG genre scenes — a wider, TABBED panel
+// Draggable character window for the RPG scene — a wider, TABBED panel
 // (Items / Equipment / Stats / Quests / Settings) so the player can manage gear, read
 // the sheet, track quests, and tune the item table all in one place.
 //
@@ -351,8 +351,7 @@ globalThis.RpgInventoryUI = {
       scene._invTable.selectRow(found);
     }
 
-    // Equipment rows (child-tree edits are GMRT-safe; only flexpanel *style* mutation
-    // is unreliable on 0.19).
+    // Equipment rows: clear children + re-add (a child-tree rebuild for the new contents).
     const eh = scene._invEquipHost;
     const ek = [...eh.children];
     for (let i = 0; i < ek.length; i++) ek[i].destroy();

@@ -256,13 +256,13 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### UI
 
-- [ ] CraftingUI
-- [ ] Interactable
-- [ ] InvTable
-- [ ] RpgHud
-- [ ] RpgInventoryUI
-- [ ] RpgWorldOverlay
-- [ ] StorageUI
+- [x] CraftingUI
+- [x] Interactable
+- [x] InvTable
+- [x] RpgHud
+- [x] RpgInventoryUI
+- [x] RpgWorldOverlay
+- [x] StorageUI
 
 ## Showcase
 

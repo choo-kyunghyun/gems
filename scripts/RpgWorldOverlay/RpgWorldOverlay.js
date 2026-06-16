@@ -1,10 +1,8 @@
-// Shared world-space gameplay overlay for the RPG genre templates (platformer + top-down),
-// drawn in world space from a scene's draw(). Replaces the former per-genre PlatformerUI /
-// TopDownUI, which were near-identical. Draws item drops (rarity squares) + bullets (dots);
-// the reach-quest zone is drawn only when the scene exposes one (top-down), so the single
-// overlay serves both genres. The HUD / inventory / dialogue are real UI panels the scene
-// builds on the GUI layer — not here. `_rarityColor` is shared with the scenes' inventory
-// rows.
+// World-space gameplay overlay for the RPG scene, drawn in world space from sceneRpg.draw().
+// Draws item drops (rarity squares) + bullets (dots), plus the reach-quest zone when the scene
+// exposes one. (Originally shared with the platformer — replaced the near-identical per-genre
+// PlatformerUI/TopDownUI — but RPG-only now.) The HUD / inventory / dialogue are real UI panels
+// the scene builds on the GUI layer — not here. `_rarityColor` is shared with the inventory rows.
 globalThis.RpgWorldOverlay = {
   _rarityColor(itemId) {
     const it = Item.get(itemId);
@@ -32,7 +30,7 @@ globalThis.RpgWorldOverlay = {
       draw_circle(p.x, p.y, 3, false);
     }
 
-    // Reach-quest zone: only when the scene defines one (top-down) and it's unmet.
+    // Reach-quest zone: only when the scene defines one and it's unmet.
     if (scene.reachZone !== undefined && !scene.reachDone) {
       const z = scene.reachZone;
       draw_set_alpha(0.35);

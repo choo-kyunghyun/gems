@@ -1,4 +1,4 @@
-// Storage-chest transfer WINDOW for the genre templates (RPG). A "storage" station (a
+// Storage-chest transfer WINDOW for the RPG scene. A "storage" station (a
 // Station {kind:"storage"} entity carrying an Inventory) opens a two-column transfer
 // window — left = the player's Bag, right = the Chest — each a sortable UITable.
 // Double-clicking a row (or a gamepad/keyboard confirm in browse mode) moves that whole

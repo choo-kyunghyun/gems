@@ -1,4 +1,4 @@
-// Crafting WINDOW for the genre templates (TopDown + Platformer). A "workbench" station
+// Crafting WINDOW for the RPG scene. A "workbench" station
 // (Station {kind:"workbench"}) opens this — a scroll of the recipes registered for that
 // station kind (Recipe.forStation). Each row shows the output and its inputs with
 // have/need counts; clicking crafts it (CraftSystem.craft pulls inputs from and deposits
