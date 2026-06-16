@@ -183,6 +183,7 @@
     {"id":{"name":"RenderDebugEntity","path":"scripts/RenderDebugEntity/RenderDebugEntity.yy",},},
     {"id":{"name":"RenderDebugName","path":"scripts/RenderDebugName/RenderDebugName.yy",},},
     {"id":{"name":"RenderDebugPath","path":"scripts/RenderDebugPath/RenderDebugPath.yy",},},
+    {"id":{"name":"RenderDebugRange","path":"scripts/RenderDebugRange/RenderDebugRange.yy",},},
     {"id":{"name":"RenderDebugTileMap","path":"scripts/RenderDebugTileMap/RenderDebugTileMap.yy",},},
     {"id":{"name":"RenderEntity","path":"scripts/RenderEntity/RenderEntity.yy",},},
     {"id":{"name":"Renderer","path":"scripts/Renderer/Renderer.yy",},},

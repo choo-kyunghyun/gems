@@ -24,6 +24,7 @@ globalThis.DebugRender = class DebugRender {
       [RenderDebugTileMap, "Tiles"],
       [RenderGrid, "Grid"],
       [RenderDebugPath, "Paths"],
+      [RenderDebugRange, "Ranges"],
     ];
     Debug.panel("Render", (p) => {
       for (let i = 0; i < list.length; i++) {

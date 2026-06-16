@@ -311,6 +311,34 @@ globalThis.RpgMap = {
     const paths = new RenderDebugPath(scene.level);
     paths.enabled = false;
     scene.renderer.insert(paths);
+    // Entity "active range" rings (turret fire radius + slime aggro/give-up/attack), off until
+    // toggled (Debug menu → Ranges). Generic Core pass; the RPG ranges are configured here.
+    const ranges = new RenderDebugRange({
+      ranges: [
+        {
+          component: Turret,
+          field: "range",
+          color: make_colour_rgb(255, 150, 60),
+        },
+        {
+          component: Brain,
+          field: "deAggro",
+          color: make_colour_rgb(110, 110, 110),
+          alpha: 0.3,
+        },
+        {
+          component: Brain,
+          field: "aggro",
+          color: make_colour_rgb(230, 220, 80),
+        },
+        {
+          component: Brain,
+          field: "attackRange",
+          color: make_colour_rgb(235, 80, 80),
+        },
+      ],
+    });
+    scene.renderer.insert(ranges);
     // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain too.
     // Skipped on indoor maps (meta.indoor) — no open sky inside a cave.
     scene._weather = undefined;
