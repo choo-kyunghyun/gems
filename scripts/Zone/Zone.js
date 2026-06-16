@@ -22,6 +22,7 @@ globalThis.Zone = class Zone {
     this.data = opt.data ?? {};
   }
 
+  /** @param {string} t @returns {boolean} whether this zone carries tag `t`. */
   hasTag(t) {
     return this.tags.indexOf(t) >= 0;
   }

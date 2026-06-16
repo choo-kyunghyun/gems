@@ -28,6 +28,7 @@ globalThis.ZoneMap = class ZoneMap {
     return zone;
   }
 
+  /** @param {number} id @returns {Zone|undefined} the registered zone for an id. */
   zone(id) {
     return this.zones[id];
   }
@@ -42,11 +43,13 @@ globalThis.ZoneMap = class ZoneMap {
     return out;
   }
 
+  /** Paint zone `id` into one cell (0 clears). @returns {ZoneMap} this */
   paint(id, gx, gy) {
     if (this.grid.inBounds(gx, gy)) this.grid.set(gx, gy, id);
     return this;
   }
 
+  /** Paint zone `id` into an inclusive cell rect. @returns {ZoneMap} this */
   paintRect(id, x1, y1, x2, y2) {
     for (let y = y1; y <= y2; y++) {
       for (let x = x1; x <= x2; x++) {
@@ -56,10 +59,12 @@ globalThis.ZoneMap = class ZoneMap {
     return this;
   }
 
+  /** Clear one cell to no-zone. @returns {ZoneMap} this */
   erase(gx, gy) {
     return this.paint(0, gx, gy);
   }
 
+  /** Clear an inclusive cell rect to no-zone. @returns {ZoneMap} this */
   eraseRect(x1, y1, x2, y2) {
     return this.paintRect(0, x1, y1, x2, y2);
   }
@@ -91,6 +96,7 @@ globalThis.ZoneMap = class ZoneMap {
     return out;
   }
 
+  /** @returns {Object} serializable channel: grid + zone defs + nextId. */
   export() {
     const zones = [];
     for (const id in this.zones) {
@@ -100,6 +106,7 @@ globalThis.ZoneMap = class ZoneMap {
     return { grid: this.grid.export(), zones: zones, nextId: this._nextId };
   }
 
+  /** Restore grid + zone defs from a prior export(). @param {Object} data @returns {ZoneMap} this */
   import(data) {
     this.grid = Grid.import(data.grid);
     this.zones = {};
@@ -112,6 +119,7 @@ globalThis.ZoneMap = class ZoneMap {
     return this;
   }
 
+  /** Free the backing grid and drop zone + membership state. */
   destroy() {
     this.grid.destroy();
     this.grid = undefined;

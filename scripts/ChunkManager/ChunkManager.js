@@ -26,6 +26,17 @@
 // GMRT-safe: plain-object record maps walked via Object.keys + index loops (no Map/Set
 // iteration), index loops throughout, class assigned to globalThis.
 globalThis.ChunkManager = class ChunkManager {
+  /**
+   * @param {World} world
+   * @param {Level} level
+   * @param {Object} source content provider: generate(cx,cy) → {walls, spawns}; spawn(world, level, desc) → id.
+   * @param {Object} [opts]
+   * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.
+   * @param {number} [opts.simRadius=1] Chebyshev chunk distance simulated live in the World.
+   * @param {number} [opts.loadRadius=2] distance held as drawn-but-frozen snapshots (no sim).
+   * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite world bounds in cells
+   *   (anchored at 0); chunks outside never load. Omit both for an unbounded world.
+   */
   constructor(world, level, source, opts = {}) {
     this.world = world;
     this.level = level;
@@ -66,8 +77,8 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats = { loaded: 0, unloaded: 0, promoted: 0, demoted: 0 };
   }
 
+  /** Drop chunk + cache refs. The World owns the entities/colliders and frees them with itself. */
   destroy() {
-    // The World owns the entities/colliders (destroyed with it); just drop our refs.
     this._chunks = {};
     this._cache = {};
   }
@@ -82,8 +93,11 @@ globalThis.ChunkManager = class ChunkManager {
     return Math.floor(wy / this.pxH);
   }
 
-  // Stream around (centerX, centerY) — call once per frame, OUTSIDE the tick loop. Returns
-  // early until the center crosses into a new chunk (chunk membership only changes then).
+  /**
+   * Stream around a world-space center — call once per frame, OUTSIDE the tick loop. Returns
+   * early until the center crosses into a new chunk (membership only changes then).
+   * @param {number} centerX @param {number} centerY usually the player position.
+   */
   update(centerX, centerY) {
     const pcx = this.chunkX(centerX);
     const pcy = this.chunkY(centerY);
@@ -125,7 +139,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.world.flush();
   }
 
-  // Active chunk records as a fresh array (for RenderChunks). Object.keys is GMRT-safe.
+  /** @returns {Object[]} active chunk records as a fresh array (for RenderChunks). */
   records() {
     const out = [];
     const keys = Object.keys(this._chunks);
@@ -133,6 +147,7 @@ globalThis.ChunkManager = class ChunkManager {
     return out;
   }
 
+  /** @returns {number} number of active (sim + load ring) chunks. */
   activeCount() {
     return Object.keys(this._chunks).length;
   }

@@ -62,14 +62,14 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Level
 
-- [ ] ChunkManager
-- [ ] Level
-- [ ] TileEdit
-- [ ] TileLayer
-- [ ] TileType
-- [ ] Zone
-- [ ] ZoneMap
-- [ ] ZoneSystem
+- [x] ChunkManager
+- [x] Level
+- [x] TileEdit
+- [x] TileLayer
+- [x] TileType
+- [x] Zone
+- [x] ZoneMap
+- [x] ZoneSystem
 
 ### Render
 

@@ -63,11 +63,13 @@ globalThis.Level = class Level {
     return map.at(g.x, g.y);
   }
 
+  /** Insert a LevelLayer at `index` (top by default; higher index = higher nav priority). @param {LevelLayer} layer @returns {Level} this */
   insert(layer, index = this.layers.length) {
     this.layers.splice(index, 0, layer);
     return this;
   }
 
+  /** Detach a LevelLayer. @param {LevelLayer} layer @returns {Level} this */
   remove(layer) {
     const i = this.layers.indexOf(layer);
     if (i >= 0) this.layers.splice(i, 1);
@@ -82,11 +84,13 @@ globalThis.Level = class Level {
     return Infinity;
   }
 
+  /** Recompute nav cost for one cell after a tile edit. @param {number} x @param {number} y @returns {Level} this */
   syncAt(x, y) {
     this.mpg.set(x, y, this._computeNav(x, y));
     return this;
   }
 
+  /** Recompute nav cost for every cell (after bulk layer changes). @returns {Level} this */
   syncAll() {
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
@@ -96,6 +100,7 @@ globalThis.Level = class Level {
     return this;
   }
 
+  /** @param {number} wx @param {number} wy @returns {{x:number,y:number}} the grid cell containing the point. */
   worldToGrid(wx, wy) {
     return {
       x: Math.floor(wx / this.cellWidth),
@@ -103,6 +108,7 @@ globalThis.Level = class Level {
     };
   }
 
+  /** @param {number} gx @param {number} gy @returns {{x:number,y:number}} world coords of the cell's CENTER. */
   gridToWorld(gx, gy) {
     return {
       x: gx * this.cellWidth + this.cellWidth * 0.5,
@@ -110,6 +116,7 @@ globalThis.Level = class Level {
     };
   }
 
+  /** @returns {Object} serializable level: cell size, dims, layers, and zoneMaps (when present). */
   export() {
     const data = {
       cellWidth: this.cellWidth,
@@ -131,6 +138,7 @@ globalThis.Level = class Level {
     return data;
   }
 
+  /** Restore layers + zone channels from a prior export(), then resync nav. @param {Object} data @returns {Level} this */
   import(data) {
     for (let i = 0; i < this.layers.length; i++) {
       if (data.layers[i] !== undefined) {
@@ -149,6 +157,7 @@ globalThis.Level = class Level {
     return this;
   }
 
+  /** Free all layers, zone channels, and the nav grid. */
   destroy() {
     for (const layer of this.layers) {
       layer.destroy();
