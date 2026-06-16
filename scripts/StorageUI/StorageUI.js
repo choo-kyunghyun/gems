@@ -29,13 +29,9 @@ globalThis.StorageUI = {
     // Transfer window: Bag | Chest columns, each a UITable. Wide enough for two tables
     // that mirror the inventory's (Settings-driven) columns side by side without
     // clipping their headers.
-    const gw = display_get_gui_width();
-    const width = 1100;
-    const left = gw > 0 ? Math.max(10, gw / 2 - width / 2) : 80;
     const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
-      left,
       top: 80,
-      width,
+      width: 1100,
       onClose: () => StorageUI.close(scene),
     });
     win.enabled = false;

@@ -239,11 +239,24 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
 // wrapper's `.enabled`. The body's widgets stay UINav-navigable; only the title bar
 // drag is mouse-only. `opts`: { left, top, width, titleH, onClose, padding }.
 globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
-  const wrap = new UIElement({
+  // Full-screen, out-of-flow host that horizontally centers the window and pins it `top`
+  // px from the top. It re-centers when the GUI is resized (live uiScale), so callers no
+  // longer compute an absolute left from display_get_gui_width() (which would go stale).
+  const host = new UIElement({
     positionType: "absolute",
-    left: opts.left ?? 40,
-    top: opts.top ?? 40,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    paddingTop: opts.top ?? 40,
+  });
+
+  // The draggable window: a relative flow child (centered by the host). UIDrag offsets
+  // wrap.dragX/dragY at draw time, so a dragged window keeps its offset across a re-center.
+  const wrap = new UIElement({
     width: opts.width ?? 440,
+    flexShrink: 0,
   });
 
   const card = gemsCard({
@@ -291,8 +304,9 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   card.insertChild(body);
 
   wrap.insertChild(card);
-  wrap.body = body;
-  return wrap;
+  host.insertChild(wrap);
+  host.body = body; // callers add content here
+  return host;
 };
 
 // Tabbed view: a tab strip over a fixed-height content host. `tabs` is

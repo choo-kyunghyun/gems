@@ -27,13 +27,9 @@
 globalThis.RpgInventoryUI = {
   // Build the (hidden) draggable window + its persistent tabbed structure.
   build(scene) {
-    const gw = display_get_gui_width();
-    const width = 640;
-    const left = gw > 0 ? gw / 2 - width / 2 : 60;
     scene._invWin = gemsWindow(I18n.textRef("INV_TITLE"), {
-      left,
       top: 40,
-      width,
+      width: 640,
       onClose: () => {
         scene.invOpen = false;
         scene._invWin.enabled = false;

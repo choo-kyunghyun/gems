@@ -17,10 +17,7 @@ globalThis.CraftingUI = {
     scene._craftDirty = false;
     scene._craftKind = "";
 
-    const gw = display_get_gui_width();
-    const left = gw > 0 ? gw / 2 - 200 : 80;
     const win = gemsWindow(I18n.textRef("CRAFT_TITLE"), {
-      left,
       top: 80,
       width: 400,
       onClose: () => CraftingUI.close(scene),
