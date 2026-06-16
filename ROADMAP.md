@@ -1,10 +1,5 @@
 # Roadmap
 
-## Maintainability
-
-- Cleanup remaining GMRT 0.19 comments
-- Simplify comments
-
 ## Core
 
 - Sound
