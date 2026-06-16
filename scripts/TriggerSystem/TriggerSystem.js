@@ -4,9 +4,8 @@
 // is non-solid (a sensor). Solid-vs-solid pairs are left to the resolution
 // systems (SolidSystem / SeparationSystem).
 //
-// If world.broadphase is set, uses it for O(n) pair queries; otherwise falls
-// back to O(n^2). Set world.broadphase = new Broadphase(w, h, cellSize) in
-// the scene with cellSize > max entity diameter.
+// O(n) pair queries via world.broadphase when set (cellSize > max entity
+// diameter), else O(n^2).
 globalThis.TriggerSystem = {
   /** Rebuild every collider's `hits` list from this tick's sensor overlaps. @param {World} world */
   update(world) {
@@ -17,11 +16,7 @@ globalThis.TriggerSystem = {
 
     const bp = world.broadphase;
     if (bp !== undefined) {
-      bp.clear();
-      for (let i = 0; i < ids.length; i++) {
-        const aabb = AABB.of(world, ids[i]);
-        bp.insert(ids[i], aabb.cx, aabb.cy);
-      }
+      bp.rebuild(world, ids);
       const w = world;
       bp.pairs((ida, idb) => {
         const ca = w.get(Collision, ida);

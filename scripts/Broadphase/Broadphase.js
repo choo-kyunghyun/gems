@@ -1,11 +1,9 @@
 // Uniform-grid broadphase for physics pair queries. Buckets entities by AABB
 // center — each entity lives in exactly one cell. pairs() iterates within-cell
 // and the 4 right-side adjacent-cell directions so each unordered pair is
-// emitted exactly once, no deduplication needed.
-//
-// GMRT-safe: flat array-of-buckets, index loops throughout, no Map/Set, no
-// empty for-initializers. Cell size must exceed entity full-width for
-// center-based bucketing to guarantee all overlapping pairs are adjacent cells.
+// emitted exactly once, no deduplication needed. Cell size must exceed entity
+// full-width so center-based bucketing keeps every overlapping pair in adjacent
+// cells.
 globalThis.Broadphase = class Broadphase {
   /**
    * @param {number} worldWidth
@@ -21,21 +19,42 @@ globalThis.Broadphase = class Broadphase {
     for (let i = 0; i < n; i++) this._buckets.push([]);
   }
 
+  /** Empty every bucket, keeping the allocated grid (call once per frame before re-inserting). */
   clear() {
     for (let i = 0; i < this._buckets.length; i++) {
       this._buckets[i].length = 0;
     }
   }
 
-  // Insert by AABB center (world coords). Out-of-bounds entities clamp to edge.
+  /**
+   * Bucket entity `id` by its AABB center (world coords); out-of-bounds clamps to the edge cell.
+   * @param {number} id @param {number} cx @param {number} cy
+   */
   insert(id, cx, cy) {
     const gx = Math.max(0, Math.min(this.cols - 1, Math.floor(cx / this.cellSize)));
     const gy = Math.max(0, Math.min(this.rows - 1, Math.floor(cy / this.cellSize)));
     this._buckets[gy * this.cols + gx].push(id);
   }
 
-  // Calls fn(a, b) for each candidate pair — no duplicates.
-  // Covers within-cell and all 8-neighbor cell pairs via 4 right-side directions.
+  /**
+   * ECS convenience: clear, then re-bucket every entity in `ids` by its AABB center — the
+   * per-tick rebuild shared by the physics systems. The caller supplies the already-filtered
+   * id list (a center moves between ticks, so re-bucket each rebuild).
+   * @param {World} world @param {number[]} ids
+   */
+  rebuild(world, ids) {
+    this.clear();
+    for (let i = 0; i < ids.length; i++) {
+      const aabb = AABB.of(world, ids[i]);
+      this.insert(ids[i], aabb.cx, aabb.cy);
+    }
+  }
+
+  /**
+   * Invoke `fn(a, b)` once per candidate pair (no duplicates), covering within-cell and
+   * all 8-neighbor cell pairs via 4 right-side directions.
+   * @param {(a:number, b:number) => void} fn
+   */
   pairs(fn) {
     const cols = this.cols;
     const rows = this.rows;

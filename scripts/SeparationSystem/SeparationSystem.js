@@ -3,46 +3,32 @@
 // passes so dense clusters settle (pushing A off B may shove it into C). Pure
 // resolution — it does not integrate motion, so run it after SolidSystem.
 //
-// If world.broadphase is set, uses it for O(n) pair queries; otherwise falls
-// back to O(n^2). Set world.broadphase = new Broadphase(w, h, cellSize) in
-// the scene with cellSize > max entity diameter.
+// O(n) pair queries via world.broadphase when set (cellSize > max entity
+// diameter), else O(n^2).
 globalThis.SeparationSystem = {
   iterations: 1, // resolution passes per tick; raise so dense clusters settle
 
   /** Push overlapping dynamic solid bodies apart (broadphase path when `world.broadphase` is set). @param {World} world */
   update(world) {
-    const bp = world.broadphase;
-    if (bp !== undefined) {
-      this._updateBP(world, bp);
-    } else {
-      this._updateN2(world);
-    }
-  },
-
-  _updateBP(world, bp) {
-    const me = this;
-    for (let it = 0; it < this.iterations; it++) {
-      bp.clear();
-      for (const id of world.query(Collision, Position, BBox)) {
-        const col = world.get(Collision, id);
-        if (!col.solid || col.kinematic) continue;
-        const aabb = AABB.of(world, id);
-        bp.insert(id, aabb.cx, aabb.cy);
-      }
-      bp.pairs((a, b) => me._separate(world, a, b));
-    }
-  },
-
-  _updateN2(world) {
+    // Dynamic solid bodies — stable across iterations (only their positions move), so collect
+    // once; the broadphase re-buckets each pass since centers shift.
     const bodies = [];
     for (const id of world.query(Collision, Position, BBox)) {
       const col = world.get(Collision, id);
       if (col.solid && !col.kinematic) bodies.push(id);
     }
+
+    const bp = world.broadphase;
+    const sep = (a, b) => SeparationSystem._separate(world, a, b);
     for (let it = 0; it < this.iterations; it++) {
-      for (let a = 0; a < bodies.length; a++) {
-        for (let b = a + 1; b < bodies.length; b++) {
-          this._separate(world, bodies[a], bodies[b]);
+      if (bp !== undefined) {
+        bp.rebuild(world, bodies);
+        bp.pairs(sep);
+      } else {
+        for (let a = 0; a < bodies.length; a++) {
+          for (let b = a + 1; b < bodies.length; b++) {
+            SeparationSystem._separate(world, bodies[a], bodies[b]);
+          }
         }
       }
     }

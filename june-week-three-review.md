@@ -17,14 +17,14 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ## Core
 
-- [ ] Broadphase
-- [ ] EntityPreset
-- [ ] EntitySnapshot
-- [ ] IdPool
-- [ ] Query
-- [ ] Scene
-- [ ] SceneManager
-- [ ] World
+- [x] Broadphase
+- [x] EntityPreset
+- [x] EntitySnapshot
+- [x] IdPool
+- [x] Query
+- [x] Scene
+- [x] SceneManager
+- [x] World
 
 ### Camera
 

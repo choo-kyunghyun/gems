@@ -1,4 +1,12 @@
+// Spatial lookup over entities with a Position. Point-vs-Position tests only (it does not read
+// BBox — that's AABB's job); all four queries share the `opts` filter below.
+/** @typedef {Object} QueryOpts @property {string} [tag] require this Tag @property {number} [maxDist] cap search radius (world px) @property {boolean} [hasCollision] require a Collision component */
 globalThis.Query = class Query {
+  /**
+   * Nearest matching entity to (x, y), or -1.
+   * @param {World} world @param {number} x @param {number} y @param {QueryOpts} [opts]
+   * @returns {number} entity id, or -1
+   */
   static nearest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist =
@@ -15,6 +23,11 @@ globalThis.Query = class Query {
     return bestId;
   }
 
+  /**
+   * Farthest matching entity to (x, y) within `maxDist`, or -1.
+   * @param {World} world @param {number} x @param {number} y @param {QueryOpts} [opts]
+   * @returns {number} entity id, or -1
+   */
   static farthest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist = -1;
@@ -32,6 +45,11 @@ globalThis.Query = class Query {
     return bestId;
   }
 
+  /**
+   * All matching entities whose Position falls within the rect [x1,y1]-[x2,y2] (inclusive).
+   * @param {World} world @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 @param {QueryOpts} [opts]
+   * @returns {number[]} entity ids
+   */
   static inRect(world, x1, y1, x2, y2, opts = {}) {
     const result = [];
     for (const id of world.query(Position)) {
@@ -43,6 +61,11 @@ globalThis.Query = class Query {
     return result;
   }
 
+  /**
+   * All matching entities whose Position is within `radius` of (x, y).
+   * @param {World} world @param {number} x @param {number} y @param {number} radius @param {QueryOpts} [opts]
+   * @returns {number[]} entity ids
+   */
   static inRadius(world, x, y, radius, opts = {}) {
     const result = [];
     const rSq = radius * radius;
@@ -55,6 +78,7 @@ globalThis.Query = class Query {
     return result;
   }
 
+  /** @returns {boolean} whether entity `id` passes the tag / hasCollision filters in `opts`. */
   static _matchesOpts(world, id, opts) {
     if (opts.tag !== undefined) {
       const tag = world.get(Tag, id);

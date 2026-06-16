@@ -4,9 +4,9 @@
 // reads the live scene and restarts/quits THROUGH this interface (scenes.current /
 // label() / restart() / request()) instead of reaching into obj_game's private fields.
 //
-// A plain instance class, not a static singleton — there is exactly one, owned by the
-// single obj_game controller, and GMRT 0.19 doesn't fire static getters, so the lifecycle
-// state stays as plain instance fields read directly (e.g. SystemMenu reads `.current`).
+// A plain instance class, not a static singleton — there is exactly one, owned by the single
+// obj_game controller, so the lifecycle state stays as plain instance fields read directly
+// (e.g. SystemMenu reads `.current`; a static get wouldn't fire reliably on GMRT anyway).
 globalThis.SceneManager = class SceneManager {
   constructor() {
     this.current = null; // the live Scene instance, or null
@@ -15,25 +15,30 @@ globalThis.SceneManager = class SceneManager {
     this._label = null; // registry label of the live scene (string or () => string)
   }
 
-  // Boot / first scene: apply immediately (there's nothing to fade out from). The caller
-  // (obj_game Create) runs SceneTransition.reveal() so the first scene fades in from black.
+  /**
+   * Boot / first scene: apply immediately (nothing to fade out from). The caller (obj_game
+   * Create) runs SceneTransition.reveal() so the first scene fades in from black.
+   * @param {() => Scene} factory
+   */
   start(factory) {
     this._apply(factory);
   }
 
-  // Queue a scene change — applied next frame via update() (after UI.update()) so the UI
-  // tree isn't torn down mid-traversal. Ignored while a fade is already running: during
-  // the fade-out the outgoing scene's buttons are still live, so without this guard spamming
-  // one re-queues _pending and a second fade fires once the first finishes. This is the
-  // `openScene` callback handed to every scene's create().
+  /**
+   * Queue a scene change — applied next frame via update() (after UI.update()) so the UI tree
+   * isn't torn down mid-traversal. Ignored while a fade is already running, so spamming an
+   * outgoing scene's (still-live) button can't stack a second swap. This is the `openScene`
+   * callback handed to every scene's create().
+   * @param {() => Scene} factory
+   */
   request(factory) {
     if (SceneTransition.isBusy()) return;
     this._pending = factory;
   }
 
   // Per-frame (Step_0): flush a queued swap through a fade, then advance the fade timer.
-  // Route the swap through SceneTransition.start (it runs _apply at full cover); the busy
-  // guard stops a second openScene mid-fade from stacking two swaps.
+  // SceneTransition.start runs _apply at full cover; the busy guard stops a second openScene
+  // mid-fade from stacking two swaps.
   update() {
     if (this._pending !== null && !SceneTransition.isBusy()) {
       const factory = this._pending;
@@ -43,8 +48,10 @@ globalThis.SceneManager = class SceneManager {
     SceneTransition.update();
   }
 
-  // Swap at full cover: destroy the old scene, reset cross-scene singletons, build the new
-  // one (which rebuilds its UI hidden under the fade cover).
+  /**
+   * Swap at full cover: destroy the old scene, reset cross-scene singletons, build the new one
+   * (which rebuilds its UI hidden under the fade cover). @param {() => Scene} factory
+   */
   _apply(factory) {
     if (this.current !== null) this.current.destroy();
     UINav.reset(); // drop focus held on the outgoing scene's UI
@@ -63,13 +70,15 @@ globalThis.SceneManager = class SceneManager {
     this.current.create((s) => this.request(s));
   }
 
-  // Re-open the live scene from scratch (SystemMenu's "Restart Scene").
+  /** Re-open the live scene from scratch (SystemMenu's "Restart Scene"). */
   restart() {
     if (this._factory !== null) this.request(this._factory);
   }
 
-  // Display label for readouts: the registry label (a string or () => string textRef) if
-  // set, else the built-in scene's instance label, else "-".
+  /**
+   * Display label for readouts: the registry label (string or () => string textRef) if set,
+   * else the built-in scene's instance label, else "-". @returns {string}
+   */
   label() {
     if (this.current === null) return "-";
     const lbl = this._label;
@@ -96,12 +105,12 @@ globalThis.SceneManager = class SceneManager {
     }
   }
 
+  /** Render the live scene. */
   draw() {
     if (this.current !== null) this.current.draw();
   }
 
-  // Teardown (CleanUp): destroys the live scene's UI roots, so obj_game must call this
-  // before UI.destroy().
+  /** Teardown (CleanUp): destroys the live scene's UI roots, so obj_game must call this before UI.destroy(). */
   destroy() {
     if (this.current !== null) this.current.destroy();
   }
