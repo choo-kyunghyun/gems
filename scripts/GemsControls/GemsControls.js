@@ -2,6 +2,15 @@
 // Value widgets (toggle/progress/slider/select/stepper/input). See GemsTheme.js for
 // the kit overview + the GMRT globalThis-assignment rule.
 
+/** Index of the item whose `value` matches the current Settings value for `key` (0 if none). @param {string} key @param {{value:*}[]} items @returns {number} */
+globalThis.gemsSettingsIndex = function gemsSettingsIndex(key, items) {
+  const cur = Settings.get(key);
+  return Math.max(
+    0,
+    items.findIndex((item) => item.value === cur),
+  );
+};
+
 // Real visual checkbox/switch row: label on the left, the toggle graphic anchored to
 // the right edge; the whole row is the click target. `opts.style` is "check" (box +
 // tick, default) or "switch" (pill + sliding knob). For a `label: ON/OFF` button
@@ -219,7 +228,7 @@ globalThis.gemsDropdownPopup = function gemsDropdownPopup(
   root.addComponent(modal);
 
   // Absolute wrapper positions the card at the field (construction-time layout props
-  // only — never runtime flex mutation, per GMRT #15065).
+  // only — the kit drives runtime change with draw-time offsets, not flex mutation).
   const wrap = new UIElement({
     positionType: "absolute",
     left: pos.left,
@@ -260,14 +269,9 @@ globalThis.gemsDropdownPopup = function gemsDropdownPopup(
 // Settings-bound dropdown. `items` are { name, value }; the current Settings value
 // picks the starting index (mirrors gemsSelect, but as a popup list).
 globalThis.gemsDropdown = function gemsDropdown(key, items, opts = {}) {
-  const cur = Settings.get(key);
-  const idx = Math.max(
-    0,
-    items.findIndex((item) => item.value === cur),
-  );
   return gemsDropdownCustom(
     items,
-    idx,
+    gemsSettingsIndex(key, items),
     (_i, value) => Settings.set(key, value),
     opts,
   );
@@ -422,14 +426,9 @@ globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
 // Settings-bound select. `items` are { name, value }; the current Settings value
 // picks the starting index.
 globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
-  const cur = Settings.get(key);
-  const idx = Math.max(
-    0,
-    items.findIndex((item) => item.value === cur),
-  );
   return gemsSelectCustom(
     items,
-    idx,
+    gemsSettingsIndex(key, items),
     (_i, value) => {
       Settings.set(key, value);
       if (opts.onChange !== undefined) opts.onChange(value);

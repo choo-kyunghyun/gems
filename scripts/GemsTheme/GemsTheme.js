@@ -11,9 +11,9 @@
 //
 // GMRT note: every factory across these files is assigned via
 // `globalThis.X = function X(...)`, NOT a bare `function X(...)` declaration. Past a
-// certain file size GMRT 0.19 stops hoisting some bare top-level declarations into
-// global scope and faults at startup ("cannot coerce undefined or null value into
-// object"). Explicit globalThis assignment plus keeping each file small is reliable.
+// certain file size GMRT stops hoisting some bare top-level declarations into global
+// scope and faults at startup ("cannot coerce undefined or null value into object").
+// Explicit globalThis assignment plus keeping each file small is reliable.
 
 globalThis.GemsTheme = {
   // ── Surfaces (cool slate; `panelLo` is the darker edge of the card vignette) ──
@@ -51,14 +51,14 @@ globalThis.GemsTheme = {
   animSpeed: 16, // hover/press easing rate
 };
 
-// Accept a theme key, hex string, or raw color int → color int.
+/** Resolve a theme key, hex string, or raw color int → a GameMaker color int. @param {string|number} c @returns {number} */
 globalThis.gemsColor = function gemsColor(c) {
   if (typeof c === "number") return c;
   if (GemsTheme[c] !== undefined) return Color.parse(GemsTheme[c]);
   return Color.parse(c);
 };
 
-// Accept a string or a () => string → a live textRef.
+/** Normalize a string or () => string into a live textRef. @param {string|(() => string)} label @returns {() => string} */
 globalThis.gemsTextRef = function gemsTextRef(label) {
   return typeof label === "function" ? label : () => label;
 };

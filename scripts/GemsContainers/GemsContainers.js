@@ -447,8 +447,8 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
 // Returns the root column (flyout host on top, bar below). The CALLER anchors the root
 // (e.g. an absolute bottom-center wrapper); since the bar is the last child and the host
 // grows with the open list, a bottom anchor keeps the bar pinned and the list pops upward.
-// The flyout is driven by structural insert/remove (reliable reflow on GMRT — unlike the
-// per-frame flex style setters), and prebuilt once per category (toggled, not rebuilt).
+// The flyout is driven by structural insert/remove (the kit's reliable-reflow pattern), and
+// prebuilt once per category (toggled, not rebuilt).
 // `root.catbar` exposes { state, open(c), close(), select(c, k) }.
 globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
   const itemW = opts.itemWidth ?? 130;

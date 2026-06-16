@@ -170,10 +170,10 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ## GemsUI
 
-- [ ] GemsContainers
-- [ ] GemsControls
-- [ ] GemsTheme
-- [ ] GemsWidgets
+- [x] GemsContainers
+- [x] GemsControls
+- [x] GemsTheme
+- [x] GemsWidgets
 
 ## RPG
 
