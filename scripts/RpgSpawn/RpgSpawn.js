@@ -10,6 +10,7 @@
 //   npc      label nameKey questId
 //   chest    capacity items:[{itemId,qty}]
 //   prop     label color(#hex) kind?   (kind → Station, else decorative furniture)
+//   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
 //   reach    half?                      (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.load; non-solid sensor)
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
@@ -149,6 +150,34 @@ globalThis.RpgSpawn = {
       world.add(id, Visual, RpgSpawn._visual(spr_choo, Color.parse(s.color)));
       if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
       else world.add(id, Tag, { tags: new Set(["furniture"]) });
+      return id;
+    } else if (s.preset === "torch") {
+      // A decorative LIGHT prop: a small solid post carrying a Light component, drawn by the
+      // RenderLighting pass. Persists/deconstructs like any built entity — EntitySnapshot copies
+      // every component, so the Light round-trips through a map reload with no special handling.
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 }); // small footprint
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Name, { name: s.label ?? "Torch" });
+      world.add(
+        id,
+        Visual,
+        RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#ff9a3c")),
+      );
+      // Warm, gently flickering torch light (archetype values; tune via the Light component).
+      world.add(id, Light, {
+        radius: 150,
+        color: Color.parse("#ffd09a"),
+        intensity: 0.9,
+        flicker: 0.18,
+      });
+      world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "portal") {
       // A doorway: a non-solid sensor entity the player walks onto to travel to another

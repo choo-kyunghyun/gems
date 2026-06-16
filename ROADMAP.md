@@ -19,10 +19,6 @@
 - Wandering traders
 - Companion benefits like increasing inventory
 
-### Build Mode
-
-- Lightsource
-
 ### Editor
 
 - Prefabs

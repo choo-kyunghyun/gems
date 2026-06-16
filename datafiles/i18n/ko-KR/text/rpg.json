@@ -31,6 +31,7 @@
   "BUILD_CAT_TILES": "타일",
   "BUILD_CAT_FURNITURE": "가구",
   "BUILD_CAT_STATIONS": "설비",
+  "BUILD_CAT_LIGHTING": "조명",
   "BUILD_WALL": "벽",
   "BUILD_FLOOR": "바닥",
   "BUILD_CRATE": "나무 상자",
@@ -38,6 +39,7 @@
   "BUILD_FENCE": "울타리",
   "BUILD_CHEST": "상자",
   "BUILD_WORKBENCH": "작업대",
+  "BUILD_TORCH": "횃불",
   "BUILD_ZONE": "건설 구역",
   "BUILD_CLAIMED": "건설 구역을 점유했습니다",
 

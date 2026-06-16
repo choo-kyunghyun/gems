@@ -89,6 +89,24 @@ globalThis.BuildMode = {
       ],
     },
     {
+      labelKey: "BUILD_CAT_LIGHTING",
+      items: [
+        {
+          id: "torch",
+          labelKey: "BUILD_TORCH",
+          cost: 3,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "torch",
+            gx,
+            gy,
+            label: I18n.text("BUILD_TORCH"),
+            color: "#ff9a3c",
+          }),
+        },
+      ],
+    },
+    {
       labelKey: "BUILD_CAT_STATIONS",
       items: [
         {

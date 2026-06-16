@@ -31,6 +31,7 @@
   "BUILD_CAT_TILES": "Tiles",
   "BUILD_CAT_FURNITURE": "Furniture",
   "BUILD_CAT_STATIONS": "Stations",
+  "BUILD_CAT_LIGHTING": "Lighting",
   "BUILD_WALL": "Wall",
   "BUILD_FLOOR": "Floor",
   "BUILD_CRATE": "Crate",
@@ -38,6 +39,7 @@
   "BUILD_FENCE": "Fence",
   "BUILD_CHEST": "Chest",
   "BUILD_WORKBENCH": "Workbench",
+  "BUILD_TORCH": "Torch",
   "BUILD_ZONE": "Build Area",
   "BUILD_CLAIMED": "Build area claimed",
 
