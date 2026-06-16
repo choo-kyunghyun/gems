@@ -7,8 +7,9 @@
 // back to O(n^2). Set world.broadphase = new Broadphase(w, h, cellSize) in
 // the scene with cellSize > max entity diameter.
 globalThis.SeparationSystem = {
-  iterations: 1,
+  iterations: 1, // resolution passes per tick; raise so dense clusters settle
 
+  /** Push overlapping dynamic solid bodies apart (broadphase path when `world.broadphase` is set). @param {World} world */
   update(world) {
     const bp = world.broadphase;
     if (bp !== undefined) {
@@ -47,6 +48,8 @@ globalThis.SeparationSystem = {
     }
   },
 
+  // Split the minimum-translation overlap along the shallower axis, moving each
+  // body half the penetration apart (equal mass).
   _separate(world, ida, idb) {
     const a = AABB.of(world, ida);
     const b = AABB.of(world, idb);

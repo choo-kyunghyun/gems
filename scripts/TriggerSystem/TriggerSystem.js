@@ -8,6 +8,7 @@
 // back to O(n^2). Set world.broadphase = new Broadphase(w, h, cellSize) in
 // the scene with cellSize > max entity diameter.
 globalThis.TriggerSystem = {
+  /** Rebuild every collider's `hits` list from this tick's sensor overlaps. @param {World} world */
   update(world) {
     const ids = world.query(Collision, Position, BBox);
 

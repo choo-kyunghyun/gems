@@ -6,7 +6,7 @@
   "name":"Projectile",
   "parent":{
     "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "path":"folders/RPG/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

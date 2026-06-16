@@ -45,7 +45,6 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [x] Persistent
 - [x] Position
 - [x] PrevPosition
-- [x] Projectile
 - [x] State
 - [x] Station
 - [x] Tag
@@ -90,17 +89,16 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### System
 
-- [ ] GravitySystem
-- [ ] InterpolationSystem
-- [ ] LifetimeSystem
-- [ ] MovementSystem
-- [ ] PathfindingSystem
-- [ ] Pipeline
-- [ ] ProjectileSystem
-- [ ] SeparationSystem
-- [ ] SolidSystem
-- [ ] StateSystem
-- [ ] TriggerSystem
+- [x] GravitySystem
+- [x] InterpolationSystem
+- [x] LifetimeSystem
+- [x] MovementSystem
+- [x] PathfindingSystem
+- [x] Pipeline
+- [x] SeparationSystem
+- [x] SolidSystem
+- [x] StateSystem
+- [x] TriggerSystem
 
 ### UI
 
@@ -191,6 +189,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] Light
 - [ ] NPC
 - [ ] Portal
+- [x] Projectile
 - [ ] Stats
 - [ ] Turret
 
@@ -241,6 +240,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] InventorySystem
 - [ ] MeleeSystem
 - [ ] OverworldGen
+- [x] ProjectileSystem
 - [ ] RenderDayNight
 - [ ] RenderLighting
 - [ ] RenderWeather

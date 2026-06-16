@@ -1,7 +1,15 @@
+/**
+ * Applies a constant acceleration to every entity with `Velocity` each tick.
+ * Kinematic bodies are skipped (infinite mass). `world.gravity` overrides
+ * `strength`; set `direction` for non-downward gravity.
+ */
 globalThis.GravitySystem = {
+  /** @type {number} acceleration magnitude (px/s²); overridden per-world by `world.gravity`. */
   strength: 9.8,
+  /** @type {{x:number,y:number,z:number}} unit gravity direction (default straight down). */
   direction: { x: 0, y: 1, z: 0 },
 
+  /** @param {World} world */
   update(world) {
     const strength = world.gravity ?? this.strength;
     const { direction } = this;

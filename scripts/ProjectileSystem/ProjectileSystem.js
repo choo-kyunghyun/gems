@@ -5,6 +5,7 @@
 // is bounded by Lifetime (LifetimeSystem). Bullets carry no Collision, so they are
 // invisible to Raycast/SolidSystem and pass through each other.
 globalThis.ProjectileSystem = {
+  /** Step every bullet: raycast its motion, damage a hit Health, then despawn it. @param {World} world */
   update(world) {
     const dt = world.tickDuration;
     for (const id of world.query(Projectile, Position, Velocity)) {
@@ -29,22 +30,13 @@ globalThis.ProjectileSystem = {
       pos.y = hit.y;
 
       const hp = world.get(Health, hit.id);
-      // An allied body (FactionSystem.allied) takes no damage — it just blocks the shot like a
-      // wall (falls through to the destroy/bounce branch). No-op until allies carry Health.
-      if (
-        hp !== undefined &&
-        !FactionSystem.allied(world, proj.owner, hit.id)
-      ) {
+      // Damage a hit body's Health, unless it's an ally (FactionSystem.allied) — an
+      // ally just blocks the shot like a wall. No-op until allies carry Health.
+      if (hp !== undefined && !FactionSystem.allied(world, proj.owner, hit.id)) {
         hp.hp -= proj.damage;
         if (hp.hp <= 0) world.remove(hit.id);
-        world.remove(id);
-      } else if (proj.bouncy && hit.ny === -1) {
-        // Floor hit: bounce upward. Minimum 200 px/s so early hits aren't tiny.
-        vel.y = -Math.max(Math.abs(vel.y), 200);
-      } else {
-        // Wall, ceiling, or non-bouncy projectile: destroy.
-        world.remove(id);
       }
+      world.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
     }
   },
 };

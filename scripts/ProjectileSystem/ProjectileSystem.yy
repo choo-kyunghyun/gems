@@ -6,7 +6,7 @@
   "name":"ProjectileSystem",
   "parent":{
     "name":"System",
-    "path":"folders/Core/System.yy",
+    "path":"folders/RPG/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

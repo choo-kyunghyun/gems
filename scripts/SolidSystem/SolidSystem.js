@@ -2,15 +2,13 @@
 // (GameMaker move_and_collide style). Integrates each body's Velocity itself,
 // sub-stepped so fast movers can't tunnel, and resolves overlaps per axis so
 // wall-slide falls out for free. A body pushed upward out of a downward move is
-// flagged Grounded (this replaces the old GroundedSystem).
-//
-// Because it integrates motion, bodies it moves must NOT also be moved by
-// MovementSystem. Tunable: SolidSystem.maxStep — max px per sub-step; keep it
-// below the thinnest collider.
+// flagged Grounded. Because it integrates motion, the bodies it moves must NOT
+// also be moved by MovementSystem.
 globalThis.SolidSystem = {
-  maxStep: 8,
+  maxStep: 8, // max px per sub-step; keep below the thinnest collider so fast movers can't tunnel
   oneWayTol: 2, // px a body may sink into a one-way top and still be caught (resting slack)
 
+  /** Integrate + collide every dynamic solid body against the kinematic solids. @param {World} world */
   update(world) {
     const dt = world.tickDuration;
 
