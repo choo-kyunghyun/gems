@@ -1,19 +1,18 @@
-// Melee combat (both genres). A swing is resolved immediately (no projectile entity):
+// Melee combat for the RPG. A swing is resolved immediately (no projectile entity):
 // an AABB hitbox extends `reach` px from the attacker's front edge in the facing
-// DIRECTION (a vector, snapped to the dominant axis — works for platformer left/right
-// and top-down 4-way) and applies `damage` to the Health of every other body it overlaps.
+// DIRECTION (a vector, snapped to the dominant axis → 4-way) and applies `damage` to
+// the Health of every other body it overlaps.
 //
-//   const hits = MeleeSystem.swing(world, playerId, dirX, dirY, reach, damage);
-//   // platformer: swing(world, id, ctrl.facing, 0, ...)   top-down: swing(world, id, dir.x, dir.y, ...)
+//   const hits = MeleeSystem.swing(world, playerId, dir.x, dir.y, reach, damage);
 //
 // Targets any entity with Health + BBox EXCEPT the attacker and its faction ALLIES (no
 // friendly fire — FactionSystem.allied; a target with no faction is still hit, so this is a
-// no-op for current content where only the player/slimes carry factions). In these templates
-// that's exactly the enemies/slimes (the player is excluded; NPCs/furniture/drops carry no
-// Health), so it's genre-agnostic without needing a per-genre "enemy" tag. Returns the
-// ids struck; bodies at <= 0 hp are removed via world.remove (committed by the caller's
-// flush) — the scene's death scan then spills their loot, same as a ranged kill. Uses
-// AABB for edge geometry (the non-uniform BBox-anchor convention) — never inline pos+box.
+// no-op for current content where only the player/slimes carry factions). In the RPG that's
+// exactly the slimes (the player is excluded; NPCs/furniture/drops carry no Health), so it
+// needs no per-genre "enemy" tag. Returns the ids struck; bodies at <= 0 hp are removed via
+// world.remove (committed by the caller's flush) — the scene's death scan then spills their
+// loot, same as a ranged kill. Uses AABB for edge geometry (the non-uniform BBox-anchor
+// convention) — never inline pos+box.
 globalThis.MeleeSystem = {
   /**
    * @param {object} world

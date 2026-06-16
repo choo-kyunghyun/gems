@@ -1,6 +1,5 @@
 // Pure operation: use one unit of a Consumable item from an entity's Inventory,
-// applying its instant effect. A plain object (not a class) so future helpers
-// can call each other — see the GMRT static-method note in CLAUDE.md.
+// applying its instant effect. A plain system object (the project's System pattern).
 globalThis.ConsumableSystem = {
   // Use one unit of itemId from entity `id`. Returns true if it was used (and one
   // unit removed). Fails (false) if the item isn't consumable, isn't owned, or

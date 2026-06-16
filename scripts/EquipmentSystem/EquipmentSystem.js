@@ -1,13 +1,12 @@
 // Pure operations on an entity's Equipment + Stats + Inventory (no world tick).
-// Equipment is { slots: { weapon, armor, trinket } } where each value is an
-// itemId or "". Equipped items STAY in the Inventory — they keep occupying a
+// Equipment is { slots: { weapon, armor, trinket, backpack } } where each value is
+// an itemId or "". Equipped items STAY in the Inventory — they keep occupying a
 // slot and counting toward capacity/maxWeight; the Equipment slot only
 // references the equipped itemId and ADDS its `mods` to the live Stats sheet (and
 // any Container capacity bonus to the Inventory). Unequipping reverses the exact
-// same deltas. Because Item defs are static,
-// equip/unequip always pair, so no recompute-from-base pass is needed (deltas
-// stay balanced). A plain object (not a class) so its methods can call each
-// other — see the GMRT static-method note in CLAUDE.md.
+// same deltas. Because Item defs are static, equip/unequip always pair, so no
+// recompute-from-base pass is needed (deltas stay balanced). A plain system object
+// (the project's System pattern).
 globalThis.EquipmentSystem = {
   // Equip itemId onto entity `id` (the item stays in its Inventory). Returns true
   // on success. Fails (false) if the item isn't equippable, isn't owned, or is

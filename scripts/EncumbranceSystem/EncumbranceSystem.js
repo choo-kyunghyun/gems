@@ -1,7 +1,7 @@
 // On-demand helper: maps an entity's carried weight to a speed multiplier, read
 // live by the mover (see RpgController.update) rather than mutating Stats.speed
 // — so it composes cleanly with equipment mods instead of fighting their balanced
-// add/remove deltas. A plain object (not a class) per the GMRT static-method note.
+// add/remove deltas. A plain system object (the project's System pattern).
 globalThis.EncumbranceSystem = {
   // Speed multiplier in [enc.minScale, 1] from the entity's current Inventory load.
   // Returns 1 (no penalty) when the entity lacks Encumbrance/Inventory or the

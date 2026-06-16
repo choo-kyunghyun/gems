@@ -1,7 +1,7 @@
-// Shared combat/loot plumbing for the RPG genre scenes (platformer + top-down). These
-// were duplicated, near-identical methods on both scene classes; centralized here as
-// free functions taking the scene (composition — GMRT has no usable class inheritance).
-// Genre-specific side effects are passed as small callbacks/options.
+// Combat/loot plumbing for the RPG scene — free functions taking the scene (composition;
+// GMRT has no usable class inheritance). Originally factored out of two RPG scenes; the
+// platformer no longer carries this plumbing, so sceneRpg is the only consumer now.
+// Scene-specific side effects are passed as small callbacks/options.
 //
 // Contract: the scene owns `world`, `ctrl` (with `.id`), `_hpTrack` (id → last-seen hp),
 // and `_invDirty` (bag-changed flag). The enemy set is derived LIVE from the world by
@@ -22,8 +22,8 @@ globalThis.RpgScene = {
 
   // Floating combat numbers: diff each combatant's Health vs last tick, pop a rising
   // number on any change (damage falls, heals rise). `yOffset` lifts the number above the
-  // entity (genre sprite height: ~28 platformer, ~14 top-down). Run after physics, before
-  // deaths are flushed, so the killing blow still pops.
+  // entity (~14 for the RPG sprite). Run after physics, before deaths are flushed, so the
+  // killing blow still pops.
   trackDamage(scene, yOffset) {
     RpgScene._diffHp(scene, scene.ctrl.id, true, yOffset);
     const enemies = RpgScene._enemies(scene.world);
@@ -135,8 +135,8 @@ globalThis.RpgScene = {
     }
   },
 
-  // hp ≤ 0 → refill to maxHp and respawn. `onRespawn()` does the genre-specific reset
-  // (platformer controller respawn vs a manual pos/vel reset). Suppresses a "+heal" pop
+  // hp ≤ 0 → refill to maxHp and respawn. `onRespawn()` does the scene's respawn reset
+  // (sceneRpg moves the player to its spawn + zeroes velocity). Suppresses a "+heal" pop
   // for the refill.
   checkPlayerDeath(scene, onRespawn) {
     const world = scene.world;

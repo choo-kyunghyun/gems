@@ -1,7 +1,8 @@
 // Plays the current Animator state and writes the frame into the entity's Visual.
 // The controller/scene chooses the state (e.g. via AnimationSystem.set); this
-// system only advances playback. Run once per frame (uses wall-clock Time.delta),
-// after state selection. Requires Animator + Visual.
+// system only advances playback. Run once per frame (uses Time.delta — sim time,
+// so animation pauses/dilates with the game), after state selection. Requires
+// Animator + Visual.
 globalThis.AnimationSystem = {
   update(world) {
     for (const id of world.query(Animator, Visual)) {
@@ -10,8 +11,8 @@ globalThis.AnimationSystem = {
       const st = anim.graph[anim.state];
       if (st === undefined) continue;
 
-      // Clamp to >= 1: GMRT 0.19 reports 0 frames for SVG sprites, which would
-      // make a non-looping state land on frames-1 = -1 ("negative subimage").
+      // Clamp to >= 1: GMRT reports 0 frames for SVG sprites (still on 0.20), which
+      // would make a non-looping state land on frames-1 = -1 ("negative subimage").
       const frames = st.frames > 0 ? st.frames : 1;
       const frameDur = st.fps > 0 ? 1 / st.fps : Infinity;
       anim.time += Time.delta;

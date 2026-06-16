@@ -10,9 +10,9 @@
 //     identically every visit (the streaming cache only persists ENTITY state, never terrain).
 //
 // Output = an optional stamped PREFAB (a hand-authored cluster) plus a loose random scatter of
-// rocks + slimes. Determinism comes from a per-chunk xorshift32 seed (bitwise ops are int32-safe
-// on GMRT — IdPool relies on the same). GMRT-safe: index loops, Object.keys (no Map/Set for-of),
-// class assigned to globalThis.
+// rocks + slimes. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
+// below — GMRT miscompiles xorshift, so this uses pure integer-float math, no bitwise chain).
+// GMRT-safe: index loops, Object.keys (no Map/Set for-of), class assigned to globalThis.
 globalThis.OverworldGen = class OverworldGen {
   constructor(opts = {}) {
     this.seed = (opts.seed ?? 1337) | 0;

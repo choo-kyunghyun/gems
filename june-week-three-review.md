@@ -230,29 +230,29 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### System
 
-- [ ] AnimationSystem
-- [ ] ChunkSource
-- [ ] ConsumableSystem
-- [ ] CraftSystem
-- [ ] EncumbranceSystem
-- [ ] EquipmentSystem
-- [ ] FactionSystem
-- [ ] FollowerSystem
-- [ ] InventorySystem
-- [ ] MeleeSystem
-- [ ] OverworldGen
+- [x] AnimationSystem
+- [x] ChunkSource
+- [x] ConsumableSystem
+- [x] CraftSystem
+- [x] EncumbranceSystem
+- [x] EquipmentSystem
+- [x] FactionSystem
+- [x] FollowerSystem
+- [x] InventorySystem
+- [x] MeleeSystem
+- [x] OverworldGen
 - [x] ProjectileSystem
-- [ ] RenderDayNight
-- [ ] RenderLighting
-- [ ] RenderWeather
-- [ ] RpgProgression
-- [ ] RpgScene
-- [ ] sh_daynight
-- [ ] SlimeAI
-- [ ] Temperature
-- [ ] TurretSystem
-- [ ] Weather
-- [ ] WorldClock
+- [x] RenderDayNight
+- [x] RenderLighting
+- [x] RenderWeather
+- [x] RpgProgression
+- [x] RpgScene
+- [x] sh_daynight
+- [x] SlimeAI
+- [x] Temperature
+- [x] TurretSystem
+- [x] Weather
+- [x] WorldClock
 
 ### UI
 

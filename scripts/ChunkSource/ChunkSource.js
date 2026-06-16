@@ -7,9 +7,10 @@
 //     generation isn't fixed: pass a different `generator` (cave/desert/...) for a different
 //     wilderness with the same generate(cx,cy) contract.
 //
-// Coordinates returned are ABSOLUTE grid coords (gridToWorld handles negatives), so chunks
-// extend infinitely in every direction. Entity construction is delegated to
-// RpgSpawn.spawnEntity — the single place entities are built.
+// Coordinates returned are ABSOLUTE grid coords (gridToWorld handles negatives), so any cx/cy
+// generates consistently — ChunkManager bounds which chunks it actually streams (the world is a
+// finite rectangle now, not infinite). Entity construction is delegated to RpgSpawn.spawnEntity —
+// the single place entities are built.
 globalThis.ChunkSource = class ChunkSource {
   constructor(opts = {}) {
     this.chunkCols = opts.chunkCols ?? 16;
@@ -107,7 +108,7 @@ globalThis.ChunkSource = class ChunkSource {
     return this.generator.generate(cx, cy);
   }
 
-  // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgLevel so
+  // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgSpawn so
   // entity construction stays in one place). Non-entity presets (e.g. "reach") return -1.
   spawn(world, level, desc) {
     return RpgSpawn.spawnEntity(world, level, desc);

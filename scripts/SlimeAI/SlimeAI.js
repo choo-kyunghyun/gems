@@ -26,6 +26,8 @@ globalThis.Brain = "Brain";
  * @property {number} speed       chase/return move speed (px/s)
  * @property {number} cdMax       ticks between attacks
  * @property {number} cd          attack cooldown countdown
+ * @property {number} pathCd      A* replan throttle countdown (ticks) while a chase is wall-blocked
+ * @property {number} pathRate    ticks between A* replans during a blocked chase
  */
 
 globalThis.SlimeAI = {

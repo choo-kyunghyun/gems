@@ -1,8 +1,8 @@
 // World-space pass that draws the current Weather over the camera view: a flat tint plus falling
 // rain / drifting snow. Cross-fades the outgoing + incoming conditions by Weather.blend() so the
-// weather eases in/out. Inserted just BEFORE RenderDayNight so the night tint also darkens the
-// rain; the scene's post-renderer cues (station highlight, build cursor, floating numbers) stay
-// bright above it.
+// weather eases in/out. Inserted just BEFORE RenderLighting so the night/light tint also darkens
+// the rain; the scene's post-renderer cues (station highlight, build cursor, floating numbers)
+// stay bright above it.
 //
 // Particles are screen-space relative to the view rect (rain falls on the screen, not world-
 // locked) and scroll on a cumulative wall-clock (current_time — monotonic real ms, so they keep
@@ -14,7 +14,7 @@
 //
 // View rect from the held Camera's own fields (toX/toY/width/height), NOT camera_get_view_* — the
 // project's Camera drives the view by matrix so camera_get_view_* returns 0 (see CLAUDE.md). The
-// scene assigns pass.camera after building the camera, like RenderDayNight.
+// scene assigns pass.camera after building the camera, like RenderLighting.
 //
 // @implements {RenderPass}
 globalThis.RenderWeather = class RenderWeather {
