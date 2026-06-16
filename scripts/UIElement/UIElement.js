@@ -168,19 +168,25 @@ globalThis.UIElement = class UIElement {
       this._clipSurf = surface_create(w, h);
     }
 
+    // Pixel-snap the surface origin to integer GUI coords. The surface is blitted with
+    // draw_surface at this origin; a fractional offset (common once the GUI is scaled by
+    // uiScale, or from flex layout) bilinear-resamples the blit and softens SDF text —
+    // the reason clipped text looked blurrier than direct draw_text. The matrix uses the
+    // same integer origin so children keep their exact sub-pixel position WITHIN the
+    // surface (SDF stays crisp there); only the 1:1 blit is snapped to the grid.
+    const ox = Math.floor(pos.left);
+    const oy = Math.floor(pos.top);
+
     surface_set_target(this._clipSurf);
     draw_clear_alpha(c_black, 0); // start transparent
-    matrix_set(
-      matrix_world,
-      matrix_build(-pos.left, -pos.top, 0, 0, 0, 0, 1, 1, 1),
-    );
+    matrix_set(matrix_world, matrix_build(-ox, -oy, 0, 0, 0, 0, 1, 1, 1));
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
     matrix_set(matrix_world, matrix_build_identity());
     surface_reset_target();
 
-    draw_surface(this._clipSurf, pos.left, pos.top);
+    draw_surface(this._clipSurf, ox, oy);
   }
 
   /**
