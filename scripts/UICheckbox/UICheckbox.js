@@ -39,8 +39,8 @@ globalThis.UICheckbox = class UICheckbox {
     this._over = !block && element.positionMeeting(mx, my);
 
     if (!this.readOnly) {
-      if (this._over && mouse_check_button_pressed(mb_left)) this._hold = true;
-      if (mouse_check_button_released(mb_left)) {
+      if (this._over && UIPointer.pressed) this._hold = true;
+      if (UIPointer.released) {
         if (this._hold && this._over) this.onToggle();
         this._hold = false;
       }

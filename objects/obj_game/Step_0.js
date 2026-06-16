@@ -1,5 +1,5 @@
 Time.update();
-SlotDrag.poll();
+UIPointer.poll(); // latch this frame's pointer edges before any widget reads them
 UI.update();
 SlotDrag.update();
 SystemMenu.update(this); // global F1 system overlay; before UINav so it's same-frame nav-reachable

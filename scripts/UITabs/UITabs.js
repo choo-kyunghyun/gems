@@ -70,7 +70,7 @@ globalThis.UITabs = class UITabs {
     if (inside) {
       const seg = clamp(floor(((mx - pos.left) / pos.width) * n), 0, n - 1);
       this._hover = seg;
-      if (mouse_check_button_pressed(mb_left)) {
+      if (UIPointer.pressed) {
         this.select(seg);
         return true;
       }

@@ -78,14 +78,12 @@ globalThis.UIDropdown = class UIDropdown {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
 
-    const pressed = mouse_check_button_pressed(mb_left);
-    const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     this._enter = !block && element.positionMeeting(mx, my);
 
-    if (this._enter && pressed) this._hold = true;
-    if (released) {
+    if (this._enter && UIPointer.pressed) this._hold = true;
+    if (UIPointer.released) {
       if (this._hold && this._enter) this._toggle(element);
       this._hold = false;
     }

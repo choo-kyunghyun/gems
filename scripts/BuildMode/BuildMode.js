@@ -274,10 +274,10 @@ globalThis.BuildMode = {
     )
       return;
 
-    // LMB edge is the one already latched by SlotDrag.poll this frame — reuse it rather than
+    // LMB edge is the one already latched by UIPointer.poll this frame — reuse it rather than
     // re-querying mouse_check_button_pressed(mb_left) (realtime sampling returns different
     // values per call; see GMRT-Safe Idioms). RMB is unread elsewhere, so a single query is safe.
-    if (SlotDrag.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
+    if (UIPointer.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
     else if (mouse_check_button_pressed(mb_right))
       BuildMode._tryRemove(scene, cell.x, cell.y);
   },

@@ -11,11 +11,8 @@
  * cursor. The recorded target is PERSISTED (not cleared when the cursor leaves a
  * slot), so a small drift off the slot as the button comes up still drops correctly.
  *
- * Mouse edges (`pressed`/`released`) are latched once per frame in `poll()` and read
- * by UISlots + this class — never `mouse_check_button*` directly. On GMRT those
- * functions are sampled realtime, so reading the same query twice in a frame returns
- * different values (it made the drop and cancel paths disagree on the release edge).
- * See the GMRT-Safe Idioms note in CLAUDE.md.
+ * Pointer edges come from UIPointer (the frame-latched pointer state) — never
+ * `mouse_check_button*` directly, which are sampled realtime on GMRT (see CLAUDE.md).
  */
 globalThis.SlotDrag = class SlotDrag {
   static active = false;
@@ -24,19 +21,9 @@ globalThis.SlotDrag = class SlotDrag {
   static item = null; // the carried slot item
   static iconSize = 48;
 
-  // Frame-latched mouse edges (read once per frame in poll, shared by all readers).
-  static pressed = false;
-  static released = false;
-
   // The last slot the cursor was over during the drag (persisted, seeded to source).
   static hoverGrid = null;
   static hoverSlot = -1;
-
-  // Called once per frame in Step_0, before UI.update().
-  static poll() {
-    SlotDrag.pressed = mouse_check_button_pressed(mb_left);
-    SlotDrag.released = mouse_check_button_released(mb_left);
-  }
 
   static begin(grid, i) {
     if (SlotDrag.active) return;
@@ -93,7 +80,7 @@ globalThis.SlotDrag = class SlotDrag {
   // release edge drop onto the last slot the cursor was over (drift-forgiving).
   static update() {
     if (!SlotDrag.active) return;
-    if (!SlotDrag.released) return;
+    if (!UIPointer.released) return;
     if (SlotDrag.hoverGrid !== null) {
       SlotDrag.drop(SlotDrag.hoverGrid, SlotDrag.hoverSlot);
     } else {

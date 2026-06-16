@@ -68,7 +68,7 @@ globalThis.UIScroll = class UIScroll {
       // positionMeeting is read live at each use, never cached in a boolean local —
       // a cached primitive bool can be clobbered mid-function on GMRT (that bug was
       // gating the wheel so it only fired over the thumb).
-      const wheel = (mouse_wheel_down() ? 1 : 0) - (mouse_wheel_up() ? 1 : 0);
+      const wheel = UIPointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))
         this.scroll += wheel * this.wheelStep;
 
@@ -79,7 +79,7 @@ globalThis.UIScroll = class UIScroll {
         mx <= m.x1 + this.barW &&
         my >= m.thumbY &&
         my <= m.thumbY + m.thumbH;
-      if (this._overThumb && mouse_check_button_pressed(mb_left)) {
+      if (this._overThumb && UIPointer.pressed) {
         this._dragging = true;
         this._dragDY = my - m.thumbY;
       }
@@ -88,7 +88,7 @@ globalThis.UIScroll = class UIScroll {
     }
 
     if (this._dragging) {
-      if (mouse_check_button(mb_left)) {
+      if (UIPointer.down) {
         const travel = m.h - m.thumbH;
         const t = travel > 0 ? (my - this._dragDY - m.y1) / travel : 0;
         this.scroll = clamp(t, 0, 1) * m.max;

@@ -108,8 +108,8 @@ globalThis.UISlider = class UISlider {
     this._over = !block && element.positionMeeting(mx, my);
 
     if (!this.readOnly) {
-      if (this._over && mouse_check_button_pressed(mb_left)) this._hold = true;
-      if (mouse_check_button_released(mb_left)) this._hold = false;
+      if (this._over && UIPointer.pressed) this._hold = true;
+      if (UIPointer.released) this._hold = false;
       if (this._hold) {
         const m = this._metrics(pos);
         const t = clamp((mx - pos.left - m.r) / m.inner, 0, 1);

@@ -40,10 +40,7 @@ globalThis.UIRebind = class UIRebind {
     if (this._capturing) {
       // Esc or any mouse click cancels; any other key press rebinds. Escape is
       // checked first since the scan below would otherwise pick it up.
-      if (
-        keyboard_check_pressed(vk_escape) ||
-        mouse_check_button_pressed(mb_left)
-      ) {
+      if (keyboard_check_pressed(vk_escape) || UIPointer.pressed) {
         this._capturing = false;
       } else {
         // Scan for the keycode whose pressed-edge is live THIS frame, rather than
@@ -63,8 +60,8 @@ globalThis.UIRebind = class UIRebind {
     const my = device_mouse_y_to_gui(0);
     this._enter = !block && element.positionMeeting(mx, my);
 
-    if (this._enter && mouse_check_button_pressed(mb_left)) this._hold = true;
-    if (mouse_check_button_released(mb_left)) {
+    if (this._enter && UIPointer.pressed) this._hold = true;
+    if (UIPointer.released) {
       if (this._hold && this._enter) this._capturing = true;
       this._hold = false;
     }

@@ -71,16 +71,14 @@ globalThis.UIStepper = class UIStepper {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
 
-    const pressed = mouse_check_button_pressed(mb_left);
-    const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     this._enter = !block && element.positionMeeting(mx, my);
     this._side = this._enter ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
 
-    if (this._enter && pressed) this._hold = true;
+    if (this._enter && UIPointer.pressed) this._hold = true;
 
-    if (released) {
+    if (UIPointer.released) {
       if (this._hold && this._enter) {
         if (this._side < 0) this.decrement();
         else this.increment();

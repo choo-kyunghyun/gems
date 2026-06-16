@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIPointer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIPointer",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIPointer.js",
+}

@@ -83,7 +83,7 @@ globalThis.UISlots = class UISlots {
 
     if (this.draggable) {
       // Press a filled slot → pick it up; press an empty slot → just select it.
-      if (this._inside && this._hover >= 0 && SlotDrag.pressed) {
+      if (this._inside && this._hover >= 0 && UIPointer.pressed) {
         if (this.items[this._hover] != null) {
           SlotDrag.begin(this, this._hover);
         } else {
@@ -98,7 +98,7 @@ globalThis.UISlots = class UISlots {
         SlotDrag.hover(this, this._hover);
         return true;
       }
-    } else if (this._inside && this._hover >= 0 && SlotDrag.pressed) {
+    } else if (this._inside && this._hover >= 0 && UIPointer.pressed) {
       this._select(this._hover);
       return true;
     }

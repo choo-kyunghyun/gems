@@ -88,7 +88,7 @@ globalThis.UIModal = class UIModal {
       return true;
     }
     // Backdrop click: a press the card didn't capture (block is still false here).
-    if (this.closeOnBackdrop && !block && mouse_check_button_pressed(mb_left)) {
+    if (this.closeOnBackdrop && !block && UIPointer.pressed) {
       this.close();
       return true;
     }

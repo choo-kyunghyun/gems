@@ -18,8 +18,6 @@ globalThis.UITrigger = class UITrigger {
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pressed = mouse_check_button_pressed(mb_left);
-    const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const enterPrev = this.enter;
@@ -28,7 +26,7 @@ globalThis.UITrigger = class UITrigger {
     if (this.enter) {
       if (!enterPrev) this.onEnter();
       this.onHover();
-      if (pressed) {
+      if (UIPointer.pressed) {
         this.hold = true;
         this.onDown();
       }
@@ -36,7 +34,7 @@ globalThis.UITrigger = class UITrigger {
       this.onLeave();
     }
 
-    if (released) {
+    if (UIPointer.released) {
       if (this.hold) {
         this.onUp();
         if (this.enter) this.onClick();

@@ -103,14 +103,14 @@ globalThis.Dialogue = class Dialogue {
     Dialogue._chars += Dialogue.speed * Time.raw;
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
-    // Sample each edge once this frame (mouse edges flicker if re-queried — see
-    // CLAUDE.md). Keyboard/gamepad advance anywhere; mouse only inside the box, so a
+    // Keyboard/gamepad advance anywhere; the LMB edge (latched by UIPointer, not re-queried
+    // — mouse edges flicker if re-read, see CLAUDE.md) advances only inside the box, so a
     // click on background UI doesn't also page the dialogue.
     let advance =
       keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space);
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face1))
       advance = true;
-    if (mouse_check_button_pressed(mb_left)) {
+    if (UIPointer.pressed) {
       const mx = device_mouse_x_to_gui(0);
       const my = device_mouse_y_to_gui(0);
       if (mx >= g.x1 && mx <= g.x2 && my >= g.y1 && my <= g.y2) advance = true;

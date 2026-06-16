@@ -111,7 +111,7 @@ globalThis.DebugInspector = class DebugInspector {
     if (!DebugImGui._open || world === null) return;
     if (scene.camera === undefined) return;
     if (is_mouse_over_debug_overlay()) return;
-    if (!SlotDrag.pressed) return;
+    if (!UIPointer.pressed) return;
 
     const cam = scene.camera;
     const wx = DebugInspector._toWorldX(cam);

@@ -270,7 +270,7 @@ globalThis.UIInput = class UIInput {
     const prevFont = draw_get_font();
     if (this.font !== -1) draw_set_font(this.font);
 
-    if (mouse_check_button_pressed(mb_left)) {
+    if (UIPointer.pressed) {
       if (over) {
         this.focus();
         const i = this._indexAtX(pos, mx);
@@ -292,7 +292,7 @@ globalThis.UIInput = class UIInput {
     }
 
     if (this._dragging) {
-      if (mouse_check_button(mb_left))
+      if (UIPointer.down)
         this._setCursor(this._indexAtX(pos, mx), true);
       else this._dragging = false;
     }

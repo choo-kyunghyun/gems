@@ -59,7 +59,7 @@ globalThis.UIAccordion = class UIAccordion {
     const my = device_mouse_y_to_gui(0);
     this._hover = !block && element.positionMeeting(mx, my);
 
-    if (this._hover && mouse_check_button_pressed(mb_left)) {
+    if (this._hover && UIPointer.pressed) {
       this.toggle(element);
       return true;
     }

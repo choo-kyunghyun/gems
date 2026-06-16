@@ -12,8 +12,8 @@
  * behind. Mouse-only — it doesn't touch UINav (the window's child widgets stay
  * keyboard/gamepad navigable on their own).
  *
- * GMRT note: pointer state is read live each frame (no cached primitive bool to be
- * clobbered), and mouse_check_button* are each queried once per frame (see CLAUDE.md).
+ * Pointer state comes from UIPointer (the frame-latched edges), not a direct
+ * mouse_check_button* read (realtime-sampled on GMRT — see CLAUDE.md).
  */
 globalThis.UIDrag = class UIDrag {
   /** @param {Object} [opts] { target: UIElement } the window root to move (defaults to the host element) */
@@ -35,12 +35,12 @@ globalThis.UIDrag = class UIDrag {
     const over = !block && element.positionMeeting(mx, my);
 
     if (!this._dragging) {
-      if (over && mouse_check_button_pressed(mb_left)) {
+      if (over && UIPointer.pressed) {
         this._dragging = true;
         this._lastX = mx;
         this._lastY = my;
       }
-    } else if (mouse_check_button(mb_left)) {
+    } else if (UIPointer.down) {
       target.dragX += mx - this._lastX;
       target.dragY += my - this._lastY;
       this._lastX = mx;

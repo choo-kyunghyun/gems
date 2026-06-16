@@ -87,8 +87,6 @@ globalThis.UIButton = class UIButton {
       return block;
     }
 
-    const pressed = mouse_check_button_pressed(mb_left);
-    const released = mouse_check_button_released(mb_left);
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const enterPrev = this.enter;
@@ -96,7 +94,7 @@ globalThis.UIButton = class UIButton {
 
     if (this.enter) {
       if (!enterPrev) this.onEnter();
-      if (pressed) {
+      if (UIPointer.pressed) {
         this.hold = true;
         this.onDown();
       }
@@ -104,7 +102,7 @@ globalThis.UIButton = class UIButton {
       this.onLeave();
     }
 
-    if (released) {
+    if (UIPointer.released) {
       if (this.hold) {
         this.onUp();
         if (this.enter) this.onClick();

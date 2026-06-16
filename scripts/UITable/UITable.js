@@ -35,8 +35,8 @@
  *
  * GMRT notes: hit-test/hover live in instance fields (a cached primitive bool gets
  * clobbered mid-function — see CLAUDE.md); sort arrows go through the shared drawUIArrow
- * helper; no Map/Set iteration; LMB edges come from the frame-latched
- * SlotDrag.pressed/released, never a re-read of mouse_check_button*.
+ * helper; no Map/Set iteration; pointer state comes from UIPointer (the frame-latched
+ * edges), never a re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
   // The table currently requesting keyboard browse this frame (UINav.consume reads +
@@ -314,7 +314,7 @@ globalThis.UITable = class UITable {
     // it re-requests nav suspension each frame and absorbs that frame's keys — including
     // the Esc that exits, so Esc doesn't also disengage the focus ring underneath.
     if (this._browsing) {
-      if (moved || (this._inside && SlotDrag.pressed)) {
+      if (moved || (this._inside && UIPointer.pressed)) {
         this._browsing = false; // pointer takes over → fall through to mouse handling
       } else {
         this._browseKeys(pos);
@@ -336,20 +336,20 @@ globalThis.UITable = class UITable {
           break;
         }
       }
-      if (this._hoverCol >= 0 && SlotDrag.pressed) this.sortBy(this._hoverCol);
+      if (this._hoverCol >= 0 && UIPointer.pressed) this.sortBy(this._hoverCol);
     }
 
     // Body: wheel scroll, row hover + click-to-select.
     const bodyH = bodyRows * this.rowH;
     if (this._inside) {
-      const wheel = (mouse_wheel_down() ? 1 : 0) - (mouse_wheel_up() ? 1 : 0);
+      const wheel = UIPointer.wheel;
       if (wheel !== 0) this._top = clamp(this._top + wheel, 0, maxTop);
     }
     if (my >= bodyTop && my < bodyTop + bodyH && this._inside) {
       const r = this._top + Math.floor((my - bodyTop) / this.rowH);
       if (r >= 0 && r < this._view.length) {
         this._hoverRow = r;
-        if (SlotDrag.pressed) {
+        if (UIPointer.pressed) {
           this._selRow = this._view[r];
           this._cursor = r;
           this.onSelect(this._selRow, r);
@@ -371,12 +371,12 @@ globalThis.UITable = class UITable {
       mx <= m.x + this.barW &&
       my >= m.thumbY &&
       my <= m.thumbY + m.thumbH;
-    if (this._overThumb && SlotDrag.pressed) {
+    if (this._overThumb && UIPointer.pressed) {
       this._barDrag = true;
       this._barDY = my - m.thumbY;
     }
     if (this._barDrag) {
-      if (mouse_check_button(mb_left)) {
+      if (UIPointer.down) {
         const travel = m.h - m.thumbH;
         const t = travel > 0 ? (my - this._barDY - m.y) / travel : 0;
         this._top = Math.round(clamp(t, 0, 1) * maxTop);
