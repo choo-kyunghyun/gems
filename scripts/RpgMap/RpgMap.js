@@ -206,7 +206,6 @@ globalThis.RpgMap = {
         chunkRows: data.meta.chunkRows ?? 16,
         simRadius: 1,
         loadRadius: 2,
-        playerId: scene.ctrl.id,
         worldCols: wc,
         worldRows: wr,
       });
@@ -216,15 +215,9 @@ globalThis.RpgMap = {
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not chunk-managed)
       scene.followers = [];
     } else {
-      const ents = RpgSpawn.spawn(
-        scene.world,
-        scene.level,
-        data,
-        scene.ctrl.id,
-        {
-          gone: scene._gone, // file-scope reconcile (unique entities removed on a prior visit)
-        },
-      );
+      const ents = RpgSpawn.spawn(scene.world, scene.level, data, {
+        gone: scene._gone, // file-scope reconcile (unique entities removed on a prior visit)
+      });
       scene.reachZone = ents.reach; // undefined when the map has no reach marker
       scene.followers = ents.followers; // this map's file-spawned companions
     }

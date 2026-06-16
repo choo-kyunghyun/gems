@@ -21,7 +21,7 @@
 // Source contract:
 //   source.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
 //                                spawns: [descriptor...] }            (deterministic per cx,cy)
-//   source.spawn(world, level, descriptor, playerId) -> entityId      (constructs one entity)
+//   source.spawn(world, level, descriptor) -> entityId               (constructs one entity)
 //
 // GMRT-safe: plain-object record maps walked via Object.keys + index loops (no Map/Set
 // iteration), index loops throughout, class assigned to globalThis.
@@ -34,7 +34,6 @@ globalThis.ChunkManager = class ChunkManager {
     this.chunkRows = opts.chunkRows ?? 16;
     this.simRadius = opts.simRadius ?? 1;
     this.loadRadius = opts.loadRadius ?? 2;
-    this.playerId = opts.playerId ?? -1;
 
     // Optional finite world bounds (cells, anchored at cell 0). When set, chunks outside the
     // [0,worldCols)x[0,worldRows) rectangle never load — the world stops being infinite. Absent ⇒
@@ -241,12 +240,7 @@ globalThis.ChunkManager = class ChunkManager {
 
   _spawnAll(rec, spawns) {
     for (let i = 0; i < spawns.length; i++) {
-      const id = this.source.spawn(
-        this.world,
-        this.level,
-        spawns[i],
-        this.playerId,
-      );
+      const id = this.source.spawn(this.world, this.level, spawns[i]);
       if (id !== undefined && id !== -1) rec.entities.push(id);
     }
   }

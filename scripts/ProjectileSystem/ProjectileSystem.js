@@ -29,7 +29,12 @@ globalThis.ProjectileSystem = {
       pos.y = hit.y;
 
       const hp = world.get(Health, hit.id);
-      if (hp !== undefined) {
+      // An allied body (FactionSystem.allied) takes no damage — it just blocks the shot like a
+      // wall (falls through to the destroy/bounce branch). No-op until allies carry Health.
+      if (
+        hp !== undefined &&
+        !FactionSystem.allied(world, proj.owner, hit.id)
+      ) {
         hp.hp -= proj.damage;
         if (hp.hp <= 0) world.remove(hit.id);
         world.remove(id);

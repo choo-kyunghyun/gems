@@ -10,7 +10,6 @@
 - Context-aware hotkey hint
 - Better crafting ui
 - Stamina and sprint
-- Faction
 - Terrain, Floor, and Structure
 - Explosive
 - Turrets

@@ -6,8 +6,10 @@
 //   const hits = MeleeSystem.swing(world, playerId, dirX, dirY, reach, damage);
 //   // platformer: swing(world, id, ctrl.facing, 0, ...)   top-down: swing(world, id, dir.x, dir.y, ...)
 //
-// Targets any entity with Health + BBox EXCEPT the attacker — in these templates that's
-// exactly the enemies/slimes (the player is excluded; NPCs/furniture/drops carry no
+// Targets any entity with Health + BBox EXCEPT the attacker and its faction ALLIES (no
+// friendly fire — FactionSystem.allied; a target with no faction is still hit, so this is a
+// no-op for current content where only the player/slimes carry factions). In these templates
+// that's exactly the enemies/slimes (the player is excluded; NPCs/furniture/drops carry no
 // Health), so it's genre-agnostic without needing a per-genre "enemy" tag. Returns the
 // ids struck; bodies at <= 0 hp are removed via world.remove (committed by the caller's
 // flush) — the scene's death scan then spills their loot, same as a ranged kill. Uses
@@ -39,6 +41,7 @@ globalThis.MeleeSystem = {
     const hits = [];
     for (const id of world.query(Health, Position, BBox)) {
       if (id === attackerId) continue;
+      if (FactionSystem.allied(world, attackerId, id)) continue; // no friendly fire
       const e = AABB.of(world, id);
       if (!AABB.overlap(box, e)) continue;
       const hp = world.get(Health, id);

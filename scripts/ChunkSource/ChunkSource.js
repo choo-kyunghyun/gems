@@ -109,7 +109,7 @@ globalThis.ChunkSource = class ChunkSource {
 
   // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgLevel so
   // entity construction stays in one place). Non-entity presets (e.g. "reach") return -1.
-  spawn(world, level, desc, playerId) {
-    return RpgSpawn.spawnEntity(world, level, desc, playerId);
+  spawn(world, level, desc) {
+    return RpgSpawn.spawnEntity(world, level, desc);
   }
 };

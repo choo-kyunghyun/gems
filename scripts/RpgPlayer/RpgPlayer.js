@@ -40,6 +40,7 @@ globalThis.RpgPlayer = {
     });
     world.add(id, Direction, opts.dir);
     world.add(id, Name, { name: "Player" });
+    world.add(id, Faction, { id: "player" }); // party faction — slimes aggro this by relation
     world.add(id, Health, { hp: 10 });
     world.add(id, Stats, {
       level: 1,

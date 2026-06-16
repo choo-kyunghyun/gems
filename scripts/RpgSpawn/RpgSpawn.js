@@ -16,14 +16,14 @@
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
 globalThis.RpgSpawn = {
   /**
-   * Spawn the level's entity instances (enemies, NPC, chest, props) from data.spawns,
-   * called AFTER the player controller exists (slimes need the player id for their AI).
-   * Stations (chest/props) are discovered live by Interactable, so only the handles the
-   * scene's own logic needs are returned:
+   * Spawn the level's entity instances (enemies, NPC, chest, props) from data.spawns. Slimes
+   * acquire their target live by faction (FactionSystem.nearestHostile), so this no longer needs
+   * the player id. Stations (chest/props) are discovered live by Interactable, so only the
+   * handles the scene's own logic needs are returned:
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
    */
-  spawn(world, level, data, playerId, reconcile) {
+  spawn(world, level, data, reconcile) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
@@ -44,7 +44,7 @@ globalThis.RpgSpawn = {
         reach = RpgSpawn.reachZone(level, s); // a region, not an entity
         continue;
       }
-      const id = RpgSpawn.spawnEntity(world, level, s, playerId);
+      const id = RpgSpawn.spawnEntity(world, level, s);
       if (id === -1) continue;
       // Classify the constructed entity into the scene's typed handles by its preset.
       if (s.preset === "slime") enemies.push(id);
@@ -69,7 +69,7 @@ globalThis.RpgSpawn = {
   // "reach"). The single place entity construction lives, so the chunk streamer
   // (ChunkSource.spawn) builds entities through the same code. `gx/gy` are grid coords
   // (absolute; gridToWorld handles negatives, so chunk-streamed entities work too).
-  spawnEntity(world, level, s, playerId) {
+  spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
     if (s.preset === "slime") {
@@ -86,6 +86,7 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Health, { hp: s.hp ?? 3 });
       world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
+      world.add(id, Faction, { id: "monster" }); // hostile to "player" → SlimeAI aggro target
       world.add(id, Name, { name: "Slime" });
       // Loot table — no maxWeight (loot is authored, never weight-gated).
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
@@ -94,7 +95,7 @@ globalThis.RpgSpawn = {
         Visual,
         RpgSpawn._visual(spr_choo, make_colour_rgb(120, 220, 130)),
       );
-      SlimeAI.attach(world, id, playerId, level); // adds Velocity + Brain + State
+      SlimeAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "npc") {
@@ -228,6 +229,7 @@ globalThis.RpgSpawn = {
       hits: [],
     });
     world.add(id, Tag, { tags: new Set(["follower"]) });
+    world.add(id, Faction, { id: "player" }); // party ally — combat skips it; slimes won't aggro (no Health)
     world.add(id, Name, { name: opt.label ?? "Companion" });
     world.add(
       id,

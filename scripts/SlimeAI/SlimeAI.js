@@ -1,19 +1,25 @@
-// Slime AI for the TopDown RPG: an Idle → Chase → Attack state machine driven by
-// the shared StateSystem. Slimes are dynamic solid bodies (Velocity + non-kinematic
-// Collision), so SolidSystem integrates the velocity these states set and collides
-// them against the level walls for free.
+// Slime AI for the RPG: an Idle → Chase → Attack state machine driven by the shared
+// StateSystem. Slimes are dynamic solid bodies (Velocity + non-kinematic Collision), so
+// SolidSystem integrates the velocity these states set and collides them against the level
+// walls for free.
+//
+// Targeting is by FACTION, not a hardcoded player id: a slime carries Faction{id:"monster"}
+// and acquires the nearest HOSTILE attackable body (FactionSystem.nearestHostile) when one
+// enters aggro range. Today that's the player ("player" is hostile to "monster"); add another
+// hostile faction and slimes fight it too, with no change here.
 //
 // Usage (per slime, at spawn):
-//   SlimeAI.attach(world, slimeId, playerId);
-// Then run StateSystem each physics tick (it drives the schemas below). On the
-// player's death, the scene respawns it; the slime's target id stays valid.
+//   SlimeAI.attach(world, slimeId, level);
+// Then run StateSystem each physics tick (it drives the schemas below).
 
-// Per-slime AI memory + tuning. Token co-located with its only consumer.
+// Per-slime AI memory + tuning. Token co-located with its only consumer. `target` is the
+// currently-chased entity id (-1 = none), acquired/dropped per slime — see the statics note.
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
  * @property {{x:number,y:number}} home  spawn point to drift back to when idle
- * @property {number} aggro       distance at which an idle slime starts chasing
+ * @property {number} target      entity id this slime is chasing/attacking (-1 = none)
+ * @property {number} aggro       distance at which an idle slime acquires a hostile target
  * @property {number} deAggro     distance at which a chasing slime gives up
  * @property {number} attackRange distance at which it stops to attack
  * @property {number} damage      hp removed per hit (before the target's defense)
@@ -23,22 +29,22 @@ globalThis.Brain = "Brain";
  */
 
 globalThis.SlimeAI = {
-  // StateSchema callbacks receive only `id`, so world/target/level live here as shared statics
-  // (single player, so one shared target is enough — move onto Brain for multi-target). Refreshed
-  // on every attach, which is also what lets captured/restored slimes (chunk streaming) keep
-  // working without re-attaching — see the chunk-streaming note in ARCHITECTURE.
+  // StateSchema callbacks receive only `id`, so world/level live here as shared statics
+  // (one World + one Level per map, so they're shared safely). The chase TARGET is per-slime
+  // on Brain — acquired by faction, never a shared id — which also lets captured/restored
+  // slimes (chunk streaming) keep working without re-attaching: world/level are refreshed on
+  // every attach, and Brain (incl. target) round-trips through EntitySnapshot.
   _world: undefined,
-  _target: -1,
   _level: undefined, // for grid<->world conversion when pathfinding around walls
 
-  attach(world, id, target, level) {
+  attach(world, id, level) {
     this._world = world;
-    this._target = target;
     this._level = level;
     const pos = world.get(Position, id);
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
     world.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
+      target: -1,
       aggro: 160,
       deAggro: 240,
       attackRange: 30,
@@ -52,12 +58,13 @@ globalThis.SlimeAI = {
     world.add(id, State, { current: undefined, next: this.IDLE });
   },
 
-  // Distance from slime `id` to the player; Infinity if the player is gone.
+  // Distance from slime `id` to its current Brain.target; Infinity if it has none / it's gone.
   _distTo(id) {
     const w = this._world;
-    if (!w.isValid(this._target)) return Infinity;
+    const t = w.get(Brain, id).target;
+    if (!w.isValid(t)) return Infinity;
     const p = w.get(Position, id);
-    const tp = w.get(Position, this._target);
+    const tp = w.get(Position, t);
     const dx = tp.x - p.x;
     const dy = tp.y - p.y;
     return Math.sqrt(dx * dx + dy * dy);
@@ -81,7 +88,7 @@ globalThis.SlimeAI = {
     vel.y = 0;
   },
 
-  // Steer along an A* path to the player, replanning on a throttle. The request is resolved by
+  // Steer along an A* path to the target, replanning on a throttle. The request is resolved by
   // PathfindingSystem later this tick (pipeline: StateSystem → PathfindingSystem) into a
   // PathResponse the slime follows from next tick; until one exists it heads straight. Waypoints
   // are absolute level cells (NavGrid.toPosition) → gridToWorld for the seek.
@@ -148,8 +155,12 @@ globalThis.SlimeAI = {
         SlimeAI._seek(id, brain.home.x, brain.home.y, brain.speed * 0.5);
       else SlimeAI._stop(id);
 
-      if (SlimeAI._distTo(id) < brain.aggro)
+      // Acquire the nearest hostile attackable body in aggro range (by faction, not a fixed id).
+      const t = FactionSystem.nearestHostile(w, id, pos.x, pos.y, brain.aggro);
+      if (t !== -1) {
+        brain.target = t;
         StateSystem.change(w, id, SlimeAI.CHASE);
+      }
     },
   },
 
@@ -160,8 +171,15 @@ globalThis.SlimeAI = {
     update(id) {
       const w = SlimeAI._world;
       const brain = w.get(Brain, id);
+      // Target killed or streamed out — forget it and re-acquire from idle.
+      if (!w.isValid(brain.target)) {
+        brain.target = -1;
+        StateSystem.change(w, id, SlimeAI.IDLE);
+        return;
+      }
       const dist = SlimeAI._distTo(id);
       if (dist > brain.deAggro) {
+        brain.target = -1;
         StateSystem.change(w, id, SlimeAI.IDLE);
         return;
       }
@@ -170,11 +188,11 @@ globalThis.SlimeAI = {
         return;
       }
       const sp = w.get(Position, id);
-      const tp = w.get(Position, SlimeAI._target);
+      const tp = w.get(Position, brain.target);
 
       // Line-of-sight: only a WALL (kinematic solid) between us forces a detour. A clear shot —
       // the common case on the open overworld — is a straight seek (identical to the old behavior);
-      // dynamic bodies (the player / other slimes, hit at t≈1) don't count as blockers.
+      // dynamic bodies (the target / other slimes, hit at t≈1) don't count as blockers.
       const hit = Raycast.cast(w, sp.x, sp.y, tp.x, tp.y, { ignore: id });
       const blocked = hit !== null && w.get(Collision, hit.id).kinematic;
       if (!blocked || SlimeAI._level === undefined) {
@@ -198,13 +216,18 @@ globalThis.SlimeAI = {
     update(id) {
       const w = SlimeAI._world;
       const brain = w.get(Brain, id);
+      if (!w.isValid(brain.target)) {
+        brain.target = -1;
+        StateSystem.change(w, id, SlimeAI.IDLE);
+        return;
+      }
       SlimeAI._stop(id);
 
       // Cooldown read/written live off the component (no cached primitive — see
       // GMRT boolean-local clobber note).
       if (brain.cd > 0) brain.cd--;
       if (brain.cd <= 0) {
-        SlimeAI._hitTarget(brain.damage);
+        SlimeAI._hitTarget(id, brain.damage);
         brain.cd = brain.cdMax;
       }
 
@@ -213,13 +236,14 @@ globalThis.SlimeAI = {
     },
   },
 
-  // Apply one attack to the player, mitigated by the player's defense (min 1).
-  _hitTarget(damage) {
+  // Apply one attack to the slime's target, mitigated by the target's defense (min 1).
+  _hitTarget(id, damage) {
     const w = this._world;
-    if (!w.isValid(this._target)) return;
-    const hp = w.get(Health, this._target);
+    const t = w.get(Brain, id).target;
+    if (!w.isValid(t)) return;
+    const hp = w.get(Health, t);
     if (hp === undefined) return;
-    const stats = w.get(Stats, this._target);
+    const stats = w.get(Stats, t);
     const def = stats !== undefined ? stats.defense : 0;
     hp.hp -= Math.max(1, damage - def);
   },

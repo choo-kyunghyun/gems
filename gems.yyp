@@ -116,6 +116,8 @@
     {"id":{"name":"Equipment","path":"scripts/Equipment/Equipment.yy",},},
     {"id":{"name":"EquipmentSystem","path":"scripts/EquipmentSystem/EquipmentSystem.yy",},},
     {"id":{"name":"Equippable","path":"scripts/Equippable/Equippable.yy",},},
+    {"id":{"name":"Faction","path":"scripts/Faction/Faction.yy",},},
+    {"id":{"name":"FactionSystem","path":"scripts/FactionSystem/FactionSystem.yy",},},
     {"id":{"name":"File","path":"scripts/File/File.yy",},},
     {"id":{"name":"FloatingText","path":"scripts/FloatingText/FloatingText.yy",},},
     {"id":{"name":"Follower","path":"scripts/Follower/Follower.yy",},},

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FactionSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FactionSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FactionSystem.js",
+}
