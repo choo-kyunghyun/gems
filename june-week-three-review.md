@@ -275,12 +275,12 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Map
 
-- [ ] sceneTileAlpha
-- [ ] sceneTileInspect
-- [ ] sceneTileInspect47
-- [ ] sceneTileInspectDual
-- [ ] sceneTileMap
-- [ ] sceneTileTerrain
+- [x] sceneTileAlpha
+- [x] sceneTileInspect
+- [x] sceneTileInspect47
+- [x] sceneTileInspectDual
+- [x] sceneTileMap
+- [x] sceneTileTerrain
 
 ### Platformer
 
