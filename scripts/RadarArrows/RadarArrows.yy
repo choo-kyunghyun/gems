@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RadarArrows",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RadarArrows",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RadarArrows.js",
+}

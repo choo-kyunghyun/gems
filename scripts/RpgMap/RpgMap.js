@@ -370,8 +370,8 @@ globalThis.RpgMap = {
     if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
     scene._lighting.camera = scene.camera; // light map covers the camera view rect
 
-    // 11. Corner minimap — rebuilt per map (captures world/target by value).
-    RpgHud.buildMinimap(scene);
+    // The player-centered radar (RadarArrows, drawn in scene.draw) reads world/ctrl live, so it
+    // needs no per-map rebuild — nothing to do here for it.
 
     FloatingText.clear(); // drop combat numbers from the previous map
     ParticleFx.clear(); // drop live particles from the previous map (world coords are map-local)

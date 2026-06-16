@@ -1,5 +1,10 @@
 # Roadmap
 
+## Maintainability
+
+- Cleanup remaining GMRT 0.19 comments
+- Simplify comments
+
 ## Core
 
 - Sound
@@ -17,6 +22,13 @@
 - Wandering traders
 - Companion benefits like increasing inventory
 - Killfeed UI
+- Settlement and outpost
+- Item-driven attack
+
+### Build Mode
+
+- Plan mode
+- Drag to select
 
 ### Editor
 

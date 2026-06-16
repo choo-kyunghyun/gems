@@ -1,9 +1,8 @@
-// HUD + overlay panels for the RPG scene — the top-right HP/quest card, the bottom-center
-// dialogue box, and the corner minimap — extracted from sceneRpg as free functions taking the
-// scene (composition; mirrors RpgScene/RpgMap). The card + dialogue read scene.world/scene.ctrl
-// LIVE via gemsLabel callbacks, so they keep working after RpgMap.load swaps the world on a map
-// change. The minimap is the exception (gemsMinimap captures world/target by value), so
-// RpgMap.load rebuilds it per map via buildMinimap.
+// HUD + overlay panels for the RPG scene — the top-right HP/quest card and the bottom-center
+// dialogue box — extracted from sceneRpg as free functions taking the scene (composition;
+// mirrors RpgScene/RpgMap). The card + dialogue read scene.world/scene.ctrl LIVE via gemsLabel
+// callbacks, so they keep working after RpgMap.load swaps the world on a map change. (The corner
+// minimap was replaced by the player-centered RadarArrows radar, drawn in sceneRpg.draw.)
 globalThis.RpgHud = {
   // Build the persistent HUD panels once (scene create): the HP/quest card + the dialogue box.
   build(scene) {
@@ -109,36 +108,5 @@ globalThis.RpgHud = {
     wrap.enabled = false;
     scene._dlg = wrap;
     scene.ui.insertChild(wrap);
-  },
-
-  // (Re)build the bottom-right minimap: a framed radar of nearby slimes (red), the NPC (gold),
-  // and doors (violet) around the player marker. gemsMinimap captures world/target by value, so
-  // RpgMap.load rebuilds it whenever it creates a new world; old wrapper removed first.
-  // Absolute-positioned so it floats over the scene instead of stacking in the column.
-  buildMinimap(scene) {
-    if (scene._miniWrap !== undefined) scene._miniWrap.destroy(); // self-removes from scene.ui
-    const miniWrap = new UIElement({
-      positionType: "absolute",
-      bottom: 16,
-      right: 16,
-      width: 150,
-      height: 150,
-    });
-    miniWrap.insertChild(
-      gemsMinimap({
-        world: scene.world,
-        target: scene.ctrl.id,
-        range: 460,
-        size: 150,
-        rules: [
-          { tag: "enemy", color: "#e0584f" },
-          { tag: "npc", color: "#ffd166" },
-          { tag: "portal", color: "#9b8cff" },
-          { tag: "follower", color: "#6fd0a0" },
-        ],
-      }),
-    );
-    scene._miniWrap = miniWrap;
-    scene.ui.insertChild(miniWrap);
   },
 };

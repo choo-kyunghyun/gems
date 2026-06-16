@@ -39,13 +39,21 @@ class _SceneRpgClass extends Scene {
     this.gameplay = true;
 
     // ── Persistent UI (built once). These widgets read this.world / this.ctrl LIVE each
-    //    frame, so they keep working after RpgMap.load() swaps the world on a map change. The
-    //    corner minimap is the exception — gemsMinimap captures world/target by value, so
-    //    RpgMap.load() rebuilds it (RpgHud.buildMinimap). Hint, then manager-drawn panels: HUD +
-    //    quest tracker (top-right), NPC dialogue (bottom-center, toggled), inventory window,
-    //    station prompt/storage/crafting windows, build-mode HUD. ──────────────────────────
+    //    frame, so they keep working after RpgMap.load() swaps the world on a map change. Hint,
+    //    then manager-drawn panels: HUD + quest tracker (top-right), NPC dialogue (bottom-center,
+    //    toggled), inventory window, station prompt/storage/crafting windows, build-mode HUD. ──
     this.ui = gemsRoot();
     UI.insert(this.ui);
+
+    // Radar rules for RadarArrows (drawn in draw()): which tags get a directional arrow around
+    // the player, and in what color. Built here (not at top level) so Color is loaded. Read live
+    // each frame, so the radar survives a map/world swap with no rebuild (unlike the old minimap).
+    this._radarRules = [
+      { tag: "enemy", color: Color.parse("#e0584f") },
+      { tag: "npc", color: Color.parse("#ffd166") },
+      { tag: "portal", color: Color.parse("#9b8cff") },
+      { tag: "follower", color: Color.parse("#6fd0a0") },
+    ];
     this.ui.insertChild(
       gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
     );
@@ -431,6 +439,7 @@ class _SceneRpgClass extends Scene {
     // invisible on the overworld, fine in plain interiors with no ground fill). Drawn here
     // they sit with the other post-renderer world cues (build cursor, floating numbers).
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
+    RadarArrows.draw(this.world, this.ctrl.id, this._radarRules); // directional radar around player
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
