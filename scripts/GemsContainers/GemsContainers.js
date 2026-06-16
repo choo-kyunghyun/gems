@@ -299,14 +299,22 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
 // [{ label, content }] — label is a string/() => string, content a prebuilt
 // UIElement (e.g. a gemsList). Each content is wrapped in an absolute-positioned
 // overlay so all pages stack in the same rect; selecting a tab toggles their
-// `enabled` flag (no reflow). The host needs an explicit height (`opts.height`)
-// because absolute children don't contribute to it. Returns the root column; the
-// UITabs component is on `root.tabs` for programmatic `.select(i)`.
+// `enabled` flag (no reflow). The host needs a definite height: pass `opts.height`
+// for a fixed size, or `opts.grow: true` to fill the parent's remaining space (the
+// root + host flex-grow) so the tabs reflow when the GUI is resized — pair it with
+// `gemsScroll({ grow: true })` content. Returns the root column; the UITabs component
+// is on `root.tabs` for programmatic `.select(i)`.
 globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
-  const root = new UIElement({
-    width: opts.width ?? "100%",
-    gap: opts.gap ?? GemsTheme.gapSm,
-  });
+  const root = new UIElement(
+    opts.grow
+      ? {
+          width: opts.width ?? "100%",
+          flexGrow: 1,
+          flexBasis: 0,
+          gap: opts.gap ?? GemsTheme.gapSm,
+        }
+      : { width: opts.width ?? "100%", gap: opts.gap ?? GemsTheme.gapSm },
+  );
 
   const strip = new UIElement({
     width: "100%",
@@ -314,11 +322,11 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
     flexShrink: 0,
   });
 
-  const host = new UIElement({
-    width: "100%",
-    height: opts.height ?? 360,
-    flexShrink: 0,
-  });
+  const host = new UIElement(
+    opts.grow
+      ? { width: "100%", flexGrow: 1, flexBasis: 0 }
+      : { width: "100%", height: opts.height ?? 360, flexShrink: 0 },
+  );
 
   // Wrap each page in an absolute overlay filling the host, so the pages stack
   // (no reflow on switch — only the active overlay is enabled).

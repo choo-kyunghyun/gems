@@ -113,12 +113,10 @@ globalThis.SystemMenu = class SystemMenu {
     Time.scale = 0;
     Time.delta = 0;
 
-    // Size a near-fullscreen window from the GUI surface (flexpanel can't be resized
-    // after layout on 0.19, so compute heights once at open time).
-    const guiH = display_get_gui_height();
+    // Near-fullscreen window: the card fills the padded root and the tab host flex-grows
+    // to fill it (grow: true below), so the menu reflows when the GUI is resized (live
+    // uiScale) instead of snapshotting display_get_gui_height() once at open.
     const margin = 28;
-    const cardH = Math.max(380, guiH - margin * 2);
-    const tabsH = Math.max(220, cardH - 210); // title + strip + footer + paddings/gaps
 
     const root = new UIElement({
       width: "100%",
@@ -142,7 +140,7 @@ globalThis.SystemMenu = class SystemMenu {
     const inner = new UIElement({
       width: "100%",
       maxWidth: 1040,
-      height: cardH,
+      height: "100%",
     });
     const card = new UIElement({
       width: "100%",
@@ -188,18 +186,18 @@ globalThis.SystemMenu = class SystemMenu {
       [
         {
           label: I18n.textRef("SYS_TAB_SYSTEM"),
-          content: SystemMenu._systemTab(tabsH),
+          content: SystemMenu._systemTab(),
         },
         {
           label: I18n.textRef("SYS_TAB_SETTINGS"),
-          content: SystemMenu._settingsTab(tabsH),
+          content: SystemMenu._settingsTab(),
         },
         {
           label: I18n.textRef("SYS_TAB_ABOUT"),
-          content: SystemMenu._aboutTab(tabsH),
+          content: SystemMenu._aboutTab(),
         },
       ],
-      { height: tabsH },
+      { grow: true },
     );
     card.insertChild(tabsRoot);
 
@@ -245,8 +243,8 @@ globalThis.SystemMenu = class SystemMenu {
   // ── tabs ──────────────────────────────────────────────────────
 
   // System / simulation manager: live readouts + sim controls (the "emulator" core).
-  static _systemTab(tabsH) {
-    const scroll = gemsScroll({ height: tabsH });
+  static _systemTab() {
+    const scroll = gemsScroll({ grow: true });
 
     const sim = gemsSection(I18n.textRef("SYS_SIM"));
     sim.insertChild(
@@ -337,8 +335,8 @@ globalThis.SystemMenu = class SystemMenu {
   }
 
   // Settings form (audio / display / UI scale / language) — the former SettingsMenu body.
-  static _settingsTab(tabsH) {
-    const scroll = gemsScroll({ height: tabsH });
+  static _settingsTab() {
+    const scroll = gemsScroll({ grow: true });
 
     const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
     volSection.insertChild(
@@ -408,12 +406,12 @@ globalThis.SystemMenu = class SystemMenu {
     uiSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_UI_SCALE"),
-        gemsSlider("uiScale", 0.5, 2, 0.1),
+        // Live: resize the GUI layer + reflow all roots (this menu included) as it moves.
+        gemsSlider("uiScale", 0.5, 2, 0.1, {
+          onChange: (v) => UI.applyScale(v),
+        }),
       ),
     );
-    // uiScale is read once when the GUI layer is sized (boot / scene build), so a change
-    // takes effect on restart — the lobby + this menu snapshot the GUI height at build time.
-    uiSection.insertChild(gemsHint(I18n.textRef("SETTINGS_UI_SCALE_HINT")));
     scroll.scrollBody.insertChild(uiSection);
 
     const langSection = gemsSection(I18n.textRef("SETTINGS_LANG_TITLE"));
@@ -458,8 +456,8 @@ globalThis.SystemMenu = class SystemMenu {
   }
 
   // About / info — static project + engine info (reuses the credits strings).
-  static _aboutTab(tabsH) {
-    const scroll = gemsScroll({ height: tabsH });
+  static _aboutTab() {
+    const scroll = gemsScroll({ grow: true });
     const card = gemsCard({ gap: GemsTheme.gapSm });
     const lines = [
       [I18n.textRef("CREDITS_NAME"), GemsTheme.text],

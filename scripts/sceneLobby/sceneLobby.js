@@ -26,11 +26,6 @@ globalThis.SCENES = {
       label: "Lobby",
 
       create(openScene) {
-        // Fixed tab-host height computed from the GUI surface (flexpanel can't resize
-        // after layout on 0.19), leaving room for the header + footer.
-        const guiH = display_get_gui_height();
-        const tabsH = Math.max(240, guiH - 320);
-
         this.ui = gemsRoot({ maxWidth: 720 });
         UI.insert(this.ui);
 
@@ -48,7 +43,7 @@ globalThis.SCENES = {
         const tabs = [];
         for (let t = 0; t < LOBBY_TABS.length; t++) {
           const def = LOBBY_TABS[t];
-          const scroll = gemsScroll({ height: tabsH });
+          const scroll = gemsScroll({ grow: true });
           let filled = false;
           for (let c = 0; c < def.cats.length; c++) {
             const entries = byCat[def.cats[c]];
@@ -75,10 +70,9 @@ globalThis.SCENES = {
           }
           tabs.push({ label: I18n.textRef(def.key), content: scroll });
         }
-        this.ui.insertChild(gemsTabs(tabs, { height: tabsH }));
-
-        // Push the footer to the bottom of the screen (the tab host is a fixed height).
-        this.ui.insertChild(new UIElement({ width: "100%", flexGrow: 1 }));
+        // grow → the tab host fills the space between header and footer and reflows
+        // when the GUI is resized (live uiScale), pushing the footer to the bottom.
+        this.ui.insertChild(gemsTabs(tabs, { grow: true }));
 
         // Footer: global actions. Settings/Credits open the SystemMenu (Credits on its
         // About tab, index 2); Quit ends the game.

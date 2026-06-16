@@ -83,7 +83,10 @@ globalThis.gemsSlider = function gemsSlider(
       max,
       value: Settings.get(key),
       step,
-      onChange: (v) => Settings.set(key, v),
+      onChange: (v) => {
+        Settings.set(key, v);
+        if (opts.onChange !== undefined) opts.onChange(v);
+      },
       track: {
         color: gemsColor(GemsTheme.btnPress),
         border: 1,
