@@ -5,6 +5,10 @@
 - Particle system
 - Sound
 
+## UI
+
+- Draggable panel - ui resizing
+
 ## RPG
 
 - New rader type: Draw arrows around player

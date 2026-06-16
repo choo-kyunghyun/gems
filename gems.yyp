@@ -104,6 +104,7 @@
     {"id":{"name":"demo","path":"scripts/demo/demo.yy",},},
     {"id":{"name":"Dialogue","path":"scripts/Dialogue/Dialogue.yy",},},
     {"id":{"name":"Direction","path":"scripts/Direction/Direction.yy",},},
+    {"id":{"name":"Display","path":"scripts/Display/Display.yy",},},
     {"id":{"name":"Encumbrance","path":"scripts/Encumbrance/Encumbrance.yy",},},
     {"id":{"name":"EncumbranceSystem","path":"scripts/EncumbranceSystem/EncumbranceSystem.yy",},},
     {"id":{"name":"Enemy","path":"scripts/Enemy/Enemy.yy",},},

@@ -7,12 +7,6 @@ randomize();
 gpu_set_ztestenable(true);
 gpu_set_alphatestenable(true);
 
-const w = display_get_width() / 2;
-const h = display_get_height() / 2;
-window_set_size(w, h);
-surface_resize(application_surface, w, h);
-window_center();
-
 game_set_speed(display_get_frequency(), gamespeed_fps);
 
 draw_set_circle_precision(64);
@@ -45,6 +39,10 @@ Settings.registerDefaults({
   tempUnit: "K",
 });
 Settings.load();
+
+// Restore the saved window state (fullscreen / windowed resolution) — sizes the OS window
+// + the world's application_surface. The GUI layer is sized separately by UI.applyScale.
+Display.apply();
 
 // Load localization for the saved language, then adopt its base font as the
 // default draw font (both locales now ship Noto; an undeclared key falls back).

@@ -357,7 +357,7 @@ globalThis.SystemMenu = class SystemMenu {
         () => Settings.get("fullscreen"),
         () => {
           Settings.set("fullscreen", !Settings.get("fullscreen"));
-          window_set_fullscreen(Settings.get("fullscreen"));
+          Display.apply();
         },
         {
           onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
@@ -386,6 +386,7 @@ globalThis.SystemMenu = class SystemMenu {
         gemsDropdownCustom(resItems, resIdx, (_i, res) => {
           Settings.set("resolutionW", res.w);
           Settings.set("resolutionH", res.h);
+          Display.apply();
         }),
       ),
     );
