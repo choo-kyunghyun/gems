@@ -268,10 +268,10 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Lobby
 
-- [ ] demo
-- [ ] obj_game
-- [ ] sceneLobby
-- [ ] sceneUIKit
+- [x] demo
+- [x] obj_game
+- [x] sceneLobby
+- [x] sceneUIKit
 
 ### Map
 

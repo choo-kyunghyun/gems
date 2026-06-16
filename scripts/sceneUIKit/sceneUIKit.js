@@ -234,9 +234,8 @@ class _SceneUIKitClass extends Scene {
 
   // UIRichText: colored spans ([c=name]/[c=#hex]) + inline icons ([spr=…]) in one
   // string. The markup is an i18n value so it localizes; the rarity/keybind colors are
-  // passed as a palette. Each line sits in an explicit-height row — UIRichText, like
-  // UIText, can't self-size at runtime (flexpanel mutation is a no-op on 0.19), so a
-  // fixed-height host keeps stacked lines from overlapping (the gemsModal pattern).
+  // passed as a palette. UIRichText self-sizes on 0.20, but each line is hosted in a
+  // fixed-height row here for uniform spacing across the stacked lines.
   _richTextSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
     sec.insertChild(

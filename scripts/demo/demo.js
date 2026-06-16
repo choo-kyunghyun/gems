@@ -2,7 +2,7 @@
 // SceneRegistry (the lobby catalogue) + teardownScene (scene resource release).
 // The GemsUI factory kit it used to also hold now lives in the Demo/GemsUI scripts
 // (GemsTheme / GemsContainers / GemsWidgets / GemsControls) — split out so no single
-// file grows large enough to trip GMRT 0.19's large-file handling.
+// file grows large enough to trip GMRT's large-file global-hoisting fault.
 
 // Releases the world / renderer / camera / UI a genre scene builds, in dependency
 // order. Scenes hold these on `this`; call teardownScene(this) from destroy() after
