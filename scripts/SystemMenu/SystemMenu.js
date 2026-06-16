@@ -339,14 +339,17 @@ globalThis.SystemMenu = class SystemMenu {
     const scroll = gemsScroll({ grow: true });
 
     const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
+    // 0–1 volumes read as a percentage rather than a bare "0.80".
+    const volPct = { format: (v) => string_format(v * 100, 0, 0) + "%" };
+    const volSlider = (key) => gemsSlider(key, 0, 1, undefined, volPct);
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_MASTER"), gemsSlider("volMaster")),
+      gemsRow(I18n.textRef("SETTINGS_VOL_MASTER"), volSlider("volMaster")),
     );
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_MUSIC"), gemsSlider("volMusic")),
+      gemsRow(I18n.textRef("SETTINGS_VOL_MUSIC"), volSlider("volMusic")),
     );
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_SFX"), gemsSlider("volSfx")),
+      gemsRow(I18n.textRef("SETTINGS_VOL_SFX"), volSlider("volSfx")),
     );
     scroll.scrollBody.insertChild(volSection);
 

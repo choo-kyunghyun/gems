@@ -1,5 +1,7 @@
 /** @implements {UIComponent} */
 globalThis.UISlider = class UISlider {
+  static VALUE_W = 46; // right-side width reserved for the value readout (showValue)
+
   constructor(slider = {}) {
     this.min = slider.min ?? 0;
     this.max = slider.max ?? 1;
@@ -8,6 +10,14 @@ globalThis.UISlider = class UISlider {
     this.values = slider.values;
     this.readOnly = slider.readOnly ?? false;
     this.onChange = slider.onChange ?? noop;
+
+    // Value readout drawn at the right end (so the user isn't guessing the value).
+    // `format` is an optional (value) => string; the default derives decimals from `step`.
+    // The track reserves VALUE_W on the right for it, so text never overlaps the thumb.
+    this.showValue = slider.showValue ?? true;
+    this.format = slider.format ?? null;
+    this.valueColor = slider.valueColor ?? c_white;
+    this.valueFont = slider.font ?? -1; // -1 → current draw font
 
     // Style structs: { color, rad?, border?, borderColor?, shadowAlpha? }. The
     // track/fill/thumb are drawn directly in onDraw (no child UIElements) — the
@@ -49,18 +59,40 @@ globalThis.UISlider = class UISlider {
   }
 
   // Shared geometry so onUpdate's hit-test matches onDraw exactly. The thumb is
-  // inset by its radius at both ends so it never clips past the track.
+  // inset by its radius at both ends so it never clips past the track. With showValue
+  // the track is shortened by VALUE_W so the readout sits to its right without overlap.
   _metrics(pos) {
     const r = Math.max(7, pos.height * 0.45);
     const trackH = Math.max(4, pos.height * 0.3);
     const cy = pos.top + pos.height * 0.5;
-    const inner = Math.max(1, pos.width - 2 * r);
+    const trackW = Math.max(
+      2 * r,
+      pos.width - (this.showValue ? UISlider.VALUE_W : 0),
+    );
+    const inner = Math.max(1, trackW - 2 * r);
     const t =
       this.max !== this.min
         ? (this.value - this.min) / (this.max - this.min)
         : 0;
     const thumbX = pos.left + r + t * inner;
-    return { r, trackH, cy, inner, thumbX };
+    return { r, trackH, cy, inner, thumbX, trackW };
+  }
+
+  // Decimal places for the default readout, derived from `step` (continuous → 2).
+  _decimals() {
+    if (typeof this.step !== "number" || this.step <= 0) return 2;
+    let dec = 0;
+    let s = this.step;
+    while (Math.abs(s - Math.round(s)) > 1e-9 && dec < 6) {
+      s *= 10;
+      dec++;
+    }
+    return dec;
+  }
+
+  _valueText() {
+    if (this.format !== null) return this.format(this.value);
+    return string_format(this.value, 0, this._decimals());
   }
 
   onUpdate(element, block) {
@@ -90,7 +122,7 @@ globalThis.UISlider = class UISlider {
 
     const m = this._metrics(pos);
     const x1 = pos.left;
-    const x2 = pos.left + pos.width;
+    const x2 = pos.left + m.trackW;
     const ty1 = m.cy - m.trackH * 0.5;
     const ty2 = m.cy + m.trackH * 0.5;
     const rad = m.trackH * 0.5;
@@ -170,6 +202,21 @@ globalThis.UISlider = class UISlider {
         thumbBorder,
         true,
       );
+    }
+
+    // Value readout, right-aligned in the reserved gutter, vertically centered.
+    if (this.showValue) {
+      const ph = draw_get_halign();
+      const pv = draw_get_valign();
+      const pf = draw_get_font();
+      if (this.valueFont !== -1) draw_set_font(this.valueFont);
+      draw_set_halign(fa_right);
+      draw_set_valign(fa_middle);
+      const c = this.valueColor;
+      draw_text_color(pos.left + pos.width, m.cy, this._valueText(), c, c, c, c, 1);
+      draw_set_halign(ph);
+      draw_set_valign(pv);
+      if (this.valueFont !== -1) draw_set_font(pf);
     }
 
     draw_set_alpha(a0);

@@ -87,6 +87,10 @@ globalThis.gemsSlider = function gemsSlider(
         Settings.set(key, v);
         if (opts.onChange !== undefined) opts.onChange(v);
       },
+      // Always-visible value readout (opts.format customizes it, e.g. a percentage).
+      format: opts.format,
+      valueColor: gemsColor(opts.valueColor ?? GemsTheme.text),
+      font: I18n.font("default"),
       track: {
         color: gemsColor(GemsTheme.btnPress),
         border: 1,
