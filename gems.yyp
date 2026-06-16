@@ -257,6 +257,7 @@
     {"id":{"name":"UIButton","path":"scripts/UIButton/UIButton.yy",},},
     {"id":{"name":"UICheckbox","path":"scripts/UICheckbox/UICheckbox.yy",},},
     {"id":{"name":"UIDrag","path":"scripts/UIDrag/UIDrag.yy",},},
+    {"id":{"name":"UIDraw","path":"scripts/UIDraw/UIDraw.yy",},},
     {"id":{"name":"UIDropdown","path":"scripts/UIDropdown/UIDropdown.yy",},},
     {"id":{"name":"UIElement","path":"scripts/UIElement/UIElement.yy",},},
     {"id":{"name":"UIImage","path":"scripts/UIImage/UIImage.yy",},},

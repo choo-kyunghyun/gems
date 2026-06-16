@@ -1,6 +1,13 @@
+/**
+ * Thin wrapper over a GameMaker vertex buffer with a fixed
+ * position + texcoord + colour format (shared, lazily built). Build a mesh with
+ * `begin` → `addQuad`(s) → `end`, then `submit(texture)` each frame; `markDirty`
+ * patterns rebuild it. Backs `RenderTileMap`. Owns a native handle — `destroy` it.
+ */
 globalThis.VertexBuffer = class VertexBuffer {
   static _fmt = undefined;
 
+  // The shared vertex format (position + texcoord + colour), built once on first use.
   static _format() {
     if (VertexBuffer._fmt === undefined) {
       vertex_format_begin();
@@ -16,6 +23,7 @@ globalThis.VertexBuffer = class VertexBuffer {
     this._buf = vertex_create_buffer();
   }
 
+  /** Start a fresh batch (clears prior vertices). @returns {VertexBuffer} this */
   begin() {
     vertex_begin(this._buf, VertexBuffer._format());
     return this;
@@ -71,17 +79,20 @@ globalThis.VertexBuffer = class VertexBuffer {
     return this;
   }
 
+  /** Finish the batch; `freeze` uploads it to VRAM for static meshes. @param {boolean} [freeze] @returns {VertexBuffer} this */
   end(freeze = true) {
     vertex_end(this._buf);
     if (freeze) vertex_freeze(this._buf);
     return this;
   }
 
+  /** Draw the batch as a triangle list. @param {*} texture the texture page handle @returns {VertexBuffer} this */
   submit(texture) {
     vertex_submit(this._buf, pr_trianglelist, texture);
     return this;
   }
 
+  /** Free the native vertex buffer. */
   destroy() {
     vertex_delete_buffer(this._buf);
     this._buf = undefined;

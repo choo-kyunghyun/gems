@@ -110,6 +110,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] SlotDrag
 - [ ] Toast
 - [ ] Tooltip
+- [x] UIDraw
 - [ ] UIMinimap
 - [ ] UIQuestTracker
 - [ ] VirtualKeyboard
@@ -146,26 +147,26 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Util
 
-- [ ] AABB
-- [ ] Color
-- [ ] Debug
-- [ ] DebugImGui
-- [ ] DebugInspector
-- [ ] DebugRender
-- [ ] Display
-- [ ] File
-- [ ] Grid
-- [ ] LevelSerializer
-- [ ] Log
-- [ ] MotionPlanner
-- [ ] NavGrid
-- [ ] Raycast
-- [ ] SaveData
-- [ ] Settings
-- [ ] Time
-- [ ] Tween
-- [ ] utils
-- [ ] VertexBuffer
+- [x] AABB
+- [x] Color
+- [x] Debug
+- [x] DebugImGui
+- [x] DebugInspector
+- [x] DebugRender
+- [x] Display
+- [x] File
+- [x] Grid
+- [x] LevelSerializer
+- [x] Log
+- [x] MotionPlanner
+- [x] NavGrid
+- [x] Raycast
+- [x] SaveData
+- [x] Settings
+- [x] Time
+- [x] Tween
+- [x] Utils
+- [x] VertexBuffer
 
 ## GemsUI
 

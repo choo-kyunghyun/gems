@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIDraw",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIDraw",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIDraw.js",
+}

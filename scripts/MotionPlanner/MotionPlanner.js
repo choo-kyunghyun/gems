@@ -1,9 +1,16 @@
 // TODO: mp_linear_step
 
+/** @enum {number} planning algorithm selector for `MotionPlanner.plan`. */
 globalThis.MP_ALGORITHM = Object.freeze({
   ASTAR: 0,
 });
 
+/**
+ * Static A* planner over a `MotionPlanningGrid` (`size`/`inBounds`/`get`/`toIndex`/
+ * `toPosition`; cost Infinity = blocked). `setGrid` allocates the reusable scratch
+ * arrays sized to the grid, so it's called once per grid and `plan` reuses them.
+ * Consumers: `PathfindingSystem` (over `Level.mpg` or a `NavGrid` window).
+ */
 globalThis.MotionPlanner = class MotionPlanner {
   static SQRT_2 = Math.sqrt(2);
   static DIRS_CARDINAL = [1, 0, 1, -1, 0, 1, 0, 1, 1, 0, -1, 1];
@@ -40,6 +47,7 @@ globalThis.MotionPlanner = class MotionPlanner {
   static _closed = undefined;
   static _scratch = undefined;
 
+  /** Bind the grid to plan over and (re)allocate scratch arrays sized to it. @param {MotionPlanningGrid} grid */
   static setGrid(grid) {
     this.grid = grid;
     const count = grid.size();
@@ -49,6 +57,13 @@ globalThis.MotionPlanner = class MotionPlanner {
     this._scratch = new Int32Array(count);
   }
 
+  /**
+   * Plan a path between two cells.
+   * @param {{x:number,y:number}} start @param {{x:number,y:number}} goal
+   * @param {number} [algorithm] an `MP_ALGORITHM` value (default ASTAR)
+   * @param {{allowDiag?:boolean,cornerCutting?:boolean,heuristicWeight?:number,maxIter?:number}} [opt]
+   * @returns {{x:number,y:number}[]} cell waypoints start→goal, or `[]` if unreachable / no grid.
+   */
   static plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
     if (this.grid === undefined) return [];
     switch (algorithm) {

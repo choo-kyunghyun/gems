@@ -1,9 +1,9 @@
 /**
  * Debug — the BACK-END of the debug system: a registry of named panels, each
- * holding live-bound entries (watch / slider / checkbox / dropdown / button /
- * text). It does NOT render. Two FRONT-ENDS consume this same registry:
+ * holding live-bound entries (watch / slider / checkbox / input / dropdown /
+ * button / text). It does NOT render. Two FRONT-ENDS consume this same registry:
  *
- *   - ImGui (dbg_*) — human-facing native overlay [Phase 2]. It works on GMRT
+ *   - ImGui (dbg_*) — human-facing native overlay (`DebugImGui`). It works on GMRT
  *     0.20, but renders OUTSIDE the game surface, so screen_save can't capture
  *     it and is_debug_overlay_open() misreports — an AI agent can't see it.
  *   - Text dump (Debug.dump -> debug.txt) — agent-facing. The same registry
