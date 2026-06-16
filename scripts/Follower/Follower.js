@@ -6,7 +6,6 @@
 // FollowerSystem seeks the player while following; SolidSystem integrates + collides the body
 // (it's a dynamic solid). The player id is passed to the system per tick, never stored here,
 // so a migrated follower needs no entity-id re-link.
-globalThis.Follower = "Follower";
 /**
  * @typedef {Object} Follower
  * @property {"follow"|"wait"} state
@@ -14,3 +13,4 @@ globalThis.Follower = "Follower";
  * @property {number} range    stop distance (px) from the player
  * @property {string} homeMap  mapId it's stationed in while waiting ("" while following)
  */
+globalThis.Follower = "Follower";

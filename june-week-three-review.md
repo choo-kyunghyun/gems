@@ -179,20 +179,20 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Component
 
-- [ ] Animator
-- [ ] Encumbrance
-- [ ] Equipment
-- [ ] Faction
-- [ ] Follower
-- [ ] Health
-- [ ] Inventory
-- [ ] ItemDrop
-- [ ] Light
-- [ ] NPC
-- [ ] Portal
+- [x] Animator
+- [x] Encumbrance
+- [x] Equipment
+- [x] Faction
+- [x] Follower
+- [x] Health
+- [x] Inventory
+- [x] ItemDrop
+- [x] Light
+- [x] NPC
+- [x] Portal
 - [x] Projectile
-- [ ] Stats
-- [ ] Turret
+- [x] Stats
+- [x] Turret
 
 ### Content
 

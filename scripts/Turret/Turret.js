@@ -8,8 +8,6 @@
 // EntitySnapshot, so a placed turret persists across map reloads like any built entity.
 //
 // usage: world.add(id, Turret, { range: 220, fireCd: 30, cd: 0, damage: 2, bulletSpeed: 380 })
-globalThis.Turret = "Turret";
-
 /**
  * @typedef {Object} Turret
  * @property {number} range        targeting radius in world px
@@ -18,3 +16,4 @@ globalThis.Turret = "Turret";
  * @property {number} damage       Projectile.damage of each shot
  * @property {number} bulletSpeed  shot speed in px/s
  */
+globalThis.Turret = "Turret";
