@@ -349,6 +349,7 @@ globalThis.RpgMap = {
     RpgHud.buildMinimap(scene);
 
     FloatingText.clear(); // drop combat numbers from the previous map
+    ParticleFx.clear(); // drop live particles from the previous map (world coords are map-local)
   },
 
   // Release the current map's resources (world / level / renderer / camera / controller),

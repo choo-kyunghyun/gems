@@ -51,6 +51,7 @@ globalThis.SceneManager = class SceneManager {
     SystemMenu.reset(); // close the system overlay (+ its pause) + restore time scale
     Dialogue.clear(); // a dialogue must not survive into the next scene
     FloatingText.clear(); // drop floating combat numbers (world coords are scene-local)
+    ParticleFx.clear(); // drop live particles (world coords are scene-local)
     this._factory = factory; // remembered so the SystemMenu can restart the scene
     // Resolve a display label for the SystemMenu readout. Class-based scenes (extends Scene)
     // never get their `label` field — GMRT doesn't run subclass field initializers — so the

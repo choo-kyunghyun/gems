@@ -161,6 +161,7 @@ class _SceneRpgClass extends Scene {
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
+    ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
     this.camera.update();
 
@@ -431,6 +432,7 @@ class _SceneRpgClass extends Scene {
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
+    ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
     FloatingText.draw(); // damage/heal numbers over entities (world space)
     // HUD / dialogue / inventory are now manager-drawn UI panels (GUI layer, Draw_75),
     // built in create() — nothing more to draw here.

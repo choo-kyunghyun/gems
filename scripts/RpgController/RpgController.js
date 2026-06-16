@@ -169,6 +169,18 @@ globalThis.RpgController = {
     const dir = world.get(Direction, ctrl.id);
     dir.x = aim.nx;
     dir.y = aim.ny;
+
+    // Muzzle flash at the barrel (player center pushed ~18px along the aim), aimed forward.
+    // GM angle (0=right, 90=up) from the aim vector; the ps_muzzle asset emits up (90), so
+    // ParticleFx rotates it to face the shot. Ticks/draws in world space (pause-aware).
+    const pos = world.get(Position, ctrl.id);
+    const ang = point_direction(0, 0, aim.nx, aim.ny);
+    ParticleFx.spawnAsset(
+      ps_muzzle,
+      pos.x + aim.nx * 18,
+      pos.y + aim.ny * 18,
+      ang,
+    );
   },
 
   destroy() {

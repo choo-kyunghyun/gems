@@ -2,7 +2,6 @@
 
 ## Core
 
-- Particle system
 - Sound
 
 ## RPG
