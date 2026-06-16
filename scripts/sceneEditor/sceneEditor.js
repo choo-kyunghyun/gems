@@ -286,9 +286,9 @@ class _SceneEditorClass extends Scene {
       width: 300,
     });
     const card = gemsCard({ padding: GemsTheme.pad, gap: GemsTheme.gapSm });
-    // gemsLabel makes a bare (height-less) node; in a flex column it collapses and
-    // overlaps its siblings, so wrap each label in a fixed-height row (as sceneRpg
-    // does for its HUD labels).
+    // Wrap each label in a fixed-height row so the card's rows share a uniform height
+    // (matching the RPG HUD). gemsLabel self-sizes on 0.20, so this is for consistent
+    // spacing, not to stop the old height-less collapse.
     const labelRow = (lbl, opts, h) => {
       const row = new UIElement({ width: "100%", height: h ?? 22 });
       row.insertChild(gemsLabel(lbl, opts));
@@ -567,9 +567,8 @@ class _SceneEditorClass extends Scene {
   }
 
   // Repopulate the property body from the selected spawn (clear children + re-add rows —
-  // the RpgInventoryUI.rebuild pattern; child-tree edits are GMRT-safe, style mutation is
-  // not). Scalar fields edit the record in place (no rebuild); list add/remove sets
-  // _propDirty.
+  // the RpgInventoryUI.rebuild pattern). Scalar fields edit the record in place (no
+  // rebuild); list add/remove sets _propDirty.
   _rebuildProps() {
     const body = this._propBody;
     const kids = [...body.children];
@@ -738,7 +737,7 @@ class _SceneEditorClass extends Scene {
       },
       walls: TileEdit.meshRects(this.level, this.wallLayer),
       floors: TileEdit.meshRects(this.level, this.floorLayer),
-      layers: [],
+      layers: [], // required by LevelSerializer.load; this editor uses walls/floors instead
       spawns: this._spawns,
     };
     const zmap = this.level.zoneMap("buildable");
