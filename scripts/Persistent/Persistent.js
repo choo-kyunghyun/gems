@@ -4,8 +4,8 @@
 // looted-and-removed entity, or recruited NPC doesn't come back, while id-less spawns keep
 // respawning. Also the natural anchor for a future disk save / arbitrary entity references
 // (pairs with EntitySnapshot).
-globalThis.Persistent = "Persistent";
 /**
  * @typedef {Object} Persistent
  * @property {string} uid  authored, map-stable id from the level file
  */
+globalThis.Persistent = "Persistent";

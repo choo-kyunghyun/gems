@@ -34,23 +34,23 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Component
 
-- [ ] BBox
-- [ ] Collision
-- [ ] Direction
-- [ ] Grounded
-- [ ] Lifetime
-- [ ] Name
-- [ ] PathRequest
-- [ ] PathResponse
-- [ ] Persistent
-- [ ] Position
-- [ ] PrevPosition
-- [ ] Projectile
-- [ ] State
-- [ ] Station
-- [ ] Tag
-- [ ] Velocity
-- [ ] Visual
+- [x] BBox
+- [x] Collision
+- [x] Direction
+- [x] Grounded
+- [x] Lifetime
+- [x] Name
+- [x] PathRequest
+- [x] PathResponse
+- [x] Persistent
+- [x] Position
+- [x] PrevPosition
+- [x] Projectile
+- [x] State
+- [x] Station
+- [x] Tag
+- [x] Velocity
+- [x] Visual
 
 ### Input
 

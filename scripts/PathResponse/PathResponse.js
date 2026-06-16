@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} PathResponse
- * @property {Array<number, number>} path
- * @property {number} index
+ * @property {{x:number,y:number}[]} path  ordered waypoints
+ * @property {number} index  cursor into path (current waypoint)
  */
 globalThis.PathResponse = "PathResponse";
