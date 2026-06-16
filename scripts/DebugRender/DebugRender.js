@@ -20,6 +20,8 @@ globalThis.DebugRender = class DebugRender {
     const list = [
       [RenderDebugBox, "Boxes"],
       [RenderDebugName, "Names"],
+      [RenderDebugDirection, "Facing"],
+      [RenderDebugAnimator, "Anim"],
       [RenderDebugEntity, "BBox"],
       [RenderDebugTileMap, "Tiles"],
       [RenderGrid, "Grid"],

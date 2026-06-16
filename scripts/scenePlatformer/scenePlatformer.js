@@ -32,6 +32,7 @@ class _ScenePlatformerClass extends Scene {
     this.renderer = new Renderer();
     this.renderer.insert(new RenderDebugBox()); // filled colored boxes
     this.renderer.insert(new RenderDebugName()); // entity Name labels on top
+    this.renderer.insert(new RenderDebugDirection()); // facing dot (player Direction)
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     this.renderer.insert(bbox);

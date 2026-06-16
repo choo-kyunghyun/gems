@@ -20,6 +20,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
     this.enabled = opt.enabled ?? false;
     this.ranges = opt.ranges ?? [];
     this.alpha = opt.alpha ?? 0.5;
+    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
   }
 
   destroy() {}
@@ -37,12 +38,9 @@ globalThis.RenderDebugRange = class RenderDebugRange {
         const id = ids[i];
         const radius = world.get(spec.component, id)[spec.field];
         if (!(radius > 0)) continue; // skip 0 / NaN (uncomputed) radii
-        const pos = world.get(Position, id);
-        const prev = world.get(PrevPosition, id);
-        const x =
-          prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-        const y =
-          prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
+        const rp = InterpolationSystem.lerp(world, id, this._rp);
+        const x = rp.x;
+        const y = rp.y;
         draw_set_alpha(a);
         // draw_circle_color (probe-verified on GMRT 0.20); outline ring, same hue in/out.
         draw_circle_color(x, y, radius, col, col, true);

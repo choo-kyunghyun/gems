@@ -1,5 +1,12 @@
-/** @implements {RenderPass} */
+/**
+ * Pathfinding debug overlay: each active `PathResponse` route as a yellow polyline
+ * (plus an orange leader from the entity to its next waypoint) and each pending
+ * `PathRequest` goal as a red cross. Grid coords are mapped to world space through
+ * the Level.
+ * @implements {RenderPass}
+ */
 globalThis.RenderDebugPath = class RenderDebugPath {
+  /** @param {Level} level grid→world mapping source. */
   constructor(level) {
     this.enabled = true;
     this.level = level;

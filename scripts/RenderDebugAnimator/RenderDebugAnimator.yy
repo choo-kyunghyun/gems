@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderDebugAnimator",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderDebugAnimator",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderDebugAnimator.js",
+}

@@ -8,6 +8,7 @@
 globalThis.RenderDebugName = class RenderDebugName {
   constructor() {
     this.enabled = true;
+    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
   }
 
   destroy() {}
@@ -23,19 +24,13 @@ globalThis.RenderDebugName = class RenderDebugName {
     draw_set_halign(fa_center);
     draw_set_valign(fa_bottom);
 
-    const ids = world.query(Name);
+    const ids = world.query(Name, Position);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const pos = world.get(Position, id);
-      if (pos === undefined) continue;
-      const prev = world.get(PrevPosition, id);
-      const rx =
-        prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-      const ry =
-        prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
+      const rp = InterpolationSystem.lerp(world, id, this._rp);
       const bbox = world.get(BBox, id);
       const offsetY = bbox !== undefined ? bbox.y : 0;
-      draw_text(rx, ry + offsetY, world.get(Name, id).name);
+      draw_text(rp.x, rp.y + offsetY, world.get(Name, id).name);
     }
 
     draw_set_color(color);

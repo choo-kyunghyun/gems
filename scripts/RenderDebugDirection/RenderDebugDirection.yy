@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderDebugDirection",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderDebugDirection",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderDebugDirection.js",
+}

@@ -73,20 +73,20 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Render
 
-- [ ] ParticleFx
-- [ ] RenderChunks
-- [ ] RenderDebugBox
-- [ ] RenderDebugEntity
-- [ ] RenderDebugName
-- [ ] RenderDebugPath
-- [ ] RenderDebugRange
-- [ ] RenderDebugTileMap
-- [ ] RenderEntity
-- [ ] Renderer
-- [ ] RenderGrid
-- [ ] RenderTileMap
-- [ ] RenderZone
-- [ ] RenderZoneLabel
+- [x] ParticleFx
+- [x] RenderChunks
+- [x] RenderDebugBox
+- [x] RenderDebugEntity
+- [x] RenderDebugName
+- [x] RenderDebugPath
+- [x] RenderDebugRange
+- [x] RenderDebugTileMap
+- [x] RenderEntity
+- [x] Renderer
+- [x] RenderGrid
+- [x] RenderTileMap
+- [x] RenderZone
+- [x] RenderZoneLabel
 
 ### System
 

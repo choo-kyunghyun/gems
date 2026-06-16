@@ -1,7 +1,13 @@
-/** @implements {RenderPass} */
+/**
+ * Production entity renderer: draws every entity with `Visual` + `Position` via
+ * `draw_sprite_ext`, advancing looped sprite playback and interpolating position
+ * through `InterpolationSystem.lerp`.
+ * @implements {RenderPass}
+ */
 globalThis.RenderEntity = class RenderEntity {
   constructor() {
     this.enabled = true;
+    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
   }
 
   destroy() {}
@@ -10,12 +16,9 @@ globalThis.RenderEntity = class RenderEntity {
     const entities = world.query(Visual, Position);
     for (const entity of entities) {
       const visual = world.get(Visual, entity);
-      const pos = world.get(Position, entity);
-      const prev = world.get(PrevPosition, entity);
-      const rx =
-        prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-      const ry =
-        prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
+      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      const rx = rp.x;
+      const ry = rp.y;
       if (visual.speed !== 0) {
         visual.time += visual.speed * Time.raw;
         visual.subimg =

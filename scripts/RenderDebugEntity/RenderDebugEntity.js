@@ -1,6 +1,7 @@
 /**
- * BBox-outline debug overlay (lime). Name labels live in `RenderDebugBox`;
- * insert this *after* it so the outlines sit on top of the colored boxes.
+ * BBox-outline debug overlay (lime), one linelist draw call for the whole world.
+ * Insert it *after* `RenderDebugBox` so the outlines sit on top of the colored
+ * boxes (it draws only outlines — boxes are `RenderDebugBox`, names `RenderDebugName`).
  * @implements {RenderPass}
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
@@ -9,6 +10,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
     // this live. A scene using it as a pure overlay inserts it disabled (see scenePlatformer/
     // sceneRpg); RTS keeps it enabled since it's that scene's only entity renderer.
     this.enabled = true;
+    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
   }
 
   destroy() {}
@@ -28,13 +30,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
       const id = ids[i];
       const bbox = world.get(BBox, id);
       if (bbox === undefined) continue;
-      const pos = world.get(Position, id);
-      const prev = world.get(PrevPosition, id);
-      const rx =
-        prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-      const ry =
-        prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
-      const e = AABB.edges({ x: rx, y: ry }, bbox);
+      const e = AABB.edges(InterpolationSystem.lerp(world, id, this._rp), bbox);
       draw_vertex(e.x1, e.y1);
       draw_vertex(e.x2, e.y1);
       draw_vertex(e.x2, e.y1);

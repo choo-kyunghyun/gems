@@ -303,6 +303,8 @@ globalThis.RpgMap = {
     );
     scene.renderer.insert(new RenderDebugBox());
     scene.renderer.insert(new RenderDebugName());
+    scene.renderer.insert(new RenderDebugDirection()); // facing dot (player Direction)
+    scene.renderer.insert(new RenderDebugAnimator()); // animator-state label
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     scene.renderer.insert(bbox);
