@@ -21,13 +21,11 @@
  * `Dialogue.draw()` in Draw_75 (after Toast), `Dialogue.clear()` on every scene swap.
  * While it's open, UINav suspends (it owns Enter/A) — see UINav.update.
  *
- * GMRT notes: the box is sized off display_get_gui_* (never a flexpanel rect), so
- * there's no NaN-width hazard and no `!(pos.width > 0)` guard. The advance indicator
- * is a filled down-triangle via drawUIArrow (like UIAccordion/UISelect) — draw_triangle_color
- * works on GMRT 0.20; it was a draw_text "v" glyph on the dropped 0.19. Reveal counts a
- * JS substring of pre-wrapped lines, no Map/Set
- * iteration. isOpen() is a METHOD, not a static getter (static getters miscompile for
- * computed state on GMRT 0.20 — see CLAUDE.md).
+ * GMRT notes: the box is sized off display_get_gui_* (never a flexpanel rect), so there's no
+ * NaN-width hazard and no `!(pos.width > 0)` guard. The advance indicator is a filled
+ * down-triangle via drawUIArrow (like UIAccordion/UISelect). Reveal counts a JS substring of
+ * pre-wrapped lines, no Map/Set iteration. isOpen() is a METHOD, not a static getter (static
+ * getters miscompile for computed state on GMRT 0.20 — see CLAUDE.md).
  */
 globalThis.Dialogue = class Dialogue {
   static speedDefault = 45; // chars/sec
@@ -71,7 +69,10 @@ globalThis.Dialogue = class Dialogue {
     return Dialogue._open;
   }
 
-  // pages: array of strings or { speaker, text }. opts: { speed, onComplete }.
+  /**
+   * Open a dialogue. @param {(string|{speaker?:string,text:string})[]} pages
+   * @param {Object} [opts] { speed (chars/sec), onComplete }
+   */
   static start(pages, opts = {}) {
     const list = [];
     for (let i = 0; i < pages.length; i++) {
@@ -88,12 +89,13 @@ globalThis.Dialogue = class Dialogue {
     Dialogue._open = list.length > 0;
   }
 
-  // Force-close with no onComplete (scene swap / abort).
+  /** Force-close with no onComplete (scene swap / abort). */
   static clear() {
     Dialogue._open = false;
     Dialogue._pages = [];
   }
 
+  /** Advance the typewriter + handle advance input (Step_0). */
   static update() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
@@ -136,6 +138,7 @@ globalThis.Dialogue = class Dialogue {
     }
   }
 
+  /** Draw the dialogue box (Draw_75, after Toast). */
   static draw() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
@@ -232,8 +235,7 @@ globalThis.Dialogue = class Dialogue {
       shown += line.length;
     }
 
-    // Blinking advance chevron (down triangle) once the page is fully revealed.
-    // drawUIArrow / draw_triangle_color works on GMRT 0.20 (was a "v" glyph on 0.19).
+    // Blinking advance chevron (down triangle, via drawUIArrow) once the page is fully revealed.
     if (
       Dialogue._chars >= Dialogue._total &&
       floor(current_time / 450) % 2 === 0

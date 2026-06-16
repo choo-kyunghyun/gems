@@ -25,10 +25,12 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
   // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
   // (`_input !== null`) miscompiles to a constant (verified on SystemMenu.isOpen — the
   // getter read false while the field held a live object). See CLAUDE.md.
+  /** @returns {boolean} whether the on-screen keyboard is open */
   static isOpen() {
     return VirtualKeyboard._input !== null;
   }
 
+  /** Open the keyboard editing `input`'s text (no-op if already open or input is null). @param {UIInput} input */
   static open(input) {
     if (VirtualKeyboard.isOpen() || input == null) return;
     VirtualKeyboard._input = input;
@@ -51,7 +53,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     });
   }
 
-  // Append a character (respecting the input's maxLength).
+  /** Append a character to the buffer (respecting the input's maxLength). @param {string} ch */
   static type(ch) {
     if (!VirtualKeyboard.isOpen()) return;
     const max = VirtualKeyboard._input.maxLength ?? Infinity;
@@ -59,11 +61,13 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     VirtualKeyboard._buffer += ch;
   }
 
+  /** Delete the last buffered character. */
   static backspace() {
     const b = VirtualKeyboard._buffer;
     if (b.length > 0) VirtualKeyboard._buffer = b.substring(0, b.length - 1);
   }
 
+  /** Flip shift (letter case) for subsequent keys. */
   static toggleShift() {
     VirtualKeyboard._shift = !VirtualKeyboard._shift;
   }
@@ -171,8 +175,8 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     return row;
   }
 
-  // a-z → A-Z. NOT String.toUpperCase() — on GMRT 0.19 that returns garbage Unicode
-  // (probe: "q".toUpperCase() === "ଊ"), so shifted letters typed as unrenderable
+  // a-z → A-Z. NOT String.toUpperCase() — on GMRT (still broken on 0.20) that returns garbage
+  // Unicode (probe: "q".toUpperCase() === "ଊ"), so shifted letters would type as unrenderable
   // glyphs. Shift the char code by 32 instead (fromCharCode/charCodeAt are fine).
   static _upper(ch) {
     if (ch < "a" || ch > "z") return ch;

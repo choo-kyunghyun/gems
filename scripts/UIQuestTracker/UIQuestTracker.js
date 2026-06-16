@@ -4,9 +4,9 @@
  * fixed-size element (built by gemsQuestTracker, which sizes the element to the active
  * quests so an enclosing UIScroll can measure + reveal overflow). The whole list is
  * drawn directly in onDraw across one element — the same immediate-mode pattern as
- * UISlots, so it reads QuestLog live each frame with no per-frame flexpanel rebuild
- * (runtime flex mutation is a no-op on 0.19; rebuilding child rows every frame would be
- * fragile). It does its own status-color spans inline rather than nesting UIRichText.
+ * UISlots, so it reads QuestLog live each frame with no per-frame child rebuild
+ * (rebuilding child rows every frame would be fragile churn). It does its own
+ * status-color spans inline rather than nesting UIRichText.
  *
  * Per active quest (QuestLog.activeIds(), registration order): the quest `name` as a
  * title (gold when ready to turn in, else plain) over one line per objective —
@@ -38,8 +38,10 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.emptyText = t.emptyText ?? ""; // string or () => string
   }
 
-  // Full pixel height needed by every currently-active quest — the factory sizes the
-  // element to this so a UIScroll around it can reveal the overflow.
+  /**
+   * Full pixel height needed by every currently-active quest — the factory sizes the element
+   * to this so a UIScroll around it can reveal the overflow. @returns {number}
+   */
   contentHeight() {
     const ids = QuestLog.activeIds();
     if (ids.length === 0) return this.padY * 2 + this.objH;
@@ -52,6 +54,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     return h;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
@@ -93,9 +96,8 @@ globalThis.UIQuestTracker = class UIQuestTracker {
         draw_text(x, y, I18n.text(def.name));
         y += this.titleH;
 
-        // One line per objective: a marker + formatted label, lime when met. The marker
-        // is a checkmark (met) / dash (pending) drawn as primitives — draw_line_width_color
-        // works on GMRT 0.20 (was a no-op on the dropped 0.19, when this was a "v"/"-" glyph).
+        // One line per objective: a marker + formatted label, lime when met. The marker is a
+        // drawUICheck checkmark (met) / a draw_line_width_color dash (pending).
         if (bodyFont !== -1) draw_set_font(bodyFont);
         const markW = 16; // marker column width before the label
         const fh = string_height("0"); // body line height, to vertically center the marker

@@ -25,6 +25,7 @@ globalThis.SlotDrag = class SlotDrag {
   static hoverGrid = null;
   static hoverSlot = -1;
 
+  /** Pick up the item in `grid` slot `i` (source slot empties). @param {UISlots} grid @param {number} i */
   static begin(grid, i) {
     if (SlotDrag.active) return;
     const it = grid.items[i];
@@ -38,15 +39,17 @@ globalThis.SlotDrag = class SlotDrag {
     grid.items[i] = null; // pick up — source slot shows empty while dragging
   }
 
-  // A draggable grid reports the slot under the cursor each frame during a drag.
+  /** Record the drop target — a draggable grid reports the slot under the cursor each frame. @param {UISlots} grid @param {number} j */
   static hover(grid, j) {
     SlotDrag.hoverGrid = grid;
     SlotDrag.hoverSlot = j;
   }
 
-  // Place the carried item into grid[j]. Dropping back onto the source slot reads as
-  // a click (restore + select); otherwise swap whatever was there back to the source
-  // (null if it was empty → a plain move).
+  /**
+   * Place the carried item into `grid` slot `j`. Dropping back onto the source slot reads as a
+   * click (restore + select); otherwise swap whatever was there back to the source (null if it
+   * was empty → a plain move). @param {UISlots} grid @param {number} j
+   */
   static drop(grid, j) {
     if (!SlotDrag.active) return;
     if (grid === SlotDrag.source && j === SlotDrag.sourceIndex) {
@@ -61,6 +64,7 @@ globalThis.SlotDrag = class SlotDrag {
     SlotDrag._reset();
   }
 
+  /** Abort the drag, restoring the item to its source slot. */
   static cancel() {
     if (!SlotDrag.active) return;
     SlotDrag.source.items[SlotDrag.sourceIndex] = SlotDrag.item;
@@ -76,8 +80,10 @@ globalThis.SlotDrag = class SlotDrag {
     SlotDrag.hoverSlot = -1;
   }
 
-  // Step_0, after UI.update: the grids have recorded their hover this frame, so on the
-  // release edge drop onto the last slot the cursor was over (drift-forgiving).
+  /**
+   * Resolve a drag on the release edge (Step_0, after UI.update): the grids recorded their hover
+   * this frame, so drop onto the last slot the cursor was over (drift-forgiving), else cancel.
+   */
   static update() {
     if (!SlotDrag.active) return;
     if (!UIPointer.released) return;
@@ -88,6 +94,7 @@ globalThis.SlotDrag = class SlotDrag {
     }
   }
 
+  /** Draw the carried item's icon at the cursor (Draw_75). */
   static draw() {
     if (!SlotDrag.active) return;
     const it = SlotDrag.item;

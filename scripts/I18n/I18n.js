@@ -1,9 +1,14 @@
+// Localization registry. I18n.load(manifest) reads a locale's manifest.json — text-file masks
+// (merged flat key→string), fonts, images, sounds — into the four Maps below. Strings resolve
+// via text()/textRef() (the latter a live () => string for UI labels); fonts/images/sounds by
+// role key. obj_game loads the Settings.language locale at boot; switching language reloads.
 globalThis.I18n = class I18n {
-  static texts = new Map();
-  static fonts = new Map();
-  static images = new Map();
-  static sounds = new Map();
+  /** @type {Map<string,string>} */ static texts = new Map();
+  /** @type {Map<string,number>} */ static fonts = new Map();
+  /** @type {Map<string,number>} */ static images = new Map();
+  /** @type {Map<string,number>} */ static sounds = new Map();
 
+  /** Free all loaded fonts/sprites/sound streams and clear every registry (called before each load). */
   static destroy() {
     I18n.texts = new Map();
 
@@ -17,6 +22,7 @@ globalThis.I18n = class I18n {
     I18n.sounds = new Map();
   }
 
+  /** Load a locale from its manifest.json (texts + fonts + images + sounds). @param {string} fname manifest path */
   static load(fname) {
     I18n.destroy();
 
@@ -94,6 +100,10 @@ globalThis.I18n = class I18n {
     }
   }
 
+  /**
+   * Resolve a key to its localized string now (falls back to the key itself). Extra args fill
+   * `{0}`/`{1}`… placeholders. @param {string} key @param {...*} params @returns {string}
+   */
   static text(key, ...params) {
     if (params.length === 0) {
       return I18n.texts.get(key) ?? key;
@@ -102,6 +112,11 @@ globalThis.I18n = class I18n {
     }
   }
 
+  /**
+   * A live `() => string` for UI labels that must re-resolve (language swap / changing params).
+   * `params` may be values or `() => value` getters. @param {string} key @param {...*} params
+   * @returns {() => string}
+   */
   static textRef(key, ...params) {
     if (params.length === 0) {
       return () => {
@@ -123,14 +138,17 @@ globalThis.I18n = class I18n {
     }
   }
 
+  /** @param {string} key @returns {number} the font handle, or the current draw font if undeclared */
   static font(key) {
     return I18n.fonts.get(key) ?? draw_get_font();
   }
 
+  /** @param {string} key @returns {number} the sprite handle, or -1 */
   static image(key) {
     return I18n.images.get(key) ?? -1;
   }
 
+  /** @param {string} key @returns {number} the sound stream handle, or -1 */
   static sound(key) {
     return I18n.sounds.get(key) ?? -1;
   }

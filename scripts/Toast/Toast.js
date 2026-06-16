@@ -41,6 +41,10 @@ globalThis.Toast = class Toast {
     error: Color.parse("#e0584f"),
   };
 
+  /**
+   * Queue a toast. @param {string} str @param {Object} [opts] { duration (s), type:
+   * "info"|"success"|"warn"|"error", accent (color int override) }
+   */
   static push(str, opts = {}) {
     const accent =
       opts.accent ?? Toast.accents[opts.type ?? "info"] ?? Toast.accents.info;
@@ -54,10 +58,12 @@ globalThis.Toast = class Toast {
     while (Toast._items.length > Toast.maxItems) Toast._items.shift();
   }
 
+  /** Drop all queued toasts (e.g. on scene swap). */
   static clear() {
     Toast._items = [];
   }
 
+  /** Age + cull the stack and draw it (Draw_75, after Tooltip). */
   static draw() {
     const items = Toast._items;
     if (items.length === 0) return;

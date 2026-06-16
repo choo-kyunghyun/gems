@@ -102,18 +102,18 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### UI
 
-- [ ] Dialogue
-- [ ] FloatingText
-- [ ] I18n
-- [ ] RadarArrows
-- [ ] SceneTransition
-- [ ] SlotDrag
-- [ ] Toast
-- [ ] Tooltip
+- [x] Dialogue
+- [x] FloatingText
+- [x] I18n
+- [x] RadarArrows
+- [x] SceneTransition
+- [x] SlotDrag
+- [x] Toast
+- [x] Tooltip
 - [x] UIDraw
-- [ ] UIMinimap
-- [ ] UIQuestTracker
-- [ ] VirtualKeyboard
+- [x] UIMinimap
+- [x] UIQuestTracker
+- [x] VirtualKeyboard
 
 #### Element
 

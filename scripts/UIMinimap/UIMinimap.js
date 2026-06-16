@@ -10,12 +10,12 @@
  * `rules` ([{ tag, color }]) — entities with no matching tag are skipped. The target is
  * drawn as a distinct marker with a facing notch (from its Direction, if any).
  *
- * GMRT: guard `!(pos.width > 0)` (NaN layout on the first post-transition frame). Blips
- * use draw_circle (draw_triangle_color / draw_line_width_color render nothing on 0.19,
- * so no triangles/width-lines — the facing notch is a small circle, like RpgWorldOverlay).
- * Tag membership is read via Set.has() (allowed — only for...of over a Set is banned).
+ * GMRT: guard `!(pos.width > 0)` (NaN layout on the first post-transition frame). Blips + the
+ * facing notch are draw_circle dots (simple + cheap for a radar). Tag membership is read via
+ * Set.has() (allowed — only for...of over a Set is banned).
  */
 globalThis.UIMinimap = class UIMinimap {
+  /** @param {Object} [m] { world, target, range, rules: {tag,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
   constructor(m = {}) {
     this.world = m.world ?? null;
     this.target = m.target ?? -1; // center entity id (also the player marker)
@@ -30,6 +30,7 @@ globalThis.UIMinimap = class UIMinimap {
     this.playerColor = m.playerColor ?? c_white;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     if (this.world === null) return;
     const pos = element.getLayoutPosition();
@@ -92,6 +93,7 @@ globalThis.UIMinimap = class UIMinimap {
     draw_set_alpha(a0);
   }
 
+  /** @param {number} id @returns {number|null} the first matching rule color, or null if untagged */
   _color(id) {
     const tag = this.world.get(Tag, id);
     if (tag === undefined) return null;

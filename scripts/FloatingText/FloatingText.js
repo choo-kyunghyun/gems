@@ -36,7 +36,11 @@ globalThis.FloatingText = class FloatingText {
     info: Color.parse("#cfd6e4"),
   };
 
-  // text may be a number or string; opts: { type, color, life, rise, scale }.
+  /**
+   * Spawn a floating number/string at world (x, y).
+   * @param {number} x @param {number} y @param {number|string} text
+   * @param {Object} [opts] { type, color, life, rise, scale }
+   */
   static push(x, y, text, opts = {}) {
     const type = opts.type ?? "damage";
     FloatingText._items.push({
@@ -52,10 +56,12 @@ globalThis.FloatingText = class FloatingText {
     });
   }
 
+  /** Drop all live numbers (obj_game calls this on every scene swap). */
   static clear() {
     FloatingText._items = [];
   }
 
+  /** Age + cull the numbers and draw them in WORLD space (call from a scene's draw(), after entities). */
   static draw() {
     const items = FloatingText._items;
     if (items.length === 0) return;
