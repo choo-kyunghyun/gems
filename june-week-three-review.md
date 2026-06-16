@@ -284,13 +284,13 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Platformer
 
-- [ ] CollectibleSystem
-- [ ] Enemy
-- [ ] EnemySystem
-- [ ] PlatformerController
-- [ ] PlatformerLevel
-- [ ] scenePlatformer
-- [ ] Spike
+- [x] CollectibleSystem
+- [x] Enemy
+- [x] EnemySystem
+- [x] PlatformerController
+- [x] PlatformerLevel
+- [x] scenePlatformer
+- [x] Spike
 
 ### RTS
 
