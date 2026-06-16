@@ -1,17 +1,30 @@
 // Display / window management: applies the saved display Settings (fullscreen + windowed
-// resolution) to the actual OS game window + the world's application_surface. Used at boot
-// (obj_game Create) and whenever the SystemMenu changes a display setting. The GUI layer
-// is sized separately by UI.applyScale (fixed design resolution); this owns only the window.
+// resolution + frame-rate cap) to the actual OS game window + the world's application_surface.
+// Used at boot (obj_game Create) and whenever the SystemMenu changes a display setting. The
+// GUI layer is sized separately by UI.applyScale (fixed design resolution); this owns the
+// window + the game frame rate.
 globalThis.Display = class Display {
   // Frames to defer a window resize after leaving fullscreen. The GM manual warns that a
   // window_set_size right after switching fullscreen→windowed "may not work correctly"
   // unless it happens at least 10 steps later, so that one path goes through call_later.
   static RESIZE_DELAY = 10;
 
-  // Apply the current Settings: go fullscreen, else size the window to the saved windowed
-  // resolution (0/unset → half the monitor). Coming OUT of fullscreen the resize is deferred
-  // RESIZE_DELAY frames (manual caveat); boot + a plain resolution change resize inline.
+  // Game speed used for the "Unlimited" fpsLimit (0) — high enough to be effectively
+  // uncapped (the fixed-rate sim is unaffected; only render/Step frequency rises).
+  static UNCAPPED_FPS = 1000;
+
+  // Apply the saved frame-rate cap (Settings "fpsLimit": 30/60/120, or 0 = Unlimited).
+  static applyFps() {
+    const fps = Settings.get("fpsLimit");
+    game_set_speed(fps > 0 ? fps : Display.UNCAPPED_FPS, gamespeed_fps);
+  }
+
+  // Apply the current Settings: the fps cap, then go fullscreen, else size the window to the
+  // saved windowed resolution (0/unset → half the monitor). Coming OUT of fullscreen the
+  // resize is deferred RESIZE_DELAY frames (manual caveat); boot + a plain resolution change
+  // resize inline.
   static apply() {
+    Display.applyFps();
     if (Settings.get("fullscreen")) {
       window_set_fullscreen(true);
       return;

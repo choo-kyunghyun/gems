@@ -396,12 +396,16 @@ globalThis.SystemMenu = class SystemMenu {
     dispSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_DISP_FPS"),
-        gemsSelect("fpsLimit", [
-          { name: "30", value: 30 },
-          { name: "60", value: 60 },
-          { name: "120", value: 120 },
-          { name: I18n.text("SETTINGS_DISP_FPS_UNLIMITED"), value: 0 },
-        ]),
+        gemsSelect(
+          "fpsLimit",
+          [
+            { name: "30", value: 30 },
+            { name: "60", value: 60 },
+            { name: "120", value: 120 },
+            { name: I18n.text("SETTINGS_DISP_FPS_UNLIMITED"), value: 0 },
+          ],
+          { onChange: () => Display.applyFps() },
+        ),
       ),
     );
     scroll.scrollBody.insertChild(dispSection);

@@ -430,7 +430,10 @@ globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
   return gemsSelectCustom(
     items,
     idx,
-    (_i, value) => Settings.set(key, value),
+    (_i, value) => {
+      Settings.set(key, value);
+      if (opts.onChange !== undefined) opts.onChange(value);
+    },
     opts,
   );
 };

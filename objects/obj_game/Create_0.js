@@ -7,8 +7,6 @@ randomize();
 gpu_set_ztestenable(true);
 gpu_set_alphatestenable(true);
 
-game_set_speed(display_get_frequency(), gamespeed_fps);
-
 draw_set_circle_precision(64);
 
 Log.clear();
@@ -40,8 +38,9 @@ Settings.registerDefaults({
 });
 Settings.load();
 
-// Restore the saved window state (fullscreen / windowed resolution) — sizes the OS window
-// + the world's application_surface. The GUI layer is sized separately by UI.applyScale.
+// Restore the saved display state (fps cap + fullscreen / windowed resolution) — sets the
+// game speed, sizes the OS window + the world's application_surface. The GUI layer is sized
+// separately by UI.applyScale.
 Display.apply();
 
 // Load localization for the saved language, then adopt its base font as the
