@@ -1,5 +1,16 @@
-/** @implements {UIComponent} */
+// Text label component. `textRef` is a () => string (live I18n.textRef), re-measured only when
+// the string changes; onUpdate self-sizes the host element to the measured text via
+// setWidth/setHeight (flexpanel mutation, OK on 0.20). Draws from pos.left/top + its own
+// measured advances, so it needs no pos.width NaN guard.
+/**
+ * @typedef {Object} UITextOpts
+ * @property {() => string} [textRef] @property {number} [halign] fa_* @property {number} [color] @property {number} [alpha]
+ * @property {number} [font] font handle (-1 = current) @property {number} [sep] line separation @property {number} [w] wrap width
+ * @property {number} [xscale] @property {number} [yscale] @property {number} [angle]
+ * @implements {UIComponent}
+ */
 globalThis.UIText = class UIText {
+  /** @param {UITextOpts} [text] */
   constructor(text = {}) {
     this.textRef = text.textRef ?? (() => "");
     this.halign = text.halign ?? fa_left;

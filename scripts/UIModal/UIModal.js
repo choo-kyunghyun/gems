@@ -21,6 +21,7 @@
  * `_destroyed` guard keeps the unwinding traversal off the deleted node.
  */
 globalThis.UIModal = class UIModal {
+  /** @param {Object} [modal] { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide } */
   constructor(modal = {}) {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
@@ -52,12 +53,14 @@ globalThis.UIModal = class UIModal {
     if (this._root !== null) this._root.scrollY = -this.slide * (1 - f);
   }
 
+  /** Begin the exit animation (idempotent); the root is removed + onClose fires once it completes. */
   close() {
     if (this._phase >= 2 || this._root === null) return; // already exiting / gone
     this._phase = 2;
     this._t = 0;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} always true (exclusive) until removed */
   onUpdate(element, block) {
     if (this._phase === 3) return block;
 
@@ -96,6 +99,7 @@ globalThis.UIModal = class UIModal {
   // UINav reads this to stop collecting focusables from roots beneath an open modal,
   // mirroring the pointer block above — so keyboard/gamepad focus can't reach the
   // background while the dialog is up (kept exclusive until it's fully removed).
+  /** @returns {boolean} whether nav is blocked from roots beneath this modal */
   navExclusive() {
     return this._phase !== 3;
   }

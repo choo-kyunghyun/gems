@@ -6,10 +6,10 @@
  * (string or () => string, e.g. a percentage or "50 / 100").
  *
  * Style structs mirror UISlider: { color, rad?, border?, borderColor? }. Everything is
- * drawn directly in onDraw — no child UIElements or per-frame flexpanel style setters
- * (those are unreliable, bug #15065).
+ * drawn directly in onDraw (immediate-mode) — no child UIElements.
  */
 globalThis.UIProgress = class UIProgress {
+  /** @param {Object} [progress] { getValue|value, label, track, fill, color, font } */
   constructor(progress = {}) {
     // Static `value` or a live `getValue()` — either way treated as 0..1.
     this._get = progress.getValue ?? (() => progress.value ?? 0);
@@ -27,6 +27,7 @@ globalThis.UIProgress = class UIProgress {
     this.font = progress.font ?? -1;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false

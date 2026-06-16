@@ -17,6 +17,7 @@
  * per code path (the capturing branch returns early), matching UISelect.
  */
 globalThis.UIRebind = class UIRebind {
+  /** @param {Object} [s] { actionKey, prompt: () => string, onRebind, color, captureColor, font, rad } */
   constructor(s = {}) {
     this.actionKey = s.actionKey ?? "";
     this.promptRef = s.prompt ?? (() => "Press a key…");
@@ -31,6 +32,7 @@ globalThis.UIRebind = class UIRebind {
     this._capturing = false; // waiting for the next key
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -70,6 +72,7 @@ globalThis.UIRebind = class UIRebind {
     return this._hold || this._enter || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width

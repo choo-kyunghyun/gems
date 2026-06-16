@@ -1,5 +1,17 @@
-/** @implements {UIComponent} */
+// Rounded-rect background for a UIElement (the base visual under most widgets): radial fill,
+// optional soft shadow, border, and inner top-bevel sheen — all faked with stacked
+// draw_roundrect passes. Colors are live fields so UIButton can swap them per frame.
+/**
+ * @typedef {Object} UIPanelOpts
+ * @property {number} [color] fill color @property {number} [color2] edge tint (center→edge radial)
+ * @property {number} [alpha] @property {number} [rad] corner radius
+ * @property {number} [border] outline thickness px @property {number} [borderColor]
+ * @property {number} [shadow] blur spread px @property {number} [shadowColor] @property {number} [shadowAlpha]
+ * @property {number} [highlight] top-bevel strip thickness px @property {number} [highlightColor] @property {number} [highlightAlpha]
+ * @implements {UIComponent}
+ */
 globalThis.UIPanel = class UIPanel {
+  /** @param {UIPanelOpts} [panel] */
   constructor(panel = {}) {
     this.color = panel.color ?? c_white;
     // Optional edge color. draw_roundrect's two colors run center→edge (radial,
@@ -24,6 +36,7 @@ globalThis.UIPanel = class UIPanel {
     this.highlightAlpha = panel.highlightAlpha ?? 0.06;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const x1 = pos.left;

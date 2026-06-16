@@ -117,33 +117,33 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 #### Element
 
-- [ ] SystemMenu
-- [ ] UI
-- [ ] UIAccordion
-- [ ] UIButton
-- [ ] UICheckbox
-- [ ] UIDrag
-- [ ] UIDropdown
-- [ ] UIElement
-- [ ] UIImage
-- [ ] UIInput
-- [ ] UIModal
-- [ ] UINav
-- [ ] UINineSlice
-- [ ] UIPanel
-- [ ] UIProgress
-- [ ] UIRebind
-- [ ] UIRichText
-- [ ] UIScroll
-- [ ] UISelect
-- [ ] UISlider
-- [ ] UISlots
-- [ ] UIStepper
-- [ ] UITable
-- [ ] UITabs
-- [ ] UIText
-- [ ] UITooltip
-- [ ] UITrigger
+- [x] SystemMenu
+- [x] UI
+- [x] UIAccordion
+- [x] UIButton
+- [x] UICheckbox
+- [x] UIDrag
+- [x] UIDropdown
+- [x] UIElement
+- [x] UIImage
+- [x] UIInput
+- [x] UIModal
+- [x] UINav
+- [x] UINineSlice
+- [x] UIPanel
+- [x] UIProgress
+- [x] UIRebind
+- [x] UIRichText
+- [x] UIScroll
+- [x] UISelect
+- [x] UISlider
+- [x] UISlots
+- [x] UIStepper
+- [x] UITable
+- [x] UITabs
+- [x] UIText
+- [x] UITooltip
+- [x] UITrigger
 
 ### Util
 

@@ -34,9 +34,9 @@
  * stops updating (tab hidden / destroyed) the claim simply lapses and nav resumes.
  *
  * GMRT notes: hit-test/hover live in instance fields (a cached primitive bool gets
- * clobbered mid-function — see CLAUDE.md); sort arrows are filled triangles (shared
- * drawUIArrow — draw_triangle_color works on GMRT 0.20); no Map/Set iteration; LMB edges come from
- * the frame-latched SlotDrag.pressed/released, never a re-read of mouse_check_button*.
+ * clobbered mid-function — see CLAUDE.md); sort arrows go through the shared drawUIArrow
+ * helper; no Map/Set iteration; LMB edges come from the frame-latched
+ * SlotDrag.pressed/released, never a re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
   // The table currently requesting keyboard browse this frame (UINav.consume reads +
@@ -45,6 +45,7 @@ globalThis.UITable = class UITable {
 
   // Called by UINav.update: if a table claimed the keys this frame, suspend nav and
   // clear the claim (the table re-claims next frame while still browsing).
+  /** @returns {boolean} whether a table is requesting keyboard browse this frame */
   static consume() {
     if (UITable.active === null) return false;
     UITable.active = null;
@@ -108,28 +109,34 @@ globalThis.UITable = class UITable {
   }
 
   // ── public API ──────────────────────────────────────────────
+  /** Replace the source rows (re-applies filter + sort). @param {Object[]} rows @returns {UITable} */
   setRows(rows) {
     this._rows = rows ?? [];
     this._recompute();
     return this;
   }
   // Plain methods, NOT instance getters: an external `table.view` read faults on GMRT
-  // 0.19 ("cannot coerce undefined or null value into object") — `view`/`rows` also
-  // shadow GML view/global names. Methods read reliably across scripts.
+  // ("cannot coerce undefined or null value into object") — `view`/`rows` also shadow GML
+  // view/global names. Methods read reliably across scripts.
+  /** @returns {Object[]} the source rows */
   getRows() {
     return this._rows;
   }
+  /** @returns {Object[]} the filtered + sorted view rows */
   getView() {
     return this._view;
   }
+  /** @returns {Object|null} the selected row object */
   getSelected() {
     return this._selRow;
   }
+  /** Set the row-filter predicate (or null for all). @param {((row:Object)=>boolean)|null} fn @returns {UITable} */
   setFilter(fn) {
     this._filter = fn ?? null;
     this._recompute();
     return this;
   }
+  /** @param {Object|null} row @returns {UITable} */
   selectRow(row) {
     this._selRow = row;
     return this;
@@ -138,6 +145,7 @@ globalThis.UITable = class UITable {
   // column INDICES, which shift when columns are added/removed — so remap it by each
   // sorted column's `key`, dropping any whose column is now gone. Columns without a
   // `key` can't be remapped (their sort entry is dropped).
+  /** Swap the column set, remapping the active sort by each column's stable `key`. @param {Object[]} columns @returns {UITable} */
   setColumns(columns) {
     const keys = [];
     for (let i = 0; i < this._sort.length; i++) {
@@ -163,6 +171,7 @@ globalThis.UITable = class UITable {
   }
 
   // ── sorting ─────────────────────────────────────────────────
+  /** Make column `ci` the primary sort key (re-click flips direction). @param {number} ci @returns {UITable} */
   sortBy(ci) {
     const col = this.columns[ci];
     if (col == null || col.sortable === false) return this;
@@ -279,6 +288,7 @@ globalThis.UITable = class UITable {
   }
 
   // ── update ──────────────────────────────────────────────────
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
@@ -452,6 +462,7 @@ globalThis.UITable = class UITable {
   }
 
   // ── draw ────────────────────────────────────────────────────
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) width — NaN <= 0 is false
@@ -516,8 +527,7 @@ globalThis.UITable = class UITable {
       // Header labels are always left-aligned (even over right-aligned numeric cells) so
       // the sort arrow at the right edge never collides with / truncates the label.
       this._cellText(col.label ?? "", c, cy, fa_left, c.w - this.cellPad - 14);
-      // Sort arrow at the cell's right edge: up asc / down desc, accent on primary. A filled
-      // triangle (draw_triangle_color works on GMRT 0.20; was a no-op on the dropped 0.19).
+      // Sort arrow at the cell's right edge (via drawUIArrow): up asc / down desc, accent on primary.
       if (rank >= 0) {
         const dir = this._sort[rank].dir;
         const ah = 4;
@@ -698,6 +708,7 @@ globalThis.UITable = class UITable {
   // ── nav ─────────────────────────────────────────────────────
   // Confirm on the focused table enters browse mode; its presence marks the element
   // focusable. From there the table owns the arrows (see _browseKeys / UITable.active).
+  /** @param {UIElement} element */
   navActivate(element) {
     this._browsing = true;
     // Seed the cursor on the selected row, else the top of the window.
@@ -705,6 +716,7 @@ globalThis.UITable = class UITable {
     this._cursor = sel >= 0 ? sel : this._top;
   }
 
+  /** Release the browse-mode key claim on teardown. @param {UIElement} element */
   onDestroy(element) {
     if (UITable.active === this) UITable.active = null;
   }

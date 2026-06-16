@@ -5,7 +5,13 @@
  * @property {function(UIElement): void} onDestroy
  */
 
+// Tree node backed by a flexpanel (GameMaker Flexbox) layout node. Holds child elements + a
+// list of UIComponents (behavior/visuals queried by class via getComponent). Runtime change
+// (scroll, drag, clip) is driven by draw-time offset/clip math through getLayoutPosition — NOT
+// live flexpanel style mutation — so a scrolled/dragged subtree moves at both draw and hit-test
+// time without a reflow. See CLAUDE.md for the flexpanel-mutation idiom.
 globalThis.UIElement = class UIElement {
+  /** @param {Object} [style] flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
     this.enabled = true;
     this.flexpanel = flexpanel_create_node(style);
@@ -76,6 +82,7 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
+  /** Tear down this element + its subtree (components' onDestroy, child elements, flexpanel node). Idempotent. */
   destroy() {
     if (this._destroyed) return; // idempotent — close() may fire more than once
     this._destroyed = true;
@@ -94,8 +101,10 @@ globalThis.UIElement = class UIElement {
   }
 
   /**
-   * @param {boolean} block
-   * @returns {boolean}
+   * Update this element's subtree then its own components. `block` is true when an
+   * earlier-traversed (higher) element already captured the pointer this frame; the return
+   * value propagates that capture upward.
+   * @param {boolean} block @returns {boolean} whether the pointer is now captured
    */
   update(block) {
     if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
@@ -129,6 +138,7 @@ globalThis.UIElement = class UIElement {
     return result;
   }
 
+  /** Draw this element's components then its children (clipped to a surface when `clip` is set). */
   draw() {
     if (this._destroyed) return;
     // Components (panel background, scrollbar) draw unclipped in the element's space.
@@ -203,6 +213,7 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
+  /** Detach `element` from this node. @param {UIElement} element @returns {UIElement} the removed element */
   removeChild(element) {
     const index = this.children.indexOf(element);
     if (index > -1) {
@@ -214,6 +225,7 @@ globalThis.UIElement = class UIElement {
     return element;
   }
 
+  /** Flag the whole tree dirty (walks to the root) so the next update() recomputes layout. */
   markDirty() {
     let root = this;
     while (root.parent !== null) {
@@ -222,6 +234,7 @@ globalThis.UIElement = class UIElement {
     root.dirty = true;
   }
 
+  /** Recompute flexbox layout from the root (a no-op on non-root nodes); clears the dirty flag. */
   refresh() {
     if (!this.parent) {
       const w = display_get_gui_width();
@@ -231,6 +244,11 @@ globalThis.UIElement = class UIElement {
     this.dirty = false;
   }
 
+  /**
+   * The flexbox-computed rect, adjusted by this element's drag offset and every ancestor's
+   * scroll/drag — the single chokepoint that makes scroll/drag apply at draw AND hit-test time.
+   * @returns {{left:number, top:number, width:number, height:number}}
+   */
   getLayoutPosition() {
     const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
     // This element's own drag offset moves itself + its whole subtree.
@@ -250,6 +268,7 @@ globalThis.UIElement = class UIElement {
     return pos;
   }
 
+  /** @param {number} x @param {number} y @returns {boolean} whether the GUI point is inside this element's rect */
   positionMeeting(x, y) {
     const pos = this.getLayoutPosition();
     return point_in_rectangle(
@@ -262,12 +281,14 @@ globalThis.UIElement = class UIElement {
     );
   }
 
+  /** @param {number} width @param {number} unit flexpanel_unit @returns {UIElement} */
   setWidth(width, unit) {
     flexpanel_node_style_set_width(this.flexpanel, width, unit);
     this.markDirty();
     return this;
   }
 
+  /** @param {number} height @param {number} unit flexpanel_unit @returns {UIElement} */
   setHeight(height, unit) {
     flexpanel_node_style_set_height(this.flexpanel, height, unit);
     this.markDirty();
@@ -312,6 +333,7 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
+  /** @param {number} edge flexpanel_edge @param {number} value @param {number} unit flexpanel_unit @returns {UIElement} */
   setPosition(edge, value, unit) {
     flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
     this.markDirty();
@@ -420,10 +442,12 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
+  /** @returns {{value:number, unit:number}} the style width (not the computed layout width) */
   getWidth() {
     return flexpanel_node_style_get_width(this.flexpanel);
   }
 
+  /** @returns {{value:number, unit:number}} the style height (not the computed layout height) */
   getHeight() {
     return flexpanel_node_style_get_height(this.flexpanel);
   }

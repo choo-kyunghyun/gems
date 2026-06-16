@@ -15,6 +15,7 @@
  * live pointer state each frame, so there is no cached primitive to be clobbered.
  */
 globalThis.UIScroll = class UIScroll {
+  /** @param {Object} [scroll] { content: UIElement, barW, barPad, minThumb, wheelStep, trackColor, trackAlpha, thumbColor, thumbHover } */
   constructor(scroll = {}) {
     this.content = scroll.content; // the body element to measure + scroll
     this.scroll = 0; // current scrollY in px
@@ -48,6 +49,7 @@ globalThis.UIScroll = class UIScroll {
     return { x1, y1, h, thumbH, thumbY, max };
   }
 
+  /** @param {UIElement} element the clip viewport @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -104,6 +106,7 @@ globalThis.UIScroll = class UIScroll {
     return this._dragging || element.positionMeeting(mx, my) || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const m = this._track;
     if (m === null || m.max <= 0) return; // nothing overflowing → no scrollbar

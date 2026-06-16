@@ -5,8 +5,8 @@
  * left-press over the title bar it latches and, while held, accumulates the pointer
  * delta into `target.dragX/dragY` — which UIElement.getLayoutPosition adds to the
  * window and its whole subtree (draw + hit-test), so the window moves bodily. This is
- * the offset-not-mutation pattern (mirrors UIScroll's thumb drag); flexpanel style
- * mutation is unreliable on GMRT 0.19 (bug #15065).
+ * the offset-not-mutation pattern (mirrors UIScroll's thumb drag) — the kit drives live
+ * layout with draw-time offsets, not flexpanel style mutation.
  *
  * Returns block=true while hovering or dragging so the grab doesn't leak to widgets
  * behind. Mouse-only — it doesn't touch UINav (the window's child widgets stay
@@ -16,6 +16,7 @@
  * clobbered), and mouse_check_button* are each queried once per frame (see CLAUDE.md).
  */
 globalThis.UIDrag = class UIDrag {
+  /** @param {Object} [opts] { target: UIElement } the window root to move (defaults to the host element) */
   constructor(opts = {}) {
     this.target = opts.target ?? null; // window root to move; falls back to element
     this._dragging = false;
@@ -23,6 +24,7 @@ globalThis.UIDrag = class UIDrag {
     this._lastY = 0;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const target = this.target ?? element;
     const pos = element.getLayoutPosition();

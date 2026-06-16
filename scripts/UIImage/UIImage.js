@@ -1,3 +1,4 @@
+/** CSS object-fit modes for how a sprite fills its element rect. */
 globalThis.OBJECT_FIT = Object.freeze({
   FILL: 0,
   CONTAIN: 1,
@@ -6,8 +7,12 @@ globalThis.OBJECT_FIT = Object.freeze({
   SCALE_DOWN: 4,
 });
 
+// Sprite component: draws `sprite` into the element rect per the chosen OBJECT_FIT, optionally
+// animating subimages on Time.raw. Guards sprite_exists throughout (GMRT returns 0 frames for
+// unsupported SVG sprites — see CLAUDE.md).
 /** @implements {UIComponent} */
 globalThis.UIImage = class UIImage {
+  /** @param {Object} [image] { sprite, subimg, xscale, yscale, rot, color, alpha, speed, fit } */
   constructor(image = {}) {
     this.sprite = image.sprite;
     this.subimg = image.subimg ?? 0;
@@ -24,6 +29,7 @@ globalThis.UIImage = class UIImage {
 
   onDestroy(element) {}
 
+  /** Advance the animation subimage (if `speed` is set). @param {UIElement} element @param {boolean} block @returns {boolean} */
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;
     if (this.speed != 0) {
@@ -33,6 +39,7 @@ globalThis.UIImage = class UIImage {
     return block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
     // Route through getLayoutPosition so the image inherits ancestor scroll offset.
@@ -59,7 +66,7 @@ globalThis.UIImage = class UIImage {
         break;
       case OBJECT_FIT.CONTAIN:
       case OBJECT_FIT.SCALE_DOWN:
-        let scale = min(w / sw, h / sh);
+        let scale = Math.min(w / sw, h / sh);
         if (this.fit === OBJECT_FIT.SCALE_DOWN) {
           scale = Math.min(scale, this.xscale);
         }

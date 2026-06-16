@@ -1,5 +1,9 @@
+// Bare pointer-interaction component: a hover/press state machine firing
+// onEnter/Hover/Leave/Down/Up/Click, with no visuals. UIButton is the richer variant (same FSM
+// shape + color animation + disabled/selected); use UITrigger when you only need the callbacks.
 /** @implements {UIComponent} */
 globalThis.UITrigger = class UITrigger {
+  /** @param {Object} [trigger] { block, onEnter, onHover, onLeave, onDown, onUp, onClick } */
   constructor(trigger = {}) {
     this.block = trigger.block ?? true;
     this.onEnter = trigger.onEnter ?? noop;
@@ -12,6 +16,7 @@ globalThis.UITrigger = class UITrigger {
     this.hold = false;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pressed = mouse_check_button_pressed(mb_left);
     const released = mouse_check_button_released(mb_left);
@@ -42,6 +47,7 @@ globalThis.UITrigger = class UITrigger {
     return (this.block && (this.hold || this.enter)) || block;
   }
 
+  /** Release any held/hovered state on teardown so onUp/onLeave still fire. @param {UIElement} element */
   onDestroy(element) {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();

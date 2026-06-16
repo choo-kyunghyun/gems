@@ -14,6 +14,7 @@
  * clobbered, and no timer (Time.raw/delta) is involved.
  */
 globalThis.UITabs = class UITabs {
+  /** @param {Object} [tabs] { tabs: {label, content}[], index, onChange, font, color, colorIdle, colorHover, activeBg, accent, border } */
   constructor(tabs = {}) {
     this.tabs = tabs.tabs ?? []; // [{ label, content }]
     this.index = tabs.index ?? 0;
@@ -46,6 +47,7 @@ globalThis.UITabs = class UITabs {
     }
   }
 
+  /** Switch to tab `i` (no-op if already active or out of range). @param {number} i */
   select(i) {
     if (i === this.index || i < 0 || i >= this.tabs.length) return;
     this.index = i;
@@ -53,6 +55,7 @@ globalThis.UITabs = class UITabs {
     this.onChange(i);
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -75,6 +78,7 @@ globalThis.UITabs = class UITabs {
     return inside || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
@@ -158,10 +162,12 @@ globalThis.UITabs = class UITabs {
 
   // UINav: left/right switches tabs (so the strip is one focus stop and horizontal
   // nav cycles it); confirm advances, wrapping. Both mark the strip focusable.
+  /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
   }
 
+  /** @param {UIElement} element */
   navActivate(element) {
     if (this.tabs.length > 0) this.select((this.index + 1) % this.tabs.length);
   }

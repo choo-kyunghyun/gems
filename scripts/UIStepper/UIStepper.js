@@ -4,18 +4,11 @@
  * instead of a list. The left half steps down, the right half steps up; the value
  * is shown centered through `format`. Holds its own value and calls onChange (like
  * UISlider/UISelect). Without `wrap`, the arrow at a reached limit is dimmed and
- * does nothing.
- *
- * GMRT notes (both learned the hard way here):
- *  - Guard `!(pos.width > 0)` before drawing. On the first frame after a scene
- *    transition the flexpanel layout hasn't been computed yet, so getLayoutPosition
- *    returns NaN width/height; drawing with NaN coords faults. `NaN <= 0` is false,
- *    so the usual `pos.width <= 0` guard does NOT catch it — test `> 0` instead.
- *  - No class getters. GMRT 0.19 does not reliably invoke a `get x()` accessor
- *    (the body never runs, the read yields undefined), so the can-step checks are
- *    inlined as plain locals.
+ * does nothing. The can-step checks are inlined locals (instance getters work fine
+ * — see UISelect — this is just style).
  */
 globalThis.UIStepper = class UIStepper {
+  /** @param {Object} [stepper] { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
   constructor(stepper = {}) {
     this.min = stepper.min ?? 0;
     this.max = stepper.max ?? 10;
@@ -46,6 +39,7 @@ globalThis.UIStepper = class UIStepper {
     return clamp(Math.round(snapped * 1e6) / 1e6, this.min, this.max);
   }
 
+  /** Snap + clamp `v` and fire onChange if it changed. @param {number} v @returns {UIStepper} */
   setValue(v) {
     const next = this._snap(v);
     if (next === this.value) return this;
@@ -54,6 +48,7 @@ globalThis.UIStepper = class UIStepper {
     return this;
   }
 
+  /** Step down by `step` (wraps to max if `wrap`). @returns {UIStepper} */
   decrement() {
     if (this.value <= this.min) {
       if (!this.wrap) return this;
@@ -62,6 +57,7 @@ globalThis.UIStepper = class UIStepper {
     return this.setValue(this.value - this.step);
   }
 
+  /** Step up by `step` (wraps to min if `wrap`). @returns {UIStepper} */
   increment() {
     if (this.value >= this.max) {
       if (!this.wrap) return this;
@@ -70,6 +66,7 @@ globalThis.UIStepper = class UIStepper {
     return this.setValue(this.value + this.step);
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -94,6 +91,7 @@ globalThis.UIStepper = class UIStepper {
     return this._hold || this._enter || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — skip this frame
@@ -108,12 +106,10 @@ globalThis.UIStepper = class UIStepper {
 
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
-    // Inlined (no getters — GMRT doesn't invoke class accessors).
     const canDec = this.wrap || this.value > this.min;
     const canInc = this.wrap || this.value < this.max;
 
-    // Left / right step arrows — filled triangles (draw_triangle_color works on GMRT 0.20),
-    // dimmed when they can't step, brightened while hovered.
+    // Left / right step arrows via drawUIArrow — dimmed when they can't step, brightened on hover.
     const ah = 5;
     drawUIArrow(
       pos.left + pad + ah,
@@ -143,6 +139,7 @@ globalThis.UIStepper = class UIStepper {
 
   // UINav: left/right steps the value (horizontal nav adjusts instead of moving
   // focus). Marks the element focusable.
+  /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (dir < 0) this.decrement();
     else this.increment();

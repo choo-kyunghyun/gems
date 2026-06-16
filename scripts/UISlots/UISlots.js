@@ -15,6 +15,7 @@
  * primitive bool to be clobbered) and there is no timer (no Time.raw/delta).
  */
 globalThis.UISlots = class UISlots {
+  /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
   constructor(s = {}) {
     this.items = s.items ?? []; // flat array; entry is item-or-null
     this.cols = s.cols ?? 4;
@@ -46,6 +47,7 @@ globalThis.UISlots = class UISlots {
     };
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -103,11 +105,13 @@ globalThis.UISlots = class UISlots {
     return this._inside || block;
   }
 
+  /** @param {number} i */
   _select(i) {
     this.selected = i;
     this.onSelect(i, this.items[i]);
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width

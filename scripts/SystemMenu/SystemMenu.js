@@ -36,6 +36,7 @@ globalThis.SystemMenu = class SystemMenu {
   // pause: it owns UINav.suspended for gameplay scenes (the former PauseMenu job). A scene
   // opts in by setting `this.gameplay = true` in create() (a subclass field initializer
   // wouldn't run — GMRT — so it's set in the method).
+  /** Per-frame pause/open driver. @param {Object} game the obj_game controller (holds game.scenes) */
   static update(game) {
     SystemMenu._game = game;
     const scene = game !== null ? game.scenes.current : null;
@@ -88,6 +89,7 @@ globalThis.SystemMenu = class SystemMenu {
     return gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_start);
   }
 
+  /** @returns {boolean} whether the overlay is open. */
   static isOpen() {
     // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
     // (`_modal !== null`) miscompiles to a constant — verified, it returned false while
@@ -95,18 +97,21 @@ globalThis.SystemMenu = class SystemMenu {
     return SystemMenu._modal !== null;
   }
 
+  /** @returns {number} the Time.scale to restore on resume (the System tab "Speed"). */
   static scale() {
     return SystemMenu._scale;
   }
 
   // True at most once per Step button press; obj_game reads it to run a single
   // scene.step() (one frame of sim) while otherwise paused.
+  /** @returns {boolean} whether a one-frame step was requested (consumes the flag). */
   static consumeStep() {
     if (!SystemMenu._stepRequested) return false;
     SystemMenu._stepRequested = false;
     return true;
   }
 
+  /** Open the overlay (idempotent), pausing the sim. @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
   static open(tabIndex = 0) {
     if (SystemMenu._modal !== null) return;
     SystemMenu._scale = Time.scale; // remember the live speed to restore on resume
@@ -226,12 +231,14 @@ globalThis.SystemMenu = class SystemMenu {
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
   }
 
+  /** Begin closing the overlay (the UIModal animates out, then restores Time.scale via onClose). */
   static close() {
     if (SystemMenu._modal !== null) SystemMenu._modal.close();
   }
 
   // Cleared on every scene swap from obj_game; defensively closes a still-open modal
   // (the modal root self-removes via its own onUpdate) and restores the time scale.
+  /** Force-close + restore time scale on a scene swap. */
   static reset() {
     if (SystemMenu._modal !== null) {
       SystemMenu._modal.close();
@@ -504,9 +511,8 @@ globalThis.SystemMenu = class SystemMenu {
       justifyContent: "space-between",
     });
     row.insertChild(gemsLabel(labelRef, { color: GemsTheme.textMuted }));
-    // fa_right: UIText can't self-size on 0.19, so the value box is width 0 at the row's
-    // right edge (space-between) — right-align draws the text leftward from there (fa_left
-    // would overflow off the right edge and clip). See the UIText self-size quirk.
+    // fa_right: the value label sits at the row's right edge (space-between) and right-aligns
+    // its text there.
     row.insertChild(
       gemsLabel(valueRef, { color: GemsTheme.text, halign: fa_right }),
     );

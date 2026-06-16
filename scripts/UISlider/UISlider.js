@@ -1,7 +1,10 @@
+// Draggable value slider (continuous, stepped, or snapped to a `values` array). Self-contained:
+// hit-tests + drags itself, draws track/fill/thumb + an optional right-aligned value readout.
 /** @implements {UIComponent} */
 globalThis.UISlider = class UISlider {
   static VALUE_W = 46; // right-side width reserved for the value readout (showValue)
 
+  /** @param {Object} [slider] { min, max, value, step, values, readOnly, onChange, showValue, format, valueColor, font, track, fill, thumb } */
   constructor(slider = {}) {
     this.min = slider.min ?? 0;
     this.max = slider.max ?? 1;
@@ -19,10 +22,9 @@ globalThis.UISlider = class UISlider {
     this.valueColor = slider.valueColor ?? c_white;
     this.valueFont = slider.font ?? -1; // -1 → current draw font
 
-    // Style structs: { color, rad?, border?, borderColor?, shadowAlpha? }. The
-    // track/fill/thumb are drawn directly in onDraw (no child UIElements) — the
-    // per-frame flexpanel style setters that an absolute-child layout would need
-    // are unreliable (bug #15065), which left the fill/thumb invisible.
+    // Style structs: { color, rad?, border?, borderColor?, shadowAlpha? }. The track/fill/thumb
+    // are drawn directly in onDraw (immediate-mode, no child UIElements) — the kit's deliberate
+    // live-layout pattern (draw-time geometry, not flexpanel style mutation).
     this._trackStyle = slider.track ?? {};
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
@@ -50,6 +52,7 @@ globalThis.UISlider = class UISlider {
     return value;
   }
 
+  /** Snap + clamp `value` into range and fire onChange if it changed. @param {number} value @returns {UISlider} */
   setValue(value) {
     const next = clamp(this._snap(value), this.min, this.max);
     if (next === this.value) return this;
@@ -95,6 +98,7 @@ globalThis.UISlider = class UISlider {
     return string_format(this.value, 0, this._decimals());
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -116,6 +120,7 @@ globalThis.UISlider = class UISlider {
     return this._hold || this._over || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -224,6 +229,7 @@ globalThis.UISlider = class UISlider {
 
   // UINav: left/right nudges the value by `step` (or 1/20 of the range when
   // continuous). Marks the element focusable.
+  /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (this.readOnly) return;
     const inc =

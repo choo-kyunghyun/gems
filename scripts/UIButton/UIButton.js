@@ -1,5 +1,10 @@
+// Clickable button behavior over a UIElement (usually paired with a UIPanel + UIText). Runs a
+// hover/press state machine firing onEnter/Leave/Down/Up/Click, and eases the panel's
+// color/border/shadow between states on Time.raw (UI ignores Time.scale). Supports live
+// disabled + selected predicates and greys an attached label when disabled.
 /** @implements {UIComponent} */
 globalThis.UIButton = class UIButton {
+  /** @param {Object} [btn] see field defaults below for the accepted options */
   constructor(btn = {}) {
     this.colorNormal = btn.colorNormal ?? c_white;
     this.colorHover = btn.colorHover ?? c_ltgray;
@@ -47,10 +52,12 @@ globalThis.UIButton = class UIButton {
   // Live disabled state: a getDisabled() predicate (evaluated each frame) wins over the
   // static `disabled` flag, so a caller can gate a button on changing state (e.g. an
   // empty inventory) without poking the field every frame.
+  /** @returns {boolean} */
   _disabled() {
     return this.getDisabled !== null ? this.getDisabled() : this.disabled;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
     const disabled = this._disabled();
@@ -162,6 +169,7 @@ globalThis.UIButton = class UIButton {
     return this.hold || this.enter || block;
   }
 
+  /** Release any held/hovered state on teardown so onUp/onLeave still fire. @param {UIElement} element */
   onDestroy(element) {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
@@ -169,6 +177,7 @@ globalThis.UIButton = class UIButton {
 
   // UINav: confirm fires the click (unless disabled). Presence of this method also
   // marks the element focusable for keyboard/gamepad navigation.
+  /** @param {UIElement} element */
   navActivate(element) {
     if (!this._disabled()) this.onClick();
   }

@@ -37,12 +37,14 @@ globalThis.UINav = class UINav {
   static _stickX = 0; // left-stick re-arm latches (0 = armed)
   static _stickY = 0;
 
+  /** Clear focus + engagement + suspension (called on every scene swap). */
   static reset() {
     UINav.focused = null;
     UINav.engaged = false;
     UINav.suspended = false;
   }
 
+  /** Per-frame nav tick (Step_0, after UI.update): collect focusables, read input, move/act. */
   static update() {
     // Suspended (a genre scene is in active play): gameplay owns the keys, so don't
     // collect or act — keeps gameplay presses (Space/arrows/Enter) off the menu.
@@ -114,6 +116,7 @@ globalThis.UINav = class UINav {
     UINav._move(items, inp.dx, inp.dy);
   }
 
+  /** Draw the focus ring (Draw_75); the Tab debug overlay when held. */
   static draw() {
     // Debug: hold UINav.debugKey (Tab) to overlay the traversal order + the four
     // directional targets from the focused element — to diagnose awkward routing.
@@ -228,8 +231,7 @@ globalThis.UINav = class UINav {
     draw_set_alpha(a0);
   }
 
-  // A solid direction line. draw_line_width_color renders on GMRT 0.20 (it was a no-op
-  // on 0.19, which is why this used to step draw_rectangle dots along the segment).
+  // A solid direction line (debug overlay).
   static _dirLine(x1, y1, x2, y2, col) {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   }

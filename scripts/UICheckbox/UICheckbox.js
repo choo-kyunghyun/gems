@@ -3,8 +3,8 @@
  * A real visual boolean toggle — either a checkbox (box + tick) or a switch
  * (pill + sliding knob), picked by `style`. Self-contained: it hit-tests and
  * handles its own click (no UITrigger), reads a live getValue() each frame, and
- * calls onToggle() on a click release. Drawn directly in onDraw with Time.raw
- * easing for the knob slide / tick + color fade (no flexpanel mutation, bug #15065).
+ * calls onToggle() on a click release. Drawn directly in onDraw (immediate-mode)
+ * with Time.raw easing for the knob slide / tick + color fade.
  *
  * The control graphic is right-aligned inside the element and vertically centered,
  * so a gemsRow-style label to its left reads as one settings row; the whole element
@@ -29,6 +29,7 @@ globalThis.UICheckbox = class UICheckbox {
     this._t = undefined; // eased 0..1 toward the current on/off state
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -47,6 +48,7 @@ globalThis.UICheckbox = class UICheckbox {
     return this._hold || this._over || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -121,9 +123,7 @@ globalThis.UICheckbox = class UICheckbox {
         true,
       );
       if (t > 0.01) {
-        // Checked = the shared checkmark, popping in (size scaled by the eased t, width
-        // held constant). draw_line_width_color renders on GMRT 0.20 (it was a no-op on
-        // 0.19, which is why this used to be a filled rounded square).
+        // Checked = the shared drawUICheck checkmark, popping in (size scaled by the eased t).
         const cx = (bx1 + bx2) * 0.5;
         drawUICheck(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
       }
@@ -133,6 +133,7 @@ globalThis.UICheckbox = class UICheckbox {
   }
 
   // UINav: confirm toggles (unless read-only). Marks the element focusable.
+  /** @param {UIElement} element */
   navActivate(element) {
     if (!this.readOnly) this.onToggle();
   }

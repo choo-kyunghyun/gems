@@ -2,9 +2,9 @@
 // the range between _anchor and _cursor), so it supports mouse drag-select,
 // double-click word-select, shift/ctrl keyboard navigation, key-repeat, the
 // clipboard verbs (copy/cut/paste), and horizontal scroll-to-caret when the text
-// overflows the field. Like UISlider it draws directly in onDraw and shares one
-// _textRegion() metric between hit-testing and drawing — the per-frame flexpanel
-// child layout that an absolute caret/selection would need is unreliable (#15065).
+// overflows the field. Like UISlider it draws directly in onDraw (immediate-mode)
+// and shares one _textRegion() metric between hit-testing and drawing — caret +
+// selection geometry is computed at draw time, not via child elements.
 //
 // GMRT note: modifier flags (shift/ctrl) are read live via keyboard_check each use
 // rather than cached in a local — a cached primitive bool can be clobbered mid-call.
@@ -55,10 +55,12 @@ globalThis.UIInput = class UIInput {
     this._lastClickX = 0;
   }
 
+  /** @returns {boolean} */
   get focused() {
     return this._focused;
   }
 
+  /** Focus the field for typing (claims UIInput.active, so gameplay input + UINav are muted). @returns {UIInput} */
   focus() {
     if (this._focused) return this;
     this._focused = true;
@@ -68,6 +70,7 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
+  /** Unfocus the field, releasing the global keyboard capture. @returns {UIInput} */
   blur() {
     if (!this._focused) return this;
     this._focused = false;
@@ -83,6 +86,7 @@ globalThis.UIInput = class UIInput {
     if (!this.readOnly) this.focus();
   }
 
+  /** Replace the text (caret to end). @param {*} value coerced to string @returns {UIInput} */
   setValue(value) {
     this.value = String(value).slice(0, this.maxLength);
     this._setCursor(this.value.length, false);
@@ -90,6 +94,7 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
+  /** @returns {UIInput} */
   clear() {
     return this.setValue("");
   }
@@ -252,6 +257,7 @@ globalThis.UIInput = class UIInput {
     return best;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -434,6 +440,7 @@ globalThis.UIInput = class UIInput {
     this._scroll = clamp(this._scroll, 0, maxScroll);
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -527,6 +534,7 @@ globalThis.UIInput = class UIInput {
     draw_set_valign(prevValign);
   }
 
+  /** Release focus + the global keyboard capture on teardown. @param {UIElement} element */
   onDestroy(element) {
     if (this._focused) {
       this._focused = false;

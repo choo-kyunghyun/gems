@@ -1,23 +1,19 @@
 /**
  * @implements {UIComponent}
  * Collapsible-section header — lives on a fixed-height row element (built by
- * gemsAccordion). Draws its own background + title + a chevron (a draw_triangle, so
- * it needs no font glyph) and toggles its body on click. Unlike UITabs (which stacks
- * pages and only toggles `enabled`), an accordion section must change the layout's
- * height when it opens/closes, so it inserts/removes the body element from the item
- * container — a structural change, which reflows reliably (the flexpanel #15065 bug
- * is about the per-frame style *setters*, not insert/remove + recalculate). The body
- * element is kept alive across collapses (removed, not destroyed) so reopening is
- * cheap.
- *
- * The expand/collapse indicator is a filled triangle chevron (draw_triangle_color),
- * pointing right when collapsed and down when expanded. There's no toggle animation:
- * the section snaps open/closed (the body is inserted/removed structurally, not tweened).
+ * gemsAccordion). Draws its own background + title + a chevron (via drawUIArrow) and
+ * toggles its body on click. Unlike UITabs (which stacks pages and only toggles
+ * `enabled`), an accordion section must change the layout's height when it
+ * opens/closes, so it inserts/removes the body element from the item container —
+ * structural insert/remove + recalculate reflows reliably (the project's preferred
+ * way to resize a layout). The body is kept alive across collapses (removed, not
+ * destroyed) so reopening is cheap; the section snaps open/closed (no tween).
  *
  * GMRT note: hover state is read live from the pointer each frame (no cached
  * primitive bool to be clobbered).
  */
 globalThis.UIAccordion = class UIAccordion {
+  /** @param {Object} [acc] { title, expanded, body, onToggle, font, rad, titleColor, headerColor, headerHover, chevronColor, chevronHover } */
   constructor(acc = {}) {
     this.title = acc.title ?? ""; // string or () => string
     this.expanded = acc.expanded ?? false;
@@ -39,6 +35,7 @@ globalThis.UIAccordion = class UIAccordion {
     return typeof this.title === "function" ? this.title() : this.title;
   }
 
+  /** Flip expanded state, inserting/removing the body element from the parent container. @param {UIElement} element the header element */
   toggle(element) {
     this.expanded = !this.expanded;
     const c = element.parent;
@@ -53,6 +50,7 @@ globalThis.UIAccordion = class UIAccordion {
     this.onToggle(this.expanded);
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
@@ -68,6 +66,7 @@ globalThis.UIAccordion = class UIAccordion {
     return this._hover || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width

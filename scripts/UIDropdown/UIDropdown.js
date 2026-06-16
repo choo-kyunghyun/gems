@@ -16,6 +16,7 @@
  * items: [{ name, value }] — same shape as UISelect.
  */
 globalThis.UIDropdown = class UIDropdown {
+  /** @param {Object} [dd] { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
   constructor(dd = {}) {
     this.items = dd.items ?? [];
     this._index = dd.index ?? 0;
@@ -36,20 +37,24 @@ globalThis.UIDropdown = class UIDropdown {
     this._hold = false;
   }
 
+  /** @returns {number} the selected index */
   get index() {
     return this._index;
   }
 
+  /** @returns {*} the selected item's value (undefined if empty) */
   get value() {
     const item = this.items[this._index];
     return item ? item.value : undefined;
   }
 
+  /** @returns {string} the selected item's display name ("" if empty) */
   get name() {
     const item = this.items[this._index];
     return item ? item.name : "";
   }
 
+  /** Select index `i` (clamped). @param {number} i @returns {UIDropdown} */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.value);
@@ -68,6 +73,7 @@ globalThis.UIDropdown = class UIDropdown {
     this.onOpen(this, element);
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
@@ -86,6 +92,7 @@ globalThis.UIDropdown = class UIDropdown {
     return this._hold || this._enter || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) width — NaN <= 0 is false
@@ -111,8 +118,7 @@ globalThis.UIDropdown = class UIDropdown {
           : pos.left + this.padX;
     draw_text(tx, cy, has ? this.name : this.placeholder);
 
-    // Chevron at the right edge: down closed, up open. A filled triangle
-    // (draw_triangle_color works on GMRT 0.20; was a no-op on the dropped 0.19).
+    // Chevron at the right edge (via drawUIArrow): down when closed, up when open.
     const ah = 4;
     drawUIArrow(
       pos.left + pos.width - this.padX - ah,
@@ -131,6 +137,7 @@ globalThis.UIDropdown = class UIDropdown {
   // UINav: confirm opens the list (its presence also marks the field focusable). No
   // navAxis — a dropdown opens a list rather than cycling in place (use UISelect for
   // a left/right cycler).
+  /** @param {UIElement} element */
   navActivate(element) {
     this._toggle(element);
   }

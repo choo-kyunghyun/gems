@@ -1,5 +1,9 @@
+// Inline value cycler: shows the current item's name between ◀ / ▶ arrows; clicking the left
+// half steps back, the right half forward. Holds its own index and fires onChange. (UIDropdown
+// is the popup-list counterpart for many options.)
 /** @implements {UIComponent} */
 globalThis.UISelect = class UISelect {
+  /** @param {Object} [select] { items: {name,value}[], index, onChange, color, arrowColor, arrowHover, font, halign, valign } */
   constructor(select = {}) {
     this.items = select.items ?? [];
     this._index = select.index ?? 0;
@@ -18,20 +22,24 @@ globalThis.UISelect = class UISelect {
     this._side = 0;
   }
 
+  /** @returns {number} the selected index */
   get index() {
     return this._index;
   }
 
+  /** @returns {*} the selected item's value (undefined if empty) */
   get value() {
     const item = this.items[this._index];
     return item ? item.value : undefined;
   }
 
+  /** @returns {string} the selected item's display name ("" if empty) */
   get name() {
     const item = this.items[this._index];
     return item ? item.name : "";
   }
 
+  /** Step forward one item (wraps). @returns {UISelect} */
   advance() {
     if (this.items.length === 0) return this;
     this._index = (this._index + 1) % this.items.length;
@@ -39,6 +47,7 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
+  /** Step back one item (wraps). @returns {UISelect} */
   retreat() {
     if (this.items.length === 0) return this;
     this._index = (this._index - 1 + this.items.length) % this.items.length;
@@ -46,17 +55,20 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
+  /** Select index `i` (clamped). @param {number} i @returns {UISelect} */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.value);
     return this;
   }
 
+  /** @param {string} name @param {*} value @param {number} [i] @returns {UISelect} */
   insertItem(name, value, i = this.items.length) {
     this.items.splice(i, 0, { name, value });
     return this;
   }
 
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
@@ -82,6 +94,7 @@ globalThis.UISelect = class UISelect {
     return this._hold || this._enter || block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     if (this.items.length === 0) return;
 
@@ -99,7 +112,7 @@ globalThis.UISelect = class UISelect {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // Left / right step arrows — filled triangles (draw_triangle_color works on GMRT 0.20).
+    // Left / right step arrows via the shared drawUIArrow helper.
     const ah = 5;
     drawUIArrow(
       pos.left + pad + ah,
@@ -129,11 +142,13 @@ globalThis.UISelect = class UISelect {
 
   // UINav: left/right cycles the value (so horizontal nav adjusts instead of moving
   // focus); confirm advances. Both mark the element focusable.
+  /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (dir < 0) this.retreat();
     else this.advance();
   }
 
+  /** @param {UIElement} element */
   navActivate(element) {
     this.advance();
   }

@@ -23,6 +23,7 @@
  * no cached primitive bool, no Map/Set iteration, no array destructuring.
  */
 globalThis.UIRichText = class UIRichText {
+  /** @param {Object} [s] { textRef: () => string, color, alpha, halign, font, iconSize, palette } */
   constructor(s = {}) {
     this.textRef = s.textRef ?? (() => "");
     this.color = s.color ?? c_white; // default / span-less color
@@ -41,6 +42,7 @@ globalThis.UIRichText = class UIRichText {
     this._height = 0;
   }
 
+  /** Re-parse + re-measure + self-size when the source string changed. @param {UIElement} element @param {boolean} block @returns {boolean} */
   onUpdate(element, block) {
     const str = this.textRef();
     if (this.cache !== str) {
@@ -65,6 +67,7 @@ globalThis.UIRichText = class UIRichText {
     return block;
   }
 
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
 
