@@ -196,21 +196,21 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Content
 
-- [ ] Achievement
-- [ ] Consumable
-- [ ] Container
-- [ ] Equippable
-- [ ] Item
-- [ ] Prefab
-- [ ] Profile
-- [ ] QuestLog
-- [ ] Rarity
-- [ ] Recipe
-- [ ] RpgContent
-- [ ] RpgItems
-- [ ] RpgPrefabs
-- [ ] RpgRecipes
-- [ ] Weapon
+- [x] Achievement
+- [x] Consumable
+- [x] Container
+- [x] Equippable
+- [x] Item
+- [x] Prefab
+- [x] Profile
+- [x] QuestLog
+- [x] Rarity
+- [x] Recipe
+- [x] RpgContent
+- [x] RpgItems
+- [x] RpgPrefabs
+- [x] RpgRecipes
+- [x] Weapon
 
 ### Editor
 

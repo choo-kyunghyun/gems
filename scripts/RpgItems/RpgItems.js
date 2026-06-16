@@ -2,7 +2,7 @@
 // trinket / unique items / crafting materials). Registered once by RpgContent.register() at a
 // scene's create() (NOT at top level — avoids GMRT load-order issues). An item's `rarity` is a
 // tier id defined here, so rarities + items live together. wood_sword = melee (swings a hitbox
-// in the facing dir); blaster = ranged (cursor-aimed bullet) — each controller picks melee-swing
+// in the facing dir); blaster = ranged (cursor-aimed bullet) — RpgController picks melee-swing
 // vs fire by the Weapon `melee` flag.
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
@@ -35,8 +35,8 @@ globalThis.RpgItems = {
         components: [new Consumable({ heal: 5 })],
       },
       // Weapons. wood_sword = melee (swings a hitbox in the facing dir); blaster = ranged
-      // (cursor-aimed bullet). Each controller picks melee-swing vs fire by the `melee`
-      // flag, so both work in both genres.
+      // (cursor-aimed bullet). RpgController picks melee-swing vs fire by the Weapon `melee`
+      // flag.
       {
         id: "wood_sword",
         name: "ITEM_WOOD_SWORD",

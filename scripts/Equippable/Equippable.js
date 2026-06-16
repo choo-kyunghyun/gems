@@ -6,7 +6,7 @@
 globalThis.Equippable = class Equippable {
   /**
    * @param {Object} d
-   * @param {string} d.slot   "weapon" | "armor" | "trinket"
+   * @param {string} d.slot   "weapon" | "armor" | "trinket" | "backpack"
    * @param {Object} [d.mods] flat stat deltas, e.g. { attack, defense, maxHp, speed }
    */
   constructor(d) {

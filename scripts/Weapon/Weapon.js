@@ -1,12 +1,12 @@
 // Item-component: the attack profile a weapon confers on its wielder. Read by
-// RpgController._fire (via EquipmentSystem.weaponProfile) to drive bullet
-// damage, fire cadence, and projectile speed; unset fields fall back to the
-// controller's unarmed defaults. Flat, standalone class queried by `instanceof`
+// RpgController (via EquipmentSystem.weaponProfile) to drive bullet damage, fire
+// cadence, and projectile speed; unset fields fall back to the controller's
+// unarmed defaults. Flat, standalone class queried by `instanceof`
 // (see Item.getComponent) — no inheritance (GMRT can't do it).
 //
-// `melee`/`reach` are read by the platformer: a melee weapon swings a hitbox of
-// width `reach` px in the wielder's facing direction (MeleeSystem.swing) instead
-// of firing a projectile. Top-down weapons set neither → they stay ranged.
+// A `melee` weapon swings a hitbox `reach` px in the wielder's facing direction
+// (MeleeSystem.swing) instead of firing a projectile; one with neither set stays
+// ranged. Weapons are RPG-only — the platformer/RTS showcases carry no items.
 globalThis.Weapon = class Weapon {
   /**
    * @param {Object} d

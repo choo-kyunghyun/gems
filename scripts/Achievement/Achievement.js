@@ -3,9 +3,8 @@
 // achievement, persists the unlocked id set via SaveData, and returns the
 // newly-unlocked ids so the scene can toast them. Call load() after SaveData.load().
 //
-// Implemented as a plain object (not a class): GMRT hard-faults when a class's
-// static method calls another static method, so evaluate()->_persist() must be
-// object-method dispatch (the same pattern QuestLog/Profile use).
+// A plain object (not a class), matching the other stateful RPG registries
+// (QuestLog/Profile) — one global module, no instances to construct.
 globalThis.Achievement = {
   defs: new Map(),
   order: [], // registration order of ids
