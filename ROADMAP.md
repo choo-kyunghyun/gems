@@ -17,6 +17,7 @@
 - Inter-level interaction
 - Wandering traders
 - Companion benefits like increasing inventory
+- Killfeed UI
 
 ### Editor
 

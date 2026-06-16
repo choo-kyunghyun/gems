@@ -245,6 +245,8 @@
     {"id":{"name":"Toast","path":"scripts/Toast/Toast.yy",},},
     {"id":{"name":"Tooltip","path":"scripts/Tooltip/Tooltip.yy",},},
     {"id":{"name":"TriggerSystem","path":"scripts/TriggerSystem/TriggerSystem.yy",},},
+    {"id":{"name":"Turret","path":"scripts/Turret/Turret.yy",},},
+    {"id":{"name":"TurretSystem","path":"scripts/TurretSystem/TurretSystem.yy",},},
     {"id":{"name":"Tween","path":"scripts/Tween/Tween.yy",},},
     {"id":{"name":"UI","path":"scripts/UI/UI.yy",},},
     {"id":{"name":"UIAccordion","path":"scripts/UIAccordion/UIAccordion.yy",},},

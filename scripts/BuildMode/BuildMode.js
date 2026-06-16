@@ -138,6 +138,23 @@ globalThis.BuildMode = {
         },
       ],
     },
+    {
+      labelKey: "BUILD_CAT_DEFENSE",
+      items: [
+        {
+          id: "turret",
+          labelKey: "BUILD_TURRET",
+          cost: 10,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "turret",
+            gx,
+            gy,
+            label: I18n.text("BUILD_TURRET"),
+          }),
+        },
+      ],
+    },
   ],
   CLAIM_HALF_W: 3, // claimed rect half-extent in cells (so 7×5 around the post)
   CLAIM_HALF_H: 2,
@@ -323,12 +340,7 @@ globalThis.BuildMode = {
     } else {
       // Spawn through the shared per-entity constructor so a built prop/station is identical
       // to a file/streamed one (and persists via EntitySnapshot, see RpgMap).
-      const id = RpgSpawn.spawnEntity(
-        scene.world,
-        level,
-        item.make(gx, gy),
-        scene.ctrl.id,
-      );
+      const id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy));
       scene._builtEnts[key] = { ent: id, itemId: item.id };
     }
     scene._invDirty = true;
@@ -368,6 +380,33 @@ globalThis.BuildMode = {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
+  },
+
+  // Sweep built entities DESTROYED in combat (a turret slimes brought to 0 HP, or any built
+  // entity removed from the world): drop them from the deconstruct tracking so the cell frees
+  // up and map persistence won't snapshot a dead handle. NO wood refund — it was destroyed, not
+  // deconstructed. Called every frame from the scene's step (combat applies damage in the tick
+  // loop). Plain-object keys walked via Object.keys + index loop (no Map iteration — GMRT-safe).
+  reapDestroyed(scene) {
+    const world = scene.world;
+    const keys = Object.keys(scene._builtEnts);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      const e = scene._builtEnts[k];
+      if (!world.isValid(e.ent)) {
+        delete scene._builtEnts[k]; // already gone (removed elsewhere)
+        continue;
+      }
+      const hp = world.get(Health, e.ent);
+      if (hp !== undefined && hp.hp <= 0) {
+        world.remove(e.ent);
+        delete scene._builtEnts[k];
+        const item = BuildMode.item(e.itemId);
+        const label = item !== undefined ? I18n.text(item.labelKey) : e.itemId;
+        Toast.push(I18n.text("BUILT_DESTROYED", label), { type: "warn" });
+        Log.info(`built ${e.itemId} destroyed at ${k}`);
+      }
+    }
   },
 
   // Claim the buildable area around a Claim Post (Station kind "claim"). Paints a fixed rect

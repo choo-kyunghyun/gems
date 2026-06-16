@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Turret",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Turret",
+  "parent":{
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Turret.js",
+}

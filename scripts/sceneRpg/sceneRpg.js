@@ -158,6 +158,7 @@ class _SceneRpgClass extends Scene {
     Interactable.update(this); // station select + range-close + transfers/crafting (no E here)
     this._dispatchInteract(); // single E press → station OR NPC (cursor, else nearest)
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
+    BuildMode.reapDestroyed(this); // remove built entities slimes destroyed (e.g. turrets at 0 HP)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)

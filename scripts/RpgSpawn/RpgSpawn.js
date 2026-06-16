@@ -11,6 +11,7 @@
 //   chest    capacity items:[{itemId,qty}]
 //   prop     label color(#hex) kind?   (kind → Station, else decorative furniture)
 //   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
+//   turret   label? color(#hex)?        (auto-firing defense — solid post; Health + Faction "player" + Turret)
 //   reach    half?                      (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.load; non-solid sensor)
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
@@ -179,6 +180,37 @@ globalThis.RpgSpawn = {
         flicker: 0.18,
       });
       world.add(id, Tag, { tags: new Set(["furniture"]) });
+      return id;
+    } else if (s.preset === "turret") {
+      // Auto-firing defense post. A solid kinematic structure that carries Health + the player
+      // faction (so slimes target & damage it — two-sided combat) and a Turret profile that
+      // TurretSystem reads to shoot the nearest hostile. Built-only today (BuildMode "Defense");
+      // all components round-trip through map persistence like any built entity.
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: true,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Health, { hp: 8 });
+      world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for slimes
+      world.add(id, Turret, {
+        range: 220,
+        fireCd: 30,
+        cd: 0,
+        damage: 2,
+        bulletSpeed: 380,
+      });
+      world.add(id, Name, { name: s.label ?? "Turret" });
+      world.add(
+        id,
+        Visual,
+        RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#6c7a89")),
+      );
+      world.add(id, Tag, { tags: new Set(["turret"]) });
       return id;
     } else if (s.preset === "portal") {
       // A doorway: a non-solid sensor entity the player walks onto to travel to another

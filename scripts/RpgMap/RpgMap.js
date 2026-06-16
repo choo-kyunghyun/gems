@@ -271,6 +271,7 @@ globalThis.RpgMap = {
       .add(PathfindingSystem) // slime PathRequest → PathResponse over scene.nav
       .add(SolidSystem)
       .add(TriggerSystem)
+      .add(TurretSystem) // built turrets auto-fire at the nearest hostile (before bullets move)
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
