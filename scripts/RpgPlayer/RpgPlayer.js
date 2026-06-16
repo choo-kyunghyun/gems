@@ -67,6 +67,14 @@ globalThis.RpgPlayer = {
       speed: 0,
       time: 0,
     });
+    // A soft warm lantern the player carries — the reference Light for RenderLighting (reveals the
+    // area around the player at night; clamps to no-op in daylight). Drop this component for a
+    // player with no light.
+    world.add(id, Light, {
+      radius: 180,
+      color: make_colour_rgb(255, 226, 168),
+      intensity: 0.85,
+    });
     return id;
   },
 

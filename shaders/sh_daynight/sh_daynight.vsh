@@ -1,4 +1,7 @@
 //
+// NOTE: CURRENTLY UNUSED — only RenderDayNight binds this shader, and RenderDayNight is itself
+// unused (superseded by RenderLighting, the 2D light-map pass). Kept with that pass for reuse.
+//
 // Day/night overlay — vertex shader. Standard passthrough transform, and it hands the
 // fragment shader the clip-space position so it can build a SCREEN-space vignette with
 // no texture / UVs (we draw an untextured full-view rectangle — sampling a texture on it

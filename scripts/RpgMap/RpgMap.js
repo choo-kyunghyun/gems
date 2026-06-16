@@ -324,10 +324,13 @@ globalThis.RpgMap = {
       scene._weather = new RenderWeather();
       scene.renderer.insert(scene._weather);
     }
-    // Day/night tint LAST — over tiles + entities + weather (the scene draws bright cues after the
-    // renderer). Its camera is assigned with the others in step 9 below.
-    scene._dayNight = new RenderDayNight();
-    scene.renderer.insert(scene._dayNight);
+    // Lighting LAST — a per-frame light map composited over tiles + entities + weather. It absorbs
+    // the day/night cycle as its ambient term (white in daylight → night hue when dark) and adds
+    // soft blobs for every Light entity, so day/night is "lighting with no lights" and torches/the
+    // player's lantern reveal the night. Replaces the flat RenderDayNight tint (now unused by the
+    // RPG scene). Its camera is assigned with the others below.
+    scene._lighting = new RenderLighting();
+    scene.renderer.insert(scene._lighting);
 
     // 10. Follow camera on the (new) player.
     scene.camera = cameraFollow2d({
@@ -343,7 +346,7 @@ globalThis.RpgMap = {
     scene._tilePass.camera = scene.camera;
     scene._gridPass.camera = scene.camera;
     if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
-    scene._dayNight.camera = scene.camera; // day/night tint covers the camera view rect
+    scene._lighting.camera = scene.camera; // light map covers the camera view rect
 
     // 11. Corner minimap — rebuilt per map (captures world/target by value).
     RpgHud.buildMinimap(scene);

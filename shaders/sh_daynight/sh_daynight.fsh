@@ -1,4 +1,7 @@
 //
+// NOTE: CURRENTLY UNUSED — only RenderDayNight binds this shader, and RenderDayNight is itself
+// unused (superseded by RenderLighting, the 2D light-map pass). Kept with that pass for reuse.
+//
 // Day/night overlay — fragment shader. Outputs a flat tint plus a soft vignette that
 // deepens the tint toward the screen edges, for a richer dusk/night feel than a flat
 // rectangle. No texture sample: the primitive is untextured, so sampling gm_BaseTexture

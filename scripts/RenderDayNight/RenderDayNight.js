@@ -1,3 +1,8 @@
+// NOTE: CURRENTLY UNUSED — superseded by RenderLighting (the 2D light-map pass, which absorbs
+// day/night as its ambient term and adds point lights). Kept as a cheaper flat-tint fallback / for
+// reuse; sh_daynight is likewise unused. Re-add with renderer.insert for a scene that wants the
+// flat day/night tint without the light-map surface work.
+//
 // World-space render pass that tints the visible world by the WorldClock's day/night
 // cycle. Inserted LAST in the RPG renderer so it darkens the tiles + entities, while the
 // cues the scene draws AFTER the renderer (station highlight, build cursor, floating
