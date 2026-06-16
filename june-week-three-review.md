@@ -28,9 +28,9 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Camera
 
-- [ ] Camera
-- [ ] cameraFollow
-- [ ] cameraPan
+- [x] Camera
+- [x] cameraFollow
+- [x] cameraPan
 
 ### Component
 
@@ -54,11 +54,11 @@ A file-by-file pass over the whole project (the project has grown large enough t
 
 ### Input
 
-- [ ] Input
-- [ ] InputAction
-- [ ] InputAxis
-- [ ] InputButton
-- [ ] InputContext
+- [x] Input
+- [x] InputAction
+- [x] InputAxis
+- [x] InputButton
+- [x] InputContext
 
 ### Level
 

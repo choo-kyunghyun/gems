@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"utils",
+  "%Name":"Utils",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"utils",
+  "name":"Utils",
   "parent":{
     "name":"Util",
     "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"utils.js",
+  "scriptSource":"Utils.js",
 }

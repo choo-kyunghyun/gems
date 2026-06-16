@@ -4,17 +4,25 @@ globalThis.INPUT_SOURCE = Object.freeze({
   GAMEPAD: 2,
 });
 
+/** One physical button binding: a keyboard key, mouse button, or gamepad button. */
 globalThis.InputButton = class InputButton {
+  /**
+   * @param {number} source - An INPUT_SOURCE value.
+   * @param {number} button - The key/button constant for that source.
+   * @param {number} [device=0] - Gamepad device index (gamepad source only).
+   */
   constructor(source, button, device = 0) {
     this.source = source;
     this.button = button;
     this.device = device;
   }
 
-  static import = function (data) {
+  /** @param {{source:number,button:number,device:number}} data @returns {InputButton} */
+  static import(data) {
     return new InputButton(data.source, data.button, data.device);
-  };
+  }
 
+  /** @returns {{source:number,button:number,device:number}} Serializable binding. */
   export() {
     return {
       source: this.source,
@@ -23,6 +31,7 @@ globalThis.InputButton = class InputButton {
     };
   }
 
+  /** @returns {boolean} Held this frame. */
   down() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -36,6 +45,7 @@ globalThis.InputButton = class InputButton {
     }
   }
 
+  /** @returns {boolean} Pressed edge this frame. */
   pressed() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -49,6 +59,7 @@ globalThis.InputButton = class InputButton {
     }
   }
 
+  /** @returns {boolean} Released edge this frame. */
   released() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:

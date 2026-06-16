@@ -1,10 +1,22 @@
+/** @enum {number} Camera projection modes. */
 globalThis.CAMERA_PROJECTION = Object.freeze({
   ORTHO: 0,
   PERSPECTIVE: 1,
   PERSPECTIVE_FOV: 2,
 });
 
+/**
+ * Wraps a GameMaker camera handle and drives its view + projection by matrix each update().
+ * Construct directly for a static camera, or via the cameraFollow2d/cameraFollow/cameraPan
+ * factories for behavior. Owns a native handle — call destroy() at teardown.
+ */
 globalThis.Camera = class Camera {
+  /**
+   * @param {any} [cam] - Config bag (all optional): onUpdate (per-update hook, `this`=camera),
+   *   from{X,Y,Z} (eye), to{X,Y,Z} (look-at), up{X,Y,Z} (up vector, default 0/1/0),
+   *   width (=1366)/height (=768), znear (=1)/zfar (=32000)/fov (=70),
+   *   projection (a CAMERA_PROJECTION, default ORTHO).
+   */
   constructor(cam = {}) {
     this.id = camera_create();
     this.viewport = -1;
@@ -31,6 +43,7 @@ globalThis.Camera = class Camera {
     this.projection = cam.projection ?? CAMERA_PROJECTION.ORTHO;
   }
 
+  /** Free the native camera handle (unassigns from its viewport first). */
   destroy() {
     this.unassign();
 
@@ -40,6 +53,7 @@ globalThis.Camera = class Camera {
     }
   }
 
+  /** Run onUpdate, rebuild the view + projection matrices, and apply if assigned. */
   update() {
     this.onUpdate();
 
@@ -88,10 +102,16 @@ globalThis.Camera = class Camera {
     if (this.isAssigned()) camera_apply(this.id);
   }
 
+  /** @returns {boolean} Whether this camera is attached to a viewport. */
   isAssigned() {
     return this.viewport !== -1;
   }
 
+  /**
+   * Attach to a viewport (enabling views), detaching from any current one first.
+   * @param {number} [viewport=0]
+   * @returns {Camera} this
+   */
   assign(viewport = 0) {
     if (this.isAssigned()) this.unassign();
     this.viewport = viewport;
@@ -101,19 +121,23 @@ globalThis.Camera = class Camera {
     return this;
   }
 
+  /**
+   * Detach from its viewport and restore default room rendering.
+   * @returns {Camera} this
+   */
   unassign() {
     if (this.isAssigned()) {
       view_set_camera(this.viewport, -1);
       view_set_visible(this.viewport, false);
       this.viewport = -1;
-      // Re-enable default room rendering. A camera scene turned views on via
-      // assign(); without this, a view-enabled-but-none-visible state leaves
-      // the previous scene's frame frozen on the application surface.
+      // Restore default room rendering: a view-enabled-but-none-visible state would freeze
+      // the previous scene's frame on the application surface.
       view_enabled = false;
     }
     return this;
   }
 
+  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
   setFrom(x, y, z) {
     this.fromX = x;
     this.fromY = y;
@@ -121,6 +145,7 @@ globalThis.Camera = class Camera {
     return this;
   }
 
+  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
   setTo(x, y, z) {
     this.toX = x;
     this.toY = y;
@@ -128,6 +153,7 @@ globalThis.Camera = class Camera {
     return this;
   }
 
+  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
   setUp(x, y, z) {
     this.upX = x;
     this.upY = y;
@@ -135,12 +161,14 @@ globalThis.Camera = class Camera {
     return this;
   }
 
+  /** @param {number} width @param {number} height @returns {Camera} this */
   setSize(width, height) {
     this.width = width;
     this.height = height;
     return this;
   }
 
+  /** @param {number} projection - A CAMERA_PROJECTION value. @returns {Camera} this */
   setProjection(projection) {
     this.projection = projection;
     return this;
