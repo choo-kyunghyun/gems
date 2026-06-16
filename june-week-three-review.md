@@ -2,7 +2,7 @@
 
 A file-by-file pass over the whole project (the project has grown large enough that a sweep is worthwhile). Apply each goal below to every file as it's checked off.
 
-**Ground rules for this session:** non-surgical refactors are explicitly allowed — touch whatever makes the code better, not just the minimum. Previously-written conventions (especially GMRT 0.19-era notes) can be ignored or dropped when doing so improves the code, **even if it's only readability with no performance gain**. The one hard limit: idioms that are *still broken on GMRT 0.20* remain real correctness constraints — refactor around them freely, but don't reintroduce a form the current runtime miscompiles.
+**Ground rules for this session:** non-surgical refactors are explicitly allowed — touch whatever makes the code better, not just the minimum. Previously-written conventions (especially GMRT 0.19-era notes) can be ignored or dropped when doing so improves the code, **even if it's only readability with no performance gain**. The one hard limit: idioms that are _still broken on GMRT 0.20_ remain real correctness constraints — refactor around them freely, but don't reintroduce a form the current runtime miscompiles.
 
 ## Goals
 
@@ -13,6 +13,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 5. **Merge duplicate code.** Identify logic duplicated across files and extract it into a shared helper/module.
 6. **Mark unused code.** Tag dead/unused code with a `// TODO: Unused code` comment rather than deleting it outright, so it can be reviewed before removal.
 7. **Object relationships & logic correctness.** Map how each module relates to and depends on the others, using those relationships to catch logical errors, wrong coupling, or incorrect code.
+8. **JSDoc coverage.** Add JSDoc comments across every code file — document each public global/class/method/factory with its params, return shape, and a one-line purpose — so a later session has a complete API reference to work from. Match the existing `@typedef`/`@param` style already used for components.
 
 ## Core
 
@@ -60,6 +61,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] InputContext
 
 ### Level
+
 - [ ] ChunkManager
 - [ ] Level
 - [ ] TileEdit
@@ -145,6 +147,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] UITrigger
 
 ### Util
+
 - [ ] AABB
 - [ ] Color
 - [ ] Debug
@@ -192,6 +195,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] Turret
 
 ### Content
+
 - [ ] Achievement
 - [ ] Consumable
 - [ ] Container
@@ -225,6 +229,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] sceneRpg
 
 ### System
+
 - [ ] AnimationSystem
 - [ ] ChunkSource
 - [ ] ConsumableSystem
@@ -249,6 +254,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] WorldClock
 
 ### UI
+
 - [ ] CraftingUI
 - [ ] Interactable
 - [ ] InvTable
@@ -260,12 +266,14 @@ A file-by-file pass over the whole project (the project has grown large enough t
 ## Showcase
 
 ### Lobby
+
 - [ ] demo
 - [ ] obj_game
 - [ ] sceneLobby
 - [ ] sceneUIKit
 
 ### Map
+
 - [ ] sceneTileAlpha
 - [ ] sceneTileInspect
 - [ ] sceneTileInspect47
@@ -274,6 +282,7 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] sceneTileTerrain
 
 ### Platformer
+
 - [ ] CollectibleSystem
 - [ ] Enemy
 - [ ] EnemySystem
@@ -283,4 +292,5 @@ A file-by-file pass over the whole project (the project has grown large enough t
 - [ ] Spike
 
 ### RTS
+
 - [ ] sceneRTS
