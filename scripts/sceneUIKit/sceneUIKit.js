@@ -1,9 +1,11 @@
 // GemsUI kit showcase — a non-gameplay scene that exercises every widget in the
 // kit so the look-and-feel can be eyeballed in one place. Organised into tab pages
-// (gemsTabs): Widgets, Inputs & Values, Containers. Each page that overflows the
-// display/2 (~540px) GUI clamp is wrapped in a gemsScroll, so tabs + scroll compose
-// to keep every section reachable. Pure UI — no world/renderer; obj_game already
-// ticks and draws the UI globally, so there's no step()/draw().
+// (gemsTabs): Widgets, Inputs & Values, Containers, Inventory, Table. The tab host
+// grows to fill the space between the header/hints and the Back button (flex grow,
+// like the lobby/SystemMenu), and each scrollable page is a gemsScroll({ grow: true })
+// so it fills that host instead of a cramped fixed box and reflows at any GUI size.
+// Pure UI — no world/renderer; obj_game already ticks and draws the UI globally, so
+// there's no step()/draw().
 
 SceneRegistry.add(() => new _SceneUIKitClass(), {
   label: I18n.textRef("UIKIT_NAME"),
@@ -50,7 +52,7 @@ class _SceneUIKitClass extends Scene {
     this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_NAV_HINT")));
 
     // ── Tab: Widgets (buttons + toggles), scrolled ──
-    const widgets = gemsScroll({ height: 250 });
+    const widgets = gemsScroll({ grow: true });
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
     widgets.scrollBody.insertChild(this._richTextSection());
@@ -58,7 +60,7 @@ class _SceneUIKitClass extends Scene {
     widgets.scrollBody.insertChild(this._questSection());
 
     // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
-    const values = gemsScroll({ height: 250 });
+    const values = gemsScroll({ grow: true });
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
@@ -66,13 +68,13 @@ class _SceneUIKitClass extends Scene {
 
     // ── Tab: Containers (nine-slice skin + accordion | scroll list) ──
     // Left column scrolls so expanding accordion sections can't overflow the host.
-    const left = gemsScroll({ height: 250 });
+    const left = gemsScroll({ grow: true });
     left.scrollBody.insertChild(this._skinSection());
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
     // ── Tab: Inventory (slot grid with selection), scrolled ──
-    const inventory = gemsScroll({ height: 250 });
+    const inventory = gemsScroll({ grow: true });
     inventory.scrollBody.insertChild(this._inventorySection());
 
     // ── Tab: Table (sortable + filterable data table). The table self-scrolls, so
@@ -88,7 +90,7 @@ class _SceneUIKitClass extends Scene {
           { label: I18n.textRef("UIKIT_TAB_INVENTORY"), content: inventory },
           { label: I18n.textRef("UIKIT_TAB_TABLE"), content: table },
         ],
-        { height: 250 },
+        { grow: true },
       ),
     );
 
@@ -99,10 +101,13 @@ class _SceneUIKitClass extends Scene {
     );
   }
 
-  // Two equal columns (flexGrow:1, flexBasis:0 share the width evenly).
+  // Two equal columns (flexGrow:1, flexBasis:0 share the width evenly). The row itself
+  // grows to fill the tab host so a grow scroll inside a column can take the full height.
   _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
+      flexGrow: 1,
+      flexBasis: 0,
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
