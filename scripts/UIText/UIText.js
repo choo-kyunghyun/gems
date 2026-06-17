@@ -70,6 +70,12 @@ globalThis.UIText = class UIText {
     if (this.halign === fa_center) x += pos.width / 2;
     else if (this.halign === fa_right) x += pos.width;
 
+    // Snap the anchor to integer GUI pixels so SDF glyph stems land on the pixel grid.
+    // A sub-pixel left/top from fractional flex layout softens small text — worst when
+    // nested in a flex-grow host (tabs/scroll), which starts at a fractional origin.
+    x = floor(x);
+    y = floor(y);
+
     draw_text_ext_transformed_color(
       x,
       y,

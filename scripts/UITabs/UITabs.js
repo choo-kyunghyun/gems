@@ -150,7 +150,9 @@ globalThis.UITabs = class UITabs {
             ? this.colorHover
             : this.colorIdle,
       );
-      draw_text((x0 + x1) * 0.5, cy, this._label(i));
+      // Snap the centered anchor to integer GUI pixels — segment centers (width/n) are
+      // fractional, which softens the SDF labels; floor keeps glyph stems on the grid.
+      draw_text(floor((x0 + x1) * 0.5), floor(cy), this._label(i));
     }
 
     draw_set_font(font);

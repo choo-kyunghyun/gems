@@ -6,33 +6,33 @@
   "fonts": {
     "default": {
       "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
-      "size": 12,
-      "bold": false,
-      "italic": false,
-      "first": 32,
-      "last": 55203,
-      "sdf": true,
-      "sdf_spread": 8
-    },
-    "header": {
-      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Bold.ttf",
       "size": 16,
       "bold": false,
       "italic": false,
       "first": 32,
       "last": 55203,
       "sdf": true,
-      "sdf_spread": 8
+      "sdf_spread": 4
     },
-    "description": {
-      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
-      "size": 10,
+    "header": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Bold.ttf",
+      "size": 24,
       "bold": false,
       "italic": false,
       "first": 32,
       "last": 55203,
       "sdf": true,
-      "sdf_spread": 8
+      "sdf_spread": 4
+    },
+    "description": {
+      "path": "fonts/Noto_Sans_KR/static/NotoSansKR-Regular.ttf",
+      "size": 13,
+      "bold": false,
+      "italic": false,
+      "first": 32,
+      "last": 55203,
+      "sdf": true,
+      "sdf_spread": 4
     }
   },
   "images": {},
