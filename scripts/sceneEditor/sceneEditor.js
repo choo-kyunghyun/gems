@@ -6,7 +6,7 @@
 // and lets you paint wall/floor tiles, place/delete entities, and set the player spawn,
 // then exports the edited level back to a JSON file. No World, no physics, no gameplay
 // systems: everything placed is pure data (entities are `spawns` records drawn as markers,
-// not live AI entities). Modeled on sceneTileTerrain.
+// not live AI entities). Uses a pan/zoom camera over a `RenderDebugTileMap` + `RenderGrid`.
 //
 // Grid size is independent of the room — a level can be far larger than the view, and the
 // pan/zoom camera roams it. The "New WxH" control rebuilds the canvas blank at the chosen

@@ -11,12 +11,7 @@ const LOBBY_TABS = [
   { key: "LOBBY_TAB_RPG", cats: ["SCENE_CAT_RPG", "SCENE_CAT_EDITOR"] },
   {
     key: "LOBBY_TAB_SHOWCASE",
-    cats: [
-      "SCENE_CAT_ACTION",
-      "SCENE_CAT_STRATEGY",
-      "SCENE_CAT_MAP",
-      "SCENE_CAT_UI",
-    ],
+    cats: ["SCENE_CAT_ACTION", "SCENE_CAT_STRATEGY", "SCENE_CAT_UI"],
   },
 ];
 
