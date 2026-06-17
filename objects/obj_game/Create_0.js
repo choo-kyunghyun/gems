@@ -90,4 +90,11 @@ Debug.panel("Log", (p) => {
   p.watch("Lines", () => Log._lines.length);
   p.button("Clear", () => Log.clear());
 });
+// Sim controls (relocated from the SystemMenu): Pause gates scene.step(), Step Frame advances
+// one frame while paused, Restart Scene reloads the live scene. Bound to the SceneManager.
+Debug.panel("Sim", (p) => {
+  p.checkbox("Pause", game.scenes, "paused");
+  p.button("Step Frame", () => game.scenes.requestStep());
+  p.button("Restart Scene", () => game.scenes.restart());
+});
 DebugRender.register(this); // "Render" panel: per-pass overlay toggles (was the SystemMenu Debug tab)

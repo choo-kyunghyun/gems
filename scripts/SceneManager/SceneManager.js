@@ -18,6 +18,10 @@ globalThis.SceneManager = class SceneManager {
     // Stack of frames { scene, factory, label, onResult } — index 0 is the base, last is live.
     this._stack = [];
     this._pending = null; // a base-swap factory queued for the next frame, awaiting a fade
+    // Sim pause + frame-step, driven by the Debug overlay (Debug "Sim" panel: Pause toggle +
+    // Step Frame button) — relocated here from SystemMenu so the dev controls live in Debug.
+    this.paused = false; // Debug "Pause" — gates scene.step() like the menu pause does
+    this._stepRequested = false; // one-shot: Step Frame lets exactly one frame through
   }
 
   /** The live (top-of-stack) Scene instance, or null. Read widely (SystemMenu/Debug). */
@@ -171,22 +175,45 @@ globalThis.SceneManager = class SceneManager {
     return scene.label != null && scene.label !== "" ? scene.label : "-";
   }
 
-  // Per-frame sim tick (Step_0), pause-gated by the SystemMenu overlay: while it's open all
-  // sim freezes (scene.step() skipped) except a single-frame advance from its Step button.
+  // Per-frame sim tick (Step_0). The sim is pause-gated two ways: the player's SystemMenu
+  // overlay, and the Debug overlay's "Pause" toggle (this.paused). While paused, scene.step()
+  // is skipped except for a single-frame advance requested via requestStep() (the Debug
+  // "Step Frame" button — relocated here from the SystemMenu).
   step() {
     const scene = this.current;
     if (scene === null) return;
-    if (!SystemMenu.isOpen()) {
-      scene.step();
-    } else if (SystemMenu.consumeStep()) {
-      // One frame of sim at the chosen speed, then re-freeze (SystemMenu.update re-zeros
-      // Time next frame; world.update() runs off Time.delta, so it must be non-zero here).
-      Time.scale = SystemMenu.scale();
-      Time.delta = Time.raw * Time.scale;
-      scene.step();
-      Time.delta = 0;
-      Time.scale = 0;
+    if (SystemMenu.isOpen()) {
+      // The menu forces Time.scale = 0, so a step must restore a non-zero delta for the one
+      // scene.step (world.update advances off Time.delta), then re-freeze.
+      if (this._takeStep()) {
+        Time.scale = SystemMenu.scale();
+        Time.delta = Time.raw * Time.scale;
+        scene.step();
+        Time.delta = 0;
+        Time.scale = 0;
+      }
+      return;
     }
+    if (this.paused) {
+      // Debug pause leaves Time.scale untouched (so the Debug Time panel's Scale slider isn't
+      // fought) and just gates the sim — a step lets exactly one frame through at live delta.
+      if (this._takeStep()) scene.step();
+      return;
+    }
+    this._stepRequested = false; // don't carry a stale step into normal play
+    scene.step();
+  }
+
+  /** Request a one-frame sim advance while paused (the Debug "Step Frame" button). */
+  requestStep() {
+    this._stepRequested = true;
+  }
+
+  // Consume the one-shot frame-step flag (true at most once per requestStep).
+  _takeStep() {
+    if (!this._stepRequested) return false;
+    this._stepRequested = false;
+    return true;
   }
 
   /** Render the live scene. */

@@ -2,9 +2,10 @@
  * SystemMenu — the global, open-anytime "simulator/emulator manager" overlay (standalone
  * static singleton, NOT a UIComponent — same shape as Toast / SlotDrag / UINav). It is the
  * app's one menu: a near-fullscreen, multi-tabbed panel that pauses ALL game + behind-UI
- * logic while open, and lets you drive the running sim (resume / restart / quit / time-
- * scale / frame-step), change settings, read About, and inspect debug info. It absorbed
- * both the old SettingsMenu and the old PauseMenu (it now owns the gameplay pause + nav).
+ * logic while open, and lets you drive the running sim (resume / quit / time-scale), change
+ * settings, read About, and inspect debug info. It absorbed both the old SettingsMenu and the
+ * old PauseMenu (it now owns the gameplay pause + nav). The dev-only frame-step + restart-scene
+ * controls live in the Debug overlay's "Sim" panel (SceneManager.paused / requestStep()).
  *
  * Pausing is global (any scene, not just gameplay): `obj_game` skips `scene.step()` while
  * `SystemMenu.isOpen()`, and the menu forces `Time.scale = 0` each frame so Time.delta-
@@ -21,8 +22,8 @@
  * Wiring (obj_game + SceneManager):
  *   Step_0          : SystemMenu.update(this)  (before UINav.update; passes the controller
  *                     so the System tab can read/restart/quit the live scene via game.scenes)
- *   SceneManager.step: scene.step() gated by `!SystemMenu.isOpen() || consumeStep()`
- *                     (frame-step runs exactly one scene.step while paused — see consumeStep)
+ *   SceneManager.step: scene.step() skipped while `SystemMenu.isOpen()` (the Debug pause path
+ *                     + frame-step is gated separately, in SceneManager.step itself)
  *   SceneManager._apply: SystemMenu.reset()    (close + restore Time.scale on every scene swap)
  * The lobby footer also calls open() (Settings → System tab, Credits → About tab).
  */
@@ -30,7 +31,6 @@ globalThis.SystemMenu = class SystemMenu {
   static _modal = null; // open UIModal handle, or null
   static _game = null; // the obj_game controller (its scene lifecycle lives in game.scenes)
   static _scale = 1; // Time.scale to restore on resume; the System tab "Speed" edits it
-  static _stepRequested = false; // one-shot frame-step flag
 
   // Driven every frame from obj_game Step_0 (before UINav.update). Also the integrated
   // pause: it owns UINav.suspended for gameplay scenes (the former PauseMenu job). A scene
@@ -121,15 +121,6 @@ globalThis.SystemMenu = class SystemMenu {
   /** @returns {number} the Time.scale to restore on resume (the System tab "Speed"). */
   static scale() {
     return SystemMenu._scale;
-  }
-
-  // True at most once per Step button press; obj_game reads it to run a single
-  // scene.step() (one frame of sim) while otherwise paused.
-  /** @returns {boolean} whether a one-frame step was requested (consumes the flag). */
-  static consumeStep() {
-    if (!SystemMenu._stepRequested) return false;
-    SystemMenu._stepRequested = false;
-    return true;
   }
 
   /** Open the overlay (idempotent), pausing the sim. @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
@@ -324,27 +315,7 @@ globalThis.SystemMenu = class SystemMenu {
         primary: true,
       }),
     );
-    // Step requests one scene.step() while paused (obj_game consumes the flag).
-    bar.insertChild(
-      gemsButton(
-        I18n.textRef("SYS_STEP"),
-        () => {
-          SystemMenu._stepRequested = true;
-        },
-        { width: 200 },
-      ),
-    );
-    bar.insertChild(
-      gemsButton(
-        I18n.textRef("SYS_RESTART"),
-        () => {
-          const g = SystemMenu._game;
-          if (g !== null) g.scenes.restart();
-          SystemMenu.close();
-        },
-        { width: 200 },
-      ),
-    );
+    // Step Frame + Restart Scene moved to the Debug overlay's "Sim" panel (dev controls).
     bar.insertChild(
       gemsButton(
         I18n.textRef("SYS_QUIT"),

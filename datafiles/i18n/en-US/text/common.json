@@ -49,8 +49,6 @@
   "SYS_SPEED": "Speed",
   "SYS_CONTROLS": "Controls",
   "SYS_RESUME": "Resume",
-  "SYS_STEP": "Step Frame",
-  "SYS_RESTART": "Restart Scene",
   "SYS_QUIT": "Quit to Lobby",
 
   "SCENE_CAT_ACTION": "Action",

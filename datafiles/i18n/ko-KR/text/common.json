@@ -49,8 +49,6 @@
   "SYS_SPEED": "속도",
   "SYS_CONTROLS": "제어",
   "SYS_RESUME": "계속하기",
-  "SYS_STEP": "한 프레임",
-  "SYS_RESTART": "장면 재시작",
   "SYS_QUIT": "로비로 나가기",
 
   "SCENE_CAT_ACTION": "액션",
