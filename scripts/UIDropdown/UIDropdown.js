@@ -37,19 +37,27 @@ globalThis.UIDropdown = class UIDropdown {
     this._hold = false;
   }
 
+  // A METHOD, not a `get index()` accessor: on GMRT 0.20, reading an instance getter
+  // *named `index`* faults with "cannot coerce undefined or null value into object"
+  // (even though it just returns a stored field, and sibling getters value/name work) —
+  // `index` is special in GameMaker. Pairs with setIndex(). See CLAUDE.md GMRT-Safe Idioms.
   /** @returns {number} the selected index */
-  get index() {
+  getIndex() {
     return this._index;
   }
 
+  // value/name are METHODS, not get accessors, for the same GMRT 0.20 reason as getIndex()
+  // above: `getValue` because a `get value()` accessor faults like `index` (both names shadow
+  // GameMaker built-ins). `get name()` happened to work, but the whole selection surface is
+  // exposed as get*() methods for consistency and to dodge any further reserved-name landmine.
   /** @returns {*} the selected item's value (undefined if empty) */
-  get value() {
+  getValue() {
     const item = this.items[this._index];
     return item ? item.value : undefined;
   }
 
   /** @returns {string} the selected item's display name ("" if empty) */
-  get name() {
+  getName() {
     const item = this.items[this._index];
     return item ? item.name : "";
   }
@@ -57,7 +65,7 @@ globalThis.UIDropdown = class UIDropdown {
   /** Select index `i` (clamped). @param {number} i @returns {UIDropdown} */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
-    this.onChange(this._index, this.value);
+    this.onChange(this._index, this.getValue());
     return this;
   }
 
@@ -105,7 +113,8 @@ globalThis.UIDropdown = class UIDropdown {
     const cy = pos.top + pos.height * 0.5;
 
     // Current value (or the placeholder when nothing is selected / list is empty).
-    const has = this.name !== "";
+    const label = this.getName();
+    const has = label !== "";
     draw_set_halign(this.halign);
     draw_set_color(has ? this.color : this.placeholderColor);
     const tx =
@@ -114,7 +123,7 @@ globalThis.UIDropdown = class UIDropdown {
         : this.halign === fa_right
           ? pos.left + pos.width - this.padX
           : pos.left + this.padX;
-    draw_text(tx, cy, has ? this.name : this.placeholder);
+    draw_text(tx, cy, has ? label : this.placeholder);
 
     // Chevron at the right edge (via drawUIArrow): down when closed, up when open.
     const ah = 4;
