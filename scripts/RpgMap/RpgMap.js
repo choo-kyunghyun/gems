@@ -268,13 +268,14 @@ globalThis.RpgMap = {
     );
     MotionPlanner.setGrid(scene.nav);
 
-    // 8. Pipeline: AI decides velocity → resolve paths → collide → triggers (pickups) →
-    //    projectiles → expire. PathfindingSystem resolves the PathRequests SlimeAI queues this
-    //    tick (over scene.nav) into PathResponses the slime follows next tick.
+    // 8. Pipeline: AI decides velocity → resolve paths → collide → push crowders apart →
+    //    triggers (pickups) → projectiles → expire. PathfindingSystem resolves the PathRequests
+    //    SlimeAI queues this tick (over scene.nav) into PathResponses the slime follows next tick.
     scene.physics = new Pipeline()
       .add(StateSystem) // drives the slime Idle/Chase/Attack schemas
       .add(PathfindingSystem) // slime PathRequest → PathResponse over scene.nav
       .add(SolidSystem)
+      .add(SeparationSystem) // unstack dynamic bodies (slimes/player/followers) — RTS-style crowding, after SolidSystem
       .add(TriggerSystem)
       .add(TurretSystem) // built turrets auto-fire at the nearest hostile (before bullets move)
       .add(ProjectileSystem)
