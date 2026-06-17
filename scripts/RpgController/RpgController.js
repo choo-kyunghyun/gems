@@ -70,7 +70,17 @@ globalThis.RpgController = {
       time: 0,
     });
 
-    return { id, fireCd: 0, attackCd: 0 };
+    // Unarmed fallback weapon: a weak melee "fist" so an attack is ALWAYS item-shaped (a Weapon
+    // profile) — being unarmed never means "fire a free bullet". Built here, not at top level
+    // (Weapon loads after this script in resource order) nor as a `Weapon` static (a static field
+    // initializer can't reference its own class on GMRT). The player still spawns with a real
+    // wood_sword equipped (sceneRpg.create); this only governs a fully unarmed wielder.
+    return {
+      id,
+      fireCd: 0,
+      attackCd: 0,
+      fist: new Weapon({ damage: 1, fireCd: 22, melee: true, reach: 22 }),
+    };
   },
 
   /** @param {{ id: number, fireCd: number, attackCd: number }} ctrl */
@@ -120,24 +130,28 @@ globalThis.RpgController = {
     // fire is tagged "play"-only, so it already returns false while building or with a
     // window open (InputContext) — no explicit BuildMode/window guard needed here.
     if (Input.get("fire").down() && ctrl.fireCd === 0) {
-      // Cadence comes from the equipped weapon (unarmed → default). Read live.
-      const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
-      if (wpn !== null && wpn.melee) {
-        // Melee weapon: swing a hitbox toward the cursor (aim updates Direction so the
-        // swing + sprite face the click). Unarmed stays ranged (the else branch).
-        const pos = world.get(Position, ctrl.id);
-        const adx = mouse_x - pos.x;
-        const ady = mouse_y - pos.y;
-        const adist = Math.sqrt(adx * adx + ady * ady) || 1;
-        dir.x = adx / adist;
-        dir.y = ady / adist;
+      // Item-driven attack: the equipped Weapon — or the unarmed fist fallback — fully defines
+      // the action (melee swing vs ranged shot + its damage/cadence/reach). The controller no
+      // longer hardcodes a bullet; it just runs whatever the item describes. Read live each shot.
+      const wpn = EquipmentSystem.weaponProfile(world, ctrl.id) ?? ctrl.fist;
+      // Aim at the cursor; Direction drives the swing/shot AND the sprite facing.
+      const pos = world.get(Position, ctrl.id);
+      const adx = mouse_x - pos.x;
+      const ady = mouse_y - pos.y;
+      const adist = Math.sqrt(adx * adx + ady * ady) || 1;
+      dir.x = adx / adist;
+      dir.y = ady / adist;
+      // Damage = the weapon's base + the wielder's attack stat (level-ups + equipment mods), so
+      // the character sheet finally feeds combat and weapons aren't inert stat-sticks. `stats`
+      // was read above for movement.
+      const damage = wpn.damage + (stats !== undefined ? stats.attack : 0);
+      if (wpn.melee) {
         const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
-        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, wpn.damage);
+        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, damage);
       } else {
-        this._fire(world, ctrl);
+        this._fire(world, ctrl, wpn, damage);
       }
-      ctrl.fireCd =
-        wpn !== null && wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
+      ctrl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
       ctrl.attackCd = RPG_ATTACK_ANIM;
     }
 
@@ -164,17 +178,13 @@ globalThis.RpgController = {
     }
   },
 
-  // Spawns a bullet at the player aimed at the cursor. Bullets carry no Collision,
-  // so they pass through each other; ProjectileSystem raycasts their path each tick.
-  // Damage and bullet speed come from the equipped weapon (unarmed → defaults);
-  // per the chosen model, the weapon alone defines bullet damage (not stats.attack).
-  _fire(world, ctrl) {
-    const wpn = EquipmentSystem.weaponProfile(world, ctrl.id);
+  // Spawns a bullet at the player aimed at the cursor. Bullets carry no Collision, so they pass
+  // through each other; ProjectileSystem raycasts their path each tick. `wpn` is the resolved
+  // weapon profile and `damage` the already-computed (base + attack) value — the caller owns the
+  // item-driven resolution; this only reads the projectile speed off the weapon.
+  _fire(world, ctrl, wpn, damage) {
     const speed =
-      wpn !== null && wpn.bulletSpeed !== undefined
-        ? wpn.bulletSpeed
-        : RPG_BULLET_SPEED;
-    const damage = wpn !== null && wpn.damage !== undefined ? wpn.damage : 1;
+      wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : RPG_BULLET_SPEED;
 
     // Shared spawn + aim (RpgPlayer.fireBullet); muzzleY defaults to 0 (fire from center).
     const aim = RpgPlayer.fireBullet(world, ctrl.id, { speed, damage });

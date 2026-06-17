@@ -76,6 +76,13 @@ class _SceneRpgClass extends Scene {
     Weather.reset(); // settled clear sky (once — survives map changes, like the clock)
     RpgMap.load(this, bootMap, "default");
 
+    // Starting loadout: a melee Wooden Sword, equipped — so the attack is item-driven from frame
+    // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
+    // here it travels with the carried inventory across map changes (RpgMap.load re-applies it).
+    const startInv = this.world.get(Inventory, this.ctrl.id);
+    InventorySystem.add(startInv, "wood_sword", 1);
+    EquipmentSystem.equip(this.world, this.ctrl.id, "wood_sword");
+
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
     // in RpgMap.load owns it). create() runs once per scene, so this seeds exactly once.
