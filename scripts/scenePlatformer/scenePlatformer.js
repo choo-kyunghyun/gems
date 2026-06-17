@@ -4,22 +4,22 @@ const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void)
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
 // Exposed as a global factory (like SceneRpg) so it can be pushed as a minigame onto the
-// SceneManager stack (the RPG arcade cabinet) AND registered under the SAME reference, so the
-// registry label resolves whether it's opened from the lobby or pushed in-world.
+// SceneManager stack (the RPG arcade cabinet). It is NOT SceneRegistry.add'd: the platformer
+// is reachable only in-world via the arcade cabinet, no longer as a standalone lobby scene.
+// (With no registry entry, SceneManager._make resolves no label, so create() sets this.label
+// directly for the SystemMenu readout — see below.)
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
-SceneRegistry.add(ScenePlatformer, {
-  label: I18n.textRef("PLAT_NAME"),
-  category: "SCENE_CAT_ACTION",
-});
 
 // Side-scrolling movement showcase: weighty platformer movement (accel/skid, coyote
 // time, jump buffering, variable jump height, one-way drop-through) over a hand-built
 // level. Enemies patrol and are defeated by stomping; touching one from the side, a
 // spike, or the void resets the player to spawn. No RPG layer (no HP/inventory/combat).
 class _ScenePlatformerClass extends Scene {
-  label = "Platformer";
-
   create() {
+    // Display label for the SystemMenu readout. Set here, not as a class field: subclass
+    // field initializers don't run on GMRT, and there's no SceneRegistry entry to source it from.
+    this.label = I18n.text("PLAT_NAME");
+
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.world); // hard-coded level (no shared levels/ file)
     this.ctrl = PlatformerController.create(this.world, this.spawn);
