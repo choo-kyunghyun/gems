@@ -201,5 +201,8 @@
   "CRAFT_PROMPT": "[E] 제작",
   "CRAFT_EMPTY": "제작법 없음",
 
-  "CLAIM_PROMPT": "[E] 건설 구역 점유"
+  "CLAIM_PROMPT": "[E] 건설 구역 점유",
+
+  "ARCADE_PROMPT": "[E] 아케이드 플레이",
+  "ARCADE_REWARD": "아케이드 클리어 — 코인 +{0}"
 }

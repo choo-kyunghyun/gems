@@ -67,6 +67,7 @@ globalThis.Interactable = {
     if (scene._interKind === "workbench") return I18n.text("CRAFT_PROMPT");
     if (scene._interKind === "storage") return I18n.text("STORAGE_PROMPT");
     if (scene._interKind === "claim") return I18n.text("CLAIM_PROMPT");
+    if (scene._interKind === "arcade") return I18n.text("ARCADE_PROMPT");
     return "";
   },
 
@@ -196,6 +197,11 @@ globalThis.Interactable = {
     // Claim is an instant action, not a window — claim the build zone and bail.
     if (scene._interKind === "claim") {
       BuildMode.claim(scene, id);
+      return;
+    }
+    // Arcade is an instant action too — push a minigame scene on top of the RPG (no window).
+    if (scene._interKind === "arcade") {
+      scene._openArcade();
       return;
     }
     scene._interOpenId = id;

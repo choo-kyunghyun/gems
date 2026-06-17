@@ -22,7 +22,7 @@
 
 ### Build Mode
 
-- Plan mode
+- Blueprint
 - Drag to select
 
 ### Editor

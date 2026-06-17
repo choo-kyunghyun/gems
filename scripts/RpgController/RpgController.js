@@ -15,15 +15,18 @@ const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as c
 // ctrl = { id, fireCd, attackCd } — hold this on the scene; pass it to update().
 
 globalThis.RpgController = {
-  /** @param {{ x: number, y: number }} spawn */
-  create(world, spawn) {
-    // InputContext tags decide which actions are live per context (set by sceneRpg each
-    // frame): "play" = free roam, "build" = build mode, "window" = a gameplay window open.
-    // Movement stays live everywhere (the player keeps walking with a window open). fire is
-    // "play"-only, so it self-mutes while building (LMB places tiles) or with a window open
-    // (clicks don't shoot) — no per-frame BuildMode/window check in update(). interact opens
-    // in play + closes a station window in "window"; build/follow are inert while a window
-    // owns input. See InputContext / InputAction.inContext.
+  // Register the RPG keymap (keyboard/mouse + gamepad + analog axes) and its InputContext tags.
+  // Split out of create() so the scene can RE-APPLY it on resume() after a guest minigame's
+  // controller unbinds shared action names (the platformer's destroy() unbinds moveLeft/moveRight,
+  // which the RPG also uses). Idempotent — bindAll/register overwrite, so calling it twice is safe.
+  //
+  // InputContext tags decide which actions are live per context (set by sceneRpg each frame):
+  // "play" = free roam, "build" = build mode, "window" = a gameplay window open. Movement stays
+  // live everywhere (the player keeps walking with a window open). fire is "play"-only, so it
+  // self-mutes while building (LMB places tiles) or with a window open (clicks don't shoot) — no
+  // per-frame BuildMode/window check in update(). interact opens in play + closes a station window
+  // in "window"; build/follow are inert while a window owns input. See InputContext / inContext.
+  bindKeys() {
     const ANYWHERE = ["play", "build", "window"];
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A"), ANYWHERE],
@@ -80,6 +83,11 @@ globalThis.RpgController = {
         .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrv)
         .inContext(["play"]),
     );
+  },
+
+  /** @param {{ x: number, y: number }} spawn */
+  create(world, spawn) {
+    RpgController.bindKeys(); // register the keymap + context tags (re-applied on host resume)
 
     // The RPG player entity (RpgPlayer.spawn); then this genre's Animator. BBox is centered;
     // faces down; move speed from Stats.

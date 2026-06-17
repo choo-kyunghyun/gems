@@ -1,6 +1,7 @@
 const RELEASE_MODE = false;
 gml_release_mode(RELEASE_MODE);
 audio_throw_on_error(!RELEASE_MODE);
+globalThis.DEV_MODE = !RELEASE_MODE; // global mirror so other events (Step_0's dev lobby hotkey) can gate on it
 
 randomize();
 
@@ -60,8 +61,10 @@ UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit th
 // each event. SystemMenu reads the live scene + restarts/quits through this.scenes rather
 // than reaching into obj_game's fields.
 this.scenes = new SceneManager();
-this.scenes.start(SCENES.lobby);
-SceneTransition.reveal(); // boot fades the title in from black instead of popping
+// The RPG is the main game / boot scene; the lobby is demoted to a dev launcher reachable via the
+// F2 dev hotkey (Step_0). The other genres are reached in-world as minigames (the arcade cabinet).
+this.scenes.start(SceneRpg);
+SceneTransition.reveal(); // boot fades the game in from black instead of popping
 
 // Debug back-end: register the global built-in panels once. Bindings are live,
 // so these track the current scene across swaps. The text port (debug.txt) is

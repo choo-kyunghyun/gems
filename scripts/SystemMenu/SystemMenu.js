@@ -76,6 +76,8 @@ globalThis.SystemMenu = class SystemMenu {
     if (keyboard_check_pressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed by the scene; menu stays closed
+      } else if (game.scenes.depth() > 1) {
+        game.scenes.pop(); // a guest minigame is on top — Esc leaves it, not open the menu
       } else {
         SystemMenu.open();
       }
@@ -88,6 +90,10 @@ globalThis.SystemMenu = class SystemMenu {
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed (window closed / build exited)
+        return;
+      }
+      if (game.scenes.depth() > 1) {
+        game.scenes.pop(); // B also exits a guest minigame back to the host
         return;
       }
     }

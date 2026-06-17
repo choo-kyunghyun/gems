@@ -3,7 +3,11 @@ const PLATF_MAX_FALL = 900;
 const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void) → reset to spawn
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
-SceneRegistry.add(() => new _ScenePlatformerClass(), {
+// Exposed as a global factory (like SceneRpg) so it can be pushed as a minigame onto the
+// SceneManager stack (the RPG arcade cabinet) AND registered under the SAME reference, so the
+// registry label resolves whether it's opened from the lobby or pushed in-world.
+globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
+SceneRegistry.add(ScenePlatformer, {
   label: I18n.textRef("PLAT_NAME"),
   category: "SCENE_CAT_ACTION",
 });
@@ -19,6 +23,8 @@ class _ScenePlatformerClass extends Scene {
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.world); // hard-coded level (no shared levels/ file)
     this.ctrl = PlatformerController.create(this.world, this.spawn);
+    this.stomps = 0; // enemies stomped this run — the score reported back when run as a minigame
+    // (set on `this` in create(), not a class field: subclass field initializers don't run on GMRT)
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -80,6 +86,7 @@ class _ScenePlatformerClass extends Scene {
       const id = this.ctrl.id;
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
+        this.stomps++; // score for the minigame reward (harmless when run standalone)
       } else {
         let hurt = EnemySystem.resolveTouch(
           this.world,
@@ -106,6 +113,12 @@ class _ScenePlatformerClass extends Scene {
 
   draw() {
     this.renderer.draw(this.world); // player / enemies: colored boxes + labels + bbox
+  }
+
+  // Result handed back to the host when this runs as a minigame (SceneManager.pop reads it):
+  // the run's score → the RPG arcade's coin reward. Unused when opened standalone from the lobby.
+  result() {
+    return { stomps: this.stomps };
   }
 
   destroy() {

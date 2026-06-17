@@ -201,5 +201,8 @@
   "CRAFT_PROMPT": "[E] Craft",
   "CRAFT_EMPTY": "No recipes",
 
-  "CLAIM_PROMPT": "[E] Claim build area"
+  "CLAIM_PROMPT": "[E] Claim build area",
+
+  "ARCADE_PROMPT": "[E] Play arcade",
+  "ARCADE_REWARD": "Arcade cleared — +{0} coins"
 }

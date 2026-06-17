@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **RPG** — the self-contained RPG game, subfoldered like Core: `Component`/`System`/`Content`/`UI`/`Scene`/`Editor`.
 - **Showcase** — everything else demonstrable: the `Platformer`/`RTS`/`Map` showcases (`Map` also holds the `sceneTileInspect*` tileset-validation scenes), the demo **app shell** (`obj_game`/`rm_game`/`sceneLobby`/`demo`), and the raster sprites.
 
-Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `RPG/Scene` but registers under `SCENE_CAT_RPG`. The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions.
+Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `RPG/Scene` but registers under `SCENE_CAT_RPG`. The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions. The app **boots into the RPG**; other genres are embeddable as **guest minigames** via the `SceneManager` **scene stack** (a host scene pauses with its context intact while a guest runs in front — the RPG arcade cabinet → platformer). The lobby is demoted to a dev launcher (**F2**). See ARCHITECTURE → _Demo Layer_.
 
 ## Working Guidelines
 

@@ -93,6 +93,21 @@ class _SceneRpgClass extends Scene {
       }),
     );
 
+    // Seed an arcade cabinet near spawn (programmatic, like the companion): a Station the player
+    // interacts with (E) to launch the platformer as a minigame ON TOP of the RPG via the
+    // SceneManager stack (Interactable routes kind "arcade" → _openArcade). create() runs once,
+    // and this lives directly in the world (not chunk-managed), so it persists while the overworld
+    // world does. Authoring it into overworld.json would also survive portal round-trips (future).
+    const sg = this.level.worldToGrid(this.spawn.x, this.spawn.y);
+    RpgSpawn.spawnEntity(this.world, this.level, {
+      preset: "prop",
+      gx: sg.x + 2,
+      gy: sg.y - 2,
+      label: "Arcade",
+      color: "#9b8cff",
+      kind: "arcade",
+    });
+
     // The scene takes over gameplay input: push its base context. step() replaces it each
     // frame via _resolveContext; destroy() resets to "default" for the next scene.
     InputContext.push("play");
@@ -439,6 +454,43 @@ class _SceneRpgClass extends Scene {
       return true;
     }
     return false;
+  }
+
+  // ── SceneManager stack: host pause/resume while a guest minigame runs in front ──────────
+  // Suspend: hide the single RPG UI root. obj_game won't step a non-top scene, so the frozen
+  // step() naturally pauses BuildMode/Interactable/WorldClock/Weather — nothing else to do
+  // (the in-game clock + weather resume at the same time the player left them).
+  suspend() {
+    UI.setEnabled(this.ui, false);
+  }
+
+  // Resume: re-show the UI, re-claim viewport 0, and RE-BIND the keymap. A guest minigame's
+  // controller unbinds shared action names on destroy (PlatformerController.destroy drops
+  // moveLeft/moveRight, which the RPG also uses), so the RPG must re-register its keys to keep
+  // walking. RpgController.bindKeys is idempotent (bindAll/register overwrite).
+  resume() {
+    UI.setEnabled(this.ui, true);
+    this.camera.assign(0);
+    RpgController.bindKeys();
+  }
+
+  // Launch the platformer as a minigame on top of the RPG (pushed by the arcade Station via
+  // Interactable._open). On return, the guest's result() score becomes a coin reward.
+  _openArcade() {
+    this.manager.push(ScenePlatformer, {
+      onResult: (r) => {
+        const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
+        if (n > 0) {
+          InventorySystem.add(
+            this.world.get(Inventory, this.ctrl.id),
+            "coin",
+            n,
+          );
+          this._invDirty = true;
+        }
+        Toast.push(I18n.text("ARCADE_REWARD", n), { type: "success" });
+      },
+    });
   }
 
   draw() {
