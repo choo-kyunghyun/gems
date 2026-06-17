@@ -6,6 +6,7 @@
  * @property {number} xp
  * @property {number} xpNext   xp needed to reach the next level
  * @property {number} maxHp
+ * @property {number} maxStamina
  * @property {number} attack
  * @property {number} defense
  * @property {number} speed

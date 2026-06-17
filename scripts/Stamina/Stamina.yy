@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Stamina",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Stamina",
+  "parent":{
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Stamina.js",
+}

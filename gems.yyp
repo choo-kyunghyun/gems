@@ -235,6 +235,8 @@
     {"id":{"name":"SlotDrag","path":"scripts/SlotDrag/SlotDrag.yy",},},
     {"id":{"name":"SolidSystem","path":"scripts/SolidSystem/SolidSystem.yy",},},
     {"id":{"name":"Spike","path":"scripts/Spike/Spike.yy",},},
+    {"id":{"name":"Stamina","path":"scripts/Stamina/Stamina.yy",},},
+    {"id":{"name":"StaminaSystem","path":"scripts/StaminaSystem/StaminaSystem.yy",},},
     {"id":{"name":"State","path":"scripts/State/State.yy",},},
     {"id":{"name":"StateSystem","path":"scripts/StateSystem/StateSystem.yy",},},
     {"id":{"name":"Station","path":"scripts/Station/Station.yy",},},

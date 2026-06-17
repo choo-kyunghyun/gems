@@ -26,6 +26,7 @@ globalThis.RpgMap = {
       carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
         Stats,
         Health,
+        Stamina,
         Inventory,
         Equipment,
         Encumbrance,

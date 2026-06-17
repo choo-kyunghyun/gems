@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StaminaSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StaminaSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StaminaSystem.js",
+}

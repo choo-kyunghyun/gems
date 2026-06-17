@@ -32,6 +32,25 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(hpRow);
+    // Stamina bar (sprint resource) — fraction of Stats.maxStamina, read live each frame.
+    const staRow = new UIElement({ width: "100%", height: 14 });
+    staRow.insertChild(
+      gemsProgress(
+        () => {
+          const sta = scene.world.get(Stamina, scene.ctrl.id);
+          const st = scene.world.get(Stats, scene.ctrl.id);
+          if (sta === undefined || st === undefined || st.maxStamina <= 0)
+            return 0;
+          return sta.value / st.maxStamina;
+        },
+        {
+          label: I18n.textRef("RPG_STAMINA"),
+          fillColor: "#5bc8d6",
+          height: 14,
+        },
+      ),
+    );
+    card.insertChild(staRow);
     // World clock: "Season · Day N  HH:MM", read live from the WorldClock each frame.
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(

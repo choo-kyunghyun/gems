@@ -1,4 +1,5 @@
 const RPG_MOVE_SPEED = 220;
+const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const RPG_BULLET_SPEED = 600;
 const RPG_FIRE_CD = 8; // ticks between shots while held
 const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
@@ -28,6 +29,7 @@ globalThis.RpgController = {
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D"), ANYWHERE],
       moveUp: [INPUT_SOURCE.KEYBOARD, ord("W"), ANYWHERE],
       moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
+      sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE], // hold to sprint (drains Stamina)
       fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
@@ -90,10 +92,22 @@ globalThis.RpgController = {
       (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
       EncumbranceSystem.scale(world, ctrl.id);
     const len = Math.sqrt(dx * dx + dy * dy);
-    const moving = len > 0;
-    if (moving) {
-      vel.x = (dx / len) * speed;
-      vel.y = (dy / len) * speed;
+    // Sprint: hold Shift while moving for a speed boost that drains Stamina; it regenerates
+    // when not sprinting. StaminaSystem runs every tick (regen even while idle) and returns
+    // whether the boost actually applies — gated on stamina/exhaustion, so it cuts out when empty.
+    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below yields a boolean
+    // that clobbers such a local on GMRT (the boolean-local clobber quirk), which silently zeroed
+    // NON-sprint movement (the expr is false → flips the local false → `if (moving)` skipped).
+    // Recompute `len > 0` live at each use instead.
+    const sprinting = StaminaSystem.sprint(
+      world,
+      ctrl.id,
+      len > 0 && Input.get("sprint").down(),
+    );
+    const moveSpeed = speed * (sprinting ? RPG_SPRINT_MULT : 1);
+    if (len > 0) {
+      vel.x = (dx / len) * moveSpeed;
+      vel.y = (dy / len) * moveSpeed;
       dir.x = dx / len;
       dir.y = dy / len;
     } else {
@@ -133,7 +147,7 @@ globalThis.RpgController = {
     if (anim !== undefined) {
       let state = "idle";
       if (ctrl.attackCd > 0) state = "attack";
-      else if (moving) state = "walk";
+      else if (len > 0) state = "walk";
       AnimationSystem.set(anim, state);
     }
 
@@ -189,6 +203,7 @@ globalThis.RpgController = {
       "moveRight",
       "moveUp",
       "moveDown",
+      "sprint",
       "fire",
       "inventory",
       "interact",

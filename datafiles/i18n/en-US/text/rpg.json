@@ -1,6 +1,6 @@
 {
   "RPG_NAME": "Top-Down RPG",
-  "RPG_HINT": "WASD: Move · LMB: Attack · I: Bag · E: Talk · B: Build · F: Companion",
+  "RPG_HINT": "WASD: Move · Shift: Sprint · LMB: Attack · I: Bag · E: Talk · B: Build · F: Companion",
 
   "EDITOR_NAME": "Level Editor",
   "EDITOR_HINT": "LMB paint · RMB erase · MMB drag pan · Wheel zoom",
@@ -47,6 +47,7 @@
   "BUILT_DESTROYED": "{0} destroyed!",
 
   "RPG_HUD": "Lv {0}   HP {1}/{2}",
+  "RPG_STAMINA": "Stamina",
   "RPG_TIME": "{0} · Day {1}   {2}",
   "RPG_SEASON_SPRING": "Spring",
   "RPG_SEASON_SUMMER": "Summer",
