@@ -20,7 +20,8 @@
 //
 // Source contract:
 //   source.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
-//                                spawns: [descriptor...] }            (deterministic per cx,cy)
+//                                spawns: [descriptor...],            (deterministic per cx,cy)
+//                                terrain?: Int[]  per-cell material grid (cosmetic; for TerrainStream) }
 //   source.spawn(world, level, descriptor) -> entityId               (constructs one entity)
 //
 // GMRT-safe: plain-object record maps walked via Object.keys + index loops (no Map/Set
@@ -63,7 +64,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
     this.pxH = this.chunkRows * this.cellH;
 
-    // Active chunks keyed "cx,cy" → { cx, cy, ring, walls, colliders, entities, snapshots }.
+    // Active chunks keyed "cx,cy" → { cx, cy, ring, walls, terrain, colliders, entities, snapshots }.
     this._chunks = {};
     // Snapshots of unloaded (previously-visited) chunks, keyed "cx,cy". Restored on revisit so
     // a chunk's modified entities persist for the session. Unbounded for now (snapshots are
@@ -152,6 +153,11 @@ globalThis.ChunkManager = class ChunkManager {
     return Object.keys(this._chunks).length;
   }
 
+  /** @returns {{cx:number,cy:number}} the player's current chunk (cx/cy undefined before first update). */
+  centerChunk() {
+    return { cx: this._pcx, cy: this._pcy };
+  }
+
   // ── internal lifecycle ─────────────────────────────────────────────────────
 
   // Generate (or restore from cache) a chunk and install it at `ring`. Walls always come from
@@ -164,6 +170,7 @@ globalThis.ChunkManager = class ChunkManager {
       cy,
       ring,
       walls: gen.walls, // [[gx,gy,w,h]...] absolute grid coords — for mesh + render
+      terrain: gen.terrain, // per-cell material grid (cosmetic) — TerrainStream renders it
       colliders: [],
       entities: [],
       snapshots: [],

@@ -5,9 +5,12 @@
 // contract for a different world; tag its prefab set to match (see prefabTag).
 //
 // Contract (consumed by ChunkSource → ChunkManager):
-//   generate(cx, cy) -> { walls: [[gx,gy,w,h]...], spawns: [descriptor...] }
+//   generate(cx, cy) -> { terrain: Int[chunkCols*chunkRows], walls: [[gx,gy,w,h]...], spawns: [...] }
 //     ABSOLUTE grid coords, fully deterministic from (cx, cy, seed) — a chunk MUST regenerate
 //     identically every visit (the streaming cache only persists ENTITY state, never terrain).
+//   terrain(cx, cy) -> a flat per-cell material-id grid (row-major lx + ly*chunkCols) for the chunk,
+//     a value-noise biome (water/sand/grass, see OverworldGen.TERRAIN) — a PURE function of absolute
+//     cell coords + seed, so chunks agree at their seams (TerrainStream renders it via RenderTileMap).
 //
 // Output = an optional stamped PREFAB (a hand-authored cluster) plus a loose random scatter of
 // rocks + slimes. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
@@ -40,7 +43,63 @@ globalThis.OverworldGen = class OverworldGen {
       this._stamp(rng, gx0, gy0, walls, spawns);
 
     this._scatter(rng, gx0, gy0, walls, spawns);
-    return { walls, spawns };
+    return { terrain: this.terrain(cx, cy), walls, spawns };
+  }
+
+  // ── terrain (value-noise biome) ─────────────────────────────────────────────
+  // Per-cell material grid for a chunk, row-major (lx + ly*chunkCols). Each cell's material is a
+  // pure function of its ABSOLUTE coords (not per-chunk RNG state — that would tear at seams), so
+  // adjacent chunks line up. Cosmetic only: TerrainStream renders it; nothing collides on it.
+  terrain(cx, cy) {
+    const cc = this.chunkCols;
+    const cr = this.chunkRows;
+    const gx0 = cx * cc;
+    const gy0 = cy * cr;
+    const out = new Array(cc * cr);
+    for (let ly = 0; ly < cr; ly++)
+      for (let lx = 0; lx < cc; lx++)
+        out[ly * cc + lx] = this._material(gx0 + lx, gy0 + ly);
+    return out;
+  }
+
+  // Threshold the noise into a material id (index into OverworldGen.TERRAIN, ascending thresholds).
+  _material(ax, ay) {
+    const n = this._noise(ax, ay);
+    const pal = OverworldGen.TERRAIN;
+    for (let i = 0; i < pal.length; i++) if (n < pal[i].threshold) return i;
+    return pal.length - 1;
+  }
+
+  // Value noise in [0,1): bilinear (smoothstep) interpolation over a coarse lattice of hashed
+  // values. LATTICE = lattice spacing in cells (bigger = larger biomes). Pure in (ax, ay, seed).
+  _noise(ax, ay) {
+    const L = OverworldGen.LATTICE;
+    const fx = ax / L;
+    const fy = ay / L;
+    const ix = Math.floor(fx);
+    const iy = Math.floor(fy);
+    let tx = fx - ix;
+    let ty = fy - iy;
+    tx = tx * tx * (3 - 2 * tx); // smoothstep for blobby, non-grid-aligned regions
+    ty = ty * ty * (3 - 2 * ty);
+    const v00 = this._hash(ix, iy);
+    const v10 = this._hash(ix + 1, iy);
+    const v01 = this._hash(ix, iy + 1);
+    const v11 = this._hash(ix + 1, iy + 1);
+    const a = v00 + (v10 - v00) * tx;
+    const b = v01 + (v11 - v01) * tx;
+    return a + (b - a) * ty;
+  }
+
+  // Hash a lattice point to [0,1) — MINSTD integer-float math (same family as _seedFor; no bitwise
+  // chain, which GMRT miscompiles). Every product stays < 2^53, so it's exact.
+  _hash(ix, iy) {
+    const M = 2147483647;
+    let h = this.seed % M;
+    h = (((h * 31 + (ix | 0) * 1900613) % M) + M) % M;
+    h = (((h * 31 + (iy | 0) * 7368787) % M) + M) % M;
+    h = (h * 48271) % M;
+    return h / M;
   }
 
   // ── prefab stamping ─────────────────────────────────────────────────────────
@@ -173,3 +232,15 @@ globalThis.OverworldGen = class OverworldGen {
     };
   }
 };
+
+// Biome palette: material id = index into this table; ascending `threshold` over the value noise
+// (water lowest → grass highest, the last entry's threshold is the open top). `color` is the tint
+// TerrainStream renders each material's spr_tiledual layer with. Cumulative-stacked (a cell of
+// material m fills render layers 0..m), so each upper terrain's dual border reveals the one below.
+// Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
+OverworldGen.TERRAIN = [
+  { id: "water", name: "물", color: "#2e6b8f", threshold: 0.32 },
+  { id: "sand", name: "모래", color: "#c2a878", threshold: 0.5 },
+  { id: "grass", name: "풀", color: "#5d8a46", threshold: Infinity },
+];
+OverworldGen.LATTICE = 10; // value-noise lattice spacing in cells (bigger = larger biome blobs)

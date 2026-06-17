@@ -14,7 +14,7 @@
 // frame so drawWorld can gate the world-space cursor highlight to "build context owns input".
 //
 // Scene contract (set in create()/loadMap): world, ctrl.id, level, ui, wallLayer, floorLayer,
-// colliders, wallType, floorType, buildZoneId.
+// colliders, wallType, floorType, buildZoneId, _tilePasses (RenderTileMap pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
@@ -336,6 +336,7 @@ globalThis.BuildMode = {
       TileEdit.set(level, layer, gx, gy, type);
       if (item.layer === "wall")
         TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
+      BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
     } else {
       // Spawn through the shared per-entity constructor so a built prop/station is identical
@@ -366,13 +367,23 @@ globalThis.BuildMode = {
     if (item !== undefined && item.layer === "wall") {
       TileEdit.clear(level, scene.wallLayer, gx, gy);
       TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
+      BuildMode._markTileDirty(scene, "wall");
     } else {
       TileEdit.clear(level, scene.floorLayer, gx, gy);
+      BuildMode._markTileDirty(scene, "floor");
     }
     BuildMode._refund(scene, tileId);
     delete scene._built[key];
     scene._invDirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
+  },
+
+  // The RenderTileMap passes are VBO-cached, so a tile edit must markDirty the matching layer's
+  // pass for the change to render (autotiling rebuilds the whole layer VBO, so neighbors restyle
+  // too). Guarded: a pass is absent only if its sprite failed sprite_exists in RpgMap.
+  _markTileDirty(scene, layerKey) {
+    const pass = scene._tilePasses[layerKey];
+    if (pass !== undefined) pass.markDirty();
   },
 
   _refund(scene, itemId) {

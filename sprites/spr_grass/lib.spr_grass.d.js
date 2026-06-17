@@ -1,1 +1,0 @@
-declare const spr_grass: GMSprite

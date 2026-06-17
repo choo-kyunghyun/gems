@@ -19,6 +19,9 @@ globalThis.RenderChunks = class RenderChunks {
     this.ground1 = opt.ground1 ?? make_colour_rgb(28, 34, 30);
     this.wallColor = opt.wallColor ?? make_colour_rgb(96, 84, 72);
     this.frozenAlpha = opt.frozenAlpha ?? 0.6; // dim frozen entities to read as LOD'd
+    // Draw the per-chunk ground checker. Off when a TerrainStream draws the ground instead (RPG);
+    // the unloaded area still reads as the dark scene background = the edge of the loaded world.
+    this.ground = opt.ground ?? true;
   }
 
   destroy() {}
@@ -38,17 +41,18 @@ globalThis.RenderChunks = class RenderChunks {
     const cw = this.chunks.cellW;
     const ch = this.chunks.cellH;
 
-    // 1. Ground fill per chunk (checker by parity).
-    for (let i = 0; i < recs.length; i++) {
-      const rec = recs[i];
-      const gx = rec.cx * pxW;
-      const gy = rec.cy * pxH;
-      draw_set_alpha(1);
-      draw_set_color(
-        ((rec.cx + rec.cy) & 1) === 0 ? this.ground0 : this.ground1,
-      );
-      draw_rectangle(gx, gy, gx + pxW, gy + pxH, false);
-    }
+    // 1. Ground fill per chunk (checker by parity) — skipped when a TerrainStream owns the ground.
+    if (this.ground)
+      for (let i = 0; i < recs.length; i++) {
+        const rec = recs[i];
+        const gx = rec.cx * pxW;
+        const gy = rec.cy * pxH;
+        draw_set_alpha(1);
+        draw_set_color(
+          ((rec.cx + rec.cy) & 1) === 0 ? this.ground0 : this.ground1,
+        );
+        draw_rectangle(gx, gy, gx + pxW, gy + pxH, false);
+      }
 
     // 2. Wall rects (filled + dark outline).
     for (let i = 0; i < recs.length; i++) {

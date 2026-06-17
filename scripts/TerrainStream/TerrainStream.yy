@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TerrainStream",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TerrainStream",
+  "parent":{
+    "name":"System",
+    "path":"folders/RPG/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TerrainStream.js",
+}

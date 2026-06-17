@@ -95,17 +95,24 @@ globalThis.ChunkSource = class ChunkSource {
     );
   }
 
-  // ChunkManager contract: deterministic { walls, spawns } for a chunk — authored hub chunks
-  // from the overlay, everything else from the generator.
+  // ChunkManager contract: deterministic { terrain, walls, spawns } for a chunk — authored hub
+  // chunks take their walls/spawns from the overlay, everything else from the generator.
   generate(cx, cy) {
     if (this._inAuthoredBox(cx, cy)) {
       const k = this._key(cx, cy);
+      // Terrain is biome-everywhere (a pure coord function), so authored hub chunks render the
+      // same continuous biome as the wilderness around them — the overlay overrides only
+      // walls/spawns. A custom generator without terrain() simply yields no ground here.
       return {
+        terrain:
+          this.generator.terrain !== undefined
+            ? this.generator.terrain(cx, cy)
+            : undefined,
         walls: this._authWalls[k] ?? [],
         spawns: this._authSpawns[k] ?? [],
       };
     }
-    return this.generator.generate(cx, cy);
+    return this.generator.generate(cx, cy); // generate() already includes terrain
   }
 
   // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgSpawn so

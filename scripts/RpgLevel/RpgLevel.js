@@ -1,11 +1,12 @@
 // Level builder for the top-down demo. Reads level data produced by
 // LevelSerializer.load (genre "topdown"); add more level files to extend the game.
 //
-// build() creates and returns { level, spawn, wallLayer, floorLayer, wallType,
-// floorType, colliders } — the scene owns level's lifecycle. The wall TileLayer is
-// kept on the level (not discarded) so a debug render pass can draw it and build mode
-// can edit it; colliders are greedy-meshed from that layer by the Core TileEdit service
-// (TileEdit.meshSolid here, TileEdit.remesh after build-mode edits).
+// build() creates the resident tile layers from RpgLevel.LAYERS (terrain/floor/wall/fence,
+// bottom→top — see LAYERS) and returns { level, spawn, colliders, plus <key>Layer + <key>Type
+// per layer } — the scene owns level's lifecycle. The layers stay on the level so the
+// RenderTileMap passes (built in RpgMap from LAYERS) draw them and build mode can edit them;
+// wall colliders are greedy-meshed by the Core TileEdit service (TileEdit.meshSolid here,
+// TileEdit.remesh after build-mode edits).
 //
 // Level data: { cell?, cols, rows, meta: { playerSpawn: { gx, gy } },
 //   walls: [[x, y, w, h], ...] } — walls are authored as cell rectangles (compact +
@@ -34,6 +35,107 @@ globalThis.RpgLevel = {
   // a one-shot hand-off channel between the editor and the play scene.
   playtestFile: undefined,
 
+  // Resident-grid tile layers, drawn bottom→top — one render-distinct material each.
+  // RenderTileMap autotiles by OCCUPANCY (not tile-type identity), so two materials with
+  // different autotile modes (wall=blob47, fence=blob16) can't share a TileLayer; each gets its
+  // own layer + RenderTileMap pass (created in RpgMap from this table). Swap `type`/`sprite`/
+  // `color` to re-skin a layer. `type`: "dual" corner-grid, 0 raw single-frame, 16 blob4, 47
+  // blob8. `id` is the TileType identity; for a SINGLE-sprite layer (type 0) RenderTileMap uses
+  // TileType.id as the frame index, so `floor.id` MUST be a real frame (0 = spr_square's only
+  // frame). `pathCost: null` → Infinity (blocking); `solid` layers are greedy-meshed into
+  // kinematic colliders. `fill` auto-fills the whole grid (the walkable terrain base) on plain
+  // maps; chunked maps build these EMPTY (player builds only). Order = nav priority (top wins).
+  LAYERS: [
+    {
+      key: "terrain",
+      id: 1,
+      name: "지형",
+      type: "dual",
+      sprite: "spr_tiledual",
+      color: "#5d8a46",
+      solid: false,
+      pathCost: 1,
+      emptyCost: 1,
+      fill: true,
+    },
+    {
+      key: "floor",
+      id: 0,
+      name: "바닥",
+      type: 0,
+      sprite: "spr_square",
+      color: "#b0936a",
+      solid: false,
+      pathCost: 1,
+    },
+    {
+      key: "wall",
+      id: 1,
+      name: "벽",
+      type: 47,
+      sprite: "spr_tile47",
+      color: "#707888",
+      solid: true,
+      pathCost: null,
+    },
+    {
+      key: "fence",
+      id: 1,
+      name: "울타리",
+      type: 16,
+      sprite: "spr_tile16",
+      color: "#8a6d3b",
+      solid: true,
+      pathCost: null,
+    },
+  ],
+
+  // Create the LAYERS TileLayers + TileTypes, insert them on the level bottom→top, and return a
+  // handles bag keyed `<key>Layer` / `<key>Type`. Shared by build() + buildChunked(); the caller
+  // does the painting/fill/colliders. The legacy wallLayer/floorLayer/wallType/floorType names
+  // BuildMode + sceneEditor read fall out of this for free (keys "wall"/"floor").
+  _makeLayers(level) {
+    const h = {};
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
+      const layer = new TileLayer(level.cols, level.rows, {
+        emptyCost: cfg.emptyCost,
+      });
+      level.insert(layer);
+      h[cfg.key + "Layer"] = layer;
+      h[cfg.key + "Type"] = new TileType({
+        id: cfg.id,
+        name: cfg.name,
+        pathCost: cfg.pathCost,
+      });
+    }
+    return h;
+  },
+
+  // Auto-fill each `fill` layer's whole grid with its material (the walkable terrain base).
+  // Plain maps only — chunked maps leave the resident grid empty (ChunkManager owns terrain).
+  _fillLayers(level, h) {
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
+      if (!cfg.fill) continue;
+      const layer = h[cfg.key + "Layer"];
+      const type = h[cfg.key + "Type"];
+      for (let y = 0; y < level.rows; y++)
+        for (let x = 0; x < level.cols; x++) layer.set(x, y, type);
+    }
+  },
+
+  // Paint cell-rectangles ([x, y, w, h]) of `type` into a layer. Shared by the wall/floor
+  // file-rect painting; an absent array is a no-op, so older level files are unaffected.
+  _paintRects(layer, rects, type) {
+    if (rects === undefined) return;
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      for (let y = r[1]; y < r[1] + r[3]; y++)
+        for (let x = r[0]; x < r[0] + r[2]; x++) layer.set(x, y, type);
+    }
+  },
+
   /**
    * Creates a Level from data, paints walls into a persistent TileLayer, and spawns
    * kinematic wall colliders into world. Returns the level handles; the caller owns
@@ -52,51 +154,22 @@ globalThis.RpgLevel = {
       cols: data.cols,
       rows: data.rows,
     });
-    const wallType = new TileType({ id: 1, name: "벽", pathCost: null });
-    const floorType = new TileType({ id: 2, name: "바닥" }); // walkable cosmetic (pathCost 1)
-
-    // Bottom floor layer (walkable, nav-neutral) then the wall layer above it. Both stay
-    // on the level so Level._computeNav resolves wall→Infinity else floor/empty→1 and the
-    // debug pass can read them. Floors are placed at runtime by build mode, so the file
-    // paints only walls.
-    const floorLayer = new TileLayer(level.cols, level.rows, { emptyCost: 1 });
-    const wallLayer = new TileLayer(level.cols, level.rows);
-    level.insert(floorLayer);
-    level.insert(wallLayer);
-
-    const rects = data.walls ?? [];
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      const x0 = r[0];
-      const y0 = r[1];
-      for (let y = y0; y < y0 + r[3]; y++)
-        for (let x = x0; x < x0 + r[2]; x++) wallLayer.set(x, y, wallType);
-    }
-    // Optional floor rects (walkable cosmetic, no collider) — same [x,y,w,h] shape as
-    // walls; absent in older level files, so the game is unaffected when omitted.
-    const frects = data.floors ?? [];
-    for (let i = 0; i < frects.length; i++) {
-      const r = frects[i];
-      const x0 = r[0];
-      const y0 = r[1];
-      for (let y = y0; y < y0 + r[3]; y++)
-        for (let x = x0; x < x0 + r[2]; x++) floorLayer.set(x, y, floorType);
-    }
+    // Resident tile layers (terrain/floor/wall/fence) from LAYERS, bottom→top. Terrain is
+    // auto-filled as the walkable base so the ground renders immediately; walls + optional
+    // floors come from the file's cell-rects. Fence has no file source yet (stays empty).
+    // Level._computeNav resolves a wall cell → Infinity, else falls through to the terrain
+    // base → 1 (top-priority layer with data wins).
+    const h = RpgLevel._makeLayers(level);
+    RpgLevel._fillLayers(level, h);
+    RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
+    RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
     level.syncAll();
 
     const colliders = [];
-    TileEdit.meshSolid(world, level, wallLayer, colliders);
+    TileEdit.meshSolid(world, level, h.wallLayer, colliders);
 
     const spawn = this._resolveSpawn(level, data, entryId);
-    return {
-      level,
-      spawn,
-      wallLayer,
-      floorLayer,
-      wallType,
-      floorType,
-      colliders,
-    };
+    return { level, spawn, colliders, ...h };
   },
 
   /**
@@ -118,24 +191,14 @@ globalThis.RpgLevel = {
       cols,
       rows,
     });
-    const wallType = new TileType({ id: 1, name: "벽", pathCost: null });
-    const floorType = new TileType({ id: 2, name: "바닥" });
-    const floorLayer = new TileLayer(level.cols, level.rows, { emptyCost: 1 });
-    const wallLayer = new TileLayer(level.cols, level.rows);
-    level.insert(floorLayer);
-    level.insert(wallLayer);
+    // Resident grid stays EMPTY (player builds only) — the streamed terrain + its colliders are
+    // the ChunkManager's. Same layer set/order as build() so Level.import (the _mapCache
+    // round-trip for player builds) matches; no fill, no colliders.
+    const h = RpgLevel._makeLayers(level);
     level.syncAll();
 
     const spawn = this._resolveSpawn(level, data, entryId);
-    return {
-      level,
-      spawn,
-      wallLayer,
-      floorLayer,
-      wallType,
-      floorType,
-      colliders: [],
-    };
+    return { level, spawn, colliders: [], ...h };
   },
 
   /**

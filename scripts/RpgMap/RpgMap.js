@@ -2,7 +2,7 @@
 // portal-travel half of sceneRpg, extracted as free functions taking the scene (composition;
 // GMRT has no usable class inheritance — same pattern as RpgScene). The scene owns the fields
 // these read/write (world, level, ctrl, followers, renderer, camera, _mapCache, _built/_builtEnts, _gone,
-// physics, _tilePass/_gridPass, etc.); RpgMap just orchestrates building/tearing them down.
+// physics, _tilePasses/_gridPass, etc.); RpgMap just orchestrates building/tearing them down.
 //
 // Maps are discrete level files connected by portals (not one streamed world — the deliberate
 // fit for the JSON.parse-on-large-files limit and the one-World-per-scene model). A chunked map
@@ -107,10 +107,14 @@ globalThis.RpgMap = {
       : RpgLevel.build(scene.world, data, entryId);
     scene.level = built.level;
     scene.spawn = built.spawn; // remembered for player respawn on death
-    scene.wallLayer = built.wallLayer; // tilemap handles for build mode
+    scene.terrainLayer = built.terrainLayer; // tilemap handles (RenderTileMap passes + build mode)
     scene.floorLayer = built.floorLayer;
-    scene.wallType = built.wallType;
+    scene.wallLayer = built.wallLayer;
+    scene.fenceLayer = built.fenceLayer;
+    scene.terrainType = built.terrainType;
     scene.floorType = built.floorType;
+    scene.wallType = built.wallType;
+    scene.fenceType = built.fenceType;
     scene.colliders = built.colliders;
     scene.ctrl = RpgController.create(scene.world, built.spawn);
 
@@ -276,24 +280,52 @@ globalThis.RpgMap = {
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // 9. Renderer: tilemap (walls + built floors) via the debug pass — grid lines, cost
-    //    shading (walls red), tile id/name labels — then the buildable-zone overlay; both
-    //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) +
-    //    Name labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT can't render the
-    //    SVG character sprites — still unsupported on 0.20).
+    // 9. Renderer: one RenderTileMap (real sprites) per resident layer — terrain (dual-grid),
+    //    floor (single), wall (blob47), fence (blob16) — from the RpgLevel.LAYERS config (swap
+    //    type/sprite/color there to re-skin), then grid lines + the buildable-zone overlay; all
+    //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) + Name
+    //    labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT can't render the SVG
+    //    character sprites — still unsupported on 0.20).
     scene.renderer = new Renderer();
-    // Chunk-streamed terrain (ground checker + walls + frozen-entity snapshots) draws UNDER
-    // everything; the resident-grid passes below then draw player builds + zones on top.
-    if (scene._chunked)
+    // Chunk-streamed terrain draws UNDER everything; the resident-grid passes below then draw
+    // player builds + zones on top. The streamed ground is the windowed dual-grid TerrainStream
+    // (value-noise biomes) inserted FIRST, then RenderChunks for walls + frozen-entity snapshots
+    // (its own ground checker off — terrain replaces it).
+    if (scene._chunked) {
+      scene.terrain = new TerrainStream(scene.chunks);
+      for (let i = 0; i < scene.terrain.passes.length; i++)
+        scene.renderer.insert(scene.terrain.passes[i]);
+      scene.terrain.rebuild(scene.chunks); // initial stamp (chunks.update already ran in step 5)
       scene.renderer.insert(
-        new RenderChunks(scene.chunks, { font: I18n.font("default") }),
+        new RenderChunks(scene.chunks, {
+          font: I18n.font("default"),
+          ground: false,
+        }),
       );
-    scene._tilePass = new RenderDebugTileMap(scene.level, {
-      names: true,
-      coords: false,
-      font: I18n.font("default"),
-    });
-    scene.renderer.insert(scene._tilePass);
+    }
+    // Tile passes are VBO-cached and start dirty, so this first build reflects whatever the
+    // layers hold now (incl. the persistence import in step 4b); runtime build-mode edits
+    // markDirty the matching pass (see BuildMode). Keyed by layer for that lookup.
+    scene._tilePasses = {};
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
+      const spr = asset_get_index(cfg.sprite);
+      if (!sprite_exists(spr)) {
+        Log.warn(`tile sprite missing: ${cfg.sprite}`); // GMRT: validate via sprite_exists, not >=0
+        continue;
+      }
+      const pass = new RenderTileMap(
+        scene[cfg.key + "Layer"],
+        scene.level,
+        spr,
+        {
+          autotile: cfg.type,
+          color: Color.parse(cfg.color),
+        },
+      );
+      scene.renderer.insert(pass);
+      scene._tilePasses[cfg.key] = pass;
+    }
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
     scene.renderer.insert(scene._gridPass);
     scene.renderer.insert(new RenderZone(scene.level, "buildable"));
@@ -366,9 +398,9 @@ globalThis.RpgMap = {
       height: surface_get_height(application_surface),
     });
     scene.camera.assign(0);
-    // Cull the resident-grid tile/grid passes to the camera view (essential for the chunked
-    // map's large home grid; harmless for a small interior).
-    scene._tilePass.camera = scene.camera;
+    // Cull the resident-grid grid pass to the camera view (essential for the chunked map's
+    // large home grid; harmless for a small interior). The RenderTileMap passes are VBO-cached
+    // (rebuilt only on markDirty), so they need no per-frame camera cull.
     scene._gridPass.camera = scene.camera;
     if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
     scene._lighting.camera = scene.camera; // light map covers the camera view rect
@@ -390,6 +422,11 @@ globalThis.RpgMap = {
     if (scene.chunks) {
       scene.chunks.destroy();
       scene.chunks = undefined;
+    }
+    // The windowed terrain layers (its RenderTileMap passes are freed by renderer.destroy below).
+    if (scene.terrain) {
+      scene.terrain.destroy();
+      scene.terrain = undefined;
     }
     scene.source = undefined;
     scene.nav = undefined; // the next load() rebuilds it + re-points MotionPlanner

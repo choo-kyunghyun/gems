@@ -53,6 +53,12 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
     this.softEdge = opt.softEdge ?? false;
+    // World-cell offset for a WINDOWED layer (e.g. TerrainStream's streamed terrain): the layer's
+    // local cell (0,0) maps to world cell (originX, originY). Default 0 — a resident layer's cell
+    // (0,0) is world origin. Autotile/neighbor sampling stays in LOCAL cells; only the draw
+    // position shifts. Settable; a window updates these + markDirty() when it re-centers.
+    this.originX = opt.originX ?? 0;
+    this.originY = opt.originY ?? 0;
     this.dirty = true;
     this._vbuf = new VertexBuffer();
     this._tex = undefined;
@@ -163,7 +169,13 @@ globalThis.RenderTileMap = class RenderTileMap {
       for (let x = 0; x < cols; x++) {
         if (!layer.get(x, y)) continue;
         const frame = this._frameOf(x, y);
-        const q = this._quad(frame, x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+        const q = this._quad(
+          frame,
+          (x + this.originX) * cellWidth,
+          (y + this.originY) * cellHeight,
+          cellWidth,
+          cellHeight,
+        );
         if (this.softEdge) {
           this._vbuf.addQuadV(
             q[0],
@@ -225,7 +237,13 @@ globalThis.RenderTileMap = class RenderTileMap {
         if (this._isSolid(i, j)) mask |= 4; // BR
         if (this._isSolid(i - 1, j)) mask |= 8; // BL
         if (mask === 0) continue;
-        const q = this._quad(mask, i * cellWidth - hw, j * cellHeight - hh, cellWidth, cellHeight);
+        const q = this._quad(
+          mask,
+          (i + this.originX) * cellWidth - hw,
+          (j + this.originY) * cellHeight - hh,
+          cellWidth,
+          cellHeight,
+        );
         this._vbuf.addQuad(
           q[0],
           q[1],

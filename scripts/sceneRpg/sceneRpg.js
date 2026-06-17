@@ -187,6 +187,8 @@ class _SceneRpgClass extends Scene {
     if (this.chunks !== undefined) {
       const pp = this.world.get(Position, this.ctrl.id);
       this.chunks.update(pp.x, pp.y);
+      // Re-stamp the streamed terrain window when the player crosses a chunk border (self-gated).
+      if (this.terrain !== undefined) this.terrain.rebuild(this.chunks);
     }
 
     // Rebuild the inventory window body only when its contents changed (open + dirty),
