@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InputPreset",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InputPreset",
+  "parent":{
+    "name":"Input",
+    "path":"folders/Core/Input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InputPreset.js",
+}
