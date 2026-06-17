@@ -62,8 +62,21 @@ globalThis.UI = class UI {
 
   /** Draw every enabled root, bottom-up. */
   static draw() {
+    // Reset the GPU scissor to the FULL current render target before drawing. GameMaker does not
+    // clear the scissor between frames, so a clip from last frame leaves its rect set — and after a
+    // resolution SHRINK that leftover is bigger than the new (smaller) back buffer, which a clip's
+    // gpu_get_scissor() then reads as a "nested" parent and replays every frame → a self-perpetuating
+    // "scissor not contained in the render target" validation error. Re-anchoring to the live target
+    // (Display.clipW/H — crash-safe size, not a lagged query; see UIElement._drawClipped) each frame
+    // clears the stale rect so nested-clip detection starts from the correct full target.
+    if (Display.renderW > 0) {
+      gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
+    }
     for (const root of UI.roots) {
       if (root.enabled) root.draw();
     }
+    // Age the render size by a frame so a resolution GROW only takes clip effect next frame, once the
+    // back buffer has caught up (the back buffer lags a grow by a frame; see Display.clipW).
+    Display.advanceFrame();
   }
 };

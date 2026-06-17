@@ -27,10 +27,11 @@ globalThis.Tween = class Tween {
     return current + (target - current) * clamp(dt * speed, 0, 1);
   }
 
-  // approach() for GameMaker color ints (channel-wise blend via merge_color).
-  static approachColor(current, target, speed, dt = Time.raw) {
-    return merge_color(current, target, clamp(dt * speed, 0, 1));
-  }
+  // NOTE: there is no color helper here on purpose. Easing a *packed* color int is broken on
+  // GMRT — merge_color floors each term (drifts darker), and rounding a packed-int lerp loses a
+  // sub-1 per-frame step so the tween freezes at high/unlimited FPS. Ease a color by keeping its
+  // r/g/b as FLOATS and calling approach() per channel (see UIButton._easeColor), exactly as the
+  // scalar shadow ease does — float state accumulates correctly at any frame rate.
 
   // ── easing curves: t∈[0,1] → eased [0,1] ──────────────────────────
   static linear(t) {

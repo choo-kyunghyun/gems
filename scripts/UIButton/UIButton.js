@@ -41,10 +41,13 @@ globalThis.UIButton = class UIButton {
     this.animSpeed = btn.animSpeed ?? 16;
     this.enter = false;
     this.hold = false;
-    // Animated state — eased toward the target each frame so hover/press feel
-    // smooth instead of snapping. Seeded on first update to avoid a fade-in.
-    this._color = undefined;
-    this._border = undefined;
+    // Animated state — eased toward the target each frame so hover/press feel smooth instead of
+    // snapping. Fill + border are eased as FLOAT [r,g,b] channels (rounded to the panel int each
+    // frame by _easeColor), not a packed int: a packed-int lerp loses a sub-1 per-frame step, so
+    // at unlimited FPS the tween would freeze (and GMRT's merge_color also drifts darker). ch[0]
+    // === undefined until first seeded → no fade-in. `_shadow` is already a plain float ease.
+    this._colorCh = [undefined, 0, 0];
+    this._borderCh = [undefined, 0, 0];
     this._shadow = undefined;
     this._shadowBase = undefined;
   }
@@ -55,6 +58,27 @@ globalThis.UIButton = class UIButton {
   /** @returns {boolean} */
   _disabled() {
     return this.getDisabled !== null ? this.getDisabled() : this.disabled;
+  }
+
+  // Ease a float [r,g,b] channel state `ch` (mutated in place) toward a target color int and
+  // return the rounded color int. Float accumulation, NOT a packed-int lerp: a sub-1 per-frame
+  // step would round to a standstill at unlimited FPS (the tween freezes), and merge_color drifts
+  // darker. Seeds straight to the target on the first call so there's no fade-in.
+  /** @param {number[]} ch @param {number} target @returns {number} */
+  _easeColor(ch, target) {
+    const tr = color_get_red(target);
+    const tg = color_get_green(target);
+    const tb = color_get_blue(target);
+    if (ch[0] === undefined) {
+      ch[0] = tr;
+      ch[1] = tg;
+      ch[2] = tb;
+    } else {
+      ch[0] = Tween.approach(ch[0], tr, this.animSpeed);
+      ch[1] = Tween.approach(ch[1], tg, this.animSpeed);
+      ch[2] = Tween.approach(ch[2], tb, this.animSpeed);
+    }
+    return make_colour_rgb(round(ch[0]), round(ch[1]), round(ch[2]));
   }
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
@@ -80,7 +104,10 @@ globalThis.UIButton = class UIButton {
         this.enter = false;
       }
       if (panel) {
-        this._color = this.colorDisabled;
+        // Snap the eased channels to the disabled color (so re-enabling eases out of it).
+        this._colorCh[0] = color_get_red(this.colorDisabled);
+        this._colorCh[1] = color_get_green(this.colorDisabled);
+        this._colorCh[2] = color_get_blue(this.colorDisabled);
         panel.color = this.colorDisabled;
         panel.alpha = this.alphaDisabled;
       }
@@ -125,11 +152,7 @@ globalThis.UIButton = class UIButton {
           : selected && this.colorSelected !== undefined
             ? this.colorSelected
             : this.colorNormal;
-      this._color =
-        this._color === undefined
-          ? targetColor
-          : Tween.approachColor(this._color, targetColor, this.animSpeed);
-      panel.color = this._color;
+      panel.color = this._easeColor(this._colorCh, targetColor);
 
       if (
         this.borderColorNormal !== undefined &&
@@ -141,11 +164,7 @@ globalThis.UIButton = class UIButton {
             : selected && this.borderColorSelected !== undefined
               ? this.borderColorSelected
               : this.borderColorNormal;
-        this._border =
-          this._border === undefined
-            ? targetBorder
-            : Tween.approachColor(this._border, targetBorder, this.animSpeed);
-        panel.borderColor = this._border;
+        panel.borderColor = this._easeColor(this._borderCh, targetBorder);
       }
 
       // Lift the shadow on hover, sink it on press — only if the panel casts one.

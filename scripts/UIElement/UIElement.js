@@ -36,7 +36,6 @@ globalThis.UIElement = class UIElement {
     // never via flexpanel mutation (unreliable on GMRT 0.19, bug #15065).
     this.dragX = 0;
     this.dragY = 0;
-    this._clipSurf = -1;
     // Set in destroy(); guards the post-update refresh / draw so an element torn
     // down mid-traversal (e.g. a modal closing itself on a button click) doesn't
     // touch its already-deleted flexpanel node.
@@ -86,10 +85,6 @@ globalThis.UIElement = class UIElement {
   destroy() {
     if (this._destroyed) return; // idempotent — close() may fire more than once
     this._destroyed = true;
-    if (this._clipSurf !== -1 && surface_exists(this._clipSurf)) {
-      surface_free(this._clipSurf);
-      this._clipSurf = -1;
-    }
     for (const component of this.components) {
       if (component.onDestroy) component.onDestroy(this);
     }
@@ -154,77 +149,70 @@ globalThis.UIElement = class UIElement {
     }
   }
 
-  // Render children into an off-screen surface sized to this element (minus any
-  // scrollbar gutter) and blit it, so scrolled-out content is clipped. We use a
-  // surface, NOT gpu_set_scissor — the latter's global clip state is unreliable on
-  // GMRT 0.19 and leaks onto later draws (see UIInput). A world-matrix translate
-  // maps the children's gui-absolute coords (already scroll-offset by
-  // getLayoutPosition) into the surface's local space.
+  // Clip children to this element's rect (minus any scrollbar gutter) with the GPU scissor: a
+  // rasterizer-level rectangle on the render target, so children draw DIRECTLY to the back buffer
+  // at full window density — crisp SDF text, correct blending, and zero surface memory (no off-
+  // screen surface, no resolution cap, no premultiplied-alpha dance). Verified on GMRT 0.20 (see
+  // the gpu_set_scissor GMRT-Safe Idiom): it clips, save/restore via gpu_get/set_scissor does NOT
+  // leak, and it doesn't crash — the old "scissor leaks globally" caveat was a 0.19-era discipline
+  // issue, not a runtime defect. Two things to respect: scissor coords are render-target (window)
+  // PIXELS, not GUI units, and the GUI layer is scaled to the window, so convert by k = window/gui;
+  // and intersect with the CURRENT scissor so a clip nested in another clip (a gemsScroll within a
+  // gemsScroll) is bounded by BOTH — which also retires the old double-nested-text bug, since with
+  // no nested surfaces there is no world matrix to lose.
   _drawClipped() {
     const pos = this.getLayoutPosition();
     const w = Math.ceil(pos.width - this.clipInsetRight);
     const h = Math.ceil(pos.height);
     if (!(w > 0) || !(h > 0)) return; // unlaid-out (NaN) or zero-size
 
-    // GameMaker scales the whole GUI layer to the window, so a DIRECT draw_text resolves SDF
-    // glyphs at the window's pixel density (crisp at any uiScale / monitor). A clip surface
-    // is created in GUI pixels, though — text baked into it is capped at GUI/design resolution
-    // and then upscaled with the layer, so clipped text reads softer than direct text on a
-    // hi-DPI / fullscreen window. Render the surface at the OUTPUT density instead: size it
-    // w*k x h*k, scale children up by k, and blit back at 1/k. The blit is itself a GUI-space
-    // draw that GM scales by k to the back buffer, so the hi-res texture lands ~1:1 on screen.
-    // k=1 (GUI == window, e.g. native 1080p) reduces to the old 1:1 path with no extra cost;
-    // capped at 3 to bound surface memory (k^2) on very high-res displays.
+    // Scissor coords are physical render-target PIXELS, while UI lays out in design-resolution GUI
+    // units (display_get_gui_*) that the runtime stretches to fill the target — so convert GUI →
+    // target by k = target/gui. The GUI render target is the WINDOW back buffer. Size it via
+    // Display.clipW/H (the crash-safe min of the intended size and the OS-reported size), NOT a raw
+    // window/surface query: on a resolution-change frame those lag the back buffer, so a scissor
+    // built from the OLD (bigger) size overflows the shrunk target → a fatal "scissor not contained
+    // in the render target" validation error. clipW/H never exceeds the live back buffer (see there).
     const gw = display_get_gui_width();
-    const k = Math.max(1, Math.min(3, gw > 0 ? window_get_width() / gw : 1));
-    const sw = Math.ceil(w * k);
-    const sh = Math.ceil(h * k);
+    const gh = display_get_gui_height();
+    const tw = Display.clipW();
+    const th = Display.clipH();
+    const kx = gw > 0 ? tw / gw : 1;
+    const ky = gh > 0 ? th / gh : 1;
 
-    if (this._clipSurf !== -1 && !surface_exists(this._clipSurf)) {
-      this._clipSurf = -1; // a volatile surface was reclaimed by the system
+    // This element's clip rect in render-target pixels, clamped to the target — an off-canvas widget
+    // (or a stale size on a transition frame) must never yield a rect larger than the target.
+    let x1 = Math.floor(pos.left) * kx;
+    let y1 = Math.floor(pos.top) * ky;
+    let x2 = x1 + w * kx;
+    let y2 = y1 + h * ky;
+    if (x1 < 0) x1 = 0;
+    if (y1 < 0) y1 = 0;
+    if (x2 > tw) x2 = tw;
+    if (y2 > th) y2 = th;
+
+    // Intersect with the CURRENT scissor so a clip nested in another clip is bounded by both.
+    // gpu_get_scissor() reports {0,0,0,0} when no scissor is set (the full-target default, NOT the
+    // target dims) — so only clamp when prev is a real positive sub-rect.
+    const prev = gpu_get_scissor();
+    const nested = prev.w > 0 && prev.h > 0;
+    if (nested) {
+      if (x1 < prev.x) x1 = prev.x;
+      if (y1 < prev.y) y1 = prev.y;
+      if (x2 > prev.x + prev.w) x2 = prev.x + prev.w;
+      if (y2 > prev.y + prev.h) y2 = prev.y + prev.h;
     }
-    if (
-      this._clipSurf === -1 ||
-      surface_get_width(this._clipSurf) !== sw ||
-      surface_get_height(this._clipSurf) !== sh
-    ) {
-      if (this._clipSurf !== -1) surface_free(this._clipSurf);
-      this._clipSurf = surface_create(sw, sh);
-    }
 
-    // Pixel-snap the GUI-space origin (the floored origin also keeps children integer-aligned
-    // within the surface — see UIText's anchor snap). The matrix maps a child's gui-absolute
-    // coord into hi-res surface space: surfaceCoord = (guiCoord - origin) * k, i.e. scale by k
-    // then translate by -origin*k.
-    const ox = Math.floor(pos.left);
-    const oy = Math.floor(pos.top);
-
-    // Render into a transparent surface then composite it back WITHOUT the edge halos the
-    // default blend mode causes: blending AA text onto transparent black and then again onto
-    // the scene double-darkens the fringe. The fix is straight-alpha-in / premultiplied-out —
-    // draw into the surface with separate-alpha blending so its alpha is true coverage, then
-    // blit it with (bm_one, bm_inv_src_alpha) so the result matches a direct draw_text.
-    const prevBlend = gpu_get_blendmode();
-    surface_set_target(this._clipSurf);
-    draw_clear_alpha(c_black, 0); // start transparent
-    gpu_set_blendmode_ext_sepalpha(
-      bm_src_alpha,
-      bm_inv_src_alpha,
-      bm_inv_dest_alpha,
-      bm_one,
-    );
-    matrix_set(matrix_world, matrix_build(-ox * k, -oy * k, 0, 0, 0, 0, k, k, 1));
+    gpu_set_scissor(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
-    matrix_set(matrix_world, matrix_build_identity());
-    surface_reset_target();
-
-    // Composite the hi-res surface back into GUI space at 1/k so it occupies exactly w x h GUI
-    // units — drawing ~1:1 to window pixels (see the density note above). Premultiplied blend.
-    gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
-    draw_surface_ext(this._clipSurf, ox, oy, 1 / k, 1 / k, 0, c_white, 1);
-    gpu_set_blendmode(prevBlend);
+    // Restore. Replaying the saved {0,0,0,0} (the unset sentinel) does NOT re-enable full drawing
+    // on GMRT — it clips everything drawn AFTER this to an empty rect (footers, dropdown popups,
+    // later roots all vanish). So at top level reset to the full render target explicitly; only a
+    // genuinely nested clip restores its parent's (positive) rect.
+    if (nested) gpu_set_scissor(prev);
+    else gpu_set_scissor(0, 0, tw, th);
   }
 
   /**

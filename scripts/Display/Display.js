@@ -13,6 +13,49 @@ globalThis.Display = class Display {
   // uncapped (the fixed-rate sim is unaffected; only render/Step frequency rises).
   static UNCAPPED_FPS = 1000;
 
+  // The current GUI render-target (window back buffer) size in PHYSICAL pixels — windowed client
+  // area, or the monitor in fullscreen. The back buffer resizes SYNCHRONOUSLY to whatever size we
+  // request here, but window_get_width/height() (and the application surface) lag it by a frame
+  // (the OS resize arrives async via an SDL event), so on a resolution-change frame a query reports
+  // the OLD size. UIElement._drawClipped scales its GPU scissor by this instead — keying it off a
+  // lagged query sets a scissor bigger than the freshly-shrunk back buffer → a fatal "scissor not
+  // contained in the render target" validation error. Authoritative because the window is not
+  // drag-resizable (options_windows resize_window:false), so Display is the only thing that sets it.
+  static renderW = 0;
+  static renderH = 0;
+  // renderW/H aged by one frame (advanceFrame, end of UI.draw). The GUI back buffer doesn't resize in
+  // lockstep with apply(): a SHRINK shrinks it the same frame, but a GROW lags it ONE frame (it's
+  // still the old, smaller size while renderW already holds the new bigger one). So a scissor sized
+  // to renderW would overflow the not-yet-grown target for a frame → fatal validation error.
+  static _prevW = 0;
+  static _prevH = 0;
+
+  // Crash-safe GUI clip-target size: the SMALLER of the intended size (renderW) and its 1-frame-lagged
+  // value (_prevW). The live back buffer always equals one of the two mid-transition — a shrink makes
+  // renderW the smaller (and the target matches it immediately), a grow keeps _prevW the smaller (and
+  // the target stays there one frame while it catches up) — so min() can never exceed the target (a
+  // grow briefly under-clips by a frame, invisible, instead of overflowing it). Used for the GPU
+  // scissor in UIElement._drawClipped + the frame-start reset in UI.draw.
+  static clipW() {
+    if (Display.renderW <= 0) return window_get_width();
+    return Display._prevW > 0
+      ? Math.min(Display.renderW, Display._prevW)
+      : Display.renderW;
+  }
+  static clipH() {
+    if (Display.renderH <= 0) return window_get_height();
+    return Display._prevH > 0
+      ? Math.min(Display.renderH, Display._prevH)
+      : Display.renderH;
+  }
+
+  // Age renderW/H into the 1-frame-lagged _prevW/H. Called once per frame at the end of UI.draw, so a
+  // GROW's bigger size only takes clip effect on the NEXT frame (after the back buffer has caught up).
+  static advanceFrame() {
+    Display._prevW = Display.renderW;
+    Display._prevH = Display.renderH;
+  }
+
   // Apply the saved frame-rate cap (Settings "fpsLimit": 30/60/120, or 0 = Unlimited).
   static applyFps() {
     const fps = Settings.get("fpsLimit");
@@ -27,6 +70,13 @@ globalThis.Display = class Display {
     Display.applyFps();
     if (Settings.get("fullscreen")) {
       window_set_fullscreen(true);
+      // The fullscreen render target is the monitor. Record it for the clip scale (see renderW) and
+      // match the application surface to it so the world renders at full resolution instead of
+      // upscaling from the windowed size. Use display_get_* (the monitor, always known) not
+      // window_get_* (it can lag the fullscreen switch by frames).
+      Display.renderW = display_get_width();
+      Display.renderH = display_get_height();
+      surface_resize(application_surface, Display.renderW, Display.renderH);
       return;
     }
     let w = Settings.get("resolutionW");
@@ -36,8 +86,11 @@ globalThis.Display = class Display {
       h = display_get_height() / 2;
     }
     if (window_get_fullscreen()) {
-      // Leaving fullscreen: defer the resize so the runtime doesn't drop it.
+      // Leaving fullscreen: defer the resize so the runtime doesn't drop it. Record the intended
+      // windowed size now so the clip scale (renderW) tracks the target through the transition.
       window_set_fullscreen(false);
+      Display.renderW = w;
+      Display.renderH = h;
       call_later(
         Display.RESIZE_DELAY,
         time_source_units_frames,
@@ -49,8 +102,11 @@ globalThis.Display = class Display {
     }
   }
 
-  // Size the window (+ the world's application_surface) and recenter it on the monitor.
+  // Size the window (+ the world's application_surface) and recenter it on the monitor. Records the
+  // requested size in renderW/renderH (the synchronous render-target size for the GUI clip scale).
   static _resize(w, h) {
+    Display.renderW = w;
+    Display.renderH = h;
     window_set_size(w, h);
     surface_resize(application_surface, w, h);
     window_center();

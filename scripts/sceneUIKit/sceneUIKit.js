@@ -265,7 +265,7 @@ class _SceneUIKitClass extends Scene {
   // Tween demo: the same 0→1→0 ping-pong clock fed through different easing curves,
   // so the bars pace differently (linear = constant, others ease) — the visible proof
   // of the Tween curve library. Every gemsButton above also eases its hover color via
-  // Tween.approachColor, so the helper is exercised live across the whole scene.
+  // UIButton._easeColor (per-channel Tween.approach), so it's exercised live across the scene.
   _motionSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
     // Wall-clock ping-pong in [0,1] over ~3.6s — no scene state needed.
