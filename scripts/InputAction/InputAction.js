@@ -117,11 +117,30 @@ globalThis.InputAction = class InputAction {
     return false;
   }
 
+  // While menu navigation is live (UINav NOT suspended — a window owns the controller), mute
+  // GAMEPAD gameplay input so the left stick / face buttons drive UINav, not the player. The
+  // gamepad analogue of captured() muting gameplay during text entry; keyboard/mouse untouched.
+  // During free-roam gameplay SystemMenu keeps UINav.suspended = true, so gamepad input is live.
+  /** @returns {boolean} */
+  static _gamepadMuted() {
+    return !UINav.suspended;
+  }
+
+  // True if this button must not fire this frame: muted by the debug overlay, or a gamepad button
+  // while menu nav owns input. Avoids caching the bool across the .some() callbacks (GMRT clobber).
+  /** @param {InputButton} button @returns {boolean} */
+  static _buttonMuted(button) {
+    if (InputAction._debugMuted(button)) return true;
+    return (
+      button.source === INPUT_SOURCE.GAMEPAD && InputAction._gamepadMuted()
+    );
+  }
+
   /** @returns {boolean} Any bound button held this frame. */
   down() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
-      (button) => !InputAction._debugMuted(button) && button.down(),
+      (button) => !InputAction._buttonMuted(button) && button.down(),
     );
   }
 
@@ -129,7 +148,7 @@ globalThis.InputAction = class InputAction {
   pressed() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
-      (button) => !InputAction._debugMuted(button) && button.pressed(),
+      (button) => !InputAction._buttonMuted(button) && button.pressed(),
     );
   }
 
@@ -137,13 +156,18 @@ globalThis.InputAction = class InputAction {
   released() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
-      (button) => !InputAction._debugMuted(button) && button.released(),
+      (button) => !InputAction._buttonMuted(button) && button.released(),
     );
   }
 
   /** @returns {number} The bound axis with the largest magnitude in [-1, 1]. */
   value() {
-    if (InputAction.captured() || this._blocked()) return 0;
+    if (
+      InputAction.captured() ||
+      this._blocked() ||
+      InputAction._gamepadMuted()
+    )
+      return 0;
     let val = 0;
     for (const axis of this.axes) {
       const v = axis.value();

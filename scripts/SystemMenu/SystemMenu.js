@@ -82,7 +82,22 @@ globalThis.SystemMenu = class SystemMenu {
       return;
     }
 
-    UINav.suspended = true; // active gameplay owns the keys (no stray menu focus ring)
+    // gamepad B = "back": close an open window / exit build via the same handleEscape hook as Esc,
+    // but it never opens the menu (Start/F1 are the pause openers). B is also UINav's cancel, so in
+    // a window it disengages focus AND closes it — coherent. Mirrors the Esc-consumed branch above.
+    if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
+      if (scene.handleEscape !== undefined && scene.handleEscape()) {
+        UINav.suspended = true; // consumed (window closed / build exited)
+        return;
+      }
+    }
+
+    // Gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (so
+    // the left stick moves the player), but un-suspend when a gameplay window is open so the
+    // controller can navigate it. The scene sets this InputContext each step() (one frame stale here
+    // — harmless); InputAction._gamepadMuted keys off the same suspended flag to mute gameplay
+    // gamepad input while the menu is live.
+    UINav.suspended = !InputContext.is("window");
   }
 
   static _startPressed() {

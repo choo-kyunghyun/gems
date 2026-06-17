@@ -80,23 +80,34 @@ globalThis.RpgPlayer = {
     return id;
   },
 
-  // Spawn a cursor-aimed bullet from the shooter (the "bullet" EntityPreset registered by
-  // spawn() above). `opts`: { speed, damage, muzzleY? } — muzzleY offsets the spawn (and
-  // aim origin) from the shooter's Position (e.g. chest height). Returns the normalized aim
-  // { nx, ny } so the caller can update its own facing.
+  // Spawn a bullet from the shooter (the "bullet" EntityPreset registered by spawn() above).
+  // `opts`: { speed, damage, muzzleY?, nx?, ny? } — muzzleY offsets the spawn (and cursor-aim
+  // origin) from the shooter's Position (e.g. chest height); nx/ny is a caller-resolved aim
+  // direction (e.g. the controller's right-stick/cursor Direction). When nx/ny is omitted it
+  // falls back to aiming at the mouse cursor. Returns the normalized aim { nx, ny }.
   fireBullet(world, shooterId, opts) {
     const pos = world.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
-    const dx = mouse_x - pos.x;
-    const dy = mouse_y - muzzleY;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    let nx;
+    let ny;
+    if (opts.nx !== undefined && opts.ny !== undefined) {
+      const m = Math.sqrt(opts.nx * opts.nx + opts.ny * opts.ny) || 1;
+      nx = opts.nx / m;
+      ny = opts.ny / m;
+    } else {
+      const dx = mouse_x - pos.x;
+      const dy = mouse_y - muzzleY;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      nx = dx / dist;
+      ny = dy / dist;
+    }
     const bid = EntityPreset.spawn("bullet", world, pos.x, muzzleY);
     const vel = world.get(Velocity, bid);
-    vel.x = (dx / dist) * opts.speed;
-    vel.y = (dy / dist) * opts.speed;
+    vel.x = nx * opts.speed;
+    vel.y = ny * opts.speed;
     const proj = world.get(Projectile, bid);
     proj.owner = shooterId;
     proj.damage = opts.damage;
-    return { nx: dx / dist, ny: dy / dist };
+    return { nx, ny };
   },
 };

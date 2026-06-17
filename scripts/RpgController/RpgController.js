@@ -4,6 +4,7 @@ const RPG_BULLET_SPEED = 600;
 const RPG_FIRE_CD = 8; // ticks between shots while held
 const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
 const RPG_MELEE_REACH = 34; // fallback reach for a melee weapon without `reach`
+const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // Player input + entity setup for the top-down genre.
 // Usage:
@@ -36,6 +37,49 @@ globalThis.RpgController = {
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
       follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
     });
+
+    // Gamepad (device 0), added ALONGSIDE the keyboard/mouse bindings above — InputAction
+    // OR-combines buttons and takes the largest-magnitude axis. Twin-stick: left stick = move,
+    // right stick = aim. Gameplay gamepad input self-mutes while a menu owns nav
+    // (InputAction._gamepadMuted), so the left stick / face buttons drive UINav — not the player —
+    // when a window is open.
+    const GP = INPUT_SOURCE.GAMEPAD;
+    Input.get("moveLeft").bindButton(GP, gp_padl);
+    Input.get("moveRight").bindButton(GP, gp_padr);
+    Input.get("moveUp").bindButton(GP, gp_padu);
+    Input.get("moveDown").bindButton(GP, gp_padd);
+    Input.get("sprint").bindButton(GP, gp_shoulderl); // LB (hold)
+    Input.get("fire").bindButton(GP, gp_shoulderrb); // RT
+    Input.get("inventory").bindButton(GP, gp_face4); // Y
+    Input.get("interact").bindButton(GP, gp_face1); // A
+    Input.get("build").bindButton(GP, gp_face3); // X
+    Input.get("follow").bindButton(GP, gp_shoulderr); // RB
+    // Analog stick axes (no keyboard equivalent): left stick drives movement, right stick aim.
+    // Tagged like their button siblings — movement everywhere, aim only in "play" (read in fire).
+    Input.register(
+      "moveX",
+      new InputAction()
+        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axislh)
+        .inContext(ANYWHERE),
+    );
+    Input.register(
+      "moveY",
+      new InputAction()
+        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axislv)
+        .inContext(ANYWHERE),
+    );
+    Input.register(
+      "aimX",
+      new InputAction()
+        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrh)
+        .inContext(["play"]),
+    );
+    Input.register(
+      "aimY",
+      new InputAction()
+        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrv)
+        .inContext(["play"]),
+    );
 
     // The RPG player entity (RpgPlayer.spawn); then this genre's Animator. BBox is centered;
     // faces down; move speed from Stats.
@@ -85,12 +129,24 @@ globalThis.RpgController = {
 
   /** @param {{ id: number, fireCd: number, attackCd: number }} ctrl */
   update(world, ctrl) {
-    const dx =
+    let dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
-    const dy =
+    let dy =
       (Input.get("moveDown").down() ? 1 : 0) -
       (Input.get("moveUp").down() ? 1 : 0);
+    // Analog left stick overrides the digital dirs when pushed past the deadzone. value() returns 0
+    // while a menu owns nav (InputAction._gamepadMuted), so the stick can't move the player with a
+    // window open — the left stick drives UINav there instead.
+    const sx = Input.get("moveX").value();
+    const sy = Input.get("moveY").value();
+    if (
+      Math.abs(sx) > RPG_STICK_DEADZONE ||
+      Math.abs(sy) > RPG_STICK_DEADZONE
+    ) {
+      dx = sx;
+      dy = sy;
+    }
 
     const vel = world.get(Velocity, ctrl.id);
     const dir = world.get(Direction, ctrl.id);
@@ -116,13 +172,31 @@ globalThis.RpgController = {
     );
     const moveSpeed = speed * (sprinting ? RPG_SPRINT_MULT : 1);
     if (len > 0) {
-      vel.x = (dx / len) * moveSpeed;
-      vel.y = (dy / len) * moveSpeed;
+      // Magnitude clamps to 1, so a partly-tilted analog stick (len < 1) walks proportionally
+      // slower while digital input (len >= 1, normalized) is unchanged — keyboard speed identical.
+      const mag = Math.min(len, 1);
+      vel.x = (dx / len) * moveSpeed * mag;
+      vel.y = (dy / len) * moveSpeed * mag;
       dir.x = dx / len;
       dir.y = dy / len;
     } else {
       vel.x = 0;
       vel.y = 0;
+    }
+
+    // Twin-stick facing: the right stick aims CONTINUOUSLY (every frame, not only when firing) so
+    // the character visibly turns toward the aim and you can strafe (move one way, face another).
+    // Overrides the movement-derived facing while deflected; KBM cursor aim is resolved at fire time
+    // below. value() is 0 while a menu owns nav, so this is inert with a window open.
+    const aimX = Input.get("aimX").value();
+    const aimY = Input.get("aimY").value();
+    if (
+      Math.abs(aimX) > RPG_STICK_DEADZONE ||
+      Math.abs(aimY) > RPG_STICK_DEADZONE
+    ) {
+      const al = Math.sqrt(aimX * aimX + aimY * aimY) || 1;
+      dir.x = aimX / al;
+      dir.y = aimY / al;
     }
 
     if (ctrl.fireCd > 0) ctrl.fireCd--;
@@ -134,13 +208,21 @@ globalThis.RpgController = {
       // the action (melee swing vs ranged shot + its damage/cadence/reach). The controller no
       // longer hardcodes a bullet; it just runs whatever the item describes. Read live each shot.
       const wpn = EquipmentSystem.weaponProfile(world, ctrl.id) ?? ctrl.fist;
-      // Aim at the cursor; Direction drives the swing/shot AND the sprite facing.
+      // Aim drives the swing/shot direction. The right stick already set `dir` continuously above
+      // (twin-stick); for keyboard/mouse (stick centered), aim at the cursor instead.
       const pos = world.get(Position, ctrl.id);
-      const adx = mouse_x - pos.x;
-      const ady = mouse_y - pos.y;
-      const adist = Math.sqrt(adx * adx + ady * ady) || 1;
-      dir.x = adx / adist;
-      dir.y = ady / adist;
+      const rx = Input.get("aimX").value();
+      const ry = Input.get("aimY").value();
+      if (
+        Math.abs(rx) <= RPG_STICK_DEADZONE &&
+        Math.abs(ry) <= RPG_STICK_DEADZONE
+      ) {
+        const adx = mouse_x - pos.x;
+        const ady = mouse_y - pos.y;
+        const adist = Math.sqrt(adx * adx + ady * ady) || 1;
+        dir.x = adx / adist;
+        dir.y = ady / adist;
+      }
       // Damage = the weapon's base + the wielder's attack stat (level-ups + equipment mods), so
       // the character sheet finally feeds combat and weapons aren't inert stat-sticks. `stats`
       // was read above for movement.
@@ -178,21 +260,23 @@ globalThis.RpgController = {
     }
   },
 
-  // Spawns a bullet at the player aimed at the cursor. Bullets carry no Collision, so they pass
-  // through each other; ProjectileSystem raycasts their path each tick. `wpn` is the resolved
-  // weapon profile and `damage` the already-computed (base + attack) value — the caller owns the
-  // item-driven resolution; this only reads the projectile speed off the weapon.
+  // Spawns a bullet at the player along the resolved aim Direction. Bullets carry no Collision, so
+  // they pass through each other; ProjectileSystem raycasts their path each tick. `wpn` is the
+  // resolved weapon profile and `damage` the already-computed (base + attack) value — the caller
+  // owns the item-driven resolution; this only reads the projectile speed off the weapon.
   _fire(world, ctrl, wpn, damage) {
     const speed =
       wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : RPG_BULLET_SPEED;
 
-    // Shared spawn + aim (RpgPlayer.fireBullet); muzzleY defaults to 0 (fire from center).
-    const aim = RpgPlayer.fireBullet(world, ctrl.id, { speed, damage });
-
-    // Face the shot direction.
+    // dir already holds the resolved aim (right stick or cursor — set in update() before this), so
+    // pass it to fireBullet; the bullet flies along the aim, not always the cursor. muzzleY = 0.
     const dir = world.get(Direction, ctrl.id);
-    dir.x = aim.nx;
-    dir.y = aim.ny;
+    const aim = RpgPlayer.fireBullet(world, ctrl.id, {
+      speed,
+      damage,
+      nx: dir.x,
+      ny: dir.y,
+    });
 
     // Muzzle flash at the barrel (player center pushed ~18px along the aim), aimed forward.
     // GM angle (0=right, 90=up) from the aim vector; the ps_muzzle asset emits up (90), so
@@ -219,6 +303,10 @@ globalThis.RpgController = {
       "interact",
       "build",
       "follow",
+      "moveX",
+      "moveY",
+      "aimX",
+      "aimY",
     ]);
   },
 };
