@@ -2,10 +2,11 @@
  * SystemMenu — the global, open-anytime "simulator/emulator manager" overlay (standalone
  * static singleton, NOT a UIComponent — same shape as Toast / SlotDrag / UINav). It is the
  * app's one menu: a near-fullscreen, multi-tabbed panel that pauses ALL game + behind-UI
- * logic while open, and lets you drive the running sim (resume / quit / time-scale), change
- * settings, read About, and inspect debug info. It absorbed both the old SettingsMenu and the
- * old PauseMenu (it now owns the gameplay pause + nav). The dev-only frame-step + restart-scene
- * controls live in the Debug overlay's "Sim" panel (SceneManager.paused / requestStep()).
+ * logic while open, and lets you drive the running sim (resume / quit), change settings, read
+ * About, and inspect debug info. It absorbed both the old SettingsMenu and the old PauseMenu
+ * (it now owns the gameplay pause + nav). The dev-only frame-step + restart-scene controls
+ * live in the Debug overlay's "Sim" panel (SceneManager.paused / requestStep()), and the live
+ * sim readouts (Scene / FPS / Entities) + the time-scale control live in its Perf / Time panels.
  *
  * Pausing is global (any scene, not just gameplay): `obj_game` skips `scene.step()` while
  * `SystemMenu.isOpen()`, and the menu forces `Time.scale = 0` each frame so Time.delta-
@@ -261,51 +262,10 @@ globalThis.SystemMenu = class SystemMenu {
 
   // ── tabs ──────────────────────────────────────────────────────
 
-  // System / simulation manager: live readouts + sim controls (the "emulator" core).
+  // System controls: Resume + Quit to Lobby. The live sim readouts (Scene / FPS / Entities)
+  // and the time-scale control live in the Debug overlay instead (Perf + Time panels), not here.
   static _systemTab() {
     const scroll = gemsScroll({ grow: true });
-
-    const sim = gemsSection(I18n.textRef("SYS_SIM"));
-    sim.insertChild(
-      SystemMenu._stat(I18n.textRef("SYS_SCENE"), () => {
-        const g = SystemMenu._game;
-        return g !== null ? g.scenes.label() : "-";
-      }),
-    );
-    sim.insertChild(
-      SystemMenu._stat(
-        I18n.textRef("SYS_FPS"),
-        () => string_format(fps_real, 0, 0) + " / " + string_format(fps, 0, 0),
-      ),
-    );
-    sim.insertChild(
-      SystemMenu._stat(I18n.textRef("SYS_ENTITIES"), () => {
-        const w = SystemMenu._world();
-        return w !== null ? String(w.ids.next - w.ids.freeIndices.length) : "-";
-      }),
-    );
-
-    // Time scale (the speed restored on resume). Discrete steps via a custom select.
-    const speeds = [
-      { name: "0.25x", value: 0.25 },
-      { name: "0.5x", value: 0.5 },
-      { name: "1x", value: 1 },
-      { name: "2x", value: 2 },
-      { name: "4x", value: 4 },
-    ];
-    const sIdx = Math.max(
-      0,
-      speeds.findIndex((s) => s.value === SystemMenu._scale),
-    );
-    sim.insertChild(
-      gemsRow(
-        I18n.textRef("SYS_SPEED"),
-        gemsSelectCustom(speeds, sIdx, (_i, s) => {
-          SystemMenu._scale = s.value;
-        }),
-      ),
-    );
-    scroll.scrollBody.insertChild(sim);
 
     const controls = gemsSection(I18n.textRef("SYS_CONTROLS"));
     const bar = gemsGrid();
@@ -483,31 +443,4 @@ globalThis.SystemMenu = class SystemMenu {
     return scroll;
   }
 
-  // ── helpers ───────────────────────────────────────────────────
-
-  // The current scene's World, or null. Defensive: not every scene owns one.
-  static _world() {
-    const g = SystemMenu._game;
-    const scene = g !== null ? g.scenes.current : null;
-    return scene !== null && scene.world != null ? scene.world : null;
-  }
-
-  // A fixed-height "label … value" readout row (value is a live () => string).
-  static _stat(labelRef, valueRef) {
-    const row = new UIElement({
-      width: "100%",
-      height: 22,
-      flexShrink: 0,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    });
-    row.insertChild(gemsLabel(labelRef, { color: GemsTheme.textMuted }));
-    // fa_right: the value label sits at the row's right edge (space-between) and right-aligns
-    // its text there.
-    row.insertChild(
-      gemsLabel(valueRef, { color: GemsTheme.text, halign: fa_right }),
-    );
-    return row;
-  }
 };
