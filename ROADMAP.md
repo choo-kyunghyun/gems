@@ -4,11 +4,6 @@
 
 - Sound
 
-### Input
-
-- InputPreset
-- Controller support with obj_game's Async event
-
 ## RPG
 
 - New rader type: Draw arrows around player
