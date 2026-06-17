@@ -115,6 +115,14 @@ globalThis.ChunkSource = class ChunkSource {
     return this.generator.generate(cx, cy); // generate() already includes terrain
   }
 
+  // Single-cell terrain material (delegates to the generator) — for TerrainStream's seam apron,
+  // which samples a chunk's neighbor cells. A generator without materialAt → 0 (flat base).
+  materialAt(ax, ay) {
+    return this.generator.materialAt !== undefined
+      ? this.generator.materialAt(ax, ay)
+      : 0;
+  }
+
   // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgSpawn so
   // entity construction stays in one place). Non-entity presets (e.g. "reach") return -1.
   spawn(world, level, desc) {

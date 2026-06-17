@@ -293,9 +293,8 @@ globalThis.RpgMap = {
     // (its own ground checker off — terrain replaces it).
     if (scene._chunked) {
       scene.terrain = new TerrainStream(scene.chunks);
-      for (let i = 0; i < scene.terrain.passes.length; i++)
-        scene.renderer.insert(scene.terrain.passes[i]);
-      scene.terrain.rebuild(scene.chunks); // initial stamp (chunks.update already ran in step 5)
+      scene.renderer.insert(scene.terrain); // one pass: per-chunk terrain VBOs, under everything
+      scene.terrain.rebuild(scene.chunks, Infinity); // initial: build every loaded chunk up front
       scene.renderer.insert(
         new RenderChunks(scene.chunks, {
           font: I18n.font("default"),
@@ -423,11 +422,9 @@ globalThis.RpgMap = {
       scene.chunks.destroy();
       scene.chunks = undefined;
     }
-    // The windowed terrain layers (its RenderTileMap passes are freed by renderer.destroy below).
-    if (scene.terrain) {
-      scene.terrain.destroy();
-      scene.terrain = undefined;
-    }
+    // The terrain pass lives in scene.renderer (inserted in load), so renderer.destroy() below frees
+    // its per-chunk VBOs; just drop the ref here.
+    scene.terrain = undefined;
     scene.source = undefined;
     scene.nav = undefined; // the next load() rebuilds it + re-points MotionPlanner
     if (scene.camera) scene.camera.destroy();

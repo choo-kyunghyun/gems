@@ -62,6 +62,12 @@ globalThis.OverworldGen = class OverworldGen {
     return out;
   }
 
+  // Public single-cell biome material lookup (TerrainStream's seam apron) — the same value-noise
+  // threshold terrain() uses, so an apron cell matches the neighbor chunk's interior exactly.
+  materialAt(ax, ay) {
+    return this._material(ax, ay);
+  }
+
   // Threshold the noise into a material id (index into OverworldGen.TERRAIN, ascending thresholds).
   _material(ax, ay) {
     const n = this._noise(ax, ay);

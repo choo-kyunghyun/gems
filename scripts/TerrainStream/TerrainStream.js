@@ -1,113 +1,161 @@
-// Windowed dual-grid renderer for the chunk-streamed overworld TERRAIN — the render half of
-// "scale the 3-layer tilemap to the streamed world". Mirrors NavGrid: a fixed-size window of
-// TileLayers re-centered on the player's chunk, rasterized from the loaded ChunkManager records'
-// per-cell terrain (OverworldGen's value-noise biome), and drawn by the existing RenderTileMap in
-// dual mode — so the dual-grid/tint work + spr_tiledual are reused, not reimplemented per chunk.
+// Per-chunk dual-grid renderer for the chunk-streamed overworld TERRAIN. A RenderPass owning one
+// cached VertexBuffer PER LOADED CHUNK, built ONCE when the chunk appears and freed when it unloads
+// — so a chunk-border crossing only builds the few newly-entered chunks, not the whole loaded area.
+// (The earlier windowed version rebuilt one ~80x80 VBO every crossing → a ~50ms render hitch; this
+// replaces it.) Each chunk's VBO packs all terrain materials (OverworldGen.TERRAIN) in painter order
+// — base material first (opaque ground), upper terrains on top whose transparent dual-grid corners
+// reveal the one below (water < sand < grass). Reuses spr_tiledual tinted per material.
 //
-// One TileLayer + one RenderTileMap pass per terrain material (OverworldGen.TERRAIN), stacked
-// CUMULATIVELY (a cell of material m fills layers 0..m): the base layer is opaque ground and each
-// upper terrain's transparent dual borders reveal the one below (water < sand < grass).
+// Dual-grid corner sampling reads one cell up/left of each display tile, so building a chunk needs a
+// 1-cell APRON beyond its top/left edge: interior cells come from the chunk record (rec.terrain),
+// the apron from the deterministic source (ChunkSource.materialAt), so seams match the neighbor with
+// no load-order dependency.
 //
-// The window is sized to the loaded-chunk box ((2*loadRadius+1) chunks) — bigger than the camera
-// view, so its edge fade stays off-screen. rebuild() only re-stamps when the player crosses a chunk
-// border (the window origin moves), the same cheap fast-path ChunkManager/NavGrid use.
+// GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
 //
-// GMRT-safe: index loops, class on globalThis; RenderTileMap's "level" here is a lightweight window
-// descriptor (RenderTileMap reads only cols/rows/cellWidth/cellHeight off it). Origin offset on the
-// pass (RenderTileMap.originX/Y) maps the window's local cells to absolute world position.
+// @implements {RenderPass}
 globalThis.TerrainStream = class TerrainStream {
-  // @param {ChunkManager} chunks — read for chunk size, loadRadius, and cell size.
+  // @param {ChunkManager} chunks — read for chunk size, cell size, and the source (apron sampling).
   constructor(chunks) {
+    this.enabled = true; // RenderPass
     this.chunkCols = chunks.chunkCols;
     this.chunkRows = chunks.chunkRows;
-    const span = 2 * chunks.loadRadius + 1; // window size in chunks (covers the loaded box)
-    this.cols = span * this.chunkCols;
-    this.rows = span * this.chunkRows;
-    // Lightweight "level" for RenderTileMap (it only reads these four fields off it).
-    this._win = {
-      cols: this.cols,
-      rows: this.rows,
-      cellWidth: chunks.cellW,
-      cellHeight: chunks.cellH,
-    };
-    this._tile = new TileType({ id: 1 }); // occupancy marker (dual frame is corner-derived, not id)
-    this.originX = undefined; // window top-left in ABSOLUTE cells; undefined → first rebuild stamps
-    this.originY = undefined;
+    this.cellW = chunks.cellW;
+    this.cellH = chunks.cellH;
+    this.source = chunks.source; // ChunkSource.materialAt for the seam apron
+    this._cache = {}; // "cx,cy" → VertexBuffer (one per loaded chunk)
+    this._buildBudget = 4; // chunk VBOs built per rebuild() — caps the per-frame build spike
 
-    // One windowed TileLayer + one dual RenderTileMap pass per terrain material.
     const pal = OverworldGen.TERRAIN;
-    const spr = asset_get_index("spr_tiledual");
-    const ok = sprite_exists(spr); // GMRT: validate via sprite_exists, not >=0
-    if (!ok)
+    this.palette = pal;
+    this._colors = [];
+    for (let i = 0; i < pal.length; i++)
+      this._colors.push(Color.parse(pal[i].color));
+
+    this._spr = asset_get_index("spr_tiledual");
+    this._ok = sprite_exists(this._spr); // GMRT: validate via sprite_exists, not >=0
+    if (!this._ok) {
       Log.warn("TerrainStream: spr_tiledual missing — overworld terrain off");
-    this._layers = [];
-    this.passes = []; // RpgMap inserts these into the renderer (under RenderChunks)
-    for (let i = 0; i < pal.length; i++) {
-      const layer = new TileLayer(this.cols, this.rows);
-      this._layers.push(layer);
-      if (!ok) continue;
-      this.passes.push(
-        new RenderTileMap(layer, this._win, spr, {
-          autotile: "dual",
-          color: Color.parse(pal[i].color),
-        }),
-      );
+      return;
     }
+    this._tex = sprite_get_texture(this._spr, 0);
+    this._sw = sprite_get_width(this._spr);
+    this._sh = sprite_get_height(this._spr);
   }
 
-  // Re-center the window on the player's chunk and re-stamp the loaded chunks' terrain. No-op until
-  // the window origin moves (chunk membership only changes on a chunk-border cross). Call once per
-  // frame after chunks.update(), OUTSIDE the tick loop.
-  rebuild(chunks) {
-    const c = chunks.centerChunk();
-    if (c.cx === undefined) return; // no center yet (update() not run)
-    const ox = (c.cx - chunks.loadRadius) * this.chunkCols;
-    const oy = (c.cy - chunks.loadRadius) * this.chunkRows;
-    if (ox === this.originX && oy === this.originY) return; // window unchanged
-    this.originX = ox;
-    this.originY = oy;
-
-    // Clear every material layer (direct grid-data fill, like NavGrid — 0 = empty cell).
-    for (let li = 0; li < this._layers.length; li++) {
-      const d = this._layers[li].grid.data;
-      for (let i = 0; i < d.length; i++) d[i] = 0;
-    }
-
-    // Stamp each loaded chunk's terrain into the window, cumulatively (material m → layers 0..m).
-    const cc = this.chunkCols;
-    const cr = this.chunkRows;
+  // Diff the loaded chunk set against the cache — free vanished chunks, build newly-loaded ones (at
+  // most `budget` per call, so a burst can't spike; the rest fill in over the next frames, off-screen
+  // at loadRadius distance). Call each frame from sceneRpg.step (default budget); the initial load
+  // passes Infinity to build everything at once under the boot fade. Cheap when nothing changed.
+  rebuild(chunks, budget = this._buildBudget) {
+    if (!this._ok) return;
     const recs = chunks.records();
-    for (let r = 0; r < recs.length; r++) {
-      const rec = recs[r];
-      const terr = rec.terrain;
-      if (terr === undefined) continue;
-      const baseX = rec.cx * cc - ox; // chunk's top-left as a local window cell
-      const baseY = rec.cy * cr - oy;
-      for (let ly = 0; ly < cr; ly++) {
-        const wy = baseY + ly;
-        if (wy < 0 || wy >= this.rows) continue;
-        for (let lx = 0; lx < cc; lx++) {
-          const wx = baseX + lx;
-          if (wx < 0 || wx >= this.cols) continue;
-          const m = terr[ly * cc + lx];
-          for (let li = 0; li <= m; li++)
-            this._layers[li].set(wx, wy, this._tile);
-        }
+
+    // Free chunks no longer loaded.
+    const seen = {};
+    for (let i = 0; i < recs.length; i++)
+      seen[recs[i].cx + "," + recs[i].cy] = true;
+    const keys = Object.keys(this._cache);
+    for (let i = 0; i < keys.length; i++) {
+      if (seen[keys[i]] !== true) {
+        this._cache[keys[i]].destroy();
+        delete this._cache[keys[i]];
       }
     }
 
-    // Shift the passes' window origin to match + force a VBO rebuild against the new stamp.
-    for (let i = 0; i < this.passes.length; i++) {
-      this.passes[i].originX = ox;
-      this.passes[i].originY = oy;
-      this.passes[i].markDirty();
+    // Build newly-loaded chunks, capped at `budget`.
+    let left = budget;
+    for (let i = 0; i < recs.length && left > 0; i++) {
+      const rec = recs[i];
+      const key = rec.cx + "," + rec.cy;
+      if (this._cache[key] === undefined) {
+        this._cache[key] = this._buildChunk(rec);
+        left--;
+      }
     }
   }
 
-  // Free the windowed layers (the RenderTileMap passes are freed by the renderer's destroy()).
+  // The RenderPass draw: just submit every cached chunk VBO (no rebuild — that's the point).
+  draw(_world) {
+    if (!this._ok) return;
+    const keys = Object.keys(this._cache);
+    for (let i = 0; i < keys.length; i++)
+      this._cache[keys[i]].submit(this._tex);
+  }
+
+  // Build one chunk's terrain VBO (all material layers, cumulative + painter-ordered). `rec.terrain`
+  // is the chunk's interior material grid (row-major lx + ly*cols); the apron is sampled live.
+  _buildChunk(rec) {
+    const cc = this.chunkCols;
+    const cr = this.chunkRows;
+    const cw = this.cellW;
+    const ch = this.cellH;
+    const hw = cw * 0.5;
+    const hh = ch * 0.5;
+    const x0 = rec.cx * cc; // chunk's first cell, absolute
+    const y0 = rec.cy * cr;
+    const interior = rec.terrain;
+
+    // Padded material grid covering cells [x0-1, x0+cc) x [y0-1, y0+cr) → (cc+1)x(cr+1). Interior
+    // (i>0 && j>0) from the record; the top row + left column (the dual apron) from the source.
+    const pw = cc + 1;
+    const pad = new Array(pw * (cr + 1));
+    for (let j = 0; j <= cr; j++) {
+      for (let i = 0; i <= cc; i++) {
+        const gx = x0 - 1 + i;
+        const gy = y0 - 1 + j;
+        pad[j * pw + i] =
+          i > 0 && j > 0 && interior !== undefined
+            ? interior[(gy - y0) * cc + (gx - x0)]
+            : this.source.materialAt(gx, gy);
+      }
+    }
+
+    const vb = new VertexBuffer();
+    vb.begin();
+    const layers = this.palette.length;
+    for (let m = 0; m < layers; m++) {
+      const color = this._colors[m];
+      for (let ly = 0; ly < cr; ly++) {
+        for (let lx = 0; lx < cc; lx++) {
+          // Display tile centered on data-corner (gx,gy) = (x0+lx, y0+ly); samples the 4 cells it
+          // touches against layer m (cumulative: a cell is "in layer m" iff its material >= m).
+          const bi = lx + 1; // pad column of cell (x0+lx); cell (x0+lx-1) is bi-1
+          const bj = ly + 1; // pad row of cell (y0+ly)
+          let mask = 0;
+          if (pad[(bj - 1) * pw + (bi - 1)] >= m) mask |= 1; // TL
+          if (pad[(bj - 1) * pw + bi] >= m) mask |= 2; // TR
+          if (pad[bj * pw + bi] >= m) mask |= 4; // BR
+          if (pad[bj * pw + (bi - 1)] >= m) mask |= 8; // BL
+          if (mask === 0) continue;
+          // Trim-aware quad (mirrors RenderTileMap._quad): honor the packer's per-frame UV offset/
+          // size factors so a trimmed frame isn't stretched to the full cell. frame index = mask.
+          const uvs = sprite_get_uvs(this._spr, mask);
+          const wx = (x0 + lx) * cw - hw;
+          const wy = (y0 + ly) * ch - hh;
+          vb.addQuad(
+            wx + uvs[4] * (cw / this._sw),
+            wy + uvs[5] * (ch / this._sh),
+            cw * uvs[6],
+            ch * uvs[7],
+            uvs[0],
+            uvs[1],
+            uvs[2],
+            uvs[3],
+            color,
+            1,
+          );
+        }
+      }
+    }
+    vb.end(true); // freeze: static per-chunk mesh, uploaded once
+    return vb;
+  }
+
+  // Free every cached chunk VBO. Idempotent (safe if the renderer also calls it on destroy).
   destroy() {
-    for (let i = 0; i < this._layers.length; i++) this._layers[i].destroy();
-    this._layers = [];
-    this.passes = [];
+    const keys = Object.keys(this._cache);
+    for (let i = 0; i < keys.length; i++) this._cache[keys[i]].destroy();
+    this._cache = {};
   }
 };
