@@ -207,6 +207,17 @@ globalThis.UIElement = class UIElement {
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
+    // Flush the pending vertex batch while the clip scissor is still active. GMRT's
+    // gpu_set_scissor does NOT flush the batch, so the LAST geometry drawn under a clip
+    // (typically a text run — buttons alternate panel-texture → font-texture, so every
+    // item but the last is flushed mid-loop by the next item's texture swap) stays pending
+    // and is only submitted by a LATER texture swap (the next sibling/root), by which time
+    // the scissor below has been restored to the full target — so that last item renders
+    // UNCLIPPED at its true layout position (the long-list scroll leaked its 12th item far
+    // below the viewport). draw_flush is debug-flagged in the manual, but it's the only
+    // batch-flush primitive and this runs once per clip container per frame (a handful), not
+    // indiscriminately. Must precede the scissor restore so the flush clips to THIS rect.
+    draw_flush();
     // Restore. Replaying the saved {0,0,0,0} (the unset sentinel) does NOT re-enable full drawing
     // on GMRT — it clips everything drawn AFTER this to an empty rect (footers, dropdown popups,
     // later roots all vanish). So at top level reset to the full render target explicitly; only a
