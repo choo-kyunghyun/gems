@@ -17,7 +17,8 @@ globalThis.FollowerSystem = {
       const f = world.get(Follower, id);
       const vel = world.get(Velocity, id);
       if (f === undefined || vel === undefined) continue;
-      if (f.state !== "follow") {
+      // Downed (incapacitated) or stationed → hold still; only a "follow" companion seeks.
+      if (f.state !== "follow" || world.get(Downed, id) !== undefined) {
         vel.x = 0;
         vel.y = 0;
         continue;

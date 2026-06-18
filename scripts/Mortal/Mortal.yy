@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Mortal",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Mortal",
+  "parent":{
+    "name":"Component",
+    "path":"folders/RPG/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Mortal.js",
+}

@@ -30,11 +30,15 @@ globalThis.ProjectileSystem = {
       pos.y = hit.y;
 
       const hp = world.get(Health, hit.id);
-      // Damage a hit body's Health, unless it's an ally (FactionSystem.allied) — an
-      // ally just blocks the shot like a wall. No-op until allies carry Health.
-      if (hp !== undefined && !FactionSystem.allied(world, proj.owner, hit.id)) {
+      // Damage a hit body's Health, unless it's an ally (FactionSystem.allied) — an ally just
+      // blocks the shot like a wall. Only SUBTRACT hp — the death reaction (despawn/respawn/down)
+      // is decided centrally by the scene's Mortal-driven death pass (RpgScene.resolveHealth),
+      // not here, so all kills share one configurable path.
+      if (
+        hp !== undefined &&
+        !FactionSystem.allied(world, proj.owner, hit.id)
+      ) {
         hp.hp -= proj.damage;
-        if (hp.hp <= 0) world.remove(hit.id);
       }
       world.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
     }

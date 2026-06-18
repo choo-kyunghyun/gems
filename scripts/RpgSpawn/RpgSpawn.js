@@ -86,6 +86,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: s.hp ?? 3 });
+      world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
       world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → SlimeAI aggro target
       world.add(id, Name, { name: "Slime" });
@@ -261,7 +262,16 @@ globalThis.RpgSpawn = {
       hits: [],
     });
     world.add(id, Tag, { tags: new Set(["follower"]) });
-    world.add(id, Faction, { id: "player" }); // party ally — combat skips it; slimes won't aggro (no Health)
+    world.add(id, Faction, { id: "player" }); // party ally — friendly fire skips it; slimes DO aggro it (it has Health)
+    // A companion is mortal but recoverable: at 0 hp it goes Down (Health detached, dimmed) and,
+    // after Mortal.recoverSecs, revives at the recovery spot (claimed build zone / spawn) — see
+    // RpgScene.resolveHealth/_goDown/updateDowned. Not removed like an enemy.
+    world.add(id, Health, { hp: opt.hp ?? 6 });
+    world.add(id, Mortal, {
+      kind: "down",
+      recoverSecs: opt.recoverSecs ?? 6,
+      reviveHp: opt.hp ?? 6,
+    });
     world.add(id, Name, { name: opt.label ?? "Companion" });
     world.add(
       id,

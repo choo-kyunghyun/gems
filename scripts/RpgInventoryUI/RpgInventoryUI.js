@@ -322,10 +322,12 @@ globalThis.RpgInventoryUI = {
         () => {
           const f = scene.world.get(Follower, fid);
           if (f === undefined) return "";
-          const state =
-            f.state === "follow"
-              ? I18n.text("FOLLOWER_STATE_FOLLOW")
-              : I18n.text("FOLLOWER_STATE_WAIT");
+          let state;
+          if (scene.world.get(Downed, fid) !== undefined)
+            state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
+          else if (f.state === "follow")
+            state = I18n.text("FOLLOWER_STATE_FOLLOW");
+          else state = I18n.text("FOLLOWER_STATE_WAIT");
           return (
             state +
             "   ·   " +
@@ -349,7 +351,11 @@ globalThis.RpgInventoryUI = {
           height: 30,
           disabled: () => {
             const f = scene.world.get(Follower, fid);
-            return f === undefined || f.state !== "follow";
+            return (
+              f === undefined ||
+              f.state !== "follow" ||
+              scene.world.get(Downed, fid) !== undefined // can't dismiss while down
+            );
           },
         },
       ),

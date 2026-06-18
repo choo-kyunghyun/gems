@@ -41,6 +41,7 @@ globalThis.RpgPlayer = {
     world.add(id, Name, { name: "Player" });
     world.add(id, Faction, { id: "player" }); // party faction — slimes aggro this by relation
     world.add(id, Health, { hp: 10 });
+    world.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
     world.add(id, Stamina, { value: 100, exhausted: false });
     world.add(id, Stats, {
       level: 1,

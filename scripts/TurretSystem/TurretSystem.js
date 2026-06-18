@@ -8,7 +8,8 @@
 // through the shared ProjectileSystem: it raycasts to the target, and — since the turret is
 // "player" faction — ProjectileSystem's ally check spares the player/companions/other turrets
 // (no friendly fire) while still hitting "monster" slimes. So a turret reuses the entire existing
-// projectile/loot/death path; turret kills spill loot via RpgScene.resolveDeaths like a blaster.
+// projectile/loot/death path; a turret-killed slime (Mortal "despawn") spills loot via
+// RpgScene.resolveHealth like a blaster kill.
 globalThis.TurretSystem = {
   update(world) {
     const ids = world.query(Turret, Position);

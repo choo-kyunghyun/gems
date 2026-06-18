@@ -9,7 +9,6 @@
 
 - Context-aware hotkey hint
 - Better crafting ui
-- Party(=Squad) UI
 - Killfeed UI
 - Hotbar (from 1 to =) & favorite items
 - Equipped and favorited items must be excluded from store all

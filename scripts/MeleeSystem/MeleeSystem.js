@@ -9,10 +9,10 @@
 // friendly fire — FactionSystem.allied; a target with no faction is still hit, so this is a
 // no-op for current content where only the player/slimes carry factions). In the RPG that's
 // exactly the slimes (the player is excluded; NPCs/furniture/drops carry no Health), so it
-// needs no per-genre "enemy" tag. Returns the ids struck; bodies at <= 0 hp are removed via
-// world.remove (committed by the caller's flush) — the scene's death scan then spills their
-// loot, same as a ranged kill. Uses AABB for edge geometry (the non-uniform BBox-anchor
-// convention) — never inline pos+box.
+// needs no per-genre "enemy" tag. Returns the ids struck; this only SUBTRACTS hp —
+// the death reaction (despawn/respawn/down) is decided centrally by the scene's Mortal-driven
+// death pass (RpgScene.resolveHealth), so a melee kill and a ranged kill share one configurable
+// path. Uses AABB for edge geometry (the non-uniform BBox-anchor convention) — never inline pos+box.
 globalThis.MeleeSystem = {
   /**
    * @param {object} world
@@ -44,8 +44,7 @@ globalThis.MeleeSystem = {
       const e = AABB.of(world, id);
       if (!AABB.overlap(box, e)) continue;
       const hp = world.get(Health, id);
-      hp.hp -= damage;
-      if (hp.hp <= 0) world.remove(id);
+      hp.hp -= damage; // only subtract — the death reaction is decided centrally (see below)
       hits.push(id);
     }
     return hits;

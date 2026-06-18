@@ -200,22 +200,40 @@ class _SceneRpgClass extends Scene {
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
-      RpgScene.resolveDeaths(this, {
+      // Configurable hp-0 reactions by each entity's Mortal kind: slimes despawn (spill loot),
+      // the player respawns at spawn, a companion goes Down (then recovers — updateDowned below).
+      RpgScene.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 14 },
-        onKill: (id) => {
+        onDespawn: (id) => {
           Profile.add("enemiesKilled", 1);
           QuestLog.report("kill", "slime", 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
           Log.info(`slime killed — kills=${Profile.get("enemiesKilled")}`);
         },
+        onRespawn: (id) => {
+          const pos = this.world.get(Position, id);
+          const vel = this.world.get(Velocity, id);
+          pos.x = this.spawn.x;
+          pos.y = this.spawn.y;
+          vel.x = 0;
+          vel.y = 0;
+          Log.info("player died — respawned at spawn");
+        },
+        onDown: (id) => {
+          Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(id)), {
+            type: "warn",
+          });
+        },
       });
-      RpgScene.checkPlayerDeath(this, () => {
-        const pos = this.world.get(Position, this.ctrl.id);
-        const vel = this.world.get(Velocity, this.ctrl.id);
-        pos.x = this.spawn.x;
-        pos.y = this.spawn.y;
-        vel.x = 0;
-        vel.y = 0;
+      // Down-timer: revive a downed companion at the recovery spot — its claimed build area if
+      // one exists, else the map spawn ("nearest/pre-defined build zone or spawn area").
+      RpgScene.updateDowned(this, {
+        downSpot: () => this._recoverSpot(),
+        onRecover: (id) => {
+          Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
+            type: "success",
+          });
+        },
       });
       RpgScene.collectDrops(this, (itemId, got) => {
         Profile.add("itemsCollected", got);
@@ -346,6 +364,7 @@ class _SceneRpgClass extends Scene {
   _dismissFollower(fid) {
     const f = this.world.get(Follower, fid);
     if (f === undefined || f.state !== "follow") return;
+    if (this.world.get(Downed, fid) !== undefined) return; // downed → it's already recovering to base
     const spot = this._buildZoneSpot();
     if (spot === null) {
       Toast.push(I18n.text("FOLLOWER_NO_ZONE"), { type: "warn" });
@@ -385,6 +404,18 @@ class _SceneRpgClass extends Scene {
       Math.round(sx / cells.length),
       Math.round(sy / cells.length),
     );
+  }
+
+  // Where a downed companion revives: its claimed build area if one exists, else the map spawn
+  // ("nearest/pre-defined build zone or spawn area"). Handed to RpgScene.updateDowned.
+  _recoverSpot() {
+    return this._buildZoneSpot() ?? { x: this.spawn.x, y: this.spawn.y };
+  }
+
+  // Display name of a companion (for the down/recover toasts).
+  _followerName(id) {
+    const nm = this.world.get(Name, id);
+    return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
   }
 
   _checkReach() {

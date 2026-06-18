@@ -3,10 +3,15 @@
 // platformer no longer carries this plumbing, so sceneRpg is the only consumer now.
 // Scene-specific side effects are passed as small callbacks/options.
 //
-// Contract: the scene owns `world`, `ctrl` (with `.id`), `_hpTrack` (id → last-seen hp),
-// and `_invDirty` (bag-changed flag). The enemy set is derived LIVE from the world by
-// Tag "enemy" (not a stored scene.enemies list) so chunk streaming — which adds/removes
-// enemies from the world as chunks load/unload — needs no list bookkeeping.
+// Contract: the scene owns `world`, `ctrl` (with `.id`), `followers` (companion ids),
+// `_hpTrack` (id → last-seen hp), and `_invDirty` (bag-changed flag). The enemy set is derived
+// LIVE from the world by Tag "enemy" (not a stored scene.enemies list) so chunk streaming —
+// which adds/removes enemies as chunks load/unload — needs no list bookkeeping.
+//
+// Death is configured PER ENTITY by an opt-in `Mortal` component (kind despawn/respawn/down),
+// resolved in ONE place — resolveHealth (the instant reaction) + updateDowned (the down-timer).
+// The damage systems (MeleeSystem/ProjectileSystem/SlimeAI) only subtract hp; this is the single
+// authority that removes / respawns / incapacitates, so each preset's reaction is its `Mortal`.
 globalThis.RpgScene = {
   // Live enemy set: entities carrying Health + Tag "enemy". (Set.has is GMRT-safe; only
   // Set ITERATION is banned.) The player has Health but no "enemy" tag, so it's excluded.
@@ -29,9 +34,15 @@ globalThis.RpgScene = {
     const enemies = RpgScene._enemies(scene.world);
     for (let i = 0; i < enemies.length; i++)
       RpgScene._diffHp(scene, enemies[i], false, yOffset);
+    // Companions take damage too now (they carry Health) — show their numbers as ally "hurt".
+    // A downed companion has its Health detached, so _diffHp no-ops for it.
+    const followers = scene.followers;
+    if (followers !== undefined)
+      for (let i = 0; i < followers.length; i++)
+        RpgScene._diffHp(scene, followers[i], true, yOffset);
   },
 
-  _diffHp(scene, id, isPlayer, yOffset) {
+  _diffHp(scene, id, isAlly, yOffset) {
     const world = scene.world;
     if (!world.isValid(id)) return;
     const hp = world.get(Health, id);
@@ -43,7 +54,7 @@ globalThis.RpgScene = {
         const d = hp.hp - prev; // <0 = damage, >0 = heal
         if (d < 0)
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
-            type: isPlayer ? "hurt" : "damage",
+            type: isAlly ? "hurt" : "damage",
           });
         else
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
@@ -52,25 +63,91 @@ globalThis.RpgScene = {
     scene._hpTrack[id] = hp.hp;
   },
 
-  // Remove dead enemies (hp ≤ 0), spilling their Inventory as ground drops first. `opts`:
-  // { onKill?(id), spill?({ yBase, ySpread }) } — onKill fires per kill for genre side
-  // effects (quest/profile counters + logging). Runs before flush so the entity is still
-  // readable.
-  resolveDeaths(scene, opts) {
-    opts = opts ?? {};
+  // Single configurable death pass: every entity carrying a `Mortal` whose Health hit 0 reacts
+  // by its `Mortal.kind`. Runs once per tick (before flush, so a despawning entity is still
+  // readable for its loot). Handlers `h` inject the scene side effects, all optional:
+  //   spill        { yBase, ySpread } — loot scatter for a "despawn"
+  //   onDespawn(id)                   — per-kill genre effects (quest/profile counters, logging)
+  //   onRespawn(id)                   — reposition a "respawn" entity (the player) after refill
+  //   downSpot(id) → {x,y}            — recovery spot for a "down" entity (build zone / spawn)
+  //   onDown(id)                      — fired when an entity enters Down (e.g. a toast)
+  // Only Mortal entities react, so a Health body without one (a built turret →
+  // BuildMode.reapDestroyed) is left untouched.
+  resolveHealth(scene, h) {
+    h = h ?? {};
     const world = scene.world;
-    // Live enemy snapshot for this tick; a removed enemy simply won't appear next tick
-    // (no list to splice). Iterate forward — world.remove is deferred to flush, so each
-    // entity stays readable here.
-    const enemies = RpgScene._enemies(world);
-    for (let i = 0; i < enemies.length; i++) {
-      const id = enemies[i];
+    // Snapshot ids this tick (forward iterate — remove/detach are deferred / array is materialized).
+    const ids = world.query(Health, Mortal);
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
       const hp = world.get(Health, id);
-      if (hp !== undefined && hp.hp <= 0) {
-        RpgScene.spillLoot(scene, id, opts.spill);
-        if (opts.onKill !== undefined) opts.onKill(id);
+      if (hp === undefined || hp.hp > 0) continue;
+      const m = world.get(Mortal, id);
+      if (m.kind === "despawn") {
+        RpgScene.spillLoot(scene, id, h.spill);
+        if (h.onDespawn !== undefined) h.onDespawn(id);
         world.remove(id);
+      } else if (m.kind === "respawn") {
+        const st = world.get(Stats, id);
+        hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
+        if (h.onRespawn !== undefined) h.onRespawn(id);
+        scene._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
+      } else if (m.kind === "down") {
+        RpgScene._goDown(scene, id, m, h);
       }
+    }
+  },
+
+  // Incapacitate a "down" entity: drop its Health (so slimes stop targeting it — nearestHostile
+  // needs Health — and this pass skips it), stop + dim it, and start the recovery timer.
+  _goDown(scene, id, m, h) {
+    const world = scene.world;
+    world.detach(id, Health);
+    const vel = world.get(Velocity, id);
+    if (vel !== undefined) {
+      vel.x = 0;
+      vel.y = 0;
+    }
+    const vis = world.get(Visual, id);
+    if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
+    world.add(id, Downed, { timer: m.recoverSecs ?? 6 });
+    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+    if (h.onDown !== undefined) h.onDown(id);
+  },
+
+  // Down-timer tick: count each Downed entity down by sim time; at <= 0 revive it — re-add
+  // Health (Mortal.reviveHp), undim, teleport to the recovery spot (h.downSpot), drop Downed.
+  // `h.onRecover(id)` fires for genre side effects (e.g. a toast). Run once per tick.
+  updateDowned(scene, h) {
+    h = h ?? {};
+    const world = scene.world;
+    const ids = world.query(Downed);
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const d = world.get(Downed, id);
+      d.timer -= world.tickDuration;
+      if (d.timer > 0) continue;
+      const m = world.get(Mortal, id);
+      const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
+      world.add(id, Health, { hp: reviveHp });
+      const vis = world.get(Visual, id);
+      if (vis !== undefined) vis.alpha = 1;
+      const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
+      if (spot !== undefined) {
+        const pos = world.get(Position, id);
+        const vel = world.get(Velocity, id);
+        if (pos !== undefined) {
+          pos.x = spot.x;
+          pos.y = spot.y;
+        }
+        if (vel !== undefined) {
+          vel.x = 0;
+          vel.y = 0;
+        }
+      }
+      world.detach(id, Downed);
+      scene._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
+      if (h.onRecover !== undefined) h.onRecover(id);
     }
   },
 
@@ -133,19 +210,5 @@ globalThis.RpgScene = {
       if (left <= 0) world.remove(id);
       else d.qty = left; // bag full — leave the remainder on the ground
     }
-  },
-
-  // hp ≤ 0 → refill to maxHp and respawn. `onRespawn()` does the scene's respawn reset
-  // (sceneRpg moves the player to its spawn + zeroes velocity). Suppresses a "+heal" pop
-  // for the refill.
-  checkPlayerDeath(scene, onRespawn) {
-    const world = scene.world;
-    const hp = world.get(Health, scene.ctrl.id);
-    if (hp === undefined || hp.hp > 0) return;
-    const st = world.get(Stats, scene.ctrl.id);
-    hp.hp = st !== undefined ? st.maxHp : 10;
-    if (onRespawn !== undefined) onRespawn();
-    scene._hpTrack[scene.ctrl.id] = hp.hp; // don't pop a "+heal" for the respawn refill
-    Log.info("player died — respawned at spawn");
   },
 };
