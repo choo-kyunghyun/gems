@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Light",
   "parent":{
-    "name":"Component",
-    "path":"folders/Demo/Component.yy",
+    "name":"Lighting",
+    "path":"folders/Gameplay/Lighting.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

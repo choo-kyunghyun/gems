@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Weapon",
   "parent":{
-    "name":"Content",
-    "path":"folders/Demo/Content.yy",
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

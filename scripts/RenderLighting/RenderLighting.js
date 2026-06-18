@@ -4,7 +4,8 @@
 // day/night cycle is just "the ambient term with no lights" and point lights punch bright holes
 // in the night.
 //
-//   1. ambient fill   — the surface is cleared to WorldClock.tint() mapped to the multiply model
+//   1. ambient fill   — the surface is cleared to the injected ambient provider (WorldClock.tint in
+//                        the demo) mapped to the multiply model
 //                        (white in full daylight → night hue when dark), so unlit areas read as
 //                        scene * ambient.
 //   2. light blobs     — every Light + Position entity adds a soft radial glow with bm_add
@@ -30,6 +31,10 @@ globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.load
+    // Ambient day/night term as an INJECTED provider — () => { color, alpha } — so this Gameplay-kit
+    // pass carries no day/night opinion (the demo wires WorldClock.tint). Default is full daylight
+    // (alpha 0), which early-outs below, so a plain consumer that wants darkness supplies its own.
+    this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));
     // The multiply model needs a stronger darkening than the old lerp-overlay used, so scale the
     // cycle's overlay alpha. Higher = darker nights. Clamped to 1 (never a fully black ambient).
     this.darkness = opt.darkness ?? 1.5;
@@ -50,11 +55,11 @@ globalThis.RenderLighting = class RenderLighting {
     // Test > 0 (not <= 0): an uninitialized size could be NaN, and NaN <= 0 is false.
     if (!(vw > 0) || !(vh > 0)) return;
 
-    // Ambient from the day/night cycle, mapped to the multiply model. k=0 → white (daylight);
-    // k→1 → the night hue. In full daylight the ambient is white and lights would clamp to white,
-    // so the composite can't change anything — skip all surface work (and lights stay invisible,
-    // which is correct: this is an outdoor cycle, not a dungeon torch needing day-time light).
-    const tint = WorldClock.tint();
+    // Ambient from the injected provider (WorldClock.tint in the demo), mapped to the multiply
+    // model. k=0 → white (daylight); k→1 → the night hue. In full daylight the ambient is white and
+    // lights would clamp to white, so the composite can't change anything — skip all surface work
+    // (and lights stay invisible, which is correct: an outdoor cycle, not a dungeon torch).
+    const tint = this.ambient();
     const k = Math.min(1, tint.alpha * this.darkness);
     if (k <= 0) return;
     const ambient = Color.merge(c_white, tint.color, k);

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"MeleeSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"Combat",
+    "path":"folders/Gameplay/Combat.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

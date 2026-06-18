@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ItemDrop",
   "parent":{
-    "name":"Component",
-    "path":"folders/Demo/Component.yy",
+    "name":"Inventory",
+    "path":"folders/Gameplay/Inventory.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Recipe",
   "parent":{
-    "name":"Content",
-    "path":"folders/Demo/Content.yy",
+    "name":"Crafting",
+    "path":"folders/Gameplay/Crafting.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

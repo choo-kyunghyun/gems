@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ConsumableSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

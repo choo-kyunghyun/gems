@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"QuestLog",
   "parent":{
-    "name":"Content",
-    "path":"folders/Demo/Content.yy",
+    "name":"Quest",
+    "path":"folders/Gameplay/Quest.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderDebugAnimator",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"Animation",
+    "path":"folders/Gameplay/Animation.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

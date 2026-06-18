@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Stamina",
   "parent":{
-    "name":"Component",
-    "path":"folders/Demo/Component.yy",
+    "name":"Combat",
+    "path":"folders/Gameplay/Combat.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

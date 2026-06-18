@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"CraftSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"Crafting",
+    "path":"folders/Gameplay/Crafting.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

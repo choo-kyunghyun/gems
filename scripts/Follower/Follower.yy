@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Follower",
   "parent":{
-    "name":"Component",
-    "path":"folders/Demo/Component.yy",
+    "name":"Party",
+    "path":"folders/Gameplay/Party.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

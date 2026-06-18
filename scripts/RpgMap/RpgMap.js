@@ -389,7 +389,7 @@ globalThis.RpgMap = {
     // soft blobs for every Light entity, so day/night is "lighting with no lights" and torches/the
     // player's lantern reveal the night, with a cycle-scaled corner vignette for night framing. Its
     // camera is assigned with the others below.
-    scene._lighting = new RenderLighting();
+    scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
 
     // 10. Follow camera on the (new) player.
