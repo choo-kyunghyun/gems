@@ -21,10 +21,14 @@ globalThis.InvTable = {
         text: (r) => (r.worn ? "E" : ""),
         color: () => accent,
       });
+    // The text columns carry a `width` floor + a `flex` weight so they GROW (and stop
+    // truncating) as a resizable window widens; the numeric columns below stay fixed
+    // (right-aligned numbers don't need the room). Name gets the largest share.
     cols.push({
       key: "name",
       label: I18n.text("INV_COL_NAME"),
-      flex: 1,
+      width: 100,
+      flex: 3,
       text: (r) => r.name,
       color: (r) => r.color,
       sortValue: (r) => r.name,
@@ -34,6 +38,7 @@ globalThis.InvTable = {
         key: "rarity",
         label: I18n.text("INV_COL_RARITY"),
         width: 90,
+        flex: 1,
         text: (r) => r.rarityName,
         color: (r) => r.color,
         sortValue: (r) => r.rarityRank,
@@ -43,6 +48,7 @@ globalThis.InvTable = {
         key: "type",
         label: I18n.text("INV_COL_TYPE"),
         width: 116,
+        flex: 1,
         text: (r) => I18n.text(r.catKey),
         sortValue: (r) => r.cat,
       });
@@ -67,7 +73,7 @@ globalThis.InvTable = {
       cols.push({
         key: "value",
         label: I18n.text("INV_COL_VAL"),
-        width: 74,
+        width: 84, // fits the "Value" header; numeric data is short, so it stays fixed
         align: fa_right,
         text: (r) => string(r.value),
         color: () => gold,

@@ -13,9 +13,12 @@
  * Columns are declarative:
  *   { label, width?, flex?, align?, text(row)->string, color?(row)->int,
  *     sprite?(row)->{sprite,subimg}|spriteAsset, sortable?, sortValue?(row)->num|str }
- * A column with a fixed `width` (px) keeps it; the rest split the remaining width by
- * `flex` weight (default 1). `text` is the cell string; `sprite` makes an icon cell;
- * `sortValue` is the comparable used when sorting by that column (defaults to `text`).
+ * `width` (px) is a column's base/minimum; `flex` shares the leftover width past all the
+ * bases so columns grow when the table is wider than its content needs (default flex: 0 if
+ * `width` is set, else 1 — so a width-less column is the classic fill column, and giving a
+ * fixed column a `flex` lets it grow too instead of truncating in a resizable window). `text`
+ * is the cell string; `sprite` makes an icon cell; `sortValue` is the comparable used when
+ * sorting by that column (defaults to `text`).
  *
  * Sorting is a multi-key STACK (advanced sort): clicking a header makes that column the
  * primary key (demoting the previous primary to secondary, up to `sortDepth`); clicking
@@ -258,29 +261,31 @@ globalThis.UITable = class UITable {
     };
   }
 
-  // Column pixel layout: fixed-width columns keep their px; the rest split the
-  // remaining inner width by flex weight. `barOn` reserves the scrollbar gutter.
+  // Column pixel layout. `width` is each column's BASE (and minimum) px; `flex` shares the
+  // SURPLUS (the inner width left over past all the bases) so columns GROW as the table
+  // widens — the fit for a resizable window, where otherwise only width-less columns grew and
+  // fixed columns kept truncating their text no matter how wide the table got. A column's flex
+  // defaults to 0 when it has an explicit `width` (stays put) and 1 when it doesn't (the classic
+  // fill column), so with no column setting both this reduces to the old fixed/flex split.
+  // `barOn` reserves the scrollbar gutter.
   _columns(pos, barOn) {
     const innerW =
       pos.width - this.pad * 2 - (barOn ? this.barW + this.cellPad : 0);
-    let fixed = 0;
-    let flex = 0;
+    let base = 0;
+    let totalFlex = 0;
     for (let i = 0; i < this.columns.length; i++) {
       const col = this.columns[i];
-      if (col.width != null) fixed += col.width;
-      else flex += col.flex ?? 1;
+      base += col.width ?? 0;
+      totalFlex += col.flex ?? (col.width != null ? 0 : 1);
     }
-    const flexW = Math.max(0, innerW - fixed);
+    const surplus = Math.max(0, innerW - base);
     let x = pos.left + this.pad;
     const out = [];
     for (let i = 0; i < this.columns.length; i++) {
       const col = this.columns[i];
+      const weight = col.flex ?? (col.width != null ? 0 : 1);
       const w =
-        col.width != null
-          ? col.width
-          : flex > 0
-            ? (flexW * (col.flex ?? 1)) / flex
-            : 0;
+        (col.width ?? 0) + (totalFlex > 0 ? (surplus * weight) / totalFlex : 0);
       out.push({ x, w });
       x += w;
     }
