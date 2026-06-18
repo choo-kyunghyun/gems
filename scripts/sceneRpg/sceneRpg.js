@@ -125,12 +125,22 @@ class _SceneRpgClass extends Scene {
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
-    // in RpgMap.load owns it). create() runs once per scene, so this seeds exactly once.
+    // in RpgMap.load owns it). create() runs once per scene, so this seeds exactly once. It
+    // carries a bag bonus (+slots / +weight cap) applied while it follows; apply it now since
+    // it spawns in "follow" state. From here the bonus is balanced by the F-toggle / dismiss
+    // transitions, and rides the carried Inventory snapshot across map changes (no re-apply).
     const pp = this.world.get(Position, this.ctrl.id);
-    this.followers.push(
-      RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
-        label: "Companion",
-      }),
+    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
+      label: "Companion",
+      bonusCapacity: 4,
+      bonusWeight: 15,
+    });
+    this.followers.push(companion);
+    FollowerSystem.applyBenefit(
+      this.world,
+      this.ctrl.id,
+      this.world.get(Follower, companion),
+      1,
     );
 
     // Seed an arcade cabinet near spawn (programmatic, like the companion): a Station the player
@@ -316,14 +326,65 @@ class _SceneRpgClass extends Scene {
     if (best === -1) return;
     const f = this.world.get(Follower, best);
     if (f.state === "follow") {
+      FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, -1); // stops carrying
       f.state = "wait";
       f.homeMap = this.mapId;
       Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
     } else {
       f.state = "follow";
       f.homeMap = "";
+      FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, 1); // carries again
       Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
+  }
+
+  // Dismiss a following companion to the player's claimed build area: stop its carry bonus,
+  // station it (state "wait", homeMap = this map → it persists there via the map cache), and
+  // relocate it to the build-zone centroid so the player can find + recall it (walk up + the
+  // follow key). Called from the inventory Party tab's Dismiss button. No-op unless the
+  // companion is currently following and a build area has been claimed in this map.
+  _dismissFollower(fid) {
+    const f = this.world.get(Follower, fid);
+    if (f === undefined || f.state !== "follow") return;
+    const spot = this._buildZoneSpot();
+    if (spot === null) {
+      Toast.push(I18n.text("FOLLOWER_NO_ZONE"), { type: "warn" });
+      return;
+    }
+    FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, -1); // stops carrying
+    f.state = "wait";
+    f.homeMap = this.mapId;
+    const pos = this.world.get(Position, fid);
+    const vel = this.world.get(Velocity, fid);
+    if (pos !== undefined) {
+      pos.x = spot.x;
+      pos.y = spot.y;
+    }
+    if (vel !== undefined) {
+      vel.x = 0;
+      vel.y = 0;
+    }
+    Toast.push(I18n.text("FOLLOWER_DISMISSED"), { type: "info" });
+  }
+
+  // World-coord center of this map's claimed build area, or null when nothing is claimed yet.
+  // The zone is painted as a rect (BuildMode.claim), so the cell-average centroid lands inside
+  // it. cells() scans the resident grid, but a dismiss is a rare one-shot click — cheap enough.
+  _buildZoneSpot() {
+    const zmap = this.level.zoneMap("buildable");
+    if (zmap === undefined) return null;
+    const cells = zmap.cells(this.buildZoneId);
+    if (cells.length === 0) return null;
+    let sx = 0;
+    let sy = 0;
+    for (let i = 0; i < cells.length; i++) {
+      sx += cells[i].x;
+      sy += cells[i].y;
+    }
+    return this.level.gridToWorld(
+      Math.round(sx / cells.length),
+      Math.round(sy / cells.length),
+    );
   }
 
   _checkReach() {

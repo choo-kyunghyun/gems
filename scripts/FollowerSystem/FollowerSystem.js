@@ -37,4 +37,23 @@ globalThis.FollowerSystem = {
       }
     }
   },
+
+  // Add (sign +1) or remove (sign -1) a companion's carry bonus to/from the player's Inventory
+  // — extra slots (capacity) and extra weight cap (maxWeight). Mirrors
+  // EquipmentSystem._applyContainer: a balanced delta applied while the companion follows and
+  // removed when it waits/is dismissed, so it never needs a recompute-from-base pass. No-op for
+  // a follower with no bonus, or if the player lost its Inventory.
+  applyBenefit(world, playerId, f, sign) {
+    if (f === undefined) return;
+    const inv = world.get(Inventory, playerId);
+    if (inv === undefined) return;
+    if (f.bonusCapacity) {
+      inv.capacity += f.bonusCapacity * sign;
+      if (inv.capacity < 0) inv.capacity = 0;
+    }
+    if (f.bonusWeight && inv.maxWeight !== undefined) {
+      inv.maxWeight += f.bonusWeight * sign;
+      if (inv.maxWeight < 0) inv.maxWeight = 0;
+    }
+  },
 };

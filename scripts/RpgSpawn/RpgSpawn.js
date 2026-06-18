@@ -273,6 +273,11 @@ globalThis.RpgSpawn = {
       speed: opt.speed ?? 260, // > player speed (220) so it can catch up when it lags
       range: opt.range ?? 40,
       homeMap: "",
+      // Carry bonus applied to the player's Inventory while this companion follows (0 = none).
+      // The `follower` spawn preset doesn't pass these, so file-authored followers stay
+      // benefit-free; only the scene's programmatic party seed grants a bonus.
+      bonusCapacity: opt.bonusCapacity ?? 0,
+      bonusWeight: opt.bonusWeight ?? 0,
     });
     return id;
   },

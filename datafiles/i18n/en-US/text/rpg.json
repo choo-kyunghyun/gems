@@ -83,9 +83,12 @@
   "INV_TITLE": "Inventory",
   "INV_TAB_ITEMS": "Items",
   "INV_TAB_EQUIP": "Equipment",
+  "INV_TAB_PARTY": "Party",
   "INV_TAB_STATS": "Stats",
   "INV_TAB_QUESTS": "Quests",
   "INV_TAB_SETTINGS": "Settings",
+  "INV_FOLLOWERS": "Companions",
+  "INV_NO_FOLLOWERS": "No companions here",
   "INV_SET_COLS": "Visible columns",
   "INV_SET_UNITS": "Units",
   "INV_SET_TEMP": "Temperature",
@@ -165,5 +168,13 @@
   "RARITY_LEGENDARY": "Legendary",
 
   "FOLLOWER_WAIT": "Companion will wait here",
-  "FOLLOWER_FOLLOW": "Companion follows you"
+  "FOLLOWER_FOLLOW": "Companion follows you",
+  "FOLLOWER_DEFAULT": "Companion",
+  "FOLLOWER_STATE_FOLLOW": "Following",
+  "FOLLOWER_STATE_WAIT": "Waiting",
+  "FOLLOWER_BONUS": "Carry bonus: +{0} slots, +{1} weight",
+  "FOLLOWER_DISMISS": "Dismiss to base",
+  "FOLLOWER_DISMISSED": "Companion sent to your build area",
+  "FOLLOWER_NO_ZONE": "Claim a build area first (Survey Post)",
+  "FOLLOWER_RECALL_HINT": "Recall a waiting companion: walk up and press {0}"
 }

@@ -1,10 +1,13 @@
 // Draggable character window for the RPG scene — a wider, TABBED panel
-// (Items / Equipment / Stats / Quests / Settings) so the player can manage gear, read
-// the sheet, track quests, and tune the item table all in one place.
+// (Items / Equipment / Party / Stats / Quests / Settings) so the player can manage gear, read
+// the sheet, track quests, command companions, and tune the item table all in one place.
 //
 //  - Items:      the bag UITable (sortable columns + category filter + name search) over
 //                a usage line, plus a select/action row (Use / Equip / Unequip).
 //  - Equipment:  the worn-slot rows (click a worn slot to unequip).
+//  - Party:      the companion roster — each follower's name, follow/wait status, carry bonus,
+//                and a Dismiss-to-base button (re-hire is walk-up + the follow key). The roster
+//                is repopulated per rebuild (it changes across maps); per-row text is live.
 //  - Stats:      the live character sheet + the genre's extra records (Profile).
 //  - Quests:     a live UIQuestTracker bound to the global QuestLog.
 //  - Settings:   per-column visibility toggles (Rarity / Type / Weight / Value),
@@ -29,11 +32,11 @@ globalThis.RpgInventoryUI = {
   build(scene) {
     scene._invWin = gemsWindow(I18n.textRef("INV_TITLE"), {
       top: 40,
-      width: 640,
+      width: 760,
       // Resizable (grab the bottom-right grip). The explicit height gives the grow tabs +
       // bag table a starting basis; height 508 reproduces the old fixed 384px tab host.
       height: 508,
-      minWidth: 540, // keeps the five tab labels from crowding at the floor
+      minWidth: 600, // keeps the six tab labels from crowding at the floor
       minHeight: 360,
       onClose: () => {
         scene.invOpen = false;
@@ -57,6 +60,10 @@ globalThis.RpgInventoryUI = {
         {
           label: I18n.textRef("INV_TAB_EQUIP"),
           content: RpgInventoryUI._buildEquipTab(scene),
+        },
+        {
+          label: I18n.textRef("INV_TAB_PARTY"),
+          content: RpgInventoryUI._buildFollowerTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_STATS"),
@@ -238,6 +245,118 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
+  // Party: the companion roster host + a binding-aware recall hint. The roster is
+  // repopulated per rebuild (companions present in the world change across maps); each row's
+  // text + the Dismiss button's disabled-state read the live Follower component, so a follow/
+  // wait change (F-toggle or Dismiss) updates the row with no rebuild.
+  _buildFollowerTab(scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const title = new UIElement({ width: "100%", height: 22 });
+    title.insertChild(
+      gemsLabel(I18n.textRef("INV_FOLLOWERS"), { color: "#ffd166" }),
+    );
+    page.insertChild(title);
+    scene._invFollowerHost = new UIElement({
+      width: "100%",
+      gap: GemsTheme.gapSm,
+    });
+    page.insertChild(scene._invFollowerHost);
+
+    // Recall hint, binding-aware (reads the follow action's CURRENT key live, like gemsKeyHints):
+    // a waiting/dismissed companion is re-hired by walking up to it and pressing the follow key.
+    page.insertChild(gemsDivider());
+    const hint = new UIElement({ width: "100%", height: 20 });
+    hint.insertChild(
+      gemsLabel(
+        () => I18n.text("FOLLOWER_RECALL_HINT", Input.get("follow").label()),
+        { color: GemsTheme.textDim },
+      ),
+    );
+    page.insertChild(hint);
+    return page;
+  },
+
+  // Populate the roster host with one card per companion in scene.followers (empty notice when
+  // there are none here). Called from rebuild() — never at build() time, since the party isn't
+  // seeded until after the window is built.
+  _buildFollowerRows(scene, host) {
+    const ids = scene.followers;
+    if (ids === undefined || ids.length === 0) {
+      const empty = new UIElement({ width: "100%", height: 24 });
+      empty.insertChild(
+        gemsLabel(I18n.textRef("INV_NO_FOLLOWERS"), {
+          color: GemsTheme.textDim,
+        }),
+      );
+      host.insertChild(empty);
+      return;
+    }
+    for (let i = 0; i < ids.length; i++) {
+      if (!scene.world.isValid(ids[i])) continue;
+      host.insertChild(RpgInventoryUI._followerRow(scene, ids[i]));
+    }
+  },
+
+  // One companion card: name, a live status + carry-bonus line, and a Dismiss button. Dismiss
+  // sends the companion to the player's claimed build area (scene._dismissFollower) and is
+  // disabled (live) unless it is currently following — a waiting/dismissed companion is recalled
+  // by walking up to it and pressing the follow key, not from here.
+  _followerRow(scene, fid) {
+    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+
+    const head = new UIElement({ width: "100%", height: 22 });
+    head.insertChild(
+      gemsLabel(
+        () => {
+          const nm = scene.world.get(Name, fid);
+          return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
+        },
+        { color: GemsTheme.text, font: "header" },
+      ),
+    );
+    card.insertChild(head);
+
+    const status = new UIElement({ width: "100%", height: 20 });
+    status.insertChild(
+      gemsLabel(
+        () => {
+          const f = scene.world.get(Follower, fid);
+          if (f === undefined) return "";
+          const state =
+            f.state === "follow"
+              ? I18n.text("FOLLOWER_STATE_FOLLOW")
+              : I18n.text("FOLLOWER_STATE_WAIT");
+          return (
+            state +
+            "   ·   " +
+            I18n.text(
+              "FOLLOWER_BONUS",
+              f.bonusCapacity ?? 0,
+              f.bonusWeight ?? 0,
+            )
+          );
+        },
+        { color: GemsTheme.textMuted },
+      ),
+    );
+    card.insertChild(status);
+
+    card.insertChild(
+      gemsButton(
+        I18n.textRef("FOLLOWER_DISMISS"),
+        () => scene._dismissFollower(fid),
+        {
+          height: 30,
+          disabled: () => {
+            const f = scene.world.get(Follower, fid);
+            return f === undefined || f.state !== "follow";
+          },
+        },
+      ),
+    );
+    return card;
+  },
+
   // Stats: the live character sheet + the genre's extra records (Profile) host.
   _buildStatsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -381,6 +500,16 @@ globalThis.RpgInventoryUI = {
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
+
+    // Party roster: rebuilt here (not live) because which companions are present in the world
+    // changes across maps — a "follow" one travels with you, a "wait" one only exists in its
+    // home map. Per-row status/benefit + the Dismiss disabled-state are live off the Follower.
+    const fh = scene._invFollowerHost;
+    if (fh !== undefined) {
+      const fk = [...fh.children];
+      for (let i = 0; i < fk.length; i++) fk[i].destroy();
+      RpgInventoryUI._buildFollowerRows(scene, fh);
+    }
   },
 
   // Push the current Settings-driven column set onto the live table (a toggle changed).

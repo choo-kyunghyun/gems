@@ -83,9 +83,12 @@
   "INV_TITLE": "인벤토리",
   "INV_TAB_ITEMS": "아이템",
   "INV_TAB_EQUIP": "장비",
+  "INV_TAB_PARTY": "동료",
   "INV_TAB_STATS": "능력치",
   "INV_TAB_QUESTS": "퀘스트",
   "INV_TAB_SETTINGS": "설정",
+  "INV_FOLLOWERS": "동료",
+  "INV_NO_FOLLOWERS": "이곳에 동료가 없습니다",
   "INV_SET_COLS": "표시 열",
   "INV_SET_UNITS": "단위",
   "INV_SET_TEMP": "온도",
@@ -165,5 +168,13 @@
   "RARITY_LEGENDARY": "전설",
 
   "FOLLOWER_WAIT": "동료가 여기서 기다립니다",
-  "FOLLOWER_FOLLOW": "동료가 따라옵니다"
+  "FOLLOWER_FOLLOW": "동료가 따라옵니다",
+  "FOLLOWER_DEFAULT": "동료",
+  "FOLLOWER_STATE_FOLLOW": "따라오는 중",
+  "FOLLOWER_STATE_WAIT": "대기 중",
+  "FOLLOWER_BONUS": "운반 보너스: 칸 +{0}, 무게 +{1}",
+  "FOLLOWER_DISMISS": "기지로 보내기",
+  "FOLLOWER_DISMISSED": "동료를 건설 구역으로 보냈습니다",
+  "FOLLOWER_NO_ZONE": "먼저 건설 구역을 확보하세요 (측량 기둥)",
+  "FOLLOWER_RECALL_HINT": "대기 중인 동료 재합류: 다가가 {0} 키를 누르세요"
 }
