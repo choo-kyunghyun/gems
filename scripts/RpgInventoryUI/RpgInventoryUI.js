@@ -30,6 +30,11 @@ globalThis.RpgInventoryUI = {
     scene._invWin = gemsWindow(I18n.textRef("INV_TITLE"), {
       top: 40,
       width: 640,
+      // Resizable (grab the bottom-right grip). The explicit height gives the grow tabs +
+      // bag table a starting basis; height 508 reproduces the old fixed 384px tab host.
+      height: 508,
+      minWidth: 540, // keeps the five tab labels from crowding at the floor
+      minHeight: 360,
       onClose: () => {
         scene.invOpen = false;
         scene._invWin.enabled = false;
@@ -66,7 +71,7 @@ globalThis.RpgInventoryUI = {
           content: RpgInventoryUI._buildSettingsTab(scene),
         },
       ],
-      { height: 384 },
+      { grow: true }, // fill the resizable window; the Items tab + bag table grow with it
     );
     scene._invWin.body.insertChild(tabs);
   },
@@ -74,7 +79,14 @@ globalThis.RpgInventoryUI = {
   // ── tab pages ───────────────────────────────────────────────
   // Items: usage + category filter, search + clear, the bag table, select/action row.
   _buildItemsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    // Fills the tab host so the bag table (grow) takes the leftover vertical space and
+    // reflows its row count as the window is resized.
+    const page = new UIElement({
+      width: "100%",
+      flexGrow: 1,
+      flexBasis: 0,
+      gap: GemsTheme.gapSm,
+    });
 
     const top = new UIElement({
       width: "100%",
@@ -166,7 +178,7 @@ globalThis.RpgInventoryUI = {
     // persist. Click a header to sort (multi-key); a row selects, double-click / the
     // action button / a gamepad confirm acts on it.
     const table = gemsTable(InvTable.columns({ worn: true }), {
-      rows: 8,
+      grow: true, // fill the page; UITable reflows its row count to the live height
       rowH: 26,
       headerH: 26,
       sortBy: 1, // Name (always column index 1: worn marker is 0, Name is 1)

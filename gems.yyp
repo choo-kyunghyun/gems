@@ -263,6 +263,7 @@
     {"id":{"name":"UIProgress","path":"scripts/UIProgress/UIProgress.yy",},},
     {"id":{"name":"UIQuestTracker","path":"scripts/UIQuestTracker/UIQuestTracker.yy",},},
     {"id":{"name":"UIRebind","path":"scripts/UIRebind/UIRebind.yy",},},
+    {"id":{"name":"UIResize","path":"scripts/UIResize/UIResize.yy",},},
     {"id":{"name":"UIRichText","path":"scripts/UIRichText/UIRichText.yy",},},
     {"id":{"name":"UIScroll","path":"scripts/UIScroll/UIScroll.yy",},},
     {"id":{"name":"UISelect","path":"scripts/UISelect/UISelect.yy",},},

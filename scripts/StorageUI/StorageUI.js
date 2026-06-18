@@ -32,12 +32,19 @@ globalThis.StorageUI = {
     const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
       top: 80,
       width: 1100,
+      // Resizable; the explicit height gives the grow columns/tables a starting basis
+      // (height 432 reproduces the old fixed 8-row layout).
+      height: 432,
+      minWidth: 720,
+      minHeight: 300,
       onClose: () => StorageUI.close(scene),
     });
     win.enabled = false;
 
     const cols = new UIElement({
       width: "100%",
+      flexGrow: 1, // fill the resized window so the two tables grow with it
+      flexBasis: 0,
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
@@ -138,7 +145,7 @@ globalThis.StorageUI = {
   // onSelect tracks a double-click, onActivate (double-click / confirm) moves the stack.
   _table(scene, side) {
     return gemsTable(InvTable.columns(), {
-      rows: 8,
+      grow: true, // fill the column; reflows row count as the window resizes
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name

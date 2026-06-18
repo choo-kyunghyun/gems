@@ -65,6 +65,7 @@ globalThis.gemsPanel = function gemsPanel(opts = {}) {
     width: opts.width ?? "100%",
     padding: opts.padding ?? GemsTheme.pad,
     gap: opts.gap ?? GemsTheme.gapSm,
+    flexGrow: opts.flexGrow ?? 0, // opt-in fill (e.g. a resizable gemsWindow's card)
   });
   el.addComponent(
     new UIPanel({
@@ -84,6 +85,7 @@ globalThis.gemsPanel = function gemsPanel(opts = {}) {
 globalThis.gemsCard = function gemsCard(opts = {}) {
   return gemsPanel({
     width: opts.width,
+    flexGrow: opts.flexGrow,
     padding: opts.padding,
     gap: opts.gap,
     color: opts.color,
@@ -260,15 +262,22 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
     paddingTop: opts.top ?? 40,
   });
 
+  // Windows are draggable AND resizable by default (a bottom-right grip; opt out with
+  // resizable:false). Resize mutates the window's flexpanel width/height live (UIResize),
+  // so the card + body flex-grow to fill it; an explicit `opts.height` gives a fixed
+  // starting size (needed when the content itself flex-grows, e.g. a grow table/tabs),
+  // otherwise the window starts content-sized and becomes fixed-size on the first resize.
+  const resizable = opts.resizable !== false;
+
   // The draggable window: a relative flow child (centered by the host). UIDrag offsets
   // wrap.dragX/dragY at draw time, so a dragged window keeps its offset across a re-center.
-  const wrap = new UIElement({
-    width: opts.width ?? 440,
-    flexShrink: 0,
-  });
+  const wrapStyle = { width: opts.width ?? 440, flexShrink: 0 };
+  if (opts.height != null) wrapStyle.height = opts.height;
+  const wrap = new UIElement(wrapStyle);
 
   const card = gemsCard({
     width: "100%",
+    flexGrow: resizable ? 1 : 0, // fill the resized wrap (no-op while content-sized)
     padding: opts.padding ?? GemsTheme.padSm,
     gap: GemsTheme.gapSm,
   });
@@ -308,10 +317,38 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   }
   card.insertChild(bar);
 
-  const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+  const body = new UIElement({
+    width: "100%",
+    gap: GemsTheme.gapSm,
+    flexGrow: resizable ? 1 : 0, // fill the card below the title bar when resized
+  });
   card.insertChild(body);
 
   wrap.insertChild(card);
+
+  // Resize grip: an out-of-flow square pinned to the window's bottom-right corner. Added
+  // LAST so it updates first (children update in reverse → input priority over the body
+  // beneath) and draws on top. UIResize mutates `wrap`'s size, clamped to the min/GUI.
+  if (resizable) {
+    const grip = new UIElement({
+      positionType: "absolute",
+      right: 0,
+      bottom: 0,
+      width: 20,
+      height: 20,
+    });
+    grip.addComponent(
+      new UIResize({
+        target: wrap,
+        minWidth: opts.minWidth ?? 240,
+        minHeight: opts.minHeight ?? 160,
+        color: gemsColor(GemsTheme.textMuted),
+        anchorCenterX: true, // the host centers `wrap` horizontally — resize from the left edge
+      }),
+    );
+    wrap.insertChild(grip);
+  }
+
   host.insertChild(wrap);
   host.body = body; // callers add content here
   return host;

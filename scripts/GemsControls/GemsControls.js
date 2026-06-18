@@ -451,11 +451,19 @@ globalThis.gemsTable = function gemsTable(columns, opts = {}) {
   const headerH = opts.headerH ?? 30;
   const visible = opts.rows ?? 8;
   const pad = GemsTheme.padSm;
-  const el = new UIElement({
-    width: opts.width ?? "100%",
-    height: headerH + visible * rowH + pad * 2,
-    flexShrink: 0,
-  });
+  // `grow` fills the parent's spare vertical space instead of fixing a row count; UITable
+  // derives its visible-row count from the element's live layout height, so a grown table
+  // reflows (shows more/fewer rows) as a resizable window changes size. Otherwise the
+  // element is fixed to exactly `opts.rows` whole rows.
+  const el = new UIElement(
+    opts.grow
+      ? { width: opts.width ?? "100%", flexGrow: 1, flexBasis: 0 }
+      : {
+          width: opts.width ?? "100%",
+          height: headerH + visible * rowH + pad * 2,
+          flexShrink: 0,
+        },
+  );
   el.addComponent(
     new UIPanel({
       color: gemsColor(GemsTheme.panelLo),
