@@ -22,8 +22,11 @@ globalThis.RpgMap = {
     if (scene.ctrl !== undefined) {
       // The player's character sheet travels with the party (it's party member 0). Capture
       // just the sheet components — NOT Position/Visual/Collision/Animator, which the
-      // controller rebuilds fresh in the new map. Equip mods are baked into the carried Stats.
+      // controller rebuilds fresh in the new map. Attributes travel alongside the derived Stats
+      // (equip mods already baked in) so a post-crossing recompute re-derives from the LEVELED
+      // attributes, not the fresh-spawn defaults — without this the level-ups silently reset.
       carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
+        Attributes,
         Stats,
         Health,
         Stamina,

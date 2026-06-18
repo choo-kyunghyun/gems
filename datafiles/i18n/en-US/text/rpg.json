@@ -123,6 +123,12 @@
   "STAT_DEF": "Defense",
   "STAT_SPD": "Speed",
 
+  "INV_ATTRIBUTES": "Attributes",
+  "ATTR_POW": "Power",
+  "ATTR_VIT": "Vitality",
+  "ATTR_AGI": "Agility",
+  "ATTR_END": "Endurance",
+
   "REC_KILLS": "Kills",
   "REC_ITEMS": "Items Found",
   "REC_QUESTS": "Quests Done",

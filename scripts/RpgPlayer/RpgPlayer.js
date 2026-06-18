@@ -43,7 +43,13 @@ globalThis.RpgPlayer = {
     world.add(id, Health, { hp: 10 });
     world.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
     world.add(id, Stamina, { value: 100, exhausted: false });
+    // Primary attributes (the data-driven stat INPUTS); StatModel.recompute (end of spawn) derives
+    // the combat fields below from these. Defaults are tuned to reproduce the legacy sheet.
+    world.add(id, Attributes, StatModel.defaults());
     world.add(id, Stats, {
+      // level/xp/xpNext are progression (recompute preserves them); the derived fields
+      // (maxHp/maxStamina/attack/defense/speed) are seeded here but OVERWRITTEN by
+      // StatModel.recompute from Attributes below — kept as a no-Attributes fallback + doc.
       level: 1,
       xp: 0,
       xpNext: 20,
@@ -78,6 +84,9 @@ globalThis.RpgPlayer = {
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });
+    // Derive the combat Stats from Attributes (+ equipped mods — none at spawn; the wood_sword is
+    // equipped later in sceneRpg.create). Recompute-from-source — the single derivation path.
+    StatModel.recompute(world, id);
     return id;
   },
 

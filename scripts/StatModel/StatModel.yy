@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StatModel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StatModel",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StatModel.js",
+}

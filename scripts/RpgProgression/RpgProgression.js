@@ -15,8 +15,15 @@ globalThis.RpgProgression = {
         st.xp -= st.xpNext;
         st.level++;
         st.xpNext = Math.round(st.xpNext * 1.5);
-        st.maxHp += 2;
-        st.attack += 1;
+        // Grant PRIMARY attributes (the RPG way) → re-derive, instead of bumping derived stats
+        // directly: +2 POW reproduces the legacy +1 attack, +1 VIT the +2 maxHp (and nudges defense
+        // via the VIT rule). StatModel.recompute then writes the derived sheet; heal to full after.
+        const at = scene.world.get(Attributes, scene.ctrl.id);
+        if (at !== undefined) {
+          at.pow += 2;
+          at.vit += 1;
+        }
+        StatModel.recompute(scene.world, scene.ctrl.id);
         const hp = scene.world.get(Health, scene.ctrl.id);
         if (hp !== undefined) hp.hp = st.maxHp; // heal to full on level-up
         Log.info(`level up! now Lv ${st.level}`);

@@ -393,6 +393,41 @@ globalThis.RpgInventoryUI = {
     page.insertChild(statRow("STAT_ATK", (st) => st.attack));
     page.insertChild(statRow("STAT_DEF", (st) => st.defense));
     page.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
+
+    // Primary attributes — the inputs the derived stats above come from. Data-driven from
+    // StatModel.ATTRS (swap the model and this list follows), each reading the live Attributes bag,
+    // so a level-up's grant shows immediately with no rebuild.
+    page.insertChild(gemsDivider());
+    page.insertChild(
+      gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "#ffd166" }),
+    );
+    const attrRow = (def) => {
+      const row = new UIElement({
+        width: "100%",
+        height: 26,
+        flexDirection: "row",
+        alignItems: "center",
+      });
+      const lc = new UIElement({ flexGrow: 1, flexBasis: 0 });
+      lc.insertChild(
+        gemsLabel(I18n.textRef(def.name), { color: GemsTheme.textMuted }),
+      );
+      row.insertChild(lc);
+      row.insertChild(
+        gemsLabel(
+          () => {
+            const at = scene.world.get(Attributes, scene.ctrl.id);
+            return at === undefined ? "" : String(at[def.id]);
+          },
+          { color: GemsTheme.text },
+        ),
+      );
+      return row;
+    };
+    for (let i = 0; i < StatModel.ATTRS.length; i++) {
+      page.insertChild(attrRow(StatModel.ATTRS[i]));
+    }
+
     page.insertChild(gemsDivider());
     scene._invExtraHost = new UIElement({
       width: "100%",

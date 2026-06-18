@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Attributes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Attributes",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Demo/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Attributes.js",
+}

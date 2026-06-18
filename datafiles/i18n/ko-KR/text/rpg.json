@@ -123,6 +123,12 @@
   "STAT_DEF": "방어",
   "STAT_SPD": "속도",
 
+  "INV_ATTRIBUTES": "능력치",
+  "ATTR_POW": "힘",
+  "ATTR_VIT": "활력",
+  "ATTR_AGI": "민첩",
+  "ATTR_END": "지구력",
+
   "REC_KILLS": "처치",
   "REC_ITEMS": "획득 아이템",
   "REC_QUESTS": "완료 퀘스트",
