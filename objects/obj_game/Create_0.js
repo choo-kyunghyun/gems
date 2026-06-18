@@ -63,9 +63,9 @@ UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit th
 // each event. SystemMenu reads the live scene + restarts/quits through this.scenes rather
 // than reaching into obj_game's fields.
 this.scenes = new SceneManager();
-// The RPG is the main game / boot scene; the lobby is demoted to a dev launcher reachable via the
-// F2 dev hotkey (Step_0). The other genres are reached in-world as minigames (the arcade cabinet).
-this.scenes.start(SceneRpg);
+// The lobby is the boot scene (the dev launcher / scene catalogue); from it the RPG and the
+// other genres are opened. F2 (Step_0) also returns here.
+this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades the game in from black instead of popping
 
 // Debug back-end: register the global built-in panels once. Bindings are live,
