@@ -16,7 +16,7 @@
     },
     "header": {
       "path": "fonts/Noto_Sans/static/NotoSans-Bold.ttf",
-      "size": 24,
+      "size": 20,
       "bold": false,
       "italic": false,
       "first": 32,
