@@ -367,6 +367,35 @@ globalThis.SystemMenu = class SystemMenu {
         ),
       ),
     );
+    // V-Sync + fullscreen anti-aliasing both go through display_reset (Display.applyVideo),
+    // which also re-imposes the window/fps the reset reverts.
+    dispSection.insertChild(
+      gemsToggle(
+        I18n.textRef("SETTINGS_DISP_VSYNC"),
+        () => Settings.get("vsync"),
+        () => {
+          Settings.set("vsync", !Settings.get("vsync"));
+          Display.applyVideo();
+        },
+        {
+          onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
+          offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
+        },
+      ),
+    );
+    // Only offer AA levels the GPU reports it can do (Display.aaLevels reads display_aa).
+    const aaItems = Display.aaLevels().map((lvl) => ({
+      name: lvl === 0 ? I18n.text("SETTINGS_DISP_AA_OFF") : lvl + "x",
+      value: lvl,
+    }));
+    dispSection.insertChild(
+      gemsRow(
+        I18n.textRef("SETTINGS_DISP_AA"),
+        gemsSelect("antialias", aaItems, {
+          onChange: () => Display.applyVideo(),
+        }),
+      ),
+    );
     scroll.scrollBody.insertChild(dispSection);
 
     const uiSection = gemsSection(I18n.textRef("SETTINGS_UI_TITLE"));

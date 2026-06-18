@@ -56,6 +56,28 @@ globalThis.Display = class Display {
     Display._prevH = Display.renderH;
   }
 
+  // The fullscreen anti-aliasing levels this device can actually do, as an array of valid
+  // display_reset `aa` arguments: always 0 (off), plus 2/4/8 for each bit display_aa reports
+  // set. The bit value equals the level — 2x→bit 2, 4x→bit 4, 8x→bit 8 — so `display_aa & lvl`
+  // is `lvl` when supported, else 0 (see the display_aa manual). Used to build the AA setting's
+  // options so it only offers levels the GPU supports (a single `&` is GMRT-safe).
+  static aaLevels() {
+    const out = [0];
+    if (display_aa & 2) out.push(2);
+    if (display_aa & 4) out.push(4);
+    if (display_aa & 8) out.push(8);
+    return out;
+  }
+
+  // Apply the saved vsync + fullscreen-AA settings via display_reset(aa, vsync). That call also
+  // RESETS the display to its startup state (resolution/window), so re-impose our window + fps
+  // afterwards with apply(). Called at boot and whenever the SystemMenu flips vsync/AA — not on a
+  // plain resolution/fullscreen change, since display_reset state sticks until the next call.
+  static applyVideo() {
+    display_reset(Settings.get("antialias"), Settings.get("vsync"));
+    Display.apply();
+  }
+
   // Apply the saved frame-rate cap (Settings "fpsLimit": 30/60/120, or 0 = Unlimited).
   static applyFps() {
     const fps = Settings.get("fpsLimit");

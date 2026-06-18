@@ -23,6 +23,8 @@ Settings.registerDefaults({
   resolutionW: 0,
   resolutionH: 0,
   fpsLimit: 60,
+  vsync: false,
+  antialias: 0, // fullscreen AA level: 0 (off) / 2 / 4 / 8 (device-dependent — see display_aa)
   uiScale: 1.0,
   volMaster: 1.0,
   volMusic: 1.0,
@@ -39,10 +41,10 @@ Settings.registerDefaults({
 });
 Settings.load();
 
-// Restore the saved display state (fps cap + fullscreen / windowed resolution) — sets the
-// game speed, sizes the OS window + the world's application_surface. The GUI layer is sized
-// separately by UI.applyScale.
-Display.apply();
+// Restore the saved display state (vsync + AA via display_reset, then fps cap + fullscreen /
+// windowed resolution) — sets the game speed, sizes the OS window + the world's
+// application_surface. The GUI layer is sized separately by UI.applyScale.
+Display.applyVideo();
 
 // Load localization for the saved language, then adopt its base font as the
 // default draw font (both locales now ship Noto; an undeclared key falls back).
