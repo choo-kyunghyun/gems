@@ -1,5 +1,5 @@
-// World-space 2D LIGHT-MAP pass — the RPG's lighting + day/night in one. It generalizes the
-// old flat RenderDayNight tint: instead of a uniform darkness rectangle, it builds a per-frame
+// World-space 2D LIGHT-MAP pass — the RPG's lighting + day/night in one. It generalizes a plain
+// flat day/night tint: instead of a uniform darkness rectangle, it builds a per-frame
 // light map (an off-screen surface) and composites it over the world MULTIPLICATIVELY, so the
 // day/night cycle is just "the ambient term with no lights" and point lights punch bright holes
 // in the night.
@@ -9,19 +9,21 @@
 //                        scene * ambient.
 //   2. light blobs     — every Light + Position entity adds a soft radial glow with bm_add
 //                        (draw_circle_color: hue center → black edge), so overlapping lights sum.
+//   2b. vignette       — multiply the light map's corners down with a radial, so the night frames
+//                        in toward the screen edges; scaled by the cycle (off in daylight).
 //   3. composite       — the light map is drawn over the world with multiply
 //                        (gpu_set_blendmode_ext(bm_dest_colour, bm_zero) → final = scene * light).
 //
 // The model is self-balancing: in full daylight the ambient is white, so additive lights clamp
 // against 255 and the multiply is a no-op (no daytime halos) — so we early-out then and do zero
-// surface work, exactly like RenderDayNight's alpha-0 skip. Surfaces + bm_add + multiply are all
+// surface work, exactly the alpha-0 daylight skip a flat day/night tint would take. Surfaces + bm_add + multiply are all
 // probe-verified on GMRT 0.20 (see CLAUDE.md / memory). NO shadows yet — falloff only.
 //
 // Inserted LAST in the RPG renderer (over tiles + entities + weather); the scene draws its bright
 // cues (station highlight, build cursor, floating numbers, muzzle flash) AFTER the renderer so
 // they stay bright above the tint. View rect from the held Camera's OWN fields (toX/toY/width/
 // height), NOT camera_get_view_* — the matrix-driven Camera returns 0 there (see CLAUDE.md). The
-// scene assigns pass.camera after building the camera, like RenderDayNight/RenderWeather did.
+// scene assigns pass.camera after building the camera, like RenderWeather.
 //
 // @implements {RenderPass}
 globalThis.RenderLighting = class RenderLighting {
@@ -31,6 +33,9 @@ globalThis.RenderLighting = class RenderLighting {
     // The multiply model needs a stronger darkening than the old lerp-overlay used, so scale the
     // cycle's overlay alpha. Higher = darker nights. Clamped to 1 (never a fully black ambient).
     this.darkness = opt.darkness ?? 1.5;
+    // Corner-darkening fraction at full night (multiplied into the light map; scaled by the cycle
+    // so it fades in at dusk and is gone in daylight). Subtle by default; 0 disables.
+    this.vignette = opt.vignette ?? 0.25;
     this._surf = -1; // light-map surface, (re)created lazily at the view size (surface_exists(-1) is false)
   }
 
@@ -91,13 +96,38 @@ globalThis.RenderLighting = class RenderLighting {
       // Optional flicker — a cheap wall-clock sine per light (trig works on GMRT 0.20). Offset by
       // id so torches don't pulse in lockstep. Uses current_time (a clock, not Time.raw's delta).
       if (lt.flicker)
-        intensity *= 1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
+        intensity *=
+          1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
       draw_set_alpha(intensity);
       // Soft radial light: hue at the center fading to black at `radius`; bm_add sums overlaps.
       draw_circle_color(lx, ly, lt.radius, lt.color, c_black, false);
       i++;
     }
     gpu_set_blendmode(bm_normal);
+
+    // 2b. Vignette — multiply the light map down toward the corners so the night frames in at the
+    // screen edges. Multiplicative (bm_dest_colour, bm_zero), like the composite below, so it
+    // DEEPENS the scene colors rather than alpha-blending a flat-black wash. Scaled by k, so it
+    // ramps in with the cycle (subtle at dusk → strongest at full night) and is gone in daylight
+    // via the early-out above. A white-center → dark-edge radial reaching the corners (radius =
+    // half-diagonal; the side midpoints clip outside the surface). After the lights, so a light in
+    // a corner is framed by it too.
+    if (this.vignette > 0) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const edge = Color.merge(c_white, c_black, this.vignette * k);
+      gpu_set_blendmode_ext(bm_dest_colour, bm_zero);
+      draw_circle_color(
+        cx,
+        cy,
+        Math.sqrt(cx * cx + cy * cy),
+        c_white,
+        edge,
+        false,
+      );
+      gpu_set_blendmode(bm_normal);
+    }
+
     surface_reset_target();
 
     // 3. Composite over the world, multiplicatively (final = scene * light). No bm_multiply

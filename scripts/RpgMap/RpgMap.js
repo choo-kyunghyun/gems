@@ -384,8 +384,8 @@ globalThis.RpgMap = {
     // Lighting LAST — a per-frame light map composited over tiles + entities + weather. It absorbs
     // the day/night cycle as its ambient term (white in daylight → night hue when dark) and adds
     // soft blobs for every Light entity, so day/night is "lighting with no lights" and torches/the
-    // player's lantern reveal the night. Replaces the flat RenderDayNight tint (now unused by the
-    // RPG scene). Its camera is assigned with the others below.
+    // player's lantern reveal the night, with a cycle-scaled corner vignette for night framing. Its
+    // camera is assigned with the others below.
     scene._lighting = new RenderLighting();
     scene.renderer.insert(scene._lighting);
 
