@@ -88,7 +88,10 @@ globalThis.UIProgress = class UIProgress {
       const str = this.label();
       if (str !== "") {
         const font = draw_get_font();
-        if (this.font !== -1) draw_set_font(this.font);
+        // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+        const fnt =
+          typeof this.font === "string" ? I18n.font(this.font) : this.font;
+        if (fnt !== -1) draw_set_font(fnt);
         const ha = draw_get_halign();
         const va = draw_get_valign();
         draw_set_halign(fa_center);
@@ -97,7 +100,7 @@ globalThis.UIProgress = class UIProgress {
         draw_text(pos.left + pos.width * 0.5, pos.top + pos.height * 0.5, str);
         draw_set_halign(ha);
         draw_set_valign(va);
-        if (this.font !== -1) draw_set_font(font);
+        if (fnt !== -1) draw_set_font(font);
       }
     }
 

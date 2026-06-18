@@ -33,7 +33,9 @@ globalThis.RpgHud = {
     );
     card.insertChild(hpRow);
     // Stamina bar (sprint resource) — fraction of Stats.maxStamina, read live each frame.
-    const staRow = new UIElement({ width: "100%", height: 14 });
+    // Tall enough to seat the centered label (the smaller "description" font) inside the bar
+    // rather than letting it overflow into the HP row above.
+    const staRow = new UIElement({ width: "100%", height: 20 });
     staRow.insertChild(
       gemsProgress(
         () => {
@@ -46,7 +48,8 @@ globalThis.RpgHud = {
         {
           label: I18n.textRef("RPG_STAMINA"),
           fillColor: "#5bc8d6",
-          height: 14,
+          height: 20,
+          font: "description",
         },
       ),
     );

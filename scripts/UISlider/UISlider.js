@@ -2,7 +2,7 @@
 // hit-tests + drags itself, draws track/fill/thumb + an optional right-aligned value readout.
 /** @implements {UIComponent} */
 globalThis.UISlider = class UISlider {
-  static VALUE_W = 46; // right-side width reserved for the value readout (showValue)
+  static VALUE_W = 58; // right-side width reserved for the value readout (showValue); wide enough that "100%" at the 16px body font clears the thumb
 
   /** @param {Object} [slider] { min, max, value, step, values, readOnly, onChange, showValue, format, valueColor, font, track, fill, thumb } */
   constructor(slider = {}) {

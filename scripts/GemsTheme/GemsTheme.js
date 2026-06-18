@@ -38,13 +38,15 @@ globalThis.GemsTheme = {
   // ── Geometry ──
   radius: 14,
   radiusSm: 9,
-  pad: 18,
-  padSm: 12,
-  gap: 12,
-  gapSm: 8,
+  // Spacing bumped to breathe under the larger (16px) body font — the prior values were tuned
+  // for 12px text and read cramped once the font grew.
+  pad: 20,
+  padSm: 14,
+  gap: 14,
+  gapSm: 10,
   rowH: 50, // button / control height
-  rowLabelW: 150, // gemsRow label column width (label | control)
-  titleH: 22, // gemsSection title host height (keeps it off the card border)
+  rowLabelW: 160, // gemsRow label column width (label | control)
+  titleH: 26, // gemsSection title host height (keeps it off the card border)
   menuWidth: 760, // centered max-width for menu scenes (lobby/settings/…)
   headerH: 64,
   // ── Motion ──
