@@ -41,7 +41,7 @@
   "origin":0,
   "parent":{
     "name":"Tile",
-    "path":"folders/RPG/Sprite/Tile.yy",
+    "path":"folders/Demo/Sprite/Tile.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

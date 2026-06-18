@@ -6,7 +6,7 @@
   "name":"RpgController",
   "parent":{
     "name":"Scene",
-    "path":"folders/RPG/Scene.yy",
+    "path":"folders/Demo/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

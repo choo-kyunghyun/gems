@@ -6,7 +6,7 @@
   "name":"PlatformerController",
   "parent":{
     "name":"Platformer",
-    "path":"folders/Showcase/Platformer.yy",
+    "path":"folders/Demo/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

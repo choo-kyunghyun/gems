@@ -402,11 +402,14 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Quests: a live tracker bound to the global QuestLog.
+  // Quests: a live tracker bound to the global QuestLog (passed as the tracker's source).
   _buildQuestsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     page.insertChild(
-      gemsQuestTracker({ emptyText: I18n.text("INV_NO_QUESTS") }),
+      gemsQuestTracker({
+        source: QuestLog,
+        emptyText: I18n.text("INV_NO_QUESTS"),
+      }),
     );
     return page;
   },

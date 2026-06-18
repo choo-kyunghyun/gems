@@ -86,7 +86,10 @@ globalThis.RpgHud = {
     card.insertChild(tempRow);
     card.insertChild(gemsDivider());
     card.insertChild(
-      gemsQuestTracker({ emptyText: I18n.textRef("RPG_NO_QUEST") }),
+      gemsQuestTracker({
+        source: QuestLog,
+        emptyText: I18n.textRef("RPG_NO_QUEST"),
+      }),
     );
     hud.insertChild(card);
     scene.ui.insertChild(hud);

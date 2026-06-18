@@ -6,7 +6,7 @@
   "name":"Animator",
   "parent":{
     "name":"Component",
-    "path":"folders/RPG/Component.yy",
+    "path":"folders/Demo/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"RpgItems",
   "parent":{
     "name":"Content",
-    "path":"folders/RPG/Content.yy",
+    "path":"folders/Demo/Content.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

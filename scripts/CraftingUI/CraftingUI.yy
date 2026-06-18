@@ -6,7 +6,7 @@
   "name":"CraftingUI",
   "parent":{
     "name":"UI",
-    "path":"folders/RPG/UI.yy",
+    "path":"folders/Demo/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

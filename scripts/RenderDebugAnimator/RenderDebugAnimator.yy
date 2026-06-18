@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderDebugAnimator",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"System",
+    "path":"folders/Demo/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

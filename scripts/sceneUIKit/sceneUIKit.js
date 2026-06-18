@@ -341,6 +341,7 @@ class _SceneUIKitClass extends Scene {
     const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
     sec.insertChild(
       gemsQuestTracker({
+        source: QuestLog,
         emptyText: I18n.textRef("UIKIT_QUEST_EMPTY"),
         tooltip: I18n.textRef("UIKIT_TIP_QUESTS"),
       }),

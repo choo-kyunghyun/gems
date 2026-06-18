@@ -18,7 +18,7 @@
   "name":"rm_game",
   "parent":{
     "name":"Lobby",
-    "path":"folders/Showcase/Lobby.yy",
+    "path":"folders/Demo/Lobby.yy",
   },
   "parentRoom":null,
   "physicsSettings":{

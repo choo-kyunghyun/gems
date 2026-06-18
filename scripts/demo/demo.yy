@@ -6,7 +6,7 @@
   "name":"demo",
   "parent":{
     "name":"Lobby",
-    "path":"folders/Showcase/Lobby.yy",
+    "path":"folders/Demo/Lobby.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

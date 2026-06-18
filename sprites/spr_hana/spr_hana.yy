@@ -26,7 +26,7 @@
   "origin":0,
   "parent":{
     "name":"Sprite",
-    "path":"folders/Showcase/Sprite.yy",
+    "path":"folders/Demo/Sprite.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

@@ -6,7 +6,7 @@
   "name":"sceneEditor",
   "parent":{
     "name":"Editor",
-    "path":"folders/RPG/Editor.yy",
+    "path":"folders/Demo/Editor.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

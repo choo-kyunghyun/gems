@@ -14,7 +14,7 @@
   "name":"ps_muzzle",
   "parent":{
     "name":"Particles",
-    "path":"folders/RPG/Particles.yy",
+    "path":"folders/Demo/Particles.yy",
   },
   "resourceType":"GMParticleSystem",
   "resourceVersion":"2.0",

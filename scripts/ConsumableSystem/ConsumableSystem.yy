@@ -6,7 +6,7 @@
   "name":"ConsumableSystem",
   "parent":{
     "name":"System",
-    "path":"folders/RPG/System.yy",
+    "path":"folders/Demo/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

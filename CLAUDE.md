@@ -4,14 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker on the GMRT runtime (0.20). All game logic is JavaScript, not GML. Assets live in **four** top-level IDE folders:
+**G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker on the GMRT runtime (0.20). All game logic is JavaScript, not GML. Assets live in **three** top-level IDE folders:
 
 - **Core** — the pure engine: ECS, built-in systems, level, render, the **UI system** (`UIElement`/widgets/singletons), input, utilities.
 - **GemsUI** — the themed UI **factory kit** (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`) over the Core UI system, plus the UI sprites in `GemsUI/Sprite`.
-- **RPG** — the self-contained RPG game, subfoldered like Core: `Component`/`System`/`Content`/`UI`/`Scene`/`Editor`, plus its own colocated art (`Sprite` + `Sprite/Tile` for the tile/terrain/fence sprites, `Particles` for the muzzle FX) — mirroring `GemsUI/Sprite`, so each pillar owns its media.
-- **Showcase** — everything else demonstrable: the `Platformer` showcase, the demo **app shell** (`obj_game`/`rm_game`/`sceneLobby`/`demo`), and the demo-shell raster sprites. (The tile/terrain and RTS-crowding tech are no longer standalone showcases — they ship live in the RPG: terrain in the overworld, `SeparationSystem` in the slime/follower crowd; the RPG's own art — tile/terrain sprites + the muzzle particle — lives under `RPG/Sprite` and `RPG/Particles`, not here.)
+- **Demo** — the single integrated demo the app **boots into**, subfoldered by concern like Core (`Component`/`System`/`Content`/`UI`/`Scene`/`Editor`) plus colocated art (`Sprite` + `Sprite/Tile`, `Particles`). It merges the former **RPG** + **Showcase** pillars: the **action-RPG** is the dominant content, so its concern folders ARE Demo's (`sceneRpg` in `Demo/Scene`; the RPG layer across `Demo/System`/`Component`/…); the self-contained **`Platformer`** minigame sits in `Demo/Platformer` (an embedded guest now, not a standalone showcase); the **app shell** + dev launcher (`obj_game`/`rm_game`/`demo`/`sceneLobby`/`sceneUIKit`) in `Demo/Lobby`. (The old tile/terrain + RTS-crowding showcases ship live in the RPG — terrain in the overworld, `SeparationSystem` in the slime/follower crowd.)
 
-Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `RPG/Scene` but registers under `SCENE_CAT_RPG`. The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions. The app **boots into the RPG**; other genres are embeddable as **guest minigames** via the `SceneManager` **scene stack** (a host scene pauses with its context intact while a guest runs in front — the RPG arcade cabinet → platformer). The lobby is demoted to a dev launcher (**F2**). See ARCHITECTURE → _Demo Layer_.
+Lobby categories (`SCENE_CAT_*`) are independent of IDE folders — e.g. `sceneRpg` lives in `Demo/Scene` but registers under `SCENE_CAT_RPG`. The entire demo runs in a single room (`rm_game`) with `obj_game` as the unified controller — no room transitions. The app **boots into the RPG**; other genres are embeddable as **guest minigames** via the `SceneManager` **scene stack** (a host scene pauses with its context intact while a guest runs in front — the RPG arcade cabinet → platformer). The lobby is demoted to a dev launcher (**F2**). See ARCHITECTURE → _Demo Layer_.
 
 ## Working Guidelines
 
@@ -124,8 +123,8 @@ See @ARCHITECTURE.md for the full reference — every layer, system, component, 
 - **Demo shell** (`obj_game`, `Scene`, `SceneManager`, `SceneRegistry`, the GemsUI factory kit) — the single-room app + its UI scaffolding. → § _Demo Layer_
 - **ECS Core** (`World`, `IdPool`, `EntitySnapshot`, string-token components, plain-object systems) — instance-based ECS, fixed-rate tick, render interpolation. → § _ECS Core_ / _Component Pattern_ / _System Pattern_ / _Fixed-Rate Simulation_
 - **Built-in systems** (gravity, movement, solid/separation/trigger collision, projectiles, state machine, lifetime, pathfinding) — genre-agnostic, dispatched from a scene's `step()` (often via a `Pipeline`). → § _Built-in Systems_ / _Pathfinding Flow_
-- **Genre templates** (`Platformer` controller + gameplay systems over Core) — a lean movement showcase; the action-RPG genre (`sceneRpg`) lives in `RPG/Scene`. → § _Genre Controllers & Template Gameplay Systems_
-- **RPG / gameplay layer** (the self-contained top-level `RPG` folder — items/inventory/equipment, combat, progression, loot, animation, chunk streaming) — consumed only by `sceneRpg`. → § _Gameplay / RPG Layer_
+- **Genre templates** (`Platformer` controller + gameplay systems over Core) — a lean movement showcase; the action-RPG genre (`sceneRpg`) lives in `Demo/Scene`. → § _Genre Controllers & Template Gameplay Systems_
+- **RPG / gameplay layer** (the self-contained RPG gameplay layer, under `Demo` — items/inventory/equipment, combat, progression, loot, animation, chunk streaming) — consumed only by `sceneRpg`. → § _Gameplay / RPG Layer_
 - **Genre UI** (`SystemMenu`, `StorageUI`, `BuildMode`, `RpgWorldOverlay`) — gameplay overlays beyond the GemsUI scene panels. → § _Gameplay / RPG Layer → Genre UI managers_
 - **Renderer** (`Renderer` + `RenderPass`es, hardware-accelerated tiles via `VertexBuffer`). → § _Renderer_
 - **UI system** (`UIElement`/`UI` over `flexpanel`, the `UIComponent` widgets, standalone singletons) — Flexbox-backed, keyboard/gamepad navigable. → § _UI System_

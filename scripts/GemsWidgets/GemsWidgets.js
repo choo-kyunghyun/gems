@@ -44,13 +44,15 @@ globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Quest tracker: a live HUD list bound to the global QuestLog (UIQuestTracker), on a
-// fixed-size panel. Sized to the currently-active quests by default so an enclosing
-// gemsScroll can reveal overflow; pass opts.height to fix it. Build it AFTER the quests
-// are registered + accepted (it measures QuestLog at construction). opts.emptyText
-// (string or () => string) shows when no quest is active.
+// Quest tracker: a live HUD list bound to opts.source — a quest log exposing
+// activeIds()/def(id)/status(id) (the RPG passes its QuestLog) — so this kit factory and
+// the Core UIQuestTracker stay genre-agnostic. On a fixed-size panel, sized to the
+// currently-active quests by default so an enclosing gemsScroll can reveal overflow; pass
+// opts.height to fix it. Build it AFTER the quests are registered + accepted (it measures
+// the source at construction). opts.emptyText (string or () => string) shows when empty.
 globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   const tracker = new UIQuestTracker({
+    source: opts.source ?? null,
     titleFontKey: "default",
     bodyFontKey: "description",
     emptyText: opts.emptyText ?? "",
