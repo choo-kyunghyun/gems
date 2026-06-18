@@ -71,6 +71,17 @@ globalThis.DebugImGui = class DebugImGui {
 
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
+    // Drop fullscreen AA while the overlay is open: GameMaker's native ImGui draws with a
+    // single-sampled pipeline, so a multisampled (display_reset AA > 0) back buffer makes it
+    // fail with a fatal WebGPU sampleCount mismatch that breaks all rendering. Suspend to aa=0
+    // on open, restore the saved level on close. Guarded by AA > 0, so the usual AA-off path
+    // takes no display reset (no resize flicker on every F3).
+    if (Settings.get("antialias") > 0) {
+      Display.applyVideoWith(
+        DebugImGui._open ? 0 : Settings.get("antialias"),
+        Settings.get("vsync"),
+      );
+    }
     // minimised = true: open the built-in FPS window collapsed to a thin header.
     // Left expanded it covers the top-left (where our custom views sit) with its
     // graphs, occluding the label side of every row. The Perf panel already

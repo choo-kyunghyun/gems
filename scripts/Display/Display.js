@@ -69,12 +69,20 @@ globalThis.Display = class Display {
     return out;
   }
 
-  // Apply the saved vsync + fullscreen-AA settings via display_reset(aa, vsync). That call also
-  // RESETS the display to its startup state (resolution/window), so re-impose our window + fps
-  // afterwards with apply(). Called at boot and whenever the SystemMenu flips vsync/AA — not on a
-  // plain resolution/fullscreen change, since display_reset state sticks until the next call.
+  // Apply the saved vsync + fullscreen-AA settings. See applyVideoWith.
   static applyVideo() {
-    display_reset(Settings.get("antialias"), Settings.get("vsync"));
+    Display.applyVideoWith(Settings.get("antialias"), Settings.get("vsync"));
+  }
+
+  // Apply a specific vsync + fullscreen-AA via display_reset(aa, vsync). That call also RESETS
+  // the display to its startup state (resolution/window), so re-impose our window + fps afterwards
+  // with apply(). Called at boot + when the SystemMenu flips vsync/AA (via applyVideo), and with an
+  // explicit aa=0 by DebugImGui to drop MSAA while the native ImGui overlay is open — that overlay
+  // draws single-sampled, so a multisampled (AA>0) back buffer makes it fail with a fatal WebGPU
+  // sampleCount mismatch. Not called on a plain resolution/fullscreen change (display_reset state
+  // sticks until the next call).
+  static applyVideoWith(aa, vsync) {
+    display_reset(aa, vsync);
     Display.apply();
   }
 
