@@ -1,7 +1,9 @@
 // ── GemsUI kit: text / tooltip / buttons ──────────────────────
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
-// Standalone text node. Width/height auto-fit to the string (UIText).
+// Standalone text node. Width/height auto-fit to the string (UIText). `opts.font` is an I18n font
+// KEY (string, e.g. "header") — preferred: the widget re-resolves it each draw so it survives a
+// language switch — or a raw font handle (number). See the resolve-at-draw GMRT-Safe Idiom.
 globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   const el = new UIElement();
   el.addComponent(

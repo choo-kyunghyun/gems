@@ -5,7 +5,8 @@
 /**
  * @typedef {Object} UITextOpts
  * @property {() => string} [textRef] @property {number} [halign] fa_* @property {number} [color] @property {number} [alpha]
- * @property {number} [font] font handle (-1 = current) @property {number} [sep] line separation @property {number} [w] wrap width
+ * @property {number|string} [font] font handle (-1 = current), or an I18n font KEY ("header"/…)
+ * @property {number} [sep] line separation @property {number} [w] wrap width
  * @property {number} [xscale] @property {number} [yscale] @property {number} [angle]
  * @implements {UIComponent}
  */
@@ -21,8 +22,18 @@ globalThis.UIText = class UIText {
     this.alpha = text.alpha ?? 1;
     this.sep = text.sep ?? -1;
     this.w = text.w ?? -1;
+    // A handle (number, -1 = current) OR an I18n font KEY (string), resolved live in _font(). A KEY
+    // is NOT pre-resolved to a handle: I18n.load (a language switch) font_delete()s every old handle
+    // and font_add()s new ones, so a handle captured at construction dangles after a switch (renders
+    // the GM default fallback, or nothing). See the "resolve I18n.font(key) at DRAW time" idiom.
     this.font = text.font ?? -1;
     this.cache = "";
+    this.cacheFont = -1; // the resolved handle the cache was measured with (re-measure if it changes)
+  }
+
+  /** Live font handle: re-resolve an I18n key each call so it survives a locale reload. @returns {number} */
+  _font() {
+    return typeof this.font === "string" ? I18n.font(this.font) : this.font;
   }
 
   /**
@@ -32,11 +43,15 @@ globalThis.UIText = class UIText {
    */
   onUpdate(element, block) {
     const str = this.textRef();
-    if (this.cache !== str) {
+    const fnt = this._font();
+    // Re-measure on a string OR font change — a language switch swaps both (new locale string + a
+    // new font handle for the same key), and the new font may have different metrics.
+    if (this.cache !== str || this.cacheFont !== fnt) {
       this.cache = str;
+      this.cacheFont = fnt;
 
       const font = draw_get_font();
-      if (this.font !== -1) draw_set_font(this.font);
+      if (fnt !== -1) draw_set_font(fnt);
 
       const width = string_width_ext(this.cache, this.sep, this.w);
       const height = string_height_ext(this.cache, this.sep, this.w);
@@ -49,7 +64,7 @@ globalThis.UIText = class UIText {
         element.setHeight(height, flexpanel_unit.point);
       }
 
-      if (this.font !== -1) draw_set_font(font);
+      if (fnt !== -1) draw_set_font(font);
     }
     return block;
   }
@@ -63,7 +78,8 @@ globalThis.UIText = class UIText {
     let y = pos.top;
 
     const font = draw_get_font();
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = this._font();
+    if (fnt !== -1) draw_set_font(fnt);
 
     const halign = draw_get_halign();
     draw_set_halign(this.halign);
@@ -93,6 +109,6 @@ globalThis.UIText = class UIText {
     );
 
     draw_set_halign(halign);
-    if (this.font !== -1) draw_set_font(font);
+    if (fnt !== -1) draw_set_font(font);
   }
 };

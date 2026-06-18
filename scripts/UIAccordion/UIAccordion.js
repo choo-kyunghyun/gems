@@ -96,7 +96,10 @@ globalThis.UIAccordion = class UIAccordion {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    if (this.font !== -1) draw_set_font(this.font);
+    // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+    const fnt =
+      typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
 
     // Indicator: a filled triangle chevron — right when collapsed, down when expanded.

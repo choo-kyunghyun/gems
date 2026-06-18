@@ -515,7 +515,12 @@ globalThis.UITable = class UITable {
       false,
     );
 
-    if (this.headerFont !== -1) draw_set_font(this.headerFont);
+    // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+    const hf =
+      typeof this.headerFont === "string"
+        ? I18n.font(this.headerFont)
+        : this.headerFont;
+    if (hf !== -1) draw_set_font(hf);
     draw_set_valign(fa_middle);
     const cy = g.headerTop + this.headerH * 0.5;
     for (let i = 0; i < this.columns.length; i++) {
@@ -548,7 +553,9 @@ globalThis.UITable = class UITable {
     const w = pos.width - this.pad * 2;
     const bodyH = g.bodyRows * this.rowH;
 
-    if (this.font !== -1) draw_set_font(this.font);
+    // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+    const bf = typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    if (bf !== -1) draw_set_font(bf);
     draw_set_valign(fa_middle);
 
     if (this._view.length === 0 && this.emptyText !== "") {

@@ -190,7 +190,7 @@ globalThis.SystemMenu = class SystemMenu {
     });
     titleRow.insertChild(
       gemsLabel(I18n.textRef("SYS_TITLE"), {
-        font: I18n.font("header"),
+        font: "header",
         color: GemsTheme.text,
       }),
     );
@@ -442,5 +442,4 @@ globalThis.SystemMenu = class SystemMenu {
     scroll.scrollBody.insertChild(card);
     return scroll;
   }
-
 };

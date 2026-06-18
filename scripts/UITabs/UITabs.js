@@ -91,7 +91,11 @@ globalThis.UITabs = class UITabs {
     const color = draw_get_color();
     const a0 = draw_get_alpha();
 
-    if (this.font !== -1) draw_set_font(this.font);
+    // Resolve an I18n font KEY live (survives a locale reload — a cached handle would dangle); a
+    // raw handle passes through. See the resolve-at-draw GMRT-Safe Idiom.
+    const fnt =
+      typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 

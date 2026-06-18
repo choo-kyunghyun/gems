@@ -195,7 +195,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
         VirtualKeyboard.type(
           isLetter && VirtualKeyboard._shift ? VirtualKeyboard._upper(ch) : ch,
         ),
-      { width: 46, height: 46, font: I18n.font("header") },
+      { width: 46, height: 46, font: "header" },
     );
   }
 };

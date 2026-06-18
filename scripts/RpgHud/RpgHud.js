@@ -28,7 +28,7 @@ globalThis.RpgHud = {
           const hp = hpC !== undefined ? hpC.hp : 0;
           return I18n.text("RPG_HUD", st.level, hp, st.maxHp);
         },
-        { color: GemsTheme.text, font: I18n.font("header") },
+        { color: GemsTheme.text, font: "header" },
       ),
     );
     card.insertChild(hpRow);
@@ -103,7 +103,7 @@ globalThis.RpgHud = {
     name.insertChild(
       gemsLabel(() => I18n.text(scene.dialogueName), {
         color: "#ffd166",
-        font: I18n.font("header"),
+        font: "header",
       }),
     );
     const line = new UIElement({ width: "100%", height: 26 });

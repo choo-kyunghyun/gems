@@ -99,7 +99,7 @@ globalThis.gemsSlider = function gemsSlider(
       // Always-visible value readout (opts.format customizes it, e.g. a percentage).
       format: opts.format,
       valueColor: gemsColor(opts.valueColor ?? GemsTheme.text),
-      font: I18n.font("default"),
+      font: "default",
       track: {
         color: gemsColor(GemsTheme.btnPress),
         border: 1,
@@ -477,7 +477,7 @@ globalThis.gemsTable = function gemsTable(columns, opts = {}) {
       onActivate: opts.onActivate,
       emptyText: opts.emptyText ?? "",
       font: opts.font ?? -1,
-      headerFont: opts.headerFont ?? I18n.font("default"),
+      headerFont: opts.headerFont ?? "default",
       colorText: gemsColor(GemsTheme.text),
       colorMuted: gemsColor(GemsTheme.textMuted),
       colorHeader: gemsColor(GemsTheme.textMuted),

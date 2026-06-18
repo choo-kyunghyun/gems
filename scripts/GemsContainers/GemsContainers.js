@@ -192,7 +192,7 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   if (opts.title != null) {
     card.insertChild(
       gemsLabel(opts.title, {
-        font: I18n.font("header"),
+        font: "header",
         color: GemsTheme.text,
       }),
     );
@@ -286,7 +286,7 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   bar.addComponent(new UIDrag({ target: wrap }));
   const labelCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
   labelCell.insertChild(
-    gemsLabel(title, { color: GemsTheme.text, font: I18n.font("header") }),
+    gemsLabel(title, { color: GemsTheme.text, font: "header" }),
   );
   bar.insertChild(labelCell);
   if (opts.onClose != null) {
@@ -362,7 +362,7 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
     tabs: items,
     index: opts.index ?? 0,
     onChange: opts.onChange,
-    font: opts.font ?? I18n.font("header"),
+    font: opts.font ?? "header",
     color: gemsColor(GemsTheme.text),
     colorIdle: gemsColor(GemsTheme.textMuted),
     colorHover: gemsColor(GemsTheme.text),
@@ -403,7 +403,7 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
       title: s.title,
       expanded: s.open ?? false,
       onToggle: opts.onToggle,
-      font: opts.font ?? I18n.font("header"),
+      font: opts.font ?? "header",
       rad: GemsTheme.radiusSm,
       titleColor: gemsColor(GemsTheme.text),
       headerColor: gemsColor(GemsTheme.btn),
@@ -536,7 +536,7 @@ globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0, height: "100%" });
     cell.insertChild(
       gemsButton(categories[c].label, () => toggle(ci), {
-        font: opts.font ?? I18n.font("header"),
+        font: opts.font ?? "header",
         selected: () => state.open === ci,
       }),
     );

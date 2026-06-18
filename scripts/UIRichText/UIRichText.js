@@ -48,8 +48,11 @@ globalThis.UIRichText = class UIRichText {
     if (this.cache !== str) {
       this.cache = str;
 
+      // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+      const fnt =
+        typeof this.font === "string" ? I18n.font(this.font) : this.font;
       const font0 = draw_get_font();
-      if (this.font !== -1) draw_set_font(this.font);
+      if (fnt !== -1) draw_set_font(fnt);
 
       this._parse(str);
       this._measure();
@@ -62,7 +65,7 @@ globalThis.UIRichText = class UIRichText {
         element.setHeight(this._height, flexpanel_unit.point);
       }
 
-      if (this.font !== -1) draw_set_font(font0);
+      if (fnt !== -1) draw_set_font(font0);
     }
     return block;
   }
@@ -71,8 +74,10 @@ globalThis.UIRichText = class UIRichText {
   onDraw(element) {
     const pos = element.getLayoutPosition();
 
+    const fnt =
+      typeof this.font === "string" ? I18n.font(this.font) : this.font;
     const font0 = draw_get_font();
-    if (this.font !== -1) draw_set_font(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     const halign0 = draw_get_halign();
     const valign0 = draw_get_valign();
     const color0 = draw_get_color();
@@ -119,7 +124,7 @@ globalThis.UIRichText = class UIRichText {
     draw_set_valign(valign0);
     draw_set_color(color0);
     draw_set_alpha(alpha0);
-    if (this.font !== -1) draw_set_font(font0);
+    if (fnt !== -1) draw_set_font(font0);
   }
 
   // Left edge of `line` so the widest line sits flush and shorter lines align within

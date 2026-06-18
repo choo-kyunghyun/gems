@@ -300,7 +300,7 @@ class _SceneEditorClass extends Scene {
     // Level section — current size + create a fresh blank level at a chosen preset size.
     labelRow(
       () => I18n.text("EDITOR_SIZE", this.level.cols, this.level.rows),
-      { color: GemsTheme.textMuted, font: I18n.font("header") },
+      { color: GemsTheme.textMuted, font: "header" },
       26,
     );
     // UISelect renders item.name (a { name, value } shape), not a bare string.
@@ -554,7 +554,7 @@ class _SceneEditorClass extends Scene {
     title.insertChild(
       gemsLabel(I18n.textRef("EDITOR_PROPS"), {
         color: GemsTheme.textMuted,
-        font: I18n.font("header"),
+        font: "header",
       }),
     );
     card.insertChild(title);

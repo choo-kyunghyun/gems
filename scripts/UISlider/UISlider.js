@@ -214,14 +214,28 @@ globalThis.UISlider = class UISlider {
       const ph = draw_get_halign();
       const pv = draw_get_valign();
       const pf = draw_get_font();
-      if (this.valueFont !== -1) draw_set_font(this.valueFont);
+      // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+      const vf =
+        typeof this.valueFont === "string"
+          ? I18n.font(this.valueFont)
+          : this.valueFont;
+      if (vf !== -1) draw_set_font(vf);
       draw_set_halign(fa_right);
       draw_set_valign(fa_middle);
       const c = this.valueColor;
-      draw_text_color(pos.left + pos.width, m.cy, this._valueText(), c, c, c, c, 1);
+      draw_text_color(
+        pos.left + pos.width,
+        m.cy,
+        this._valueText(),
+        c,
+        c,
+        c,
+        c,
+        1,
+      );
       draw_set_halign(ph);
       draw_set_valign(pv);
-      if (this.valueFont !== -1) draw_set_font(pf);
+      if (vf !== -1) draw_set_font(pf);
     }
 
     draw_set_alpha(a0);
