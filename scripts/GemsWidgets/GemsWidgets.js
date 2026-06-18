@@ -127,6 +127,50 @@ globalThis.gemsHint = function gemsHint(label, opts = {}) {
   return card;
 };
 
+// Live, context-aware key-bind hint bar — replaces a hardcoded "WASD: Move · …" string.
+// `entries` is an array of { label, contexts?, actions? | text? }:
+//   • label    i18n key (string) or () => string — the action's human name.
+//   • actions  action keys (Input.get) whose CURRENT bindings are shown, joined; reads them
+//              LIVE each frame, so a remap updates the hint with zero extra wiring. Joined with
+//              "" when every key is one glyph (→ "WASD") else "/" (→ "Up/Left/Down/Right").
+//   • text     a literal key label for a non-rebindable key (e.g. "LMB"/"Esc"); use instead of
+//              `actions` for raw mouse/Esc hints that aren't InputActions.
+//   • contexts string[] of InputContext names this entry shows in (omit = always). The bar
+//              re-filters each frame, so it tracks the active context (play / build / window).
+// Built on gemsLabel with a live composer, so it self-sizes and survives a language switch.
+globalThis.gemsKeyHints = function gemsKeyHints(entries, opts = {}) {
+  const sep = opts.separator ?? "   ·   ";
+  const compose = () => {
+    const parts = [];
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      if (e.contexts !== undefined && !InputContext.allows(e.contexts))
+        continue;
+      let keys = e.text;
+      if (keys === undefined) {
+        const labels = [];
+        let allSingle = true;
+        for (let k = 0; k < e.actions.length; k++) {
+          const a = Input.get(e.actions[k]);
+          const l = a !== undefined ? a.label() : "—";
+          labels.push(l);
+          if (l.length !== 1) allSingle = false;
+        }
+        keys = labels.join(allSingle ? "" : "/");
+      }
+      const name =
+        typeof e.label === "function" ? e.label() : I18n.text(e.label);
+      parts.push(keys + ": " + name);
+    }
+    return parts.join(sep);
+  };
+  return gemsLabel(compose, {
+    color: opts.color ?? GemsTheme.textMuted,
+    halign: opts.halign,
+    font: opts.font,
+  });
+};
+
 // Attach a hover tooltip to any element and return it (chainable). `label` is a
 // string or () => string (live I18n.textRef). Added at index 0 so a sibling
 // interactive component (e.g. the UIButton this describes) setting `block` while

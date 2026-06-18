@@ -54,8 +54,48 @@ class _SceneRpgClass extends Scene {
       { tag: "portal", color: Color.parse("#9b8cff") },
       { tag: "follower", color: Color.parse("#6fd0a0") },
     ];
+    // Context-aware, binding-driven key hints (the bar reads each action's CURRENT binding
+    // live, so it's ready for key remapping — a rebind updates the hint with no extra wiring).
+    // `contexts` gates each entry to the matching InputContext (play / build / window), so the
+    // bar swaps its hints as the scene changes context. `text` entries are non-rebindable keys
+    // (raw build-mode mouse, Esc-to-close).
     this.ui.insertChild(
-      gemsLabel(I18n.textRef("RPG_HINT"), { color: "#888888" }),
+      gemsKeyHints(
+        [
+          {
+            actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
+            label: "RPG_HINT_MOVE",
+            contexts: ["play", "build", "window"],
+          },
+          {
+            actions: ["sprint"],
+            label: "RPG_HINT_SPRINT",
+            contexts: ["play", "build"],
+          },
+          { actions: ["fire"], label: "RPG_HINT_ATTACK", contexts: ["play"] },
+          { text: "LMB", label: "RPG_HINT_PLACE", contexts: ["build"] },
+          { text: "RMB", label: "RPG_HINT_REMOVE", contexts: ["build"] },
+          {
+            actions: ["inventory"],
+            label: "RPG_HINT_BAG",
+            contexts: ["play", "build"],
+          },
+          { actions: ["interact"], label: "RPG_HINT_TALK", contexts: ["play"] },
+          { actions: ["build"], label: "RPG_HINT_BUILD", contexts: ["play"] },
+          {
+            actions: ["build"],
+            label: "RPG_HINT_EXIT_BUILD",
+            contexts: ["build"],
+          },
+          {
+            actions: ["follow"],
+            label: "RPG_HINT_COMPANION",
+            contexts: ["play", "build"],
+          },
+          { text: "Esc", label: "RPG_HINT_CLOSE", contexts: ["window"] },
+        ],
+        { color: "#888888" },
+      ),
     );
     RpgHud.build(this); // top-right HP/quest card + bottom-center dialogue box
     RpgInventoryUI.build(this);

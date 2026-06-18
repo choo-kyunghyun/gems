@@ -1,6 +1,16 @@
 {
   "RPG_NAME": "Top-Down RPG",
-  "RPG_HINT": "WASD: Move · Shift: Sprint · LMB: Attack · I: Bag · E: Talk · B: Build · F: Companion",
+  "RPG_HINT_MOVE": "Move",
+  "RPG_HINT_SPRINT": "Sprint",
+  "RPG_HINT_ATTACK": "Attack",
+  "RPG_HINT_BAG": "Bag",
+  "RPG_HINT_TALK": "Talk",
+  "RPG_HINT_BUILD": "Build",
+  "RPG_HINT_COMPANION": "Companion",
+  "RPG_HINT_PLACE": "Place",
+  "RPG_HINT_REMOVE": "Remove",
+  "RPG_HINT_EXIT_BUILD": "Exit Build",
+  "RPG_HINT_CLOSE": "Close",
 
   "EDITOR_NAME": "Level Editor",
   "EDITOR_HINT": "LMB paint · RMB erase · MMB drag pan · Wheel zoom",

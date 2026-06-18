@@ -6,8 +6,8 @@
  * Input / InputAction (`bindButton`), mutating the action in place so every consumer
  * (`Input.get(key).down()/pressed()`) picks up the new key immediately.
  *
- * Keyboard only (the common case); a mouse/gamepad binding is shown read-only as
- * "Mouse N" / "Pad N". The element carries a UIPanel for its background (built by
+ * Keyboard only (the common case); a mouse/gamepad binding is shown read-only via the
+ * shared InputAction.label() ("LMB" / "Pad N"). The element carries a UIPanel for its background (built by
  * gemsRebind); this component draws the label + a capture-state accent outline and
  * owns the click/capture logic.
  *
@@ -126,15 +126,11 @@ globalThis.UIRebind = class UIRebind {
   }
 
   // Current binding as a display string (reads the action live, so a rebind updates
-  // the label without any extra wiring).
+  // the label without any extra wiring). The binding → text mapping lives on
+  // InputAction/InputButton so the rebind row and the key-hint bar stay in sync.
   _label() {
     const action = Input.get(this.actionKey);
-    if (!action || action.buttons.length === 0) return "—";
-    const b = action.buttons[0];
-    if (b.source === INPUT_SOURCE.KEYBOARD) return this._keyName(b.button);
-    if (b.source === INPUT_SOURCE.MOUSE) return "Mouse " + b.button;
-    if (b.source === INPUT_SOURCE.GAMEPAD) return "Pad " + b.button;
-    return "—";
+    return action ? action.label() : "—";
   }
 
   // The keycode in its pressed-edge this frame (0 = none). Skips vk_nokey (0) and
@@ -156,26 +152,5 @@ globalThis.UIRebind = class UIRebind {
     if (action.buttons.length > 0) action.buttons[0] = btn;
     else action.buttons.push(btn);
     this.onRebind(code);
-  }
-
-  _keyName(code) {
-    if (code === 0) return "—";
-    if (code === vk_space) return "Space";
-    if (code === vk_enter) return "Enter";
-    if (code === vk_escape) return "Esc";
-    if (code === vk_shift) return "Shift";
-    if (code === vk_control) return "Ctrl";
-    if (code === vk_alt) return "Alt";
-    if (code === vk_tab) return "Tab";
-    if (code === vk_backspace) return "Bksp";
-    if (code === vk_left) return "Left";
-    if (code === vk_right) return "Right";
-    if (code === vk_up) return "Up";
-    if (code === vk_down) return "Down";
-    if (code >= vk_f1 && code <= vk_f12) return "F" + (code - vk_f1 + 1);
-    // Letters (A–Z) and digits (0–9) map straight to their character.
-    if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90))
-      return chr(code);
-    return string(code);
   }
 };

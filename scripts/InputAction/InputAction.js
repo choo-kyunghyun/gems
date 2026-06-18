@@ -77,6 +77,13 @@ globalThis.InputAction = class InputAction {
     return this;
   }
 
+  // Display label for the PRIMARY (first) button binding — what the rebind row and the
+  // key-hint bar show. Reads live, so a rebind updates every consumer with no extra wiring.
+  /** @returns {string} e.g. "W" / "Shift" / "LMB", or "—" when unbound. */
+  label() {
+    return this.buttons.length > 0 ? this.buttons[0].label() : "—";
+  }
+
   /** @param {InputButton} button @returns {boolean} True if it was bound and removed. */
   unbindButton(button) {
     const index = this.buttons.indexOf(button);
