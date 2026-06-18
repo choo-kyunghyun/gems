@@ -15,7 +15,7 @@
       "sdf_spread": 4
     },
     "header": {
-      "path": "fonts/Noto_Sans/static/NotoSans-Bold.ttf",
+      "path": "fonts/Noto_Sans/static/NotoSans-Medium.ttf",
       "size": 20,
       "bold": false,
       "italic": false,
