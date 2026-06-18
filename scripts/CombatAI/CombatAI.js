@@ -31,7 +31,6 @@ globalThis.Brain = "Brain";
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
  * @property {number} deAggro     distance at which a chasing (mobile) actor gives up
  * @property {number} attackRange distance at which it stops to attack (= fire range when ranged)
- * @property {number} damage      hp removed per hit (before the target's defense)
  * @property {number} speed       chase/return move speed (px/s); 0 for a stationary actor
  * @property {number} cdMax       ticks between attacks
  * @property {number} cd          attack cooldown countdown
@@ -51,7 +50,8 @@ globalThis.CombatAI = {
 
   // Attach the AI to an entity. `opt` overrides the Brain defaults; the defaults describe a
   // mobile melee slime, so a slime calls attach(world, id, level) bare and a turret passes
-  // { mobile:false, ranged:true, attackRange, cdMax, damage, bulletSpeed, aggro, deAggro }.
+  // { mobile:false, ranged:true, attackRange, cdMax, bulletSpeed, aggro, deAggro }. (Damage is NOT
+  // here — it's the actor's Stats.attack now; see _attackPower.)
   attach(world, id, level, opt = {}) {
     this._world = world;
     this._level = level;
@@ -65,7 +65,6 @@ globalThis.CombatAI = {
       aggro: opt.aggro ?? 160,
       deAggro: opt.deAggro ?? 240,
       attackRange: opt.attackRange ?? 30,
-      damage: opt.damage ?? 1,
       speed: opt.speed ?? 90,
       cdMax: opt.cdMax ?? 45,
       cd: 0,
@@ -256,7 +255,7 @@ globalThis.CombatAI = {
       if (brain.cd > 0) brain.cd--;
       if (brain.cd <= 0) {
         if (brain.ranged) CombatAI._fireAt(id, brain);
-        else CombatAI._hitTarget(id, brain.damage);
+        else CombatAI._hitTarget(id);
         brain.cd = brain.cdMax;
       }
 
@@ -267,16 +266,21 @@ globalThis.CombatAI = {
     },
   },
 
-  // Apply one MELEE attack to the actor's target, mitigated by the target's defense (min 1).
-  _hitTarget(id, damage) {
+  // Outgoing damage for a non-player attacker: its Stats.attack (a monster has no weapon — its body
+  // IS the weapon, so the whole hit is the sheet stat), 0 if it somehow carries no Stats. Mirrors
+  // the player's `weapon.damage + Stats.attack` with a zero weapon.
+  _attackPower(id) {
+    const stats = this._world.get(Stats, id);
+    return stats !== undefined ? stats.attack : 0;
+  },
+
+  // Apply one MELEE attack to the actor's target through the shared Combat applier (defense + floor
+  // via the injected mitigate hook). Damage is the attacker's Stats.attack (was brain.damage).
+  _hitTarget(id) {
     const w = this._world;
     const t = w.get(Brain, id).target;
     if (!w.isValid(t)) return;
-    const hp = w.get(Health, t);
-    if (hp === undefined) return;
-    const stats = w.get(Stats, t);
-    const def = stats !== undefined ? stats.defense : 0;
-    hp.hp -= Math.max(1, damage - def);
+    Combat.applyDamage(w, t, CombatAI._attackPower(id));
   },
 
   // Fire a bullet from a stationary RANGED actor (turret) at its Brain.target, reusing the shared
@@ -305,6 +309,6 @@ globalThis.CombatAI = {
     vel.y = (dy / d) * brain.bulletSpeed;
     const proj = w.get(Projectile, bid);
     proj.owner = id; // raycast ignores the shooter + ally check spares player-faction bodies
-    proj.damage = brain.damage;
+    proj.damage = CombatAI._attackPower(id); // stat-driven (was brain.damage)
   },
 };

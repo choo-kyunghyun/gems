@@ -38,7 +38,7 @@ globalThis.ProjectileSystem = {
         hp !== undefined &&
         !FactionSystem.allied(world, proj.owner, hit.id)
       ) {
-        hp.hp -= proj.damage;
+        Combat.applyDamage(world, hit.id, proj.damage); // mitigated by the injected hook
       }
       world.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
     }

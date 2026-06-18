@@ -99,6 +99,7 @@
     {"id":{"name":"CollectibleSystem","path":"scripts/CollectibleSystem/CollectibleSystem.yy",},},
     {"id":{"name":"Collision","path":"scripts/Collision/Collision.yy",},},
     {"id":{"name":"Color","path":"scripts/Color/Color.yy",},},
+    {"id":{"name":"Combat","path":"scripts/Combat/Combat.yy",},},
     {"id":{"name":"CombatAI","path":"scripts/CombatAI/CombatAI.yy",},},
     {"id":{"name":"Consumable","path":"scripts/Consumable/Consumable.yy",},},
     {"id":{"name":"ConsumableSystem","path":"scripts/ConsumableSystem/ConsumableSystem.yy",},},

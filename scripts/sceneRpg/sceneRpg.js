@@ -21,6 +21,15 @@ class _SceneRpgClass extends Scene {
     QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
+    // Combat policy: inject the RPG's stat-driven mitigation into the kit's stat-agnostic Combat
+    // applier (default is identity). Every damage path (MeleeSystem/ProjectileSystem/CombatAI) folds
+    // in the target's defense + a min-1 floor through this; the attack side (weapon + Stats.attack)
+    // is composed by the callers. Set once per scene — survives map reloads (a static hook).
+    Combat.mitigate = function (world, targetId, amount) {
+      const s = world.get(Stats, targetId);
+      return Math.max(1, amount - (s !== undefined ? s.defense : 0));
+    };
+
     // ── Map-state cache: mapId → { level: Level.export(), built } of a persistent map's
     //    player edits, saved on leave + restored on revisit by RpgMap.load. In-memory for the
     //    play session (a future save would serialize this alongside the character sheet). ──

@@ -86,6 +86,18 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: s.hp ?? 3 });
+      // Stat sheet — a slime's damage + toughness are Stats-driven like every combatant now (attack
+      // was the old Brain.damage). maxHp mirrors hp; level/xp/stamina are vestigial for a monster.
+      world.add(id, Stats, {
+        level: 1,
+        xp: 0,
+        xpNext: 0,
+        maxHp: s.hp ?? 3,
+        maxStamina: 0,
+        attack: 1,
+        defense: 0,
+        speed: 90,
+      });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
       world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
@@ -198,6 +210,17 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: 8 });
+      // Stat sheet — the turret's shot damage is Stats.attack now (was the Turret/Brain damage).
+      world.add(id, Stats, {
+        level: 1,
+        xp: 0,
+        xpNext: 0,
+        maxHp: 8,
+        maxStamina: 0,
+        attack: 2,
+        defense: 0,
+        speed: 0,
+      });
       world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for slimes
       world.add(id, Name, { name: s.label ?? "Turret" });
       world.add(
@@ -216,7 +239,6 @@ globalThis.RpgSpawn = {
         deAggro: 220,
         attackRange: 220,
         cdMax: 30,
-        damage: 2,
         bulletSpeed: 380,
         speed: 0,
       });
@@ -275,6 +297,18 @@ globalThis.RpgSpawn = {
     // after Mortal.recoverSecs, revives at the recovery spot (claimed build zone / spawn) — see
     // RpgScene.resolveHealth/_goDown/updateDowned. Not removed like an enemy.
     world.add(id, Health, { hp: opt.hp ?? 6 });
+    // Stat sheet — a companion is a combatant (slimes attack it; it may fight later), so it carries
+    // defense (mitigation) + an attack stat like every other actor.
+    world.add(id, Stats, {
+      level: 1,
+      xp: 0,
+      xpNext: 0,
+      maxHp: opt.hp ?? 6,
+      maxStamina: 0,
+      attack: 1,
+      defense: 0,
+      speed: opt.speed ?? 260,
+    });
     world.add(id, Mortal, {
       kind: "down",
       recoverSecs: opt.recoverSecs ?? 6,

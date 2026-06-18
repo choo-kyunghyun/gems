@@ -43,8 +43,9 @@ globalThis.MeleeSystem = {
       if (FactionSystem.allied(world, attackerId, id)) continue; // no friendly fire
       const e = AABB.of(world, id);
       if (!AABB.overlap(box, e)) continue;
-      const hp = world.get(Health, id);
-      hp.hp -= damage; // only subtract — the death reaction is decided centrally (see below)
+      // Mitigated + subtracted by the shared Combat applier (defense/floor via the injected hook);
+      // only subtracts hp — the death reaction is decided centrally (see below).
+      Combat.applyDamage(world, id, damage);
       hits.push(id);
     }
     return hits;

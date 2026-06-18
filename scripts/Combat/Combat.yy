@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Combat",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Combat",
+  "parent":{
+    "name":"Combat",
+    "path":"folders/Gameplay/Combat.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Combat.js",
+}
