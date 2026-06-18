@@ -3,7 +3,7 @@
 // glance. A generic Core pass: it knows nothing about specific components; the scene supplies a
 // list of { component, field, color } specs, and for every entity carrying `component` it draws a
 // ring of radius `entity[component][field]` around the (interpolated) Position. The RPG scene
-// configures it with Turret/Brain (see RpgMap); other genres can reuse it with their own ranges.
+// configures it with Brain ranges (see RpgMap); other genres can reuse it with their own ranges.
 //
 // Inserted disabled and toggled live via the Debug "Render" panel (DebugRender), like the other
 // debug overlays. Rings interpolate via PrevPosition + world.alpha so they track the drawn boxes.

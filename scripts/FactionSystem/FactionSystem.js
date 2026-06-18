@@ -10,7 +10,7 @@
 //     nearestHostile — the glue AI and combat actually call.
 //
 // Register the roster once at content setup (RpgContent.register). Wiring:
-//   - SlimeAI acquires a target via nearestHostile (no hardcoded player id anymore).
+//   - CombatAI acquires a target via nearestHostile (no hardcoded player id anymore).
 //   - MeleeSystem / ProjectileSystem skip ALLIED targets (no friendly fire); neutral + hostile
 //     are still hit, so the change is a no-op until allied combatants exist.
 //
@@ -118,7 +118,7 @@ globalThis.FactionSystem = {
    * Nearest entity HOSTILE to `id`'s faction within `range` px of (x, y), or -1. Skips self and
    * any entity without a faction. `opt.needsHealth` (default true) restricts candidates to
    * attackable bodies, so AI targets combatants — not props/portals. The aggro acquisition for
-   * SlimeAI; the seam for any "who do I fight?" query.
+   * CombatAI; the seam for any "who do I fight?" query.
    */
   nearestHostile(world, id, x, y, range, opt = {}) {
     const fa = this.factionOf(world, id);

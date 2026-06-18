@@ -2,7 +2,7 @@
 // tick — full speed beyond `range`, easing to a stop over the last stretch so it settles
 // against the player's body instead of jittering. A "wait"-state follower holds still. This
 // only sets Velocity; SolidSystem integrates it and collides the follower against walls — so
-// it's a stateless query system run per tick from the scene's step(), like MeleeSystem/SlimeAI.
+// it's a stateless query system run per tick from the scene's step(), like MeleeSystem/CombatAI.
 //
 // The player id is passed in (not stored on the follower), so after a map change the system
 // just receives the new player id — no entity-reference re-link on migration.

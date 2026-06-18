@@ -187,7 +187,7 @@ globalThis.ChunkManager = class ChunkManager {
       if (cached !== undefined) {
         rec.snapshots = cached;
       } else {
-        // Fresh content: spawn (also sets SlimeAI's shared world/target statics), then capture
+        // Fresh content: spawn (also sets CombatAI's shared world/target statics), then capture
         // + remove so the freeze ring stays out of the World.
         this._spawnAll(rec, gen.spawns);
         this._captureAll(rec);

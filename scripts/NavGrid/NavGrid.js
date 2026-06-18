@@ -13,7 +13,7 @@
 //
 // Coordinates: all of inBounds/get/toIndex/toPosition speak ABSOLUTE level cells (same space as
 // level.worldToGrid / gridToWorld). Internally that maps to a local [0,cols)x[0,rows) buffer via the
-// window origin, so paths come back in absolute cells (RenderDebugPath / SlimeAI convert straight
+// window origin, so paths come back in absolute cells (RenderDebugPath / CombatAI convert straight
 // through level.gridToWorld). MotionPlanner is unchanged.
 //
 // GMRT-safe: for-of over the world.query ARRAY is fine (only Map/Set iterators break); class on

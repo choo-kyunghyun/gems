@@ -11,7 +11,7 @@
 //   chest    capacity items:[{itemId,qty}]
 //   prop     label color(#hex) kind?   (kind → Station, else decorative furniture)
 //   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
-//   turret   label? color(#hex)?        (auto-firing defense — solid post; Health + Faction "player" + Turret)
+//   turret   label? color(#hex)?        (auto-firing defense — immovable Health + Faction "player" actor; stationary ranged CombatAI)
 //   reach    half?                      (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.load; non-solid sensor)
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
@@ -77,7 +77,7 @@ globalThis.RpgSpawn = {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
-      // Dynamic (non-kinematic) so SolidSystem integrates the velocity SlimeAI sets
+      // Dynamic (non-kinematic) so SolidSystem integrates the velocity CombatAI sets
       // and collides it against the kinematic walls.
       world.add(id, Collision, {
         solid: true,
@@ -88,7 +88,7 @@ globalThis.RpgSpawn = {
       world.add(id, Health, { hp: s.hp ?? 3 });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
       world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
-      world.add(id, Faction, { id: "monster" }); // hostile to "player" → SlimeAI aggro target
+      world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Slime" });
       // Loot table — no maxWeight (loot is authored, never weight-gated).
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
@@ -97,7 +97,7 @@ globalThis.RpgSpawn = {
         Visual,
         RpgSpawn._visual(spr_choo, make_colour_rgb(120, 220, 130)),
       );
-      SlimeAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
+      CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "npc") {
@@ -183,10 +183,11 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "turret") {
-      // Auto-firing defense post. A solid kinematic structure that carries Health + the player
-      // faction (so slimes target & damage it — two-sided combat) and a Turret profile that
-      // TurretSystem reads to shoot the nearest hostile. Built-only today (BuildMode "Defense");
-      // all components round-trip through map persistence like any built entity.
+      // Auto-firing defense post: an immovable, player-faction ACTOR — a stationary ranged
+      // CombatAI (mobile:false, ranged:true), no dedicated component. It carries Health + the
+      // player faction (so slimes target & damage it — two-sided combat); CombatAI reads its Brain
+      // to shoot the nearest hostile. Built-only today (BuildMode "Defense"); all components
+      // round-trip through map persistence like any built entity.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
@@ -198,13 +199,6 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Health, { hp: 8 });
       world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for slimes
-      world.add(id, Turret, {
-        range: 220,
-        fireCd: 30,
-        cd: 0,
-        damage: 2,
-        bulletSpeed: 380,
-      });
       world.add(id, Name, { name: s.label ?? "Turret" });
       world.add(
         id,
@@ -212,6 +206,20 @@ globalThis.RpgSpawn = {
         RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#6c7a89")),
       );
       world.add(id, Tag, { tags: new Set(["turret"]) });
+      // Stationary ranged brain: aggro == fire range, so it acquires the nearest hostile in range
+      // and fires the shared "bullet" through ProjectileSystem (see CombatAI._fireAt). No dedicated
+      // Turret component — a turret is just an immovable, player-faction CombatAI actor.
+      CombatAI.attach(world, id, level, {
+        mobile: false,
+        ranged: true,
+        aggro: 220,
+        deAggro: 220,
+        attackRange: 220,
+        cdMax: 30,
+        damage: 2,
+        bulletSpeed: 380,
+        speed: 0,
+      });
       return id;
     } else if (s.preset === "portal") {
       // A doorway: a non-solid sensor entity the player walks onto to travel to another

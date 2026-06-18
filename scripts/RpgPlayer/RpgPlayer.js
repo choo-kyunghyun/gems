@@ -1,13 +1,13 @@
 // Player setup for the RPG genre (RpgController). Builds the player entity
 // (Health/Stats/Inventory/Equipment/Encumbrance/Visual + the core transform/collision) and
-// owns the cursor-aimed bullet preset (also reused by TurretSystem). The controller calls
+// owns the cursor-aimed bullet preset (also reused by CombatAI's ranged attack — turrets). The controller calls
 // spawn(), then adds its genre-only Animator and builds its own ctrl bag.
 globalThis.RpgPlayer = {
   // Create the player entity and return its id. `opts` carries the caller-supplied fields:
   // bbox (collision box), dir (initial facing), speed (Stats.speed).
   spawn(world, spawn, opts) {
     // "bullet" preset for fireBullet (registered here since RpgPlayer owns firing; also
-    // reused by TurretSystem). solid:false keeps it from being an obstacle, and NO BBox
+    // reused by CombatAI._fireAt for turrets). solid:false keeps it from being an obstacle, and NO BBox
     // keeps it off Raycast's target list (it can't self-hit at t=0, and the per-tick segment
     // cast still finds enemies); Lifetime bounds the range. kinematic makes GravitySystem
     // skip it — inert in the RPG (no gravity), but keeps the preset gravity-safe.

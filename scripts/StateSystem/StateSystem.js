@@ -8,7 +8,7 @@
 /**
  * Per-entity state machine over the `State` component. `change` queues a
  * transition; `update` applies queued transitions (firing finish→enter) then runs
- * the current state's update. Drives SlimeAI's Idle→Chase→Attack and other
+ * the current state's update. Drives CombatAI's Idle→Chase→Attack and other
  * Brain-based actors.
  */
 globalThis.StateSystem = {

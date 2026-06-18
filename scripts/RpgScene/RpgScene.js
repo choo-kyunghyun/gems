@@ -10,7 +10,7 @@
 //
 // Death is configured PER ENTITY by an opt-in `Mortal` component (kind despawn/respawn/down),
 // resolved in ONE place — resolveHealth (the instant reaction) + updateDowned (the down-timer).
-// The damage systems (MeleeSystem/ProjectileSystem/SlimeAI) only subtract hp; this is the single
+// The damage systems (MeleeSystem/ProjectileSystem/CombatAI) only subtract hp; this is the single
 // authority that removes / respawns / incapacitates, so each preset's reaction is its `Mortal`.
 globalThis.RpgScene = {
   // Live enemy set: entities carrying Health + Tag "enemy". (Set.has is GMRT-safe; only

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"TurretSystem",
+  "%Name":"CombatAI",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"TurretSystem",
+  "name":"CombatAI",
   "parent":{
     "name":"System",
     "path":"folders/Demo/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"TurretSystem.js",
+  "scriptSource":"CombatAI.js",
 }
