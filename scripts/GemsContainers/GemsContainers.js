@@ -124,11 +124,19 @@ globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
 // `opts.height` fixes the viewport; `opts.grow` instead lets it flex-fill the space
 // between siblings (e.g. a menu body between a header and a back button).
 globalThis.gemsScroll = function gemsScroll(opts = {}) {
+  // Reserve the scrollbar gutter as the body's right padding so right-aligned children (slider
+  // value readouts, dropdown chevrons) lay out LEFT of the bar instead of being clipped under it:
+  // the viewport's clip drops this same gutter from the content area (UIScroll.clipInsetRight),
+  // but the body otherwise fills the full viewport width, so without the inset its right edge gets
+  // shaved when the scrollbar is present (worsening with uiScale, as the clip scales by window/gui).
+  // Must mirror UIScroll's clipInsetRight = barW + barPad*2 (barPad defaults to 4 there).
+  const gutter = (opts.barW ?? 8) + 8;
   const body = new UIElement({
     width: "100%",
     flexShrink: 0, // keep natural (tall) height so it can overflow
     gap: opts.gap ?? GemsTheme.gapSm,
     padding: opts.padding ?? 0,
+    paddingRight: Math.max(opts.padding ?? 0, gutter),
   });
   const viewport = new UIElement(
     opts.grow
