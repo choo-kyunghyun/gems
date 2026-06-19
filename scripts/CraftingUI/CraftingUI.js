@@ -17,6 +17,7 @@
 // Scene contract: scene.world, scene.ctrl.id (player), scene.ui.
 globalThis.CraftingUI = {
   WRAP: 320, // description wrap width (px) — fits the fixed-size detail column
+  LIST_H: 500, // recipe-list / panel height (px) — fits ~12 rows without a scroll (see build)
 
   build(scene) {
     scene._craftOpen = false;
@@ -34,17 +35,18 @@ globalThis.CraftingUI = {
 
     const row = new UIElement({
       width: "100%",
-      height: 340,
+      height: CraftingUI.LIST_H,
       flexShrink: 0,
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
 
-    // Left: the recipe picker. A PLAIN column, not a gemsScroll — a clipping scroll here
-    // left the (non-clipped) detail sibling drawn after it with an unflushed vertex batch,
-    // rendering nothing (a GMRT clip/batch quirk; making the detail clip too didn't help).
-    // The recipe set is small (fits the 340px column), so no scroll is needed; revisit if a
-    // station ever registers more recipes than fit.
+    // Left: the recipe picker. A PLAIN column, NOT a gemsScroll — a clipping scroll here breaks
+    // rendering in this master-detail row: the non-clipped detail sibling drawn after the clip
+    // renders nothing AND GMRT logs an "Invalid CommandBuffer" (re-tested 2026-06 — the
+    // draw_flush() in UIElement._drawClipped, which fixes long-list/nested scrolls, does NOT cover
+    // this clipped-sibling-in-a-row topology). So the column is sized to fit the recipes instead:
+    // LIST_H holds ~12 rows (row 32px + gapSm 10px). Bump LIST_H if a station registers more.
     const left = new UIElement({
       width: 210,
       height: "100%",
