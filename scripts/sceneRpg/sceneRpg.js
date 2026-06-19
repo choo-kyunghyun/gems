@@ -728,6 +728,10 @@ class _SceneRpgClass extends Scene {
       Time.scale = 1;
       return true;
     }
+    if (this._storeQtyModal !== null && this._storeQtyModal !== undefined) {
+      this._storeQtyModal.close(); // first Esc cancels the storage amount picker only
+      return true;
+    }
     if (this.invOpen) {
       this.invOpen = false;
       this._invWin.enabled = false;

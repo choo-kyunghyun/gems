@@ -25,6 +25,7 @@ globalThis.StorageUI = {
     scene._storeDirty = false;
     scene._storeClickKey = ""; // last-clicked "side|idx" for double-click detection
     scene._storeClickTime = 0;
+    scene._storeQtyModal = null; // open amount-picker modal (split a stack), else null
 
     // Transfer window: Bag | Chest columns, each a UITable. Wide enough for two tables
     // that mirror the inventory's (Settings-driven) columns side by side without
@@ -195,6 +196,9 @@ globalThis.StorageUI = {
     scene._storeOpen = false;
     scene._storeWin.enabled = false;
     scene._storageId = -1;
+    // Dismiss a dangling amount picker if the window closed under it (walked out of range / E / Esc).
+    if (scene._storeQtyModal !== null && scene._storeQtyModal !== undefined)
+      scene._storeQtyModal.close();
   },
 
   refresh(scene) {
@@ -221,34 +225,118 @@ globalThis.StorageUI = {
     scene._storeClickTime = now;
   },
 
-  // Transfer the activated row's stack to the opposite side. Storing FROM the bag is refused for
-  // a FAVORITED item (the player's explicit "don't store this"). A hotbar-bound item, by contrast,
-  // CAN be stored this way — a deliberate single double-click stores it AND unregisters it from the
-  // hotbar (so the slot never dangles on an item the player no longer has). Taking FROM the chest is
+  // The activate gesture (double-click / confirm) on a row. A FUNGIBLE stack of more than one
+  // opens the amount picker so the player can split it; a single unit or an INSTANCE (unique gear,
+  // nothing to split) transfers whole immediately. Storing FROM the bag is refused for a FAVORITED
+  // item (the player's explicit "don't store this") before any picker. Taking FROM the chest is
   // never protected.
   _move(scene, side, row) {
     if (row === null || row === undefined) return;
+    const world = scene.world;
+    const srcInv = world.get(
+      Inventory,
+      side === "bag" ? scene.ctrl.id : scene._storageId,
+    );
+    if (srcInv === undefined) return;
+    if (side === "bag" && StorageUI._storeBlocked(scene, false)[row.itemId])
+      return; // favorited — fully protected
+    const s = srcInv.slots[row.idx];
+    if (s === undefined) return;
+    const def = Item.get(s.itemId);
+    if ((def === undefined || !def.isInstanced()) && s.qty > 1) {
+      StorageUI._promptAmount(scene, side, row, s.qty);
+      return;
+    }
+    StorageUI._doMove(scene, side, row, s.qty);
+  },
+
+  // Amount picker: a modal with a stepper (default = full stack, so a bare confirm still moves
+  // everything) plus 1 / Half / All shortcuts, so large stacks don't need stepping one at a time.
+  // Confirm runs the transfer for the chosen amount; Cancel / backdrop / Esc dismiss it. The
+  // window beneath stays put; if it closes (walked out of range) StorageUI.close dismisses this.
+  // Esc is owned by the scene's handleEscape (closeOnEscape:false here) so it cancels the picker
+  // first and only closes the chest window on a second press.
+  _promptAmount(scene, side, row, maxQty) {
+    let amount = maxQty; // local pick; the Transfer button reads it on confirm
+    const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    body.insertChild(
+      gemsLabel(I18n.text("STORAGE_QTY_PROMPT") + " (" + maxQty + ")", {
+        color: GemsTheme.textMuted,
+      }),
+    );
+    const stepEl = gemsStepper(amount, (v) => (amount = v), {
+      min: 1,
+      max: maxQty,
+      step: 1,
+    });
+    const stepper = stepEl.getComponent(UIStepper);
+    body.insertChild(stepEl);
+
+    const quick = new UIElement({
+      width: "100%",
+      flexDirection: "row",
+      gap: GemsTheme.gapSm,
+    });
+    quick.insertChild(StorageUI._quickBtn("1", () => stepper.setValue(1)));
+    quick.insertChild(
+      StorageUI._quickBtn(I18n.text("STORAGE_QTY_HALF"), () =>
+        stepper.setValue(Math.floor(maxQty / 2)),
+      ),
+    );
+    quick.insertChild(
+      StorageUI._quickBtn(I18n.text("STORAGE_QTY_ALL"), () =>
+        stepper.setValue(maxQty),
+      ),
+    );
+    body.insertChild(quick);
+
+    scene._storeQtyModal = gemsModal({
+      title: row.name,
+      width: 360,
+      body,
+      closeOnEscape: false, // handleEscape cancels the picker (then the window on a 2nd Esc)
+      buttons: [
+        { label: I18n.text("STORAGE_CANCEL") },
+        {
+          label: I18n.text("STORAGE_TRANSFER"),
+          primary: true,
+          onClick: () => StorageUI._doMove(scene, side, row, amount),
+        },
+      ],
+      onClose: () => (scene._storeQtyModal = null),
+    });
+  },
+
+  // One equal-width quick-set button cell for the amount picker's shortcut row.
+  _quickBtn(label, onClick) {
+    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    cell.insertChild(gemsButton(label, onClick, { height: 30 }));
+    return cell;
+  },
+
+  // Transfer `amount` of the activated row's stack to the opposite side (favorited-protection
+  // already cleared by _move). Storing the LAST copy out of the bag also unbinds its hotbar slot;
+  // a partial transfer that leaves some behind keeps the binding usable.
+  _doMove(scene, side, row, amount) {
     const world = scene.world;
     const bag = world.get(Inventory, scene.ctrl.id);
     const box = world.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     if (side === "bag") {
-      if (StorageUI._storeBlocked(scene, false)[row.itemId]) return; // favorited — fully protected
-      const moved = StorageUI._transfer(scene, bag, box, row.idx);
-      // Unbind the hotbar slot(s) only when the LAST copy left the bag. Storing one of several
-      // copies — another stack, or a partial transfer that left some behind — keeps the item
-      // present, so the binding stays usable.
+      const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
       if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
         const hb = world.get(Hotbar, scene.ctrl.id);
         if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
       }
-    } else StorageUI._transfer(scene, box, bag, row.idx);
+    } else StorageUI._transfer(scene, box, bag, row.idx, amount);
   },
 
-  // Move slot `idx` of srcInv into dstInv (as much as fits), removing the moved amount from that
-  // exact slot. Marks the window dirty so it repopulates next update(). Returns the amount moved
-  // (0 if nothing fit) so the caller can react to a successful store (e.g. unbind the hotbar).
-  _transfer(scene, srcInv, dstInv, idx) {
+  // Move up to `amount` of slot `idx` of srcInv into dstInv (capped at what fits and at the stack),
+  // removing the moved amount from that exact slot. `amount` (default = whole stack) only bounds a
+  // fungible stack; an INSTANCE always moves whole (by reference, preserving its uid + mods). Marks
+  // the window dirty so it repopulates next update(). Returns the amount moved (0 if nothing fit) so
+  // the caller can react to a successful store (e.g. unbind the hotbar).
+  _transfer(scene, srcInv, dstInv, idx, amount) {
     if (idx < 0 || idx >= srcInv.slots.length) return 0;
     const s = srcInv.slots[idx];
     const itemId = s.itemId;
@@ -261,8 +349,10 @@ globalThis.StorageUI = {
       srcInv.slots.splice(idx, 1);
       moved = 1;
     } else {
-      const leftover = InventorySystem.add(dstInv, itemId, s.qty);
-      moved = s.qty - leftover;
+      const want = amount === undefined ? s.qty : Math.min(amount, s.qty);
+      if (want <= 0) return 0;
+      const leftover = InventorySystem.add(dstInv, itemId, want);
+      moved = want - leftover;
       if (moved <= 0) return 0; // destination full / weight-gated
       s.qty -= moved;
       if (s.qty <= 0) srcInv.slots.splice(idx, 1);
