@@ -35,6 +35,27 @@ globalThis.RpgItems = {
         rarity: "uncommon",
         components: [new Consumable({ heal: 5 })],
       },
+      // Buff consumables — apply a timed Status (Buff/Status system). Tonic = Regen (HoT over 8s);
+      // Elixir = Fortify (+attack/+defense for 12s, folded into Stats via StatModel). The status id
+      // is content (RpgStatuses); ConsumableSystem.use routes it to StatusSystem.apply.
+      {
+        id: "tonic",
+        name: "ITEM_TONIC",
+        description: "ITEM_TONIC_DESC",
+        weight: 1,
+        value: 15,
+        rarity: "uncommon",
+        components: [new Consumable({ status: "regen" })],
+      },
+      {
+        id: "elixir",
+        name: "ITEM_ELIXIR",
+        description: "ITEM_ELIXIR_DESC",
+        weight: 1,
+        value: 35,
+        rarity: "rare",
+        components: [new Consumable({ status: "fortify" })],
+      },
       // Permanent attribute-boost consumables (Terraria Life-Crystal style) — the item-driven
       // progression that replaced leveling. Each raises ONE primary attribute by +1 forever (via
       // ConsumableSystem.grantAttr → StatModel.recompute), so growth comes from finding/crafting

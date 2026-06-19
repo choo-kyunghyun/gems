@@ -39,6 +39,13 @@ class _SceneRpgClass extends Scene {
       StatModel.recompute(world, id);
       return true;
     };
+    // Status policy: a buff/debuff carrying flat `mods` (e.g. fortify's +attack) only reaches the
+    // derived Stats when the sheet re-derives. Inject that re-derive into the kit's StatusSystem
+    // (default no-op) so apply/expire of a mods-bearing status folds it in/out (StatModel._foldStatuses).
+    // dot/hot + live `mult` (encumbrance/speed) need no recompute — they act directly / are read live.
+    StatusSystem.onStatsChanged = function (world, id) {
+      StatModel.recompute(world, id);
+    };
 
     // ── Map-state cache: mapId → { level: Level.export(), built } of a persistent map's
     //    player edits, saved on leave + restored on revisit by RpgMap.load. In-memory for the
@@ -214,7 +221,9 @@ class _SceneRpgClass extends Scene {
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
-      RpgController.update(this.world, this.ctrl);
+      StatusSystem.update(this.world); // tick buffs/debuffs (dot/hot + duration), then ↓
+      EncumbranceSystem.update(this.world); // refresh the "encumbered" status from carried weight
+      RpgController.update(this.world, this.ctrl); // reads StatusSystem.scale("speed")
       FollowerSystem.update(this.world, this.ctrl.id, this.followers); // seek (before physics)
       this.physics.update(this.world);
 

@@ -12,10 +12,17 @@ globalThis.Consumable = class Consumable {
    *   how it derives is the game's (Demo) concern, applied via the injected ConsumableSystem.grantAttr
    *   hook. The kit just carries the intent. This is how attributes grow now that there's no leveling.
    * @param {number} [d.amount] how much `attr` increases per use (default 1)
+   * @param {string} [d.status] a Status (buff/debuff) to apply on use — a Status def id (e.g.
+   *   "regen"). Generic like `attr`: the kit just applies it via StatusSystem; the def + effects
+   *   are content (Demo — RpgStatuses). "" = none.
+   * @param {number} [d.statusDuration] override seconds for the applied status; 0 = use the def's
+   *   own duration
    */
   constructor(d) {
     this.heal = d.heal ?? 0;
     this.attr = d.attr ?? "";
     this.amount = d.amount ?? 1;
+    this.status = d.status ?? "";
+    this.statusDuration = d.statusDuration ?? 0;
   }
 };

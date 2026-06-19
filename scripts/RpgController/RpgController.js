@@ -159,12 +159,12 @@ globalThis.RpgController = {
     const vel = world.get(Velocity, ctrl.id);
     const dir = world.get(Direction, ctrl.id);
     const stats = world.get(Stats, ctrl.id);
-    // Encumbrance scales the final speed (heavier bag → slower); 1 when the entity
-    // carries no Encumbrance component. Applied here, not on Stats.speed, so it
-    // never disturbs the balanced equipment-mod deltas.
+    // Status speed multiplier scales the final speed (heavier bag → slower via the "encumbered"
+    // status EncumbranceSystem maintains; also any slow/haste status). 1 when no speed status is
+    // active. Applied here, not on Stats.speed, so it never disturbs the derived sheet.
     const speed =
       (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
-      EncumbranceSystem.scale(world, ctrl.id);
+      StatusSystem.scale(world, ctrl.id, "speed");
     const len = Math.sqrt(dx * dx + dy * dy);
     // Sprint: hold Shift while moving for a speed boost that drains Stamina; it regenerates
     // when not sprinting. StaminaSystem runs every tick (regen even while idle) and returns

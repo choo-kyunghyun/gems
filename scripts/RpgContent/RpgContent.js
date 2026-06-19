@@ -11,6 +11,7 @@ globalThis.RpgContent = {
     if (this.registered) return;
     this.registered = true;
     RpgItems.register(); // rarity tiers + the full item set
+    RpgStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
     RpgRecipes.register(); // workbench recipes
     RpgPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
 

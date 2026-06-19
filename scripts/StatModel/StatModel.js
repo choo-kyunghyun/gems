@@ -53,6 +53,7 @@ globalThis.StatModel = {
     if (stats === undefined) return;
     const d = StatModel.derive(attrs);
     StatModel._foldEquipment(world, id, d);
+    StatModel._foldStatuses(world, id, d); // active status `mods` (buffs/debuffs) on top of gear
     stats.maxHp = d.maxHp;
     stats.attack = d.attack;
     stats.defense = d.defense;
@@ -82,6 +83,25 @@ globalThis.StatModel = {
       const eqp = item.getComponent(Equippable);
       if (eqp === undefined || eqp.mods === undefined) continue;
       const mods = eqp.mods;
+      for (const key in mods) {
+        if (d[key] !== undefined) d[key] += mods[key];
+      }
+    }
+  },
+
+  // Fold every ACTIVE status's flat `mods` (a buff/debuff like fortify's +attack/+defense) into the
+  // derived block `d`, exactly like _foldEquipment. Mirrors the recompute-from-source contract: this
+  // re-runs whenever StatusSystem applies/removes a mods-bearing status (via the injected
+  // StatusSystem.onStatsChanged hook → recompute), so buffs can't drift. No-op without StatusEffects.
+  // (A status's live `mult` is NOT folded here — it's read at point of use via StatusSystem.scale.)
+  _foldStatuses(world, id, d) {
+    const eff = world.get(StatusEffects, id);
+    if (eff === undefined) return;
+    const list = eff.list;
+    for (let i = 0; i < list.length; i++) {
+      const def = Status.get(list[i].id);
+      if (def === undefined || def.mods === undefined) continue;
+      const mods = def.mods;
       for (const key in mods) {
         if (d[key] !== undefined) d[key] += mods[key];
       }

@@ -25,6 +25,22 @@ globalThis.RpgRecipes = {
         inputs: [{ itemId: "iron", qty: 2 }],
         output: { itemId: "leather_armor", qty: 1 },
       },
+      // Buff consumables (Buff/Status system): Tonic = Regen, Elixir = Fortify.
+      {
+        id: "craft_tonic",
+        station: "workbench",
+        inputs: [{ itemId: "slime_gel", qty: 3 }],
+        output: { itemId: "tonic", qty: 1 },
+      },
+      {
+        id: "craft_elixir",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "slime_gel", qty: 2 },
+        ],
+        output: { itemId: "elixir", qty: 1 },
+      },
       // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
       // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering,
       // not playtime. One per StatModel.ATTRS key.

@@ -50,6 +50,18 @@ globalThis.ConsumableSystem = {
       ConsumableSystem.grantAttr(world, id, con.attr, con.amount)
     )
       did = true;
+    // Status grant (a buff/debuff) — apply through the StatusSystem kit (sibling module). A
+    // status-only consumable (no heal/attr) still counts as "did something", so use() won't refuse
+    // it. statusDuration 0 falls back to the def's own duration (StatusSystem.apply).
+    if (con.status !== "") {
+      StatusSystem.apply(
+        world,
+        id,
+        con.status,
+        con.statusDuration > 0 ? { duration: con.statusDuration } : undefined,
+      );
+      did = true;
+    }
     return did;
   },
 };

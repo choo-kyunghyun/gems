@@ -29,7 +29,6 @@
 - Hunger and foods
 - Drowsiness and bed
 - Farming and fishing
-- Buff/status system
 
 ## Build Mode
 

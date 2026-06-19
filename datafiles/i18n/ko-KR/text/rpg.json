@@ -69,6 +69,11 @@
   "RPG_WX_RAIN": "비",
   "RPG_WX_STORM": "폭풍",
   "RPG_WX_SNOW": "눈",
+
+  "STATUS_ENCUMBERED": "과적",
+  "STATUS_REGEN": "재생",
+  "STATUS_FORTIFY": "강화",
+
   "RPG_INVENTORY": "가방",
   "RPG_EMPTY": "비어 있음",
   "RPG_ACCEPT": "수락",
@@ -135,6 +140,10 @@
   "ITEM_SLIME_GEL": "슬라임 젤리",
   "ITEM_POTION": "물약",
   "ITEM_POTION_DESC": "사용하면 체력을 조금 회복한다.",
+  "ITEM_TONIC": "강장제",
+  "ITEM_TONIC_DESC": "마시면 재생 효과로 체력이 서서히 회복된다.",
+  "ITEM_ELIXIR": "힘의 영약",
+  "ITEM_ELIXIR_DESC": "마시면 강화 효과로 한동안 공격력과 방어력이 오른다.",
   "ITEM_POWER_SHARD": "힘의 조각",
   "ITEM_POWER_SHARD_DESC": "부수면 힘이 영구히 오른다.",
   "ITEM_VITALITY_SHARD": "활력의 조각",

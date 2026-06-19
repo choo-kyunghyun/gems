@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Status",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Status",
+  "parent":{
+    "name":"Status",
+    "path":"folders/Gameplay/Status.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Status.js",
+}

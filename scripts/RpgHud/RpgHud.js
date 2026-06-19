@@ -84,6 +84,27 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(tempRow);
+    // Active buffs/debuffs (Buff/Status system) — each status name tinted by its def color, read
+    // live each frame (so it survives a map/world swap and updates as statuses come and go). Empty
+    // string when none active. Uses rich-text [c=#hex] spans so several statuses tint independently.
+    const statusRow = new UIElement({ width: "100%", height: 20 });
+    statusRow.insertChild(
+      gemsRichText(
+        () => {
+          const list = StatusSystem.list(scene.world, scene.ctrl.id);
+          let s = "";
+          for (let i = 0; i < list.length; i++) {
+            const def = Status.get(list[i].id);
+            if (def === undefined) continue;
+            if (s !== "") s += "   ";
+            s += "[c=" + def.color + "]" + I18n.text(def.name) + "[/c]";
+          }
+          return s;
+        },
+        { font: "description" },
+      ),
+    );
+    card.insertChild(statusRow);
     card.insertChild(gemsDivider());
     card.insertChild(
       gemsQuestTracker({

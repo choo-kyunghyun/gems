@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgStatuses",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgStatuses",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Demo/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgStatuses.js",
+}
