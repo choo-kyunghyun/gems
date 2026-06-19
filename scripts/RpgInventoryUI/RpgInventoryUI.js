@@ -128,6 +128,7 @@ globalThis.RpgInventoryUI = {
     top.insertChild(usageCell);
     const cats = [
       { name: I18n.text("INV_CAT_ALL"), value: "" },
+      { name: I18n.text("INV_CAT_FAV"), value: "fav" },
       { name: I18n.text("INV_CAT_WEAPON"), value: "weapon" },
       { name: I18n.text("INV_CAT_GEAR"), value: "gear" },
       { name: I18n.text("INV_CAT_CONSUMABLE"), value: "consumable" },
@@ -184,7 +185,7 @@ globalThis.RpgInventoryUI = {
     // swaps its rows (and a column toggle calls setColumns), so sort/filter/scroll
     // persist. Click a header to sort (multi-key); a row selects, double-click / the
     // action button / a gamepad confirm acts on it.
-    const table = gemsTable(InvTable.columns({ worn: true }), {
+    const table = gemsTable(InvTable.columns({ worn: true, fav: true }), {
       grow: true, // fill the page; UITable reflows its row count to the live height
       rowH: 26,
       headerH: 26,
@@ -217,6 +218,13 @@ globalThis.RpgInventoryUI = {
     action.insertChild(selCell);
     action.insertChild(
       gemsButton(
+        () => RpgInventoryUI._favLabel(scene),
+        () => RpgInventoryUI._toggleFav(scene),
+        { width: 110, height: 28, disabled: () => scene._invSel === null },
+      ),
+    );
+    action.insertChild(
+      gemsButton(
         () => RpgInventoryUI._actionLabel(scene),
         () => {
           if (scene._invSel !== null)
@@ -226,7 +234,78 @@ globalThis.RpgInventoryUI = {
       ),
     );
     page.insertChild(action);
+
+    // Hotbar manage strip: a gold section title + one button per slot. Click a slot with a bag
+    // item selected → bind it to that slot; click with nothing selected → clear it. The number
+    // keys (1..N) USE the bound item in play (RpgController / sceneRpg._useHotbar). Labels read the
+    // live Hotbar, so a bind/clear/use updates the strip + the HUD bar with no rebuild.
+    const hbTitle = new UIElement({ width: "100%", height: 20 });
+    hbTitle.insertChild(
+      gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "#ffd166" }),
+    );
+    page.insertChild(hbTitle);
+    const hbRow = new UIElement({
+      width: "100%",
+      height: 34,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) {
+      const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+      cell.insertChild(RpgInventoryUI._hotbarBtn(scene, i));
+      hbRow.insertChild(cell);
+    }
+    page.insertChild(hbRow);
     return page;
+  },
+
+  // One hotbar manage button: shows "[n] Name" for the bound item (or "[n]" empty), read live.
+  // Click assigns the selected bag item to the slot, or clears it when nothing is selected.
+  _hotbarBtn(scene, i) {
+    return gemsButton(
+      () => {
+        const hb = scene.world.get(Hotbar, scene.ctrl.id);
+        const itemId = hb !== undefined ? hb.slots[i] : "";
+        if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
+        const it = Item.get(itemId);
+        return (
+          "[" +
+          (i + 1) +
+          "] " +
+          (it !== undefined ? I18n.text(it.name) : itemId)
+        );
+      },
+      () => RpgInventoryUI._assignHotbar(scene, i),
+      { height: 30 },
+    );
+  },
+
+  // Bind the selected bag item to hotbar slot i, or clear the slot when nothing is selected.
+  _assignHotbar(scene, i) {
+    const hb = scene.world.get(Hotbar, scene.ctrl.id);
+    if (hb === undefined) return;
+    if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
+    else HotbarSystem.clear(hb, i);
+    scene._showHotbar(); // pop the HUD bar so the player sees the binding change
+  },
+
+  // Favorite action-button verb for the selected item ("Favorite" / "Unfavorite"; "-" when none).
+  _favLabel(scene) {
+    if (scene._invSel === null) return I18n.text("INV_NOACTION");
+    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
+      ? I18n.text("INV_UNFAVORITE")
+      : I18n.text("INV_FAVORITE");
+  },
+
+  // Toggle the selected item's favorited state, then flag a refresh so the star column updates.
+  _toggleFav(scene) {
+    if (scene._invSel === null) return;
+    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    if (fav === undefined) return;
+    FavoritesSystem.toggle(fav, scene._invSel.itemId);
+    scene._invDirty = true;
   },
 
   // Equipment: the worn-slot rows (repopulated per rebuild into this host).
@@ -559,7 +638,7 @@ globalThis.RpgInventoryUI = {
   // The chest shares these column Settings, so keep its two tables in sync too (live,
   // for when both windows are open; StorageUI also re-applies them on open).
   _applyColumns(scene) {
-    scene._invTable.setColumns(InvTable.columns({ worn: true }));
+    scene._invTable.setColumns(InvTable.columns({ worn: true, fav: true }));
     if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
@@ -568,6 +647,7 @@ globalThis.RpgInventoryUI = {
   _buildRows(scene) {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     const eq = scene.world.get(Equipment, scene.ctrl.id);
+    const fav = scene.world.get(Favorites, scene.ctrl.id);
     const wornClaimed = {};
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
@@ -581,7 +661,12 @@ globalThis.RpgInventoryUI = {
           wornClaimed[slot.itemId] = true;
         }
       }
-      rows.push({ ...InvTable.rowModel(slot.itemId, slot.qty), worn });
+      const favd = fav !== undefined && FavoritesSystem.has(fav, slot.itemId);
+      rows.push({
+        ...InvTable.rowModel(slot.itemId, slot.qty),
+        worn,
+        fav: favd,
+      });
     }
     return rows;
   },
@@ -595,9 +680,12 @@ globalThis.RpgInventoryUI = {
       scene._invTable.setFilter(null);
       return;
     }
+    // "fav" is a pseudo-category (matches the favorited flag, not the item type); the others
+    // match r.cat. Both compose with the name search.
     scene._invTable.setFilter(
       (r) =>
-        (cat === "" || r.cat === cat) && (q === "" || r.search.indexOf(q) >= 0),
+        (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) &&
+        (q === "" || r.search.indexOf(q) >= 0),
     );
   },
 

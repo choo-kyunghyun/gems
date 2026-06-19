@@ -7,8 +7,52 @@ globalThis.RpgHud = {
   // Build the persistent HUD panels once (scene create): the HP/quest card + the dialogue box.
   build(scene) {
     RpgHud._hud(scene);
+    RpgHud._hotbar(scene);
     RpgHud._dialogue(scene);
     RpgHud._sleepOverlay(scene);
+  },
+
+  // Bottom-center quick-use bar — one card per Hotbar slot, each a LIVE label showing "[n] Name (qty)"
+  // for the bound item (or "[n]  —" when empty), read off the player's Hotbar/Inventory each frame so
+  // it survives a map/world swap with no rebuild. Display-only: binding/clearing happens in the
+  // inventory (RpgInventoryUI), and the number keys (RpgController hotbar1..N) do the using. sceneRpg
+  // hides this whole bar while build mode owns the bottom-center HUD.
+  _hotbar(scene) {
+    const wrap = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 64, // clear of the dialogue box (bottom:24); above the key-hint footer
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: GemsTheme.gapSm,
+    });
+    for (let i = 0; i < RPG_HOTBAR_SIZE; i++)
+      wrap.insertChild(RpgHud._hotbarSlot(scene, i));
+    scene._hotbarBar = wrap;
+    scene.ui.insertChild(wrap);
+  },
+
+  _hotbarSlot(scene, i) {
+    const card = gemsCard({ width: 140, padding: GemsTheme.padSm });
+    card.insertChild(
+      gemsLabel(
+        () => {
+          const key = i + 1;
+          if (scene.ctrl === undefined) return "[" + key + "]";
+          const hb = scene.world.get(Hotbar, scene.ctrl.id);
+          const itemId = hb !== undefined ? hb.slots[i] : "";
+          if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
+          const it = Item.get(itemId);
+          const name = it !== undefined ? I18n.text(it.name) : itemId;
+          const inv = scene.world.get(Inventory, scene.ctrl.id);
+          const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
+          return "[" + key + "]  " + name + " (" + n + ")";
+        },
+        { color: GemsTheme.text, font: "description" },
+      ),
+    );
+    return card;
   },
 
   // One survival-need reserve bar: gemsProgress of (1 - value/max), so a full bar = satiated and it

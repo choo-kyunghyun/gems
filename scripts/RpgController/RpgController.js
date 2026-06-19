@@ -83,6 +83,19 @@ globalThis.RpgController = {
         .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrv)
         .inContext(["play"]),
     );
+
+    // Hotbar quick-use: number keys 1..N, each "play"-only so they self-mute while a window is
+    // open (the inventory's search box also captures() them) or building. Triggered edge-wise in
+    // sceneRpg.step; the bound item is used via RpgInventoryUI.useItem. (Keyboard only — the
+    // gamepad dpad is movement.)
+    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) {
+      Input.register(
+        "hotbar" + (i + 1),
+        new InputAction()
+          .bindButton(INPUT_SOURCE.KEYBOARD, ord(String(i + 1)))
+          .inContext(["play"]),
+      );
+    }
   },
 
   /** @param {{ x: number, y: number }} spawn */
@@ -300,7 +313,7 @@ globalThis.RpgController = {
   },
 
   destroy() {
-    Input.unbindAll([
+    const keys = [
       "moveLeft",
       "moveRight",
       "moveUp",
@@ -315,6 +328,8 @@ globalThis.RpgController = {
       "moveY",
       "aimX",
       "aimY",
-    ]);
+    ];
+    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) keys.push("hotbar" + (i + 1));
+    Input.unbindAll(keys);
   },
 };

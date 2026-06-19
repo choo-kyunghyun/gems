@@ -12,6 +12,16 @@ globalThis.InvTable = {
     const gold = gemsColor("#ffd166");
     const accent = gemsColor(GemsTheme.accent);
     const cols = [];
+    if (opts.fav)
+      cols.push({
+        key: "fav",
+        label: "",
+        width: 18,
+        sortable: false,
+        // "*" not a star glyph: the bundled SDF fonts are Latin-1 only (no U+2605). Gold = favorited.
+        text: (r) => (r.fav ? "*" : ""),
+        color: () => gold,
+      });
     if (opts.worn)
       cols.push({
         key: "worn",

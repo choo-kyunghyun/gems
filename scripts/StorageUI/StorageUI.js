@@ -144,7 +144,7 @@ globalThis.StorageUI = {
   // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;
   // onSelect tracks a double-click, onActivate (double-click / confirm) moves the stack.
   _table(scene, side) {
-    return gemsTable(InvTable.columns(), {
+    return gemsTable(InvTable.columns({ fav: true }), {
       grow: true, // fill the column; reflows row count as the window resizes
       rowH: 26,
       headerH: 26,
@@ -158,19 +158,22 @@ globalThis.StorageUI = {
   // Push the current Settings-driven column set onto both tables (a toggle changed, or
   // the chest just opened). Shared with the inventory via RpgInventoryUI._applyColumns.
   _applyColumns(scene) {
-    scene._storeBagTable.setColumns(InvTable.columns());
-    scene._storeBoxTable.setColumns(InvTable.columns());
+    scene._storeBagTable.setColumns(InvTable.columns({ fav: true }));
+    scene._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
   },
 
   // Row models for one inventory. `idx` is the slot index at build time — valid until
   // the next refresh, which is exactly when a transfer happens (one click/frame), so the
   // captured index never drifts (same contract as the old per-row closure). Carries the
-  // full field set so any of the shared columns can render.
-  _rows(inv) {
+  // full field set so any of the shared columns can render. `fav` (the player's favorited
+  // set, by itemId) drives the "*" marker column on BOTH sides, mirroring the inventory.
+  _rows(scene, inv) {
+    const fav = scene.world.get(Favorites, scene.ctrl.id);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
-      rows.push({ ...InvTable.rowModel(s.itemId, s.qty), idx: i }); // idx = transfer slot
+      const favd = fav !== undefined && FavoritesSystem.has(fav, s.itemId);
+      rows.push({ ...InvTable.rowModel(s.itemId, s.qty), idx: i, fav: favd }); // idx = transfer slot
     }
     return rows;
   },
@@ -195,8 +198,8 @@ globalThis.StorageUI = {
     const bagInv = world.get(Inventory, scene.ctrl.id);
     const boxInv = world.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
-    scene._storeBagTable.setRows(StorageUI._rows(bagInv)); // setRows re-applies the sort
-    scene._storeBoxTable.setRows(StorageUI._rows(boxInv));
+    scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // setRows re-applies the sort
+    scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
   },
 
   // Single click selects; a second click on the same row within 350ms transfers it
@@ -214,26 +217,40 @@ globalThis.StorageUI = {
     scene._storeClickTime = now;
   },
 
-  // Transfer the activated row's stack to the opposite side.
+  // Transfer the activated row's stack to the opposite side. Storing FROM the bag is refused for
+  // a FAVORITED item (the player's explicit "don't store this"). A hotbar-bound item, by contrast,
+  // CAN be stored this way — a deliberate single double-click stores it AND unregisters it from the
+  // hotbar (so the slot never dangles on an item the player no longer has). Taking FROM the chest is
+  // never protected.
   _move(scene, side, row) {
     if (row === null || row === undefined) return;
     const world = scene.world;
     const bag = world.get(Inventory, scene.ctrl.id);
     const box = world.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
-    if (side === "bag") StorageUI._transfer(scene, bag, box, row.idx);
-    else StorageUI._transfer(scene, box, bag, row.idx);
+    if (side === "bag") {
+      if (StorageUI._storeBlocked(scene, false)[row.itemId]) return; // favorited — fully protected
+      const moved = StorageUI._transfer(scene, bag, box, row.idx);
+      // Unbind the hotbar slot(s) only when the LAST copy left the bag. Storing one of several
+      // copies — another stack, or a partial transfer that left some behind — keeps the item
+      // present, so the binding stays usable.
+      if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
+        const hb = world.get(Hotbar, scene.ctrl.id);
+        if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
+      }
+    } else StorageUI._transfer(scene, box, bag, row.idx);
   },
 
-  // Move slot `idx` of srcInv into dstInv (as much as fits), removing the moved amount
-  // from that exact slot. Marks the window dirty so it repopulates next update().
+  // Move slot `idx` of srcInv into dstInv (as much as fits), removing the moved amount from that
+  // exact slot. Marks the window dirty so it repopulates next update(). Returns the amount moved
+  // (0 if nothing fit) so the caller can react to a successful store (e.g. unbind the hotbar).
   _transfer(scene, srcInv, dstInv, idx) {
-    if (idx < 0 || idx >= srcInv.slots.length) return;
+    if (idx < 0 || idx >= srcInv.slots.length) return 0;
     const s = srcInv.slots[idx];
     const itemId = s.itemId;
     const leftover = InventorySystem.add(dstInv, itemId, s.qty);
     const moved = s.qty - leftover;
-    if (moved <= 0) return; // destination full / weight-gated
+    if (moved <= 0) return 0; // destination full / weight-gated
     s.qty -= moved;
     if (s.qty <= 0) srcInv.slots.splice(idx, 1);
     StorageUI._reconcileEquip(scene, srcInv);
@@ -241,6 +258,7 @@ globalThis.StorageUI = {
     scene._storeDirty = true;
     scene._invDirty = true; // keep the main inventory window in sync if it's open
     Log.info(`transferred ${moved}x ${itemId}`);
+    return moved;
   },
 
   // Bulk "Take All" / "Store All": move every stack of `side` ("bag"/"box") to the
@@ -253,10 +271,36 @@ globalThis.StorageUI = {
     const box = world.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     // Storing FROM the bag keeps equipped copies behind (a worn item must stay in the bag
-    // so its Equipment slot doesn't dangle); taking FROM the chest has nothing to protect.
+    // so its Equipment slot doesn't dangle) AND skips protected items entirely (favorited /
+    // hotbar-bound never store); taking FROM the chest has nothing to protect.
     if (side === "bag")
-      StorageUI._transferAll(scene, bag, box, StorageUI._equipKeep(scene));
-    else StorageUI._transferAll(scene, box, bag, null);
+      StorageUI._transferAll(
+        scene,
+        bag,
+        box,
+        StorageUI._equipKeep(scene),
+        StorageUI._storeBlocked(scene, true), // bulk store protects hotbar items too
+      );
+    else StorageUI._transferAll(scene, box, bag, null, null);
+  },
+
+  // Items EXCLUDED from storing out of the bag. Flat { itemId: true }. Favorited items are the
+  // player's explicit "don't auto-store this" and are ALWAYS blocked. Hotbar-bound items are
+  // blocked only for the BULK Store All (`includeHotbar` true) — a deliberate single double-click
+  // CAN store one (it unregisters it from the hotbar; see _move), so they're left out when
+  // `includeHotbar` is false. null/absent for the take-from-chest direction.
+  _storeBlocked(scene, includeHotbar) {
+    const blocked = {};
+    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    if (fav !== undefined)
+      for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
+    if (includeHotbar) {
+      const hb = scene.world.get(Hotbar, scene.ctrl.id);
+      if (hb !== undefined)
+        for (let i = 0; i < hb.slots.length; i++)
+          if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
+    }
+    return blocked;
   },
 
   // Units of each itemId to KEEP in the bag during a Store All — one per equipment slot
@@ -277,11 +321,17 @@ globalThis.StorageUI = {
   // `keep` (or null) is a { itemId: units-to-leave } map — the equipped copies excluded from
   // a Store All. The first stack(s) of a protected id keep that many units in srcInv; spare
   // (unequipped) copies still move. Each stack is otherwise capacity/weight-gated by add.
-  _transferAll(scene, srcInv, dstInv, keep) {
+  // `blocked` (or null) is a { itemId: true } set fully excluded from storing (favorited /
+  // hotbar-bound) — those stacks never move at all, regardless of `keep`.
+  _transferAll(scene, srcInv, dstInv, keep, blocked) {
     let total = 0;
     let i = 0;
     while (i < srcInv.slots.length) {
       const s = srcInv.slots[i];
+      if (blocked !== null && blocked[s.itemId]) {
+        i++;
+        continue; // favorited / hotbar-bound — never store
+      }
       let movable = s.qty;
       if (keep !== null && keep[s.itemId] > 0) {
         const held = keep[s.itemId] < s.qty ? keep[s.itemId] : s.qty;

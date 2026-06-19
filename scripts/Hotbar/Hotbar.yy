@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Hotbar",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Hotbar",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Demo/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Hotbar.js",
+}

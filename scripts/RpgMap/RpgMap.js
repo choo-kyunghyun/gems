@@ -87,6 +87,8 @@ globalThis.RpgMap = {
         Inventory,
         Equipment,
         Encumbrance,
+        Hotbar, // quick-use bindings + favorited-item set travel with the bag (they reference
+        Favorites, // itemIds the carried Inventory holds, so they'd desync if left per-map).
         Thirst, // survival needs are session-scoped player state (like Stamina) — they travel
         Hunger, // with the party, NOT reset/diverge per map (each map's resident player would
         Drowsiness, // otherwise keep its own meter, unsynced across the transition).

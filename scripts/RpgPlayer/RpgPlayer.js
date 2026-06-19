@@ -85,6 +85,13 @@ globalThis.RpgPlayer = {
     world.add(id, Equipment, {
       slots: { weapon: "", armor: "", trinket: "", backpack: "" },
     });
+    // Quick-use bar + favorited-item set — session-scoped player state (carried across maps in
+    // RpgMap.go alongside the sheet). Slots/ids start empty; the player binds them from the
+    // inventory (see Hotbar / Favorites + RpgInventoryUI).
+    const hotbarSlots = [];
+    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) hotbarSlots.push("");
+    world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
+    world.add(id, Favorites, { ids: [] });
     world.add(id, Visual, {
       visible: true,
       sprite: spr_play,

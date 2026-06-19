@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Favorites",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Favorites",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Demo/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Favorites.js",
+}

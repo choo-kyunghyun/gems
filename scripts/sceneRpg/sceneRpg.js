@@ -1,6 +1,9 @@
 const RPG_NPC_RADIUS = 60; // interact range to the elder NPC
 const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
+const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
+const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
+const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
 
 // Exposed as a factory so another scene (the level editor's Test Play) can open this scene
 // directly; SceneRegistry.add uses the SAME reference so SceneManager._apply resolves its label.
@@ -62,6 +65,8 @@ class _SceneRpgClass extends Scene {
     // ── Overlay / interaction state (scene-wide — survives map changes) ─────
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
+    this._hotbarTimer = RPG_HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
+    this._hotbarSlide = 0; // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
     this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see _sleep)
     this.nearNpc = false;
     this.dialogueName = "";
@@ -114,6 +119,7 @@ class _SceneRpgClass extends Scene {
             label: "RPG_HINT_BAG",
             contexts: ["play", "build"],
           },
+          { text: "1-5", label: "RPG_HINT_HOTBAR", contexts: ["play"] },
           { actions: ["interact"], label: "RPG_HINT_TALK", contexts: ["play"] },
           { actions: ["build"], label: "RPG_HINT_BUILD", contexts: ["play"] },
           {
@@ -231,6 +237,28 @@ class _SceneRpgClass extends Scene {
     // play: a gameplay window open mutes fire (clicks don't shoot) but keeps movement;
     // build mode mutes fire too (LMB places tiles). See InputContext + RpgController tags.
     this._resolveContext();
+
+    // Hotbar number keys (1..N) — edge-checked once per frame, after the context is set (the
+    // hotbar actions are "play"-only, so this is inert while a window is open or building). A
+    // keypress (in _useHotbar) refreshes the reveal timer below.
+    this._useHotbar();
+
+    // Auto-hide the hotbar HUD with a slide: the bar pops UP on a hotbar keypress / bind-or-clear
+    // (which reset _hotbarTimer via _showHotbar) and slides back DOWN below the screen edge after
+    // RPG_HOTBAR_HUD_SECS. The timer counts down on Time.raw (wall-clock, like all UI timing —
+    // unaffected by sim pause/dilation); _hotbarSlide eases 0..1 toward the target via Tween.approach
+    // (also Time.raw) and drives the bar's draw-time dragY offset (offset-not-mutation, the idiom for
+    // animated UI position — see UIElement.getLayoutPosition). Build mode owns the bottom-center HUD,
+    // so the bar slides away while it's active.
+    if (this._hotbarTimer > 0) this._hotbarTimer -= Time.raw;
+    const show = !this._buildActive && this._hotbarTimer > 0;
+    this._hotbarSlide = Tween.approach(
+      this._hotbarSlide,
+      show ? 1 : 0,
+      RPG_HOTBAR_SLIDE_SPD,
+    );
+    this._hotbarBar.dragY = (1 - this._hotbarSlide) * RPG_HOTBAR_SLIDE;
+    this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
 
     // Rebuild the pathfinding nav window around the player BEFORE the tick loop — the per-tick
     // PathfindingSystem (in the physics pipeline) plans slime paths over it. It's the same NavGrid
@@ -373,6 +401,39 @@ class _SceneRpgClass extends Scene {
     // Door check LAST — RpgMap.go() swaps this.world/level/renderer/camera out from under the
     // scene, so nothing below it may touch the old map.
     RpgMap.checkPortals(this);
+  }
+
+  // Number-key hotbar: use the item bound to each pressed slot. Edge-sampled once per frame,
+  // outside the tick loop. useItem handles both consumable use and equip/unequip toggle (and
+  // no-ops when the player doesn't own the bound item), so a slot can stay armed across uses.
+  _useHotbar() {
+    const hb = this.world.get(Hotbar, this.ctrl.id);
+    if (hb === undefined) return;
+    for (let i = 0; i < hb.size; i++) {
+      if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
+      this._showHotbar(); // any hotbar keypress reveals the bar (even an empty slot)
+      const itemId = hb.slots[i];
+      if (itemId === "") continue;
+      RpgInventoryUI.useItem(this, itemId, this._itemWorn(itemId));
+    }
+  }
+
+  // Reveal the bottom hotbar HUD and refresh its Time.raw auto-hide countdown. Called on a hotbar
+  // keypress (_useHotbar) and on a bind/clear from the inventory strip (RpgInventoryUI), so the bar
+  // pops into view then fades after RPG_HOTBAR_HUD_SECS.
+  _showHotbar() {
+    this._hotbarTimer = RPG_HOTBAR_HUD_SECS;
+  }
+
+  // Whether the player currently has itemId equipped (drives useItem's equip-vs-unequip toggle for
+  // a hotbarred equippable). False for non-equippables / when not worn.
+  _itemWorn(itemId) {
+    const it = Item.get(itemId);
+    if (it === undefined || !it.hasComponent(Equippable)) return false;
+    const eq = this.world.get(Equipment, this.ctrl.id);
+    return (
+      eq !== undefined && eq.slots[it.getComponent(Equippable).slot] === itemId
+    );
   }
 
   // Mark a unique (Persistent) entity as removed in the current map so it won't re-spawn from
