@@ -60,13 +60,11 @@ globalThis.Interactable = {
     scene.ui.insertChild(prompt);
 
     StorageUI.build(scene);
-    CraftingUI.build(scene);
-    WeaponModUI.build(scene);
+    CraftingUI.build(scene); // the workbench window — also hosts the weapon-mod panel (Toolkit module)
   },
 
   _promptText(scene) {
     if (scene._interKind === "workbench") return I18n.text("CRAFT_PROMPT");
-    if (scene._interKind === "modbench") return I18n.text("MOD_PROMPT");
     if (scene._interKind === "storage") return I18n.text("STORAGE_PROMPT");
     if (scene._interKind === "claim") return I18n.text("CLAIM_PROMPT");
     if (scene._interKind === "arcade") return I18n.text("ARCADE_PROMPT");
@@ -83,29 +81,22 @@ globalThis.Interactable = {
 
     // The opened station left range → close (it's left behind in the world).
     if (
-      (scene._storeOpen || scene._craftOpen || scene._modOpen) &&
+      (scene._storeOpen || scene._craftOpen) &&
       !Interactable._inRange(scene, scene._interOpenId)
     ) {
       Interactable._closeAll(scene);
     }
 
     scene._interPrompt.enabled =
-      scene._interTarget !== -1 &&
-      !scene._storeOpen &&
-      !scene._craftOpen &&
-      !scene._modOpen;
+      scene._interTarget !== -1 && !scene._storeOpen && !scene._craftOpen;
 
     if (scene._storeOpen && scene._storeDirty) {
       StorageUI.refresh(scene);
       scene._storeDirty = false;
     }
     if (scene._craftOpen && scene._craftDirty) {
-      CraftingUI.refresh(scene);
+      CraftingUI.refresh(scene); // refreshes the active panel (recipes OR the weapon-mod view)
       scene._craftDirty = false;
-    }
-    if (scene._modOpen && scene._modDirty) {
-      WeaponModUI.refresh(scene);
-      scene._modDirty = false;
     }
   },
 
@@ -222,13 +213,11 @@ globalThis.Interactable = {
     scene._interOpenId = id;
     if (scene._interKind === "storage") StorageUI.open(scene, id);
     else if (scene._interKind === "workbench") CraftingUI.open(scene, id);
-    else if (scene._interKind === "modbench") WeaponModUI.open(scene, id);
   },
 
   _closeAll(scene) {
     if (scene._storeOpen) StorageUI.close(scene);
     if (scene._craftOpen) CraftingUI.close(scene);
-    if (scene._modOpen) WeaponModUI.close(scene);
     scene._interOpenId = -1;
   },
 

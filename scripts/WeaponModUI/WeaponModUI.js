@@ -1,7 +1,8 @@
-// Weapon-MODIFICATION window for the RPG scene. A "modbench" station (Station {kind:"modbench"} —
-// an Anvil) opens this. A master-detail panel over the player's WEAPON INSTANCES (the
-// definition-vs-instance split: each weapon is a unique inventory slot with a uid + an inline
-// `mods` list of installed mod itemIds):
+// Weapon-MOD PANEL — the install/remove-mods view of the WORKBENCH (the Toolkit module switches the
+// bench into this mode; there is no standalone Anvil). It does NOT own a window: CraftingUI (the
+// workbench window) creates the master-detail hosts and calls buildPanel()/refresh(). A master-detail
+// over the player's WEAPON INSTANCES (the definition-vs-instance split: each weapon is a unique
+// inventory slot with a uid + an inline `mods` list of installed mod itemIds):
 //   • LEFT  — a list of owned weapon instances; click one to select it (by uid). Shows its mod
 //             count "+N" and an "[E]" marker when it's the equipped weapon.
 //   • RIGHT — the selected weapon's composed attack stats (base + installed mods, via
@@ -10,72 +11,20 @@
 //             Install (gated live by free sockets + ownership).
 // Installing consumes one mod item and pushes its itemId onto the instance's `mods`; removing pops
 // it and refunds the item. Both re-derive the wearer's Stats (a mod can also grant Stats) via
-// StatModel.recompute and mark the bag dirty.
+// StatModel.recompute and mark the WORKBENCH dirty (scene._craftDirty) so the panel repopulates.
 //
-// Manager-drawn UI on the GUI layer (Draw_75), built once and toggled. Selection + open/close are
-// owned by the shared Interactable module. All per-open state lives on the SCENE (namespaced
-// `_mod*`) so two scenes can't clobber each other and teardownScene cleans up. Like CraftingUI the
-// columns are PLAIN (no gpu_set_scissor clip — unreliable in a master-detail row on GMRT 0.20; see
-// CraftingUI's long comment), sized to fit via LIST_H.
+// State on the SCENE: _modSel (selected weapon uid), _modList / _modDetail (the hosts CraftingUI
+// gives it). Like CraftingUI the columns are PLAIN (no gpu_set_scissor clip — unreliable in a
+// master-detail row on GMRT 0.20; see CraftingUI's long comment).
 //
-// Scene contract: scene.world, scene.ctrl.id (player), scene.ui.
+// Scene contract: scene.world, scene.ctrl.id (player), scene._craftDirty, scene._invDirty.
 globalThis.WeaponModUI = {
-  LIST_H: 460, // list/panel height (px) — fits ~12 weapon rows without a scroll
-  WRAP: 300, // description/text wrap width for the detail column
-
-  build(scene) {
-    scene._modOpen = false;
-    scene._modDirty = false;
+  // Record the host elements CraftingUI built for the weapon-mod panel + init selection. No window
+  // of its own — the workbench owns open/close (it toggles this panel's enabled state by module).
+  buildPanel(scene, listHost, detailHost) {
     scene._modSel = ""; // selected weapon instance uid (defaulted to the first on refresh)
-
-    const win = gemsWindow(I18n.textRef("MOD_TITLE"), {
-      top: 80,
-      width: 600,
-      resizable: false, // fixed master-detail panel (stable text wrap), like CraftingUI
-      onClose: () => WeaponModUI.close(scene),
-    });
-    win.enabled = false;
-
-    const row = new UIElement({
-      width: "100%",
-      height: WeaponModUI.LIST_H,
-      flexShrink: 0,
-      flexDirection: "row",
-      gap: GemsTheme.gap,
-    });
-
-    const left = new UIElement({
-      width: 210,
-      height: "100%",
-      flexShrink: 0,
-      gap: GemsTheme.gapSm,
-    });
-    scene._modList = left;
-    row.insertChild(left);
-
-    const detail = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      height: "100%",
-      gap: GemsTheme.gapSm,
-    });
-    scene._modDetail = detail;
-    row.insertChild(detail);
-
-    win.body.insertChild(row);
-    scene._modWin = win;
-    scene.ui.insertChild(win);
-  },
-
-  open(scene, stationId) {
-    scene._modOpen = true;
-    scene._modWin.enabled = true;
-    scene._modDirty = true;
-  },
-
-  close(scene) {
-    scene._modOpen = false;
-    scene._modWin.enabled = false;
+    scene._modList = listHost;
+    scene._modDetail = detailHost;
   },
 
   // Rebuild both panels. Ensures a valid selection first (default to the first weapon; reset if the
@@ -138,7 +87,7 @@ globalThis.WeaponModUI = {
       label,
       () => {
         scene._modSel = uid;
-        scene._modDirty = true;
+        scene._craftDirty = true; // the workbench repopulates the active (mod) panel
       },
       {
         height: 32,
@@ -342,7 +291,7 @@ globalThis.WeaponModUI = {
     if (InventorySystem.remove(inv, modId, 1) < 1) return; // not owned
     slot.mods.push(modId);
     StatModel.recompute(scene.world, scene.ctrl.id); // a mod may grant Stats
-    scene._modDirty = true;
+    scene._craftDirty = true; // the workbench repopulates the active (mod) panel
     scene._invDirty = true; // weapon's "+N" / stats changed — sync the bag window if open
     Log.info(`installed ${modId} on ${slot.itemId}`);
   },
@@ -355,7 +304,7 @@ globalThis.WeaponModUI = {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     InventorySystem.add(inv, modId, 1); // refund
     StatModel.recompute(scene.world, scene.ctrl.id);
-    scene._modDirty = true;
+    scene._craftDirty = true; // the workbench repopulates the active (mod) panel
     scene._invDirty = true;
     Log.info(`removed ${modId} from ${slot.itemId}`);
   },

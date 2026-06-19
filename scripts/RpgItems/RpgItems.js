@@ -214,11 +214,12 @@ globalThis.RpgItems = {
       // Crafting materials (no behavior — consumed by Recipes at a workbench).
       { id: "wood", name: "ITEM_WOOD", weight: 1, value: 1, rarity: "common" },
       { id: "iron", name: "ITEM_IRON", weight: 2, value: 4, rarity: "common" },
-      // Weapon mods (WeaponMod) — fungible items installed into a weapon's sockets at an Anvil
-      // (WeaponModUI). `weapon` deltas fold into the composed attack profile; `stat` deltas fold
-      // into the wearer's derived Stats. A delta only applies to a field the BASE weapon declares
-      // (e.g. reach is melee-only, bulletSpeed ranged-only — so mod_heavy's reach is inert on the
-      // blaster, mod_scope's speed inert on a sword). Crafted at a workbench (RpgRecipes).
+      // Weapon mods (WeaponMod) — fungible items installed into a weapon's sockets at a workbench
+      // with the Toolkit module slotted (WeaponModUI panel). `weapon` deltas fold into the composed
+      // attack profile; `stat` deltas fold into the wearer's derived Stats. A delta only applies to a
+      // field the BASE weapon declares (e.g. reach is melee-only, bulletSpeed ranged-only — so
+      // mod_heavy's reach is inert on the blaster, mod_scope's speed inert on a sword). Crafted with
+      // the Forge module (RpgRecipes).
       {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
@@ -256,6 +257,46 @@ globalThis.RpgItems = {
         value: 40,
         rarity: "rare",
         components: [new WeaponMod({ weapon: { bulletSpeed: 250 } })],
+      },
+      // Workbench modules (WorkbenchModule) — slotted into a workbench's single module slot to
+      // upgrade it. The three "recipes" modules unlock the recipes that declare `requires: <id>`
+      // (RpgRecipes); the Toolkit ("weaponmod") switches the bench into the weapon-mod panel. All
+      // are crafted at the BARE bench (base recipes), so the bench bootstraps its own upgrades.
+      {
+        id: "forge",
+        name: "ITEM_FORGE",
+        description: "ITEM_FORGE_DESC",
+        weight: 3,
+        value: 30,
+        rarity: "uncommon",
+        components: [new WorkbenchModule()], // kind defaults "recipes"
+      },
+      {
+        id: "alembic",
+        name: "ITEM_ALEMBIC",
+        description: "ITEM_ALEMBIC_DESC",
+        weight: 2,
+        value: 35,
+        rarity: "uncommon",
+        components: [new WorkbenchModule()],
+      },
+      {
+        id: "hearth",
+        name: "ITEM_HEARTH",
+        description: "ITEM_HEARTH_DESC",
+        weight: 3,
+        value: 25,
+        rarity: "uncommon",
+        components: [new WorkbenchModule()],
+      },
+      {
+        id: "toolkit",
+        name: "ITEM_TOOLKIT",
+        description: "ITEM_TOOLKIT_DESC",
+        weight: 2,
+        value: 40,
+        rarity: "rare",
+        components: [new WorkbenchModule({ kind: "weaponmod" })],
       },
     ]);
   },

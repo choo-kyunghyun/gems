@@ -653,8 +653,7 @@ class _SceneRpgClass extends Scene {
   // frame. InputContext then gates the action tags (fire muted off "play"; etc.).
   _resolveContext() {
     let ctx = "play";
-    if (this.invOpen || this._storeOpen || this._craftOpen || this._modOpen)
-      ctx = "window";
+    if (this.invOpen || this._storeOpen || this._craftOpen) ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
   }
@@ -666,7 +665,7 @@ class _SceneRpgClass extends Scene {
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
-    if (this._storeOpen || this._craftOpen || this._modOpen) {
+    if (this._storeOpen || this._craftOpen) {
       Interactable.closeAll(this); // E closes an open station window
       return;
     }
@@ -730,7 +729,7 @@ class _SceneRpgClass extends Scene {
       this._invWin.enabled = false;
       return true;
     }
-    if (this._storeOpen || this._craftOpen || this._modOpen) {
+    if (this._storeOpen || this._craftOpen) {
       Interactable.closeAll(this); // closes whichever station window is open
       return true;
     }

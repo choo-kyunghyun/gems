@@ -5,6 +5,9 @@
 // {
 //   id,                              // unique recipe id
 //   station: "workbench",            // Station.kind this recipe shows up at
+//   requires: "forge",               // OPTIONAL: a WorkbenchModule itemId that must be slotted in
+//                                    //   the bench (Station.module) for this recipe to show/craft.
+//                                    //   Omit for a BASE recipe (always available at the bench).
 //   inputs: [{ itemId, qty }],       // consumed from the crafter's Inventory
 //   output: { itemId, qty },         // produced into the crafter's Inventory
 // }
@@ -12,6 +15,7 @@ globalThis.Recipe = class Recipe {
   constructor(def) {
     this.id = def.id;
     this.station = def.station;
+    this.requires = def.requires; // undefined = base recipe (no module needed)
     this.inputs = def.inputs ?? [];
     this.output = def.output;
   }

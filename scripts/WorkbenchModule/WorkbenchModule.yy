@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"WorkbenchModule",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"WorkbenchModule",
+  "parent":{
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"WorkbenchModule.js",
+}

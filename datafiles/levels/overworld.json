@@ -132,14 +132,6 @@
     },
     {
       "preset": "prop",
-      "gx": 13,
-      "gy": 9,
-      "label": "Anvil",
-      "color": "#8a8f99",
-      "kind": "modbench"
-    },
-    {
-      "preset": "prop",
       "gx": 6,
       "gy": 9,
       "label": "Survey Post",

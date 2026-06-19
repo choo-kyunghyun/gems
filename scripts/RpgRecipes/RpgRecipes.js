@@ -1,118 +1,90 @@
-// RPG crafting recipes (Station kind "workbench"). Inputs are pulled from, and the output
-// deposited into, the player's bag (CraftSystem). Registered once by RpgContent.register() at a
-// scene's create() (NOT at top level — avoids GMRT load-order issues).
+// RPG crafting recipes (Station kind "workbench"). Inputs are pulled from, and the output deposited
+// into, the player's bag (CraftSystem). One bench, upgraded by a MODULE slot: `requires` is the
+// WorkbenchModule itemId that must be slotted for the recipe to show/craft (undefined = a BASE
+// recipe, always available). Registered once by RpgContent.register() at a scene's create() (NOT at
+// top level — avoids GMRT load-order issues).
+//
+// Groups: BASE (no module — basic gear + the four modules themselves, so the bare bench bootstraps
+// its own upgrades), FORGE ("forge" — smithing + weapon mods), ALCHEMY ("alembic" — potions/buffs +
+// attribute shards), COOKING ("hearth" — drink + foods). The Toolkit ("toolkit") module isn't a
+// recipe gate — it switches the bench into the weapon-mod panel (WeaponModUI).
 globalThis.RpgRecipes = {
   register() {
     Recipe.register([
+      // ── BASE (no module needed) ──────────────────────────────────────────
       {
         id: "craft_wood_sword",
         station: "workbench",
         inputs: [{ itemId: "wood", qty: 3 }],
         output: { itemId: "wood_sword", qty: 1 },
       },
+      // The four workbench modules — crafted at the bare bench so it can upgrade itself.
       {
-        id: "craft_potion",
+        id: "craft_forge",
         station: "workbench",
         inputs: [
-          { itemId: "slime_gel", qty: 2 },
-          { itemId: "wood", qty: 1 },
+          { itemId: "iron", qty: 4 },
+          { itemId: "wood", qty: 2 },
         ],
-        output: { itemId: "potion", qty: 1 },
+        output: { itemId: "forge", qty: 1 },
       },
+      {
+        id: "craft_alembic",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "alembic", qty: 1 },
+      },
+      {
+        id: "craft_hearth",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "wood", qty: 4 },
+        ],
+        output: { itemId: "hearth", qty: 1 },
+      },
+      {
+        id: "craft_toolkit",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 3 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "toolkit", qty: 1 },
+      },
+
+      // ── FORGE module — smithing (gear) + weapon mods ─────────────────────
       {
         id: "craft_leather_armor",
         station: "workbench",
+        requires: "forge",
         inputs: [{ itemId: "iron", qty: 2 }],
         output: { itemId: "leather_armor", qty: 1 },
       },
-      // Buff consumables (Buff/Status system): Tonic = Regen, Elixir = Fortify.
       {
-        id: "craft_tonic",
+        id: "craft_blaster",
         station: "workbench",
-        inputs: [{ itemId: "slime_gel", qty: 3 }],
-        output: { itemId: "tonic", qty: 1 },
-      },
-      {
-        id: "craft_elixir",
-        station: "workbench",
+        requires: "forge",
         inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "slime_gel", qty: 2 },
-        ],
-        output: { itemId: "elixir", qty: 1 },
-      },
-      // Survival drink + foods (cooking abstraction over current mats; farming/fishing is roadmap).
-      {
-        id: "craft_water_bottle",
-        station: "workbench",
-        inputs: [{ itemId: "slime_gel", qty: 1 }],
-        output: { itemId: "water_bottle", qty: 1 },
-      },
-      {
-        id: "craft_bread",
-        station: "workbench",
-        inputs: [{ itemId: "wood", qty: 2 }],
-        output: { itemId: "bread", qty: 1 },
-      },
-      {
-        id: "craft_cooked_meat",
-        station: "workbench",
-        inputs: [
-          { itemId: "slime_gel", qty: 2 },
-          { itemId: "wood", qty: 1 },
-        ],
-        output: { itemId: "cooked_meat", qty: 1 },
-      },
-      // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
-      // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering,
-      // not playtime. One per StatModel.ATTRS key.
-      {
-        id: "craft_power_shard",
-        station: "workbench",
-        inputs: [
+          { itemId: "iron", qty: 4 },
           { itemId: "gem", qty: 1 },
-          { itemId: "iron", qty: 3 },
         ],
-        output: { itemId: "power_shard", qty: 1 },
+        output: { itemId: "blaster", qty: 1 },
       },
-      {
-        id: "craft_vitality_shard",
-        station: "workbench",
-        inputs: [
-          { itemId: "gem", qty: 1 },
-          { itemId: "slime_gel", qty: 4 },
-        ],
-        output: { itemId: "vitality_shard", qty: 1 },
-      },
-      {
-        id: "craft_agility_shard",
-        station: "workbench",
-        inputs: [
-          { itemId: "gem", qty: 1 },
-          { itemId: "wood", qty: 4 },
-        ],
-        output: { itemId: "agility_shard", qty: 1 },
-      },
-      {
-        id: "craft_endurance_shard",
-        station: "workbench",
-        inputs: [
-          { itemId: "gem", qty: 1 },
-          { itemId: "iron", qty: 2 },
-        ],
-        output: { itemId: "endurance_shard", qty: 1 },
-      },
-      // Weapon mods (WeaponMod) — installed into a weapon's sockets at an Anvil (WeaponModUI).
-      // Crafted from iron (+ a gem for the rarer ones), so modding is gated on gathering.
       {
         id: "craft_mod_sharp",
         station: "workbench",
+        requires: "forge",
         inputs: [{ itemId: "iron", qty: 3 }],
         output: { itemId: "mod_sharp", qty: 1 },
       },
       {
         id: "craft_mod_rapid",
         station: "workbench",
+        requires: "forge",
         inputs: [
           { itemId: "iron", qty: 2 },
           { itemId: "wood", qty: 2 },
@@ -122,6 +94,7 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_heavy",
         station: "workbench",
+        requires: "forge",
         inputs: [
           { itemId: "iron", qty: 4 },
           { itemId: "gem", qty: 1 },
@@ -131,11 +104,110 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_scope",
         station: "workbench",
+        requires: "forge",
         inputs: [
           { itemId: "iron", qty: 2 },
           { itemId: "gem", qty: 1 },
         ],
         output: { itemId: "mod_scope", qty: 1 },
+      },
+
+      // ── ALCHEMY module — potions, buffs, attribute shards ────────────────
+      {
+        id: "craft_potion",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "slime_gel", qty: 2 },
+          { itemId: "wood", qty: 1 },
+        ],
+        output: { itemId: "potion", qty: 1 },
+      },
+      // Buff consumables (Buff/Status system): Tonic = Regen, Elixir = Fortify.
+      {
+        id: "craft_tonic",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [{ itemId: "slime_gel", qty: 3 }],
+        output: { itemId: "tonic", qty: 1 },
+      },
+      {
+        id: "craft_elixir",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "slime_gel", qty: 2 },
+        ],
+        output: { itemId: "elixir", qty: 1 },
+      },
+      // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
+      // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering.
+      {
+        id: "craft_power_shard",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "iron", qty: 3 },
+        ],
+        output: { itemId: "power_shard", qty: 1 },
+      },
+      {
+        id: "craft_vitality_shard",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "slime_gel", qty: 4 },
+        ],
+        output: { itemId: "vitality_shard", qty: 1 },
+      },
+      {
+        id: "craft_agility_shard",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "wood", qty: 4 },
+        ],
+        output: { itemId: "agility_shard", qty: 1 },
+      },
+      {
+        id: "craft_endurance_shard",
+        station: "workbench",
+        requires: "alembic",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "iron", qty: 2 },
+        ],
+        output: { itemId: "endurance_shard", qty: 1 },
+      },
+
+      // ── COOKING module — drink + foods ───────────────────────────────────
+      {
+        id: "craft_water_bottle",
+        station: "workbench",
+        requires: "hearth",
+        inputs: [{ itemId: "slime_gel", qty: 1 }],
+        output: { itemId: "water_bottle", qty: 1 },
+      },
+      {
+        id: "craft_bread",
+        station: "workbench",
+        requires: "hearth",
+        inputs: [{ itemId: "wood", qty: 2 }],
+        output: { itemId: "bread", qty: 1 },
+      },
+      {
+        id: "craft_cooked_meat",
+        station: "workbench",
+        requires: "hearth",
+        inputs: [
+          { itemId: "slime_gel", qty: 2 },
+          { itemId: "wood", qty: 1 },
+        ],
+        output: { itemId: "cooked_meat", qty: 1 },
       },
     ]);
   },

@@ -2,9 +2,15 @@
 // their inputs from, and place their output into, the SAME inventory (the crafter's
 // bag). Modeled on InventorySystem — methods take the components/world directly.
 globalThis.CraftSystem = {
-  // True when `inv` holds every input of `recipe` in the required quantity.
-  canCraft(inv, recipe) {
+  // True when the recipe's module gate is met AND `inv` holds every input in the required
+  // quantity. `module` is the workbench's slotted WorkbenchModule itemId (Station.module, "" /
+  // undefined = empty slot); a recipe with a `requires` only crafts when that module is slotted
+  // (a base recipe — no `requires` — ignores `module`). The gate is enforced here so it holds even
+  // if the UI somehow surfaces a recipe out of context.
+  canCraft(inv, recipe, module) {
     if (inv === undefined || recipe === undefined) return false;
+    if (recipe.requires !== undefined && recipe.requires !== module)
+      return false;
     for (let i = 0; i < recipe.inputs.length; i++) {
       const need = recipe.inputs[i];
       if (!InventorySystem.has(inv, need.itemId, need.qty)) return false;
@@ -15,12 +21,12 @@ globalThis.CraftSystem = {
   // Craft `recipeId` for entity `crafterId`, sourcing inputs from and depositing the
   // output into its Inventory. Verifies the output will fit BEFORE consuming anything
   // (InventorySystem.add returns leftover) so a full bag can't eat the materials.
-  // Returns true on success.
-  craft(world, crafterId, recipeId) {
+  // `module` is the bench's slotted module (see canCraft). Returns true on success.
+  craft(world, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
     const inv = world.get(Inventory, crafterId);
     if (recipe === undefined || inv === undefined) return false;
-    if (!this.canCraft(inv, recipe)) return false;
+    if (!this.canCraft(inv, recipe, module)) return false;
 
     // Dry-run the output against a clone so we don't mutate on a no-fit.
     const probe = {

@@ -152,20 +152,6 @@ globalThis.BuildMode = {
             kind: "workbench",
           }),
         },
-        {
-          id: "anvil",
-          labelKey: "BUILD_ANVIL",
-          cost: 8,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_ANVIL"),
-            color: "#8a8f99",
-            kind: "modbench",
-          }),
-        },
       ],
     },
     {
@@ -384,7 +370,16 @@ globalThis.BuildMode = {
     // Built entities sit on top of tiles — remove one first if present.
     const ent = scene._builtEnts[key];
     if (ent !== undefined) {
-      if (scene.world.isValid(ent.ent)) scene.world.remove(ent.ent);
+      // A workbench with a module slotted (Station.module) returns that module to the bag — it
+      // isn't in any inventory while slotted, so deconstructing would otherwise delete it.
+      if (scene.world.isValid(ent.ent)) {
+        const st = scene.world.get(Station, ent.ent);
+        if (st !== undefined && st.module !== undefined && st.module !== "") {
+          const inv = scene.world.get(Inventory, scene.ctrl.id);
+          if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
+        }
+        scene.world.remove(ent.ent);
+      }
       BuildMode._refund(scene, ent.itemId);
       delete scene._builtEnts[key];
       scene._invDirty = true;
