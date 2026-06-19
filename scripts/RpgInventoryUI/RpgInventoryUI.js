@@ -590,12 +590,13 @@ globalThis.RpgInventoryUI = {
     const rows = RpgInventoryUI._buildRows(scene);
     scene._invTable.setRows(rows);
 
-    // Re-map the selection by itemId so the highlight + action button survive the swap
-    // (row models are fresh objects each refresh; the old _invSel ref is stale).
+    // Re-map the selection by uid (instances) / itemId (fungibles) so the highlight + action
+    // button survive the swap (row models are fresh objects each refresh; the old _invSel ref
+    // is stale).
     if (scene._invSel !== null) {
       let found = null;
       for (let i = 0; i < rows.length; i++) {
-        if (rows[i].itemId === scene._invSel.itemId) {
+        if (RpgInventoryUI._sameRow(rows[i], scene._invSel)) {
           found = rows[i];
           break;
         }
@@ -642,13 +643,13 @@ globalThis.RpgInventoryUI = {
     if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
-  // Build the row models from the live bag. `worn` is claimed by the first matching row
-  // (Equipment is keyed by itemId, so with two of the same equippable only one is worn).
+  // Build the row models from the live bag. `worn` marks the row whose INSTANCE uid is the one
+  // equipped in its slot — exact, so with two of the same equippable only the worn instance lights
+  // (no itemId dedup needed; uid is unique).
   _buildRows(scene) {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     const eq = scene.world.get(Equipment, scene.ctrl.id);
     const fav = scene.world.get(Favorites, scene.ctrl.id);
-    const wornClaimed = {};
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
@@ -656,14 +657,12 @@ globalThis.RpgInventoryUI = {
       let worn = false;
       if (it !== undefined && it.hasComponent(Equippable)) {
         const eqp = it.getComponent(Equippable);
-        if (eq.slots[eqp.slot] === slot.itemId && !wornClaimed[slot.itemId]) {
+        if (slot.uid !== undefined && eq.slots[eqp.slot] === slot.uid)
           worn = true;
-          wornClaimed[slot.itemId] = true;
-        }
       }
       const favd = fav !== undefined && FavoritesSystem.has(fav, slot.itemId);
       rows.push({
-        ...InvTable.rowModel(slot.itemId, slot.qty),
+        ...InvTable.rowModel(slot.itemId, slot.qty, slot.uid, slot.mods),
         worn,
         fav: favd,
       });
@@ -689,13 +688,15 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  // Click selects a row; a second click on the same item within 350ms uses/equips it
-  // (double-click), matching the action button + gamepad confirm.
+  // Click selects a row; a second click on the SAME row within 350ms uses/equips it
+  // (double-click), matching the action button + gamepad confirm. Identity is the instance
+  // uid when present (so a re-click on the same modded weapon double-clicks, not its twin),
+  // else the itemId for fungibles.
   _onSelect(scene, row) {
     const now = current_time;
     if (
       scene._invSel !== null &&
-      scene._invSel.itemId === row.itemId &&
+      RpgInventoryUI._sameRow(scene._invSel, row) &&
       now - scene._invSelTime < 350
     ) {
       RpgInventoryUI._activate(scene, row);
@@ -705,9 +706,15 @@ globalThis.RpgInventoryUI = {
     scene._invSelTime = now;
   },
 
+  // Two row models refer to the same item: by instance uid when both have one, else by itemId.
+  _sameRow(a, b) {
+    if (a.uid !== undefined || b.uid !== undefined) return a.uid === b.uid;
+    return a.itemId === b.itemId;
+  },
+
   _activate(scene, row) {
     if (row === null || row === undefined) return;
-    RpgInventoryUI.useItem(scene, row.itemId, row.worn);
+    RpgInventoryUI.useItem(scene, row.itemId, row.worn, row.uid);
   },
 
   // The context action verb for the selected item ("-" when none / no action).
@@ -723,13 +730,22 @@ globalThis.RpgInventoryUI = {
     return I18n.text("INV_NOACTION");
   },
 
-  // One equipment slot: a button (click unequips) when worn, else a muted label row.
+  // One equipment slot: a button (click unequips) when worn, else a muted label row. The slot
+  // holds the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + its mods.
   _equipRow(scene, slot, labelKey) {
     const eq = scene.world.get(Equipment, scene.ctrl.id);
-    const itemId = eq !== undefined ? eq.slots[slot] : "";
-    if (itemId !== undefined && itemId !== "") {
+    const uid = eq !== undefined ? eq.slots[slot] : "";
+    if (uid !== undefined && uid !== "") {
+      const inv = scene.world.get(Inventory, scene.ctrl.id);
+      const inst =
+        inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
+      const itemId = inst !== undefined ? inst.itemId : "";
       const it = Item.get(itemId);
-      const nm = it !== undefined ? I18n.text(it.name) : itemId;
+      const base = it !== undefined ? I18n.text(it.name) : itemId;
+      const nm =
+        inst !== undefined && inst.mods !== undefined && inst.mods.length > 0
+          ? base + " +" + inst.mods.length
+          : base;
       return gemsButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
@@ -750,11 +766,11 @@ globalThis.RpgInventoryUI = {
   },
 
   // Act on an item: equippables toggle equip/unequip, consumables are used (one unit).
-  // `wasWorn` is the row's displayed equipped-state — acting on it (not the shared
-  // itemId) means that with two identical equippables only the row shown as equipped
-  // unequips; clicking the spare falls to equip(), which no-ops for an already-equipped
-  // item rather than toggling the worn one off.
-  useItem(scene, itemId, wasWorn) {
+  // `wasWorn` is the row's displayed equipped-state — acting on it (not the shared itemId)
+  // means that with two identical equippables only the row shown as equipped unequips.
+  // `uid` (a table row's specific instance) equips exactly that one; without it (the hotbar,
+  // which only knows an itemId) equipFirst picks the first owned instance.
+  useItem(scene, itemId, wasWorn, uid) {
     const item = Item.get(itemId);
     if (item === undefined) return;
     if (item.hasComponent(Equippable)) {
@@ -762,8 +778,12 @@ globalThis.RpgInventoryUI = {
       if (wasWorn) {
         EquipmentSystem.unequip(scene.world, scene.ctrl.id, eqp.slot);
         Log.info(`unequipped ${itemId}`);
-      } else if (EquipmentSystem.equip(scene.world, scene.ctrl.id, itemId)) {
-        Log.info(`equipped ${itemId}`);
+      } else {
+        const ok =
+          uid !== undefined
+            ? EquipmentSystem.equip(scene.world, scene.ctrl.id, uid)
+            : EquipmentSystem.equipFirst(scene.world, scene.ctrl.id, itemId);
+        if (ok) Log.info(`equipped ${itemId}`);
       }
     } else if (item.hasComponent(Consumable)) {
       if (ConsumableSystem.use(scene.world, scene.ctrl.id, itemId)) {

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"WeaponModUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"WeaponModUI",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Demo/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"WeaponModUI.js",
+}

@@ -18,6 +18,10 @@ globalThis.Weapon = class Weapon {
    * @param {number} [d.bulletSpeed]  projectile speed (ranged only; default: controller's)
    * @param {boolean} [d.melee]       true → swing a melee hitbox instead of firing
    * @param {number} [d.reach]        melee hitbox length in px (default: controller's)
+   * @param {number} [d.sockets]      installable weapon-mod slots (0 = unmoddable; default 0).
+   *                                  A weapon whose mods target fireCd/bulletSpeed/reach should
+   *                                  declare those fields explicitly so the deltas have a base
+   *                                  (EquipmentSystem.composeWeapon only deltas declared fields).
    */
   constructor(d) {
     this.damage = d.damage ?? 1;
@@ -25,5 +29,6 @@ globalThis.Weapon = class Weapon {
     this.bulletSpeed = d.bulletSpeed;
     this.melee = d.melee ?? false;
     this.reach = d.reach;
+    this.sockets = d.sockets ?? 0;
   }
 };

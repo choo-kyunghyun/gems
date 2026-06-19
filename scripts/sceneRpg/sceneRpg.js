@@ -160,8 +160,8 @@ class _SceneRpgClass extends Scene {
     // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
     // here it travels with the carried inventory across map changes (RpgMap.go re-applies it).
     const startInv = this.world.get(Inventory, this.ctrl.id);
-    InventorySystem.add(startInv, "wood_sword", 1);
-    EquipmentSystem.equip(this.world, this.ctrl.id, "wood_sword");
+    InventorySystem.add(startInv, "wood_sword", 1); // mints a uid instance (equippable gear)
+    EquipmentSystem.equipFirst(this.world, this.ctrl.id, "wood_sword"); // equip that instance by uid
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
@@ -425,15 +425,20 @@ class _SceneRpgClass extends Scene {
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS;
   }
 
-  // Whether the player currently has itemId equipped (drives useItem's equip-vs-unequip toggle for
-  // a hotbarred equippable). False for non-equippables / when not worn.
+  // Whether the player currently has an instance of itemId equipped (drives useItem's
+  // equip-vs-unequip toggle for a hotbarred equippable). Equipment keys by instance uid now, so
+  // resolve the equipped uid back to its itemId. False for non-equippables / when not worn.
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
     const eq = this.world.get(Equipment, this.ctrl.id);
-    return (
-      eq !== undefined && eq.slots[it.getComponent(Equippable).slot] === itemId
-    );
+    if (eq === undefined) return false;
+    const uid = eq.slots[it.getComponent(Equippable).slot];
+    if (uid === undefined || uid === "") return false;
+    const inv = this.world.get(Inventory, this.ctrl.id);
+    const inst =
+      inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
+    return inst !== undefined && inst.itemId === itemId;
   }
 
   // Mark a unique (Persistent) entity as removed in the current map so it won't re-spawn from
@@ -648,7 +653,8 @@ class _SceneRpgClass extends Scene {
   // frame. InputContext then gates the action tags (fire muted off "play"; etc.).
   _resolveContext() {
     let ctx = "play";
-    if (this.invOpen || this._storeOpen || this._craftOpen) ctx = "window";
+    if (this.invOpen || this._storeOpen || this._craftOpen || this._modOpen)
+      ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
   }
@@ -660,7 +666,7 @@ class _SceneRpgClass extends Scene {
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
-    if (this._storeOpen || this._craftOpen) {
+    if (this._storeOpen || this._craftOpen || this._modOpen) {
       Interactable.closeAll(this); // E closes an open station window
       return;
     }
@@ -724,7 +730,7 @@ class _SceneRpgClass extends Scene {
       this._invWin.enabled = false;
       return true;
     }
-    if (this._storeOpen || this._craftOpen) {
+    if (this._storeOpen || this._craftOpen || this._modOpen) {
       Interactable.closeAll(this); // closes whichever station window is open
       return true;
     }

@@ -198,6 +198,22 @@
   "CRAFT_DO": "제작",
   "CRAFT_SELECT": "제작법을 선택하세요",
 
+  "MOD_TITLE": "무기 개조",
+  "MOD_PROMPT": "[E] 무기 개조",
+  "MOD_EMPTY": "개조할 무기 없음",
+  "MOD_SELECT": "무기를 선택하세요",
+  "MOD_SOCKETS": "슬롯",
+  "MOD_INSTALLED": "장착됨",
+  "MOD_AVAILABLE": "사용 가능한 개조",
+  "MOD_INSTALL": "장착",
+  "MOD_REMOVE": "제거",
+  "MOD_NONE": "(없음)",
+  "MOD_NOMODS": "보유한 개조 없음",
+  "MOD_DMG": "피해",
+  "MOD_FIRECD": "공격 간격",
+  "MOD_REACH": "사거리",
+  "MOD_SPEED": "탄속",
+
   "CLAIM_PROMPT": "[E] 건설 구역 점유",
 
   "ARCADE_PROMPT": "[E] 아케이드 플레이",

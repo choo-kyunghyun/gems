@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"WeaponMod",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"WeaponMod",
+  "parent":{
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"WeaponMod.js",
+}

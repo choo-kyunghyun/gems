@@ -74,17 +74,37 @@ globalThis.StatModel = {
   _foldEquipment(world, id, d) {
     const eq = world.get(Equipment, id);
     if (eq === undefined) return;
+    const inv = world.get(Inventory, id);
+    if (inv === undefined) return;
     const slots = eq.slots;
     for (const slot in slots) {
-      const itemId = slots[slot];
-      if (itemId === undefined || itemId === "") continue;
-      const item = Item.get(itemId);
+      const uid = slots[slot]; // an equipped INSTANCE uid, not an itemId
+      if (uid === undefined || uid === "") continue;
+      const inst = InventorySystem.findByUid(inv, uid);
+      if (inst === undefined) continue;
+      const item = Item.get(inst.itemId);
       if (item === undefined) continue;
       const eqp = item.getComponent(Equippable);
-      if (eqp === undefined || eqp.mods === undefined) continue;
-      const mods = eqp.mods;
-      for (const key in mods) {
-        if (d[key] !== undefined) d[key] += mods[key];
+      if (eqp !== undefined && eqp.mods !== undefined) {
+        for (const key in eqp.mods) {
+          if (d[key] !== undefined) d[key] += eqp.mods[key];
+        }
+      }
+      // Installed weapon mods can also grant Stats (WeaponMod.stat), folded on top.
+      StatModel._foldInstanceMods(inst.mods, d);
+    }
+  },
+
+  // Fold every installed mod's WeaponMod.stat deltas (flat { stat: delta }) into the
+  // derived block `d`. `mods` is an instance slot's array of mod itemIds; no-op when empty.
+  _foldInstanceMods(mods, d) {
+    if (mods === undefined) return;
+    for (let i = 0; i < mods.length; i++) {
+      const m = Item.get(mods[i]);
+      const wm = m !== undefined ? m.getComponent(WeaponMod) : undefined;
+      if (wm === undefined) continue;
+      for (const key in wm.stat) {
+        if (d[key] !== undefined) d[key] += wm.stat[key];
       }
     }
   },

@@ -198,6 +198,22 @@
   "CRAFT_DO": "Craft",
   "CRAFT_SELECT": "Select a recipe",
 
+  "MOD_TITLE": "Weapon Mods",
+  "MOD_PROMPT": "[E] Modify weapon",
+  "MOD_EMPTY": "No weapons to modify",
+  "MOD_SELECT": "Select a weapon",
+  "MOD_SOCKETS": "Sockets",
+  "MOD_INSTALLED": "Installed",
+  "MOD_AVAILABLE": "Available mods",
+  "MOD_INSTALL": "Install",
+  "MOD_REMOVE": "Remove",
+  "MOD_NONE": "(none)",
+  "MOD_NOMODS": "No mods owned",
+  "MOD_DMG": "Damage",
+  "MOD_FIRECD": "Fire CD",
+  "MOD_REACH": "Reach",
+  "MOD_SPEED": "Bullet Speed",
+
   "CLAIM_PROMPT": "[E] Claim build area",
 
   "ARCADE_PROMPT": "[E] Play arcade",

@@ -308,6 +308,8 @@
     {"id":{"name":"VirtualKeyboard","path":"scripts/VirtualKeyboard/VirtualKeyboard.yy",},},
     {"id":{"name":"Visual","path":"scripts/Visual/Visual.yy",},},
     {"id":{"name":"Weapon","path":"scripts/Weapon/Weapon.yy",},},
+    {"id":{"name":"WeaponMod","path":"scripts/WeaponMod/WeaponMod.yy",},},
+    {"id":{"name":"WeaponModUI","path":"scripts/WeaponModUI/WeaponModUI.yy",},},
     {"id":{"name":"Weather","path":"scripts/Weather/Weather.yy",},},
     {"id":{"name":"World","path":"scripts/World/World.yy",},},
     {"id":{"name":"WorldClock","path":"scripts/WorldClock/WorldClock.yy",},},

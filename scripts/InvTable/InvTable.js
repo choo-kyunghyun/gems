@@ -92,20 +92,26 @@ globalThis.InvTable = {
     return cols;
   },
 
-  // Shared row model from an inventory slot (itemId + qty). Carries the full field set every
-  // shared column can render. Callers spread it and add their own fields: the bag window adds
-  // `worn`, the chest adds `idx` (the slot index for the transfer). `search` is the precomputed
-  // lowercase name for the bag's name filter (harmless/unused on the chest side).
-  rowModel(itemId, qty) {
+  // Shared row model from an inventory slot (itemId + qty, plus the slot's `uid`/`mods` for an
+  // instance). Carries the full field set every shared column can render. Callers spread it and
+  // add their own fields: the bag window adds `worn`, the chest adds `idx` (the slot index for the
+  // transfer). `search` is the precomputed lowercase name for the bag's name filter (harmless/
+  // unused on the chest side). `uid` (instance gear only, else undefined) is how the worn-marker
+  // and selection identify the specific instance; `modCount` shows installed weapon mods.
+  rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
     const cat = InvTable.category(it);
+    const modCount = mods !== undefined ? mods.length : 0;
     const name = it !== undefined ? I18n.text(it.name) : itemId;
     const rarId = it !== undefined ? it.rarity : undefined;
     const rar = rarId !== undefined ? Rarity.get(rarId) : undefined;
     return {
       itemId,
       qty,
-      name,
+      uid,
+      modCount,
+      // Modded weapons read "Name +N" so duplicates are distinguishable at a glance in the list.
+      name: modCount > 0 ? name + " +" + modCount : name,
       search: InvTable.lower(name),
       cat: cat.code,
       catKey: cat.key,

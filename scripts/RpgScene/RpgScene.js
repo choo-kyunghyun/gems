@@ -172,11 +172,14 @@ globalThis.RpgScene = {
         s.qty,
         pos.x + ox,
         pos.y + yBase + oy,
+        s, // pass the source slot so an instance's uid/mods ride the drop
       );
     }
   },
 
-  spawnDrop(scene, itemId, qty, x, y) {
+  // `src` (optional) is the source inventory slot — when it's an instance (carries a uid) the
+  // drop records its uid + mods so pickup re-inserts the same modded instance.
+  spawnDrop(scene, itemId, qty, x, y, src) {
     const world = scene.world;
     const id = world.create();
     world.add(id, Position, { x: x, y: y, z: 0 });
@@ -187,7 +190,12 @@ globalThis.RpgScene = {
       mask: null,
       hits: [],
     });
-    world.add(id, ItemDrop, { itemId: itemId, qty: qty });
+    const drop = { itemId: itemId, qty: qty };
+    if (src !== undefined && src.uid !== undefined) {
+      drop.uid = src.uid;
+      drop.mods = src.mods ?? [];
+    }
+    world.add(id, ItemDrop, drop);
   },
 
   // Pick up overlapping ItemDrop sensors (filled into the player's Collision.hits by
@@ -201,6 +209,21 @@ globalThis.RpgScene = {
       const id = hits[i];
       const d = world.get(ItemDrop, id);
       if (d === undefined) continue;
+      // An instance drop re-inserts whole (uid + mods preserved); a fungible drop adds by qty.
+      if (d.uid !== undefined) {
+        const ok = InventorySystem.addSlot(inv, {
+          itemId: d.itemId,
+          qty: 1,
+          uid: d.uid,
+          mods: d.mods ?? [],
+        });
+        if (ok) {
+          scene._invDirty = true;
+          if (onCollect !== undefined) onCollect(d.itemId, 1);
+          world.remove(id);
+        }
+        continue; // bag full → leave the instance on the ground
+      }
       const left = InventorySystem.add(inv, d.itemId, d.qty);
       const got = d.qty - left;
       if (got > 0) {

@@ -152,6 +152,20 @@ globalThis.BuildMode = {
             kind: "workbench",
           }),
         },
+        {
+          id: "anvil",
+          labelKey: "BUILD_ANVIL",
+          cost: 8,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_ANVIL"),
+            color: "#8a8f99",
+            kind: "modbench",
+          }),
+        },
       ],
     },
     {

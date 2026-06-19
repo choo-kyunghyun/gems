@@ -102,6 +102,41 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "endurance_shard", qty: 1 },
       },
+      // Weapon mods (WeaponMod) — installed into a weapon's sockets at an Anvil (WeaponModUI).
+      // Crafted from iron (+ a gem for the rarer ones), so modding is gated on gathering.
+      {
+        id: "craft_mod_sharp",
+        station: "workbench",
+        inputs: [{ itemId: "iron", qty: 3 }],
+        output: { itemId: "mod_sharp", qty: 1 },
+      },
+      {
+        id: "craft_mod_rapid",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "wood", qty: 2 },
+        ],
+        output: { itemId: "mod_rapid", qty: 1 },
+      },
+      {
+        id: "craft_mod_heavy",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 4 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "mod_heavy", qty: 1 },
+      },
+      {
+        id: "craft_mod_scope",
+        station: "workbench",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "mod_scope", qty: 1 },
+      },
     ]);
   },
 };

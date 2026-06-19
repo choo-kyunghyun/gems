@@ -173,7 +173,11 @@ globalThis.StorageUI = {
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
       const favd = fav !== undefined && FavoritesSystem.has(fav, s.itemId);
-      rows.push({ ...InvTable.rowModel(s.itemId, s.qty), idx: i, fav: favd }); // idx = transfer slot
+      rows.push({
+        ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
+        idx: i, // transfer slot
+        fav: favd,
+      });
     }
     return rows;
   },
@@ -248,11 +252,21 @@ globalThis.StorageUI = {
     if (idx < 0 || idx >= srcInv.slots.length) return 0;
     const s = srcInv.slots[idx];
     const itemId = s.itemId;
-    const leftover = InventorySystem.add(dstInv, itemId, s.qty);
-    const moved = s.qty - leftover;
-    if (moved <= 0) return 0; // destination full / weight-gated
-    s.qty -= moved;
-    if (s.qty <= 0) srcInv.slots.splice(idx, 1);
+    const def = Item.get(itemId);
+    let moved;
+    if (def !== undefined && def.isInstanced()) {
+      // Move the whole instance slot by reference so its uid + installed mods survive the
+      // transfer (add() would mint a fresh uid and drop the mods).
+      if (!InventorySystem.addSlot(dstInv, s)) return 0; // destination full / weight-gated
+      srcInv.slots.splice(idx, 1);
+      moved = 1;
+    } else {
+      const leftover = InventorySystem.add(dstInv, itemId, s.qty);
+      moved = s.qty - leftover;
+      if (moved <= 0) return 0; // destination full / weight-gated
+      s.qty -= moved;
+      if (s.qty <= 0) srcInv.slots.splice(idx, 1);
+    }
     StorageUI._reconcileEquip(scene, srcInv);
 
     scene._storeDirty = true;
@@ -303,26 +317,24 @@ globalThis.StorageUI = {
     return blocked;
   },
 
-  // Units of each itemId to KEEP in the bag during a Store All — one per equipment slot
-  // that references it (Equipment is keyed by itemId, so a worn item needs ≥1 copy present).
-  // null/empty for the take-from-chest direction. Flat { itemId: count }.
+  // The set of equipped INSTANCE uids to KEEP in the bag during a Store All — a worn instance
+  // must stay so its Equipment slot doesn't dangle. Equipment keys by uid now, so this is an
+  // exact { uid: true } set (no per-itemId counting). null/empty for the take-from-chest direction.
   _equipKeep(scene) {
     const keep = {};
     const eq = scene.world.get(Equipment, scene.ctrl.id);
     if (eq === undefined) return keep;
     for (const slot in eq.slots) {
-      const itemId = eq.slots[slot];
-      if (itemId !== undefined && itemId !== "")
-        keep[itemId] = (keep[itemId] ?? 0) + 1;
+      const uid = eq.slots[slot];
+      if (uid !== undefined && uid !== "") keep[uid] = true;
     }
     return keep;
   },
 
-  // `keep` (or null) is a { itemId: units-to-leave } map — the equipped copies excluded from
-  // a Store All. The first stack(s) of a protected id keep that many units in srcInv; spare
-  // (unequipped) copies still move. Each stack is otherwise capacity/weight-gated by add.
+  // `keep` (or null) is a { uid: true } set of equipped instances to leave behind in a Store All.
   // `blocked` (or null) is a { itemId: true } set fully excluded from storing (favorited /
-  // hotbar-bound) — those stacks never move at all, regardless of `keep`.
+  // hotbar-bound) — those stacks never move at all. An INSTANCE slot moves whole (via addSlot,
+  // preserving uid/mods); a fungible stack moves as much as fits, capacity/weight-gated by add.
   _transferAll(scene, srcInv, dstInv, keep, blocked) {
     let total = 0;
     let i = 0;
@@ -332,18 +344,23 @@ globalThis.StorageUI = {
         i++;
         continue; // favorited / hotbar-bound — never store
       }
-      let movable = s.qty;
-      if (keep !== null && keep[s.itemId] > 0) {
-        const held = keep[s.itemId] < s.qty ? keep[s.itemId] : s.qty;
-        movable = s.qty - held;
-        keep[s.itemId] -= held; // this stack absorbed its share of the protection
+      const def = Item.get(s.itemId);
+      if (def !== undefined && def.isInstanced()) {
+        // Equipped instance — keep it in the bag so its Equipment slot doesn't dangle.
+        if (keep !== null && s.uid !== undefined && keep[s.uid]) {
+          i++;
+          continue;
+        }
+        if (InventorySystem.addSlot(dstInv, s)) {
+          srcInv.slots.splice(i, 1); // moved by reference — next slot shifts into i, don't advance
+          total += 1;
+          continue;
+        }
+        i++; // dst full — leave it
+        continue;
       }
-      if (movable <= 0) {
-        i++;
-        continue; // fully protected (the equipped copy) — leave it
-      }
-      const leftover = InventorySystem.add(dstInv, s.itemId, movable);
-      const moved = movable - leftover;
+      const leftover = InventorySystem.add(dstInv, s.itemId, s.qty);
+      const moved = s.qty - leftover;
       if (moved > 0) {
         total += moved;
         s.qty -= moved;
@@ -369,11 +386,11 @@ globalThis.StorageUI = {
     const eq = scene.world.get(Equipment, scene.ctrl.id);
     if (eq === undefined) return;
     for (const slot in eq.slots) {
-      const itemId = eq.slots[slot];
+      const uid = eq.slots[slot];
       if (
-        itemId !== undefined &&
-        itemId !== "" &&
-        !InventorySystem.has(srcInv, itemId, 1)
+        uid !== undefined &&
+        uid !== "" &&
+        InventorySystem.findByUid(srcInv, uid) === undefined
       ) {
         EquipmentSystem.unequip(scene.world, scene.ctrl.id, slot);
       }

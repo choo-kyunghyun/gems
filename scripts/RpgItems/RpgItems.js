@@ -141,7 +141,16 @@ globalThis.RpgItems = {
         rarity: "common",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 1 } }),
-          new Weapon({ damage: 3, fireCd: 18, melee: true, reach: 34 }),
+          // sockets → installable weapon mods (Anvil / WeaponModUI). fireCd + reach are declared
+          // so a fireCd/reach mod has an explicit base to delta (composeWeapon only deltas
+          // declared fields — an unset field would otherwise fall to the controller default).
+          new Weapon({
+            damage: 3,
+            fireCd: 18,
+            melee: true,
+            reach: 34,
+            sockets: 2,
+          }),
         ],
       },
       {
@@ -153,7 +162,7 @@ globalThis.RpgItems = {
         rarity: "rare",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
-          new Weapon({ damage: 6, fireCd: 8, bulletSpeed: 700 }),
+          new Weapon({ damage: 6, fireCd: 8, bulletSpeed: 700, sockets: 2 }),
         ],
       },
       // Armor + trinket (flat Stats deltas while worn).
@@ -205,6 +214,49 @@ globalThis.RpgItems = {
       // Crafting materials (no behavior — consumed by Recipes at a workbench).
       { id: "wood", name: "ITEM_WOOD", weight: 1, value: 1, rarity: "common" },
       { id: "iron", name: "ITEM_IRON", weight: 2, value: 4, rarity: "common" },
+      // Weapon mods (WeaponMod) — fungible items installed into a weapon's sockets at an Anvil
+      // (WeaponModUI). `weapon` deltas fold into the composed attack profile; `stat` deltas fold
+      // into the wearer's derived Stats. A delta only applies to a field the BASE weapon declares
+      // (e.g. reach is melee-only, bulletSpeed ranged-only — so mod_heavy's reach is inert on the
+      // blaster, mod_scope's speed inert on a sword). Crafted at a workbench (RpgRecipes).
+      {
+        id: "mod_sharp",
+        name: "ITEM_MOD_SHARP",
+        description: "ITEM_MOD_SHARP_DESC",
+        weight: 1,
+        value: 25,
+        rarity: "uncommon",
+        components: [
+          new WeaponMod({ weapon: { damage: 2 }, stat: { attack: 1 } }),
+        ],
+      },
+      {
+        id: "mod_rapid",
+        name: "ITEM_MOD_RAPID",
+        description: "ITEM_MOD_RAPID_DESC",
+        weight: 1,
+        value: 25,
+        rarity: "uncommon",
+        components: [new WeaponMod({ weapon: { fireCd: -4 } })],
+      },
+      {
+        id: "mod_heavy",
+        name: "ITEM_MOD_HEAVY",
+        description: "ITEM_MOD_HEAVY_DESC",
+        weight: 1,
+        value: 40,
+        rarity: "rare",
+        components: [new WeaponMod({ weapon: { damage: 3, reach: 10 } })],
+      },
+      {
+        id: "mod_scope",
+        name: "ITEM_MOD_SCOPE",
+        description: "ITEM_MOD_SCOPE_DESC",
+        weight: 1,
+        value: 40,
+        rarity: "rare",
+        components: [new WeaponMod({ weapon: { bulletSpeed: 250 } })],
+      },
     ]);
   },
 };

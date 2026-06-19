@@ -55,6 +55,18 @@ globalThis.Item = class Item {
     return this.getComponent(Class) !== undefined;
   }
 
+  /**
+   * Whether this item is an INSTANCE type — a unique, unstackable piece of gear that
+   * carries per-instance state (a uid + installed mods) inline on its inventory slot,
+   * rather than a fungible definition shared across stacks. All equippable gear is an
+   * instance (weapon mods need a "which specific one"); potions/materials/currency are
+   * fungible. The slot mints a uid for these (InventorySystem.add) and Equipment keys
+   * by that uid. See the definition-vs-instance split in ARCHITECTURE (Items).
+   */
+  isInstanced() {
+    return this.hasComponent(Equippable);
+  }
+
   static registry = new Map();
   static order = []; // registration order of ids
 
