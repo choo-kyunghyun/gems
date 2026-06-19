@@ -39,6 +39,7 @@ globalThis.RpgController = {
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
       follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
+      reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
     });
 
     // Gamepad (device 0), added ALONGSIDE the keyboard/mouse bindings above — InputAction
@@ -135,16 +136,16 @@ globalThis.RpgController = {
       time: 0,
     });
 
-    // Unarmed fallback weapon: a weak melee "fist" so an attack is ALWAYS item-shaped (a Weapon
-    // profile) — being unarmed never means "fire a free bullet". Built here, not at top level
-    // (Weapon loads after this script in resource order) nor as a `Weapon` static (a static field
-    // initializer can't reference its own class on GMRT). The player still spawns with a real
-    // wood_sword equipped (sceneRpg.create); this only governs a fully unarmed wielder.
+    // Unarmed fallback: a weak melee "fist" so an attack is ALWAYS profile-shaped — being unarmed
+    // never means "fire a free bullet". It's a pre-COMPOSED melee profile (the same shape
+    // composeWeapon returns), fed straight to the melee branch (no inventory slot, no attachments).
+    // The player still spawns with a real wood_sword equipped (sceneRpg.create); this only governs a
+    // fully unarmed wielder.
     return {
       id,
       fireCd: 0,
       attackCd: 0,
-      fist: new Weapon({ damage: 1, fireCd: 22, melee: true, reach: 22 }),
+      fist: { kind: "melee", damage: 1, fireCd: 22, reach: 22 },
     };
   },
 
@@ -222,13 +223,20 @@ globalThis.RpgController = {
 
     if (ctrl.fireCd > 0) ctrl.fireCd--;
     if (ctrl.attackCd > 0) ctrl.attackCd--;
+
+    // Manual reload (R) — top the equipped gun's magazine up from the bag's ammo reserve. Tagged
+    // "play"-only, so it's inert while a window is open or building. No-op on a melee weapon.
+    if (Input.get("reload").pressed()) EquipmentSystem.reload(world, ctrl.id);
+
     // fire is tagged "play"-only, so it already returns false while building or with a
     // window open (InputContext) — no explicit BuildMode/window guard needed here.
     if (Input.get("fire").down() && ctrl.fireCd === 0) {
-      // Item-driven attack: the equipped Weapon — or the unarmed fist fallback — fully defines
-      // the action (melee swing vs ranged shot + its damage/cadence/reach). The controller no
-      // longer hardcodes a bullet; it just runs whatever the item describes. Read live each shot.
-      const wpn = EquipmentSystem.weaponProfile(world, ctrl.id) ?? ctrl.fist;
+      // Item-driven attack: the equipped weapon's COMPOSED profile — or the unarmed fist fallback —
+      // fully defines the action. Read the live SLOT (a gun mutates `rounds` on it) then compose;
+      // read live each shot. `wpn.kind` ("melee" | "gun") picks the branch.
+      const slot = EquipmentSystem.weaponSlot(world, ctrl.id);
+      const wpn =
+        slot !== null ? EquipmentSystem.composeWeapon(slot) : ctrl.fist;
       // Aim drives the swing/shot direction. The right stick already set `dir` continuously above
       // (twin-stick); for keyboard/mouse (stick centered), aim at the cursor instead.
       const pos = world.get(Position, ctrl.id);
@@ -244,18 +252,23 @@ globalThis.RpgController = {
         dir.x = adx / adist;
         dir.y = ady / adist;
       }
-      // Damage = the weapon's base + the wielder's attack stat (level-ups + equipment mods), so
-      // the character sheet finally feeds combat and weapons aren't inert stat-sticks. `stats`
-      // was read above for movement.
-      const damage = wpn.damage + (stats !== undefined ? stats.attack : 0);
-      if (wpn.melee) {
-        const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
-        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, damage);
+      // The wielder's attack stat (equipment mods + buffs) adds on top of the weapon's base/kinetic
+      // power, so the character sheet feeds combat. `stats` was read above for movement.
+      const attack = stats !== undefined ? stats.attack : 0;
+      if (wpn === null) {
+        // equipped a weapon item with no Weapon component — nothing to do
+      } else if (wpn.kind === "gun") {
+        this._fireGun(world, ctrl, slot, wpn, dir, attack);
       } else {
-        this._fire(world, ctrl, wpn, damage);
+        const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
+        // Round the composed melee damage (a `mul` attachment can make it fractional) so HP stays
+        // integer, then add the wielder's attack stat.
+        const damage = Math.round(wpn.damage) + attack;
+        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, damage);
+        ctrl.fireCd =
+          wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : RPG_FIRE_CD;
+        ctrl.attackCd = RPG_ATTACK_ANIM;
       }
-      ctrl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
-      ctrl.attackCd = RPG_ATTACK_ANIM;
     }
 
     // Animation tree: attack > walk > idle. attackCd is read live off ctrl each
@@ -281,23 +294,31 @@ globalThis.RpgController = {
     }
   },
 
-  // Spawns a bullet at the player along the resolved aim Direction. Bullets carry no Collision, so
-  // they pass through each other; ProjectileSystem raycasts their path each tick. `wpn` is the
-  // resolved weapon profile and `damage` the already-computed (base + attack) value — the caller
-  // owns the item-driven resolution; this only reads the projectile speed off the weapon.
-  _fire(world, ctrl, wpn, damage) {
-    const speed =
-      wpn.bulletSpeed !== undefined ? wpn.bulletSpeed : RPG_BULLET_SPEED;
+  // Fire the equipped GUN: spend a round, spawn an ammo-driven bullet along the resolved aim Dir, and
+  // set the cooldown. `wpn` is the composed gun profile (power/velocity/penetration/fireCd from the
+  // loaded ammo + ops); `slot` is the live inventory slot whose `rounds` is decremented. `attack` is
+  // the wielder's attack stat (added onto the kinetic power). An empty clip auto-reloads from the bag
+  // (if reserves exist); a dry gun (no ammo, or empty + no reserve) just doesn't fire — no cooldown.
+  _fireGun(world, ctrl, slot, wpn, dir, attack) {
+    if (wpn.noAmmo) return; // nothing loaded
+    if (slot.rounds <= 0) {
+      // Empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown).
+      if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;
+    }
+    if (slot.rounds <= 0) return; // still empty after the reload attempt
 
-    // dir already holds the resolved aim (right stick or cursor — set in update() before this), so
-    // pass it to fireBullet; the bullet flies along the aim, not always the cursor. muzzleY = 0.
-    const dir = world.get(Direction, ctrl.id);
+    const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
+    // Final damage = the round's kinetic power (rounded) + the wielder's attack stat. Penetration
+    // rides on the bullet and lowers target defense at the hit (Combat.mitigate).
+    const damage = Math.round(wpn.power) + attack;
     const aim = RpgPlayer.fireBullet(world, ctrl.id, {
       speed,
       damage,
+      penetration: wpn.penetration,
       nx: dir.x,
       ny: dir.y,
     });
+    slot.rounds -= 1; // spend the round
 
     // Muzzle flash at the barrel (player center pushed ~18px along the aim), aimed forward.
     // GM angle (0=right, 90=up) from the aim vector; the ps_muzzle asset emits up (90), so
@@ -310,6 +331,9 @@ globalThis.RpgController = {
       pos.y + aim.ny * 18,
       ang,
     );
+
+    ctrl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
+    ctrl.attackCd = RPG_ATTACK_ANIM;
   },
 
   destroy() {
@@ -324,6 +348,7 @@ globalThis.RpgController = {
       "interact",
       "build",
       "follow",
+      "reload",
       "moveX",
       "moveY",
       "aimX",

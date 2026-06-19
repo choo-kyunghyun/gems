@@ -67,11 +67,16 @@ globalThis.EquipmentSystem = {
     return uid;
   },
 
-  // Attack profile of the equipped weapon — a FRESH composed object: the base Weapon's
-  // numbers plus every installed mod's WeaponMod.weapon deltas (so the controller reads the
-  // modded profile). null when unarmed / the equipped item has no Weapon → the caller
-  // (controller) falls back to its own unarmed defaults. Never mutates the def's Weapon.
-  weaponProfile(world, id) {
+  // ── Weapon composition (the equipped weapon's resolved attack profile) ─────────────────────────
+  // Kinetic-power tuning (gun branch): power = ammoPower + KIN_K * mass * (velocity / KIN_REF)^2, so a
+  // faster/heavier round hits harder (velocity squared rewards speed). Tuned so the blaster + a light
+  // round lands ≈ its legacy flat damage; both are content-tunable.
+  KIN_K: 0.75,
+  KIN_REF: 600,
+
+  // The equipped weapon's live Inventory SLOT (the instance carrying uid/mods/ammo/rounds), or null.
+  // The controller needs the real slot — not a composed copy — to decrement `rounds` on a shot.
+  weaponSlot(world, id) {
     const eq = world.get(Equipment, id);
     if (eq === undefined) return null;
     const uid = eq.slots.weapon;
@@ -79,37 +84,199 @@ globalThis.EquipmentSystem = {
     const inv = world.get(Inventory, id);
     const slot =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
-    if (slot === undefined) return null;
+    return slot ?? null;
+  },
+
+  // Composed attack profile of the equipped weapon, or null when unarmed / not a weapon → the caller
+  // (controller) falls back to its own unarmed defaults. Convenience over weaponSlot + composeWeapon.
+  weaponProfile(world, id) {
+    const slot = this.weaponSlot(world, id);
+    return slot !== null ? this.composeWeapon(slot) : null;
+  },
+
+  // Fold an instance weapon SLOT into a FRESH composed profile. Branches on whether the item is a Gun
+  // (Item.hasComponent(Gun)):
+  //   • gun   → the loaded Ammo's base stats run through the gun-base ops + each installed
+  //             attachment's ops, then the kinetic power term → { kind:"gun", power, velocity, mass,
+  //             penetration, fireCd, magazine, ammo, rounds, noAmmo }.
+  //   • melee → the Weapon's damage/reach/fireCd run through the attachment ops →
+  //             { kind:"melee", damage, reach, fireCd }.
+  // Never mutates the item def. `slot.mods` is the named-slot map { slotId -> attachmentItemId }.
+  composeWeapon(slot) {
     const item = Item.get(slot.itemId);
     if (item === undefined) return null;
     const wpn = item.getComponent(Weapon);
     if (wpn === undefined) return null;
-    return this.composeWeapon(wpn, slot.mods);
+    const gun = item.getComponent(Gun);
+    if (gun !== undefined) return this._composeGun(slot, wpn, gun);
+    return this._composeMelee(slot, wpn);
   },
 
-  // Fold a base Weapon + an instance's installed mod itemIds into a fresh attack profile.
-  // `melee` is fixed by the base; mods only adjust the numeric fields (additive deltas).
-  composeWeapon(wpn, mods) {
-    const out = {
-      damage: wpn.damage,
-      fireCd: wpn.fireCd,
-      bulletSpeed: wpn.bulletSpeed,
-      melee: wpn.melee,
-      reach: wpn.reach,
-    };
-    if (mods === undefined) return out;
-    for (let i = 0; i < mods.length; i++) {
-      const m = Item.get(mods[i]);
+  // Top up the EQUIPPED gun's magazine from the bag's ammo reserve (the controller's R / auto-reload).
+  // Returns rounds loaded. Resolves the equipped slot + bag, then delegates to reloadSlot.
+  reload(world, id) {
+    const slot = this.weaponSlot(world, id);
+    if (slot === null) return 0;
+    const inv = world.get(Inventory, id);
+    if (inv === undefined) return 0;
+    return this.reloadSlot(inv, slot);
+  },
+
+  // Top up a specific gun instance's magazine from `inv`'s reserve of its loaded ammo. Pulls
+  // min(magazine - rounds, owned). Returns how many were loaded (0 if not a gun / nothing loaded /
+  // clip full / no reserve). The slot variant so the workbench panel can reload a SELECTED weapon
+  // that isn't the equipped one.
+  reloadSlot(inv, slot) {
+    const item = Item.get(slot.itemId);
+    const gun = item !== undefined ? item.getComponent(Gun) : undefined;
+    if (gun === undefined) return 0;
+    if (slot.ammo === undefined || slot.ammo === "") return 0;
+    if (slot.rounds === undefined) slot.rounds = 0;
+    const cap = this.composeWeapon(slot).magazine; // composed clip (extended-mag attachment)
+    const need = cap - slot.rounds;
+    if (need <= 0) return 0;
+    const have = InventorySystem.count(inv, slot.ammo);
+    const take = need < have ? need : have;
+    if (take <= 0) return 0;
+    InventorySystem.remove(inv, slot.ammo, take);
+    slot.rounds += take;
+    return take;
+  },
+
+  // Load an ammo type into the EQUIPPED gun (caliber-gated), then top up. Delegates to loadAmmoSlot.
+  loadAmmo(world, id, ammoItemId) {
+    const slot = this.weaponSlot(world, id);
+    if (slot === null) return false;
+    const inv = world.get(Inventory, id);
+    if (inv === undefined) return false;
+    return this.loadAmmoSlot(inv, slot, ammoItemId);
+  },
+
+  // Load an ammo type into a specific gun instance (gated by caliber match), then top up the
+  // magazine. Switching to a different type refunds the currently-chambered rounds to `inv` first (so
+  // a swap doesn't lose loaded rounds). Returns true if loaded. The slot variant (see reloadSlot).
+  loadAmmoSlot(inv, slot, ammoItemId) {
+    const item = Item.get(slot.itemId);
+    const gun = item !== undefined ? item.getComponent(Gun) : undefined;
+    if (gun === undefined) return false;
+    const ammoItem = Item.get(ammoItemId);
+    const ammo =
+      ammoItem !== undefined ? ammoItem.getComponent(Ammo) : undefined;
+    if (ammo === undefined || ammo.caliber !== gun.caliber) return false;
+    if (slot.rounds === undefined) slot.rounds = 0;
+    if (slot.ammo !== ammoItemId) {
+      if (slot.ammo !== undefined && slot.ammo !== "" && slot.rounds > 0)
+        InventorySystem.add(inv, slot.ammo, slot.rounds); // refund the old chambered rounds
+      slot.ammo = ammoItemId;
+      slot.rounds = 0;
+    }
+    this.reloadSlot(inv, slot);
+    return true;
+  },
+
+  // The installed-attachment ops layers for an instance slot, in slot-map order (order-independent).
+  _modLayers(slot) {
+    const layers = [];
+    const mods = slot.mods;
+    if (mods === undefined) return layers;
+    for (const slotId in mods) {
+      const m = Item.get(mods[slotId]);
       const wm = m !== undefined ? m.getComponent(WeaponMod) : undefined;
-      if (wm === undefined) continue;
-      const d = wm.weapon;
-      for (const k in d) {
-        // Additive onto the base. Only deltas a field the BASE explicitly declared — an unset
-        // field falls through to the controller's default (RPG_FIRE_CD/etc.), a default the kit
-        // can't see, so fabricating from 0 would be wrong (e.g. a negative fireCd). Content gives
-        // every moddable weapon an explicit value for the fields its mods target (see RpgContent).
-        if (out[k] !== undefined) out[k] += d[k];
+      if (wm !== undefined) layers.push(wm.ops);
+    }
+    return layers;
+  },
+
+  _composeMelee(slot, wpn) {
+    const base = { damage: wpn.damage, reach: wpn.reach, fireCd: wpn.fireCd };
+    const c = this._applyOps(base, this._modLayers(slot), [
+      "damage",
+      "reach",
+      "fireCd",
+    ]);
+    return {
+      kind: "melee",
+      damage: c.damage,
+      reach: c.reach,
+      fireCd: c.fireCd,
+    };
+  },
+
+  _composeGun(slot, wpn, gun) {
+    if (slot.rounds === undefined) slot.rounds = 0;
+    if (slot.ammo === undefined) slot.ammo = "";
+    const ammoItem = slot.ammo !== "" ? Item.get(slot.ammo) : undefined;
+    const ammo =
+      ammoItem !== undefined ? ammoItem.getComponent(Ammo) : undefined;
+
+    // Base = loaded ammo's projectile stats (0 with no ammo) + the gun's fireCd/magazine. fireCd may
+    // be undefined (the controller falls back to its default), so _applyOps leaves it undefined.
+    const base = {
+      mass: ammo !== undefined ? ammo.mass : 0,
+      velocity: ammo !== undefined ? ammo.velocity : 0,
+      power: ammo !== undefined ? ammo.power : 0,
+      penetration: ammo !== undefined ? ammo.penetration : 0,
+      fireCd: wpn.fireCd,
+      magazine: gun.magazine,
+    };
+    const layers = this._modLayers(slot);
+    layers.unshift(gun.ops); // gun-base ops first (before attachments; order-independent anyway)
+    const c = this._applyOps(base, layers, [
+      "mass",
+      "velocity",
+      "power",
+      "penetration",
+      "fireCd",
+      "magazine",
+    ]);
+
+    const magazine = Math.max(1, Math.round(c.magazine));
+    const fireCd =
+      c.fireCd !== undefined ? Math.max(1, Math.round(c.fireCd)) : undefined;
+    const penetration = Math.max(0, Math.round(c.penetration));
+    // Kinetic power: flat ammo power + k·mass·(velocity/REF)². 0 with no ammo loaded.
+    let power = 0;
+    if (ammo !== undefined) {
+      const v = c.velocity / EquipmentSystem.KIN_REF;
+      power = c.power + EquipmentSystem.KIN_K * c.mass * v * v;
+    }
+    return {
+      kind: "gun",
+      noAmmo: ammo === undefined,
+      power,
+      velocity: c.velocity,
+      mass: c.mass,
+      penetration,
+      fireCd,
+      magazine,
+      ammo: slot.ammo,
+      rounds: slot.rounds,
+    };
+  },
+
+  // Apply operator layers over a base map. Each layer is { field: { add?, mul? } }; per field the
+  // result is (base + Σadd) · Πmul (order-independent additive-then-multiplicative stacking). A field
+  // whose base is undefined is left undefined (ops can't fabricate a value the base never declared —
+  // mirrors the old "only delta declared fields" rule; the controller defaults it). for...in / index
+  // loops only — GMRT-safe.
+  _applyOps(base, layers, fields) {
+    const out = {};
+    for (let f = 0; f < fields.length; f++) {
+      const key = fields[f];
+      const b = base[key];
+      if (b === undefined) {
+        out[key] = undefined;
+        continue;
       }
+      let add = 0;
+      let mul = 1;
+      for (let i = 0; i < layers.length; i++) {
+        const op = layers[i][key];
+        if (op === undefined) continue;
+        if (op.add !== undefined) add += op.add;
+        if (op.mul !== undefined) mul *= op.mul;
+      }
+      out[key] = (b + add) * mul;
     }
     return out;
   },

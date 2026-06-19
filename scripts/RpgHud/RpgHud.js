@@ -121,6 +121,28 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(hpRow);
+    // Equipped-gun ammo readout (LIVE): "<ammo name>  rounds/magazine", or the unloaded hint when a
+    // gun has no ammo. Reads the composed weapon profile each frame (so it survives a map/world swap)
+    // and shows nothing for a melee weapon — the row self-sizes, so it collapses to ~0 height then.
+    const ammoRow = new UIElement({ width: "100%" });
+    ammoRow.insertChild(
+      gemsLabel(
+        () => {
+          if (scene.ctrl === undefined) return "";
+          const prof = EquipmentSystem.weaponProfile(
+            scene.world,
+            scene.ctrl.id,
+          );
+          if (prof === null || prof.kind !== "gun") return ""; // melee/unarmed → hide
+          if (prof.noAmmo) return I18n.text("MOD_UNLOADED");
+          const it = Item.get(prof.ammo);
+          const nm = it !== undefined ? I18n.text(it.name) : prof.ammo;
+          return nm + "  " + prof.rounds + "/" + prof.magazine;
+        },
+        { color: "#ffd166", font: "description" },
+      ),
+    );
+    card.insertChild(ammoRow);
     // Stamina bar (sprint resource) — fraction of Stats.maxStamina, read live each frame.
     // Tall enough to seat the centered label (the smaller "description" font) inside the bar
     // rather than letting it overflow into the HP row above.

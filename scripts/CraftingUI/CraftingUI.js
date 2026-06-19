@@ -22,7 +22,7 @@
 // (player), scene.ui.
 globalThis.CraftingUI = {
   WRAP: 320, // description wrap width (px) — fits the fixed-size detail column
-  LIST_H: 480, // content height (px) — fits the max simultaneous recipe count (base + one module)
+  LIST_H: 560, // content height (px) — fits the longest panel (a gun's stats + ammo + slots + attachments)
 
   build(scene) {
     scene._craftOpen = false;

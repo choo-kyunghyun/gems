@@ -38,7 +38,8 @@ globalThis.ProjectileSystem = {
         hp !== undefined &&
         !FactionSystem.allied(world, proj.owner, hit.id)
       ) {
-        Combat.applyDamage(world, hit.id, proj.damage); // mitigated by the injected hook
+        // mitigated by the injected hook; penetration (default 0 for turrets) lowers target defense.
+        Combat.applyDamage(world, hit.id, proj.damage, proj.penetration ?? 0);
       }
       world.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
     }

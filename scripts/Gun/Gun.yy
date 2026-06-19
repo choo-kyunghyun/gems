@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Gun",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Gun",
+  "parent":{
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Gun.js",
+}

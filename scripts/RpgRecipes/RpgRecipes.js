@@ -56,7 +56,7 @@ globalThis.RpgRecipes = {
         output: { itemId: "toolkit", qty: 1 },
       },
 
-      // ── FORGE module — smithing (gear) + weapon mods ─────────────────────
+      // ── FORGE module — smithing (gear), the gun, ammo + weapon attachments ─
       {
         id: "craft_leather_armor",
         station: "workbench",
@@ -74,22 +74,86 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "blaster", qty: 1 },
       },
+      // Gun ammo — crafted in batches (consumed per shot). light = cheap iron; heavy/ap need more.
       {
-        id: "craft_mod_sharp",
+        id: "craft_ammo_light",
+        station: "workbench",
+        requires: "forge",
+        inputs: [{ itemId: "iron", qty: 1 }],
+        output: { itemId: "ammo_light", qty: 12 },
+      },
+      {
+        id: "craft_ammo_heavy",
+        station: "workbench",
+        requires: "forge",
+        inputs: [{ itemId: "iron", qty: 2 }],
+        output: { itemId: "ammo_heavy", qty: 8 },
+      },
+      {
+        id: "craft_ammo_ap",
+        station: "workbench",
+        requires: "forge",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "ammo_ap", qty: 6 },
+      },
+      // Gun attachments (scope / barrel / magazine / grip / muzzle slots).
+      {
+        id: "craft_mod_scope",
+        station: "workbench",
+        requires: "forge",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "mod_scope", qty: 1 },
+      },
+      {
+        id: "craft_mod_long_barrel",
         station: "workbench",
         requires: "forge",
         inputs: [{ itemId: "iron", qty: 3 }],
-        output: { itemId: "mod_sharp", qty: 1 },
+        output: { itemId: "mod_long_barrel", qty: 1 },
       },
       {
-        id: "craft_mod_rapid",
+        id: "craft_mod_extended_mag",
         station: "workbench",
         requires: "forge",
         inputs: [
           { itemId: "iron", qty: 2 },
           { itemId: "wood", qty: 2 },
         ],
-        output: { itemId: "mod_rapid", qty: 1 },
+        output: { itemId: "mod_extended_mag", qty: 1 },
+      },
+      {
+        id: "craft_mod_grip",
+        station: "workbench",
+        requires: "forge",
+        inputs: [
+          { itemId: "iron", qty: 1 },
+          { itemId: "wood", qty: 2 },
+        ],
+        output: { itemId: "mod_grip", qty: 1 },
+      },
+      {
+        id: "craft_mod_suppressor",
+        station: "workbench",
+        requires: "forge",
+        inputs: [
+          { itemId: "iron", qty: 2 },
+          { itemId: "gem", qty: 1 },
+        ],
+        output: { itemId: "mod_suppressor", qty: 1 },
+      },
+      // Melee attachments (edge / pommel slots).
+      {
+        id: "craft_mod_sharp",
+        station: "workbench",
+        requires: "forge",
+        inputs: [{ itemId: "iron", qty: 3 }],
+        output: { itemId: "mod_sharp", qty: 1 },
       },
       {
         id: "craft_mod_heavy",
@@ -100,16 +164,6 @@ globalThis.RpgRecipes = {
           { itemId: "gem", qty: 1 },
         ],
         output: { itemId: "mod_heavy", qty: 1 },
-      },
-      {
-        id: "craft_mod_scope",
-        station: "workbench",
-        requires: "forge",
-        inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "gem", qty: 1 },
-        ],
-        output: { itemId: "mod_scope", qty: 1 },
       },
 
       // ── ALCHEMY module — potions, buffs, attribute shards ────────────────

@@ -119,10 +119,12 @@ globalThis.RpgPlayer = {
   },
 
   // Spawn a bullet from the shooter (the "bullet" EntityPreset registered by spawn() above).
-  // `opts`: { speed, damage, muzzleY?, nx?, ny? } — muzzleY offsets the spawn (and cursor-aim
-  // origin) from the shooter's Position (e.g. chest height); nx/ny is a caller-resolved aim
-  // direction (e.g. the controller's right-stick/cursor Direction). When nx/ny is omitted it
-  // falls back to aiming at the mouse cursor. Returns the normalized aim { nx, ny }.
+  // `opts`: { speed, damage, penetration?, muzzleY?, nx?, ny? } — `speed` is the muzzle velocity;
+  // `penetration` (default 0 for turrets) is the round's armor penetration written to the bullet's
+  // Projectile (lowers target defense at the hit). muzzleY offsets the spawn (and cursor-aim origin)
+  // from the shooter's Position (e.g. chest height); nx/ny is a caller-resolved aim direction (e.g.
+  // the controller's right-stick/cursor Direction). When nx/ny is omitted it falls back to aiming at
+  // the mouse cursor. Returns the normalized aim { nx, ny }.
   fireBullet(world, shooterId, opts) {
     const pos = world.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
@@ -146,6 +148,7 @@ globalThis.RpgPlayer = {
     const proj = world.get(Projectile, bid);
     proj.owner = shooterId;
     proj.damage = opts.damage;
+    proj.penetration = opts.penetration ?? 0;
     return { nx, ny };
   },
 };

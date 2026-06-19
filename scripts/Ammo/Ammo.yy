@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Ammo",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Ammo",
+  "parent":{
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Ammo.js",
+}

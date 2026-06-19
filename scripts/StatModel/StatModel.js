@@ -95,12 +95,13 @@ globalThis.StatModel = {
     }
   },
 
-  // Fold every installed mod's WeaponMod.stat deltas (flat { stat: delta }) into the
-  // derived block `d`. `mods` is an instance slot's array of mod itemIds; no-op when empty.
+  // Fold every installed attachment's WeaponMod.stat deltas (flat { stat: delta }) into the derived
+  // block `d`. `mods` is an instance slot's MAP { slotId -> attachmentItemId }; for...in over a plain
+  // object is GMRT-safe. No-op when empty/undefined.
   _foldInstanceMods(mods, d) {
     if (mods === undefined) return;
-    for (let i = 0; i < mods.length; i++) {
-      const m = Item.get(mods[i]);
+    for (const slotId in mods) {
+      const m = Item.get(mods[slotId]);
       const wm = m !== undefined ? m.getComponent(WeaponMod) : undefined;
       if (wm === undefined) continue;
       for (const key in wm.stat) {

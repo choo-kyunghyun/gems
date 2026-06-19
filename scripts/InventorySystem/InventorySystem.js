@@ -36,10 +36,12 @@ globalThis.InventorySystem = {
     }
     let left = accept;
 
-    // Instances skip stacking — one capped slot per unit, each a fresh uid + empty mods.
+    // Instances skip stacking — one capped slot per unit, each a fresh uid + empty mods. `mods` is a
+    // MAP { slotId -> attachmentItemId } (named typed slots), not an array; gun ammo/rounds are added
+    // lazily by the firing path (EquipmentSystem) so this stays generic.
     if (instanced) {
       while (left > 0 && inv.slots.length < inv.capacity) {
-        inv.slots.push({ itemId: itemId, qty: 1, uid: uuid(), mods: [] });
+        inv.slots.push({ itemId: itemId, qty: 1, uid: uuid(), mods: {} });
         left -= 1;
       }
       return left + (qty - accept);
@@ -80,7 +82,7 @@ globalThis.InventorySystem = {
       if (this.weight(inv) + unitW > inv.maxWeight) return false;
     }
     if (inv.slots.length >= inv.capacity) return false;
-    if (slot.mods === undefined) slot.mods = []; // tolerate a bare {itemId,qty,uid}
+    if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid} (mods = slot map)
     if (slot.uid === undefined) slot.uid = uuid();
     inv.slots.push(slot);
     return true;

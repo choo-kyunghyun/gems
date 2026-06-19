@@ -742,10 +742,11 @@ globalThis.RpgInventoryUI = {
       const itemId = inst !== undefined ? inst.itemId : "";
       const it = Item.get(itemId);
       const base = it !== undefined ? I18n.text(it.name) : itemId;
-      const nm =
-        inst !== undefined && inst.mods !== undefined && inst.mods.length > 0
-          ? base + " +" + inst.mods.length
-          : base;
+      // `mods` is the named-slot MAP { slotId -> attachmentItemId }; count its filled slots for "+N".
+      let modCount = 0;
+      if (inst !== undefined && inst.mods !== undefined)
+        for (const slotId in inst.mods) modCount++;
+      const nm = modCount > 0 ? base + " +" + modCount : base;
       return gemsButton(
         I18n.text(labelKey) + ": " + nm,
         () => {

@@ -30,9 +30,13 @@ class _SceneRpgClass extends Scene {
     // applier (default is identity). Every damage path (MeleeSystem/ProjectileSystem/CombatAI) folds
     // in the target's defense + a min-1 floor through this; the attack side (weapon + Stats.attack)
     // is composed by the callers. Set once per scene — survives map reloads (a static hook).
-    Combat.mitigate = function (world, targetId, amount) {
+    Combat.mitigate = function (world, targetId, amount, penetration = 0) {
       const s = world.get(Stats, targetId);
-      return Math.max(1, amount - (s !== undefined ? s.defense : 0));
+      const defense = s !== undefined ? s.defense : 0;
+      // Armor penetration (an ammo-driven gun's round) eats into defense before it mitigates; clamp
+      // so a round never ADDS damage, and keep the min-1 floor so any hit still registers.
+      const effDef = Math.max(0, defense - penetration);
+      return Math.max(1, amount - effDef);
     };
     // Consumable policy: inject how a *_shard consumable grows an attribute (the item-driven
     // progression that replaced leveling). Raise the bag key, then re-derive Stats from source.

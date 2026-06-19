@@ -141,28 +141,45 @@ globalThis.RpgItems = {
         rarity: "common",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 1 } }),
-          // sockets → installable weapon mods (Anvil / WeaponModUI). fireCd + reach are declared
-          // so a fireCd/reach mod has an explicit base to delta (composeWeapon only deltas
-          // declared fields — an unset field would otherwise fall to the controller default).
+          // Named, typed attachment slots (the unified slot model): mod_sharp fits "edge",
+          // mod_heavy fits "pommel". `damage`/`reach`/`fireCd` are the MELEE base the attachment
+          // `ops` operate on (no Gun component → composeWeapon's melee branch).
           new Weapon({
             damage: 3,
             fireCd: 18,
-            melee: true,
             reach: 34,
-            sockets: 2,
+            slots: [
+              { id: "edge", accepts: "edge" },
+              { id: "pommel", accepts: "pommel" },
+            ],
           }),
         ],
       },
       {
         id: "blaster",
         name: "ITEM_BLASTER",
+        description: "ITEM_BLASTER_DESC",
         stack: 1,
         weight: 5,
         value: 60,
         rarity: "rare",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
-          new Weapon({ damage: 6, fireCd: 8, bulletSpeed: 700, sockets: 2 }),
+          // An ammo-driven GUN: the `Gun` component makes composeWeapon take the gun branch — it
+          // fires whatever the LOADED Ammo describes (mass/velocity/power/penetration), run through
+          // the gun-base ops + each attachment's ops. `slots` are the named attachment slots; the
+          // gun-base `ops` are inert here (a neutral frame — attachments do the shaping).
+          new Weapon({
+            fireCd: 8,
+            slots: [
+              { id: "scope", accepts: "scope" },
+              { id: "barrel", accepts: "barrel" },
+              { id: "magazine", accepts: "magazine" },
+              { id: "grip", accepts: "grip" },
+              { id: "muzzle", accepts: "muzzle" },
+            ],
+          }),
+          new Gun({ caliber: "standard", magazine: 8 }),
         ],
       },
       // Armor + trinket (flat Stats deltas while worn).
@@ -214,12 +231,131 @@ globalThis.RpgItems = {
       // Crafting materials (no behavior — consumed by Recipes at a workbench).
       { id: "wood", name: "ITEM_WOOD", weight: 1, value: 1, rarity: "common" },
       { id: "iron", name: "ITEM_IRON", weight: 2, value: 4, rarity: "common" },
-      // Weapon mods (WeaponMod) — fungible items installed into a weapon's sockets at a workbench
-      // with the Toolkit module slotted (WeaponModUI panel). `weapon` deltas fold into the composed
-      // attack profile; `stat` deltas fold into the wearer's derived Stats. A delta only applies to a
-      // field the BASE weapon declares (e.g. reach is melee-only, bulletSpeed ranged-only — so
-      // mod_heavy's reach is inert on the blaster, mod_scope's speed inert on a sword). Crafted with
-      // the Forge module (RpgRecipes).
+      // Gun ammo (Ammo) — the BASE projectile stats a gun fires (mass / velocity / power /
+      // penetration); the gun-base + installed attachments operate on these into the final shot.
+      // `caliber:"standard"` matches the blaster. Consumed one per shot (magazine-fed); weight 0 so a
+      // full belt doesn't dominate the weight budget. Crafted at the Forge. light = fast/low-pen,
+      // heavy = slow/punchy, ap = armor-piercing.
+      {
+        id: "ammo_light",
+        name: "ITEM_AMMO_LIGHT",
+        description: "ITEM_AMMO_LIGHT_DESC",
+        weight: 0,
+        value: 1,
+        rarity: "common",
+        components: [
+          new Ammo({
+            caliber: "standard",
+            mass: 3,
+            velocity: 720,
+            power: 2,
+            penetration: 1,
+          }),
+        ],
+      },
+      {
+        id: "ammo_heavy",
+        name: "ITEM_AMMO_HEAVY",
+        description: "ITEM_AMMO_HEAVY_DESC",
+        weight: 0,
+        value: 2,
+        rarity: "uncommon",
+        components: [
+          new Ammo({
+            caliber: "standard",
+            mass: 8,
+            velocity: 480,
+            power: 4,
+            penetration: 3,
+          }),
+        ],
+      },
+      {
+        id: "ammo_ap",
+        name: "ITEM_AMMO_AP",
+        description: "ITEM_AMMO_AP_DESC",
+        weight: 0,
+        value: 3,
+        rarity: "uncommon",
+        components: [
+          new Ammo({
+            caliber: "standard",
+            mass: 5,
+            velocity: 600,
+            power: 3,
+            penetration: 6,
+          }),
+        ],
+      },
+      // Weapon attachments (WeaponMod) — fungible items installed into a weapon instance's matching
+      // NAMED slot at a workbench with the Toolkit module slotted (WeaponModUI panel). `slot` is the
+      // category it fits (vs a weapon slot's `accepts`); `ops` are the operators it applies to the
+      // composed profile ({ field: { add?, mul? } } → (base+Σadd)·Πmul); `stat` folds into the
+      // wearer's derived Stats. An op on a field the weapon doesn't expose is simply inert. Crafted
+      // with the Forge module (RpgRecipes).
+      // ── Gun attachments (the blaster's scope/barrel/magazine/grip/muzzle slots) ──
+      {
+        id: "mod_scope",
+        name: "ITEM_MOD_SCOPE",
+        description: "ITEM_MOD_SCOPE_DESC",
+        weight: 1,
+        value: 40,
+        rarity: "rare",
+        components: [
+          new WeaponMod({
+            slot: "scope",
+            ops: { velocity: { add: 80 }, penetration: { add: 1 } },
+          }),
+        ],
+      },
+      {
+        id: "mod_long_barrel",
+        name: "ITEM_MOD_LONG_BARREL",
+        description: "ITEM_MOD_LONG_BARREL_DESC",
+        weight: 2,
+        value: 35,
+        rarity: "uncommon",
+        components: [
+          new WeaponMod({ slot: "barrel", ops: { velocity: { mul: 1.2 } } }),
+        ],
+      },
+      {
+        id: "mod_extended_mag",
+        name: "ITEM_MOD_EXTENDED_MAG",
+        description: "ITEM_MOD_EXTENDED_MAG_DESC",
+        weight: 1,
+        value: 30,
+        rarity: "uncommon",
+        components: [
+          new WeaponMod({ slot: "magazine", ops: { magazine: { mul: 1.5 } } }),
+        ],
+      },
+      {
+        id: "mod_grip",
+        name: "ITEM_MOD_GRIP",
+        description: "ITEM_MOD_GRIP_DESC",
+        weight: 1,
+        value: 30,
+        rarity: "uncommon",
+        components: [
+          new WeaponMod({ slot: "grip", ops: { fireCd: { mul: 0.8 } } }),
+        ],
+      },
+      {
+        id: "mod_suppressor",
+        name: "ITEM_MOD_SUPPRESSOR",
+        description: "ITEM_MOD_SUPPRESSOR_DESC",
+        weight: 1,
+        value: 45,
+        rarity: "rare",
+        components: [
+          new WeaponMod({
+            slot: "muzzle",
+            ops: { velocity: { mul: 0.92 }, penetration: { add: 1 } },
+          }),
+        ],
+      },
+      // ── Melee attachments (the wooden sword's edge/pommel slots) ──
       {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
@@ -228,35 +364,26 @@ globalThis.RpgItems = {
         value: 25,
         rarity: "uncommon",
         components: [
-          new WeaponMod({ weapon: { damage: 2 }, stat: { attack: 1 } }),
+          new WeaponMod({
+            slot: "edge",
+            ops: { damage: { add: 2 } },
+            stat: { attack: 1 },
+          }),
         ],
-      },
-      {
-        id: "mod_rapid",
-        name: "ITEM_MOD_RAPID",
-        description: "ITEM_MOD_RAPID_DESC",
-        weight: 1,
-        value: 25,
-        rarity: "uncommon",
-        components: [new WeaponMod({ weapon: { fireCd: -4 } })],
       },
       {
         id: "mod_heavy",
         name: "ITEM_MOD_HEAVY",
         description: "ITEM_MOD_HEAVY_DESC",
-        weight: 1,
+        weight: 2,
         value: 40,
         rarity: "rare",
-        components: [new WeaponMod({ weapon: { damage: 3, reach: 10 } })],
-      },
-      {
-        id: "mod_scope",
-        name: "ITEM_MOD_SCOPE",
-        description: "ITEM_MOD_SCOPE_DESC",
-        weight: 1,
-        value: 40,
-        rarity: "rare",
-        components: [new WeaponMod({ weapon: { bulletSpeed: 250 } })],
+        components: [
+          new WeaponMod({
+            slot: "pommel",
+            ops: { damage: { mul: 1.3 }, fireCd: { add: 4 } },
+          }),
+        ],
       },
       // Workbench modules (WorkbenchModule) — slotted into a workbench's single module slot to
       // upgrade it. The three "recipes" modules unlock the recipes that declare `requires: <id>`

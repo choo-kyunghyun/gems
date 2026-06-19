@@ -101,7 +101,10 @@ globalThis.InvTable = {
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
     const cat = InvTable.category(it);
-    const modCount = mods !== undefined ? mods.length : 0;
+    // `mods` is the named-slot MAP { slotId -> attachmentItemId }; count its filled slots (for...in
+    // over a plain object is GMRT-safe).
+    let modCount = 0;
+    if (mods !== undefined) for (const slotId in mods) modCount++;
     const name = it !== undefined ? I18n.text(it.name) : itemId;
     const rarId = it !== undefined ? it.rarity : undefined;
     const rar = rarId !== undefined ? Rarity.get(rarId) : undefined;
