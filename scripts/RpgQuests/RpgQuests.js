@@ -21,21 +21,23 @@ globalThis.RpgQuests = {
         name: "QUEST_SLIMES_NAME",
         objLabel: "QUEST_SLIMES_OBJ", // formatted as text(label, done, count)
         objectives: [{ kind: "kill", target: "slime", count: 5 }],
-        rewards: { xp: 25, items: [{ itemId: "potion", qty: 2 }] },
+        rewards: { items: [{ itemId: "potion", qty: 2 }] },
       },
       {
         id: this.QUEST_GATHER,
         name: "QUEST_GATHER_NAME",
         objLabel: "QUEST_GATHER_OBJ",
         objectives: [{ kind: "collect", target: "slime_gel", count: 3 }],
-        rewards: { xp: 15, items: [{ itemId: "gem", qty: 1 }] },
+        rewards: { items: [{ itemId: "gem", qty: 1 }] },
       },
       {
         id: this.QUEST_REACH,
         name: "QUEST_REACH_NAME",
         objLabel: "QUEST_REACH_OBJ",
+        // Explore the ruins → find a permanent attribute boost (the item-driven progression
+        // that replaced XP). Shows the *_shard consumable as a quest reward as well as a craft.
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
-        rewards: { xp: 10 },
+        rewards: { items: [{ itemId: "vitality_shard", qty: 1 }] },
       },
     ]);
 

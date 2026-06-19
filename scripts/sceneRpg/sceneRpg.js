@@ -29,6 +29,16 @@ class _SceneRpgClass extends Scene {
       const s = world.get(Stats, targetId);
       return Math.max(1, amount - (s !== undefined ? s.defense : 0));
     };
+    // Consumable policy: inject how a *_shard consumable grows an attribute (the item-driven
+    // progression that replaced leveling). Raise the bag key, then re-derive Stats from source.
+    // No-op (false → use() refuses, no waste) if the target has no Attributes or no such key.
+    ConsumableSystem.grantAttr = function (world, id, attr, amount) {
+      const a = world.get(Attributes, id);
+      if (a === undefined || a[attr] === undefined) return false;
+      a[attr] += amount;
+      StatModel.recompute(world, id);
+      return true;
+    };
 
     // ── Map-state cache: mapId → { level: Level.export(), built } of a persistent map's
     //    player edits, saved on leave + restored on revisit by RpgMap.load. In-memory for the

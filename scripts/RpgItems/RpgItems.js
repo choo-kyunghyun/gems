@@ -34,6 +34,43 @@ globalThis.RpgItems = {
         rarity: "uncommon",
         components: [new Consumable({ heal: 5 })],
       },
+      // Permanent attribute-boost consumables (Terraria Life-Crystal style) — the item-driven
+      // progression that replaced leveling. Each raises ONE primary attribute by +1 forever (via
+      // ConsumableSystem.grantAttr → StatModel.recompute), so growth comes from finding/crafting
+      // these, not an XP grind. One per StatModel.ATTRS key; obtained by crafting (RpgRecipes) +
+      // quest rewards (RpgQuests). `attr` matches the Attributes bag key.
+      {
+        id: "power_shard",
+        name: "ITEM_POWER_SHARD",
+        weight: 1,
+        value: 50,
+        rarity: "epic",
+        components: [new Consumable({ attr: "pow", amount: 1 })],
+      },
+      {
+        id: "vitality_shard",
+        name: "ITEM_VITALITY_SHARD",
+        weight: 1,
+        value: 50,
+        rarity: "epic",
+        components: [new Consumable({ attr: "vit", amount: 1 })],
+      },
+      {
+        id: "agility_shard",
+        name: "ITEM_AGILITY_SHARD",
+        weight: 1,
+        value: 50,
+        rarity: "epic",
+        components: [new Consumable({ attr: "agi", amount: 1 })],
+      },
+      {
+        id: "endurance_shard",
+        name: "ITEM_ENDURANCE_SHARD",
+        weight: 1,
+        value: 50,
+        rarity: "epic",
+        components: [new Consumable({ attr: "end", amount: 1 })],
+      },
       // Weapons. wood_sword = melee (swings a hitbox in the facing dir); blaster = ranged
       // (cursor-aimed bullet). RpgController picks melee-swing vs fire by the Weapon `melee`
       // flag.

@@ -43,9 +43,9 @@ globalThis.StatModel = {
 
   // Recompute an entity's DERIVED Stats from its Attributes + equipped mods (recompute-from-source:
   // rebuilt from scratch each call, so it can't drift like the old +/- equip deltas). No-op for an
-  // entity with no Attributes (a monster authors its Stats directly). Preserves the progression
-  // fields (level/xp/xpNext); clamps current Health/Stamina to the new maxima. Call on spawn, after
-  // an attribute change (level-up), and on equip/unequip.
+  // entity with no Attributes (a monster authors its Stats directly). Clamps current Health/Stamina
+  // to the new maxima. Call on spawn, on equip/unequip, and on an attribute change (using a
+  // *_shard consumable — the item-driven way attributes grow now that there's no leveling).
   recompute(world, id) {
     const attrs = world.get(Attributes, id);
     if (attrs === undefined) return; // not attribute-driven — leave authored Stats alone
@@ -63,7 +63,8 @@ globalThis.StatModel = {
     const hp = world.get(Health, id);
     if (hp !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;
     const stam = world.get(Stamina, id);
-    if (stam !== undefined && stam.value > stats.maxStamina) stam.value = stats.maxStamina;
+    if (stam !== undefined && stam.value > stats.maxStamina)
+      stam.value = stats.maxStamina;
   },
 
   // Fold every equipped item's Equippable.mods (flat { stat: delta }) into the derived block `d`.

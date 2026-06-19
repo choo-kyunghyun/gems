@@ -1,7 +1,7 @@
 // Quest definitions + active progress. Definitions are registered at create()
 // time; the scene drives progress by calling report(kind, target) after gameplay
 // events. A quest objective is { kind: "kill"|"collect"|"reach", target, count }.
-// Rewards are { xp?, items?: [{ itemId, qty }] } applied by the caller on turn-in.
+// Rewards are { items?: [{ itemId, qty }] } applied by the caller on turn-in.
 //
 // Per-quest state: { progress: number[], ready: bool, done: bool }
 //   ready = all objectives met (awaiting turn-in); done = turned in.
@@ -46,7 +46,11 @@ globalThis.QuestLog = {
       let advanced = false;
       for (let o = 0; o < def.objectives.length; o++) {
         const obj = def.objectives[o];
-        if (obj.kind === kind && obj.target === target && st.progress[o] < obj.count) {
+        if (
+          obj.kind === kind &&
+          obj.target === target &&
+          st.progress[o] < obj.count
+        ) {
           const v = st.progress[o] + n;
           st.progress[o] = v > obj.count ? obj.count : v;
           advanced = true;

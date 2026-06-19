@@ -56,7 +56,7 @@
   "BUILD_CLAIMED": "Build area claimed",
   "BUILT_DESTROYED": "{0} destroyed!",
 
-  "RPG_HUD": "Lv {0}   HP {1}/{2}",
+  "RPG_HUD": "HP {0}/{1}",
   "RPG_STAMINA": "Stamina",
   "RPG_TIME": "{0} · Day {1}   {2}",
   "RPG_SEASON_SPRING": "Spring",
@@ -118,7 +118,6 @@
   "SLOT_BACKPACK": "Backpack",
   "SLOT_EMPTY": "(empty)",
 
-  "STAT_LEVEL": "Level",
   "STAT_ATK": "Attack",
   "STAT_DEF": "Defense",
   "STAT_SPD": "Speed",
@@ -135,6 +134,10 @@
 
   "ITEM_SLIME_GEL": "Slime Gel",
   "ITEM_POTION": "Potion",
+  "ITEM_POWER_SHARD": "Power Shard",
+  "ITEM_VITALITY_SHARD": "Vitality Shard",
+  "ITEM_AGILITY_SHARD": "Agility Shard",
+  "ITEM_ENDURANCE_SHARD": "Endurance Shard",
   "ITEM_GEM": "Gem",
   "ITEM_KEY": "Old Key",
   "ITEM_WOOD_SWORD": "Wooden Sword",

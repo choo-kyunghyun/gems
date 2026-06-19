@@ -1,10 +1,10 @@
 /**
- * Per-entity character sheet. Lives in the world (session-scoped, not persisted).
+ * Per-entity character sheet — the DERIVED combat stats (from Attributes via StatModel).
+ * Lives in the world (session-scoped, not persisted). No level/xp: the RPG is item- +
+ * skill-driven, not playtime-driven — permanent growth comes from equipment and
+ * attribute-granting consumables, never an XP grind.
  *
  * @typedef {Object} Stats
- * @property {number} level
- * @property {number} xp
- * @property {number} xpNext   xp needed to reach the next level
  * @property {number} maxHp
  * @property {number} maxStamina
  * @property {number} attack

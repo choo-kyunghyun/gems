@@ -25,6 +25,45 @@ globalThis.RpgRecipes = {
         inputs: [{ itemId: "iron", qty: 2 }],
         output: { itemId: "leather_armor", qty: 1 },
       },
+      // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
+      // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering,
+      // not playtime. One per StatModel.ATTRS key.
+      {
+        id: "craft_power_shard",
+        station: "workbench",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "iron", qty: 3 },
+        ],
+        output: { itemId: "power_shard", qty: 1 },
+      },
+      {
+        id: "craft_vitality_shard",
+        station: "workbench",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "slime_gel", qty: 4 },
+        ],
+        output: { itemId: "vitality_shard", qty: 1 },
+      },
+      {
+        id: "craft_agility_shard",
+        station: "workbench",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "wood", qty: 4 },
+        ],
+        output: { itemId: "agility_shard", qty: 1 },
+      },
+      {
+        id: "craft_endurance_shard",
+        station: "workbench",
+        inputs: [
+          { itemId: "gem", qty: 1 },
+          { itemId: "iron", qty: 2 },
+        ],
+        output: { itemId: "endurance_shard", qty: 1 },
+      },
     ]);
   },
 };

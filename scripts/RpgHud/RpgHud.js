@@ -10,7 +10,7 @@ globalThis.RpgHud = {
     RpgHud._dialogue(scene);
   },
 
-  // Top-right HUD card: HP/level line (live) + the QuestLog-bound quest tracker.
+  // Top-right HUD card: HP line (live) + the QuestLog-bound quest tracker.
   _hud(scene) {
     const hud = new UIElement({
       positionType: "absolute",
@@ -26,7 +26,7 @@ globalThis.RpgHud = {
           const st = scene.world.get(Stats, scene.ctrl.id);
           const hpC = scene.world.get(Health, scene.ctrl.id);
           const hp = hpC !== undefined ? hpC.hp : 0;
-          return I18n.text("RPG_HUD", st.level, hp, st.maxHp);
+          return I18n.text("RPG_HUD", hp, st.maxHp);
         },
         { color: GemsTheme.text, font: "header" },
       ),

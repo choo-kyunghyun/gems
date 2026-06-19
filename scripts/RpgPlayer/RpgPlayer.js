@@ -47,12 +47,9 @@ globalThis.RpgPlayer = {
     // the combat fields below from these. Defaults are tuned to reproduce the legacy sheet.
     world.add(id, Attributes, StatModel.defaults());
     world.add(id, Stats, {
-      // level/xp/xpNext are progression (recompute preserves them); the derived fields
-      // (maxHp/maxStamina/attack/defense/speed) are seeded here but OVERWRITTEN by
-      // StatModel.recompute from Attributes below — kept as a no-Attributes fallback + doc.
-      level: 1,
-      xp: 0,
-      xpNext: 20,
+      // The derived fields (maxHp/maxStamina/attack/defense/speed) are seeded here but
+      // OVERWRITTEN by StatModel.recompute from Attributes below — kept as a no-Attributes
+      // fallback + doc. (No level/xp — the RPG is item- + skill-driven, not playtime-driven.)
       maxHp: 10,
       maxStamina: 100,
       attack: 1,

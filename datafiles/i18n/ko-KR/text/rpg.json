@@ -56,7 +56,7 @@
   "BUILD_CLAIMED": "건설 구역을 점유했습니다",
   "BUILT_DESTROYED": "{0}이(가) 파괴되었습니다!",
 
-  "RPG_HUD": "Lv {0}   HP {1}/{2}",
+  "RPG_HUD": "HP {0}/{1}",
   "RPG_STAMINA": "스태미나",
   "RPG_TIME": "{0} · {1}일차   {2}",
   "RPG_SEASON_SPRING": "봄",
@@ -118,7 +118,6 @@
   "SLOT_BACKPACK": "배낭",
   "SLOT_EMPTY": "(비어 있음)",
 
-  "STAT_LEVEL": "레벨",
   "STAT_ATK": "공격",
   "STAT_DEF": "방어",
   "STAT_SPD": "속도",
@@ -135,6 +134,10 @@
 
   "ITEM_SLIME_GEL": "슬라임 젤리",
   "ITEM_POTION": "물약",
+  "ITEM_POWER_SHARD": "힘의 조각",
+  "ITEM_VITALITY_SHARD": "활력의 조각",
+  "ITEM_AGILITY_SHARD": "민첩의 조각",
+  "ITEM_ENDURANCE_SHARD": "지구력의 조각",
   "ITEM_GEM": "보석",
   "ITEM_KEY": "낡은 열쇠",
   "ITEM_WOOD_SWORD": "나무 검",
