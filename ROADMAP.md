@@ -7,7 +7,6 @@
 
 ## UI
 
-- Context-aware hotkey hint
 - Killfeed UI
 - Hotbar (from 1 to =) & favorite items
 - Favorited items must be excluded from store all
