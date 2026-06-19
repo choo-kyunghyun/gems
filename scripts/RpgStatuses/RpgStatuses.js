@@ -39,6 +39,32 @@ globalThis.RpgStatuses = {
         duration: 12,
         mods: { attack: 3, defense: 2 },
       },
+      // Survival debuffs — applied/cleared by the need systems (Thirst/Hunger/Drowsiness) at their
+      // critical threshold. duration 0 = maintained until the need recovers (the system removes it).
+      // Thirst/Hunger bite with damage over time; drowsiness just slows (a speed multiplier).
+      {
+        id: "dehydrated",
+        name: "STATUS_DEHYDRATED",
+        color: "#4aa3d6",
+        beneficial: false,
+        dot: 1,
+        interval: 2,
+      },
+      {
+        id: "starving",
+        name: "STATUS_STARVING",
+        color: "#c98a3a",
+        beneficial: false,
+        dot: 1,
+        interval: 2,
+      },
+      {
+        id: "drowsy",
+        name: "STATUS_DROWSY",
+        color: "#8a7ec0",
+        beneficial: false,
+        mult: { speed: 0.6 },
+      },
     ]);
   },
 };

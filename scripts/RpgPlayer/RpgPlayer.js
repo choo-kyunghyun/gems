@@ -58,6 +58,30 @@ globalThis.RpgPlayer = {
     });
     world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
     world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
+    // Survival needs (Gameplay/Survival) — each a "rising meter" 0..max that its system ticks up;
+    // at `critical` it applies the named debuff Status (dot/slow), cleared by drinking/eating/sleeping.
+    // OPT-IN, like Stamina/Encumbrance above. rate is per second; tuned to deplete over minutes.
+    world.add(id, Thirst, {
+      value: 0,
+      max: 100,
+      rate: 0.8,
+      critical: 0.8,
+      status: "dehydrated",
+    });
+    world.add(id, Hunger, {
+      value: 0,
+      max: 100,
+      rate: 0.5,
+      critical: 0.8,
+      status: "starving",
+    });
+    world.add(id, Drowsiness, {
+      value: 0,
+      max: 100,
+      rate: 0.4,
+      critical: 0.85,
+      status: "drowsy",
+    });
     world.add(id, Equipment, {
       slots: { weapon: "", armor: "", trinket: "", backpack: "" },
     });

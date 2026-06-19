@@ -86,6 +86,22 @@ globalThis.BuildMode = {
             color: "#8a6a45",
           }),
         },
+        {
+          // A bed is an interactable Station (kind "bed") — Interactable routes E to scene._sleep
+          // (fast-forwards Time.scale + drains Drowsiness). Built like any furniture/station entity.
+          id: "bed",
+          labelKey: "BUILD_BED",
+          cost: 6,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_BED"),
+            color: "#b06a4f",
+            kind: "bed",
+          }),
+        },
       ],
     },
     {

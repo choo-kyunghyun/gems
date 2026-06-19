@@ -1,4 +1,6 @@
 const RPG_NPC_RADIUS = 60; // interact range to the elder NPC
+const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
+const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 
 // Exposed as a factory so another scene (the level editor's Test Play) can open this scene
 // directly; SceneRegistry.add uses the SAME reference so SceneManager._apply resolves its label.
@@ -55,6 +57,7 @@ class _SceneRpgClass extends Scene {
     // ── Overlay / interaction state (scene-wide — survives map changes) ─────
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
+    this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see _sleep)
     this.nearNpc = false;
     this.dialogueName = "";
     this.dialogueLine = "";
@@ -197,6 +200,19 @@ class _SceneRpgClass extends Scene {
   step() {
     // No pause gate — obj_game skips scene.step() while the SystemMenu is open.
 
+    // Sleeping (bed): fast-forward Time.scale so the night/needs race by while Drowsiness drains
+    // (the tick loop above). Manual wake — any key/click/face-button gets the player up. Checked
+    // BEFORE the tick loop so the waking press wakes instead of moving/acting this frame.
+    if (this._sleeping) {
+      if (this._wakeInput()) {
+        this._sleeping = false;
+        Time.scale = 1;
+      } else {
+        Time.scale = RPG_SLEEP_SCALE;
+      }
+    }
+    this._sleepOverlay.enabled = this._sleeping;
+
     // Edge-triggered toggle — sampled once per frame, outside the tick loop. The
     // window's widgets are clicked/navigated directly; no keyboard cursor anymore.
     if (Input.get("inventory").pressed()) {
@@ -223,6 +239,17 @@ class _SceneRpgClass extends Scene {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
       StatusSystem.update(this.world); // tick buffs/debuffs (dot/hot + duration), then ↓
       EncumbranceSystem.update(this.world); // refresh the "encumbered" status from carried weight
+      // Survival needs: thirst/hunger rise (and apply their critical debuff); drowsiness rises while
+      // awake, but DRAINS while sleeping in a bed (the scene fast-forwards Time.scale — see _sleep).
+      ThirstSystem.update(this.world);
+      HungerSystem.update(this.world);
+      if (this._sleeping)
+        DrowsinessSystem.restore(
+          this.world,
+          this.ctrl.id,
+          RPG_SLEEP_RECOVER * this.world.tickDuration,
+        );
+      else DrowsinessSystem.update(this.world);
       RpgController.update(this.world, this.ctrl); // reads StatusSystem.scale("speed")
       FollowerSystem.update(this.world, this.ctrl.id, this.followers); // seek (before physics)
       this.physics.update(this.world);
@@ -434,6 +461,27 @@ class _SceneRpgClass extends Scene {
     );
   }
 
+  // Start sleeping in a bed (Interactable routes a "bed" Station's E here). step() then fast-forwards
+  // Time.scale and drains Drowsiness each tick until the player wakes (_wakeInput). No-op if already
+  // asleep. Sleeping costs water/food (their needs keep rising at the accelerated rate).
+  _sleep() {
+    this._sleeping = true;
+  }
+
+  // Any input that wakes the sleeper: a key, a mouse click, or a gamepad face button. Raw queries
+  // (not InputAction) so it fires regardless of context; checked at the top of step() before the
+  // tick loop, so the waking press wakes instead of moving/acting. UIPointer.pressed is the latched
+  // LMB edge for the frame.
+  _wakeInput() {
+    return (
+      keyboard_check_pressed(vk_anykey) ||
+      UIPointer.pressed ||
+      mouse_check_button_pressed(mb_right) ||
+      gamepad_button_check_pressed(0, gp_face1) ||
+      gamepad_button_check_pressed(0, gp_face2)
+    );
+  }
+
   // Where a downed companion revives: its claimed build area if one exists, else the map spawn
   // ("nearest/pre-defined build zone or spawn area"). Handed to RpgScene.updateDowned.
   _recoverSpot() {
@@ -600,6 +648,11 @@ class _SceneRpgClass extends Scene {
   // true if it consumed the press; false lets Esc fall through to the pause menu (F1 / gamepad
   // Start always open it regardless). Same window > build priority as _resolveContext.
   handleEscape() {
+    if (this._sleeping) {
+      this._sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
+      Time.scale = 1;
+      return true;
+    }
     if (this.invOpen) {
       this.invOpen = false;
       this._invWin.enabled = false;

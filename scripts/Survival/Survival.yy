@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Survival",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Survival",
+  "parent":{
+    "name":"Survival",
+    "path":"folders/Gameplay/Survival.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Survival.js",
+}

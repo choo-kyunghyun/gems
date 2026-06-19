@@ -62,6 +62,13 @@ globalThis.ConsumableSystem = {
       );
       did = true;
     }
+    // Survival restores (drink/eat) — lower Thirst/Hunger via the Survival kit (sibling module).
+    // restore() returns false when the need is already satisfied, so a drink/food that would do
+    // nothing isn't wasted (same "no-op refused" rule as healing at full HP).
+    if (con.thirst > 0 && ThirstSystem.restore(world, id, con.thirst))
+      did = true;
+    if (con.hunger > 0 && HungerSystem.restore(world, id, con.hunger))
+      did = true;
     return did;
   },
 };

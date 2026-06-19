@@ -56,6 +56,37 @@ globalThis.RpgItems = {
         rarity: "rare",
         components: [new Consumable({ status: "fortify" })],
       },
+      // Survival drink + foods (Gameplay/Survival) — lower Thirst / Hunger when used from the bag.
+      // cooked_meat also heals a little. The Consumable thirst/hunger fields drive ThirstSystem /
+      // HungerSystem.restore (see ConsumableSystem). Sourced via workbench recipes for now (proper
+      // sourcing — farming/fishing — is on the roadmap).
+      {
+        id: "water_bottle",
+        name: "ITEM_WATER_BOTTLE",
+        description: "ITEM_WATER_BOTTLE_DESC",
+        weight: 1,
+        value: 4,
+        rarity: "common",
+        components: [new Consumable({ thirst: 45 })],
+      },
+      {
+        id: "bread",
+        name: "ITEM_BREAD",
+        description: "ITEM_BREAD_DESC",
+        weight: 1,
+        value: 5,
+        rarity: "common",
+        components: [new Consumable({ hunger: 40 })],
+      },
+      {
+        id: "cooked_meat",
+        name: "ITEM_COOKED_MEAT",
+        description: "ITEM_COOKED_MEAT_DESC",
+        weight: 1,
+        value: 12,
+        rarity: "uncommon",
+        components: [new Consumable({ hunger: 60, heal: 3 })],
+      },
       // Permanent attribute-boost consumables (Terraria Life-Crystal style) — the item-driven
       // progression that replaced leveling. Each raises ONE primary attribute by +1 forever (via
       // ConsumableSystem.grantAttr → StatModel.recompute), so growth comes from finding/crafting

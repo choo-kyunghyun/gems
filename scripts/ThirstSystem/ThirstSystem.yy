@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ThirstSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ThirstSystem",
+  "parent":{
+    "name":"Survival",
+    "path":"folders/Gameplay/Survival.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ThirstSystem.js",
+}

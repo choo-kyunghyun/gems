@@ -41,6 +41,28 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "elixir", qty: 1 },
       },
+      // Survival drink + foods (cooking abstraction over current mats; farming/fishing is roadmap).
+      {
+        id: "craft_water_bottle",
+        station: "workbench",
+        inputs: [{ itemId: "slime_gel", qty: 1 }],
+        output: { itemId: "water_bottle", qty: 1 },
+      },
+      {
+        id: "craft_bread",
+        station: "workbench",
+        inputs: [{ itemId: "wood", qty: 2 }],
+        output: { itemId: "bread", qty: 1 },
+      },
+      {
+        id: "craft_cooked_meat",
+        station: "workbench",
+        inputs: [
+          { itemId: "slime_gel", qty: 2 },
+          { itemId: "wood", qty: 1 },
+        ],
+        output: { itemId: "cooked_meat", qty: 1 },
+      },
       // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
       // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering,
       // not playtime. One per StatModel.ATTRS key.

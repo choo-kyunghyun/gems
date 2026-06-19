@@ -201,5 +201,7 @@
   "CLAIM_PROMPT": "[E] Claim build area",
 
   "ARCADE_PROMPT": "[E] Play arcade",
-  "ARCADE_REWARD": "Arcade cleared — +{0} coins"
+  "ARCADE_REWARD": "Arcade cleared — +{0} coins",
+
+  "BED_PROMPT": "[E] Sleep"
 }

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"DrowsinessSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"DrowsinessSystem",
+  "parent":{
+    "name":"Survival",
+    "path":"folders/Gameplay/Survival.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"DrowsinessSystem.js",
+}

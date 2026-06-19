@@ -17,6 +17,8 @@ globalThis.Consumable = class Consumable {
    *   are content (Demo — RpgStatuses). "" = none.
    * @param {number} [d.statusDuration] override seconds for the applied status; 0 = use the def's
    *   own duration
+   * @param {number} [d.thirst] survival: lowers the user's Thirst need by this much (a drink)
+   * @param {number} [d.hunger] survival: lowers the user's Hunger need by this much (a food)
    */
   constructor(d) {
     this.heal = d.heal ?? 0;
@@ -24,5 +26,7 @@ globalThis.Consumable = class Consumable {
     this.amount = d.amount ?? 1;
     this.status = d.status ?? "";
     this.statusDuration = d.statusDuration ?? 0;
+    this.thirst = d.thirst ?? 0;
+    this.hunger = d.hunger ?? 0;
   }
 };

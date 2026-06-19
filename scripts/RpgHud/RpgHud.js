@@ -8,6 +8,51 @@ globalThis.RpgHud = {
   build(scene) {
     RpgHud._hud(scene);
     RpgHud._dialogue(scene);
+    RpgHud._sleepOverlay(scene);
+  },
+
+  // One survival-need reserve bar: gemsProgress of (1 - value/max), so a full bar = satiated and it
+  // drains as the need rises toward critical. Reads the component live each frame.
+  _needBar(scene, token, labelKey, fillColor) {
+    const row = new UIElement({ width: "100%", height: 20 });
+    row.insertChild(
+      gemsProgress(
+        () => 1 - Survival.fraction(scene.world.get(token, scene.ctrl.id)),
+        {
+          label: I18n.textRef(labelKey),
+          fillColor: fillColor,
+          height: 20,
+          font: "description",
+        },
+      ),
+    );
+    return row;
+  },
+
+  // Centered "Sleeping…" overlay, toggled by scene._sleeping (set by _sleep / cleared on wake).
+  // Drawn over the scene while a bed fast-forwards time; a key/click wakes (sceneRpg._wakeInput).
+  _sleepOverlay(scene) {
+    const wrap = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      justifyContent: "center",
+      alignItems: "center",
+    });
+    const card = gemsCard({ padding: GemsTheme.pad });
+    card.insertChild(
+      gemsLabel(I18n.textRef("RPG_SLEEPING"), {
+        color: GemsTheme.text,
+        font: "header",
+        halign: fa_center,
+      }),
+    );
+    wrap.insertChild(card);
+    wrap.enabled = false;
+    scene._sleepOverlay = wrap;
+    scene.ui.insertChild(wrap);
   },
 
   // Top-right HUD card: HP line (live) + the QuestLog-bound quest tracker.
@@ -54,6 +99,14 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(staRow);
+    // Survival needs (Gameplay/Survival) — Thirst / Hunger / Drowsiness, each shown as a RESERVE
+    // bar (1 - value/max, so full = satiated and it empties as the need worsens), read live. The
+    // need's critical debuff (dehydrated/starving/drowsy) shows in the status row below.
+    card.insertChild(RpgHud._needBar(scene, Thirst, "RPG_THIRST", "#4aa3d6"));
+    card.insertChild(RpgHud._needBar(scene, Hunger, "RPG_HUNGER", "#c98a3a"));
+    card.insertChild(
+      RpgHud._needBar(scene, Drowsiness, "RPG_DROWSY", "#8a7ec0"),
+    );
     // World clock: "Season · Day N  HH:MM", read live from the WorldClock each frame.
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(

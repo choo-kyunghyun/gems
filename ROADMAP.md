@@ -25,9 +25,6 @@
 
 - Companion benefits like increasing inventory
 - Settlement and outpost
-- Thirst and water bottle
-- Hunger and foods
-- Drowsiness and bed
 - Farming and fishing
 
 ## Build Mode

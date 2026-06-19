@@ -68,6 +68,7 @@ globalThis.Interactable = {
     if (scene._interKind === "storage") return I18n.text("STORAGE_PROMPT");
     if (scene._interKind === "claim") return I18n.text("CLAIM_PROMPT");
     if (scene._interKind === "arcade") return I18n.text("ARCADE_PROMPT");
+    if (scene._interKind === "bed") return I18n.text("BED_PROMPT");
     return "";
   },
 
@@ -202,6 +203,11 @@ globalThis.Interactable = {
     // Arcade is an instant action too — push a minigame scene on top of the RPG (no window).
     if (scene._interKind === "arcade") {
       scene._openArcade();
+      return;
+    }
+    // Bed is an instant action — start sleeping (fast-forwards time, drains Drowsiness; a key wakes).
+    if (scene._interKind === "bed") {
+      scene._sleep();
       return;
     }
     scene._interOpenId = id;
