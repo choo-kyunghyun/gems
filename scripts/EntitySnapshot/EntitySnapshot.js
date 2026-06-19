@@ -1,6 +1,6 @@
 // Core ECS serialization primitive: capture an entity's components to a plain record and
-// re-spawn it. Genre-agnostic — migrates an entity across a World rebuild (the player +
-// traveling followers carried through sceneRpg.loadMap) and seeds disk saves + chunk streaming
+// re-spawn it. Genre-agnostic — migrates an entity between Worlds (the player +
+// traveling followers carried through RpgMap.go) and seeds disk saves + chunk streaming
 // (a chunk un/load is the same capture/restore over a region's entities).
 //
 // Data objects are REFERENCED, not deep-copied: an in-memory migration destroys the old world

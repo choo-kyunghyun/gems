@@ -5,8 +5,8 @@ SlotDrag.update();
 SystemMenu.update(this); // global F1 system overlay; before UINav so it's same-frame nav-reachable
 UINav.update();
 Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-box)
-// Dev-only: F2 opens the scene-catalogue lobby (the dev launcher). The lobby is no longer the boot
-// scene — the game boots into the RPG — so this is the way to reach the other showcases for testing.
+// Dev-only: F2 returns to the scene-catalogue lobby (the dev launcher + boot scene) from inside a
+// genre scene, so the RPG and the other showcases stay reachable for testing without a restart.
 if (DEV_MODE && keyboard_check_pressed(vk_f2))
   this.scenes.request(SCENES.lobby);
 this.scenes.update(); // flush a queued scene swap through a fade + advance the fade timer

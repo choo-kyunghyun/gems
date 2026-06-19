@@ -20,7 +20,7 @@
 globalThis.RenderWeather = class RenderWeather {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance; assigned by RpgMap.load
+    this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
     this._maxN = opt.maxParticles ?? 320; // particle budget at density 1
 
     this._rainColor = Color.parse("#aebfd4");

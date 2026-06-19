@@ -105,8 +105,8 @@ globalThis.RpgInventoryUI = {
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
       // Reads scene.world LIVE each frame (never a captured const): an open window
-      // survives a map change (loadMap swaps scene.world + the player), so a captured
-      // ref would deref the destroyed old world and fault.
+      // survives a map change (RpgMap.go swaps scene.world + the player), so a captured
+      // ref would read the parked old world instead of the live one.
       gemsLabel(
         () => {
           const v = scene.world.get(Inventory, scene.ctrl.id);

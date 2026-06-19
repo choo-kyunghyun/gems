@@ -20,7 +20,7 @@ globalThis.DebugRender = class DebugRender {
 
   // Append a render-pass toggle to the "Render" panel (deduped by class) — the seam a genre
   // layer uses to contribute its own pass without Core referencing it (e.g. the RPG registers
-  // RenderDebugAnimator from RpgMap.load, since that pass reads the Demo-layer Animator).
+  // RenderDebugAnimator from RpgMap.build, since that pass reads the Demo-layer Animator).
   // Rebuilds the panel if register() already ran; otherwise register() (obj_game Create_0,
   // after the boot scene's create) picks it up. RenderDebugAnimator is loaded by the time the
   // scene calls this, so storing the class ref here is load-order-safe.

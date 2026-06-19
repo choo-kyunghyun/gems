@@ -1,5 +1,5 @@
-// The app shell's single landing scene (`SCENES.lobby`), now a dev launcher reached via
-// F2 (the app boots into the RPG). Title and lobby are merged here: a G.E.M.S. branding
+// The app shell's landing + boot scene (`SCENES.lobby`), also a dev launcher reached via
+// F2 from inside a genre scene. Title and lobby are merged here: a G.E.M.S. branding
 // header over a single vertical column of buttons — every registered scene (RPG / Editor /
 // UI Kit) followed by the global actions (Credits / Settings / Quit). No tabs or category
 // sections: the catalogue is small enough to list flat. Settings and Credits open the

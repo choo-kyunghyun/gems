@@ -1,7 +1,7 @@
 // HUD + overlay panels for the RPG scene — the top-right HP/quest card and the bottom-center
 // dialogue box — extracted from sceneRpg as free functions taking the scene (composition;
 // mirrors RpgScene/RpgMap). The card + dialogue read scene.world/scene.ctrl LIVE via gemsLabel
-// callbacks, so they keep working after RpgMap.load swaps the world on a map change. (The corner
+// callbacks, so they keep working after RpgMap.go swaps the world on a map change. (The corner
 // minimap was replaced by the player-centered RadarArrows radar, drawn in sceneRpg.draw.)
 globalThis.RpgHud = {
   // Build the persistent HUD panels once (scene create): the HP/quest card + the dialogue box.

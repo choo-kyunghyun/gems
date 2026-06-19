@@ -75,6 +75,16 @@ globalThis.CombatAI = {
     world.add(id, State, { current: undefined, next: this.IDLE });
   },
 
+  // Re-point the shared world/level statics at the active map WITHOUT re-attaching every actor.
+  // attach() sets them too, but a RESUMED map (sceneRpg's map pool — RpgMap.resume) keeps its
+  // actors' Brain/State without calling attach again, so these statics would otherwise still point
+  // at the last-BUILT map's world → an actor's IDLE/CHASE reads the wrong world and faults. Called
+  // on every map activate via RpgMap._activateReset.
+  bind(world, level) {
+    this._world = world;
+    this._level = level;
+  },
+
   // Distance from actor `id` to its current Brain.target; Infinity if it has none / it's gone.
   _distTo(id) {
     const w = this._world;
@@ -185,7 +195,11 @@ globalThis.CombatAI = {
       if (t !== -1) {
         brain.target = t;
         // A mobile actor closes the distance first; a stationary turret attacks in place.
-        StateSystem.change(w, id, brain.mobile ? CombatAI.CHASE : CombatAI.ATTACK);
+        StateSystem.change(
+          w,
+          id,
+          brain.mobile ? CombatAI.CHASE : CombatAI.ATTACK,
+        );
       }
     },
   },
@@ -262,7 +276,11 @@ globalThis.CombatAI = {
       // Out of attack range: a mobile actor resumes the chase; a stationary one can't pursue, so
       // it drops to idle to re-acquire.
       if (CombatAI._distTo(id) > brain.attackRange)
-        StateSystem.change(w, id, brain.mobile ? CombatAI.CHASE : CombatAI.IDLE);
+        StateSystem.change(
+          w,
+          id,
+          brain.mobile ? CombatAI.CHASE : CombatAI.IDLE,
+        );
     },
   },
 

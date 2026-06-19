@@ -49,9 +49,14 @@ class _SceneRpgClass extends Scene {
       StatModel.recompute(world, id);
     };
 
-    // ── Map-state cache: mapId → { level: Level.export(), built } of a persistent map's
-    //    player edits, saved on leave + restored on revisit by RpgMap.load. In-memory for the
-    //    play session (a future save would serialize this alongside the character sheet). ──
+    // ── Map pool: visited maps are kept ALIVE + suspended here (mapId → bundle of
+    //    world/level/renderer/camera/...), so a door trip PARKS the current map instead of
+    //    destroying it — only the party migrates (RpgMap.go). _mapOrder tracks activation order
+    //    for LRU eviction past RpgMap.POOL_MAX, which serializes the evicted map into the COLD
+    //    _mapCache (Level.export() + stationed companions) and frees it (a future save would
+    //    serialize the pool + cache alongside the character sheet). ──
+    this._maps = {};
+    this._mapOrder = [];
     this._mapCache = {};
 
     // ── Overlay / interaction state (scene-wide — survives map changes) ─────
@@ -68,7 +73,7 @@ class _SceneRpgClass extends Scene {
     this.gameplay = true;
 
     // ── Persistent UI (built once). These widgets read this.world / this.ctrl LIVE each
-    //    frame, so they keep working after RpgMap.load() swaps the world on a map change. Hint,
+    //    frame, so they keep working after RpgMap.go() swaps the world on a map change. Hint,
     //    then manager-drawn panels: HUD + quest tracker (top-right), NPC dialogue (bottom-center,
     //    toggled), inventory window, station prompt/storage/crafting windows, build-mode HUD. ──
     this.ui = gemsRoot();
@@ -133,7 +138,7 @@ class _SceneRpgClass extends Scene {
 
     // ── World graph boot: a normal launch starts at the overworld hub; the editor's Test
     //    Play overrides with a single playtest file (registered under a synthetic id — it
-    //    has no portals, so the door system stays inert there). RpgMap.load() builds the world,
+    //    has no portals, so the door system stays inert there). RpgMap.go() builds the world,
     //    level, player, renderer, camera, and minimap. ─────────────────────────────────────
     let bootMap = RpgLevel.START;
     if (RpgLevel.playtestFile !== undefined) {
@@ -143,18 +148,18 @@ class _SceneRpgClass extends Scene {
     }
     WorldClock.reset(); // start at morning, day 1 (once — survives map changes below)
     Weather.reset(); // settled clear sky (once — survives map changes, like the clock)
-    RpgMap.load(this, bootMap, "default");
+    RpgMap.go(this, bootMap, "default");
 
     // Starting loadout: a melee Wooden Sword, equipped — so the attack is item-driven from frame
     // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
-    // here it travels with the carried inventory across map changes (RpgMap.load re-applies it).
+    // here it travels with the carried inventory across map changes (RpgMap.go re-applies it).
     const startInv = this.world.get(Inventory, this.ctrl.id);
     InventorySystem.add(startInv, "wood_sword", 1);
     EquipmentSystem.equip(this.world, this.ctrl.id, "wood_sword");
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
-    // in RpgMap.load owns it). create() runs once per scene, so this seeds exactly once. It
+    // in RpgMap.go owns it). create() runs once per scene, so this seeds exactly once. It
     // carries a bag bonus (+slots / +weight cap) applied while it follows; apply it now since
     // it spawns in "follow" state. From here the bonus is balanced by the F-toggle / dismiss
     // transitions, and rides the carried Inventory snapshot across map changes (no re-apply).
@@ -365,7 +370,7 @@ class _SceneRpgClass extends Scene {
       this._invDirty = false;
     }
 
-    // Door check LAST — RpgMap.load() swaps this.world/level/renderer/camera out from under the
+    // Door check LAST — RpgMap.go() swaps this.world/level/renderer/camera out from under the
     // scene, so nothing below it may touch the old map.
     RpgMap.checkPortals(this);
   }
@@ -726,7 +731,15 @@ class _SceneRpgClass extends Scene {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
     RpgController.destroy();
-    this.level.destroy();
-    teardownScene(this);
+    Weather.exitRegion();
+    // Free every PARKED pooled map, then the active map (its fields live on `this`). RpgMap._free
+    // reclaims each bundle's world/level/renderer/camera/chunks; the shared UI root is removed last.
+    for (const id in this._maps) RpgMap._free(this._maps[id]);
+    this._maps = {};
+    RpgMap._free(this);
+    if (this.ui) {
+      UI.remove(this.ui);
+      this.ui.destroy();
+    }
   }
 }

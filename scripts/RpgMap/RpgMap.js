@@ -7,24 +7,78 @@
 // Maps are discrete level files connected by portals (not one streamed world — the deliberate
 // fit for the JSON.parse-on-large-files limit and the one-World-per-scene model). A chunked map
 // (meta.chunked) streams its terrain + entities around the player via a ChunkManager; a plain map
-// builds everything up front. Persistent maps (meta.persistent, default true) cache their player
-// edits (built tiles + claimed zone) + stationed companions so a door trip can't wipe a base.
+// builds everything up front.
+//
+// A visited map's World is kept ALIVE and suspended in a per-scene POOL (scene._maps), not
+// destroyed on a door trip: go() parks the current map (suspend → _stash) and resumes the target
+// if already visited (no file reload, no rebuild) or builds it fresh on a first visit. Only the
+// PARTY (player sheet + "follow" companions) migrates between worlds (EntitySnapshot); everything
+// else — stationed companions, built tiles/entities, the buildable zone, dead enemies — simply
+// stays resident in its parked world, so nothing has to be hand-marked for persistence. The old
+// per-leave Level.export() cache (scene._mapCache) is now the COLD path: only an LRU eviction
+// (_evict, past POOL_MAX parked maps) serializes a map there and frees it; a later revisit then
+// rebuilds it from file + imports the cache (enemies respawn on that cold rebuild only).
 globalThis.RpgMap = {
-  // Build (or rebuild) the live map. Tears down the previous map, carries the player's
-  // character sheet across the swap, then constructs the world / level / player / renderer /
-  // camera for `mapId`, spawning the player at the named `entryId`. Called from the scene's
-  // create() (first map) and from checkPortals() when the player walks through a door.
-  load(scene, mapId, entryId) {
-    // 1. Carry the player's character sheet across (null on first load). World.destroy() only
-    //    drops storage references, so these component objects stay valid to re-attach.
+  // Max number of PARKED (suspended) maps kept live in the pool before LRU eviction. The active
+  // map is on `this` (not counted), so up to POOL_MAX + 1 Worlds are resident. The overworld is
+  // chunk-bounded and interiors are tiny, so a handful is cheap; tune for memory vs. revisit cost.
+  POOL_MAX: 3,
+
+  // The per-map fields a bundle owns — everything tied to one map's World/Level/render apparatus.
+  // _stash copies these off the scene into a parked bundle; _restore copies them back. NOT here:
+  // the scene-shell fields (ui, _mapCache, _maps, overlay flags) and the per-activate transients
+  // (_hpTrack/_npcId/_climateZone/_buildActive), which _activateReset reseeds each time a map opens.
+  BUNDLE_KEYS: [
+    "world",
+    "level",
+    "spawn",
+    "entries",
+    "ctrl",
+    "mapId",
+    "_chunked",
+    "_mapPersistent",
+    "terrainLayer",
+    "floorLayer",
+    "wallLayer",
+    "fenceLayer",
+    "terrainType",
+    "floorType",
+    "wallType",
+    "fenceType",
+    "colliders",
+    "buildZoneId",
+    "_built",
+    "_builtEnts",
+    "_gone",
+    "followers",
+    "reachZone",
+    "reachDone",
+    "nav",
+    "physics",
+    "renderer",
+    "source",
+    "chunks",
+    "terrain",
+    "camera",
+    "_tilePasses",
+    "_gridPass",
+    "_weather",
+    "_lighting",
+  ],
+
+  // Travel to `mapId`@`entryId`: PARK the current map alive in the pool (no destroy/rebuild) and
+  // either resume the target's parked world (revisit) or build it from file (first visit). Only the
+  // party crosses worlds; stationed companions / built tiles+entities / the buildable zone / dead
+  // enemies all just stay resident in their parked world. Called from create() (boot) + checkPortals.
+  go(scene, mapId, entryId) {
     let carry = null;
-    let travelers = []; // "follow" companions captured to re-spawn in the new map (party scope)
+    let travelers = []; // "follow" companions captured to re-spawn in the target (party scope)
+    // ── PHASE A — leave the current map, keeping its World ALIVE in the pool ──
     if (scene.ctrl !== undefined) {
-      // The player's character sheet travels with the party (it's party member 0). Capture
-      // just the sheet components — NOT Position/Visual/Collision/Animator, which the
-      // controller rebuilds fresh in the new map. Attributes travel alongside the derived Stats
-      // (equip mods already baked in) so a post-crossing recompute re-derives from the LEVELED
-      // attributes, not the fresh-spawn defaults — without this the level-ups silently reset.
+      // The character sheet is the one thing that crosses worlds (party member 0). Capture just
+      // the sheet — the dormant player entity stays resident in the parked world and is re-synced
+      // with this on return; Position/Visual/Animator are the controller's to rebuild. Attributes
+      // ride along so a post-crossing recompute re-derives from the grown attributes, not defaults.
       carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
         Attributes,
         Stats,
@@ -34,48 +88,202 @@ globalThis.RpgMap = {
         Equipment,
         Encumbrance,
       ]);
-      // Partition the followers: a "follow" companion travels with us (re-spawned near the new
-      // entry below); a "wait" companion is stationed in THIS map (map scope) and rides in its
-      // persistence cache, re-spawned where it was left when the player returns.
-      const stationed = [];
+      // Partition followers: a "follow" companion travels (captured AND removed from the parked
+      // world, so it isn't both left behind dormant and re-spawned in the target); a "wait"
+      // companion stays resident in this parked world — no cache, no round-trip.
+      const stay = [];
       for (let i = 0; i < scene.followers.length; i++) {
         const fid = scene.followers[i];
         const f = scene.world.get(Follower, fid);
         if (f === undefined) continue;
-        const snap = EntitySnapshot.capture(scene.world, fid);
-        if (f.state === "follow") travelers.push(snap);
-        else stationed.push(snap);
+        if (f.state === "follow") {
+          travelers.push(EntitySnapshot.capture(scene.world, fid));
+          scene.world.remove(fid);
+        } else {
+          stay.push(fid);
+        }
       }
-      // Built ENTITIES (placed furniture/stations) are scene-tracked, not chunk-managed, so
-      // they live in the World until teardown — capture each as a snapshot keyed by its cell +
-      // catalog item id, so the map cache restores it (with its contents, e.g. a stocked chest)
-      // on revisit. Built TILES ride along in Level.export below.
-      const builtEnts = [];
-      for (const key in scene._builtEnts) {
-        const e = scene._builtEnts[key];
-        if (e === undefined || !scene.world.isValid(e.ent)) continue;
-        builtEnts.push({
-          key,
-          itemId: e.itemId,
-          snap: EntitySnapshot.capture(scene.world, e.ent),
-        });
-      }
-      // Cache the OUTGOING map's player edits if it's persistent (the default) so they're
-      // restored on revisit instead of rebuilt fresh — the claimed buildable zone + built tiles
-      // (Level.export captures both as a detached snapshot that survives the destroy below),
-      // the built entities, and the stationed companions. Captured before teardown.
-      if (scene._mapPersistent && scene.mapId !== undefined) {
-        scene._mapCache[scene.mapId] = {
-          level: scene.level.export(),
-          built: { ...scene._built },
-          builtEnts,
-          entities: stationed,
-          gone: scene._gone, // uids removed this map → not re-spawned (file-scope reconcile)
-        };
-      }
-      RpgMap.teardown(scene);
+      scene.followers = stay;
+      scene.world.flush(); // commit the traveler removals before the world is parked
+      RpgMap.suspend(scene); // unassign the camera + stash the live fields into the pool
+    }
+    // ── PHASE B — enter the target: resume its parked world, else build it from file ──
+    const bundle = scene._maps[mapId];
+    if (bundle !== undefined)
+      RpgMap.resume(scene, bundle, entryId, carry, travelers);
+    else RpgMap.build(scene, mapId, entryId, carry, travelers);
+    // The now-active map is most-recently-used; evict the LRU parked map if over the cap.
+    RpgMap._touch(scene, scene.mapId);
+    RpgMap._evict(scene);
+  },
+
+  // Park the live map: detach its camera from viewport 0 (NOT destroy — the parked map keeps it for
+  // resume; without the unassign the parked Camera still thinks it owns the viewport and its later
+  // destroy() would tear down the live view), clear any Weather region override (the next map
+  // re-detects its climate on the first step), and stash the per-map fields into the pool.
+  suspend(scene) {
+    if (scene.camera) scene.camera.unassign();
+    Weather.exitRegion();
+    scene._maps[scene.mapId] = RpgMap._stash(scene);
+  },
+
+  // Resume a parked map: splat its fields back onto the scene, re-claim the viewport, re-sync the
+  // carried sheet onto the resident (dormant) player, reposition that player to the portal's named
+  // entry (honoring entryId on a revisit exactly like a fresh build), and re-spawn the travelers.
+  resume(scene, bundle, entryId, carry, travelers) {
+    RpgMap._restore(scene, bundle); // pointer-copy the parked fields back onto the scene
+    delete scene._maps[scene.mapId]; // mapId is restored above; it's live now, not parked
+    MotionPlanner.setGrid(scene.nav); // re-point the planner at this map's nav window
+    if (scene.camera) scene.camera.assign(0);
+    if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+
+    // Reposition the resident player to the resolved entry, then snap the follow camera so there's
+    // no pan from the parked position (the camera lerps toX/toY toward the target each update).
+    const sp = scene.entries[entryId] ?? scene.spawn;
+    const pp = scene.world.get(Position, scene.ctrl.id);
+    const pv = scene.world.get(Velocity, scene.ctrl.id);
+    pp.x = sp.x;
+    pp.y = sp.y;
+    pv.x = 0;
+    pv.y = 0;
+    if (scene.camera) {
+      scene.camera.toX = sp.x;
+      scene.camera.toY = sp.y;
     }
 
+    // Re-spawn the traveling party around the entry (fresh Position/Velocity so they don't keep
+    // old-map coords), exactly as the build path does.
+    for (let i = 0; i < travelers.length; i++)
+      scene.followers.push(
+        EntitySnapshot.restore(scene.world, travelers[i], {
+          [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
+          [Velocity]: { x: 0, y: 0, z: 0 },
+        }),
+      );
+
+    // Chunked map: re-center the streaming rings + rebuild any newly-streamed terrain around the
+    // entry now (step() does this every frame, but seed it so the first frame back has no ring gap).
+    if (scene.chunks !== undefined) {
+      scene.chunks.update(sp.x, sp.y);
+      if (scene.terrain !== undefined) scene.terrain.rebuild(scene.chunks);
+    }
+
+    RpgMap._activateReset(scene);
+    FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
+    ParticleFx.clear();
+  },
+
+  // Copy the per-map fields off the scene into a fresh bundle (pointer copy — world/level/etc. stay
+  // alive). _restore copies them back. Plain array index loop (no Map/Set iteration — GMRT).
+  _stash(scene) {
+    const b = {};
+    const keys = RpgMap.BUNDLE_KEYS;
+    for (let i = 0; i < keys.length; i++) b[keys[i]] = scene[keys[i]];
+    return b;
+  },
+  _restore(scene, b) {
+    const keys = RpgMap.BUNDLE_KEYS;
+    for (let i = 0; i < keys.length; i++) scene[keys[i]] = b[keys[i]];
+  },
+
+  // Move `mapId` to the most-recently-used end of the activation order (LRU bookkeeping for _evict).
+  _touch(scene, mapId) {
+    const ord = scene._mapOrder;
+    const i = ord.indexOf(mapId);
+    if (i !== -1) ord.splice(i, 1);
+    ord.push(mapId);
+  },
+
+  // Evict parked maps down to POOL_MAX: serialize the least-recently-used one into the COLD cache
+  // (_mapCache, the old per-leave shape), free its resources, and drop it. A later revisit then
+  // rebuilds it from file + imports the cache. Never touches the active map (it isn't in _maps).
+  _evict(scene) {
+    let count = 0;
+    for (const id in scene._maps) count++;
+    while (count > RpgMap.POOL_MAX) {
+      // Victim = the earliest map in activation order that is still parked.
+      let victim = null;
+      for (let i = 0; i < scene._mapOrder.length; i++) {
+        if (scene._maps[scene._mapOrder[i]] !== undefined) {
+          victim = scene._mapOrder[i];
+          break;
+        }
+      }
+      if (victim === null) break; // safety — nothing parked
+      RpgMap._evictSerialize(scene, scene._maps[victim]);
+      RpgMap._free(scene._maps[victim]);
+      delete scene._maps[victim];
+      scene._mapOrder.splice(scene._mapOrder.indexOf(victim), 1);
+      count--;
+    }
+  },
+
+  // Serialize a parked map into the cold cache before reclaiming it, in the SAME shape build()
+  // restores: level export (tiles + buildable zone), deconstruct tracking, built entities, the
+  // stationed companions (a parked bundle's followers are all "wait"), and the gone ledger. Live
+  // enemies/loot are deliberately NOT snapshotted — they respawn on the cold rebuild (the accepted
+  // degradation once a map is evicted under memory pressure). No-op for a non-persistent map.
+  _evictSerialize(scene, b) {
+    if (!b._mapPersistent) return;
+    const builtEnts = [];
+    for (const key in b._builtEnts) {
+      const e = b._builtEnts[key];
+      if (e === undefined || !b.world.isValid(e.ent)) continue;
+      builtEnts.push({
+        key,
+        itemId: e.itemId,
+        snap: EntitySnapshot.capture(b.world, e.ent),
+      });
+    }
+    const stationed = [];
+    for (let i = 0; i < b.followers.length; i++)
+      stationed.push(EntitySnapshot.capture(b.world, b.followers[i]));
+    scene._mapCache[b.mapId] = {
+      level: b.level.export(),
+      built: { ...b._built },
+      builtEnts,
+      entities: stationed,
+      gone: b._gone,
+    };
+  },
+
+  // Per-activate transient reset (shared by build + resume): floating-number tracking re-seeds with
+  // no delta, build mode never carries across a door, the climate zone is forced to re-fire enter,
+  // and an open inventory refreshes against the new world. Kept off the bundle so a resume can't
+  // restore a stale transient.
+  _activateReset(scene) {
+    scene._hpTrack = {};
+    scene._buildActive = false;
+    BuildMode.active = false;
+    scene.nearNpc = false;
+    scene._climateZone = 0;
+    scene._npcId = -1;
+    if (scene.invOpen) scene._invDirty = true;
+    // Re-point CombatAI's shared world/level statics at this map. attach() does this for a fresh
+    // build, but a resume keeps actors without re-attaching, so bind explicitly (else slimes step
+    // against the previously-built world and fault). The one map-context system with statics.
+    CombatAI.bind(scene.world, scene.level);
+  },
+
+  // World-coord entry points by name (for repositioning the player on a resume, where there's no
+  // file reload to re-resolve through RpgLevel._resolveSpawn). Mirrors that resolver's sources:
+  // meta.entries, plus the legacy single meta.playerSpawn as "default".
+  _entryTable(level, data) {
+    const out = {};
+    const e = data.meta.entries;
+    if (e !== undefined)
+      for (const k in e) out[k] = level.gridToWorld(e[k].gx, e[k].gy);
+    if (data.meta.playerSpawn !== undefined && out.default === undefined)
+      out.default = level.gridToWorld(
+        data.meta.playerSpawn.gx,
+        data.meta.playerSpawn.gy,
+      );
+    return out;
+  },
+
+  // Build a map fresh from its file (first visit, or an eviction-restore from the cold _mapCache).
+  // carry + travelers are captured from the OUTGOING map by go() and handed in (null/[] on boot).
+  build(scene, mapId, entryId, carry = null, travelers = []) {
     // 2. Load the map file (fall back to the start map if a referenced file is bad).
     const file = RpgLevel.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
@@ -110,6 +318,7 @@ globalThis.RpgMap = {
       : RpgLevel.build(scene.world, data, entryId);
     scene.level = built.level;
     scene.spawn = built.spawn; // remembered for player respawn on death
+    scene.entries = RpgMap._entryTable(scene.level, data); // named entries → world coords (resume reposition)
     scene.terrainLayer = built.terrainLayer; // tilemap handles (RenderTileMap passes + build mode)
     scene.floorLayer = built.floorLayer;
     scene.wallLayer = built.wallLayer;
@@ -250,14 +459,7 @@ globalThis.RpgMap = {
         );
 
     // 6. Per-map resets (old ids belonged to the previous map; _built handled in 4b).
-    scene._hpTrack = {}; // id → last-seen Health.hp, for floating combat numbers
-    scene._buildActive = false;
-    BuildMode.active = false;
-    scene.nearNpc = false;
-    scene._climateZone = 0; // climate-zone id the player is in (0 = none); _updateClimate tracks it
-    // If the inventory window is open across the swap, refresh its body against the new world
-    // next frame (its labels already read scene.world live, so this frame's draw is safe).
-    if (scene.invOpen) scene._invDirty = true;
+    RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
 
     // 7. Pathfinding nav window: a windowed occupancy grid built from the live colliders (streamed
     //    terrain + player builds + world border + interior walls), pointed at by MotionPlanner.
@@ -412,31 +614,21 @@ globalThis.RpgMap = {
     ParticleFx.clear(); // drop live particles from the previous map (world coords are map-local)
   },
 
-  // Release the current map's resources (world / level / renderer / camera / controller),
-  // leaving the persistent UI in place. Mirrors teardownScene's order, minus the UI.
-  teardown(scene) {
-    RpgController.destroy();
-    Weather.exitRegion(); // leave any climate region (the new map re-detects on its first step)
-    // Drop the chunk streamer (its entities/colliders die with the world below); clearing the
-    // ref means the next map's step() skips chunk streaming until a chunked map sets it again.
-    if (scene.chunks) {
-      scene.chunks.destroy();
-      scene.chunks = undefined;
-    }
-    // The terrain pass lives in scene.renderer (inserted in load), so renderer.destroy() below frees
-    // its per-chunk VBOs; just drop the ref here.
-    scene.terrain = undefined;
-    scene.source = undefined;
-    scene.nav = undefined; // the next load() rebuilds it + re-points MotionPlanner
-    if (scene.camera) scene.camera.destroy();
-    if (scene.renderer) scene.renderer.destroy();
-    if (scene.world) scene.world.destroy();
-    if (scene.level) scene.level.destroy();
+  // Reclaim ONE map bundle's owned resources (world / level / renderer / camera / chunks). No
+  // global input/weather teardown — those are scene-scoped (RpgController.destroy / Weather in
+  // sceneRpg.destroy). Used by eviction (_evict) and scene teardown (sceneRpg.destroy). The
+  // terrain-stream pass lives inside the renderer, so renderer.destroy() frees its per-chunk VBOs.
+  _free(b) {
+    if (b.chunks) b.chunks.destroy();
+    if (b.camera) b.camera.destroy();
+    if (b.renderer) b.renderer.destroy();
+    if (b.world) b.world.destroy();
+    if (b.level) b.level.destroy();
   },
 
   // Walk-onto door: travel to the first portal whose BBox the player overlaps. Runs once
-  // per frame, after physics (the player is settled). On a hit, load() rebuilds everything
-  // and we return immediately — the old world is gone.
+  // per frame, after physics (the player is settled). On a hit, go() parks the current map and
+  // resumes/builds the target, then we return immediately — this.world has been swapped out.
   checkPortals(scene) {
     const p = AABB.of(scene.world, scene.ctrl.id);
     // Live query every doorway in the world (entities carrying a Portal component) — works for
@@ -447,7 +639,7 @@ globalThis.RpgMap = {
       if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
         const portal = scene.world.get(Portal, ids[i]);
         Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
-        RpgMap.load(scene, portal.toMap, portal.toEntry);
+        RpgMap.go(scene, portal.toMap, portal.toEntry);
         return;
       }
     }

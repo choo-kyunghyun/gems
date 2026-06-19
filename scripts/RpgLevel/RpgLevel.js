@@ -20,7 +20,7 @@ globalThis.RpgLevel = {
   // World graph: map id -> level file. The overworld hub, sub-levels (interiors/dungeons),
   // and side-islands are all just map files connected by `portal` spawns (see RpgSpawn.spawn).
   // This is the seed registry — extract to a `maps.json` manifest later if it grows. START is
-  // the map a normal lobby launch boots into; RpgMap.load(id, entry) resolves files here.
+  // the map a normal lobby launch boots into; RpgMap.go(id, entry) resolves files here.
   MAPS: {
     overworld: "levels/overworld.json",
     interior_01: "levels/interior_01.json",

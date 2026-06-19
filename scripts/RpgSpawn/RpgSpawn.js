@@ -13,7 +13,7 @@
 //   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
 //   turret   label? color(#hex)?        (auto-firing defense — immovable Health + Faction "player" actor; stationary ranged CombatAI)
 //   reach    half?                      (quest zone marker — no entity)
-//   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.load; non-solid sensor)
+//   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
 globalThis.RpgSpawn = {
   /**

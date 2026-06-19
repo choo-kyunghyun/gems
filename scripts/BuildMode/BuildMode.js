@@ -13,7 +13,7 @@
 // singleton like Interactable. The one exception is the static `active` flag, mirrored each
 // frame so drawWorld can gate the world-space cursor highlight to "build context owns input".
 //
-// Scene contract (set in create()/loadMap): world, ctrl.id, level, ui, wallLayer, floorLayer,
+// Scene contract (set in create()/RpgMap.build): world, ctrl.id, level, ui, wallLayer, floorLayer,
 // colliders, wallType, floorType, buildZoneId, _tilePasses (RenderTileMap pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld

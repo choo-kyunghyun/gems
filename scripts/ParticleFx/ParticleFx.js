@@ -16,7 +16,7 @@
  *   - a scene calls ParticleFx.update() ONCE per frame from step() (so effects freeze while
  *     the SystemMenu pauses the scene, like WorldClock/Weather), and ParticleFx.draw() from
  *     its draw() AFTER the renderer (world space, over the day/night tint);
- *   - SceneManager._apply + RpgMap.load call ParticleFx.clear() on scene/map swap (live
+ *   - SceneManager._apply + RpgMap.go call ParticleFx.clear() on scene/map swap (live
  *     systems' world coords are scene-local and must not bleed into the next).
  *
  * GMRT notes (verified on 0.20): the native particle system renders to the application surface
