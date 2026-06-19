@@ -87,6 +87,9 @@ globalThis.RpgMap = {
         Inventory,
         Equipment,
         Encumbrance,
+        Thirst, // survival needs are session-scoped player state (like Stamina) — they travel
+        Hunger, // with the party, NOT reset/diverge per map (each map's resident player would
+        Drowsiness, // otherwise keep its own meter, unsynced across the transition).
       ]);
       // Partition followers: a "follow" companion travels (captured AND removed from the parked
       // world, so it isn't both left behind dormant and re-spawned in the target); a "wait"
