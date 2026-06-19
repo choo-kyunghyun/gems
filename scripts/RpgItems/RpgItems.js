@@ -2,8 +2,8 @@
 // trinket / unique items / crafting materials). Registered once by RpgContent.register() at a
 // scene's create() (NOT at top level — avoids GMRT load-order issues). An item's `rarity` is a
 // tier id defined here, so rarities + items live together. wood_sword = melee (swings a hitbox
-// in the facing dir); blaster = ranged (cursor-aimed bullet) — RpgController picks melee-swing
-// vs fire by the Weapon `melee` flag.
+// in the facing dir); blaster = an ammo-driven gun — RpgController picks melee-swing vs fire by
+// whether the item carries a Gun component (composeWeapon's gun branch).
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
   { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
@@ -128,14 +128,13 @@ globalThis.RpgItems = {
         rarity: "epic",
         components: [new Consumable({ attr: "end", amount: 1 })],
       },
-      // Weapons. wood_sword = melee (swings a hitbox in the facing dir); blaster = ranged
-      // (cursor-aimed bullet). RpgController picks melee-swing vs fire by the Weapon `melee`
-      // flag.
+      // Weapons. wood_sword = melee (swings a hitbox in the facing dir); blaster = an ammo-driven
+      // gun (the Gun component → composeWeapon's gun branch). RpgController picks melee-swing vs
+      // fire by whether the item carries a Gun component.
       {
         id: "wood_sword",
         name: "ITEM_WOOD_SWORD",
         description: "ITEM_WOOD_SWORD_DESC",
-        stack: 1,
         weight: 4,
         value: 8,
         rarity: "common",
@@ -159,7 +158,6 @@ globalThis.RpgItems = {
         id: "blaster",
         name: "ITEM_BLASTER",
         description: "ITEM_BLASTER_DESC",
-        stack: 1,
         weight: 5,
         value: 60,
         rarity: "rare",
@@ -187,7 +185,6 @@ globalThis.RpgItems = {
         id: "leather_armor",
         name: "ITEM_LEATHER_ARMOR",
         description: "ITEM_LEATHER_ARMOR_DESC",
-        stack: 1,
         weight: 8,
         value: 20,
         rarity: "uncommon",
@@ -198,7 +195,6 @@ globalThis.RpgItems = {
       {
         id: "swift_ring",
         name: "ITEM_SWIFT_RING",
-        stack: 1,
         weight: 1,
         value: 40,
         rarity: "rare",
@@ -208,7 +204,6 @@ globalThis.RpgItems = {
       {
         id: "backpack",
         name: "ITEM_BACKPACK",
-        stack: 1,
         weight: 3,
         value: 30,
         rarity: "uncommon",
@@ -223,7 +218,6 @@ globalThis.RpgItems = {
       {
         id: "key",
         name: "ITEM_KEY",
-        stack: 1,
         weight: 0,
         value: 0,
         rarity: "epic",
