@@ -252,17 +252,48 @@ globalThis.StorageUI = {
     const bag = world.get(Inventory, scene.ctrl.id);
     const box = world.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
-    if (side === "bag") StorageUI._transferAll(scene, bag, box);
-    else StorageUI._transferAll(scene, box, bag);
+    // Storing FROM the bag keeps equipped copies behind (a worn item must stay in the bag
+    // so its Equipment slot doesn't dangle); taking FROM the chest has nothing to protect.
+    if (side === "bag")
+      StorageUI._transferAll(scene, bag, box, StorageUI._equipKeep(scene));
+    else StorageUI._transferAll(scene, box, bag, null);
   },
 
-  _transferAll(scene, srcInv, dstInv) {
+  // Units of each itemId to KEEP in the bag during a Store All — one per equipment slot
+  // that references it (Equipment is keyed by itemId, so a worn item needs ≥1 copy present).
+  // null/empty for the take-from-chest direction. Flat { itemId: count }.
+  _equipKeep(scene) {
+    const keep = {};
+    const eq = scene.world.get(Equipment, scene.ctrl.id);
+    if (eq === undefined) return keep;
+    for (const slot in eq.slots) {
+      const itemId = eq.slots[slot];
+      if (itemId !== undefined && itemId !== "")
+        keep[itemId] = (keep[itemId] ?? 0) + 1;
+    }
+    return keep;
+  },
+
+  // `keep` (or null) is a { itemId: units-to-leave } map — the equipped copies excluded from
+  // a Store All. The first stack(s) of a protected id keep that many units in srcInv; spare
+  // (unequipped) copies still move. Each stack is otherwise capacity/weight-gated by add.
+  _transferAll(scene, srcInv, dstInv, keep) {
     let total = 0;
     let i = 0;
     while (i < srcInv.slots.length) {
       const s = srcInv.slots[i];
-      const leftover = InventorySystem.add(dstInv, s.itemId, s.qty);
-      const moved = s.qty - leftover;
+      let movable = s.qty;
+      if (keep !== null && keep[s.itemId] > 0) {
+        const held = keep[s.itemId] < s.qty ? keep[s.itemId] : s.qty;
+        movable = s.qty - held;
+        keep[s.itemId] -= held; // this stack absorbed its share of the protection
+      }
+      if (movable <= 0) {
+        i++;
+        continue; // fully protected (the equipped copy) — leave it
+      }
+      const leftover = InventorySystem.add(dstInv, s.itemId, movable);
+      const moved = movable - leftover;
       if (moved > 0) {
         total += moved;
         s.qty -= moved;
@@ -274,7 +305,6 @@ globalThis.StorageUI = {
       i++; // partial (dst full) or nothing fit — leave the stack and move on
     }
     if (total === 0) return;
-    StorageUI._reconcileEquip(scene, srcInv);
     scene._storeDirty = true;
     scene._invDirty = true;
     Log.info(`transferred all (${total} items)`);
