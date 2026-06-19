@@ -29,6 +29,7 @@ globalThis.RpgItems = {
       {
         id: "potion",
         name: "ITEM_POTION",
+        description: "ITEM_POTION_DESC",
         weight: 1,
         value: 10,
         rarity: "uncommon",
@@ -42,6 +43,7 @@ globalThis.RpgItems = {
       {
         id: "power_shard",
         name: "ITEM_POWER_SHARD",
+        description: "ITEM_POWER_SHARD_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -50,6 +52,7 @@ globalThis.RpgItems = {
       {
         id: "vitality_shard",
         name: "ITEM_VITALITY_SHARD",
+        description: "ITEM_VITALITY_SHARD_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -58,6 +61,7 @@ globalThis.RpgItems = {
       {
         id: "agility_shard",
         name: "ITEM_AGILITY_SHARD",
+        description: "ITEM_AGILITY_SHARD_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -66,6 +70,7 @@ globalThis.RpgItems = {
       {
         id: "endurance_shard",
         name: "ITEM_ENDURANCE_SHARD",
+        description: "ITEM_ENDURANCE_SHARD_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -77,6 +82,7 @@ globalThis.RpgItems = {
       {
         id: "wood_sword",
         name: "ITEM_WOOD_SWORD",
+        description: "ITEM_WOOD_SWORD_DESC",
         stack: 1,
         weight: 4,
         value: 8,
@@ -102,6 +108,7 @@ globalThis.RpgItems = {
       {
         id: "leather_armor",
         name: "ITEM_LEATHER_ARMOR",
+        description: "ITEM_LEATHER_ARMOR_DESC",
         stack: 1,
         weight: 8,
         value: 20,

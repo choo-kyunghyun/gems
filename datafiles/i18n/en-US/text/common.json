@@ -194,6 +194,9 @@
   "CRAFT_TITLE": "Crafting",
   "CRAFT_PROMPT": "[E] Craft",
   "CRAFT_EMPTY": "No recipes",
+  "CRAFT_INGREDIENTS": "Ingredients",
+  "CRAFT_DO": "Craft",
+  "CRAFT_SELECT": "Select a recipe",
 
   "CLAIM_PROMPT": "[E] Claim build area",
 

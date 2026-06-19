@@ -4,6 +4,8 @@
 // Standalone text node. Width/height auto-fit to the string (UIText). `opts.font` is an I18n font
 // KEY (string, e.g. "header") — preferred: the widget re-resolves it each draw so it survives a
 // language switch — or a raw font handle (number). See the resolve-at-draw GMRT-Safe Idiom.
+// `opts.wrap` (px) wraps long text to that width (the element then self-sizes to the wrapped block);
+// omit for a single auto-fit line.
 globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   const el = new UIElement();
   el.addComponent(
@@ -12,6 +14,7 @@ globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
       color: gemsColor(opts.color ?? GemsTheme.text),
       halign: opts.halign ?? fa_left,
       font: opts.font ?? -1,
+      w: opts.wrap ?? -1,
     }),
   );
   return gemsAttachTooltip(el, opts);

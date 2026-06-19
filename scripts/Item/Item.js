@@ -13,6 +13,7 @@ globalThis.Item = class Item {
    * @param {Object} def
    * @param {string} def.id
    * @param {string} [def.name]            i18n key for the display name
+   * @param {string} [def.description]     i18n key for a flavor/usage description (default "")
    * @param {Asset.GMSprite} [def.sprite]  icon sprite (-1 = none)
    * @param {number} [def.stack]           max stack size (default 99)
    * @param {number} [def.weight]          per-unit weight, for Inventory.maxWeight (default 1)
@@ -24,6 +25,7 @@ globalThis.Item = class Item {
   constructor(def) {
     this.id = def.id;
     this.name = def.name ?? "";
+    this.description = def.description ?? "";
     this.sprite = def.sprite ?? -1;
     this.stack = def.stack ?? 99;
     this.weight = def.weight ?? 1;

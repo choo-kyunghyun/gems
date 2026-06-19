@@ -1,32 +1,71 @@
-// Crafting WINDOW for the RPG scene. A "workbench" station
-// (Station {kind:"workbench"}) opens this — a scroll of the recipes registered for that
-// station kind (Recipe.forStation). Each row shows the output and its inputs with
-// have/need counts; clicking crafts it (CraftSystem.craft pulls inputs from and deposits
-// the output into the player's bag). Insufficient materials → the row is greyed and the
-// click no-ops.
+// Crafting WINDOW for the RPG scene. A "workbench" station (Station {kind:"workbench"})
+// opens this — a master-detail panel over the recipes registered for that station kind
+// (Recipe.forStation):
+//   • LEFT  — a scrollable list of the craftable outputs; click one to select it (the
+//             selected row is highlighted, uncraftable rows are dimmed).
+//   • RIGHT — details for the selected recipe: output name, description, the ingredient
+//             list with have/need counts (red when short), and a Craft button.
+// The Craft button is disabled (live) while the ingredients aren't met; clicking it runs
+// CraftSystem.craft (pulls inputs from / deposits the output into the player's bag).
 //
 // Manager-drawn UI on the GUI layer (Draw_75), built once and toggled. Selection +
 // open/close are owned by the shared Interactable module. All per-open state lives on
 // the SCENE (namespaced `_craft*`) so two scenes can't clobber each other and
-// teardownScene cleans up.
+// teardownScene cleans up. The list + detail are rebuilt on each refresh (selection
+// change / craft), so have/need counts and the craftable state stay fresh.
 //
 // Scene contract: scene.world, scene.ctrl.id (player), scene.ui.
 globalThis.CraftingUI = {
+  WRAP: 320, // description wrap width (px) — fits the fixed-size detail column
+
   build(scene) {
     scene._craftOpen = false;
     scene._craftDirty = false;
     scene._craftKind = "";
+    scene._craftSel = ""; // selected recipe id (defaulted to the first on refresh)
 
     const win = gemsWindow(I18n.textRef("CRAFT_TITLE"), {
       top: 80,
-      width: 400,
+      width: 600,
+      resizable: false, // a fixed master-detail panel (stable description wrap width)
       onClose: () => CraftingUI.close(scene),
     });
     win.enabled = false;
-    const scroll = gemsScroll({ height: 300 });
-    win.body.insertChild(scroll);
+
+    const row = new UIElement({
+      width: "100%",
+      height: 340,
+      flexShrink: 0,
+      flexDirection: "row",
+      gap: GemsTheme.gap,
+    });
+
+    // Left: the recipe picker. A PLAIN column, not a gemsScroll — a clipping scroll here
+    // left the (non-clipped) detail sibling drawn after it with an unflushed vertex batch,
+    // rendering nothing (a GMRT clip/batch quirk; making the detail clip too didn't help).
+    // The recipe set is small (fits the 340px column), so no scroll is needed; revisit if a
+    // station ever registers more recipes than fit.
+    const left = new UIElement({
+      width: 210,
+      height: "100%",
+      flexShrink: 0,
+      gap: GemsTheme.gapSm,
+    });
+    scene._craftList = left;
+    row.insertChild(left);
+
+    // Right: the selected recipe's detail (repopulated by refresh).
+    const detail = new UIElement({
+      flexGrow: 1,
+      flexBasis: 0,
+      height: "100%",
+      gap: GemsTheme.gapSm,
+    });
+    scene._craftDetail = detail;
+    row.insertChild(detail);
+
+    win.body.insertChild(row);
     scene._craftWin = win;
-    scene._craftBody = scroll.scrollBody;
     scene.ui.insertChild(win);
   },
 
@@ -43,61 +82,155 @@ globalThis.CraftingUI = {
     scene._craftWin.enabled = false;
   },
 
-  // Repopulate the recipe list. Rebuilt fully on each craft so have/need counts and the
-  // craftable state stay fresh.
+  // Rebuild both panels. Ensures a valid selection first (default to the first recipe, and
+  // reset if the selected id isn't in this station's list — e.g. after a station change).
   refresh(scene) {
-    const body = scene._craftBody;
+    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const recipes = Recipe.forStation(scene._craftKind);
+    if (recipes.length > 0 && !CraftingUI._hasRecipe(recipes, scene._craftSel))
+      scene._craftSel = recipes[0].id;
+    CraftingUI._fillList(scene, inv, recipes);
+    CraftingUI._fillDetail(scene, inv, recipes);
+  },
+
+  _hasRecipe(recipes, id) {
+    for (let i = 0; i < recipes.length; i++)
+      if (recipes[i].id === id) return true;
+    return false;
+  },
+
+  // Left panel: one selectable button per recipe (output name; dimmed when uncraftable).
+  _fillList(scene, inv, recipes) {
+    const body = scene._craftList;
     const kids = [...body.children];
     for (let i = 0; i < kids.length; i++) kids[i].destroy();
 
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
-    const recipes = Recipe.forStation(scene._craftKind);
     if (inv === undefined || recipes.length === 0) {
-      const r = new UIElement({ width: "100%", height: 24 });
-      r.insertChild(
+      body.insertChild(
         gemsLabel(I18n.textRef("CRAFT_EMPTY"), { color: GemsTheme.textDim }),
       );
-      body.insertChild(r);
       return;
     }
-
     for (let i = 0; i < recipes.length; i++) {
-      body.insertChild(CraftingUI._recipeRow(scene, inv, recipes[i]));
+      body.insertChild(CraftingUI._listButton(scene, inv, recipes[i]));
     }
   },
 
-  _recipeRow(scene, inv, recipe) {
-    const can = CraftSystem.canCraft(inv, recipe);
+  _listButton(scene, inv, recipe) {
+    const id = recipe.id;
     const out = recipe.output;
-    const outDef = Item.get(out.itemId);
-    const outName = outDef !== undefined ? I18n.text(outDef.name) : out.itemId;
-    const label =
-      outName + " x" + out.qty + "   " + CraftingUI._inputsLabel(inv, recipe);
-    const color = can
-      ? RpgWorldOverlay._rarityColor(out.itemId)
-      : GemsTheme.textDim;
+    const def = Item.get(out.itemId);
+    const name = def !== undefined ? I18n.text(def.name) : out.itemId;
+    const can = CraftSystem.canCraft(inv, recipe);
     return gemsButton(
-      label,
+      name,
       () => {
-        if (CraftSystem.craft(scene.world, scene.ctrl.id, recipe.id)) {
-          scene._craftDirty = true;
-          scene._invDirty = true; // keep the main inventory window in sync if open
-        }
+        scene._craftSel = id;
+        scene._craftDirty = true; // repopulate the detail next update
       },
-      { height: 34, textColor: color },
+      {
+        height: 32,
+        selected: () => scene._craftSel === id,
+        textColor: can
+          ? RpgWorldOverlay._rarityColor(out.itemId)
+          : GemsTheme.textDim,
+      },
     );
   },
 
-  // "2/3 Wood, 0/1 Gel" — have/need per input.
-  _inputsLabel(inv, recipe) {
-    const parts = [];
-    for (let i = 0; i < recipe.inputs.length; i++) {
-      const inp = recipe.inputs[i];
-      const have = InventorySystem.count(inv, inp.itemId);
-      const def = Item.get(inp.itemId);
-      const name = def !== undefined ? I18n.text(def.name) : inp.itemId;
-      parts.push(have + "/" + inp.qty + " " + name);
+  // Right panel: the selected recipe's name, description, ingredients, and Craft button.
+  _fillDetail(scene, inv, recipes) {
+    const host = scene._craftDetail;
+    const kids = [...host.children];
+    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+
+    if (inv === undefined || recipes.length === 0) {
+      host.insertChild(
+        gemsLabel(I18n.textRef("CRAFT_SELECT"), { color: GemsTheme.textDim }),
+      );
+      return;
     }
-    return parts.join(", ");
+    let recipe;
+    for (let i = 0; i < recipes.length; i++)
+      if (recipes[i].id === scene._craftSel) recipe = recipes[i];
+    if (recipe === undefined) return;
+
+    const out = recipe.output;
+    const def = Item.get(out.itemId);
+    const name = def !== undefined ? I18n.text(def.name) : out.itemId;
+
+    host.insertChild(
+      gemsLabel(name + " x" + out.qty, {
+        font: "header",
+        color: RpgWorldOverlay._rarityColor(out.itemId),
+      }),
+    );
+    host.insertChild(gemsDivider());
+    if (def !== undefined && def.description !== "") {
+      host.insertChild(
+        gemsLabel(I18n.textRef(def.description), {
+          color: GemsTheme.textMuted,
+          wrap: CraftingUI.WRAP,
+        }),
+      );
+    }
+
+    host.insertChild(
+      gemsLabel(I18n.textRef("CRAFT_INGREDIENTS"), {
+        color: GemsTheme.textMuted,
+      }),
+    );
+    for (let i = 0; i < recipe.inputs.length; i++) {
+      host.insertChild(CraftingUI._ingredientRow(inv, recipe.inputs[i]));
+    }
+
+    // Spacer pushes the Craft button to the bottom of the fixed-height detail column.
+    host.insertChild(
+      new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 }),
+    );
+    host.insertChild(
+      gemsButton(
+        I18n.textRef("CRAFT_DO"),
+        () => {
+          if (CraftSystem.craft(scene.world, scene.ctrl.id, recipe.id)) {
+            scene._craftDirty = true;
+            scene._invDirty = true; // keep the main inventory window in sync if open
+          }
+        },
+        {
+          primary: true,
+          // Live gate: disabled while the ingredients aren't met (re-evaluated each frame
+          // off the same Inventory object, which the craft mutates in place).
+          disabled: () => !CraftSystem.canCraft(inv, recipe),
+        },
+      ),
+    );
+  },
+
+  // One ingredient line: "Name   have/need", reddened when the player is short.
+  _ingredientRow(inv, inp) {
+    const have = InventorySystem.count(inv, inp.itemId);
+    const def = Item.get(inp.itemId);
+    const name = def !== undefined ? I18n.text(def.name) : inp.itemId;
+    const ok = have >= inp.qty;
+    const short = "#e06c6c";
+
+    const row = new UIElement({
+      width: "100%",
+      height: 22,
+      flexDirection: "row",
+      alignItems: "center",
+    });
+    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    nameCell.insertChild(
+      gemsLabel(name, { color: ok ? GemsTheme.text : short }),
+    );
+    row.insertChild(nameCell);
+    row.insertChild(
+      gemsLabel(have + "/" + inp.qty, {
+        color: ok ? GemsTheme.textMuted : short,
+      }),
+    );
+    return row;
   },
 };
