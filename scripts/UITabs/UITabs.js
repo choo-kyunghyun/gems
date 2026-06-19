@@ -159,6 +159,24 @@ globalThis.UITabs = class UITabs {
       draw_text(floor((x0 + x1) * 0.5), floor(cy), this._label(i));
     }
 
+    // Re-stroke the baseline as a trailing UNTEXTURED draw so the texture swap (font → none)
+    // flushes the rightmost label out of the pending vertex batch. Without it that last label
+    // stays pending and a clip container drawn right after the strip (the System Menu / inventory
+    // tab content is a gemsScroll) captures it under its gpu_set_scissor, scissoring it away — the
+    // "About" tab label vanished. We CAN'T fix this with draw_flush(): flushing immediately before
+    // a clip's gpu_set_scissor corrupts the clip on GMRT 0.20 ("No pipeline set" → blank content),
+    // verified. This redundant stroke is masked by the baseline already drawn above (and is itself
+    // harmlessly clipped if a scroll follows), so it costs nothing visually.
+    draw_set_alpha(1);
+    draw_line_color(
+      pos.left,
+      bottom - 1,
+      pos.left + pos.width,
+      bottom - 1,
+      this.border,
+      this.border,
+    );
+
     draw_set_font(font);
     draw_set_halign(halign);
     draw_set_valign(valign);
