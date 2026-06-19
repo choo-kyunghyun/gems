@@ -8,10 +8,9 @@
 ## UI
 
 - Context-aware hotkey hint
-- Better crafting ui
 - Killfeed UI
 - Hotbar (from 1 to =) & favorite items
-- Equipped and favorited items must be excluded from store all
+- Favorited items must be excluded from store all
 
 ## Items
 
@@ -30,6 +29,7 @@
 - Hunger and foods
 - Drowsiness and bed
 - Farming and fishing
+- Buff/status system
 
 ## Build Mode
 
