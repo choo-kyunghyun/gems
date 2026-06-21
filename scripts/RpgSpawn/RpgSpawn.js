@@ -122,7 +122,7 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["npc"]) });
       world.add(id, Name, { name: s.label });
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
-      const vis = RpgSpawn._visual(spr_hana, c_white);
+      const vis = RpgSpawn._visual(spr_square, c_white);
       vis.xscale = 0.6;
       vis.yscale = 0.6;
       world.add(id, Visual, vis);
