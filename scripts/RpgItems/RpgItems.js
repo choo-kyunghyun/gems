@@ -222,9 +222,25 @@ globalThis.RpgItems = {
         value: 0,
         rarity: "epic",
       },
-      // Crafting materials (no behavior — consumed by Recipes at a workbench).
-      { id: "wood", name: "ITEM_WOOD", weight: 1, value: 1, rarity: "common" },
-      { id: "iron", name: "ITEM_IRON", weight: 2, value: 4, rarity: "common" },
+      // Crafting materials — consumed by Recipes at a workbench. The Material component
+      // carries the tint a structure/floor/furniture built from this stuff is drawn with
+      // (RimWorld-style per-material tinting; see Material / TerrainStream).
+      {
+        id: "wood",
+        name: "ITEM_WOOD",
+        weight: 1,
+        value: 1,
+        rarity: "common",
+        components: [new Material({ color: "#a9743f" })],
+      },
+      {
+        id: "iron",
+        name: "ITEM_IRON",
+        weight: 2,
+        value: 4,
+        rarity: "common",
+        components: [new Material({ color: "#9aa3ad" })],
+      },
       // Gun ammo (Ammo) — the BASE projectile stats a gun fires (mass / velocity / power /
       // penetration); the gun-base + installed attachments operate on these into the final shot.
       // `caliber:"standard"` matches the blaster. Consumed one per shot (magazine-fed); weight 0 so a

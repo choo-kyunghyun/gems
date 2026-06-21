@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Material",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Material",
+  "parent":{
+    "name":"Items",
+    "path":"folders/Gameplay/Items.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Material.js",
+}

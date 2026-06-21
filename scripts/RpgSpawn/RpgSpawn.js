@@ -9,7 +9,7 @@
 //   slime    hp? loot:[{itemId,qty}]
 //   npc      label nameKey questId
 //   chest    capacity items:[{itemId,qty}]
-//   prop     label color(#hex) kind?   (kind → Station, else decorative furniture)
+//   prop     label color(#hex) material? kind?   (material id w/ Material → tint, overrides color; kind → Station, else furniture)
 //   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
 //   turret   label? color(#hex)?        (auto-firing defense — immovable Health + Faction "player" actor; stationary ranged CombatAI)
 //   reach    half?                      (quest zone marker — no entity)
@@ -159,7 +159,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Name, { name: s.label });
-      world.add(id, Visual, RpgSpawn._visual(spr_choo, Color.parse(s.color)));
+      world.add(id, Visual, RpgSpawn._visual(spr_choo, RpgSpawn._tint(s)));
       if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
       else world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
@@ -180,7 +180,7 @@ globalThis.RpgSpawn = {
       world.add(
         id,
         Visual,
-        RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#ff9a3c")),
+        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#ff9a3c")),
       );
       // Warm, gently flickering torch light (archetype values; tune via the Light component).
       world.add(id, Light, {
@@ -220,7 +220,7 @@ globalThis.RpgSpawn = {
       world.add(
         id,
         Visual,
-        RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#6c7a89")),
+        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#6c7a89")),
       );
       world.add(id, Tag, { tags: new Set(["turret"]) });
       // Stationary ranged brain: aggro == fire range, so it acquires the nearest hostile in range
@@ -249,7 +249,7 @@ globalThis.RpgSpawn = {
       world.add(
         id,
         Visual,
-        RpgSpawn._visual(spr_choo, Color.parse(s.color ?? "#7c6fd0")),
+        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#7c6fd0")),
       );
       world.add(id, Portal, {
         toMap: s.toMap,
@@ -323,6 +323,22 @@ globalThis.RpgSpawn = {
       bonusWeight: opt.bonusWeight ?? 0,
     });
     return id;
+  },
+
+  // Resolve a spawn descriptor's tint: a `material` id whose Item carries a Material component
+  // wins (RimWorld-style per-material tinting — one source of truth, so "wooden things look like
+  // wood" comes from the wood item, not a hex copied per furniture), else the explicit `color`
+  // (#hex), else `fallback`, else white. Material.color is pre-parsed in its constructor, so this
+  // returns a colour int either way. Item is registered at scene create() (RpgContent), well
+  // before any spawn, so the lookup is always populated.
+  _tint(s, fallback) {
+    if (s.material !== undefined) {
+      const item = Item.get(s.material);
+      const mat = item !== undefined ? item.getComponent(Material) : undefined;
+      if (mat !== undefined) return mat.color;
+    }
+    const hex = s.color ?? fallback;
+    return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
   // Shared Visual component shape — caller overrides scale/sprite/color as needed.
