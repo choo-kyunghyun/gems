@@ -9,9 +9,9 @@
 // (inside the camera view), so the arrows sit bright over the scene with the other world cues.
 // Because it reads world/target live, it needs no rebuild across a map/world swap.
 //
-// GMRT: draw_triangle_color + draw_circle_color are 0.20-safe (the rounded arrow = filled
-// triangle tip + a circle tail). Tag membership via Set.has() (only for...of over a Set is
-// banned). `rules` colors must be GM colour ints (parse hex with Color.parse at the call site).
+// GMRT: draw_triangle_color is 0.20-safe (each arrow = one filled triangle). Tag membership
+// via Set.has() (only for...of over a Set is banned). `rules` colors must be GM colour ints
+// (parse hex with Color.parse at the call site).
 globalThis.RadarArrows = {
   /**
    * @param {object} world
@@ -54,8 +54,8 @@ globalThis.RadarArrows = {
     draw_set_alpha(alpha);
   },
 
-  // A rounded arrow at (ax, ay) pointing along unit (nx, ny), `size` long: a filled triangle tip
-  // with a circle at the tail so the back reads soft (not a hard wedge).
+  // An arrow at (ax, ay) pointing along unit (nx, ny), `size` long: a filled triangle from a
+  // base behind the ring point to a tip ahead of it.
   _arrow(ax, ay, nx, ny, size, col) {
     const px = -ny; // unit perpendicular
     const py = nx;
@@ -76,7 +76,6 @@ globalThis.RadarArrows = {
       col,
       false,
     );
-    draw_circle_color(bx, by, w * 0.75, col, col, false); // rounded tail
   },
 
   _color(world, id, rules) {
