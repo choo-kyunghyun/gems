@@ -347,6 +347,7 @@
     {"id":{"name":"spr_tile47","path":"sprites/spr_tile47/spr_tile47.yy",},},
     {"id":{"name":"spr_tile47T","path":"sprites/spr_tile47T/spr_tile47T.yy",},},
     {"id":{"name":"spr_tilecorner","path":"sprites/spr_tilecorner/spr_tilecorner.yy",},},
+    {"id":{"name":"spr_tilecornerRough","path":"sprites/spr_tilecornerRough/spr_tilecornerRough.yy",},},
     {"id":{"name":"spr_tiledual","path":"sprites/spr_tiledual/spr_tiledual.yy",},},
     {"id":{"name":"spr_tiledualT","path":"sprites/spr_tiledualT/spr_tiledualT.yy",},},
     {"id":{"name":"spr_toxin","path":"sprites/spr_toxin/spr_toxin.yy",},},
