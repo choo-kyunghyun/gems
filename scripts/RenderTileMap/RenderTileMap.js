@@ -26,11 +26,15 @@ const _BLOB8 = [
 
 /**
  * @typedef {Object} RenderTileMapOptions
- * @property {0|16|47|"dual"} [autotile] - 0: use TileType.id as frame, 16: blob4, 47: blob8,
+ * @property {0|16|47|"dual"|"corner"} [autotile] - 0: use TileType.id as frame, 16: blob4, 47: blob8,
  *   "dual": dual-grid corner sampling (16-frame, half-cell offset). The blob modes draw one
  *   tile per filled cell against empty; "dual" samples the 4 cells touching each grid corner,
  *   so a tile's empty corners stay transparent — stack several dual passes (one TileLayer per
  *   terrain) in priority order to get RPG-Maker-style A-over-B transitions.
+ *   "corner": sub-tile autotiling — draws one filled cell as 4 half-cell quadrants, each picked
+ *   from a 13-frame piece sprite by the 3 neighbors touching that corner (frame order: 0 fill,
+ *   1-4 outer TL/TR/BR/BL, 5/6 edge top/bottom, 7/8 edge left/right, 9-12 inner TL/TR/BR/BL).
+ *   Reproduces the full blob8 look from 13 pieces and covers all 256 masks (no _BLOB8 table).
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {boolean} [softEdge] - per-vertex alpha blending at tile boundaries (RimWorld style).
@@ -59,12 +63,13 @@ globalThis.RenderTileMap = class RenderTileMap {
 
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
+    this._corner = mode === "corner";
     if (mode === 16) {
       this._frameOf = (x, y) => this._blob4(x, y);
     } else if (mode === 47) {
       this._frameOf = (x, y) => this._blob8(x, y);
-    } else if (mode === "dual") {
-      this._frameOf = undefined; // dual uses its own rebuild path, not _frameOf
+    } else if (mode === "dual" || mode === "corner") {
+      this._frameOf = undefined; // dual/corner use their own rebuild path, not _frameOf
     } else {
       this._frameOf = (x, y) => {
         const t = layer.get(x, y);
@@ -149,6 +154,10 @@ globalThis.RenderTileMap = class RenderTileMap {
   _rebuild() {
     if (this._dual) {
       this._rebuildDual();
+      return;
+    }
+    if (this._corner) {
+      this._rebuildCorner();
       return;
     }
     const { layer, level, sprite } = this;
@@ -254,6 +263,94 @@ globalThis.RenderTileMap = class RenderTileMap {
     }
     this._vbuf.end();
     this.dirty = false;
+  }
+
+  // Sub-tile (corner) autotiling: each filled cell is drawn as 4 half-cell quadrants, every
+  // quadrant's 8×8 piece picked independently from the 3 neighbors touching that corner. The
+  // 13-piece set reproduces all 256 blob8 masks, so this needs no _BLOB8 table. Piece frames:
+  //   0 fill · 1-4 outer TL/TR/BR/BL · 5 edge-top · 6 edge-bottom · 7 edge-left · 8 edge-right
+  //   · 9-12 inner TL/TR/BR/BL.  Neighbor mask bits: N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
+  _rebuildCorner() {
+    const { layer, level, sprite } = this;
+    const { cols, rows, cellWidth, cellHeight } = level;
+    const hw = cellWidth * 0.5;
+    const hh = cellHeight * 0.5;
+
+    this._vbuf.destroy();
+    this._vbuf = new VertexBuffer();
+    this._tex = sprite_get_texture(sprite, 0);
+
+    this._vbuf.begin();
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (!layer.get(x, y)) continue;
+        // Build one int mask of the 8 neighbors (no cached primitive-bool locals — GMRT
+        // miscompiles those; see _blob8). Corner selectors read bits back off this int.
+        let m = 0;
+        if (this._isSolid(x, y - 1)) m |= 1;
+        if (this._isSolid(x + 1, y)) m |= 2;
+        if (this._isSolid(x, y + 1)) m |= 4;
+        if (this._isSolid(x - 1, y)) m |= 8;
+        if (this._isSolid(x + 1, y - 1)) m |= 16;
+        if (this._isSolid(x + 1, y + 1)) m |= 32;
+        if (this._isSolid(x - 1, y + 1)) m |= 64;
+        if (this._isSolid(x - 1, y - 1)) m |= 128;
+        const wx = x * cellWidth;
+        const wy = y * cellHeight;
+        this._addCorner(this._cornerTL(m), wx, wy, hw, hh);
+        this._addCorner(this._cornerTR(m), wx + hw, wy, hw, hh);
+        this._addCorner(this._cornerBR(m), wx + hw, wy + hh, hw, hh);
+        this._addCorner(this._cornerBL(m), wx, wy + hh, hw, hh);
+      }
+    }
+    this._vbuf.end();
+    this.dirty = false;
+  }
+
+  _addCorner(frame, qx, qy, qw, qh) {
+    const q = this._quad(frame, qx, qy, qw, qh);
+    this._vbuf.addQuad(
+      q[0],
+      q[1],
+      q[2],
+      q[3],
+      q[4],
+      q[5],
+      q[6],
+      q[7],
+      this.color,
+      this.alpha,
+    );
+  }
+
+  // Each selector reads the two cardinals + the diagonal touching its corner: both cardinals
+  // empty → outer corner; one cardinal → straight edge; both cardinals, diagonal empty → inner
+  // corner; all three → fill. Bits are read INLINE off the mask int each test (no `const N = m&1`
+  // locals): GMRT miscompiles cached primitive-bool-ish locals reused across a function, which
+  // flipped the inner-corner branch at runtime (correct offline, wrong in-engine). See _blob8.
+  _cornerTL(m) {
+    if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
+    if (m & 1 && !(m & 8)) return 7; // N solid → left edge
+    if (!(m & 1) && m & 8) return 5; // W solid → top edge
+    return m & 128 ? 0 : 9; // NW solid → fill, else inner
+  }
+  _cornerTR(m) {
+    if (!(m & 1) && !(m & 2)) return 2;
+    if (m & 1 && !(m & 2)) return 8;
+    if (!(m & 1) && m & 2) return 5;
+    return m & 16 ? 0 : 10;
+  }
+  _cornerBR(m) {
+    if (!(m & 4) && !(m & 2)) return 3;
+    if (m & 4 && !(m & 2)) return 8;
+    if (!(m & 4) && m & 2) return 6;
+    return m & 32 ? 0 : 11;
+  }
+  _cornerBL(m) {
+    if (!(m & 4) && !(m & 8)) return 4;
+    if (m & 4 && !(m & 8)) return 7;
+    if (!(m & 4) && m & 8) return 6;
+    return m & 64 ? 0 : 12;
   }
 
   draw(_world) {

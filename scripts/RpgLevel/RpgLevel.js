@@ -39,8 +39,9 @@ globalThis.RpgLevel = {
   // RenderTileMap autotiles by OCCUPANCY (not tile-type identity), so two materials with
   // different autotile modes (wall=blob47, fence=blob16) can't share a TileLayer; each gets its
   // own layer + RenderTileMap pass (created in RpgMap from this table). Swap `type`/`sprite`/
-  // `color` to re-skin a layer. `type`: "dual" corner-grid, 0 raw single-frame, 16 blob4, 47
-  // blob8. `id` is the TileType identity; for a SINGLE-sprite layer (type 0) RenderTileMap uses
+  // `color` to re-skin a layer. `type`: "dual" corner-grid, "corner" 13-piece sub-tile (full
+  // blob8 look from 13 quadrant frames), 0 raw single-frame, 16 blob4, 47 blob8. `id` is the
+  // TileType identity; for a SINGLE-sprite layer (type 0) RenderTileMap uses
   // TileType.id as the frame index, so `floor.id` MUST be a real frame (0 = spr_square's only
   // frame). `pathCost: null` → Infinity (blocking); `solid` layers are greedy-meshed into
   // kinematic colliders. `fill` auto-fills the whole grid (the walkable terrain base) on plain
@@ -72,8 +73,8 @@ globalThis.RpgLevel = {
       key: "wall",
       id: 1,
       name: "벽",
-      type: 47,
-      sprite: "spr_tile47",
+      type: "corner",
+      sprite: "spr_tilecorner",
       color: "#707888",
       solid: true,
       pathCost: null,
