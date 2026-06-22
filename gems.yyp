@@ -330,6 +330,7 @@
     {"id":{"name":"spr_exit","path":"sprites/spr_exit/spr_exit.yy",},},
     {"id":{"name":"spr_fenceRound","path":"sprites/spr_fenceRound/spr_fenceRound.yy",},},
     {"id":{"name":"spr_fenceSquare","path":"sprites/spr_fenceSquare/spr_fenceSquare.yy",},},
+    {"id":{"name":"spr_floorTiles","path":"sprites/spr_floorTiles/spr_floorTiles.yy",},},
     {"id":{"name":"spr_floppyDisk","path":"sprites/spr_floppyDisk/spr_floppyDisk.yy",},},
     {"id":{"name":"spr_goldCoin","path":"sprites/spr_goldCoin/spr_goldCoin.yy",},},
     {"id":{"name":"spr_health","path":"sprites/spr_health/spr_health.yy",},},
