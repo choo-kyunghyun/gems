@@ -106,6 +106,8 @@
   "INV_SET_COLS": "Visible columns",
   "INV_SET_UNITS": "Units",
   "INV_SET_TEMP": "Temperature",
+  "INV_SET_HUD": "HUD",
+  "INV_RADAR": "Directional radar",
   "INV_NO_QUESTS": "No active quests",
   "INV_COL_NAME": "Name",
   "INV_COL_RARITY": "Rarity",

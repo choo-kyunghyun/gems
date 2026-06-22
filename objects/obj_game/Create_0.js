@@ -38,6 +38,8 @@ Settings.registerDefaults({
   invColValue: true,
   // RPG HUD — ambient-temperature display unit ("K"|"C"|"F"; toggled in the inventory Settings tab).
   tempUnit: "K",
+  // RPG HUD — player-centered directional radar (RadarArrows; toggled in the inventory Settings tab).
+  rpgRadar: false,
 });
 Settings.load();
 

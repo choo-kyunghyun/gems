@@ -792,7 +792,8 @@ class _SceneRpgClass extends Scene {
     // invisible on the overworld, fine in plain interiors with no ground fill). Drawn here
     // they sit with the other post-renderer world cues (build cursor, floating numbers).
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
-    RadarArrows.draw(this.world, this.ctrl.id, this._radarRules); // directional radar around player
+    if (Settings.get("rpgRadar"))
+      RadarArrows.draw(this.world, this.ctrl.id, this._radarRules); // directional radar around player (inventory Settings toggle, default off)
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)

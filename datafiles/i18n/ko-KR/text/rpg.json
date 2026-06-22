@@ -107,6 +107,8 @@
   "INV_SET_COLS": "표시 열",
   "INV_SET_UNITS": "단위",
   "INV_SET_TEMP": "온도",
+  "INV_SET_HUD": "HUD",
+  "INV_RADAR": "방향 레이더",
   "INV_NO_QUESTS": "진행 중인 퀘스트 없음",
   "INV_COL_NAME": "이름",
   "INV_COL_RARITY": "등급",

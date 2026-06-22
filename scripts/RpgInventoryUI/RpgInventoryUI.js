@@ -580,6 +580,27 @@ globalThis.RpgInventoryUI = {
         }),
       ),
     );
+
+    // HUD: player-centered directional radar (RadarArrows, drawn live in sceneRpg.draw).
+    // The draw reads the setting each frame, so the toggle takes effect next frame with
+    // no rebuild — just flip + persist (no _applyColumns like the column toggles).
+    page.insertChild(gemsDivider());
+    const hudTitle = new UIElement({ width: "100%", height: 22 });
+    hudTitle.insertChild(
+      gemsLabel(I18n.textRef("INV_SET_HUD"), { color: "#ffd166" }),
+    );
+    page.insertChild(hudTitle);
+    page.insertChild(
+      gemsCheckbox(
+        I18n.textRef("INV_RADAR"),
+        () => Settings.get("rpgRadar"),
+        () => {
+          Settings.set("rpgRadar", !Settings.get("rpgRadar"));
+          Settings.save();
+        },
+        { style: "switch" },
+      ),
+    );
     return page;
   },
 
