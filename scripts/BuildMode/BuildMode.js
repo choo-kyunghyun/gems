@@ -380,6 +380,10 @@ globalThis.BuildMode = {
           const inv = scene.world.get(Inventory, scene.ctrl.id);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
+        // A storage chest (or any built entity holding items) spills its Inventory as ground
+        // drops first — world.remove would otherwise silently delete the stored contents.
+        // No-ops when the entity has no Inventory; preserves instance uid/mods on the drop.
+        RpgScene.spillLoot(scene, ent.ent);
         scene.world.remove(ent.ent);
       }
       BuildMode._refund(scene, ent.itemId);
