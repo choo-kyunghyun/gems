@@ -20,9 +20,9 @@ globalThis.RpgPrefabs = {
           [3, 3, 1, 1],
         ],
       },
-      // A slime den — a sheltering rock corner with a pack of slimes (one tougher).
+      // A bandit camp — a sheltering rock corner with a pack of hostile humans (one tougher).
       {
-        id: "slime_den",
+        id: "bandit_camp",
         tags: ["overworld"],
         weight: 3,
         cols: 5,
@@ -32,9 +32,9 @@ globalThis.RpgPrefabs = {
           [0, 1, 1, 2],
         ],
         spawns: [
-          { preset: "slime", lx: 3, ly: 2, hp: 3 },
-          { preset: "slime", lx: 2, ly: 3, hp: 3 },
-          { preset: "slime", lx: 4, ly: 4, hp: 5 },
+          { preset: "human", lx: 3, ly: 2, hp: 3 },
+          { preset: "human", lx: 2, ly: 3, hp: 3 },
+          { preset: "human", lx: 4, ly: 4, hp: 5 },
         ],
       },
       // A ruin — broken walls around a loot chest (the rare reward prefab).

@@ -27,10 +27,10 @@ const TD_STATION_KINDS = [
 globalThis.RpgCatalog = {
   entries: [
     {
-      id: "slime",
-      label: "Slime",
-      color: "#78dc82",
-      make: (gx, gy) => ({ preset: "slime", gx, gy, hp: 3, loot: [] }),
+      id: "human",
+      label: "Bandit",
+      color: "#d06a5a",
+      make: (gx, gy) => ({ preset: "human", gx, gy, hp: 3, loot: [] }),
       fields: [
         { key: "hp", kind: "int", label: "HP", min: 1, max: 99 },
         { key: "loot", kind: "items", label: "Loot" },
@@ -46,7 +46,7 @@ globalThis.RpgCatalog = {
         gy,
         label: "NPC",
         nameKey: "NPC_ELDER_NAME",
-        questId: "td_slimes",
+        questId: "td_humans",
       }),
       fields: [{ key: "questId", kind: "quest", label: "Quest" }],
     },

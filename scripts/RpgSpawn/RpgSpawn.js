@@ -6,7 +6,7 @@
 // no state of its own.
 //
 // Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
-//   slime    hp? loot:[{itemId,qty}]
+//   human    hp? loot:[{itemId,qty}]   (hostile human "Bandit" — the mobile melee enemy)
 //   npc      label nameKey questId
 //   chest    capacity items:[{itemId,qty}]
 //   prop     label color(#hex) material? kind?   (material id w/ Material → tint, overrides color; kind → Station, else furniture)
@@ -48,7 +48,7 @@ globalThis.RpgSpawn = {
       const id = RpgSpawn.spawnEntity(world, level, s);
       if (id === -1) continue;
       // Classify the constructed entity into the scene's typed handles by its preset.
-      if (s.preset === "slime") enemies.push(id);
+      if (s.preset === "human") enemies.push(id);
       else if (s.preset === "npc") npc = id;
       else if (s.preset === "portal")
         portals.push({ id, toMap: s.toMap, toEntry: s.toEntry ?? "default" });
@@ -73,7 +73,7 @@ globalThis.RpgSpawn = {
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
-    if (s.preset === "slime") {
+    if (s.preset === "human") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
@@ -86,7 +86,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: s.hp ?? 3 });
-      // Stat sheet — a slime's damage + toughness are Stats-driven like every combatant now (attack
+      // Stat sheet — a bandit's damage + toughness are Stats-driven like every combatant now (attack
       // was the old Brain.damage). maxHp mirrors hp; stamina is vestigial for a monster.
       world.add(id, Stats, {
         maxHp: s.hp ?? 3,
@@ -96,16 +96,16 @@ globalThis.RpgSpawn = {
         speed: 90,
       });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
-      world.add(id, Tag, { tags: new Set(["enemy", "slime"]) });
+      world.add(id, Tag, { tags: new Set(["enemy", "human"]) });
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
-      world.add(id, Name, { name: "Slime" });
+      world.add(id, Name, { name: "Bandit" });
       // Loot table — no maxWeight (loot is authored, never weight-gated).
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-      world.add(
-        id,
-        Visual,
-        RpgSpawn._visual(spr_choo, make_colour_rgb(120, 220, 130)),
-      );
+      // Hostile human: the run sprite tinted toward red so it reads as an enemy at a glance,
+      // animated so it looks alive (a temporary skin until dedicated enemy art lands).
+      const vis = RpgSpawn._visual(spr_humanRun, make_colour_rgb(220, 130, 130), 2);
+      vis.speed = 6;
+      world.add(id, Visual, vis);
       CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
@@ -122,10 +122,8 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["npc"]) });
       world.add(id, Name, { name: s.label });
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
-      const vis = RpgSpawn._visual(spr_square, c_white);
-      vis.xscale = 0.6;
-      vis.yscale = 0.6;
-      world.add(id, Visual, vis);
+      // Friendly human (the village elder): the run sprite, untinted, standing still (no anim speed).
+      world.add(id, Visual, RpgSpawn._visual(spr_humanRun, c_white, 2));
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "chest") {
@@ -144,7 +142,7 @@ globalThis.RpgSpawn = {
         slots: s.items ?? [],
         capacity: s.capacity ?? 12,
       });
-      world.add(id, Visual, RpgSpawn._visual(spr_choo, Color.parse("#c8a046")));
+      world.add(id, Visual, RpgSpawn._visual(spr_chestClosed, c_white, 2));
       return id;
     } else if (s.preset === "prop") {
       // Solid kinematic prop. A Station `kind` makes it interactable (Interactable
@@ -159,7 +157,13 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Name, { name: s.label });
-      world.add(id, Visual, RpgSpawn._visual(spr_choo, RpgSpawn._tint(s)));
+      // Stations with dedicated art use it; a generic furniture prop falls back to a tinted box
+      // (spr_square, scaled to the bbox) until it has its own sprite.
+      let pvis;
+      if (s.kind === "workbench") pvis = RpgSpawn._visual(spr_workbench, c_white, 2);
+      else if (s.kind === "claim") pvis = RpgSpawn._visual(spr_marker, c_white, 2);
+      else pvis = RpgSpawn._visual(spr_square, RpgSpawn._tint(s), 1.75);
+      world.add(id, Visual, pvis);
       if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
       else world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
@@ -180,7 +184,7 @@ globalThis.RpgSpawn = {
       world.add(
         id,
         Visual,
-        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#ff9a3c")),
+        RpgSpawn._visual(spr_square, RpgSpawn._tint(s, "#ff9a3c"), 1), // small post box (no torch art yet)
       );
       // Warm, gently flickering torch light (archetype values; tune via the Light component).
       world.add(id, Light, {
@@ -220,7 +224,7 @@ globalThis.RpgSpawn = {
       world.add(
         id,
         Visual,
-        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#6c7a89")),
+        RpgSpawn._visual(spr_square, RpgSpawn._tint(s, "#6c7a89"), 1.5), // box (no turret art yet)
       );
       world.add(id, Tag, { tags: new Set(["turret"]) });
       // Stationary ranged brain: aggro == fire range, so it acquires the nearest hostile in range
@@ -246,11 +250,7 @@ globalThis.RpgSpawn = {
       world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
       world.add(id, Tag, { tags: new Set(["portal"]) });
       world.add(id, Name, { name: s.label ?? "Door" });
-      world.add(
-        id,
-        Visual,
-        RpgSpawn._visual(spr_choo, RpgSpawn._tint(s, "#7c6fd0")),
-      );
+      world.add(id, Visual, RpgSpawn._visual(spr_portal, c_white, 2));
       world.add(id, Portal, {
         toMap: s.toMap,
         toEntry: s.toEntry ?? "default",
@@ -306,10 +306,11 @@ globalThis.RpgSpawn = {
       reviveHp: opt.hp ?? 6,
     });
     world.add(id, Name, { name: opt.label ?? "Companion" });
+    // Friendly human companion: the run sprite tinted toward green so it reads as an ally.
     world.add(
       id,
       Visual,
-      RpgSpawn._visual(spr_choo, Color.parse(opt.color ?? "#6fd0a0")),
+      RpgSpawn._visual(spr_humanRun, Color.parse(opt.color ?? "#9fe0c0"), 2),
     );
     world.add(id, Follower, {
       state: opt.state ?? "follow",
@@ -341,14 +342,17 @@ globalThis.RpgSpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Shared Visual component shape — caller overrides scale/sprite/color as needed.
-  _visual(sprite, color) {
+  // Shared Visual component shape — caller passes a `scale` (the 16px source art is drawn at the
+  // 32px world pixel scale, so entity sprites pass 2; a box-fallback sprite scales to its bbox).
+  // Sprites are centered (origin 8,8) so this draws on the entity's Position. Caller may set
+  // `speed` after for a looping idle/run cycle.
+  _visual(sprite, color, scale = 1) {
     return {
       visible: true,
       sprite: sprite,
       subimg: 0,
-      xscale: 1,
-      yscale: 1,
+      xscale: scale,
+      yscale: scale,
       rot: 0,
       color: color,
       alpha: 1,

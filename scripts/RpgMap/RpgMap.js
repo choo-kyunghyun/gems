@@ -493,9 +493,9 @@ globalThis.RpgMap = {
     // 9. Renderer: one RenderTileMap (real sprites) per resident layer — terrain (dual-grid),
     //    floor (single), wall (blob47), fence (blob16) — from the RpgLevel.LAYERS config (swap
     //    type/sprite/color there to re-skin), then grid lines + the buildable-zone overlay; all
-    //    world-space, drawn UNDER the entities. Entities are colored boxes (Visual.color) + Name
-    //    labels (RenderDebugBox/Name), lime bbox overlay on top (GMRT can't render the SVG
-    //    character sprites — still unsupported on 0.20).
+    //    world-space, drawn UNDER the entities. Entities draw via the production RenderEntity pass
+    //    (real raster sprites through draw_sprite_ext); the old colored-box debug passes are gone,
+    //    with a lime bbox overlay left as an off-by-default Debug toggle.
     scene.renderer = new Renderer();
     // Chunk-streamed terrain draws UNDER everything; the resident-grid passes below then draw
     // player builds + zones on top. The streamed ground is the windowed dual-grid TerrainStream
@@ -543,13 +543,7 @@ globalThis.RpgMap = {
         font: I18n.font("default"),
       }),
     );
-    scene.renderer.insert(new RenderDebugBox());
-    scene.renderer.insert(new RenderDebugName());
-    scene.renderer.insert(new RenderDebugDirection()); // facing dot (player Direction)
-    scene.renderer.insert(new RenderDebugAnimator()); // animator-state label
-    // RenderDebugAnimator reads the Demo-layer Animator, so the RPG (not Core's DebugRender)
-    // registers its Debug toggle. add() dedupes, so repeated map loads are no-ops.
-    DebugRender.add(RenderDebugAnimator, "Anim");
+    scene.renderer.insert(new RenderEntity()); // production sprite pass (draw_sprite_ext per Visual)
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     scene.renderer.insert(bbox);

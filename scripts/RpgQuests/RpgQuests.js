@@ -5,7 +5,7 @@ globalThis.RpgQuests = {
   registered: false,
 
   // Quest ids (shared between content, scene, and NPC data).
-  QUEST_SLIMES: "td_slimes",
+  QUEST_HUMANS: "td_humans",
   QUEST_GATHER: "td_gather",
   QUEST_REACH: "td_reach",
 
@@ -17,17 +17,17 @@ globalThis.RpgQuests = {
 
     QuestLog.register([
       {
-        id: this.QUEST_SLIMES,
-        name: "QUEST_SLIMES_NAME",
-        objLabel: "QUEST_SLIMES_OBJ", // formatted as text(label, done, count)
-        objectives: [{ kind: "kill", target: "slime", count: 5 }],
+        id: this.QUEST_HUMANS,
+        name: "QUEST_HUMANS_NAME",
+        objLabel: "QUEST_HUMANS_OBJ", // formatted as text(label, done, count)
+        objectives: [{ kind: "kill", target: "human", count: 5 }],
         rewards: { items: [{ itemId: "potion", qty: 2 }] },
       },
       {
         id: this.QUEST_GATHER,
         name: "QUEST_GATHER_NAME",
         objLabel: "QUEST_GATHER_OBJ",
-        objectives: [{ kind: "collect", target: "slime_gel", count: 3 }],
+        objectives: [{ kind: "collect", target: "rags", count: 3 }],
         rewards: { items: [{ itemId: "gem", qty: 1 }] },
       },
       {

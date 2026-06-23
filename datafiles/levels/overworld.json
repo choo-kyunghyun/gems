@@ -53,7 +53,7 @@
       "gy": 2,
       "label": "Elder",
       "nameKey": "NPC_ELDER_NAME",
-      "questId": "td_slimes"
+      "questId": "td_humans"
     },
 
     { "preset": "reach", "gx": 17, "gy": 2, "half": 44 },
@@ -69,27 +69,27 @@
     },
 
     {
-      "preset": "slime",
+      "preset": "human",
       "gx": 8,
       "gy": 3,
       "loot": [
-        { "itemId": "slime_gel", "qty": 2 },
+        { "itemId": "rags", "qty": 2 },
         { "itemId": "wood_sword", "qty": 1 },
         { "itemId": "backpack", "qty": 1 }
       ]
     },
     {
-      "preset": "slime",
+      "preset": "human",
       "gx": 14,
       "gy": 3,
       "loot": [
-        { "itemId": "slime_gel", "qty": 1 },
+        { "itemId": "rags", "qty": 1 },
         { "itemId": "potion", "qty": 1 },
         { "itemId": "leather_armor", "qty": 1 }
       ]
     },
     {
-      "preset": "slime",
+      "preset": "human",
       "gx": 3,
       "gy": 11,
       "loot": [
@@ -98,11 +98,11 @@
       ]
     },
     {
-      "preset": "slime",
+      "preset": "human",
       "gx": 17,
       "gy": 11,
       "loot": [
-        { "itemId": "slime_gel", "qty": 1 },
+        { "itemId": "rags", "qty": 1 },
         { "itemId": "key", "qty": 1 },
         { "itemId": "swift_ring", "qty": 1 }
       ]

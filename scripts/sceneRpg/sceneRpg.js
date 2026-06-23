@@ -292,15 +292,15 @@ class _SceneRpgClass extends Scene {
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
-      // Configurable hp-0 reactions by each entity's Mortal kind: slimes despawn (spill loot),
+      // Configurable hp-0 reactions by each entity's Mortal kind: bandits despawn (spill loot),
       // the player respawns at spawn, a companion goes Down (then recovers — updateDowned below).
       RpgScene.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 14 },
         onDespawn: (id) => {
           Profile.add("enemiesKilled", 1);
-          QuestLog.report("kill", "slime", 1);
+          QuestLog.report("kill", "human", 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
-          Log.info(`slime killed — kills=${Profile.get("enemiesKilled")}`);
+          Log.info(`bandit killed — kills=${Profile.get("enemiesKilled")}`);
         },
         onRespawn: (id) => {
           const pos = this.world.get(Position, id);

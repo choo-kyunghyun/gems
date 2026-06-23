@@ -194,7 +194,7 @@ globalThis.OverworldGen = class OverworldGen {
     for (let i = 0; i < p.spawns.length; i++) {
       const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
       // Don't drop a dynamic enemy into impassable terrain (water) — it'd snag in the collider.
-      if (s.preset === "slime" && !this._passable(s.gx, s.gy)) continue;
+      if (s.preset === "human" && !this._passable(s.gx, s.gy)) continue;
       spawns.push(s);
     }
   }
@@ -214,7 +214,7 @@ globalThis.OverworldGen = class OverworldGen {
 
   // Translate one local spawn descriptor to an absolute one. Copies scalar fields and DEEP-copies
   // item arrays (loot/items) so stamped instances never share — and mutate, on pickup — the
-  // registry def's arrays. A loot-less slime still drops the standard scatter loot.
+  // registry def's arrays. A loot-less human still drops the standard scatter loot.
   _placeSpawn(s, ox, oy, rng) {
     const out = {};
     const keys = Object.keys(s);
@@ -227,7 +227,7 @@ globalThis.OverworldGen = class OverworldGen {
     out.gy = oy + s.ly;
     if (out.loot !== undefined) out.loot = this._cloneItems(out.loot);
     if (out.items !== undefined) out.items = this._cloneItems(out.items);
-    if (out.preset === "slime" && out.loot === undefined)
+    if (out.preset === "human" && out.loot === undefined)
       out.loot = this._loot(rng);
     return out;
   }
@@ -256,15 +256,15 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([gx0 + lx, gy0 + ly, w, h]);
     }
 
-    // Wandering slimes with light loot.
-    const slimes = 1 + Math.floor(rng() * 3); // 1..3
-    for (let i = 0; i < slimes; i++) {
+    // Wandering bandits (hostile humans) with light loot.
+    const humans = 1 + Math.floor(rng() * 3); // 1..3
+    for (let i = 0; i < humans; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));
       const ly = 1 + Math.floor(rng() * (cr - 2));
       // Skip a cell on impassable terrain — a dynamic body spawned inside a water collider snags.
       if (!this._passable(gx0 + lx, gy0 + ly)) continue;
       spawns.push({
-        preset: "slime",
+        preset: "human",
         gx: gx0 + lx,
         gy: gy0 + ly,
         hp: 3,
@@ -274,7 +274,7 @@ globalThis.OverworldGen = class OverworldGen {
   }
 
   _loot(rng) {
-    const loot = [{ itemId: "slime_gel", qty: 1 + Math.floor(rng() * 2) }];
+    const loot = [{ itemId: "rags", qty: 1 + Math.floor(rng() * 2) }];
     const roll = rng();
     if (roll > 0.85) loot.push({ itemId: "gem", qty: 1 });
     else if (roll > 0.6)

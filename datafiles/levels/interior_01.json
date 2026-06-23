@@ -33,7 +33,7 @@
     },
 
     {
-      "preset": "slime",
+      "preset": "human",
       "gx": 12,
       "gy": 3,
       "loot": [
@@ -43,7 +43,7 @@
     },
 
     {
-      "preset": "slime",
+      "preset": "human",
       "id": "cave_captain",
       "gx": 6,
       "gy": 7,

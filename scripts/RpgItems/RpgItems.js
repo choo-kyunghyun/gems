@@ -19,8 +19,8 @@ globalThis.RpgItems = {
     Item.register([
       // Loot trash + currency-ish.
       {
-        id: "slime_gel",
-        name: "ITEM_SLIME_GEL",
+        id: "rags",
+        name: "ITEM_RAGS",
         weight: 1,
         value: 2,
         rarity: "common",

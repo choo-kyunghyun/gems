@@ -172,7 +172,7 @@ globalThis.RpgRecipes = {
         station: "workbench",
         requires: "alembic",
         inputs: [
-          { itemId: "slime_gel", qty: 2 },
+          { itemId: "rags", qty: 2 },
           { itemId: "wood", qty: 1 },
         ],
         output: { itemId: "potion", qty: 1 },
@@ -182,7 +182,7 @@ globalThis.RpgRecipes = {
         id: "craft_tonic",
         station: "workbench",
         requires: "alembic",
-        inputs: [{ itemId: "slime_gel", qty: 3 }],
+        inputs: [{ itemId: "rags", qty: 3 }],
         output: { itemId: "tonic", qty: 1 },
       },
       {
@@ -191,7 +191,7 @@ globalThis.RpgRecipes = {
         requires: "alembic",
         inputs: [
           { itemId: "iron", qty: 2 },
-          { itemId: "slime_gel", qty: 2 },
+          { itemId: "rags", qty: 2 },
         ],
         output: { itemId: "elixir", qty: 1 },
       },
@@ -213,7 +213,7 @@ globalThis.RpgRecipes = {
         requires: "alembic",
         inputs: [
           { itemId: "gem", qty: 1 },
-          { itemId: "slime_gel", qty: 4 },
+          { itemId: "rags", qty: 4 },
         ],
         output: { itemId: "vitality_shard", qty: 1 },
       },
@@ -243,7 +243,7 @@ globalThis.RpgRecipes = {
         id: "craft_water_bottle",
         station: "workbench",
         requires: "hearth",
-        inputs: [{ itemId: "slime_gel", qty: 1 }],
+        inputs: [{ itemId: "rags", qty: 1 }],
         output: { itemId: "water_bottle", qty: 1 },
       },
       {
@@ -258,7 +258,7 @@ globalThis.RpgRecipes = {
         station: "workbench",
         requires: "hearth",
         inputs: [
-          { itemId: "slime_gel", qty: 2 },
+          { itemId: "rags", qty: 2 },
           { itemId: "wood", qty: 1 },
         ],
         output: { itemId: "cooked_meat", qty: 1 },
