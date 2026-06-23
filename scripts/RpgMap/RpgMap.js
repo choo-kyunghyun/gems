@@ -61,6 +61,7 @@ globalThis.RpgMap = {
     "terrain",
     "camera",
     "_tilePasses",
+    "_tilePass",
     "_gridPass",
     "_weather",
     "_lighting",
@@ -490,51 +491,35 @@ globalThis.RpgMap = {
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // 9. Renderer: one RenderTileMap (real sprites) per resident layer — terrain (dual-grid),
-    //    floor (single), wall (blob47), fence (blob16) — from the RpgLevel.LAYERS config (swap
-    //    type/sprite/color there to re-skin), then grid lines + the buildable-zone overlay; all
-    //    world-space, drawn UNDER the entities. Entities draw via the production RenderEntity pass
-    //    (real raster sprites through draw_sprite_ext); the old colored-box debug passes are gone,
-    //    with a lime bbox overlay left as an off-by-default Debug toggle.
+    // 9. Renderer — PLACEHOLDER RENDERING. The legacy Demo art (Demo/Sprite/*) is being separated
+    //    out for a greenfield 32px set, so nothing here draws a content sprite: tiles + chunked
+    //    terrain render as sprite-free debug fills and entities as colored boxes. Restore the real
+    //    passes (the per-layer RenderTileMap loop, TerrainStream, RenderEntity) when the new art
+    //    lands — see the git history of this file / the inline "Restore …" notes below.
     scene.renderer = new Renderer();
-    // Chunk-streamed terrain draws UNDER everything; the resident-grid passes below then draw
-    // player builds + zones on top. The streamed ground is the windowed dual-grid TerrainStream
-    // (value-noise biomes) inserted FIRST, then RenderChunks for walls + frozen-entity snapshots
-    // (its own ground checker off — terrain replaces it).
+    // Chunk-streamed terrain: the sprite-based TerrainStream (spr_tiledual) is dropped; RenderChunks
+    // draws its own checker ground + wall rects instead (no sprite). scene.terrain stays UNSET — its
+    // rebuild calls in resume()/sceneRpg.step() are guarded (`if (scene.terrain !== undefined)`).
+    // Restore: `scene.terrain = new TerrainStream(scene.chunks)` inserted first + ground:false here.
     if (scene._chunked) {
-      scene.terrain = new TerrainStream(scene.chunks);
-      scene.renderer.insert(scene.terrain); // one pass: per-chunk terrain VBOs, under everything
-      scene.terrain.rebuild(scene.chunks, Infinity); // initial: build every loaded chunk up front
       scene.renderer.insert(
         new RenderChunks(scene.chunks, {
           font: I18n.font("default"),
-          ground: false,
+          ground: true,
         }),
       );
     }
-    // Tile passes are VBO-cached and start dirty, so this first build reflects whatever the
-    // layers hold now (incl. the persistence import in step 4b); runtime build-mode edits
-    // markDirty the matching pass (see BuildMode). Keyed by layer for that lookup.
+    // Resident layers: the per-layer RenderTileMap passes (real tile sprites — tile16/47/dual,
+    // floorTiles) are replaced by ONE sprite-free RenderDebugTileMap that shades cells by nav cost
+    // (walls read as filled). _tilePasses stays empty, so BuildMode._markTileDirty no-ops (guarded
+    // for an absent pass). Restore: the RpgLevel.LAYERS RenderTileMap loop, keyed into _tilePasses.
     scene._tilePasses = {};
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
-      const cfg = RpgLevel.LAYERS[i];
-      const spr = asset_get_index(cfg.sprite);
-      if (!sprite_exists(spr)) {
-        Log.warn(`tile sprite missing: ${cfg.sprite}`); // GMRT: validate via sprite_exists, not >=0
-        continue;
-      }
-      const pass = new RenderTileMap(
-        scene[cfg.key + "Layer"],
-        scene.level,
-        spr,
-        {
-          autotile: cfg.type,
-          color: Color.parse(cfg.color),
-        },
-      );
-      scene.renderer.insert(pass);
-      scene._tilePasses[cfg.key] = pass;
-    }
+    scene._tilePass = new RenderDebugTileMap(scene.level, {
+      cost: true,
+      tiles: false,
+      alpha: 0.5,
+    });
+    scene.renderer.insert(scene._tilePass);
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
     scene.renderer.insert(scene._gridPass);
     scene.renderer.insert(new RenderZone(scene.level, "buildable"));
@@ -543,7 +528,15 @@ globalThis.RpgMap = {
         font: I18n.font("default"),
       }),
     );
-    scene.renderer.insert(new RenderEntity()); // production sprite pass (draw_sprite_ext per Visual)
+    // Entities as colored boxes + labels (placeholder — no content sprites). Restore: replace these
+    // four with a single `new RenderEntity()` (the production draw_sprite_ext pass) when art lands.
+    scene.renderer.insert(new RenderDebugBox());
+    scene.renderer.insert(new RenderDebugName());
+    scene.renderer.insert(new RenderDebugDirection()); // facing dot (player Direction)
+    scene.renderer.insert(new RenderDebugAnimator()); // animator-state label
+    // RenderDebugAnimator reads the Demo-layer Animator, so the RPG (not Core's DebugRender)
+    // registers its Debug toggle. add() dedupes, so repeated map loads are no-ops.
+    DebugRender.add(RenderDebugAnimator, "Anim");
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
     bbox.enabled = false;
     scene.renderer.insert(bbox);
@@ -603,6 +596,7 @@ globalThis.RpgMap = {
     // large home grid; harmless for a small interior). The RenderTileMap passes are VBO-cached
     // (rebuilt only on markDirty), so they need no per-frame camera cull.
     scene._gridPass.camera = scene.camera;
+    scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill (large chunked grid)
     if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
     scene._lighting.camera = scene.camera; // light map covers the camera view rect
 

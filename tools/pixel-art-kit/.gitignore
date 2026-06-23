@@ -1,0 +1,4 @@
+# all generated artifacts (regenerable); committed content is scripts + docs only
+out/
+__pycache__/
+*.pyc
