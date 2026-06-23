@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Weapon",
-    "path":"folders/Demo/Sprite/Weapon.yy",
+    "name":"Handmade Sprites",
+    "path":"folders/Media/Handmade Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

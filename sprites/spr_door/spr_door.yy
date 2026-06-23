@@ -28,8 +28,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Structure",
-    "path":"folders/Demo/Sprite/Structure.yy",
+    "name":"Handmade Sprites",
+    "path":"folders/Media/Handmade Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
