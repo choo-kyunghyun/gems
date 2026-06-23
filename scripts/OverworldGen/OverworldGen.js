@@ -322,18 +322,38 @@ globalThis.OverworldGen = class OverworldGen {
 OverworldGen.TERRAIN = [
   {
     id: "water",
-    name: "물",
+    name: "Water",
     color: "#2e6b8f",
     threshold: 0.32,
     pathCost: null,
   },
-  { id: "sand", name: "모래", color: "#c2a878", threshold: 0.5, pathCost: 1 },
+  { id: "sand", name: "Sand", color: "#c2a878", threshold: 0.5, pathCost: 1 },
   {
     id: "grass",
-    name: "풀",
+    name: "Grass",
     color: "#5d8a46",
     threshold: Infinity,
     pathCost: 1,
   },
+];
+
+// Canonical material palette: the full set of overworld terrain materials by `id`, with a display
+// `name` and a `color` (the intended tint). This is the design reference the generation gradient is
+// drawn from — TERRAIN above is the currently-WIRED subset (water/sand/grass), keeping its own
+// thresholds/pathCost + (for now) its own colors until a material here is promoted into the active
+// gradient. Several entries (thinice/ice) are climate variants rather than elevation bands, so they
+// live here for later climate-driven selection, not in the single-noise threshold gradient.
+// Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
+OverworldGen.PALETTE = [
+  { id: "water", name: "Water", color: "#639bff" },
+  { id: "deepwater", name: "Deep Water", color: "#5b6ee1" },
+  { id: "thinice", name: "Thin Ice", color: "#cbdbfc" },
+  { id: "ice", name: "Ice", color: "#5fcde4" },
+  { id: "sand", name: "Sand", color: "#eec39a" },
+  { id: "soil", name: "Soil", color: "#8f563b" },
+  { id: "barren", name: "Barren", color: "#d9a066" },
+  { id: "richsoil", name: "Rich Soil", color: "#663931" },
+  { id: "grass", name: "Grass", color: "#6abe30" },
+  { id: "jungle", name: "Jungle", color: "#37946e" },
 ];
 OverworldGen.LATTICE = 10; // value-noise lattice spacing in cells (bigger = larger biome blobs)
