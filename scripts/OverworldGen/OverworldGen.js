@@ -5,12 +5,16 @@
 // contract for a different world; tag its prefab set to match (see prefabTag).
 //
 // Contract (consumed by ChunkSource → ChunkManager):
-//   generate(cx, cy) -> { terrain: Int[chunkCols*chunkRows], walls: [[gx,gy,w,h]...], spawns: [...] }
+//   generate(cx, cy) -> { terrain: Int[chunkCols*chunkRows], walls: [[gx,gy,w,h]...],
+//                         solid: [[gx,gy,w,h]...], spawns: [...] }
 //     ABSOLUTE grid coords, fully deterministic from (cx, cy, seed) — a chunk MUST regenerate
 //     identically every visit (the streaming cache only persists ENTITY state, never terrain).
 //   terrain(cx, cy) -> a flat per-cell material-id grid (row-major lx + ly*chunkCols) for the chunk,
 //     a value-noise biome (water/sand/grass, see OverworldGen.TERRAIN) — a PURE function of absolute
 //     cell coords + seed, so chunks agree at their seams (TerrainStream renders it via RenderTileMap).
+//   solid(...) -> greedy-meshed rects of the chunk's IMPASSABLE terrain cells (a null-pathCost
+//     material, water) that ChunkManager turns into collide-only colliders — so impassable terrain
+//     blocks the player AND feeds NavGrid pathfinding, not just the cosmetic render.
 //
 // Output = an optional stamped PREFAB (a hand-authored cluster) plus a loose random scatter of
 // rocks + slimes. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
@@ -43,13 +47,20 @@ globalThis.OverworldGen = class OverworldGen {
       this._stamp(rng, gx0, gy0, walls, spawns);
 
     this._scatter(rng, gx0, gy0, walls, spawns);
-    return { terrain: this.terrain(cx, cy), walls, spawns };
+    return {
+      terrain: this.terrain(cx, cy),
+      solid: this.solidTerrain(cx, cy),
+      walls,
+      spawns,
+    };
   }
 
   // ── terrain (value-noise biome) ─────────────────────────────────────────────
   // Per-cell material grid for a chunk, row-major (lx + ly*chunkCols). Each cell's material is a
   // pure function of its ABSOLUTE coords (not per-chunk RNG state — that would tear at seams), so
-  // adjacent chunks line up. Cosmetic only: TerrainStream renders it; nothing collides on it.
+  // adjacent chunks line up. TerrainStream renders it; impassable cells additionally collide (see
+  // solidTerrain) so water blocks movement + pathfinding, while walkable cells (sand/grass) are
+  // render-only.
   terrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -66,6 +77,61 @@ globalThis.OverworldGen = class OverworldGen {
   // threshold terrain() uses, so an apron cell matches the neighbor chunk's interior exactly.
   materialAt(ax, ay) {
     return this._material(ax, ay);
+  }
+
+  // True if the cell's material is walkable (pathCost !== null). The single source of "can stand
+  // here" for spawn placement + the solid-terrain mesh.
+  _passable(ax, ay) {
+    return OverworldGen.TERRAIN[this._material(ax, ay)].pathCost !== null;
+  }
+
+  // Greedy-mesh the chunk's IMPASSABLE terrain cells (a null-pathCost material — water) into the
+  // fewest [gx,gy,w,h] rects (ABSOLUTE grid coords), so ChunkManager makes one collide-only
+  // collider per rect instead of a per-cell box (per-cell collider seams snag sliding bodies — see
+  // memory project_tile_collider_seams; this mirrors TileEdit.meshRects, over the flat material
+  // grid rather than a Level/TileLayer). Pure in (cx, cy, seed) like the terrain it derives from.
+  // Returns [] when the chunk has no impassable material (the common case → no collider work).
+  solidTerrain(cx, cy) {
+    const cc = this.chunkCols;
+    const cr = this.chunkRows;
+    const gx0 = cx * cc;
+    const gy0 = cy * cr;
+    // Per-cell blocked flags for the chunk; bail early if nothing is impassable.
+    const blocked = new Array(cc * cr);
+    let any = false;
+    for (let ly = 0; ly < cr; ly++)
+      for (let lx = 0; lx < cc; lx++) {
+        const b = !this._passable(gx0 + lx, gy0 + ly);
+        blocked[ly * cc + lx] = b;
+        if (b) any = true;
+      }
+    if (!any) return [];
+
+    // Greedy mesh: extend right for width, then down while the whole row stays blocked.
+    const consumed = new Array(cc * cr).fill(false);
+    const solid = (x, y) =>
+      x < cc && y < cr && blocked[y * cc + x] && !consumed[y * cc + x];
+    const rects = [];
+    for (let y = 0; y < cr; y++) {
+      for (let x = 0; x < cc; x++) {
+        if (!solid(x, y)) continue;
+        let w = 1;
+        while (solid(x + w, y)) w++;
+        let h = 1;
+        for (let grow = true; grow; h++) {
+          for (let k = 0; k < w; k++)
+            if (!solid(x + k, y + h)) {
+              grow = false;
+              break;
+            }
+        }
+        h--; // last iteration that incremented also set grow=false
+        for (let yy = y; yy < y + h; yy++)
+          for (let xx = x; xx < x + w; xx++) consumed[yy * cc + xx] = true;
+        rects.push([gx0 + x, gy0 + y, w, h]);
+      }
+    }
+    return rects;
   }
 
   // Threshold the noise into a material id (index into OverworldGen.TERRAIN, ascending thresholds).
@@ -126,7 +192,10 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([ox + r[0], oy + r[1], r[2], r[3]]);
     }
     for (let i = 0; i < p.spawns.length; i++) {
-      spawns.push(this._placeSpawn(p.spawns[i], ox, oy, rng));
+      const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
+      // Don't drop a dynamic enemy into impassable terrain (water) — it'd snag in the collider.
+      if (s.preset === "slime" && !this._passable(s.gx, s.gy)) continue;
+      spawns.push(s);
     }
   }
 
@@ -192,6 +261,8 @@ globalThis.OverworldGen = class OverworldGen {
     for (let i = 0; i < slimes; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));
       const ly = 1 + Math.floor(rng() * (cr - 2));
+      // Skip a cell on impassable terrain — a dynamic body spawned inside a water collider snags.
+      if (!this._passable(gx0 + lx, gy0 + ly)) continue;
       spawns.push({
         preset: "slime",
         gx: gx0 + lx,
@@ -243,10 +314,26 @@ globalThis.OverworldGen = class OverworldGen {
 // (water lowest → grass highest, the last entry's threshold is the open top). `color` is the tint
 // TerrainStream renders each material's spr_tiledual layer with. Cumulative-stacked (a cell of
 // material m fills render layers 0..m), so each upper terrain's dual border reveals the one below.
+// `pathCost` mirrors the TileType convention (null → impassable, i.e. Infinity nav cost): a null
+// material becomes a collide-only collider per chunk (solidTerrain → ChunkManager), so the player
+// can't walk on it and NavGrid routes slimes around it. Walkable materials are cost 1 (no graduated
+// terrain here, so nav stays binary walkable/blocked).
 // Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
 OverworldGen.TERRAIN = [
-  { id: "water", name: "물", color: "#2e6b8f", threshold: 0.32 },
-  { id: "sand", name: "모래", color: "#c2a878", threshold: 0.5 },
-  { id: "grass", name: "풀", color: "#5d8a46", threshold: Infinity },
+  {
+    id: "water",
+    name: "물",
+    color: "#2e6b8f",
+    threshold: 0.32,
+    pathCost: null,
+  },
+  { id: "sand", name: "모래", color: "#c2a878", threshold: 0.5, pathCost: 1 },
+  {
+    id: "grass",
+    name: "풀",
+    color: "#5d8a46",
+    threshold: Infinity,
+    pathCost: 1,
+  },
 ];
 OverworldGen.LATTICE = 10; // value-noise lattice spacing in cells (bigger = larger biome blobs)

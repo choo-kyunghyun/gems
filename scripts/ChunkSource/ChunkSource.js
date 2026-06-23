@@ -95,24 +95,29 @@ globalThis.ChunkSource = class ChunkSource {
     );
   }
 
-  // ChunkManager contract: deterministic { terrain, walls, spawns } for a chunk — authored hub
-  // chunks take their walls/spawns from the overlay, everything else from the generator.
+  // ChunkManager contract: deterministic { terrain, solid, walls, spawns } for a chunk — authored
+  // hub chunks take their walls/spawns from the overlay, everything else from the generator.
   generate(cx, cy) {
     if (this._inAuthoredBox(cx, cy)) {
       const k = this._key(cx, cy);
       // Terrain is biome-everywhere (a pure coord function), so authored hub chunks render the
       // same continuous biome as the wilderness around them — the overlay overrides only
-      // walls/spawns. A custom generator without terrain() simply yields no ground here.
+      // walls/spawns. A custom generator without terrain() simply yields no ground here. The biome's
+      // impassable cells (solid) collide in the hub too, so a hub lake blocks like any other.
       return {
         terrain:
           this.generator.terrain !== undefined
             ? this.generator.terrain(cx, cy)
             : undefined,
+        solid:
+          this.generator.solidTerrain !== undefined
+            ? this.generator.solidTerrain(cx, cy)
+            : [],
         walls: this._authWalls[k] ?? [],
         spawns: this._authSpawns[k] ?? [],
       };
     }
-    return this.generator.generate(cx, cy); // generate() already includes terrain
+    return this.generator.generate(cx, cy); // generate() already includes terrain + solid
   }
 
   // Single-cell terrain material (delegates to the generator) — for TerrainStream's seam apron,

@@ -20,6 +20,8 @@
 //
 // Source contract:
 //   source.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
+//                                solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects: impassable
+//                                                                     terrain, e.g. water — not drawn),
 //                                spawns: [descriptor...],            (deterministic per cx,cy)
 //                                terrain?: Int[]  per-cell material grid (cosmetic; for TerrainStream) }
 //   source.spawn(world, level, descriptor) -> entityId               (constructs one entity)
@@ -170,6 +172,7 @@ globalThis.ChunkManager = class ChunkManager {
       cy,
       ring,
       walls: gen.walls, // [[gx,gy,w,h]...] absolute grid coords — for mesh + render
+      solid: gen.solid ?? [], // collide-only rects (impassable terrain) — meshed, NOT rendered
       terrain: gen.terrain, // per-cell material grid (cosmetic) — TerrainStream renders it
       colliders: [],
       entities: [],
@@ -179,7 +182,7 @@ globalThis.ChunkManager = class ChunkManager {
     if (cached !== undefined) delete this._cache[key];
 
     if (ring === "sim") {
-      this._meshWalls(rec);
+      this._meshColliders(rec);
       if (cached !== undefined) this._restoreAll(rec, cached);
       else this._spawnAll(rec, gen.spawns);
     } else {
@@ -197,9 +200,9 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.loaded++;
   }
 
-  // load → sim: bring the chunk's entities into the World and give its walls colliders.
+  // load → sim: bring the chunk's entities into the World and give its walls + solid terrain colliders.
   _promote(rec) {
-    this._meshWalls(rec);
+    this._meshColliders(rec);
     this._restoreAll(rec, rec.snapshots);
     rec.snapshots = [];
     rec.ring = "sim";
@@ -227,15 +230,22 @@ globalThis.ChunkManager = class ChunkManager {
 
   // ── entity/collider helpers ────────────────────────────────────────────────
 
-  // One kinematic-solid collider per wall rect (the source already groups cells into rects, so
-  // no greedy meshing). Matches TileEdit.meshSolid's convention: Position at the rect's
-  // top-left corner, BBox offset (0,0) spanning the rect.
-  _meshWalls(rec) {
+  // One kinematic-solid collider per wall rect AND per solid-terrain rect (the source already
+  // groups cells into rects, so no greedy meshing here). `walls` are also rendered (RenderChunks);
+  // `solid` is collide-only (impassable terrain — water — already drawn by TerrainStream). Both
+  // match TileEdit.meshSolid's convention: Position at the rect top-left, BBox (0,0) spanning it.
+  _meshColliders(rec) {
+    this._meshRects(rec, rec.walls);
+    this._meshRects(rec, rec.solid);
+  }
+
+  _meshRects(rec, rects) {
+    if (rects === undefined) return;
     const cw = this.cellW;
     const ch = this.cellH;
     const world = this.world;
-    for (let i = 0; i < rec.walls.length; i++) {
-      const r = rec.walls[i];
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
       const id = world.create();
       world.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
       world.add(id, BBox, {

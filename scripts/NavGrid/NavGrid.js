@@ -5,7 +5,7 @@
 //
 // Why a window instead of one big grid: on a chunked map the obstacle data is NOT in Level.mpg —
 // the terrain (procedural rocks, prefab + authored-hub walls, the world border) exists only as
-// kinematic-solid collider ENTITIES (ChunkManager._meshWalls / RpgLevel.buildWorldBorder /
+// kinematic-solid collider ENTITIES (ChunkManager._meshColliders / RpgLevel.buildWorldBorder /
 // build-mode TileEdit), and only the chunks near the player are even loaded. Reading live colliders
 // into a bounded window unifies every obstacle source (streamed terrain + player builds + border +
 // plain-interior walls) into one cheap grid, and keeps size() constant so MotionPlanner.setGrid is

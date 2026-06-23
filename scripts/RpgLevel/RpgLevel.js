@@ -207,7 +207,7 @@ globalThis.RpgLevel = {
    * so the player + slimes can't leave the bounded overworld. The 4 colliders are ALWAYS present
    * (not chunk-managed — like the party), kinematic-solid like any wall, so SolidSystem collides
    * against them and NavGrid rasterizes them (pathfinding respects the edge for free). Same
-   * Position(top-left)+BBox(0,0,w,h)+kinematic-solid shape as ChunkManager._meshWalls. Returns the
+   * Position(top-left)+BBox(0,0,w,h)+kinematic-solid shape as ChunkManager._meshColliders. Returns the
    * ids (freed by world.destroy() on a map swap). Top/bottom span the full width; left/right span
    * one cell past each so the outer corners are covered (no diagonal slip-through).
    */
