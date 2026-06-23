@@ -311,9 +311,11 @@ globalThis.OverworldGen = class OverworldGen {
 };
 
 // Biome palette: material id = index into this table; ascending `threshold` over the value noise
-// (water lowest → grass highest, the last entry's threshold is the open top). `color` is the tint
-// TerrainStream renders each material's spr_tiledual layer with. Cumulative-stacked (a cell of
-// material m fills render layers 0..m), so each upper terrain's dual border reveals the one below.
+// (water lowest → grass highest, the last entry's threshold is the open top). `sprite` is the
+// per-material UNTINTED dual-grid tileset TerrainStream renders that layer with (spr_terrain*);
+// `color` is kept as the design-reference tint (no longer drawn, since each material now has real
+// colored art). Cumulative-stacked (a cell of material m fills render layers 0..m), so each upper
+// terrain's dual border reveals the one below.
 // `pathCost` mirrors the TileType convention (null → impassable, i.e. Infinity nav cost): a null
 // material becomes a collide-only collider per chunk (solidTerrain → ChunkManager), so the player
 // can't walk on it and NavGrid routes slimes around it. Walkable materials are cost 1 (no graduated
@@ -324,14 +326,23 @@ OverworldGen.TERRAIN = [
     id: "water",
     name: "Water",
     color: "#2e6b8f",
+    sprite: "spr_terrainWater",
     threshold: 0.32,
     pathCost: null,
   },
-  { id: "sand", name: "Sand", color: "#c2a878", threshold: 0.5, pathCost: 1 },
+  {
+    id: "sand",
+    name: "Sand",
+    color: "#c2a878",
+    sprite: "spr_terrainSand",
+    threshold: 0.5,
+    pathCost: 1,
+  },
   {
     id: "grass",
     name: "Grass",
     color: "#5d8a46",
+    sprite: "spr_terrainGrass",
     threshold: Infinity,
     pathCost: 1,
   },

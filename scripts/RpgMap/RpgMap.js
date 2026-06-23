@@ -497,15 +497,18 @@ globalThis.RpgMap = {
     //    passes (the per-layer RenderTileMap loop, TerrainStream, RenderEntity) when the new art
     //    lands — see the git history of this file / the inline "Restore …" notes below.
     scene.renderer = new Renderer();
-    // Chunk-streamed terrain: the sprite-based TerrainStream (spr_tiledual) is dropped; RenderChunks
-    // draws its own checker ground + wall rects instead (no sprite). scene.terrain stays UNSET — its
-    // rebuild calls in resume()/sceneRpg.step() are guarded (`if (scene.terrain !== undefined)`).
-    // Restore: `scene.terrain = new TerrainStream(scene.chunks)` inserted first + ground:false here.
+    // Chunk-streamed terrain: TerrainStream draws the real per-material dual-grid tilesets
+    // (spr_terrainWater/Sand/Grass, untinted) UNDER everything, so RenderChunks runs with
+    // ground:false (its checker is replaced by the terrain) and only draws walls + frozen-entity
+    // snapshots. scene.terrain's rebuild calls in resume()/sceneRpg.step() are now live (it's set).
     if (scene._chunked) {
+      scene.terrain = new TerrainStream(scene.chunks);
+      scene.renderer.insert(scene.terrain); // one set of per-chunk VBOs, under everything
+      scene.terrain.rebuild(scene.chunks, Infinity); // initial: build every loaded chunk up front
       scene.renderer.insert(
         new RenderChunks(scene.chunks, {
           font: I18n.font("default"),
-          ground: true,
+          ground: false,
         }),
       );
     }

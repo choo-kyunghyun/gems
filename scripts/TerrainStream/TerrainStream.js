@@ -1,10 +1,12 @@
-// Per-chunk dual-grid renderer for the chunk-streamed overworld TERRAIN. A RenderPass owning one
-// cached VertexBuffer PER LOADED CHUNK, built ONCE when the chunk appears and freed when it unloads
-// — so a chunk-border crossing only builds the few newly-entered chunks, not the whole loaded area.
-// (The earlier windowed version rebuilt one ~80x80 VBO every crossing → a ~50ms render hitch; this
-// replaces it.) Each chunk's VBO packs all terrain materials (OverworldGen.TERRAIN) in painter order
-// — base material first (opaque ground), upper terrains on top whose transparent dual-grid corners
-// reveal the one below (water < sand < grass). Reuses spr_tiledual tinted per material.
+// Per-chunk dual-grid renderer for the chunk-streamed overworld TERRAIN. A RenderPass owning a set
+// of cached VertexBuffers PER LOADED CHUNK (one per terrain material), built ONCE when the chunk
+// appears and freed when it unloads — so a chunk-border crossing only builds the few newly-entered
+// chunks, not the whole loaded area. (The earlier windowed version rebuilt one ~80x80 VBO every
+// crossing → a ~50ms render hitch; this replaces it.) Each material's tiles go in painter order —
+// base material first (opaque ground), upper terrains on top whose transparent dual-grid corners
+// reveal the one below (water < sand < grass). Each material draws its OWN real, UNTINTED dual-grid
+// sprite (spr_terrain*, from OverworldGen.TERRAIN.sprite) into its OWN VBO submitted with its OWN
+// texture — so the per-material tilesets needn't share a texture page (no tint; the art is colored).
 //
 // Dual-grid corner sampling reads one cell up/left of each display tile, so building a chunk needs a
 // 1-cell APRON beyond its top/left edge: interior cells come from the chunk record (rec.terrain),
@@ -23,24 +25,34 @@ globalThis.TerrainStream = class TerrainStream {
     this.cellW = chunks.cellW;
     this.cellH = chunks.cellH;
     this.source = chunks.source; // ChunkSource.materialAt for the seam apron
-    this._cache = {}; // "cx,cy" → VertexBuffer (one per loaded chunk)
-    this._buildBudget = 4; // chunk VBOs built per rebuild() — caps the per-frame build spike
+    this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
+    this._buildBudget = 4; // chunk VBO sets built per rebuild() — caps the per-frame build spike
 
+    // One UNTINTED dual-grid sprite per material (spr_terrain*), painter-ordered like the palette
+    // (water < sand < grass). Cache each sprite's texture + source size for the trim-aware quad.
     const pal = OverworldGen.TERRAIN;
     this.palette = pal;
-    this._colors = [];
-    for (let i = 0; i < pal.length; i++)
-      this._colors.push(Color.parse(pal[i].color));
-
-    this._spr = asset_get_index("spr_tiledual");
-    this._ok = sprite_exists(this._spr); // GMRT: validate via sprite_exists, not >=0
-    if (!this._ok) {
-      Log.warn("TerrainStream: spr_tiledual missing — overworld terrain off");
-      return;
+    this._sprites = [];
+    this._ok = true;
+    for (let i = 0; i < pal.length; i++) {
+      const spr = asset_get_index(pal[i].sprite);
+      if (!sprite_exists(spr)) {
+        // GMRT: validate via sprite_exists, not >=0
+        Log.warn(`TerrainStream: ${pal[i].sprite} missing — overworld terrain off`);
+        this._ok = false;
+        return;
+      }
+      // Frames 0..15 are the dual-grid corner masks; any frames beyond 15 are extra FULL-tile
+      // (mask-15) variants. `variants` = how many full-tile choices exist (>=1); a full cell picks
+      // one by position hash to break the per-tile grid repetition.
+      this._sprites.push({
+        spr,
+        tex: sprite_get_texture(spr, 0),
+        sw: sprite_get_width(spr),
+        sh: sprite_get_height(spr),
+        variants: Math.max(1, sprite_get_number(spr) - 15),
+      });
     }
-    this._tex = sprite_get_texture(this._spr, 0);
-    this._sw = sprite_get_width(this._spr);
-    this._sh = sprite_get_height(this._spr);
   }
 
   // Diff the loaded chunk set against the cache — free vanished chunks, build newly-loaded ones (at
@@ -58,7 +70,7 @@ globalThis.TerrainStream = class TerrainStream {
     const keys = Object.keys(this._cache);
     for (let i = 0; i < keys.length; i++) {
       if (seen[keys[i]] !== true) {
-        this._cache[keys[i]].destroy();
+        this._destroyChunk(this._cache[keys[i]]);
         delete this._cache[keys[i]];
       }
     }
@@ -75,16 +87,21 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  // The RenderPass draw: just submit every cached chunk VBO (no rebuild — that's the point).
+  // The RenderPass draw: submit every cached chunk's per-material VBOs, each with its own texture
+  // (no rebuild — that's the point). Material order is painter order (water under sand under grass).
   draw(_world) {
     if (!this._ok) return;
     const keys = Object.keys(this._cache);
-    for (let i = 0; i < keys.length; i++)
-      this._cache[keys[i]].submit(this._tex);
+    for (let i = 0; i < keys.length; i++) {
+      const list = this._cache[keys[i]];
+      for (let j = 0; j < list.length; j++) list[j].vb.submit(list[j].tex);
+    }
   }
 
-  // Build one chunk's terrain VBO (all material layers, cumulative + painter-ordered). `rec.terrain`
-  // is the chunk's interior material grid (row-major lx + ly*cols); the apron is sampled live.
+  // Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with
+  // its own sprite/texture. `rec.terrain` is the chunk's interior material grid (row-major
+  // lx + ly*cols); the apron is sampled live. Returns [{ vb, tex }] (a material with no tiles in this
+  // chunk is skipped, so the base water layer is always present, upper layers only where they appear).
   _buildChunk(rec) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -111,11 +128,13 @@ globalThis.TerrainStream = class TerrainStream {
       }
     }
 
-    const vb = new VertexBuffer();
-    vb.begin();
+    const out = [];
     const layers = this.palette.length;
     for (let m = 0; m < layers; m++) {
-      const color = this._colors[m];
+      const s = this._sprites[m];
+      const vb = new VertexBuffer();
+      vb.begin();
+      let any = false;
       for (let ly = 0; ly < cr; ly++) {
         for (let lx = 0; lx < cc; lx++) {
           // Display tile centered on data-corner (gx,gy) = (x0+lx, y0+ly); samples the 4 cells it
@@ -128,34 +147,60 @@ globalThis.TerrainStream = class TerrainStream {
           if (pad[bj * pw + bi] >= m) mask |= 4; // BR
           if (pad[bj * pw + (bi - 1)] >= m) mask |= 8; // BL
           if (mask === 0) continue;
+          // Frame = the corner mask, except a FULL cell (mask 15) picks one of the full-tile
+          // variants by a per-cell position hash — so interior terrain doesn't repeat the identical
+          // tile in a visible grid. Borders (mask 1..14) always use the base variant (frame == mask).
+          const frame =
+            mask === 15 && s.variants > 1
+              ? 15 + this._variant(x0 + lx, y0 + ly, s.variants)
+              : mask;
           // Trim-aware quad (mirrors RenderTileMap._quad): honor the packer's per-frame UV offset/
-          // size factors so a trimmed frame isn't stretched to the full cell. frame index = mask.
-          const uvs = sprite_get_uvs(this._spr, mask);
+          // size factors so a trimmed frame isn't stretched to the full cell.
+          // Untinted (addQuad defaults color=c_white) — the sprite already carries the material color.
+          const uvs = sprite_get_uvs(s.spr, frame);
           const wx = (x0 + lx) * cw - hw;
           const wy = (y0 + ly) * ch - hh;
           vb.addQuad(
-            wx + uvs[4] * (cw / this._sw),
-            wy + uvs[5] * (ch / this._sh),
+            wx + uvs[4] * (cw / s.sw),
+            wy + uvs[5] * (ch / s.sh),
             cw * uvs[6],
             ch * uvs[7],
             uvs[0],
             uvs[1],
             uvs[2],
             uvs[3],
-            color,
-            1,
           );
+          any = true;
         }
       }
+      vb.end(true); // freeze: static per-chunk mesh, uploaded once
+      if (any) out.push({ vb, tex: s.tex });
+      else vb.destroy();
     }
-    vb.end(true); // freeze: static per-chunk mesh, uploaded once
-    return vb;
+    return out;
   }
 
-  // Free every cached chunk VBO. Idempotent (safe if the renderer also calls it on destroy).
+  // Deterministic per-cell variant index in [0, n): a MINSTD integer-float hash of the absolute
+  // cell coords (no bitwise chain — GMRT miscompiles xorshift; mirrors OverworldGen._hash). Pure in
+  // (gx, gy), so a chunk reload picks the same variants and seams stay stable across streaming.
+  _variant(gx, gy, n) {
+    const M = 2147483647;
+    let h = 374761393 % M;
+    h = (((h * 31 + (gx | 0) * 1900613) % M) + M) % M;
+    h = (((h * 31 + (gy | 0) * 7368787) % M) + M) % M;
+    h = (h * 48271) % M;
+    return h % n;
+  }
+
+  // Free one chunk's per-material VBOs.
+  _destroyChunk(list) {
+    for (let i = 0; i < list.length; i++) list[i].vb.destroy();
+  }
+
+  // Free every cached chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy).
   destroy() {
     const keys = Object.keys(this._cache);
-    for (let i = 0; i < keys.length; i++) this._cache[keys[i]].destroy();
+    for (let i = 0; i < keys.length; i++) this._destroyChunk(this._cache[keys[i]]);
     this._cache = {};
   }
 };
