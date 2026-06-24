@@ -44,7 +44,12 @@ speeds, melee reach, light radii, `CombatAI` aggro/range, interact/NPC radii, co
 drop/radar/floating-number cosmetics). Sprites stay foot-anchored (origin now 8,16) and draw at
 scale 1. (The `Platformer` minigame is unchanged — separate world, debug-box art, not the 16px set.)
 
-The **one remaining step** is regenerating the committed `sprites/` at 16px — run the generators
-(`python gm-import/entity_sprites.py`, then `terrain_materials.py` + `terrain_sprites.py`). Until then
-the committed art is still **legacy 32px**, so it renders ~2× oversized in the now-16px world; the
-generators overwrite the same registered resources (deterministic uuids → churn-free).
+The committed `sprites/` are now **16px** too — the 13 entity sprites (`entity_sprites.py`) and the
+3 `spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`) were regenerated in place
+(deterministic uuids → churn-free re-runs). The migration is complete: regenerate any time by re-running
+the generators after editing a template.
+
+**Not covered** (no procedural generator — outside the entity/terrain workflow): the lobby/editor UI
+icons `spr_back` / `spr_exit` / `spr_revert` (currently unused) and `spr_choo` / `spr_play` (the
+Platformer, which stays 32px debug-box art). Author these by hand or add a template if they ever join
+the 16px set.
