@@ -1,4 +1,4 @@
-# bed - single-char palette index into palette.hex ('.' = transparent)
+# bed - single-char palette index into palettes/db32.hex ('.' = transparent)
 1111111111111111
 1444444444444441
 14llllllllllll41

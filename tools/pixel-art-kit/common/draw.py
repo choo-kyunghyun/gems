@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """draw — render sprite TEMPLATES to PNGs (pixlib-based, stdlib only).
 
-This generator carries NO art or palette — it reads them from data files in `templates/` (see
-pixlib.load_template): `.txt` index grids (sharing `templates/palette.hex`) or self-contained `.json`
-(palette embedded). Drop a new template in `templates/` and it renders; nothing here changes.
+This generator carries NO art or palette — it reads them from data files (see pixlib.load_template):
+`.txt` index grids in `templates/` (indexed into a `palettes/*.hex`, default `db32`) or self-contained
+`.json` (palette embedded). Drop a new template in `templates/` and it renders; nothing here changes.
+
+  python draw.py [palette]   # palette = a name in palettes/ (default db32); for the .txt index grids
 
 Outputs to out/agent/: <name>.png (native) + <name>_x16.png (NN preview) + sheet.png (contact sheet).
 """
-import os
+import os, sys
 import pixlib as P
 
 OUT = P.out_dir("agent")
 TEMPLATES = os.path.join(P.KIT, "templates")
-PAL_FILE = os.path.join(TEMPLATES, "palette.hex")
+PALETTES = os.path.join(P.KIT, "palettes")
+DEFAULT_PALETTE = "db32"   # the palette the .txt index grids are keyed to (single source: palettes/)
 
 
-def load_all():
-    """Every .txt / .json in templates/ -> {name: (w, h, pixels)}."""
-    palette = P.load_palette(PAL_FILE) if os.path.isfile(PAL_FILE) else None
+def load_all(palette_name):
+    """Every .txt / .json in templates/ -> {name: (w, h, pixels)}. `.txt` cells index palettes/<name>.hex."""
+    pal_file = os.path.join(PALETTES, palette_name + ".hex")
+    palette = P.load_palette(pal_file) if os.path.isfile(pal_file) else None
     sprites = {}
     for fn in sorted(os.listdir(TEMPLATES)):
         base, ext = os.path.splitext(fn)
@@ -27,11 +31,11 @@ def load_all():
     return sprites
 
 
-def main():
+def main(palette_name=DEFAULT_PALETTE):
     if not os.path.isdir(TEMPLATES):
         print(f"no templates/ dir at {TEMPLATES} — add .txt/.json sprite data (see README)")
         return
-    sprites = load_all()
+    sprites = load_all(palette_name)
     if not sprites:
         print(f"no .txt/.json templates in {TEMPLATES}")
         return
@@ -62,8 +66,8 @@ def main():
         P.blit(sheet, SW, ox, oy, px, w, h, scale, ck=12)
     P.write_png(os.path.join(OUT, "sheet.png"), SW, SH, sheet)
 
-    print(f"rendered {len(sprites)} templates (+previews +sheet) to {OUT}: {', '.join(names)}")
+    print(f"rendered {len(sprites)} templates (palette {palette_name}) to {OUT}: {', '.join(names)}")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PALETTE)

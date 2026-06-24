@@ -37,7 +37,7 @@ pixel-art-kit/
 │   ├── terrain_materials.py  tileable terrain materials w/ selectable algos (ripple/grain/blades)
 │   ├── preview.py      matched previews + a contact sheet
 │   └── pack.py         assemble a frames folder -> strip + GIFs + filmstrip + manifest
-├── templates/  sprite INPUT data (rendered by draw.py): .txt index grids + .json + palette.hex
+├── templates/  sprite INPUT data (rendered by draw.py): .txt index grids + .json sprites
 ├── palettes/   palette library (.hex): db32 (default) + db16/arne16/aap64/endesga32/zughy32/nyx8
 ├── gm-import/  GameMaker adapter (engine-specific; imports common/)
 │   ├── entity_sprites.py    draw this project's entities -> GameMaker sprites
@@ -69,10 +69,10 @@ is naturally limited (the project's 32px sprites are a good fit).
 `draw.py` renders every template in `templates/`; `pixlib.load_template` accepts two formats:
 
 - **`.txt` — index grid** (palette kept separate). Each cell is one character: `0`–`9` then `a`–`v`
-  select palette entry 0–31, and `.` is transparent. Colors come from a sibling
-  **`templates/palette.hex`** (one `rrggbb` per line; line N = index N), so many sprites share one
-  palette. `#`-comment and blank lines are ignored. (Single-char cells address up to 32 colors; for a
-  larger palette use `.json`.)
+  select palette entry 0–31, and `.` is transparent. Colors come from a **`palettes/*.hex`** (default
+  `db32`; pass another to `draw.py`; one `rrggbb` per line, line N = index N), so many sprites share
+  one palette. `#`-comment and blank lines are ignored. (Single-char cells address up to 32 colors;
+  for a larger palette use `.json`.)
 - **`.json` — self-contained** (palette embedded): `{"art": [<rows>], "palette": {"<char>":
   "rrggbb" | "rrggbbaa" | null}}` — `null` = transparent; use any chars you like.
 
@@ -82,11 +82,11 @@ Drop a new `.txt`/`.json` in `templates/` and it renders — no code change. The
 ### Palettes
 
 `palettes/` is a small library of `.hex` palettes (one `rrggbb` per line; the `#`-comment header
-carries attribution). **`templates/palette.hex` defaults to DB32** (DawnBringer 32 — a solid
-prototype sweetspot), the palette the `.txt` demos are indexed against. To switch the prototype
-palette, copy another over it — `cp palettes/endesga32.hex templates/palette.hex` — then re-index your
-`.txt` cells to the new order (or use `.json` templates, which embed their own palette). Any `.hex`
-also feeds `quantize.py` directly. Bundled (community palettes, converted from Aseprite — attribution
+carries attribution) — the single source for both the `.txt` index grids and `quantize.py`.
+**`draw.py` keys the `.txt` demos to `palettes/db32.hex` by default** (DB32 / DawnBringer 32 — a solid
+prototype sweetspot). To render against another, pass its name — `python draw.py endesga32` — but the
+`.txt` cells are indexed to DB32's order, so re-index them for a different palette (or use `.json`
+templates, which embed their own). Bundled (community palettes, converted from Aseprite — attribution
 in each file): **db32** (default), db16, arne16, aap64, endesga32, zughy32, nyx8 (8–64 colors).
 
 ---
@@ -150,8 +150,8 @@ python common/tileset.py <material.png> <cell> --mode dual|corner|both [--heal] 
 
 ## Conventions
 
-- **Data-driven input**: sprite art lives in `templates/` (`.txt` index grids + a shared
-  `palette.hex`, or self-contained `.json`), never inlined in the generators. The palette is
+- **Data-driven input**: sprite art lives in `templates/` (`.txt` index grids keyed to a
+  `palettes/*.hex`, or self-contained `.json`), never inlined in the generators. The palette is
   **provided per project** — none is baked into the kit.
 - **Nearest-exact previews**: `_x16.png` upscales are integer nearest-neighbor on a checker (so
   transparency reads); a common display box matches different cell sizes for fair comparison.
