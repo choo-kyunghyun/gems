@@ -2,8 +2,7 @@
 """pack — assemble a folder of frame PNGs (f0.png, f1.png, ...) into a horizontal strip,
 a looping GIF, optional per-state GIFs (from a manifest), and an upscaled filmstrip.
 
-Counterpart to the agent generators for externally-produced frames (e.g. comfy_anim's
-img2img-refined hero). All frames must share dimensions.
+Counterpart to the generators for externally-produced frames. All frames must share dimensions.
 
 Usage:
   python pack.py <frames_subdir> [out_subdir] [manifest.json]

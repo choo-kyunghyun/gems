@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""preview — turn any method's out/<method>/*.png into matched previews + a comparison.
+"""preview — turn any out/<dir>/*.png set into matched previews + a comparison.
 
-Every method (agent / aseprite / comfyui / hybrid_d* / ...) is judged through the SAME
-nearest-neighbor + checker treatment, so the comparison is fair. Pure CLI over pixlib.
+Every set is judged through the SAME nearest-neighbor + checker treatment, so the comparison is
+fair (pass several out/ subdirs to compare variants side by side). Pure CLI over pixlib.
 
 Outputs (under out/):
-  out/<method>/<name>_x16.png   nearest-neighbor preview on checker (per sprite)
-  out/<method>/sheet.png        2x2 contact sheet of that method's sprites
-  out/compare.png               rows = subjects, cols = methods (matched display size)
+  out/<dir>/<name>_x16.png   nearest-neighbor preview on checker (per sprite)
+  out/<dir>/sheet.png        2x2 contact sheet of that set's sprites
+  out/compare.png            rows = subjects, cols = sets (matched display size)
 
-Usage:  python preview.py [method ...]   (default: agent aseprite)
+Usage:  python preview.py [dir ...]   (default: agent)
 """
 import os, sys
 import pixlib as P
@@ -81,7 +81,7 @@ def compare(methods, loaded):
 
 
 def main():
-    methods = sys.argv[1:] or ["agent", "aseprite"]
+    methods = sys.argv[1:] or ["agent"]
     methods = [m for m in methods if os.path.isdir(os.path.join(P.OUT, m))]
     loaded = {}
     for m in methods:

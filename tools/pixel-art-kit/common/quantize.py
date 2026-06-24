@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Remap a PNG (or folder of PNGs) to a PROVIDED palette by nearest RGB — the style-match lever
-for the hybrid pipeline. Use it to pull ComfyUI/img2img output onto the project's palette so a
-generated sprite sits in the existing set.
+"""Remap a PNG (or folder of PNGs) to a PROVIDED palette by nearest RGB — the style-match lever.
+Use it to pull any generator's / externally-produced art onto the project's palette so a sprite
+sits in the existing set.
 
 The kit bakes in NO palette — pass a hex-per-line palette file (`rrggbb`, optional `#`; e.g. a
 Lospec `.hex` export). Alpha is preserved as a hard cutout (a < threshold -> transparent).

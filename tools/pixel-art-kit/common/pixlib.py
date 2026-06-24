@@ -3,8 +3,8 @@
 
 PNG decode/encode, an animated-GIF writer, nearest-neighbor compositing, and a
 palette-quantize helper. Imported by the common/ generators (draw, animate*, quantize)
-and the preview CLI. Path helpers (KIT/OUT) resolve the toolkit root so every script —
-in common/ or comfyui/ — writes to the one shared out/.
+and the preview CLI. Path helpers (KIT/OUT) resolve the toolkit root so every script
+writes to the one shared out/.
 """
 import zlib, struct, binascii, os
 

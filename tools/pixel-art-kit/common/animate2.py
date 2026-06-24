@@ -3,8 +3,7 @@
 
 All 9 frames derive from ONE base grid via simple ops (shift, leg-lift, weapon paint)
 so coherence is free. Emits a combined strip (GameMaker-ready), per-state looping GIFs,
-a states filmstrip to view here, and a manifest JSON mapping frame ranges -> states
-(the agent's analogue of Aseprite frame tags).
+a states filmstrip to view here, and a manifest JSON mapping frame ranges -> states.
 
 Outputs into anim/agent_hero/.
 """
@@ -125,7 +124,7 @@ for f, grid in enumerate(FRAMES):
             strip[y * SW + f * W + x] = PAL[grid[y][x]]
 P.write_png(os.path.join(OUT, f"hero_strip{n}.png"), SW, H, strip)  # GM _stripN auto-slice
 
-# ---- individual frame PNGs (so comfyui/comfy_anim.py can img2img-refine each) ----
+# ---- individual frame PNGs (per-frame export for external tooling) ----
 
 FRAMEDIR = P.out_dir("anim", "agent_hero", "frames")
 for i, g in enumerate(FRAMES):
@@ -154,7 +153,7 @@ for r, st in enumerate(STATES):
         P.blit(film, FW, pad + c * (cw + pad), pad + r * (cw + pad), rgba(FRAMES[i]), W, H, scale, ck=9)
 P.write_png(os.path.join(OUT, "hero_states.png"), FW, FH, film)
 
-# ---- manifest (agent analogue of Aseprite tags) ----------------------------
+# ---- manifest (frame ranges -> states) -------------------------------------
 
 manifest = {"image": f"hero_strip{n}.png", "frameWidth": W, "frameHeight": H,
             "frames": n, "states": STATES}

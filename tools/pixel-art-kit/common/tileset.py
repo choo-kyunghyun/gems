@@ -2,7 +2,7 @@
 """tileset — synthesize an autotile set from ONE material texture, for either engine
 autotile mode: `"dual"` (dual-grid) or `"corner"` (quarter / sub-tile).
 
-Diffusion (or any generator) can't honor autotile edge/corner matching across frames, so we
+A generator can't honor autotile edge/corner matching across frames, so we
 DON'T generate the tileset — we take a single material patch and CUT the frames from it
 deterministically. Because every frame is masked from the same patch, the set tiles seamlessly
 BY CONSTRUCTION. Both modes are the *same* machinery: a frame's coverage is the bilinear
@@ -53,7 +53,7 @@ CORNER_MASKS = [15,           # 0  fill
 
 def demo_material(S, seed=7):
     """Procedural tileable demo grass: seeded noise, wrap box-blurred to smooth blobs (tileable
-    by construction), banded into a few greens. Lets the pipeline run with no ComfyUI/Aseprite."""
+    by construction), banded into a few greens. Lets it run with no input material."""
     rng = random.Random(seed)
     field = [rng.random() for _ in range(S * S)]
     for _ in range(3):

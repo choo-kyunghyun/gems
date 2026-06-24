@@ -13,9 +13,9 @@ built-in palette** — provide the project's (`pixlib.load_palette` / `quantize.
 - **`quantize.py`** — remap a PNG/folder to a **provided** palette file (style-match lever).
 - **`tileset.py`** — synthesize an **autotile set** from ONE material texture, for either engine
   mode: `--mode dual` (16 tile-frames) / `--mode corner` (13 quarter-tile pieces) / `both`. Cuts the
-  frames from one patch deterministically so they tile *by construction* (diffusion can't honor
-  autotile edge-matching). Feed a seamless ComfyUI fill / Aseprite patch, or omit input for built-in
-  procedural demo grass. Per mode → `<mode>_strip<N>.png` (GM `_stripN` auto-slice), `preview_<mode>`,
+  frames from one patch deterministically so they tile *by construction* (a generator can't honor
+  autotile edge-matching). Feed a seamless material patch, or omit input for the built-in procedural
+  demo grass. Per mode → `<mode>_strip<N>.png` (GM `_stripN` auto-slice), `preview_<mode>`,
   `seamless_<mode>`. `--heal` forces tileability; `--palette F` locks colors to a palette file.
 - **`terrain_materials.py`** — generate tileable terrain material patches (selectable algorithms;
   example terrains, colors inline).
