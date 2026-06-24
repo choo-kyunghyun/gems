@@ -23,9 +23,10 @@ For an **8× LoRA** making a 16×16 sprite:
 3. **Downscale 8× nearest-exact** — 128×128 → 16×16, one pixel per block.
 
 A 16× LoRA is the same with 16 (16×16 → 256×256 → 16×16). Use **nearest-exact** on both ends — any
-smoothing filter defeats it. The drivers here are wired for **8×** (`comfy_graph.empty_latent`
-`scale_by: 8` + `decode_downscale` `down=0.125`; `WORK = 8 × output` in the img2img/anim drivers);
-for a different-scale LoRA change those to match. (Use whatever LoRA you prefer — this kit names none.)
+smoothing filter defeats it. Set **`scale`** in your config (`8` or `16`, default `8`) to match the
+LoRA — the drivers thread it through (`empty_latent` nearest-upscales to `size × scale`,
+`decode_downscale` does `1/scale`, and `WORK = scale × output` in the img2img/anim drivers). (Use
+whatever LoRA you prefer — this kit names none.)
 
 - **`comfy_api.py`** — HTTP client + job runner (`post`/`get`/`view`/`upload_image`/`run_job`) +
   `config()` (loads `local/comfy.config.json`).

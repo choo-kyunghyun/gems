@@ -13,17 +13,18 @@ import comfy_api as A
 import comfy_graph as G
 
 SWEEP = [0.45, 0.65, 0.85]
-WORK = 256  # blockout upscaled to this; output = WORK/8 = 32px
+OUT = 32  # logical output px; blockout is upscaled to OUT*scale, then /scale back (scale = LoRA factor)
 
 
 def build(subject, image_name, seed, denoise):
     cfg = A.config()
+    scale = cfg.get("scale", 8)
     g = {}
     m, c, v = G.models(g, cfg["ckpt"], cfg["lora"], cfg.get("lora_strength", 1.0))
     p, n = G.prompts(g, c, cfg["prompts"][subject] + "\n\n" + cfg["suffix"], cfg["neg"])
-    lat = G.img2img_latent(g, v, image_name, WORK)
+    lat = G.img2img_latent(g, v, image_name, OUT * scale)
     lat = G.sample(g, m, p, n, lat, seed, denoise=denoise)
-    img = G.decode_downscale(g, lat, v)
+    img = G.decode_downscale(g, lat, v, 1.0 / scale)
     img = G.bg_removal(g, img, cfg["birefnet"])
     G.save(g, img, f"hybrid/{subject}")
     return g

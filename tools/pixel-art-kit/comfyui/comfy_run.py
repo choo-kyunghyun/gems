@@ -18,12 +18,13 @@ BATCH = 6
 
 def build(subject, size, batch, seed):
     cfg = A.config()
+    scale = cfg.get("scale", 8)  # LoRA training factor (8 or 16); samples at size*scale, /scale back
     g = {}
     m, c, v = G.models(g, cfg["ckpt"], cfg["lora"], cfg.get("lora_strength", 1.0))
     p, n = G.prompts(g, c, cfg["prompts"][subject] + "\n\n" + cfg["suffix"], cfg["neg"])
-    lat = G.empty_latent(g, size, batch)
+    lat = G.empty_latent(g, size, batch, scale)
     lat = G.sample(g, m, p, n, lat, seed, denoise=1.0)
-    img = G.decode_downscale(g, lat, v)
+    img = G.decode_downscale(g, lat, v, 1.0 / scale)
     img = G.bg_removal(g, img, cfg["birefnet"])
     G.save(g, img, f"pixelcmp/{subject}{size}")
     return g

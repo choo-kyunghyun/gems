@@ -29,14 +29,18 @@ def prompts(g, clip_ref, pos, neg):
     return ["pos", 0], ["neg", 0]
 
 
-def empty_latent(g, size, batch):
-    """Logical `size` px latent upscaled 8x (nearest) -> samples at size*8 px; the matching
-    0.125 downscale in decode_downscale brings it back to `size` px. The 8x MUST equal the
-    pixel-art LoRA's training scale (8x or 16x) — change both ends together for a 16x LoRA."""
+def empty_latent(g, size, batch, scale=8):
+    """Logical `size` px latent nearest-upscaled to size*`scale` px (the pixel-bias trick); the
+    matching 1/scale downscale in decode_downscale brings it back to `size` px. `scale` MUST equal
+    the pixel-art LoRA's training factor (8 or 16). Uses LatentUpscale (absolute width/height), NOT
+    LatentUpscaleBy — the latter caps scale_by at 8, which a 16x LoRA exceeds (same reason
+    img2img_latent uses ImageScale)."""
+    work = size * scale
     g["elat"] = {"class_type": "EmptyLatentImage",
                  "inputs": {"width": size, "height": size, "batch_size": batch}}
-    g["lup"] = {"class_type": "LatentUpscaleBy",
-                "inputs": {"samples": ["elat", 0], "upscale_method": "nearest-exact", "scale_by": 8}}
+    g["lup"] = {"class_type": "LatentUpscale",
+                "inputs": {"samples": ["elat", 0], "upscale_method": "nearest-exact",
+                           "width": work, "height": work, "crop": "disabled"}}
     return ["lup", 0]
 
 
