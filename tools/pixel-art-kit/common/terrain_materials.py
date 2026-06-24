@@ -118,8 +118,9 @@ ALGOS = {"noise": algo_noise, "ripple": algo_ripple, "blades": algo_blades, "gra
 # Per-terrain algorithm selection + params (DB32 colors). `variants` overrides the default count.
 TERRAINS = {
     "water": {"algo": "ripple", "seed": 11, "variants": 1,
-              "tones": [(48, 96, 130), (99, 155, 255), (99, 155, 255), (95, 205, 228)],
-              "cyc_y": 3, "cyc_x": 2, "warp": 0.06, "glint": 0.04},
+              # 2 colors: blue base (weighted 3x -> dominant) + cyan crest. No dark trough stripe.
+              "tones": [(99, 155, 255), (99, 155, 255), (99, 155, 255), (95, 205, 228)],
+              "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.04},
     "sand":  {"algo": "grain", "seed": 23, "variants": 4,
               "base": (217, 160, 102), "dark": (143, 86, 59), "light": (238, 195, 154),
               "density": 0.16},
