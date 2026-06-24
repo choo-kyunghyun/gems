@@ -19,7 +19,7 @@ Usage:  python common/terrain_materials.py        # -> out/materials/<terrain>_<
 import os, math, random
 import pixlib as P
 
-S = 32  # material/tile size in px
+S = 16  # material/tile size in px (G.E.M.S. convention; see GEMS.md)
 
 
 # ---- algorithm: coarse value-noise (general) -------------------------------

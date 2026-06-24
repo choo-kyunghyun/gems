@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""entity_sprites — agent-drawn 32x32 entity sprites imported as GameMaker sprites.
+"""entity_sprites — agent-drawn 16x16 entity sprites imported as GameMaker sprites.
 
 The greenfield entity-art counterpart to terrain_sprites.py: instead of cutting tile frames from a
-material, it draws each Demo entity (hero / bandit / chest / torch / ...) procedurally into a 32x32
+material, it draws each Demo entity (hero / bandit / chest / torch / ...) procedurally into a 16x16
 DB32 buffer and writes a multi-frame GMSprite (PNG frames + per-layer PNG + a templated .yy) straight
 into the project's sprites/<spr_*>/. Same contract as terrain_sprites.py:
 
@@ -10,9 +10,10 @@ into the project's sprites/<spr_*>/. Same contract as terrain_sprites.py:
     `gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=<spr>"`); this only fills frames.
   * frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible (no churn).
 
-Style (this project's convention): 32px-native, DawnBringer-32 palette, flat color, one dark outline around each
-silhouette (added automatically), hard alpha. Origin is FOOT-ANCHORED (bottom-center, 16,32) — the
-engine's RenderEntity draws at the entity Position, so the sprite stands up from its feet.
+Style (G.E.M.S. convention — see GEMS.md): 16px-native, DawnBringer-32 palette, flat color, one dark
+outline around each silhouette (added automatically), hard alpha. Origin is FOOT-ANCHORED
+(bottom-center, 8,16) — the engine's RenderEntity draws at the entity Position, so the sprite stands
+up from its feet.
 
 Usage:  python tools/pixel-art-kit/gm-import/entity_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
@@ -22,7 +23,7 @@ import os, sys, uuid
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "common"))
 import pixlib as P
 
-S = 32                                              # canvas (one cell at 32px-native)
+S = 16                                              # canvas (one cell at 16px-native; see GEMS.md)
 ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(P.KIT))
 NS = uuid.uuid5(uuid.NAMESPACE_DNS, "gems.entity.sprites")  # stable namespace -> deterministic ids
 PARENT = ("Handmade Sprites", "folders/Media/Handmade Sprites.yy")  # IDE folder (matches terrain_sprites)
@@ -48,7 +49,7 @@ def rgba(c):
     return (r, g, b, 255)
 
 
-# ---- tiny raster API over a flat 32*32 RGBA buffer -------------------------
+# ---- tiny raster API over a flat 16*16 RGBA buffer -------------------------
 
 def blank():
     return [TRANSPARENT] * (S * S)
@@ -83,8 +84,8 @@ def disc(buf, cx, cy, r, c):
 
 def outline(buf, c=OUT):
     """Add a 1px color `c` around every opaque pixel that borders transparency (selective dark
-    outline). 4-connected so corners stay clean. Pixels at y=31 get no outline
-    below (clipped) — the feet sit on the bottom edge, which is what foot-anchoring wants."""
+    outline). 4-connected so corners stay clean. Pixels at y=15 get no outline below (clipped) — the
+    feet sit on the bottom edge, which is what foot-anchoring wants."""
     src = buf[:]
     for y in range(S):
         for x in range(S):
@@ -97,36 +98,35 @@ def outline(buf, c=OUT):
                     break
 
 
-# ---- entity drawings (foot at the bottom row; outline added last) ----------
+# ---- entity drawings (16px; foot at the bottom row; outline added last) -----
 
 def _humanoid(tunic, tunic_hi, tunic_sh, pants, hair, step, right_arm=True, do_outline=True):
     """Shared top-down humanoid: hair+face, tunic torso with arms, two legs+boots. `step` (0/1)
-    nudges the legs into a 2-pose walk. `right_arm=False` omits the right arm so an attack frame can
-    draw a SWINGING arm there instead (and `do_outline=False` defers the outline until that arm +
-    sword are added). Used for the hero (blue) and recolored by tint for NPC/companion at runtime."""
+    nudges one leg into a 2-pose walk. `right_arm=False` omits the right arm so an attack frame can
+    draw a SWINGING arm there instead (with `do_outline=False` to defer the outline until the arm +
+    sword are added). Used for the hero (blue) and recolored for the bandit/NPC."""
     b = blank()
-    # hair cap
-    rect(b, 11, 5, 20, 8, hair)
-    setpx(b, 11, 5, None); setpx(b, 20, 5, None)
-    # face
-    rect(b, 12, 8, 19, 12, SKIN)
-    vline(b, 19, 9, 12, SKIN_D)          # cheek shadow
-    setpx(b, 14, 10, OUT); setpx(b, 17, 10, OUT)   # eyes
+    # hair + face
+    rect(b, 6, 3, 10, 4, hair)            # hair cap
+    setpx(b, 6, 3, None); setpx(b, 10, 3, None)   # round the cap corners
+    rect(b, 6, 5, 10, 7, SKIN)            # face
+    setpx(b, 10, 6, SKIN_D)               # cheek shadow
+    setpx(b, 7, 6, OUT); setpx(b, 9, 6, OUT)      # eyes
     # torso (tunic) + shading
-    rect(b, 11, 13, 20, 21, tunic)
-    vline(b, 11, 14, 21, tunic_hi)       # lit left edge
-    vline(b, 20, 14, 21, tunic_sh)       # shaded right edge
-    hline(b, 11, 20, 21, BROWN)          # belt
-    # arms (sleeve over skin); the right arm is the one a swing replaces
-    rect(b, 9, 14, 10, 16, tunic); rect(b, 9, 17, 10, 20, SKIN)
+    rect(b, 5, 8, 10, 11, tunic)
+    vline(b, 5, 8, 11, tunic_hi)          # lit left edge
+    vline(b, 10, 8, 11, tunic_sh)         # shaded right edge
+    hline(b, 5, 10, 11, BROWN)            # belt
+    # arms (sleeve over a hand); the right arm is the one a swing replaces
+    vline(b, 4, 8, 9, tunic); setpx(b, 4, 10, SKIN)
     if right_arm:
-        rect(b, 21, 14, 22, 16, tunic); rect(b, 21, 17, 22, 20, SKIN)
-    # legs + boots, stepped
-    la, ra = (1, 0) if step == 0 else (0, 1)   # which leg leads (drops 1px)
-    rect(b, 12, 22, 14, 27 + la, pants)
-    rect(b, 17, 22, 19, 27 + ra, pants)
-    rect(b, 12, 28 + la, 14, 30, BROWN)
-    rect(b, 17, 28 + ra, 19, 30, BROWN)
+        vline(b, 11, 8, 9, tunic); setpx(b, 11, 10, SKIN)
+    # legs + boots, stepped (the leading leg drops 1px)
+    la, ra = (1, 0) if step == 0 else (0, 1)
+    rect(b, 6, 12, 7, 13 + la, pants)
+    rect(b, 9, 12, 10, 13 + ra, pants)
+    rect(b, 6, 14 + la, 7, 15, BROWN)
+    rect(b, 9, 14 + ra, 10, 15, BROWN)
     if do_outline:
         outline(b)
     return b
@@ -138,60 +138,54 @@ def hero():
 
 
 def _blade(b, x, y, dx, dy, n):
-    """A 2px-wide diagonal sword blade of length n from (x,y) stepping (dx,dy): steel core + a white
-    edge running alongside it."""
+    """A diagonal sword blade of length n from (x,y) stepping (dx,dy): steel core + a white edge
+    running alongside it."""
     for i in range(n):
         setpx(b, x + dx * i, y + dy * i, LGRAY)
         setpx(b, x + dx * i - dy, y + dy * i + dx, WHITE)   # edge offset perpendicular
 
 
 def hero_attack():
-    """Hero mid-swing — the right arm actually MOVES (the resting arm is omitted), carrying the sword
-    through a down-right arc: frame 0 raised strike (blade up-right), frame 1 follow-through (blade
-    down-right). Reads as one slash in the facing direction, not a floating sword beside a still pose."""
+    """Hero mid-swing — the right arm MOVES (the resting arm is omitted), carrying the sword through a
+    down-right arc: frame 0 raised strike (blade up-right), frame 1 follow-through (blade down-right).
+    Reads as one slash in the facing direction, not a floating sword beside a still pose."""
     out = []
     for f in range(2):
         b = _humanoid(BLUE, LBLUE, DBLUE, INDIGO, BROWN, f, right_arm=False, do_outline=False)
-        if f == 0:                       # raised strike: forearm up-right, blade up-right
-            rect(b, 21, 14, 22, 16, BLUE)         # shoulder/sleeve
-            rect(b, 22, 12, 24, 14, SKIN)         # forearm raised
-            rect(b, 24, 10, 25, 12, DGOLD)        # grip/guard
-            _blade(b, 25, 10, 1, -1, 9)           # blade up-right
-        else:                            # follow-through: forearm out-right, blade down-right
-            rect(b, 21, 16, 22, 18, BLUE)         # shoulder/sleeve
-            rect(b, 22, 17, 25, 19, SKIN)         # forearm extended
-            rect(b, 25, 18, 26, 20, DGOLD)        # grip/guard
-            _blade(b, 26, 20, 1, 1, 8)            # blade down-right
+        if f == 0:                            # raised strike
+            setpx(b, 11, 8, BLUE)             # shoulder
+            rect(b, 11, 6, 12, 7, SKIN)       # forearm raised
+            setpx(b, 12, 5, DGOLD)            # grip
+            _blade(b, 13, 5, 1, -1, 4)        # blade up-right
+        else:                                 # follow-through
+            setpx(b, 11, 9, BLUE)             # shoulder
+            rect(b, 11, 10, 13, 10, SKIN)     # forearm extended
+            setpx(b, 13, 11, DGOLD)           # grip
+            _blade(b, 13, 11, 1, 1, 4)        # blade down-right
         outline(b)
         out.append(b)
     return out
 
 
 def bandit():
-    """Hostile humanoid — dark hood + red tunic, hunched. 2-frame idle bob. Own sprite (not the
-    tinted hero), so it reads as an enemy without runtime tinting."""
+    """Hostile humanoid — dark hood + red tunic. 2-frame idle bob. Its own sprite (not a tinted
+    hero), so it reads as an enemy without runtime tinting."""
     out = []
     for f in range(2):
         b = blank()
-        dy = f                            # bob down 1px on frame 1
-        # hood
-        rect(b, 10, 4 + dy, 21, 9 + dy, MAROON)
-        setpx(b, 10, 4 + dy, None); setpx(b, 21, 4 + dy, None)
-        rect(b, 12, 9 + dy, 19, 12 + dy, SKIN_D)     # shadowed face
-        setpx(b, 14, 10 + dy, RED); setpx(b, 17, 10 + dy, RED)  # glowing eyes
-        # tunic
-        rect(b, 10, 13 + dy, 21, 22 + dy, RED)
-        vline(b, 10, 14 + dy, 22 + dy, MAROON)
-        vline(b, 21, 14 + dy, 22 + dy, MAROON)
-        hline(b, 10, 21, 22 + dy, BLACK)             # belt
-        # arms
-        rect(b, 8, 14 + dy, 9, 20 + dy, MAROON)
-        rect(b, 22, 14 + dy, 23, 20 + dy, MAROON)
-        # legs + boots
-        rect(b, 12, 23 + dy, 14, 28, DDGRAY)
-        rect(b, 17, 23 + dy, 19, 28, DDGRAY)
-        rect(b, 12, 29, 14, 30, BLACK)
-        rect(b, 17, 29, 19, 30, BLACK)
+        dy = f                                # bob down 1px on frame 1
+        rect(b, 6, 3 + dy, 10, 5 + dy, MAROON)        # hood
+        setpx(b, 6, 3 + dy, None); setpx(b, 10, 3 + dy, None)
+        rect(b, 7, 6 + dy, 9, 7 + dy, SKIN_D)         # shadowed face
+        setpx(b, 7, 6 + dy, RED); setpx(b, 9, 6 + dy, RED)    # glowing eyes
+        rect(b, 5, 8 + dy, 10, 11 + dy, RED)          # tunic
+        vline(b, 5, 8 + dy, 11 + dy, MAROON); vline(b, 10, 8 + dy, 11 + dy, MAROON)
+        hline(b, 5, 10, 11 + dy, BLACK)               # belt
+        vline(b, 4, 8 + dy, 10 + dy, MAROON)          # arms
+        vline(b, 11, 8 + dy, 10 + dy, MAROON)
+        rect(b, 6, 12, 7, 14, DDGRAY)                 # legs
+        rect(b, 9, 12, 10, 14, DDGRAY)
+        rect(b, 6, 15, 7, 15, BLACK); rect(b, 9, 15, 10, 15, BLACK)   # boots
         outline(b)
         out.append(b)
     return out
@@ -199,14 +193,13 @@ def bandit():
 
 def chest():
     b = blank()
-    rect(b, 7, 17, 24, 30, WOOD)          # body
-    vline(b, 24, 17, 30, MAROON); hline(b, 7, 24, 30, MAROON)
-    rect(b, 7, 13, 24, 18, BROWN)         # domed lid
-    hline(b, 7, 24, 13, WOOD)
-    vline(b, 15, 13, 30, MAROON); vline(b, 16, 13, 30, BROWN)  # center seam bands
-    vline(b, 9, 13, 30, GRAY); vline(b, 22, 13, 30, GRAY)      # metal straps
-    rect(b, 14, 19, 17, 23, DGOLD)        # lock plate
-    setpx(b, 15, 21, BLACK); setpx(b, 16, 21, BLACK)
+    rect(b, 3, 8, 12, 15, WOOD)           # body
+    rect(b, 3, 6, 12, 9, BROWN)           # domed lid
+    hline(b, 3, 12, 6, WOOD)              # lid highlight
+    vline(b, 7, 6, 15, MAROON); vline(b, 8, 6, 15, BROWN)    # center seam
+    vline(b, 4, 6, 15, GRAY); vline(b, 11, 6, 15, GRAY)      # metal straps
+    rect(b, 6, 9, 9, 11, DGOLD)           # lock plate
+    setpx(b, 7, 10, BLACK); setpx(b, 8, 10, BLACK)
     outline(b)
     return b
 
@@ -214,16 +207,15 @@ def chest():
 def bench():
     """Workbench: a wood top slab on legs with a saw + plank laid on top."""
     b = blank()
-    rect(b, 5, 14, 26, 18, WOOD)          # top slab
-    hline(b, 5, 26, 14, BROWN)
-    hline(b, 5, 26, 18, MAROON)
-    rect(b, 6, 19, 8, 30, BROWN)          # legs
-    rect(b, 23, 19, 25, 30, BROWN)
-    rect(b, 18, 9, 24, 13, DGOLD)         # a plank on top
-    hline(b, 18, 24, 9, YELLOW)
-    rect(b, 8, 11, 16, 13, GRAY)          # saw blade
-    hline(b, 8, 16, 11, WHITE)
-    rect(b, 6, 12, 8, 13, BROWN)          # saw handle
+    rect(b, 2, 8, 13, 10, WOOD)           # top slab
+    hline(b, 2, 13, 8, BROWN); hline(b, 2, 13, 10, MAROON)
+    rect(b, 3, 11, 4, 15, BROWN)          # legs
+    rect(b, 11, 11, 12, 15, BROWN)
+    rect(b, 9, 5, 12, 7, DGOLD)           # a plank on top
+    hline(b, 9, 12, 5, YELLOW)
+    rect(b, 4, 6, 7, 7, GRAY)             # saw blade
+    hline(b, 4, 7, 6, WHITE)
+    setpx(b, 3, 7, BROWN)                 # saw handle
     outline(b)
     return b
 
@@ -231,13 +223,12 @@ def bench():
 def survey_post():
     """Claim / Survey Post: a flagged pole on a small base."""
     b = blank()
-    rect(b, 25, 30, 25, 30, None)
-    vline(b, 15, 7, 29, BROWN); vline(b, 16, 7, 29, WOOD)   # pole
-    rect(b, 17, 7, 26, 13, CYAN)          # flag
-    hline(b, 17, 26, 7, WHITE)
-    vline(b, 26, 7, 13, TEAL)
-    setpx(b, 23, 10, WHITE)               # a mark on the flag
-    rect(b, 11, 29, 20, 30, DGRAY)        # base
+    vline(b, 7, 3, 14, BROWN); vline(b, 8, 3, 14, WOOD)     # pole
+    rect(b, 9, 3, 13, 6, CYAN)            # flag
+    hline(b, 9, 13, 3, WHITE)
+    vline(b, 13, 3, 6, TEAL)
+    setpx(b, 11, 5, WHITE)                # a mark on the flag
+    rect(b, 5, 14, 10, 15, DGRAY)         # base
     outline(b)
     return b
 
@@ -245,13 +236,11 @@ def survey_post():
 def torch():
     """Torch: wood post + a flame. The Light component supplies the glow at runtime."""
     b = blank()
-    vline(b, 14, 14, 30, BROWN); rect(b, 15, 14, 16, 30, WOOD); vline(b, 17, 14, 30, MAROON)
-    rect(b, 13, 13, 18, 15, DGRAY)        # bracket
-    # flame
-    disc(b, 15, 8, 5, ORANGE)
-    disc(b, 15, 9, 3, YELLOW)
-    setpx(b, 15, 4, ORANGE); setpx(b, 15, 3, YELLOW)
-    setpx(b, 16, 5, YELLOW)
+    vline(b, 7, 7, 15, BROWN); vline(b, 8, 7, 15, WOOD)     # post
+    rect(b, 6, 7, 9, 8, DGRAY)            # bracket
+    disc(b, 7, 4, 3, ORANGE)             # flame
+    disc(b, 7, 4, 2, YELLOW)
+    setpx(b, 7, 1, ORANGE); setpx(b, 8, 2, YELLOW)
     outline(b)
     return b
 
@@ -259,16 +248,14 @@ def torch():
 def turret():
     """Defense turret: a heavy base, an angled barrel, and a glowing energy core."""
     b = blank()
-    rect(b, 7, 22, 24, 30, SLATE)         # base
-    hline(b, 7, 24, 22, GRAY)
-    vline(b, 24, 22, 30, DDGRAY)
-    rect(b, 10, 16, 21, 23, GRAY)         # turret housing
-    hline(b, 10, 21, 16, LGRAY)
-    vline(b, 21, 16, 23, DGRAY)
-    disc(b, 15, 19, 3, CYAN)              # energy core
-    setpx(b, 15, 18, WHITE)
-    rect(b, 19, 10, 22, 17, GRAY)         # barrel (up-right)
-    rect(b, 20, 9, 21, 11, DDGRAY)        # muzzle
+    rect(b, 3, 11, 12, 15, SLATE)         # base
+    hline(b, 3, 12, 11, GRAY)
+    rect(b, 5, 8, 11, 12, GRAY)           # housing
+    hline(b, 5, 11, 8, LGRAY)
+    disc(b, 8, 10, 2, CYAN)              # energy core
+    setpx(b, 8, 9, WHITE)
+    rect(b, 10, 5, 12, 9, GRAY)           # barrel (up-right)
+    rect(b, 11, 4, 12, 5, DDGRAY)         # muzzle
     outline(b)
     return b
 
@@ -276,42 +263,38 @@ def turret():
 def doorway():
     """Portal doorway: a stone arch around a swirling portal."""
     b = blank()
-    rect(b, 8, 5, 23, 30, GRAY)           # stone frame
-    hline(b, 8, 23, 5, LGRAY)
-    rect(b, 11, 8, 20, 30, INDIGO)        # portal interior
-    rect(b, 12, 10, 19, 29, PURPLE)
-    # swirl
-    rect(b, 13, 14, 18, 16, CYAN)
-    rect(b, 14, 18, 17, 20, PINK)
-    rect(b, 13, 22, 18, 24, CYAN)
-    vline(b, 8, 5, 30, DGRAY); vline(b, 23, 5, 30, DGRAY)   # frame edges
+    rect(b, 4, 2, 11, 15, GRAY)           # stone frame
+    hline(b, 4, 11, 2, LGRAY)
+    rect(b, 6, 4, 9, 15, INDIGO)          # portal interior
+    rect(b, 6, 5, 9, 14, PURPLE)
+    rect(b, 6, 6, 9, 7, CYAN)             # swirl
+    rect(b, 6, 9, 9, 10, PINK)
+    rect(b, 6, 12, 9, 13, CYAN)
+    vline(b, 4, 2, 15, DGRAY); vline(b, 11, 2, 15, DGRAY)   # frame edges
     outline(b)
     return b
 
 
 def crate():
     b = blank()
-    rect(b, 7, 14, 24, 30, WOOD)
-    vline(b, 24, 14, 30, MAROON); hline(b, 7, 24, 30, MAROON)
-    hline(b, 7, 24, 14, BROWN)
-    # plank borders + an X brace
-    rect(b, 7, 14, 8, 30, BROWN); rect(b, 23, 14, 24, 30, BROWN)
-    for i in range(17):
-        setpx(b, 8 + i, 14 + i, MAROON)
-        setpx(b, 24 - i, 14 + i, MAROON)
+    rect(b, 3, 7, 12, 15, WOOD)
+    hline(b, 3, 12, 7, BROWN)
+    vline(b, 3, 7, 15, BROWN); vline(b, 12, 7, 15, BROWN)   # plank borders
+    for i in range(9):                    # an X brace
+        setpx(b, 3 + i, 7 + i, MAROON)
+        setpx(b, 12 - i, 7 + i, MAROON)
     outline(b)
     return b
 
 
 def barrel():
     b = blank()
-    for y in range(12, 31):              # tapered round body (inset at top/bottom rows)
-        inset = 2 if y in (12, 13, 29, 30) else (1 if y in (14, 28) else 0)
-        rect(b, 9 + inset, y, 22 - inset, y, WOOD)
-    vline(b, 22, 14, 28, MAROON)          # shaded side
-    vline(b, 9, 14, 28, BROWN)            # lit side
-    hline(b, 9, 22, 16, GRAY); hline(b, 9, 22, 24, GRAY)   # metal hoops
-    hline(b, 11, 20, 12, BROWN)           # top rim
+    for y in range(5, 16):                # rounded body (inset at top/bottom rows)
+        inset = 1 if y in (5, 15) else 0
+        rect(b, 5 + inset, y, 10 - inset, y, WOOD)
+    vline(b, 10, 6, 14, MAROON)           # shaded side
+    vline(b, 5, 6, 14, BROWN)             # lit side
+    hline(b, 5, 10, 8, GRAY); hline(b, 5, 10, 12, GRAY)    # metal hoops
     outline(b)
     return b
 
@@ -319,12 +302,10 @@ def barrel():
 def fence():
     """A wooden fence segment: two posts joined by two rails."""
     b = blank()
-    rect(b, 8, 12, 11, 30, BROWN); vline(b, 8, 12, 30, WOOD)
-    rect(b, 20, 12, 23, 30, BROWN); vline(b, 20, 12, 30, WOOD)
-    rect(b, 8, 16, 23, 18, WOOD); hline(b, 8, 23, 16, BROWN)
-    rect(b, 8, 23, 23, 25, WOOD); hline(b, 8, 23, 23, BROWN)
-    setpx(b, 9, 12, None); setpx(b, 10, 12, None)          # post caps
-    setpx(b, 21, 12, None); setpx(b, 22, 12, None)
+    rect(b, 3, 5, 5, 15, BROWN); vline(b, 3, 5, 15, WOOD)   # left post
+    rect(b, 10, 5, 12, 15, BROWN); vline(b, 10, 5, 15, WOOD)  # right post
+    rect(b, 3, 7, 12, 8, WOOD); hline(b, 3, 12, 7, BROWN)   # top rail
+    rect(b, 3, 11, 12, 12, WOOD); hline(b, 3, 12, 11, BROWN)  # bottom rail
     outline(b)
     return b
 
@@ -332,15 +313,13 @@ def fence():
 def bed():
     """Top-down bed: wood frame, mattress, pillow, blanket. Wide; foot at the bottom."""
     b = blank()
-    rect(b, 4, 9, 27, 30, BROWN)          # frame
-    rect(b, 6, 11, 25, 30, PALE)          # mattress
-    rect(b, 7, 12, 24, 17, CYAN)          # pillow
-    hline(b, 7, 24, 12, WHITE)
-    rect(b, 6, 19, 25, 30, RED)           # blanket
-    hline(b, 6, 25, 19, PINKRED)
-    vline(b, 6, 19, 30, PINKRED)
-    rect(b, 4, 9, 5, 12, WOOD)            # bedpost knobs (top corners)
-    rect(b, 26, 9, 27, 12, WOOD)
+    rect(b, 2, 4, 13, 15, BROWN)          # frame
+    rect(b, 3, 5, 12, 15, PALE)           # mattress
+    rect(b, 4, 6, 11, 8, CYAN)            # pillow
+    hline(b, 4, 11, 6, WHITE)
+    rect(b, 3, 10, 12, 15, RED)           # blanket
+    hline(b, 3, 12, 10, PINKRED)
+    rect(b, 2, 4, 2, 5, WOOD); rect(b, 13, 4, 13, 5, WOOD)  # bedpost knobs
     outline(b)
     return b
 
@@ -362,7 +341,7 @@ SPRITES = {
     "spr_bed":        ([bed()],       0.0),
 }
 
-# ---- GameMaker .yy emitter (foot-anchored, 32x32; mirrors terrain_sprites.py) ----
+# ---- GameMaker .yy emitter (foot-anchored, 16x16; mirrors terrain_sprites.py) ----
 
 def yy(name, frame_ids, layer_id, key_ids, speed):
     sprpath = f"sprites/{name}/{name}.yy"
@@ -502,7 +481,7 @@ def preview():
     for nm, (frs, _) in SPRITES.items():
         for i, fr in enumerate(frs):
             flat.append((f"{nm}#{i}", fr))
-    scale, pad, cell = 5, 8, S * 5
+    scale, pad, cell = 8, 8, S * 8
     cols = 8
     rows = (len(flat) + cols - 1) // cols
     SW = pad + cols * (cell + pad)

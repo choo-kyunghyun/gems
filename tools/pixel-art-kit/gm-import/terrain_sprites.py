@@ -11,7 +11,7 @@ engine's existing dual-grid sprite. TerrainStream infers the variant count from 
 The sprite resources must already be REGISTERED (once, via the IDE or
 `gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=spr_terrain<T>"`); this only fills in
 their frames. Frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible
-(no churn). Tile size matches terrain_materials (32px); TerrainStream scales it to the cell.
+(no churn). Tile size matches terrain_materials (16px; see GEMS.md); TerrainStream scales it to the cell.
 
 Usage:  python tools/pixel-art-kit/gm-import/terrain_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).

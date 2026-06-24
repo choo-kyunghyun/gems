@@ -34,7 +34,9 @@ reusable kit stays style-agnostic; this file is G.E.M.S.'s filled-in style.
 
 ## Status / migration
 
-The currently-shipped entity + terrain sprites are **legacy 32px** and are being **replaced with
-16×16**. The generators `gm-import/entity_sprites.py` and `terrain_sprites.py` still emit 32px
-(`S = 32`) — drop them to 16 as the art is redrawn. The kit demos under `templates/` are already 16×16
-DB32, so they're the reference for the new convention.
+The gm-import generators now emit **16×16**: `entity_sprites.py` is redrawn at 16px (foot-anchored),
+and `terrain_sprites.py` follows `terrain_materials.S = 16`. The committed `sprites/` are still the
+**legacy 32px** art — regenerate them by running the generators (`python gm-import/entity_sprites.py`,
+`python gm-import/terrain_sprites.py`), which also needs the **engine** updated to render 16×16 (sprite
+scale, `Level` cell size, foot-anchor origin). That regenerate + engine integration is the remaining
+step; the generators and the `templates/` demos are already on the 16×16 DB32 convention.
