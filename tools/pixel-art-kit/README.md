@@ -24,6 +24,8 @@ pixel-art-kit/
 │   ├── animate2.py     multi-state character (idle/walk/attack) + per-frame export
 │   ├── quantize.py     remap a PNG/folder to a fixed palette (style-match lever)
 │   ├── tileset.py      synthesize an autotile set (dual + corner/quarter) from ONE material
+│   ├── terrain_materials.py  tileable terrain materials w/ selectable algos (ripple/grain/blades)
+│   ├── terrain_sprites.py    import those materials as GameMaker dual-grid sprites (+ variants)
 │   ├── preview.py      matched previews + out/compare.png across methods
 │   └── pack.py         assemble a frames folder -> strip + GIFs + filmstrip
 ├── aseprite/   LOCAL DEPENDENCY: Aseprite installed          → aseprite/README.md
@@ -225,6 +227,13 @@ python common/tileset.py styletest/grass.png 32 --mode corner --heal   # quarter
 #   dual_strip16.png   = 16 tile-frames     (import with RenderTileMap autotile:"dual")
 #   corner_strip13.png = 13 quarter pieces  (import with RenderTileMap autotile:"corner")
 #   seamless_<mode>.png = a demo blob rendered through the tiles (verify it tiles)
+
+# terrain tiles (the G.E.M.S. overworld pipeline): per-material algorithm -> GameMaker sprites
+python common/terrain_materials.py    # out/materials/<t>_<i>.png (water=ripple, sand=grain, grass=blades)
+python common/terrain_sprites.py      # cut dual-grid frames + variants -> sprites/spr_terrain{Water,Sand,Grass}
+#   the sprite resources must exist first (resourcetool RESOURCE CREATE TYPE=Sprite NAME=spr_terrain<T>);
+#   this fills their frames. TerrainStream reads the frame count for the per-cell variant pick.
+#   Materials + frame UUIDs are deterministic, so re-running reproduces the committed sprites.
 ```
 
 **Compare** any set of methods side by side (matched display size for 16px vs 32px):
