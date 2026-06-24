@@ -92,15 +92,14 @@ globalThis.RpgPlayer = {
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) hotbarSlots.push("");
     world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
     world.add(id, Favorites, { ids: [] });
-    // The human run sprite, drawn at 2x (16px art → 32px world scale) and untinted. The Animator
-    // (RpgController) overwrites sprite+subimg each frame by state; xscale/yscale persist (facing
-    // flip below toggles xscale ±2).
+    // The 32px-native hero sprite (scale 1), untinted. The Animator (RpgController) overwrites
+    // sprite+subimg each frame by state; xscale/yscale persist (facing flip below toggles xscale ±1).
     world.add(id, Visual, {
       visible: true,
-      sprite: spr_humanRun,
+      sprite: spr_hero,
       subimg: 0,
-      xscale: 2,
-      yscale: 2,
+      xscale: 1,
+      yscale: 1,
       rot: 0,
       color: c_white,
       alpha: 1,

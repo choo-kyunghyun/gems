@@ -52,14 +52,14 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          // Plain wooden furniture — tint comes from the wood Material (one source of truth),
-          // not a hex per item. See Material / RpgSpawn._tint.
+          // Furniture sub-type selects the dedicated DB32 sprite (RpgSpawn prop branch); the art
+          // is already wood-colored, so no Material tint is needed.
           make: (gx, gy) => ({
             preset: "prop",
             gx,
             gy,
             label: I18n.text("BUILD_CRATE"),
-            material: "wood",
+            furn: "crate",
           }),
         },
         {
@@ -72,7 +72,7 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_BARREL"),
-            material: "wood",
+            furn: "barrel",
           }),
         },
         {
@@ -85,7 +85,7 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_FENCE"),
-            material: "wood",
+            furn: "fence",
           }),
         },
         {

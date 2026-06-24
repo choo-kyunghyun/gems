@@ -113,20 +113,20 @@ globalThis.RpgController = {
     world.add(id, Animator, {
       graph: {
         idle: {
-          sprite: spr_humanRun,
-          frames: sprite_get_number(spr_humanRun),
+          sprite: spr_hero,
+          frames: sprite_get_number(spr_hero),
           fps: 3, // gentle bob at rest
           loop: true,
         },
         walk: {
-          sprite: spr_humanRun,
-          frames: sprite_get_number(spr_humanRun),
+          sprite: spr_hero,
+          frames: sprite_get_number(spr_hero),
           fps: 8,
           loop: true,
         },
         attack: {
-          sprite: spr_humanAction,
-          frames: sprite_get_number(spr_humanAction),
+          sprite: spr_heroAttack,
+          frames: sprite_get_number(spr_heroAttack),
           fps: 10,
           loop: false,
         },
@@ -281,12 +281,12 @@ globalThis.RpgController = {
       AnimationSystem.set(anim, state);
     }
 
-    // Facing: flip horizontally toward the last horizontal move (xscale ±2 = the 2x draw scale).
-    // The attack state now has its own sprite (humanAction), so no placeholder tint is needed.
+    // Facing: flip horizontally toward the last horizontal move (xscale ±1 = the 32px-native scale).
+    // The attack state has its own sprite (spr_heroAttack), so no placeholder tint is needed.
     const vis = world.get(Visual, ctrl.id);
     if (vis !== undefined) {
-      if (dir.x < -0.01) vis.xscale = -2;
-      else if (dir.x > 0.01) vis.xscale = 2;
+      if (dir.x < -0.01) vis.xscale = -1;
+      else if (dir.x > 0.01) vis.xscale = 1;
     }
   },
 
