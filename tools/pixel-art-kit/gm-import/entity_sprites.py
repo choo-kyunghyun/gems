@@ -14,12 +14,12 @@ Style (this project's convention): 32px-native, DawnBringer-32 palette, flat col
 silhouette (added automatically), hard alpha. Origin is FOOT-ANCHORED (bottom-center, 16,32) — the
 engine's RenderEntity draws at the entity Position, so the sprite stands up from its feet.
 
-Usage:  python common/entity_sprites.py [project_root]
+Usage:  python tools/pixel-art-kit/gm-import/entity_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
 """
 import os, sys, uuid
-# this binding lives outside the kit; add the kit's common/ to the path so `import pixlib` resolves.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pixel-art-kit", "common"))
+# this adapter lives in the kit (gm-import/); add the sibling common/ to the path so `import pixlib` resolves.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "common"))
 import pixlib as P
 
 S = 32                                              # canvas (one cell at 32px-native)

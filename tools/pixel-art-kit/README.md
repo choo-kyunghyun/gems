@@ -27,7 +27,7 @@ Never assume a palette, a resolution, or a look — derive them from the project
 
 ```
 pixel-art-kit/
-├── common/     the toolkit (pure Python stdlib, no external deps)   → common/README.md
+├── common/     engine-agnostic core (pure Python stdlib, no external deps)
 │   ├── pixlib.py       shared lib: PNG/GIF encode+decode, NN compositing, quantize, paths
 │   ├── draw.py         static icons
 │   ├── animate.py      single-state animation
@@ -37,15 +37,19 @@ pixel-art-kit/
 │   ├── terrain_materials.py  tileable terrain materials w/ selectable algos (ripple/grain/blades)
 │   ├── preview.py      matched previews + a contact sheet
 │   └── pack.py         assemble a frames folder -> strip + GIFs + filmstrip + manifest
+├── gm-import/  GameMaker adapter (engine-specific; imports common/)
+│   ├── entity_sprites.py    draw this project's entities -> GameMaker sprites
+│   └── terrain_sprites.py   cut dual-grid terrain frames -> GameMaker sprites
 ├── local/      GITIGNORED: machine/style-specific data + scratch experiments
 └── out/        all generated artifacts (gitignored, shared by every script)
 ```
 
-Everything runs with no install. The toolkit is **data-free** — palettes, sizes, and subjects are
+The `common/` core runs with no install and is **data-free** — palettes, sizes, and subjects are
 supplied per project, not baked in.
 
-> Engine-specific consumers live **outside** the kit, in `tools/gems-sprites/` — they import the kit
-> (`common/`) and write sprites into a particular game project (see _Project bindings_ below).
+> The engine-specific layer lives in the **`gm-import/`** subdir — it imports the core (`common/`) and
+> writes sprites into a particular GameMaker project, kept in its own subdir so `common/` stays
+> engine- and style-agnostic (see _Project bindings_ below).
 
 ---
 
@@ -136,15 +140,23 @@ python common/tileset.py <material.png> <cell> --mode dual|corner|both [--heal] 
 
 ---
 
-## Project bindings (kept out of the reusable core)
+## Project bindings — the `gm-import/` adapter
 
-Project- and engine-specific code lives **outside** the kit, in `tools/gems-sprites/` — example
-consumers that import the kit (via `common/`) and write sprites into a specific GameMaker project:
+Engine- and project-specific code lives in the **`gm-import/`** subdir — it imports the core (via a
+`sys.path` shim to the sibling `common/`) and writes finished sprites, in this project's DB32 /
+foot-anchored / 32px style, straight into the GameMaker project's `sprites/`. Kept separate so the
+`common/` core stays engine- and style-agnostic:
 
-- `tools/gems-sprites/entity_sprites.py` — draws this project's entities (DB32, foot-anchored) as
-  GameMaker sprites.
-- `tools/gems-sprites/terrain_sprites.py` — imports `terrain_materials` + `tileset` and writes
-  GameMaker dual-grid terrain sprites.
+- `gm-import/entity_sprites.py` — draws this project's entities (hero/bandit/chest/torch/…, DB32,
+  foot-anchored) as GameMaker sprites.
+  `python tools/pixel-art-kit/gm-import/entity_sprites.py`
+- `gm-import/terrain_sprites.py` — imports `terrain_materials` + `tileset` and writes GameMaker
+  dual-grid `spr_terrain*` (run `common/terrain_materials.py` first).
+  `python tools/pixel-art-kit/gm-import/terrain_sprites.py`
+
+The target sprite resources must already be **registered** (IDE or `gm-cli resourcetool`); these only
+fill frames. Frame/layer/keyframe UUIDs are deterministic (uuid5), so re-running is reproducible (no
+churn).
 
 The kit core is **palette-agnostic**: `pixlib` carries no palette (`load_palette` reads one from a
 file), `quantize.py` takes a palette argument, and `tileset.py` takes an optional `--palette`. The

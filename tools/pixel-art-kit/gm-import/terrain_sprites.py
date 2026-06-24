@@ -13,12 +13,12 @@ The sprite resources must already be REGISTERED (once, via the IDE or
 their frames. Frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible
 (no churn). Tile size matches terrain_materials (32px); TerrainStream scales it to the cell.
 
-Usage:  python common/terrain_sprites.py [project_root]
+Usage:  python tools/pixel-art-kit/gm-import/terrain_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
 """
 import os, sys, uuid
-# this binding lives outside the kit; add the kit's common/ to the path so the kit modules resolve.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pixel-art-kit", "common"))
+# this adapter lives in the kit (gm-import/); add the sibling common/ to the path so the kit modules resolve.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "common"))
 import pixlib as P
 import tileset as T
 import terrain_materials as TM
