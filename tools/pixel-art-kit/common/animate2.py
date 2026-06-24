@@ -12,37 +12,10 @@ import pixlib as P
 
 OUT = P.out_dir("anim", "agent_hero")
 
-W = H = 16
-PAL = {
-    ".": (0, 0, 0, 0),
-    "o": (26, 28, 44, 255),     # outline / eyes
-    "h": (90, 56, 38, 255),     # hair
-    "s": (224, 172, 105, 255),  # skin
-    "b": (59, 93, 201, 255),    # shirt
-    "p": (51, 57, 65, 255),     # pants
-    "k": (122, 74, 49, 255),    # boots
-    "w": (192, 203, 220, 255),  # blade
-    "g": (255, 205, 117, 255),  # guard
-}
-
-BASE = [
-    "................",
-    ".....hhhhhh.....",
-    ".....hhhhhh.....",
-    ".....hssssh.....",
-    ".....sossos.....",  # eyes at cols 6, 9
-    ".....ssssss.....",
-    ".....bbbbbb.....",
-    "....sbbbbbbs....",  # hands at cols 4, 11
-    "....sbbbbbbs....",
-    ".....bbbbbb.....",
-    ".....pppppp.....",
-    ".....pp..pp.....",  # legs
-    ".....pp..pp.....",
-    ".....kk..kk.....",  # boots
-    "................",
-    "................",
-]
+# art + palette come from a data file (templates/hero.json), not inline — see pixlib.load_template.
+BASE, PAL = P.load_template(os.path.join(P.KIT, "templates", "hero.json"))
+H, W = len(BASE), len(BASE[0])
+# the transforms below (leg-lift rows, weapon-paint coords) are authored for this 16x16 hero base.
 
 
 def grid_copy(g):

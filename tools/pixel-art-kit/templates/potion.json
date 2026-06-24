@@ -1,0 +1,29 @@
+{
+  "art": [
+    "................",
+    "......yyyy......",
+    "......yWWy......",
+    "......XWWX......",
+    "......XWWX......",
+    ".....XWWWWX.....",
+    "....XWWooWWX....",
+    "...XWoRRRRoWX...",
+    "..XWoRRRRRRoWX..",
+    "..XWRRcRRRRRWX..",
+    "..XWRRRRRRRRWX..",
+    "..XWRRRRRRRRWX..",
+    "..XWRRRRRRRRWX..",
+    "...XWRRRRRRWX...",
+    "....XWWWWWWX....",
+    ".....XXXXXX....."
+  ],
+  "palette": {
+    ".": null,
+    "R": "ac3232",
+    "W": "ffffff",
+    "X": "222034",
+    "c": "5fcde4",
+    "o": "d9a066",
+    "y": "eec39a"
+  }
+}

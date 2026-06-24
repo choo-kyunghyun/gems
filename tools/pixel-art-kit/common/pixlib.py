@@ -6,7 +6,7 @@ palette-quantize helper. Imported by the common/ generators (draw, animate*, qua
 and the preview CLI. Path helpers (KIT/OUT) resolve the toolkit root so every script
 writes to the one shared out/.
 """
-import zlib, struct, binascii, os
+import zlib, struct, binascii, os, json
 
 HERE = os.path.dirname(os.path.abspath(__file__))   # .../common
 KIT = os.path.dirname(HERE)                          # toolkit root
@@ -256,12 +256,68 @@ def quantize_to_palette(pixels, palette, alpha_thresh=128):
 
 
 def load_palette(path):
-    """Load an RGB palette from a hex-per-line file (`rrggbb`, optional leading `#`; other lines
-    ignored). The kit ships NO built-in palette — provide the project's. Common `.hex` exports
-    (e.g. Lospec) parse directly."""
+    """Load an RGB palette from a hex-per-line file (`rrggbb`, optional leading `#`; `#`-comment and
+    blank lines ignored). The kit ships NO built-in palette — provide the project's. Common `.hex`
+    exports (e.g. Lospec) parse directly. Line N (0-based, comments skipped) = palette index N."""
     pal = []
-    for line in open(path):
-        s = line.strip().lstrip("#")
+    for line in open(path, encoding="utf-8"):
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        s = s.lstrip("#")
         if len(s) >= 6 and all(c in "0123456789abcdefABCDEF" for c in s[:6]):
             pal.append((int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)))
     return pal
+
+# ---- sprite templates (input data, separate from generator code) -----------
+
+_IDX = "0123456789abcdefghijklmnopqrstuv"   # .txt cell -> palette index (0-9, a-v = 10-31)
+
+
+def _parse_cell_hex(s):
+    """'rrggbb' or 'rrggbbaa' (optional leading '#'); falsy/null -> transparent."""
+    if not s:
+        return (0, 0, 0, 0)
+    s = s.lstrip("#")
+    a = int(s[6:8], 16) if len(s) >= 8 else 255
+    return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16), a)
+
+
+def load_template(path, palette=None):
+    """Load a sprite template -> (rows, charmap): `rows` = list of equal-length strings (one char per
+    pixel), `charmap` = {char: (r,g,b,a)}. Keeps ART in a data file, out of the generator code. Two
+    formats by extension:
+
+      .json : {"art": [<rows>], "palette": {<char>: "rrggbb" | "rrggbbaa" | null}} — self-contained
+              (palette embedded; null = transparent). Portable single file.
+      .txt  : a grid of single-char palette INDICES ('0'-'9','a'-'v' -> palette[0..31]; '.' =
+              transparent). `palette` (a list of (r,g,b), e.g. from load_palette) supplies the colors,
+              so many .txt sprites share one palette file. `#`-comment / blank lines are ignored.
+
+    Pair with template_pixels() to get (w, h, pixels) for write_png/blit."""
+    if os.path.splitext(path)[1].lower() == ".json":
+        data = json.load(open(path, encoding="utf-8"))
+        rows = list(data["art"])
+        charmap = {ch: _parse_cell_hex(v) for ch, v in data["palette"].items()}
+    else:
+        rows = []
+        for ln in open(path, encoding="utf-8"):
+            ln = ln.rstrip("\r\n")
+            if ln and not ln.startswith("#"):
+                rows.append(ln)
+        assert palette is not None, f"{path}: a .txt template needs a palette (pass load_palette(...))"
+        charmap = {".": (0, 0, 0, 0)}
+        for i, c in enumerate(palette):
+            charmap[_IDX[i]] = (c[0], c[1], c[2], 255)
+    w = len(rows[0])
+    for i, r in enumerate(rows):
+        assert len(r) == w, f"{path}: row {i} width {len(r)} != {w}"
+        for ch in r:
+            assert ch in charmap, f"{path}: row {i} has cell {ch!r} not in the palette"
+    return rows, charmap
+
+
+def template_pixels(rows, charmap):
+    """(rows, charmap) from load_template -> (w, h, flat [(r,g,b,a)]) ready for write_png / blit."""
+    h, w = len(rows), len(rows[0])
+    return w, h, [charmap[ch] for row in rows for ch in row]

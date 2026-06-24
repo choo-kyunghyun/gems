@@ -1,0 +1,17 @@
+# bed - single-char palette index into palette.hex ('.' = transparent)
+1111111111111111
+1444444444444441
+14llllllllllll41
+14lkkkkkkkkkkl41
+14llllllllllll41
+14hhhhhhhhhhhh41
+14hiihhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+14hhhhhhhhhhhh41
+1444444444444441
+1111111111111111
