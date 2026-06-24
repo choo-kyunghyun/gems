@@ -31,7 +31,8 @@ def prompts(g, clip_ref, pos, neg):
 
 def empty_latent(g, size, batch):
     """Logical `size` px latent upscaled 8x (nearest) -> samples at size*8 px; the matching
-    0.125 downscale in decode_downscale brings it back to `size` px."""
+    0.125 downscale in decode_downscale brings it back to `size` px. The 8x MUST equal the
+    pixel-art LoRA's training scale (8x or 16x) — change both ends together for a 16x LoRA."""
     g["elat"] = {"class_type": "EmptyLatentImage",
                  "inputs": {"width": size, "height": size, "batch_size": batch}}
     g["lup"] = {"class_type": "LatentUpscaleBy",
