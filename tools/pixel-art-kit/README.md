@@ -21,12 +21,16 @@ anything for a project:
 
 Never assume a palette, a resolution, or a look — derive them from the project and the user.
 
+> In **this** repo the answers are already settled — see **[GEMS.md](GEMS.md)** (16×16, DB32). Follow
+> it for G.E.M.S. sprites; the scan-then-ask flow above is for reusing the kit in another project.
+
 ---
 
 ## Layout
 
 ```
 pixel-art-kit/
+├── GEMS.md     THIS project's confirmed conventions (16x16, DB32) — the "scan/ask" answer
 ├── common/     engine-agnostic core (pure Python stdlib, no external deps)
 │   ├── pixlib.py       shared lib: PNG/GIF encode+decode, NN compositing, quantize, paths
 │   ├── draw.py         render templates/ statics -> icon PNGs + previews + sheet
