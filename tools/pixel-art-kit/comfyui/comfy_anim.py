@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """comfy_anim — coherent animation via img2img (LOCAL DEP: ComfyUI server).
 
-Refines a folder of frame PNGs (e.g. the agent hero frames) through img2img at a FIXED seed
-+ LOW denoise: the agent frames supply the coherent motion (diffusion's weakness), img2img
-adds consistent detail. Tests jitter-free structure-anchored animation AND bumps 16px frames
-to 32px (the resolution question) in one go.
+Refines a folder of frame PNGs through img2img at a FIXED seed + LOW denoise: the source frames
+supply the coherent motion (diffusion's weakness), img2img adds consistent detail. Model filenames
++ the character prompt come from the local config (`local/comfy.config.json`, gitignored).
 
-Reads out/<frames_subdir>/f*.png; writes out/anim/hybrid_hero_d<NN>/f*.png (32px, max fidelity).
-Pack with common/pack.py afterwards, then compare.
+Reads out/<frames_subdir>/f*.png; writes out/anim/hybrid_hero_d<NN>/f*.png (max fidelity).
+Pack with common/pack.py afterwards.
 
 Usage: python comfy_anim.py [frames_subdir] [denoise ...]
   default subdir: anim/agent_hero/frames   default sweep: 0.30 0.45
@@ -16,21 +15,19 @@ import os, sys, re
 import comfy_api as A
 import comfy_graph as G
 
-WORK = 256          # blockout upscaled to this; output = WORK/8 = 32px
+WORK = 256          # frame upscaled to this; output = WORK/8 = 32px
 SEED = 7777         # FIXED across every frame -> frame-to-frame coherence
-POS = ("pixel art rpg character, a person, brown hair, blue shirt, brown boots, "
-       "full body, front view, simple background, masterpiece, best quality")
-NEG = "bad quality, worst quality, blurry, deformed, extra limbs"
 
 
 def build(image_name, denoise):
+    cfg = A.config()
     g = {}
-    m, c, v = G.models(g)
-    p, n = G.prompts(g, c, POS, NEG)
+    m, c, v = G.models(g, cfg["ckpt"], cfg["lora"], cfg.get("lora_strength", 1.0))
+    p, n = G.prompts(g, c, cfg["anim_prompt"], cfg["anim_neg"])
     lat = G.img2img_latent(g, v, image_name, WORK)
     lat = G.sample(g, m, p, n, lat, SEED, denoise=denoise)
     img = G.decode_downscale(g, lat, v)
-    img = G.bg_removal(g, img)
+    img = G.bg_removal(g, img, cfg["birefnet"])
     G.save(g, img, "animref")
     return g
 

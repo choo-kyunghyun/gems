@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """tileset — synthesize an autotile set from ONE material texture, for either engine
-autotile mode: RenderTileMap `"dual"` (dual-grid) or `"corner"` (quarter / sub-tile).
+autotile mode: `"dual"` (dual-grid) or `"corner"` (quarter / sub-tile).
 
 Diffusion (or any generator) can't honor autotile edge/corner matching across frames, so we
 DON'T generate the tileset — we take a single material patch and CUT the frames from it
@@ -14,7 +14,7 @@ C0-continuous across a shared edge, so adjacent display tiles connect with no se
   corner : 13 pieces, half-cell-sized (size/2 each), in the engine's frame order
            [0 fill · 1-4 outer TL/TR/BR/BL · 5-8 edge T/B/L/R · 9-12 inner TL/TR/BR/BL].
            A tile is assembled from 4 pieces picked by the 3 neighbors touching each corner
-           (this script replicates RenderTileMap's selectors for the seamless check). 13 pieces
+           (this script replicates a runtime's corner selectors for the seamless check). 13 pieces
            cover all 256 masks; material necessarily repeats every half-cell (inherent to the
            method — pieces are shared across quadrant positions).
 
@@ -26,13 +26,13 @@ Outputs (under out/<subdir>/), per mode:
 
 Usage:
   python tileset.py [material.png] [size] [out_subdir] [--mode dual|corner|both] [--heal] [--raw]
-    material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural DB32 grass.
+    material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural demo grass.
     size          tile pixels (default 32). corner pieces are size/2.
     out_subdir    under out/ (default tiles/<material-stem>).
     --mode        which set(s) to emit (default both).
     --heal        wrap-offset + seam-blur the patch to force tileability (a real tiling node
                   upstream is better; this is the stdlib safety net).
-    --raw         skip the DB32 quantize (inspect the generator's max fidelity).
+    --palette F   lock the output to the palette in file F (hex-per-line); omit = keep source colors.
 """
 import os, sys, random
 import pixlib as P
@@ -41,7 +41,7 @@ TRANSPARENT = (0, 0, 0, 0)
 
 # corner frame order -> the sub-corner mask that synthesizes each piece (bits TL=1,TR=2,BR=4,BL=8).
 # outer = only the cell-interior sub-corner on; edge = the two interior-side on; inner = the one
-# cell-corner sub-corner off; fill = all on. (Derived to match RenderTileMap's _corner* selectors.)
+# cell-corner sub-corner off; fill = all on. (Derived to match a standard corner-autotile selector set.)
 CORNER_MASKS = [15,           # 0  fill
                 4, 8, 1, 2,   # 1-4  outer  TL, TR, BR, BL
                 12, 3, 6, 9,  # 5-8  edge   top, bottom, left, right
@@ -52,8 +52,8 @@ CORNER_MASKS = [15,           # 0  fill
 
 
 def demo_material(S, seed=7):
-    """Procedural tileable DB32 grass: seeded noise, wrap box-blurred to smooth blobs (tileable
-    by construction), banded into DB32 greens. Lets the pipeline run with no ComfyUI/Aseprite."""
+    """Procedural tileable demo grass: seeded noise, wrap box-blurred to smooth blobs (tileable
+    by construction), banded into a few greens. Lets the pipeline run with no ComfyUI/Aseprite."""
     rng = random.Random(seed)
     field = [rng.random() for _ in range(S * S)]
     for _ in range(3):
@@ -68,7 +68,7 @@ def demo_material(S, seed=7):
         field = nxt
     lo, hi = min(field), max(field)
     span = (hi - lo) or 1.0
-    greens = [(75, 105, 47), (55, 148, 110), (106, 190, 48), (153, 229, 80)]  # DB32
+    greens = [(75, 105, 47), (55, 148, 110), (106, 190, 48), (153, 229, 80)]  # demo greens
     return [greens[min(len(greens) - 1, int((v - lo) / span * len(greens)))] + (255,) for v in field]
 
 
@@ -82,7 +82,7 @@ def load_patch(path, S):
 def make_tileable(patch, S, band=3):
     """Force tileability: wrap-offset by half (so the unmatched source edges move to a central
     cross and the new edges are interior-adjacent = matching), then wrap box-blur only the cross
-    band to heal it. DB32 quantize snaps the blur afterward."""
+    band to heal it. A later palette quantize (if any) snaps the blur afterward."""
     rolled = [patch[((y - S // 2) % S) * S + ((x - S // 2) % S)] for y in range(S) for x in range(S)]
     c = S // 2
     out = list(rolled)
@@ -99,7 +99,7 @@ def make_tileable(patch, S, band=3):
     return out
 
 
-def prep_patch(material, S, heal, raw):
+def prep_patch(material, S, heal=False, palette=None):
     if material:
         src = resolve(material)
         if not src:
@@ -109,8 +109,8 @@ def prep_patch(material, S, heal, raw):
         patch, label = demo_material(S), "procedural grass"
     if heal:
         patch = make_tileable(patch, S)
-    if not raw:
-        patch = P.quantize_to_palette(patch, P.DB32)
+    if palette:
+        patch = P.quantize_to_palette(patch, palette)
     return patch, label
 
 
@@ -140,7 +140,7 @@ def synth(patch, S, masks):
             for cov in (coverage(m, S) for m in masks)]
 
 
-# ---- engine corner selectors (replica of RenderTileMap._corner*) -----------
+# ---- engine corner selectors (standard corner-autotile selectors) ----------
 # neighbor bits: N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128
 
 
@@ -279,12 +279,11 @@ def resolve(path):
 def main():
     args = sys.argv[1:]
     heal = "--heal" in args
-    raw = "--raw" in args
-    mode = "both"
-    if "--mode" in args:
-        mode = args[args.index("--mode") + 1]
+    mode = args[args.index("--mode") + 1] if "--mode" in args else "both"
+    pal_val = args[args.index("--palette") + 1] if "--palette" in args else None
+    palette = P.load_palette(pal_val) if pal_val else None
     pos = [a for a in args if not a.startswith("--")
-           and a not in ("dual", "corner", "both")]
+           and a not in ("dual", "corner", "both") and a != pal_val]
 
     material = pos[0] if pos else None
     S = int(pos[1]) if len(pos) > 1 else 32
@@ -298,7 +297,7 @@ def main():
 
     did = []
     if mode in ("dual", "both"):
-        patch, label = prep_patch(material, S, heal, raw)
+        patch, label = prep_patch(material, S, heal, palette)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return
         frames = synth(patch, S, range(16))
@@ -307,7 +306,7 @@ def main():
         write_seamless_dual(out, frames, S)
         did.append(f"dual (16x{S})")
     if mode in ("corner", "both"):
-        patch, label = prep_patch(material, Q, heal, raw)
+        patch, label = prep_patch(material, Q, heal, palette)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return
         pieces = synth(patch, Q, CORNER_MASKS)
@@ -316,7 +315,7 @@ def main():
         write_seamless_corner(out, pieces, Q)
         did.append(f"corner (13x{Q})")
 
-    tag = "raw" if raw else "DB32"
+    tag = "palette" if palette else "raw"
     print(f"tileset from {label} ({tag}{', healed' if heal else ''}) -> out/{sub}")
     print(f"  modes: {', '.join(did)}  (<mode>_strip<N>.png + preview_/seamless_ per mode)")
 

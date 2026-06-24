@@ -252,18 +252,16 @@ def quantize_to_palette(pixels, palette, alpha_thresh=128):
             out.append((nr, ng, nb, 255))
     return out
 
-# ---- canonical palette -----------------------------------------------------
+# ---- palette loading -------------------------------------------------------
 
 
-def _hx(h):
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
-
-
-# DawnBringer 32 — the Demo's standard color palette. Color art quantizes to this;
-# grayscale tint-masks use a separate luminance ramp (a different class — see quantize.py).
-DB32 = [_hx(h) for h in (
-    "000000", "222034", "45283c", "663931", "8f563b", "df7126", "d9a066", "eec39a",
-    "fbf236", "99e550", "6abe30", "37946e", "4b692f", "524b24", "323c39", "3f3f74",
-    "306082", "5b6ee1", "639bff", "5fcde4", "cbdbfc", "ffffff", "9badb7", "847e87",
-    "696a6a", "595652", "76428a", "ac3232", "d95763", "d77bba", "8f974a", "8a6f30",
-)]
+def load_palette(path):
+    """Load an RGB palette from a hex-per-line file (`rrggbb`, optional leading `#`; other lines
+    ignored). The kit ships NO built-in palette — provide the project's. Common `.hex` exports
+    (e.g. Lospec) parse directly."""
+    pal = []
+    for line in open(path):
+        s = line.strip().lstrip("#")
+        if len(s) >= 6 and all(c in "0123456789abcdefABCDEF" for c in s[:6]):
+            pal.append((int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)))
+    return pal

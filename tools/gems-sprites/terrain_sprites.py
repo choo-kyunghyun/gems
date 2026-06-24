@@ -17,6 +17,8 @@ Usage:  python common/terrain_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
 """
 import os, sys, uuid
+# this binding lives outside the kit; add the kit's common/ to the path so the kit modules resolve.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pixel-art-kit", "common"))
 import pixlib as P
 import tileset as T
 import terrain_materials as TM
@@ -34,13 +36,13 @@ def sprite_name(terr):
 
 def frames_for(terr):
     """16 dual-grid frames cut from variant 0, then each extra variant material as a full tile."""
-    patch0, _ = T.prep_patch(f"materials/{terr}_0.png", S, False, False)
+    patch0, _ = T.prep_patch(f"materials/{terr}_0.png", S, False)
     if patch0 is None:
         raise SystemExit(f"missing material materials/{terr}_0.png — run terrain_materials.py first")
     frames = T.synth(patch0, S, range(16))
     i = 1
     while os.path.isfile(os.path.join(P.OUT, "materials", f"{terr}_{i}.png")):
-        pv, _ = T.prep_patch(f"materials/{terr}_{i}.png", S, False, False)
+        pv, _ = T.prep_patch(f"materials/{terr}_{i}.png", S, False)
         frames.append(pv)
         i += 1
     return frames

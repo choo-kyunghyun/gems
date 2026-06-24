@@ -10,7 +10,7 @@ into the project's sprites/<spr_*>/. Same contract as terrain_sprites.py:
     `gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=<spr>"`); this only fills frames.
   * frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible (no churn).
 
-Style (see SPRITES.md): 32px-native, DawnBringer-32 palette, flat color, one dark outline around each
+Style (this project's convention): 32px-native, DawnBringer-32 palette, flat color, one dark outline around each
 silhouette (added automatically), hard alpha. Origin is FOOT-ANCHORED (bottom-center, 16,32) — the
 engine's RenderEntity draws at the entity Position, so the sprite stands up from its feet.
 
@@ -18,6 +18,8 @@ Usage:  python common/entity_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
 """
 import os, sys, uuid
+# this binding lives outside the kit; add the kit's common/ to the path so `import pixlib` resolves.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pixel-art-kit", "common"))
 import pixlib as P
 
 S = 32                                              # canvas (one cell at 32px-native)
@@ -25,7 +27,14 @@ ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os
 NS = uuid.uuid5(uuid.NAMESPACE_DNS, "gems.entity.sprites")  # stable namespace -> deterministic ids
 PARENT = ("Handmade Sprites", "folders/Media/Handmade Sprites.yy")  # IDE folder (matches terrain_sprites)
 
-# ---- DB32 palette indices (names -> index into pixlib.DB32) -----------------
+# ---- DB32 palette (this project's colors) — names -> index into DB32 --------
+# DawnBringer 32, the GEMS color standard. Defined here, with the binding — the generic kit is palette-agnostic.
+DB32 = [(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)) for h in (
+    "000000", "222034", "45283c", "663931", "8f563b", "df7126", "d9a066", "eec39a",
+    "fbf236", "99e550", "6abe30", "37946e", "4b692f", "524b24", "323c39", "3f3f74",
+    "306082", "5b6ee1", "639bff", "5fcde4", "cbdbfc", "ffffff", "9badb7", "847e87",
+    "696a6a", "595652", "76428a", "ac3232", "d95763", "d77bba", "8f974a", "8a6f30",
+)]
 BLACK, OUT, MAROON, BROWN, WOOD, ORANGE, SKIN_D, SKIN = 0, 1, 2, 3, 4, 5, 6, 7
 YELLOW, LGREEN, GREEN, TEAL, DGREEN, OLIVE, SLATE, INDIGO = 8, 9, 10, 11, 12, 13, 14, 15
 DBLUE, BLUE, LBLUE, CYAN, PALE, WHITE, LGRAY, GRAY = 16, 17, 18, 19, 20, 21, 22, 23
@@ -35,7 +44,7 @@ TRANSPARENT = (0, 0, 0, 0)
 
 
 def rgba(c):
-    r, g, b = P.DB32[c]
+    r, g, b = DB32[c]
     return (r, g, b, 255)
 
 
@@ -74,7 +83,7 @@ def disc(buf, cx, cy, r, c):
 
 def outline(buf, c=OUT):
     """Add a 1px color `c` around every opaque pixel that borders transparency (selective dark
-    outline per SPRITES.md). 4-connected so corners stay clean. Pixels at y=31 get no outline
+    outline). 4-connected so corners stay clean. Pixels at y=31 get no outline
     below (clipped) — the feet sit on the bottom edge, which is what foot-anchoring wants."""
     src = buf[:]
     for y in range(S):

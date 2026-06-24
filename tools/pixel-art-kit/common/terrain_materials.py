@@ -10,7 +10,7 @@ the texture algorithm suited to it — extend ALGOS and select via cfg["algo"]:
   grain  — fine 1px speckle over a base (sand: grainy)
 
 All algorithms are TILEABLE by construction (wrapping sines / wrapping strokes / isolated specks)
-and emit DB32 colors directly (the tileset cut re-quantizes idempotently). `variants` per terrain
+and emit their colors directly (inline per terrain; no external palette dependency). `variants` per terrain
 feed TerrainStream's per-cell variant pick: water=1 (a continuous ripple must stay ONE seamless
 tile — per-variant phase jumps would seam), sand/grass=4 (blobby/grainy: variants break the grid).
 
@@ -115,7 +115,7 @@ def algo_grain(S, cfg, seed):
 
 ALGOS = {"noise": algo_noise, "ripple": algo_ripple, "blades": algo_blades, "grain": algo_grain}
 
-# Per-terrain algorithm selection + params (DB32 colors). `variants` overrides the default count.
+# Per-terrain algorithm selection + params (example terrains; colors inline). `variants` overrides the default count.
 TERRAINS = {
     "water": {"algo": "ripple", "seed": 11, "variants": 1,
               # 2 colors: blue base (weighted 3x -> dominant) + cyan crest. No dark trough stripe.

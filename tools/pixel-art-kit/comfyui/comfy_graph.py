@@ -7,13 +7,13 @@ models -> prompts -> empty_latent -> sample -> decode_downscale -> bg_removal ->
 img2img swaps empty_latent for img2img_latent. NOTE: no AsepriteQuantize node — output is
 **max fidelity** (full-color 32px); palette reduction is a separate step (common/quantize.py).
 """
-CKPT = "waiIllustriousSDXL_v160.safetensors"
-LORA = "merged_pixel_base_model_svd.safetensors"
-BIREFNET = "birefnet.safetensors"
+# Model filenames are NOT hard-coded here — the drivers pass them in from the local config
+# (comfy_api.config()), so this kit ships no specific/licensed model names. Sampler + scheduler
+# are generic technical defaults.
 SAMPLER, SCHED = "euler_ancestral", "normal"
 
 
-def models(g, ckpt=CKPT, lora=LORA, lora_str=1.0, clip_skip=-2):
+def models(g, ckpt, lora, lora_str=1.0, clip_skip=-2):
     g["ckpt"] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": ckpt}}
     g["lora"] = {"class_type": "LoraLoader",
                  "inputs": {"model": ["ckpt", 0], "clip": ["ckpt", 1], "lora_name": lora,
@@ -65,7 +65,7 @@ def decode_downscale(g, latent_ref, vae_ref, down=0.125):
     return ["ds", 0]
 
 
-def bg_removal(g, image_ref, model=BIREFNET):
+def bg_removal(g, image_ref, model):
     g["bgmodel"] = {"class_type": "LoadBackgroundRemovalModel", "inputs": {"bg_removal_name": model}}
     g["bg"] = {"class_type": "RemoveBackground", "inputs": {"bg_removal_model": ["bgmodel", 0], "image": image_ref}}
     g["invmask"] = {"class_type": "InvertMask", "inputs": {"mask": ["bg", 0]}}

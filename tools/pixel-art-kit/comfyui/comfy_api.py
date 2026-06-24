@@ -8,13 +8,32 @@ Resolves the toolkit root so comfyui/ writes to the same out/ as common/.
 import urllib.request, json, os, time, random
 
 BASE = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188")
-KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # toolkit root
+KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # toolkit root (comfyui/ -> kit)
 
 
 def out_dir(*parts):
     d = os.path.join(KIT, "out", *parts)
     os.makedirs(d, exist_ok=True)
     return d
+
+
+_CFG = None
+
+
+def config():
+    """Load the LOCAL (gitignored) ComfyUI config — model filenames + prompts + tuning. The
+    committed drivers carry NO model names or art-style prompts; this supplies them. Copy
+    `comfyui/comfy.config.example.json` -> `local/comfy.config.json` and fill it in with the models
+    you have + your prompts (machine/license/style-specific, so it stays out of the repo)."""
+    global _CFG
+    if _CFG is None:
+        path = os.path.join(KIT, "local", "comfy.config.json")
+        if not os.path.isfile(path):
+            raise SystemExit(
+                f"missing {path}\n  copy comfyui/comfy.config.example.json -> local/comfy.config.json"
+                f" and fill in\n  your model filenames + prompts (gitignored; license/machine-specific).")
+        _CFG = json.load(open(path))
+    return _CFG
 
 
 def post(graph):

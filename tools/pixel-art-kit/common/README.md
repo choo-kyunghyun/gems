@@ -1,24 +1,25 @@
 # common/ — no external dependencies
 
-Pure Python 3 (stdlib only, **no PIL**). Runs anywhere; nothing to install.
+Pure Python 3 (stdlib only, **no PIL**). Runs anywhere; nothing to install. The kit ships **no
+built-in palette** — provide the project's (`pixlib.load_palette` / `quantize.py` / `tileset --palette`).
 
-- **`pixlib.py`** — the shared library: PNG decode/encode, animated-GIF writer,
-  nearest-neighbor compositing (`blit`/`checker`/`over`), palette quantize, the canonical
-  **`DB32`** palette, and the `KIT`/`OUT`/`out_dir()` path helpers (resolve the toolkit
-  root → shared `../out/`).
-- **`draw.py`** — static 16×16 icons.
-- **`animate.py`** — single-state animation (coin spin) → strip + GIF.
-- **`animate2.py`** — multi-state character (idle/walk/attack) → strip + per-state GIFs + manifest.
-- **`quantize.py`** — remap a PNG/folder to a fixed palette (style-match lever; edit `PALETTE`).
-- **`tileset.py`** — synthesize an **autotile set** from ONE material texture, for either
-  engine mode: `--mode dual` (16 tile-frames) or `--mode corner` (13 half-cell quarter-tile
-  pieces) or `both`. Cuts the frames from one patch deterministically so they tile *by
-  construction* (diffusion can't honor autotile edge-matching); the `corner` mode also
-  replicates `RenderTileMap`'s selectors to verify assembly. Feed a seamless ComfyUI fill /
-  Aseprite patch, or omit input for built-in procedural DB32 grass. Per mode → `<mode>_strip<N>.png`
-  (runtime sprite, GM `_stripN` auto-slice — `dual_strip16`/`corner_strip13`), `preview_<mode>`,
-  `seamless_<mode>` (blob render). `--heal` forces tileability; `--raw` skips DB32.
-- **`pack.py`** — assemble an externally-produced `f*.png` frames folder → strip + GIFs + filmstrip.
-- **`preview.py`** — turn any `out/<method>/*.png` into matched previews + `out/compare.png`.
+- **`pixlib.py`** — the shared library: PNG decode/encode, animated-GIF writer, nearest-neighbor
+  compositing (`blit`/`checker`/`over`), palette quantize (`quantize_to_palette`/`nearest_color`),
+  `load_palette` (hex-per-line file → RGB list), and the `KIT`/`OUT`/`out_dir()` path helpers
+  (resolve the toolkit root → shared `../out/`).
+- **`draw.py`** — static 16×16 demo icons (placeholder subjects + own inline palette).
+- **`animate.py`** — single-state animation → strip + GIF.
+- **`animate2.py`** — multi-state character → strip + per-state GIFs + manifest.
+- **`quantize.py`** — remap a PNG/folder to a **provided** palette file (style-match lever).
+- **`tileset.py`** — synthesize an **autotile set** from ONE material texture, for either engine
+  mode: `--mode dual` (16 tile-frames) / `--mode corner` (13 quarter-tile pieces) / `both`. Cuts the
+  frames from one patch deterministically so they tile *by construction* (diffusion can't honor
+  autotile edge-matching). Feed a seamless ComfyUI fill / Aseprite patch, or omit input for built-in
+  procedural demo grass. Per mode → `<mode>_strip<N>.png` (GM `_stripN` auto-slice), `preview_<mode>`,
+  `seamless_<mode>`. `--heal` forces tileability; `--palette F` locks colors to a palette file.
+- **`terrain_materials.py`** — generate tileable terrain material patches (selectable algorithms;
+  example terrains, colors inline).
+- **`pack.py`** — assemble an externally-produced `f*.png` frames folder → strip + GIFs + manifest.
+- **`preview.py`** — turn any `out/<method>/*.png` into matched previews + a compare sheet.
 
 Run from anywhere, e.g. `python common/draw.py`. All output → the shared `../out/`.

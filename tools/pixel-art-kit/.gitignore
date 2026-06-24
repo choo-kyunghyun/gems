@@ -2,3 +2,7 @@
 out/
 __pycache__/
 *.pyc
+
+# local-only set (the ComfyUI diffusion drivers): a running ComfyUI server + GPU/models,
+# kept out of the repo so extreme/experimental tests stay machine-local. See README.
+local/
