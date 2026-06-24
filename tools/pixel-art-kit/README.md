@@ -29,15 +29,14 @@ Never assume a palette, a resolution, or a look — derive them from the project
 pixel-art-kit/
 ├── common/     engine-agnostic core (pure Python stdlib, no external deps)
 │   ├── pixlib.py       shared lib: PNG/GIF encode+decode, NN compositing, quantize, paths
-│   ├── draw.py         render templates/ -> static icon PNGs + previews + sheet
-│   ├── animate.py      single-state animation
-│   ├── animate2.py     multi-state character + per-frame export
+│   ├── draw.py         render templates/ statics -> icon PNGs + previews + sheet
+│   ├── animate.py      render templates/anim/ frame data -> strip + GIFs + filmstrip + manifest
 │   ├── quantize.py     remap a PNG/folder to a PROVIDED palette
 │   ├── tileset.py      synthesize an autotile set (dual + corner/quarter) from ONE material
 │   ├── terrain_materials.py  tileable terrain materials w/ selectable algos (ripple/grain/blades)
 │   ├── preview.py      matched previews + a contact sheet
-│   └── pack.py         assemble a frames folder -> strip + GIFs + filmstrip + manifest
-├── templates/  sprite INPUT data (rendered by draw.py): .txt index grids + .json sprites
+│   └── pack.py         assemble a rendered frames folder -> strip + GIFs + filmstrip + manifest
+├── templates/  sprite INPUT data: .txt index grids + .json statics; anim/ = animation frame data
 ├── palettes/   palette library (.hex): db32 (default) + db16/arne16/aap64/endesga32/zughy32/nyx8
 ├── gm-import/  GameMaker adapter (engine-specific; imports common/)
 │   ├── entity_sprites.py    draw this project's entities -> GameMaker sprites
@@ -77,7 +76,7 @@ is naturally limited (the project's 32px sprites are a good fit).
   "rrggbb" | "rrggbbaa" | null}}` — `null` = transparent; use any chars you like.
 
 Drop a new `.txt`/`.json` in `templates/` and it renders — no code change. The shipped templates
-(`coin`/`sword`/`bed` as `.txt`, `potion`/`hero` as `.json`) are **demo data**; replace per project.
+(`coin`/`sword`/`bed` as `.txt`, `potion` as `.json`) are **demo data**; replace per project.
 
 ### Palettes
 
@@ -93,14 +92,20 @@ in each file): **db32** (default), db16, arne16, aap64, endesga32, zughy32, nyx8
 
 ## Animation
 
-Animation = coherent frames packed into a horizontal **strip** + a **manifest**
-(`{name, from, to, fps, loop}` per state).
+`animate.py` renders multi-frame animation **data** (no hardcoded art) into a horizontal **strip** +
+GIF(s) + a filmstrip + a **manifest**. `pixlib.load_frames` accepts either input form:
 
-- **Single-state** (`animate.py`) — a ready-to-slice strip + GIF; deterministic placement makes
-  frame coherence free.
-- **Multi-state** (`animate2.py`) — a multi-state character → strip + per-state GIFs + a manifest.
-- **Packing** (`pack.py`) — assemble an externally-produced `f*.png` frames folder into a strip +
-  GIFs + manifest.
+- **Numbered frames** — a directory of single-frame templates (`0.txt`, `1.txt`, … indexing a
+  `palettes/*.hex`, or `.json`), sorted by trailing number; an optional `meta.json` in the dir sets
+  `fps`/`loop`/`states`. (e.g. `templates/anim/coin_spin/`.)
+- **Single multi-frame `.json`** — `{"palette": {…}, "frames": [[<rows>], …], "fps"?, "loop"?,
+  "states"?}` (frames may instead be index-keyed: `{"0": [<rows>], "1": […], …}`). With `states`
+  (`[{name, from, to, fps, loop}]`) it's multi-state → one GIF + manifest entry per state. (e.g.
+  `templates/anim/hero.json`.)
+
+`python animate.py` renders every animation under `templates/anim/`; or pass a dir/`.json` path (and
+`--palette NAME` for `.txt` frames). **`pack.py`** is the sibling for *already-rendered* PNG frames
+(`f*.png` → strip + GIFs + manifest).
 
 ---
 
@@ -131,9 +136,8 @@ All generated output goes under **`out/`** (gitignored). Committed content is sc
 ## Usage
 
 ```sh
-python common/draw.py            # static icons -> out/agent/
-python common/animate.py         # single-state animation -> out/anim/...
-python common/animate2.py        # multi-state character + per-frame export
+python common/draw.py            # render templates/ statics -> out/agent/
+python common/animate.py         # render templates/anim/ -> strips + GIFs + filmstrips + manifests
 python common/preview.py         # nearest-neighbor previews + contact sheet
 python common/quantize.py <in_dir> <out_dir> <pal.hex>   # lock onto a provided palette
 python common/pack.py <frames> <out> <manifest.json>     # frames -> strip + manifest

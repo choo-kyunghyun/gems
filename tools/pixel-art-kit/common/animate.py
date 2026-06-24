@@ -1,89 +1,116 @@
 #!/usr/bin/env python3
-"""Agent animation demo: an 8-frame spinning coin.
+"""animate — render multi-frame animation DATA to a strip + GIF(s) + filmstrip + manifest.
 
-Shows the agent path can animate: deterministic per-frame pixels (so frame
-coherence is free), packed into a GameMaker-ready horizontal strip, plus a
-hand-rolled animated GIF (stdlib only) and an upscaled filmstrip to view here.
+Data-driven, no hardcoded art (pixlib.load_frames): each animation is either a DIRECTORY of numbered
+single-frame templates (`0.txt`, `1.txt`, ... indexing a palettes/*.hex; optional `meta.json` for
+fps/loop/states) or a single self-contained `.json` ({"palette": {...}, "frames": [[rows], ...],
+"fps"?, "loop"?, "states"?}). With `states` it's multi-state -> one GIF + manifest entry per state.
 
-Outputs into anim/agent/:
-  coin_strip8.png     native 128x16 horizontal strip (8 frames) -> GM _stripN auto-slice on import
-  coin_spin.gif       animated GIF (loops), open to see motion
-  coin_filmstrip.png  upscaled frames in a row on checker (static, to verify frames)
+  python animate.py [path ...] [--palette NAME]
+    path = a dir of numbered frames or a .json; default: every animation under templates/anim/.
+    --palette NAME selects palettes/NAME.hex for .txt frames (default db32).
+
+Per animation -> out/anim/<name>/: <name>_strip<N>.png (GM _stripN), frames/f*.png, <name>.gif (or one
+GIF per state), <name>_filmstrip.png, <name>.json (manifest).
 """
-import os
-import pixlib as P  # PNG encode + GIF encode + checker + blit
+import os, sys, json
+import pixlib as P
 
-OUT = P.out_dir("anim", "agent")
-
-W = H = 16
-# small palette: index 0 must be transparent (for GIF transparency)
-PAL = {
-    ".": (0, 0, 0, 0),
-    "y": (255, 205, 117, 255),  # gold fill
-    "o": (239, 125, 87, 255),   # rim
-    "W": (244, 244, 244, 255),  # highlight
-    "X": (26, 28, 44, 255),     # dark edge
-}
-# apparent half-width per frame as a coin spins about its vertical axis
-# (|cos| over 8 steps): full -> narrow -> edge -> narrow -> full(back) -> ...
-RX = [6.0, 4.2, 1.2, 4.2, 6.0, 4.2, 1.2, 4.2]
-FRONT = [True, True, False, False, False, False, False, True]  # highlight only on the front face
-RY = 6.0
-CX = CY = 7.5
+ANIM_DIR = os.path.join(P.KIT, "templates", "anim")
+PALETTES = os.path.join(P.KIT, "palettes")
+DEFAULT_PALETTE = "db32"
 
 
-def frame(rx, front):
-    g = [["."] * W for _ in range(H)]
-    if rx < 2.0:  # edge-on: a thin 2px rim bar
-        for y in range(2, 14):
-            g[y][7] = "o"
-            g[y][8] = "o"
-        g[2][7] = g[2][8] = g[13][7] = g[13][8] = "X"
-        return ["".join(r) for r in g]
-    inner_rx, inner_ry = rx - 1.3, RY - 1.3
-    for y in range(H):
-        for x in range(W):
-            dx, dy = x - CX, y - CY
-            if (dx / rx) ** 2 + (dy / RY) ** 2 <= 1.0:
-                inside_inner = (dx / inner_rx) ** 2 + (dy / inner_ry) ** 2 <= 1.0
-                g[y][x] = "y" if inside_inner else "o"
-    if front:  # upper-left glint
-        for (hx, hy) in ((6, 4), (7, 4), (6, 5)):
-            if g[hy][hx] != ".":
-                g[hy][hx] = "W"
-    return ["".join(r) for r in g]
+def render(path, palette_name):
+    pal = P.load_palette(os.path.join(PALETTES, palette_name + ".hex"))
+    frames, charmap, meta = P.load_frames(path, pal)
+    name = os.path.splitext(os.path.basename(path.rstrip("/\\")))[0]
+    out = P.out_dir("anim", name)
+    n = len(frames)
+    H, W = len(frames[0]), len(frames[0][0])
+    fps, loop = meta.get("fps", 8), meta.get("loop", True)
+    states = meta.get("states")
+
+    def rgba(g):
+        return [charmap[g[y][x]] for y in range(H) for x in range(W)]
+
+    # horizontal strip (GameMaker _stripN auto-slice)
+    SW = W * n
+    strip = [(0, 0, 0, 0)] * (SW * H)
+    for f, g in enumerate(frames):
+        for y in range(H):
+            for x in range(W):
+                strip[y * SW + f * W + x] = charmap[g[y][x]]
+    P.write_png(os.path.join(out, f"{name}_strip{n}.png"), SW, H, strip)
+
+    # per-frame PNGs (for external tooling / pack.py)
+    fdir = P.out_dir("anim", name, "frames")
+    for i, g in enumerate(frames):
+        P.write_png(os.path.join(fdir, f"f{i}.png"), W, H, rgba(g))
+
+    # GIF(s): one per state, else one for the whole sequence
+    def delay(f):
+        return max(2, round(100 / f))
+    if states:
+        for st in states:
+            clip = [rgba(frames[i]) for i in range(st["from"], st["to"] + 1)]
+            P.write_gif(os.path.join(out, st["name"] + ".gif"), clip, W, H,
+                        delay_cs=delay(st.get("fps", fps)))
+    else:
+        P.write_gif(os.path.join(out, f"{name}.gif"), [rgba(g) for g in frames], W, H, delay_cs=delay(fps))
+
+    # filmstrip preview (rows = states, else one row)
+    rows = ([(st["name"], list(range(st["from"], st["to"] + 1))) for st in states]
+            if states else [(name, list(range(n)))])
+    scale, pad = 9, 8
+    cw = W * scale
+    maxcols = max(len(idxs) for _, idxs in rows)
+    FW, FH = pad + maxcols * (cw + pad), pad + len(rows) * (cw + pad)
+    film = [None] * (FW * FH)
+    for Y in range(FH):
+        for X in range(FW):
+            film[Y * FW + X] = P.checker(X, Y, 9)
+    for r, (_, idxs) in enumerate(rows):
+        for c, i in enumerate(idxs):
+            P.blit(film, FW, pad + c * (cw + pad), pad + r * (cw + pad), rgba(frames[i]), W, H, scale, ck=9)
+    P.write_png(os.path.join(out, f"{name}_filmstrip.png"), FW, FH, film)
+
+    # manifest
+    manifest = {"image": f"{name}_strip{n}.png", "frameWidth": W, "frameHeight": H, "frames": n}
+    if states:
+        manifest["states"] = states
+    else:
+        manifest.update({"fps": fps, "loop": loop})
+    json.dump(manifest, open(os.path.join(out, f"{name}.json"), "w", encoding="utf-8"), indent=2)
+
+    tag = f", {len(states)} states" if states else ""
+    print(f"  {name}: {n} frames ({W}x{H}){tag} -> out/anim/{name}/")
 
 
-FRAMES = [frame(RX[i], FRONT[i]) for i in range(8)]
+def main(argv):
+    palette, paths = DEFAULT_PALETTE, []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--palette" and i + 1 < len(argv):
+            palette = argv[i + 1]
+            i += 2
+        else:
+            paths.append(argv[i])
+            i += 1
+    if not paths:
+        if not os.path.isdir(ANIM_DIR):
+            print(f"no {ANIM_DIR} — add an animation (a dir of numbered frames or a .json)")
+            return
+        for fn in sorted(os.listdir(ANIM_DIR)):
+            p = os.path.join(ANIM_DIR, fn)
+            if os.path.isdir(p) or fn.lower().endswith(".json"):
+                paths.append(p)
+    if not paths:
+        print(f"no animations under {ANIM_DIR}")
+        return
+    for p in paths:
+        render(p, palette)
 
-# ---- native horizontal strip (GameMaker-ready) -----------------------------
 
-strip = [(0, 0, 0, 0)] * (W * len(FRAMES) * H)
-SW = W * len(FRAMES)
-for f, grid in enumerate(FRAMES):
-    for y in range(H):
-        for x in range(W):
-            strip[y * SW + f * W + x] = PAL[grid[y][x]]
-P.write_png(os.path.join(OUT, f"coin_strip{len(FRAMES)}.png"), SW, H, strip)  # GM _stripN auto-slice
-
-# ---- upscaled filmstrip (static, to verify) --------------------------------
-
-scale, pad = 10, 8
-cw = W * scale
-FW = pad + len(FRAMES) * (cw + pad)
-FH = pad * 2 + cw
-film = [None] * (FW * FH)
-for Y in range(FH):
-    for X in range(FW):
-        film[Y * FW + X] = P.checker(X, Y, 10)
-for f, grid in enumerate(FRAMES):
-    px = [PAL[grid[y][x]] for y in range(H) for x in range(W)]
-    P.blit(film, FW, pad + f * (cw + pad), pad, px, W, H, scale, ck=10)
-P.write_png(os.path.join(OUT, "coin_filmstrip.png"), FW, FH, film)
-
-# ---- animated GIF (via the shared encoder in preview.py) -------------------
-
-rgba_frames = [[PAL[g[y][x]] for y in range(H) for x in range(W)] for g in FRAMES]
-P.write_gif(os.path.join(OUT, "coin_spin.gif"), rgba_frames, W, H, delay_cs=8)
-
-print(f"agent anim: {len(FRAMES)} frames -> coin_strip{len(FRAMES)}.png ({SW}x{H}), coin_spin.gif, coin_filmstrip.png")
+if __name__ == "__main__":
+    main(sys.argv[1:])
