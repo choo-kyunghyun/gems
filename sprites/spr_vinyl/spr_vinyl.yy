@@ -29,8 +29,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Handmade Sprites",
-    "path":"folders/Media/Handmade Sprites.yy",
+    "name":"Icons",
+    "path":"folders/Media/Handmade Sprites/Icons.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

@@ -30,8 +30,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Handmade Sprites",
-    "path":"folders/Media/Handmade Sprites.yy",
+    "name":"Tiles",
+    "path":"folders/Media/Handmade Sprites/Tiles.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

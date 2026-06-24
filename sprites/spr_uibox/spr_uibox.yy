@@ -44,8 +44,8 @@
   },
   "origin":0,
   "parent":{
-    "name":"UI",
-    "path":"folders/Media/UI.yy",
+    "name":"Icons",
+    "path":"folders/Media/Handmade Sprites/Icons.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
