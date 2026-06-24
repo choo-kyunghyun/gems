@@ -1,7 +1,7 @@
 # Pixel-Art Kit
 
-A small, **portable** toolkit — and Claude Code skill ([SKILL.md](SKILL.md)) — for generating
-pixel-art sprites three ways: **agent** (deterministic Python, zero-dependency), **Aseprite**
+A small, **portable** toolkit for generating pixel-art sprites three ways: **agent**
+(deterministic Python, zero-dependency), **Aseprite**
 (headless Lua), and **ComfyUI** (diffusion) — plus the **hybrid** that chains them. It produces
 static icons, animations, and autotile sets as an engine-agnostic **horizontal strip + JSON
 manifest** (PNG is the bus).
@@ -28,7 +28,6 @@ Never assume a palette, a resolution, or a look — derive them from the project
 
 ```
 pixel-art-kit/
-├── SKILL.md    the Claude Code skill entry (scan-then-ask contract + script index)
 ├── common/     no external deps (pure Python stdlib)        → common/README.md
 │   ├── pixlib.py       shared lib: PNG/GIF encode+decode, NN compositing, quantize, paths
 │   ├── draw.py         static icons
