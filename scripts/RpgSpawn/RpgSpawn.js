@@ -62,7 +62,7 @@ globalThis.RpgSpawn = {
   // scene tests the player against.
   reachZone(level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
-    const half = s.half ?? 44;
+    const half = s.half ?? 22;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
@@ -76,7 +76,7 @@ globalThis.RpgSpawn = {
     if (s.preset === "human") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
+      world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
       // Dynamic (non-kinematic) so SolidSystem integrates the velocity CombatAI sets
       // and collides it against the kinematic walls.
       world.add(id, Collision, {
@@ -93,7 +93,7 @@ globalThis.RpgSpawn = {
         maxStamina: 0,
         attack: 1,
         defense: 0,
-        speed: 90,
+        speed: 45,
       });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
       world.add(id, Tag, { tags: new Set(["enemy", "human"]) });
@@ -111,7 +111,7 @@ globalThis.RpgSpawn = {
     } else if (s.preset === "npc") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -128,7 +128,7 @@ globalThis.RpgSpawn = {
     } else if (s.preset === "chest") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -148,7 +148,7 @@ globalThis.RpgSpawn = {
       // picks it by mouse/proximity, E opens its window); a decorative prop omits it.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -182,7 +182,7 @@ globalThis.RpgSpawn = {
       // every component, so the Light round-trips through a map reload with no special handling.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 }); // small footprint
+      world.add(id, BBox, { x: -4, y: -4, width: 8, height: 8 }); // small footprint
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -193,7 +193,7 @@ globalThis.RpgSpawn = {
       world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, 1));
       // Warm, gently flickering torch light (archetype values; tune via the Light component).
       world.add(id, Light, {
-        radius: 150,
+        radius: 75,
         color: Color.parse("#ffd09a"),
         intensity: 0.9,
         flicker: 0.18,
@@ -208,7 +208,7 @@ globalThis.RpgSpawn = {
       // round-trip through map persistence like any built entity.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -12, y: -12, width: 24, height: 24 });
+      world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -234,11 +234,11 @@ globalThis.RpgSpawn = {
       CombatAI.attach(world, id, level, {
         mobile: false,
         ranged: true,
-        aggro: 220,
-        deAggro: 220,
-        attackRange: 220,
+        aggro: 110,
+        deAggro: 110,
+        attackRange: 110,
         cdMax: 30,
-        bulletSpeed: 380,
+        bulletSpeed: 190,
         speed: 0,
       });
       return id;
@@ -248,7 +248,7 @@ globalThis.RpgSpawn = {
       // entity (Portal component) so a streamed portal resolves via a live Tag "portal" query.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -14, y: -14, width: 28, height: 28 });
+      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
       world.add(id, Tag, { tags: new Set(["portal"]) });
       world.add(id, Name, { name: s.label ?? "Door" });
       world.add(id, Visual, RpgSpawn._visual(spr_doorway, c_white, 1));
@@ -279,7 +279,7 @@ globalThis.RpgSpawn = {
     const id = world.create();
     world.add(id, Position, { x: wx, y: wy, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, { x: -10, y: -10, width: 20, height: 20 });
+    world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
     world.add(id, Collision, {
       solid: true,
       kinematic: false,
@@ -299,7 +299,7 @@ globalThis.RpgSpawn = {
       maxStamina: 0,
       attack: 1,
       defense: 0,
-      speed: opt.speed ?? 260,
+      speed: opt.speed ?? 130,
     });
     world.add(id, Mortal, {
       kind: "down",
@@ -315,8 +315,8 @@ globalThis.RpgSpawn = {
     );
     world.add(id, Follower, {
       state: opt.state ?? "follow",
-      speed: opt.speed ?? 260, // > player speed (220) so it can catch up when it lags
-      range: opt.range ?? 40,
+      speed: opt.speed ?? 130, // > player speed (110) so it can catch up when it lags
+      range: opt.range ?? 20,
       homeMap: "",
       // Carry bonus applied to the player's Inventory while this companion follows (0 = none).
       // The `follower` spawn preset doesn't pass these, so file-authored followers stay
@@ -343,9 +343,9 @@ globalThis.RpgSpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Shared Visual component shape — caller passes a `scale` (the greenfield art is 32px-native, so
-  // entity sprites pass 1; a legacy 16px sprite would pass 2). Sprites are foot-anchored (origin
-  // 16,32), so this draws standing up from the entity's Position. Caller may set `speed` after for
+  // Shared Visual component shape — caller passes a `scale` (the greenfield art is 16px-native, so
+  // entity sprites pass 1; a legacy 32px sprite would pass 0.5). Sprites are foot-anchored (origin
+  // 8,16), so this draws standing up from the entity's Position. Caller may set `speed` after for
   // a looping idle/run cycle.
   _visual(sprite, color, scale = 1) {
     return {

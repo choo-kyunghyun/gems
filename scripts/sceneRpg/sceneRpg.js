@@ -1,4 +1,4 @@
-const RPG_NPC_RADIUS = 60; // interact range to the elder NPC
+const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
 const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
@@ -174,7 +174,7 @@ class _SceneRpgClass extends Scene {
     // it spawns in "follow" state. From here the bonus is balanced by the F-toggle / dismiss
     // transitions, and rides the carried Inventory snapshot across map changes (no re-apply).
     const pp = this.world.get(Position, this.ctrl.id);
-    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
+    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 14, pp.y + 11, {
       label: "Companion",
       bonusCapacity: 4,
       bonusWeight: 15,
@@ -291,7 +291,7 @@ class _SceneRpgClass extends Scene {
       FollowerSystem.update(this.world, this.ctrl.id, this.followers); // seek (before physics)
       this.physics.update(this.world);
 
-      RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
+      RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
       // Configurable hp-0 reactions by each entity's Mortal kind: bandits despawn (spill loot),
       // the player respawns at spawn, a companion goes Down (then recovers — updateDowned below).
       RpgScene.resolveHealth(this, {
@@ -461,7 +461,7 @@ class _SceneRpgClass extends Scene {
     const p = this.world.get(Position, this.ctrl.id);
     if (p === undefined) return;
     let best = -1;
-    let bestSq = 80 * 80; // reach to a companion (px)
+    let bestSq = 40 * 40; // reach to a companion (px)
     for (let i = 0; i < this.followers.length; i++) {
       const pos = this.world.get(Position, this.followers[i]);
       if (pos === undefined) continue;

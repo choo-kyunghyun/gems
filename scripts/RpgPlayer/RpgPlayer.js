@@ -92,7 +92,7 @@ globalThis.RpgPlayer = {
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) hotbarSlots.push("");
     world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
     world.add(id, Favorites, { ids: [] });
-    // The 32px-native hero sprite (scale 1), untinted. The Animator (RpgController) overwrites
+    // The 16px-native hero sprite (scale 1), untinted. The Animator (RpgController) overwrites
     // sprite+subimg each frame by state; xscale/yscale persist (facing flip below toggles xscale ±1).
     world.add(id, Visual, {
       visible: true,
@@ -110,7 +110,7 @@ globalThis.RpgPlayer = {
     // area around the player at night; clamps to no-op in daylight). Drop this component for a
     // player with no light.
     world.add(id, Light, {
-      radius: 180,
+      radius: 90,
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });

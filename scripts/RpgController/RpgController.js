@@ -1,9 +1,9 @@
-const RPG_MOVE_SPEED = 220;
+const RPG_MOVE_SPEED = 110; // world px/s (16px-cell scale; see GEMS.md)
 const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
-const RPG_BULLET_SPEED = 600;
+const RPG_BULLET_SPEED = 300; // world px/s
 const RPG_FIRE_CD = 8; // ticks between shots while held
 const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
-const RPG_MELEE_REACH = 34; // fallback reach for a melee weapon without `reach`
+const RPG_MELEE_REACH = 17; // fallback reach (px) for a melee weapon without `reach`
 const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // Player input + entity setup for the top-down genre.
@@ -106,7 +106,7 @@ globalThis.RpgController = {
     // The RPG player entity (RpgPlayer.spawn); then this genre's Animator. BBox is centered;
     // faces down; move speed from Stats.
     const id = RpgPlayer.spawn(world, spawn, {
-      bbox: { x: -12, y: -12, width: 24, height: 24 },
+      bbox: { x: -6, y: -6, width: 12, height: 12 },
       dir: { x: 0, y: 1, z: 0 },
       speed: RPG_MOVE_SPEED,
     });
@@ -145,7 +145,7 @@ globalThis.RpgController = {
       id,
       fireCd: 0,
       attackCd: 0,
-      fist: { kind: "melee", damage: 1, fireCd: 22, reach: 22 },
+      fist: { kind: "melee", damage: 1, fireCd: 22, reach: 11 },
     };
   },
 
@@ -281,7 +281,7 @@ globalThis.RpgController = {
       AnimationSystem.set(anim, state);
     }
 
-    // Facing: flip horizontally toward the last horizontal move (xscale ±1 = the 32px-native scale).
+    // Facing: flip horizontally toward the last horizontal move (xscale ±1 = the 16px-native scale).
     // The attack state has its own sprite (spr_heroAttack), so no placeholder tint is needed.
     const vis = world.get(Visual, ctrl.id);
     if (vis !== undefined) {
@@ -316,15 +316,15 @@ globalThis.RpgController = {
     });
     slot.rounds -= 1; // spend the round
 
-    // Muzzle flash at the barrel (player center pushed ~18px along the aim), aimed forward.
+    // Muzzle flash at the barrel (player center pushed ~9px along the aim), aimed forward.
     // GM angle (0=right, 90=up) from the aim vector; the ps_muzzle asset emits up (90), so
     // ParticleFx rotates it to face the shot. Ticks/draws in world space (pause-aware).
     const pos = world.get(Position, ctrl.id);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(
       ps_muzzle,
-      pos.x + aim.nx * 18,
-      pos.y + aim.ny * 18,
+      pos.x + aim.nx * 9,
+      pos.y + aim.ny * 9,
       ang,
     );
 

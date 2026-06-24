@@ -1,7 +1,7 @@
 {
   "version": 1,
   "genre": "topdown",
-  "cell": 32,
+  "cell": 16,
   "cols": 48,
   "rows": 32,
   "meta": {

@@ -6,7 +6,7 @@
 //
 // The player id is passed in (not stored on the follower), so after a map change the system
 // just receives the new player id — no entity-reference re-link on migration.
-const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ramps to full
+const FOLLOWER_EASE_BAND = 24; // px over `range` across which approach speed ramps to full
 
 globalThis.FollowerSystem = {
   update(world, playerId, followers) {

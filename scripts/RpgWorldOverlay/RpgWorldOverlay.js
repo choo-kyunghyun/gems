@@ -18,16 +18,16 @@ globalThis.RpgWorldOverlay = {
       const p = world.get(Position, id);
       const d = world.get(ItemDrop, id);
       draw_set_color(this._rarityColor(d.itemId));
-      draw_rectangle(p.x - 7, p.y - 7, p.x + 7, p.y + 7, false);
+      draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, false);
       draw_set_color(c_black);
-      draw_rectangle(p.x - 7, p.y - 7, p.x + 7, p.y + 7, true);
+      draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, true);
     }
 
     const bullets = world.query(Projectile, Position);
     draw_set_color(make_colour_rgb(255, 230, 90));
     for (const id of bullets) {
       const p = world.get(Position, id);
-      draw_circle(p.x, p.y, 3, false);
+      draw_circle(p.x, p.y, 2, false);
     }
 
     // Reach-quest zone: only when the scene defines one and it's unmet.

@@ -82,7 +82,7 @@ class _SceneEditorClass extends Scene {
   // create() (the bundled source) and Open (a chosen file). Mirrors RpgLevel.build's
   // bulk rect paint, plus the editable spawns / player spawn and any saved buildable zone.
   _loadData(data) {
-    this._cell = data.cell ?? 32;
+    this._cell = data.cell ?? 16; // 16px-cell convention (GEMS.md); a loaded file's `cell` wins
     this._initLevel(data.cols, data.rows, this._cell);
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);

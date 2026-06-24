@@ -34,9 +34,17 @@ reusable kit stays style-agnostic; this file is G.E.M.S.'s filled-in style.
 
 ## Status / migration
 
-The gm-import generators now emit **16×16**: `entity_sprites.py` is redrawn at 16px (foot-anchored),
-and `terrain_sprites.py` follows `terrain_materials.S = 16`. The committed `sprites/` are still the
-**legacy 32px** art — regenerate them by running the generators (`python gm-import/entity_sprites.py`,
-`python gm-import/terrain_sprites.py`), which also needs the **engine** updated to render 16×16 (sprite
-scale, `Level` cell size, foot-anchor origin). That regenerate + engine integration is the remaining
-step; the generators and the `templates/` demos are already on the 16×16 DB32 convention.
+The gm-import generators emit **16×16**: `entity_sprites.py` draws at 16px (foot-anchored 8,16),
+`terrain_sprites.py` follows `terrain_materials.S = 16`, and the `templates/` demos are 16×16 DB32.
+
+The **engine is now 16px-native** too — the RPG runs a 16-world-px cell: `RpgLevel` `RPG_CELL = 16`
++ `cell: 16` in the level JSONs, the follow camera at `zoom: 2` (same cell framing the old 32px world
+had at zoom 1), and every world-px gameplay constant halved (player/enemy/prop bboxes, move/bullet
+speeds, melee reach, light radii, `CombatAI` aggro/range, interact/NPC radii, companion offsets,
+drop/radar/floating-number cosmetics). Sprites stay foot-anchored (origin now 8,16) and draw at
+scale 1. (The `Platformer` minigame is unchanged — separate world, debug-box art, not the 16px set.)
+
+The **one remaining step** is regenerating the committed `sprites/` at 16px — run the generators
+(`python gm-import/entity_sprites.py`, then `terrain_materials.py` + `terrain_sprites.py`). Until then
+the committed art is still **legacy 32px**, so it renders ~2× oversized in the now-16px world; the
+generators overwrite the same registered resources (deterministic uuids → churn-free).

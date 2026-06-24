@@ -183,7 +183,7 @@ globalThis.RpgScene = {
     const world = scene.world;
     const id = world.create();
     world.add(id, Position, { x: x, y: y, z: 0 });
-    world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+    world.add(id, BBox, { x: -4, y: -4, width: 8, height: 8 });
     world.add(id, Collision, {
       solid: false,
       kinematic: false,

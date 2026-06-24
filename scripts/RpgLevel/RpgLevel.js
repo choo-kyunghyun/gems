@@ -14,7 +14,7 @@
 // from cols/rows, NOT the room, so a level can exceed the view and the follow camera
 // scrolls across it.
 
-const RPG_CELL = 32; // fallback cell size when a level omits `cell`
+const RPG_CELL = 16; // fallback cell size when a level omits `cell` (G.E.M.S. 16px convention; see GEMS.md)
 
 globalThis.RpgLevel = {
   // World graph: map id -> level file. The overworld hub, sub-levels (interiors/dungeons),

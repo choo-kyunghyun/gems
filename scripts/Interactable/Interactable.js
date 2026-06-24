@@ -14,7 +14,7 @@
 //
 // Scene contract: scene.world, scene.ctrl.id (player), scene.ui.
 globalThis.Interactable = {
-  RADIUS: 72, // interact range (px) from the player to a station
+  RADIUS: 36, // interact range (px) from the player to a station (16px-cell scale; see GEMS.md)
 
   build(scene) {
     scene._interTarget = -1;
