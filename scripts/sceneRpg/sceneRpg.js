@@ -159,6 +159,7 @@ class _SceneRpgClass extends Scene {
     WorldClock.reset(); // start at morning, day 1 (once — survives map changes below)
     Weather.reset(); // settled clear sky (once — survives map changes, like the clock)
     RpgMap.go(this, bootMap, "default");
+    Audio.bgm("mus_overworld"); // RPG theme; carries across map changes (only _apply's reset stops it)
 
     // Starting loadout: a melee Wooden Sword, equipped — so the attack is item-driven from frame
     // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
@@ -297,6 +298,8 @@ class _SceneRpgClass extends Scene {
       RpgScene.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 14 },
         onDespawn: (id) => {
+          const dp = this.world.get(Position, id);
+          if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1);
           QuestLog.report("kill", "human", 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
@@ -328,6 +331,8 @@ class _SceneRpgClass extends Scene {
         },
       });
       RpgScene.collectDrops(this, (itemId, got) => {
+        const pp = this.world.get(Position, this.ctrl.id);
+        if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
         Profile.add("itemsCollected", got);
         QuestLog.report("collect", itemId, got);
         Log.info(
@@ -765,6 +770,7 @@ class _SceneRpgClass extends Scene {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
     RpgController.bindKeys();
+    Audio.bgm("mus_overworld"); // restore the RPG theme after a guest minigame crossfaded its own
   }
 
   // Launch the platformer as a minigame on top of the RPG (pushed by the arcade Station via

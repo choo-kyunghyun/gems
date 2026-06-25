@@ -813,6 +813,7 @@ globalThis.RpgInventoryUI = {
       }
     } else if (item.hasComponent(Consumable)) {
       if (ConsumableSystem.use(scene.world, scene.ctrl.id, itemId)) {
+        Audio.play("snd_powerup"); // consumable used (heal / buff / attribute grant)
         Log.info(`used ${itemId}`);
       }
     }

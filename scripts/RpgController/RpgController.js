@@ -327,6 +327,7 @@ globalThis.RpgController = {
       pos.y + aim.ny * 9,
       ang,
     );
+    Audio.playAt("snd_shoot", pos.x, pos.y); // gunshot (spatial); the bullet's hit plays snd_hit later
 
     ctrl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
     ctrl.attackCd = RPG_ATTACK_ANIM;

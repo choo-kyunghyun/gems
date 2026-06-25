@@ -44,8 +44,9 @@ generators.
 
 Playback goes through the **`Audio`** Core wrapper (`scripts/Audio/`): `Audio.play` (2D),
 `Audio.playAt` (spatial, via `audio_play_sound_at` + a player-following listener set each frame from
-the RPG camera), `Audio.bgm` (cross-faded loop). **Not yet wired into gameplay** — the kit *produces
-and imports* the assets and the wrapper *can* play them, but nothing calls `Audio.play`/`bgm` on events
-(UI clicks, combat, pickups) or per scene yet — that's the next step. Add SFX/songs by dropping a
-`.json` in `templates/sfx/` or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and
-re-running the importer.
+the RPG camera), `Audio.bgm` (cross-faded loop). **Wired into the Demo**: the RPG plays `mus_overworld`
+with spatial `snd_shoot`/`snd_hit`/`snd_hurt`/`snd_explosion`/`snd_coin` + `snd_powerup`; the Platformer
+plays `mus_battle` with `snd_jump`/`snd_hit`/`snd_hurt` (see ARCHITECTURE → _Utility Modules → Audio_).
+The `snd_ui_*` cues are not yet hooked into the Core UI widgets. Add SFX/songs by dropping a `.json` in
+`templates/sfx/` or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and re-running the
+importer.

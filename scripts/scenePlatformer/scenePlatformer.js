@@ -25,6 +25,7 @@ class _ScenePlatformerClass extends Scene {
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     this.stomps = 0; // enemies stomped this run — the score reported back when run as a minigame
     // (set on `this` in create(), not a class field: subclass field initializers don't run on GMRT)
+    Audio.bgm("mus_battle"); // driving theme; as an arcade guest it crossfades the RPG's (restored on pop)
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -87,6 +88,7 @@ class _ScenePlatformerClass extends Scene {
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
         this.stomps++; // score for the minigame reward (harmless when run standalone)
+        Audio.play("snd_hit"); // stomp defeat (non-positional — the platformer sets no audio listener)
       } else {
         let hurt = EnemySystem.resolveTouch(
           this.world,

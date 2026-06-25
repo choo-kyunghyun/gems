@@ -105,7 +105,9 @@ globalThis.PlatformerController = {
     const dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
-    const maxSpeed = Input.get("run").down() ? PLATF_RUN_SPEED : PLATF_WALK_SPEED;
+    const maxSpeed = Input.get("run").down()
+      ? PLATF_RUN_SPEED
+      : PLATF_WALK_SPEED;
     const target = dx * maxSpeed;
 
     let accel;
@@ -144,6 +146,7 @@ globalThis.PlatformerController = {
       vel.y = -PLATF_JUMP_POWER;
       ctrl.jumpBuffer = 0;
       ctrl.coyote = 0;
+      Audio.play("snd_jump"); // non-positional (the platformer sets no audio listener)
     } else if (ctrl.jumpBuffer > 0) {
       ctrl.jumpBuffer--;
     }
@@ -161,6 +164,7 @@ globalThis.PlatformerController = {
   // i-frames so it can't be re-hit on the spawn frame.
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(world, ctrl, spawn) {
+    Audio.play("snd_hurt"); // hit by an enemy / spike, or fell in the void — all route through here
     const pos = world.get(Position, ctrl.id);
     const vel = world.get(Velocity, ctrl.id);
     pos.x = spawn.x;

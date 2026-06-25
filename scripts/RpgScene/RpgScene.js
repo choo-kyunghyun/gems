@@ -52,12 +52,17 @@ globalThis.RpgScene = {
       const pos = world.get(Position, id);
       if (pos !== undefined) {
         const d = hp.hp - prev; // <0 = damage, >0 = heal
-        if (d < 0)
+        if (d < 0) {
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
             type: isAlly ? "hurt" : "damage",
           });
-        else
+          // Impact SFX (spatial): an ally "hurt", an enemy "hit" — but let the death pass own the
+          // killing blow's sound (snd_explosion), so skip the enemy hit that drops it to 0.
+          if (isAlly) Audio.playAt("snd_hurt", pos.x, pos.y);
+          else if (hp.hp > 0) Audio.playAt("snd_hit", pos.x, pos.y);
+        } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
+        }
       }
     }
     scene._hpTrack[id] = hp.hp;
