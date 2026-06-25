@@ -3,7 +3,6 @@
 ## Features
 
 - Save and Load
-- Sound
 
 ## UI
 

@@ -188,7 +188,9 @@ globalThis.RpgScene = {
     const world = scene.world;
     const id = world.create();
     world.add(id, Position, { x: x, y: y, z: 0 });
-    world.add(id, BBox, { x: -4, y: -4, width: 8, height: 8 });
+    // Match the 16px centered-origin icon sprite RpgWorldOverlay draws (was 8×8, sized for the
+    // old rarity-square fallback) so the pickup trigger box lines up with the visible drop.
+    world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
     world.add(id, Collision, {
       solid: false,
       kinematic: false,
