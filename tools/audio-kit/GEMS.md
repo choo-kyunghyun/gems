@@ -47,7 +47,7 @@ Playback goes through the **`Audio`** Core wrapper (`scripts/Audio/`): `Audio.pl
 `Audio.playAt` (spatial, via `audio_play_sound_at` + a player-following listener set each frame from
 the RPG camera), `Audio.bgm` (cross-faded loop). **Wired into the Demo**: the RPG plays `mus_overworld`
 with spatial `snd_shoot`/`snd_hit`/`snd_hurt`/`snd_explosion`/`snd_coin` + `snd_powerup`; the Platformer
-plays `mus_battle` with `snd_jump`/`snd_hit`/`snd_hurt` (see ARCHITECTURE → _Utility Modules → Audio_).
-The `snd_ui_*` cues are not yet hooked into the Core UI widgets. Add SFX/songs by dropping a `.json` in
-`templates/sfx/` or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and re-running the
-importer.
+plays `mus_battle` with `snd_jump`/`snd_hit`/`snd_hurt`; the `snd_ui_*` cues are wired into the Core UI
+(`UIButton`/`UINav` — confirm on activate, move on focus change). **All 9 SFX + 2 BGM are now in use**
+(see ARCHITECTURE → _Utility Modules → Audio_). Add SFX/songs by dropping a `.json` in `templates/sfx/`
+or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and re-running the importer.

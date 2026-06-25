@@ -101,7 +101,10 @@ globalThis.UINav = class UINav {
 
     if (inp.confirm) {
       const comp = UINav._comp(UINav.focused, "navActivate");
-      if (comp !== null) comp.navActivate(UINav.focused);
+      if (comp !== null) {
+        Audio.play("snd_ui_confirm"); // confirm cue for any focusable (before activate may swap scene)
+        comp.navActivate(UINav.focused);
+      }
       return;
     }
 
@@ -113,7 +116,11 @@ globalThis.UINav = class UINav {
         return;
       }
     }
+    // Move focus; a soft cue only when it actually lands on a NEW element. Input is press-edged
+    // (keyboard_check_pressed / debounced stick), so this is one cue per press, never per-frame.
+    const prevFocus = UINav.focused;
     UINav._move(items, inp.dx, inp.dy);
+    if (UINav.focused !== prevFocus) Audio.play("snd_ui_move");
   }
 
   /** Draw the focus ring (Draw_75); the Tab debug overlay when held. */
