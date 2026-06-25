@@ -63,6 +63,11 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   draw(world) {
     const ident = matrix_build_identity();
+    // Billboards are the ONLY depth-sorted geometry: enable z-write for this pass so overlapping
+    // bodies sort by their stood-up depth (nearer foot wins). The global default is z-write OFF
+    // (obj_game Create_0) so the coplanar flat ground passes don't z-fight as the camera moves —
+    // restore it after this pass.
+    gpu_set_zwriteenable(true);
     for (const entity of world.query(Visual, Position)) {
       const visual = world.get(Visual, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
@@ -88,5 +93,6 @@ globalThis.RenderBillboard = class RenderBillboard {
       matrix_set(matrix_world, ident);
     }
     matrix_set(matrix_world, ident);
+    gpu_set_zwriteenable(false); // restore the global default (off); only billboards write depth
   }
 };

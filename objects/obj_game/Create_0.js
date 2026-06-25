@@ -7,6 +7,13 @@ randomize();
 
 gpu_set_ztestenable(true);
 gpu_set_alphatestenable(true);
+// Only the 2.5D billboard pass writes depth (so overlapping entities sort by their stood-up
+// depth). The flat ground passes (terrain / walls / tiles / zones / foot shadows) are all
+// coplanar at world z=0 and already drawn in painter order, so they must NOT write depth —
+// otherwise their per-pixel depths z-fight as the camera moves (the stacked dual-grid terrain
+// layers flicker hard). Default z-WRITE off; RenderBillboard flips it on around its own draw.
+// 2D scenes never relied on the depth buffer, so painter order is unchanged for them.
+gpu_set_zwriteenable(false);
 
 draw_set_circle_precision(64);
 
