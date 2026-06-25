@@ -113,6 +113,7 @@ globalThis.SceneManager = class SceneManager {
     Dialogue.clear(); // a dialogue must not survive into the next scene
     FloatingText.clear(); // drop floating combat numbers (world coords are scene-local)
     ParticleFx.clear(); // drop live particles (world coords are scene-local)
+    Audio.reset(); // stop the looping BGM + all SFX so one scene's audio can't bleed into the next
     const frame = this._make(factory);
     this._stack.push(frame);
     frame.scene.create((s) => this.request(s));

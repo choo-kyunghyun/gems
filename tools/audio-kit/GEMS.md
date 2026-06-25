@@ -42,8 +42,10 @@ The committed `sounds/` set: **9 SFX** (`snd_coin` / `snd_jump` / `snd_hit` / `s
 `audio_is_playing` on the generated WAV). Regenerate any time by editing a template and re-running the
 generators.
 
-**Not yet wired into gameplay** — the kit *produces and imports* the assets (like the sprite kit did
-for art); playing them on events (UI clicks, combat, pickups) and per-scene BGM is a separate step (a
-small audio manager + `audio_play_sound` calls). Add SFX/songs by dropping a `.json` in
-`templates/sfx/` or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and re-running the
-importer.
+Playback goes through the **`Audio`** Core wrapper (`scripts/Audio/`): `Audio.play` (2D),
+`Audio.playAt` (spatial, via `audio_play_sound_at` + a player-following listener set each frame from
+the RPG camera), `Audio.bgm` (cross-faded loop). **Not yet wired into gameplay** — the kit *produces
+and imports* the assets and the wrapper *can* play them, but nothing calls `Audio.play`/`bgm` on events
+(UI clicks, combat, pickups) or per scene yet — that's the next step. Add SFX/songs by dropping a
+`.json` in `templates/sfx/` or `templates/bgm/`, registering the `snd_*`/`mus_*` resource, and
+re-running the importer.

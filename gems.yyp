@@ -99,6 +99,7 @@
     {"id":{"name":"AnimationSystem","path":"scripts/AnimationSystem/AnimationSystem.yy",},},
     {"id":{"name":"Animator","path":"scripts/Animator/Animator.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},
+    {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},

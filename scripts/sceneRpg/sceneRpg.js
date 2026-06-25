@@ -355,6 +355,7 @@ class _SceneRpgClass extends Scene {
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
     this.camera.update();
+    Audio.listener(this.camera.toX, this.camera.toY); // ears follow the view → spatial SFX pan/attenuate
 
     // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
     // entities + colliders as the player crosses chunk borders; runs before the portal check,

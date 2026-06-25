@@ -48,6 +48,10 @@ Settings.load();
 // application_surface. The GUI layer is sized separately by UI.applyScale.
 Display.applyVideo();
 
+// Audio: pick the spatial falloff model + fix the 2D listener orientation, and apply the saved
+// master/music/sfx volumes. After Settings.load so the volumes are live.
+Audio.setup();
+
 // Load localization for the saved language, then adopt its base font as the
 // default draw font (both locales now ship Noto; an undeclared key falls back).
 I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
