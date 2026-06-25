@@ -13,10 +13,10 @@ the pitch via `camera.project`), and AI front-view hard-alpha art is imported fo
 
 Done: terrain z-fighting fixed (only billboards write depth — flat ground is painter order);
 `FloatingText` damage numbers stand up facing the camera; `RpgWorldOverlay` bullets lift to body
-height; `RenderBillboard` promoted to its own `Core/Render` asset. Remaining polish:
+height; `RenderBillboard` promoted to its own `Core/Render` asset; framing — the follow camera
+edge-clamps to the world bounds (`cameraFollow2d` `clamp`, pitch-aware N–S reach) so the pitched
+view no longer shows past a map edge (the hub-spawn dead space). Remaining polish:
 
-- Framing: the pitch shows further N–S, so near a map edge (e.g. the hub spawn) there's dead space —
-  tune zoom / the N–S chunk-load radius
 - `RadarArrows` (off by default) draws flat too — billboard/lift it if re-enabled
 - AI art follow-ups: re-roll the weak `doorway`; per-entity animation frames (idle bob / attack swing)
 
