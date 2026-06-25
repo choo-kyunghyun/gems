@@ -1,0 +1,7 @@
+# all generated artifacts (regenerable); committed content is scripts + docs only
+out/
+__pycache__/
+*.pyc
+
+# machine/style-specific data + scratch experiments, kept out of the repo. See README.
+local/

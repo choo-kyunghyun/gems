@@ -59,7 +59,7 @@ After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an
 
 ## Tools
 
-Repo tooling lives under **`tools/`** — standalone, run directly, never imported by the game. Today it holds one tool:
+Repo tooling lives under **`tools/`** — standalone, run directly, never imported by the game. Today it holds two: the **pixel-art-kit** (sprites) and the **audio-kit** (sound). Both are portable **zero-dependency** Python (stdlib only) with the same shape — **author** a data file → **render** to an engine-agnostic artifact → **import** as a GameMaker asset (resource registered first; re-runs are churn-free) — and a project conventions doc (`GEMS.md`) answering the kit's "scan/ask".
 
 **`tools/pixel-art-kit/`** — the sprite-**art pipeline**: a portable, **zero-dependency** Python toolkit (stdlib only — no PIL/installs; PNG/GIF encode+decode are hand-rolled) that generates the project's pixel-art sprites from **data files**, not inlined art. Three stages: **author** a template → **render** it to a PNG strip + previews → **import** it as a GameMaker sprite.
 
@@ -68,6 +68,14 @@ Repo tooling lives under **`tools/`** — standalone, run directly, never import
 - **`palettes/`** `.hex` library (db32 default) · **`templates/`** input data (`.txt` index grids / `.json` statics / `anim/`) · **`out/`** + **`local/`** are gitignored.
 
 **This project's confirmed conventions are 16×16 cells + DB32 + foot-anchored — see `tools/pixel-art-kit/GEMS.md` (the "scan/ask" answer); full kit docs in `tools/pixel-art-kit/README.md`.** Run the generators after editing a template: `python tools/pixel-art-kit/gm-import/entity_sprites.py`, and `python tools/pixel-art-kit/common/terrain_materials.py` then `terrain_sprites.py` for terrain. (Some 32px sprites are out of this workflow — lobby/editor UI icons + the Platformer's debug-box art; see GEMS.md.)
+
+**`tools/audio-kit/`** — the **sound pipeline** (the audio sibling of pixel-art-kit): a zero-dependency Python toolkit (stdlib only — 16-bit PCM **WAV** + Standard **MIDI** encoders are hand-rolled) that generates the project's audio from **data files**, not binary blobs. Two media: **SFX** (a stack of synth layers → mono WAV) and **MIDI-based BGM** (a note/tracker score → looping stereo WAV **and** an editable `.mid` — GameMaker can't play `.mid`, so the WAV is the asset and the `.mid` is the DAW-editable source).
+
+- **`common/`** — engine-agnostic core: `audiolib` (WAV encode + buffer mix/gain/normalize/fade + paths), `synth` (oscillators sine/square/pulse/saw/triangle/noise + ADSR + filters + kick/snare/hat + note-name parsing + named instrument patches), `midilib` (minimal SMF Type-1 writer), `sfx.py` (render `templates/sfx/*.json`), `music.py` (render `templates/bgm/*.json` → WAV + `.mid`). Carries **no** sounds/tempos/notes — supplied per project in `templates/`.
+- **`gm-import/`** — the GameMaker adapter (imports `common/`, writes `GMSound`s into the project's `sounds/`): `gm_sound.py` (shared `.wav` + templated `.yy` emitter), `sfx_sounds.py` (→ `snd_*`, mono uncompressed), `bgm_sounds.py` (→ `mus_*`, stereo uncompressed; `.mid` into `out/`). A GMSound `.yy` carries **no uuids**, so re-running is inherently churn-free.
+- **`templates/sfx/`** + **`templates/bgm/`** input data · **`out/`** + **`local/`** gitignored.
+
+**This project's confirmed conventions are 44.1 kHz / 16-bit, chiptune, mono SFX `snd_*` + stereo BGM `mus_*` (folders `Media/Audio/SFX`+`BGM`) — see `tools/audio-kit/GEMS.md`; full docs in `tools/audio-kit/README.md`.** Run after editing a template: `python tools/audio-kit/gm-import/sfx_sounds.py` / `bgm_sounds.py`. Runtime playback is verified on GMRT 0.20. The committed set is **9 SFX + 2 BGM loops**, **not yet wired into gameplay** (the kit produces+imports the assets; playing them on events + per-scene BGM is a separate step — a small audio manager + `audio_play_sound`).
 
 ## Code Style & Conventions
 
