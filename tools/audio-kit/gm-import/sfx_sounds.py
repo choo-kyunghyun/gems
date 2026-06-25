@@ -30,7 +30,7 @@ def build():
             continue
         name, buf = SFX.render_file(os.path.join(SFX.SFX_DIR, fn))
         asset = PREFIX + name
-        dur = G.write_sound(ROOT, asset, [buf], PARENT, compression=0)
+        dur = G.write_sound(ROOT, asset, [buf], PARENT, group="sfx", compression=0)
         done.append((asset, dur))
     return done
 

@@ -2,15 +2,15 @@
   "$GMSound":"v2",
   "%Name":"snd_ui_move",
   "audioGroupId":{
-    "name":"audiogroup_default",
-    "path":"audiogroups/audiogroup_default",
+    "name":"sfx",
+    "path":"audiogroups/sfx",
   },
   "bitDepth":1,
   "channelFormat":0,
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.05,
+  "duration":0.050000,
   "exportDir":"",
   "name":"snd_ui_move",
   "parent":{

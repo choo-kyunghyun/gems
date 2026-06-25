@@ -2,15 +2,15 @@
   "$GMSound":"v2",
   "%Name":"snd_powerup",
   "audioGroupId":{
-    "name":"audiogroup_default",
-    "path":"audiogroups/audiogroup_default",
+    "name":"sfx",
+    "path":"audiogroups/sfx",
   },
   "bitDepth":1,
   "channelFormat":0,
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.49,
+  "duration":0.490000,
   "exportDir":"",
   "name":"snd_powerup",
   "parent":{

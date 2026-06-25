@@ -298,17 +298,28 @@ globalThis.SystemMenu = class SystemMenu {
     const scroll = gemsScroll({ grow: true });
 
     const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
-    // 0–1 volumes read as a percentage rather than a bare "0.80".
-    const volPct = { format: (v) => string_format(v * 100, 0, 0) + "%" };
-    const volSlider = (key) => gemsSlider(key, 0, 1, undefined, volPct);
+    // 0–1 volumes read as a percentage rather than a bare "0.80". `apply` updates the live audio
+    // as the slider drags (gemsSlider writes the Settings value itself; the Save button persists it).
+    const volFmt = (v) => string_format(v * 100, 0, 0) + "%";
+    const volSlider = (key, apply) =>
+      gemsSlider(key, 0, 1, undefined, { format: volFmt, onChange: apply });
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_MASTER"), volSlider("volMaster")),
+      gemsRow(
+        I18n.textRef("SETTINGS_VOL_MASTER"),
+        volSlider("volMaster", (v) => Audio.setMasterGain(v)),
+      ),
     );
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_MUSIC"), volSlider("volMusic")),
+      gemsRow(
+        I18n.textRef("SETTINGS_VOL_MUSIC"),
+        volSlider("volMusic", (v) => Audio.setMusicGain(v)),
+      ),
     );
     volSection.insertChild(
-      gemsRow(I18n.textRef("SETTINGS_VOL_SFX"), volSlider("volSfx")),
+      gemsRow(
+        I18n.textRef("SETTINGS_VOL_SFX"),
+        volSlider("volSfx", (v) => Audio.setSfxGain(v)),
+      ),
     );
     scroll.scrollBody.insertChild(volSection);
 

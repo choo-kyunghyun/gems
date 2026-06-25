@@ -15,6 +15,7 @@ kit stays style-agnostic; this file is G.E.M.S.'s filled-in style — the audio 
 | **Format** | **WAV** (the only stdlib-encodable format). GameMaker re-compresses at build per the asset's setting; switch a long track to Compressed/Streamed in the IDE if size matters. |
 | **GM naming** | SFX → `snd_<thing>` (`snd_coin` / `snd_jump` / …); BGM → `mus_<thing>` (`mus_overworld` / `mus_battle`). |
 | **IDE folder** | `Media/Audio/SFX` and `Media/Audio/BGM`. |
+| **Audio group** | SFX → the **`sfx`** GMAudioGroup, BGM → **`bgm`** (the importer assigns them). Category volume = the group gain (`audio_group_set_gain`), driven live by the SystemMenu sliders; non-default groups are `audio_group_load`'d at boot by `scripts/Audio`. |
 
 Audio pairs with the **DB32 16px pixel art** — keep it deliberately **chiptune**, not sampled.
 

@@ -14,7 +14,9 @@
  *     EARS so a sound to the player's right pans right and a distant one is quieter.
  *
  * Wiring (mirrors ParticleFx):
- *   - obj_game Create_0 → Audio.setup() (falloff model + orientation + saved Settings volumes);
+ *   - obj_game Create_0 → Audio.setup() (falloff model + orientation; LOADS the bgm/sfx audio groups
+ *     + applies the saved Settings volumes as group gains — category volume is the AUDIO GROUP gain,
+ *     so the SystemMenu sliders scale every playing sound in a group live via setMusicGain/setSfxGain);
  *   - obj_game Step_0   → Audio.update() (reaps a finished BGM cross-fade on Time.raw — wall-clock,
  *     so a paused sim doesn't freeze the fade);
  *   - SceneManager._apply → Audio.reset() (stop the looping BGM + all SFX on a base scene swap, so
@@ -28,9 +30,6 @@
  * static getters — those miscompile on 0.20). Falloff numbers below suit the 16px-cell world.
  */
 globalThis.Audio = class Audio {
-  static sfxGain = 1.0; // 0..1 category multipliers (folded into each play's gain)
-  static musicGain = 1.0;
-
   static _bgm = -1; // current looping BGM handle (-1 = none)
   static _bgmName = ""; // its asset name — re-requesting the same track is a no-op
   static _fadeStop = -1; // a faded-out BGM handle awaiting its stop
@@ -42,16 +41,21 @@ globalThis.Audio = class Audio {
   static FACTOR = 1.0; // 1 = reach silence exactly at MAX
 
   // Call once at boot. Picks the distance model (the default is "none" = no spatialisation),
-  // fixes the 2D listener orientation, and applies the saved master/category volumes.
+  // fixes the 2D listener orientation, LOADS the audio groups, and applies the saved volumes.
   static setup() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
     // 2D top-down: face into the screen (+z); up = -y (GM y grows downward) makes +x emitters
     // pan RIGHT. Only x then drives L/R pan; the y axis maps to front/back (no L/R skew), which
     // is exactly right for a top-down view. Position changes each frame; orientation is fixed.
     audio_listener_orientation(0, 0, 1, 0, -1, 0);
-    audio_master_gain(Settings.get("volMaster"));
-    Audio.sfxGain = Settings.get("volSfx");
-    Audio.musicGain = Settings.get("volMusic");
+    // The snd_*/mus_* assets live in the `sfx`/`bgm` audio GROUPS, not the always-loaded default —
+    // a non-default group must be LOADED (async) before its sounds can play. Done at boot, long
+    // before any scene with sound opens. Category volume is then the group gain (setMusicGain/SfxGain).
+    if (!audio_group_is_loaded(bgm)) audio_group_load(bgm);
+    if (!audio_group_is_loaded(sfx)) audio_group_load(sfx);
+    Audio.setMasterGain(Settings.get("volMaster"));
+    Audio.setMusicGain(Settings.get("volMusic"));
+    Audio.setSfxGain(Settings.get("volSfx"));
   }
 
   // Resolve "snd_x" (or a raw asset handle) to a valid sound asset, else -1. Guards the -1 so
@@ -68,7 +72,7 @@ globalThis.Audio = class Audio {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
     opts = opts === undefined ? {} : opts;
-    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio.sfxGain;
+    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `sfx` group gain
     return audio_play_sound(
       a,
       opts.priority === undefined ? 1 : opts.priority,
@@ -85,7 +89,7 @@ globalThis.Audio = class Audio {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
     opts = opts === undefined ? {} : opts;
-    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio.sfxGain;
+    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `sfx` group gain
     return audio_play_sound_at(
       a,
       x,
@@ -126,7 +130,7 @@ globalThis.Audio = class Audio {
       return Audio._bgm; // already playing this track
     const fade = opts.fadeMs === undefined ? 600 : opts.fadeMs;
     Audio._fadeOutCurrent(fade);
-    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio.musicGain;
+    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `bgm` group gain
     const h = audio_play_sound(
       a,
       0,
@@ -171,15 +175,16 @@ globalThis.Audio = class Audio {
     }
   }
 
-  // Volume setters (0..1), persisted by the caller via Settings. The live BGM is re-ramped.
+  // Category volume setters (0..1), live. Music/SFX drive their AUDIO GROUP gain, which scales every
+  // sound in the group — including the currently-playing BGM — with no per-sound bookkeeping. The
+  // SystemMenu slider writes the Settings value itself; these just apply it. (Music ramps over 50ms
+  // to avoid a click while dragging; SFX is instant since each cue is brief.)
   static setMusicGain(g) {
-    Audio.musicGain = g < 0 ? 0 : g > 1 ? 1 : g;
-    if (Audio._bgm !== -1 && audio_is_playing(Audio._bgm))
-      audio_sound_gain(Audio._bgm, Audio.musicGain, 100);
+    audio_group_set_gain(bgm, g < 0 ? 0 : g > 1 ? 1 : g, 50);
   }
 
   static setSfxGain(g) {
-    Audio.sfxGain = g < 0 ? 0 : g > 1 ? 1 : g;
+    audio_group_set_gain(sfx, g < 0 ? 0 : g > 1 ? 1 : g, 0);
   }
 
   static setMasterGain(g) {

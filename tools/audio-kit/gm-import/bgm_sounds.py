@@ -29,7 +29,7 @@ def build():
             continue
         name, left, right, bpm, beats = MUS.render_file(os.path.join(MUS.BGM_DIR, fn))
         asset = PREFIX + name
-        dur = G.write_sound(ROOT, asset, [left, right], PARENT, compression=0)
+        dur = G.write_sound(ROOT, asset, [left, right], PARENT, group="bgm", compression=0)
         done.append((asset, dur, bpm, beats))
     return done
 

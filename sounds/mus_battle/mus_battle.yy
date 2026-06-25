@@ -2,15 +2,15 @@
   "$GMSound":"v2",
   "%Name":"mus_battle",
   "audioGroupId":{
-    "name":"audiogroup_default",
-    "path":"audiogroups/audiogroup_default",
+    "name":"bgm",
+    "path":"audiogroups/bgm",
   },
   "bitDepth":1,
   "channelFormat":1,
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":6.4,
+  "duration":6.400000,
   "exportDir":"",
   "name":"mus_battle",
   "parent":{

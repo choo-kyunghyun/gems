@@ -16,15 +16,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import audiolib as A
 
 
-def yy(name, soundfile, duration, channel_format, compression, parent):
+def yy(name, soundfile, duration, channel_format, compression, parent, group):
     """A GMSound .yy. bitDepth 1 = 16-bit; channelFormat 0 = mono, 1 = stereo;
-    compression 0 = uncompressed (instant SFX + seam-perfect BGM loops)."""
+    compression 0 = uncompressed (instant SFX + seam-perfect BGM loops). `group` is the
+    GMAudioGroup name (e.g. "bgm"/"sfx" for live category-volume control via audio_group_set_gain;
+    a non-default group must be audio_group_load()'d before playback — see scripts/Audio)."""
     return f"""{{
   "$GMSound":"v2",
   "%Name":"{name}",
   "audioGroupId":{{
-    "name":"audiogroup_default",
-    "path":"audiogroups/audiogroup_default",
+    "name":"{group}",
+    "path":"audiogroups/{group}",
   }},
   "bitDepth":1,
   "channelFormat":{channel_format},
@@ -47,13 +49,13 @@ def yy(name, soundfile, duration, channel_format, compression, parent):
 }}"""
 
 
-def write_sound(root, name, channels, parent, compression=0, sr=A.SR):
-    """Write one GMSound. channels = [mono] or [L, R]. Returns the duration (s)."""
+def write_sound(root, name, channels, parent, group="audiogroup_default", compression=0, sr=A.SR):
+    """Write one GMSound. channels = [mono] or [L, R]; `group` is the GMAudioGroup name. Returns the duration (s)."""
     d = os.path.join(root, "sounds", name)
     os.makedirs(d, exist_ok=True)
     wav = name + ".wav"
     dur = A.write_wav(os.path.join(d, wav), channels, sr)
     chfmt = 1 if len(channels) > 1 else 0
     with open(os.path.join(d, name + ".yy"), "w", newline="\n") as fh:
-        fh.write(yy(name, wav, dur, chfmt, compression, parent))
+        fh.write(yy(name, wav, dur, chfmt, compression, parent, group))
     return dur

@@ -2,15 +2,15 @@
   "$GMSound":"v2",
   "%Name":"mus_overworld",
   "audioGroupId":{
-    "name":"audiogroup_default",
-    "path":"audiogroups/audiogroup_default",
+    "name":"bgm",
+    "path":"audiogroups/bgm",
   },
   "bitDepth":1,
   "channelFormat":1,
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":8.0,
+  "duration":8.000000,
   "exportDir":"",
   "name":"mus_overworld",
   "parent":{
