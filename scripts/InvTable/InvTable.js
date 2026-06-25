@@ -39,6 +39,12 @@ globalThis.InvTable = {
       label: I18n.text("INV_COL_NAME"),
       width: 100,
       flex: 3,
+      // Item icon inline before the name (UITable shifts the text past it by rowH). The accessor
+      // returns the item's sprite ref (wired in RpgItems.register); a missing/-1 ref draws nothing.
+      sprite: (r) => {
+        const it = Item.get(r.itemId);
+        return it !== undefined ? it.sprite : -1;
+      },
       text: (r) => r.name,
       color: (r) => r.color,
       sortValue: (r) => r.name,

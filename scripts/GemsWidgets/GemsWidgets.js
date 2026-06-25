@@ -215,12 +215,21 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
     opts.borderColor ?? (primary ? GemsTheme.accentHi : GemsTheme.border);
   const bdrHover = primary ? GemsTheme.text : GemsTheme.borderHi;
 
-  const btn = new UIElement({
+  // opts.icon: an optional sprite ref drawn as a small icon left of the label (an item icon
+  // for an equip/mod button). Only when set does the layout switch to a centered row — the
+  // no-icon path is unchanged, so every existing button is untouched.
+  const hasIcon = opts.icon != null && sprite_exists(opts.icon);
+  const style = {
     height: opts.height ?? GemsTheme.rowH,
     width: opts.width ?? "100%",
     justifyContent: "center",
     alignItems: "center",
-  });
+  };
+  if (hasIcon) {
+    style.flexDirection = "row";
+    style.gap = GemsTheme.gapSm;
+  }
+  const btn = new UIElement(style);
   btn.addComponent(
     new UIPanel({
       color: gemsColor(base),
@@ -263,6 +272,18 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       onClick,
     }),
   );
+  if (hasIcon) {
+    const isz = opts.iconSize ?? (opts.height ?? GemsTheme.rowH) - 8;
+    const iconEl = new UIElement({ width: isz, height: isz });
+    iconEl.addComponent(
+      new UIImage({
+        sprite: opts.icon,
+        fit: OBJECT_FIT.CONTAIN,
+        color: c_white,
+      }),
+    );
+    btn.insertChild(iconEl);
+  }
   btn.insertChild(labelEl);
   return gemsAttachTooltip(btn, opts);
 };

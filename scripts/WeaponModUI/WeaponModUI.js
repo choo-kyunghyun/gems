@@ -111,6 +111,7 @@ globalThis.WeaponModUI = {
         height: 32,
         selected: () => scene._modSel === uid,
         textColor: RpgWorldOverlay._rarityColor(slot.itemId),
+        icon: it !== undefined ? it.sprite : -1,
       },
     );
   },
@@ -142,10 +143,14 @@ globalThis.WeaponModUI = {
     const prof = EquipmentSystem.composeWeapon(slot);
 
     host.insertChild(
-      gemsLabel(it !== undefined ? I18n.text(it.name) : slot.itemId, {
-        font: "header",
-        color: RpgWorldOverlay._rarityColor(slot.itemId),
-      }),
+      gemsRichText(
+        RpgWorldOverlay.iconTag(slot.itemId) +
+          (it !== undefined ? I18n.text(it.name) : slot.itemId),
+        {
+          font: "header",
+          color: RpgWorldOverlay._rarityColor(slot.itemId),
+        },
+      ),
     );
     host.insertChild(gemsDivider());
 
@@ -276,7 +281,7 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsLabel(nm + " x" + count, {
+      gemsRichText(RpgWorldOverlay.iconTag(ammoId) + nm + " x" + count, {
         color: RpgWorldOverlay._rarityColor(ammoId),
       }),
     );
@@ -313,9 +318,12 @@ globalThis.WeaponModUI = {
       const it = Item.get(installed);
       const nm = it !== undefined ? I18n.text(it.name) : installed;
       cell.insertChild(
-        gemsLabel(catLabel + ": " + nm, {
-          color: RpgWorldOverlay._rarityColor(installed),
-        }),
+        gemsRichText(
+          RpgWorldOverlay.iconTag(installed) + catLabel + ": " + nm,
+          {
+            color: RpgWorldOverlay._rarityColor(installed),
+          },
+        ),
       );
       row.insertChild(cell);
       row.insertChild(
@@ -344,7 +352,7 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsLabel(nm + " x" + count, {
+      gemsRichText(RpgWorldOverlay.iconTag(modId) + nm + " x" + count, {
         color: RpgWorldOverlay._rarityColor(modId),
       }),
     );

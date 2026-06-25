@@ -10,6 +10,17 @@ globalThis.RpgWorldOverlay = {
     return r !== undefined ? r.color : c_white;
   },
 
+  // Item-icon markup prefix for a UIRichText row — "[spr=spr_item_<id>] " when the item has a real
+  // icon sprite (wired in RpgItems.register by the spr_item_<id> convention), else "" so a spriteless
+  // item leaves no gap. Shared by the hotbar / equipment / weapon-mod text rows. The name matches the
+  // wiring convention (item_sprites.py); the guard reads the already-resolved ref off the item, so we
+  // don't need sprite_get_name (unused/unverified on GMRT).
+  iconTag(itemId) {
+    const it = Item.get(itemId);
+    if (it === undefined || !sprite_exists(it.sprite)) return "";
+    return "[spr=spr_item_" + itemId + "] ";
+  },
+
   drawWorld(scene) {
     const world = scene.world;
 
@@ -17,10 +28,18 @@ globalThis.RpgWorldOverlay = {
     for (const id of drops) {
       const p = world.get(Position, id);
       const d = world.get(ItemDrop, id);
-      draw_set_color(this._rarityColor(d.itemId));
-      draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, false);
-      draw_set_color(c_black);
-      draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, true);
+      const it = Item.get(d.itemId);
+      const spr = it !== undefined ? it.sprite : -1;
+      if (sprite_exists(spr)) {
+        // The icon is a centered-origin 16px sprite — draw it centered on the drop position.
+        draw_sprite_ext(spr, 0, p.x, p.y, 1, 1, 0, c_white, 1);
+      } else {
+        // No icon for this item — fall back to the rarity-colored square.
+        draw_set_color(this._rarityColor(d.itemId));
+        draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, false);
+        draw_set_color(c_black);
+        draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, true);
+      }
     }
 
     const bullets = world.query(Projectile, Position);

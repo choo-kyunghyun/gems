@@ -35,7 +35,25 @@ globalThis.RpgHud = {
 
   _hotbarSlot(scene, i) {
     const card = gemsCard({ width: 140, padding: GemsTheme.padSm });
-    card.insertChild(
+    const row = new UIElement({
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+    });
+    // Live item icon left of the label. Re-parsed each frame off the bound slot; returns ""
+    // (→ 0 width, no gap) when the slot is empty, so it survives a map/world swap with no rebuild.
+    row.insertChild(
+      gemsRichText(
+        () => {
+          if (scene.ctrl === undefined) return "";
+          const hb = scene.world.get(Hotbar, scene.ctrl.id);
+          const itemId = hb !== undefined ? hb.slots[i] : "";
+          return itemId ? RpgWorldOverlay.iconTag(itemId) : "";
+        },
+        { font: "description" },
+      ),
+    );
+    row.insertChild(
       gemsLabel(
         () => {
           const key = i + 1;
@@ -52,6 +70,7 @@ globalThis.RpgHud = {
         { color: GemsTheme.text, font: "description" },
       ),
     );
+    card.insertChild(row);
     return card;
   },
 

@@ -775,7 +775,11 @@ globalThis.RpgInventoryUI = {
           scene._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
-        { height: 30, textColor: RpgWorldOverlay._rarityColor(itemId) },
+        {
+          height: 30,
+          textColor: RpgWorldOverlay._rarityColor(itemId),
+          icon: it !== undefined ? it.sprite : -1,
+        },
       );
     }
     const row = new UIElement({ width: "100%", height: 26 });
