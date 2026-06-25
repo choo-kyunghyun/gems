@@ -497,6 +497,10 @@ globalThis.RpgMap = {
     //    fill (RenderDebugTileMap) rather than the per-layer RenderTileMap loop — restore that loop
     //    (see the inline "Restore …" note below) when tile art lands. Chunked terrain already uses
     //    its real per-material dual-grid tilesets (TerrainStream, below).
+    // 2.5D billboard spike: > 0 pitches the follow camera and stands entity sprites up
+    // (RenderBillboard) instead of the flat RenderEntity; 0 = the classic top-down look.
+    // Set to 0 to fully revert the spike (weather/lighting re-enable, camera un-pitches).
+    const RPG_BB_PITCH = 0; // spike OFF by default (normal top-down); set to ~35 to preview 2.5D
     scene.renderer = new Renderer();
     // Chunk-streamed terrain: TerrainStream draws the real per-material dual-grid tilesets
     // (spr_terrainWater/Sand/Grass, untinted) UNDER everything, so RenderChunks runs with
@@ -525,6 +529,7 @@ globalThis.RpgMap = {
     });
     scene.renderer.insert(scene._tilePass);
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
+    scene._gridPass.enabled = false; // off in normal play (read as terrain noise); toggle via Debug → Render → Grid
     scene.renderer.insert(scene._gridPass);
     scene.renderer.insert(new RenderZone(scene.level, "buildable"));
     scene.renderer.insert(
@@ -532,10 +537,16 @@ globalThis.RpgMap = {
         font: I18n.font("default"),
       }),
     );
+    // Foot shadows UNDER the entities (one runtime ellipse per body; not baked into the sprites).
+    scene.renderer.insert(new RenderEntityShadow());
     // Entities via the production sprite pass (draw_sprite_ext over Visual). The colored-box +
     // label debug passes stay inserted but DISABLED by default, so the Debug menu (Boxes/Names/
     // Facing/Anim) can still toggle them over the sprites without cluttering normal play.
-    scene.renderer.insert(new RenderEntity());
+    scene.renderer.insert(
+      RPG_BB_PITCH > 0
+        ? new RenderBillboard({ pitchDeg: RPG_BB_PITCH })
+        : new RenderEntity(),
+    );
     const dbgBox = new RenderDebugBox();
     dbgBox.enabled = false;
     scene.renderer.insert(dbgBox);
@@ -588,6 +599,7 @@ globalThis.RpgMap = {
     if (!data.meta.indoor) {
       scene._weather = new RenderWeather();
       scene.renderer.insert(scene._weather);
+      if (RPG_BB_PITCH > 0) scene._weather.enabled = false; // spike: weather pass assumes a flat view
     }
     // Lighting LAST — a per-frame light map composited over tiles + entities + weather. It absorbs
     // the day/night cycle as its ambient term (white in daylight → night hue when dark) and adds
@@ -596,16 +608,18 @@ globalThis.RpgMap = {
     // camera is assigned with the others below.
     scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
+    if (RPG_BB_PITCH > 0) scene._lighting.enabled = false; // spike: light map assumes a flat view
 
     // 10. Follow camera on the (new) player.
     scene.camera = cameraFollow2d({
       world: scene.world,
       followTarget: scene.ctrl.id,
       followLerp: 0.15,
+      pitch: RPG_BB_PITCH, // 2.5D spike: 0 = flat top-down, > 0 pitches for standing billboards
       // 16px-cell world (GEMS.md): zoom 2 so the ortho view spans surfaceW/2 world px — the same
       // CELL framing the old 32px world had at zoom 1. cameraFollow recomputes the view extent
       // each frame as surface size / followZoom, so width/height below are just the frame-0 seed.
-      zoom: 2,
+      zoom: RPG_BB_PITCH > 0 ? 3.5 : 2, // spike: tighter so loaded chunks fill the pitched view
       width: surface_get_width(application_surface),
       height: surface_get_height(application_surface),
     });

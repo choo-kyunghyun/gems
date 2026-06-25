@@ -23,7 +23,11 @@ function _cameraFollowOnUpdate() {
   if (mouse_check_button_pressed(this.followZoomButton)) {
     this.followZoomTarget = this.followZoomDefault;
   }
-  this.followZoom = lerp(this.followZoom, this.followZoomTarget, this.followZoomLerp);
+  this.followZoom = lerp(
+    this.followZoom,
+    this.followZoomTarget,
+    this.followZoomLerp,
+  );
 
   this.setSize(
     surface_get_width(application_surface) / this.followZoom,
@@ -40,8 +44,19 @@ function _cameraFollowOnUpdate() {
     y = Math.round(y);
   }
 
-  this.setFrom(x, y, this.followHeight);
-  this.setTo(x, y, 0);
+  // 2.5D spike: an optional pitch tilts the ortho eye up out of the ground plane (rotating the
+  // eye + up vector about the X axis), so the view looks down at an angle for standing billboards.
+  // pitch 0 (default) is the unchanged top-down look; followPitch is radians.
+  const p = this.followPitch ?? 0;
+  if (p === 0) {
+    this.setFrom(x, y, this.followHeight);
+    this.setTo(x, y, 0);
+  } else {
+    const ad = Math.abs(this.followHeight);
+    this.setFrom(x, y + Math.sin(p) * ad, -Math.cos(p) * ad);
+    this.setTo(x, y, 0);
+    this.setUp(0, Math.cos(p), Math.sin(p));
+  }
 }
 
 /**
@@ -63,6 +78,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followLerp = cam.followLerp ?? 0.1;
   camera.followHeight = cam.followHeight ?? defaultHeight;
   camera.followSnap = snap;
+  camera.followPitch = ((cam.pitch ?? 0) * Math.PI) / 180; // 2.5D spike: pitch in degrees → radians
 
   camera.followZoom = cam.zoom ?? 1; // current (eased) zoom that drives the view extent
   camera.followZoomTarget = camera.followZoom; // wheel/reset destination; followZoom eases to it

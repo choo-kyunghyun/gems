@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderEntityShadow",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderEntityShadow",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderEntityShadow.js",
+}

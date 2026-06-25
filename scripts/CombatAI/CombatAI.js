@@ -161,20 +161,27 @@ globalThis.CombatAI = {
     if (w.get(PathRequest, id) !== undefined) w.detach(id, PathRequest);
   },
 
-  // Mobile actors render as colored boxes — tint per state so behavior reads at a glance. A
-  // STATIONARY actor (turret) keeps its authored Visual color (the box doesn't change meaning),
-  // so the tint is a mobile-enemy cue only.
+  // Per-state aggro cue. Mobile actors are now real flat ART (not debug boxes), so a FULL state-color
+  // multiply muddied the authored sprite (a brick-red slime went murky green at idle). Apply only a
+  // light WASH toward the state color (mostly white) so the sprite's own color shows while aggro still
+  // reads; white (idle) = no tint. A STATIONARY actor (turret) keeps its authored color.
   _tint(id, r, g, b) {
     const w = this._world;
     const brain = w.get(Brain, id);
     if (brain !== undefined && !brain.mobile) return;
     const vis = w.get(Visual, id);
-    if (vis !== undefined) vis.color = make_colour_rgb(r, g, b);
+    if (vis === undefined) return;
+    const k = 0.35; // wash strength (0 = authored color, 1 = full state color)
+    vis.color = make_colour_rgb(
+      Math.round(255 + (r - 255) * k),
+      Math.round(255 + (g - 255) * k),
+      Math.round(255 + (b - 255) * k),
+    );
   },
 
   IDLE: {
     enter(id) {
-      CombatAI._tint(id, 120, 220, 130); // calm green
+      CombatAI._tint(id, 255, 255, 255); // idle: no wash — slime shows its authored brick-red
     },
     update(id) {
       const w = CombatAI._world;

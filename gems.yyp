@@ -220,6 +220,7 @@
     {"id":{"name":"RenderDebugRange","path":"scripts/RenderDebugRange/RenderDebugRange.yy",},},
     {"id":{"name":"RenderDebugTileMap","path":"scripts/RenderDebugTileMap/RenderDebugTileMap.yy",},},
     {"id":{"name":"RenderEntity","path":"scripts/RenderEntity/RenderEntity.yy",},},
+    {"id":{"name":"RenderEntityShadow","path":"scripts/RenderEntityShadow/RenderEntityShadow.yy",},},
     {"id":{"name":"Renderer","path":"scripts/Renderer/Renderer.yy",},},
     {"id":{"name":"RenderGrid","path":"scripts/RenderGrid/RenderGrid.yy",},},
     {"id":{"name":"RenderLighting","path":"scripts/RenderLighting/RenderLighting.yy",},},

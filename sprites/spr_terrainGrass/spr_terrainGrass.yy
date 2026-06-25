@@ -43,8 +43,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Terrain",
-    "path":"folders/Media/Sprite/Terrain.yy",
+    "name":"Handmade Sprites",
+    "path":"folders/Media/Handmade Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

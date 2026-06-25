@@ -118,15 +118,21 @@ ALGOS = {"noise": algo_noise, "ripple": algo_ripple, "blades": algo_blades, "gra
 # Per-terrain algorithm selection + params (example terrains; colors inline). `variants` overrides the default count.
 TERRAINS = {
     "water": {"algo": "ripple", "seed": 11, "variants": 1,
-              # 2 colors: blue base (weighted 3x -> dominant) + cyan crest. No dark trough stripe.
-              "tones": [(99, 155, 255), (99, 155, 255), (99, 155, 255), (95, 205, 228)],
+              # RimWorld-earthy: muted steel blue-grey (desaturated from the old bright blue) + a soft
+              # lighter crest. No dark trough stripe.
+              "tones": [(86, 116, 140), (86, 116, 140), (86, 116, 140), (120, 150, 165)],
               "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.04},
     "sand":  {"algo": "grain", "seed": 23, "variants": 4,
-              "base": (217, 160, 102), "dark": (143, 86, 59), "light": (238, 195, 154),
-              "density": 0.16},
+              # RimWorld-earthy + calm: muted tan, sparse low-contrast specks (a clean backdrop, not
+              # grainy static). See grass note below.
+              "base": (168, 148, 106), "dark": (150, 132, 92), "light": (185, 166, 124),
+              "density": 0.09},
     "grass": {"algo": "blades", "seed": 7, "variants": 4,
-              "base": (106, 190, 48), "dark": (75, 105, 47), "light": (153, 229, 80),
-              "density": 0.26},
+              # RimWorld-earthy + calm: desaturated OLIVE (not bright green), sparse low-contrast
+              # strokes so grass reads as a calm serious backdrop the muted entities sit on rather than
+              # salt-and-pepper static. (Was bright (106,190,48) + dense = candy noise.)
+              "base": (121, 130, 90), "dark": (107, 116, 80), "light": (138, 148, 104),
+              "density": 0.10},
 }
 VARIANTS = 4  # default if a terrain omits "variants"
 
