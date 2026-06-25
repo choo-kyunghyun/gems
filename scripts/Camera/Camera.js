@@ -173,4 +173,23 @@ globalThis.Camera = class Camera {
     this.projection = projection;
     return this;
   }
+
+  /**
+   * Project a world point to application-surface pixels under the current ortho view. The
+   * horizontal axis is world x; the vertical uses the camera up vector, so a pitched (2.5D)
+   * camera foreshortens world-y by cos(pitch) and lifts by world-z. Used by the screen-space
+   * overlays (RenderLighting light blobs) so they land correctly in BOTH the flat top-down and
+   * the pitched 2.5D view. `to` is centered on screen by the lookat; width/height are the ortho
+   * world extent, so sw/width and sh/height are the world->screen scale.
+   * @param {number} wx @param {number} wy @param {number} [wz=0] @returns {{x:number, y:number}}
+   */
+  project(wx, wy, wz = 0) {
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
+    const up = (wy - this.toY) * this.upY + (wz - this.toZ) * this.upZ;
+    return {
+      x: sw / 2 + ((wx - this.toX) * sw) / this.width,
+      y: sh / 2 + (up * sh) / this.height,
+    };
+  }
 };

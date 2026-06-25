@@ -50,10 +50,6 @@ globalThis.RenderLighting = class RenderLighting {
 
   draw(world) {
     if (this.camera === undefined) return;
-    const vw = this.camera.width;
-    const vh = this.camera.height;
-    // Test > 0 (not <= 0): an uninitialized size could be NaN, and NaN <= 0 is false.
-    if (!(vw > 0) || !(vh > 0)) return;
 
     // Ambient from the injected provider (WorldClock.tint in the demo), mapped to the multiply
     // model. k=0 → white (daylight); k→1 → the night hue. In full daylight the ambient is white and
@@ -64,13 +60,16 @@ globalThis.RenderLighting = class RenderLighting {
     if (k <= 0) return;
     const ambient = Color.merge(c_white, tint.color, k);
 
-    const w = Math.floor(vw);
-    const h = Math.floor(vh);
-    const x1 = this.camera.toX - vw / 2; // view origin in world coords (camera fields are integer px)
-    const y1 = this.camera.toY - vh / 2;
+    // The light map is a SCREEN-space overlay (surface = application-surface size, composited 1:1
+    // over the screen), so it works under a pitched 2.5D camera: light blobs are PROJECTED to
+    // surface pixels via camera.project (a world-rect surface would otherwise land as a
+    // foreshortened ground quad). Equivalent to the old flat math when pitch = 0.
+    const w = Math.floor(surface_get_width(application_surface));
+    const h = Math.floor(surface_get_height(application_surface));
+    if (!(w > 0) || !(h > 0)) return;
 
     // (Re)create the surface when missing (surfaces are volatile — lost on resize/focus) or when
-    // the view size changed (e.g. the uiScale/resolution Setting applied live).
+    // the surface size changed (e.g. the uiScale/resolution Setting applied live).
     if (
       !surface_exists(this._surf) ||
       surface_get_width(this._surf) !== w ||
@@ -83,20 +82,22 @@ globalThis.RenderLighting = class RenderLighting {
     const prevColor = draw_get_color();
     const prevAlpha = draw_get_alpha();
 
-    // 1 + 2. Build the light map: ambient fill, then additive light blobs (surface-local coords).
+    // 1 + 2. Build the light map: ambient fill, then additive light blobs at projected screen px.
     surface_set_target(this._surf);
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
     const lights = world.query(Light, Position);
     const alpha = world.alpha; // render interpolation, like RenderEntity
+    const zx = w / this.camera.width; // world→screen scale for the blob radius
     let i = 0;
     while (i < lights.length) {
       const id = lights[i];
       const lt = world.get(Light, id);
       const pos = world.get(Position, id);
       const prev = world.get(PrevPosition, id);
-      const lx = (prev ? prev.x + (pos.x - prev.x) * alpha : pos.x) - x1;
-      const ly = (prev ? prev.y + (pos.y - prev.y) * alpha : pos.y) - y1;
+      const wx = prev ? prev.x + (pos.x - prev.x) * alpha : pos.x;
+      const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
+      const s = this.camera.project(wx, wy, 0);
       let intensity = lt.intensity ?? 1;
       // Optional flicker — a cheap wall-clock sine per light (trig works on GMRT 0.20). Offset by
       // id so torches don't pulse in lockstep. Uses current_time (a clock, not Time.raw's delta).
@@ -105,18 +106,15 @@ globalThis.RenderLighting = class RenderLighting {
           1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
       draw_set_alpha(intensity);
       // Soft radial light: hue at the center fading to black at `radius`; bm_add sums overlaps.
-      draw_circle_color(lx, ly, lt.radius, lt.color, c_black, false);
+      draw_circle_color(s.x, s.y, lt.radius * zx, lt.color, c_black, false);
       i++;
     }
     gpu_set_blendmode(bm_normal);
 
     // 2b. Vignette — multiply the light map down toward the corners so the night frames in at the
     // screen edges. Multiplicative (bm_dest_colour, bm_zero), like the composite below, so it
-    // DEEPENS the scene colors rather than alpha-blending a flat-black wash. Scaled by k, so it
-    // ramps in with the cycle (subtle at dusk → strongest at full night) and is gone in daylight
-    // via the early-out above. A white-center → dark-edge radial reaching the corners (radius =
-    // half-diagonal; the side midpoints clip outside the surface). After the lights, so a light in
-    // a corner is framed by it too.
+    // DEEPENS the scene colors rather than alpha-blending a flat-black wash. Scaled by k. A
+    // white-center → dark-edge radial reaching the corners (radius = half-diagonal).
     if (this.vignette > 0) {
       const cx = w / 2;
       const cy = h / 2;
@@ -136,11 +134,21 @@ globalThis.RenderLighting = class RenderLighting {
     surface_reset_target();
 
     // 3. Composite over the world, multiplicatively (final = scene * light). No bm_multiply
-    //    constant exists — it's src×dest via blendmode_ext (confirmed via gm-cli manual).
+    //    constant exists — it's src×dest via blendmode_ext. SCREEN-space: reset view/projection to
+    //    a surface-pixel ortho so the surface covers the screen at any camera pitch, then restore.
+    const sv = matrix_get(matrix_view);
+    const sp = matrix_get(matrix_projection);
+    matrix_set(
+      matrix_view,
+      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
+    );
+    matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
     gpu_set_blendmode_ext(bm_dest_colour, bm_zero);
     draw_set_alpha(1);
-    draw_surface(this._surf, x1, y1);
+    draw_surface(this._surf, 0, 0);
     gpu_set_blendmode(bm_normal);
+    matrix_set(matrix_view, sv);
+    matrix_set(matrix_projection, sp);
 
     draw_set_color(prevColor);
     draw_set_alpha(prevAlpha);

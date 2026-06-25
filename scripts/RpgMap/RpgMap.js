@@ -497,10 +497,11 @@ globalThis.RpgMap = {
     //    fill (RenderDebugTileMap) rather than the per-layer RenderTileMap loop — restore that loop
     //    (see the inline "Restore …" note below) when tile art lands. Chunked terrain already uses
     //    its real per-material dual-grid tilesets (TerrainStream, below).
-    // 2.5D billboard spike: > 0 pitches the follow camera and stands entity sprites up
-    // (RenderBillboard) instead of the flat RenderEntity; 0 = the classic top-down look.
-    // Set to 0 to fully revert the spike (weather/lighting re-enable, camera un-pitches).
-    const RPG_BB_PITCH = 0; // spike OFF by default (normal top-down); set to ~35 to preview 2.5D
+    // 2.5D billboard camera: pitches the follow camera and stands entity sprites up
+    // (RenderBillboard) instead of the flat RenderEntity. Lighting/weather draw screen-space so
+    // they survive the pitch. Set to 0 for the classic flat top-down look (front-view art reads
+    // wrong flat, so 0 is only for debugging).
+    const RPG_BB_PITCH = 35; // 2.5D adopted: camera pitch in degrees
     scene.renderer = new Renderer();
     // Chunk-streamed terrain: TerrainStream draws the real per-material dual-grid tilesets
     // (spr_terrainWater/Sand/Grass, untinted) UNDER everything, so RenderChunks runs with
@@ -599,7 +600,6 @@ globalThis.RpgMap = {
     if (!data.meta.indoor) {
       scene._weather = new RenderWeather();
       scene.renderer.insert(scene._weather);
-      if (RPG_BB_PITCH > 0) scene._weather.enabled = false; // spike: weather pass assumes a flat view
     }
     // Lighting LAST — a per-frame light map composited over tiles + entities + weather. It absorbs
     // the day/night cycle as its ambient term (white in daylight → night hue when dark) and adds
@@ -608,7 +608,6 @@ globalThis.RpgMap = {
     // camera is assigned with the others below.
     scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
-    if (RPG_BB_PITCH > 0) scene._lighting.enabled = false; // spike: light map assumes a flat view
 
     // 10. Follow camera on the (new) player.
     scene.camera = cameraFollow2d({

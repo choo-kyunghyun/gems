@@ -44,19 +44,30 @@ globalThis.RenderWeather = class RenderWeather {
 
   draw(_world) {
     if (this.camera === undefined) return;
-    const w = this.camera.width;
-    const h = this.camera.height;
-    if (!(w > 0)) return; // NaN-safe (NaN > 0 is false) — layout not ready
-    const x1 = this.camera.toX - w / 2;
-    const y1 = this.camera.toY - h / 2;
+    // SCREEN-space: the tint + particles cover the application surface in pixel coords, so they
+    // fill the screen regardless of camera pitch (a 2.5D pitched camera would otherwise project
+    // a world-rect draw as a foreshortened ground quad). Reset view/projection to a flat
+    // surface-pixel ortho for this pass, then restore the camera matrices.
+    const w = surface_get_width(application_surface);
+    const h = surface_get_height(application_surface);
+    if (!(w > 0)) return; // NaN-safe (NaN > 0 is false)
 
     const blend = Weather.blend();
     const color = draw_get_color();
     const alpha = draw_get_alpha();
+    const sv = matrix_get(matrix_view);
+    const sp = matrix_get(matrix_projection);
+    matrix_set(
+      matrix_view,
+      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
+    );
+    matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
 
-    this._layer(Weather.previous(), 1 - blend, x1, y1, w, h);
-    this._layer(Weather.current(), blend, x1, y1, w, h);
+    this._layer(Weather.previous(), 1 - blend, 0, 0, w, h);
+    this._layer(Weather.current(), blend, 0, 0, w, h);
 
+    matrix_set(matrix_view, sv);
+    matrix_set(matrix_projection, sp);
     draw_set_color(color);
     draw_set_alpha(alpha);
   }
