@@ -57,6 +57,18 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an asset must also go through the IDE or `resourcetool`, never by moving/removing files manually — to delete: `gm-cli resourcetool eval "RESOURCE DELETE NAME=<name> TYPE=Script"` (removes it from `gems.yyp` and deletes its `scripts/<name>/` folder).
 
+## Tools
+
+Repo tooling lives under **`tools/`** — standalone, run directly, never imported by the game. Today it holds one tool:
+
+**`tools/pixel-art-kit/`** — the sprite-**art pipeline**: a portable, **zero-dependency** Python toolkit (stdlib only — no PIL/installs; PNG/GIF encode+decode are hand-rolled) that generates the project's pixel-art sprites from **data files**, not inlined art. Three stages: **author** a template → **render** it to a PNG strip + previews → **import** it as a GameMaker sprite.
+
+- **`common/`** — the engine-agnostic, style-agnostic core: `pixlib` (shared lib), `draw.py` (render `templates/` statics), `animate.py` (render `templates/anim/` frame data → strip + GIFs + manifest), `tileset.py`/`terrain_materials.py` (autotile sets + tileable materials), `quantize.py`/`preview.py`/`pack.py`. Carries **no** palette/size/subject — those are supplied per project.
+- **`gm-import/`** — the GameMaker adapter (imports `common/`, writes into the project's `sprites/`): `entity_sprites.py` (the 13 RPG entities) + `terrain_sprites.py` (the `spr_terrain*` dual-grid sets). The target sprite resource must already be **registered** (see Asset Creation); frame/layer/keyframe UUIDs are **deterministic (uuid5)**, so re-running is churn-free.
+- **`palettes/`** `.hex` library (db32 default) · **`templates/`** input data (`.txt` index grids / `.json` statics / `anim/`) · **`out/`** + **`local/`** are gitignored.
+
+**This project's confirmed conventions are 16×16 cells + DB32 + foot-anchored — see `tools/pixel-art-kit/GEMS.md` (the "scan/ask" answer); full kit docs in `tools/pixel-art-kit/README.md`.** Run the generators after editing a template: `python tools/pixel-art-kit/gm-import/entity_sprites.py`, and `python tools/pixel-art-kit/common/terrain_materials.py` then `terrain_sprites.py` for terrain. (Some 32px sprites are out of this workflow — lobby/editor UI icons + the Platformer's debug-box art; see GEMS.md.)
+
 ## Code Style & Conventions
 
 - **Language**: JavaScript (GMRT JS runtime), not GML. All scripts in `scripts/` use `.js`.
