@@ -39,6 +39,27 @@ function _cameraFollowOnUpdate() {
 
   let x = lerp(this.toX, pos.x, this.followLerp);
   let y = lerp(this.toY, pos.y, this.followLerp);
+
+  // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
+  // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
+  // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
+  // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
+  // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
+  // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
+  const cb = this.followClamp;
+  if (cb !== undefined) {
+    const halfW = this.width / 2;
+    const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
+    x =
+      cb.x2 - cb.x1 > this.width
+        ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
+        : (cb.x1 + cb.x2) / 2;
+    y =
+      cb.y2 - cb.y1 > 2 * halfH
+        ? clamp(y, cb.y1 + halfH, cb.y2 - halfH)
+        : (cb.y1 + cb.y2) / 2;
+  }
+
   if (this.followSnap) {
     x = Math.round(x);
     y = Math.round(y);
@@ -79,6 +100,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followHeight = cam.followHeight ?? defaultHeight;
   camera.followSnap = snap;
   camera.followPitch = ((cam.pitch ?? 0) * Math.PI) / 180; // 2.5D spike: pitch in degrees → radians
+  camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
 
   camera.followZoom = cam.zoom ?? 1; // current (eased) zoom that drives the view extent
   camera.followZoomTarget = camera.followZoom; // wheel/reset destination; followZoom eases to it
@@ -127,6 +149,9 @@ globalThis.cameraFollow = function cameraFollow(cam = {}) {
  * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
  * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
  * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
+ * @param {object} [cam.clamp] - Optional world-px look-at bounds { x1, y1, x2, y2 }. The eased
+ *   look-at is clamped inside them each frame so the view never shows past a map edge (the pitch
+ *   stretches the N-S reach, accounted for); a world smaller than the view is centered instead.
  * @returns {Camera}
  */
 globalThis.cameraFollow2d = function cameraFollow2d(cam = {}) {

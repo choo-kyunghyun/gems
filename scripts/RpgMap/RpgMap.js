@@ -621,6 +621,15 @@ globalThis.RpgMap = {
       zoom: RPG_BB_PITCH > 0 ? 3.5 : 2, // spike: tighter so loaded chunks fill the pitched view
       width: surface_get_width(application_surface),
       height: surface_get_height(application_surface),
+      // Edge-clamp the look-at to the finite world (the resident grid extent — worldCols/Rows for a
+      // chunked map, the level size for an interior) so the pitched view never shows past a map edge
+      // (the dead space at the hub spawn / world corner). gridToWorld anchors cell 0 at world (0,0).
+      clamp: {
+        x1: 0,
+        y1: 0,
+        x2: scene.level.cols * scene.level.cellWidth,
+        y2: scene.level.rows * scene.level.cellHeight,
+      },
     });
     scene.camera.assign(0);
     // Cull the resident-grid grid pass to the camera view (essential for the chunked map's
