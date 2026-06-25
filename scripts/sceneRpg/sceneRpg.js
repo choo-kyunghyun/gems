@@ -804,7 +804,11 @@ class _SceneRpgClass extends Scene {
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
-    FloatingText.draw(); // damage/heal numbers over entities (world space)
+    // Damage/heal numbers over entities (world space). Hand the camera pitch (rad→deg) so under
+    // the 2.5D pitch they stand up facing the camera instead of lying flat on the ground.
+    FloatingText.draw(
+      this.camera ? (this.camera.followPitch * 180) / Math.PI : 0,
+    );
     // HUD / dialogue / inventory are now manager-drawn UI panels (GUI layer, Draw_75),
     // built in create() — nothing more to draw here.
   }

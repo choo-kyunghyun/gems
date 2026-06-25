@@ -61,8 +61,15 @@ globalThis.FloatingText = class FloatingText {
     FloatingText._items = [];
   }
 
-  /** Age + cull the numbers and draw them in WORLD space (call from a scene's draw(), after entities). */
-  static draw() {
+  /**
+   * Age + cull the numbers and draw them in WORLD space (call from a scene's draw(), after
+   * entities). Under a 2.5D pitched camera pass `pitchDeg` (the camera pitch in degrees) so each
+   * number STANDS UP facing the camera — the same `-pitch` X-tilt RenderBillboard uses — instead
+   * of lying splayed flat on the ground; the rise then runs up the standing plane. Flat top-down
+   * passes 0 (the default) and draws exactly as before.
+   * @param {number} [pitchDeg=0] - Camera pitch in degrees (0 = flat top-down).
+   */
+  static draw(pitchDeg = 0) {
     const items = FloatingText._items;
     if (items.length === 0) return;
 
@@ -84,13 +91,22 @@ globalThis.FloatingText = class FloatingText {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
+    // 2.5D: stand each number up to face the pitched camera (foot at its world (x,y), tilt = -pitch
+    // like the entity billboards) so it reads upright; the rise runs up the standing plane (local
+    // -Y). Draw with the depth TEST off so a number is never occluded by the entity it reports on
+    // (combat feedback — always on top); z-write is already off here (RenderBillboard restored it).
+    const billboard = pitchDeg !== 0;
+    const tilt = -pitchDeg;
+    const ident = matrix_build_identity();
+    gpu_set_ztestenable(false);
+
     const sh = FloatingText.shadowColor;
     for (let i = 0; i < live.length; i++) {
       const t = live[i];
       const p = t.age / t.life; // 0..1 progress
 
       // Rise, decelerating (easeOutCubic) so the number shoots up then settles.
-      const y = t.y - Tween.easeOutCubic(p) * t.rise;
+      const riseAmt = Tween.easeOutCubic(p) * t.rise;
       // Fade in fast, hold, then fade out over the last 35% of life.
       const fadeIn = clamp(t.age / FloatingText.fadeIn, 0, 1);
       const fadeOut = clamp((t.life - t.age) / (t.life * 0.35), 0, 1);
@@ -98,12 +114,27 @@ globalThis.FloatingText = class FloatingText {
       // Subtle entry pop: scale overshoots past 1 (easeOutBack) then settles.
       const sc = t.scale * (0.6 + 0.4 * Tween.easeOutBack(fadeIn));
 
+      // Flat numbers rise in world Y at their world x; billboarded numbers sit at the foot via a
+      // stood-up world matrix and rise along the local plane, so the glyph origin is local (0, 0).
+      let ox, oy;
+      if (billboard) {
+        matrix_set(
+          matrix_world,
+          matrix_build(t.x, t.y, 0, tilt, 0, 0, 1, 1, 1),
+        );
+        ox = 0;
+        oy = -riseAmt;
+      } else {
+        ox = t.x;
+        oy = t.y - riseAmt;
+      }
+
       const c = t.color;
       // Drop shadow first (offset 1px), then the colored glyph on top.
       draw_set_alpha(a * 0.7);
       draw_text_transformed_color(
-        t.x + 1,
-        y + 1,
+        ox + 1,
+        oy + 1,
         t.text,
         sc,
         sc,
@@ -115,9 +146,11 @@ globalThis.FloatingText = class FloatingText {
         1,
       );
       draw_set_alpha(a);
-      draw_text_transformed_color(t.x, y, t.text, sc, sc, 0, c, c, c, c, 1);
+      draw_text_transformed_color(ox, oy, t.text, sc, sc, 0, c, c, c, c, 1);
+      if (billboard) matrix_set(matrix_world, ident);
     }
 
+    gpu_set_ztestenable(true); // restore the global default (depth test on)
     if (FloatingText.font !== -1) draw_set_font(font);
     draw_set_halign(halign);
     draw_set_valign(valign);
