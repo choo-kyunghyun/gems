@@ -9,14 +9,15 @@
 **ADOPTED** (default `RPG_BB_PITCH = 35` in `RpgMap.build`): the follow camera pitches +
 `RenderBillboard` stands sprites up, `RenderLighting`/`RenderWeather` draw screen-space (survive
 the pitch via `camera.project`), and AI front-view hard-alpha art is imported for all 13 entities
-(pipeline in `tools/pixel-art-kit/local/comfyui`). Remaining polish:
+(pipeline in `tools/pixel-art-kit/local/comfyui`).
 
-- `FloatingText` damage numbers + `RpgWorldOverlay` bullets still draw flat on the ground —
-  billboard them to face the camera (the ground markers — reach zone, build cursor, drop squares —
-  are correct flat at z=0). `RadarArrows` (off by default) too if re-enabled.
-- Promote `RenderBillboard` to its own script asset (currently in `RenderEntity.js`)
+Done: terrain z-fighting fixed (only billboards write depth — flat ground is painter order);
+`FloatingText` damage numbers stand up facing the camera; `RpgWorldOverlay` bullets lift to body
+height; `RenderBillboard` promoted to its own `Core/Render` asset. Remaining polish:
+
 - Framing: the pitch shows further N–S, so near a map edge (e.g. the hub spawn) there's dead space —
   tune zoom / the N–S chunk-load radius
+- `RadarArrows` (off by default) draws flat too — billboard/lift it if re-enabled
 - AI art follow-ups: re-roll the weak `doorway`; per-entity animation frames (idle bob / attack swing)
 
 ## UI
