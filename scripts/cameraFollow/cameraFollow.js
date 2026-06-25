@@ -23,6 +23,15 @@ function _cameraFollowOnUpdate() {
   if (mouse_check_button_pressed(this.followZoomButton)) {
     this.followZoomTarget = this.followZoomDefault;
   }
+  // Cap zoom-OUT so the view never exceeds the renderable world width (followViewCap, world px) —
+  // derived LIVE from the current surface (the build-time surface size can be stale/smaller, which
+  // would let the view zoom out past the streamed region into the dark unloaded area). Clamps the
+  // target so the wheel stops at the cap.
+  if (this.followViewCap !== undefined) {
+    const minZ =
+      surface_get_width(application_surface) / this.followViewCap;
+    if (this.followZoomTarget < minZ) this.followZoomTarget = minZ;
+  }
   this.followZoom = lerp(
     this.followZoom,
     this.followZoomTarget,
@@ -101,6 +110,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followSnap = snap;
   camera.followPitch = ((cam.pitch ?? 0) * Math.PI) / 180; // 2.5D spike: pitch in degrees → radians
   camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
+  camera.followViewCap = cam.viewCap; // optional max view width (world px) → live zoom-out cap
 
   camera.followZoom = cam.zoom ?? 1; // current (eased) zoom that drives the view extent
   camera.followZoomTarget = camera.followZoom; // wheel/reset destination; followZoom eases to it

@@ -610,15 +610,30 @@ globalThis.RpgMap = {
     scene.renderer.insert(scene._lighting);
 
     // 10. Follow camera on the (new) player.
+    // 16px-cell world (GEMS.md): base zoom 3.5 so the ortho view spans ~surfaceW/3.5 world px — the
+    // CELL framing the pitched 2.5D view is tuned for (flat fallback 2).
+    const baseZoom = RPG_BB_PITCH > 0 ? 3.5 : 2;
+    // Cap zoom-OUT so the view stays within the RENDERABLE world: a chunked map only streams a window
+    // (~loadRadius chunks each side of the player; past it the unloaded area shows as dark void — the
+    // "zoom makes render weird" report), a plain map is bounded by its level. `viewCap` is the max
+    // view WIDTH (world px); the camera derives the live minZoom from it + the current surface each
+    // frame (build-time surface size can be stale/smaller). Horizontal is the binding axis on a
+    // landscape surface (the pitch stretches only N-S, by ~1/cos, < the 16:9 aspect).
+    const viewCap = scene._chunked
+      ? // Worst case is a WORLD CORNER (the hub spawn): the off-world side streams nothing, so only
+        // the player chunk + loadRadius load = (loadRadius + 1) chunks. View any wider → dark void.
+        (2 + 1) * (data.meta.chunkCols ?? 16) * scene.level.cellWidth
+      : scene.level.cols * scene.level.cellWidth;
     scene.camera = cameraFollow2d({
       world: scene.world,
       followTarget: scene.ctrl.id,
       followLerp: 0.15,
       pitch: RPG_BB_PITCH, // 2.5D spike: 0 = flat top-down, > 0 pitches for standing billboards
-      // 16px-cell world (GEMS.md): zoom 2 so the ortho view spans surfaceW/2 world px — the same
-      // CELL framing the old 32px world had at zoom 1. cameraFollow recomputes the view extent
-      // each frame as surface size / followZoom, so width/height below are just the frame-0 seed.
-      zoom: RPG_BB_PITCH > 0 ? 3.5 : 2, // spike: tighter so loaded chunks fill the pitched view
+      // cameraFollow recomputes the view extent each frame as surface size / followZoom, so
+      // width/height below are just the frame-0 seed.
+      zoom: baseZoom,
+      viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
+      maxZoom: baseZoom * 1.5, // modest zoom-in headroom
       width: surface_get_width(application_surface),
       height: surface_get_height(application_surface),
       // Edge-clamp the look-at to the finite world (the resident grid extent — worldCols/Rows for a
