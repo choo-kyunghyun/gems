@@ -43,10 +43,25 @@ globalThis.RpgWorldOverlay = {
     }
 
     const bullets = world.query(Projectile, Position);
+    // 2.5D: lift bullets off the ground to ~body/muzzle height so they read as flying through the
+    // air, not skidding on the floor — a world-z offset (negative = up; the camera up vector maps
+    // it up the screen). A round dot has no facing, so no billboard tilt is needed, just the lift.
+    // Drawn depth-test off so a tracer is never hidden by a body it passes (a transient cue, always
+    // visible — like FloatingText). Flat top-down (pitch 0) lifts nothing and keeps the old path.
+    const lift =
+      scene.camera !== undefined && scene.camera.followPitch !== 0 ? 16 : 0;
+    if (lift !== 0) {
+      gpu_set_ztestenable(false);
+      matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
+    }
     draw_set_color(make_colour_rgb(255, 230, 90));
     for (const id of bullets) {
       const p = world.get(Position, id);
       draw_circle(p.x, p.y, 2, false);
+    }
+    if (lift !== 0) {
+      matrix_set(matrix_world, matrix_build_identity());
+      gpu_set_ztestenable(true);
     }
 
     // Reach-quest zone: only when the scene defines one and it's unmet.
