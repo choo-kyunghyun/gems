@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"CameraFly",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"CameraFly",
+  "parent":{
+    "name":"Camera",
+    "path":"folders/Core/Camera.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"CameraFly.js",
+}

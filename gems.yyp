@@ -106,6 +106,7 @@
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
+    {"id":{"name":"CameraFly","path":"scripts/CameraFly/CameraFly.yy",},},
     {"id":{"name":"cameraFollow","path":"scripts/cameraFollow/cameraFollow.yy",},},
     {"id":{"name":"cameraPan","path":"scripts/cameraPan/cameraPan.yy",},},
     {"id":{"name":"ChunkManager","path":"scripts/ChunkManager/ChunkManager.yy",},},
