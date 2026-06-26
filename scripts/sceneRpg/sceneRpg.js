@@ -359,7 +359,9 @@ class _SceneRpgClass extends Scene {
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
-    this.camera.update();
+    // Free-cam updates in draw() instead (which runs even while the sim is paused — the whole point
+    // of the debug free-fly). When following, update here as usual.
+    if (!this.camera.freeCam) this.camera.update();
     Audio.listener(this.camera.toX, this.camera.toY); // ears follow the view → spatial SFX pan/attenuate
 
     // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
@@ -793,6 +795,10 @@ class _SceneRpgClass extends Scene {
   }
 
   draw() {
+    // Debug free-fly camera: drive it here so it pans even while the sim is PAUSED (step() — and its
+    // camera.update() — is skipped then). One update/frame: step() does it when following, draw() when
+    // free-cam. The view must be applied before the renderer reads it.
+    if (this.camera.freeCam) this.camera.update();
     this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
     // Drops / bullets / reach zone AFTER the renderer: the chunked overworld's RenderChunks
     // pass paints an OPAQUE ground fill that would cover them if drawn first (they were

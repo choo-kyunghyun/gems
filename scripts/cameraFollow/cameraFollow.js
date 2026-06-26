@@ -47,36 +47,53 @@ function _cameraFollowOnUpdate() {
   // edge-clamp + the pitch block, and elsewhere by FloatingText + the projected overlays (via the
   // up vector), so they all track a live change.
   this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
-  if (this.world === undefined) return;
-  const pos = this.world.get(Position, this.followTarget);
-  if (pos === undefined) return;
 
-  let x = lerp(this.toX, pos.x, this.followLerp);
-  let y = lerp(this.toY, pos.y, this.followLerp);
+  let x;
+  let y;
+  if (this.freeCam) {
+    // Free-fly NOCLIP pan (debug): arrow keys move the look-at in the ground plane, independent of
+    // the player, with NO edge-clamp. On Time.raw (wall-clock delta) so it works while the sim is
+    // PAUSED (Time.delta is 0 then); the speed scales with the view width so it feels constant at
+    // any zoom. sceneRpg runs camera.update() in draw() while freeCam, so this drives a paused scene.
+    const spd = this.freeSpeed * Time.raw * (this.width / 640);
+    x = this.toX;
+    y = this.toY;
+    if (keyboard_check(vk_left)) x -= spd;
+    if (keyboard_check(vk_right)) x += spd;
+    if (keyboard_check(vk_up)) y -= spd;
+    if (keyboard_check(vk_down)) y += spd;
+  } else {
+    if (this.world === undefined) return;
+    const pos = this.world.get(Position, this.followTarget);
+    if (pos === undefined) return;
 
-  // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
-  // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
-  // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
-  // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
-  // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
-  // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
-  const cb = this.followClamp;
-  if (cb !== undefined) {
-    const halfW = this.width / 2;
-    const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
-    x =
-      cb.x2 - cb.x1 > this.width
-        ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
-        : (cb.x1 + cb.x2) / 2;
-    y =
-      cb.y2 - cb.y1 > 2 * halfH
-        ? clamp(y, cb.y1 + halfH, cb.y2 - halfH)
-        : (cb.y1 + cb.y2) / 2;
-  }
+    x = lerp(this.toX, pos.x, this.followLerp);
+    y = lerp(this.toY, pos.y, this.followLerp);
 
-  if (this.followSnap) {
-    x = Math.round(x);
-    y = Math.round(y);
+    // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
+    // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
+    // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
+    // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
+    // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
+    // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
+    const cb = this.followClamp;
+    if (cb !== undefined) {
+      const halfW = this.width / 2;
+      const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
+      x =
+        cb.x2 - cb.x1 > this.width
+          ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
+          : (cb.x1 + cb.x2) / 2;
+      y =
+        cb.y2 - cb.y1 > 2 * halfH
+          ? clamp(y, cb.y1 + halfH, cb.y2 - halfH)
+          : (cb.y1 + cb.y2) / 2;
+    }
+
+    if (this.followSnap) {
+      x = Math.round(x);
+      y = Math.round(y);
+    }
   }
 
   // 2.5D spike: an optional pitch tilts the ortho eye up out of the ground plane (rotating the
@@ -115,6 +132,8 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followSnap = snap;
   camera.pitchDeg = cam.pitch ?? 0; // 2.5D pitch in DEGREES — live-tunable (Debug Camera panel)
   camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians (recomputed each onUpdate)
+  camera.freeCam = false; // debug free-fly noclip pan (arrow keys), toggled via the Debug Camera panel
+  camera.freeSpeed = cam.freeSpeed ?? 600; // free-cam pan speed (world px/s at view width 640)
   camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
   camera.followViewCap = cam.viewCap; // optional max view width (world px) → live zoom-out cap
 
