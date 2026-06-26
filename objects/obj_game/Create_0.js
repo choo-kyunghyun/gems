@@ -6,13 +6,11 @@ globalThis.DEV_MODE = !RELEASE_MODE; // global mirror so other events (Step_0's 
 randomize();
 
 gpu_set_ztestenable(true);
-// GMRT quirk: the fixed-function alpha test is INERT here. gpu_set_alphatestenable/alphatestref
-// round-trip through their getters (verified — after a set, gpu_get_alphatestenable()/ref() report
-// exactly what was set) but have NO effect at DRAW time, so a transparent pixel still writes depth
-// (gpu_set_alphatestref did nothing — removed). The billboard transparent-pixel cutout (so empty
-// pixels don't occlude what's behind them) is therefore done in a fragment shader — sh_alphatest's
-// `discard`, set in RenderBillboard. The enable is left only as the conventional declaration.
-gpu_set_alphatestenable(true);
+// GMRT quirk (see CLAUDE.md → GMRT-Safe Idioms): the fixed-function alpha test is INERT — its
+// enable/ref round-trip through their getters but have NO effect at draw time, so this can't cut a
+// billboard's transparent pixels (the ref was even more useless and is gone). That cutout is done by
+// sh_alphatest's `discard` (RenderBillboard) instead. Left commented as a record of the dead end:
+// gpu_set_alphatestenable(true);
 // Only the 2.5D billboard pass writes depth (so overlapping entities sort by their stood-up
 // depth). The flat ground passes (terrain / walls / tiles / zones / foot shadows) are all
 // coplanar at world z=0 and already drawn in painter order, so they must NOT write depth —
