@@ -21,6 +21,10 @@ globalThis.RenderBillboard = class RenderBillboard {
     // X-rotation that stands the sprite up FACING the camera = the NEGATIVE of the camera's
     // pitch (verified by an in-engine rotation sweep). Pass the same pitch the follow camera uses.
     this.tiltDeg = -(opt.pitchDeg ?? 0);
+    // Optional Camera: when assigned, the tilt TRACKS the camera's live pitch each frame (so a
+    // runtime pitch change — the Debug Camera panel — keeps sprites standing toward the camera),
+    // overriding the constructor tiltDeg. Assigned by RpgMap.build like RenderLighting/Weather.
+    this.camera = opt.camera;
     this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
   }
 
@@ -28,6 +32,9 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   draw(world) {
     const ident = matrix_build_identity();
+    // Track the camera's live pitch when one is assigned (else the fixed constructor tilt).
+    const tiltDeg =
+      this.camera !== undefined ? -(this.camera.pitchDeg ?? 0) : this.tiltDeg;
     // Billboards are the ONLY depth-sorted geometry: enable z-write for this pass so overlapping
     // bodies sort by their stood-up depth (nearer foot wins). The global default is z-write OFF
     // (obj_game Create_0) so the coplanar flat ground passes don't z-fight as the camera moves —
@@ -42,7 +49,7 @@ globalThis.RenderBillboard = class RenderBillboard {
           Math.floor(visual.time) % sprite_get_number(visual.sprite);
       }
       // Foot at (rp.x, rp.y, 0); the X tilt stands the sprite up toward the pitched camera.
-      const m = matrix_build(rp.x, rp.y, 0, this.tiltDeg, 0, 0, 1, 1, 1);
+      const m = matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1);
       matrix_set(matrix_world, m);
       draw_sprite_ext(
         visual.sprite,

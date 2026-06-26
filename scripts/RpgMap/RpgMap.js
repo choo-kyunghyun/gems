@@ -175,6 +175,7 @@ globalThis.RpgMap = {
     }
 
     RpgMap._activateReset(scene);
+    RpgMap._registerCameraDebug(scene); // re-bind the Debug Camera panel to this (resumed) camera
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
   },
@@ -543,11 +544,11 @@ globalThis.RpgMap = {
     // Entities via the production sprite pass (draw_sprite_ext over Visual). The colored-box +
     // label debug passes stay inserted but DISABLED by default, so the Debug menu (Boxes/Names/
     // Facing/Anim) can still toggle them over the sprites without cluttering normal play.
-    scene.renderer.insert(
+    const entityPass =
       RPG_BB_PITCH > 0
         ? new RenderBillboard({ pitchDeg: RPG_BB_PITCH })
-        : new RenderEntity(),
-    );
+        : new RenderEntity();
+    scene.renderer.insert(entityPass);
     const dbgBox = new RenderDebugBox();
     dbgBox.enabled = false;
     scene.renderer.insert(dbgBox);
@@ -654,12 +655,35 @@ globalThis.RpgMap = {
     scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill (large chunked grid)
     if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
     scene._lighting.camera = scene.camera; // light map covers the camera view rect
+    // Billboards track the camera's LIVE pitch (so the Debug Camera panel's pitch slider keeps
+    // sprites standing toward the camera). RenderEntity (flat fallback) ignores a camera.
+    entityPass.camera = scene.camera;
+    RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
 
     // The player-centered radar (RadarArrows, drawn in scene.draw) reads world/ctrl live, so it
     // needs no per-map rebuild — nothing to do here for it.
 
     FloatingText.clear(); // drop combat numbers from the previous map
     ParticleFx.clear(); // drop live particles from the previous map (world coords are map-local)
+  },
+
+  // Register the Debug/ImGui "Camera" panel bound to the LIVE scene camera (pitch + zoom), so the
+  // 2.5D camera can be tuned at runtime to inspect rendering (e.g. crank the pitch toward a head-on
+  // 3D angle). The pitch drives cameraFollow (eye/up + the edge-clamp) AND the billboard tilt live,
+  // so the whole 2.5D pipeline tracks it. Re-registered on each build/resume (Debug.panel replaces
+  // by name) so the sliders always drive the ACTIVE map's camera; removed on scene destroy
+  // (sceneRpg.destroy → Debug.remove("Camera")). RPG-owned — the pitch is a Demo concern, like
+  // DebugRender.add for the animator pass. The panel surfaces in BOTH the ImGui overlay (F3) and the
+  // agent-readable debug.txt text dump (one registry, two front-ends).
+  _registerCameraDebug(scene) {
+    const cam = scene.camera;
+    if (cam === undefined) return;
+    Debug.panel("Camera", (p) => {
+      p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
+      p.slider("Zoom", cam, "followZoomTarget", 1, 8, 0.1);
+      p.watch("Zoom (live)", () => cam.followZoom);
+      p.watch("Pitch (rad)", () => cam.followPitch);
+    });
   },
 
   // Reclaim ONE map bundle's owned resources (world / level / renderer / camera / chunks). No

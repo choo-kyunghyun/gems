@@ -42,6 +42,11 @@ function _cameraFollowOnUpdate() {
     surface_get_width(application_surface) / this.followZoom,
     surface_get_height(application_surface) / this.followZoom,
   );
+  // Pitch is LIVE-tunable (the Debug Camera panel writes pitchDeg): derive the radians each frame so
+  // a runtime change applies. pitchDeg is the source of truth; followPitch is read below by the
+  // edge-clamp + the pitch block, and elsewhere by FloatingText + the projected overlays (via the
+  // up vector), so they all track a live change.
+  this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
   if (this.world === undefined) return;
   const pos = this.world.get(Position, this.followTarget);
   if (pos === undefined) return;
@@ -108,7 +113,8 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followLerp = cam.followLerp ?? 0.1;
   camera.followHeight = cam.followHeight ?? defaultHeight;
   camera.followSnap = snap;
-  camera.followPitch = ((cam.pitch ?? 0) * Math.PI) / 180; // 2.5D spike: pitch in degrees → radians
+  camera.pitchDeg = cam.pitch ?? 0; // 2.5D pitch in DEGREES — live-tunable (Debug Camera panel)
+  camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians (recomputed each onUpdate)
   camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
   camera.followViewCap = cam.viewCap; // optional max view width (world px) → live zoom-out cap
 

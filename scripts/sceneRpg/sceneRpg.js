@@ -816,6 +816,7 @@ class _SceneRpgClass extends Scene {
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
+    Debug.remove("Camera"); // the live 2.5D-camera tuning panel is RPG-only (RpgMap registers it)
     RpgController.destroy();
     Weather.exitRegion();
     // Free every PARKED pooled map, then the active map (its fields live on `this`). RpgMap._free
