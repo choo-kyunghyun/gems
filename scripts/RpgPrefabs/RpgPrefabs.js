@@ -1,6 +1,6 @@
 // RPG overworld prefabs — structured clusters OverworldGen stamps into procedural chunks
 // (tagged "overworld"; local grid coords, footprint cols/rows kept inside a chunk). Loot-less
-// slimes get the generator's standard scatter loot. Registered once by RpgContent.register() at
+// enemies get the generator's standard scatter loot. Registered once by RpgContent.register() at
 // a scene's create() (NOT at top level — avoids GMRT load-order issues), before any ChunkSource
 // is built (OverworldGen resolves Prefab.byTag("overworld") in its constructor).
 globalThis.RpgPrefabs = {
@@ -22,7 +22,7 @@ globalThis.RpgPrefabs = {
       },
       // A bandit camp — a sheltering rock corner with a pack of hostile humans (one tougher).
       {
-        id: "bandit_camp",
+        id: "raider_camp",
         tags: ["overworld"],
         weight: 3,
         cols: 5,
@@ -32,9 +32,9 @@ globalThis.RpgPrefabs = {
           [0, 1, 1, 2],
         ],
         spawns: [
-          { preset: "human", lx: 3, ly: 2, hp: 3 },
-          { preset: "human", lx: 2, ly: 3, hp: 3 },
-          { preset: "human", lx: 4, ly: 4, hp: 5 },
+          { preset: "raider", lx: 3, ly: 2, hp: 3 },
+          { preset: "raider", lx: 2, ly: 3, hp: 3 },
+          { preset: "raider", lx: 4, ly: 4, hp: 5 },
         ],
       },
       // A ruin — broken walls around a loot chest (the rare reward prefab).
@@ -57,7 +57,7 @@ globalThis.RpgPrefabs = {
             capacity: 8,
             items: [
               { itemId: "coin", qty: 5 },
-              { itemId: "iron", qty: 2 },
+              { itemId: "scrap_metal", qty: 2 },
             ],
           },
         ],

@@ -39,7 +39,7 @@ globalThis.RpgPlayer = {
     });
     world.add(id, Direction, opts.dir);
     world.add(id, Name, { name: "Player" });
-    world.add(id, Faction, { id: "player" }); // party faction — slimes aggro this by relation
+    world.add(id, Faction, { id: "player" }); // party faction — enemies aggro this by relation
     world.add(id, Health, { hp: 10 });
     world.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
     world.add(id, Stamina, { value: 100, exhausted: false });
@@ -114,7 +114,7 @@ globalThis.RpgPlayer = {
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });
-    // Derive the combat Stats from Attributes (+ equipped mods — none at spawn; the wood_sword is
+    // Derive the combat Stats from Attributes (+ equipped mods — none at spawn; the lead_pipe is
     // equipped later in sceneRpg.create). Recompute-from-source — the single derivation path.
     StatModel.recompute(world, id);
     return id;

@@ -33,24 +33,24 @@
     },
 
     {
-      "preset": "human",
+      "preset": "raider",
       "gx": 12,
       "gy": 3,
       "loot": [
-        { "itemId": "gem", "qty": 1 },
-        { "itemId": "potion", "qty": 1 }
+        { "itemId": "circuitry", "qty": 1 },
+        { "itemId": "medkit", "qty": 1 }
       ]
     },
 
     {
-      "preset": "human",
+      "preset": "raider",
       "id": "cave_captain",
       "gx": 6,
       "gy": 7,
       "hp": 5,
       "loot": [
-        { "itemId": "gem", "qty": 2 },
-        { "itemId": "key", "qty": 1 }
+        { "itemId": "circuitry", "qty": 2 },
+        { "itemId": "keycard", "qty": 1 }
       ]
     },
 
@@ -60,8 +60,8 @@
       "gy": 3,
       "capacity": 8,
       "items": [
-        { "itemId": "key", "qty": 1 },
-        { "itemId": "iron", "qty": 2 }
+        { "itemId": "keycard", "qty": 1 },
+        { "itemId": "scrap_metal", "qty": 2 }
       ]
     }
   ]

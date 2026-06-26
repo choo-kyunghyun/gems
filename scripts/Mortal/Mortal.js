@@ -4,7 +4,7 @@
 // Health but no Mortal (e.g. a built turret, handled by BuildMode.reapDestroyed) are left alone.
 //
 // Kinds:
-//   "despawn"  spill the entity's Inventory as ground drops, then remove it (enemies/slimes).
+//   "despawn"  spill the entity's Inventory as ground drops, then remove it (enemies/enemies).
 //   "respawn"  refill Health (to Stats.maxHp, else reviveHp) and reposition (the player).
 //   "down"     incapacitate: drop Health (un-targetable), enter a Downed{timer} state for
 //              `recoverSecs`, then revive with `reviveHp` at the recovery spot (companions).

@@ -38,7 +38,7 @@ class _SceneRpgClass extends Scene {
       const effDef = Math.max(0, defense - penetration);
       return Math.max(1, amount - effDef);
     };
-    // Consumable policy: inject how a *_shard consumable grows an attribute (the item-driven
+    // Consumable policy: inject how a *_serum consumable grows an attribute (the item-driven
     // progression that replaced leveling). Raise the bag key, then re-derive Stats from source.
     // No-op (false → use() refuses, no waste) if the target has no Attributes or no such key.
     ConsumableSystem.grantAttr = function (world, id, attr, amount) {
@@ -161,12 +161,12 @@ class _SceneRpgClass extends Scene {
     RpgMap.go(this, bootMap, "default");
     Audio.bgm("mus_overworld"); // RPG theme; carries across map changes (only _apply's reset stops it)
 
-    // Starting loadout: a melee Wooden Sword, equipped — so the attack is item-driven from frame
+    // Starting loadout: a melee Lead Pipe, equipped — so the attack is item-driven from frame
     // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
     // here it travels with the carried inventory across map changes (RpgMap.go re-applies it).
     const startInv = this.world.get(Inventory, this.ctrl.id);
-    InventorySystem.add(startInv, "wood_sword", 1); // mints a uid instance (equippable gear)
-    EquipmentSystem.equipFirst(this.world, this.ctrl.id, "wood_sword"); // equip that instance by uid
+    InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
+    EquipmentSystem.equipFirst(this.world, this.ctrl.id, "lead_pipe"); // equip that instance by uid
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
@@ -266,7 +266,7 @@ class _SceneRpgClass extends Scene {
     this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
 
     // Rebuild the pathfinding nav window around the player BEFORE the tick loop — the per-tick
-    // PathfindingSystem (in the physics pipeline) plans slime paths over it. It's the same NavGrid
+    // PathfindingSystem (in the physics pipeline) plans enemy paths over it. It's the same NavGrid
     // MotionPlanner already points at; only occupancy/origin change, so this is cheap.
     const np = this.world.get(Position, this.ctrl.id);
     const nc = this.level.worldToGrid(np.x, np.y);
@@ -304,7 +304,7 @@ class _SceneRpgClass extends Scene {
           // Report the kill by actual type so only RAIDERS advance the "Raider Cull" quest; rats
           // (wildlife) report "rat" (no quest target) but still bumped enemiesKilled above.
           const tag = this.world.get(Tag, id);
-          const kind = tag && tag.tags.has("rat") ? "rat" : "human";
+          const kind = tag && tag.tags.has("rat") ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
           Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
@@ -357,7 +357,7 @@ class _SceneRpgClass extends Scene {
     Interactable.update(this); // station select + range-close + transfers/crafting (no E here)
     this._dispatchInteract(); // single E press → station OR NPC (cursor, else nearest)
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
-    BuildMode.reapDestroyed(this); // remove built entities slimes destroyed (e.g. turrets at 0 HP)
+    BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
@@ -803,7 +803,7 @@ class _SceneRpgClass extends Scene {
     // camera.update() — is skipped then). One update/frame: step() does it when following, draw() when
     // free-cam. The view must be applied before the renderer reads it.
     if (this.camera.freeCam) this.camera.update();
-    this.renderer.draw(this.world); // tilemap + zone + player / slimes / elder: boxes + labels
+    this.renderer.draw(this.world); // tilemap + zone + player / enemies / elder: boxes + labels
     // Drops / bullets / reach zone AFTER the renderer: the chunked overworld's RenderChunks
     // pass paints an OPAQUE ground fill that would cover them if drawn first (they were
     // invisible on the overworld, fine in plain interiors with no ground fill). Drawn here

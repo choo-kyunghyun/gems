@@ -5,7 +5,7 @@
 // {
 //   id,                              // unique recipe id
 //   station: "workbench",            // Station.kind this recipe shows up at
-//   requires: "forge",               // OPTIONAL: a WorkbenchModule itemId that must be slotted in
+//   requires: "machining_module",               // OPTIONAL: a WorkbenchModule itemId that must be slotted in
 //                                    //   the bench (Station.module) for this recipe to show/craft.
 //                                    //   Omit for a BASE recipe (always available at the bench).
 //   inputs: [{ itemId, qty }],       // consumed from the crafter's Inventory

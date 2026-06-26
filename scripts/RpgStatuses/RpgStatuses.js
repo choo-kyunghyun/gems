@@ -6,10 +6,10 @@
 // One status per effect kind, each with a real in-game applier (no dead content):
 //   encumbered — a maintained DEBUFF whose speed multiplier is driven LIVE by EncumbranceSystem
 //                (the weight gradient); the def's `mult` here is only a fallback (always overridden).
-//   regen      — a timed HoT buff (granted by the Tonic consumable — RpgItems).
+//   regen      — a timed HoT buff (granted by the Medgel consumable — RpgItems).
 //   fortify    — a timed `mods` buff (+attack/+defense) folded into Stats via StatModel — the
 //                recompute path (StatusSystem.onStatsChanged → StatModel.recompute); granted by the
-//                Elixir consumable.
+//                Combat Stim consumable.
 // A DoT debuff (poison) is the symmetric counterpart of regen (one line in StatusSystem._applyTick) —
 // add it here + an applier (e.g. an enemy on-hit hook) when a damage-over-time source exists.
 globalThis.RpgStatuses = {

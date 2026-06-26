@@ -194,7 +194,7 @@ globalThis.OverworldGen = class OverworldGen {
     for (let i = 0; i < p.spawns.length; i++) {
       const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
       // Don't drop a dynamic enemy into impassable terrain (water) — it'd snag in the collider.
-      if (s.preset === "human" && !this._passable(s.gx, s.gy)) continue;
+      if (s.preset === "raider" && !this._passable(s.gx, s.gy)) continue;
       spawns.push(s);
     }
   }
@@ -227,7 +227,7 @@ globalThis.OverworldGen = class OverworldGen {
     out.gy = oy + s.ly;
     if (out.loot !== undefined) out.loot = this._cloneItems(out.loot);
     if (out.items !== undefined) out.items = this._cloneItems(out.items);
-    if (out.preset === "human" && out.loot === undefined)
+    if (out.preset === "raider" && out.loot === undefined)
       out.loot = this._loot(rng);
     return out;
   }
@@ -256,7 +256,7 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([gx0 + lx, gy0 + ly, w, h]);
     }
 
-    // Wandering rats (wildlife) — the ambient overworld creature. Raiders ("human") stay the
+    // Wandering rats (wildlife) — the ambient overworld creature. Raiders ("raider") stay the
     // camp/quest enemy (the bandit_camp prefab), so the open wilderness reads as wildlife, not a
     // world full of lone bandits. Rats yield the odd scavenged rag, no gear.
     const rats = 1 + Math.floor(rng() * 3); // 1..3
@@ -278,7 +278,7 @@ globalThis.OverworldGen = class OverworldGen {
   _loot(rng) {
     const loot = [{ itemId: "rags", qty: 1 + Math.floor(rng() * 2) }];
     const roll = rng();
-    if (roll > 0.85) loot.push({ itemId: "gem", qty: 1 });
+    if (roll > 0.85) loot.push({ itemId: "circuitry", qty: 1 });
     else if (roll > 0.6)
       loot.push({ itemId: "coin", qty: 1 + Math.floor(rng() * 3) });
     return loot;
@@ -320,7 +320,7 @@ globalThis.OverworldGen = class OverworldGen {
 // terrain's dual border reveals the one below.
 // `pathCost` mirrors the TileType convention (null → impassable, i.e. Infinity nav cost): a null
 // material becomes a collide-only collider per chunk (solidTerrain → ChunkManager), so the player
-// can't walk on it and NavGrid routes slimes around it. Walkable materials are cost 1 (no graduated
+// can't walk on it and NavGrid routes enemies around it. Walkable materials are cost 1 (no graduated
 // terrain here, so nav stays binary walkable/blocked).
 // Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
 OverworldGen.TERRAIN = [

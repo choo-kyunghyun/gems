@@ -139,7 +139,7 @@ globalThis.RpgController = {
     // Unarmed fallback: a weak melee "fist" so an attack is ALWAYS profile-shaped — being unarmed
     // never means "fire a free bullet". It's a pre-COMPOSED melee profile (the same shape
     // composeWeapon returns), fed straight to the melee branch (no inventory slot, no attachments).
-    // The player still spawns with a real wood_sword equipped (sceneRpg.create); this only governs a
+    // The player still spawns with a real lead_pipe equipped (sceneRpg.create); this only governs a
     // fully unarmed wielder.
     return {
       id,

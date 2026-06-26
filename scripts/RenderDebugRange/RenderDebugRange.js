@@ -1,5 +1,5 @@
 // Debug overlay: draws each entity's "active range" as a world-space ring — a turret's fire
-// radius, a slime's aggro / give-up / attack distances — so behavior tuning is visible at a
+// radius, a enemy's aggro / give-up / attack distances — so behavior tuning is visible at a
 // glance. A generic Core pass: it knows nothing about specific components; the scene supplies a
 // list of { component, field, color } specs, and for every entity carrying `component` it draws a
 // ring of radius `entity[component][field]` around the (interpolated) Position. The RPG scene

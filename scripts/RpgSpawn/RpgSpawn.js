@@ -6,7 +6,7 @@
 // no state of its own.
 //
 // Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
-//   human    hp? loot:[{itemId,qty}]   (hostile human "Bandit"/raider — camp + quest enemy)
+//   human    hp? loot:[{itemId,qty}]   (hostile human "Raider"/raider — camp + quest enemy)
 //   rat      hp? loot:[{itemId,qty}]   (wildlife — the overworld ambient mobile-melee creature)
 //   npc      label nameKey questId
 //   chest    capacity items:[{itemId,qty}]
@@ -18,7 +18,7 @@
 //   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
 globalThis.RpgSpawn = {
   /**
-   * Spawn the level's entity instances (enemies, NPC, chest, props) from data.spawns. Slimes
+   * Spawn the level's entity instances (enemies, NPC, chest, props) from data.spawns. Enemies
    * acquire their target live by faction (FactionSystem.nearestHostile), so this no longer needs
    * the player id. Stations (chest/props) are discovered live by Interactable, so only the
    * handles the scene's own logic needs are returned:
@@ -49,7 +49,7 @@ globalThis.RpgSpawn = {
       const id = RpgSpawn.spawnEntity(world, level, s);
       if (id === -1) continue;
       // Classify the constructed entity into the scene's typed handles by its preset.
-      if (s.preset === "human" || s.preset === "rat") enemies.push(id);
+      if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
       else if (s.preset === "npc") npc = id;
       else if (s.preset === "portal")
         portals.push({ id, toMap: s.toMap, toEntry: s.toEntry ?? "default" });
@@ -74,7 +74,7 @@ globalThis.RpgSpawn = {
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
-    if (s.preset === "human") {
+    if (s.preset === "raider") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
@@ -97,13 +97,13 @@ globalThis.RpgSpawn = {
         speed: 45,
       });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
-      world.add(id, Tag, { tags: new Set(["enemy", "human"]) });
+      world.add(id, Tag, { tags: new Set(["enemy", "raider"]) });
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
-      world.add(id, Name, { name: "Bandit" });
+      world.add(id, Name, { name: "Raider" });
       // Loot table — no maxWeight (loot is authored, never weight-gated).
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
       // Hostile human: the dedicated bandit sprite (hooded, red), animated so it looks alive.
-      const vis = RpgSpawn._visual(spr_bandit, c_white, 1);
+      const vis = RpgSpawn._visual(spr_raider, c_white, 1);
       vis.speed = 6;
       world.add(id, Visual, vis);
       CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
@@ -111,8 +111,8 @@ globalThis.RpgSpawn = {
       return id;
     } else if (s.preset === "rat") {
       // Wildlife: the overworld's ambient creature (OverworldGen scatter). A weaker mobile-melee
-      // mob than the raider "human" — smaller body, less hp, a touch quicker — but the SAME
-      // CombatAI (mobile melee) + Mortal despawn. Raiders ("human") stay the camp/quest enemy.
+      // mob than the raider "raider" — smaller body, less hp, a touch quicker — but the SAME
+      // CombatAI (mobile melee) + Mortal despawn. Raiders ("raider") stay the camp/quest enemy.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
@@ -236,7 +236,7 @@ globalThis.RpgSpawn = {
     } else if (s.preset === "turret") {
       // Auto-firing defense post: an immovable, player-faction ACTOR — a stationary ranged
       // CombatAI (mobile:false, ranged:true), no dedicated component. It carries Health + the
-      // player faction (so slimes target & damage it — two-sided combat); CombatAI reads its Brain
+      // player faction (so enemies target & damage it — two-sided combat); CombatAI reads its Brain
       // to shoot the nearest hostile. Built-only today (BuildMode "Defense"); all components
       // round-trip through map persistence like any built entity.
       const id = world.create();
@@ -257,7 +257,7 @@ globalThis.RpgSpawn = {
         defense: 0,
         speed: 0,
       });
-      world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for slimes
+      world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for enemies
       world.add(id, Name, { name: s.label ?? "Turret" });
       world.add(id, Visual, RpgSpawn._visual(spr_turret, c_white, 1));
       world.add(id, Tag, { tags: new Set(["turret"]) });
@@ -320,12 +320,12 @@ globalThis.RpgSpawn = {
       hits: [],
     });
     world.add(id, Tag, { tags: new Set(["follower"]) });
-    world.add(id, Faction, { id: "player" }); // party ally — friendly fire skips it; slimes DO aggro it (it has Health)
+    world.add(id, Faction, { id: "player" }); // party ally — friendly fire skips it; enemies DO aggro it (it has Health)
     // A companion is mortal but recoverable: at 0 hp it goes Down (Health detached, dimmed) and,
     // after Mortal.recoverSecs, revives at the recovery spot (claimed build zone / spawn) — see
     // RpgScene.resolveHealth/_goDown/updateDowned. Not removed like an enemy.
     world.add(id, Health, { hp: opt.hp ?? 6 });
-    // Stat sheet — a companion is a combatant (slimes attack it; it may fight later), so it carries
+    // Stat sheet — a companion is a combatant (enemies attack it; it may fight later), so it carries
     // defense (mitigation) + an attack stat like every other actor.
     world.add(id, Stats, {
       maxHp: opt.hp ?? 6,

@@ -105,7 +105,7 @@ globalThis.FactionSystem = {
   /**
    * True only when BOTH entities have a faction and those factions are allied. Combat skips
    * these (no friendly fire); an entity with no faction is NOT allied, so it's still hit —
-   * keeping the filter a no-op for current content (only slimes/player carry factions).
+   * keeping the filter a no-op for current content (only enemies/player carry factions).
    */
   allied(world, a, b) {
     const fa = this.factionOf(world, a);

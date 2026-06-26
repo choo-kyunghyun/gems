@@ -69,42 +69,42 @@
     },
 
     {
-      "preset": "human",
+      "preset": "raider",
       "gx": 8,
       "gy": 3,
       "loot": [
         { "itemId": "rags", "qty": 2 },
-        { "itemId": "wood_sword", "qty": 1 },
+        { "itemId": "lead_pipe", "qty": 1 },
         { "itemId": "backpack", "qty": 1 }
       ]
     },
     {
-      "preset": "human",
+      "preset": "raider",
       "gx": 14,
       "gy": 3,
       "loot": [
         { "itemId": "rags", "qty": 1 },
-        { "itemId": "potion", "qty": 1 },
-        { "itemId": "leather_armor", "qty": 1 }
+        { "itemId": "medkit", "qty": 1 },
+        { "itemId": "armored_vest", "qty": 1 }
       ]
     },
     {
-      "preset": "human",
+      "preset": "raider",
       "gx": 3,
       "gy": 11,
       "loot": [
-        { "itemId": "gem", "qty": 1 },
+        { "itemId": "circuitry", "qty": 1 },
         { "itemId": "blaster", "qty": 1 }
       ]
     },
     {
-      "preset": "human",
+      "preset": "raider",
       "gx": 17,
       "gy": 11,
       "loot": [
         { "itemId": "rags", "qty": 1 },
-        { "itemId": "key", "qty": 1 },
-        { "itemId": "swift_ring", "qty": 1 }
+        { "itemId": "keycard", "qty": 1 },
+        { "itemId": "adrenal_implant", "qty": 1 }
       ]
     },
 
@@ -114,11 +114,11 @@
       "gy": 9,
       "capacity": 12,
       "items": [
-        { "itemId": "potion", "qty": 2 },
-        { "itemId": "gem", "qty": 1 },
-        { "itemId": "swift_ring", "qty": 1 },
+        { "itemId": "medkit", "qty": 2 },
+        { "itemId": "circuitry", "qty": 1 },
+        { "itemId": "adrenal_implant", "qty": 1 },
         { "itemId": "wood", "qty": 5 },
-        { "itemId": "iron", "qty": 3 }
+        { "itemId": "scrap_metal", "qty": 3 }
       ]
     },
 

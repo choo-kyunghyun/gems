@@ -283,7 +283,7 @@ globalThis.ChunkManager = class ChunkManager {
   }
 
   // entities → snapshots, removing each from the World (deferred until flush). Skips ids no
-  // longer valid (e.g. a slime killed while the chunk was simulated) so the dead stay dead.
+  // longer valid (e.g. a enemy killed while the chunk was simulated) so the dead stay dead.
   _captureAll(rec) {
     const snaps = [];
     for (let i = 0; i < rec.entities.length; i++) {

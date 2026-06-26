@@ -424,7 +424,7 @@ globalThis.BuildMode = {
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
 
-  // Sweep built entities DESTROYED in combat (a turret slimes brought to 0 HP, or any built
+  // Sweep built entities DESTROYED in combat (a turret enemies brought to 0 HP, or any built
   // entity removed from the world): drop them from the deconstruct tracking so the cell frees
   // up and map persistence won't snapshot a dead handle. NO wood refund — it was destroyed, not
   // deconstructed. Called every frame from the scene's step (combat applies damage in the tick

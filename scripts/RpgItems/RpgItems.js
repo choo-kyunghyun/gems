@@ -1,7 +1,7 @@
 // RPG item content: the rarity tiers + the full item set (consumables / weapons / armor /
 // trinket / unique items / crafting materials). Registered once by RpgContent.register() at a
 // scene's create() (NOT at top level — avoids GMRT load-order issues). An item's `rarity` is a
-// tier id defined here, so rarities + items live together. wood_sword = melee (swings a hitbox
+// tier id defined here, so rarities + items live together. lead_pipe = melee (swings a hitbox
 // in the facing dir); blaster = an ammo-driven gun — RpgController picks melee-swing vs fire by
 // whether the item carries a Gun component (composeWeapon's gun branch).
 const RPG_RARITIES = [
@@ -27,30 +27,30 @@ globalThis.RpgItems = {
       },
       // Consumable — heals from the bag.
       {
-        id: "potion",
-        name: "ITEM_POTION",
-        description: "ITEM_POTION_DESC",
+        id: "medkit",
+        name: "ITEM_MEDKIT",
+        description: "ITEM_MEDKIT_DESC",
         weight: 1,
         value: 10,
         rarity: "uncommon",
         components: [new Consumable({ heal: 5 })],
       },
-      // Buff consumables — apply a timed Status (Buff/Status system). Tonic = Regen (HoT over 8s);
-      // Elixir = Fortify (+attack/+defense for 12s, folded into Stats via StatModel). The status id
+      // Buff consumables — apply a timed Status (Buff/Status system). Medgel = Regen (HoT over 8s);
+      // Combat Stim = Fortify (+attack/+defense for 12s, folded into Stats via StatModel). The status id
       // is content (RpgStatuses); ConsumableSystem.use routes it to StatusSystem.apply.
       {
-        id: "tonic",
-        name: "ITEM_TONIC",
-        description: "ITEM_TONIC_DESC",
+        id: "medgel",
+        name: "ITEM_MEDGEL",
+        description: "ITEM_MEDGEL_DESC",
         weight: 1,
         value: 15,
         rarity: "uncommon",
         components: [new Consumable({ status: "regen" })],
       },
       {
-        id: "elixir",
-        name: "ITEM_ELIXIR",
-        description: "ITEM_ELIXIR_DESC",
+        id: "combat_stim",
+        name: "ITEM_COMBAT_STIM",
+        description: "ITEM_COMBAT_STIM_DESC",
         weight: 1,
         value: 35,
         rarity: "rare",
@@ -70,9 +70,9 @@ globalThis.RpgItems = {
         components: [new Consumable({ thirst: 45 })],
       },
       {
-        id: "bread",
-        name: "ITEM_BREAD",
-        description: "ITEM_BREAD_DESC",
+        id: "ration_pack",
+        name: "ITEM_RATION_PACK",
+        description: "ITEM_RATION_PACK_DESC",
         weight: 1,
         value: 5,
         rarity: "common",
@@ -93,48 +93,48 @@ globalThis.RpgItems = {
       // these, not an XP grind. One per StatModel.ATTRS key; obtained by crafting (RpgRecipes) +
       // quest rewards (RpgQuests). `attr` matches the Attributes bag key.
       {
-        id: "power_shard",
-        name: "ITEM_POWER_SHARD",
-        description: "ITEM_POWER_SHARD_DESC",
+        id: "power_serum",
+        name: "ITEM_POWER_SERUM",
+        description: "ITEM_POWER_SERUM_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
         components: [new Consumable({ attr: "pow", amount: 1 })],
       },
       {
-        id: "vitality_shard",
-        name: "ITEM_VITALITY_SHARD",
-        description: "ITEM_VITALITY_SHARD_DESC",
+        id: "vitality_serum",
+        name: "ITEM_VITALITY_SERUM",
+        description: "ITEM_VITALITY_SERUM_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
         components: [new Consumable({ attr: "vit", amount: 1 })],
       },
       {
-        id: "agility_shard",
-        name: "ITEM_AGILITY_SHARD",
-        description: "ITEM_AGILITY_SHARD_DESC",
+        id: "agility_serum",
+        name: "ITEM_AGILITY_SERUM",
+        description: "ITEM_AGILITY_SERUM_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
         components: [new Consumable({ attr: "agi", amount: 1 })],
       },
       {
-        id: "endurance_shard",
-        name: "ITEM_ENDURANCE_SHARD",
-        description: "ITEM_ENDURANCE_SHARD_DESC",
+        id: "endurance_serum",
+        name: "ITEM_ENDURANCE_SERUM",
+        description: "ITEM_ENDURANCE_SERUM_DESC",
         weight: 1,
         value: 50,
         rarity: "epic",
         components: [new Consumable({ attr: "end", amount: 1 })],
       },
-      // Weapons. wood_sword = melee (swings a hitbox in the facing dir); blaster = an ammo-driven
+      // Weapons. lead_pipe = melee (swings a hitbox in the facing dir); blaster = an ammo-driven
       // gun (the Gun component → composeWeapon's gun branch). RpgController picks melee-swing vs
       // fire by whether the item carries a Gun component.
       {
-        id: "wood_sword",
-        name: "ITEM_WOOD_SWORD",
-        description: "ITEM_WOOD_SWORD_DESC",
+        id: "lead_pipe",
+        name: "ITEM_LEAD_PIPE",
+        description: "ITEM_LEAD_PIPE_DESC",
         weight: 4,
         value: 8,
         rarity: "common",
@@ -182,9 +182,9 @@ globalThis.RpgItems = {
       },
       // Armor + trinket (flat Stats deltas while worn).
       {
-        id: "leather_armor",
-        name: "ITEM_LEATHER_ARMOR",
-        description: "ITEM_LEATHER_ARMOR_DESC",
+        id: "armored_vest",
+        name: "ITEM_ARMORED_VEST",
+        description: "ITEM_ARMORED_VEST_DESC",
         weight: 8,
         value: 20,
         rarity: "uncommon",
@@ -193,8 +193,8 @@ globalThis.RpgItems = {
         ],
       },
       {
-        id: "swift_ring",
-        name: "ITEM_SWIFT_RING",
+        id: "adrenal_implant",
+        name: "ITEM_ADRENAL_IMPLANT",
         weight: 1,
         value: 40,
         rarity: "rare",
@@ -214,10 +214,10 @@ globalThis.RpgItems = {
       },
       // Currency + unique loot.
       { id: "coin", name: "ITEM_COIN", weight: 0, value: 1, rarity: "common" },
-      { id: "gem", name: "ITEM_GEM", weight: 1, value: 50, rarity: "rare" },
+      { id: "circuitry", name: "ITEM_CIRCUITRY", weight: 1, value: 50, rarity: "rare" },
       {
-        id: "key",
-        name: "ITEM_KEY",
+        id: "keycard",
+        name: "ITEM_KEYCARD",
         weight: 0,
         value: 0,
         rarity: "epic",
@@ -234,8 +234,8 @@ globalThis.RpgItems = {
         components: [new Material({ color: "#a9743f" })],
       },
       {
-        id: "iron",
-        name: "ITEM_IRON",
+        id: "scrap_metal",
+        name: "ITEM_SCRAP_METAL",
         weight: 2,
         value: 4,
         rarity: "common",
@@ -244,7 +244,7 @@ globalThis.RpgItems = {
       // Gun ammo (Ammo) — the BASE projectile stats a gun fires (mass / velocity / power /
       // penetration); the gun-base + installed attachments operate on these into the final shot.
       // `caliber:"standard"` matches the blaster. Consumed one per shot (magazine-fed); weight 0 so a
-      // full belt doesn't dominate the weight budget. Crafted at the Forge. light = fast/low-pen,
+      // full belt doesn't dominate the weight budget. Crafted at the Machining. light = fast/low-pen,
       // heavy = slow/punchy, ap = armor-piercing.
       {
         id: "ammo_light",
@@ -302,7 +302,7 @@ globalThis.RpgItems = {
       // category it fits (vs a weapon slot's `accepts`); `ops` are the operators it applies to the
       // composed profile ({ field: { add?, mul? } } → (base+Σadd)·Πmul); `stat` folds into the
       // wearer's derived Stats. An op on a field the weapon doesn't expose is simply inert. Crafted
-      // with the Forge module (RpgRecipes).
+      // with the Machining module (RpgRecipes).
       // ── Gun attachments (the blaster's scope/barrel/magazine/grip/muzzle slots) ──
       {
         id: "mod_scope",
@@ -365,7 +365,7 @@ globalThis.RpgItems = {
           }),
         ],
       },
-      // ── Melee attachments (the wooden sword's edge/pommel slots) ──
+      // ── Melee attachments (the lead pipe's edge/pommel slots) ──
       {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
@@ -400,36 +400,36 @@ globalThis.RpgItems = {
       // (RpgRecipes); the Toolkit ("weaponmod") switches the bench into the weapon-mod panel. All
       // are crafted at the BARE bench (base recipes), so the bench bootstraps its own upgrades.
       {
-        id: "forge",
-        name: "ITEM_FORGE",
-        description: "ITEM_FORGE_DESC",
+        id: "machining_module",
+        name: "ITEM_MACHINING_MODULE",
+        description: "ITEM_MACHINING_MODULE_DESC",
         weight: 3,
         value: 30,
         rarity: "uncommon",
         components: [new WorkbenchModule()], // kind defaults "recipes"
       },
       {
-        id: "alembic",
-        name: "ITEM_ALEMBIC",
-        description: "ITEM_ALEMBIC_DESC",
+        id: "chem_module",
+        name: "ITEM_CHEM_MODULE",
+        description: "ITEM_CHEM_MODULE_DESC",
         weight: 2,
         value: 35,
         rarity: "uncommon",
         components: [new WorkbenchModule()],
       },
       {
-        id: "hearth",
-        name: "ITEM_HEARTH",
-        description: "ITEM_HEARTH_DESC",
+        id: "cooking_module",
+        name: "ITEM_COOKING_MODULE",
+        description: "ITEM_COOKING_MODULE_DESC",
         weight: 3,
         value: 25,
         rarity: "uncommon",
         components: [new WorkbenchModule()],
       },
       {
-        id: "toolkit",
-        name: "ITEM_TOOLKIT",
-        description: "ITEM_TOOLKIT_DESC",
+        id: "gunsmith_kit",
+        name: "ITEM_GUNSMITH_KIT",
+        description: "ITEM_GUNSMITH_KIT_DESC",
         weight: 2,
         value: 40,
         rarity: "rare",

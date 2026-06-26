@@ -1,5 +1,5 @@
 // Placeable-entity catalog for the level editor — the "database" of what can be placed,
-// mirroring the spawn presets RpgSpawn.spawn understands (slime/npc/chest/prop/reach).
+// mirroring the spawn presets RpgSpawn.spawn understands (enemy/npc/chest/prop/reach).
 //
 // Each entry carries editor display (label + marker color), a `make(gx, gy)` factory that
 // returns a FRESH spawn record with sensible default fields (fresh per call, so two placed
@@ -27,10 +27,10 @@ const TD_STATION_KINDS = [
 globalThis.RpgCatalog = {
   entries: [
     {
-      id: "human",
-      label: "Bandit",
+      id: "raider",
+      label: "Raider",
       color: "#d06a5a",
-      make: (gx, gy) => ({ preset: "human", gx, gy, hp: 3, loot: [] }),
+      make: (gx, gy) => ({ preset: "raider", gx, gy, hp: 3, loot: [] }),
       fields: [
         { key: "hp", kind: "int", label: "HP", min: 1, max: 99 },
         { key: "loot", kind: "items", label: "Loot" },

@@ -7,8 +7,8 @@
 //
 // Targets any entity with Health + BBox EXCEPT the attacker and its faction ALLIES (no
 // friendly fire — FactionSystem.allied; a target with no faction is still hit, so this is a
-// no-op for current content where only the player/slimes carry factions). In the RPG that's
-// exactly the slimes (the player is excluded; NPCs/furniture/drops carry no Health), so it
+// no-op for current content where only the player/enemies carry factions). In the RPG that's
+// exactly the enemies (the player is excluded; NPCs/furniture/drops carry no Health), so it
 // needs no per-genre "enemy" tag. Returns the ids struck; this only SUBTRACTS hp —
 // the death reaction (despawn/respawn/down) is decided centrally by the scene's Mortal-driven
 // death pass (RpgScene.resolveHealth), so a melee kill and a ranged kill share one configurable

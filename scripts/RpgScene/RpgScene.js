@@ -103,7 +103,7 @@ globalThis.RpgScene = {
     }
   },
 
-  // Incapacitate a "down" entity: drop its Health (so slimes stop targeting it — nearestHostile
+  // Incapacitate a "down" entity: drop its Health (so enemies stop targeting it — nearestHostile
   // needs Health — and this pass skips it), stop + dim it, and start the recovery timer.
   _goDown(scene, id, m, h) {
     const world = scene.world;

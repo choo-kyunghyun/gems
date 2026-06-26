@@ -15,7 +15,7 @@ globalThis.RpgContent = {
     RpgRecipes.register(); // workbench recipes
     RpgPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
 
-    // Factions + relations: the player party vs monsters. Slimes aggro the player by RELATION
+    // Factions + relations: the player party vs monsters. Enemies aggro the player by RELATION
     // (FactionSystem.nearestHostile), not a hardcoded id, so adding a third faction here (a
     // bandit clan, town guard, …) and one setRelation is all "more gameplay later" needs.
     FactionSystem.register([

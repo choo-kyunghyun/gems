@@ -1,5 +1,5 @@
 // Combat AI for the RPG: a generic Idle → Chase → Attack state machine (driven by the shared
-// StateSystem) for ANY non-player combatant. Mobile melee enemies (slimes) and stationary ranged
+// StateSystem) for ANY non-player combatant. Mobile melee enemies (enemies) and stationary ranged
 // emplacements (turrets) are now the SAME module, differing only by Brain DATA (`mobile` + `ranged`)
 // — this replaces the old per-kind split (SlimeAI + a dedicated Turret component + TurretSystem).
 // A turret is just an immovable, player-faction actor whose Brain is { mobile:false, ranged:true }
@@ -9,13 +9,13 @@
 // nearest HOSTILE attackable body (FactionSystem.nearestHostile) when one enters aggro range. Add
 // another hostile faction and these actors fight it too, with no change here.
 //
-// Mobile actors (slimes) are dynamic solid bodies (Velocity + non-kinematic Collision), so
+// Mobile actors (enemies) are dynamic solid bodies (Velocity + non-kinematic Collision), so
 // SolidSystem integrates the velocity these states set and collides them against the level walls.
 // Stationary actors (turrets) are kinematic — they never set velocity, so SolidSystem leaves them
 // put; the Velocity attach() adds is inert.
 //
 // Usage (per actor, at spawn):
-//   CombatAI.attach(world, id, level);                                   // slime (mobile melee)
+//   CombatAI.attach(world, id, level);                                   // enemy (mobile melee)
 //   CombatAI.attach(world, id, level, { mobile:false, ranged:true, … }); // turret
 // Then run StateSystem each physics tick (it drives the schemas below).
 
@@ -26,8 +26,8 @@ globalThis.Brain = "Brain";
  * @typedef {Object} Brain
  * @property {{x:number,y:number}} home  spawn point a MOBILE actor drifts back to when idle
  * @property {number} target      entity id this actor is chasing/attacking (-1 = none)
- * @property {boolean} mobile     true = chase the target (slime); false = stationary (turret)
- * @property {boolean} ranged     true = fire a projectile (turret); false = melee contact (slime)
+ * @property {boolean} mobile     true = chase the target (enemy); false = stationary (turret)
+ * @property {boolean} ranged     true = fire a projectile (turret); false = melee contact (enemy)
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
  * @property {number} deAggro     distance at which a chasing (mobile) actor gives up
  * @property {number} attackRange distance at which it stops to attack (= fire range when ranged)
@@ -49,7 +49,7 @@ globalThis.CombatAI = {
   _level: undefined, // for grid<->world conversion when pathfinding around walls
 
   // Attach the AI to an entity. `opt` overrides the Brain defaults; the defaults describe a
-  // mobile melee slime, so a slime calls attach(world, id, level) bare and a turret passes
+  // mobile melee enemy, so a enemy calls attach(world, id, level) bare and a turret passes
   // { mobile:false, ranged:true, attackRange, cdMax, bulletSpeed, aggro, deAggro }. (Damage is NOT
   // here — it's the actor's Stats.attack now; see _attackPower.)
   attach(world, id, level, opt = {}) {
@@ -162,7 +162,7 @@ globalThis.CombatAI = {
   },
 
   // Per-state aggro cue. Mobile actors are now real flat ART (not debug boxes), so a FULL state-color
-  // multiply muddied the authored sprite (a brick-red slime went murky green at idle). Apply only a
+  // multiply muddied the authored sprite (a brick-red enemy went murky green at idle). Apply only a
   // light WASH toward the state color (mostly white) so the sprite's own color shows while aggro still
   // reads; white (idle) = no tint. A STATIONARY actor (turret) keeps its authored color.
   _tint(id, r, g, b) {
@@ -181,7 +181,7 @@ globalThis.CombatAI = {
 
   IDLE: {
     enter(id) {
-      CombatAI._tint(id, 255, 255, 255); // idle: no wash — slime shows its authored brick-red
+      CombatAI._tint(id, 255, 255, 255); // idle: no wash — enemy shows its authored brick-red
     },
     update(id) {
       const w = CombatAI._world;
@@ -310,7 +310,7 @@ globalThis.CombatAI = {
 
   // Fire a bullet from a stationary RANGED actor (turret) at its Brain.target, reusing the shared
   // "bullet" preset (registered by RpgPlayer.spawn) routed through ProjectileSystem — so a
-  // turret-killed slime spills loot via the same Mortal/death path as a player shot. Skips the
+  // turret-killed enemy spills loot via the same Mortal/death path as a player shot. Skips the
   // shot when a WALL or an ALLY blocks the line (so a covered turret doesn't waste cooldowns).
   // Mirrors the old TurretSystem._fire, now driven by the shared state machine.
   _fireAt(id, brain) {

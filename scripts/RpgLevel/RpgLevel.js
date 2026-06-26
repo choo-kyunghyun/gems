@@ -204,7 +204,7 @@ globalThis.RpgLevel = {
 
   /**
    * Wall border ringing a finite chunked world (worldCols × worldRows cells, anchored at cell 0)
-   * so the player + slimes can't leave the bounded overworld. The 4 colliders are ALWAYS present
+   * so the player + enemies can't leave the bounded overworld. The 4 colliders are ALWAYS present
    * (not chunk-managed — like the party), kinematic-solid like any wall, so SolidSystem collides
    * against them and NavGrid rasterizes them (pathfinding respects the edge for free). Same
    * Position(top-left)+BBox(0,0,w,h)+kinematic-solid shape as ChunkManager._meshColliders. Returns the

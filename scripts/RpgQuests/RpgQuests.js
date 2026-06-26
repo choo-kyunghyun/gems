@@ -20,15 +20,15 @@ globalThis.RpgQuests = {
         id: this.QUEST_HUMANS,
         name: "QUEST_HUMANS_NAME",
         objLabel: "QUEST_HUMANS_OBJ", // formatted as text(label, done, count)
-        objectives: [{ kind: "kill", target: "human", count: 5 }],
-        rewards: { items: [{ itemId: "potion", qty: 2 }] },
+        objectives: [{ kind: "kill", target: "raider", count: 5 }],
+        rewards: { items: [{ itemId: "medkit", qty: 2 }] },
       },
       {
         id: this.QUEST_GATHER,
         name: "QUEST_GATHER_NAME",
         objLabel: "QUEST_GATHER_OBJ",
         objectives: [{ kind: "collect", target: "rags", count: 3 }],
-        rewards: { items: [{ itemId: "gem", qty: 1 }] },
+        rewards: { items: [{ itemId: "circuitry", qty: 1 }] },
       },
       {
         id: this.QUEST_REACH,
@@ -37,7 +37,7 @@ globalThis.RpgQuests = {
         // Explore the ruins → find a permanent attribute boost (the item-driven progression
         // that replaced XP). Shows the *_shard consumable as a quest reward as well as a craft.
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
-        rewards: { items: [{ itemId: "vitality_shard", qty: 1 }] },
+        rewards: { items: [{ itemId: "vitality_serum", qty: 1 }] },
       },
     ]);
 

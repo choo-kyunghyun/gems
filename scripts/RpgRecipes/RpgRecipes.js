@@ -5,72 +5,72 @@
 // top level — avoids GMRT load-order issues).
 //
 // Groups: BASE (no module — basic gear + the four modules themselves, so the bare bench bootstraps
-// its own upgrades), FORGE ("forge" — smithing + weapon mods), ALCHEMY ("alembic" — potions/buffs +
-// attribute shards), COOKING ("hearth" — drink + foods). The Toolkit ("toolkit") module isn't a
+// its own upgrades), MACHINING ("machining_module" — machining + weapon mods), CHEM ("chem_module" — meds/buffs +
+// attribute serums), COOKING ("cooking_module" — drink + foods). The Toolkit ("gunsmith_kit") module isn't a
 // recipe gate — it switches the bench into the weapon-mod panel (WeaponModUI).
 globalThis.RpgRecipes = {
   register() {
     Recipe.register([
       // ── BASE (no module needed) ──────────────────────────────────────────
       {
-        id: "craft_wood_sword",
+        id: "craft_lead_pipe",
         station: "workbench",
         inputs: [{ itemId: "wood", qty: 3 }],
-        output: { itemId: "wood_sword", qty: 1 },
+        output: { itemId: "lead_pipe", qty: 1 },
       },
       // The four workbench modules — crafted at the bare bench so it can upgrade itself.
       {
-        id: "craft_forge",
+        id: "craft_machining_module",
         station: "workbench",
         inputs: [
-          { itemId: "iron", qty: 4 },
+          { itemId: "scrap_metal", qty: 4 },
           { itemId: "wood", qty: 2 },
         ],
-        output: { itemId: "forge", qty: 1 },
+        output: { itemId: "machining_module", qty: 1 },
       },
       {
-        id: "craft_alembic",
+        id: "craft_chem_module",
         station: "workbench",
         inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 2 },
+          { itemId: "circuitry", qty: 1 },
         ],
-        output: { itemId: "alembic", qty: 1 },
+        output: { itemId: "chem_module", qty: 1 },
       },
       {
-        id: "craft_hearth",
+        id: "craft_cooking_module",
         station: "workbench",
         inputs: [
-          { itemId: "iron", qty: 2 },
+          { itemId: "scrap_metal", qty: 2 },
           { itemId: "wood", qty: 4 },
         ],
-        output: { itemId: "hearth", qty: 1 },
+        output: { itemId: "cooking_module", qty: 1 },
       },
       {
-        id: "craft_toolkit",
+        id: "craft_gunsmith_kit",
         station: "workbench",
         inputs: [
-          { itemId: "iron", qty: 3 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 3 },
+          { itemId: "circuitry", qty: 1 },
         ],
-        output: { itemId: "toolkit", qty: 1 },
+        output: { itemId: "gunsmith_kit", qty: 1 },
       },
 
-      // ── FORGE module — smithing (gear), the gun, ammo + weapon attachments ─
+      // ── MACHINING module — machining (gear), the gun, ammo + weapon attachments ─
       {
-        id: "craft_leather_armor",
+        id: "craft_armored_vest",
         station: "workbench",
-        requires: "forge",
-        inputs: [{ itemId: "iron", qty: 2 }],
-        output: { itemId: "leather_armor", qty: 1 },
+        requires: "machining_module",
+        inputs: [{ itemId: "scrap_metal", qty: 2 }],
+        output: { itemId: "armored_vest", qty: 1 },
       },
       {
         id: "craft_blaster",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 4 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 4 },
+          { itemId: "circuitry", qty: 1 },
         ],
         output: { itemId: "blaster", qty: 1 },
       },
@@ -78,24 +78,24 @@ globalThis.RpgRecipes = {
       {
         id: "craft_ammo_light",
         station: "workbench",
-        requires: "forge",
-        inputs: [{ itemId: "iron", qty: 1 }],
+        requires: "machining_module",
+        inputs: [{ itemId: "scrap_metal", qty: 1 }],
         output: { itemId: "ammo_light", qty: 12 },
       },
       {
         id: "craft_ammo_heavy",
         station: "workbench",
-        requires: "forge",
-        inputs: [{ itemId: "iron", qty: 2 }],
+        requires: "machining_module",
+        inputs: [{ itemId: "scrap_metal", qty: 2 }],
         output: { itemId: "ammo_heavy", qty: 8 },
       },
       {
         id: "craft_ammo_ap",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 2 },
+          { itemId: "circuitry", qty: 1 },
         ],
         output: { itemId: "ammo_ap", qty: 6 },
       },
@@ -103,26 +103,26 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_scope",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 2 },
+          { itemId: "circuitry", qty: 1 },
         ],
         output: { itemId: "mod_scope", qty: 1 },
       },
       {
         id: "craft_mod_long_barrel",
         station: "workbench",
-        requires: "forge",
-        inputs: [{ itemId: "iron", qty: 3 }],
+        requires: "machining_module",
+        inputs: [{ itemId: "scrap_metal", qty: 3 }],
         output: { itemId: "mod_long_barrel", qty: 1 },
       },
       {
         id: "craft_mod_extended_mag",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 2 },
+          { itemId: "scrap_metal", qty: 2 },
           { itemId: "wood", qty: 2 },
         ],
         output: { itemId: "mod_extended_mag", qty: 1 },
@@ -130,9 +130,9 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_grip",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 1 },
+          { itemId: "scrap_metal", qty: 1 },
           { itemId: "wood", qty: 2 },
         ],
         output: { itemId: "mod_grip", qty: 1 },
@@ -140,10 +140,10 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_suppressor",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 2 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 2 },
+          { itemId: "circuitry", qty: 1 },
         ],
         output: { itemId: "mod_suppressor", qty: 1 },
       },
@@ -151,112 +151,112 @@ globalThis.RpgRecipes = {
       {
         id: "craft_mod_sharp",
         station: "workbench",
-        requires: "forge",
-        inputs: [{ itemId: "iron", qty: 3 }],
+        requires: "machining_module",
+        inputs: [{ itemId: "scrap_metal", qty: 3 }],
         output: { itemId: "mod_sharp", qty: 1 },
       },
       {
         id: "craft_mod_heavy",
         station: "workbench",
-        requires: "forge",
+        requires: "machining_module",
         inputs: [
-          { itemId: "iron", qty: 4 },
-          { itemId: "gem", qty: 1 },
+          { itemId: "scrap_metal", qty: 4 },
+          { itemId: "circuitry", qty: 1 },
         ],
         output: { itemId: "mod_heavy", qty: 1 },
       },
 
-      // ── ALCHEMY module — potions, buffs, attribute shards ────────────────
+      // ── CHEM module — meds, buffs, attribute serums ────────────────
       {
-        id: "craft_potion",
+        id: "craft_medkit",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
           { itemId: "rags", qty: 2 },
           { itemId: "wood", qty: 1 },
         ],
-        output: { itemId: "potion", qty: 1 },
+        output: { itemId: "medkit", qty: 1 },
       },
-      // Buff consumables (Buff/Status system): Tonic = Regen, Elixir = Fortify.
+      // Buff consumables (Buff/Status system): Medgel = Regen, Combat Stim = Fortify.
       {
-        id: "craft_tonic",
+        id: "craft_medgel",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [{ itemId: "rags", qty: 3 }],
-        output: { itemId: "tonic", qty: 1 },
+        output: { itemId: "medgel", qty: 1 },
       },
       {
-        id: "craft_elixir",
+        id: "craft_combat_stim",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
-          { itemId: "iron", qty: 2 },
+          { itemId: "scrap_metal", qty: 2 },
           { itemId: "rags", qty: 2 },
         ],
-        output: { itemId: "elixir", qty: 1 },
+        output: { itemId: "combat_stim", qty: 1 },
       },
-      // Attribute-boost shards — the crafted, item-driven path to permanent growth (no leveling).
+      // Attribute-boost serums — the crafted, item-driven path to permanent growth (no leveling).
       // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering.
       {
-        id: "craft_power_shard",
+        id: "craft_power_serum",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
-          { itemId: "gem", qty: 1 },
-          { itemId: "iron", qty: 3 },
+          { itemId: "circuitry", qty: 1 },
+          { itemId: "scrap_metal", qty: 3 },
         ],
-        output: { itemId: "power_shard", qty: 1 },
+        output: { itemId: "power_serum", qty: 1 },
       },
       {
-        id: "craft_vitality_shard",
+        id: "craft_vitality_serum",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
-          { itemId: "gem", qty: 1 },
+          { itemId: "circuitry", qty: 1 },
           { itemId: "rags", qty: 4 },
         ],
-        output: { itemId: "vitality_shard", qty: 1 },
+        output: { itemId: "vitality_serum", qty: 1 },
       },
       {
-        id: "craft_agility_shard",
+        id: "craft_agility_serum",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
-          { itemId: "gem", qty: 1 },
+          { itemId: "circuitry", qty: 1 },
           { itemId: "wood", qty: 4 },
         ],
-        output: { itemId: "agility_shard", qty: 1 },
+        output: { itemId: "agility_serum", qty: 1 },
       },
       {
-        id: "craft_endurance_shard",
+        id: "craft_endurance_serum",
         station: "workbench",
-        requires: "alembic",
+        requires: "chem_module",
         inputs: [
-          { itemId: "gem", qty: 1 },
-          { itemId: "iron", qty: 2 },
+          { itemId: "circuitry", qty: 1 },
+          { itemId: "scrap_metal", qty: 2 },
         ],
-        output: { itemId: "endurance_shard", qty: 1 },
+        output: { itemId: "endurance_serum", qty: 1 },
       },
 
       // ── COOKING module — drink + foods ───────────────────────────────────
       {
         id: "craft_water_bottle",
         station: "workbench",
-        requires: "hearth",
+        requires: "cooking_module",
         inputs: [{ itemId: "rags", qty: 1 }],
         output: { itemId: "water_bottle", qty: 1 },
       },
       {
-        id: "craft_bread",
+        id: "craft_ration_pack",
         station: "workbench",
-        requires: "hearth",
+        requires: "cooking_module",
         inputs: [{ itemId: "wood", qty: 2 }],
-        output: { itemId: "bread", qty: 1 },
+        output: { itemId: "ration_pack", qty: 1 },
       },
       {
         id: "craft_cooked_meat",
         station: "workbench",
-        requires: "hearth",
+        requires: "cooking_module",
         inputs: [
           { itemId: "rags", qty: 2 },
           { itemId: "wood", qty: 1 },

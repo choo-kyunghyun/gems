@@ -41,7 +41,7 @@ globalThis.NavGrid = class NavGrid {
   }
 
   // Re-center the window on a cell, clear to walkable, then stamp every kinematic-solid collider's
-  // footprint as blocked. Walls only — dynamic bodies (slimes/player) are non-kinematic so agents
+  // footprint as blocked. Walls only — dynamic bodies (enemies/player) are non-kinematic so agents
   // don't block each other's planning. Call once per frame OUTSIDE the tick loop.
   rebuild(world, centerGx, centerGy) {
     this.originX = centerGx - (this.cols >> 1);
