@@ -52,7 +52,7 @@ globalThis.RpgCatalog = {
     },
     {
       id: "chest",
-      label: "Chest",
+      label: "Footlocker",
       color: "#c8a046",
       make: (gx, gy) => ({ preset: "chest", gx, gy, capacity: 12, items: [] }),
       fields: [

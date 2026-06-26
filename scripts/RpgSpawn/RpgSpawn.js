@@ -6,7 +6,8 @@
 // no state of its own.
 //
 // Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
-//   human    hp? loot:[{itemId,qty}]   (hostile human "Bandit" — the mobile melee enemy)
+//   human    hp? loot:[{itemId,qty}]   (hostile human "Bandit"/raider — camp + quest enemy)
+//   rat      hp? loot:[{itemId,qty}]   (wildlife — the overworld ambient mobile-melee creature)
 //   npc      label nameKey questId
 //   chest    capacity items:[{itemId,qty}]
 //   prop     label color(#hex) material? kind?   (material id w/ Material → tint, overrides color; kind → Station, else furniture)
@@ -48,7 +49,7 @@ globalThis.RpgSpawn = {
       const id = RpgSpawn.spawnEntity(world, level, s);
       if (id === -1) continue;
       // Classify the constructed entity into the scene's typed handles by its preset.
-      if (s.preset === "human") enemies.push(id);
+      if (s.preset === "human" || s.preset === "rat") enemies.push(id);
       else if (s.preset === "npc") npc = id;
       else if (s.preset === "portal")
         portals.push({ id, toMap: s.toMap, toEntry: s.toEntry ?? "default" });
@@ -108,6 +109,38 @@ globalThis.RpgSpawn = {
       CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
+    } else if (s.preset === "rat") {
+      // Wildlife: the overworld's ambient creature (OverworldGen scatter). A weaker mobile-melee
+      // mob than the raider "human" — smaller body, less hp, a touch quicker — but the SAME
+      // CombatAI (mobile melee) + Mortal despawn. Raiders ("human") stay the camp/quest enemy.
+      const id = world.create();
+      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
+      world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
+      world.add(id, Collision, {
+        solid: true,
+        kinematic: false,
+        mask: null,
+        hits: [],
+      });
+      world.add(id, Health, { hp: s.hp ?? 2 });
+      world.add(id, Stats, {
+        maxHp: s.hp ?? 2,
+        maxStamina: 0,
+        attack: 1,
+        defense: 0,
+        speed: 60,
+      });
+      world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
+      world.add(id, Tag, { tags: new Set(["enemy", "rat"]) });
+      world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
+      world.add(id, Name, { name: "Rat" });
+      world.add(id, Inventory, { slots: s.loot ?? [], capacity: 4 });
+      const vis = RpgSpawn._visual(spr_rat, c_white, 1);
+      vis.speed = 6; // looping scuttle cycle
+      world.add(id, Visual, vis);
+      CombatAI.attach(world, id, level); // mobile melee, acquires target by faction
+      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id });
+      return id;
     } else if (s.preset === "npc") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
@@ -136,7 +169,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Station, { kind: "storage" });
-      world.add(id, Name, { name: "Chest" });
+      world.add(id, Name, { name: "Footlocker" });
       world.add(id, Inventory, {
         slots: s.items ?? [],
         capacity: s.capacity ?? 12,
@@ -189,7 +222,7 @@ globalThis.RpgSpawn = {
         mask: null,
         hits: [],
       });
-      world.add(id, Name, { name: s.label ?? "Torch" });
+      world.add(id, Name, { name: s.label ?? "Lamp" });
       world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, 1));
       // Warm, gently flickering torch light (archetype values; tune via the Light component).
       world.add(id, Light, {

@@ -17,7 +17,7 @@
 //     blocks the player AND feeds NavGrid pathfinding, not just the cosmetic render.
 //
 // Output = an optional stamped PREFAB (a hand-authored cluster) plus a loose random scatter of
-// rocks + slimes. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
+// rocks + rats. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
 // below — GMRT miscompiles xorshift, so this uses pure integer-float math, no bitwise chain).
 // GMRT-safe: index loops, Object.keys (no Map/Set for-of), class assigned to globalThis.
 globalThis.OverworldGen = class OverworldGen {
@@ -256,19 +256,21 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([gx0 + lx, gy0 + ly, w, h]);
     }
 
-    // Wandering bandits (hostile humans) with light loot.
-    const humans = 1 + Math.floor(rng() * 3); // 1..3
-    for (let i = 0; i < humans; i++) {
+    // Wandering rats (wildlife) — the ambient overworld creature. Raiders ("human") stay the
+    // camp/quest enemy (the bandit_camp prefab), so the open wilderness reads as wildlife, not a
+    // world full of lone bandits. Rats yield the odd scavenged rag, no gear.
+    const rats = 1 + Math.floor(rng() * 3); // 1..3
+    for (let i = 0; i < rats; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));
       const ly = 1 + Math.floor(rng() * (cr - 2));
       // Skip a cell on impassable terrain — a dynamic body spawned inside a water collider snags.
       if (!this._passable(gx0 + lx, gy0 + ly)) continue;
       spawns.push({
-        preset: "human",
+        preset: "rat",
         gx: gx0 + lx,
         gy: gy0 + ly,
-        hp: 3,
-        loot: this._loot(rng),
+        hp: 2,
+        loot: rng() > 0.5 ? [{ itemId: "rags", qty: 1 }] : [],
       });
     }
   }

@@ -20,7 +20,7 @@ globalThis.RpgContent = {
     // bandit clan, town guard, …) and one setRelation is all "more gameplay later" needs.
     FactionSystem.register([
       { id: "player", name: "Player", color: "#5aa0ff" },
-      { id: "monster", name: "Monsters", color: "#e65a5a" },
+      { id: "monster", name: "Hostiles", color: "#e65a5a" },
     ]);
     FactionSystem.setRelation("player", "monster", "hostile");
   },

@@ -429,6 +429,7 @@
     {"id":{"name":"spr_portal","path":"sprites/spr_portal/spr_portal.yy",},},
     {"id":{"name":"spr_power","path":"sprites/spr_power/spr_power.yy",},},
     {"id":{"name":"spr_question","path":"sprites/spr_question/spr_question.yy",},},
+    {"id":{"name":"spr_rat","path":"sprites/spr_rat/spr_rat.yy",},},
     {"id":{"name":"spr_reef","path":"sprites/spr_reef/spr_reef.yy",},},
     {"id":{"name":"spr_revert","path":"sprites/spr_revert/spr_revert.yy",},},
     {"id":{"name":"spr_silverCoin","path":"sprites/spr_silverCoin/spr_silverCoin.yy",},},

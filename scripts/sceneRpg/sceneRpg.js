@@ -300,10 +300,14 @@ class _SceneRpgClass extends Scene {
         onDespawn: (id) => {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
-          Profile.add("enemiesKilled", 1);
-          QuestLog.report("kill", "human", 1);
+          Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
+          // Report the kill by actual type so only RAIDERS advance the "Raider Cull" quest; rats
+          // (wildlife) report "rat" (no quest target) but still bumped enemiesKilled above.
+          const tag = this.world.get(Tag, id);
+          const kind = tag && tag.tags.has("rat") ? "rat" : "human";
+          QuestLog.report("kill", kind, 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
-          Log.info(`bandit killed — kills=${Profile.get("enemiesKilled")}`);
+          Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
         },
         onRespawn: (id) => {
           const pos = this.world.get(Position, id);
