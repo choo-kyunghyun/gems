@@ -681,9 +681,11 @@ globalThis.RpgMap = {
     Debug.panel("Camera", (p) => {
       p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
       p.slider("Zoom", cam, "followZoomTarget", 1, 8, 0.1);
-      // Free-fly NOCLIP camera (arrow keys pan; on Time.raw so it works while the sim is paused via
-      // the Sim panel) — detach from the player to inspect the render up close from any angle.
-      p.checkbox("Free cam (arrows)", cam, "freeCam");
+      // 6DOF free-fly NOCLIP camera (WASD + Space/Shift move, hold RMB + mouse to look, Q/E roll;
+      // on Time.raw so it works while the sim is paused via the Sim panel) — detach from the player
+      // to inspect the render up close from any angle. Switches to a perspective projection.
+      p.checkbox("Free cam (WASD/RMB)", cam, "freeCam");
+      p.slider("Fly speed", cam, "flySpeed", 30, 1200, 10);
       p.button("Recenter on player", () => {
         const pos =
           cam.world !== undefined

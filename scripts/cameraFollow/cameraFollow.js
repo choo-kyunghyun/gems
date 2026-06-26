@@ -48,57 +48,50 @@ function _cameraFollowOnUpdate() {
   // up vector), so they all track a live change.
   this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
 
-  let x;
-  let y;
   if (this.freeCam) {
-    // Free-fly NOCLIP pan (debug): arrow keys move the look-at in the ground plane, independent of
-    // the player, with NO edge-clamp. On Time.raw (wall-clock delta) so it works while the sim is
-    // PAUSED (Time.delta is 0 then); the speed scales with the view width so it feels constant at
-    // any zoom. sceneRpg runs camera.update() in draw() while freeCam, so this drives a paused scene.
-    const spd = this.freeSpeed * Time.raw * (this.width / 640);
-    x = this.toX;
-    y = this.toY;
-    if (keyboard_check(vk_left)) x -= spd;
-    if (keyboard_check(vk_right)) x += spd;
-    if (keyboard_check(vk_up)) y -= spd;
-    if (keyboard_check(vk_down)) y += spd;
-  } else {
-    if (this.world === undefined) return;
-    const pos = this.world.get(Position, this.followTarget);
-    if (pos === undefined) return;
+    _cameraFlyUpdate(this); // 6DOF spectator: WASD/Space/Shift move, RMB+mouse look, Q/E roll
+    return;
+  }
+  // Following: restore the base (ortho) projection — the fly mode switches to perspective — and
+  // reset the fly seed so re-entering fly re-initializes from the live view.
+  this.projection = this._baseProjection;
+  this._flyInit = false;
 
-    x = lerp(this.toX, pos.x, this.followLerp);
-    y = lerp(this.toY, pos.y, this.followLerp);
+  if (this.world === undefined) return;
+  const pos = this.world.get(Position, this.followTarget);
+  if (pos === undefined) return;
 
-    // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
-    // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
-    // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
-    // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
-    // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
-    // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
-    const cb = this.followClamp;
-    if (cb !== undefined) {
-      const halfW = this.width / 2;
-      const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
-      x =
-        cb.x2 - cb.x1 > this.width
-          ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
-          : (cb.x1 + cb.x2) / 2;
-      y =
-        cb.y2 - cb.y1 > 2 * halfH
-          ? clamp(y, cb.y1 + halfH, cb.y2 - halfH)
-          : (cb.y1 + cb.y2) / 2;
-    }
+  let x = lerp(this.toX, pos.x, this.followLerp);
+  let y = lerp(this.toY, pos.y, this.followLerp);
 
-    if (this.followSnap) {
-      x = Math.round(x);
-      y = Math.round(y);
-    }
+  // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
+  // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
+  // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
+  // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
+  // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
+  // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
+  const cb = this.followClamp;
+  if (cb !== undefined) {
+    const halfW = this.width / 2;
+    const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
+    x =
+      cb.x2 - cb.x1 > this.width
+        ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
+        : (cb.x1 + cb.x2) / 2;
+    y =
+      cb.y2 - cb.y1 > 2 * halfH
+        ? clamp(y, cb.y1 + halfH, cb.y2 - halfH)
+        : (cb.y1 + cb.y2) / 2;
   }
 
-  // 2.5D spike: an optional pitch tilts the ortho eye up out of the ground plane (rotating the
-  // eye + up vector about the X axis), so the view looks down at an angle for standing billboards.
-  // pitch 0 (default) is the unchanged top-down look; followPitch is radians.
+  if (this.followSnap) {
+    x = Math.round(x);
+    y = Math.round(y);
+  }
+
+  // 2.5D: an optional pitch tilts the ortho eye up out of the ground plane (rotating the eye + up
+  // vector about the X axis), so the view looks down at an angle for standing billboards. pitch 0
+  // (default) is the unchanged top-down look; followPitch is radians.
   const p = this.followPitch ?? 0;
   if (p === 0) {
     this.setFrom(x, y, this.followHeight);
@@ -109,6 +102,104 @@ function _cameraFollowOnUpdate() {
     this.setTo(x, y, 0);
     this.setUp(0, Math.cos(p), Math.sin(p));
   }
+}
+
+// 6DOF spectator fly camera (debug) — driven instead of the follow logic while cam.freeCam is on.
+// sceneRpg runs camera.update() in draw() then, so it flies even while the sim is PAUSED (Sim panel).
+// WASD + Space/Shift translate (camera-relative XY plane + world Z), Q/E roll, and the mouse — while
+// the RIGHT button is held — yaws/pitches via a window_mouse_set recenter + delta (editor convention,
+// so the cursor stays free for the ImGui panel when RMB is up). Switches to PERSPECTIVE so moving
+// forward genuinely flies into the scene. The basis matches the follow camera (worldUp ref +Z,
+// right = worldUp × forward, up = forward × right), so toggling in/out is seamless and never flipped.
+// All motion on Time.raw (works while paused). Letters via ord() (as the controllers bind keys).
+function _cameraFlyUpdate(cam) {
+  // First fly frame: seed position + yaw/pitch from the current (follow) view so there's no jump.
+  if (!cam._flyInit) {
+    cam.flyX = cam.fromX;
+    cam.flyY = cam.fromY;
+    cam.flyZ = cam.fromZ;
+    const dx = cam.toX - cam.fromX;
+    const dy = cam.toY - cam.fromY;
+    const dz = cam.toZ - cam.fromZ;
+    cam.flyYaw = Math.atan2(dy, dx);
+    cam.flyPitch = Math.atan2(dz, Math.sqrt(dx * dx + dy * dy));
+    cam.flyRoll = 0;
+    cam._flyInit = true;
+    cam._lookActive = false;
+  }
+  cam.projection = CAMERA_PROJECTION.PERSPECTIVE_FOV; // true 3D while flying
+
+  // Mouse look while RMB held: recenter the cursor each frame and apply the pixel delta.
+  if (mouse_check_button(mb_right)) {
+    const cx = Math.floor(window_get_width() / 2);
+    const cy = Math.floor(window_get_height() / 2);
+    if (cam._lookActive) {
+      cam.flyYaw += (window_mouse_get_x() - cx) * cam.mouseSens;
+      cam.flyPitch += (window_mouse_get_y() - cy) * cam.mouseSens;
+    }
+    cam._lookActive = true; // first held frame just recenters (no delta jump)
+    window_mouse_set(cx, cy);
+  } else {
+    cam._lookActive = false;
+  }
+  // Clamp pitch shy of the poles so the basis stays well-defined (roll is applied separately below).
+  if (cam.flyPitch > 1.55) cam.flyPitch = 1.55;
+  if (cam.flyPitch < -1.55) cam.flyPitch = -1.55;
+
+  // Roll (Q/E), on Time.raw.
+  const rollStep = 1.6 * Time.raw;
+  if (keyboard_check(ord("Q"))) cam.flyRoll -= rollStep;
+  if (keyboard_check(ord("E"))) cam.flyRoll += rollStep;
+
+  // Forward from yaw + pitch; right + up from a +Z worldUp reference (matches the follow camera).
+  const cp = Math.cos(cam.flyPitch);
+  const fx = cp * Math.cos(cam.flyYaw);
+  const fy = cp * Math.sin(cam.flyYaw);
+  const fz = Math.sin(cam.flyPitch);
+  // right = normalize(worldUp(0,0,1) × forward) = normalize(-fy, fx, 0)
+  let rx = -fy;
+  let ry = fx;
+  const rl = Math.sqrt(rx * rx + ry * ry) || 1;
+  rx /= rl;
+  ry /= rl;
+  // up = forward × right
+  const ux = -fz * ry;
+  const uy = fz * rx;
+  const uz = fx * ry - fy * rx;
+  // Roll: rotate the up vector toward right around the forward axis (rz = 0).
+  const cr = Math.cos(cam.flyRoll);
+  const sr = Math.sin(cam.flyRoll);
+  const upx = ux * cr + rx * sr;
+  const upy = uy * cr + ry * sr;
+  const upz = uz * cr;
+
+  // Translate (Time.raw → works while paused). WASD in the camera plane, Space/Shift on world Z
+  // (the eye sits at -Z above the ground, so Space = up = decreasing Z).
+  const spd = cam.flySpeed * Time.raw;
+  if (keyboard_check(ord("W"))) {
+    cam.flyX += fx * spd;
+    cam.flyY += fy * spd;
+    cam.flyZ += fz * spd;
+  }
+  if (keyboard_check(ord("S"))) {
+    cam.flyX -= fx * spd;
+    cam.flyY -= fy * spd;
+    cam.flyZ -= fz * spd;
+  }
+  if (keyboard_check(ord("D"))) {
+    cam.flyX += rx * spd;
+    cam.flyY += ry * spd;
+  }
+  if (keyboard_check(ord("A"))) {
+    cam.flyX -= rx * spd;
+    cam.flyY -= ry * spd;
+  }
+  if (keyboard_check(vk_space)) cam.flyZ -= spd;
+  if (keyboard_check(vk_shift)) cam.flyZ += spd;
+
+  cam.setFrom(cam.flyX, cam.flyY, cam.flyZ);
+  cam.setTo(cam.flyX + fx, cam.flyY + fy, cam.flyZ + fz);
+  cam.setUp(upx, upy, upz);
 }
 
 /**
@@ -132,8 +223,20 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followSnap = snap;
   camera.pitchDeg = cam.pitch ?? 0; // 2.5D pitch in DEGREES — live-tunable (Debug Camera panel)
   camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians (recomputed each onUpdate)
-  camera.freeCam = false; // debug free-fly noclip pan (arrow keys), toggled via the Debug Camera panel
-  camera.freeSpeed = cam.freeSpeed ?? 600; // free-cam pan speed (world px/s at view width 640)
+  // Debug 6DOF free-fly camera (toggled via the Debug Camera panel). When on, _cameraFlyUpdate
+  // takes over with WASD/Space/Shift move + RMB-mouse look + Q/E roll, in a PERSPECTIVE projection.
+  camera.freeCam = false;
+  camera._baseProjection = projection; // restore this when leaving fly (fly forces perspective)
+  camera._flyInit = false; // re-seed pos/orientation from the live view on each (re)entry
+  camera._lookActive = false;
+  camera.flyX = 0; // fly position
+  camera.flyY = 0;
+  camera.flyZ = 0;
+  camera.flyYaw = 0; // radians
+  camera.flyPitch = 0;
+  camera.flyRoll = 0;
+  camera.flySpeed = cam.flySpeed ?? 300; // move speed (world px/s)
+  camera.mouseSens = cam.mouseSens ?? 0.005; // radians per mouse pixel
   camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
   camera.followViewCap = cam.viewCap; // optional max view width (world px) → live zoom-out cap
 
