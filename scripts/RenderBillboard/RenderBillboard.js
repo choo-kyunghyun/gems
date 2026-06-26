@@ -26,6 +26,18 @@ globalThis.RenderBillboard = class RenderBillboard {
     // overriding the constructor tiltDeg. Assigned by RpgMap.build like RenderLighting/Weather.
     this.camera = opt.camera;
     this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    // Manual alpha-test-discard shader: GMRT's fixed-function alpha test (gpu_set_alphatestref) is
+    // unreliable on the runtime, so a sprite's transparent pixels still wrote depth and occluded
+    // what was behind them. sh_alphatest discards sub-threshold TEXEL pixels in the fragment shader
+    // (no depth write). Cached + GUARDED (shaders_are_supported + shader_is_compiled, asset_get_index
+    // returns an opaque ref); falls back to no shader (the fixed-function ref) if unavailable.
+    this._shader = asset_get_index("sh_alphatest");
+    this._shaderOk =
+      shaders_are_supported() && shader_is_compiled(this._shader);
+    this._uAlphaRef = this._shaderOk
+      ? shader_get_uniform(this._shader, "u_alphaRef")
+      : -1;
+    this.alphaRef = opt.alphaRef ?? 0.5; // texel-alpha cutout (sprite shape; dim-safe)
   }
 
   destroy() {}
@@ -40,6 +52,12 @@ globalThis.RenderBillboard = class RenderBillboard {
     // (obj_game Create_0) so the coplanar flat ground passes don't z-fight as the camera moves —
     // restore it after this pass.
     gpu_set_zwriteenable(true);
+    // Manual alpha-test discard (sh_alphatest) so a sprite's transparent pixels skip the depth
+    // write — the reliable replacement for GMRT's fixed-function alpha test. Guarded; no-op fallback.
+    if (this._shaderOk) {
+      shader_set(this._shader);
+      shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
+    }
     for (const entity of world.query(Visual, Position)) {
       const visual = world.get(Visual, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
@@ -65,6 +83,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       matrix_set(matrix_world, ident);
     }
     matrix_set(matrix_world, ident);
+    if (this._shaderOk) shader_reset();
     gpu_set_zwriteenable(false); // restore the global default (off); only billboards write depth
   }
 };

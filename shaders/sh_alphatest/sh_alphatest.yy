@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_alphatest",
+  "name":"sh_alphatest",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}
