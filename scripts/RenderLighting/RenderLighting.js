@@ -143,10 +143,15 @@ globalThis.RenderLighting = class RenderLighting {
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
     );
     matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
+    // Disable the depth TEST: the entities wrote depth in the WORLD projection (a near depth), so
+    // with the test on this screen-space composite is REJECTED over every opaque entity pixel —
+    // sprites would skip the night/light multiply (stay full-bright). Restore the default (on) after.
+    gpu_set_ztestenable(false);
     gpu_set_blendmode_ext(bm_dest_colour, bm_zero);
     draw_set_alpha(1);
     draw_surface(this._surf, 0, 0);
     gpu_set_blendmode(bm_normal);
+    gpu_set_ztestenable(true);
     matrix_set(matrix_view, sv);
     matrix_set(matrix_projection, sp);
 

@@ -62,10 +62,16 @@ globalThis.RenderWeather = class RenderWeather {
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
     );
     matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
+    // Disable the depth TEST for this screen-space overlay: the entities (RenderBillboard) wrote
+    // depth in the WORLD projection (a near depth), so with the test on this tint — drawn at the
+    // screen-ortho mid plane — is REJECTED over every opaque entity pixel (the snow/rain tint would
+    // skip all sprites). The overlay must cover everything; restore the global default (on) after.
+    gpu_set_ztestenable(false);
 
     this._layer(Weather.previous(), 1 - blend, 0, 0, w, h);
     this._layer(Weather.current(), blend, 0, 0, w, h);
 
+    gpu_set_ztestenable(true);
     matrix_set(matrix_view, sv);
     matrix_set(matrix_projection, sp);
     draw_set_color(color);
