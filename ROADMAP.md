@@ -4,12 +4,6 @@
 
 - Save and Load
 
-## 2.5D Rendering
-
-Remaining polish:
-
-- AI art follow-ups: re-roll the weak `doorway`; per-entity animation frames (idle bob / attack swing)
-
 ## UI
 
 - Killfeed UI
