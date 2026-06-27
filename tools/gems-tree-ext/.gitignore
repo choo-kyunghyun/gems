@@ -1,0 +1,5 @@
+# generated artifact (the packaged extension; regenerable via `npm run package`)
+*.vsix
+
+# npm install output, if any (the extension is plain JS with no deps)
+node_modules/

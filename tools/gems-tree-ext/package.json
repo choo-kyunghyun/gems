@@ -1,0 +1,56 @@
+{
+  "name": "gems-project-tree",
+  "displayName": "GEMS Project Tree",
+  "description": "GameMaker IDE folder tree in the VS Code sidebar — reads gems.yyp and opens the real source files.",
+  "version": "0.1.1",
+  "publisher": "local",
+  "private": true,
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://localhost/gems-project-tree" },
+  "engines": { "vscode": "^1.70.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onView:gemsProjectTree", "workspaceContains:**/*.yyp"],
+  "main": "./extension.js",
+  "scripts": {
+    "package": "npx --yes @vscode/vsce package",
+    "install-ext": "code --install-extension gems-project-tree-0.1.1.vsix --force"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "gemsTree", "title": "GEMS Tree", "icon": "media/tree.svg" }
+      ]
+    },
+    "views": {
+      "gemsTree": [{ "id": "gemsProjectTree", "name": "Resources" }]
+    },
+    "commands": [
+      {
+        "command": "gemsProjectTree.refresh",
+        "title": "Refresh",
+        "category": "GEMS Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gemsProjectTree.revealActive",
+        "title": "Reveal Active File",
+        "category": "GEMS Tree",
+        "icon": "$(target)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "gemsProjectTree.revealActive",
+          "when": "view == gemsProjectTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "gemsProjectTree.refresh",
+          "when": "view == gemsProjectTree",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  }
+}
