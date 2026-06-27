@@ -1,4 +1,4 @@
-// Draggable character window for the RPG scene — a wider, TABBED panel
+// Near-fullscreen character window for the RPG scene — a fixed, TABBED panel
 // (Items / Equipment / Party / Stats / Quests / Settings) so the player can manage gear, read
 // the sheet, track quests, command companions, and tune the item table all in one place.
 //
@@ -19,7 +19,8 @@
 // toggle persists across launches. Scenes keep only the open/close state.
 //
 // Contract: the scene owns `ui`, `world`, `ctrl` (with `.id`), `invOpen`, and the fields
-// this module sets/reads — `_invWin` (the gemsWindow), `_invTable` (the UITable
+// this module sets/reads — `_invWin` (the overlay host, shown/hidden via `.enabled`),
+// `_invTable` (the UITable
 // component), `_invSel` (selected row model | null) + `_invSelTime` (double-click timer),
 // `_invCat`/`_invSearch` (filter + search state), `_invEquipHost`/`_invExtraHost` (the
 // rebuilt sections), `_invDirty` (refresh-needed flag).
@@ -28,23 +29,81 @@
 //   create():            RpgInventoryUI.build(scene)
 //   step() (when dirty):  RpgInventoryUI.rebuild(scene, { equipSlots, extraRows? })
 globalThis.RpgInventoryUI = {
-  // Build the (hidden) draggable window + its persistent tabbed structure.
+  // Build the (hidden) near-fullscreen inventory overlay + its persistent tabbed structure.
+  // Unlike the old draggable + resizable gemsWindow, this is a FIXED panel modeled on the
+  // SystemMenu overlay: an absolute full-screen host (dim backdrop, toggled via .enabled)
+  // centering a near-fullscreen card whose tab host flex-grows — so it reflows on a live
+  // uiScale change with no rebuild, and the bag table gets far more rows than the old 760px
+  // window. It is NOT a UIModal: the build-once + toggle-.enabled contract is what lets the
+  // sort/filter/scroll + active tab survive a rebuild, and the scene keeps moving with it open
+  // (the "window" InputContext mutes fire but not movement).
   build(scene) {
-    scene._invWin = gemsWindow(I18n.textRef("INV_TITLE"), {
-      top: 40,
-      width: 760,
-      // Resizable (grab the bottom-right grip). The explicit height gives the grow tabs +
-      // bag table a starting basis; height 508 reproduces the old fixed 384px tab host.
-      height: 508,
-      minWidth: 600, // keeps the six tab labels from crowding at the floor
-      minHeight: 360,
-      onClose: () => {
-        scene.invOpen = false;
-        scene._invWin.enabled = false;
-      },
+    const margin = 28;
+    // Absolute, so it fills the whole screen ignoring scene.ui's (gemsRoot) content padding;
+    // its own `margin` padding is the gap to the card. Inserted into scene.ui AFTER the HUD,
+    // so the dim backdrop veils the HUD / key-hints behind it.
+    const host = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      padding: margin,
+      alignItems: "center",
     });
+    host.addComponent(
+      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+    );
+    host.addComponent(new UITrigger({})); // swallow clicks on the dim so they don't reach the world
+    scene._invWin = host;
     scene._invWin.enabled = false;
     scene.ui.insertChild(scene._invWin);
+
+    // The visible window: a full-height card, capped on ultra-wide displays.
+    const inner = new UIElement({
+      width: "100%",
+      maxWidth: 1100,
+      height: "100%",
+    });
+    const card = gemsCard({
+      width: "100%",
+      flexGrow: 1,
+      padding: GemsTheme.pad,
+      gap: GemsTheme.gapSm,
+    });
+
+    // Title row: the window name on the left, a close (x) button on the right (Esc and the
+    // inventory key also close — see sceneRpg.handleEscape + the toggle in step()).
+    const titleRow = new UIElement({
+      width: "100%",
+      height: 40,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    });
+    titleRow.insertChild(
+      gemsLabel(I18n.textRef("INV_TITLE"), {
+        font: "header",
+        color: GemsTheme.text,
+      }),
+    );
+    titleRow.insertChild(
+      gemsButton(
+        "x",
+        () => {
+          scene.invOpen = false;
+          scene._invWin.enabled = false;
+        },
+        { width: 32, height: 32, rad: GemsTheme.radiusSm },
+      ),
+    );
+    card.insertChild(titleRow);
+    card.insertChild(gemsDivider());
+
+    inner.insertChild(card);
+    host.insertChild(inner);
+    host.body = card; // the tabs (built below) flex-grow inside the card, under the title row
 
     scene._invSel = null; // selected row model
     scene._invSelTime = 0; // last select time (ms) for double-click-to-use
@@ -78,7 +137,7 @@ globalThis.RpgInventoryUI = {
           content: RpgInventoryUI._buildSettingsTab(scene),
         },
       ],
-      { grow: true }, // fill the resizable window; the Items tab + bag table grow with it
+      { grow: true }, // fill the near-fullscreen card; the Items tab + bag table grow with it
     );
     scene._invWin.body.insertChild(tabs);
   },
