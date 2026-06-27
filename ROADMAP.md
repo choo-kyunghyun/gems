@@ -8,7 +8,6 @@
 
 Remaining polish:
 
-- `RadarArrows` (off by default) draws flat too — billboard/lift it if re-enabled
 - AI art follow-ups: re-roll the weak `doorway`; per-entity animation frames (idle bob / attack swing)
 
 ## UI

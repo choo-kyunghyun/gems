@@ -17,8 +17,9 @@ globalThis.RadarArrows = {
    * @param {object} world
    * @param {number} target           center entity id (the player) — its arrows are skipped
    * @param {{tag:string,color:number}[]} rules  first matching tag wins; others are not drawn
-   * @param {object} [opt]  { range, ring, near, far } — detect radius, ring px from the player,
-   *                        and arrow length at point-blank (near) vs at max range (far)
+   * @param {object} [opt]  { range, ring, near, far, lift } — detect radius, ring px from the
+   *                        player, arrow length at point-blank (near) vs at max range (far), and
+   *                        `lift` (2.5D world-z to raise the ring off the floor; 0 = flat, see draw)
    */
   draw(world, target, rules, opt = {}) {
     const tp = world.get(Position, target);
@@ -27,9 +28,23 @@ globalThis.RadarArrows = {
     const ring = opt.ring ?? 26; // world px from the player to each arrow
     const near = opt.near ?? 11; // arrow length at the player
     const far = opt.far ?? 5; // arrow length at the radar edge
+    const lift = opt.lift ?? 0; // 2.5D: world-z to raise the ring off the floor (0 = flat top-down)
 
     const color = draw_get_color();
     const alpha = draw_get_alpha();
+
+    // 2.5D: under a pitched camera the ring otherwise lies splayed flat on the ground at the
+    // player's feet (and is occluded by the entities it points at). Lift the whole ring to ~body
+    // height with a world-z translate (like RpgWorldOverlay's bullets — negative z maps up the
+    // screen) and draw depth-test OFF so an arrow is never hidden by a body (a HUD cue — always
+    // visible). The arrows stay in the horizontal plane, so each keeps pointing at the on-screen
+    // position of its target (same ground-plane foreshortening as the entities); billboarding
+    // them upright would instead point at the un-foreshortened azimuth and miss. Flat top-down
+    // passes lift 0 and keeps the old path.
+    if (lift !== 0) {
+      gpu_set_ztestenable(false);
+      matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
+    }
 
     const ids = Query.inRadius(world, tp.x, tp.y, range);
     for (let i = 0; i < ids.length; i++) {
@@ -50,6 +65,10 @@ globalThis.RadarArrows = {
       RadarArrows._arrow(tp.x + nx * ring, tp.y + ny * ring, nx, ny, size, col);
     }
 
+    if (lift !== 0) {
+      matrix_set(matrix_world, matrix_build_identity());
+      gpu_set_ztestenable(true); // restore the global default (depth test on)
+    }
     draw_set_color(color);
     draw_set_alpha(alpha);
   },

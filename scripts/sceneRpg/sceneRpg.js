@@ -810,7 +810,13 @@ class _SceneRpgClass extends Scene {
     // they sit with the other post-renderer world cues (build cursor, floating numbers).
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("rpgRadar"))
-      RadarArrows.draw(this.world, this.ctrl.id, this._radarRules); // directional radar around player (inventory Settings toggle, default off)
+      // directional radar around player (inventory Settings toggle, default off). 2.5D: lift the
+      // ring to ~body height under a pitched camera so it floats around the player instead of
+      // lying flat at their feet (matches RpgWorldOverlay's bullet lift); flat top-down lifts 0.
+      RadarArrows.draw(this.world, this.ctrl.id, this._radarRules, {
+        lift:
+          this.camera !== undefined && this.camera.followPitch !== 0 ? 16 : 0,
+      });
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
