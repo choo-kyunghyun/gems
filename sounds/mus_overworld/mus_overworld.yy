@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":8.000000,
+  "duration":8.0,
   "exportDir":"",
   "name":"mus_overworld",
   "parent":{
