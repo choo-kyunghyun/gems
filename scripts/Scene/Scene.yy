@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Scene",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"Scene",
+    "path":"folders/Core/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

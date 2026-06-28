@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EntitySnapshot",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"World",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

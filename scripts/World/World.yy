@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"World",
   "parent":{
-    "name":"Core",
-    "path":"folders/Core.yy",
+    "name":"World",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
