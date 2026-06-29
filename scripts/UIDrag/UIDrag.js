@@ -1,26 +1,17 @@
 /**
  * @implements {UIComponent}
- * Drag handle for a movable window. Lives on a title-bar element; `target` is the
- * window-root element to move (defaults to the element this is attached to). On a
- * left-press over the title bar it latches and, while held, accumulates the pointer
- * delta into `target.dragX/dragY` — which UIElement.getLayoutPosition adds to the
- * window and its whole subtree (draw + hit-test), so the window moves bodily. This is
- * the offset-not-mutation pattern (mirrors UIScroll's thumb drag) — the kit drives live
- * layout with draw-time offsets, not flexpanel style mutation.
- *
- * Returns block=true while hovering or dragging so the grab doesn't leak to widgets
- * behind. Mouse-only — it doesn't touch UINav (the window's child widgets stay
- * keyboard/gamepad navigable on their own).
- *
- * Pointer state comes from UIPointer (the frame-latched edges), not a direct
- * mouse_check_button* read (realtime-sampled on GMRT — see CLAUDE.md).
+ * Drag handle for a movable window. While held, accumulates the pointer delta into
+ * `target.dragX/dragY`, which getLayoutPosition adds to the window + subtree — the
+ * offset-not-mutation pattern (kit drives live layout with draw-time offsets, not
+ * flexpanel style mutation). Mouse-only — doesn't touch UINav.
+ * Pointer edges from UIPointer (frame-latched), not mouse_check_button* (realtime on GMRT).
  */
 globalThis.UIDrag = class UIDrag {
   /** @param {Object} [opts] { target: UIElement } the window root to move (defaults to the host element) */
   constructor(opts = {}) {
-    this.target = opts.target ?? null; // window root to move; falls back to element
+    this.target = opts.target ?? null; // window root; falls back to host element
     this._dragging = false;
-    this._lastX = 0; // last pointer pos, for per-frame delta accumulation
+    this._lastX = 0; // last pointer pos, for per-frame delta
     this._lastY = 0;
   }
 

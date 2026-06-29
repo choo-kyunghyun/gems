@@ -1,24 +1,11 @@
 /**
  * @implements {UIComponent}
- * Modal controller — lives as a component on a full-screen UI root (built by
- * gemsModal). The root sits at the top of the UI stack, so it draws last (over the
- * scene) and, because this component returns `true` every frame, it blocks all
- * pointer input to the roots beneath it (exclusive modal). Closes on Escape, or on a
- * backdrop click (a press that no card child captured — the card carries its own
- * UITrigger so clicks on it don't count as backdrop).
- *
- * Enter/exit motion: the dialog animates in (and back out) instead of hard-cutting —
- * the backdrop dim fades 0→target and the card slides up into place, driven by
- * Time.raw + Tween.easeInOutQuad. The slide reuses `root.scrollY` (which offsets the
- * root's whole subtree = the card; the backdrop is the root's own UIPanel component, so
- * it doesn't move) — no flex mutation, no per-glyph alpha (the card has its own bg, so
- * a subtree fade would mismatch — slide + dim reads cleanly without it).
- *
- * `gemsModal(...)` returns this instance as the handle: call `.close()` to dismiss.
- * close() starts the exit animation (idempotent); the root is removed + destroyed and
- * `onClose` fires only once the exit completes. It's safe to call from a button's
- * onClick mid-update — the destroy happens later in a clean onUpdate, and the UIElement
- * `_destroyed` guard keeps the unwinding traversal off the deleted node.
+ * Exclusive modal controller on a full-screen root (gemsModal). Returns `true` every
+ * frame to block all pointer input beneath it. Closes on Escape or a backdrop click (a
+ * press no card child captured). Enter/exit animates: backdrop dim fades + card slides
+ * via `root.scrollY` (offsets the subtree = the card) — no flex mutation. `.close()`
+ * starts the exit (idempotent); root is removed + onClose fires once it completes —
+ * safe to call mid-update (destroy happens later, UIElement `_destroyed` guards the unwind).
  */
 globalThis.UIModal = class UIModal {
   /** @param {Object} [modal] { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide } */
@@ -26,13 +13,12 @@ globalThis.UIModal = class UIModal {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
     this.closeOnEscape = modal.closeOnEscape ?? true;
-    this._root = modal.root ?? null; // the full-screen root, set by gemsModal
+    this._root = modal.root ?? null; // full-screen root, set by gemsModal
 
     this.duration = modal.duration ?? 0.18; // s per direction (Time.raw)
-    this.slide = modal.slide ?? 28; // px the card rises into place
+    this.slide = modal.slide ?? 28; // px the card rises
 
-    // The backdrop dim is the root's own UIPanel; capture its target alpha so the
-    // enter fade can scale up to it (and the exit back down).
+    // capture the backdrop UIPanel's target alpha so the enter/exit fade scales to it.
     this._backdrop =
       this._root !== null ? this._root.getComponent(UIPanel) : null;
     this._dim =
@@ -42,10 +28,10 @@ globalThis.UIModal = class UIModal {
 
     this._phase = 0; // 0 entering, 1 shown, 2 exiting, 3 removed
     this._t = 0;
-    this._apply(0); // start hidden (faded out + slid down) before the first draw
+    this._apply(0); // start hidden before the first draw
   }
 
-  // Visibility factor f∈[0,1]: 0 = fully hidden, 1 = fully shown.
+  // visibility factor f∈[0,1]: 0 = hidden, 1 = shown.
   _apply(f) {
     if (this._backdrop !== undefined && this._backdrop !== null) {
       this._backdrop.alpha = this._dim * f;
@@ -53,7 +39,7 @@ globalThis.UIModal = class UIModal {
     if (this._root !== null) this._root.scrollY = -this.slide * (1 - f);
   }
 
-  /** Begin the exit animation (idempotent); the root is removed + onClose fires once it completes. */
+  /** Begin the exit animation (idempotent). */
   close() {
     if (this._phase >= 2 || this._root === null) return; // already exiting / gone
     this._phase = 2;
@@ -64,7 +50,7 @@ globalThis.UIModal = class UIModal {
   onUpdate(element, block) {
     if (this._phase === 3) return block;
 
-    // Advance the enter / exit animation on a wall-clock timer (UI ignores Time.scale).
+    // advance enter/exit on wall-clock (UI ignores Time.scale).
     if (this._phase === 0) {
       this._t += Time.raw;
       const p = clamp(this._t / this.duration, 0, 1);
@@ -80,25 +66,23 @@ globalThis.UIModal = class UIModal {
         this._root.destroy();
         this.onClose();
       }
-      return true; // exiting: swallow input, ignore dismiss triggers below
+      return true; // exiting: swallow input, skip dismiss triggers
     }
 
     if (this.closeOnEscape && keyboard_check_pressed(vk_escape)) {
       this.close();
       return true;
     }
-    // Backdrop click: a press the card didn't capture (block is still false here).
+    // backdrop click: a press the card didn't capture (block still false).
     if (this.closeOnBackdrop && !block && UIPointer.pressed) {
       this.close();
       return true;
     }
-    // Exclusive: swallow all pointer input from the roots beneath the modal.
-    return true;
+    return true; // exclusive: swallow all pointer input beneath
   }
 
-  // UINav reads this to stop collecting focusables from roots beneath an open modal,
-  // mirroring the pointer block above — so keyboard/gamepad focus can't reach the
-  // background while the dialog is up (kept exclusive until it's fully removed).
+  // UINav reads this to stop collecting focusables beneath the modal (mirrors the
+  // pointer block) until it's fully removed.
   /** @returns {boolean} whether nav is blocked from roots beneath this modal */
   navExclusive() {
     return this._phase !== 3;

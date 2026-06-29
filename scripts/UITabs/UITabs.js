@@ -1,17 +1,10 @@
 /**
  * @implements {UIComponent}
- * Tab strip — lives on a fixed-height row element (built by gemsTabs). Draws N
- * equal-width tab segments directly in onDraw (like UISelect/UIStepper, no child
- * panels) and hit-tests clicks per segment. Selecting a tab swaps content by
- * toggling each content element's `enabled` flag — NOT by mutating flex or
- * inserting/removing nodes, so there is no reflow on switch (the content overlays
- * are all laid out once, stacked via absolute positioning by gemsTabs; only the
- * active one draws/updates).
- *
- * `tabs[i].label` is a string or () => string (live I18n.textRef). `tabs[i].content`
- * is the overlay element to show for that tab. GMRT note: hover/active state is read
- * live from pointer position each frame, so there is no cached primitive bool to be
- * clobbered, and no timer (Time.raw/delta) is involved.
+ * Tab strip — N equal-width segments drawn immediate-mode. Selecting swaps content by
+ * each overlay's `enabled` flag, NOT flex mutation, so there is no reflow on switch
+ * (overlays laid out once, stacked absolute; only the active one draws/updates).
+ * `tabs[i].label` is a string or () => string; `tabs[i].content` the overlay to show.
+ * GMRT: hover/active read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UITabs = class UITabs {
   /** @param {Object} [tabs] { tabs: {label, content}[], index, onChange, font, color, colorIdle, colorHover, activeBg, accent, border } */
@@ -30,8 +23,7 @@ globalThis.UITabs = class UITabs {
 
     this._hover = -1; // hovered segment index, -1 = none
 
-    // Show only the active tab's content from the start.
-    this._apply();
+    this._apply(); // show only the active tab from the start
   }
 
   _label(i) {
@@ -39,15 +31,14 @@ globalThis.UITabs = class UITabs {
     return typeof l === "function" ? l() : l;
   }
 
-  // Sync each content overlay's visibility to the active index. No flex mutation —
-  // `enabled` is our own flag, gated in UIElement.update/draw, so this never reflows.
+  // sync overlay visibility to active index via `enabled` flag — never reflows.
   _apply() {
     for (let i = 0; i < this.tabs.length; i++) {
       this.tabs[i].content.enabled = i === this.index;
     }
   }
 
-  /** Switch to tab `i` (no-op if already active or out of range). @param {number} i */
+  /** @param {number} i no-op if already active or out of range */
   select(i) {
     if (i === this.index || i < 0 || i >= this.tabs.length) return;
     this.index = i;
@@ -91,8 +82,8 @@ globalThis.UITabs = class UITabs {
     const color = draw_get_color();
     const a0 = draw_get_alpha();
 
-    // Resolve an I18n font KEY live (survives a locale reload — a cached handle would dangle); a
-    // raw handle passes through. See the resolve-at-draw GMRT-Safe Idiom.
+    // resolve I18n font KEY live (cached handle dangles on locale reload); raw handle
+    // passes through. see the resolve-at-draw GMRT-Safe Idiom.
     const fnt =
       typeof this.font === "string" ? I18n.font(this.font) : this.font;
     if (fnt !== -1) draw_set_font(fnt);
@@ -105,7 +96,7 @@ globalThis.UITabs = class UITabs {
     const inset = 3; // gap between adjacent tab fills
     const barH = 3; // accent underline thickness
 
-    // Baseline rule under the whole strip.
+    // baseline rule under the strip.
     draw_set_alpha(1);
     draw_line_color(
       pos.left,
@@ -122,7 +113,7 @@ globalThis.UITabs = class UITabs {
       const active = i === this.index;
 
       if (active) {
-        // Filled tab with rounded top corners + an accent underline.
+        // filled tab + accent underline.
         draw_roundrect_color_ext(
           x0 + inset,
           pos.top,
@@ -154,19 +145,15 @@ globalThis.UITabs = class UITabs {
             ? this.colorHover
             : this.colorIdle,
       );
-      // Snap the centered anchor to integer GUI pixels — segment centers (width/n) are
-      // fractional, which softens the SDF labels; floor keeps glyph stems on the grid.
+      // floor the centered anchor to integer GUI px — fractional centers soften SDF labels.
       draw_text(floor((x0 + x1) * 0.5), floor(cy), this._label(i));
     }
 
-    // Re-stroke the baseline as a trailing UNTEXTURED draw so the texture swap (font → none)
-    // flushes the rightmost label out of the pending vertex batch. Without it that last label
-    // stays pending and a clip container drawn right after the strip (the System Menu / inventory
-    // tab content is a gemsScroll) captures it under its gpu_set_scissor, scissoring it away — the
-    // "About" tab label vanished. We CAN'T fix this with draw_flush(): flushing immediately before
-    // a clip's gpu_set_scissor corrupts the clip on GMRT 0.20 ("No pipeline set" → blank content),
-    // verified. This redundant stroke is masked by the baseline already drawn above (and is itself
-    // harmlessly clipped if a scroll follows), so it costs nothing visually.
+    // re-stroke the baseline as a trailing UNTEXTURED draw to force a texture swap that
+    // flushes the rightmost label out of the pending batch — else a clip container drawn
+    // right after (a gemsScroll) captures it under gpu_set_scissor and clips it away ("About"
+    // tab vanished). CAN'T fix with draw_flush(): flushing before a clip's gpu_set_scissor
+    // corrupts the clip on GMRT 0.20 ("No pipeline set"). redundant with the baseline above, so free.
     draw_set_alpha(1);
     draw_line_color(
       pos.left,
@@ -184,8 +171,7 @@ globalThis.UITabs = class UITabs {
     draw_set_alpha(a0);
   }
 
-  // UINav: left/right switches tabs (so the strip is one focus stop and horizontal
-  // nav cycles it); confirm advances, wrapping. Both mark the strip focusable.
+  // UINav: left/right switches tabs (one focus stop); confirm advances, wrapping.
   /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
