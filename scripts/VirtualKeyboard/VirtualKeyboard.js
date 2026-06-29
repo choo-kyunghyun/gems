@@ -1,19 +1,6 @@
-/**
- * VirtualKeyboard — on-screen keyboard for gamepad (or mouse) text entry into a
- * UIInput. Standalone static singleton (not a UIComponent).
- *
- * `VirtualKeyboard.open(input)` pops a modal (gemsModal → exclusive backdrop, blocks
- * background nav, closes on Esc / backdrop) whose body is a preview line + a grid of
- * character keys. The keys are ordinary `gemsButton`s, so the whole keyboard is
- * keyboard/gamepad-navigable through UINav for free (move with the dpad/stick, press
- * A/Enter to type). Keys edit an in-memory buffer; **Done** commits it to the input
- * (`setValue` + `onConfirm`), **Cancel** / Esc / backdrop discard it — so the field
- * behind is untouched until Done.
- *
- * GMRT: key labels are live textRefs that read the shift state (no relabeling), the
- * buffer is plain string ops, and there are no cached primitive bools. Opens at most
- * one keyboard at a time.
- */
+// on-screen keyboard for gamepad/mouse text entry into a UIInput. standalone static singleton.
+// keys are gemsButtons, so the whole grid is UINav-navigable for free. edits an in-memory buffer:
+// Done commits (setValue + onConfirm), Cancel/Esc/backdrop discard — the field is untouched until Done.
 globalThis.VirtualKeyboard = class VirtualKeyboard {
   /** @type {UIModal|null} */
   static _modal = null;
@@ -22,15 +9,13 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
   static _buffer = "";
   static _shift = false;
 
-  // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
-  // (`_input !== null`) miscompiles to a constant (verified on SystemMenu.isOpen — the
-  // getter read false while the field held a live object). See CLAUDE.md.
-  /** @returns {boolean} whether the on-screen keyboard is open */
+  // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
+  /** @returns {boolean} */
   static isOpen() {
     return VirtualKeyboard._input !== null;
   }
 
-  /** Open the keyboard editing `input`'s text (no-op if already open or input is null). @param {UIInput} input */
+  /** no-op if already open or input is null. @param {UIInput} input */
   static open(input) {
     if (VirtualKeyboard.isOpen() || input == null) return;
     VirtualKeyboard._input = input;
@@ -53,7 +38,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     });
   }
 
-  /** Append a character to the buffer (respecting the input's maxLength). @param {string} ch */
+  /** append a char, respecting the input's maxLength. @param {string} ch */
   static type(ch) {
     if (!VirtualKeyboard.isOpen()) return;
     const max = VirtualKeyboard._input.maxLength ?? Infinity;
@@ -61,18 +46,16 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     VirtualKeyboard._buffer += ch;
   }
 
-  /** Delete the last buffered character. */
   static backspace() {
     const b = VirtualKeyboard._buffer;
     if (b.length > 0) VirtualKeyboard._buffer = b.substring(0, b.length - 1);
   }
 
-  /** Flip shift (letter case) for subsequent keys. */
   static toggleShift() {
     VirtualKeyboard._shift = !VirtualKeyboard._shift;
   }
 
-  // Done → push the buffer into the field and fire its confirm hook.
+  // push buffer into the field + fire its confirm hook
   static _commit() {
     const inp = VirtualKeyboard._input;
     if (inp === null) return;
@@ -80,8 +63,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     inp.onConfirm(inp.value);
   }
 
-  // Called from the modal's onClose (covers Done, Cancel, Esc and backdrop) — never
-  // closes the modal itself, so there's no re-entrancy.
+  // from the modal's onClose (Done/Cancel/Esc/backdrop) — never closes the modal itself (no re-entrancy)
   static _reset() {
     VirtualKeyboard._modal = null;
     VirtualKeyboard._input = null;
@@ -89,8 +71,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     VirtualKeyboard._shift = false;
   }
 
-  // The buffer as shown in the preview (masked for password fields, placeholder when
-  // empty).
+  // preview text: masked for password fields, placeholder when empty
   static _displayText() {
     const b = VirtualKeyboard._buffer;
     if (b === "") return I18n.text("VK_EMPTY");
@@ -102,11 +83,11 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     return b;
   }
 
-  // ── body layout ────────────────────────────────────────────────
+  // body layout
   static _buildBody() {
     const body = gemsList({ gap: GemsTheme.gapSm });
 
-    // Preview line: the buffer on a sunken panel.
+    // preview line: buffer on a sunken panel
     const preview = new UIElement({
       height: 40,
       justifyContent: "center",
@@ -133,7 +114,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     body.insertChild(VirtualKeyboard._charRow("asdfghjkl"));
     body.insertChild(VirtualKeyboard._charRow("zxcvbnm"));
 
-    // Special row: Shift / Space / Backspace.
+    // special row: Shift / Space / Backspace
     const special = new UIElement({
       flexDirection: "row",
       justifyContent: "center",
@@ -175,16 +156,13 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     return row;
   }
 
-  // a-z → A-Z. NOT String.toUpperCase() — on GMRT (still broken on 0.20) that returns garbage
-  // Unicode (probe: "q".toUpperCase() === "ଊ"), so shifted letters would type as unrenderable
-  // glyphs. Shift the char code by 32 instead (fromCharCode/charCodeAt are fine).
+  // a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
   static _upper(ch) {
     if (ch < "a" || ch > "z") return ch;
     return String.fromCharCode(ch.charCodeAt(0) - 32);
   }
 
-  // A single character key. Letters honour Shift (live label + typed value); digits
-  // are unaffected.
+  // single char key; letters honor Shift (live label + typed value), digits don't
   static _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
     return gemsButton(

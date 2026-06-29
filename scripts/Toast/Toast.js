@@ -1,19 +1,8 @@
-/**
- * Toast — a timed-notification stack, standalone static singleton mirroring
- * Tooltip (NOT a UIComponent). Push from anywhere with `Toast.push(str, opts)`;
- * `Toast.draw()` runs once per frame in obj_game Draw_75 (after Tooltip), ages each
- * entry by Time.raw (wall-clock, so toasts don't freeze/slow when a sim dilates or
- * pauses time — same rule as the UI timers) and draws the live stack.
- *
- * Stack: newest at the bottom of the screen, older entries above it; an entry fades
- * + slides in on arrival and fades out as it expires, then is removed. Variable
- * heights are handled by accumulating offsets from the baseline up.
- *
- * `opts`: { duration (s), type ("info"|"success"|"warn"|"error"), accent (color int
- * override) }. Type selects the left accent stripe color.
- */
+// timed-notification stack, standalone static singleton (not UIComponent).
+// ages by Time.raw so toasts survive sim pause/dilation. newest at bottom, older above.
+// opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent (color override) }
 globalThis.Toast = class Toast {
-  static _items = []; // oldest first; { text, accent, life, age }
+  static _items = []; // { text, accent, life, age }; oldest first
 
   static duration = 3.0; // seconds on screen (incl. fades)
   static fade = 0.3; // fade in/out time (seconds)
@@ -41,10 +30,7 @@ globalThis.Toast = class Toast {
     error: Color.parse("#e0584f"),
   };
 
-  /**
-   * Queue a toast. @param {string} str @param {Object} [opts] { duration (s), type:
-   * "info"|"success"|"warn"|"error", accent (color int override) }
-   */
+  /** @param {string} str @param {Object} [opts] { duration, type, accent } */
   static push(str, opts = {}) {
     const accent =
       opts.accent ?? Toast.accents[opts.type ?? "info"] ?? Toast.accents.info;
@@ -54,21 +40,19 @@ globalThis.Toast = class Toast {
       life: opts.duration ?? Toast.duration,
       age: 0,
     });
-    // Drop the oldest if we exceed the cap.
-    while (Toast._items.length > Toast.maxItems) Toast._items.shift();
+    while (Toast._items.length > Toast.maxItems) Toast._items.shift(); // drop oldest past cap
   }
 
-  /** Drop all queued toasts (e.g. on scene swap). */
   static clear() {
     Toast._items = [];
   }
 
-  /** Age + cull the stack and draw it (Draw_75, after Tooltip). */
+  /** age + cull + draw (Draw_75, after Tooltip). */
   static draw() {
     const items = Toast._items;
     if (items.length === 0) return;
 
-    // Age + cull expired (build survivors; no Array mutation mid-iterate).
+    // cull expired; build survivors array to avoid mutation mid-iterate
     const dt = Time.raw;
     const live = [];
     for (let i = 0; i < items.length; i++) {
@@ -91,18 +75,16 @@ globalThis.Toast = class Toast {
     const x = cx - Toast.width * 0.5;
     let baseline = display_get_gui_height() - Toast.marginBottom;
 
-    // Draw newest (last) at the bottom, walking upward.
+    // newest at bottom, older above
     for (let i = live.length - 1; i >= 0; i--) {
       const t = live[i];
       const h =
         string_height_ext(t.text, Toast.sep, textW) + Toast.paddingY * 2;
 
-      // Fade in over the first `fade`, out over the last `fade`.
       const fadeIn = clamp(t.age / Toast.fade, 0, 1);
       const fadeOut = clamp((t.life - t.age) / Toast.fade, 0, 1);
       const a = Math.min(fadeIn, fadeOut);
-      // Rise into place on entry, decelerating (easeOutCubic) so it settles smoothly.
-      const slide = (1 - Tween.easeOutCubic(fadeIn)) * 8;
+      const slide = (1 - Tween.easeOutCubic(fadeIn)) * 8; // easeOutCubic rise on entry
 
       const top = baseline - h + slide;
       const bot = baseline + slide;
@@ -133,7 +115,6 @@ globalThis.Toast = class Toast {
         true,
       );
 
-      // Left accent stripe.
       draw_rectangle_color(
         x,
         top,

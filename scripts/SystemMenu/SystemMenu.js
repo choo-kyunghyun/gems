@@ -1,96 +1,66 @@
-/**
- * SystemMenu — the global, open-anytime "simulator/emulator manager" overlay (standalone
- * static singleton, NOT a UIComponent — same shape as Toast / SlotDrag / UINav). It is the
- * app's one menu: a near-fullscreen, multi-tabbed panel that pauses ALL game + behind-UI
- * logic while open, and lets you drive the running sim (resume / quit), change settings, read
- * About, and inspect debug info. It absorbed both the old SettingsMenu and the old PauseMenu
- * (it now owns the gameplay pause + nav). The dev-only frame-step + restart-scene controls
- * live in the Debug overlay's "Sim" panel (SceneManager.paused / requestStep()), and the live
- * sim readouts (Scene / FPS / Entities) + the time-scale control live in its Perf / Time panels.
- *
- * Pausing is global (any scene, not just gameplay): `obj_game` skips `scene.step()` while
- * `SystemMenu.isOpen()`, and the menu forces `Time.scale = 0` each frame so Time.delta-
- * based animation behind the overlay freezes too (the menu itself runs on Time.raw). The
- * underlying UI is blocked by the UIModal (pointer + nav exclusive).
- *
- * Open triggers: `F1` anywhere and gamepad Start during gameplay open it directly. Esc
- * during gameplay is context-aware — a scene's optional `handleEscape()` hook gets first
- * refusal (close a window / exit build mode) and Esc opens the menu only if the scene
- * didn't consume the press (so F1/Start remain the always-on pause). A scene opts into the
- * gameplay pause/nav by setting `this.gameplay = true`. While closed over a gameplay scene,
- * update() keeps `UINav.suspended = true` so gameplay keys don't drive a stray focus ring.
- *
- * Wiring (obj_game + SceneManager):
- *   Step_0          : SystemMenu.update(this)  (before UINav.update; passes the controller
- *                     so the System tab can read/restart/quit the live scene via game.scenes)
- *   SceneManager.step: scene.step() skipped while `SystemMenu.isOpen()` (the Debug pause path
- *                     + frame-step is gated separately, in SceneManager.step itself)
- *   SceneManager._apply: SystemMenu.reset()    (close + restore Time.scale on every scene swap)
- * The lobby footer also calls open() (Settings → System tab, Credits → About tab).
- */
+// the app's one menu: a near-fullscreen multi-tabbed overlay (standalone static singleton, not
+// UIComponent) that pauses ALL game + behind-UI logic while open. owns the gameplay pause + nav.
+// pause is global: obj_game skips scene.step() while isOpen(), and the menu forces Time.scale=0
+// each frame (menu itself runs on Time.raw). UIModal blocks the underlying UI.
+// open triggers: F1 anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware
+// (scene.handleEscape() gets first refusal). a scene opts into gameplay pause/nav via this.gameplay.
 globalThis.SystemMenu = class SystemMenu {
   static _modal = null; // open UIModal handle, or null
-  static _game = null; // the obj_game controller (its scene lifecycle lives in game.scenes)
-  static _scale = 1; // Time.scale to restore on resume; the System tab "Speed" edits it
+  static _game = null; // the obj_game controller (scene lifecycle in game.scenes)
+  static _scale = 1; // Time.scale to restore on resume
 
-  // Driven every frame from obj_game Step_0 (before UINav.update). Also the integrated
-  // pause: it owns UINav.suspended for gameplay scenes (the former PauseMenu job). A scene
-  // opts in by setting `this.gameplay = true` in create() (a subclass field initializer
-  // wouldn't run — GMRT — so it's set in the method).
-  /** Per-frame pause/open driver. @param {Object} game the obj_game controller (holds game.scenes) */
+  // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
+  // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
+  /** @param {Object} game the obj_game controller (holds game.scenes) */
   static update(game) {
     SystemMenu._game = game;
     const scene = game !== null ? game.scenes.current : null;
 
     if (SystemMenu._modal !== null) {
-      // Open: F1 / gamepad Start toggle it closed (Esc-close is handled by the UIModal).
+      // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
       if (keyboard_check_pressed(vk_f1) || SystemMenu._startPressed()) {
         SystemMenu.close();
       }
-      UINav.suspended = false; // the overlay must stay nav-reachable over any scene
-      Time.scale = 0; // freeze every Time.delta consumer behind the overlay
+      UINav.suspended = false; // overlay must stay nav-reachable over any scene
+      Time.scale = 0; // freeze Time.delta consumers behind the overlay
       Time.delta = 0;
       return;
     }
 
-    // Closed. F1 opens the menu anywhere (even a non-gameplay scene like the lobby).
+    // closed. F1 opens anywhere (even a non-gameplay scene)
     if (keyboard_check_pressed(vk_f1)) {
       SystemMenu.open();
       return;
     }
 
-    // Everything below is gameplay-only. Read scene.gameplay LIVE here, never cached into a
-    // local boolean — GMRT clobbers a cached primitive bool mid-function (a `const` flips
-    // true→false across the following keyboard/handleEscape calls), which silently made every
-    // branch below fail and broke Esc entirely. See the boolean-local clobber GMRT idiom.
+    // gameplay-only below. read scene.gameplay LIVE — never cache into a local bool; GMRT clobbers a
+    // cached primitive bool mid-function, which broke Esc entirely. see the clobber GMRT idiom.
     if (scene === null || scene.gameplay !== true) return;
 
-    // gamepad Start opens the pause menu directly.
+    // gamepad Start opens the pause menu directly
     if (SystemMenu._startPressed()) {
       SystemMenu.open();
       return;
     }
 
-    // Esc during gameplay is context-aware: the scene gets first refusal via an optional
-    // handleEscape() hook (close an open window / exit build mode); Esc opens the menu only
-    // when the scene doesn't consume the press (so F1/Start remain the always-on pause).
+    // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
+    // opens the menu only if unconsumed (so F1/Start stay the always-on pause)
     if (keyboard_check_pressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
-        UINav.suspended = true; // consumed by the scene; menu stays closed
+        UINav.suspended = true; // consumed; menu stays closed
       } else if (game.scenes.depth() > 1) {
-        game.scenes.pop(); // a guest minigame is on top — Esc leaves it, not open the menu
+        game.scenes.pop(); // guest minigame on top — Esc leaves it, not open the menu
       } else {
         SystemMenu.open();
       }
       return;
     }
 
-    // gamepad B = "back": close an open window / exit build via the same handleEscape hook as Esc,
-    // but it never opens the menu (Start/F1 are the pause openers). B is also UINav's cancel, so in
-    // a window it disengages focus AND closes it — coherent. Mirrors the Esc-consumed branch above.
+    // gamepad B = back: same handleEscape hook as Esc but never opens the menu. B is also UINav's
+    // cancel, so in a window it disengages focus AND closes it.
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
-        UINav.suspended = true; // consumed (window closed / build exited)
+        UINav.suspended = true; // consumed
         return;
       }
       if (game.scenes.depth() > 1) {
@@ -99,11 +69,8 @@ globalThis.SystemMenu = class SystemMenu {
       }
     }
 
-    // Gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (so
-    // the left stick moves the player), but un-suspend when a gameplay window is open so the
-    // controller can navigate it. The scene sets this InputContext each step() (one frame stale here
-    // — harmless); InputAction._gamepadMuted keys off the same suspended flag to mute gameplay
-    // gamepad input while the menu is live.
+    // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
+    // stick moves the player), un-suspend when a window is open so the controller can navigate it.
     UINav.suspended = !InputContext.is("window");
   }
 
@@ -111,29 +78,26 @@ globalThis.SystemMenu = class SystemMenu {
     return gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_start);
   }
 
-  /** @returns {boolean} whether the overlay is open. */
+  /** @returns {boolean} */
   static isOpen() {
-    // A METHOD, not a `static get`: on GMRT 0.20 a static getter with a comparison body
-    // (`_modal !== null`) miscompiles to a constant — verified, it returned false while
-    // _modal held a live UIModal (the inline comparison returned true). See CLAUDE.md.
+    // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
     return SystemMenu._modal !== null;
   }
 
-  /** @returns {number} the Time.scale to restore on resume (the System tab "Speed"). */
+  /** @returns {number} Time.scale to restore on resume. */
   static scale() {
     return SystemMenu._scale;
   }
 
-  /** Open the overlay (idempotent), pausing the sim. @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
+  /** open + pause (idempotent). @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
   static open(tabIndex = 0) {
     if (SystemMenu._modal !== null) return;
-    SystemMenu._scale = Time.scale; // remember the live speed to restore on resume
+    SystemMenu._scale = Time.scale; // remember live speed to restore on resume
     Time.scale = 0;
     Time.delta = 0;
 
-    // Near-fullscreen window: the card fills the padded root and the tab host flex-grows
-    // to fill it (grow: true below), so the menu reflows when the GUI is resized (live
-    // uiScale) instead of snapshotting display_get_gui_height() once at open.
+    // flex-grow throughout (not a snapshot of display_get_gui_height()) so the menu reflows on a
+    // live uiScale resize.
     const margin = 28;
 
     const root = new UIElement({
@@ -154,7 +118,7 @@ globalThis.SystemMenu = class SystemMenu {
     });
     root.addComponent(modal);
 
-    // The visible window: a full-height card, capped on ultra-wide displays.
+    // full-height card, capped on ultra-wide displays
     const inner = new UIElement({
       width: "100%",
       maxWidth: 1040,
@@ -179,7 +143,7 @@ globalThis.SystemMenu = class SystemMenu {
       }),
     );
 
-    // Title row: name on the left, a live "Paused" badge on the right.
+    // title row: name left, "Paused" badge right
     const titleRow = new UIElement({
       width: "100%",
       height: 40,
@@ -219,7 +183,7 @@ globalThis.SystemMenu = class SystemMenu {
     );
     card.insertChild(tabsRoot);
 
-    // Footer: a universal Close (Esc / backdrop also close).
+    // footer: a universal Close (Esc / backdrop also close)
     const footer = new UIElement({
       width: "100%",
       height: 44,
@@ -244,14 +208,12 @@ globalThis.SystemMenu = class SystemMenu {
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
   }
 
-  /** Begin closing the overlay (the UIModal animates out, then restores Time.scale via onClose). */
+  /** UIModal animates out, then restores Time.scale via onClose. */
   static close() {
     if (SystemMenu._modal !== null) SystemMenu._modal.close();
   }
 
-  // Cleared on every scene swap from obj_game; defensively closes a still-open modal
-  // (the modal root self-removes via its own onUpdate) and restores the time scale.
-  /** Force-close + restore time scale on a scene swap. */
+  /** force-close + restore time scale on a scene swap. */
   static reset() {
     if (SystemMenu._modal !== null) {
       SystemMenu._modal.close();
@@ -260,10 +222,9 @@ globalThis.SystemMenu = class SystemMenu {
     SystemMenu._modal = null;
   }
 
-  // ── tabs ──────────────────────────────────────────────────────
+  // tabs
 
-  // System controls: Resume + Quit to Lobby. The live sim readouts (Scene / FPS / Entities)
-  // and the time-scale control live in the Debug overlay instead (Perf + Time panels), not here.
+  // System controls: Resume + Quit to Lobby (sim readouts live in the Debug overlay instead)
   static _systemTab() {
     const scroll = gemsScroll({ grow: true });
 
@@ -275,7 +236,7 @@ globalThis.SystemMenu = class SystemMenu {
         primary: true,
       }),
     );
-    // Step Frame + Restart Scene moved to the Debug overlay's "Sim" panel (dev controls).
+    // Step Frame + Restart Scene live in the Debug overlay's "Sim" panel
     bar.insertChild(
       gemsButton(
         I18n.textRef("SYS_QUIT"),
@@ -293,13 +254,12 @@ globalThis.SystemMenu = class SystemMenu {
     return scroll;
   }
 
-  // Settings form (audio / display / UI scale / language) — the former SettingsMenu body.
+  // Settings form: audio / display / UI scale / language
   static _settingsTab() {
     const scroll = gemsScroll({ grow: true });
 
     const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
-    // 0–1 volumes read as a percentage rather than a bare "0.80". `apply` updates the live audio
-    // as the slider drags (gemsSlider writes the Settings value itself; the Save button persists it).
+    // volumes shown as %. `apply` updates live audio as the slider drags; Save persists.
     const volFmt = (v) => string_format(v * 100, 0, 0) + "%";
     const volSlider = (key, apply) =>
       gemsSlider(key, 0, 1, undefined, { format: volFmt, onChange: apply });
@@ -355,7 +315,7 @@ globalThis.SystemMenu = class SystemMenu {
     dispSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_DISP_RESOLUTION"),
-        // A dropdown list rather than a < > cycler — scales as more presets are added.
+        // dropdown not a < > cycler — scales as more presets are added
         gemsDropdownCustom(resItems, resIdx, (_i, res) => {
           Settings.set("resolutionW", res.w);
           Settings.set("resolutionH", res.h);
@@ -378,8 +338,7 @@ globalThis.SystemMenu = class SystemMenu {
         ),
       ),
     );
-    // V-Sync + fullscreen anti-aliasing both go through display_reset (Display.applyVideo),
-    // which also re-imposes the window/fps the reset reverts.
+    // V-Sync + AA go through display_reset (Display.applyVideo), which re-imposes the reset window/fps
     dispSection.insertChild(
       gemsToggle(
         I18n.textRef("SETTINGS_DISP_VSYNC"),
@@ -394,7 +353,7 @@ globalThis.SystemMenu = class SystemMenu {
         },
       ),
     );
-    // Only offer AA levels the GPU reports it can do (Display.aaLevels reads display_aa).
+    // only AA levels the GPU reports it can do
     const aaItems = Display.aaLevels().map((lvl) => ({
       name: lvl === 0 ? I18n.text("SETTINGS_DISP_AA_OFF") : lvl + "x",
       value: lvl,
@@ -413,7 +372,7 @@ globalThis.SystemMenu = class SystemMenu {
     uiSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_UI_SCALE"),
-        // Live: resize the GUI layer + reflow all roots (this menu included) as it moves.
+        // live: resize the GUI layer + reflow all roots (this menu included) as it moves
         gemsSlider("uiScale", 0.5, 2, 0.1, {
           onChange: (v) => UI.applyScale(v),
         }),
@@ -433,8 +392,7 @@ globalThis.SystemMenu = class SystemMenu {
     langSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_LANG_LABEL"),
-        // Switching language reloads I18n and re-adopts the locale's base font, so the
-        // open UI (built from live textRefs) updates in place.
+        // language switch reloads I18n + re-adopts the locale font; live-textRef UI updates in place
         gemsSelectCustom(langItems, langIdx, (_i, value) => {
           Settings.set("language", value);
           I18n.load("i18n/" + value + "/manifest.json");
@@ -444,7 +402,7 @@ globalThis.SystemMenu = class SystemMenu {
     );
     scroll.scrollBody.insertChild(langSection);
 
-    // Settings persist only on explicit Save (Settings.set updates live in memory).
+    // settings persist only on explicit Save (Settings.set updates live in memory)
     const saveRow = new UIElement({
       width: "100%",
       height: 44,
@@ -462,7 +420,7 @@ globalThis.SystemMenu = class SystemMenu {
     return scroll;
   }
 
-  // About / info — static project + engine info (reuses the credits strings).
+  // About — static project + engine info (reuses the credits strings)
   static _aboutTab() {
     const scroll = gemsScroll({ grow: true });
     const card = gemsCard({ gap: GemsTheme.gapSm });
