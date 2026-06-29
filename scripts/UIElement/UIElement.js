@@ -5,11 +5,9 @@
  * @property {function(UIElement): void} onDestroy
  */
 
-// Tree node backed by a flexpanel (GameMaker Flexbox) layout node. Holds child elements + a
-// list of UIComponents (behavior/visuals queried by class via getComponent). Runtime change
-// (scroll, drag, clip) is driven by draw-time offset/clip math through getLayoutPosition — NOT
-// live flexpanel style mutation — so a scrolled/dragged subtree moves at both draw and hit-test
-// time without a reflow. See CLAUDE.md for the flexpanel-mutation idiom.
+// flexpanel-backed tree node. Runtime scroll/drag/clip uses draw-time offset math through
+// getLayoutPosition — not live style mutation — so movement applies at both draw and hit-test
+// without a reflow. See CLAUDE.md for the flexpanel-mutation idiom.
 globalThis.UIElement = class UIElement {
   /** @param {Object} [style] flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
@@ -23,22 +21,16 @@ globalThis.UIElement = class UIElement {
     /** @type {UIComponent[]} */
     this.components = [];
     this.dirty = true;
-    // Clip container: when true, children are clipped to this element's rect via an
-    // off-screen surface (see draw()). `scrollY` shifts this element's whole subtree
-    // up at draw + hit-test time (applied in getLayoutPosition); `clipInsetRight`
-    // reserves a right gutter (e.g. for a scrollbar) that stays outside the clip.
+    // clip: children scissored to this rect. scrollY shifts descendants (not self) at draw+hit-test.
+    // clipInsetRight reserves a right gutter (e.g. scrollbar) outside the clip.
     this.clip = false;
     this.scrollY = 0;
     this.clipInsetRight = 0;
-    // Drag offset (UIDrag / draggable windows). Unlike scrollY (which offsets only a
-    // container's descendants), dragX/dragY offset THIS element AND its subtree, so a
-    // window moves bodily when its title bar is dragged. Applied in getLayoutPosition —
-    // never via flexpanel mutation (unreliable on GMRT 0.19, bug #15065).
+    // dragX/Y offsets THIS element + subtree (vs scrollY which offsets only descendants).
+    // Applied in getLayoutPosition — not via flexpanel mutation (bug #15065).
     this.dragX = 0;
     this.dragY = 0;
-    // Set in destroy(); guards the post-update refresh / draw so an element torn
-    // down mid-traversal (e.g. a modal closing itself on a button click) doesn't
-    // touch its already-deleted flexpanel node.
+    // set in destroy(); guards against touching a deleted flexpanel node mid-traversal.
     this._destroyed = false;
   }
 
@@ -81,7 +73,7 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  /** Tear down this element + its subtree (components' onDestroy, child elements, flexpanel node). Idempotent. */
+  /** tear down subtree + components + flexpanel node. idempotent. */
   destroy() {
     if (this._destroyed) return; // idempotent — close() may fire more than once
     this._destroyed = true;
@@ -96,16 +88,12 @@ globalThis.UIElement = class UIElement {
   }
 
   /**
-   * Update this element's subtree then its own components. `block` is true when an
-   * earlier-traversed (higher) element already captured the pointer this frame; the return
-   * value propagates that capture upward.
+   * update subtree then own components. `block` = pointer already captured upstream.
    * @param {boolean} block @returns {boolean} whether the pointer is now captured
    */
   update(block) {
     if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
-    // A clip container hides its subtree outside its own rect, so the pointer must
-    // be inside the viewport for children to receive input — otherwise a scrolled-
-    // away (invisible) child would still be clickable.
+    // clip: pointer must be inside the viewport or scrolled-away children stay clickable.
     let childBlock = block;
     let insideClip = true;
     if (this.clip) {
@@ -117,11 +105,9 @@ globalThis.UIElement = class UIElement {
     [...this.children].reverse().forEach((child) => {
       if (child.enabled) childBlock = child.update(childBlock) || childBlock;
     });
-    // A descendant's onUpdate (e.g. a modal button calling close()) may have
-    // destroyed this element mid-traversal — stop before touching the deleted node.
+    // a descendant's onUpdate may destroy this element mid-traversal — stop early.
     if (this._destroyed) return block;
-    // Children outside the viewport didn't legitimately capture the pointer, so
-    // don't report their (forced) block upward.
+    // don't propagate the forced block from out-of-viewport children.
     let result = this.clip && !insideClip ? block : childBlock;
     for (const component of this.components) {
       if (component.onUpdate) {
@@ -133,10 +119,10 @@ globalThis.UIElement = class UIElement {
     return result;
   }
 
-  /** Draw this element's components then its children (clipped to a surface when `clip` is set). */
+  /** draw components then children; children are scissored when `clip` is set. */
   draw() {
     if (this._destroyed) return;
-    // Components (panel background, scrollbar) draw unclipped in the element's space.
+    // components (panel bg, scrollbar) draw unclipped.
     for (const component of this.components) {
       if (component.onDraw) component.onDraw(this);
     }
@@ -149,30 +135,20 @@ globalThis.UIElement = class UIElement {
     }
   }
 
-  // Clip children to this element's rect (minus any scrollbar gutter) with the GPU scissor: a
-  // rasterizer-level rectangle on the render target, so children draw DIRECTLY to the back buffer
-  // at full window density — crisp SDF text, correct blending, and zero surface memory (no off-
-  // screen surface, no resolution cap, no premultiplied-alpha dance). Verified on GMRT 0.20 (see
-  // the gpu_set_scissor GMRT-Safe Idiom): it clips, save/restore via gpu_get/set_scissor does NOT
-  // leak, and it doesn't crash — the old "scissor leaks globally" caveat was a 0.19-era discipline
-  // issue, not a runtime defect. Two things to respect: scissor coords are render-target (window)
-  // PIXELS, not GUI units, and the GUI layer is scaled to the window, so convert by k = window/gui;
-  // and intersect with the CURRENT scissor so a clip nested in another clip (a gemsScroll within a
-  // gemsScroll) is bounded by BOTH — which also retires the old double-nested-text bug, since with
-  // no nested surfaces there is no world matrix to lose.
+  // gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
+  // no off-screen surface. Verified on GMRT 0.20 (see gpu_set_scissor GMRT-Safe Idiom): save/restore
+  // does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
+  // Intersect with the current scissor so nested clips (gemsScroll within gemsScroll) both apply.
   _drawClipped() {
     const pos = this.getLayoutPosition();
     const w = Math.ceil(pos.width - this.clipInsetRight);
     const h = Math.ceil(pos.height);
     if (!(w > 0) || !(h > 0)) return; // unlaid-out (NaN) or zero-size
 
-    // Scissor coords are physical render-target PIXELS, while UI lays out in design-resolution GUI
-    // units (display_get_gui_*) that the runtime stretches to fill the target — so convert GUI →
-    // target by k = target/gui. The GUI render target is the WINDOW back buffer. Size it via
-    // Display.clipW/H (the crash-safe min of the intended size and the OS-reported size), NOT a raw
-    // window/surface query: on a resolution-change frame those lag the back buffer, so a scissor
-    // built from the OLD (bigger) size overflows the shrunk target → a fatal "scissor not contained
-    // in the render target" validation error. clipW/H never exceeds the live back buffer (see there).
+    // GUI lays out in design-resolution units; scissor needs render-target PIXELS (k = target/gui).
+    // Use Display.clipW/H — NOT raw window/surface queries: those lag the back buffer on a resize
+    // frame, so the old (bigger) size overflows a shrunk target → fatal "scissor not contained" error.
+    // clipW/H is always ≤ the live back buffer (see Display).
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
     const tw = Display.clipW();
@@ -180,8 +156,7 @@ globalThis.UIElement = class UIElement {
     const kx = gw > 0 ? tw / gw : 1;
     const ky = gh > 0 ? th / gh : 1;
 
-    // This element's clip rect in render-target pixels, clamped to the target — an off-canvas widget
-    // (or a stale size on a transition frame) must never yield a rect larger than the target.
+    // clip rect in target pixels, clamped so an off-canvas or stale rect never exceeds the target.
     let x1 = Math.floor(pos.left) * kx;
     let y1 = Math.floor(pos.top) * ky;
     let x2 = x1 + w * kx;
@@ -191,9 +166,8 @@ globalThis.UIElement = class UIElement {
     if (x2 > tw) x2 = tw;
     if (y2 > th) y2 = th;
 
-    // Intersect with the CURRENT scissor so a clip nested in another clip is bounded by both.
-    // gpu_get_scissor() reports {0,0,0,0} when no scissor is set (the full-target default, NOT the
-    // target dims) — so only clamp when prev is a real positive sub-rect.
+    // intersect with any parent clip. gpu_get_scissor() returns {0,0,0,0} (not target dims) when
+    // unset — only intersect when prev is a real positive sub-rect.
     const prev = gpu_get_scissor();
     const nested = prev.w > 0 && prev.h > 0;
     if (nested) {
@@ -207,21 +181,14 @@ globalThis.UIElement = class UIElement {
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
-    // Flush the pending vertex batch while the clip scissor is still active. GMRT's
-    // gpu_set_scissor does NOT flush the batch, so the LAST geometry drawn under a clip
-    // (typically a text run — buttons alternate panel-texture → font-texture, so every
-    // item but the last is flushed mid-loop by the next item's texture swap) stays pending
-    // and is only submitted by a LATER texture swap (the next sibling/root), by which time
-    // the scissor below has been restored to the full target — so that last item renders
-    // UNCLIPPED at its true layout position (the long-list scroll leaked its 12th item far
-    // below the viewport). draw_flush is debug-flagged in the manual, but it's the only
-    // batch-flush primitive and this runs once per clip container per frame (a handful), not
-    // indiscriminately. Must precede the scissor restore so the flush clips to THIS rect.
+    // GMRT's gpu_set_scissor does NOT flush the vertex batch, so the last item under the clip
+    // (a text run) stays pending and is only submitted by a later texture swap — by then the
+    // scissor is restored to the full target and the item renders unclipped (scrolled-list bleed).
+    // draw_flush is debug-flagged but is the only batch-flush primitive; runs once per clip per frame.
+    // Must precede the scissor restore so the flush is still inside this clip rect.
     draw_flush();
-    // Restore. Replaying the saved {0,0,0,0} (the unset sentinel) does NOT re-enable full drawing
-    // on GMRT — it clips everything drawn AFTER this to an empty rect (footers, dropdown popups,
-    // later roots all vanish). So at top level reset to the full render target explicitly; only a
-    // genuinely nested clip restores its parent's (positive) rect.
+    // replaying {0,0,0,0} (the unset sentinel) does NOT restore full drawing on GMRT — it clips
+    // everything after to an empty rect. at top level, reset to the full target explicitly.
     if (nested) gpu_set_scissor(prev);
     else gpu_set_scissor(0, 0, tw, th);
   }
@@ -240,7 +207,7 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  /** Detach `element` from this node. @param {UIElement} element @returns {UIElement} the removed element */
+  /** @param {UIElement} element @returns {UIElement} the removed element */
   removeChild(element) {
     const index = this.children.indexOf(element);
     if (index > -1) {
@@ -252,7 +219,7 @@ globalThis.UIElement = class UIElement {
     return element;
   }
 
-  /** Flag the whole tree dirty (walks to the root) so the next update() recomputes layout. */
+  /** walk to root and flag dirty so the next update() recomputes layout. */
   markDirty() {
     let root = this;
     while (root.parent !== null) {
@@ -261,7 +228,7 @@ globalThis.UIElement = class UIElement {
     root.dirty = true;
   }
 
-  /** Recompute flexbox layout from the root (a no-op on non-root nodes); clears the dirty flag. */
+  /** recompute flex layout from root; no-op on non-root nodes. */
   refresh() {
     if (!this.parent) {
       const w = display_get_gui_width();
@@ -272,19 +239,15 @@ globalThis.UIElement = class UIElement {
   }
 
   /**
-   * The flexbox-computed rect, adjusted by this element's drag offset and every ancestor's
-   * scroll/drag — the single chokepoint that makes scroll/drag apply at draw AND hit-test time.
+   * flex-computed rect + own drag + all ancestor scroll/drag — single chokepoint for draw+hit-test.
    * @returns {{left:number, top:number, width:number, height:number}}
    */
   getLayoutPosition() {
     const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
-    // This element's own drag offset moves itself + its whole subtree.
+    // own drag offset moves this element and its subtree.
     if (this.dragX) pos.left += this.dragX;
     if (this.dragY) pos.top += this.dragY;
-    // Apply the accumulated scroll/drag of ancestors so a scroll container shifts its
-    // whole subtree at draw AND hit-test time through this single chokepoint (no
-    // flex mutation). A container's own scrollY offsets its descendants, not itself;
-    // a dragged ancestor (e.g. an enclosing window) carries this element along too.
+    // accumulate ancestor scroll/drag so this chokepoint applies them without flex mutation.
     let p = this.parent;
     while (p !== null) {
       if (p.scrollY) pos.top -= p.scrollY;
@@ -295,7 +258,7 @@ globalThis.UIElement = class UIElement {
     return pos;
   }
 
-  /** @param {number} x @param {number} y @returns {boolean} whether the GUI point is inside this element's rect */
+  /** @param {number} x @param {number} y @returns {boolean} */
   positionMeeting(x, y) {
     const pos = this.getLayoutPosition();
     return point_in_rectangle(
@@ -322,13 +285,9 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  // The style setters below stay commented even on GMRT 0.20 (where live flexpanel
-  // mutation now works again — setWidth/setHeight above are the proof). Two reasons:
-  // the whole UI kit drives runtime change through draw-time offset/clip math + dirty
-  // structural reflow (not live style mutation), so nothing calls them; and the full
-  // set is ~45 methods — uncommenting it would push this class past the 50-method
-  // ceiling (#15065, STILL live on 0.20) and crash. Enable an individual setter on
-  // demand if a consumer needs one, watching the count.
+  // these setters stay commented: nothing calls them (kit uses draw-time offset math),
+  // and enabling all ~45 would breach the 50-method ceiling (#15065, still live on 0.20).
+  // enable individual ones on demand, watching the count.
 
   // setMinWidth(value, unit) {
   //   flexpanel_node_style_set_min_width(this.flexpanel, value, unit);
@@ -469,12 +428,12 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  /** @returns {{value:number, unit:number}} the style width (not the computed layout width) */
+  /** @returns {{value:number, unit:number}} style width (not computed layout width) */
   getWidth() {
     return flexpanel_node_style_get_width(this.flexpanel);
   }
 
-  /** @returns {{value:number, unit:number}} the style height (not the computed layout height) */
+  /** @returns {{value:number, unit:number}} style height (not computed layout height) */
   getHeight() {
     return flexpanel_node_style_get_height(this.flexpanel);
   }

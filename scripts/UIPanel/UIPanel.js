@@ -1,6 +1,6 @@
-// Rounded-rect background for a UIElement (the base visual under most widgets): radial fill,
-// optional soft shadow, border, and inner top-bevel sheen — all faked with stacked
-// draw_roundrect passes. Colors are live fields so UIButton can swap them per frame.
+// rounded-rect background (base visual under most widgets): radial fill + optional shadow/border/
+// bevel, all faked with stacked draw_roundrect passes. colors are live fields so UIButton can swap
+// them per frame.
 /**
  * @typedef {Object} UIPanelOpts
  * @property {number} [color] fill color @property {number} [color2] edge tint (center→edge radial)
@@ -14,23 +14,18 @@ globalThis.UIPanel = class UIPanel {
   /** @param {UIPanelOpts} [panel] */
   constructor(panel = {}) {
     this.color = panel.color ?? c_white;
-    // Optional edge color. draw_roundrect's two colors run center→edge (radial,
-    // not top→bottom), so this reads as a subtle vignette/rim. Unset → solid fill
-    // from the live `color` (so UIButton's per-frame color swap still works).
+    // edge color: draw_roundrect's two colors run center→edge (radial), reading as a rim/vignette.
+    // unset → solid fill from live `color` (keeps UIButton's per-frame swap working).
     this.color2 = panel.color2;
     this.alpha = panel.alpha ?? 1;
     this.rad = panel.rad ?? 0;
-    // Outline drawn on top of the fill (thickness in px; 0 = none).
-    this.border = panel.border ?? 0;
+    this.border = panel.border ?? 0; // outline thickness px; 0 = none
     this.borderColor = panel.borderColor ?? c_white;
-    // Soft drop shadow: `shadow` is the blur spread in px (0 = none). Faked with a
-    // few expanding, fading roundrects so it reads as a soft penumbra, not a hard
-    // offset copy.
+    // soft drop shadow: blur spread px (0 = none); faked with expanding fading roundrects.
     this.shadow = panel.shadow ?? 0;
     this.shadowColor = panel.shadowColor ?? c_black;
     this.shadowAlpha = panel.shadowAlpha ?? 0.35;
-    // Inner top bevel: a thin light strip just inside the top edge that fakes a
-    // light-from-above sheen (`highlight` = strip thickness in px; 0 = none).
+    // inner top bevel: a thin light strip faking a light-from-above sheen; strip thickness px.
     this.highlight = panel.highlight ?? 0;
     this.highlightColor = panel.highlightColor ?? c_white;
     this.highlightAlpha = panel.highlightAlpha ?? 0.06;
@@ -45,8 +40,7 @@ globalThis.UIPanel = class UIPanel {
     const y2 = pos.top + pos.height;
     const alpha = draw_get_alpha();
 
-    // Soft shadow — stack translucent roundrects, each expanding outward and
-    // nudged down, so the overlap is densest at the panel edge and feathers out.
+    // stack translucent roundrects, each grown + nudged down, so overlap is densest at the edge.
     if (this.shadow > 0) {
       const layers = 4;
       const drop = this.shadow * 0.35;
@@ -81,7 +75,7 @@ globalThis.UIPanel = class UIPanel {
       false,
     );
 
-    // Inner top bevel — a horizontal sheen strip between the rounded corners.
+    // inner top bevel — a horizontal sheen strip between the rounded corners.
     if (this.highlight > 0) {
       draw_set_alpha(this.highlightAlpha * this.alpha);
       draw_rectangle_color(

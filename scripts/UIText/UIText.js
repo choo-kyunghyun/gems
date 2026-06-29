@@ -1,7 +1,5 @@
-// Text label component. `textRef` is a () => string (live I18n.textRef), re-measured only when
-// the string changes; onUpdate self-sizes the host element to the measured text via
-// setWidth/setHeight (flexpanel mutation, OK on 0.20). Draws from pos.left/top + its own
-// measured advances, so it needs no pos.width NaN guard.
+// text label. re-measures only on string or font change; self-sizes via setWidth/setHeight.
+// draws from pos.left/top so no pos.width NaN guard needed.
 /**
  * @typedef {Object} UITextOpts
  * @property {() => string} [textRef] @property {number} [halign] fa_* @property {number} [color] @property {number} [alpha]
@@ -22,16 +20,14 @@ globalThis.UIText = class UIText {
     this.alpha = text.alpha ?? 1;
     this.sep = text.sep ?? -1;
     this.w = text.w ?? -1;
-    // A handle (number, -1 = current) OR an I18n font KEY (string), resolved live in _font(). A KEY
-    // is NOT pre-resolved to a handle: I18n.load (a language switch) font_delete()s every old handle
-    // and font_add()s new ones, so a handle captured at construction dangles after a switch (renders
-    // the GM default fallback, or nothing). See the "resolve I18n.font(key) at DRAW time" idiom.
+    // number handle OR I18n font key (string). must NOT be pre-resolved: I18n.load deletes old
+    // handles on a locale switch, so a cached handle dangles. see "resolve I18n.font at draw time".
     this.font = text.font ?? -1;
     this.cache = "";
-    this.cacheFont = -1; // the resolved handle the cache was measured with (re-measure if it changes)
+    this.cacheFont = -1; // resolved handle used for cached measure; re-measure if it changes
   }
 
-  /** Live font handle: re-resolve an I18n key each call so it survives a locale reload. @returns {number} */
+  /** re-resolve each call so it survives a locale reload. @returns {number} */
   _font() {
     return typeof this.font === "string" ? I18n.font(this.font) : this.font;
   }
@@ -44,8 +40,7 @@ globalThis.UIText = class UIText {
   onUpdate(element, block) {
     const str = this.textRef();
     const fnt = this._font();
-    // Re-measure on a string OR font change — a language switch swaps both (new locale string + a
-    // new font handle for the same key), and the new font may have different metrics.
+    // re-measure on string OR font change — a locale switch swaps both and may change metrics.
     if (this.cache !== str || this.cacheFont !== fnt) {
       this.cache = str;
       this.cacheFont = fnt;
@@ -86,9 +81,8 @@ globalThis.UIText = class UIText {
     if (this.halign === fa_center) x += pos.width / 2;
     else if (this.halign === fa_right) x += pos.width;
 
-    // Snap the anchor to integer GUI pixels so SDF glyph stems land on the pixel grid.
-    // A sub-pixel left/top from fractional flex layout softens small text — worst when
-    // nested in a flex-grow host (tabs/scroll), which starts at a fractional origin.
+    // snap to integer GUI pixels so SDF glyph stems land on the pixel grid — a sub-pixel
+    // origin from fractional flex layout softens small text.
     x = floor(x);
     y = floor(y);
 

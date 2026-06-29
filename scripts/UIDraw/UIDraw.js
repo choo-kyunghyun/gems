@@ -1,15 +1,9 @@
-// Shared immediate-mode draw primitives for the Core UI widgets — the small
-// arrow/chevron and checkmark affordances several components render the same way.
-// Kept out of the generic Utils grab-bag since they're UI-specific; consumed by
-// UISelect/UIStepper/UIDropdown/UITable/UIAccordion + Dialogue (arrow) and
-// UICheckbox/UIQuestTracker (check). (GemsUI builds these widgets, so it depends
-// on Core — these live in Core so that arrow stays pointing the right way.)
+// shared UI arrow/check draw primitives so every chevron/step/sort/tick affordance matches.
+// in Core (not Utils) since GemsUI's widgets depend on Core.
 
 /**
- * Small filled triangle "arrow" affordance pointing `dir`, centered at (cx, cy)
- * with half-size `h`, so every chevron/step/sort affordance matches. Uses
- * draw_triangle_color (renders on GMRT 0.20; was a no-op on 0.19, when these were
- * "<"/">"/"v"/"^" text glyphs).
+ * filled triangle pointing `dir`, centered at (cx, cy), half-size `h`. draw_triangle_color
+ * (renders on GMRT 0.20).
  * @param {number} cx @param {number} cy
  * @param {"left"|"right"|"up"|"down"} dir @param {number} h half-size @param {number} col
  */
@@ -27,9 +21,8 @@ globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
 };
 
 /**
- * A checkmark (two width-lines) centered at (cx, cy), scaled by `s`. Shared by
- * UICheckbox (tick) and UIQuestTracker (objective-met marker). draw_line_width_color
- * renders on GMRT 0.20 (was a no-op on 0.19).
+ * checkmark (two width-lines) centered at (cx, cy), scaled by `s`. draw_line_width_color
+ * (renders on GMRT 0.20).
  * @param {number} cx @param {number} cy @param {number} s scale @param {number} col @param {number} [w] stroke width override
  */
 globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
