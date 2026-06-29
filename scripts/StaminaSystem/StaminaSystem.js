@@ -1,17 +1,12 @@
-// On-demand sprint resource: drains Stamina while sprinting, regenerates it otherwise. Driven
-// once per tick by the mover (RpgController.update) — a plain system object with a named method
-// (the project's System pattern, like EncumbranceSystem), not auto-run by World. Only entities
-// carrying a Stamina component participate; Stats.maxStamina caps the pool.
+// drains Stamina while sprinting, regenerates otherwise. driven once per tick by RpgController.update
+// (named-method system, not auto-run by World). Stats.maxStamina caps the pool.
 globalThis.StaminaSystem = {
   DRAIN: 34, // stamina/sec spent while sprinting (~3s from full)
   REGEN: 22, // stamina/sec recovered while not sprinting (~4.5s to full)
   RECOVER: 0.3, // when emptied, sprint unlocks once stamina refills to this fraction of max
 
-  // Advance one tick. `wantSprint` is the player's intent (sprint key held + moving); the
-  // stamina/exhaustion gate is decided here. Mutates the Stamina component and returns true
-  // when actually sprinting this tick, so the mover applies the speed boost. Drains toward 0
-  // while sprinting, regenerates toward max otherwise. Reads the component fields live each use
-  // (no cached boolean — see the GMRT boolean-local clobber note in CLAUDE.md).
+  // `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
+  // reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
   sprint(world, id, wantSprint) {
     const sta = world.get(Stamina, id);
     if (sta === undefined) return false;

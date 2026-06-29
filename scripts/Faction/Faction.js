@@ -1,10 +1,4 @@
-// Faction membership for the RPG. A string-token component (like Health/Light) marking which
-// faction an entity belongs to (player party, monsters, …). The roster of factions and HOW they
-// relate (ally / neutral / hostile) lives in FactionSystem; this component only stores the id.
-// AI and combat decide who fights whom by RELATION (FactionSystem.isHostile / nearestHostile /
-// isAlly), never by a hardcoded entity id — so a enemy aggros any hostile combatant in range and
-// the player's swing skips its own allies.
-//
+// faction membership. relations (ally/neutral/hostile) live in FactionSystem; this only stores the id.
 // usage: world.add(id, Faction, { id: "monster" })
 /**
  * @typedef {Object} Faction

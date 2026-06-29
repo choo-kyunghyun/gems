@@ -1,10 +1,6 @@
 /**
- * Animator-state debug overlay: draws each entity's current `Animator.state` as a
- * yellow text label below its box, so the sprite state machine is legible at a
- * glance. Replaces the old box "pulse" that `RenderDebugBox` did — a label names
- * the exact state (idle/walk/attack/…), which is the more informative debug cue.
- * Reads `Animator` + `Position` + `BBox`; insert it *after* the box pass. Position
- * interpolates via `InterpolationSystem.lerp`.
+ * Debug overlay: each entity's current Animator.state as a yellow label below its box.
+ * Insert after the box pass; position interpolates via InterpolationSystem.lerp.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugAnimator = class RenderDebugAnimator {

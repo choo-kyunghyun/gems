@@ -1,7 +1,4 @@
-// Point-light component for the 2D light-map renderer (RenderLighting). Attach to any
-// entity with Position and it casts a soft radial light (the player's lantern, a torch,
-// a glowing drop, a lit window). A string-token component like the rest of the ECS.
-//
+// Point-light component for RenderLighting. On any entity with Position, casts a soft radial light.
 // usage: world.add(id, Light, { radius: 170, color: make_colour_rgb(255,230,176), intensity: 0.85 })
 /**
  * @typedef {Object} Light

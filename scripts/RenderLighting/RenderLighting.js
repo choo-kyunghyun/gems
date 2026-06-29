@@ -1,47 +1,29 @@
-// World-space 2D LIGHT-MAP pass — the RPG's lighting + day/night in one. It generalizes a plain
-// flat day/night tint: instead of a uniform darkness rectangle, it builds a per-frame
-// light map (an off-screen surface) and composites it over the world MULTIPLICATIVELY, so the
-// day/night cycle is just "the ambient term with no lights" and point lights punch bright holes
-// in the night.
+// 2D light-map pass — RPG lighting + day/night in one. Builds a per-frame off-screen light map and
+// composites it over the world MULTIPLICATIVELY, so day/night is "ambient with no lights" and point
+// lights punch bright holes in the night.
+//   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → scene * ambient
+//   2. light blobs  — each Light adds a soft radial glow with bm_add (overlaps sum)
+//   2b. vignette    — multiply corners down so night frames in at the edges (off in daylight)
+//   3. composite    — draw the light map over the world with multiply (final = scene * light)
 //
-//   1. ambient fill   — the surface is cleared to the injected ambient provider (WorldClock.tint in
-//                        the demo) mapped to the multiply model
-//                        (white in full daylight → night hue when dark), so unlit areas read as
-//                        scene * ambient.
-//   2. light blobs     — every Light + Position entity adds a soft radial glow with bm_add
-//                        (draw_circle_color: hue center → black edge), so overlapping lights sum.
-//   2b. vignette       — multiply the light map's corners down with a radial, so the night frames
-//                        in toward the screen edges; scaled by the cycle (off in daylight).
-//   3. composite       — the light map is drawn over the world with multiply
-//                        (gpu_set_blendmode_ext(bm_dest_colour, bm_zero) → final = scene * light).
+// Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
+// (zero surface work). Surfaces + bm_add + multiply probe-verified on GMRT 0.20. NO shadows — falloff only.
 //
-// The model is self-balancing: in full daylight the ambient is white, so additive lights clamp
-// against 255 and the multiply is a no-op (no daytime halos) — so we early-out then and do zero
-// surface work, exactly the alpha-0 daylight skip a flat day/night tint would take. Surfaces + bm_add + multiply are all
-// probe-verified on GMRT 0.20 (see CLAUDE.md / memory). NO shadows yet — falloff only.
-//
-// Inserted LAST in the RPG renderer (over tiles + entities + weather); the scene draws its bright
-// cues (station highlight, build cursor, floating numbers, muzzle flash) AFTER the renderer so
-// they stay bright above the tint. View rect from the held Camera's OWN fields (toX/toY/width/
-// height), NOT camera_get_view_* — the matrix-driven Camera returns 0 there (see CLAUDE.md). The
-// scene assigns pass.camera after building the camera, like RenderWeather.
-//
+// Inserted LAST in the RPG renderer; the scene draws its bright cues AFTER so they stay above the tint.
+// View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0; see CLAUDE.md).
 // @implements {RenderPass}
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
-    // Ambient day/night term as an INJECTED provider — () => { color, alpha } — so this Gameplay-kit
-    // pass carries no day/night opinion (the demo wires WorldClock.tint). Default is full daylight
-    // (alpha 0), which early-outs below, so a plain consumer that wants darkness supplies its own.
+    // INJECTED ambient provider () => { color, alpha } — keeps this Gameplay-kit pass day/night-agnostic
+    // (demo wires WorldClock.tint). Default full daylight (alpha 0) early-outs below.
     this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));
-    // The multiply model needs a stronger darkening than the old lerp-overlay used, so scale the
-    // cycle's overlay alpha. Higher = darker nights. Clamped to 1 (never a fully black ambient).
+    // scales the cycle's overlay alpha; higher = darker nights. clamped to 1 (never fully black).
     this.darkness = opt.darkness ?? 1.5;
-    // Corner-darkening fraction at full night (multiplied into the light map; scaled by the cycle
-    // so it fades in at dusk and is gone in daylight). Subtle by default; 0 disables.
+    // corner-darkening fraction at full night, scaled by the cycle. 0 disables.
     this.vignette = opt.vignette ?? 0.25;
-    this._surf = -1; // light-map surface, (re)created lazily at the view size (surface_exists(-1) is false)
+    this._surf = -1; // light-map surface, (re)created lazily (surface_exists(-1) is false)
   }
 
   destroy() {
@@ -51,25 +33,20 @@ globalThis.RenderLighting = class RenderLighting {
   draw(world) {
     if (this.camera === undefined) return;
 
-    // Ambient from the injected provider (WorldClock.tint in the demo), mapped to the multiply
-    // model. k=0 → white (daylight); k→1 → the night hue. In full daylight the ambient is white and
-    // lights would clamp to white, so the composite can't change anything — skip all surface work
-    // (and lights stay invisible, which is correct: an outdoor cycle, not a dungeon torch).
+    // ambient → multiply model. k=0 → white (daylight): composite is a no-op, so skip all surface
+    // work (lights stay invisible, correct for an outdoor cycle vs a dungeon torch).
     const tint = this.ambient();
     const k = Math.min(1, tint.alpha * this.darkness);
     if (k <= 0) return;
     const ambient = Color.merge(c_white, tint.color, k);
 
-    // The light map is a SCREEN-space overlay (surface = application-surface size, composited 1:1
-    // over the screen), so it works under a pitched 2.5D camera: light blobs are PROJECTED to
-    // surface pixels via camera.project (a world-rect surface would otherwise land as a
-    // foreshortened ground quad). Equivalent to the old flat math when pitch = 0.
+    // SCREEN-space overlay (surface = application-surface size) so it survives a pitched 2.5D camera:
+    // blobs are PROJECTED to surface px via camera.project (a world-rect surface would foreshorten).
     const w = Math.floor(surface_get_width(application_surface));
     const h = Math.floor(surface_get_height(application_surface));
     if (!(w > 0) || !(h > 0)) return;
 
-    // (Re)create the surface when missing (surfaces are volatile — lost on resize/focus) or when
-    // the surface size changed (e.g. the uiScale/resolution Setting applied live).
+    // (re)create when missing (surfaces are volatile — lost on resize/focus) or size changed
     if (
       !surface_exists(this._surf) ||
       surface_get_width(this._surf) !== w ||
@@ -99,22 +76,19 @@ globalThis.RenderLighting = class RenderLighting {
       const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
       const s = this.camera.project(wx, wy, 0);
       let intensity = lt.intensity ?? 1;
-      // Optional flicker — a cheap wall-clock sine per light (trig works on GMRT 0.20). Offset by
-      // id so torches don't pulse in lockstep. Uses current_time (a clock, not Time.raw's delta).
+      // flicker: wall-clock sine per light (trig works on GMRT 0.20), id-offset so torches don't sync.
       if (lt.flicker)
         intensity *=
           1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
       draw_set_alpha(intensity);
-      // Soft radial light: hue at the center fading to black at `radius`; bm_add sums overlaps.
+      // hue center → black at radius; bm_add sums overlaps
       draw_circle_color(s.x, s.y, lt.radius * zx, lt.color, c_black, false);
       i++;
     }
     gpu_set_blendmode(bm_normal);
 
-    // 2b. Vignette — multiply the light map down toward the corners so the night frames in at the
-    // screen edges. Multiplicative (bm_dest_colour, bm_zero), like the composite below, so it
-    // DEEPENS the scene colors rather than alpha-blending a flat-black wash. Scaled by k. A
-    // white-center → dark-edge radial reaching the corners (radius = half-diagonal).
+    // 2b. Vignette — multiplicative (bm_dest_colour, bm_zero), like the composite, so it DEEPENS
+    // scene colors rather than alpha-blending a flat-black wash. white-center → dark-edge radial.
     if (this.vignette > 0) {
       const cx = w / 2;
       const cy = h / 2;
@@ -133,9 +107,8 @@ globalThis.RenderLighting = class RenderLighting {
 
     surface_reset_target();
 
-    // 3. Composite over the world, multiplicatively (final = scene * light). No bm_multiply
-    //    constant exists — it's src×dest via blendmode_ext. SCREEN-space: reset view/projection to
-    //    a surface-pixel ortho so the surface covers the screen at any camera pitch, then restore.
+    // 3. Composite multiplicatively (final = scene * light). NO bm_multiply constant — src×dest via
+    //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
     matrix_set(
@@ -143,9 +116,8 @@ globalThis.RenderLighting = class RenderLighting {
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
     );
     matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
-    // Disable the depth TEST: the entities wrote depth in the WORLD projection (a near depth), so
-    // with the test on this screen-space composite is REJECTED over every opaque entity pixel —
-    // sprites would skip the night/light multiply (stay full-bright). Restore the default (on) after.
+    // disable depth TEST: entities wrote depth in the world projection, so with the test on this
+    // screen-space composite is REJECTED over every opaque entity pixel (sprites stay full-bright).
     gpu_set_ztestenable(false);
     gpu_set_blendmode_ext(bm_dest_colour, bm_zero);
     draw_set_alpha(1);

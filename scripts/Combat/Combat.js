@@ -1,31 +1,13 @@
-// Shared damage APPLICATION for the combat kit — the one place an incoming hit is mitigated and
-// subtracted from a target's Health, so every path lands damage identically: player melee
-// (MeleeSystem), player + turret ranged (ProjectileSystem), and monster melee (CombatAI).
-//
-// The kit stays STAT-AGNOSTIC: the mitigation is an INJECTED hook. `Combat.mitigate(world, targetId,
-// amount, penetration) -> finalAmount` defaults to identity (raw subtract — a genre with no defense
-// stat); a game overrides it with its own formula. The RPG sets it to
-// `max(1, amount - max(0, defense - penetration))` in sceneRpg.create, so defense applies on every
-// path and a round's armor penetration bites it. (Same injection pattern as RenderLighting's
-// `ambient` — the kit carries the mechanism, the demo carries the stat model.) The ATTACK side
-// (weapon base + attacker.Stats.attack) is composed by the Demo callers, since it reads the RPG's
-// Stats sheet — see RpgController and CombatAI. `penetration` defaults 0 (melee swings + turrets pass
-// nothing); only the player's ammo-driven guns supply it.
-//
-// Only SUBTRACTS hp — the reaction at <= 0 hp is the Mortal death pass (RpgScene.resolveHealth), so
-// melee/ranged/monster kills all share one configurable path.
+// Single damage applier for all paths (melee, hitscan, projectile). Kit stays stat-agnostic via
+// the injected `mitigate` hook; the RPG wires its defense formula in sceneRpg.create. Only
+// subtracts hp — the reaction at <=0 hp is decided centrally by the Mortal death pass.
 globalThis.Combat = {
-  // Injected per-target mitigation: incoming `amount` -> hp actually removed. Default identity keeps
-  // the kit stat-agnostic; a game (the RPG) reassigns this to fold in defense - penetration + a floor.
-  // `penetration` defaults 0 so a melee/turret caller that omits it is unaffected.
+  // injected defense formula — default identity; RPG overrides with max(1, amount-max(0,defense-pen))
   mitigate(world, targetId, amount, penetration = 0) {
     return amount;
   },
 
-  // Apply `amount` of incoming damage to `targetId`'s Health, run through `mitigate` (passing the
-  // attack's armor `penetration`, default 0). Returns the hp dealt, or 0 if the target carries no
-  // Health (e.g. a wall/prop a melee box clipped). Read the mitigate hook off the global so a game's
-  // override is always seen.
+  // apply damage through the mitigate hook; 0 if target has no Health (wall/prop)
   applyDamage(world, targetId, amount, penetration = 0) {
     const hp = world.get(Health, targetId);
     if (hp === undefined) return 0;
@@ -34,14 +16,8 @@ globalThis.Combat = {
     return dealt;
   },
 
-  // INSTANT hitscan shot from (x0,y0) toward (x1,y1) (the max-range endpoint). Walks every solid body
-  // along the ray in order (Raycast.castAll): a hostile body with Health takes `amount` damage
-  // (mitigated, with `penetration`), and if `pierce` shots remain the ray CONTINUES to the next; a
-  // wall/prop (no Health) or an ALLY (FactionSystem.allied to owner) BLOCKS it (a sniper still stops
-  // at a wall). `pierce` is the max number of hostiles damaged — default 1, i.e. the old single-hit
-  // bullet (a ProjectileSystem bullet despawned on its first impact too). Only SUBTRACTS hp; the
-  // reaction at <= 0 hp is the Mortal death pass (RpgScene.resolveHealth), same as every other path.
-  // Returns { x, y, hits }: the endpoint the shot reached (for a tracer line) + the struck ids.
+  // instant hitscan along (x0,y0)→(x1,y1). walks hits in order; ally/wall blocks, hostile takes
+  // damage. `pierce` = max targets hit (default 1). returns { x, y, hits } (endpoint + struck ids).
   //   opts: { owner, damage, penetration? (default 0), pierce? (default 1) }
   hitscan(world, x0, y0, x1, y1, opts) {
     const owner = opts.owner;
@@ -55,7 +31,7 @@ globalThis.Combat = {
       const h = all[i];
       const hp = world.get(Health, h.id);
       if (hp === undefined || FactionSystem.allied(world, owner, h.id)) {
-        // a wall/prop (no Health) or an ally blocks the shot — stop at it, no damage.
+        // wall/prop or ally blocks — stop here, no damage
         endX = h.x;
         endY = h.y;
         break;

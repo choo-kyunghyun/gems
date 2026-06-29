@@ -1,7 +1,6 @@
 /**
- * Data-driven sprite state machine. The controller/scene sets `state`;
- * AnimationSystem advances `time`/`frame` and writes sprite/subimg into the
- * entity's Visual. Requires a Visual component to render.
+ * Data-driven sprite state machine. Controller sets `state`; AnimationSystem advances playback
+ * into the entity's Visual. Requires Visual to render.
  *
  * @typedef {Object} AnimState
  * @property {Asset.GMSprite} sprite
