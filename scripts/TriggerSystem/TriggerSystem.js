@@ -1,13 +1,8 @@
-// Fills Collision.hits with overlapping entity ids for game logic (sensors,
-// pickups, area triggers). Detection only — no resolution. Owns col.hits: clears
-// every collider's list each tick, then records overlaps where at least one side
-// is non-solid (a sensor). Solid-vs-solid pairs are left to the resolution
-// systems (SolidSystem / SeparationSystem).
-//
-// O(n) pair queries via world.broadphase when set (cellSize > max entity
-// diameter), else O(n^2).
+// detection only — fills Collision.hits for sensors/pickups/triggers. no resolution.
+// solid-vs-solid pairs skipped (handled by SolidSystem/SeparationSystem).
+// O(n) via world.broadphase (cellSize > max entity diameter), else O(n²).
 globalThis.TriggerSystem = {
-  /** Rebuild every collider's `hits` list from this tick's sensor overlaps. @param {World} world */
+  /** @param {World} world */
   update(world) {
     const ids = world.query(Collision, Position, BBox);
 

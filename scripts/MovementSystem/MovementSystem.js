@@ -1,10 +1,5 @@
-/**
- * Integrates `Velocity` into `Position` each tick for FREE movers (no collision
- * response). Solid bodies are integrated by `SolidSystem` and projectiles by
- * `ProjectileSystem` — a given mover is moved by exactly one of the three.
- */
+// integrates velocity for free movers only — solids use SolidSystem, projectiles use ProjectileSystem.
 globalThis.MovementSystem = {
-  /** @param {World} world */
   update(world) {
     const dt = world.tickDuration;
     const ids = world.query(Position, Velocity);

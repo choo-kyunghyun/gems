@@ -1,17 +1,11 @@
-// Pushes overlapping dynamic solid bodies apart with an equal-mass MTV split,
-// for unit crowding (RTS, bumping enemies). Runs SeparationSystem.iterations
-// passes so dense clusters settle (pushing A off B may shove it into C). Pure
-// resolution — it does not integrate motion, so run it after SolidSystem.
-//
-// O(n) pair queries via world.broadphase when set (cellSize > max entity
-// diameter), else O(n^2).
+// equal-mass MTV push-apart for unit crowding. pure resolution — run after SolidSystem.
+// O(n) via world.broadphase (cellSize > max entity diameter), else O(n²).
 globalThis.SeparationSystem = {
-  iterations: 1, // resolution passes per tick; raise so dense clusters settle
+  iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
-  /** Push overlapping dynamic solid bodies apart (broadphase path when `world.broadphase` is set). @param {World} world */
+  /** @param {World} world */
   update(world) {
-    // Dynamic solid bodies — stable across iterations (only their positions move), so collect
-    // once; the broadphase re-buckets each pass since centers shift.
+    // collect once; positions shift per pass but the body list is stable
     const bodies = [];
     for (const id of world.query(Collision, Position, BBox)) {
       const col = world.get(Collision, id);
@@ -34,8 +28,7 @@ globalThis.SeparationSystem = {
     }
   },
 
-  // Split the minimum-translation overlap along the shallower axis, moving each
-  // body half the penetration apart (equal mass).
+  // MTV split along shallower axis, half-step each body (equal mass).
   _separate(world, ida, idb) {
     const a = AABB.of(world, ida);
     const b = AABB.of(world, idb);

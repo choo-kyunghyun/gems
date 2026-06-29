@@ -1,25 +1,18 @@
-/**
- * A* pathfinding glue over the active grid. The flow:
- *   1. add a `PathRequest` (grid coords) to an entity;
- *   2. `update` resolves each request into a `PathResponse { path, index }`;
- *   3. `current`/`advance` walk the waypoints;
- *   4. `invalidate` drops all responses after the grid changes.
- * The plan itself is delegated to `MotionPlanner`; this is the per-entity ECS glue.
- */
+// ECS glue over MotionPlanner. flow: add PathRequest → update resolves → current/advance walk waypoints → invalidate on grid change.
 globalThis.PathfindingSystem = {
-  /** Point the planner at the grid all requests resolve against. @param {MotionPlanningGrid} grid */
+  /** @param {MotionPlanningGrid} grid */
   setGrid(grid) {
     MotionPlanner.setGrid(grid);
   },
 
-  /** Detach every PathResponse — call after the grid changes so stale paths re-plan. @param {World} world */
+  /** drop all responses so stale paths re-plan after a grid change. @param {World} world */
   invalidate(world) {
     for (const id of world.query(PathResponse)) {
       world.detach(id, PathResponse);
     }
   },
 
-  /** Resolve each pending PathRequest into a PathResponse (none if unreachable). @param {World} world */
+  /** @param {World} world */
   update(world) {
     for (const id of world.query(PathRequest)) {
       const req = world.get(PathRequest, id);
@@ -34,7 +27,7 @@ globalThis.PathfindingSystem = {
     }
   },
 
-  /** @param {World} world @param {number} id @returns {{x:number,y:number}|undefined} the current waypoint, or undefined when none. */
+  /** @param {World} world @param {number} id @returns {{x:number,y:number}|undefined} */
   current(world, id) {
     const response = world.get(PathResponse, id);
     if (response === undefined) return undefined;
@@ -42,9 +35,8 @@ globalThis.PathfindingSystem = {
   },
 
   /**
-   * Advance the cursor to the next waypoint.
-   * @param {World} world @param {number} id
-   * @returns {boolean} true if a waypoint remained; false (and detaches the PathResponse) when complete.
+   * advance cursor; returns false and detaches PathResponse when complete.
+   * @param {World} world @param {number} id @returns {boolean}
    */
   advance(world, id) {
     const response = world.get(PathResponse, id);
