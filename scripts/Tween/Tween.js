@@ -1,39 +1,20 @@
-/**
- * Tween — shared easing + frame-rate-independent smoothing for UI motion. A plain
- * static helper (not a UIComponent / not instanced): all methods are pure, so callers
- * keep their own animated state and just pass current/target each frame.
- *
- * Two families:
- *   - `approach` / `approachColor` — exponential smoothing toward a *moving* target
- *     (no fixed duration). This is the pattern UIButton used inline for its hover/press
- *     color + shadow easing; factored out here.
- *   - the easing *curves* (`easeOutCubic`, …) — map a normalized progress t∈[0,1] to an
- *     eased [0,1], for *timed* 0→1 motion (Toast's enter slide, future enter/exit).
- *
- * GMRT: `approach` defaults its delta to `Time.raw` (wall-clock) — UI must ignore
- * `Time.scale` so menus don't slow/freeze when the sim dilates or pauses time. Pass an
- * explicit `dt` (e.g. `Time.delta`) for sim-space motion. The curves are pure math.
- */
+// Pure static easing helpers — callers own their animated state and pass current/target each frame.
+// `approach` defaults to Time.raw (wall-clock) so UI easing ignores time dilation; pass Time.delta for sim-space motion.
 globalThis.Tween = class Tween {
-  // Plain linear interpolate.
   static lerp(a, b, t) {
     return a + (b - a) * t;
   }
 
-  // Exponential smoothing of `current` toward `target`. `speed` is a per-second rate
-  // (higher = snappier); `dt` defaults to wall-clock so UI ignores time dilation. The
-  // clamp keeps it stable when a frame hitches (f never exceeds 1 → no overshoot).
+  // Exponential smoothing. Clamp prevents overshoot on a hitched frame.
   static approach(current, target, speed, dt = Time.raw) {
     return current + (target - current) * clamp(dt * speed, 0, 1);
   }
 
-  // NOTE: there is no color helper here on purpose. Easing a *packed* color int is broken on
-  // GMRT — merge_color floors each term (drifts darker), and rounding a packed-int lerp loses a
-  // sub-1 per-frame step so the tween freezes at high/unlimited FPS. Ease a color by keeping its
-  // r/g/b as FLOATS and calling approach() per channel (see UIButton._easeColor), exactly as the
-  // scalar shadow ease does — float state accumulates correctly at any frame rate.
+  // No color helper: GMRT — merge_color floors each term (packed int drifts dark), and rounding a
+  // packed-int lerp loses sub-1 steps so the tween freezes at high FPS. Ease r/g/b as FLOATS via
+  // approach() per channel (see UIButton._easeColor) — float state accumulates correctly at any FPS.
 
-  // ── easing curves: t∈[0,1] → eased [0,1] ──────────────────────────
+  // easing curves: t∈[0,1] → eased [0,1]
   static linear(t) {
     return t;
   }
@@ -49,7 +30,7 @@ globalThis.Tween = class Tween {
   static easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
-  // Overshoots past 1 then settles — a subtle "pop" for enter motion.
+  // overshoots then settles — a subtle "pop" on enter.
   static easeOutBack(t) {
     const c = 1.70158;
     const p = t - 1;
