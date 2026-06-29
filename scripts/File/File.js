@@ -1,8 +1,7 @@
 // TODO: static exists(fname)
 globalThis.File = class File {
-  // Pending async Save/Load requests, keyed by the id buffer_*_async returns.
-  // obj_game's Async Save/Load event (Other_72) calls File._resolve(id, status)
-  // to dispatch each completion back to its callback on the main thread.
+  // pending async requests keyed by buffer_*_async id; obj_game's Async event (Other_72)
+  // calls _resolve(id, status) to dispatch each completion to its callback.
   static _pending = {};
 
   static find(mask) {
@@ -19,11 +18,9 @@ globalThis.File = class File {
   static read(fname) {
     const buffer = buffer_load(fname);
     if (buffer === -1) return undefined;
-    // buffer_text reads until a NUL terminator. buffer_load gives an exact-size buffer with
-    // no guaranteed NUL, so on a file that isn't NUL-terminated (e.g. one written by
-    // File.write, or any without a trailing terminator) the read runs past the content into
-    // uninitialized memory and returns the text plus garbage — which corrupts JSON.parse
-    // non-deterministically. Append our own NUL so the read stops exactly at end-of-file.
+    // buffer_text reads until a NUL, but buffer_load gives an exact-size buffer with no
+    // guaranteed terminator — so the read runs past EOF into uninitialized memory and returns
+    // garbage, corrupting JSON.parse non-deterministically. Append our own NUL to stop at EOF.
     const size = buffer_get_size(buffer);
     buffer_resize(buffer, size + 1);
     buffer_poke(buffer, size, buffer_u8, 0);
@@ -44,18 +41,12 @@ globalThis.File = class File {
     return true;
   }
 
-  // ── Binary I/O ──────────────────────────────────────────────────────────────
-  // For data that should not go through text/JSON: tile grids, dense per-cell
-  // layers, anything large or non-scalar. JSON text on GMRT both hard-faults on
-  // nested values and has an O(n²) serialize cost for big inline arrays — a
-  // contract-based binary buffer sidesteps both (and round-trips an order of
-  // magnitude faster). The caller owns the read/write encoding; File only moves
-  // the bytes to and from disk.
+  // Binary I/O — for tile grids / dense layers / anything large or non-scalar. JSON text
+  // on GMRT both faults on nested values and is O(n²) for big inline arrays; a binary buffer
+  // sidesteps both. Caller owns the encoding; File only moves bytes.
 
   /**
-   * Load a file into a fresh buffer for binary reading. The caller OWNS the
-   * returned buffer and MUST buffer_delete() it when done.
-   * @param {string} fname
+   * Load a file into a fresh buffer. Caller OWNS it and MUST buffer_delete() when done.
    * @returns {*} buffer handle, or undefined if the file does not exist
    */
   static readBuffer(fname) {
@@ -65,45 +56,28 @@ globalThis.File = class File {
   }
 
   /**
-   * Write a buffer to disk. Saves only the bytes actually written, not the
-   * buffer's allocated capacity — a buffer_grow buffer over-allocates, so a
-   * plain buffer_save would pad the file (and the buffer_load that reads it
-   * back) with trailing garbage. buffer_save_ext with the used size avoids that.
-   * @param {string} fname
-   * @param {*} buffer  a buffer handle the caller wrote into
-   * @returns {boolean}
+   * Write a buffer to disk. Saves only the USED bytes via buffer_save_ext — a buffer_grow
+   * buffer over-allocates, so a plain buffer_save would pad the file with trailing garbage.
    */
   static writeBuffer(fname, buffer) {
     buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
     return true;
   }
 
-  // ── Async binary I/O ────────────────────────────────────────────────────────
-  // buffer_save_async / buffer_load_async stream to disk off the main thread, so
-  // a huge save can't freeze the frame — and the console vendors (Xbox/PS/Switch)
-  // *require* async I/O to pass cert. Completion arrives later in obj_game's Async
-  // Save/Load event, which routes it here via _resolve so the per-request callback
-  // fires. NOTE: both functions auto-prefix a "default/" folder, so a file written
-  // with saveAsync round-trips through loadAsync — NOT the sync read/readBuffer,
-  // which look outside "default/".
+  // Async binary I/O — off-thread so a huge save can't freeze the frame; console vendors
+  // (Xbox/PS/Switch) *require* it to pass cert. Completion arrives in obj_game's Async event,
+  // routed here via _resolve. NOTE: both auto-prefix a "default/" folder, so saveAsync round-trips
+  // through loadAsync — NOT the sync read/readBuffer, which look outside "default/".
   //
-  // GMRT 0.20 CAVEAT — a known open runtime bug, not our code: GMRT's buffer_save /
-  // buffer_save_ext (and these async variants) fail to create the destination
-  // directory ("Failed to create directories ... The system cannot find the path
-  // specified"; YoYo bug #15223). The async functions force a "default/" subfolder,
-  // which trips exactly that, so the write never lands — yet buffer_save_async still
-  // reports status:true (a false positive). On desktop GMRT use the sync writeBuffer/
-  // readBuffer instead (root-level files need no new directory, so they're unaffected).
-  // The plumbing here (event → _resolve → callback) is verified good, so these should
-  // work once #15223 is fixed and on console (where async I/O is cert-required).
+  // GMRT 0.20 CAVEAT (runtime bug #15223, open): buffer_save/_ext (and these async variants) fail
+  // to create the destination dir; the forced "default/" subfolder trips it, so the write never lands
+  // yet buffer_save_async reports status:true (false positive). On desktop use the sync writeBuffer/
+  // readBuffer (root files need no new dir). The plumbing (event → _resolve → callback) is verified
+  // good, so async should work once #15223 is fixed and on console.
 
   /**
-   * Asynchronously save a buffer's used bytes to disk. The caller still owns the
-   * buffer and MUST keep it alive until `callback` fires (the save reads it off
-   * the main thread); it may buffer_delete it afterwards.
-   * @param {string} fname
-   * @param {*} buffer  a buffer handle the caller wrote into
-   * @param {(ok: boolean) => void} [callback]  fired with the save status
+   * Async save of a buffer's used bytes. Caller still owns the buffer and MUST keep it alive
+   * until `callback(ok)` fires (the save reads it off-thread).
    * @returns {*} the async request id
    */
   static saveAsync(fname, buffer, callback) {
@@ -113,11 +87,8 @@ globalThis.File = class File {
   }
 
   /**
-   * Asynchronously load a file into a fresh buffer. On success `callback` gets
-   * the buffer and OWNS it (must buffer_delete when done); on failure it gets
-   * undefined (the internal buffer is released first).
-   * @param {string} fname
-   * @param {(buffer: *|undefined) => void} callback
+   * Async load into a fresh buffer. On success `callback(buffer)` OWNS it (must buffer_delete);
+   * on failure it gets undefined (internal buffer released first).
    * @returns {*} the async request id
    */
   static loadAsync(fname, callback) {
@@ -127,13 +98,7 @@ globalThis.File = class File {
     return id;
   }
 
-  /**
-   * Dispatch an Async Save/Load completion to its registered callback — called by
-   * obj_game's Async Save/Load event with async_load's "id" + "status". Unknown
-   * ids are ignored.
-   * @param {*} id          the request id from saveAsync/loadAsync
-   * @param {boolean} status  true if the operation succeeded
-   */
+  /** dispatch an async completion to its callback (called by obj_game's Async event); unknown ids ignored. */
   static _resolve(id, status) {
     const req = File._pending[id];
     if (req === undefined) return;

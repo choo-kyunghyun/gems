@@ -1,9 +1,6 @@
-// Flat key→scalar JSON persistence — a sibling to Settings, but without a
-// defaults allowlist (it stores whatever keys are set). Backs Profile and
-// Achievement. Values must be scalars (string/number/bool): GMRT's JSON.stringify
-// faults on nested objects/arrays, so callers that need structure serialize it to
-// a scalar string themselves (see Profile/Achievement). Call load() once at
-// startup, save() after mutations.
+// Flat key→scalar JSON persistence — Settings without the defaults allowlist. Backs
+// Profile and Achievement. Values must be scalars: GMRT's JSON.stringify faults on nested
+// objects/arrays, so callers needing structure serialize it to a string themselves.
 globalThis.SaveData = class SaveData {
   static PATH = "save.json";
   static _data = {};

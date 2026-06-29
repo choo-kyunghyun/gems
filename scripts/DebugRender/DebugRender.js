@@ -1,29 +1,17 @@
 /**
- * DebugRender — registers a "Render" Debug panel of per-pass overlay toggles
- * (entity boxes / names / bbox outlines / tile overlay / grid / paths), the
- * feature that used to live in the SystemMenu Debug tab. Core lists only Core passes;
- * a genre layer contributes its own via `DebugRender.add(cls, label)` (e.g. the RPG's
- * `RenderDebugAnimator`, which reads the Demo-layer `Animator`), so Core stays decoupled.
- * Each toggle is a
- * get/set checkbox that finds the live scene's renderer pass of a given class by
- * `instanceof` (GMRT-safe on a flat class) and flips its `enabled` flag — so it
- * needs no per-scene re-registration: a scene without a given pass reads off and
- * no-ops on toggle. Both Debug front-ends render it (and `Debug.set("Render",
- * "Boxes", true)` lets an agent flip a pass, then screenshot the game surface).
- *
- * Registered once from obj_game Create_0 via DebugRender.register(game); the
- * controller is stable, so the getters read game.scenes.current live.
+ * DebugRender — registers a "Render" Debug panel of per-pass overlay toggles. Core lists
+ * Core passes; a genre layer adds its own via DebugRender.add(cls, label), so Core stays decoupled.
+ * Each toggle finds the live scene's pass by instanceof (GMRT-safe on a flat class) and flips
+ * `enabled` — no per-scene re-registration (a scene lacking the pass reads off and no-ops).
+ * Registered once from obj_game Create_0; getters read game.scenes.current live.
  */
 globalThis.DebugRender = class DebugRender {
   static _game = null;
   static _extra = []; // [pass class, label] contributed by a genre layer via add()
 
-  // Append a render-pass toggle to the "Render" panel (deduped by class) — the seam a genre
-  // layer uses to contribute its own pass without Core referencing it (e.g. the RPG registers
-  // RenderDebugAnimator from RpgMap.build, since that pass reads the Demo-layer Animator).
-  // Rebuilds the panel if register() already ran; otherwise register() (obj_game Create_0,
-  // after the boot scene's create) picks it up. RenderDebugAnimator is loaded by the time the
-  // scene calls this, so storing the class ref here is load-order-safe.
+  // append a pass toggle (deduped by class) — the seam a genre layer uses without Core
+  // referencing it. Rebuilds if register() ran; else register() (Create_0) picks it up.
+  // The class is loaded by the time the scene calls this, so storing the ref here is load-order-safe.
   static add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
       if (DebugRender._extra[i][0] === cls) return; // already added
@@ -38,9 +26,8 @@ globalThis.DebugRender = class DebugRender {
   }
 
   static _build() {
-    // Core debug passes. Kept inside the method (not a static field initializer) so the pass
-    // class refs resolve at call time — a static field referencing a class that loads AFTER
-    // this script would fault at load (see CLAUDE.md). Genre passes append via _extra.
+    // built inside the method (not a static field) so the class refs resolve at call time —
+    // a static field referencing a class that loads AFTER this script faults at load (see CLAUDE.md).
     const list = [
       [RenderDebugBox, "Boxes"],
       [RenderDebugName, "Names"],
