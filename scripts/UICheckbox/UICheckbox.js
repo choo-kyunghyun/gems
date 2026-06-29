@@ -1,19 +1,9 @@
-/**
- * @implements {UIComponent}
- * A real visual boolean toggle — either a checkbox (box + tick) or a switch
- * (pill + sliding knob), picked by `style`. Self-contained: it hit-tests and
- * handles its own click (no UITrigger), reads a live getValue() each frame, and
- * calls onToggle() on a click release. Drawn directly in onDraw (immediate-mode)
- * with Time.raw easing for the knob slide / tick + color fade.
- *
- * The control graphic is right-aligned inside the element and vertically centered,
- * so a gemsRow-style label to its left reads as one settings row; the whole element
- * is the click target.
- */
+// Boolean toggle — checkbox (box + tick) or switch (pill + knob) per `style`.
+// Drawn immediate-mode in onDraw; eases on Time.raw so it animates while the sim is paused.
+/** @implements {UIComponent} */
 globalThis.UICheckbox = class UICheckbox {
   constructor(box = {}) {
-    // Static `value` or a live `getValue()` — coerced to boolean.
-    this._get = box.getValue ?? (() => box.value ?? false);
+    this._get = box.getValue ?? (() => box.value ?? false); // static or live source
     this.onToggle = box.onToggle ?? noop;
     this.readOnly = box.readOnly ?? false;
     this.style = box.style ?? "check"; // "check" | "switch"
@@ -54,8 +44,7 @@ globalThis.UICheckbox = class UICheckbox {
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
 
     const on = !!this._get();
-    // Time.raw (wall-clock), not Time.delta — UI must ignore Time.scale so the
-    // toggle still animates when the sim is time-dilated or paused.
+    // Time.raw not Time.delta — UI must animate even when sim is paused/dilated.
     const f = clamp(Time.raw * this.animSpeed, 0, 1);
     const target = on ? 1 : 0;
     this._t = this._t === undefined ? target : this._t + (target - this._t) * f;
@@ -68,10 +57,7 @@ globalThis.UICheckbox = class UICheckbox {
     const bg = merge_color(this.colorOff, this.colorOn, t);
 
     if (this.style === "switch") {
-      // Pill track + circular knob. The track is a full pill (corner radius = half
-      // its height); the knob is inset from that by a uniform margin and travels
-      // between the two cap centers, so the knob stays concentric with the pill's
-      // rounded ends and their roundness reads as matched.
+      // pill track; knob travels between cap centers so roundness matches.
       const h = Math.max(16, pos.height * 0.58);
       const w = h * 1.85;
       const x2 = right;
@@ -94,7 +80,6 @@ globalThis.UICheckbox = class UICheckbox {
       const margin = Math.max(2, h * 0.14);
       const kr = rad - margin;
       const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers
-      // Soft drop under the knob, then the knob (brightened slightly on hover).
       draw_set_alpha(0.22);
       draw_circle_color(kx, cy + 1, kr, c_black, c_black, false);
       draw_set_alpha(1);
@@ -103,7 +88,6 @@ globalThis.UICheckbox = class UICheckbox {
         : this.colorKnob;
       draw_circle_color(kx, cy, kr, knobCol, knobCol, false);
     } else {
-      // Square box; tick fades in over the on color.
       const s = Math.max(14, pos.height * 0.7);
       const bx2 = right;
       const bx1 = bx2 - s;
@@ -123,7 +107,6 @@ globalThis.UICheckbox = class UICheckbox {
         true,
       );
       if (t > 0.01) {
-        // Checked = the shared drawUICheck checkmark, popping in (size scaled by the eased t).
         const cx = (bx1 + bx2) * 0.5;
         drawUICheck(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
       }
@@ -132,7 +115,7 @@ globalThis.UICheckbox = class UICheckbox {
     draw_set_alpha(a0);
   }
 
-  // UINav: confirm toggles (unless read-only). Marks the element focusable.
+  // UINav: confirm toggles; presence marks element focusable.
   /** @param {UIElement} element */
   navActivate(element) {
     if (!this.readOnly) this.onToggle();

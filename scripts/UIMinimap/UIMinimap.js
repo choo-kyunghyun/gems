@@ -1,19 +1,7 @@
-/**
- * @implements {UIComponent}
- * Minimap / radar — a top-down blip view of a World's entities around a target,
- * drawn directly in onDraw (the UISlots/UIQuestTracker immediate-mode pattern: reads
- * the World live each frame, no flexpanel children). gemsMinimap builds the framed
- * element (a UINineSlice behind this), so add this as the higher-index component.
- *
- * The target entity sits at the radar center; every other entity within `range` world
- * units is plotted at its scaled relative offset, colored by the first matching tag in
- * `rules` ([{ tag, color }]) — entities with no matching tag are skipped. The target is
- * drawn as a distinct marker with a facing notch (from its Direction, if any).
- *
- * GMRT: guard `!(pos.width > 0)` (NaN layout on the first post-transition frame). Blips + the
- * facing notch are draw_circle dots (simple + cheap for a radar). Tag membership is read via
- * Set.has() (allowed — only for...of over a Set is banned).
- */
+// Radar — top-down blip view of a World around a target, immediate-mode (reads World live).
+// Entities within `range` colored by first matching tag in `rules`; target gets a facing notch.
+// GMRT: NaN-width guard (first post-transition frame); Set.has() is fine — only for...of over a Set is banned.
+/** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
   /** @param {Object} [m] { world, target, range, rules: {tag,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
   constructor(m = {}) {
@@ -51,7 +39,6 @@ globalThis.UIMinimap = class UIMinimap {
     }
     const scale = radius / this.range;
 
-    // Radar backdrop + rim.
     draw_set_alpha(this.bgAlpha);
     draw_set_color(this.bgColor);
     draw_circle(cx, cy, radius, false);
@@ -59,8 +46,7 @@ globalThis.UIMinimap = class UIMinimap {
     draw_set_color(this.ringColor);
     draw_circle(cx, cy, radius, true);
 
-    // Blips: entities within range, colored by their first matching tag rule, clipped
-    // to the radar circle (radial cull — keeps the dots inside the rim).
+    // blips clipped to the rim (radial cull keeps dots inside the circle).
     const rSq = radius * radius;
     const ids = Query.inRadius(this.world, tp.x, tp.y, this.range);
     for (let i = 0; i < ids.length; i++) {
@@ -76,7 +62,7 @@ globalThis.UIMinimap = class UIMinimap {
       draw_circle(cx + dx, cy + dy, this.blipSize, false);
     }
 
-    // Target marker + facing notch (a small dot in the heading direction).
+    // target marker + facing notch (dot in the heading direction).
     draw_set_color(this.playerColor);
     draw_circle(cx, cy, this.blipSize + 1, false);
     const dir = this.world.get(Direction, this.target);

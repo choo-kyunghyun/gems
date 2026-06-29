@@ -1,12 +1,6 @@
-/**
- * @implements {UIComponent}
- * Numeric `< n >` stepper — the UISelect arrow model over a min/max/step range
- * instead of a list. The left half steps down, the right half steps up; the value
- * is shown centered through `format`. Holds its own value and calls onChange (like
- * UISlider/UISelect). Without `wrap`, the arrow at a reached limit is dimmed and
- * does nothing. The can-step checks are inlined locals (instance getters work fine
- * — see UISelect — this is just style).
- */
+// Numeric `< n >` stepper — UISelect's arrow model over a min/max/step range. Without
+// `wrap`, the arrow at a reached limit is dimmed and inert.
+/** @implements {UIComponent} */
 globalThis.UIStepper = class UIStepper {
   /** @param {Object} [stepper] { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
   constructor(stepper = {}) {
@@ -31,8 +25,7 @@ globalThis.UIStepper = class UIStepper {
     this._side = 0; // -1 = over left arrow, 1 = right, 0 = not hovering
   }
 
-  // Clamp to range and snap onto the step grid measured from min; round to kill
-  // float drift (e.g. 0.1 steps producing 0.30000000000000004).
+  // snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004).
   _snap(v) {
     const snapped =
       this.min + Math.round((v - this.min) / this.step) * this.step;
@@ -107,7 +100,7 @@ globalThis.UIStepper = class UIStepper {
     const canDec = this.wrap || this.value > this.min;
     const canInc = this.wrap || this.value < this.max;
 
-    // Left / right step arrows via drawUIArrow — dimmed when they can't step, brightened on hover.
+    // step arrows — dimmed when they can't step, brightened on hover.
     const ah = 5;
     drawUIArrow(
       pos.left + pad + ah,
@@ -124,7 +117,6 @@ globalThis.UIStepper = class UIStepper {
       !canInc ? this.arrowDisabled : this._side > 0 ? this.arrowHover : this.arrowColor,
     );
 
-    // Current value, centered.
     draw_set_halign(this.halign);
     draw_set_color(this.color);
     draw_text(pos.left + pos.width * 0.5, cy, this.format(this.value));
@@ -135,8 +127,7 @@ globalThis.UIStepper = class UIStepper {
     draw_set_color(color);
   }
 
-  // UINav: left/right steps the value (horizontal nav adjusts instead of moving
-  // focus). Marks the element focusable.
+  // UINav: left/right steps value (horizontal nav adjusts instead of moving focus).
   /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (dir < 0) this.decrement();
