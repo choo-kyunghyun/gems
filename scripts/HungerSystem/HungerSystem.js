@@ -1,13 +1,12 @@
-// Per-tick driver for the Hunger need — thin wrapper over the shared Survival core (its own object
-// so a future hunger-specific rule has a home). update() runs in the scene's tick loop; restore()
-// is the eat action (ConsumableSystem routes a food item here). Plain system object.
+// Hunger need driver — thin wrapper over the shared Survival core (own object so a hunger-specific rule
+// has a home). update() in the tick loop; restore() is the eat action (ConsumableSystem routes here).
 globalThis.HungerSystem = {
   update(world) {
     Survival.tick(world, Hunger);
   },
 
-  // Eat: lower hunger by `amount` on entity `id`. Returns true if it changed (so eating while full
-  // is refused, not wasted); refreshes the debuff so dropping below critical clears it at once.
+  // Eat: lower hunger by `amount`. Returns true if it changed (eating while full is refused); refreshes
+  // the debuff so dropping below critical clears it at once.
   restore(world, id, amount) {
     const c = world.get(Hunger, id);
     const changed = Survival.restore(c, amount);

@@ -1,8 +1,6 @@
-// Survival need: hunger. A "rising meter" — `value` climbs by `rate`/sec (0 = full, `max` =
-// starving); eating (a Consumable with `hunger`) lowers it. HungerSystem ticks it and, once
-// `value/max >= critical`, applies the `status` debuff (a Status id, e.g. "starving" — damage over
-// time) until the player eats back below the threshold. OPT-IN like Stamina/Encumbrance: only an
-// entity carrying this participates. Flat scalars → world.export / EntitySnapshot safe.
+// Survival need: hunger. A rising meter — `value` climbs by `rate`/sec; eating (Consumable with `hunger`)
+// lowers it. HungerSystem ticks it and applies the `status` debuff (e.g. "starving") at/above `critical`.
+// OPT-IN like Stamina/Encumbrance. Flat scalars → world.export / EntitySnapshot safe.
 //
 // @typedef {Object} Hunger
 // @property {number} value     current need, 0..max (rises over time)

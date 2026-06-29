@@ -1,10 +1,5 @@
-// Quest definitions + active progress. Definitions are registered at create()
-// time; the scene drives progress by calling report(kind, target) after gameplay
-// events. A quest objective is { kind: "kill"|"collect"|"reach", target, count }.
-// Rewards are { items?: [{ itemId, qty }] } applied by the caller on turn-in.
-//
-// Per-quest state: { progress: number[], ready: bool, done: bool }
-//   ready = all objectives met (awaiting turn-in); done = turned in.
+// Quest definitions + active progress. Scene drives progress via report(); caller applies rewards on turn-in.
+// Per-quest state: { progress: number[], ready: bool, done: bool } — ready = all objectives met, done = turned in.
 globalThis.QuestLog = {
   defs: new Map(),
   defOrder: [],
@@ -19,7 +14,7 @@ globalThis.QuestLog = {
     return this;
   },
 
-  // Clear all active progress (quests are session-scoped; call on scene create).
+  // quests are session-scoped; call on scene create.
   reset() {
     this.active = {};
     return this;
@@ -34,8 +29,7 @@ globalThis.QuestLog = {
     return true;
   },
 
-  // Advance every active, not-yet-ready quest objective matching kind+target.
-  // Returns the ids of quests that BECAME ready (all objectives met) this call.
+  // Advance matching objectives; returns ids of quests that became ready this call.
   report(kind, target, n = 1) {
     const became = [];
     for (let i = 0; i < this.defOrder.length; i++) {
@@ -94,8 +88,7 @@ globalThis.QuestLog = {
     return this.defs.get(id);
   },
 
-  // Turn in a ready quest: mark done and return its rewards for the caller to
-  // apply. Returns undefined if the quest isn't ready to turn in.
+  // Mark done and return rewards for the caller to apply; undefined if not ready.
   complete(id) {
     const st = this.active[id];
     if (st === undefined || !st.ready || st.done) return undefined;
@@ -104,7 +97,7 @@ globalThis.QuestLog = {
     return def.rewards ?? {};
   },
 
-  // Active (accepted, not turned in) quest ids in registration order — for UI.
+  // in registration order — for UI.
   activeIds() {
     const out = [];
     for (let i = 0; i < this.defOrder.length; i++) {

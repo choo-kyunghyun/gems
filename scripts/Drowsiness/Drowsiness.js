@@ -1,9 +1,6 @@
-// Survival need: drowsiness. A "rising meter" — `value` climbs by `rate`/sec (0 = rested, `max` =
-// exhausted); SLEEPING (a bed → scene._sleep) lowers it (the scene drains it via
-// DrowsinessSystem.restore while time is fast-forwarded). DrowsinessSystem ticks the rise and, once
-// `value/max >= critical`, applies the `status` debuff (a Status id, e.g. "drowsy" — a speed slow)
-// until the player rests below the threshold. OPT-IN like Stamina/Encumbrance: only an entity
-// carrying this participates. Flat scalars → world.export / EntitySnapshot safe.
+// Survival need: drowsiness. A rising meter — `value` climbs by `rate`/sec; SLEEPING (bed → scene._sleep)
+// lowers it via DrowsinessSystem.restore. DrowsinessSystem ticks the rise and applies the `status` debuff
+// (e.g. "drowsy") at/above `critical`. OPT-IN like Stamina/Encumbrance. Flat scalars → world.export safe.
 //
 // @typedef {Object} Drowsiness
 // @property {number} value     current need, 0..max (rises over time; sleep lowers it)

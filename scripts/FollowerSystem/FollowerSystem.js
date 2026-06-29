@@ -1,11 +1,6 @@
-// Party follow AI for the RPG genre. A "follow"-state Follower steers toward the player each
-// tick — full speed beyond `range`, easing to a stop over the last stretch so it settles
-// against the player's body instead of jittering. A "wait"-state follower holds still. This
-// only sets Velocity; SolidSystem integrates it and collides the follower against walls — so
-// it's a stateless query system run per tick from the scene's step(), like MeleeSystem/CombatAI.
-//
-// The player id is passed in (not stored on the follower), so after a map change the system
-// just receives the new player id — no entity-reference re-link on migration.
+// Party follow AI. A "follow" Follower steers toward the player, easing to a stop near `range` so it
+// settles instead of jittering; "wait" holds still. Only sets Velocity (SolidSystem integrates/collides).
+// player id passed in, not stored — no entity-reference re-link on migration.
 const FOLLOWER_EASE_BAND = 24; // px over `range` across which approach speed ramps to full
 
 globalThis.FollowerSystem = {
@@ -17,7 +12,7 @@ globalThis.FollowerSystem = {
       const f = world.get(Follower, id);
       const vel = world.get(Velocity, id);
       if (f === undefined || vel === undefined) continue;
-      // Downed (incapacitated) or stationed → hold still; only a "follow" companion seeks.
+      // downed or stationed → hold still; only "follow" seeks.
       if (f.state !== "follow" || world.get(Downed, id) !== undefined) {
         vel.x = 0;
         vel.y = 0;
@@ -39,11 +34,8 @@ globalThis.FollowerSystem = {
     }
   },
 
-  // Add (sign +1) or remove (sign -1) a companion's carry bonus to/from the player's Inventory
-  // — extra slots (capacity) and extra weight cap (maxWeight). Mirrors
-  // EquipmentSystem._applyContainer: a balanced delta applied while the companion follows and
-  // removed when it waits/is dismissed, so it never needs a recompute-from-base pass. No-op for
-  // a follower with no bonus, or if the player lost its Inventory.
+  // Add (sign +1) / remove (-1) a companion's carry bonus (slots + weight cap) on the player's Inventory.
+  // balanced delta (like EquipmentSystem._applyContainer) so it never needs a recompute-from-base pass.
   applyBenefit(world, playerId, f, sign) {
     if (f === undefined) return;
     const inv = world.get(Inventory, playerId);

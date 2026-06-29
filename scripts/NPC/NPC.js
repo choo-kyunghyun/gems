@@ -1,7 +1,5 @@
 /**
- * Interactable non-player entity. The scene proximity-checks the player against
- * NPCs and, on the interact key, opens a dialogue panel that can offer/turn in
- * the linked quest.
+ * Interactable non-player entity. Scene opens a dialogue panel on interact that can offer/turn in a quest.
  *
  * @typedef {Object} NPC
  * @property {string} name        i18n key for the display name
