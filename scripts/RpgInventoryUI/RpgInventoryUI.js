@@ -1,47 +1,13 @@
-// Near-fullscreen character window for the RPG scene — a fixed, TABBED panel
-// (Items / Equipment / Party / Stats / Quests / Settings) so the player can manage gear, read
-// the sheet, track quests, command companions, and tune the item table all in one place.
-//
-//  - Items:      the bag UITable (sortable columns + category filter + name search) over
-//                a usage line, plus a select/action row (Use / Equip / Unequip).
-//  - Equipment:  the worn-slot rows (click a worn slot to unequip).
-//  - Party:      the companion roster — each follower's name, follow/wait status, carry bonus,
-//                and a Dismiss-to-base button (re-hire is walk-up + the follow key). The roster
-//                is repopulated per rebuild (it changes across maps); per-row text is live.
-//  - Stats:      the live character sheet + the genre's extra records (Profile).
-//  - Quests:     a live UIQuestTracker bound to the global QuestLog.
-//  - Settings:   per-column visibility toggles (Rarity / Type / Weight / Value),
-//                persisted via Settings; the table rebuilds its column set on change.
-//
-// The whole structure is built ONCE in build(); a bag change only refreshes data via
-// `table.setRows` + repopulating the equip host, so the player's sort/filter/scroll and
-// the active tab survive every equip/use. Column visibility comes from Settings, so a
-// toggle persists across launches. Scenes keep only the open/close state.
-//
-// Contract: the scene owns `ui`, `world`, `ctrl` (with `.id`), `invOpen`, and the fields
-// this module sets/reads — `_invWin` (the overlay host, shown/hidden via `.enabled`),
-// `_invTable` (the UITable
-// component), `_invSel` (selected row model | null) + `_invSelTime` (double-click timer),
-// `_invCat`/`_invSearch` (filter + search state), `_invEquipHost`/`_invExtraHost` (the
-// rebuilt sections), `_invDirty` (refresh-needed flag).
-//
-// Usage:
-//   create():            RpgInventoryUI.build(scene)
-//   step() (when dirty):  RpgInventoryUI.rebuild(scene, { equipSlots, extraRows? })
+// Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests / Settings).
+// Built ONCE; rebuild() only swaps data so sort/filter/scroll/tab survive every equip or use.
 globalThis.RpgInventoryUI = {
-  // Build the (hidden) near-fullscreen inventory overlay + its persistent tabbed structure.
-  // Unlike the old draggable + resizable gemsWindow, this is a FIXED panel modeled on the
-  // SystemMenu overlay: an absolute full-screen host (dim backdrop, toggled via .enabled)
-  // centering a near-fullscreen card whose tab host flex-grows — so it reflows on a live
-  // uiScale change with no rebuild, and the bag table gets far more rows than the old 760px
-  // window. It is NOT a UIModal: the build-once + toggle-.enabled contract is what lets the
-  // sort/filter/scroll + active tab survive a rebuild, and the scene keeps moving with it open
-  // (the "window" InputContext mutes fire but not movement).
+  // Build the hidden overlay + persistent tabbed structure once. Fixed panel (not a UIModal):
+  // absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
+  // uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
   build(scene) {
     const margin = 28;
-    // Absolute, so it fills the whole screen ignoring scene.ui's (gemsRoot) content padding;
-    // its own `margin` padding is the gap to the card. Inserted into scene.ui AFTER the HUD,
-    // so the dim backdrop veils the HUD / key-hints behind it.
+    // Absolute → fills the screen ignoring gemsRoot padding. Inserted AFTER the HUD so the
+    // backdrop veils it.
     const host = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -59,7 +25,7 @@ globalThis.RpgInventoryUI = {
     scene._invWin.enabled = false;
     scene.ui.insertChild(scene._invWin);
 
-    // The visible window: a full-height card, capped on ultra-wide displays.
+    // full-height card, capped on ultra-wide displays
     const inner = new UIElement({
       width: "100%",
       maxWidth: 1100,
@@ -72,8 +38,7 @@ globalThis.RpgInventoryUI = {
       gap: GemsTheme.gapSm,
     });
 
-    // Title row: the window name on the left, a close (x) button on the right (Esc and the
-    // inventory key also close — see sceneRpg.handleEscape + the toggle in step()).
+    // title + close (x); Esc / the inventory key also close (sceneRpg.handleEscape + step() toggle)
     const titleRow = new UIElement({
       width: "100%",
       height: 40,
@@ -137,16 +102,15 @@ globalThis.RpgInventoryUI = {
           content: RpgInventoryUI._buildSettingsTab(scene),
         },
       ],
-      { grow: true }, // fill the near-fullscreen card; the Items tab + bag table grow with it
+      { grow: true }, // fill the card; the Items tab + bag table grow with it
     );
     scene._invWin.body.insertChild(tabs);
   },
 
-  // ── tab pages ───────────────────────────────────────────────
+  // ── tab pages
   // Items: usage + category filter, search + clear, the bag table, select/action row.
   _buildItemsTab(scene) {
-    // Fills the tab host so the bag table (grow) takes the leftover vertical space and
-    // reflows its row count as the window is resized.
+    // fill the tab host so the grow table takes leftover height + reflows its row count on resize
     const page = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -163,9 +127,8 @@ globalThis.RpgInventoryUI = {
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
-      // Reads scene.world LIVE each frame (never a captured const): an open window
-      // survives a map change (RpgMap.go swaps scene.world + the player), so a captured
-      // ref would read the parked old world instead of the live one.
+      // read scene.world LIVE (not a captured const): RpgMap.go swaps scene.world on a map
+      // change while the window is open, so a captured ref would read the parked old world.
       gemsLabel(
         () => {
           const v = scene.world.get(Inventory, scene.ctrl.id);
@@ -193,8 +156,7 @@ globalThis.RpgInventoryUI = {
       { name: I18n.text("INV_CAT_CONSUMABLE"), value: "consumable" },
       { name: I18n.text("INV_CAT_MISC"), value: "misc" },
     ];
-    // Fixed-width cell — gemsSelectCustom is width:100%, so without a sized wrapper it
-    // would eat the whole row and squish the usage label.
+    // fixed-width wrapper — gemsSelectCustom is width:100% and would else squish the usage label
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(
       gemsSelectCustom(cats, 0, (_i, code) => {
@@ -205,9 +167,8 @@ globalThis.RpgInventoryUI = {
     top.insertChild(filterCell);
     page.insertChild(top);
 
-    // Search row: a free-text name filter + a Clear button. Search and the category
-    // select compose into one table predicate (see _applyFilter). Typing focuses the
-    // UIInput (UIInput.active), which suspends UINav so the caret keeps the keys.
+    // free-text name filter + Clear; composes with the category select into one predicate
+    // (see _applyFilter). Typing sets UIInput.active, which suspends UINav so the caret keeps keys.
     const searchRow = new UIElement({
       width: "100%",
       height: 32,
@@ -240,10 +201,8 @@ globalThis.RpgInventoryUI = {
     );
     page.insertChild(searchRow);
 
-    // The bag table. Built once with the Settings-driven column set; rebuild() only
-    // swaps its rows (and a column toggle calls setColumns), so sort/filter/scroll
-    // persist. Click a header to sort (multi-key); a row selects, double-click / the
-    // action button / a gamepad confirm acts on it.
+    // bag table, built once with the Settings-driven column set; rebuild() only swaps rows (a
+    // column toggle calls setColumns), so sort/filter/scroll persist.
     const table = gemsTable(InvTable.columns({ worn: true, fav: true }), {
       grow: true, // fill the page; UITable reflows its row count to the live height
       rowH: 26,
@@ -256,7 +215,7 @@ globalThis.RpgInventoryUI = {
     scene._invTable = table.getComponent(UITable);
     page.insertChild(table);
 
-    // Select/action row: the selected item name + a context action (Use/Equip/Unequip).
+    // selected item name + a context action (Use/Equip/Unequip)
     const action = new UIElement({
       width: "100%",
       height: 32,
@@ -294,10 +253,8 @@ globalThis.RpgInventoryUI = {
     );
     page.insertChild(action);
 
-    // Hotbar manage strip: a gold section title + one button per slot. Click a slot with a bag
-    // item selected → bind it to that slot; click with nothing selected → clear it. The number
-    // keys (1..N) USE the bound item in play (RpgController / sceneRpg._useHotbar). Labels read the
-    // live Hotbar, so a bind/clear/use updates the strip + the HUD bar with no rebuild.
+    // Hotbar manage strip: click a slot to bind the selected bag item, or clear when none selected.
+    // The number keys 1..N USE the bound item in play (RpgController). Labels read the live Hotbar.
     const hbTitle = new UIElement({ width: "100%", height: 20 });
     hbTitle.insertChild(
       gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "#ffd166" }),
@@ -319,8 +276,7 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // One hotbar manage button: shows "[n] Name" for the bound item (or "[n]" empty), read live.
-  // Click assigns the selected bag item to the slot, or clears it when nothing is selected.
+  // one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
   _hotbarBtn(scene, i) {
     return gemsButton(
       () => {
@@ -340,16 +296,15 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  // Bind the selected bag item to hotbar slot i, or clear the slot when nothing is selected.
   _assignHotbar(scene, i) {
     const hb = scene.world.get(Hotbar, scene.ctrl.id);
     if (hb === undefined) return;
     if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
     else HotbarSystem.clear(hb, i);
-    scene._showHotbar(); // pop the HUD bar so the player sees the binding change
+    scene._showHotbar(); // pop the HUD bar so the change is visible
   },
 
-  // Favorite action-button verb for the selected item ("Favorite" / "Unfavorite"; "-" when none).
+  // favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
   _favLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
     const fav = scene.world.get(Favorites, scene.ctrl.id);
@@ -358,7 +313,6 @@ globalThis.RpgInventoryUI = {
       : I18n.text("INV_FAVORITE");
   },
 
-  // Toggle the selected item's favorited state, then flag a refresh so the star column updates.
   _toggleFav(scene) {
     if (scene._invSel === null) return;
     const fav = scene.world.get(Favorites, scene.ctrl.id);
@@ -367,7 +321,7 @@ globalThis.RpgInventoryUI = {
     scene._invDirty = true;
   },
 
-  // Equipment: the worn-slot rows (repopulated per rebuild into this host).
+  // Equipment: worn-slot rows, repopulated per rebuild into this host.
   _buildEquipTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -383,10 +337,8 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Party: the companion roster host + a binding-aware recall hint. The roster is
-  // repopulated per rebuild (companions present in the world change across maps); each row's
-  // text + the Dismiss button's disabled-state read the live Follower component, so a follow/
-  // wait change (F-toggle or Dismiss) updates the row with no rebuild.
+  // Party: companion roster host + a binding-aware recall hint. Roster repopulated per rebuild
+  // (present companions change across maps); per-row text + Dismiss state read the live Follower.
   _buildFollowerTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -400,8 +352,7 @@ globalThis.RpgInventoryUI = {
     });
     page.insertChild(scene._invFollowerHost);
 
-    // Recall hint, binding-aware (reads the follow action's CURRENT key live, like gemsKeyHints):
-    // a waiting/dismissed companion is re-hired by walking up to it and pressing the follow key.
+    // recall hint, binding-aware (reads the follow action's live key, like gemsKeyHints)
     page.insertChild(gemsDivider());
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
@@ -414,9 +365,8 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Populate the roster host with one card per companion in scene.followers (empty notice when
-  // there are none here). Called from rebuild() — never at build() time, since the party isn't
-  // seeded until after the window is built.
+  // One card per companion in scene.followers (empty notice when none). Called from rebuild(),
+  // not build() — the party isn't seeded until after the window is built.
   _buildFollowerRows(scene, host) {
     const ids = scene.followers;
     if (ids === undefined || ids.length === 0) {
@@ -435,10 +385,8 @@ globalThis.RpgInventoryUI = {
     }
   },
 
-  // One companion card: name, a live status + carry-bonus line, and a Dismiss button. Dismiss
-  // sends the companion to the player's claimed build area (scene._dismissFollower) and is
-  // disabled (live) unless it is currently following — a waiting/dismissed companion is recalled
-  // by walking up to it and pressing the follow key, not from here.
+  // one companion card: name, live status + carry-bonus line, Dismiss button (sends to the
+  // claimed build area, disabled unless currently following — recall is walk-up + follow key)
   _followerRow(scene, fid) {
     const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
 
@@ -501,7 +449,7 @@ globalThis.RpgInventoryUI = {
     return card;
   },
 
-  // Stats: the live character sheet + the genre's extra records (Profile) host.
+  // Stats: live character sheet + the genre's extra records (Profile) host.
   _buildStatsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const statRow = (labelKey, getter) => {
@@ -531,9 +479,8 @@ globalThis.RpgInventoryUI = {
     page.insertChild(statRow("STAT_DEF", (st) => st.defense));
     page.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
 
-    // Primary attributes — the inputs the derived stats above come from. Data-driven from
-    // StatModel.ATTRS (swap the model and this list follows), each reading the live Attributes bag,
-    // so a *_shard consumable's grant shows immediately on the next rebuild.
+    // primary attributes — the inputs the derived stats come from. Data-driven from
+    // StatModel.ATTRS, reading the live Attributes bag, so a *_shard grant shows on next rebuild.
     page.insertChild(gemsDivider());
     page.insertChild(
       gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "#ffd166" }),
@@ -574,7 +521,7 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Quests: a live tracker bound to the global QuestLog (passed as the tracker's source).
+  // Quests: live tracker bound to the global QuestLog.
   _buildQuestsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     page.insertChild(
@@ -586,8 +533,8 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Settings: per-column visibility toggles, persisted via Settings. Toggling rebuilds
-  // the Items table's column set (setColumns keeps the current sort by column key).
+  // Settings: per-column visibility toggles, persisted. Toggling calls setColumns, which keeps
+  // the current sort by column key.
   _buildSettingsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -595,9 +542,8 @@ globalThis.RpgInventoryUI = {
       gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "#ffd166" }),
     );
     page.insertChild(title);
-    // UICheckbox.onToggle is called with NO argument (it doesn't pass the new value),
-    // so flip the setting ourselves off the live value — taking a `v` arg would always
-    // be undefined, which made the toggles one-way (could disable but never re-enable).
+    // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
+    // would be undefined and made the toggles one-way: disable but never re-enable).
     const toggle = (labelKey, settingKey) =>
       gemsCheckbox(
         I18n.textRef(labelKey),
@@ -614,8 +560,8 @@ globalThis.RpgInventoryUI = {
     page.insertChild(toggle("INV_COL_WT", "invColWeight"));
     page.insertChild(toggle("INV_COL_VAL", "invColValue"));
 
-    // Units: ambient-temperature display unit. The HUD reads Temperature.display() live,
-    // so persisting the setting updates it next frame — no table/HUD rebuild needed.
+    // Units: ambient-temperature display unit. The HUD reads Temperature.display() live, so
+    // persisting updates it next frame — no rebuild.
     page.insertChild(gemsDivider());
     const unitsTitle = new UIElement({ width: "100%", height: 22 });
     unitsTitle.insertChild(
@@ -640,9 +586,8 @@ globalThis.RpgInventoryUI = {
       ),
     );
 
-    // HUD: player-centered directional radar (RadarArrows, drawn live in sceneRpg.draw).
-    // The draw reads the setting each frame, so the toggle takes effect next frame with
-    // no rebuild — just flip + persist (no _applyColumns like the column toggles).
+    // HUD: player-centered radar (RadarArrows, drawn live in sceneRpg.draw, reads the setting
+    // each frame) — just flip + persist, no _applyColumns like the column toggles.
     page.insertChild(gemsDivider());
     const hudTitle = new UIElement({ width: "100%", height: 22 });
     hudTitle.insertChild(
@@ -663,16 +608,15 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Refresh the live data: swap the table rows (keeping sort/filter/scroll), re-map the
-  // selection by itemId, and rebuild the equipment + extra sections. `opts`:
-  //   { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
+  // Refresh live data only (so the view/scroll/active tab survive): swap rows keeping
+  // sort/filter, re-map the selection, rebuild equipment + extra + party sections.
+  //   opts: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
   rebuild(scene, opts) {
     const rows = RpgInventoryUI._buildRows(scene);
     scene._invTable.setRows(rows);
 
-    // Re-map the selection by uid (instances) / itemId (fungibles) so the highlight + action
-    // button survive the swap (row models are fresh objects each refresh; the old _invSel ref
-    // is stale).
+    // re-map the selection by uid/itemId so the highlight survives the swap (row models are
+    // fresh objects each refresh, so the old _invSel ref is stale)
     if (scene._invSel !== null) {
       let found = null;
       for (let i = 0; i < rows.length; i++) {
@@ -685,7 +629,7 @@ globalThis.RpgInventoryUI = {
       scene._invTable.selectRow(found);
     }
 
-    // Equipment rows: clear children + re-add (a child-tree rebuild for the new contents).
+    // equipment rows: clear + re-add for the new contents
     const eh = scene._invEquipHost;
     const ek = [...eh.children];
     for (let i = 0; i < ek.length; i++) ek[i].destroy();
@@ -698,15 +642,14 @@ globalThis.RpgInventoryUI = {
         ),
       );
 
-    // Genre extra rows (Profile records) into the Stats tab.
+    // genre extra rows (Profile records) into the Stats tab
     const xh = scene._invExtraHost;
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
 
-    // Party roster: rebuilt here (not live) because which companions are present in the world
-    // changes across maps — a "follow" one travels with you, a "wait" one only exists in its
-    // home map. Per-row status/benefit + the Dismiss disabled-state are live off the Follower.
+    // party roster rebuilt here (not live) because present companions change across maps
+    // (a "follow" one travels, a "wait" one is map-local). Per-row state is live off the Follower.
     const fh = scene._invFollowerHost;
     if (fh !== undefined) {
       const fk = [...fh.children];
@@ -715,17 +658,15 @@ globalThis.RpgInventoryUI = {
     }
   },
 
-  // Push the current Settings-driven column set onto the live table (a toggle changed).
-  // The chest shares these column Settings, so keep its two tables in sync too (live,
-  // for when both windows are open; StorageUI also re-applies them on open).
+  // Push the current Settings-driven column set onto the live table (setColumns remaps the sort
+  // by column key). The chest shares these Settings, so sync its tables too when both are open.
   _applyColumns(scene) {
     scene._invTable.setColumns(InvTable.columns({ worn: true, fav: true }));
     if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
-  // Build the row models from the live bag. `worn` marks the row whose INSTANCE uid is the one
-  // equipped in its slot — exact, so with two of the same equippable only the worn instance lights
-  // (no itemId dedup needed; uid is unique).
+  // Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
+  // same equippable only the worn instance lights.
   _buildRows(scene) {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     const eq = scene.world.get(Equipment, scene.ctrl.id);
@@ -750,8 +691,8 @@ globalThis.RpgInventoryUI = {
     return rows;
   },
 
-  // Compose the category select + the search box into ONE table predicate (UITable
-  // takes a single filter fn). null when neither is active, so the table shows all.
+  // Compose the category select + search box into ONE predicate (UITable takes one filter fn);
+  // null when neither active.
   _applyFilter(scene) {
     const cat = scene._invCat;
     const q = scene._invSearch;
@@ -759,8 +700,7 @@ globalThis.RpgInventoryUI = {
       scene._invTable.setFilter(null);
       return;
     }
-    // "fav" is a pseudo-category (matches the favorited flag, not the item type); the others
-    // match r.cat. Both compose with the name search.
+    // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
     scene._invTable.setFilter(
       (r) =>
         (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) &&
@@ -768,10 +708,8 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  // Click selects a row; a second click on the SAME row within 350ms uses/equips it
-  // (double-click), matching the action button + gamepad confirm. Identity is the instance
-  // uid when present (so a re-click on the same modded weapon double-clicks, not its twin),
-  // else the itemId for fungibles.
+  // Click selects; a second click on the SAME row within 350ms acts on it (double-click).
+  // Identity is the instance uid when present (so a re-click hits the same instance, not its twin).
   _onSelect(scene, row) {
     const now = current_time;
     if (
@@ -786,7 +724,7 @@ globalThis.RpgInventoryUI = {
     scene._invSelTime = now;
   },
 
-  // Two row models refer to the same item: by instance uid when both have one, else by itemId.
+  // same item: by instance uid when present, else by itemId
   _sameRow(a, b) {
     if (a.uid !== undefined || b.uid !== undefined) return a.uid === b.uid;
     return a.itemId === b.itemId;
@@ -797,7 +735,7 @@ globalThis.RpgInventoryUI = {
     RpgInventoryUI.useItem(scene, row.itemId, row.worn, row.uid);
   },
 
-  // The context action verb for the selected item ("-" when none / no action).
+  // context action verb for the selected item ("-" when none)
   _actionLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
     const it = Item.get(scene._invSel.itemId);
@@ -810,8 +748,8 @@ globalThis.RpgInventoryUI = {
     return I18n.text("INV_NOACTION");
   },
 
-  // One equipment slot: a button (click unequips) when worn, else a muted label row. The slot
-  // holds the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + its mods.
+  // One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
+  // the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
   _equipRow(scene, slot, labelKey) {
     const eq = scene.world.get(Equipment, scene.ctrl.id);
     const uid = eq !== undefined ? eq.slots[slot] : "";
@@ -850,11 +788,9 @@ globalThis.RpgInventoryUI = {
     return row;
   },
 
-  // Act on an item: equippables toggle equip/unequip, consumables are used (one unit).
-  // `wasWorn` is the row's displayed equipped-state — acting on it (not the shared itemId)
-  // means that with two identical equippables only the row shown as equipped unequips.
-  // `uid` (a table row's specific instance) equips exactly that one; without it (the hotbar,
-  // which only knows an itemId) equipFirst picks the first owned instance.
+  // Act on an item: equippables toggle equip/unequip, consumables use one unit. `wasWorn` is the
+  // row's shown state (so with two identical equippables only the shown-equipped row unequips).
+  // `uid` equips that exact instance; without it (the hotbar) equipFirst picks the first owned.
   useItem(scene, itemId, wasWorn, uid) {
     const item = Item.get(itemId);
     if (item === undefined) return;

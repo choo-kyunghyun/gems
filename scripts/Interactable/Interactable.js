@@ -1,29 +1,18 @@
-// Station-selection module for the RPG scene. Any entity carrying a Station component is
-// interactable. Each frame this picks one target station: the one under the mouse cursor
-// (BBox hit-test) if it's within range, otherwise the nearest within range. The target gets a
-// world-space highlight outline and a context prompt; pressing `interact` (E) opens the matching
-// window — StorageUI for kind "storage", CraftingUI for kind "workbench".
-//
-// Activation is E, not left-click, because the RPG's combat fires on left-click (mouse aim) —
-// the mouse only CHOOSES the target. `mouse_x`/`mouse_y` are world-space here (the view
-// transform is applied; see RpgController aim).
-//
-// All per-frame/open state lives on the SCENE (namespaced `_inter*`, plus the windows'
-// own `_store*`/`_craft*`). Build once in create() after the player + ui exist; call
-// update() each step and drawTarget() in draw() (world space).
-//
-// Scene contract: scene.world, scene.ctrl.id (player), scene.ui.
+// Station-selection module for the RPG scene. Each frame picks one target Station — under the
+// cursor if in range, else nearest in range — gives it a highlight + prompt; E opens its window.
+// Activation is E, not left-click, because combat fires on left-click (the mouse only CHOOSES the
+// target). mouse_x/mouse_y are world-space here. Per-frame/open state lives on the scene (_inter*).
+// Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
 globalThis.Interactable = {
-  RADIUS: 36, // interact range (px) from the player to a station (16px-cell scale; see GEMS.md)
+  RADIUS: 36, // interact range (px); 16px-cell scale, see GEMS.md
 
   build(scene) {
     scene._interTarget = -1;
     scene._interKind = "";
     scene._interOpenId = -1;
 
-    // Proximity prompt: a compact centered card near the bottom, shown only while a
-    // station is in range and no window is open. The label re-resolves each draw, so it
-    // tracks the current target's kind.
+    // proximity prompt — shown only while a station is in range and no window is open;
+    // label re-resolves each draw to track the target's kind
     const prompt = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -72,14 +61,13 @@ globalThis.Interactable = {
     return "";
   },
 
-  // Per-frame: pick the target, drive prompt/highlight, and refresh whichever window is
-  // open + dirty. The E (interact) action is NOT read here — the scene's interact arbiter
-  // (sceneRpg._dispatchInteract) decides station-vs-NPC by cursor/distance and calls
-  // activate()/closeAll() — so a single E press can't fire two handlers at once.
+  // Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
+  // here — the scene's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
+  // activate()/closeAll(), so one E press can't fire two handlers.
   update(scene) {
     Interactable._pick(scene);
 
-    // The opened station left range → close (it's left behind in the world).
+    // opened station left range → close
     if (
       (scene._storeOpen || scene._craftOpen) &&
       !Interactable._inRange(scene, scene._interOpenId)
@@ -100,20 +88,18 @@ globalThis.Interactable = {
     }
   },
 
-  // ── Arbiter hooks (called by the scene's interact dispatcher) ──────────────
-  // Open/claim the current target (the body of _open). The scene calls this when it has
-  // decided the station — not the NPC — wins this E press.
+  // ── Arbiter hooks (called by the scene's interact dispatcher)
+  // open/claim the current target; the scene calls this when the station wins this E press
   activate(scene) {
     Interactable._open(scene);
   },
 
-  // Close any open station window (public wrapper of _closeAll).
+  // close any open station window
   closeAll(scene) {
     Interactable._closeAll(scene);
   },
 
-  // True when the mouse cursor is over entity `id`'s world BBox — used by the scene to let
-  // the cursor break a station-vs-NPC tie.
+  // true when the cursor is over entity `id`'s BBox — lets the scene break a station-vs-NPC tie
   isCursorOver(scene, id) {
     if (id === -1) return false;
     const pos = scene.world.get(Position, id);
@@ -121,8 +107,7 @@ globalThis.Interactable = {
     return Interactable._mouseInside(pos, scene.world.get(BBox, id));
   },
 
-  // Choose target = station under the mouse (if in range), else nearest in range.
-  // Writes scene._interTarget / _interKind.
+  // pick target = station under the mouse (if in range), else nearest in range
   _pick(scene) {
     const world = scene.world;
     const p = world.get(Position, scene.ctrl.id);
@@ -167,7 +152,7 @@ globalThis.Interactable = {
     }
   },
 
-  // True when the mouse is inside the entity's world BBox (offset from Position).
+  // true when the mouse is inside the entity's world BBox (offset from Position)
   _mouseInside(pos, bbox) {
     if (bbox === undefined) return false;
     const w = bbox.width;
@@ -195,17 +180,15 @@ globalThis.Interactable = {
 
   _open(scene) {
     const id = scene._interTarget;
-    // Claim is an instant action, not a window — claim the build zone and bail.
+    // claim / arcade / bed are instant actions, not windows
     if (scene._interKind === "claim") {
       BuildMode.claim(scene, id);
       return;
     }
-    // Arcade is an instant action too — push a minigame scene on top of the RPG (no window).
     if (scene._interKind === "arcade") {
       scene._openArcade();
       return;
     }
-    // Bed is an instant action — start sleeping (fast-forwards time, drains Drowsiness; a key wakes).
     if (scene._interKind === "bed") {
       scene._sleep();
       return;
@@ -221,8 +204,7 @@ globalThis.Interactable = {
     scene._interOpenId = -1;
   },
 
-  // World-space highlight outline around the current target's BBox. Called from
-  // scene.draw() after the world is drawn.
+  // world-space highlight outline around the target's BBox; called from scene.draw() after the world
   drawTarget(scene) {
     const id = scene._interTarget;
     if (id === -1) return;
