@@ -1,23 +1,17 @@
-// Named entity templates: register a preset once ({ id, components }), then spawn copies of it.
-// Each spawn gets a fresh Position plus a shallow copy of every preset component, so instances
-// never share-and-mutate the template's data objects.
+// Named entity templates. Each spawn shallow-copies every component so instances don't share-and-mutate the template.
 /** @typedef {Object} EntityPresetDef @property {string} id @property {Object<string,Object>} [components] component token -> data */
 globalThis.EntityPreset = class EntityPreset {
   /** @type {Map<string, EntityPresetDef>} */
   static presets = new Map();
 
-  /** Register an array of preset definitions (keyed by `id`). @param {EntityPresetDef[]} presets */
+  /** @param {EntityPresetDef[]} presets */
   static register(presets) {
     for (const preset of presets) {
       this.presets.set(preset.id, preset);
     }
   }
 
-  /**
-   * Spawn an entity from a preset at (x, y, z). Throws if the preset is unknown.
-   * @param {string} presetId @param {World} world @param {number} x @param {number} y @param {number} [z=0]
-   * @returns {number} the new entity id
-   */
+  /** Spawn a preset at (x, y, z). Throws for unknown ids. @param {string} presetId @param {World} world @param {number} x @param {number} y @param {number} [z=0] @returns {number} entity id */
   static spawn(presetId, world, x, y, z = 0) {
     const preset = this.presets.get(presetId);
     if (preset === undefined)
@@ -35,7 +29,7 @@ globalThis.EntityPreset = class EntityPreset {
     return id;
   }
 
-  /** @param {string} presetId @returns {boolean} whether a preset with that id is registered */
+  /** @param {string} presetId @returns {boolean} */
   static has(presetId) {
     return this.presets.has(presetId);
   }

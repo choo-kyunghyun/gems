@@ -1,8 +1,6 @@
 /**
- * Position as of the start of the current physics tick. InterpolationSystem
- * snapshots it each tick so renderers can lerp between PrevPosition and
- * Position by world.alpha, keeping fixed-step motion smooth on displays whose
- * refresh rate doesn't match the tickrate.
+ * Position at the start of the current tick (InterpolationSystem snapshots it). Renderers lerp
+ * PrevPosition→Position by world.alpha to smooth fixed-step motion when refresh != tickrate.
  * @typedef {Object} PrevPosition
  * @property {number} x
  * @property {number} y
