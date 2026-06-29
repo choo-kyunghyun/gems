@@ -1,26 +1,18 @@
-// Item-definition registry (modeled on Rarity). Genre templates register their
-// item set at create() time (see RpgQuests.register). Definitions are data;
-// runtime quantities live in Inventory components.
-//
-// Behavior/markers compose via data-only `components` (like UIElement): the base
-// holds identity + the near-universal scalars (value, stack), and capability or
-// marker classes (Equippable, Weapon, and later QuestItem, Factional, ...) are
-// attached and queried by `instanceof` (see getComponent). This is composition,
-// not inheritance — GMRT can't do inheritance/super, but `instanceof` against a
-// flat class works (the same pattern UIElement.getComponent relies on).
+// Item-definition registry. Definitions are data; runtime quantities live in Inventory.
+// Capabilities (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` —
+// composition over inheritance because GMRT can't do super/subclassing.
 globalThis.Item = class Item {
   /**
    * @param {Object} def
    * @param {string} def.id
-   * @param {string} [def.name]            i18n key for the display name
-   * @param {string} [def.description]     i18n key for a flavor/usage description (default "")
+   * @param {string} [def.name]            i18n key
+   * @param {string} [def.description]     i18n key (default "")
    * @param {Asset.GMSprite} [def.sprite]  icon sprite (-1 = none)
    * @param {number} [def.stack]           max stack size (default 99)
-   * @param {number} [def.weight]          per-unit weight, for Inventory.maxWeight (default 1)
+   * @param {number} [def.weight]          per-unit weight (default 1)
    * @param {number} [def.value]           base value (scaled by rarity)
    * @param {string} [def.rarity]          Rarity id (default "common")
-   * @param {Object[]} [def.components]    capability/marker instances (Equippable,
-   *                                       Weapon, ...) — queried via getComponent
+   * @param {Object[]} [def.components]    capability/marker instances — queried via getComponent
    */
   constructor(def) {
     this.id = def.id;
@@ -34,35 +26,25 @@ globalThis.Item = class Item {
     this.components = def.components ?? [];
   }
 
-  /** Attach a component instance. */
   addComponent(component) {
     this.components.push(component);
     return this;
   }
 
-  /** First component that is an instance of Class, or undefined. */
   getComponent(Class) {
     return this.components.find((c) => c instanceof Class);
   }
 
-  /** All components that are instances of Class. */
   getComponents(Class) {
     return this.components.filter((c) => c instanceof Class);
   }
 
-  /** Whether the item has a component of Class (marker/capability test). */
   hasComponent(Class) {
     return this.getComponent(Class) !== undefined;
   }
 
-  /**
-   * Whether this item is an INSTANCE type — a unique, unstackable piece of gear that
-   * carries per-instance state (a uid + installed mods) inline on its inventory slot,
-   * rather than a fungible definition shared across stacks. All equippable gear is an
-   * instance (weapon mods need a "which specific one"); potions/materials/currency are
-   * fungible. The slot mints a uid for these (InventorySystem.add) and Equipment keys
-   * by that uid. See the definition-vs-instance split in ARCHITECTURE (Items).
-   */
+  // unique gear (uid + mods inline on slot) vs fungible stacks — equippable = always instanced.
+  // Equipment keys by uid, not itemId, because two of one itemId can differ by mods.
   isInstanced() {
     return this.hasComponent(Equippable);
   }
@@ -70,7 +52,6 @@ globalThis.Item = class Item {
   static registry = new Map();
   static order = []; // registration order of ids
 
-  /** Register an array of item defs (later defs with the same id overwrite). */
   static register(defs) {
     for (let i = 0; i < defs.length; i++) {
       const it = new Item(defs[i]);
@@ -88,7 +69,7 @@ globalThis.Item = class Item {
     return this.registry.has(id);
   }
 
-  /** All items in registration order. Index-loops `order` (no Map-iterator for-of). */
+  // index-loops `order` — no Map-iterator for-of (GMRT crashes on Map/Set iterators).
   static all() {
     const out = [];
     for (let i = 0; i < this.order.length; i++) {

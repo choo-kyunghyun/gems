@@ -1,23 +1,19 @@
-// Pure operation: use one unit of a Consumable item from an entity's Inventory,
-// applying its instant effect. A plain system object (the project's System pattern).
+// Use one unit of a Consumable from an entity's Inventory, applying its instant effect.
 globalThis.ConsumableSystem = {
-  // Injected policy for a PERMANENT attribute grant (a *_shard consumable). The kit can't reach the
-  // game's stat model (Attributes/StatModel are Demo), so — like Combat.mitigate — the Demo wires
-  // this in sceneRpg.create to raise the attribute + recompute derived Stats. Default no-op returns
-  // false, so a shard does nothing (and use() won't waste it) in a consumer that hasn't wired it.
-  // Returns true if the attribute actually changed.
+  // Injected attribute-grant policy (a *_shard). Kit can't reach the Demo stat model, so — like
+  // Combat.mitigate — the Demo wires this in sceneRpg.create. Default no-op returns false (a shard
+  // does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
   grantAttr(world, id, attr, amount) {
     return false;
   },
 
-  // Use one unit of itemId from entity `id`. Returns true if it was used (and one
-  // unit removed). Fails (false) if the item isn't consumable, isn't owned, or
-  // the effect would do nothing right now (e.g. healing at full HP — no waste).
+  // Use one unit of itemId from entity `id`. Fails if not consumable, not owned, or the effect would
+  // do nothing now (e.g. healing at full HP — no waste).
   use(world, id, itemId) {
     const item = Item.get(itemId);
     if (item === undefined) return false;
     const con = item.getComponent(Consumable);
-    if (con === undefined) return false; // not consumable
+    if (con === undefined) return false;
 
     const inv = world.get(Inventory, id);
     if (inv === undefined || !InventorySystem.has(inv, itemId, 1)) return false;
@@ -27,10 +23,8 @@ globalThis.ConsumableSystem = {
     return true;
   },
 
-  // Apply the consumable's effects to the entity. Returns true if anything actually changed (so
-  // use() can refuse a no-op). Two effects, independent: heal HP (clamped to Stats.maxHp) and a
-  // permanent attribute grant (via the injected grantAttr hook). A shard always changes the
-  // attribute, so it's never refused; a potion at full HP does nothing and IS refused.
+  // Apply the consumable's effects. Returns true if anything changed (so use() can refuse a no-op:
+  // a potion at full HP does nothing and IS refused; a shard always changes the attribute).
   _apply(world, id, con) {
     let did = false;
     if (con.heal > 0) {
@@ -50,9 +44,8 @@ globalThis.ConsumableSystem = {
       ConsumableSystem.grantAttr(world, id, con.attr, con.amount)
     )
       did = true;
-    // Status grant (a buff/debuff) — apply through the StatusSystem kit (sibling module). A
-    // status-only consumable (no heal/attr) still counts as "did something", so use() won't refuse
-    // it. statusDuration 0 falls back to the def's own duration (StatusSystem.apply).
+    // Status grant via the StatusSystem kit. A status-only consumable still counts as "did
+    // something". statusDuration 0 → the def's own duration.
     if (con.status !== "") {
       StatusSystem.apply(
         world,
@@ -62,9 +55,8 @@ globalThis.ConsumableSystem = {
       );
       did = true;
     }
-    // Survival restores (drink/eat) — lower Thirst/Hunger via the Survival kit (sibling module).
-    // restore() returns false when the need is already satisfied, so a drink/food that would do
-    // nothing isn't wasted (same "no-op refused" rule as healing at full HP).
+    // Survival restores (drink/eat) via the Survival kit. restore() returns false when the need is
+    // already satisfied, so a no-op drink/food isn't wasted (same rule as healing at full HP).
     if (con.thirst > 0 && ThirstSystem.restore(world, id, con.thirst))
       did = true;
     if (con.hunger > 0 && HungerSystem.restore(world, id, con.hunger))

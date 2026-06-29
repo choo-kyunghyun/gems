@@ -2,8 +2,8 @@ globalThis.Rarity = class Rarity {
   /**
    * @param {Object} def
    * @param {string} def.id
-   * @param {string} [def.name]      i18n key for the display name
-   * @param {number|string} [def.color]  GameMaker colour int, or "#rrggbb" hex
+   * @param {string} [def.name]      i18n key
+   * @param {number|string} [def.color]  colour int, or "#rrggbb" hex
    * @param {number} [def.valueMod]  item-value multiplier (default 1)
    */
   constructor(def) {
@@ -16,12 +16,10 @@ globalThis.Rarity = class Rarity {
     this.valueMod = def.valueMod ?? 1;
   }
 
-  // Rarities are not defined here — each genre template configures its own set
-  // in its initializer (e.g. RpgController.create → Rarity.register([...])).
+  // each genre template registers its own tiers (e.g. RpgController.create).
   static registry = new Map();
   static order = []; // insertion order of ids (low → high tier)
 
-  /** Register an array of rarity defs (later defs with the same id overwrite). */
   static register(defs) {
     for (const def of defs) {
       const r = new Rarity(def);
@@ -39,7 +37,7 @@ globalThis.Rarity = class Rarity {
     return this.registry.has(id);
   }
 
-  /** All rarities in tier order. Index-loops `order` (no Map-iterator for-of). */
+  // index-loops `order` — no Map-iterator for-of (GMRT crashes on Map/Set iterators).
   static all() {
     const out = [];
     for (let i = 0; i < this.order.length; i++) {
@@ -48,7 +46,7 @@ globalThis.Rarity = class Rarity {
     return out;
   }
 
-  /** Scale a base value by a rarity's modifier; unknown id returns value as-is. */
+  // scale a value by a rarity's modifier; unknown id returns value as-is.
   static modify(id, value) {
     const r = this.get(id);
     return r === undefined ? value : value * r.valueMod;

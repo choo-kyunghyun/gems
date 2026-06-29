@@ -1,16 +1,13 @@
-// Item-component: marks an Item as a WORKBENCH MODULE — a unique upgrade slotted into a
-// workbench's single module slot (Station.module) to change what the bench can do. Instead of a
-// separate station per category, one workbench is upgraded by swapping modules (removable freely).
+// Item-component: marks an Item as a workbench module — slotted into a bench's single module slot
+// (Station.module) to change what it can do; one upgradeable bench instead of a station per category.
 //
-// `kind` selects the mode the slotted module drives in the workbench window (CraftingUI):
-//   • "recipes" (default) — unlocks the recipes that declare `requires: <this module's itemId>`
-//     (base recipes, with no `requires`, are always available regardless of the slot).
-//   • "weaponmod"          — the Tinker's Toolkit: switches the window into the weapon-mod panel
-//     (install/remove WeaponMods on owned weapons; see WeaponModUI), folding the old standalone
-//     Anvil into the bench.
+// `kind` selects the window mode (CraftingUI):
+//   • "recipes" (default) — unlocks recipes whose `requires` matches this module's itemId (base
+//     recipes, with no `requires`, always available).
+//   • "weaponmod"          — the Toolkit: switches the window to the weapon-mod panel (WeaponModUI).
 //
-// A flat, standalone class queried by `instanceof` (Item.getComponent) — no inheritance (GMRT
-// can't). The module's identity is its itemId; Recipe.requires references that.
+// Identity is its itemId (Recipe.requires references that). Flat class queried by `instanceof`
+// (composition over inheritance — GMRT can't super/subclass).
 globalThis.WorkbenchModule = class WorkbenchModule {
   /**
    * @param {Object} [d]
