@@ -1,23 +1,19 @@
-// Per-chunk dual-grid renderer for the chunk-streamed overworld TERRAIN. A RenderPass owning a set
-// of cached VertexBuffers PER LOADED CHUNK (one per terrain material), built ONCE when the chunk
-// appears and freed when it unloads — so a chunk-border crossing only builds the few newly-entered
-// chunks, not the whole loaded area. (The earlier windowed version rebuilt one ~80x80 VBO every
-// crossing → a ~50ms render hitch; this replaces it.) Each material's tiles go in painter order —
-// base material first (opaque ground), upper terrains on top whose transparent dual-grid corners
-// reveal the one below (water < sand < grass). Each material draws its OWN real, UNTINTED dual-grid
-// sprite (spr_terrain*, from OverworldGen.TERRAIN.sprite) into its OWN VBO submitted with its OWN
-// texture — so the per-material tilesets needn't share a texture page (no tint; the art is colored).
+// Per-chunk dual-grid renderer for the streamed overworld terrain. Caches VertexBuffers per loaded
+// chunk (one per material), built once on load and freed on unload, so a border crossing only builds
+// newly-entered chunks (the earlier windowed version rebuilt one ~80x80 VBO every crossing → ~50ms
+// hitch). Painter order water < sand < grass: upper terrains' transparent dual-grid corners reveal
+// the one below. Each material draws its own untinted spr_terrain* sprite into its own VBO with its
+// own texture, so the tilesets needn't share a texture page.
 //
-// Dual-grid corner sampling reads one cell up/left of each display tile, so building a chunk needs a
-// 1-cell APRON beyond its top/left edge: interior cells come from the chunk record (rec.terrain),
-// the apron from the deterministic source (ChunkSource.materialAt), so seams match the neighbor with
-// no load-order dependency.
+// Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
+// top/left edge: interior from the chunk record, apron from the deterministic source
+// (ChunkSource.materialAt), so seams match the neighbor with no load-order dependency.
 //
 // GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
 //
 // @implements {RenderPass}
 globalThis.TerrainStream = class TerrainStream {
-  // @param {ChunkManager} chunks — read for chunk size, cell size, and the source (apron sampling).
+  // @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling).
   constructor(chunks) {
     this.enabled = true; // RenderPass
     this.chunkCols = chunks.chunkCols;
@@ -26,10 +22,9 @@ globalThis.TerrainStream = class TerrainStream {
     this.cellH = chunks.cellH;
     this.source = chunks.source; // ChunkSource.materialAt for the seam apron
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
-    this._buildBudget = 4; // chunk VBO sets built per rebuild() — caps the per-frame build spike
+    this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
 
-    // One UNTINTED dual-grid sprite per material (spr_terrain*), painter-ordered like the palette
-    // (water < sand < grass). Cache each sprite's texture + source size for the trim-aware quad.
+    // one untinted dual-grid sprite per material, painter-ordered; cache texture + source size for the quad
     const pal = OverworldGen.TERRAIN;
     this.palette = pal;
     this._sprites = [];
@@ -42,9 +37,8 @@ globalThis.TerrainStream = class TerrainStream {
         this._ok = false;
         return;
       }
-      // Frames 0..15 are the dual-grid corner masks; any frames beyond 15 are extra FULL-tile
-      // (mask-15) variants. `variants` = how many full-tile choices exist (>=1); a full cell picks
-      // one by position hash to break the per-tile grid repetition.
+      // frames 0..15 are the dual-grid corner masks; frames past 15 are extra full-tile (mask-15)
+      // variants — `variants` = how many (>=1); a full cell picks one by position hash to break repetition
       this._sprites.push({
         spr,
         tex: sprite_get_texture(spr, 0),
@@ -55,10 +49,9 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  // Diff the loaded chunk set against the cache — free vanished chunks, build newly-loaded ones (at
-  // most `budget` per call, so a burst can't spike; the rest fill in over the next frames, off-screen
-  // at loadRadius distance). Call each frame from sceneRpg.step (default budget); the initial load
-  // passes Infinity to build everything at once under the boot fade. Cheap when nothing changed.
+  // Diff the loaded chunk set against the cache: free vanished chunks, build newly-loaded ones (at
+  // most `budget`/call so a burst can't spike — the rest fill in over later frames, off-screen at
+  // loadRadius). Call each frame; initial load passes Infinity to build everything under the boot fade.
   rebuild(chunks, budget = this._buildBudget) {
     if (!this._ok) return;
     const recs = chunks.records();
@@ -75,7 +68,7 @@ globalThis.TerrainStream = class TerrainStream {
       }
     }
 
-    // Build newly-loaded chunks, capped at `budget`.
+    // build newly-loaded chunks, capped at `budget`
     let left = budget;
     for (let i = 0; i < recs.length && left > 0; i++) {
       const rec = recs[i];
@@ -87,8 +80,7 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  // The RenderPass draw: submit every cached chunk's per-material VBOs, each with its own texture
-  // (no rebuild — that's the point). Material order is painter order (water under sand under grass).
+  // submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
   draw(_world) {
     if (!this._ok) return;
     const keys = Object.keys(this._cache);
@@ -99,9 +91,7 @@ globalThis.TerrainStream = class TerrainStream {
   }
 
   // Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with
-  // its own sprite/texture. `rec.terrain` is the chunk's interior material grid (row-major
-  // lx + ly*cols); the apron is sampled live. Returns [{ vb, tex }] (a material with no tiles in this
-  // chunk is skipped, so the base water layer is always present, upper layers only where they appear).
+  // its own sprite/texture. Apron is sampled live; a material with no tiles in this chunk is skipped.
   _buildChunk(rec) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -113,8 +103,7 @@ globalThis.TerrainStream = class TerrainStream {
     const y0 = rec.cy * cr;
     const interior = rec.terrain;
 
-    // Padded material grid covering cells [x0-1, x0+cc) x [y0-1, y0+cr) → (cc+1)x(cr+1). Interior
-    // (i>0 && j>0) from the record; the top row + left column (the dual apron) from the source.
+    // padded grid (cc+1)x(cr+1): interior from the record, top row + left column (dual apron) from the source
     const pw = cc + 1;
     const pad = new Array(pw * (cr + 1));
     for (let j = 0; j <= cr; j++) {
@@ -137,8 +126,7 @@ globalThis.TerrainStream = class TerrainStream {
       let any = false;
       for (let ly = 0; ly < cr; ly++) {
         for (let lx = 0; lx < cc; lx++) {
-          // Display tile centered on data-corner (gx,gy) = (x0+lx, y0+ly); samples the 4 cells it
-          // touches against layer m (cumulative: a cell is "in layer m" iff its material >= m).
+          // display tile on data-corner (x0+lx, y0+ly); samples the 4 touched cells (in layer m iff material >= m)
           const bi = lx + 1; // pad column of cell (x0+lx); cell (x0+lx-1) is bi-1
           const bj = ly + 1; // pad row of cell (y0+ly)
           let mask = 0;
@@ -147,16 +135,14 @@ globalThis.TerrainStream = class TerrainStream {
           if (pad[bj * pw + bi] >= m) mask |= 4; // BR
           if (pad[bj * pw + (bi - 1)] >= m) mask |= 8; // BL
           if (mask === 0) continue;
-          // Frame = the corner mask, except a FULL cell (mask 15) picks one of the full-tile
-          // variants by a per-cell position hash — so interior terrain doesn't repeat the identical
-          // tile in a visible grid. Borders (mask 1..14) always use the base variant (frame == mask).
+          // frame = corner mask; a full cell (15) picks a full-tile variant by position hash to break
+          // visible repetition. Borders (1..14) use the base variant (frame == mask).
           const frame =
             mask === 15 && s.variants > 1
               ? 15 + this._variant(x0 + lx, y0 + ly, s.variants)
               : mask;
-          // Trim-aware quad (mirrors RenderTileMap._quad): honor the packer's per-frame UV offset/
-          // size factors so a trimmed frame isn't stretched to the full cell.
-          // Untinted (addQuad defaults color=c_white) — the sprite already carries the material color.
+          // trim-aware quad (mirrors RenderTileMap._quad): honor the packer's per-frame UV factors so a
+          // trimmed frame isn't stretched. Untinted — the sprite carries the material color.
           const uvs = sprite_get_uvs(s.spr, frame);
           const wx = (x0 + lx) * cw - hw;
           const wy = (y0 + ly) * ch - hh;
@@ -180,9 +166,8 @@ globalThis.TerrainStream = class TerrainStream {
     return out;
   }
 
-  // Deterministic per-cell variant index in [0, n): a MINSTD integer-float hash of the absolute
-  // cell coords (no bitwise chain — GMRT miscompiles xorshift; mirrors OverworldGen._hash). Pure in
-  // (gx, gy), so a chunk reload picks the same variants and seams stay stable across streaming.
+  // deterministic per-cell variant index in [0, n): MINSTD integer-float hash (no bitwise chain —
+  // GMRT miscompiles xorshift; mirrors OverworldGen._hash). Pure in (gx, gy), so reloads stay stable.
   _variant(gx, gy, n) {
     const M = 2147483647;
     let h = 374761393 % M;
@@ -192,7 +177,7 @@ globalThis.TerrainStream = class TerrainStream {
     return h % n;
   }
 
-  // Free one chunk's per-material VBOs.
+  // free one chunk's per-material VBOs
   _destroyChunk(list) {
     for (let i = 0; i < list.length; i++) list[i].vb.destroy();
   }

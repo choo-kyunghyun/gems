@@ -1,39 +1,31 @@
-// Procedural OVERWORLD generator — the swappable "how is wilderness generated" half of chunk
-// streaming, split out of ChunkSource so generation isn't fixed: ChunkSource (the ChunkManager
-// `source`) routes authored hub chunks to the level file and everything else to a generator
-// like this one. Swap in a different generator (cave/desert/...) with the same generate(cx,cy)
-// contract for a different world; tag its prefab set to match (see prefabTag).
+// Procedural overworld generator — the swappable "how is wilderness generated" half of chunk
+// streaming. ChunkSource routes authored hub chunks to the level file and everything else here;
+// swap in another generator (cave/desert/...) with the same generate(cx,cy) contract.
 //
-// Contract (consumed by ChunkSource → ChunkManager):
-//   generate(cx, cy) -> { terrain: Int[chunkCols*chunkRows], walls: [[gx,gy,w,h]...],
-//                         solid: [[gx,gy,w,h]...], spawns: [...] }
-//     ABSOLUTE grid coords, fully deterministic from (cx, cy, seed) — a chunk MUST regenerate
-//     identically every visit (the streaming cache only persists ENTITY state, never terrain).
-//   terrain(cx, cy) -> a flat per-cell material-id grid (row-major lx + ly*chunkCols) for the chunk,
-//     a value-noise biome (water/sand/grass, see OverworldGen.TERRAIN) — a PURE function of absolute
-//     cell coords + seed, so chunks agree at their seams (TerrainStream renders it via RenderTileMap).
-//   solid(...) -> greedy-meshed rects of the chunk's IMPASSABLE terrain cells (a null-pathCost
-//     material, water) that ChunkManager turns into collide-only colliders — so impassable terrain
-//     blocks the player AND feeds NavGrid pathfinding, not just the cosmetic render.
+// Contract (consumed by ChunkSource → ChunkManager): generate/terrain/solid all return ABSOLUTE
+// grid coords, fully deterministic from (cx, cy, seed) — a chunk MUST regenerate identically every
+// visit (the streaming cache persists only ENTITY state, never terrain).
+//   generate -> { terrain: Int[cols*rows], walls/solid: [[gx,gy,w,h]...], spawns: [...] }
+//   terrain  -> per-cell material-id grid (value-noise biome, see TERRAIN), pure in absolute coords
+//               so chunks agree at seams.
+//   solid    -> greedy-meshed rects of impassable cells (water) → collide-only colliders, so water
+//               blocks the player AND feeds NavGrid.
 //
-// Output = an optional stamped PREFAB (a hand-authored cluster) plus a loose random scatter of
-// rocks + rats. Determinism comes from a per-chunk seed fed to a MINSTD LCG (see the PRNG note
-// below — GMRT miscompiles xorshift, so this uses pure integer-float math, no bitwise chain).
-// GMRT-safe: index loops, Object.keys (no Map/Set for-of), class assigned to globalThis.
+// Determinism comes from a per-chunk seed fed to a MINSTD LCG (see PRNG note below — GMRT
+// miscompiles xorshift). GMRT-safe: index loops, Object.keys (no Map/Set for-of), class on globalThis.
 globalThis.OverworldGen = class OverworldGen {
   constructor(opts = {}) {
     this.seed = (opts.seed ?? 1337) | 0;
     this.chunkCols = opts.chunkCols ?? 16;
     this.chunkRows = opts.chunkRows ?? 16;
-    // Probability a chunk stamps a prefab (the rest is loose scatter only).
+    // probability a chunk stamps a prefab (rest is loose scatter only)
     this.prefabChance = opts.prefabChance ?? 0.45;
-    // Prefab scope: only prefabs carrying this tag are eligible (so a cave generator draws from
-    // a different set). Resolved once — prefabs are registered (RpgContent) before a source is
-    // built. Empty set ⇒ prefab stamping is a no-op.
+    // prefab scope: only prefabs with this tag are eligible (a cave generator draws a different set);
+    // empty set ⇒ stamping is a no-op
     this.prefabs = Prefab.byTag(opts.prefabTag ?? "overworld");
   }
 
-  // Source contract: deterministic terrain + spawns for a chunk.
+  // deterministic terrain + spawns for a chunk
   generate(cx, cy) {
     const rng = this._rng(this._seedFor(cx, cy));
     const gx0 = cx * this.chunkCols;
@@ -41,8 +33,7 @@ globalThis.OverworldGen = class OverworldGen {
     const walls = [];
     const spawns = [];
 
-    // A chunk may host one stamped prefab (a structured cluster: a den, a ruin, a boulder
-    // field) placed inside the interior so it can't straddle a chunk seam.
+    // one optional stamped prefab, kept in the interior so it can't straddle a chunk seam
     if (this.prefabs.length > 0 && rng() < this.prefabChance)
       this._stamp(rng, gx0, gy0, walls, spawns);
 
@@ -55,12 +46,9 @@ globalThis.OverworldGen = class OverworldGen {
     };
   }
 
-  // ── terrain (value-noise biome) ─────────────────────────────────────────────
-  // Per-cell material grid for a chunk, row-major (lx + ly*chunkCols). Each cell's material is a
-  // pure function of its ABSOLUTE coords (not per-chunk RNG state — that would tear at seams), so
-  // adjacent chunks line up. TerrainStream renders it; impassable cells additionally collide (see
-  // solidTerrain) so water blocks movement + pathfinding, while walkable cells (sand/grass) are
-  // render-only.
+  // terrain (value-noise biome)
+  // Per-cell material grid, row-major. Each cell's material is a pure function of its ABSOLUTE
+  // coords (not per-chunk RNG — that would tear at seams), so adjacent chunks line up.
   terrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -73,30 +61,26 @@ globalThis.OverworldGen = class OverworldGen {
     return out;
   }
 
-  // Public single-cell biome material lookup (TerrainStream's seam apron) — the same value-noise
-  // threshold terrain() uses, so an apron cell matches the neighbor chunk's interior exactly.
+  // single-cell biome lookup (TerrainStream's seam apron) — same threshold terrain() uses, so an
+  // apron cell matches the neighbor chunk's interior exactly
   materialAt(ax, ay) {
     return this._material(ax, ay);
   }
 
-  // True if the cell's material is walkable (pathCost !== null). The single source of "can stand
-  // here" for spawn placement + the solid-terrain mesh.
+  // true if walkable (pathCost !== null); the single "can stand here" source for spawns + the solid mesh
   _passable(ax, ay) {
     return OverworldGen.TERRAIN[this._material(ax, ay)].pathCost !== null;
   }
 
-  // Greedy-mesh the chunk's IMPASSABLE terrain cells (a null-pathCost material — water) into the
-  // fewest [gx,gy,w,h] rects (ABSOLUTE grid coords), so ChunkManager makes one collide-only
-  // collider per rect instead of a per-cell box (per-cell collider seams snag sliding bodies — see
-  // memory project_tile_collider_seams; this mirrors TileEdit.meshRects, over the flat material
-  // grid rather than a Level/TileLayer). Pure in (cx, cy, seed) like the terrain it derives from.
-  // Returns [] when the chunk has no impassable material (the common case → no collider work).
+  // Greedy-mesh impassable cells (water) into the fewest [gx,gy,w,h] rects, so ChunkManager makes one
+  // collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
+  // project_tile_collider_seams). Pure in (cx, cy, seed); returns [] when nothing is impassable.
   solidTerrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
     const gx0 = cx * cc;
     const gy0 = cy * cr;
-    // Per-cell blocked flags for the chunk; bail early if nothing is impassable.
+    // per-cell blocked flags; bail early if nothing is impassable
     const blocked = new Array(cc * cr);
     let any = false;
     for (let ly = 0; ly < cr; ly++)
@@ -134,7 +118,7 @@ globalThis.OverworldGen = class OverworldGen {
     return rects;
   }
 
-  // Threshold the noise into a material id (index into OverworldGen.TERRAIN, ascending thresholds).
+  // threshold the noise into a material id (index into TERRAIN, ascending thresholds)
   _material(ax, ay) {
     const n = this._noise(ax, ay);
     const pal = OverworldGen.TERRAIN;
@@ -142,8 +126,7 @@ globalThis.OverworldGen = class OverworldGen {
     return pal.length - 1;
   }
 
-  // Value noise in [0,1): bilinear (smoothstep) interpolation over a coarse lattice of hashed
-  // values. LATTICE = lattice spacing in cells (bigger = larger biomes). Pure in (ax, ay, seed).
+  // value noise in [0,1): smoothstep-interpolated over a coarse hashed lattice; pure in (ax, ay, seed)
   _noise(ax, ay) {
     const L = OverworldGen.LATTICE;
     const fx = ax / L;
@@ -163,8 +146,8 @@ globalThis.OverworldGen = class OverworldGen {
     return a + (b - a) * ty;
   }
 
-  // Hash a lattice point to [0,1) — MINSTD integer-float math (same family as _seedFor; no bitwise
-  // chain, which GMRT miscompiles). Every product stays < 2^53, so it's exact.
+  // hash a lattice point to [0,1) — MINSTD integer-float math (no bitwise chain, which GMRT
+  // miscompiles); every product stays < 2^53, so it's exact
   _hash(ix, iy) {
     const M = 2147483647;
     let h = this.seed % M;
@@ -174,10 +157,10 @@ globalThis.OverworldGen = class OverworldGen {
     return h / M;
   }
 
-  // ── prefab stamping ─────────────────────────────────────────────────────────
+  // prefab stamping
 
-  // Pick a prefab (weighted) and translate its local coords to absolute, placed at a random
-  // interior offset (1-cell margin so its walls don't merge across a chunk seam).
+  // Pick a prefab (weighted) and translate its local coords to absolute at a random interior
+  // offset (1-cell margin so its walls don't merge across a chunk seam).
   _stamp(rng, gx0, gy0, walls, spawns) {
     const p = this._pick(rng);
     if (p === undefined) return;
@@ -193,13 +176,13 @@ globalThis.OverworldGen = class OverworldGen {
     }
     for (let i = 0; i < p.spawns.length; i++) {
       const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
-      // Don't drop a dynamic enemy into impassable terrain (water) — it'd snag in the collider.
+      // don't drop a dynamic enemy into water — it'd snag in the collider
       if (s.preset === "raider" && !this._passable(s.gx, s.gy)) continue;
       spawns.push(s);
     }
   }
 
-  // Weighted pick from the eligible prefab set.
+  // weighted pick from the eligible prefab set
   _pick(rng) {
     const all = this.prefabs;
     let total = 0;
@@ -212,9 +195,8 @@ globalThis.OverworldGen = class OverworldGen {
     return all[all.length - 1];
   }
 
-  // Translate one local spawn descriptor to an absolute one. Copies scalar fields and DEEP-copies
-  // item arrays (loot/items) so stamped instances never share — and mutate, on pickup — the
-  // registry def's arrays. A loot-less human still drops the standard scatter loot.
+  // Local → absolute spawn descriptor. Deep-copies item arrays (loot/items) so stamped instances
+  // never share — and mutate on pickup — the registry def's arrays.
   _placeSpawn(s, ox, oy, rng) {
     const out = {};
     const keys = Object.keys(s);
@@ -239,14 +221,13 @@ globalThis.OverworldGen = class OverworldGen {
     return out;
   }
 
-  // ── loose scatter ───────────────────────────────────────────────────────────
+  // loose scatter
 
   _scatter(rng, gx0, gy0, walls, spawns) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
 
-    // Rock clusters (kinematic-solid wall rects). Kept off the chunk's 1-cell border so a
-    // cluster never merges across a chunk seam or blocks a chunk entrance entirely.
+    // rock clusters; kept off the 1-cell border so a cluster never merges across a seam or blocks an entrance
     const rocks = 2 + Math.floor(rng() * 3); // 2..4
     for (let i = 0; i < rocks; i++) {
       const w = 1 + Math.floor(rng() * 2);
@@ -256,14 +237,12 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([gx0 + lx, gy0 + ly, w, h]);
     }
 
-    // Wandering rats (wildlife) — the ambient overworld creature. Raiders ("raider") stay the
-    // camp/quest enemy (the bandit_camp prefab), so the open wilderness reads as wildlife, not a
-    // world full of lone bandits. Rats yield the odd scavenged rag, no gear.
+    // wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (bandit_camp prefab)
     const rats = 1 + Math.floor(rng() * 3); // 1..3
     for (let i = 0; i < rats; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));
       const ly = 1 + Math.floor(rng() * (cr - 2));
-      // Skip a cell on impassable terrain — a dynamic body spawned inside a water collider snags.
+      // skip impassable terrain — a dynamic body inside a water collider snags
       if (!this._passable(gx0 + lx, gy0 + ly)) continue;
       spawns.push({
         preset: "rat",
@@ -284,13 +263,11 @@ globalThis.OverworldGen = class OverworldGen {
     return loot;
   }
 
-  // ── deterministic PRNG (Park–Miller MINSTD LCG over PURE INTEGER FLOAT MATH; no bitwise) ──
-  // GMRT miscompiles 32-bit xorshift: its shift-overflow / signed-shift chain collapses to a
-  // constant (0x80000000 → 0.5) for many seeds (different seeds, identical output). Integer
-  // multiply-mod keeps every intermediate exact below 2^53, sidestepping that whole class of bug.
+  // deterministic PRNG: Park–Miller MINSTD LCG over pure integer-float math, NOT xorshift32 —
+  // GMRT miscompiles xorshift (its shift chain collapses to a constant 0.5 for many seeds). Integer
+  // multiply-mod keeps every intermediate exact below 2^53.
 
-  // Fold (cx, cy, seed) into a positive LCG seed in [1, M]. Each multiply-add-mod stays < 2^53
-  // (exact in float), so distinct chunks get distinct seeds. M = 2^31-1 (the LCG modulus).
+  // fold (cx, cy, seed) into a positive LCG seed in [1, M] (M = 2^31-1); distinct chunks → distinct seeds
   _seedFor(cx, cy) {
     const M = 2147483647;
     let h = this.seed % M;
@@ -299,8 +276,7 @@ globalThis.OverworldGen = class OverworldGen {
     return h + 1; // [1, M]
   }
 
-  // Returns a function yielding floats in [0, 1). MINSTD: s' = s * 48271 mod (2^31-1).
-  // 48271 * (M-1) ≈ 1.04e14 < 2^53, so the product is exact.
+  // MINSTD generator yielding floats in [0, 1): s' = s * 48271 mod (2^31-1); product stays < 2^53 (exact)
   _rng(seed) {
     const M = 2147483647;
     let s = seed % M;
@@ -312,17 +288,12 @@ globalThis.OverworldGen = class OverworldGen {
   }
 };
 
-// Biome palette: material id = index into this table; ascending `threshold` over the value noise
-// (water lowest → grass highest, the last entry's threshold is the open top). `sprite` is the
-// per-material UNTINTED dual-grid tileset TerrainStream renders that layer with (spr_terrain*);
-// `color` is kept as the design-reference tint (no longer drawn, since each material now has real
-// colored art). Cumulative-stacked (a cell of material m fills render layers 0..m), so each upper
-// terrain's dual border reveals the one below.
-// `pathCost` mirrors the TileType convention (null → impassable, i.e. Infinity nav cost): a null
-// material becomes a collide-only collider per chunk (solidTerrain → ChunkManager), so the player
-// can't walk on it and NavGrid routes enemies around it. Walkable materials are cost 1 (no graduated
-// terrain here, so nav stays binary walkable/blocked).
-// Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
+// Biome palette: material id = index; ascending `threshold` over the value noise (water → grass).
+// `sprite` is the untinted dual-grid tileset TerrainStream renders the layer with; `color` is the
+// design-reference tint (no longer drawn — real colored art now). Cumulative-stacked, so each upper
+// terrain's dual border reveals the one below. `pathCost` follows TileType (null → impassable →
+// collide-only collider per chunk via solidTerrain; walkable = 1, so nav stays binary).
+// Assigned after the class (not a static initializer) — GMRT static-field-init quirk.
 OverworldGen.TERRAIN = [
   {
     id: "water",
@@ -350,13 +321,9 @@ OverworldGen.TERRAIN = [
   },
 ];
 
-// Canonical material palette: the full set of overworld terrain materials by `id`, with a display
-// `name` and a `color` (the intended tint). This is the design reference the generation gradient is
-// drawn from — TERRAIN above is the currently-WIRED subset (water/sand/grass), keeping its own
-// thresholds/pathCost + (for now) its own colors until a material here is promoted into the active
-// gradient. Several entries (thinice/ice) are climate variants rather than elevation bands, so they
-// live here for later climate-driven selection, not in the single-noise threshold gradient.
-// Assigned after the class (not a static initializer) to dodge the GMRT static-field-init quirk.
+// Design-reference material palette (full set by id + name + intended tint). TERRAIN above is the
+// currently-WIRED subset; entries here (e.g. thinice/ice — climate variants) await promotion into
+// the active gradient. Assigned after the class — GMRT static-field-init quirk.
 OverworldGen.PALETTE = [
   { id: "water", name: "Water", color: "#639bff" },
   { id: "deepwater", name: "Deep Water", color: "#5b6ee1" },

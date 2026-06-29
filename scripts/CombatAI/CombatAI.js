@@ -1,29 +1,12 @@
-// Combat AI for the RPG: a generic Idle → Chase → Attack state machine (driven by the shared
-// StateSystem) for ANY non-player combatant. Mobile melee enemies (enemies) and stationary ranged
-// emplacements (turrets) are now the SAME module, differing only by Brain DATA (`mobile` + `ranged`)
-// — this replaces the old per-kind split (SlimeAI + a dedicated Turret component + TurretSystem).
-// A turret is just an immovable, player-faction actor whose Brain is { mobile:false, ranged:true }
-// (see RpgSpawn); it reuses this one targeting/LOS/attack path instead of a parallel copy.
-//
-// Targeting is by FACTION, not a hardcoded id: an actor carries Faction{...} and acquires the
-// nearest HOSTILE attackable body (FactionSystem.nearestHostile) when one enters aggro range. Add
-// another hostile faction and these actors fight it too, with no change here.
-//
-// Mobile actors (enemies) are dynamic solid bodies (Velocity + non-kinematic Collision), so
-// SolidSystem integrates the velocity these states set and collides them against the level walls.
-// Stationary actors (turrets) are kinematic — they never set velocity, so SolidSystem leaves them
-// put; the Velocity attach() adds is inert.
-//
-// Usage (per actor, at spawn):
-//   CombatAI.attach(world, id, level);                                   // enemy (mobile melee)
-//   CombatAI.attach(world, id, level, { mobile:false, ranged:true, … }); // turret
-// Then run StateSystem each physics tick (it drives the schemas below).
+// Generic Idle → Chase → Attack state machine for all non-player combatants (enemies + turrets).
+// Mobile melee and stationary ranged actors are the same module, differing only by Brain data
+// (`mobile`/`ranged`). Targeting is by faction, not a hardcoded id — add a new hostile faction
+// and actors fight it with no change here.
 
-// Turret hitscan reach = bulletSpeed × this (s) ≈ the old projectile bullet's 90-tick range.
+// turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
 const RPG_SHOT_RANGE_SECS = 1.5;
 
-// Per-actor AI memory + tuning. Token co-located with its only consumer. `target` is the
-// currently-chased entity id (-1 = none), acquired/dropped per actor — see the statics note.
+// per-actor AI memory + tuning; `target` is the chased entity id (-1 = none)
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
@@ -43,18 +26,14 @@ globalThis.Brain = "Brain";
  */
 
 globalThis.CombatAI = {
-  // StateSchema callbacks receive only `id`, so world/level live here as shared statics
-  // (one World + one Level per map, so they're shared safely). The chase TARGET is per-actor
-  // on Brain — acquired by faction, never a shared id — which also lets captured/restored
-  // actors (chunk streaming) keep working without re-attaching: world/level are refreshed on
-  // every attach, and Brain (incl. target) round-trips through EntitySnapshot.
+  // StateSchema callbacks receive only `id`, so world/level live here as shared statics (one World
+  // + one Level per map). Target is per-actor on Brain (round-trips through EntitySnapshot), so
+  // captured/restored actors (chunk streaming) keep working without re-attaching.
   _world: undefined,
   _level: undefined, // for grid<->world conversion when pathfinding around walls
 
-  // Attach the AI to an entity. `opt` overrides the Brain defaults; the defaults describe a
-  // mobile melee enemy, so a enemy calls attach(world, id, level) bare and a turret passes
-  // { mobile:false, ranged:true, attackRange, cdMax, bulletSpeed, aggro, deAggro }. (Damage is NOT
-  // here — it's the actor's Stats.attack now; see _attackPower.)
+  // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
+  // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
   attach(world, id, level, opt = {}) {
     this._world = world;
     this._level = level;
@@ -78,17 +57,15 @@ globalThis.CombatAI = {
     world.add(id, State, { current: undefined, next: this.IDLE });
   },
 
-  // Re-point the shared world/level statics at the active map WITHOUT re-attaching every actor.
-  // attach() sets them too, but a RESUMED map (sceneRpg's map pool — RpgMap.resume) keeps its
-  // actors' Brain/State without calling attach again, so these statics would otherwise still point
-  // at the last-BUILT map's world → an actor's IDLE/CHASE reads the wrong world and faults. Called
-  // on every map activate via RpgMap._activateReset.
+  // Re-point world/level statics at the active map without re-attaching actors. A resumed map
+  // (RpgMap.resume) keeps its actors' Brain/State without calling attach, so without this the
+  // statics still point at the last-built map's world and IDLE/CHASE faults. Called per map activate.
   bind(world, level) {
     this._world = world;
     this._level = level;
   },
 
-  // Distance from actor `id` to its current Brain.target; Infinity if it has none / it's gone.
+  // distance to Brain.target; Infinity if none / gone
   _distTo(id) {
     const w = this._world;
     const t = w.get(Brain, id).target;
@@ -100,7 +77,7 @@ globalThis.CombatAI = {
     return Math.sqrt(dx * dx + dy * dy);
   },
 
-  // Point the actor's velocity at (tx, ty) at the given speed.
+  // aim velocity at (tx, ty) at `speed`
   _seek(id, tx, ty, speed) {
     const w = this._world;
     const pos = w.get(Position, id);
@@ -118,10 +95,8 @@ globalThis.CombatAI = {
     vel.y = 0;
   },
 
-  // Steer along an A* path to the target, replanning on a throttle. The request is resolved by
-  // PathfindingSystem later this tick (pipeline: StateSystem → PathfindingSystem) into a
-  // PathResponse the actor follows from next tick; until one exists it heads straight. Waypoints
-  // are absolute level cells (NavGrid.toPosition) → gridToWorld for the seek.
+  // Steer along an A* path, replanning on a throttle. PathfindingSystem resolves the request later
+  // this tick into a PathResponse the actor follows next tick; until one exists it heads straight.
   _followPath(id, brain, sp, tp) {
     const w = this._world;
     const level = this._level;
@@ -142,7 +117,7 @@ globalThis.CombatAI = {
       this._seek(id, tp.x, tp.y, brain.speed); // no path yet — head straight for now
       return;
     }
-    // Skip a waypoint we've essentially reached (the path's first cell is our own), then steer.
+    // skip a waypoint we've essentially reached (path's first cell is our own), then steer
     let ww = level.gridToWorld(wp.x, wp.y);
     const near = level.cellWidth * 0.4;
     if ((sp.x - ww.x) ** 2 + (sp.y - ww.y) ** 2 < near * near) {
@@ -157,17 +132,16 @@ globalThis.CombatAI = {
     this._seek(id, ww.x, ww.y, brain.speed);
   },
 
-  // Drop any path components (when line-of-sight clears mid-chase, or on leaving chase).
+  // drop any path components (LOS cleared mid-chase, or leaving chase)
   _clearPath(id) {
     const w = this._world;
     if (w.get(PathResponse, id) !== undefined) w.detach(id, PathResponse);
     if (w.get(PathRequest, id) !== undefined) w.detach(id, PathRequest);
   },
 
-  // Per-state aggro cue. Mobile actors are now real flat ART (not debug boxes), so a FULL state-color
-  // multiply muddied the authored sprite (a brick-red enemy went murky green at idle). Apply only a
-  // light WASH toward the state color (mostly white) so the sprite's own color shows while aggro still
-  // reads; white (idle) = no tint. A STATIONARY actor (turret) keeps its authored color.
+  // Per-state aggro cue: a light wash toward the state color (mostly white) so the authored sprite
+  // shows while aggro still reads (a full multiply muddied the art). White = no tint; turrets keep
+  // their authored color.
   _tint(id, r, g, b) {
     const w = this._world;
     const brain = w.get(Brain, id);
@@ -190,8 +164,7 @@ globalThis.CombatAI = {
       const w = CombatAI._world;
       const brain = w.get(Brain, id);
       const pos = w.get(Position, id);
-      // A mobile actor drifts back home if knocked away; otherwise sits still. A stationary
-      // actor (turret) can't move — it just watches.
+      // a mobile actor drifts back home if knocked away; a turret just watches
       if (brain.mobile) {
         const dx = brain.home.x - pos.x;
         const dy = brain.home.y - pos.y;
@@ -200,11 +173,11 @@ globalThis.CombatAI = {
         else CombatAI._stop(id);
       }
 
-      // Acquire the nearest hostile attackable body in aggro range (by faction, not a fixed id).
+      // acquire nearest hostile in aggro range (by faction)
       const t = FactionSystem.nearestHostile(w, id, pos.x, pos.y, brain.aggro);
       if (t !== -1) {
         brain.target = t;
-        // A mobile actor closes the distance first; a stationary turret attacks in place.
+        // mobile actor closes the distance; turret attacks in place
         StateSystem.change(
           w,
           id,
@@ -214,7 +187,7 @@ globalThis.CombatAI = {
     },
   },
 
-  // Entered only by MOBILE actors (a stationary one goes IDLE → ATTACK directly).
+  // entered only by mobile actors (a turret goes IDLE → ATTACK directly)
   CHASE: {
     enter(id) {
       CombatAI._tint(id, 230, 170, 70); // alert orange
@@ -222,7 +195,7 @@ globalThis.CombatAI = {
     update(id) {
       const w = CombatAI._world;
       const brain = w.get(Brain, id);
-      // Target killed or streamed out — forget it and re-acquire from idle.
+      // target killed or streamed out — re-acquire from idle
       if (!w.isValid(brain.target)) {
         brain.target = -1;
         StateSystem.change(w, id, CombatAI.IDLE);
@@ -241,9 +214,8 @@ globalThis.CombatAI = {
       const sp = w.get(Position, id);
       const tp = w.get(Position, brain.target);
 
-      // Line-of-sight: only a WALL (kinematic solid) between us forces a detour. A clear shot —
-      // the common case on the open overworld — is a straight seek (identical to the old behavior);
-      // dynamic bodies (the target / other actors, hit at t≈1) don't count as blockers.
+      // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight seek.
+      // Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
       const hit = Raycast.cast(w, sp.x, sp.y, tp.x, tp.y, { ignore: id });
       const blocked = hit !== null && w.get(Collision, hit.id).kinematic;
       if (!blocked || CombatAI._level === undefined) {
@@ -255,7 +227,7 @@ globalThis.CombatAI = {
       CombatAI._followPath(id, brain, sp, tp);
     },
     finish(id) {
-      CombatAI._clearPath(id); // leaving chase tidies any path components
+      CombatAI._clearPath(id);
     },
   },
 
@@ -274,8 +246,7 @@ globalThis.CombatAI = {
       }
       CombatAI._stop(id);
 
-      // Cooldown read/written live off the component (no cached primitive — see
-      // GMRT boolean-local clobber note). A ranged actor fires a bullet; a melee one hits directly.
+      // cooldown read/written live off the component (no cached primitive — GMRT bool-local clobber)
       if (brain.cd > 0) brain.cd--;
       if (brain.cd <= 0) {
         if (brain.ranged) CombatAI._fireAt(id, brain);
@@ -283,8 +254,7 @@ globalThis.CombatAI = {
         brain.cd = brain.cdMax;
       }
 
-      // Out of attack range: a mobile actor resumes the chase; a stationary one can't pursue, so
-      // it drops to idle to re-acquire.
+      // out of range: a mobile actor resumes the chase; a turret can't pursue, so it idles to re-acquire
       if (CombatAI._distTo(id) > brain.attackRange)
         StateSystem.change(
           w,
@@ -294,16 +264,13 @@ globalThis.CombatAI = {
     },
   },
 
-  // Outgoing damage for a non-player attacker: its Stats.attack (a monster has no weapon — its body
-  // IS the weapon, so the whole hit is the sheet stat), 0 if it somehow carries no Stats. Mirrors
-  // the player's `weapon.damage + Stats.attack` with a zero weapon.
+  // outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
   _attackPower(id) {
     const stats = this._world.get(Stats, id);
     return stats !== undefined ? stats.attack : 0;
   },
 
-  // Apply one MELEE attack to the actor's target through the shared Combat applier (defense + floor
-  // via the injected mitigate hook). Damage is the attacker's Stats.attack (was brain.damage).
+  // one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
   _hitTarget(id) {
     const w = this._world;
     const t = w.get(Brain, id).target;
@@ -311,11 +278,9 @@ globalThis.CombatAI = {
     Combat.applyDamage(w, t, CombatAI._attackPower(id));
   },
 
-  // Fire an instant HITSCAN shot from a stationary RANGED actor (turret) at its Brain.target. Routes
-  // through the shared Combat.hitscan (same as a player gun) so a turret-killed enemy spills loot via
-  // the same Mortal/death path. hitscan itself stops the shot at a WALL or an ALLY before the target
-  // (a covered turret deals no damage — it just traces into cover), so no pre-LOS check is needed.
-  // A fading tracer shows the shot. (Replaces the old projectile-bullet spawn; mirrors a player shot.)
+  // Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
+  // gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
+  // tracer shows the shot.
   _fireAt(id, brain) {
     const w = this._world;
     const t = brain.target;
@@ -327,9 +292,7 @@ globalThis.CombatAI = {
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     const nx = dx / d;
     const ny = dy / d;
-    // Cast along the aim out to the muzzle-velocity-scaled reach (≈ the old bullet's range), past the
-    // target. pierce defaults 1 (turrets are single-target). Damage is stat-driven (Stats.attack via
-    // _attackPower); turrets carry no armor penetration (default 0). owner=id skips self + spares allies.
+    // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
     const range = brain.bulletSpeed * RPG_SHOT_RANGE_SECS;
     const shot = Combat.hitscan(w, sp.x, sp.y, sp.x + nx * range, sp.y + ny * range, {
       owner: id,

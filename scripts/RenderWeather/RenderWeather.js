@@ -1,20 +1,15 @@
-// World-space pass that draws the current Weather over the camera view: a flat tint plus falling
-// rain / drifting snow. Cross-fades the outgoing + incoming conditions by Weather.blend() so the
-// weather eases in/out. Inserted just BEFORE RenderLighting so the night/light tint also darkens
-// the rain; the scene's post-renderer cues (station highlight, build cursor, floating numbers)
-// stay bright above it.
+// World-space pass drawing the current Weather: a flat tint plus falling rain / drifting snow,
+// cross-faded by Weather.blend(). Inserted just BEFORE RenderLighting so the night tint also darkens
+// the rain.
 //
-// Particles are screen-space relative to the view rect (rain falls on the screen, not world-
-// locked) and scroll on a cumulative wall-clock (current_time — monotonic real ms, so they keep
-// falling while the sim is paused, like the UI). NOTE: the old code multiplied Time.raw — a PER-
-// FRAME delta, not a clock — by the fall speed, so every particle sat at a near-constant offset
-// each frame: that was the "rain/snow static" bug. Snow weaves with a sinusoidal horizontal sway
-// (Math.sin — trig works on GMRT 0.20); rain falls straight diagonal. Streaks use draw_line
-// (draw_line_width_color renders NOTHING on GMRT); snow uses draw_rectangle.
+// Particles are screen-space and scroll on current_time (a cumulative wall-clock, monotonic — so
+// they keep falling while the sim is paused). NOT Time.raw, which is a per-frame DELTA, not a clock:
+// multiplying it by fall speed froze every particle near a constant offset (the old "static" bug).
+// Snow sways via Math.sin (trig works on GMRT 0.20); streaks use draw_line (draw_line_width_color
+// renders NOTHING on GMRT), snow uses draw_rectangle.
 //
-// View rect from the held Camera's own fields (toX/toY/width/height), NOT camera_get_view_* — the
-// project's Camera drives the view by matrix so camera_get_view_* returns 0 (see CLAUDE.md). The
-// scene assigns pass.camera after building the camera, like RenderLighting.
+// View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
+// Camera; see CLAUDE.md). The scene assigns pass.camera after building the camera.
 //
 // @implements {RenderPass}
 globalThis.RenderWeather = class RenderWeather {
@@ -26,8 +21,8 @@ globalThis.RenderWeather = class RenderWeather {
     this._rainColor = Color.parse("#aebfd4");
     this._snowColor = Color.parse("#eef4fb");
 
-    // Fixed normalized base positions [0,1) generated ONCE, so particles don't re-randomize each
-    // frame; scaled to the view + scrolled by time below. _pr adds per-particle length jitter.
+    // fixed normalized base positions generated once (so particles don't re-randomize each frame);
+    // scaled to view + scrolled by time below. _pr adds per-particle length jitter.
     this._px = [];
     this._py = [];
     this._pr = [];
@@ -44,10 +39,9 @@ globalThis.RenderWeather = class RenderWeather {
 
   draw(_world) {
     if (this.camera === undefined) return;
-    // SCREEN-space: the tint + particles cover the application surface in pixel coords, so they
-    // fill the screen regardless of camera pitch (a 2.5D pitched camera would otherwise project
-    // a world-rect draw as a foreshortened ground quad). Reset view/projection to a flat
-    // surface-pixel ortho for this pass, then restore the camera matrices.
+    // Screen-space: cover the application surface in pixel coords so the tint fills the screen
+    // regardless of camera pitch (a world-rect draw would foreshorten under a 2.5D pitched camera).
+    // Reset view/projection to a flat surface-pixel ortho here, restored below.
     const w = surface_get_width(application_surface);
     const h = surface_get_height(application_surface);
     if (!(w > 0)) return; // NaN-safe (NaN > 0 is false)
@@ -62,10 +56,9 @@ globalThis.RenderWeather = class RenderWeather {
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
     );
     matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
-    // Disable the depth TEST for this screen-space overlay: the entities (RenderBillboard) wrote
-    // depth in the WORLD projection (a near depth), so with the test on this tint — drawn at the
-    // screen-ortho mid plane — is REJECTED over every opaque entity pixel (the snow/rain tint would
-    // skip all sprites). The overlay must cover everything; restore the global default (on) after.
+    // Disable the depth TEST: entities wrote near depth in the world projection, so with the test on
+    // this screen-ortho tint is rejected over every opaque entity pixel (skipping all sprites). The
+    // overlay must cover everything; restore the default (on) after.
     gpu_set_ztestenable(false);
 
     this._layer(Weather.previous(), 1 - blend, 0, 0, w, h);
@@ -78,11 +71,11 @@ globalThis.RenderWeather = class RenderWeather {
     draw_set_alpha(alpha);
   }
 
-  // Draw one condition at `intensity` (0..1) over the view rect: tint, then particles.
+  // draw one condition at `intensity` over the view rect: tint, then particles
   _layer(cond, intensity, x1, y1, w, h) {
     if (intensity <= 0) return;
     if (cond.a > 0) {
-      // Inflate 2px so camera pixel-rounding can't leave a seam at the screen edge.
+      // inflate 2px so camera pixel-rounding can't leave a seam at the screen edge
       draw_set_color(Color.parse(cond.c));
       draw_set_alpha(cond.a * intensity);
       draw_rectangle(x1 - 2, y1 - 2, x1 + w + 2, y1 + h + 2, false);

@@ -1,22 +1,15 @@
-// RPG content ROUTER for the chunk streamer (the ChunkManager `source`). Decides where a
-// chunk's terrain + entity spawns come from, but no longer generates them itself:
-//   • AUTHORED ORIGIN OVERLAY — the hand-built overworld (the level file's walls + spawns),
-//     indexed by chunk so the designed hub (Elder, cave portal, chest, workbench, claim post)
-//     appears in its chunks and stays procedural-free;
-//   • everything else is delegated to a swappable GENERATOR (default OverworldGen) — so world
-//     generation isn't fixed: pass a different `generator` (cave/desert/...) for a different
-//     wilderness with the same generate(cx,cy) contract.
+// RPG content router for the chunk streamer (the ChunkManager `source`) — decides where a chunk's
+// terrain + spawns come from, generating none itself: an AUTHORED OVERLAY (the level file's walls +
+// spawns, indexed by chunk) holds the hand-built hub procedural-free; everything else is delegated
+// to a swappable GENERATOR (default OverworldGen) with the generate(cx,cy) contract.
 //
-// Coordinates returned are ABSOLUTE grid coords (gridToWorld handles negatives), so any cx/cy
-// generates consistently — ChunkManager bounds which chunks it actually streams (the world is a
-// finite rectangle now, not infinite). Entity construction is delegated to RpgSpawn.spawnEntity —
-// the single place entities are built.
+// Returns ABSOLUTE grid coords (gridToWorld handles negatives); ChunkManager bounds which chunks it
+// streams. Entity construction is delegated to RpgSpawn.spawnEntity.
 globalThis.ChunkSource = class ChunkSource {
   constructor(opts = {}) {
     this.chunkCols = opts.chunkCols ?? 16;
     this.chunkRows = opts.chunkRows ?? 16;
-    // The procedural generator for non-authored chunks. Injectable so generation is swappable;
-    // defaults to the overworld generator seeded to match the map.
+    // procedural generator for non-authored chunks; injectable, defaults to a seeded OverworldGen
     this.generator =
       opts.generator ??
       new OverworldGen({
@@ -25,11 +18,11 @@ globalThis.ChunkSource = class ChunkSource {
         chunkRows: this.chunkRows,
       });
 
-    // Authored overlay, indexed by "cx,cy".
+    // authored overlay, indexed by "cx,cy"
     this._authWalls = {};
     this._authSpawns = {};
-    // Bounding box (in chunk coords) of all authored content — any chunk inside it is treated
-    // as authored (procedural suppressed) so the hub area stays clean even where it's sparse.
+    // bbox (chunk coords) of authored content — any chunk inside it suppresses procedural, so the
+    // hub area stays clean even where sparse
     this._hasAuth = false;
     this._minCx = 0;
     this._minCy = 0;
@@ -49,10 +42,8 @@ globalThis.ChunkSource = class ChunkSource {
     };
   }
 
-  // Index a level file's walls + entity spawns into per-chunk buckets. A wall rect is filed by
-  // its top-left chunk (the authored hub clusters are small, within a chunk or two — a rect
-  // straddling a border still meshes as one collider when that chunk loads). "reach" spawns are
-  // left in (ChunkSource.spawn skips them; the scene resolves the reach zone separately).
+  // Index a level file's walls + spawns into per-chunk buckets (a wall rect filed by its top-left
+  // chunk). "reach" spawns stay in — spawn() skips them; the scene resolves the reach zone separately.
   _indexAuthored(data) {
     const walls = data.walls ?? [];
     for (let i = 0; i < walls.length; i++) {
@@ -95,15 +86,13 @@ globalThis.ChunkSource = class ChunkSource {
     );
   }
 
-  // ChunkManager contract: deterministic { terrain, solid, walls, spawns } for a chunk — authored
-  // hub chunks take their walls/spawns from the overlay, everything else from the generator.
+  // deterministic { terrain, solid, walls, spawns } — authored chunks take walls/spawns from the
+  // overlay, everything else from the generator
   generate(cx, cy) {
     if (this._inAuthoredBox(cx, cy)) {
       const k = this._key(cx, cy);
-      // Terrain is biome-everywhere (a pure coord function), so authored hub chunks render the
-      // same continuous biome as the wilderness around them — the overlay overrides only
-      // walls/spawns. A custom generator without terrain() simply yields no ground here. The biome's
-      // impassable cells (solid) collide in the hub too, so a hub lake blocks like any other.
+      // terrain is biome-everywhere (a pure coord fn), so the hub renders the same continuous biome
+      // as the wilderness; the overlay overrides only walls/spawns, but biome solids still collide
       return {
         terrain:
           this.generator.terrain !== undefined
@@ -120,16 +109,14 @@ globalThis.ChunkSource = class ChunkSource {
     return this.generator.generate(cx, cy); // generate() already includes terrain + solid
   }
 
-  // Single-cell terrain material (delegates to the generator) — for TerrainStream's seam apron,
-  // which samples a chunk's neighbor cells. A generator without materialAt → 0 (flat base).
+  // single-cell terrain material (for TerrainStream's seam apron); no generator materialAt → 0
   materialAt(ax, ay) {
     return this.generator.materialAt !== undefined
       ? this.generator.materialAt(ax, ay)
       : 0;
   }
 
-  // ChunkManager contract: construct one spawn descriptor's entity (delegated to RpgSpawn so
-  // entity construction stays in one place). Non-entity presets (e.g. "reach") return -1.
+  // construct one spawn descriptor's entity (delegated to RpgSpawn); non-entity presets return -1
   spawn(world, level, desc) {
     return RpgSpawn.spawnEntity(world, level, desc);
   }

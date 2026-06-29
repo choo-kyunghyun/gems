@@ -1,10 +1,7 @@
-// In-game world clock for the RPG: a global time-of-day + day counter that every
-// time-aware feature (the day/night tint now; future weather/NPC schedules) reads.
-// Static like `Time` — there is a single world clock — and advanced once per frame
-// from the scene's step() by Time.delta (sim time): it pauses when the game pauses
-// (obj_game skips scene.step() while the SystemMenu is open) and dilates with
-// Time.scale, exactly like FloatingText. It persists across map changes — the scene
-// resets it once in create(), not per map — so walking through a door keeps the hour.
+// In-game world clock: a global time-of-day + day counter that every time-aware feature reads.
+// Static like `Time` (one clock), advanced once per frame from step() by Time.delta (sim time —
+// pauses with the game, dilates with Time.scale). Persists across map changes — the scene resets it
+// once in create(), not per map.
 globalThis.WorldClock = class WorldClock {
   static dayLength = 240; // real seconds for one full in-game day (at Time.scale 1)
   static startHour = 8; // morning when a fresh scene starts
@@ -12,9 +9,8 @@ globalThis.WorldClock = class WorldClock {
   static day = 1; // day counter, 1-based
   static daysPerSeason = 7; // in-game days per season; the four-season "year" is 4× this
 
-  // The four seasons in cycle order — a literal array (no class self-reference, dodging the
-  // static-field quirk) keyed by a stable id (future weather/temperature bias reads it) plus
-  // an i18n name key for the HUD. Season is a pure derivation of `day`, like phase() of hour.
+  // four seasons in cycle order; a literal (no class self-reference — static-field quirk). Season is
+  // a pure derivation of `day`, like phase() of hour.
   static _SEASONS = [
     { id: "spring", name: "RPG_SEASON_SPRING" },
     { id: "summer", name: "RPG_SEASON_SUMMER" },
@@ -22,10 +18,9 @@ globalThis.WorldClock = class WorldClock {
     { id: "winter", name: "RPG_SEASON_WINTER" },
   ];
 
-  // Day/night overlay keyframes, sorted by hour and wrapping seamlessly (h:0 and h:24
-  // share a color/alpha). Each is { h: hour, c: "#rrggbb" tint, a: overlay alpha }.
-  // alpha 0 in full daylight (08:00–17:00) so the pass draws nothing then. A literal
-  // initializer (no class self-reference), so the static-field quirk doesn't bite.
+  // Hand-authored day/night overlay keyframes { h, c tint, a alpha }, sorted by hour and wrapping
+  // (h:0 == h:24). alpha 0 in full daylight (08:00–17:00) so the pass draws nothing then. A literal
+  // (no class self-reference — static-field quirk).
   static _KF = [
     { h: 0, c: "#0b1133", a: 0.6 }, // midnight — deep blue
     { h: 5, c: "#0b1133", a: 0.55 }, // late night
@@ -37,15 +32,14 @@ globalThis.WorldClock = class WorldClock {
     { h: 24, c: "#0b1133", a: 0.6 }, // wraps to midnight
   ];
 
-  // Reset to the starting morning of day 1 (scene create()).
+  // reset to the starting morning of day 1 (scene create())
   static reset() {
     WorldClock.hour = WorldClock.startHour;
     WorldClock.day = 1;
   }
 
-  // Advance by `dt` real seconds (pass Time.delta): 24h per dayLength seconds, rolling
-  // the day counter at each midnight. `while` (not an empty-for) — an empty for-init
-  // crashes the GMRT compiler, and a big frame hitch could cross more than one midnight.
+  // advance by `dt` (Time.delta), rolling the day at each midnight. `while` not an empty-for — an
+  // empty for-init crashes the GMRT compiler, and a big hitch could cross more than one midnight.
   static update(dt) {
     WorldClock.hour += (24 / WorldClock.dayLength) * dt;
     while (WorldClock.hour >= 24) {
@@ -54,14 +48,14 @@ globalThis.WorldClock = class WorldClock {
     }
   }
 
-  // "HH:MM" on a 24-hour clock.
+  // "HH:MM" on a 24-hour clock
   static clockText() {
     const h = Math.floor(WorldClock.hour);
     const m = Math.floor((WorldClock.hour - h) * 60);
     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   }
 
-  // Coarse phase token, for HUD glyphs / future AI hooks. Plain thresholds.
+  // coarse phase token (night/dawn/day/dusk) for HUD glyphs / AI hooks
   static phase() {
     const h = WorldClock.hour;
     if (h < 5 || h >= 20) return "night";
@@ -70,21 +64,19 @@ globalThis.WorldClock = class WorldClock {
     return "dusk";
   }
 
-  // The current season def, derived purely from `day`: each season spans daysPerSeason days
-  // and the four cycle forever. The seam for weather bias + the temperature baseline.
+  // current season def, derived purely from `day` (each spans daysPerSeason days, cycling forever)
   static season() {
     const i = Math.floor((WorldClock.day - 1) / WorldClock.daysPerSeason) % 4;
     return WorldClock._SEASONS[i];
   }
 
-  // Day within the current season, 1-based — the calendar reading the HUD shows ("Day 3").
+  // day within the current season, 1-based (the HUD's "Day 3")
   static seasonDay() {
     return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
   }
 
-  // Day/night overlay as { color, alpha } for the current hour, interpolated between
-  // the two bracketing keyframes. Color.parse/merge from a method is fine — only a
-  // static-field self-reference breaks on GMRT, not referencing the loaded Color class.
+  // day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
+  // Color.parse/merge from a method is fine — only a static-field self-reference breaks on GMRT.
   static tint() {
     const kf = WorldClock._KF;
     const h = WorldClock.hour;
