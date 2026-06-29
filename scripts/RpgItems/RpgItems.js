@@ -212,8 +212,9 @@ globalThis.RpgItems = {
           new Container({ capacity: 8 }),
         ],
       },
-      // Currency + unique loot.
-      { id: "coin", name: "ITEM_COIN", weight: 0, value: 1, rarity: "common" },
+      // Currency + unique loot. coin stacks very high so a big credit balance stays ONE inventory
+      // slot (at the default stack of 99, 1000 coins would eat ~11 of the player's 16 slots).
+      { id: "coin", name: "ITEM_COIN", weight: 0, value: 1, rarity: "common", stack: 99999 },
       { id: "circuitry", name: "ITEM_CIRCUITRY", weight: 1, value: 50, rarity: "rare" },
       {
         id: "keycard",

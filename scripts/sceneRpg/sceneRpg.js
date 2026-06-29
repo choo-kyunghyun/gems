@@ -1,5 +1,6 @@
 const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
 const RPG_TRADE_RANGE = 64; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
+const RPG_START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
 const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
@@ -169,6 +170,7 @@ class _SceneRpgClass extends Scene {
     const startInv = this.world.get(Inventory, this.ctrl.id);
     InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
     EquipmentSystem.equipFirst(this.world, this.ctrl.id, "lead_pipe"); // equip that instance by uid
+    InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits to spend at merchants (1 slot — coin stacks high)
 
     // Seed one starting companion into the party (programmatic, not file-authored — so
     // reloading a persistent map never re-creates it; from here the travel/station persistence
