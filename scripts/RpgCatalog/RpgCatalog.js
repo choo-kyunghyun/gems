@@ -1,22 +1,15 @@
-// Placeable-entity catalog for the level editor — the "database" of what can be placed,
-// mirroring the spawn presets RpgSpawn.spawn understands (enemy/npc/chest/prop/reach).
+// Placeable-entity catalog for the level editor, mirroring RpgSpawn.spawn's presets.
 //
-// Each entry carries editor display (label + marker color), a `make(gx, gy)` factory that
-// returns a FRESH spawn record with sensible default fields (fresh per call, so two placed
-// entities never share a nested array/object reference), and a `fields` schema describing
-// the per-preset editable properties for the editor's property panel. The editor reads
-// `entries` for the palette, `get(id)` for marker color/label, and `fields` to render the
-// property editor; export writes the (edited) spawn records straight into the level file's
-// `spawns`.
+// Each entry has editor display (label + marker color), a `make(gx, gy)` factory returning a
+// FRESH spawn record (fresh per call, so placed entities never share a nested array/object
+// reference), and a `fields` schema for the property panel. Export writes the records into the
+// level file's `spawns`.
 //
 // Field schema (data only — the editor maps each kind to a widget):
-//   { key, kind: "int",   label, min?, max?, step? }      → numeric stepper
+//   { key, kind: "int",   label, min?, max?, step? }        → numeric stepper
 //   { key, kind: "select", label, options: [{name,value}] } → value picker (static list)
-//   { key, kind: "quest", label }                          → picker over QuestLog ids
-//   { key, kind: "items", label }                          → add/remove list of {itemId,qty}
-//
-// Display labels are plain strings (a dev-tool palette); colors are "#rrggbb" parsed via
-// Color.parse for the world-space markers.
+//   { key, kind: "quest", label }                           → picker over QuestLog ids
+//   { key, kind: "items", label }                           → add/remove list of {itemId,qty}
 const TD_STATION_KINDS = [
   { name: "(none)", value: undefined },
   { name: "storage", value: "storage" },

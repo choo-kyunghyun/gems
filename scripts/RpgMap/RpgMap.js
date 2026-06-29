@@ -1,33 +1,16 @@
-// Map-graph engine for the RPG scene — the world-loading, teardown, persistence-cache, and
-// portal-travel half of sceneRpg, extracted as free functions taking the scene (composition;
-// GMRT has no usable class inheritance — same pattern as RpgScene). The scene owns the fields
-// these read/write (world, level, ctrl, followers, renderer, camera, _mapCache, _built/_builtEnts, _gone,
-// physics, _tilePasses/_gridPass, etc.); RpgMap just orchestrates building/tearing them down.
+// Map-graph engine for the RPG scene — portal travel, map pool, and persistence.
+// Free functions over the scene (composition; GMRT has no usable class inheritance).
 //
-// Maps are discrete level files connected by portals (not one streamed world — the deliberate
-// fit for the JSON.parse-on-large-files limit and the one-World-per-scene model). A chunked map
-// (meta.chunked) streams its terrain + entities around the player via a ChunkManager; a plain map
-// builds everything up front.
-//
-// A visited map's World is kept ALIVE and suspended in a per-scene POOL (scene._maps), not
-// destroyed on a door trip: go() parks the current map (suspend → _stash) and resumes the target
-// if already visited (no file reload, no rebuild) or builds it fresh on a first visit. Only the
-// PARTY (player sheet + "follow" companions) migrates between worlds (EntitySnapshot); everything
-// else — stationed companions, built tiles/entities, the buildable zone, dead enemies — simply
-// stays resident in its parked world, so nothing has to be hand-marked for persistence. The old
-// per-leave Level.export() cache (scene._mapCache) is now the COLD path: only an LRU eviction
-// (_evict, past POOL_MAX parked maps) serializes a map there and frees it; a later revisit then
-// rebuilds it from file + imports the cache (enemies respawn on that cold rebuild only).
+// Visited worlds are kept ALIVE in a per-scene pool (scene._maps) — no destroy/rebuild on
+// a door trip. Only the party (player sheet + "follow" companions) migrates via EntitySnapshot;
+// everything else stays resident. Level.export() cache is the COLD path only: LRU eviction
+// (_evict, past POOL_MAX) serializes a map and frees it; revisit then rebuilds from file.
 globalThis.RpgMap = {
-  // Max number of PARKED (suspended) maps kept live in the pool before LRU eviction. The active
-  // map is on `this` (not counted), so up to POOL_MAX + 1 Worlds are resident. The overworld is
-  // chunk-bounded and interiors are tiny, so a handful is cheap; tune for memory vs. revisit cost.
+  // max parked worlds in pool before LRU eviction (active map is not counted)
   POOL_MAX: 3,
 
-  // The per-map fields a bundle owns — everything tied to one map's World/Level/render apparatus.
-  // _stash copies these off the scene into a parked bundle; _restore copies them back. NOT here:
-  // the scene-shell fields (ui, _mapCache, _maps, overlay flags) and the per-activate transients
-  // (_hpTrack/_npcId/_climateZone/_buildActive), which _activateReset reseeds each time a map opens.
+  // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
+  // per-activate transients reset by _activateReset on each map open)
   BUNDLE_KEYS: [
     "world",
     "level",
@@ -67,19 +50,14 @@ globalThis.RpgMap = {
     "_lighting",
   ],
 
-  // Travel to `mapId`@`entryId`: PARK the current map alive in the pool (no destroy/rebuild) and
-  // either resume the target's parked world (revisit) or build it from file (first visit). Only the
-  // party crosses worlds; stationed companions / built tiles+entities / the buildable zone / dead
-  // enemies all just stay resident in their parked world. Called from create() (boot) + checkPortals.
+  // Park the current map in the pool and resume or build the target. Called from create() + checkPortals.
   go(scene, mapId, entryId) {
     let carry = null;
-    let travelers = []; // "follow" companions captured to re-spawn in the target (party scope)
-    // ── PHASE A — leave the current map, keeping its World ALIVE in the pool ──
+    let travelers = []; // "follow" companions — captured + re-spawned in the target (party scope)
+    // ── PHASE A: leave the current map, keeping its World alive in the pool ──
     if (scene.ctrl !== undefined) {
-      // The character sheet is the one thing that crosses worlds (party member 0). Capture just
-      // the sheet — the dormant player entity stays resident in the parked world and is re-synced
-      // with this on return; Position/Visual/Animator are the controller's to rebuild. Attributes
-      // ride along so a post-crossing recompute re-derives from the grown attributes, not defaults.
+      // capture the sheet only (position/visual rebuilt by the controller on the new map);
+      // Attributes ride along so recompute derives from grown values, not defaults.
       carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
         Attributes,
         Stats,
@@ -88,15 +66,13 @@ globalThis.RpgMap = {
         Inventory,
         Equipment,
         Encumbrance,
-        Hotbar, // quick-use bindings + favorited-item set travel with the bag (they reference
-        Favorites, // itemIds the carried Inventory holds, so they'd desync if left per-map).
-        Thirst, // survival needs are session-scoped player state (like Stamina) — they travel
-        Hunger, // with the party, NOT reset/diverge per map (each map's resident player would
-        Drowsiness, // otherwise keep its own meter, unsynced across the transition).
+        Hotbar, // hotbar/favorites reference itemIds the carried bag holds — desync if left per-map
+        Favorites,
+        Thirst, // survival needs are session-scoped player state (like Stamina) — travel with
+        Hunger, // the party, not reset/diverge per map
+        Drowsiness,
       ]);
-      // Partition followers: a "follow" companion travels (captured AND removed from the parked
-      // world, so it isn't both left behind dormant and re-spawned in the target); a "wait"
-      // companion stays resident in this parked world — no cache, no round-trip.
+      // partition followers: "follow" travels (captured + removed); "wait" stays resident
       const stay = [];
       for (let i = 0; i < scene.followers.length; i++) {
         const fid = scene.followers[i];
@@ -110,41 +86,37 @@ globalThis.RpgMap = {
         }
       }
       scene.followers = stay;
-      scene.world.flush(); // commit the traveler removals before the world is parked
-      RpgMap.suspend(scene); // unassign the camera + stash the live fields into the pool
+      scene.world.flush(); // commit traveler removals before parking
+      RpgMap.suspend(scene);
     }
-    // ── PHASE B — enter the target: resume its parked world, else build it from file ──
+    // ── PHASE B: enter the target — resume its parked world, else build from file ──
     const bundle = scene._maps[mapId];
     if (bundle !== undefined)
       RpgMap.resume(scene, bundle, entryId, carry, travelers);
     else RpgMap.build(scene, mapId, entryId, carry, travelers);
-    // The now-active map is most-recently-used; evict the LRU parked map if over the cap.
     RpgMap._touch(scene, scene.mapId);
     RpgMap._evict(scene);
   },
 
-  // Park the live map: detach its camera from viewport 0 (NOT destroy — the parked map keeps it for
-  // resume; without the unassign the parked Camera still thinks it owns the viewport and its later
-  // destroy() would tear down the live view), clear any Weather region override (the next map
-  // re-detects its climate on the first step), and stash the per-map fields into the pool.
+  // Park the live map. Unassign (not destroy) the camera — the parked map keeps it for resume;
+  // without the unassign its later destroy() would tear down the live view. exitRegion so the
+  // next map re-detects its climate.
   suspend(scene) {
     if (scene.camera) scene.camera.unassign();
     Weather.exitRegion();
     scene._maps[scene.mapId] = RpgMap._stash(scene);
   },
 
-  // Resume a parked map: splat its fields back onto the scene, re-claim the viewport, re-sync the
-  // carried sheet onto the resident (dormant) player, reposition that player to the portal's named
-  // entry (honoring entryId on a revisit exactly like a fresh build), and re-spawn the travelers.
+  // Resume a parked map: restore its fields, re-claim the viewport, re-sync the carried sheet onto
+  // the resident (dormant) player, reposition it to the entry, and re-spawn travelers.
   resume(scene, bundle, entryId, carry, travelers) {
-    RpgMap._restore(scene, bundle); // pointer-copy the parked fields back onto the scene
-    delete scene._maps[scene.mapId]; // mapId is restored above; it's live now, not parked
-    MotionPlanner.setGrid(scene.nav); // re-point the planner at this map's nav window
+    RpgMap._restore(scene, bundle);
+    delete scene._maps[scene.mapId]; // mapId restored above; live now, not parked
+    MotionPlanner.setGrid(scene.nav);
     if (scene.camera) scene.camera.assign(0);
     if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
 
-    // Reposition the resident player to the resolved entry, then snap the follow camera so there's
-    // no pan from the parked position (the camera lerps toX/toY toward the target each update).
+    // snap the follow camera to the entry so it doesn't pan from the parked position
     const sp = scene.entries[entryId] ?? scene.spawn;
     const pp = scene.world.get(Position, scene.ctrl.id);
     const pv = scene.world.get(Velocity, scene.ctrl.id);
@@ -157,8 +129,7 @@ globalThis.RpgMap = {
       scene.camera.toY = sp.y;
     }
 
-    // Re-spawn the traveling party around the entry (fresh Position/Velocity so they don't keep
-    // old-map coords), exactly as the build path does.
+    // re-spawn the traveling party around the entry (fresh Position/Velocity)
     for (let i = 0; i < travelers.length; i++)
       scene.followers.push(
         EntitySnapshot.restore(scene.world, travelers[i], {
@@ -167,21 +138,19 @@ globalThis.RpgMap = {
         }),
       );
 
-    // Chunked map: re-center the streaming rings + rebuild any newly-streamed terrain around the
-    // entry now (step() does this every frame, but seed it so the first frame back has no ring gap).
+    // chunked: seed the streaming rings around the entry so the first frame back has no ring gap
     if (scene.chunks !== undefined) {
       scene.chunks.update(sp.x, sp.y);
       if (scene.terrain !== undefined) scene.terrain.rebuild(scene.chunks);
     }
 
     RpgMap._activateReset(scene);
-    RpgMap._registerCameraDebug(scene); // re-bind the Debug Camera panel to this (resumed) camera
+    RpgMap._registerCameraDebug(scene);
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
   },
 
-  // Copy the per-map fields off the scene into a fresh bundle (pointer copy — world/level/etc. stay
-  // alive). _restore copies them back. Plain array index loop (no Map/Set iteration — GMRT).
+  // Pointer-copy per-map fields scene↔bundle. Index loop (no Map/Set iteration — GMRT).
   _stash(scene) {
     const b = {};
     const keys = RpgMap.BUNDLE_KEYS;
@@ -193,7 +162,7 @@ globalThis.RpgMap = {
     for (let i = 0; i < keys.length; i++) scene[keys[i]] = b[keys[i]];
   },
 
-  // Move `mapId` to the most-recently-used end of the activation order (LRU bookkeeping for _evict).
+  // move mapId to the MRU end of the activation order (LRU bookkeeping for _evict)
   _touch(scene, mapId) {
     const ord = scene._mapOrder;
     const i = ord.indexOf(mapId);
@@ -201,14 +170,13 @@ globalThis.RpgMap = {
     ord.push(mapId);
   },
 
-  // Evict parked maps down to POOL_MAX: serialize the least-recently-used one into the COLD cache
-  // (_mapCache, the old per-leave shape), free its resources, and drop it. A later revisit then
-  // rebuilds it from file + imports the cache. Never touches the active map (it isn't in _maps).
+  // Evict parked maps down to POOL_MAX: serialize the LRU one into the cold cache (_mapCache),
+  // free it, drop it. Revisit rebuilds from file + cache. Never touches the active map.
   _evict(scene) {
     let count = 0;
     for (const id in scene._maps) count++;
     while (count > RpgMap.POOL_MAX) {
-      // Victim = the earliest map in activation order that is still parked.
+      // earliest still-parked map in activation order
       let victim = null;
       for (let i = 0; i < scene._mapOrder.length; i++) {
         if (scene._maps[scene._mapOrder[i]] !== undefined) {
@@ -225,11 +193,9 @@ globalThis.RpgMap = {
     }
   },
 
-  // Serialize a parked map into the cold cache before reclaiming it, in the SAME shape build()
-  // restores: level export (tiles + buildable zone), deconstruct tracking, built entities, the
-  // stationed companions (a parked bundle's followers are all "wait"), and the gone ledger. Live
-  // enemies/loot are deliberately NOT snapshotted — they respawn on the cold rebuild (the accepted
-  // degradation once a map is evicted under memory pressure). No-op for a non-persistent map.
+  // Serialize a parked map into the cold cache in the shape build() restores (level export,
+  // deconstruct tracking, built entities, stationed companions, gone ledger). Live enemies/loot
+  // are deliberately NOT snapshotted — they respawn on the cold rebuild. No-op if non-persistent.
   _evictSerialize(scene, b) {
     if (!b._mapPersistent) return;
     const builtEnts = [];
@@ -254,10 +220,8 @@ globalThis.RpgMap = {
     };
   },
 
-  // Per-activate transient reset (shared by build + resume): floating-number tracking re-seeds with
-  // no delta, build mode never carries across a door, the climate zone is forced to re-fire enter,
-  // and an open inventory refreshes against the new world. Kept off the bundle so a resume can't
-  // restore a stale transient.
+  // Per-activate transient reset (build + resume). Kept off the bundle so a resume can't restore
+  // a stale transient.
   _activateReset(scene) {
     scene._hpTrack = {};
     scene._buildActive = false;
@@ -266,15 +230,13 @@ globalThis.RpgMap = {
     scene._climateZone = 0;
     scene._npcId = -1;
     if (scene.invOpen) scene._invDirty = true;
-    // Re-point CombatAI's shared world/level statics at this map. attach() does this for a fresh
-    // build, but a resume keeps actors without re-attaching, so bind explicitly (else enemies step
-    // against the previously-built world and fault). The one map-context system with statics.
+    // Re-point CombatAI's shared world/level statics. A resume keeps actors without re-attaching,
+    // so bind explicitly — else enemies step against the previously-built world and fault.
     CombatAI.bind(scene.world, scene.level);
   },
 
-  // World-coord entry points by name (for repositioning the player on a resume, where there's no
-  // file reload to re-resolve through RpgLevel._resolveSpawn). Mirrors that resolver's sources:
-  // meta.entries, plus the legacy single meta.playerSpawn as "default".
+  // World-coord entry points by name, for repositioning the player on a resume (no file reload).
+  // Mirrors _resolveSpawn's sources: meta.entries, plus legacy meta.playerSpawn as "default".
   _entryTable(level, data) {
     const out = {};
     const e = data.meta.entries;
@@ -288,10 +250,10 @@ globalThis.RpgMap = {
     return out;
   },
 
-  // Build a map fresh from its file (first visit, or an eviction-restore from the cold _mapCache).
-  // carry + travelers are captured from the OUTGOING map by go() and handed in (null/[] on boot).
+  // Build a map fresh from file (first visit, or an eviction-restore from the cold cache).
+  // carry + travelers are handed in by go() (null/[] on boot).
   build(scene, mapId, entryId, carry = null, travelers = []) {
-    // 2. Load the map file (fall back to the start map if a referenced file is bad).
+    // load the map file (fall back to the start map if a referenced file is bad)
     const file = RpgLevel.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
     if (data === null) {
@@ -305,28 +267,25 @@ globalThis.RpgMap = {
       });
     }
     scene.mapId = mapId;
-    // A chunked map streams its terrain + entities around the player (overworld); a plain map
-    // builds everything up front (interiors). Branches below key off this.
+    // chunked: streams terrain + entities around the player (overworld); plain builds up front
     scene._chunked = data.meta.chunked === true;
-    // Persistent (default true): the map's player edits are cached on leave + restored on
-    // revisit (see step 1 and 4b). Set `meta.persistent: false` in a level file to opt out
-    // (e.g. a dungeon that should reset each entry).
+    // persistent (default true): player edits cached on evict + restored on cold rebuild.
+    // meta.persistent: false opts out (a dungeon that resets each entry).
     scene._mapPersistent = data.meta.persistent !== false;
     Log.info(
       `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
     );
 
-    // 3. World + level + player. A chunked map needs a bigger entity cap (a window of chunks'
-    //    worth of entities + colliders + transient drops) and an empty resident grid (player
-    //    builds only); a plain map sizes the grid from the file's cols/rows.
+    // World + level + player. Chunked needs a bigger entity cap (a window of chunks' worth of
+    // entities + colliders + drops) and an empty resident grid (player builds only).
     scene.world = new World(scene._chunked ? 1024 : 256, 60);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
       : RpgLevel.build(scene.world, data, entryId);
     scene.level = built.level;
-    scene.spawn = built.spawn; // remembered for player respawn on death
-    scene.entries = RpgMap._entryTable(scene.level, data); // named entries → world coords (resume reposition)
-    scene.terrainLayer = built.terrainLayer; // tilemap handles (RenderTileMap passes + build mode)
+    scene.spawn = built.spawn; // for player respawn on death
+    scene.entries = RpgMap._entryTable(scene.level, data); // named entries → world coords (resume)
+    scene.terrainLayer = built.terrainLayer; // tilemap handles (render passes + build mode)
     scene.floorLayer = built.floorLayer;
     scene.wallLayer = built.wallLayer;
     scene.fenceLayer = built.fenceLayer;
@@ -337,12 +296,11 @@ globalThis.RpgMap = {
     scene.colliders = built.colliders;
     scene.ctrl = RpgController.create(scene.world, built.spawn);
 
-    // Re-attach the carried character sheet onto the new player entity (no re-equip pass —
-    // equip mods are already baked into the carried Stats).
+    // re-attach the carried sheet (no re-equip — equip mods already baked into carried Stats)
     if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
 
-    // 4. Buildable zone channel (one per map) — the Claim Post paints into it; build mode
-    //    only allows placement inside it; RenderZone visualizes the claimed area.
+    // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
+    // placement to it; RenderZone visualizes it
     const bmap = scene.level.addZoneMap("buildable");
     scene.buildZoneId = bmap.define({
       name: I18n.text("BUILD_ZONE"),
@@ -350,11 +308,9 @@ globalThis.RpgMap = {
       data: { color: "#55aa55" },
     }).id;
 
-    // 4-climate. Climate zones (optional, data-driven from meta.climate): named regions that
-    //    override the open sky — a forced Weather condition + a Kelvin temperature offset — while
-    //    the player stands inside (sceneRpg._updateClimate tracks the player's cell → Weather
-    //    enter/exitRegion). Static metadata, so building it before 4b round-trips through the
-    //    persistence cache like the buildable zone.
+    // Climate zones (optional, from meta.climate): regions that override the open sky (forced
+    // Weather condition + Kelvin temp offset) while the player is inside. Built before the
+    // persistence import so it round-trips like the buildable zone.
     const climate = data.meta.climate;
     if (climate !== undefined) {
       const cmap = scene.level.addZoneMap("climate");
@@ -374,11 +330,9 @@ globalThis.RpgMap = {
       }
     }
 
-    // 4b. Restore a persistent map's player edits on revisit. Level.import overlays the
-    //     cached TileLayers + buildable ZoneMap onto the freshly built level (same dims/layer
-    //     order, so it round-trips; the cached buildable zone keeps id 1, matching the define
-    //     above). Re-mesh wall colliders from the restored layer, and bring back the
-    //     deconstruct tracking so built tiles stay removable. No cache → fresh _built.
+    // Restore a persistent map's player edits from the cold cache. Level.import overlays the
+    // cached TileLayers + buildable ZoneMap (same dims/layer order, so it round-trips; cached
+    // zone keeps id 1). Re-mesh wall colliders + restore deconstruct tracking. No cache → fresh.
     const saved = scene._mapCache[mapId];
     if (saved !== undefined) {
       scene.level.import(saved.level); // also syncs nav (Level.import → syncAll)
@@ -392,9 +346,8 @@ globalThis.RpgMap = {
     } else {
       scene._built = {}; // player-built deconstructable cells, fresh on first visit
     }
-    // Restore built entities (furniture/stations) from the cache as fresh world entities,
-    // re-keyed by cell for deconstruct. Reset first — _builtEnts persists on the scene across
-    // map swaps (BuildMode.build runs once), so the previous map's entries must be cleared.
+    // Restore built entities from the cache. Reset first — _builtEnts persists on the scene
+    // across map swaps (BuildMode.build runs once), so clear the previous map's entries.
     scene._builtEnts = {};
     if (saved !== undefined && saved.builtEnts !== undefined) {
       for (let i = 0; i < saved.builtEnts.length; i++) {
@@ -403,16 +356,14 @@ globalThis.RpgMap = {
         scene._builtEnts[b.key] = { ent: id, itemId: b.itemId };
       }
     }
-    // File-scope reconcile ledger for THIS map: uids of unique entities removed during play.
-    // Loaded from the cache (persists across revisits), passed to RpgSpawn.spawn below to skip
-    // their file spawns, and written back on leave. Empty on a first visit / non-persistent map.
+    // File-scope reconcile ledger: uids of unique entities removed during play. Passed to
+    // RpgSpawn.spawn to skip their file spawns. Empty on a first visit / non-persistent map.
     scene._gone =
       saved !== undefined && saved.gone !== undefined ? saved.gone : {};
 
-    // 5. Entities. A chunked map STREAMS them via the ChunkManager (authored hub + procedural
-    //    wilderness, windowed around the player); a plain map spawns them all up front. Either
-    //    way the scene reads NPC / portal / enemy handles LIVE by tag (Query / world.query), so
-    //    no stored id lists are kept here — they'd dangle as chunks stream in and out.
+    // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
+    // scene reads NPC/portal/enemy handles LIVE by tag — stored id lists would dangle as chunks
+    // stream in/out.
     if (scene._chunked) {
       scene.source = new ChunkSource({
         seed: data.meta.seed ?? 1337,
@@ -420,9 +371,8 @@ globalThis.RpgMap = {
         chunkRows: data.meta.chunkRows ?? 16,
         authored: data, // hand-built hub overlaid onto its chunks; procedural elsewhere
       });
-      // Finite world: the overworld is a worldCols × worldRows rectangle (matches the resident
-      // grid buildChunked sized). Streaming clamps to it and a wall border rings it, so the world
-      // isn't infinite (and the player/enemies can't leave).
+      // Finite world: a worldCols × worldRows rectangle (matches the resident grid). Streaming
+      // clamps to it + a wall border rings it, so the player/enemies can't leave.
       const wc = data.meta.worldCols ?? data.cols ?? 128;
       const wr = data.meta.worldRows ?? data.rows ?? 128;
       scene.chunks = new ChunkManager(scene.world, scene.level, scene.source, {
@@ -436,7 +386,7 @@ globalThis.RpgMap = {
       RpgLevel.buildWorldBorder(scene.world, scene.level, wc, wr); // edge walls (always present)
       const sp = scene.world.get(Position, scene.ctrl.id);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
-      scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not chunk-managed)
+      scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
       scene.followers = [];
     } else {
       const ents = RpgSpawn.spawn(scene.world, scene.level, data, {
@@ -448,9 +398,8 @@ globalThis.RpgMap = {
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
     scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
 
-    // Companions (continued): the traveling party re-spawned around the player's entry (fresh
-    // Position/Velocity so they don't keep old-map coords), then this map's cached stationed
-    // companions (restored where they were left — full snapshot).
+    // Companions: the traveling party re-spawned around the entry (fresh Position/Velocity), then
+    // this map's cached stationed companions (full snapshot, restored where left).
     const ep = scene.world.get(Position, scene.ctrl.id);
     for (let i = 0; i < travelers.length; i++)
       scene.followers.push(
@@ -465,13 +414,11 @@ globalThis.RpgMap = {
           EntitySnapshot.restore(scene.world, saved.entities[i]),
         );
 
-    // 6. Per-map resets (old ids belonged to the previous map; _built handled in 4b).
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
 
-    // 7. Pathfinding nav window: a windowed occupancy grid built from the live colliders (streamed
-    //    terrain + player builds + world border + interior walls), pointed at by MotionPlanner.
-    //    Enemies plan over it (PathfindingSystem in the pipeline below); sceneRpg.step rebuilds it
-    //    around the player each frame. size() is constant, so setGrid is called once here per map.
+    // Pathfinding nav window: a windowed occupancy grid over the live colliders, pointed at by
+    // MotionPlanner. size() is constant, so setGrid is called once here per map (sceneRpg.step
+    // rebuilds occupancy around the player each frame).
     scene.nav = new NavGrid(
       32,
       32,
@@ -480,38 +427,31 @@ globalThis.RpgMap = {
     );
     MotionPlanner.setGrid(scene.nav);
 
-    // 8. Pipeline: AI decides velocity → resolve paths → collide → push crowders apart →
-    //    triggers (pickups) → projectiles → expire. PathfindingSystem resolves the PathRequests
-    //    CombatAI queues this tick (over scene.nav) into PathResponses the enemy follows next tick.
+    // Pipeline: AI decides velocity → resolve paths → collide → push crowders apart →
+    // triggers (pickups) → projectiles → expire.
     scene.physics = new Pipeline()
       .add(StateSystem) // drives the CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
       .add(PathfindingSystem) // enemy PathRequest → PathResponse over scene.nav
       .add(SolidSystem)
-      .add(SeparationSystem) // unstack dynamic bodies (enemies/player/followers) — RTS-style crowding, after SolidSystem
+      .add(SeparationSystem) // unstack dynamic bodies (RTS-style crowding), after SolidSystem
       .add(TriggerSystem)
       .add(ProjectileSystem)
       .add(LifetimeSystem);
 
-    // 9. Renderer. ENTITIES use the greenfield 16px sprite set (RenderEntity over Visual — the
-    //    spr_hero/spr_raider/... art generated by tools/pixel-art-kit/gm-import/entity_sprites.py).
-    //    TILES are still placeholder: the resident wall/floor layers render as a sprite-free debug
-    //    fill (RenderDebugTileMap) rather than the per-layer RenderTileMap loop — restore that loop
-    //    (see the inline "Restore …" note below) when tile art lands. Chunked terrain already uses
-    //    its real per-material dual-grid tilesets (TerrainStream, below).
-    // 2.5D billboard camera: pitches the follow camera and stands entity sprites up
-    // (RenderBillboard) instead of the flat RenderEntity. Lighting/weather draw screen-space so
-    // they survive the pitch. Set to 0 for the classic flat top-down look (front-view art reads
-    // wrong flat, so 0 is only for debugging).
+    // Renderer. Tiles are still placeholder: the resident layers render as a sprite-free debug
+    // fill (RenderDebugTileMap) rather than the per-layer RenderTileMap loop (restore that loop
+    // when tile art lands). Chunked terrain uses its real dual-grid tilesets (TerrainStream).
+    // 2.5D billboard camera: pitches the follow camera and stands sprites up (RenderBillboard);
+    // lighting/weather draw screen-space to survive the pitch. 0 = flat top-down (debug only —
+    // front-view art reads wrong flat).
     const RPG_BB_PITCH = 35; // 2.5D adopted: camera pitch in degrees
     scene.renderer = new Renderer();
-    // Chunk-streamed terrain: TerrainStream draws the real per-material dual-grid tilesets
-    // (spr_terrainWater/Sand/Grass, untinted) UNDER everything, so RenderChunks runs with
-    // ground:false (its checker is replaced by the terrain) and only draws walls + frozen-entity
-    // snapshots. scene.terrain's rebuild calls in resume()/sceneRpg.step() are now live (it's set).
+    // Chunk-streamed terrain UNDER everything, so RenderChunks runs ground:false (its checker is
+    // replaced by the terrain) and only draws walls + frozen-entity snapshots.
     if (scene._chunked) {
       scene.terrain = new TerrainStream(scene.chunks);
       scene.renderer.insert(scene.terrain); // one set of per-chunk VBOs, under everything
-      scene.terrain.rebuild(scene.chunks, Infinity); // initial: build every loaded chunk up front
+      scene.terrain.rebuild(scene.chunks, Infinity); // initial: build every loaded chunk
       scene.renderer.insert(
         new RenderChunks(scene.chunks, {
           font: I18n.font("default"),
@@ -519,10 +459,9 @@ globalThis.RpgMap = {
         }),
       );
     }
-    // Resident layers: the per-layer RenderTileMap passes (real tile sprites — tile16/47/dual,
-    // floorTiles) are replaced by ONE sprite-free RenderDebugTileMap that shades cells by nav cost
-    // (walls read as filled). _tilePasses stays empty, so BuildMode._markTileDirty no-ops (guarded
-    // for an absent pass). Restore: the RpgLevel.LAYERS RenderTileMap loop, keyed into _tilePasses.
+    // Resident layers drawn by ONE sprite-free RenderDebugTileMap (shades cells by nav cost) in
+    // place of the per-layer RenderTileMap passes. _tilePasses stays empty, so
+    // BuildMode._markTileDirty no-ops. Restore: the RpgLevel.LAYERS loop keyed into _tilePasses.
     scene._tilePasses = {};
     scene._tilePass = new RenderDebugTileMap(scene.level, {
       cost: true,
@@ -531,7 +470,7 @@ globalThis.RpgMap = {
     });
     scene.renderer.insert(scene._tilePass);
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
-    scene._gridPass.enabled = false; // off in normal play (read as terrain noise); toggle via Debug → Render → Grid
+    scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid
     scene.renderer.insert(scene._gridPass);
     scene.renderer.insert(new RenderZone(scene.level, "buildable"));
     scene.renderer.insert(
@@ -539,11 +478,10 @@ globalThis.RpgMap = {
         font: I18n.font("default"),
       }),
     );
-    // Foot shadows UNDER the entities (one runtime ellipse per body; not baked into the sprites).
+    // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     scene.renderer.insert(new RenderEntityShadow());
-    // Entities via the production sprite pass (draw_sprite_ext over Visual). The colored-box +
-    // label debug passes stay inserted but DISABLED by default, so the Debug menu (Boxes/Names/
-    // Facing/Anim) can still toggle them over the sprites without cluttering normal play.
+    // Entities via the production sprite pass. The colored-box + label debug passes stay inserted
+    // but DISABLED, so the Debug menu can toggle them over the sprites.
     const entityPass =
       RPG_BB_PITCH > 0
         ? new RenderBillboard({ pitchDeg: RPG_BB_PITCH })
@@ -562,18 +500,15 @@ globalThis.RpgMap = {
     dbgAnim.enabled = false;
     scene.renderer.insert(dbgAnim);
     // RenderDebugAnimator reads the Demo-layer Animator, so the RPG (not Core's DebugRender)
-    // registers its Debug toggle. add() dedupes, so repeated map loads are no-ops.
+    // registers its toggle. add() dedupes, so repeated map loads are no-ops.
     DebugRender.add(RenderDebugAnimator, "Anim");
-    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
     scene.renderer.insert(bbox);
-    // Enemy A* paths (yellow), off until toggled (Debug menu → paths). Makes the dormant
-    // RenderDebugPath pass + that toggle live now that enemies are a PathRequest consumer.
-    const paths = new RenderDebugPath(scene.level);
+    const paths = new RenderDebugPath(scene.level); // enemy A* paths, off until toggled
     paths.enabled = false;
     scene.renderer.insert(paths);
-    // Entity "active range" rings (turret fire radius + enemy aggro/give-up/attack), off until
-    // toggled (Debug menu → Ranges). Generic Core pass; the RPG ranges are configured here.
+    // entity "active range" rings (turret fire / enemy aggro/give-up/attack), off until toggled
     const ranges = new RenderDebugRange({
       ranges: [
         {
@@ -595,51 +530,42 @@ globalThis.RpgMap = {
       ],
     });
     scene.renderer.insert(ranges);
-    // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain too.
-    // Skipped on indoor maps (meta.indoor) — no open sky inside a cave.
+    // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain.
+    // Skipped indoors (meta.indoor) — no open sky inside a cave.
     scene._weather = undefined;
     if (!data.meta.indoor) {
       scene._weather = new RenderWeather();
       scene.renderer.insert(scene._weather);
     }
-    // Lighting LAST — a per-frame light map composited over tiles + entities + weather. It absorbs
-    // the day/night cycle as its ambient term (white in daylight → night hue when dark) and adds
-    // soft blobs for every Light entity, so day/night is "lighting with no lights" and torches/the
-    // player's lantern reveal the night, with a cycle-scaled corner vignette for night framing. Its
-    // camera is assigned with the others below.
+    // Lighting LAST — a per-frame light map composited over everything. Day/night is its ambient
+    // term ("lighting with no lights"); Light entities + a night vignette layer on top.
     scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
 
-    // 10. Follow camera on the (new) player.
-    // 16px-cell world (GEMS.md): base zoom 3.5 so the ortho view spans ~surfaceW/3.5 world px — the
-    // CELL framing the pitched 2.5D view is tuned for (flat fallback 2).
+    // Follow camera on the new player.
+    // 16px-cell world (GEMS.md): base zoom 3.5 for the pitched 2.5D framing (flat fallback 2).
     const baseZoom = RPG_BB_PITCH > 0 ? 3.5 : 2;
-    // Cap zoom-OUT so the view stays within the RENDERABLE world: a chunked map only streams a window
-    // (~loadRadius chunks each side of the player; past it the unloaded area shows as dark void — the
-    // "zoom makes render weird" report), a plain map is bounded by its level. `viewCap` is the max
-    // view WIDTH (world px); the camera derives the live minZoom from it + the current surface each
-    // frame (build-time surface size can be stale/smaller). Horizontal is the binding axis on a
-    // landscape surface (the pitch stretches only N-S, by ~1/cos, < the 16:9 aspect).
+    // Cap zoom-OUT to the renderable world (a chunked map only streams a window; past it shows as
+    // dark void). viewCap = max view WIDTH (world px); camera derives live minZoom from it + the
+    // current surface each frame. Horizontal is the binding axis on a landscape surface.
     const viewCap = scene._chunked
-      ? // Worst case is a WORLD CORNER (the hub spawn): the off-world side streams nothing, so only
-        // the player chunk + loadRadius load = (loadRadius + 1) chunks. View any wider → dark void.
+      ? // Worst case is a WORLD CORNER (hub spawn): the off-world side streams nothing, so only
+        // (loadRadius + 1) chunks load. View any wider → dark void.
         (2 + 1) * (data.meta.chunkCols ?? 16) * scene.level.cellWidth
       : scene.level.cols * scene.level.cellWidth;
     scene.camera = CameraFollow.create2d({
       world: scene.world,
       followTarget: scene.ctrl.id,
       followLerp: 0.15,
-      pitch: RPG_BB_PITCH, // 2.5D spike: 0 = flat top-down, > 0 pitches for standing billboards
-      // CameraFollow recomputes the view extent each frame as surface size / followZoom, so
-      // width/height below are just the frame-0 seed.
+      pitch: RPG_BB_PITCH, // 0 = flat top-down, > 0 pitches for standing billboards
+      // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
       maxZoom: baseZoom * 1.5, // modest zoom-in headroom
       width: surface_get_width(application_surface),
       height: surface_get_height(application_surface),
-      // Edge-clamp the look-at to the finite world (the resident grid extent — worldCols/Rows for a
-      // chunked map, the level size for an interior) so the pitched view never shows past a map edge
-      // (the dead space at the hub spawn / world corner). gridToWorld anchors cell 0 at world (0,0).
+      // Edge-clamp the look-at to the finite world so the pitched view never shows past a map edge.
+      // gridToWorld anchors cell 0 at world (0,0).
       clamp: {
         x1: 0,
         y1: 0,
@@ -648,42 +574,31 @@ globalThis.RpgMap = {
       },
     });
     scene.camera.assign(0);
-    // Cull the resident-grid grid pass to the camera view (essential for the chunked map's
-    // large home grid; harmless for a small interior). The RenderTileMap passes are VBO-cached
-    // (rebuilt only on markDirty), so they need no per-frame camera cull.
+    // Cull the grid pass to the camera view (essential for the chunked map's large home grid).
     scene._gridPass.camera = scene.camera;
-    scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill (large chunked grid)
-    if (scene._weather !== undefined) scene._weather.camera = scene.camera; // weather tint + particles cover the view rect
-    scene._lighting.camera = scene.camera; // light map covers the camera view rect
-    // Billboards track the camera's LIVE pitch (so the Debug Camera panel's pitch slider keeps
-    // sprites standing toward the camera). RenderEntity (flat fallback) ignores a camera.
+    scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill
+    if (scene._weather !== undefined) scene._weather.camera = scene.camera;
+    scene._lighting.camera = scene.camera;
+    // Billboards track the camera's LIVE pitch (Debug pitch slider). RenderEntity flat ignores it.
     entityPass.camera = scene.camera;
     RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
 
-    // The player-centered radar (RadarArrows, drawn in scene.draw) reads world/ctrl live, so it
-    // needs no per-map rebuild — nothing to do here for it.
-
-    FloatingText.clear(); // drop combat numbers from the previous map
-    ParticleFx.clear(); // drop live particles from the previous map (world coords are map-local)
+    FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
+    ParticleFx.clear();
   },
 
-  // Register the Debug/ImGui "Camera" panel bound to the LIVE scene camera (pitch + zoom), so the
-  // 2.5D camera can be tuned at runtime to inspect rendering (e.g. crank the pitch toward a head-on
-  // 3D angle). The pitch drives CameraFollow (eye/up + the edge-clamp) AND the billboard tilt live,
-  // so the whole 2.5D pipeline tracks it. Re-registered on each build/resume (Debug.panel replaces
-  // by name) so the sliders always drive the ACTIVE map's camera; removed on scene destroy
-  // (sceneRpg.destroy → Debug.remove("Camera")). RPG-owned — the pitch is a Demo concern, like
-  // DebugRender.add for the animator pass. The panel surfaces in BOTH the ImGui overlay (F3) and the
-  // agent-readable debug.txt text dump (one registry, two front-ends).
+  // Register the Debug "Camera" panel bound to the LIVE scene camera (pitch + zoom) for runtime
+  // render inspection. Re-registered on each build/resume (Debug.panel replaces by name) so the
+  // sliders drive the ACTIVE map's camera; removed on scene destroy. RPG-owned (pitch is a Demo
+  // concern). Surfaces in both the ImGui overlay (F3) and debug.txt.
   _registerCameraDebug(scene) {
     const cam = scene.camera;
     if (cam === undefined) return;
     Debug.panel("Camera", (p) => {
       p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
       p.slider("Zoom", cam, "followZoomTarget", 1, 8, 0.1);
-      // 6DOF free-fly NOCLIP camera (WASD + Space/Shift move, hold RMB + mouse to look, Q/E roll;
-      // on Time.raw so it works while the sim is paused via the Sim panel) — detach from the player
-      // to inspect the render up close from any angle. Switches to a perspective projection.
+      // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
+      // from the player to inspect the render from any angle. Switches to perspective projection.
       p.checkbox("Free cam (WASD/RMB)", cam, "freeCam");
       p.slider("Fly speed", cam, "flySpeed", 30, 1200, 10);
       p.button("Recenter on player", () => {
@@ -701,10 +616,8 @@ globalThis.RpgMap = {
     });
   },
 
-  // Reclaim ONE map bundle's owned resources (world / level / renderer / camera / chunks). No
-  // global input/weather teardown — those are scene-scoped (RpgController.destroy / Weather in
-  // sceneRpg.destroy). Used by eviction (_evict) and scene teardown (sceneRpg.destroy). The
-  // terrain-stream pass lives inside the renderer, so renderer.destroy() frees its per-chunk VBOs.
+  // Reclaim ONE map bundle's owned resources. No global input/weather teardown — those are
+  // scene-scoped. Used by _evict + scene teardown. renderer.destroy() frees the terrain VBOs.
   _free(b) {
     if (b.chunks) b.chunks.destroy();
     if (b.camera) b.camera.destroy();
@@ -713,13 +626,11 @@ globalThis.RpgMap = {
     if (b.level) b.level.destroy();
   },
 
-  // Walk-onto door: travel to the first portal whose BBox the player overlaps. Runs once
-  // per frame, after physics (the player is settled). On a hit, go() parks the current map and
-  // resumes/builds the target, then we return immediately — this.world has been swapped out.
+  // Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
+  // go() swaps the world out so we return immediately.
   checkPortals(scene) {
     const p = AABB.of(scene.world, scene.ctrl.id);
-    // Live query every doorway in the world (entities carrying a Portal component) — works for
-    // both a chunk-streamed portal and a plain map's, with no stored list to dangle.
+    // live query every doorway (Portal component) — no stored list to dangle as chunks stream
     const ids = scene.world.query(Portal);
     for (let i = 0; i < ids.length; i++) {
       const z = AABB.of(scene.world, ids[i]);
@@ -732,8 +643,8 @@ globalThis.RpgMap = {
     }
   },
 
-  // Reach-quest zone from a chunked map's authored data (the "reach" spawn). The marker is an
-  // origin-area region, not an entity, so it's resolved once here rather than chunk-streamed.
+  // Reach-quest zone from a chunked map's authored "reach" spawn. A region, not an entity, so
+  // it's resolved once here rather than chunk-streamed.
   _authoredReach(scene, data) {
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++)
