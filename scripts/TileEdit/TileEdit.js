@@ -1,44 +1,32 @@
-// Core tile-layer editing service: read/write cells of a Level's TileLayer and keep the
-// derived data (pathfinding nav cost + solid colliders) in sync. Genre-agnostic — shared
-// by any tile-based editor or build mode (TopDown's BuildMode) and by level loaders
-// (RpgLevel.build), so the "edit a solid tile → resync nav + rebuild colliders"
-// invariant lives in exactly one place.
+// tile-layer editing service: write cells + keep nav cost + solid colliders in sync.
+// one place for the "edit a solid tile → resync nav + rebuild colliders" invariant.
 //
-// Cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined, for
-// an in-bounds empty cell), so occupancy is a truthy test, never `!== undefined`.
+// cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined),
+// so occupancy is a truthy test, never `!== undefined`.
 globalThis.TileEdit = {
-  // True when (gx, gy) holds a tile. Truthy test: 0 = empty, a TileType = filled.
+  // 0 = empty, TileType = filled — truthy test
   occupied(layer, gx, gy) {
     return !!layer.get(gx, gy);
   },
 
-  // Write a tile into a layer and resync that cell's nav cost. Returns nothing; the
-  // caller rebuilds colliders (remesh) when the layer is solid.
+  // caller must remesh after editing a solid layer
   set(level, layer, gx, gy, type) {
     layer.set(gx, gy, type);
     level.syncAt(gx, gy);
   },
 
-  // Clear a cell and resync its nav cost.
   clear(level, layer, gx, gy) {
     layer.set(gx, gy, undefined);
     level.syncAt(gx, gy);
   },
 
-  /**
-   * Greedy-mesh the solid cells of `layer` into the fewest rectangles, returned as
-   * `[gx, gy, wCells, hCells]` in GRID coords (extend right for width, then down while the
-   * whole row stays solid). Per-cell boxes leave internal seams between abutting tiles and
-   * the AABB resolver snags on each — merging removes that class of bug (see memory
-   * project_tile_collider_seams). Shared by `meshSolid` (build colliders) and level export
-   * (serialize a wall layer back to the file's `walls` rects).
-   */
+  // greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
+  // resolver (see memory project_tile_collider_seams). returns [gx,gy,wCells,hCells] in grid coords.
   meshRects(level, layer) {
     const cols = level.cols;
     const rows = level.rows;
     const consumed = new Array(cols * rows).fill(false);
-    // Grid.get returns 0 for empty in-bounds cells (not undefined) and a TileType for a
-    // filled cell — test truthiness, not `!== undefined`, or every empty cell reads solid.
+    // Grid.get returns 0 for empty (not undefined) — test truthiness, not !== undefined
     const solid = (x, y) =>
       x < cols && y < rows && layer.get(x, y) && !consumed[y * cols + x];
 
@@ -69,11 +57,7 @@ globalThis.TileEdit = {
     return rects;
   },
 
-  /**
-   * Greedy-mesh the solid cells of `layer` into the fewest kinematic-solid collider
-   * entities (one per `meshRects` rectangle), pushing their ids onto `out`. Box geometry
-   * uses the level's cell size.
-   */
+  // one kinematic-solid collider per meshRects rectangle; ids pushed onto `out`
   meshSolid(world, level, layer, out) {
     const cw = level.cellWidth;
     const ch = level.cellHeight;
@@ -93,14 +77,10 @@ globalThis.TileEdit = {
     }
   },
 
-  /**
-   * Rebuild every collider from the current state of `layer`. Removes the old colliders
-   * and re-greedy-meshes in place — call after a solid-tile edit so freshly built/removed
-   * tiles re-merge without seam bugs.
-   */
+  // rebuild colliders after a solid-tile edit; flush first so old ids don't collide
   remesh(world, level, layer, colliders) {
     for (let i = 0; i < colliders.length; i++) world.remove(colliders[i]);
-    world.flush(); // commit removals before re-meshing so ids don't collide
+    world.flush();
     colliders.length = 0;
     this.meshSolid(world, level, layer, colliders);
   },

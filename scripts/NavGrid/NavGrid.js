@@ -1,23 +1,15 @@
-// Windowed occupancy grid for pathfinding over a STREAMED / unbounded-in-practice world (the
-// chunk-streamed RPG overworld). It adapts the LIVE World colliders into the MotionPlanningGrid
-// interface MotionPlanner consumes, presented in ABSOLUTE level-cell coordinates over a small,
-// fixed-size window re-centered on the agent each frame.
+// Windowed occupancy grid for pathfinding over the chunk-streamed overworld: adapts the LIVE
+// World colliders into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell
+// coords over a small fixed window re-centered on the agent each frame.
 //
-// Why a window instead of one big grid: on a chunked map the obstacle data is NOT in Level.mpg —
-// the terrain (procedural rocks, prefab + authored-hub walls, the world border) exists only as
-// kinematic-solid collider ENTITIES (ChunkManager._meshColliders / RpgLevel.buildWorldBorder /
-// build-mode TileEdit), and only the chunks near the player are even loaded. Reading live colliders
-// into a bounded window unifies every obstacle source (streamed terrain + player builds + border +
-// plain-interior walls) into one cheap grid, and keeps size() constant so MotionPlanner.setGrid is
-// called ONCE while only occupancy/origin change per frame.
+// why a window: on a chunked map the obstacles aren't in Level.mpg — terrain/walls/border exist
+// only as kinematic-solid collider ENTITIES, and only nearby chunks are loaded. one bounded grid
+// unifies every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE
+// while only occupancy/origin change per frame.
 //
-// Coordinates: all of inBounds/get/toIndex/toPosition speak ABSOLUTE level cells (same space as
-// level.worldToGrid / gridToWorld). Internally that maps to a local [0,cols)x[0,rows) buffer via the
-// window origin, so paths come back in absolute cells (RenderDebugPath / CombatAI convert straight
-// through level.gridToWorld). MotionPlanner is unchanged.
-//
-// GMRT-safe: for-of over the world.query ARRAY is fine (only Map/Set iterators break); class on
-// globalThis; index loops for the cell raster.
+// coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
+// buffer, so paths come back in absolute cells. GMRT-safe: for-of over the world.query ARRAY is
+// fine (only Map/Set iterators break).
 globalThis.NavGrid = class NavGrid {
   constructor(cols, rows, cellW, cellH) {
     this.cols = cols;
@@ -34,15 +26,14 @@ globalThis.NavGrid = class NavGrid {
     this.grid = undefined;
   }
 
-  // MotionPlanningGrid contract — size is CONSTANT (window dims), so the planner's scratch arrays
-  // allocated by setGrid stay valid across rebuilds; only occupancy + origin move.
+  // CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds
   size() {
     return this.cols * this.rows;
   }
 
-  // Re-center the window on a cell, clear to walkable, then stamp every kinematic-solid collider's
-  // footprint as blocked. Walls only — dynamic bodies (enemies/player) are non-kinematic so agents
-  // don't block each other's planning. Call once per frame OUTSIDE the tick loop.
+  // re-center, clear to walkable, stamp each kinematic-solid collider's footprint as blocked.
+  // walls only — dynamic bodies are non-kinematic so agents don't block each other's planning.
+  // call once per frame OUTSIDE the tick loop.
   rebuild(world, centerGx, centerGy) {
     this.originX = centerGx - (this.cols >> 1);
     this.originY = centerGy - (this.rows >> 1);
@@ -56,12 +47,12 @@ globalThis.NavGrid = class NavGrid {
       const col = world.get(Collision, id);
       if (!col.solid || !col.kinematic) continue;
       const e = AABB.of(world, id);
-      // Cell-aligned wall rect → inclusive cell range (x2/y2 are exclusive edges, so -1).
+      // inclusive cell range (x2/y2 are exclusive edges, so -1)
       let gx0 = Math.floor(e.x1 / cw);
       let gy0 = Math.floor(e.y1 / ch);
       let gx1 = Math.floor((e.x2 - 1) / cw);
       let gy1 = Math.floor((e.y2 - 1) / ch);
-      // Clamp to the window in absolute cells before stamping.
+      // clamp to window before stamping
       if (gx0 < this.originX) gx0 = this.originX;
       if (gy0 < this.originY) gy0 = this.originY;
       if (gx1 > this.originX + this.cols - 1)
@@ -74,7 +65,7 @@ globalThis.NavGrid = class NavGrid {
     }
   }
 
-  // ── absolute-cell MotionPlanningGrid view ──────────────────────────────────
+  // absolute-cell MotionPlanningGrid view
   inBounds(ax, ay) {
     const lx = ax - this.originX;
     const ly = ay - this.originY;

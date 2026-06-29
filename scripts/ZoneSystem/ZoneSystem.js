@@ -1,21 +1,13 @@
 /**
- * Entity ↔ Zone glue: per-frame enter/exit detection over a ZoneMap plus
- * membership queries. The stateless-object system idiom (like the Core systems),
- * but exposing named methods rather than a World tick. Drive it from a scene's
- * step() to react when entities cross zone borders (events, weather, quests).
- *
- * Enter/exit state is persisted on `map._inside` (entityId -> zoneId) so the same
- * map can be polled every frame; mark-and-sweep fires onExit for entities that
- * left to an empty cell *or* were removed / filtered out entirely.
+ * Entity ↔ Zone glue: per-frame enter/exit detection + membership queries.
+ * State lives on map._inside (entityId -> zoneId); mark-and-sweep fires onExit
+ * when an entity leaves to an empty cell OR is removed / filtered out.
  */
 globalThis.ZoneSystem = {
   /**
-   * @param {World} world
-   * @param {Level} level   for worldToGrid
-   * @param {ZoneMap} map
+   * @param {World} world @param {Level} level @param {ZoneMap} map
    * @param {{ tag?: string, onEnter?: function, onExit?: function }} [opts]
-   *   tag filters which entities are tracked (by Tag component); callbacks get
-   *   (entityId, zone).
+   *   tag filters tracked entities; callbacks get (entityId, zone).
    */
   update(world, level, map, opts = {}) {
     const tag = opts.tag;
@@ -41,10 +33,8 @@ globalThis.ZoneSystem = {
       else inside[id] = cur;
     });
 
-    // Sweep entities that were inside last frame but weren't tracked this one
-    // (removed / lost Position / no longer match the tag). Collect first, then
-    // mutate — don't delete while iterating. for...in over a plain object is
-    // GMRT-safe (Map/Set iteration is not).
+    // sweep entities inside last frame but untracked now (removed / lost Position / tag changed).
+    // collect first, then mutate — don't delete while iterating. for...in is GMRT-safe.
     const stale = [];
     for (const key in inside) {
       if (seen[key] === undefined) stale.push(key);
@@ -56,7 +46,7 @@ globalThis.ZoneSystem = {
     }
   },
 
-  /** @returns {Zone | undefined} the zone an entity currently stands in. */
+  /** @returns {Zone | undefined} */
   zoneOf(world, level, map, id) {
     const pos = world.get(Position, id);
     if (pos === undefined) return undefined;

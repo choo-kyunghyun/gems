@@ -1,8 +1,5 @@
 /**
- * A named, tagged spatial region of a level. Zones back build-mode buildable
- * area, faction territory, in-game events, quest regions, weather areas, etc.
- * A Zone is a plain definition object; its cell membership lives in a ZoneMap.
- *
+ * named, tagged region; membership lives in a ZoneMap.
  * @typedef {Object} ZoneOpt
  * @property {number} [id]      small positive int, unique within its ZoneMap
  * @property {string} [name]
@@ -14,11 +11,9 @@ globalThis.Zone = class Zone {
   constructor(opt = {}) {
     this.id = opt.id;
     this.name = opt.name ?? "";
-    // Tags are a plain string[] (indexOf/includes), NOT a Set — Set iteration
-    // hard-crashes the GMRT runtime (see CLAUDE.md GMRT-Safe Idioms).
+    // tags must be string[], NOT a Set — Set iteration crashes GMRT (see CLAUDE.md)
     this.tags = opt.tags ?? [];
-    // Keep `data` flat scalars: a save layer serializing it hits the GMRT
-    // JSON.stringify nested-object fault.
+    // data must be flat scalars — GMRT JSON.stringify faults on nested objects
     this.data = opt.data ?? {};
   }
 
