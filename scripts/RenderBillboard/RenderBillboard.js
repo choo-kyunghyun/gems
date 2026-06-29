@@ -1,7 +1,7 @@
 /**
  * 2.5D entity renderer (the adopted RPG default): a drop-in alternative to RenderEntity that
  * STANDS each foot-anchored sprite UP in 3D via a world matrix, so front-view art reads correctly
- * under a pitched follow camera (cameraFollow2d `pitch`). Same Visual/Position query, interp, and
+ * under a pitched follow camera (CameraFollow.create2d `pitch`). Same Visual/Position query, interp, and
  * looped-anim advance as RenderEntity; only the draw is matrixed — matrix_set(matrix_world,
  * matrix_build(...)) → draw_sprite_ext at the local origin (the sprite's foot) → reset to identity.
  *

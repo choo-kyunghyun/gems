@@ -2,7 +2,7 @@
 // application_surface size so a resolution change rebuilds the view extent immediately —
 // the project drives the view by matrix, not GM's 2D view-size camera. followSnap rounds to
 // whole pixels for the 2D ortho variant. The wheel zooms by shrinking/growing the view extent
-// (the camera always re-centers on the target, so no cursor-anchored math like cameraPan);
+// (the camera always re-centers on the target, so no cursor-anchored math like CameraPan);
 // the reset button returns zoom to the configured default. Wheel/reset set followZoomTarget;
 // followZoom eases toward it each frame (same lerp pattern as the position follow above).
 /** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
@@ -107,7 +107,7 @@ function _cameraFollowOnUpdate() {
 /**
  * Build a follow camera over the shared onUpdate; projection/snap/defaultHeight are the only
  * differences between the 3D and 2D variants.
- * @param {any} cam - Camera config bag (see cameraFollow/cameraFollow2d).
+ * @param {any} cam - Camera config bag (see CameraFollow.create/create2d).
  * @param {number} projection - A CAMERA_PROJECTION value.
  * @param {boolean} snap - Pixel-snap the followed position (2D ortho).
  * @param {number} defaultHeight - followHeight fallback.
@@ -146,47 +146,52 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   return camera;
 }
 
-/**
- * 3D perspective-FOV follow camera that eases toward followTarget's Position each update.
- * Currently unused — scenes use the 2D cameraFollow2d; kept as the 3D library variant.
- * Zoom opts apply but are visually inert here (equal-scaled width/height keeps the FOV aspect).
- * @param {object} [cam]
- * @param {World} [cam.world] - World holding the target's Position.
- * @param {number} [cam.followTarget=-1] - Entity id to follow.
- * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
- * @param {number} [cam.followHeight=256] - Camera Z above the target.
- * @param {number} [cam.zoom=1] - Initial + reset zoom factor.
- * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
- * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
- * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
- * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
- * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
- * @returns {Camera}
- */
-globalThis.cameraFollow = function cameraFollow(cam = {}) {
-  return _cameraFollowBuild(cam, CAMERA_PROJECTION.PERSPECTIVE_FOV, false, 256);
-};
+// Namespace object (PascalCase, like CameraFly) over the shared follow build — `create` is the 3D
+// perspective variant, `create2d` the 2D ortho one. (Both are still plain factories internally; the
+// object grouping is what makes the PascalCase name correct.)
+globalThis.CameraFollow = {
+  /**
+   * 3D perspective-FOV follow camera that eases toward followTarget's Position each update.
+   * Currently unused — scenes use the 2D create2d; kept as the 3D library variant.
+   * Zoom opts apply but are visually inert here (equal-scaled width/height keeps the FOV aspect).
+   * @param {object} [cam]
+   * @param {World} [cam.world] - World holding the target's Position.
+   * @param {number} [cam.followTarget=-1] - Entity id to follow.
+   * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
+   * @param {number} [cam.followHeight=256] - Camera Z above the target.
+   * @param {number} [cam.zoom=1] - Initial + reset zoom factor.
+   * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
+   * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
+   * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
+   * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
+   * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
+   * @returns {Camera}
+   */
+  create(cam = {}) {
+    return _cameraFollowBuild(cam, CAMERA_PROJECTION.PERSPECTIVE_FOV, false, 256);
+  },
 
-/**
- * 2D orthographic follow camera (pixel-snapped) that eases toward followTarget's Position.
- * The mouse wheel zooms (shrinking/growing the ortho view extent) within [minZoom, maxZoom];
- * the middle mouse button resets zoom to `zoom`.
- * @param {object} [cam]
- * @param {World} [cam.world] - World holding the target's Position.
- * @param {number} [cam.followTarget=-1] - Entity id to follow.
- * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
- * @param {number} [cam.followHeight=-100] - Camera Z (ortho eye offset).
- * @param {number} [cam.zoom=1] - Initial + reset zoom factor (>1 closer, <1 wider).
- * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
- * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
- * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
- * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
- * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
- * @param {object} [cam.clamp] - Optional world-px look-at bounds { x1, y1, x2, y2 }. The eased
- *   look-at is clamped inside them each frame so the view never shows past a map edge (the pitch
- *   stretches the N-S reach, accounted for); a world smaller than the view is centered instead.
- * @returns {Camera}
- */
-globalThis.cameraFollow2d = function cameraFollow2d(cam = {}) {
-  return _cameraFollowBuild(cam, CAMERA_PROJECTION.ORTHO, true, -100);
+  /**
+   * 2D orthographic follow camera (pixel-snapped) that eases toward followTarget's Position.
+   * The mouse wheel zooms (shrinking/growing the ortho view extent) within [minZoom, maxZoom];
+   * the middle mouse button resets zoom to `zoom`.
+   * @param {object} [cam]
+   * @param {World} [cam.world] - World holding the target's Position.
+   * @param {number} [cam.followTarget=-1] - Entity id to follow.
+   * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
+   * @param {number} [cam.followHeight=-100] - Camera Z (ortho eye offset).
+   * @param {number} [cam.zoom=1] - Initial + reset zoom factor (>1 closer, <1 wider).
+   * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
+   * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
+   * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
+   * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
+   * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
+   * @param {object} [cam.clamp] - Optional world-px look-at bounds { x1, y1, x2, y2 }. The eased
+   *   look-at is clamped inside them each frame so the view never shows past a map edge (the pitch
+   *   stretches the N-S reach, accounted for); a world smaller than the view is centered instead.
+   * @returns {Camera}
+   */
+  create2d(cam = {}) {
+    return _cameraFollowBuild(cam, CAMERA_PROJECTION.ORTHO, true, -100);
+  },
 };

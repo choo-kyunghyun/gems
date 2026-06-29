@@ -7,7 +7,7 @@ function _cameraPanZoom(cam, next, mx, my, sw, sh) {
   cam._panZoom = next;
 }
 
-/** @this {any} - a Camera augmented with the _pan* fields set in cameraPan. */
+/** @this {any} - a Camera augmented with the _pan* fields set in CameraPan.create. */
 function _cameraPanOnUpdate() {
   const sw = surface_get_width(application_surface);
   const sh = surface_get_height(application_surface);
@@ -50,43 +50,47 @@ function _cameraPanOnUpdate() {
   this.setSize(sw / this._panZoom, sh / this._panZoom);
 }
 
-/**
- * 2D pan + zoom inspector camera. Drag `button` (default mb_middle) to pan; the wheel zooms
- * toward the cursor. At zoom 1 with the default center, world coords equal screen pixels.
- * @param {any} [cam] - Config bag: x/y (initial center, default surface center), zoom (=1),
- *   minZoom (=0.25), maxZoom (=8), zoomStep (=0.15 per notch), button (=mb_middle).
- * @returns {Camera}
- */
-globalThis.cameraPan = function cameraPan(cam = {}) {
-  cam.onUpdate = _cameraPanOnUpdate;
-  cam.projection = CAMERA_PROJECTION.ORTHO;
+// Namespace object (PascalCase, like CameraFly) over the pan/zoom build — `create` returns the
+// configured Camera. (Still a plain factory internally; the object grouping makes the name correct.)
+globalThis.CameraPan = {
+  /**
+   * 2D pan + zoom inspector camera. Drag `button` (default mb_middle) to pan; the wheel zooms
+   * toward the cursor. At zoom 1 with the default center, world coords equal screen pixels.
+   * @param {any} [cam] - Config bag: x/y (initial center, default surface center), zoom (=1),
+   *   minZoom (=0.25), maxZoom (=8), zoomStep (=0.15 per notch), button (=mb_middle).
+   * @returns {Camera}
+   */
+  create(cam = {}) {
+    cam.onUpdate = _cameraPanOnUpdate;
+    cam.projection = CAMERA_PROJECTION.ORTHO;
 
-  const sw = surface_get_width(application_surface);
-  const sh = surface_get_height(application_surface);
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
 
-  const ix = cam.x ?? sw * 0.5;
-  const iy = cam.y ?? sh * 0.5;
+    const ix = cam.x ?? sw * 0.5;
+    const iy = cam.y ?? sh * 0.5;
 
-  cam.fromX = ix;
-  cam.fromY = iy;
-  cam.fromZ = -100;
-  cam.toX = ix;
-  cam.toY = iy;
-  cam.width = sw;
-  cam.height = sh;
+    cam.fromX = ix;
+    cam.fromY = iy;
+    cam.fromZ = -100;
+    cam.toX = ix;
+    cam.toY = iy;
+    cam.width = sw;
+    cam.height = sh;
 
-  const camera = /** @type {any} */ (new Camera(cam));
+    const camera = /** @type {any} */ (new Camera(cam));
 
-  camera._panX = ix;
-  camera._panY = iy;
-  camera._panZoom = cam.zoom ?? 1;
-  camera._panMinZoom = cam.minZoom ?? 0.25;
-  camera._panMaxZoom = cam.maxZoom ?? 8;
-  camera._panZoomStep = cam.zoomStep ?? 0.15;
-  camera._panButton = cam.button ?? mb_middle;
-  camera._panDragging = false;
-  camera._panMx = 0;
-  camera._panMy = 0;
+    camera._panX = ix;
+    camera._panY = iy;
+    camera._panZoom = cam.zoom ?? 1;
+    camera._panMinZoom = cam.minZoom ?? 0.25;
+    camera._panMaxZoom = cam.maxZoom ?? 8;
+    camera._panZoomStep = cam.zoomStep ?? 0.15;
+    camera._panButton = cam.button ?? mb_middle;
+    camera._panDragging = false;
+    camera._panMx = 0;
+    camera._panMy = 0;
 
-  return camera;
+    return camera;
+  },
 };

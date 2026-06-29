@@ -57,7 +57,7 @@ class _SceneEditorClass extends Scene {
     // Renderer + camera are built once; _initLevel (re)binds the tilemap + zone passes to
     // whatever level is current, so New/resize/Open don't rebuild the camera or the palette.
     this.renderer = new Renderer();
-    this.camera = cameraPan(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
+    this.camera = CameraPan.create(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
     this.camera.assign(0);
 
     this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity

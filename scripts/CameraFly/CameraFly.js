@@ -1,8 +1,8 @@
 // CameraFly — the 6DOF spectator "noclip" free camera (debug). A behavior layered onto an existing
-// Camera rather than a standalone factory like cameraFollow/cameraPan: a follow camera flips its
+// Camera rather than a standalone factory like CameraFollow/CameraPan: a follow camera flips its
 // `freeCam` flag (the Debug "Camera" panel checkbox) and delegates its per-frame update here, so the
 // fly view seeds from — and on toggle-off returns to — the live follow view seamlessly (one camera,
-// one viewport; no second handle to assign/destroy). cameraFollow.install()s the state in its build
+// one viewport; no second handle to assign/destroy). CameraFollow.create install()s the state in its build
 // and update()s here while freeCam is on.
 //
 // Controls: WASD + Space/Shift translate (camera-relative XY plane + world Z), Q/E roll, and the

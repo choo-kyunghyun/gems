@@ -7,7 +7,7 @@ globalThis.CAMERA_PROJECTION = Object.freeze({
 
 /**
  * Wraps a GameMaker camera handle and drives its view + projection by matrix each update().
- * Construct directly for a static camera, or via the cameraFollow2d/cameraFollow/cameraPan
+ * Construct directly for a static camera, or via the CameraFollow.create2d/.create/CameraPan.create
  * factories for behavior. Owns a native handle — call destroy() at teardown.
  */
 globalThis.Camera = class Camera {

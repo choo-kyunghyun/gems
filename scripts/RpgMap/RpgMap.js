@@ -625,12 +625,12 @@ globalThis.RpgMap = {
         // the player chunk + loadRadius load = (loadRadius + 1) chunks. View any wider → dark void.
         (2 + 1) * (data.meta.chunkCols ?? 16) * scene.level.cellWidth
       : scene.level.cols * scene.level.cellWidth;
-    scene.camera = cameraFollow2d({
+    scene.camera = CameraFollow.create2d({
       world: scene.world,
       followTarget: scene.ctrl.id,
       followLerp: 0.15,
       pitch: RPG_BB_PITCH, // 2.5D spike: 0 = flat top-down, > 0 pitches for standing billboards
-      // cameraFollow recomputes the view extent each frame as surface size / followZoom, so
+      // CameraFollow recomputes the view extent each frame as surface size / followZoom, so
       // width/height below are just the frame-0 seed.
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
@@ -669,7 +669,7 @@ globalThis.RpgMap = {
 
   // Register the Debug/ImGui "Camera" panel bound to the LIVE scene camera (pitch + zoom), so the
   // 2.5D camera can be tuned at runtime to inspect rendering (e.g. crank the pitch toward a head-on
-  // 3D angle). The pitch drives cameraFollow (eye/up + the edge-clamp) AND the billboard tilt live,
+  // 3D angle). The pitch drives CameraFollow (eye/up + the edge-clamp) AND the billboard tilt live,
   // so the whole 2.5D pipeline tracks it. Re-registered on each build/resume (Debug.panel replaces
   // by name) so the sliders always drive the ACTIVE map's camera; removed on scene destroy
   // (sceneRpg.destroy → Debug.remove("Camera")). RPG-owned — the pitch is a Demo concern, like

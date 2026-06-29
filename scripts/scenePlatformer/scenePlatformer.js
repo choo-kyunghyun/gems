@@ -44,7 +44,7 @@ class _ScenePlatformerClass extends Scene {
     bbox.enabled = false;
     this.renderer.insert(bbox);
 
-    this.camera = cameraFollow2d({
+    this.camera = CameraFollow.create2d({
       world: this.world,
       followTarget: this.ctrl.id,
       followLerp: 0.15,
