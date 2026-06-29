@@ -1,13 +1,7 @@
-// Debug overlay: draws each entity's "active range" as a world-space ring — a turret's fire
-// radius, a enemy's aggro / give-up / attack distances — so behavior tuning is visible at a
-// glance. A generic Core pass: it knows nothing about specific components; the scene supplies a
-// list of { component, field, color } specs, and for every entity carrying `component` it draws a
-// ring of radius `entity[component][field]` around the (interpolated) Position. The RPG scene
-// configures it with Brain ranges (see RpgMap); other genres can reuse it with their own ranges.
-//
-// Inserted disabled and toggled live via the Debug "Render" panel (DebugRender), like the other
-// debug overlays. Rings interpolate via PrevPosition + world.alpha so they track the drawn boxes.
-//
+// world-space rings of each entity's range (turret fire radius, enemy aggro/attack distances)
+// for tuning. generic Core pass: scene supplies { component, field, color } specs, ring radius
+// is entity[component][field]. RPG wires Brain ranges (see RpgMap). inserted disabled, toggled
+// via the Debug Render panel.
 // @implements {RenderPass}
 globalThis.RenderDebugRange = class RenderDebugRange {
   /**
@@ -20,7 +14,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
     this.enabled = opt.enabled ?? false;
     this.ranges = opt.ranges ?? [];
     this.alpha = opt.alpha ?? 0.5;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -37,12 +31,12 @@ globalThis.RenderDebugRange = class RenderDebugRange {
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
         const radius = world.get(spec.component, id)[spec.field];
-        if (!(radius > 0)) continue; // skip 0 / NaN (uncomputed) radii
+        if (!(radius > 0)) continue; // skip 0/NaN radii
         const rp = InterpolationSystem.lerp(world, id, this._rp);
         const x = rp.x;
         const y = rp.y;
         draw_set_alpha(a);
-        // draw_circle_color (probe-verified on GMRT 0.20); outline ring, same hue in/out.
+        // draw_circle_color verified on GMRT 0.20
         draw_circle_color(x, y, radius, col, col, true);
       }
     }

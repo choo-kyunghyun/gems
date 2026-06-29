@@ -5,16 +5,9 @@
  */
 
 /**
- * Debug overlay for one ZoneMap channel: tints each zone's cells by color and
- * outlines zone region borders (only edges where the neighbor differs). Zone-name
- * labels are a separate `RenderZoneLabel` pass — insert it after this one.
- *
- * World-space pass — draw inside the camera view (like RenderDebugTileMap), not
- * on the GUI layer. Reads `level.zoneMap(key)` live each frame; a no-op when that
- * channel doesn't exist, so it's safe to keep inserted before zones are painted.
- * Zone color is `zone.data.color` (a "#rrggbb" string) when present, else a stable
- * hue derived from the zone id.
- *
+ * world-space debug overlay for one ZoneMap channel: tints cells + outlines region borders.
+ * names are a separate RenderZoneLabel pass. reads level.zoneMap(key) live; no-op when absent,
+ * so safe to insert before zones are painted.
  * @implements {RenderPass}
  */
 globalThis.RenderZone = class RenderZone {
@@ -35,7 +28,7 @@ globalThis.RenderZone = class RenderZone {
 
   _color(zone) {
     const c = zone.data.color;
-    // Stable, visually distinct hue per id when no explicit color (61 ≈ prime step).
+    // stable hue per id when no explicit color (61 ≈ prime step for spread)
     if (c === undefined) return Color.hsv((zone.id * 61) % 256, 170, 230);
     return Color.parse(c);
   }
@@ -68,10 +61,8 @@ globalThis.RenderZone = class RenderZone {
         draw_set_color(col);
         draw_rectangle(wx, wy, wx + cellWidth, wy + cellHeight, false);
 
-        // Border: a colored line only on edges where the neighbor is a different
-        // zone, so each painted region gets a crisp outline. map.idAt treats
-        // out-of-bounds as 0, so the level edge outlines too. Plain draw_line —
-        // draw_line_width_color renders nothing on GMRT (see CLAUDE.md).
+        // line only on edges where the neighbor differs (idAt treats OOB as 0, so map edges
+        // outline too). plain draw_line — draw_line_width_color renders nothing on GMRT.
         if (this.border) {
           draw_set_alpha(1);
           if (map.idAt(x, y - 1) !== id) draw_line(wx, wy, wx + cellWidth, wy);

@@ -4,12 +4,8 @@
  */
 
 /**
- * Zone-name labels for one ZoneMap channel: white text at each zone's centroid.
- * Split out of `RenderZone` (which now draws only fills + borders) so labels
- * toggle independently; insert it *after* the zone pass. World-space — draw
- * inside the camera view. Reads `level.zoneMap(key)` live; a no-op when that
- * channel doesn't exist, so it's safe to keep inserted before zones are painted.
- *
+ * world-space zone-name labels at each zone centroid; insert after RenderZone.
+ * reads level.zoneMap(key) live; no-op when absent.
  * @implements {RenderPass}
  */
 globalThis.RenderZoneLabel = class RenderZoneLabel {
@@ -44,8 +40,7 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
     const cols = grid.cols;
     const rows = grid.rows;
 
-    // Per-zone centroid accumulation — plain objects keyed by id (Map/Set iteration
-    // is banned on GMRT; for...in over a plain object is fine).
+    // centroid accumulators keyed by id — plain objects (Map/Set iteration banned on GMRT)
     const sumX = {};
     const sumY = {};
     const count = {};

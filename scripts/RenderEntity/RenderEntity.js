@@ -1,13 +1,11 @@
 /**
- * Production entity renderer: draws every entity with `Visual` + `Position` via
- * `draw_sprite_ext`, advancing looped sprite playback and interpolating position
- * through `InterpolationSystem.lerp`.
+ * draws Visual+Position entities via draw_sprite_ext with lerp'd position and looped anim.
  * @implements {RenderPass}
  */
 globalThis.RenderEntity = class RenderEntity {
   constructor() {
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}

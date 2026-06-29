@@ -6,20 +6,12 @@
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
  * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
  * @property {number} [font] - font for cell labels (default: leaves the current font)
- * @property {object} [camera] - a Camera instance; when set, only the cells inside its
- *   view rect are iterated (essential for large/streamed grids). Omit for full-grid
- *   iteration (small inspector grids). Settable later via `pass.camera = …`.
+ * @property {object} [camera] - Camera; when set, view-culls cells for large grids. Settable via `pass.camera`.
  */
 
 /**
- * Debug overlay for inspecting a Level's tile costs and types. Cell boundary
- * lines are a separate `RenderGrid` pass.
- *
- * Cost shading reads `level.mpg` (the merged pathfinding grid), so call
- * `level.syncAll()` first or the costs all read as the default (1). Tile
- * labels read the topmost layer that has a tile at each cell, mirroring how
- * `Level._computeNav` resolves nav data.
- *
+ * overlay for inspecting Level tile costs + types (grid lines are a separate RenderGrid pass).
+ * cost shading reads level.mpg — call level.syncAll() first or costs read as the default 1.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
@@ -41,10 +33,9 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
 
   destroy() {}
 
-  // Visible cell range [x0,x1]×[y0,y1] (inclusive). Culled to the camera's view rect when
-  // a Camera is set, else the full grid. The rect comes from the Camera's OWN fields, not
-  // camera_get_view_* (returns 0 for the project's matrix-driven Camera — see CLAUDE.md);
-  // an ORTHO camera is centered on (toX, toY) spanning width × height world px.
+  // visible cell range, culled to the camera view rect when set. read the Camera's OWN fields,
+  // not camera_get_view_* (returns 0 for the matrix-driven Camera; see CLAUDE.md). ORTHO camera
+  // is centered on (toX,toY) spanning width × height.
   _range() {
     const { cols, rows, cellWidth, cellHeight } = this.level;
     if (this.camera === undefined || !(this.camera.width > 0))
@@ -61,7 +52,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     };
   }
 
-  // Topmost tile at a cell across all layers (matches Level nav resolution).
+  // topmost tile across all layers (matches Level nav resolution)
   _topTile(x, y) {
     const layers = this.level.layers;
     for (let i = layers.length - 1; i >= 0; i--) {
@@ -82,13 +73,13 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     const { cellWidth, cellHeight, mpg } = this.level;
     const r = this._range();
 
-    // Cost shading: blocking cells red, costlier-than-default cells orange.
+    // cost shading: blocking cells red, costlier-than-default orange
     if (this.cost) {
       draw_set_alpha(this.alpha);
       for (let y = r.y0; y <= r.y1; y++) {
         for (let x = r.x0; x <= r.x1; x++) {
           const c = mpg.get(x, y);
-          if (c === 1) continue; // default walkable — leave clear
+          if (c === 1) continue; // default walkable
           draw_set_color(c === Infinity ? c_red : c_orange);
           const wx = x * cellWidth;
           const wy = y * cellHeight;
@@ -97,7 +88,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       }
     }
 
-    // Per-cell text labels.
+    // per-cell text labels
     if (this.tiles || this.coords) {
       draw_set_alpha(1);
       draw_set_halign(fa_center);

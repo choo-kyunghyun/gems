@@ -1,16 +1,12 @@
 /**
- * Colored-box stand-in renderer: draws each entity as a filled `Visual.color`
- * rectangle + black outline (GMRT can't render the SVG character sprites). One
- * concern — just the box. Facing markers are `RenderDebugDirection`, animator
- * state `RenderDebugAnimator`, `Name` labels `RenderDebugName`, the lime bbox
- * overlay `RenderDebugEntity`; insert those *after* this so they sit on top.
- * Position interpolates via `InterpolationSystem.lerp`.
+ * colored-box entity stand-in (GMRT can't render the SVG character sprites). just the box —
+ * facing/animator/name/bbox cues are separate RenderDebug* passes inserted after this.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugBox = class RenderDebugBox {
   constructor() {
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}

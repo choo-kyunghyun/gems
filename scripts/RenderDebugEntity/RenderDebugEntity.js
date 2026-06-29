@@ -1,16 +1,13 @@
 /**
- * BBox-outline debug overlay (lime), one linelist draw call for the whole world.
- * Insert it *after* `RenderDebugBox` so the outlines sit on top of the colored
- * boxes (it draws only outlines — boxes are `RenderDebugBox`, names `RenderDebugName`).
+ * lime BBox outlines, one linelist draw call for the world. insert after RenderDebugBox.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
   constructor() {
-    // `Renderer.draw` skips a pass while `enabled` is false; the SystemMenu Debug tab toggles
-    // this live. A scene using it as a pure overlay inserts it disabled (see scenePlatformer/
-    // sceneRpg); RTS keeps it enabled since it's that scene's only entity renderer.
+    // overlay scenes insert this disabled and toggle live via the Debug tab; RTS keeps it
+    // enabled as its only entity renderer.
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -23,7 +20,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
     const ids = world.query(Position);
 
-    // All BBox outlines in one linelist draw call instead of N draw_rectangle calls.
+    // all outlines in one linelist draw call instead of N draw_rectangles
     draw_set_color(c_lime);
     draw_primitive_begin(pr_linelist);
     for (let i = 0; i < ids.length; i++) {
