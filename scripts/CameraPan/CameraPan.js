@@ -1,5 +1,4 @@
-// Zoom toward the cursor: set _panZoom to `next` while keeping the world point under the
-// cursor fixed (world delta = screen delta / zoom). Shared by both wheel directions.
+// zoom to `next` keeping the world point under the cursor fixed (world delta = screen delta / zoom)
 /** @param {any} cam @param {number} next @param {number} mx @param {number} my @param {number} sw @param {number} sh */
 function _cameraPanZoom(cam, next, mx, my, sw, sh) {
   cam._panX += (mx - sw * 0.5) * (1 / cam._panZoom - 1 / next);
@@ -12,13 +11,12 @@ function _cameraPanOnUpdate() {
   const sw = surface_get_width(application_surface);
   const sh = surface_get_height(application_surface);
 
-  // Screen-space mouse coords (camera-independent) in application_surface pixels.
-  // device_mouse_*_to_gui returns GUI-layer coords on a fixed design size (≠ the surface),
-  // so scale GUI→surface to keep pan/zoom in the camera's pixel space.
+  // device_mouse_*_to_gui returns GUI coords on a fixed design size (≠ surface), so scale
+  // GUI→surface to keep pan/zoom in the camera's pixel space
   const mx = (device_mouse_x_to_gui(0) * sw) / display_get_gui_width();
   const my = (device_mouse_y_to_gui(0) * sh) / display_get_gui_height();
 
-  // Drag to pan: move the camera opposite the mouse screen delta (world delta = screen / zoom).
+  // drag to pan: move camera opposite the mouse delta (world delta = screen / zoom)
   if (mouse_check_button_pressed(this._panButton)) {
     this._panDragging = true;
     this._panMx = mx;
@@ -35,7 +33,7 @@ function _cameraPanOnUpdate() {
     }
   }
 
-  // Wheel to zoom toward the cursor (clamped to the zoom range).
+  // wheel to zoom toward the cursor (clamped to range)
   if (mouse_wheel_up()) {
     const next = Math.min(this._panMaxZoom, this._panZoom * (1 + this._panZoomStep));
     _cameraPanZoom(this, next, mx, my, sw, sh);
@@ -50,14 +48,12 @@ function _cameraPanOnUpdate() {
   this.setSize(sw / this._panZoom, sh / this._panZoom);
 }
 
-// Namespace object (PascalCase, like CameraFly) over the pan/zoom build — `create` returns the
-// configured Camera. (Still a plain factory internally; the object grouping makes the name correct.)
+// namespace over the pan/zoom build — `create` returns the configured Camera
 globalThis.CameraPan = {
   /**
-   * 2D pan + zoom inspector camera. Drag `button` (default mb_middle) to pan; the wheel zooms
-   * toward the cursor. At zoom 1 with the default center, world coords equal screen pixels.
-   * @param {any} [cam] - Config bag: x/y (initial center, default surface center), zoom (=1),
-   *   minZoom (=0.25), maxZoom (=8), zoomStep (=0.15 per notch), button (=mb_middle).
+   * 2D pan + zoom inspector camera. Drag `button` to pan, wheel zooms toward the cursor.
+   * At zoom 1 with the default center, world coords equal screen pixels.
+   * @param {any} [cam] - x/y (center), zoom, minZoom, maxZoom, zoomStep, button.
    * @returns {Camera}
    */
   create(cam = {}) {
