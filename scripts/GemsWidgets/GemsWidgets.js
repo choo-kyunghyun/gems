@@ -1,11 +1,10 @@
-// ── GemsUI kit: text / tooltip / buttons ──────────────────────
+// ── GemsUI kit: text / tooltip / buttons ─────────────────────
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
-// Standalone text node. Width/height auto-fit to the string (UIText). `opts.font` is an I18n font
-// KEY (string, e.g. "header") — preferred: the widget re-resolves it each draw so it survives a
-// language switch — or a raw font handle (number). See the resolve-at-draw GMRT-Safe Idiom.
-// `opts.wrap` (px) wraps long text to that width (the element then self-sizes to the wrapped block);
-// omit for a single auto-fit line.
+// Standalone text node, auto-fitting to the string (UIText). Pass `opts.font` as an I18n
+// font KEY (string), NOT a pre-resolved handle — the widget re-resolves it each draw so it
+// survives a language switch (resolve-at-draw GMRT-Safe Idiom); a raw handle also works.
+// `opts.wrap` (px) wraps to that width; omit for a single auto-fit line.
 globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   const el = new UIElement();
   el.addComponent(
@@ -20,11 +19,9 @@ globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Rich text node: a markup string with colored spans + inline icons (UIRichText).
-// Width/height auto-fit to the parsed content, like gemsLabel. `opts.palette` maps
-// `[c=name]` tags to colors (theme key / hex / int, parsed via gemsColor); the kit's
-// semantic names (`accent`, `textMuted`, …) are merged in for free. `opts.iconSize`
-// overrides the inline-icon size (defaults to the line height).
+// Rich text node: markup with colored spans + inline icons (UIRichText), auto-fitting
+// like gemsLabel. `opts.palette` maps `[c=name]` tags to colors; the kit's semantic
+// names (accent/muted/dim) are merged in. `opts.iconSize` overrides the icon size.
 globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   const palette = {};
   const src = opts.palette ?? {};
@@ -47,12 +44,10 @@ globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Quest tracker: a live HUD list bound to opts.source — a quest log exposing
-// activeIds()/def(id)/status(id) (the RPG passes its QuestLog) — so this kit factory and
-// the Core UIQuestTracker stay genre-agnostic. On a fixed-size panel, sized to the
-// currently-active quests by default so an enclosing gemsScroll can reveal overflow; pass
-// opts.height to fix it. Build it AFTER the quests are registered + accepted (it measures
-// the source at construction). opts.emptyText (string or () => string) shows when empty.
+// Quest tracker: a live HUD list bound to opts.source (a quest log; the RPG passes its
+// QuestLog) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
+// active quests by default (build it AFTER quests are registered/accepted — it measures
+// at construction); pass opts.height to fix it. opts.emptyText shows when empty.
 globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   const tracker = new UIQuestTracker({
     source: opts.source ?? null,
@@ -82,10 +77,9 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Minimap / radar: a framed UINineSlice panel (the frame) + a UIMinimap (the blips)
-// that plots a World's tagged entities around a target. `opts`: { world, target (center
-// entity id), range (world units to the edge), size (px, square), rules ([{ tag, color }],
-// color = theme key / hex / int), frameSprite, frameColor, blipSize, playerColor }.
+// Minimap / radar: a framed UINineSlice + a UIMinimap plotting a World's tagged entities
+// around a target. `opts`: { world, target, range, size, rules ([{ tag, color }]),
+// frameSprite, frameColor, blipSize, playerColor }.
 globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   const size = opts.size ?? 160;
   const rules = [];
@@ -117,9 +111,8 @@ globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// One-line help/hint text on a readable card backdrop. Use instead of a bare
-// gemsLabel for overlays that would otherwise float as low-contrast text over a
-// scene's render (e.g. the tile-inspector "press X to…" lines).
+// One-line hint text on a card backdrop — for overlays where a bare gemsLabel would
+// float as low-contrast text over a scene's render.
 globalThis.gemsHint = function gemsHint(label, opts = {}) {
   const card = gemsCard({ padding: GemsTheme.padSm });
   card.insertChild(
@@ -132,16 +125,13 @@ globalThis.gemsHint = function gemsHint(label, opts = {}) {
   return card;
 };
 
-// Live, context-aware key-bind hint bar — replaces a hardcoded "WASD: Move · …" string.
-// `entries` is an array of { label, contexts?, actions? | text? }:
-//   • label    i18n key (string) or () => string — the action's human name.
-//   • actions  action keys (Input.get) whose CURRENT bindings are shown, joined; reads them
-//              LIVE each frame, so a remap updates the hint with zero extra wiring. Joined with
-//              "" when every key is one glyph (→ "WASD") else "/" (→ "Up/Left/Down/Right").
-//   • text     a literal key label for a non-rebindable key (e.g. "LMB"/"Esc"); use instead of
-//              `actions` for raw mouse/Esc hints that aren't InputActions.
-//   • contexts string[] of InputContext names this entry shows in (omit = always). The bar
-//              re-filters each frame, so it tracks the active context (play / build / window).
+// Live, context-aware key-bind hint bar. `entries` is { label, contexts?, actions? | text? }:
+//   • label    i18n key or () => string — the action's human name.
+//   • actions  action keys whose CURRENT bindings are read LIVE each frame (a remap updates
+//              the hint with zero wiring). Joined "" if every key is one glyph (→ "WASD") else "/".
+//   • text     a literal label for a non-rebindable key (e.g. "LMB"/"Esc"), not an InputAction.
+//   • contexts InputContext names this entry shows in (omit = always); re-filtered each frame,
+//              so the bar tracks the active context (play / build / window).
 // Built on gemsLabel with a live composer, so it self-sizes and survives a language switch.
 globalThis.gemsKeyHints = function gemsKeyHints(entries, opts = {}) {
   const sep = opts.separator ?? "   ·   ";
@@ -176,15 +166,9 @@ globalThis.gemsKeyHints = function gemsKeyHints(entries, opts = {}) {
   });
 };
 
-// Attach a hover tooltip to any element and return it (chainable). `label` is a
-// string or () => string (live I18n.textRef). Added at index 0 so a sibling
-// interactive component (e.g. the UIButton this describes) setting `block` while
-// hovered doesn't suppress its own tooltip. `opts.delay` overrides the dwell time.
-//
-// The widget factories also take this directly: pass `opts.tooltip` (string or
-// () => string) — and optionally `opts.tooltipDelay` — to gemsButton/gemsToggle/
-// gemsIconButton/gemsSlider/gemsSelect(Custom)/gemsInput/gemsLabel and they call this
-// for you, so callers rarely wrap by hand.
+// Attach a hover tooltip to any element (chainable). Added at index 0 so a sibling
+// interactive component setting `block` while hovered doesn't suppress its own tooltip.
+// Most factories also accept `opts.tooltip` (+ `opts.tooltipDelay`) and call this for you.
 globalThis.gemsTooltip = function gemsTooltip(element, label, opts = {}) {
   element.addComponent(
     new UITooltip({ label: gemsTextRef(label), delay: opts.delay }),
@@ -201,9 +185,8 @@ globalThis.gemsAttachTooltip = function gemsAttachTooltip(element, opts) {
   return element;
 };
 
-// `opts.primary: true` paints the button in the accent color for a highlighted
-// call-to-action. The label is centered both axes; hover eases the fill + a border
-// glow + a shadow lift (see UIButton), press sinks it.
+// `opts.primary: true` paints the button accent (highlighted CTA). Centered label;
+// hover eases fill + border glow + shadow lift, press sinks it (see UIButton).
 globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
   const primary = opts.primary ?? false;
   const base = opts.color ?? (primary ? GemsTheme.accent : GemsTheme.btn);
@@ -215,9 +198,8 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
     opts.borderColor ?? (primary ? GemsTheme.accentHi : GemsTheme.border);
   const bdrHover = primary ? GemsTheme.text : GemsTheme.borderHi;
 
-  // opts.icon: an optional sprite ref drawn as a small icon left of the label (an item icon
-  // for an equip/mod button). Only when set does the layout switch to a centered row — the
-  // no-icon path is unchanged, so every existing button is untouched.
+  // opts.icon: optional sprite drawn left of the label; only then does the layout become a
+  // row (no-icon path unchanged)
   const hasIcon = opts.icon != null && sprite_exists(opts.icon);
   const style = {
     height: opts.height ?? GemsTheme.rowH,
@@ -255,17 +237,17 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       borderColorNormal: gemsColor(bdr),
       borderColorHover: gemsColor(bdrHover),
       animSpeed: GemsTheme.animSpeed,
-      // opts.disabled may be a bool or a live () => bool (e.g. gate on empty inventory).
+      // opts.disabled: bool or a live () => bool
       disabled: opts.disabled === true,
       getDisabled: typeof opts.disabled === "function" ? opts.disabled : null,
-      // opts.selected: a live () => bool marking this button the active choice (used by
-      // the category bar / build palette). Tints panel + border toward the accent.
+      // opts.selected: a live () => bool marking the active choice (category bar / palette);
+      // tints toward the accent
       getSelected: typeof opts.selected === "function" ? opts.selected : null,
       colorSelected: gemsColor(opts.colorSelected ?? GemsTheme.accentPress),
       borderColorSelected: gemsColor(
         opts.borderColorSelected ?? GemsTheme.accentHi,
       ),
-      // Grey the label alongside the panel when disabled.
+      // grey the label alongside the panel when disabled
       label: labelEl.getComponent(UIText),
       textColorNormal: gemsColor(opts.textColor ?? GemsTheme.text),
       textColorDisabled: gemsColor(GemsTheme.textDim),

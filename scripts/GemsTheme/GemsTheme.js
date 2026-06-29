@@ -1,45 +1,33 @@
-// ── GemsUI kit: theme + helpers ───────────────────────────────
-// The GemsUI kit is a themed factory library for building scene UIs declaratively:
-// the gems* factories compose UIElement + the UI* components so scenes never
-// hand-wire panels/text/colors. It is split across GemsTheme / GemsContainers /
-// GemsWidgets / GemsControls so no single file grows large enough to trip GMRT's
-// large-file handling (see the globalThis note below).
-//
-// Every visual constant lives in GemsTheme; colors are stored as hex strings and
-// parsed lazily in gemsColor (Color may not be loaded when this script's top level
-// runs, so we never call Color.parse at module scope).
-//
-// GMRT note: every factory across these files is assigned via
-// `globalThis.X = function X(...)`, NOT a bare `function X(...)` declaration. Past a
-// certain file size GMRT stops hoisting some bare top-level declarations into global
-// scope and faults at startup ("cannot coerce undefined or null value into object").
-// Explicit globalThis assignment plus keeping each file small is reliable.
+// ── GemsUI kit: theme + helpers ──────────────────────────────
+// Themed factory library; gems* factories compose UIElement + UI* components.
+// Split across small files — GMRT stops hoisting bare top-level declarations past
+// a file-size threshold and faults at startup; use `globalThis.X = function X(…)`.
+// Colors stored as hex and parsed lazily (Color may not be loaded at module scope).
 
 globalThis.GemsTheme = {
-  // ── Surfaces (cool slate; `panelLo` is the darker edge of the card vignette) ──
+  // Surfaces
   panel: "#272b34", // section / card fill (roundrect center)
   panelLo: "#1f222a", // card edge — darker, reads as depth
-  // ── Buttons ──
+  // Buttons
   btn: "#323845",
   btnHover: "#3e4658",
   btnPress: "#23272f",
-  // ── Accent — slider fills, focus glow, primary buttons ──
+  // Accent — slider fills, focus glow, primary buttons
   accent: "#4a9eff",
-  accentHi: "#74b6ff", // brighter accent (primary hover / glow)
+  accentHi: "#74b6ff", // brighter (primary hover / glow)
   accentPress: "#3174d4",
-  // ── Text ──
+  // Text
   text: "#f1f4fa",
   textMuted: "#9aa3b2",
   textDim: "#6c7585",
-  // ── Lines & bevels ──
+  // Lines & bevels
   border: "#3c4350",
   borderHi: "#566173", // hover/active outline glow
   highlight: "#ffffff", // inner top sheen (drawn at low alpha)
-  // ── Geometry ──
+  // Geometry
   radius: 14,
   radiusSm: 9,
-  // Spacing bumped to breathe under the larger (16px) body font — the prior values were tuned
-  // for 12px text and read cramped once the font grew.
+  // bumped to breathe under the 16px body font (12px values read cramped)
   pad: 20,
   padSm: 14,
   gap: 14,
@@ -49,7 +37,7 @@ globalThis.GemsTheme = {
   titleH: 26, // gemsSection title host height (keeps it off the card border)
   menuWidth: 760, // centered max-width for menu scenes (lobby/settings/…)
   headerH: 64,
-  // ── Motion ──
+  // Motion
   animSpeed: 16, // hover/press easing rate
 };
 
