@@ -7,8 +7,7 @@ const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up aft
 const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
 const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
 
-// Exposed as a factory so another scene (the level editor's Test Play) can open this scene
-// directly; SceneRegistry.add uses the SAME reference so SceneManager._apply resolves its label.
+// factory so the level editor's Test Play can open this scene; same ref SceneManager labels use
 globalThis.SceneRpg = () => new _SceneRpgClass();
 SceneRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),
@@ -19,7 +18,7 @@ class _SceneRpgClass extends Scene {
   label = "RPG";
 
   create() {
-    // ── Persistence + content (load before building anything) ──────────────
+    // load before building anything
     SaveData.load();
     RpgQuests.register();
     Profile.load();
@@ -28,21 +27,15 @@ class _SceneRpgClass extends Scene {
     QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
-    // Combat policy: inject the RPG's stat-driven mitigation into the kit's stat-agnostic Combat
-    // applier (default is identity). Every damage path (MeleeSystem/ProjectileSystem/CombatAI) folds
-    // in the target's defense + a min-1 floor through this; the attack side (weapon + Stats.attack)
-    // is composed by the callers. Set once per scene — survives map reloads (a static hook).
+    // inject stat-driven mitigation into the kit's stat-agnostic Combat applier (static hook, survives map reloads)
     Combat.mitigate = function (world, targetId, amount, penetration = 0) {
       const s = world.get(Stats, targetId);
       const defense = s !== undefined ? s.defense : 0;
-      // Armor penetration (an ammo-driven gun's round) eats into defense before it mitigates; clamp
-      // so a round never ADDS damage, and keep the min-1 floor so any hit still registers.
+      // clamp so penetration never adds damage; min-1 floor so every hit registers
       const effDef = Math.max(0, defense - penetration);
       return Math.max(1, amount - effDef);
     };
-    // Consumable policy: inject how a *_serum consumable grows an attribute (the item-driven
-    // progression that replaced leveling). Raise the bag key, then re-derive Stats from source.
-    // No-op (false → use() refuses, no waste) if the target has no Attributes or no such key.
+    // inject how a *_serum consumable raises an attribute; false → use() refuses (no waste)
     ConsumableSystem.grantAttr = function (world, id, attr, amount) {
       const a = world.get(Attributes, id);
       if (a === undefined || a[attr] === undefined) return false;
@@ -50,25 +43,18 @@ class _SceneRpgClass extends Scene {
       StatModel.recompute(world, id);
       return true;
     };
-    // Status policy: a buff/debuff carrying flat `mods` (e.g. fortify's +attack) only reaches the
-    // derived Stats when the sheet re-derives. Inject that re-derive into the kit's StatusSystem
-    // (default no-op) so apply/expire of a mods-bearing status folds it in/out (StatModel._foldStatuses).
-    // dot/hot + live `mult` (encumbrance/speed) need no recompute — they act directly / are read live.
+    // inject re-derive into StatusSystem so mods-bearing status buffs fold in/out on apply/expire;
+    // dot/hot + live `mult` (encumbrance/speed) need no recompute — read directly / live
     StatusSystem.onStatsChanged = function (world, id) {
       StatModel.recompute(world, id);
     };
 
-    // ── Map pool: visited maps are kept ALIVE + suspended here (mapId → bundle of
-    //    world/level/renderer/camera/...), so a door trip PARKS the current map instead of
-    //    destroying it — only the party migrates (RpgMap.go). _mapOrder tracks activation order
-    //    for LRU eviction past RpgMap.POOL_MAX, which serializes the evicted map into the COLD
-    //    _mapCache (Level.export() + stationed companions) and frees it (a future save would
-    //    serialize the pool + cache alongside the character sheet). ──
+    // map pool: visited maps stay alive/suspended here (see RpgMap.go); _mapOrder is LRU order for
+    // eviction past POOL_MAX; _mapCache holds cold-serialized evicted maps (Level.export + entities)
     this._maps = {};
     this._mapOrder = [];
     this._mapCache = {};
 
-    // ── Overlay / interaction state (scene-wide — survives map changes) ─────
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
@@ -79,31 +65,22 @@ class _SceneRpgClass extends Scene {
     this.dialogueLine = "";
     this.dialogueAction = "";
 
-    // ── SystemMenu overlay owns pause + exit (Esc / Start / F1) and suspends menu nav
-    // while playing. Flag it (a subclass field initializer wouldn't run on GMRT). ─────
+    // flag gameplay so SystemMenu suspends nav while playing; can't be a field initializer (GMRT)
     this.gameplay = true;
 
-    // ── Persistent UI (built once). These widgets read this.world / this.ctrl LIVE each
-    //    frame, so they keep working after RpgMap.go() swaps the world on a map change. Hint,
-    //    then manager-drawn panels: HUD + quest tracker (top-right), NPC dialogue (bottom-center,
-    //    toggled), inventory window, station prompt/storage/crafting windows, build-mode HUD. ──
+    // persistent UI built once; reads world/ctrl live so it survives RpgMap.go's world swap
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
-    // Radar rules for RadarArrows (drawn in draw()): which tags get a directional arrow around
-    // the player, and in what color. Built here (not at top level) so Color is loaded. Read live
-    // each frame, so the radar survives a map/world swap with no rebuild (unlike the old minimap).
+    // RadarArrows tag→color rules; built here (not top level) so Color is loaded; read live so it survives a world swap
     this._radarRules = [
       { tag: "enemy", color: Color.parse("#e0584f") },
       { tag: "npc", color: Color.parse("#ffd166") },
       { tag: "portal", color: Color.parse("#9b8cff") },
       { tag: "follower", color: Color.parse("#6fd0a0") },
     ];
-    // Context-aware, binding-driven key hints (the bar reads each action's CURRENT binding
-    // live, so it's ready for key remapping — a rebind updates the hint with no extra wiring).
-    // `contexts` gates each entry to the matching InputContext (play / build / window), so the
-    // bar swaps its hints as the scene changes context. `text` entries are non-rebindable keys
-    // (raw build-mode mouse, Esc-to-close).
+    // binding-driven key hints; bar reads each action's live binding (ready for remap) and
+    // `contexts` gates entries per InputContext. `text` entries are non-rebindable keys.
     this.ui.insertChild(
       gemsKeyHints(
         [
@@ -149,35 +126,27 @@ class _SceneRpgClass extends Scene {
     TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
 
-    // ── World graph boot: a normal launch starts at the overworld hub; the editor's Test
-    //    Play overrides with a single playtest file (registered under a synthetic id — it
-    //    has no portals, so the door system stays inert there). RpgMap.go() builds the world,
-    //    level, player, renderer, camera, and minimap. ─────────────────────────────────────
+    // boot at the overworld hub; the editor's Test Play overrides with a portal-less playtest file
     let bootMap = RpgLevel.START;
     if (RpgLevel.playtestFile !== undefined) {
       RpgLevel.MAPS._playtest = RpgLevel.playtestFile;
       RpgLevel.playtestFile = undefined;
       bootMap = "_playtest";
     }
-    WorldClock.reset(); // start at morning, day 1 (once — survives map changes below)
-    Weather.reset(); // settled clear sky (once — survives map changes, like the clock)
+    WorldClock.reset(); // once — survives map changes below
+    Weather.reset(); // once — survives map changes, like the clock
     RpgMap.go(this, bootMap, "default");
-    Audio.bgm("mus_overworld"); // RPG theme; carries across map changes (only _apply's reset stops it)
+    Audio.bgm("mus_overworld"); // carries across map changes (only _apply's reset stops it)
 
-    // Starting loadout: a melee Lead Pipe, equipped — so the attack is item-driven from frame
-    // one (unarmed is only a weak fist; this is a real swing). Granted once at scene start; from
-    // here it travels with the carried inventory across map changes (RpgMap.go re-applies it).
+    // starting loadout, equipped so the attack is item-driven from frame one; travels with the
+    // carried inventory across maps
     const startInv = this.world.get(Inventory, this.ctrl.id);
     InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
     EquipmentSystem.equipFirst(this.world, this.ctrl.id, "lead_pipe"); // equip that instance by uid
-    InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits to spend at merchants (1 slot — coin stacks high)
+    InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
-    // Seed one starting companion into the party (programmatic, not file-authored — so
-    // reloading a persistent map never re-creates it; from here the travel/station persistence
-    // in RpgMap.go owns it). create() runs once per scene, so this seeds exactly once. It
-    // carries a bag bonus (+slots / +weight cap) applied while it follows; apply it now since
-    // it spawns in "follow" state. From here the bonus is balanced by the F-toggle / dismiss
-    // transitions, and rides the carried Inventory snapshot across map changes (no re-apply).
+    // seed one companion programmatically (not file-authored, so a persistent-map reload won't
+    // dup it). spawns following → apply its carry bonus now; balanced thereafter by F-toggle/dismiss.
     const pp = this.world.get(Position, this.ctrl.id);
     const companion = RpgSpawn.spawnFollower(this.world, pp.x - 14, pp.y + 11, {
       label: "Companion",
@@ -192,11 +161,8 @@ class _SceneRpgClass extends Scene {
       1,
     );
 
-    // Seed an arcade cabinet near spawn (programmatic, like the companion): a Station the player
-    // interacts with (E) to launch the platformer as a minigame ON TOP of the RPG via the
-    // SceneManager stack (Interactable routes kind "arcade" → _openArcade). create() runs once,
-    // and this lives directly in the world (not chunk-managed), so it persists while the overworld
-    // world does. Authoring it into overworld.json would also survive portal round-trips (future).
+    // arcade cabinet Station: E launches the platformer as a guest minigame (Interactable kind
+    // "arcade" → _openArcade). Lives directly in the world (not chunk-managed) so it persists.
     const sg = this.level.worldToGrid(this.spawn.x, this.spawn.y);
     RpgSpawn.spawnEntity(this.world, this.level, {
       preset: "prop",
@@ -207,8 +173,7 @@ class _SceneRpgClass extends Scene {
       kind: "arcade",
     });
 
-    // The scene takes over gameplay input: push its base context. step() replaces it each
-    // frame via _resolveContext; destroy() resets to "default" for the next scene.
+    // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
 
     Log.info(
@@ -218,11 +183,10 @@ class _SceneRpgClass extends Scene {
   }
 
   step() {
-    // No pause gate — obj_game skips scene.step() while the SystemMenu is open.
+    // no pause gate — obj_game skips scene.step() while the SystemMenu is open
 
-    // Sleeping (bed): fast-forward Time.scale so the night/needs race by while Drowsiness drains
-    // (the tick loop above). Manual wake — any key/click/face-button gets the player up. Checked
-    // BEFORE the tick loop so the waking press wakes instead of moving/acting this frame.
+    // sleeping (bed): fast-forward Time.scale while Drowsiness drains; any input wakes. Checked
+    // BEFORE the tick loop so the waking press wakes instead of moving this frame.
     if (this._sleeping) {
       if (this._wakeInput()) {
         this._sleeping = false;
@@ -233,32 +197,22 @@ class _SceneRpgClass extends Scene {
     }
     this._sleepOverlay.enabled = this._sleeping;
 
-    // Edge-triggered toggle — sampled once per frame, outside the tick loop. The
-    // window's widgets are clicked/navigated directly; no keyboard cursor anymore.
+    // edge toggle — once per frame, outside the tick loop
     if (Input.get("inventory").pressed()) {
       this.invOpen = !this.invOpen;
       this._invWin.enabled = this.invOpen;
       if (this.invOpen) this._invDirty = true;
     }
 
-    // Resolve the active input context for this frame BEFORE the tick loop, so the
-    // movement/fire reads inside it (RpgController.update) see it. Window beats build beats
-    // play: a gameplay window open mutes fire (clicks don't shoot) but keeps movement;
-    // build mode mutes fire too (LMB places tiles). See InputContext + RpgController tags.
+    // resolve input context BEFORE the tick loop so the tick's movement/fire reads see it.
+    // window > build > play (see InputContext + RpgController tags).
     this._resolveContext();
 
-    // Hotbar number keys (1..N) — edge-checked once per frame, after the context is set (the
-    // hotbar actions are "play"-only, so this is inert while a window is open or building). A
-    // keypress (in _useHotbar) refreshes the reveal timer below.
+    // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
     this._useHotbar();
 
-    // Auto-hide the hotbar HUD with a slide: the bar pops UP on a hotbar keypress / bind-or-clear
-    // (which reset _hotbarTimer via _showHotbar) and slides back DOWN below the screen edge after
-    // RPG_HOTBAR_HUD_SECS. The timer counts down on Time.raw (wall-clock, like all UI timing —
-    // unaffected by sim pause/dilation); _hotbarSlide eases 0..1 toward the target via Tween.approach
-    // (also Time.raw) and drives the bar's draw-time dragY offset (offset-not-mutation, the idiom for
-    // animated UI position — see UIElement.getLayoutPosition). Build mode owns the bottom-center HUD,
-    // so the bar slides away while it's active.
+    // auto-hide hotbar HUD: slides up on a keypress, back down after RPG_HOTBAR_HUD_SECS. Timer +
+    // ease on Time.raw (UI timing); dragY is offset-not-mutation (see UIElement.getLayoutPosition).
     if (this._hotbarTimer > 0) this._hotbarTimer -= Time.raw;
     const show = !this._buildActive && this._hotbarTimer > 0;
     this._hotbarSlide = Tween.approach(
@@ -269,9 +223,8 @@ class _SceneRpgClass extends Scene {
     this._hotbarBar.dragY = (1 - this._hotbarSlide) * RPG_HOTBAR_SLIDE;
     this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
 
-    // Rebuild the pathfinding nav window around the player BEFORE the tick loop — the per-tick
-    // PathfindingSystem (in the physics pipeline) plans enemy paths over it. It's the same NavGrid
-    // MotionPlanner already points at; only occupancy/origin change, so this is cheap.
+    // recenter the nav window on the player BEFORE the tick loop (PathfindingSystem plans over it);
+    // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap
     const np = this.world.get(Position, this.ctrl.id);
     const nc = this.level.worldToGrid(np.x, np.y);
     this.nav.rebuild(this.world, nc.x, nc.y);
@@ -281,8 +234,7 @@ class _SceneRpgClass extends Scene {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
       StatusSystem.update(this.world); // tick buffs/debuffs (dot/hot + duration), then ↓
       EncumbranceSystem.update(this.world); // refresh the "encumbered" status from carried weight
-      // Survival needs: thirst/hunger rise (and apply their critical debuff); drowsiness rises while
-      // awake, but DRAINS while sleeping in a bed (the scene fast-forwards Time.scale — see _sleep).
+      // survival needs rise; drowsiness DRAINS while sleeping (else rises)
       ThirstSystem.update(this.world);
       HungerSystem.update(this.world);
       if (this._sleeping)
@@ -297,16 +249,14 @@ class _SceneRpgClass extends Scene {
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
-      // Configurable hp-0 reactions by each entity's Mortal kind: bandits despawn (spill loot),
-      // the player respawns at spawn, a companion goes Down (then recovers — updateDowned below).
+      // hp-0 reactions by each entity's Mortal kind: despawn / respawn / down (recovers below)
       RpgScene.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 14 },
         onDespawn: (id) => {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
-          // Report the kill by actual type so only RAIDERS advance the "Raider Cull" quest; rats
-          // (wildlife) report "rat" (no quest target) but still bumped enemiesKilled above.
+          // report by actual type so only raiders advance the "Raider Cull" quest (rats have no target)
           const tag = this.world.get(Tag, id);
           const kind = tag && tag.tags.has("rat") ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
@@ -328,8 +278,7 @@ class _SceneRpgClass extends Scene {
           });
         },
       });
-      // Down-timer: revive a downed companion at the recovery spot — its claimed build area if
-      // one exists, else the map spawn ("nearest/pre-defined build zone or spawn area").
+      // revive a downed companion at the recovery spot (claimed build area, else map spawn)
       RpgScene.updateDowned(this, {
         downSpot: () => this._recoverSpot(),
         onRecover: (id) => {
@@ -368,23 +317,19 @@ class _SceneRpgClass extends Scene {
     TradeSystem.update(this.world, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
-    // Free-cam updates in draw() instead (which runs even while the sim is paused — the whole point
-    // of the debug free-fly). When following, update here as usual.
+    // free-cam updates in draw() (runs while paused — the point of the debug free-fly); follow updates here
     if (!this.camera.freeCam) this.camera.update();
     Audio.listener(this.camera.toX, this.camera.toY); // ears follow the view → spatial SFX pan/attenuate
 
-    // Stream chunks around the player (chunked maps only; outside the tick loop). Loads/unloads
-    // entities + colliders as the player crosses chunk borders; runs before the portal check,
-    // which can swap the whole map out from under everything.
+    // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
     if (this.chunks !== undefined) {
       const pp = this.world.get(Position, this.ctrl.id);
       this.chunks.update(pp.x, pp.y);
-      // Re-build any newly-streamed chunks' terrain VBOs (diff-based; cheap when nothing changed).
+      // rebuild newly-streamed terrain VBOs (diff-based; cheap when unchanged)
       if (this.terrain !== undefined) this.terrain.rebuild(this.chunks);
     }
 
-    // Rebuild the inventory window body only when its contents changed (open + dirty),
-    // not every frame. UI.update ran before this step(), so a click this frame is in.
+    // rebuild the inventory body only when open + dirty (UI.update already ran this frame)
     if (this.invOpen && this._invDirty) {
       RpgInventoryUI.rebuild(this, {
         equipSlots: [
@@ -393,7 +338,7 @@ class _SceneRpgClass extends Scene {
           { slot: "trinket", labelKey: "SLOT_TRINKET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
         ],
-        // A kills/items/quests records line below the stats (the genre's extraRows hook).
+        // genre extraRows hook: a kills/items/quests records line below the stats
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
@@ -419,8 +364,7 @@ class _SceneRpgClass extends Scene {
       this._invDirty = false;
     }
 
-    // Merchant shop: refresh when its contents changed; auto-close if the player walked away from
-    // the merchant (an NPC window has no station range-close of its own).
+    // merchant shop: refresh when dirty; auto-close if the player walked out of range (no station range-close)
     if (this._tradeOpen) {
       const mp = this.world.get(Position, this._tradeMerchantId);
       const tp = this.world.get(Position, this.ctrl.id);
@@ -437,14 +381,11 @@ class _SceneRpgClass extends Scene {
       }
     }
 
-    // Door check LAST — RpgMap.go() swaps this.world/level/renderer/camera out from under the
-    // scene, so nothing below it may touch the old map.
+    // door check LAST — RpgMap.go() swaps world/level/renderer/camera, so nothing below may touch the old map
     RpgMap.checkPortals(this);
   }
 
-  // Number-key hotbar: use the item bound to each pressed slot. Edge-sampled once per frame,
-  // outside the tick loop. useItem handles both consumable use and equip/unequip toggle (and
-  // no-ops when the player doesn't own the bound item), so a slot can stay armed across uses.
+  // number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
   _useHotbar() {
     const hb = this.world.get(Hotbar, this.ctrl.id);
     if (hb === undefined) return;
@@ -457,16 +398,12 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Reveal the bottom hotbar HUD and refresh its Time.raw auto-hide countdown. Called on a hotbar
-  // keypress (_useHotbar) and on a bind/clear from the inventory strip (RpgInventoryUI), so the bar
-  // pops into view then fades after RPG_HOTBAR_HUD_SECS.
+  // reveal the hotbar HUD and refresh its auto-hide countdown
   _showHotbar() {
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS;
   }
 
-  // Whether the player currently has an instance of itemId equipped (drives useItem's
-  // equip-vs-unequip toggle for a hotbarred equippable). Equipment keys by instance uid now, so
-  // resolve the equipped uid back to its itemId. False for non-equippables / when not worn.
+  // is an instance of itemId equipped? (drives useItem's equip/unequip toggle; resolves the worn uid back to itemId)
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
@@ -480,17 +417,14 @@ class _SceneRpgClass extends Scene {
     return inst !== undefined && inst.itemId === itemId;
   }
 
-  // Mark a unique (Persistent) entity as removed in the current map so it won't re-spawn from
-  // the file on revisit (file-scope reconcile). No-op for an anonymous (id-less) entity — those
-  // are meant to respawn. Read the uid while the entity is still alive (before world.remove).
+  // mark a unique (Persistent) entity gone so it won't re-spawn on revisit (file-scope reconcile);
+  // no-op for id-less entities. Read the uid while still alive (before world.remove).
   _markGone(id) {
     const pc = this.world.get(Persistent, id);
     if (pc !== undefined) this._gone[pc.uid] = true;
   }
 
-  // F: toggle the nearest companion (within reach) between follow and wait. A "wait" companion
-  // is stationed in the current map (homeMap), so it persists there via the map cache instead
-  // of traveling. Edge-sampled once per frame, outside the tick loop.
+  // F: toggle the nearest in-reach companion between follow and wait (a "wait" one stays stationed in this map)
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
     const p = this.world.get(Position, this.ctrl.id);
@@ -521,11 +455,8 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Dismiss a following companion to the player's claimed build area: stop its carry bonus,
-  // station it (state "wait", homeMap = this map → it persists there via the map cache), and
-  // relocate it to the build-zone centroid so the player can find + recall it (walk up + the
-  // follow key). Called from the inventory Party tab's Dismiss button. No-op unless the
-  // companion is currently following and a build area has been claimed in this map.
+  // dismiss a following companion to the claimed build-zone centroid: drop its carry bonus + station
+  // it there for recall. No-op unless it's following and a build area is claimed.
   _dismissFollower(fid) {
     const f = this.world.get(Follower, fid);
     if (f === undefined || f.state !== "follow") return;
@@ -551,9 +482,7 @@ class _SceneRpgClass extends Scene {
     Toast.push(I18n.text("FOLLOWER_DISMISSED"), { type: "info" });
   }
 
-  // World-coord center of this map's claimed build area, or null when nothing is claimed yet.
-  // The zone is painted as a rect (BuildMode.claim), so the cell-average centroid lands inside
-  // it. cells() scans the resident grid, but a dismiss is a rare one-shot click — cheap enough.
+  // world-coord centroid of this map's claimed build area, or null if none (rect zone → centroid lands inside)
   _buildZoneSpot() {
     const zmap = this.level.zoneMap("buildable");
     if (zmap === undefined) return null;
@@ -571,17 +500,14 @@ class _SceneRpgClass extends Scene {
     );
   }
 
-  // Start sleeping in a bed (Interactable routes a "bed" Station's E here). step() then fast-forwards
-  // Time.scale and drains Drowsiness each tick until the player wakes (_wakeInput). No-op if already
-  // asleep. Sleeping costs water/food (their needs keep rising at the accelerated rate).
+  // start sleeping (a "bed" Station's E routes here); step() fast-forwards time until _wakeInput.
+  // costs water/food (those needs keep rising at the accelerated rate).
   _sleep() {
     this._sleeping = true;
   }
 
-  // Any input that wakes the sleeper: a key, a mouse click, or a gamepad face button. Raw queries
-  // (not InputAction) so it fires regardless of context; checked at the top of step() before the
-  // tick loop, so the waking press wakes instead of moving/acting. UIPointer.pressed is the latched
-  // LMB edge for the frame.
+  // any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;
+  // UIPointer.pressed is the latched LMB edge for the frame.
   _wakeInput() {
     return (
       keyboard_check_pressed(vk_anykey) ||
@@ -592,8 +518,7 @@ class _SceneRpgClass extends Scene {
     );
   }
 
-  // Where a downed companion revives: its claimed build area if one exists, else the map spawn
-  // ("nearest/pre-defined build zone or spawn area"). Handed to RpgScene.updateDowned.
+  // where a downed companion revives: claimed build area, else map spawn
   _recoverSpot() {
     return this._buildZoneSpot() ?? { x: this.spawn.x, y: this.spawn.y };
   }
@@ -615,9 +540,8 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Track which climate zone the player stands in (single-entity, so a direct cell lookup beats
-  // ZoneSystem's all-entity sweep) and push/clear the Weather region override on a border cross.
-  // No-op on maps without a "climate" channel (interiors, plain maps).
+  // track the player's climate cell (direct lookup beats ZoneSystem's sweep) and push/clear the
+  // Weather override on a border cross. No-op without a "climate" channel.
   _updateClimate() {
     const cmap = this.level.zoneMap("climate");
     if (cmap === undefined) return;
@@ -652,15 +576,13 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Proximity to an NPC + dialogue text for accept / turn in. No-op on maps with no NPC in
-  // reach (e.g. interiors); the target is resolved live each frame (this._npcId).
+  // proximity to an NPC + dialogue text for accept/turn-in; target resolved live each frame (this._npcId)
   _updateNpc() {
     this._npcId = -1;
     this.nearNpc = false;
     const p = this.world.get(Position, this.ctrl.id);
     if (p === undefined) return;
-    // Live: nearest "npc"-tagged entity within reach (works whether the NPC is streamed or
-    // spawned up front). No NPC in range → no dialogue this frame.
+    // nearest in-reach "npc" (streamed or up-front); none → no dialogue this frame
     const id = Query.nearest(this.world, p.x, p.y, {
       tag: "npc",
       maxDist: RPG_NPC_RADIUS,
@@ -671,7 +593,7 @@ class _SceneRpgClass extends Scene {
 
     const npc = this.world.get(NPC, id);
     this.dialogueName = npc.name;
-    // A merchant NPC shows a shop greeting + a Trade action (E opens TradeUI) — no quest flow.
+    // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
     if (this.world.get(Merchant, id) !== undefined) {
       this.dialogueLine = "NPC_MERCHANT_GREET";
       this.dialogueAction = "MERCHANT_TRADE";
@@ -693,9 +615,7 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Derive this frame's input context from the open-window / build-mode flags. Window beats
-  // build beats play (a window pauses build). Pushed once in create(); replaced here each
-  // frame. InputContext then gates the action tags (fire muted off "play"; etc.).
+  // derive this frame's input context: window > build > play (a window pauses build)
   _resolveContext() {
     let ctx = "play";
     if (this.invOpen || this._storeOpen || this._craftOpen || this._tradeOpen)
@@ -704,10 +624,8 @@ class _SceneRpgClass extends Scene {
     InputContext.set(ctx);
   }
 
-  // Single interact (E) dispatch — replaces the two independent E reads that used to fire
-  // together. Priority: a station window open → E closes it; else pick the world target
-  // (station vs NPC) by cursor-then-distance and activate the winner. interact is muted in
-  // the "build" context (tag), so this only runs in play / window.
+  // single E dispatch: an open station window → E closes it; else pick station-vs-NPC by
+  // cursor-then-distance and activate. interact is muted in "build", so this runs only in play/window.
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
@@ -745,11 +663,10 @@ class _SceneRpgClass extends Scene {
     else this._npcActivate();
   }
 
-  // The NPC side of the interact dispatch: accept the offered quest or turn it in when
-  // ready. Called by _dispatchInteract only — never reads input itself.
+  // NPC side of the interact dispatch: accept/turn-in the quest (called by _dispatchInteract only)
   _npcActivate() {
     if (this._npcId === -1 || !this.nearNpc) return;
-    // A merchant NPC opens its shop (TradeUI) instead of the quest accept/turn-in flow.
+    // a merchant NPC opens its shop instead of the quest flow
     if (this.world.get(Merchant, this._npcId) !== undefined) {
       TradeUI.open(this, this._npcId);
       return;
@@ -769,10 +686,8 @@ class _SceneRpgClass extends Scene {
     }
   }
 
-  // Esc back-out — SystemMenu calls this (before it would open the pause menu) so Esc closes
-  // the active context instead of pausing: an open window first, then build mode. Returns
-  // true if it consumed the press; false lets Esc fall through to the pause menu (F1 / gamepad
-  // Start always open it regardless). Same window > build priority as _resolveContext.
+  // Esc back-out (SystemMenu calls this before pausing): close the active context — window, then
+  // build. Returns true if consumed; false falls through to the pause menu. window > build priority.
   handleEscape() {
     if (this._sleeping) {
       this._sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
@@ -807,27 +722,23 @@ class _SceneRpgClass extends Scene {
     return false;
   }
 
-  // ── SceneManager stack: host pause/resume while a guest minigame runs in front ──────────
-  // Suspend: hide the single RPG UI root. obj_game won't step a non-top scene, so the frozen
-  // step() naturally pauses BuildMode/Interactable/WorldClock/Weather — nothing else to do
-  // (the in-game clock + weather resume at the same time the player left them).
+  // SceneManager stack host pause/resume while a guest runs in front.
+  // suspend: hide the UI root. obj_game won't step a non-top scene, so step() naturally pauses
+  // BuildMode/Interactable/WorldClock/Weather — nothing else to do.
   suspend() {
     UI.setEnabled(this.ui, false);
   }
 
-  // Resume: re-show the UI, re-claim viewport 0, and RE-BIND the keymap. A guest minigame's
-  // controller unbinds shared action names on destroy (PlatformerController.destroy drops
-  // moveLeft/moveRight, which the RPG also uses), so the RPG must re-register its keys to keep
-  // walking. RpgController.bindKeys is idempotent (bindAll/register overwrite).
+  // resume: re-show UI, re-claim viewport 0, RE-BIND the keymap — a guest's destroy unbinds shared
+  // action names (PlatformerController drops moveLeft/moveRight) so the RPG must re-register. Idempotent.
   resume() {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
     RpgController.bindKeys();
-    Audio.bgm("mus_overworld"); // restore the RPG theme after a guest minigame crossfaded its own
+    Audio.bgm("mus_overworld"); // restore the RPG theme after a guest crossfaded its own
   }
 
-  // Launch the platformer as a minigame on top of the RPG (pushed by the arcade Station via
-  // Interactable._open). On return, the guest's result() score becomes a coin reward.
+  // launch the platformer as a guest minigame; on return its result() score becomes a coin reward
   _openArcade() {
     this.manager.push(ScenePlatformer, {
       onResult: (r) => {
@@ -846,20 +757,13 @@ class _SceneRpgClass extends Scene {
   }
 
   draw() {
-    // Debug free-fly camera: drive it here so it pans even while the sim is PAUSED (step() — and its
-    // camera.update() — is skipped then). One update/frame: step() does it when following, draw() when
-    // free-cam. The view must be applied before the renderer reads it.
+    // free-cam updates here so it pans while the sim is paused (step() is skipped then); apply before the renderer reads it
     if (this.camera.freeCam) this.camera.update();
     this.renderer.draw(this.world); // tilemap + zone + player / enemies / elder: boxes + labels
-    // Drops / bullets / reach zone AFTER the renderer: the chunked overworld's RenderChunks
-    // pass paints an OPAQUE ground fill that would cover them if drawn first (they were
-    // invisible on the overworld, fine in plain interiors with no ground fill). Drawn here
-    // they sit with the other post-renderer world cues (build cursor, floating numbers).
+    // overlay AFTER the renderer: RenderChunks paints an OPAQUE ground fill that would cover it if drawn first
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("rpgRadar"))
-      // directional radar around player (inventory Settings toggle, default off). 2.5D: lift the
-      // ring to ~body height under a pitched camera so it floats around the player instead of
-      // lying flat at their feet (matches RpgWorldOverlay's bullet lift); flat top-down lifts 0.
+      // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
       RadarArrows.draw(this.world, this.ctrl.id, this._radarRules, {
         lift:
           this.camera !== undefined && this.camera.followPitch !== 0 ? 16 : 0,
@@ -867,13 +771,11 @@ class _SceneRpgClass extends Scene {
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
-    // Damage/heal numbers over entities (world space). Hand the camera pitch (rad→deg) so under
-    // the 2.5D pitch they stand up facing the camera instead of lying flat on the ground.
+    // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D
     FloatingText.draw(
       this.camera ? (this.camera.followPitch * 180) / Math.PI : 0,
     );
-    // HUD / dialogue / inventory are now manager-drawn UI panels (GUI layer, Draw_75),
-    // built in create() — nothing more to draw here.
+    // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here
   }
 
   destroy() {
@@ -883,8 +785,7 @@ class _SceneRpgClass extends Scene {
     RpgController.destroy();
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
-    // Free every PARKED pooled map, then the active map (its fields live on `this`). RpgMap._free
-    // reclaims each bundle's world/level/renderer/camera/chunks; the shared UI root is removed last.
+    // free every parked pooled map, then the active map (its fields live on `this`); UI root removed last
     for (const id in this._maps) RpgMap._free(this._maps[id]);
     this._maps = {};
     RpgMap._free(this);

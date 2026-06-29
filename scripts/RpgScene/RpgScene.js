@@ -1,20 +1,14 @@
-// Combat/loot plumbing for the RPG scene — free functions taking the scene (composition;
-// GMRT has no usable class inheritance). Originally factored out of two RPG scenes; the
-// platformer no longer carries this plumbing, so sceneRpg is the only consumer now.
-// Scene-specific side effects are passed as small callbacks/options.
+// Combat/loot plumbing for the RPG scene — free functions taking the scene (composition; GMRT has
+// no usable class inheritance). Scene side effects come in as callbacks/options.
 //
-// Contract: the scene owns `world`, `ctrl` (with `.id`), `followers` (companion ids),
-// `_hpTrack` (id → last-seen hp), and `_invDirty` (bag-changed flag). The enemy set is derived
-// LIVE from the world by Tag "enemy" (not a stored scene.enemies list) so chunk streaming —
-// which adds/removes enemies as chunks load/unload — needs no list bookkeeping.
+// Contract: the scene owns `world`, `ctrl` (with `.id`), `followers`, `_hpTrack` (id → last hp),
+// `_invDirty`. The enemy set is derived LIVE by Tag "enemy" so chunk streaming needs no bookkeeping.
 //
-// Death is configured PER ENTITY by an opt-in `Mortal` component (kind despawn/respawn/down),
-// resolved in ONE place — resolveHealth (the instant reaction) + updateDowned (the down-timer).
-// The damage systems (MeleeSystem/ProjectileSystem/CombatAI) only subtract hp; this is the single
-// authority that removes / respawns / incapacitates, so each preset's reaction is its `Mortal`.
+// Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down), resolved in ONE
+// place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole authority
+// that removes/respawns/incapacitates.
 globalThis.RpgScene = {
-  // Live enemy set: entities carrying Health + Tag "enemy". (Set.has is GMRT-safe; only
-  // Set ITERATION is banned.) The player has Health but no "enemy" tag, so it's excluded.
+  // live enemy set: Health + Tag "enemy". (Set.has is GMRT-safe; only Set ITERATION is banned.)
   _enemies(world) {
     const out = [];
     const ids = world.query(Health, Tag);
@@ -25,17 +19,14 @@ globalThis.RpgScene = {
     return out;
   },
 
-  // Floating combat numbers: diff each combatant's Health vs last tick, pop a rising
-  // number on any change (damage falls, heals rise). `yOffset` lifts the number above the
-  // entity (~14 for the RPG sprite). Run after physics, before deaths are flushed, so the
-  // killing blow still pops.
+  // floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
+  // change. Run after physics, before deaths flush, so the killing blow still pops.
   trackDamage(scene, yOffset) {
     RpgScene._diffHp(scene, scene.ctrl.id, true, yOffset);
     const enemies = RpgScene._enemies(scene.world);
     for (let i = 0; i < enemies.length; i++)
       RpgScene._diffHp(scene, enemies[i], false, yOffset);
-    // Companions take damage too now (they carry Health) — show their numbers as ally "hurt".
-    // A downed companion has its Health detached, so _diffHp no-ops for it.
+    // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so no-op)
     const followers = scene.followers;
     if (followers !== undefined)
       for (let i = 0; i < followers.length; i++)
@@ -56,8 +47,7 @@ globalThis.RpgScene = {
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
             type: isAlly ? "hurt" : "damage",
           });
-          // Impact SFX (spatial): an ally "hurt", an enemy "hit" — but let the death pass own the
-          // killing blow's sound (snd_explosion), so skip the enemy hit that drops it to 0.
+          // impact SFX; let the death pass own the killing blow (snd_explosion), so skip enemy hp→0
           if (isAlly) Audio.playAt("snd_hurt", pos.x, pos.y);
           else if (hp.hp > 0) Audio.playAt("snd_hit", pos.x, pos.y);
         } else {
@@ -68,20 +58,18 @@ globalThis.RpgScene = {
     scene._hpTrack[id] = hp.hp;
   },
 
-  // Single configurable death pass: every entity carrying a `Mortal` whose Health hit 0 reacts
-  // by its `Mortal.kind`. Runs once per tick (before flush, so a despawning entity is still
-  // readable for its loot). Handlers `h` inject the scene side effects, all optional:
-  //   spill        { yBase, ySpread } — loot scatter for a "despawn"
-  //   onDespawn(id)                   — per-kill genre effects (quest/profile counters, logging)
-  //   onRespawn(id)                   — reposition a "respawn" entity (the player) after refill
-  //   downSpot(id) → {x,y}            — recovery spot for a "down" entity (build zone / spawn)
-  //   onDown(id)                      — fired when an entity enters Down (e.g. a toast)
-  // Only Mortal entities react, so a Health body without one (a built turret →
-  // BuildMode.reapDestroyed) is left untouched.
+  // configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
+  // flush, so a despawning entity is still readable for its loot. Handlers `h` (all optional):
+  //   spill { yBase, ySpread } — loot scatter for "despawn"
+  //   onDespawn(id)            — per-kill genre effects
+  //   onRespawn(id)            — reposition a "respawn" entity after refill
+  //   downSpot(id) → {x,y}     — recovery spot for a "down" entity
+  //   onDown(id)               — fired when an entity enters Down
+  // Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
   resolveHealth(scene, h) {
     h = h ?? {};
     const world = scene.world;
-    // Snapshot ids this tick (forward iterate — remove/detach are deferred / array is materialized).
+    // snapshot ids this tick (remove/detach are deferred / array is materialized)
     const ids = world.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
@@ -103,8 +91,8 @@ globalThis.RpgScene = {
     }
   },
 
-  // Incapacitate a "down" entity: drop its Health (so enemies stop targeting it — nearestHostile
-  // needs Health — and this pass skips it), stop + dim it, and start the recovery timer.
+  // incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
+  // it), stop + dim it, start the recovery timer.
   _goDown(scene, id, m, h) {
     const world = scene.world;
     world.detach(id, Health);
@@ -120,9 +108,7 @@ globalThis.RpgScene = {
     if (h.onDown !== undefined) h.onDown(id);
   },
 
-  // Down-timer tick: count each Downed entity down by sim time; at <= 0 revive it — re-add
-  // Health (Mortal.reviveHp), undim, teleport to the recovery spot (h.downSpot), drop Downed.
-  // `h.onRecover(id)` fires for genre side effects (e.g. a toast). Run once per tick.
+  // down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
   updateDowned(scene, h) {
     h = h ?? {};
     const world = scene.world;
@@ -156,8 +142,7 @@ globalThis.RpgScene = {
     }
   },
 
-  // Scatter an enemy's Inventory as ground-drop sensors around it. `opts`: { yBase,
-  // ySpread } tunes the vertical placement per genre (cosmetic).
+  // scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
   spillLoot(scene, enemyId, opts) {
     const world = scene.world;
     const inv = world.get(Inventory, enemyId);
@@ -182,14 +167,12 @@ globalThis.RpgScene = {
     }
   },
 
-  // `src` (optional) is the source inventory slot — when it's an instance (carries a uid) the
-  // drop records its uid + mods so pickup re-inserts the same modded instance.
+  // `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
   spawnDrop(scene, itemId, qty, x, y, src) {
     const world = scene.world;
     const id = world.create();
     world.add(id, Position, { x: x, y: y, z: 0 });
-    // Match the 16px centered-origin icon sprite RpgWorldOverlay draws (was 8×8, sized for the
-    // old rarity-square fallback) so the pickup trigger box lines up with the visible drop.
+    // match the 16px icon sprite RpgWorldOverlay draws so the trigger box lines up with the drop
     world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
     world.add(id, Collision, {
       solid: false,
@@ -205,9 +188,7 @@ globalThis.RpgScene = {
     world.add(id, ItemDrop, drop);
   },
 
-  // Pick up overlapping ItemDrop sensors (filled into the player's Collision.hits by
-  // TriggerSystem) into the bag. `onCollect?(itemId, got)` fires for genre side effects
-  // (quest/profile counters + logging). Sets scene._invDirty when the bag changes.
+  // pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
   collectDrops(scene, onCollect) {
     const world = scene.world;
     const hits = world.get(Collision, scene.ctrl.id).hits;
