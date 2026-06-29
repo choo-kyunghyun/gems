@@ -1,9 +1,24 @@
 // World-space gameplay overlay for the RPG scene, drawn in world space from sceneRpg.draw().
-// Draws item drops (rarity squares) + bullets (dots), plus the reach-quest zone when the scene
-// exposes one. (Originally shared with the platformer — replaced the near-identical per-genre
+// Draws item drops (rarity squares) + projectile dots (Projectile entities — lobbed/grenade shots;
+// guns are hitscan now) + fading hitscan tracers, plus the reach-quest zone when the scene exposes
+// one. (Originally shared with the platformer — replaced the near-identical per-genre
 // PlatformerUI/TopDownUI — but RPG-only now.) The HUD / inventory / dialogue are real UI panels
 // the scene builds on the GUI layer — not here. `_rarityColor` is shared with the inventory rows.
 globalThis.RpgWorldOverlay = {
+  // Live hitscan shot streaks: { x0, y0, x1, y1, age, life }. Pushed by the firers (RpgPlayer +
+  // CombatAI), aged + culled in drawWorld on Time.raw, cleared on scene teardown (sceneRpg.destroy).
+  _tracers: [],
+
+  // Record a fading gunshot tracer from the muzzle (x0,y0) to the impact point (x1,y1) — the visual
+  // replacing the old in-flight bullet dot. Both the player and turrets push one (see Combat.hitscan).
+  pushTracer(x0, y0, x1, y1) {
+    this._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
+  },
+
+  clearTracers() {
+    this._tracers = [];
+  },
+
   _rarityColor(itemId) {
     const it = Item.get(itemId);
     const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
@@ -42,23 +57,39 @@ globalThis.RpgWorldOverlay = {
       }
     }
 
-    const bullets = world.query(Projectile, Position);
-    // 2.5D: lift bullets off the ground to ~body/muzzle height so they read as flying through the
-    // air, not skidding on the floor — a world-z offset (negative = up; the camera up vector maps
-    // it up the screen). A round dot has no facing, so no billboard tilt is needed, just the lift.
-    // Drawn depth-test off so a tracer is never hidden by a body it passes (a transient cue, always
-    // visible — like FloatingText). Flat top-down (pitch 0) lifts nothing and keeps the old path.
+    // 2.5D: lift in-air cues (projectile dots + hitscan tracers) off the ground to ~body/muzzle
+    // height so they read as flying, not skidding — a world-z offset (negative = up; the camera up
+    // vector maps it up the screen). Drawn depth-test off so they're never hidden by a body they pass
+    // (transient cues, always visible — like FloatingText). Flat top-down (pitch 0) lifts nothing.
     const lift =
       scene.camera !== undefined && scene.camera.followPitch !== 0 ? 16 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
     }
+    // Projectile entities (lobbed/grenade shots) as round dots. None while only hitscan guns fire,
+    // but the path stays for the kept ProjectileSystem (a round dot has no facing — just the lift).
     draw_set_color(make_colour_rgb(255, 230, 90));
+    const bullets = world.query(Projectile, Position);
     for (const id of bullets) {
       const p = world.get(Position, id);
       draw_circle(p.x, p.y, 2, false);
     }
+    // Hitscan tracers: a fading muzzle->impact streak per shot, aged on Time.raw (a brief flash, like
+    // the muzzle ParticleFx — independent of sim pause/dilation). Plain draw_line: the bare-width and
+    // *_color line variants render nothing / are unverified on GMRT (see RenderGrid/RenderWeather).
+    const tracers = this._tracers;
+    for (let i = tracers.length - 1; i >= 0; i--) {
+      const tr = tracers[i];
+      tr.age += Time.raw;
+      if (tr.age >= tr.life) {
+        tracers.splice(i, 1);
+        continue;
+      }
+      draw_set_alpha(1 - tr.age / tr.life);
+      draw_line(tr.x0, tr.y0, tr.x1, tr.y1);
+    }
+    draw_set_alpha(1);
     if (lift !== 0) {
       matrix_set(matrix_world, matrix_build_identity());
       gpu_set_ztestenable(true);

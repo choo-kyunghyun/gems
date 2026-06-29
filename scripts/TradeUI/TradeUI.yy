@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TradeUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TradeUI",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Demo/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TradeUI.js",
+}

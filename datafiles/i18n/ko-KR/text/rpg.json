@@ -255,5 +255,24 @@
   "FOLLOWER_DISMISS": "기지로 보내기",
   "FOLLOWER_DISMISSED": "동료를 건설 구역으로 보냈습니다",
   "FOLLOWER_NO_ZONE": "먼저 건설 구역을 확보하세요 (측량 기둥)",
-  "FOLLOWER_RECALL_HINT": "대기 중인 동료 재합류: 다가가 {0} 키를 누르세요"
+  "FOLLOWER_RECALL_HINT": "대기 중인 동료 재합류: 다가가 {0} 키를 누르세요",
+
+  "NPC_TRADER_NAME": "상인",
+  "NPC_QUARTERMASTER_NAME": "보급관",
+  "NPC_MERCHANT_GREET": "사거나 파시겠어요?",
+  "MERCHANT_TRADE": "거래",
+  "TRADE_TITLE": "거래",
+  "TRADE_BUY": "구매",
+  "TRADE_SELL": "판매",
+  "TRADE_COL_PRICE": "가격",
+  "TRADE_MERCHANT_TILL": "보유금: {0}",
+  "TRADE_BUY_EMPTY": "재고 없음",
+  "TRADE_SELL_EMPTY": "팔 물건 없음",
+  "TRADE_HINT": "더블클릭하여 거래",
+  "TRADE_NO_FUNDS": "크레딧이 부족합니다",
+  "TRADE_NO_ROOM": "가방이 가득 찼습니다",
+  "TRADE_MERCHANT_BROKE": "상인이 살 돈이 부족합니다",
+  "TRADE_MERCHANT_FULL": "상인의 공간이 부족합니다",
+  "TRADE_WORN": "먼저 장비를 해제하세요",
+  "TRADE_FAVORITED": "즐겨찾기 (판매 불가)"
 }

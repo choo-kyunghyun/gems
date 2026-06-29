@@ -1,4 +1,5 @@
 const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
+const RPG_TRADE_RANGE = 64; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
 const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
@@ -144,6 +145,7 @@ class _SceneRpgClass extends Scene {
     RpgHud.build(this); // top-right HP/quest card + bottom-center dialogue box
     RpgInventoryUI.build(this);
     Interactable.build(this); // station prompt + storage + crafting windows
+    TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
 
     // ── World graph boot: a normal launch starts at the overworld hub; the editor's Test
@@ -361,6 +363,7 @@ class _SceneRpgClass extends Scene {
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
+    TradeSystem.update(this.world, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
     // Free-cam updates in draw() instead (which runs even while the sim is paused — the whole point
@@ -412,6 +415,24 @@ class _SceneRpgClass extends Scene {
         },
       });
       this._invDirty = false;
+    }
+
+    // Merchant shop: refresh when its contents changed; auto-close if the player walked away from
+    // the merchant (an NPC window has no station range-close of its own).
+    if (this._tradeOpen) {
+      const mp = this.world.get(Position, this._tradeMerchantId);
+      const tp = this.world.get(Position, this.ctrl.id);
+      if (
+        mp === undefined ||
+        tp === undefined ||
+        (mp.x - tp.x) ** 2 + (mp.y - tp.y) ** 2 >
+          RPG_TRADE_RANGE * RPG_TRADE_RANGE
+      ) {
+        TradeUI.close(this);
+      } else if (this._tradeDirty) {
+        TradeUI.refresh(this);
+        this._tradeDirty = false;
+      }
     }
 
     // Door check LAST — RpgMap.go() swaps this.world/level/renderer/camera out from under the
@@ -647,8 +668,14 @@ class _SceneRpgClass extends Scene {
     this.nearNpc = true;
 
     const npc = this.world.get(NPC, id);
-    const qid = npc.questId;
     this.dialogueName = npc.name;
+    // A merchant NPC shows a shop greeting + a Trade action (E opens TradeUI) — no quest flow.
+    if (this.world.get(Merchant, id) !== undefined) {
+      this.dialogueLine = "NPC_MERCHANT_GREET";
+      this.dialogueAction = "MERCHANT_TRADE";
+      return;
+    }
+    const qid = npc.questId;
     if (QuestLog.isDone(qid)) {
       this.dialogueLine = "NPC_ELDER_THANKS";
       this.dialogueAction = "";
@@ -669,7 +696,8 @@ class _SceneRpgClass extends Scene {
   // frame. InputContext then gates the action tags (fire muted off "play"; etc.).
   _resolveContext() {
     let ctx = "play";
-    if (this.invOpen || this._storeOpen || this._craftOpen) ctx = "window";
+    if (this.invOpen || this._storeOpen || this._craftOpen || this._tradeOpen)
+      ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
   }
@@ -681,6 +709,10 @@ class _SceneRpgClass extends Scene {
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
+    if (this._tradeOpen) {
+      TradeUI.close(this); // E closes the merchant shop
+      return;
+    }
     if (this._storeOpen || this._craftOpen) {
       Interactable.closeAll(this); // E closes an open station window
       return;
@@ -715,6 +747,11 @@ class _SceneRpgClass extends Scene {
   // ready. Called by _dispatchInteract only — never reads input itself.
   _npcActivate() {
     if (this._npcId === -1 || !this.nearNpc) return;
+    // A merchant NPC opens its shop (TradeUI) instead of the quest accept/turn-in flow.
+    if (this.world.get(Merchant, this._npcId) !== undefined) {
+      TradeUI.open(this, this._npcId);
+      return;
+    }
     const npc = this.world.get(NPC, this._npcId);
     const qid = npc.questId;
     if (QuestLog.isReady(qid)) {
@@ -744,9 +781,17 @@ class _SceneRpgClass extends Scene {
       this._storeQtyModal.close(); // first Esc cancels the storage amount picker only
       return true;
     }
+    if (this._tradeQtyModal !== null && this._tradeQtyModal !== undefined) {
+      this._tradeQtyModal.close(); // first Esc cancels the trade amount picker only
+      return true;
+    }
     if (this.invOpen) {
       this.invOpen = false;
       this._invWin.enabled = false;
+      return true;
+    }
+    if (this._tradeOpen) {
+      TradeUI.close(this); // close the merchant shop
       return true;
     }
     if (this._storeOpen || this._craftOpen) {
@@ -834,6 +879,7 @@ class _SceneRpgClass extends Scene {
     InputContext.reset(); // hand input back to "default" for the next scene
     Debug.remove("Camera"); // the live 2.5D-camera tuning panel is RPG-only (RpgMap registers it)
     RpgController.destroy();
+    RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
     // Free every PARKED pooled map, then the active map (its fields live on `this`). RpgMap._free
     // reclaims each bundle's world/level/renderer/camera/chunks; the shared UI root is removed last.

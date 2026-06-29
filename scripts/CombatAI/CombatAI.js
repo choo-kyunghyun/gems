@@ -19,6 +19,9 @@
 //   CombatAI.attach(world, id, level, { mobile:false, ranged:true, … }); // turret
 // Then run StateSystem each physics tick (it drives the schemas below).
 
+// Turret hitscan reach = bulletSpeed × this (s) ≈ the old projectile bullet's 90-tick range.
+const RPG_SHOT_RANGE_SECS = 1.5;
+
 // Per-actor AI memory + tuning. Token co-located with its only consumer. `target` is the
 // currently-chased entity id (-1 = none), acquired/dropped per actor — see the statics note.
 globalThis.Brain = "Brain";
@@ -27,14 +30,14 @@ globalThis.Brain = "Brain";
  * @property {{x:number,y:number}} home  spawn point a MOBILE actor drifts back to when idle
  * @property {number} target      entity id this actor is chasing/attacking (-1 = none)
  * @property {boolean} mobile     true = chase the target (enemy); false = stationary (turret)
- * @property {boolean} ranged     true = fire a projectile (turret); false = melee contact (enemy)
+ * @property {boolean} ranged     true = fire a hitscan shot (turret); false = melee contact (enemy)
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
  * @property {number} deAggro     distance at which a chasing (mobile) actor gives up
  * @property {number} attackRange distance at which it stops to attack (= fire range when ranged)
  * @property {number} speed       chase/return move speed (px/s); 0 for a stationary actor
  * @property {number} cdMax       ticks between attacks
  * @property {number} cd          attack cooldown countdown
- * @property {number} bulletSpeed ranged shot speed (px/s); 0 for melee
+ * @property {number} bulletSpeed muzzle velocity (px/s) scaling the hitscan reach; 0 for melee
  * @property {number} pathCd      A* replan throttle countdown (ticks) while a chase is wall-blocked
  * @property {number} pathRate    ticks between A* replans during a blocked chase
  */
@@ -308,32 +311,30 @@ globalThis.CombatAI = {
     Combat.applyDamage(w, t, CombatAI._attackPower(id));
   },
 
-  // Fire a bullet from a stationary RANGED actor (turret) at its Brain.target, reusing the shared
-  // "bullet" preset (registered by RpgPlayer.spawn) routed through ProjectileSystem — so a
-  // turret-killed enemy spills loot via the same Mortal/death path as a player shot. Skips the
-  // shot when a WALL or an ALLY blocks the line (so a covered turret doesn't waste cooldowns).
-  // Mirrors the old TurretSystem._fire, now driven by the shared state machine.
+  // Fire an instant HITSCAN shot from a stationary RANGED actor (turret) at its Brain.target. Routes
+  // through the shared Combat.hitscan (same as a player gun) so a turret-killed enemy spills loot via
+  // the same Mortal/death path. hitscan itself stops the shot at a WALL or an ALLY before the target
+  // (a covered turret deals no damage — it just traces into cover), so no pre-LOS check is needed.
+  // A fading tracer shows the shot. (Replaces the old projectile-bullet spawn; mirrors a player shot.)
   _fireAt(id, brain) {
     const w = this._world;
     const t = brain.target;
-    if (!w.isValid(t) || !EntityPreset.has("bullet")) return;
+    if (!w.isValid(t)) return;
     const sp = w.get(Position, id);
     const tp = w.get(Position, t);
-    const hit = Raycast.cast(w, sp.x, sp.y, tp.x, tp.y, { ignore: id });
-    if (hit !== null && hit.id !== t) {
-      const col = w.get(Collision, hit.id);
-      if (col !== undefined && col.kinematic) return; // a wall blocks the shot
-      if (FactionSystem.allied(w, id, hit.id)) return; // an ally in the path eats it
-    }
     const dx = tp.x - sp.x;
     const dy = tp.y - sp.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const bid = EntityPreset.spawn("bullet", w, sp.x, sp.y);
-    const vel = w.get(Velocity, bid);
-    vel.x = (dx / d) * brain.bulletSpeed;
-    vel.y = (dy / d) * brain.bulletSpeed;
-    const proj = w.get(Projectile, bid);
-    proj.owner = id; // raycast ignores the shooter + ally check spares player-faction bodies
-    proj.damage = CombatAI._attackPower(id); // stat-driven (was brain.damage)
+    const nx = dx / d;
+    const ny = dy / d;
+    // Cast along the aim out to the muzzle-velocity-scaled reach (≈ the old bullet's range), past the
+    // target. pierce defaults 1 (turrets are single-target). Damage is stat-driven (Stats.attack via
+    // _attackPower); turrets carry no armor penetration (default 0). owner=id skips self + spares allies.
+    const range = brain.bulletSpeed * RPG_SHOT_RANGE_SECS;
+    const shot = Combat.hitscan(w, sp.x, sp.y, sp.x + nx * range, sp.y + ny * range, {
+      owner: id,
+      damage: CombatAI._attackPower(id),
+    });
+    RpgWorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);
   },
 };

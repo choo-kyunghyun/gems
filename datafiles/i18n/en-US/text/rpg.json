@@ -254,5 +254,24 @@
   "FOLLOWER_DISMISS": "Dismiss to base",
   "FOLLOWER_DISMISSED": "Companion sent to your build area",
   "FOLLOWER_NO_ZONE": "Claim a build area first (Survey Post)",
-  "FOLLOWER_RECALL_HINT": "Recall a waiting companion: walk up and press {0}"
+  "FOLLOWER_RECALL_HINT": "Recall a waiting companion: walk up and press {0}",
+
+  "NPC_TRADER_NAME": "Trader",
+  "NPC_QUARTERMASTER_NAME": "Quartermaster",
+  "NPC_MERCHANT_GREET": "Buy or sell?",
+  "MERCHANT_TRADE": "Trade",
+  "TRADE_TITLE": "Trade",
+  "TRADE_BUY": "Buy",
+  "TRADE_SELL": "Sell",
+  "TRADE_COL_PRICE": "Price",
+  "TRADE_MERCHANT_TILL": "Till: {0}",
+  "TRADE_BUY_EMPTY": "Nothing in stock",
+  "TRADE_SELL_EMPTY": "Nothing to sell",
+  "TRADE_HINT": "Double-click to buy or sell",
+  "TRADE_NO_FUNDS": "Not enough credits",
+  "TRADE_NO_ROOM": "Your bag is full",
+  "TRADE_MERCHANT_BROKE": "The merchant can't afford that",
+  "TRADE_MERCHANT_FULL": "The merchant has no room",
+  "TRADE_WORN": "Unequip it first",
+  "TRADE_FAVORITED": "Favorited (won't sell)"
 }

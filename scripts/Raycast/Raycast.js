@@ -45,6 +45,48 @@ globalThis.Raycast = class Raycast {
     return best;
   }
 
+  // Every solid collider the segment (x0,y0)->(x1,y1) crosses, ASCENDING by entry distance `t` —
+  // the multi-hit counterpart to cast() (which returns only the nearest). Same opts
+  // (ignore/solidOnly/mask). Each entry is { id, x, y, nx, ny, t } like cast()'s. Used by hitscan
+  // pierce walks (Combat.hitscan) that must see every body along the ray, not just the first.
+  static castAll(world, x0, y0, x1, y1, opts = {}) {
+    const ignore = opts.ignore;
+    const mask = opts.mask ?? null;
+
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    const hits = [];
+
+    for (const id of world.query(Collision, Position, BBox)) {
+      if (id === ignore) continue;
+
+      const col = world.get(Collision, id);
+      // solidOnly read inline (default on) — see the boolean-local clobber note in cast().
+      if (opts.solidOnly !== false && !col.solid) continue;
+      if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
+        continue;
+
+      const e = AABB.of(world, id);
+      const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
+      if (r !== null) {
+        hits.push({
+          id,
+          x: x0 + dx * r.t,
+          y: y0 + dy * r.t,
+          nx: r.nx,
+          ny: r.ny,
+          t: r.t,
+        });
+      }
+    }
+    // Sort ascending by entry distance. Return a SIGN (-1/0/1), not the raw `a.t - b.t` difference:
+    // t is in [0,1], so every fractional difference truncates to 0 on GMRT's sort and the array
+    // would stay in (arbitrary) query order — leaving the pierce walk hitting bodies out of order.
+    hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+    return hits;
+  }
+
   // Slab test of the segment (x0,y0) + (dx,dy)*t, t in [0,1], against an AABB.
   // Returns { t, nx, ny } at the entry point (t clamped to 0 if it starts inside),
   // or null. nx/ny is the surface normal pointing back along the ray.

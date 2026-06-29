@@ -1,28 +1,12 @@
 // Player setup for the RPG genre (RpgController). Builds the player entity
 // (Health/Stats/Inventory/Equipment/Encumbrance/Visual + the core transform/collision) and
-// owns the cursor-aimed bullet preset (also reused by CombatAI's ranged attack — turrets). The controller calls
-// spawn(), then adds its genre-only Animator and builds its own ctrl bag.
+// owns the cursor-aimed HITSCAN firing (fireBullet — an instant Combat.hitscan shot, also reused by
+// CombatAI for turrets). The controller calls spawn(), then adds its genre-only Animator and builds
+// its own ctrl bag.
 globalThis.RpgPlayer = {
   // Create the player entity and return its id. `opts` carries the caller-supplied fields:
   // bbox (collision box), dir (initial facing), speed (Stats.speed).
   spawn(world, spawn, opts) {
-    // "bullet" preset for fireBullet (registered here since RpgPlayer owns firing; also
-    // reused by CombatAI._fireAt for turrets). solid:false keeps it from being an obstacle, and NO BBox
-    // keeps it off Raycast's target list (it can't self-hit at t=0, and the per-tick segment
-    // cast still finds enemies); Lifetime bounds the range. kinematic makes GravitySystem
-    // skip it — inert in the RPG (no gravity), but keeps the preset gravity-safe.
-    EntityPreset.register([
-      {
-        id: "bullet",
-        components: {
-          Velocity: { x: 0, y: 0, z: 0 },
-          Collision: { solid: false, kinematic: true, mask: null, hits: [] },
-          Projectile: { damage: 1, owner: -1 },
-          Lifetime: { ticks: 90 },
-        },
-      },
-    ]);
-
     const id = world.create();
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
@@ -120,13 +104,15 @@ globalThis.RpgPlayer = {
     return id;
   },
 
-  // Spawn a bullet from the shooter (the "bullet" EntityPreset registered by spawn() above).
-  // `opts`: { speed, damage, penetration?, muzzleY?, nx?, ny? } — `speed` is the muzzle velocity;
-  // `penetration` (default 0 for turrets) is the round's armor penetration written to the bullet's
-  // Projectile (lowers target defense at the hit). muzzleY offsets the spawn (and cursor-aim origin)
-  // from the shooter's Position (e.g. chest height); nx/ny is a caller-resolved aim direction (e.g.
-  // the controller's right-stick/cursor Direction). When nx/ny is omitted it falls back to aiming at
-  // the mouse cursor. Returns the normalized aim { nx, ny }.
+  // Fire an INSTANT hitscan shot from the shooter along the resolved aim (no in-flight bullet entity
+  // — the geometry + damage walk is Combat.hitscan; the visual is a fading RpgWorldOverlay tracer).
+  // `opts`: { damage, penetration?, pierce?, range, muzzleY?, nx?, ny? }. `range` bounds the shot
+  // (px); `pierce` (default 1) is how many hostiles it passes through before a wall/ally stops it (a
+  // future sniper sets it > 1). `penetration` (default 0) is the round's armor penetration (lowers
+  // target defense at the hit, via Combat.mitigate). muzzleY offsets the origin (and cursor-aim
+  // origin) from the shooter's Position (chest height); nx/ny is a caller-resolved aim direction
+  // (right-stick/cursor Direction), falling back to the mouse cursor. Returns the normalized aim
+  // { nx, ny } so the caller can aim the muzzle flash.
   fireBullet(world, shooterId, opts) {
     const pos = world.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
@@ -143,14 +129,22 @@ globalThis.RpgPlayer = {
       nx = dx / dist;
       ny = dy / dist;
     }
-    const bid = EntityPreset.spawn("bullet", world, pos.x, muzzleY);
-    const vel = world.get(Velocity, bid);
-    vel.x = nx * opts.speed;
-    vel.y = ny * opts.speed;
-    const proj = world.get(Projectile, bid);
-    proj.owner = shooterId;
-    proj.damage = opts.damage;
-    proj.penetration = opts.penetration ?? 0;
+    const range = opts.range ?? 460; // px (defensive default; callers pass a velocity-scaled reach)
+    const shot = Combat.hitscan(
+      world,
+      pos.x,
+      muzzleY,
+      pos.x + nx * range,
+      muzzleY + ny * range,
+      {
+        owner: shooterId,
+        damage: opts.damage,
+        penetration: opts.penetration ?? 0,
+        pierce: opts.pierce ?? 1,
+      },
+    );
+    // Fading streak from the muzzle to the impact point (or max range on a miss).
+    RpgWorldOverlay.pushTracer(pos.x, muzzleY, shot.x, shot.y);
     return { nx, ny };
   },
 };

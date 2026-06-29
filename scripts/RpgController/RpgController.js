@@ -1,6 +1,7 @@
 const RPG_MOVE_SPEED = 110; // world px/s (16px-cell scale; see GEMS.md)
 const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
-const RPG_BULLET_SPEED = 300; // world px/s
+const RPG_BULLET_SPEED = 300; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
+const RPG_SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
 const RPG_FIRE_CD = 8; // ticks between shots while held
 const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
 const RPG_MELEE_REACH = 17; // fallback reach (px) for a melee weapon without `reach`
@@ -305,12 +306,15 @@ globalThis.RpgController = {
 
     const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
     // Final damage = the round's kinetic power (rounded) + the wielder's attack stat. Penetration
-    // rides on the bullet and lowers target defense at the hit (Combat.mitigate).
+    // lowers target defense at the hit (Combat.mitigate); pierce (undefined → single target until a
+    // piercing weapon like a sniper sets it) is how many hostiles the hitscan passes through. Velocity
+    // no longer governs travel (the shot is instant) — it scales the reach instead.
     const damage = Math.round(wpn.power) + attack;
     const aim = RpgPlayer.fireBullet(world, ctrl.id, {
-      speed,
       damage,
       penetration: wpn.penetration,
+      pierce: wpn.pierce,
+      range: speed * RPG_SHOT_RANGE_SECS,
       nx: dir.x,
       ny: dir.y,
     });

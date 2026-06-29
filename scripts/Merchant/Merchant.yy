@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Merchant",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Merchant",
+  "parent":{
+    "name":"Trade",
+    "path":"folders/Gameplay/Trade.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Merchant.js",
+}

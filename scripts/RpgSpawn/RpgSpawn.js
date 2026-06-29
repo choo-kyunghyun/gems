@@ -156,6 +156,28 @@ globalThis.RpgSpawn = {
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
       // Friendly human (the village elder): the hero sprite, untinted, standing still (no anim speed).
       world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, 1));
+      // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
+      // Inventory (the merchant's OWN goods). The scene opens TradeUI on E instead of quest dialogue
+      // (see sceneRpg._npcActivate). Stock is built via InventorySystem.add so instanced gear gets a
+      // proper uid/mods; weightless (no maxWeight) so a vendor isn't encumbered by its catalogue.
+      if (s.merchant !== undefined) {
+        const mc = s.merchant;
+        const mInv = { slots: [], capacity: mc.capacity ?? 32 };
+        const stock = mc.stock ?? [];
+        for (let k = 0; k < stock.length; k++)
+          InventorySystem.add(mInv, stock[k].itemId, stock[k].qty);
+        world.add(id, Inventory, mInv);
+        world.add(id, Merchant, {
+          currencyId: mc.currencyId ?? "coin",
+          buyMargin: mc.buyMargin ?? 1.25,
+          sellMargin: mc.sellMargin ?? 0.5,
+          infinite: mc.infinite ?? false,
+          credits: mc.credits ?? 0,
+          restockSecs: mc.restockSecs ?? 0,
+          restockTimer: mc.restockSecs ?? 0,
+          template: mc.template,
+        });
+      }
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "chest") {
@@ -262,7 +284,7 @@ globalThis.RpgSpawn = {
       world.add(id, Visual, RpgSpawn._visual(spr_turret, c_white, 1));
       world.add(id, Tag, { tags: new Set(["turret"]) });
       // Stationary ranged brain: aggro == fire range, so it acquires the nearest hostile in range
-      // and fires the shared "bullet" through ProjectileSystem (see CombatAI._fireAt). No dedicated
+      // and fires an instant hitscan shot (Combat.hitscan, see CombatAI._fireAt). No dedicated
       // Turret component — a turret is just an immovable, player-faction CombatAI actor.
       CombatAI.attach(world, id, level, {
         mobile: false,
