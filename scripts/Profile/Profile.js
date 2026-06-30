@@ -1,7 +1,5 @@
-// Lifetime/record counters. Kept in memory as a { name: number } map; persisted
-// through SaveData as a single flat "k=v;k=v" string under the "profile" key
-// (SaveData only stores scalars). Achievement.evaluate reads these counters.
-// Requires SaveData.load() to have run first.
+// Lifetime counters. Persisted as flat "k=v;k=v" string (JSON.stringify faults on nested).
+// Feed to Achievement.evaluate. Requires SaveData.load() first.
 globalThis.Profile = {
   _counters: {},
 
@@ -32,12 +30,12 @@ globalThis.Profile = {
     return this;
   },
 
-  // Expose the raw counters for Achievement.evaluate and UI records.
+  // raw counter map for Achievement.evaluate and UI records
   counters() {
     return this._counters;
   },
 
-  // Flatten counters to "k=v;k=v" and write through SaveData.
+  // flatten to "k=v;k=v" and write to SaveData
   save() {
     const parts = [];
     for (const k in this._counters) parts.push(k + "=" + this._counters[k]);

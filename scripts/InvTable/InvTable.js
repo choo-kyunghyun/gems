@@ -1,13 +1,7 @@
-// Shared inventory-table model for the RPG item windows — the column set, row models, item
-// category, and ASCII-lowercase helper that the bag window (RpgInventoryUI) and the chest
-// transfer window (StorageUI) both build their UITables from. These were duplicated, near-
-// identical methods on both modules; centralized here so the column widths/Settings gates and
-// the per-row field set live in exactly one place. Rarity row color stays RpgWorldOverlay.
-// _rarityColor (the documented shared item→color helper).
+// Shared column set + row model for RPG inventory UITables (RpgInventoryUI + StorageUI).
+// Centralized so column widths/Settings gates and the row field set live in one place.
 globalThis.InvTable = {
-  // The Settings-gated column set: Name / Rarity? / Type? / Qty / Weight? / Value?. `opts.worn`
-  // prepends a worn-marker "E" column (the bag window; the chest omits it). Each column carries a
-  // stable `key` so UITable.setColumns can remap the active sort when a column is toggled.
+  // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
   columns(opts = {}) {
     const gold = gemsColor("#ffd166");
     const accent = gemsColor(GemsTheme.accent);
@@ -31,16 +25,13 @@ globalThis.InvTable = {
         text: (r) => (r.worn ? "E" : ""),
         color: () => accent,
       });
-    // The text columns carry a `width` floor + a `flex` weight so they GROW (and stop
-    // truncating) as a resizable window widens; the numeric columns below stay fixed
-    // (right-aligned numbers don't need the room). Name gets the largest share.
+    // text columns flex-grow with the window; numeric columns stay fixed-width
     cols.push({
       key: "name",
       label: I18n.text("INV_COL_NAME"),
       width: 100,
       flex: 3,
-      // Item icon inline before the name (UITable shifts the text past it by rowH). The accessor
-      // returns the item's sprite ref (wired in RpgItems.register); a missing/-1 ref draws nothing.
+      // item icon; missing/-1 draws nothing (UITable shifts text past it by rowH)
       sprite: (r) => {
         const it = Item.get(r.itemId);
         return it !== undefined ? it.sprite : -1;
@@ -89,7 +80,7 @@ globalThis.InvTable = {
       cols.push({
         key: "value",
         label: I18n.text("INV_COL_VAL"),
-        width: 84, // fits the "Value" header; numeric data is short, so it stays fixed
+        width: 84,
         align: fa_right,
         text: (r) => string(r.value),
         color: () => gold,
@@ -98,17 +89,11 @@ globalThis.InvTable = {
     return cols;
   },
 
-  // Shared row model from an inventory slot (itemId + qty, plus the slot's `uid`/`mods` for an
-  // instance). Carries the full field set every shared column can render. Callers spread it and
-  // add their own fields: the bag window adds `worn`, the chest adds `idx` (the slot index for the
-  // transfer). `search` is the precomputed lowercase name for the bag's name filter (harmless/
-  // unused on the chest side). `uid` (instance gear only, else undefined) is how the worn-marker
-  // and selection identify the specific instance; `modCount` shows installed weapon mods.
+  // row model from an inventory slot. callers extend with their own fields (bag adds `worn`, chest adds `idx`).
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
     const cat = InvTable.category(it);
-    // `mods` is the named-slot MAP { slotId -> attachmentItemId }; count its filled slots (for...in
-    // over a plain object is GMRT-safe).
+    // mods is a plain-object MAP; count filled slots (for...in is GMRT-safe, Map iterator is not)
     let modCount = 0;
     if (mods !== undefined) for (const slotId in mods) modCount++;
     const name = it !== undefined ? I18n.text(it.name) : itemId;
@@ -119,21 +104,21 @@ globalThis.InvTable = {
       qty,
       uid,
       modCount,
-      // Modded weapons read "Name +N" so duplicates are distinguishable at a glance in the list.
+      // "Name +N" so multiple instances of the same weapon are distinguishable
       name: modCount > 0 ? name + " +" + modCount : name,
       search: InvTable.lower(name),
       cat: cat.code,
       catKey: cat.key,
       rarityName: rar !== undefined ? I18n.text(rar.name) : "",
       rarityRank: rarId !== undefined ? Rarity.order.indexOf(rarId) : -1,
-      weight: it !== undefined ? it.weight * qty : 0, // total stack weight
+      weight: it !== undefined ? it.weight * qty : 0,
       value:
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
       color: RpgWorldOverlay._rarityColor(itemId),
     };
   },
 
-  // Filter/display category from the item's capability components.
+  // filter/display category from capability components
   category(it) {
     if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
     if (it.hasComponent(Weapon))
@@ -145,9 +130,7 @@ globalThis.InvTable = {
     return { code: "misc", key: "INV_CAT_MISC" };
   },
 
-  // ASCII-only lowercase (A–Z → a–z) for case-insensitive search. JS toLowerCase() returns
-  // garbage Unicode on GMRT (CLAUDE.md), so map by char code; non-Latin text (e.g. Korean,
-  // which is caseless) passes through unchanged.
+  // ASCII lowercase via char codes — toLowerCase() returns garbage Unicode on GMRT (see CLAUDE.md)
   lower(s) {
     let out = "";
     for (let i = 0; i < s.length; i++) {

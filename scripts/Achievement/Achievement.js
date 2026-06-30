@@ -1,13 +1,9 @@
-// Achievement registry + persistence. Each def is { id, name, desc, condition },
-// where condition(profileCounters) -> boolean. evaluate() unlocks any met
-// achievement, persists the unlocked id set via SaveData, and returns the
-// newly-unlocked ids so the scene can toast them. Call load() after SaveData.load().
-//
-// A plain object (not a class), matching the other stateful RPG registries
-// (QuestLog/Profile) — one global module, no instances to construct.
+// Achievement registry + unlock persistence. defs: { id, name, desc, condition(counters)->bool }.
+// evaluate() unlocks + persists any met achievements, returns newly-unlocked ids for toasting.
+// Persisted as comma-joined ids (JSON.stringify faults on nested — flat scalar blob only).
 globalThis.Achievement = {
   defs: new Map(),
-  order: [], // registration order of ids
+  order: [], // stable registration order
   _unlocked: {}, // id -> true
 
   register(defs) {
@@ -19,7 +15,7 @@ globalThis.Achievement = {
     return this;
   },
 
-  // Restore the unlocked set from SaveData (comma-joined ids under "achievements").
+  // restore from SaveData (comma-joined ids under "achievements")
   load() {
     this._unlocked = {};
     const saved = SaveData.get("achievements", "");
@@ -46,8 +42,7 @@ globalThis.Achievement = {
     return out;
   },
 
-  // Check every locked achievement against the profile counters; unlock + persist
-  // any whose condition is met. Returns the newly-unlocked ids (in tier order).
+  // unlock any achievements whose condition is met; returns newly-unlocked ids
   evaluate(counters) {
     const newly = [];
     for (let i = 0; i < this.order.length; i++) {
