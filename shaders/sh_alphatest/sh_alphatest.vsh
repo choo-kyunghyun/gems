@@ -1,7 +1,4 @@
-//
-// Pass-through vertex shader (the GameMaker default): transform the vertex by the
-// world-view-projection matrix and forward the colour + texcoord to the fragment stage.
-//
+// pass-through: transform vertex by WVP matrix, forward colour + texcoord
 attribute vec3 in_Position; // (x,y,z)
 attribute vec4 in_Colour; // (r,g,b,a)
 attribute vec2 in_TextureCoord; // (u,v)

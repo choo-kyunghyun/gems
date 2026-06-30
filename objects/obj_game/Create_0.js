@@ -6,17 +6,13 @@ globalThis.DEV_MODE = !RELEASE_MODE; // global mirror so other events (Step_0's 
 randomize();
 
 gpu_set_ztestenable(true);
-// GMRT quirk (see CLAUDE.md → GMRT-Safe Idioms): the fixed-function alpha test is INERT — its
-// enable/ref round-trip through their getters but have NO effect at draw time, so this can't cut a
-// billboard's transparent pixels (the ref was even more useless and is gone). That cutout is done by
-// sh_alphatest's `discard` (RenderBillboard) instead. Left commented as a record of the dead end:
+// GMRT quirk: fixed-function alpha test is INERT (see CLAUDE.md) — gpu_set_alphatestenable rounds-trips
+// its getters but never discards at draw time. sh_alphatest does the cutout via `discard` instead.
+// left commented as a record of the dead end:
 // gpu_set_alphatestenable(true);
-// Only the 2.5D billboard pass writes depth (so overlapping entities sort by their stood-up
-// depth). The flat ground passes (terrain / walls / tiles / zones / foot shadows) are all
-// coplanar at world z=0 and already drawn in painter order, so they must NOT write depth —
-// otherwise their per-pixel depths z-fight as the camera moves (the stacked dual-grid terrain
-// layers flicker hard). Default z-WRITE off; RenderBillboard flips it on around its own draw.
-// 2D scenes never relied on the depth buffer, so painter order is unchanged for them.
+// only RenderBillboard writes depth (for 2.5D entity z-sort); flat ground passes are coplanar
+// at z=0 and must NOT write depth or they z-fight (dual-grid terrain layers flicker hard).
+// default z-write off; RenderBillboard enables it around its draw loop only.
 gpu_set_zwriteenable(false);
 
 draw_set_circle_precision(64);
@@ -24,8 +20,7 @@ draw_set_circle_precision(64);
 Log.clear();
 Log.info("game start");
 
-// Route uncaught runtime exceptions to game.log (and exit non-zero). The runner closes the
-// game right after the handler, so this is the last chance to record why it crashed.
+// last chance to record why it crashed — runner exits right after the handler
 exception_unhandled_handler((ex) => Log.exception(ex));
 
 Settings.registerDefaults({
@@ -35,59 +30,48 @@ Settings.registerDefaults({
   resolutionH: 0,
   fpsLimit: 60,
   vsync: false,
-  antialias: 0, // fullscreen AA level: 0 (off) / 2 / 4 / 8 (device-dependent — see display_aa)
+  antialias: 0, // fullscreen AA: 0=off / 2 / 4 / 8 (device-dependent — see display_aa)
   uiScale: 1.0,
   volMaster: 1.0,
   volMusic: 1.0,
   volSfx: 1.0,
   mouseSensitivity: 0.5,
   rawInput: false,
-  // RPG inventory — Items-table column visibility (toggled in the inventory Settings tab).
+  // RPG inventory column visibility (toggled in inventory Settings tab)
   invColRarity: false,
   invColType: true,
   invColWeight: true,
   invColValue: true,
-  // RPG HUD — ambient-temperature display unit ("K"|"C"|"F"; toggled in the inventory Settings tab).
+  // RPG HUD temperature unit ("K"|"C"|"F"; toggled in inventory Settings tab)
   tempUnit: "K",
-  // RPG HUD — player-centered directional radar (RadarArrows; toggled in the inventory Settings tab).
+  // RPG HUD directional radar (RadarArrows; toggled in inventory Settings tab)
   rpgRadar: false,
 });
 Settings.load();
 
-// Restore the saved display state (vsync + AA via display_reset, then fps cap + fullscreen /
-// windowed resolution) — sets the game speed, sizes the OS window + the world's
-// application_surface. The GUI layer is sized separately by UI.applyScale.
+// restore saved display state (vsync, AA, fps cap, fullscreen/resolution); GUI sized by UI.applyScale
 Display.applyVideo();
 
-// Audio: pick the spatial falloff model + fix the 2D listener orientation, and apply the saved
-// master/music/sfx volumes. After Settings.load so the volumes are live.
+// spatial falloff model + 2D listener orientation + saved volumes; after Settings.load
 Audio.setup();
 
-// Load localization for the saved language, then adopt its base font as the
-// default draw font (both locales now ship Noto; an undeclared key falls back).
+// load locale, adopt its base font; fixed 1080p design resolution (÷ uiScale),
+// not display_set_gui_maximise — SDF fonts scale crisply at any window size
 I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
 draw_set_font(I18n.font("default"));
-// Fixed 1080p design resolution for the GUI layer (÷ uiScale), not display_set_gui_maximise:
-// UI lays out the same on every monitor and the SDF fonts scale crisply to the window.
 UI.applyScale(Settings.get("uiScale"));
 
 this.background = Color.parse("#222222");
 
-UINav.color = Color.parse(GemsTheme.accent); // focus-ring color from the kit theme
+UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
-// All scene lifecycle (the live scene, a queued swap, the fade-coordinated transition)
-// lives in SceneManager; obj_game just delegates update/step/draw/destroy to `this.scenes`
-// each event. SystemMenu reads the live scene + restarts/quits through this.scenes rather
-// than reaching into obj_game's fields.
+// SceneManager owns all lifecycle; obj_game delegates update/step/draw/destroy each event
 this.scenes = new SceneManager();
-// The lobby is the boot scene (the dev launcher / scene catalogue); from it the RPG and the
-// other genres are opened. F2 (Step_0) also returns here.
+// lobby is the boot scene + dev launcher; F2 (Step_0) also returns here
 this.scenes.start(SCENES.lobby);
-SceneTransition.reveal(); // boot fades the game in from black instead of popping
+SceneTransition.reveal(); // boot fades in from black
 
-// Debug back-end: register the global built-in panels once. Bindings are live,
-// so these track the current scene across swaps. The text port (debug.txt) is
-// the agent-readable view; the ImGui port (Phase 2) renders the same registry.
+// register built-in debug panels; live bindings track the current scene across swaps
 const game = this;
 Debug.panel("Time", (p) => {
   p.slider("Scale", Time, "scale", 0, 3, 0.1);
@@ -109,11 +93,10 @@ Debug.panel("Log", (p) => {
   p.watch("Lines", () => Log._lines.length);
   p.button("Clear", () => Log.clear());
 });
-// Sim controls (relocated from the SystemMenu): Pause gates scene.step(), Step Frame advances
-// one frame while paused, Restart Scene reloads the live scene. Bound to the SceneManager.
+// sim controls relocated from SystemMenu; Pause gates scene.step()
 Debug.panel("Sim", (p) => {
   p.checkbox("Pause", game.scenes, "paused");
   p.button("Step Frame", () => game.scenes.requestStep());
   p.button("Restart Scene", () => game.scenes.restart());
 });
-DebugRender.register(this); // "Render" panel: per-pass overlay toggles (was the SystemMenu Debug tab)
+DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
