@@ -44,26 +44,32 @@ DGRAY, DDGRAY, PURPLE, RED, PINKRED, PINK, YGREEN, DGOLD = 24, 25, 26, 27, 28, 2
 
 TRANSPARENT = (0, 0, 0, 0)
 
+# Current canvas dims — set by blank() so an icon can be non-square (e.g. a wide 64x32 gun). The hand-drawn
+# icons below are all square S (16); a non-square one calls blank(w, h) + declares its size in SPRITES.
+_W, _H = S, S
+
 
 def rgba(c):
     r, g, b = DB32[c]
     return (r, g, b, 255)
 
 
-# ---- tiny raster API over a flat 16*16 RGBA buffer (matches entity_sprites.py + an erase helper) ----
+# ---- tiny raster API over a flat _W*_H RGBA buffer (matches entity_sprites.py + an erase helper) ----
 
-def blank():
-    return [TRANSPARENT] * (S * S)
+def blank(w=S, h=S):
+    global _W, _H
+    _W, _H = w, h
+    return [TRANSPARENT] * (w * h)
 
 
 def setpx(buf, x, y, c):
-    if c is not None and 0 <= x < S and 0 <= y < S:
-        buf[y * S + x] = rgba(c)
+    if c is not None and 0 <= x < _W and 0 <= y < _H:
+        buf[y * _W + x] = rgba(c)
 
 
 def erase(buf, x, y):                                # setpx(None) is a NO-OP — carve transparency with this
-    if 0 <= x < S and 0 <= y < S:
-        buf[y * S + x] = TRANSPARENT
+    if 0 <= x < _W and 0 <= y < _H:
+        buf[y * _W + x] = TRANSPARENT
 
 
 def rect(buf, x0, y0, x1, y1, c):
@@ -106,14 +112,14 @@ def outline(buf, c=OUT):
     outline). 4-connected so corners stay clean. Icons are kept within y<=14 so the outline fits all
     the way around (centered, unlike the foot-anchored entities)."""
     src = buf[:]
-    for y in range(S):
-        for x in range(S):
-            if src[y * S + x][3] != 0:
+    for y in range(_H):
+        for x in range(_W):
+            if src[y * _W + x][3] != 0:
                 continue
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < S and 0 <= ny < S and src[ny * S + nx][3] != 0:
-                    buf[y * S + x] = rgba(c)
+                if 0 <= nx < _W and 0 <= ny < _H and src[ny * _W + nx][3] != 0:
+                    buf[y * _W + x] = rgba(c)
                     break
 
 
@@ -491,9 +497,17 @@ SPRITES = {
     "spr_item_toolkit":        toolkit(),
 }
 
-# ---- GameMaker .yy emitter (CENTERED 16x16; single frame; mirrors entity_sprites.py) ----
 
-def yy(name, frame_id, layer_id, key_id):
+def _spec(v):
+    """(frame, w, h) for a SPRITES value — a bare frame is square S; a (frame, w, h) tuple carries its
+    own size (a hand-drawn non-square icon, e.g. blank(64, 32))."""
+    return (v[0], v[1], v[2]) if isinstance(v, tuple) else (v, S, S)
+
+# ---- GameMaker .yy emitter (CENTERED w x h; single frame; origin enum 4 = middle-center) ----
+# (w, h) default to the module S (square). The non-square path is for the AI-bridge importer
+# (import_items) writing a wide icon like a 64x32 gun; the hand-drawn raster above stays square S.
+
+def yy(name, frame_id, layer_id, key_id, w=S, h=S):
     sprpath = f"sprites/{name}/{name}.yy"
     frames = (f'    {{"$GMSpriteFrame":"v1","%Name":"{frame_id}","name":"{frame_id}",'
               f'"resourceType":"GMSpriteFrame","resourceVersion":"2.0",}},')
@@ -510,9 +524,9 @@ def yy(name, frame_id, layer_id, key_id):
   "$GMSprite":"v2",
   "%Name":"{name}",
   "bboxMode":0,
-  "bbox_bottom":{S - 1},
+  "bbox_bottom":{h - 1},
   "bbox_left":0,
-  "bbox_right":{S - 1},
+  "bbox_right":{w - 1},
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -524,7 +538,7 @@ def yy(name, frame_id, layer_id, key_id):
   ],
   "gridX":0,
   "gridY":0,
-  "height":{S},
+  "height":{h},
   "HTile":false,
   "layers":[
 {layers}
@@ -581,8 +595,8 @@ def yy(name, frame_id, layer_id, key_id):
     ],
     "visibleRange":null,
     "volume":1.0,
-    "xorigin":{S // 2},
-    "yorigin":{S // 2},
+    "xorigin":{w // 2},
+    "yorigin":{h // 2},
   }},
   "swatchColours":null,
   "swfPrecision":0.5,
@@ -592,11 +606,11 @@ def yy(name, frame_id, layer_id, key_id):
   }},
   "type":0,
   "VTile":false,
-  "width":{S},
+  "width":{w},
 }}"""
 
 
-def build(name, frame):
+def build(name, frame, w=S, h=S):
     sprdir = os.path.join(ROOT, "sprites", name)
     frame_id = str(uuid.uuid5(NS, f"{name}:frame:0"))
     key_id = str(uuid.uuid5(NS, f"{name}:key:0"))
@@ -609,19 +623,20 @@ def build(name, frame):
         for d in dirs:
             os.rmdir(os.path.join(root, d))
 
-    P.write_png(os.path.join(sprdir, f"{frame_id}.png"), S, S, frame)        # composite
+    P.write_png(os.path.join(sprdir, f"{frame_id}.png"), w, h, frame)        # composite
     ld = os.path.join(sprdir, "layers", frame_id)
     os.makedirs(ld, exist_ok=True)
-    P.write_png(os.path.join(ld, f"{layer_id}.png"), S, S, frame)            # single "default" layer
+    P.write_png(os.path.join(ld, f"{layer_id}.png"), w, h, frame)            # single "default" layer
     with open(os.path.join(sprdir, f"{name}.yy"), "w", newline="\n") as fh:
-        fh.write(yy(name, frame_id, layer_id, key_id))
+        fh.write(yy(name, frame_id, layer_id, key_id, w, h))
 
 
 def preview():
     """A scaled contact sheet of every icon on a checker -> out/items/sheet.png (for review)."""
     od = P.out_dir("items")
-    flat = list(SPRITES.items())
-    scale, pad, cell = 8, 8, S * 8
+    flat = [(nm, *_spec(v)) for nm, v in SPRITES.items()]   # (nm, frame, w, h)
+    scale, pad = 8, 8
+    cell = max((max(w, h) for _, _, w, h in flat), default=S) * scale   # fits the widest/tallest icon
     cols = 7
     rows = (len(flat) + cols - 1) // cols
     SW = pad + cols * (cell + pad)
@@ -630,16 +645,17 @@ def preview():
     for Y in range(SH):
         for X in range(SW):
             sheet[Y * SW + X] = P.checker(X, Y, 8)
-    for idx, (nm, fr) in enumerate(flat):
+    for idx, (nm, fr, w, h) in enumerate(flat):
         gx, gy = idx % cols, idx // cols
-        P.blit(sheet, SW, pad + gx * (cell + pad), pad + gy * (cell + pad), fr, S, S, scale, ck=8)
+        P.blit(sheet, SW, pad + gx * (cell + pad), pad + gy * (cell + pad), fr, w, h, scale, ck=8)
     P.write_png(os.path.join(od, "sheet.png"), SW, SH, sheet)
     return os.path.join(od, "sheet.png")
 
 
 if __name__ == "__main__":
     print(f"importing into {ROOT}/sprites/")
-    for name, frame in SPRITES.items():
-        build(name, frame)
-        print(f"  {name}")
+    for name, v in SPRITES.items():
+        frame, w, h = _spec(v)
+        build(name, frame, w, h)
+        print(f"  {name} ({w}x{h})")
     print(f"preview -> {preview()}")

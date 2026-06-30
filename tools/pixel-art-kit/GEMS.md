@@ -15,6 +15,48 @@ reusable kit stays style-agnostic; this file is G.E.M.S.'s filled-in style.
 | **Output** | Horizontal **strip + JSON manifest** — `<base>_strip<N>.png` (GameMaker `_stripN` auto-slice). |
 | **GM naming** | `spr_<thing>` — entities `spr_hero` / `spr_bandit` / …; tiles `spr_terrain*`. |
 
+## Frame size (per-sprite, non-square OK)
+
+Cell size is the *world grid* unit, **not** a sprite-size cap. A sprite's frame can be any **W×H** — the
+engine draws it at the entity `Position` by the sprite's **origin**, and the entity's collision is its own
+`BBox` component (independent of the sprite), so a taller/wider sprite needs no gameplay change. Use this
+for art whose natural shape isn't square: a **tall biped** (32×64) or a **wide weapon/prop** (48×32 …
+96×32). The default is square (32px entities / 16px icons); declare a size only where the topology wants it.
+
+**Anchor** (by name convention, matching the two emitters): entities are **foot-anchored** (origin
+bottom-center, `w//2, h`) — a taller sprite extends *upward* from the same foot point. `spr_item_*` icons
+are **centered** (`w//2, h//2`).
+
+**Determining the ratio — measure, don't guess.** Run `python common/spritesize.py <candidate.png>`: it
+trims the subject's alpha bbox, adds margin, and snaps each dimension up to the size menu
+(`16,32,48,64,80,96,128` — multiples of the 16px half-unit), printing a catalog-ready entry. This yields
+1:2 for a standing biped, ~1.5:1 for a pistol, ~3:1 for a long rifle, etc. Recommended ratios:
+
+| Subject | Anchor | W×H |
+|---|---|---|
+| Humanoid / NPC | foot | 32×64 (1:2) |
+| Small critter, slime | foot | 32×32 |
+| Tall prop (torch, doorway) | foot | 32×48 / 32×64 |
+| Compact item (potion, gem, mod) | center | 32×32 |
+| Pistol / SMG | center | 48×32 (1.5:1) |
+| Rifle / shotgun | center | 64×32 (2:1) |
+| Sniper / long rifle | center | 96×32 (3:1) |
+
+**Declaring the size — one place per sprite:**
+
+- **AI-imported sprites** (the live path, `local/comfyui/`): add the entry to **`gm-import/sprite_catalog.py`**
+  (`"spr_hero": (32, 64)`). `import_hero` / `batch_import` / `import_items` read `size_of(name)` and thread it
+  through `framing.frame_file` (frames the candidate at the size without squishing — subject keeps its aspect,
+  bottom/center-aligned), `poses` (derives anim frames at the size), and `build`. Declared **once**.
+  *(The generation side still renders a square latent; a true tall AI sprite also wants a taller latent in the
+  ComfyUI workflow — the one remaining manual step on the AI path.)*
+- **Hand-drawn sprites**: declare inline in the generator's `SPRITES` table. Entities (`flat_sprites.py`):
+  build the frame at the size — `frame(drawfn, w, h)` — and list `"spr_soldier": (soldier(), 8.0, 32, 64)`.
+  Icons (`item_sprites.py`): draw on `blank(w, h)` and list `"spr_item_x": (big_gun(), 64, 32)`. Omit for square.
+
+**Item icons in UI slots** render **aspect-fit** (centered, preserving shape) in `UISlots` — a wide gun icon
+no longer gets squished into the square cell; square icons are unaffected.
+
 ## Authoring (input data)
 
 - **Statics** → `templates/<name>.txt` (16×16 index grid into `palettes/db32.hex`; `.` = transparent)

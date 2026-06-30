@@ -11,11 +11,16 @@ sheen). The grounding foot-shadow is drawn at RUNTIME by the RenderEntityShadow 
 so the sprite art is purely the entity and every body grounds consistently.
 
 Technique: each entity is drawn as hard shapes at 4x (SUPERSAMPLED), then box-downsampled to the final
-32px frame — the alpha averaging gives clean anti-aliased edges, which is what reads as 'designed'
-rather than 'failed pixel art'. 32px (not 16) because this style needs the room for the detail; the
-sprites stay FOOT-ANCHORED (origin bottom-center 16,32) so RenderEntity/Animator/facing-flip are
+frame — the alpha averaging gives clean anti-aliased edges, which is what reads as 'designed' rather
+than 'failed pixel art'. Default 32px (not 16) because this style needs the room for the detail; the
+sprites stay FOOT-ANCHORED (origin bottom-center, w//2, h) so RenderEntity/Animator/facing-flip are
 unchanged — only the art differs. Entities therefore draw ~2x the old footprint (more prominent, good
 for top-down readability); scale down in Visual.yscale if ever too big.
+
+Frame SIZE is per-sprite: frame(drawfn) defaults to a square S x S, but frame(drawfn, w, h) renders any
+W x H — a tall biped (32x64), a wide prop — and build()/yy() write that size with a foot-anchored origin
+(w//2, h). Declare the size in the SPRITES table (see its note). The COLLISION box is the entity's own
+BBox component, independent of the sprite, so a taller sprite needs no gameplay change.
 
 Usage:  python tools/pixel-art-kit/gm-import/flat_sprites.py [project_root]
 """
@@ -55,17 +60,22 @@ C = {
 
 # ---- supersampled soft-shape raster (over-compositing into a float RGBA buffer) ----
 
+# Current frame's buffer dims: _BW/_BH = supersampled buffer, _OW/_OH = downsampled output. Set by
+# frame() per call so a sprite can be non-square (e.g. a 32x64 human) — square (S x S) is the default.
+_BW, _BH, _OW, _OH = W, W, S, S
+
+
 def buf():
-    return [[0.0, 0.0, 0.0, 0.0] for _ in range(W * W)]
+    return [[0.0, 0.0, 0.0, 0.0] for _ in range(_BW * _BH)]
 
 
 def over(d, x, y, rgba):
-    if x < 0 or x >= W or y < 0 or y >= W:
+    if x < 0 or x >= _BW or y < 0 or y >= _BH:
         return
     a = rgba[3]
     if a <= 0:
         return
-    i = y * W + x
+    i = y * _BW + x
     px = d[i]
     na = a + px[3] * (1 - a)
     if na <= 0:
@@ -120,15 +130,15 @@ def outline(d):
     silhouette from the terrain. Run last (after every fill), before downsample."""
     src = [px[:] for px in d]
     rad = int(1.6 * SS)
-    for y in range(W):
-        for x in range(W):
-            if src[y * W + x][3] > 0.5:
+    for y in range(_BH):
+        for x in range(_BW):
+            if src[y * _BW + x][3] > 0.5:
                 continue
             hit = False
             for dy in range(-rad, rad + 1):
                 for dx in range(-rad, rad + 1):
                     nx, ny = x + dx, y + dy
-                    if 0 <= nx < W and 0 <= ny < W and src[ny * W + nx][3] > 0.5:
+                    if 0 <= nx < _BW and 0 <= ny < _BH and src[ny * _BW + nx][3] > 0.5:
                         hit = True; break
                 if hit:
                     break
@@ -137,21 +147,25 @@ def outline(d):
 
 
 def downsample(d):
-    """4x box-downsample the float buffer to a 32x32 list of RGBA int tuples (the AA happens here)."""
-    out = [TRANSPARENT] * (S * S)
-    for y in range(S):
-        for x in range(S):
+    """4x box-downsample the float buffer to an _OW x _OH list of RGBA int tuples (the AA happens here)."""
+    out = [TRANSPARENT] * (_OW * _OH)
+    for y in range(_OH):
+        for x in range(_OW):
             r = g = b = a = 0.0
             for sy in range(SS):
                 for sx in range(SS):
-                    px = d[(y * SS + sy) * W + (x * SS + sx)]
+                    px = d[(y * SS + sy) * _BW + (x * SS + sx)]
                     r += px[0] * px[3]; g += px[1] * px[3]; b += px[2] * px[3]; a += px[3]
             n = SS * SS
-            out[y * S + x] = (int(r / a), int(g / a), int(b / a), int(255 * a / n)) if a > 0 else TRANSPARENT
+            out[y * _OW + x] = (int(r / a), int(g / a), int(b / a), int(255 * a / n)) if a > 0 else TRANSPARENT
     return out
 
 
-def frame(drawfn):
+def frame(drawfn, w=S, h=S):
+    """Render drawfn into a fresh w x h foot-anchored frame (default square S). drawfn works in
+    output-pixel coords (0..w, 0..h); the raster supersamples internally."""
+    global _BW, _BH, _OW, _OH
+    _OW, _OH, _BW, _BH = w, h, w * SS, h * SS
     d = buf(); drawfn(d); outline(d); return downsample(d)
 
 
@@ -292,6 +306,10 @@ def bed():
     return [frame(f)]
 
 
+# name -> (frames, playbackSpeed[, w, h]). Omitting (w, h) ⇒ square S x S (the default). A non-square
+# entity declares its size here AND passes it to frame(drawfn, w, h) so the raster matches — e.g. a
+# 32x64 human: "spr_soldier": (soldier(), 8.0, 32, 64) with soldier()'s frames built at frame(..., 32, 64).
+# Origin stays foot-anchored (bottom-center, w//2, h) regardless of size.
 SPRITES = {
     "spr_hero":       (hero(),        8.0),
     "spr_heroAttack": (hero_attack(), 10.0),
@@ -309,9 +327,9 @@ SPRITES = {
 }
 
 
-# ---- GameMaker .yy emitter (foot-anchored 32x32; mirrors entity_sprites.py) ----
+# ---- GameMaker .yy emitter (foot-anchored w x h; origin enum 7 = bottom-center; mirrors entity_sprites.py) ----
 
-def yy(name, frame_ids, layer_id, key_ids, speed):
+def yy(name, frame_ids, layer_id, key_ids, speed, w=S, h=S):
     sprpath = f"sprites/{name}/{name}.yy"
     frames = ",\n".join(
         f'    {{"$GMSpriteFrame":"v1","%Name":"{fid}","name":"{fid}","resourceType":"GMSpriteFrame","resourceVersion":"2.0",}}'
@@ -332,9 +350,9 @@ def yy(name, frame_ids, layer_id, key_ids, speed):
   "$GMSprite":"v2",
   "%Name":"{name}",
   "bboxMode":0,
-  "bbox_bottom":{S - 1},
+  "bbox_bottom":{h - 1},
   "bbox_left":0,
-  "bbox_right":{S - 1},
+  "bbox_right":{w - 1},
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -346,7 +364,7 @@ def yy(name, frame_ids, layer_id, key_ids, speed):
   ],
   "gridX":0,
   "gridY":0,
-  "height":{S},
+  "height":{h},
   "HTile":false,
   "layers":[
 {layers}
@@ -403,8 +421,8 @@ def yy(name, frame_ids, layer_id, key_ids, speed):
     ],
     "visibleRange":null,
     "volume":1.0,
-    "xorigin":{S // 2},
-    "yorigin":{S},
+    "xorigin":{w // 2},
+    "yorigin":{h},
   }},
   "swatchColours":null,
   "swfPrecision":0.5,
@@ -414,11 +432,11 @@ def yy(name, frame_ids, layer_id, key_ids, speed):
   }},
   "type":0,
   "VTile":false,
-  "width":{S},
+  "width":{w},
 }}"""
 
 
-def build(name, frames, speed):
+def build(name, frames, speed, w=S, h=S):
     sprdir = os.path.join(ROOT, "sprites", name)
     n = len(frames)
     frame_ids = [str(uuid.uuid5(NS, f"{name}:frame:{i}")) for i in range(n)]
@@ -433,23 +451,30 @@ def build(name, frames, speed):
             os.rmdir(os.path.join(root, dd))
 
     for fid, fr in zip(frame_ids, frames):
-        P.write_png(os.path.join(sprdir, f"{fid}.png"), S, S, fr)
+        P.write_png(os.path.join(sprdir, f"{fid}.png"), w, h, fr)
         ld = os.path.join(sprdir, "layers", fid)
         os.makedirs(ld, exist_ok=True)
-        P.write_png(os.path.join(ld, f"{layer_id}.png"), S, S, fr)
+        P.write_png(os.path.join(ld, f"{layer_id}.png"), w, h, fr)
     with open(os.path.join(sprdir, f"{name}.yy"), "w", newline="\n") as fh:
-        fh.write(yy(name, frame_ids, layer_id, key_ids, speed))
+        fh.write(yy(name, frame_ids, layer_id, key_ids, speed, w, h))
     return n
+
+
+def _size(spec):
+    """(w, h) for a SPRITES spec tuple — its optional 3rd/4th elements, else square S."""
+    return (spec[2] if len(spec) > 2 else S, spec[3] if len(spec) > 3 else S)
 
 
 def preview():
     """scaled contact sheet of every frame on an earthy ground -> out/entities/flat_sheet.png."""
     od = P.out_dir("entities")
     flat = []
-    for nm, (frs, _) in SPRITES.items():
+    for nm, spec in SPRITES.items():
+        frs = spec[0]; w, h = _size(spec)
         for i, fr in enumerate(frs):
-            flat.append((nm if len(frs) == 1 else f"{nm}#{i}", fr))
-    scale, pad, cell = 6, 10, S * 6
+            flat.append((nm if len(frs) == 1 else f"{nm}#{i}", fr, w, h))
+    scale, pad = 6, 10
+    cell = max((max(w, h) for _, _, w, h in flat), default=S) * scale   # fits the tallest/widest sprite
     cols = 6
     rows = (len(flat) + cols - 1) // cols
     SW = pad + cols * (cell + pad); SH = pad + rows * (cell + pad)
@@ -458,16 +483,18 @@ def preview():
         for X in range(SW):
             gx = (X // 6) % 2; gy = (Y // 6) % 2
             sheet[Y * SW + X] = (74, 96, 58, 255) if (gx ^ gy) else (88, 110, 66, 255)
-    for idx, (nm, fr) in enumerate(flat):
+    for idx, (nm, fr, w, h) in enumerate(flat):
         gx, gy = idx % cols, idx // cols
-        P.blit(sheet, SW, pad + gx * (cell + pad), pad + gy * (cell + pad), fr, S, S, scale)
+        P.blit(sheet, SW, pad + gx * (cell + pad), pad + gy * (cell + pad), fr, w, h, scale)
     P.write_png(os.path.join(od, "flat_sheet.png"), SW, SH, sheet)
     return os.path.join(od, "flat_sheet.png")
 
 
 if __name__ == "__main__":
-    print(f"importing flat 32px entities into {ROOT}/sprites/")
-    for name, (frames, speed) in SPRITES.items():
-        n = build(name, frames, speed)
-        print(f"  {name}: {n} frame(s)")
+    print(f"importing flat entities into {ROOT}/sprites/")
+    for name, spec in SPRITES.items():
+        frames, speed = spec[0], spec[1]
+        w, h = _size(spec)
+        n = build(name, frames, speed, w, h)
+        print(f"  {name}: {n} frame(s) ({w}x{h})")
     print(f"preview -> {preview()}")

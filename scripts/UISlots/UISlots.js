@@ -131,18 +131,28 @@ globalThis.UISlots = class UISlots {
         false,
       );
 
-      // icon (raster only).
+      // icon (raster only). Aspect-preserving fit inside the cell's inner box: a non-square icon
+      // (wide gun / tall item) keeps its shape instead of being squished into a square. A square
+      // sprite fits identically to the old square stretch, so this is a no-op for those. stretched_ext
+      // fills the given rect ignoring origin, so center by offset. (sprite_get_width/height are 0 for
+      // SVG sprites — sprite_exists already gated those out; guard >0 anyway and fall back to the box.)
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
         const n = max(1, sprite_get_number(it.sprite));
         const sub = clamp(it.subimg ?? 0, 0, n - 1);
+        const box = sz - this.pad * 2;
+        const sw = sprite_get_width(it.sprite);
+        const sh = sprite_get_height(it.sprite);
+        const fit = sw > 0 && sh > 0 ? min(box / sw, box / sh) : 1;
+        const dw = sw > 0 ? sw * fit : box;
+        const dh = sh > 0 ? sh * fit : box;
         draw_sprite_stretched_ext(
           it.sprite,
           sub,
-          p.x + this.pad,
-          p.y + this.pad,
-          sz - this.pad * 2,
-          sz - this.pad * 2,
+          p.x + this.pad + (box - dw) / 2,
+          p.y + this.pad + (box - dh) / 2,
+          dw,
+          dh,
           it.color ?? c_white,
           1,
         );
