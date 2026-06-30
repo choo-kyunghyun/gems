@@ -1,11 +1,6 @@
-// Level builder for the platformer movement showcase. The level is hard-coded here
-// (a self-contained showcase — it doesn't share the editor/TopDown `levels/` directory
-// or the `LevelSerializer` round-trip). `playerSpawn` is returned by build().
-//
-// Spawn preset strings and their per-instance fields:
-//   platform   x,y,w,h  oneWay?:bool
-//   enemy      x,y                 (plain patroller — stomp to defeat)
-//   spike      x,y
+// hard-coded level data for the platformer showcase (not shared with the editor pipeline).
+// build() spawns all entities and returns playerSpawn.
+// presets: platform(x,y,w,h,oneWay?), enemy(x,y), spike(x,y)
 
 const PLATF_ENEMY_SPEED = 60; // patrol walk speed, px/s
 
@@ -29,11 +24,7 @@ const PLATFORMER_LEVEL = {
 };
 
 globalThis.PlatformerLevel = {
-  /**
-   * Spawn the hard-coded platformer level into world; returns the player spawn.
-   * @param {object} world
-   * @returns {{ x: number, y: number }}
-   */
+  /** @param {object} world @returns {{ x: number, y: number }} */
   build(world) {
     const spawns = PLATFORMER_LEVEL.spawns;
     for (let i = 0; i < spawns.length; i++) {
@@ -56,7 +47,7 @@ globalThis.PlatformerLevel = {
           xscale: 1,
           yscale: 1,
           rot: 0,
-          color: make_colour_rgb(95, 110, 125), // structural slate
+          color: make_colour_rgb(95, 110, 125),
           alpha: 1,
           speed: 0,
           time: 0,
@@ -105,7 +96,7 @@ globalThis.PlatformerLevel = {
           xscale: 1,
           yscale: 1,
           rot: 0,
-          color: make_colour_rgb(200, 65, 65), // hazard red
+          color: make_colour_rgb(200, 65, 65),
           alpha: 1,
           speed: 0,
           time: 0,

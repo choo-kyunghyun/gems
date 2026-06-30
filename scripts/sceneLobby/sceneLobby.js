@@ -1,9 +1,5 @@
-// The app shell's landing + boot scene (`SCENES.lobby`), also a dev launcher reached via
-// F2 from inside a genre scene. Title and lobby are merged here: a G.E.M.S. branding
-// header over a single vertical column of buttons — every registered scene (RPG / Editor /
-// UI Kit) followed by the global actions (Credits / Settings / Quit). No tabs or category
-// sections: the catalogue is small enough to list flat. Settings and Credits open the
-// SystemMenu overlay (Credits on its About tab), so there is no separate title/credits scene.
+// boot scene + dev launcher (F2). flat button list of all registered scenes, then
+// global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits scene.
 
 globalThis.SCENES = {
   lobby: () =>
@@ -20,9 +16,7 @@ globalThis.SCENES = {
 
         const col = gemsList();
 
-        // A flat button per registered scene — no category headers/tabs. Ordered by a
-        // fixed display priority (RPG flagship first, then Editor, then the rest) so the
-        // list doesn't follow arbitrary resource load order; unknown categories sink last.
+        // fixed display priority so the list is stable regardless of resource load order
         const CAT_ORDER = [
           "SCENE_CAT_RPG",
           "SCENE_CAT_EDITOR",
@@ -40,14 +34,13 @@ globalThis.SCENES = {
         };
         entries.sort((a, b) => rank(a.category) - rank(b.category));
         for (let i = 0; i < entries.length; i++) {
-          const entry = entries[i]; // capture for the click closure
+          const entry = entries[i];
           col.insertChild(
             gemsButton(entry.label, () => openScene(entry.factory)),
           );
         }
 
-        // Global actions. Settings/Credits open the SystemMenu (Credits on its About
-        // tab, index 2); Quit ends the game.
+        // Credits opens SystemMenu About tab (index 2)
         col.insertChild(
           gemsButton(I18n.textRef("TITLE_CREDITS"), () => SystemMenu.open(2)),
         );

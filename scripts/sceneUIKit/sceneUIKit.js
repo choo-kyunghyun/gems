@@ -1,11 +1,5 @@
-// GemsUI kit showcase — a non-gameplay scene that exercises every widget in the
-// kit so the look-and-feel can be eyeballed in one place. Organised into tab pages
-// (gemsTabs): Widgets, Inputs & Values, Containers, Inventory, Table. The tab host
-// grows to fill the space between the header/hints and the Back button (flex grow,
-// like the lobby/SystemMenu), and each scrollable page is a gemsScroll({ grow: true })
-// so it fills that host instead of a cramped fixed box and reflows at any GUI size.
-// Pure UI — no world/renderer; obj_game already ticks and draws the UI globally, so
-// there's no step()/draw().
+// GemsUI widget showcase. pure UI — no world/renderer/step/draw.
+// tab host flex-grows; each page is a gemsScroll({ grow:true }) to reflow at any GUI size.
 
 SceneRegistry.add(() => new _SceneUIKitClass(), {
   label: I18n.textRef("UIKIT_NAME"),
@@ -16,7 +10,7 @@ class _SceneUIKitClass extends Scene {
   label = "UIKit";
 
   create(openScene) {
-    // Live state the widgets read/write; echoed back through live textRefs.
+    // widget state — echoed live via textRefs
     this.typed = "";
     this.clicks = 0;
     this.toggleOn = true;
@@ -28,7 +22,7 @@ class _SceneUIKitClass extends Scene {
     this.selSlot = -1;
     this.tableSel = null;
 
-    // Demo Input actions the rebind rows retarget; held state is echoed live below.
+    // demo actions the rebind rows retarget
     Input.register(
       "uikit_jump",
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, vk_space),
@@ -38,10 +32,8 @@ class _SceneUIKitClass extends Scene {
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
     );
 
-    // Demo quests for the quest-tracker widget. Bound to the global QuestLog, so we
-    // reset it first (clears any quests a gameplay scene left active) for a deterministic
-    // list, then register + accept four and pre-set progress (one ready, the rest partial
-    // or untouched). Built before the tracker, which measures QuestLog at construction.
+    // reset QuestLog first to clear any state a gameplay scene left; must run before
+    // the tracker widget, which reads QuestLog at construction
     this._setupQuests();
 
     this.ui = gemsRoot();
@@ -51,7 +43,7 @@ class _SceneUIKitClass extends Scene {
     this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_HINT")));
     this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_NAV_HINT")));
 
-    // ── Tab: Widgets (buttons + toggles), scrolled ──
+    // Widgets tab
     const widgets = gemsScroll({ grow: true });
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
@@ -59,26 +51,24 @@ class _SceneUIKitClass extends Scene {
     widgets.scrollBody.insertChild(this._motionSection());
     widgets.scrollBody.insertChild(this._questSection());
 
-    // ── Tab: Inputs & Values (text fields + value controls), scrolled ──
+    // Inputs & Values tab
     const values = gemsScroll({ grow: true });
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
     values.scrollBody.insertChild(this._vkSection());
 
-    // ── Tab: Containers (nine-slice skin + accordion | scroll list) ──
-    // Left column scrolls so expanding accordion sections can't overflow the host.
+    // Containers tab — left column scrolls so accordion sections can't overflow
     const left = gemsScroll({ grow: true });
     left.scrollBody.insertChild(this._skinSection());
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
-    // ── Tab: Inventory (slot grid with selection), scrolled ──
+    // Inventory tab
     const inventory = gemsScroll({ grow: true });
     inventory.scrollBody.insertChild(this._inventorySection());
 
-    // ── Tab: Table (sortable + filterable data table). The table self-scrolls, so
-    // this page is a plain list (no enclosing gemsScroll). ──
+    // Table tab — table self-scrolls, no enclosing gemsScroll needed
     const table = this._tableTab();
 
     this.ui.insertChild(
@@ -101,8 +91,7 @@ class _SceneUIKitClass extends Scene {
     );
   }
 
-  // Two equal columns (flexGrow:1, flexBasis:0 share the width evenly). The row itself
-  // grows to fill the tab host so a grow scroll inside a column can take the full height.
+  // flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host
   _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
@@ -237,10 +226,8 @@ class _SceneUIKitClass extends Scene {
     return toggles;
   }
 
-  // UIRichText: colored spans ([c=name]/[c=#hex]) + inline icons ([spr=…]) in one
-  // string. The markup is an i18n value so it localizes; the rarity/keybind colors are
-  // passed as a palette. UIRichText self-sizes on 0.20, but each line is hosted in a
-  // fixed-height row here for uniform spacing across the stacked lines.
+  // UIRichText: colored spans + inline icons. markup is i18n so it localizes.
+  // fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
   _richTextSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
     sec.insertChild(
@@ -262,13 +249,10 @@ class _SceneUIKitClass extends Scene {
     return sec;
   }
 
-  // Tween demo: the same 0→1→0 ping-pong clock fed through different easing curves,
-  // so the bars pace differently (linear = constant, others ease) — the visible proof
-  // of the Tween curve library. Every gemsButton above also eases its hover color via
-  // UIButton._easeColor (per-channel Tween.approach), so it's exercised live across the scene.
+  // same ping-pong clock through different easing curves to show Tween curve differences
   _motionSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
-    // Wall-clock ping-pong in [0,1] over ~3.6s — no scene state needed.
+    // wall-clock ping-pong [0,1] over ~3.6 s
     const clock = () => {
       const t = (current_time % 3600) / 1800; // 0..2
       return t < 1 ? t : 2 - t; // fold to 0..1..0
@@ -294,9 +278,7 @@ class _SceneUIKitClass extends Scene {
     return sec;
   }
 
-  // Register + accept four demo quests with fixed progress so the tracker shows a
-  // representative mix: one ready (gold), one partway, two untouched. reset() first so
-  // re-entering the scene (or arriving from a gameplay scene) always shows the same set.
+  // fixed progress for a representative mix: one ready, one partial, two untouched
   _setupQuests() {
     QuestLog.reset().register([
       {
@@ -332,11 +314,8 @@ class _SceneUIKitClass extends Scene {
     QuestLog.report("collect", "moonherb", 2); // q2 → 2/3
   }
 
-  // UIQuestTracker: a live HUD list bound to QuestLog (title gold once ready to turn in).
-  // Placed straight in the section — the Widgets tab is already a gemsScroll, and an
-  // immediate-mode text widget must not sit inside a SECOND clip surface (draw_text
-  // loses the inner scroll's world-matrix offset and clips away; see CLAUDE.md). One
-  // enclosing scroll is enough to scroll a long list.
+  // placed directly in the section — widgets tab already scrolls; a second clip surface
+  // would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
   _questSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
     sec.insertChild(
@@ -399,9 +378,7 @@ class _SceneUIKitClass extends Scene {
     return fields;
   }
 
-  // VirtualKeyboard: a field plus a button that opens the on-screen keyboard bound to
-  // it. The keyboard's keys are gemsButtons, so it's fully gamepad/keyboard navigable
-  // (UINav) — type with the dpad, Done commits into the field.
+  // VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field
   _vkSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_VK"));
     const field = gemsInput({
@@ -420,9 +397,7 @@ class _SceneUIKitClass extends Scene {
     return sec;
   }
 
-  // UIRebind: click a row to arm "press a key…", then the next key rebinds that
-  // action. The readout reads Input.get(...).down() live, so after rebinding you can
-  // hold the new key and watch the action light up.
+  // UIRebind: click to arm, next key rebinds. readout shows live held state.
   _rebindSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_REBIND"));
     const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
@@ -506,9 +481,7 @@ class _SceneUIKitClass extends Scene {
       ),
     );
 
-    // Dropdown: a resolution-style list (more options than a < > cycler wants). Opens
-    // a popup list, navigable by mouse or keyboard/gamepad; longer than maxVisible
-    // would scroll.
+    // dropdown for longer option lists — popup navigable by mouse/keyboard/gamepad
     const resolutions = [
       { name: "1280 x 720", value: 0 },
       { name: "1366 x 768", value: 1 },
@@ -548,8 +521,7 @@ class _SceneUIKitClass extends Scene {
     return controls;
   }
 
-  // The box background is spr_uibox drawn nine-sliced, so its border stays crisp
-  // while the body stretches to fill the column.
+  // nine-sliced border stays crisp while the body stretches
   _skinSection() {
     const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
     const box = gemsNineSlice();
@@ -560,10 +532,7 @@ class _SceneUIKitClass extends Scene {
     return skin;
   }
 
-  // UITable: a sortable, filterable inventory-style table — the foundation for the
-  // RPG inventory overhaul. Click a header to sort (again to flip; a different header
-  // becomes the primary key and demotes the last to a secondary tiebreak). The Type
-  // select drives setFilter; a gamepad/keyboard confirm enters row browse mode.
+  // sortable+filterable table; Type select drives setFilter; confirm enters browse mode
   _tableTab() {
     const gold = gemsColor("#ffd166");
     const cols = [
@@ -653,8 +622,7 @@ class _SceneUIKitClass extends Scene {
     return tab;
   }
 
-  // Demo rows for the table — a spread of types/rarities so sorting + filtering are
-  // visible. Names/types are plain demo data (not i18n), like the resolution presets.
+  // demo data spread across types/rarities to exercise sort + filter
   _items() {
     const spr = asset_get_index("spr_tile16");
     const R = {
@@ -691,9 +659,7 @@ class _SceneUIKitClass extends Scene {
     ];
   }
 
-  // Two draggable 3×3 grids: drag items within a grid or across to the other
-  // (drop on a filled slot swaps; drop on nothing returns to source; a click that
-  // doesn't move selects).
+  // two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
   _inventorySection() {
     const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
     const grids = new UIElement({
@@ -730,7 +696,7 @@ class _SceneUIKitClass extends Scene {
     return sec;
   }
 
-  // 9 slots; alternating filled/empty (offset per bag so the two differ).
+  // alternating filled/empty; offset per bag so the two grids differ
   _bag(which) {
     const icon = asset_get_index("spr_tile16");
     const items = [];

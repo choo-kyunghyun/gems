@@ -3,29 +3,23 @@ const PLATF_MAX_FALL = 900;
 const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void) → reset to spawn
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
-// Exposed as a global factory (like SceneRpg) so it can be pushed as a minigame onto the
-// SceneManager stack (the RPG arcade cabinet). It is NOT SceneRegistry.add'd: the platformer
-// is reachable only in-world via the arcade cabinet, no longer as a standalone lobby scene.
-// (With no registry entry, SceneManager._make resolves no label, so create() sets this.label
-// directly for the SystemMenu readout — see below.)
+// global factory so it can be pushed as a SceneManager guest (RPG arcade cabinet).
+// not SceneRegistry.add'd — reachable only in-world, not from the lobby.
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
-// Side-scrolling movement showcase: weighty platformer movement (accel/skid, coyote
-// time, jump buffering, variable jump height, one-way drop-through) over a hand-built
-// level. Enemies patrol and are defeated by stomping; touching one from the side, a
-// spike, or the void resets the player to spawn. No RPG layer (no HP/inventory/combat).
+// side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
+// one-way drop-through, stomp enemies, spike/void respawn. no RPG layer.
 class _ScenePlatformerClass extends Scene {
   create() {
-    // Display label for the SystemMenu readout. Set here, not as a class field: subclass
-    // field initializers don't run on GMRT, and there's no SceneRegistry entry to source it from.
+    // set here, not as a class field: subclass field initializers don't run on GMRT.
     this.label = I18n.text("PLAT_NAME");
 
     this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
-    this.spawn = PlatformerLevel.build(this.world); // hard-coded level (no shared levels/ file)
+    this.spawn = PlatformerLevel.build(this.world);
     this.ctrl = PlatformerController.create(this.world, this.spawn);
-    this.stomps = 0; // enemies stomped this run — the score reported back when run as a minigame
-    // (set on `this` in create(), not a class field: subclass field initializers don't run on GMRT)
-    Audio.bgm("mus_battle"); // driving theme; as an arcade guest it crossfades the RPG's (restored on pop)
+    // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.
+    this.stomps = 0; // score reported back to host via result()
+    Audio.bgm("mus_battle"); // crossfades the RPG's overworld track; restored on pop
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -34,13 +28,13 @@ class _ScenePlatformerClass extends Scene {
         if (vel.y > PLATF_MAX_FALL) vel.y = PLATF_MAX_FALL;
       })
       .add(SolidSystem)
-      .add(TriggerSystem); // fills col.hits so spikes can be detected
+      .add(TriggerSystem); // fills col.hits for spike detection
 
     this.renderer = new Renderer();
-    this.renderer.insert(new RenderDebugBox()); // filled colored boxes
-    this.renderer.insert(new RenderDebugName()); // entity Name labels on top
-    this.renderer.insert(new RenderDebugDirection()); // facing dot (player Direction)
-    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled (Debug menu)
+    this.renderer.insert(new RenderDebugBox());
+    this.renderer.insert(new RenderDebugName());
+    this.renderer.insert(new RenderDebugDirection());
+    const bbox = new RenderDebugEntity(); // off by default; toggled via Debug menu
     bbox.enabled = false;
     this.renderer.insert(bbox);
 
@@ -53,12 +47,10 @@ class _ScenePlatformerClass extends Scene {
     });
     this.camera.assign(0);
 
-    // Gameplay scene: the SystemMenu overlay owns pause + exit (Esc / Start / F1) and
-    // suspends menu nav while playing. Flag it here (a subclass field initializer
-    // wouldn't run on GMRT).
+    // opts SystemMenu into gameplay pause + nav suspension.
+    // set here, not as a class field: subclass field initializers don't run on GMRT.
     this.gameplay = true;
 
-    // Control hint (flexpanel, GUI layer).
     this.ui = gemsRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
@@ -71,24 +63,19 @@ class _ScenePlatformerClass extends Scene {
   }
 
   step() {
-    // No pause gate here — obj_game skips scene.step() entirely while the SystemMenu is
-    // open (global pause), so reaching this line means we're live.
-
-    PlatformerController.pollInput(this.ctrl); // jump edges, once per frame
+    PlatformerController.pollInput(this.ctrl); // edge-triggered input latched once per frame
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
-      InterpolationSystem.snapshot(this.world); // record pre-move positions for render lerp
-      PlatformerController.update(this.world, this.ctrl); // movement/jump → velocity
+      InterpolationSystem.snapshot(this.world);
+      PlatformerController.update(this.world, this.ctrl);
       this.physics.update(this.world);
-      EnemySystem.update(this.world); // patrol/turn (after SolidSystem)
+      EnemySystem.update(this.world); // patrol/turn — runs after SolidSystem
 
-      // Stomp a head from above → defeat + bounce; any other enemy contact, a spike,
-      // or falling into the void → reset to spawn.
       const id = this.ctrl.id;
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
-        this.stomps++; // score for the minigame reward (harmless when run standalone)
-        Audio.play("snd_hit"); // stomp defeat (non-positional — the platformer sets no audio listener)
+        this.stomps++;
+        Audio.play("snd_hit"); // non-positional — platformer sets no audio listener
       } else {
         let hurt = EnemySystem.resolveTouch(
           this.world,
@@ -114,11 +101,10 @@ class _ScenePlatformerClass extends Scene {
   }
 
   draw() {
-    this.renderer.draw(this.world); // player / enemies: colored boxes + labels + bbox
+    this.renderer.draw(this.world);
   }
 
-  // Result handed back to the host when this runs as a minigame (SceneManager.pop reads it):
-  // the run's score → the RPG arcade's coin reward. Unused when opened standalone from the lobby.
+  // score returned to the RPG arcade cabinet via SceneManager.pop
   result() {
     return { stomps: this.stomps };
   }
