@@ -1,19 +1,9 @@
-// Near-fullscreen MERCHANT trade window for the RPG scene — the shop counterpart to StorageUI.
-// Modeled on RpgInventoryUI's shell (an absolute full-screen host with a dim backdrop centering a
-// full-height card, shown/hidden via `.enabled`, built ONCE) with StorageUI's two-column transfer
-// content: LEFT = the merchant's stock (BUY), RIGHT = the player's bag (SELL), each a sortable
-// UITable with a Price column. The title row shows the player's live credit balance; a finite
-// merchant also shows its till. Double-click a row buys/sells it (a fungible stack > 1 opens the
-// amount picker — the same gemsModal StorageUI uses); an instance or single unit transacts at once.
-//
-// All logic is TradeSystem (price/buy/sell, infinite + finite); this file is presentation + the
-// double-click/amount gesture only. Per-open state lives on the SCENE (namespaced `_trade*`) so
-// teardownScene (which destroys scene.ui) cleans up. Sell-side protection (worn / favorited items
-// aren't sellable) lives here since it reads the player's Equipment/Favorites.
-//
-// Scene contract: scene.world, scene.ctrl.id (player), scene.ui. Built once in create() via
-// TradeUI.build (after the player + ui exist); set scene._tradeDirty = true when the bag changes
-// elsewhere while open. Opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant.
+// Merchant trade window — the shop counterpart to StorageUI. near-fullscreen shell (absolute host
+// + dim backdrop + centered card, shown/hidden via `.enabled`, built once) over StorageUI's two-
+// column layout: LEFT = stock (BUY), RIGHT = bag (SELL), each a sortable UITable with a Price column.
+// all logic is TradeSystem; this file is presentation + the double-click/amount gesture, plus the
+// sell-side worn/favorited guard (it reads the player's Equipment/Favorites). state on scene (_trade*).
+// opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant.
 globalThis.TradeUI = {
   build(scene) {
     scene._tradeMerchantId = -1;
@@ -21,10 +11,10 @@ globalThis.TradeUI = {
     scene._tradeDirty = false;
     scene._tradeClickKey = ""; // last-clicked "side|id|idx" for double-click detection
     scene._tradeClickTime = 0;
-    scene._tradeQtyModal = null; // open amount-picker modal (split a stack), else null
+    scene._tradeQtyModal = null; // open amount-picker modal, else null
 
     const margin = 28;
-    // Absolute dim backdrop host (like RpgInventoryUI) — fills the screen, veils the HUD behind it.
+    // absolute dim backdrop host — fills the screen, veils the HUD behind it.
     const host = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -35,7 +25,7 @@ globalThis.TradeUI = {
       alignItems: "center",
     });
     host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
-    host.addComponent(new UITrigger({})); // swallow backdrop clicks so they don't reach the world
+    host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._tradeWin = host;
     scene._tradeWin.enabled = false;
     scene.ui.insertChild(scene._tradeWin);
@@ -48,8 +38,7 @@ globalThis.TradeUI = {
       gap: GemsTheme.gapSm,
     });
 
-    // Title row: merchant name (left) · player credits · close (x). All read live, so they track the
-    // active merchant + balance while open (the subtree is skipped while .enabled is false).
+    // Title row: merchant name · player credits · close (x). all read live to track the active merchant.
     const titleRow = new UIElement({
       width: "100%",
       height: 40,
@@ -85,7 +74,7 @@ globalThis.TradeUI = {
     card.insertChild(titleRow);
     card.insertChild(gemsDivider());
 
-    // Two columns: BUY (merchant stock) | SELL (player bag). flexGrow so the tables fill the height.
+    // BUY (merchant stock) | SELL (player bag); flexGrow so the tables fill the height.
     const cols = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -121,7 +110,7 @@ globalThis.TradeUI = {
     host.insertChild(inner);
   },
 
-  // The player's current currency balance (the active merchant's currencyId, else "coin").
+  // player's balance in the active merchant's currencyId (else "coin").
   _coins(scene) {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     const m = scene.world.get(Merchant, scene._tradeMerchantId);
@@ -129,8 +118,7 @@ globalThis.TradeUI = {
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
   },
 
-  // "<currency name>: <balance>" for the title bar — reads the currency item's OWN display name (so
-  // it stays correct whether the money is called Coin / Credits / …), not a hardcoded word.
+  // "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
   _balanceText(scene) {
     const m = scene.world.get(Merchant, scene._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
@@ -139,7 +127,7 @@ globalThis.TradeUI = {
     return nm + ": " + TradeUI._coins(scene);
   },
 
-  // One titled column: a gold header (title + a live sub-label) over the sortable table.
+  // titled column: gold header (title + live sub-label) over the sortable table.
   _column(titleRef, tableEl, subFn) {
     const col = new UIElement({
       flexGrow: 1,
@@ -162,10 +150,10 @@ globalThis.TradeUI = {
     return col;
   },
 
-  // The per-side table. `side` ("buy"/"sell") routes the transaction direction.
+  // per-side table. `side` ("buy"/"sell") routes the transaction direction.
   _table(scene, side) {
     return gemsTable(TradeUI._columns(side), {
-      grow: true, // fill the column; reflows row count as the window resizes
+      grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
@@ -212,9 +200,8 @@ globalThis.TradeUI = {
     ];
   },
 
-  // Row models for one side. BUY reads the merchant's stock Inventory, SELL the player's bag (minus
-  // the currency item — you can't sell money). `idx` is the slot index, valid until the next refresh
-  // (one click). `worn`/`fav` (sell side) drive the no-sell guard in _act.
+  // row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
+  // `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _act.
   _rows(scene, side) {
     const world = scene.world;
     const m = world.get(Merchant, scene._tradeMerchantId);
@@ -248,7 +235,7 @@ globalThis.TradeUI = {
         ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
         idx: i,
         price,
-        // BUY qty of an infinite merchant is unlimited — "-" (the SDF fonts are Latin-1, no ∞ glyph).
+        // infinite merchant BUY qty shows "-" (SDF fonts are Latin-1, no ∞ glyph).
         qtyText: side === "buy" && m.infinite ? "-" : string(s.qty),
         worn,
         fav: fav !== undefined && FavoritesSystem.has(fav, s.itemId),
@@ -257,7 +244,6 @@ globalThis.TradeUI = {
     return rows;
   },
 
-  // Opened by the scene when the player interacts with a merchant NPC.
   open(scene, merchantId) {
     scene._tradeMerchantId = merchantId;
     scene._tradeOpen = true;
@@ -280,9 +266,8 @@ globalThis.TradeUI = {
       scene._tradeSellTable.setRows(TradeUI._rows(scene, "sell"));
   },
 
-  // Single click selects; a second click on the same row within 350ms transacts (matching the
-  // other windows). Identity = instance uid (so a re-click on the same modded gun double-clicks,
-  // not its twin) else itemId, plus the side + slot index.
+  // single click selects; a same-row click within 350ms transacts. identity = instance uid (so a
+  // re-click hits the same modded gun, not its twin) else itemId, plus side + slot index.
   _click(scene, side, row) {
     if (row === null || row === undefined) return;
     const now = current_time;
@@ -296,9 +281,8 @@ globalThis.TradeUI = {
     scene._tradeClickTime = now;
   },
 
-  // The transact gesture (double-click / confirm). Sell-side worn/favorited items are refused with a
-  // toast. A fungible stack with more than one available opens the amount picker; an instance or a
-  // single unit transacts immediately.
+  // transact (double-click / confirm). sell-side worn/favorited refused with a toast. a fungible
+  // stack > 1 opens the amount picker; an instance or single unit transacts immediately.
   _act(scene, side, row) {
     if (row === null || row === undefined) return;
     if (side === "sell") {
@@ -320,7 +304,7 @@ globalThis.TradeUI = {
     let maxQty = 1;
     if (!instanced) {
       if (side === "buy") {
-        // The picker max is what the player can afford, bounded by finite stock.
+        // picker max = what the player can afford, bounded by finite stock.
         const coins = TradeUI._coins(scene);
         const price = TradeSystem.buyPrice(m, row.itemId);
         const byCoins = price > 0 ? Math.floor(coins / price) : row.qty;
@@ -338,8 +322,7 @@ globalThis.TradeUI = {
     else TradeUI._doSell(scene, row, 1);
   },
 
-  // Amount picker (reused from StorageUI's shape): a stepper defaulting to the full amount + 1 / Half
-  // / All shortcuts. Confirm transacts the chosen amount; Cancel / backdrop / Esc dismiss it.
+  // amount picker (StorageUI's shape): stepper (default = full amount) + 1/Half/All shortcuts.
   _promptAmount(scene, side, row, maxQty) {
     let amount = maxQty;
     const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -422,12 +405,12 @@ globalThis.TradeUI = {
     TradeUI._after(scene, res, "sold", row.itemId);
   },
 
-  // Shared post-transaction: a coin cue + refresh on success, or a toast of the refusal reason.
+  // post-transaction: coin cue + refresh on success, else a toast of the refusal reason.
   _after(scene, res, verb, itemId) {
     if (res.amount > 0) {
-      Audio.play("snd_coin"); // money changed hands
+      Audio.play("snd_coin");
       scene._tradeDirty = true;
-      scene._invDirty = true; // keep the inventory window in sync if it's also open
+      scene._invDirty = true; // keep the inventory window in sync
       Log.info(`${verb} ${res.amount}x ${itemId}`);
     } else if (res.reason !== "") {
       Toast.push(I18n.text(res.reason), { type: "warn" });

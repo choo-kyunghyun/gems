@@ -1,23 +1,6 @@
-// Storage-chest transfer WINDOW for the RPG scene. A "storage" station (a
-// Station {kind:"storage"} entity carrying an Inventory) opens a two-column transfer
-// window — left = the player's Bag, right = the Chest — each a sortable UITable.
-// Double-clicking a row (or a gamepad/keyboard confirm in browse mode) moves that whole
-// stack to the other side (capacity/weight-gated by InventorySystem.add). Manager-drawn
-// UI on the GUI layer (Draw_75), built once and toggled.
-//
-// Like the main inventory window, each table is built ONCE; a transfer only swaps its
-// rows via `setRows`, so the player's column sort survives every move (a row sort is
-// view-only — it never reorders the underlying Inventory).
-//
-// Proximity selection, the open/close keybind, the prompt, and the world highlight are
-// owned by the shared `Interactable` module — this file only builds the window and
-// reacts to open/close/refresh calls. All per-open state lives on the SCENE
-// (namespaced `_store*`) so two scenes can't clobber each other and teardownScene
-// (which destroys scene.ui) cleans up with no extra work.
-//
-// Scene contract: scene.world, scene.ctrl.id (player), scene.ui. Built once in create()
-// via Interactable.build (after the player + ui exist); set scene._storeDirty = true if
-// the player inventory changes from elsewhere while open.
+// Bag↔Chest transfer window. two-column UITable layout, built once and toggled.
+// tables swap rows via setRows (not rebuilt) so column sort survives every transfer.
+// open/close/prompt owned by Interactable; all state on scene (_store* namespace).
 globalThis.StorageUI = {
   build(scene) {
     scene._storageId = -1;
@@ -25,17 +8,12 @@ globalThis.StorageUI = {
     scene._storeDirty = false;
     scene._storeClickKey = ""; // last-clicked "side|idx" for double-click detection
     scene._storeClickTime = 0;
-    scene._storeQtyModal = null; // open amount-picker modal (split a stack), else null
+    scene._storeQtyModal = null; // open amount-picker modal, else null
 
-    // Transfer window: Bag | Chest columns, each a UITable. Wide enough for two tables
-    // that mirror the inventory's (Settings-driven) columns side by side without
-    // clipping their headers.
     const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
       top: 80,
       width: 1100,
-      // Resizable; the explicit height gives the grow columns/tables a starting basis
-      // (height 432 reproduces the old fixed 8-row layout).
-      height: 432,
+      height: 432, // starting basis for the grow columns/tables
       minWidth: 720,
       minHeight: 300,
       onClose: () => StorageUI.close(scene),
@@ -44,7 +22,7 @@ globalThis.StorageUI = {
 
     const cols = new UIElement({
       width: "100%",
-      flexGrow: 1, // fill the resized window so the two tables grow with it
+      flexGrow: 1, // tables grow with the resized window
       flexBasis: 0,
       flexDirection: "row",
       gap: GemsTheme.gap,
@@ -73,7 +51,6 @@ globalThis.StorageUI = {
     );
     win.body.insertChild(cols);
 
-    // Discoverability: double-click (or confirm) transfers — single click just selects.
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       gemsLabel(I18n.textRef("STORAGE_HINT"), { color: GemsTheme.textMuted }),
@@ -84,10 +61,8 @@ globalThis.StorageUI = {
     scene.ui.insertChild(win);
   },
 
-  // One titled column: a header (title + a bulk "All" button), a live slots/weight usage
-  // line, then the sortable table. `onAll` moves every stack of this side to the other
-  // (gated by capacity/weight); `invFn` is a live () => Inventory used for both the usage
-  // readout and the All button's empty-gate.
+  // titled column: header (title + bulk "All" button) + live usage line + the table.
+  // invFn is a live () => Inventory feeding the usage readout and the All empty-gate.
   _column(titleRef, tableEl, allLabelRef, onAll, invFn) {
     const col = new UIElement({
       flexGrow: 1,
@@ -130,9 +105,7 @@ globalThis.StorageUI = {
     return inv === undefined || inv.slots.length === 0;
   },
 
-  // "Slots used/cap   Weight cur[/max]" for the column header. Weight shows the current
-  // total always (so the chest reports it too); the "/max" tail only when the inventory
-  // is weight-capped (the bag), matching the inventory window's usage line.
+  // "Slots used/cap   Weight cur[/max]" — the "/max" tail only when weight-capped (the bag).
   _usageText(inv) {
     if (inv === undefined) return "";
     let s =
@@ -142,11 +115,10 @@ globalThis.StorageUI = {
     return s;
   },
 
-  // The per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction;
-  // onSelect tracks a double-click, onActivate (double-click / confirm) moves the stack.
+  // per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
   _table(scene, side) {
     return gemsTable(InvTable.columns({ fav: true }), {
-      grow: true, // fill the column; reflows row count as the window resizes
+      grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
@@ -156,18 +128,14 @@ globalThis.StorageUI = {
     });
   },
 
-  // Push the current Settings-driven column set onto both tables (a toggle changed, or
-  // the chest just opened). Shared with the inventory via RpgInventoryUI._applyColumns.
+  // re-apply the Settings-driven column set to both tables (toggle changed / chest opened).
   _applyColumns(scene) {
     scene._storeBagTable.setColumns(InvTable.columns({ fav: true }));
     scene._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
   },
 
-  // Row models for one inventory. `idx` is the slot index at build time — valid until
-  // the next refresh, which is exactly when a transfer happens (one click/frame), so the
-  // captured index never drifts (same contract as the old per-row closure). Carries the
-  // full field set so any of the shared columns can render. `fav` (the player's favorited
-  // set, by itemId) drives the "*" marker column on BOTH sides, mirroring the inventory.
+  // row models for one inventory. `idx` (slot index) is valid until the next refresh =
+  // when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
   _rows(scene, inv) {
     const fav = scene.world.get(Favorites, scene.ctrl.id);
     const rows = [];
@@ -183,7 +151,6 @@ globalThis.StorageUI = {
     return rows;
   },
 
-  // Called by Interactable when the player activates a storage station.
   open(scene, id) {
     scene._storageId = id;
     scene._storeOpen = true;
@@ -196,7 +163,7 @@ globalThis.StorageUI = {
     scene._storeOpen = false;
     scene._storeWin.enabled = false;
     scene._storageId = -1;
-    // Dismiss a dangling amount picker if the window closed under it (walked out of range / E / Esc).
+    // dismiss a dangling amount picker if the window closed under it
     if (scene._storeQtyModal !== null && scene._storeQtyModal !== undefined)
       scene._storeQtyModal.close();
   },
@@ -206,13 +173,12 @@ globalThis.StorageUI = {
     const bagInv = world.get(Inventory, scene.ctrl.id);
     const boxInv = world.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
-    scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // setRows re-applies the sort
+    scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
     scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
   },
 
-  // Single click selects; a second click on the same row within 350ms transfers it
-  // (matching the inventory window's double-click-to-act). Browse-mode arrowing fires
-  // onSelect with a different row each step, so it can't accidentally transfer.
+  // single click selects; a same-row click within 350ms transfers. browse-mode arrowing
+  // fires onSelect with a different row each step, so it can't accidentally transfer.
   _click(scene, side, row) {
     if (row === null || row === undefined) return;
     const now = current_time;
@@ -225,11 +191,9 @@ globalThis.StorageUI = {
     scene._storeClickTime = now;
   },
 
-  // The activate gesture (double-click / confirm) on a row. A FUNGIBLE stack of more than one
-  // opens the amount picker so the player can split it; a single unit or an INSTANCE (unique gear,
-  // nothing to split) transfers whole immediately. Storing FROM the bag is refused for a FAVORITED
-  // item (the player's explicit "don't store this") before any picker. Taking FROM the chest is
-  // never protected.
+  // activate (double-click / confirm) on a row. a fungible stack > 1 opens the amount picker;
+  // a single unit or an instance transfers whole. storing a favorited item from the bag is
+  // refused; taking from the chest is never protected.
   _move(scene, side, row) {
     if (row === null || row === undefined) return;
     const world = scene.world;
@@ -239,7 +203,7 @@ globalThis.StorageUI = {
     );
     if (srcInv === undefined) return;
     if (side === "bag" && StorageUI._storeBlocked(scene, false)[row.itemId])
-      return; // favorited — fully protected
+      return; // favorited
     const s = srcInv.slots[row.idx];
     if (s === undefined) return;
     const def = Item.get(s.itemId);
@@ -250,14 +214,10 @@ globalThis.StorageUI = {
     StorageUI._doMove(scene, side, row, s.qty);
   },
 
-  // Amount picker: a modal with a stepper (default = full stack, so a bare confirm still moves
-  // everything) plus 1 / Half / All shortcuts, so large stacks don't need stepping one at a time.
-  // Confirm runs the transfer for the chosen amount; Cancel / backdrop / Esc dismiss it. The
-  // window beneath stays put; if it closes (walked out of range) StorageUI.close dismisses this.
-  // Esc is owned by the scene's handleEscape (closeOnEscape:false here) so it cancels the picker
-  // first and only closes the chest window on a second press.
+  // amount picker: stepper (default = full stack) + 1/Half/All shortcuts. Esc is owned by the
+  // scene's handleEscape (closeOnEscape:false), so it cancels the picker before the window.
   _promptAmount(scene, side, row, maxQty) {
-    let amount = maxQty; // local pick; the Transfer button reads it on confirm
+    let amount = maxQty; // the Transfer button reads it on confirm
     const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     body.insertChild(
       gemsLabel(I18n.text("STORAGE_QTY_PROMPT") + " (" + maxQty + ")", {
@@ -294,7 +254,7 @@ globalThis.StorageUI = {
       title: row.name,
       width: 360,
       body,
-      closeOnEscape: false, // handleEscape cancels the picker (then the window on a 2nd Esc)
+      closeOnEscape: false, // handleEscape cancels the picker first
       buttons: [
         { label: I18n.text("STORAGE_CANCEL") },
         {
@@ -307,16 +267,14 @@ globalThis.StorageUI = {
     });
   },
 
-  // One equal-width quick-set button cell for the amount picker's shortcut row.
   _quickBtn(label, onClick) {
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(gemsButton(label, onClick, { height: 30 }));
     return cell;
   },
 
-  // Transfer `amount` of the activated row's stack to the opposite side (favorited-protection
-  // already cleared by _move). Storing the LAST copy out of the bag also unbinds its hotbar slot;
-  // a partial transfer that leaves some behind keeps the binding usable.
+  // transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
+  // its hotbar slot; a partial transfer keeps the binding usable.
   _doMove(scene, side, row, amount) {
     const world = scene.world;
     const bag = world.get(Inventory, scene.ctrl.id);
@@ -331,11 +289,9 @@ globalThis.StorageUI = {
     } else StorageUI._transfer(scene, box, bag, row.idx, amount);
   },
 
-  // Move up to `amount` of slot `idx` of srcInv into dstInv (capped at what fits and at the stack),
-  // removing the moved amount from that exact slot. `amount` (default = whole stack) only bounds a
-  // fungible stack; an INSTANCE always moves whole (by reference, preserving its uid + mods). Marks
-  // the window dirty so it repopulates next update(). Returns the amount moved (0 if nothing fit) so
-  // the caller can react to a successful store (e.g. unbind the hotbar).
+  // move up to `amount` of slot `idx` src→dst (capped at what fits). `amount` only bounds a
+  // fungible stack; an INSTANCE always moves whole by reference (preserving uid + mods).
+  // returns the amount moved (0 if nothing fit) so the caller can react (e.g. unbind hotbar).
   _transfer(scene, srcInv, dstInv, idx, amount) {
     if (idx < 0 || idx >= srcInv.slots.length) return 0;
     const s = srcInv.slots[idx];
@@ -343,9 +299,8 @@ globalThis.StorageUI = {
     const def = Item.get(itemId);
     let moved;
     if (def !== undefined && def.isInstanced()) {
-      // Move the whole instance slot by reference so its uid + installed mods survive the
-      // transfer (add() would mint a fresh uid and drop the mods).
-      if (!InventorySystem.addSlot(dstInv, s)) return 0; // destination full / weight-gated
+      // move the whole instance slot by reference — add() would mint a fresh uid and drop the mods.
+      if (!InventorySystem.addSlot(dstInv, s)) return 0; // dst full / weight-gated
       srcInv.slots.splice(idx, 1);
       moved = 1;
     } else {
@@ -353,30 +308,27 @@ globalThis.StorageUI = {
       if (want <= 0) return 0;
       const leftover = InventorySystem.add(dstInv, itemId, want);
       moved = want - leftover;
-      if (moved <= 0) return 0; // destination full / weight-gated
+      if (moved <= 0) return 0; // dst full / weight-gated
       s.qty -= moved;
       if (s.qty <= 0) srcInv.slots.splice(idx, 1);
     }
     StorageUI._reconcileEquip(scene, srcInv);
 
     scene._storeDirty = true;
-    scene._invDirty = true; // keep the main inventory window in sync if it's open
+    scene._invDirty = true; // keep the inventory window in sync
     Log.info(`transferred ${moved}x ${itemId}`);
     return moved;
   },
 
-  // Bulk "Take All" / "Store All": move every stack of `side` ("bag"/"box") to the
-  // other inventory, as much as fits. Each stack is gated by InventorySystem.add
-  // (maxWeight then capacity), so when the destination hits its slot/weight cap the
-  // remaining stacks simply stay put — greedy fill that halts cleanly at the limit.
+  // bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
+  // halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
   _allFrom(scene, side) {
     const world = scene.world;
     const bag = world.get(Inventory, scene.ctrl.id);
     const box = world.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
-    // Storing FROM the bag keeps equipped copies behind (a worn item must stay in the bag
-    // so its Equipment slot doesn't dangle) AND skips protected items entirely (favorited /
-    // hotbar-bound never store); taking FROM the chest has nothing to protect.
+    // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
+    // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
     if (side === "bag")
       StorageUI._transferAll(
         scene,
@@ -388,11 +340,9 @@ globalThis.StorageUI = {
     else StorageUI._transferAll(scene, box, bag, null, null);
   },
 
-  // Items EXCLUDED from storing out of the bag. Flat { itemId: true }. Favorited items are the
-  // player's explicit "don't auto-store this" and are ALWAYS blocked. Hotbar-bound items are
-  // blocked only for the BULK Store All (`includeHotbar` true) — a deliberate single double-click
-  // CAN store one (it unregisters it from the hotbar; see _move), so they're left out when
-  // `includeHotbar` is false. null/absent for the take-from-chest direction.
+  // items excluded from storing out of the bag, flat { itemId: true }. favorited always blocked;
+  // hotbar-bound blocked only for BULK Store All (`includeHotbar`) — a single double-click can
+  // still store one (it unbinds the hotbar; see _move).
   _storeBlocked(scene, includeHotbar) {
     const blocked = {};
     const fav = scene.world.get(Favorites, scene.ctrl.id);
@@ -407,9 +357,8 @@ globalThis.StorageUI = {
     return blocked;
   },
 
-  // The set of equipped INSTANCE uids to KEEP in the bag during a Store All — a worn instance
-  // must stay so its Equipment slot doesn't dangle. Equipment keys by uid now, so this is an
-  // exact { uid: true } set (no per-itemId counting). null/empty for the take-from-chest direction.
+  // equipped instance uids to keep in the bag during a Store All — a worn instance must stay so
+  // its Equipment slot doesn't dangle. exact { uid: true } set (Equipment keys by uid).
   _equipKeep(scene) {
     const keep = {};
     const eq = scene.world.get(Equipment, scene.ctrl.id);
@@ -421,10 +370,8 @@ globalThis.StorageUI = {
     return keep;
   },
 
-  // `keep` (or null) is a { uid: true } set of equipped instances to leave behind in a Store All.
-  // `blocked` (or null) is a { itemId: true } set fully excluded from storing (favorited /
-  // hotbar-bound) — those stacks never move at all. An INSTANCE slot moves whole (via addSlot,
-  // preserving uid/mods); a fungible stack moves as much as fits, capacity/weight-gated by add.
+  // `keep` ({ uid: true } or null) = equipped instances to leave behind; `blocked` ({ itemId: true }
+  // or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as fits.
   _transferAll(scene, srcInv, dstInv, keep, blocked) {
     let total = 0;
     let i = 0;
@@ -467,10 +414,8 @@ globalThis.StorageUI = {
     Log.info(`transferred all (${total} items)`);
   },
 
-  // Storing an equipped item out of the player's own bag must unequip it once the player
-  // no longer owns any copy — equipped items normally stay in the bag, so a worn item
-  // moved to the chest would otherwise leave a dangling Equipment slot (and its stat
-  // mods) referencing an item we no longer have. No-op when srcInv isn't the player bag.
+  // unequip any worn item no longer in the bag, else its Equipment slot (and stat mods) dangle.
+  // no-op when srcInv isn't the player bag.
   _reconcileEquip(scene, srcInv) {
     if (srcInv !== scene.world.get(Inventory, scene.ctrl.id)) return;
     const eq = scene.world.get(Equipment, scene.ctrl.id);

@@ -1,29 +1,19 @@
-// Grid build mode for the RPG scene (mirrors the Interactable module shape): a toggleable
-// mode that consumes wood to place content from a CATEGORIZED palette, and refunds wood on
-// deconstruct. Building is gated to a *claimed* buildable zone (the "buildable" ZoneMap
-// channel) — the player claims an area by pressing E at a Claim Post station (Interactable
-// routes that to BuildMode.claim).
-//
-// Palette: a bottom-center HUD bar (gemsCatBar) of categories whose flyouts hold the items.
-// An item is either a TILE (wall/floor — edits a TileLayer via TileEdit) or an ENTITY
-// (furniture/station — spawned via RpgSpawn.spawnEntity, deconstructable + persisted). The
-// active item is scene._buildItem; LMB places it on the hovered grid cell, RMB deconstructs.
-//
-// All per-scene state lives on the SCENE (namespaced `_build*`); BuildMode is a stateless
-// singleton like Interactable. The one exception is the static `active` flag, mirrored each
-// frame so drawWorld can gate the world-space cursor highlight to "build context owns input".
-//
-// Scene contract (set in create()/RpgMap.build): world, ctrl.id, level, ui, wallLayer, floorLayer,
+// Grid build mode (stateless singleton like Interactable): toggleable, consumes/refunds wood to
+// place content from a categorized palette. gated to a *claimed* buildable zone (the "buildable"
+// ZoneMap channel) — claimed by pressing E at a Claim Post (Interactable routes to BuildMode.claim).
+// palette = a bottom-center gemsCatBar; an item is a TILE (TileLayer via TileEdit) or an ENTITY
+// (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
+// state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
+// the cursor highlight to "build context owns input".
+// scene contract (create()/RpgMap.build): world, ctrl.id, level, ui, wallLayer, floorLayer,
 // colliders, wallType, floorType, buildZoneId, _tilePasses (RenderTileMap pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
 
-  // Build catalog — categories of placeable items driving the gemsCatBar. kind "tile" edits a
-  // TileLayer (wall/floor) via TileEdit; kind "entity" spawns a prop/chest entity (make()
-  // returns its RpgSpawn.spawnEntity descriptor). `cost` is wood per placement (refunded on
-  // deconstruct). `id` is the stable token persisted in scene._built / scene._builtEnts (and
-  // the map cache), so it MUST be unique across the whole catalog.
+  // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
+  // spawns via make()'s RpgSpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
+  // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
       labelKey: "BUILD_CAT_TILES",
@@ -52,8 +42,7 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          // Furniture sub-type selects the dedicated DB32 sprite (RpgSpawn prop branch); the art
-          // is already wood-colored, so no Material tint is needed.
+          // furn sub-type picks the dedicated sprite (RpgSpawn prop branch); art is already wood-colored.
           make: (gx, gy) => ({
             preset: "prop",
             gx,
@@ -89,8 +78,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // A bed is an interactable Station (kind "bed") — Interactable routes E to scene._sleep
-          // (fast-forwards Time.scale + drains Drowsiness). Built like any furniture/station entity.
+          // bed Station (kind "bed") — Interactable routes E to scene._sleep (fast-forward + drain Drowsiness).
           id: "bed",
           labelKey: "BUILD_BED",
           cost: 6,
@@ -177,8 +165,7 @@ globalThis.BuildMode = {
   CLAIM_HALF_W: 3, // claimed rect half-extent in cells (so 7×5 around the post)
   CLAIM_HALF_H: 2,
 
-  // Resolve a catalog item by its id — used to turn a persisted _built / _builtEnts entry back
-  // into its layer/cost on deconstruct + restore.
+  // resolve a catalog item by id (turns a persisted _built / _builtEnts entry back into its layer/cost).
   item(id) {
     for (let c = 0; c < BuildMode.CATALOG.length; c++) {
       const items = BuildMode.CATALOG[c].items;
@@ -188,7 +175,7 @@ globalThis.BuildMode = {
     return undefined;
   },
 
-  // Build the toggled build-mode HUD and init per-scene state. Call once from create().
+  // build the HUD + init per-scene state. call once from create().
   build(scene) {
     scene._built = {}; // "gx,gy" -> tile item id (wall/floor): deconstructable tiles
     scene._builtEnts = {}; // "gx,gy" -> { ent, itemId }: deconstructable built entities
@@ -197,9 +184,8 @@ globalThis.BuildMode = {
     scene._buildCell = undefined; // last hovered cell, for drawWorld
     BuildMode.active = false;
 
-    // Bottom-center HUD: a status line over the categorized build bar. The bar selects the
-    // active item; placement is on the world grid (LMB/RMB), guarded against the HUD's own
-    // rect (_overHud) so clicking the bar doesn't also edit the cell behind it.
+    // bottom-center HUD: status line over the build bar. placement (LMB/RMB) is on the world
+    // grid, guarded against the HUD's own rect (_overHud) so clicking the bar can't also edit behind it.
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -222,7 +208,7 @@ globalThis.BuildMode = {
     );
     col.insertChild(statusRow);
 
-    // Map the catalog to gemsCatBar's shape; each item's onSelect sets the active brush.
+    // map the catalog to gemsCatBar's shape; each item's onSelect sets the active brush.
     const cats = [];
     for (let c = 0; c < BuildMode.CATALOG.length; c++) {
       const cat = BuildMode.CATALOG[c];
@@ -257,14 +243,12 @@ globalThis.BuildMode = {
     return I18n.text("BUILD_STATUS", wood, I18n.text(it.labelKey), it.cost);
   },
 
-  // Per-frame: toggle on B, mirror state, then (while active and not over the HUD) place on the
-  // LMB edge / deconstruct on RMB at the hovered cell. Call from step() after Interactable.update,
-  // outside the tick loop.
+  // per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
+  // RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
   update(scene) {
     if (Input.get("build").pressed()) scene._buildActive = !scene._buildActive;
-    // Active only when build mode is toggled on AND the build context owns input. A gameplay
-    // window open this frame makes the context "window" (priority over build), so building
-    // pauses (and clicks on the window can't place/remove); it resumes when the window closes.
+    // active only when toggled on AND the build context owns input — an open window makes the
+    // context "window" (priority over build), so building pauses and window clicks can't place/remove.
     const on = scene._buildActive === true && InputContext.is("build");
     BuildMode.active = on;
     scene._buildHud.enabled = on;
@@ -275,8 +259,7 @@ globalThis.BuildMode = {
 
     const level = scene.level;
 
-    // Skip world edits while the cursor is over the build HUD (clicking the bar must not also
-    // place behind it — the bar's own clicks are handled by UI.update). Also blanks the cursor.
+    // skip world edits while the cursor is over the build HUD (a bar click must not place behind it).
     if (BuildMode._overHud(scene)) {
       scene._buildCell = undefined;
       return;
@@ -292,16 +275,15 @@ globalThis.BuildMode = {
     )
       return;
 
-    // LMB edge is the one already latched by UIPointer.poll this frame — reuse it rather than
-    // re-querying mouse_check_button_pressed(mb_left) (realtime sampling returns different
-    // values per call; see GMRT-Safe Idioms). RMB is unread elsewhere, so a single query is safe.
+    // reuse the LMB edge latched by UIPointer.poll — re-querying mouse_check_button_pressed gives
+    // different values per call (realtime sampling; see GMRT-Safe Idioms). RMB is unread elsewhere, single query safe.
     if (UIPointer.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
     else if (mouse_check_button_pressed(mb_right))
       BuildMode._tryRemove(scene, cell.x, cell.y);
   },
 
-  // True when the GUI-space cursor is over the HUD column's laid-out rect (`width > 0` dodges
-  // the first-frame NaN rect). The column grows to include an open flyout, so this covers it.
+  // cursor over the HUD column's rect (`width > 0` dodges the first-frame NaN rect; the column
+  // grows to include an open flyout, so this covers it).
   _overHud(scene) {
     const p = scene._buildHudBox.getLayoutPosition();
     if (!(p.width > 0)) return false;
@@ -312,10 +294,8 @@ globalThis.BuildMode = {
     );
   },
 
-  // True when the selected item can be placed at (gx, gy): inside the claimed buildable zone,
-  // the cell is empty (no tile, no built entity), enough wood, and a SOLID item (wall tile or
-  // any prop/station — not a floor) isn't on the cell the player stands on. Shared by the place
-  // action and the cursor highlight.
+  // can the selected item be placed at (gx, gy): in the claimed zone, cell empty, enough wood, and
+  // a SOLID item (not a floor) isn't on the player's own cell. shared by place + cursor highlight.
   _canBuild(scene, gx, gy) {
     const level = scene.level;
     const zmap = level.zoneMap("buildable");
@@ -357,8 +337,8 @@ globalThis.BuildMode = {
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
     } else {
-      // Spawn through the shared per-entity constructor so a built prop/station is identical
-      // to a file/streamed one (and persists via EntitySnapshot, see RpgMap).
+      // spawn through the shared constructor so a built prop is identical to a file/streamed one
+      // (and persists via EntitySnapshot, see RpgMap).
       const id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy));
       scene._builtEnts[key] = { ent: id, itemId: item.id };
     }
@@ -369,20 +349,18 @@ globalThis.BuildMode = {
   _tryRemove(scene, gx, gy) {
     const key = gx + "," + gy;
     const level = scene.level;
-    // Built entities sit on top of tiles — remove one first if present.
+    // built entities sit on top of tiles — remove one first if present.
     const ent = scene._builtEnts[key];
     if (ent !== undefined) {
-      // A workbench with a module slotted (Station.module) returns that module to the bag — it
-      // isn't in any inventory while slotted, so deconstructing would otherwise delete it.
+      // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
       if (scene.world.isValid(ent.ent)) {
         const st = scene.world.get(Station, ent.ent);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
           const inv = scene.world.get(Inventory, scene.ctrl.id);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
-        // A storage chest (or any built entity holding items) spills its Inventory as ground
-        // drops first — world.remove would otherwise silently delete the stored contents.
-        // No-ops when the entity has no Inventory; preserves instance uid/mods on the drop.
+        // spill the entity's Inventory as drops first, else world.remove silently deletes the
+        // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
         RpgScene.spillLoot(scene, ent.ent);
         scene.world.remove(ent.ent);
       }
@@ -409,9 +387,8 @@ globalThis.BuildMode = {
     Log.info(`removed ${tileId} at ${gx},${gy}`);
   },
 
-  // The RenderTileMap passes are VBO-cached, so a tile edit must markDirty the matching layer's
-  // pass for the change to render (autotiling rebuilds the whole layer VBO, so neighbors restyle
-  // too). Guarded: a pass is absent only if its sprite failed sprite_exists in RpgMap.
+  // RenderTileMap passes are VBO-cached, so a tile edit must markDirty the layer's pass to render
+  // (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
   _markTileDirty(scene, layerKey) {
     const pass = scene._tilePasses[layerKey];
     if (pass !== undefined) pass.markDirty();
@@ -424,11 +401,9 @@ globalThis.BuildMode = {
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
 
-  // Sweep built entities DESTROYED in combat (a turret enemies brought to 0 HP, or any built
-  // entity removed from the world): drop them from the deconstruct tracking so the cell frees
-  // up and map persistence won't snapshot a dead handle. NO wood refund — it was destroyed, not
-  // deconstructed. Called every frame from the scene's step (combat applies damage in the tick
-  // loop). Plain-object keys walked via Object.keys + index loop (no Map iteration — GMRT-safe).
+  // sweep built entities destroyed in combat (a turret brought to 0 HP) out of the deconstruct
+  // tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
+  // not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
   reapDestroyed(scene) {
     const world = scene.world;
     const keys = Object.keys(scene._builtEnts);
@@ -451,11 +426,9 @@ globalThis.BuildMode = {
     }
   },
 
-  // Claim the buildable area around a Claim Post (Station kind "claim"). Paints a fixed rect
-  // into the "buildable" zone channel, then *spends* the post: its Station is detached so
-  // Interactable stops prompting and the area can't be re-claimed. The painted zone is the
-  // stored state (it round-trips through map persistence), so a post re-spawned over an
-  // already-claimed area skips the paint/toast but is still spent — no infinite re-claiming.
+  // claim the buildable area around a Claim Post. paints a rect into the "buildable" channel, then
+  // *spends* the post (detach its Station). the painted zone is the stored state (round-trips
+  // persistence), so a post re-spawned over an already-claimed area is still spent — no re-claiming.
   claim(scene, postId) {
     const level = scene.level;
     const pos = scene.world.get(Position, postId);
@@ -475,8 +448,8 @@ globalThis.BuildMode = {
     scene.world.detach(postId, Station); // spent — stop prompting / block re-claim
   },
 
-  // World-space cursor highlight over the snapped hovered cell — green = placeable,
-  // yellow = deconstructable (player-built tile or entity), red = invalid. Call from scene.draw().
+  // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.
+  // call from scene.draw().
   drawWorld(scene) {
     if (!BuildMode.active) return;
     const cell = scene._buildCell;

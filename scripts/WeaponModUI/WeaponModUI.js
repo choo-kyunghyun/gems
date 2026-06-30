@@ -1,38 +1,25 @@
-// Weapon-ATTACHMENT PANEL — the install/remove view of the WORKBENCH (the Toolkit module switches the
-// bench into this mode; there is no standalone Anvil). It does NOT own a window: CraftingUI (the
-// workbench window) creates the master-detail hosts and calls buildPanel()/refresh(). A master-detail
-// over the player's WEAPON INSTANCES (the definition-vs-instance split: each weapon is a unique
-// inventory slot with a uid + an inline `mods` MAP { slotId -> attachmentItemId } of installed
-// attachments, plus, for a gun, a loaded `ammo` itemId + `rounds`):
-//   • LEFT  — a list of owned weapon instances; click one to select it (by uid). Shows "+N" (filled
-//             attachment slots) and an "[E]" marker when it's the equipped weapon.
-//   • RIGHT — the selected weapon's COMPOSED stats (EquipmentSystem.composeWeapon): a melee weapon
-//             shows damage/reach/fireCd; a GUN shows power/velocity/mass/penetration/fireCd/magazine
-//             plus an AMMO section (loaded type + clip rounds/magazine + Reload + a Load picker of
-//             owned caliber-compatible Ammo). Then the weapon's NAMED attachment slots (one row each —
-//             the installed attachment + Remove, or "(empty)"), and the owned attachments compatible
-//             with this weapon, each Install into the first matching empty slot.
-// Installing consumes one attachment item and records it under a slot id; removing refunds it. Both
-// re-derive the wearer's Stats (an attachment can grant Stats) via StatModel.recompute and mark the
-// WORKBENCH dirty (scene._craftDirty) so the panel repopulates. Ammo Load/Reload operate on the
-// SELECTED instance's slot directly (it may not be the equipped one), via the *Slot helpers.
-//
-// State on the SCENE: _modSel (selected weapon uid), _modList / _modDetail (the hosts CraftingUI
-// gives it). Like CraftingUI the columns are PLAIN (no gpu_set_scissor clip — unreliable in a
-// master-detail row on GMRT 0.20; see CraftingUI's long comment), so overrun is revealed by resizing.
-//
-// Scene contract: scene.world, scene.ctrl.id (player), scene._craftDirty, scene._invDirty.
+// Weapon-attachment PANEL — the install/remove view of the WORKBENCH (the Toolkit module). owns no
+// window: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh(). master-detail
+// over the player's WEAPON INSTANCES (each a unique slot with a uid + inline `mods` MAP
+// { slotId -> attachmentItemId }, plus, for a gun, a loaded `ammo` itemId + `rounds`):
+//   • LEFT  — owned weapon instances; click to select (by uid). "+N" = filled slots, "[E]" = equipped.
+//   • RIGHT — composed stats (composeWeapon), an AMMO section for a gun (loaded type + clip + Reload +
+//             a Load picker), the weapon's named attachment slots (installed + Remove, or "(empty)"),
+//             and compatible owned attachments to Install.
+// install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and mark the
+// workbench dirty. ammo Load/Reload act on the SELECTED instance's slot (may not be equipped), via *Slot.
+// state on scene: _modSel, _modList / _modDetail. columns are PLAIN (no gpu_set_scissor clip —
+// unreliable in a master-detail row on GMRT 0.20; see CraftingUI's comment).
 globalThis.WeaponModUI = {
-  // Record the host elements CraftingUI built for the attachment panel + init selection. No window of
-  // its own — the workbench owns open/close (it toggles this panel's enabled state by module).
+  // record the hosts CraftingUI built + init selection (the workbench owns open/close).
   buildPanel(scene, listHost, detailHost) {
     scene._modSel = ""; // selected weapon instance uid (defaulted to the first on refresh)
     scene._modList = listHost;
     scene._modDetail = detailHost;
   },
 
-  // Rebuild both panels. Ensures a valid selection first (default to the first weapon; reset if the
-  // selected uid is no longer owned — e.g. it was sold/stored elsewhere).
+  // rebuild both panels, ensuring a valid selection (default to the first weapon; reset if the
+  // selected uid is no longer owned).
   refresh(scene) {
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     const weapons = WeaponModUI._weaponInstances(inv);
@@ -61,15 +48,14 @@ globalThis.WeaponModUI = {
     return false;
   },
 
-  // Number of filled attachment slots on an instance (its `mods` MAP). for...in is GMRT-safe.
+  // filled attachment slots on an instance (its `mods` MAP). for...in is GMRT-safe.
   _modCount(slot) {
     let n = 0;
     if (slot.mods !== undefined) for (const slotId in slot.mods) n++;
     return n;
   },
 
-  // Defensive: ensure a slot's `mods` is a MAP (tolerate a freshly-minted {} or a stale pre-overhaul
-  // array). Accessing `.length` is guarded behind an undefined check (undefined.length would throw).
+  // ensure a slot's `mods` is a MAP (tolerate a {} or a stale pre-overhaul array).
   _ensureMap(slot) {
     if (slot.mods === undefined) slot.mods = {};
     else if (slot.mods.length !== undefined) slot.mods = {}; // old array → reset to a map
@@ -105,7 +91,7 @@ globalThis.WeaponModUI = {
       label,
       () => {
         scene._modSel = uid;
-        scene._craftDirty = true; // the workbench repopulates the active (attachment) panel
+        scene._craftDirty = true; // workbench repopulates the panel
       },
       {
         height: 32,
@@ -116,9 +102,8 @@ globalThis.WeaponModUI = {
     );
   },
 
-  // Right: the selected weapon's composed stats, ammo (gun), named attachment slots, and the install
-  // picker. PLAIN (no clip), so overrun is revealed by resizing — CraftingUI.LIST_H is sized to fit a
-  // fully-stuffed gun.
+  // Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
+  // CraftingUI.LIST_H is sized to fit a fully-stuffed gun.
   _fillDetail(scene, inv, weapons) {
     const host = scene._modDetail;
     const kids = [...host.children];
@@ -204,8 +189,7 @@ globalThis.WeaponModUI = {
       host.insertChild(WeaponModUI._slotRow(scene, slot, wpn.slots[i]));
     host.insertChild(gemsDivider());
 
-    // Owned attachments compatible with THIS weapon's slots, each Install into the first matching
-    // empty slot (gated live by a free matching slot + ownership).
+    // owned compatible attachments, each Install into the first matching empty slot.
     host.insertChild(
       gemsLabel(I18n.textRef("MOD_AVAILABLE"), { color: GemsTheme.textMuted }),
     );
@@ -222,7 +206,7 @@ globalThis.WeaponModUI = {
     }
   },
 
-  // The gun ammo block: loaded type + clip, a Reload button, and a Load picker of compatible ammo.
+  // gun ammo block: loaded type + clip, a Reload button, a Load picker of compatible ammo.
   _fillAmmo(scene, inv, slot, gun, prof) {
     const host = scene._modDetail;
     host.insertChild(
@@ -273,7 +257,7 @@ globalThis.WeaponModUI = {
     host.insertChild(gemsDivider());
   },
 
-  // One owned-ammo row: name x count + a Load button (loads/tops up the selected gun's magazine).
+  // owned-ammo row: name x count + Load (loads/tops up the selected gun's magazine).
   _ammoRow(scene, inv, slot, ammoId) {
     const it = Item.get(ammoId);
     const nm = it !== undefined ? I18n.text(it.name) : ammoId;
@@ -308,7 +292,7 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  // One named-slot row: "[Category]: AttachmentName" + Remove, or "[Category]: (empty)".
+  // named-slot row: "[Category]: AttachmentName" + Remove, or "[Category]: (empty)".
   _slotRow(scene, slot, slotDef) {
     const installed = slot.mods[slotDef.id]; // attachment itemId, or undefined when empty
     const catLabel = I18n.text(WeaponModUI._slotLabelKey(slotDef.accepts));
@@ -344,7 +328,7 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  // One available-attachment row: name x count + Install (into the first matching empty slot).
+  // available-attachment row: name x count + Install (into the first matching empty slot).
   _availableRow(scene, inv, slot, wpn, modId) {
     const it = Item.get(modId);
     const nm = it !== undefined ? I18n.text(it.name) : modId;
@@ -375,7 +359,7 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  // The first declared slot id that's empty AND accepts this attachment's category, or undefined.
+  // first empty slot id that accepts this attachment's category, or undefined.
   _targetSlot(wpn, slot, modId) {
     const it = Item.get(modId);
     const wm = it !== undefined ? it.getComponent(WeaponMod) : undefined;
@@ -388,7 +372,7 @@ globalThis.WeaponModUI = {
     return undefined;
   },
 
-  // Install modId into the first matching empty slot: consume one, record it, re-derive Stats.
+  // install modId into the first matching empty slot: consume one, record it, re-derive Stats.
   _installFirst(scene, slot, wpn, modId) {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
     if (slotId === undefined) return; // no matching empty slot
@@ -401,7 +385,7 @@ globalThis.WeaponModUI = {
     Log.info(`installed ${modId} into ${slotId} on ${slot.itemId}`);
   },
 
-  // Remove the attachment in slot id: refund it, re-derive Stats.
+  // remove the attachment in slot id: refund it, re-derive Stats.
   _removeFrom(scene, slot, slotId) {
     const modId = slot.mods[slotId];
     if (modId === undefined) return;
@@ -414,7 +398,7 @@ globalThis.WeaponModUI = {
     Log.info(`removed ${modId} from ${slotId} on ${slot.itemId}`);
   },
 
-  // Distinct itemIds of owned Ammo items of `caliber` (in slot order; counts read live in the row).
+  // distinct itemIds of owned Ammo items of `caliber` (in slot order).
   _ownedAmmo(inv, caliber) {
     const out = [];
     const seen = {};
@@ -432,7 +416,7 @@ globalThis.WeaponModUI = {
     return out;
   },
 
-  // Distinct itemIds of owned WeaponMod items whose category fits one of THIS weapon's slots.
+  // distinct itemIds of owned WeaponMod items whose category fits one of this weapon's slots.
   _compatibleMods(inv, wpn) {
     const out = [];
     const seen = {};
@@ -468,7 +452,7 @@ globalThis.WeaponModUI = {
     return "MOD_SLOT_GENERIC";
   },
 
-  // ── small layout helpers ──
+  // small layout helpers
   _row(h) {
     return new UIElement({
       width: "100%",
@@ -479,7 +463,7 @@ globalThis.WeaponModUI = {
     });
   },
 
-  // A row of two label:value stat cells (rk null → only the left cell, right side blank).
+  // row of two label:value stat cells (rk null → only the left cell).
   _statRow2(lk, lv, rk, rv) {
     const row = new UIElement({
       width: "100%",
@@ -517,7 +501,7 @@ globalThis.WeaponModUI = {
     return cell;
   },
 
-  // A label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
+  // label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
   _kvRow(left, right, leftColor) {
     const row = WeaponModUI._row(20);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
