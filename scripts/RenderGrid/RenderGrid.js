@@ -2,17 +2,11 @@
  * @typedef {Object} RenderGridOptions
  * @property {number} [color] - grid line color (default c_gray)
  * @property {number} [alpha] - line alpha (default 1)
- * @property {object} [camera] - a Camera instance; when set, only the lines inside its
- *   view rect are drawn (for large/streamed grids). Omit for the full grid. Settable
- *   later via `pass.camera = …`.
+ * @property {object} [camera] - Camera; when set, view-culls lines for large grids. Settable via `pass.camera`.
  */
 
 /**
- * Cell boundary lines for a Level's grid. World-space pass — draw inside the
- * camera view. Split out of `RenderDebugTileMap` so the grid toggles independently
- * of cost shading / tile labels. Uses plain `draw_line` (`draw_line_width_color`
- * renders nothing on GMRT).
- *
+ * world-space cell boundary lines. plain draw_line (draw_line_width_color renders nothing on GMRT).
  * @implements {RenderPass}
  */
 globalThis.RenderGrid = class RenderGrid {
@@ -36,17 +30,14 @@ globalThis.RenderGrid = class RenderGrid {
 
     const { cols, rows, cellWidth, cellHeight } = this.level;
 
-    // Visible cell range — culled to the camera's view rect when set, else the full
-    // grid. Lines span only the visible band, not the whole map.
+    // visible cell range — culled to the camera view rect when set, else full grid
     let x0 = 0;
     let y0 = 0;
     let x1 = cols;
     let y1 = rows;
     if (this.camera !== undefined && this.camera.width > 0) {
-      // View rect from the Camera's OWN fields, not camera_get_view_*: the project's
-      // Camera drives the view by matrix (camera_set_view_mat/proj_mat) and never sets
-      // camera_set_view_pos/size, so camera_get_view_* returns 0 (see CLAUDE.md). An ORTHO
-      // camera is centered on (toX, toY) spanning width × height world px.
+      // read the Camera's OWN fields, not camera_get_view_* (returns 0 for the matrix-driven
+      // Camera; see CLAUDE.md). ORTHO camera is centered on (toX,toY) spanning width × height.
       const vw = this.camera.width;
       const vh = this.camera.height;
       const vx = this.camera.toX - vw / 2;

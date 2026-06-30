@@ -1,44 +1,34 @@
-// Core chunk-streaming engine: windows a large/infinite world around a moving center so the
-// World only ever holds the entities near the player. Genre-agnostic — it takes a `source`
-// (the content provider, e.g. RPG's ChunkSource) and drives EntitySnapshot capture/restore
-// as chunks cross the streaming rings. One instance per chunked map, owned by the scene
-// (`this.chunks`), mirroring SceneManager being a plain instance class (GMRT doesn't fire
-// static getters, so singletons-with-state are instance classes).
+// Chunk-streaming engine: windows a large/infinite world around a moving center so the World
+// only holds entities near the player. Takes a `source` (content provider, e.g. ChunkSource)
+// and drives EntitySnapshot capture/restore as chunks cross the rings. Plain instance class
+// (GMRT doesn't fire static getters, so stateful singletons are instance classes).
 //
-// Two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
-//   d <= simRadius              → SIM ring:  entities live in the World, walls have colliders,
-//                                            everything simulates + renders normally.
-//   simRadius < d <= loadRadius → LOAD ring: entities held as EntitySnapshots (NOT in the
-//                                            World, not simulated), drawn statically by
-//                                            RenderChunks; walls drawn but no colliders.
-//   d > loadRadius              → UNLOADED:  snapshots moved to an in-session cache, restored
-//                                            on return (so hurt/killed/moved entities persist).
+// two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
+//   d <= simRadius              → SIM:  entities live in the World, walls have colliders, sims + renders.
+//   simRadius < d <= loadRadius → LOAD: entities held as EntitySnapshots (not simulated), drawn
+//                                       statically by RenderChunks; walls drawn, no colliders.
+//   d > loadRadius              → UNLOADED: snapshots parked in an in-session cache, restored on
+//                                       return (so hurt/killed/moved entities persist).
 //
-// The party (player + followers) is never chunk-managed — the scene keeps it in the World
-// always; this only owns chunk-spawned content (enemies, props, chests, items, NPCs, portals)
-// and the terrain colliders.
+// the party (player + followers) is never chunk-managed — only chunk-spawned content + terrain colliders.
 //
-// Source contract:
+// source contract:
 //   source.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
-//                                solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects: impassable
-//                                                                     terrain, e.g. water — not drawn),
+//                                solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects, e.g. water — not drawn),
 //                                spawns: [descriptor...],            (deterministic per cx,cy)
-//                                terrain?: Int[]  per-cell material grid (cosmetic; for TerrainStream) }
-//   source.spawn(world, level, descriptor) -> entityId               (constructs one entity)
+//                                terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
+//   source.spawn(world, level, descriptor) -> entityId
 //
-// GMRT-safe: plain-object record maps walked via Object.keys + index loops (no Map/Set
-// iteration), index loops throughout, class assigned to globalThis.
+// GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {World} world
-   * @param {Level} level
-   * @param {Object} source content provider: generate(cx,cy) → {walls, spawns}; spawn(world, level, desc) → id.
+   * @param {World} world @param {Level} level
+   * @param {Object} source generate(cx,cy) → {walls, spawns}; spawn(world, level, desc) → id.
    * @param {Object} [opts]
    * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.
-   * @param {number} [opts.simRadius=1] Chebyshev chunk distance simulated live in the World.
-   * @param {number} [opts.loadRadius=2] distance held as drawn-but-frozen snapshots (no sim).
-   * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite world bounds in cells
-   *   (anchored at 0); chunks outside never load. Omit both for an unbounded world.
+   * @param {number} [opts.simRadius=1] @param {number} [opts.loadRadius=2] ring distances.
+   * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);
+   *   chunks outside never load. omit both for unbounded.
    */
   constructor(world, level, source, opts = {}) {
     this.world = world;
@@ -49,9 +39,8 @@ globalThis.ChunkManager = class ChunkManager {
     this.simRadius = opts.simRadius ?? 1;
     this.loadRadius = opts.loadRadius ?? 2;
 
-    // Optional finite world bounds (cells, anchored at cell 0). When set, chunks outside the
-    // [0,worldCols)x[0,worldRows) rectangle never load — the world stops being infinite. Absent ⇒
-    // unbounded (interiors / other maps unchanged). maxC* is the last in-bounds chunk index.
+    // finite world bounds: chunks outside [0,worldCols)x[0,worldRows) never load. absent ⇒
+    // unbounded. maxC* is the last in-bounds chunk index.
     this.maxCx =
       opts.worldCols !== undefined
         ? Math.floor((opts.worldCols - 1) / this.chunkCols)
@@ -66,21 +55,19 @@ globalThis.ChunkManager = class ChunkManager {
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
     this.pxH = this.chunkRows * this.cellH;
 
-    // Active chunks keyed "cx,cy" → { cx, cy, ring, walls, terrain, colliders, entities, snapshots }.
+    // active chunks keyed "cx,cy" → { cx, cy, ring, walls, terrain, colliders, entities, snapshots }
     this._chunks = {};
-    // Snapshots of unloaded (previously-visited) chunks, keyed "cx,cy". Restored on revisit so
-    // a chunk's modified entities persist for the session. Unbounded for now (snapshots are
-    // small); eviction / disk-backing is the follow-up.
+    // snapshots of unloaded chunks, keyed "cx,cy"; restored on revisit so modified entities persist.
+    // unbounded for now; eviction / disk-backing is the follow-up.
     this._cache = {};
-    // Last player chunk — the per-frame fast path skips the whole diff until a border is crossed.
+    // last player chunk — fast-path skips the diff until a border is crossed
     this._pcx = undefined;
     this._pcy = undefined;
 
-    // Telemetry for the verify harness + a debug HUD.
     this.stats = { loaded: 0, unloaded: 0, promoted: 0, demoted: 0 };
   }
 
-  /** Drop chunk + cache refs. The World owns the entities/colliders and frees them with itself. */
+  /** drop refs; the World owns the entities/colliders and frees them itself */
   destroy() {
     this._chunks = {};
     this._cache = {};
@@ -97,9 +84,9 @@ globalThis.ChunkManager = class ChunkManager {
   }
 
   /**
-   * Stream around a world-space center — call once per frame, OUTSIDE the tick loop. Returns
-   * early until the center crosses into a new chunk (membership only changes then).
-   * @param {number} centerX @param {number} centerY usually the player position.
+   * Stream around a center — call once per frame, OUTSIDE the tick loop. Returns early until
+   * the center crosses into a new chunk (membership only changes then).
+   * @param {number} centerX @param {number} centerY usually the player.
    */
   update(centerX, centerY) {
     const pcx = this.chunkX(centerX);
@@ -110,7 +97,7 @@ globalThis.ChunkManager = class ChunkManager {
 
     const lr = this.loadRadius;
 
-    // 1. Unload chunks that fell outside the load radius (snapshot any sim entities first).
+    // 1. unload chunks beyond the load radius (snapshot any sim entities first)
     const keys = Object.keys(this._chunks);
     for (let i = 0; i < keys.length; i++) {
       const rec = this._chunks[keys[i]];
@@ -118,14 +105,14 @@ globalThis.ChunkManager = class ChunkManager {
       if (d > lr) this._unload(keys[i], rec);
     }
 
-    // 2. Load new chunks in range + retier chunks whose ring changed.
+    // 2. load new chunks in range + retier chunks whose ring changed
     for (let dy = -lr; dy <= lr; dy++) {
       for (let dx = -lr; dx <= lr; dx++) {
         const cheb = Math.max(Math.abs(dx), Math.abs(dy));
         const ring = cheb <= this.simRadius ? "sim" : "load";
         const cx = pcx + dx;
         const cy = pcy + dy;
-        // Skip chunks outside the finite world (no-op when unbounded — maxC* = Infinity).
+        // skip out-of-bounds chunks (no-op when unbounded — maxC* = Infinity)
         if (cx < 0 || cy < 0 || cx > this.maxCx || cy > this.maxCy) continue;
         const key = this._key(cx, cy);
         const rec = this._chunks[key];
@@ -137,12 +124,11 @@ globalThis.ChunkManager = class ChunkManager {
       }
     }
 
-    // 3. Commit removals queued above so the demoted/unloaded entities aren't double-drawn
-    //    this frame (the tick loop already flushed; this just commits our own removals).
+    // 3. commit our removals so demoted/unloaded entities aren't double-drawn this frame
     this.world.flush();
   }
 
-  /** @returns {Object[]} active chunk records as a fresh array (for RenderChunks). */
+  /** @returns {Object[]} active chunk records (fresh array, for RenderChunks) */
   records() {
     const out = [];
     const keys = Object.keys(this._chunks);
@@ -150,30 +136,29 @@ globalThis.ChunkManager = class ChunkManager {
     return out;
   }
 
-  /** @returns {number} number of active (sim + load ring) chunks. */
+  /** @returns {number} active (sim + load ring) chunk count */
   activeCount() {
     return Object.keys(this._chunks).length;
   }
 
-  /** @returns {{cx:number,cy:number}} the player's current chunk (cx/cy undefined before first update). */
+  /** @returns {{cx:number,cy:number}} player's chunk (undefined before first update) */
   centerChunk() {
     return { cx: this._pcx, cy: this._pcy };
   }
 
-  // ── internal lifecycle ─────────────────────────────────────────────────────
+  // internal lifecycle
 
-  // Generate (or restore from cache) a chunk and install it at `ring`. Walls always come from
-  // the deterministic source (not cached — terrain regenerates identically); only entities are
-  // cached, so a revisited chunk keeps its modified entity state.
+  // Generate (or restore from cache) a chunk at `ring`. Walls come from the deterministic source
+  // (terrain regenerates identically); only entities are cached, so a revisit keeps modified state.
   _load(key, cx, cy, ring) {
     const gen = this.source.generate(cx, cy);
     const rec = {
       cx,
       cy,
       ring,
-      walls: gen.walls, // [[gx,gy,w,h]...] absolute grid coords — for mesh + render
-      solid: gen.solid ?? [], // collide-only rects (impassable terrain) — meshed, NOT rendered
-      terrain: gen.terrain, // per-cell material grid (cosmetic) — TerrainStream renders it
+      walls: gen.walls, // [[gx,gy,w,h]...] absolute coords — mesh + render
+      solid: gen.solid ?? [], // collide-only rects — meshed, NOT rendered
+      terrain: gen.terrain, // per-cell material grid — TerrainStream renders it
       colliders: [],
       entities: [],
       snapshots: [],
@@ -186,12 +171,11 @@ globalThis.ChunkManager = class ChunkManager {
       if (cached !== undefined) this._restoreAll(rec, cached);
       else this._spawnAll(rec, gen.spawns);
     } else {
-      // Load (freeze) ring: hold entities as snapshots, no colliders.
+      // load (freeze) ring: hold entities as snapshots, no colliders
       if (cached !== undefined) {
         rec.snapshots = cached;
       } else {
-        // Fresh content: spawn (also sets CombatAI's shared world/target statics), then capture
-        // + remove so the freeze ring stays out of the World.
+        // fresh: spawn (sets CombatAI's shared statics), then capture + remove to stay out of the World
         this._spawnAll(rec, gen.spawns);
         this._captureAll(rec);
       }
@@ -200,7 +184,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.loaded++;
   }
 
-  // load → sim: bring the chunk's entities into the World and give its walls + solid terrain colliders.
+  // load → sim: restore entities into the World + mesh wall/terrain colliders
   _promote(rec) {
     this._meshColliders(rec);
     this._restoreAll(rec, rec.snapshots);
@@ -209,7 +193,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.promoted++;
   }
 
-  // sim → load: snapshot the chunk's live entities out of the World and drop its colliders.
+  // sim → load: snapshot live entities out of the World + drop colliders
   _demote(rec) {
     this._captureAll(rec);
     this._dropColliders(rec);
@@ -217,7 +201,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.demoted++;
   }
 
-  // Beyond load radius: snapshot any live entities, drop colliders, park snapshots in the cache.
+  // beyond load radius: snapshot live entities, drop colliders, park snapshots in cache
   _unload(key, rec) {
     if (rec.ring === "sim") {
       this._captureAll(rec);
@@ -228,12 +212,10 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.unloaded++;
   }
 
-  // ── entity/collider helpers ────────────────────────────────────────────────
+  // entity/collider helpers
 
-  // One kinematic-solid collider per wall rect AND per solid-terrain rect (the source already
-  // groups cells into rects, so no greedy meshing here). `walls` are also rendered (RenderChunks);
-  // `solid` is collide-only (impassable terrain — water — already drawn by TerrainStream). Both
-  // match TileEdit.meshSolid's convention: Position at the rect top-left, BBox (0,0) spanning it.
+  // one kinematic-solid collider per wall + solid rect (source already groups cells into rects).
+  // matches TileEdit.meshSolid: Position at rect top-left, BBox (0,0) spanning it.
   _meshColliders(rec) {
     this._meshRects(rec, rec.walls);
     this._meshRects(rec, rec.solid);
@@ -282,8 +264,7 @@ globalThis.ChunkManager = class ChunkManager {
       rec.entities.push(EntitySnapshot.restore(this.world, snapshots[i]));
   }
 
-  // entities → snapshots, removing each from the World (deferred until flush). Skips ids no
-  // longer valid (e.g. a enemy killed while the chunk was simulated) so the dead stay dead.
+  // entities → snapshots, removing each from the World. skips invalid ids (e.g. killed enemies) so the dead stay dead.
   _captureAll(rec) {
     const snaps = [];
     for (let i = 0; i < rec.entities.length; i++) {

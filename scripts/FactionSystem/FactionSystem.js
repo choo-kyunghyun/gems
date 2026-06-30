@@ -1,32 +1,15 @@
-// Faction roster + relations for the RPG — the brain behind the `Faction` component.
-// A stateless-style globalThis service (like MeleeSystem/EquipmentSystem) that ALSO holds the
-// registered faction defs and the relation matrix (PathfindingSystem likewise holds state). Two
-// layers of API:
-//
-//   • faction-id level (pure config): register / get / all / setRelation / relation /
-//     isHostile / isAlly. Relations are SYMMETRIC and default to "neutral"; an entity is always
-//     an ally of its own faction (same id → "ally").
-//   • entity level (reads the Faction component off `world`): factionOf / hostile / allied /
-//     nearestHostile — the glue AI and combat actually call.
-//
-// Register the roster once at content setup (RpgContent.register). Wiring:
-//   - CombatAI acquires a target via nearestHostile (no hardcoded player id anymore).
-//   - MeleeSystem / ProjectileSystem skip ALLIED targets (no friendly fire); neutral + hostile
-//     are still hit, so the change is a no-op until allied combatants exist.
-//
-// GMRT note: a plain object (no 50-method class ceiling); the registry is index-looped over
-// `_order` (never a Map-iterator for...of, which hard-crashes the runtime — see CLAUDE.md).
+// faction roster + relation matrix. two layers: id-level config (register/setRelation/isHostile/isAlly)
+// and entity-level glue (factionOf/hostile/allied/nearestHostile) that AI and combat actually call.
+// relations are symmetric, default "neutral"; same id → "ally" always.
+// GMRT: plain object (avoids 50-method class ceiling); registry iterates `_order` array — never
+// a Map-iterator for...of, which hard-crashes the runtime (see CLAUDE.md).
 globalThis.FactionSystem = {
   _defs: new Map(), // id → { id, name, color }
   _order: [], // insertion order of ids (for all())
   _rel: new Map(), // canonical pair key → "ally" | "neutral" | "hostile"
 
   // ── Roster ────────────────────────────────────────────────────────────────
-  /**
-   * Register faction defs (later defs with the same id overwrite). `name` is a display string,
-   * `color` a GM colour int or "#rrggbb" (for future nameplate/blip tinting); both optional.
-   * @param {{id:string,name?:string,color?:number|string}[]} defs
-   */
+  /** @param {{id:string,name?:string,color?:number|string}[]} defs */
   register(defs) {
     for (const def of defs) {
       const f = {
@@ -51,7 +34,7 @@ globalThis.FactionSystem = {
     return this._defs.has(id);
   },
 
-  /** All faction defs in registration order. Index-loops `_order` (no Map-iterator for...of). */
+  /** all defs in registration order. index-loops `_order` — no Map-iterator for...of (GMRT crash). */
   all() {
     const out = [];
     for (let i = 0; i < this._order.length; i++)
@@ -59,9 +42,8 @@ globalThis.FactionSystem = {
     return out;
   },
 
-  // ── Relations (faction-id level) ────────────────────────────────────────────
-  // Canonical, order-independent pair key so a relation is symmetric (setRelation(a,b) ==
-  // setRelation(b,a)). Faction ids are simple tokens, so "|" is a safe separator.
+  // ── Relations (faction-id level)
+  // order-independent pair key so relations are symmetric; "|" is safe since ids are simple tokens
   _key(a, b) {
     return a < b ? a + "|" + b : b + "|" + a;
   },
@@ -87,14 +69,14 @@ globalThis.FactionSystem = {
     return this.relation(a, b) === "ally";
   },
 
-  // ── Entity level (reads the Faction component) ──────────────────────────────
-  /** Faction id of an entity, or undefined when it carries no Faction component. */
+  // ── Entity level (reads the Faction component)
+  /** faction id, or undefined with no Faction component. */
   factionOf(world, id) {
     const f = world.get(Faction, id);
     return f === undefined ? undefined : f.id;
   },
 
-  /** True only when BOTH entities have a faction and those factions are hostile. */
+  /** true only when both have factions and they're hostile. */
   hostile(world, a, b) {
     const fa = this.factionOf(world, a);
     const fb = this.factionOf(world, b);
@@ -102,11 +84,8 @@ globalThis.FactionSystem = {
     return this.isHostile(fa, fb);
   },
 
-  /**
-   * True only when BOTH entities have a faction and those factions are allied. Combat skips
-   * these (no friendly fire); an entity with no faction is NOT allied, so it's still hit —
-   * keeping the filter a no-op for current content (only enemies/player carry factions).
-   */
+  /** true only when both have factions and they're allied. combat skips these (no friendly fire);
+   *  a factionless entity is NOT allied, so it's still hit. */
   allied(world, a, b) {
     const fa = this.factionOf(world, a);
     const fb = this.factionOf(world, b);
@@ -114,12 +93,8 @@ globalThis.FactionSystem = {
     return this.isAlly(fa, fb);
   },
 
-  /**
-   * Nearest entity HOSTILE to `id`'s faction within `range` px of (x, y), or -1. Skips self and
-   * any entity without a faction. `opt.needsHealth` (default true) restricts candidates to
-   * attackable bodies, so AI targets combatants — not props/portals. The aggro acquisition for
-   * CombatAI; the seam for any "who do I fight?" query.
-   */
+  /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
+   *  attackable bodies, so AI targets combatants not props/portals. CombatAI's aggro acquisition. */
   nearestHostile(world, id, x, y, range, opt = {}) {
     const fa = this.factionOf(world, id);
     if (fa === undefined) return -1;

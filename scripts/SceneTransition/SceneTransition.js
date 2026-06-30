@@ -1,42 +1,28 @@
-/**
- * SceneTransition — full-screen fade between scenes. Standalone static singleton (NOT
- * a UIComponent), like Tooltip / Toast / UINav.
- *
- * Replaces obj_game's hard cut on `openScene`: instead of swapping scenes the same
- * frame, `start(applyFn)` runs a fade-OUT to a solid cover, swaps the scene at full
- * cover (calling `applyFn` once — which rebuilds the UI, hidden under the cover), then
- * fades back IN. The cover is drawn last in Draw_75 (after the UI), so it veils the UI
- * tear-down/rebuild too.
- *
- * Wiring: `SceneTransition.update()` in Step_0 (drives the timer + fires the swap at
- * mid-fade); `SceneTransition.draw()` last in Draw_75. GMRT: the timer uses Time.raw
- * (wall-clock) so the fade ignores Time.scale; the curve comes from Tween.
- */
+// full-screen fade between scenes. standalone static singleton (not UIComponent).
+// fade-out → swap scene at full cover → fade-in, so the UI rebuild is hidden under the cover.
+// timer uses Time.raw so the fade ignores Time.scale.
 globalThis.SceneTransition = class SceneTransition {
-  static duration = 0.12; // seconds per direction (out, then in) — kept short so scene changes feel responsive
+  static duration = 0.12; // seconds per direction — short so swaps feel responsive
   static color = c_black; // cover color
-  static alpha = 0; // current cover alpha [0,1] — read by draw()
+  static alpha = 0; // current cover alpha [0,1]
 
-  static _phase = 0; // 0 idle, 1 fading out (→cover), 2 fading in (→clear)
-  static _t = 0; // seconds elapsed in the current phase
-  static _apply = null; // the scene-swap callback, fired once at full cover
+  static _phase = 0; // 0 idle, 1 fading out, 2 fading in
+  static _t = 0; // seconds elapsed in current phase
+  static _apply = null; // scene-swap callback, fired once at full cover
 
-  /**
-   * @returns {boolean} whether a fade is running — SceneManager holds the pending scene until
-   * this clears so a second openScene mid-fade can't stack two swaps.
-   */
+  /** @returns {boolean} fade running — SceneManager holds the pending scene until this clears. */
   static isBusy() {
     return SceneTransition._phase !== 0;
   }
 
-  /** Begin a fade-out; `applyFn` (the scene swap) runs once at full cover. @param {() => void} applyFn */
+  /** begin a fade-out; `applyFn` runs once at full cover. @param {() => void} applyFn */
   static start(applyFn) {
     SceneTransition._apply = applyFn;
     SceneTransition._phase = 1;
     SceneTransition._t = 0;
   }
 
-  /** Fade in from a solid cover with no preceding fade-out (boot: first scene fades in from black). */
+  /** fade in from cover with no preceding fade-out (boot: first scene from black). */
   static reveal() {
     SceneTransition._apply = null;
     SceneTransition._phase = 2;
@@ -44,7 +30,7 @@ globalThis.SceneTransition = class SceneTransition {
     SceneTransition.alpha = 1;
   }
 
-  /** Advance the fade timer and fire the swap at full cover (Step_0). */
+  /** advance the fade timer; fire the swap at full cover (Step_0). */
   static update() {
     if (SceneTransition._phase === 0) return;
     SceneTransition._t += Time.raw;
@@ -54,7 +40,7 @@ globalThis.SceneTransition = class SceneTransition {
     if (SceneTransition._phase === 1) {
       SceneTransition.alpha = eased; // 0 → 1
       if (p >= 1) {
-        // Fully covered: swap the scene (hidden), then fade back in.
+        // fully covered: swap hidden, then fade back in
         if (SceneTransition._apply !== null) {
           SceneTransition._apply();
           SceneTransition._apply = null;
@@ -72,7 +58,7 @@ globalThis.SceneTransition = class SceneTransition {
     }
   }
 
-  /** Draw the cover at the current alpha (Draw_75, last — veils the UI rebuild too). */
+  /** draw the cover at current alpha (Draw_75, last — veils the UI rebuild). */
   static draw() {
     if (SceneTransition.alpha <= 0) return;
     const a = draw_get_alpha();

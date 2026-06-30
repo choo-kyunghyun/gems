@@ -1,23 +1,16 @@
 /**
  * @implements {UIComponent}
- * Collapsible-section header — lives on a fixed-height row element (built by
- * gemsAccordion). Draws its own background + title + a chevron (via drawUIArrow) and
- * toggles its body on click. Unlike UITabs (which stacks pages and only toggles
- * `enabled`), an accordion section must change the layout's height when it
- * opens/closes, so it inserts/removes the body element from the item container —
- * structural insert/remove + recalculate reflows reliably (the project's preferred
- * way to resize a layout). The body is kept alive across collapses (removed, not
- * destroyed) so reopening is cheap; the section snaps open/closed (no tween).
- *
- * GMRT note: hover state is read live from the pointer each frame (no cached
- * primitive bool to be clobbered).
+ * Collapsible-section header. Toggling must change layout height, so it inserts/removes
+ * the body from the container (structural insert/remove reflows reliably) rather than the
+ * `enabled`-flag toggle UITabs uses. Body is removed not destroyed, so reopening is cheap.
+ * GMRT: hover read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UIAccordion = class UIAccordion {
   /** @param {Object} [acc] { title, expanded, body, onToggle, font, rad, titleColor, headerColor, headerHover, chevronColor, chevronHover } */
   constructor(acc = {}) {
     this.title = acc.title ?? ""; // string or () => string
     this.expanded = acc.expanded ?? false;
-    this.body = acc.body ?? null; // element inserted/removed on toggle
+    this.body = acc.body ?? null; // inserted/removed on toggle
     this.onToggle = acc.onToggle ?? noop;
     this.font = acc.font ?? -1;
     this.rad = acc.rad ?? 0;
@@ -35,13 +28,13 @@ globalThis.UIAccordion = class UIAccordion {
     return typeof this.title === "function" ? this.title() : this.title;
   }
 
-  /** Flip expanded state, inserting/removing the body element from the parent container. @param {UIElement} element the header element */
+  /** Flip expanded, inserting/removing the body from the parent. @param {UIElement} element the header element */
   toggle(element) {
     this.expanded = !this.expanded;
     const c = element.parent;
     if (c !== null && this.body !== null) {
       if (this.expanded) {
-        // Insert right after this header so it sits at the top of the section.
+        // right after this header → top of the section.
         c.insertChild(this.body, c.children.indexOf(element) + 1);
       } else {
         c.removeChild(this.body);
@@ -79,7 +72,7 @@ globalThis.UIAccordion = class UIAccordion {
 
     draw_set_alpha(1);
 
-    // Header background.
+    // header background.
     const bg = this._hover ? this.headerHover : this.headerColor;
     draw_roundrect_color_ext(
       pos.left,
@@ -96,14 +89,13 @@ globalThis.UIAccordion = class UIAccordion {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+    // resolve I18n font KEY live (survives locale reload); raw handle passes through.
     const fnt =
       typeof this.font === "string" ? I18n.font(this.font) : this.font;
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
 
-    // Indicator: a filled triangle chevron — right when collapsed, down when expanded.
-    // Shared drawUIArrow so it matches UISelect/UIStepper/UIDropdown/UITable affordances.
+    // chevron: right when collapsed, down when expanded. shared drawUIArrow.
     const ch = this._hover ? this.chevronHover : this.chevronColor;
     const ah = 5;
     drawUIArrow(
@@ -114,7 +106,7 @@ globalThis.UIAccordion = class UIAccordion {
       ch,
     );
 
-    // Title, left-aligned and vertically centered.
+    // title.
     draw_set_halign(fa_left);
     draw_set_color(this.titleColor);
     draw_text(pos.left + pad, cy, this._title());
@@ -126,8 +118,7 @@ globalThis.UIAccordion = class UIAccordion {
     draw_set_alpha(a0);
   }
 
-  // UINav: confirm expands/collapses the section (the body's focusables then become
-  // collectable next frame). Marks the header focusable.
+  // UINav: confirm expands/collapses the section.
   navActivate(element) {
     this.toggle(element);
   }

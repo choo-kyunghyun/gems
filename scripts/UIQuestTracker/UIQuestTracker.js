@@ -1,32 +1,19 @@
 /**
  * @implements {UIComponent}
- * Quest tracker — a live, on-screen list bound to an injected **quest source** (`t.source`,
- * e.g. the RPG's `QuestLog`), so this Core widget stays genre-agnostic — no direct
- * dependency on the RPG layer. The source exposes `activeIds() → id[]`, `def(id) →
- * { name, objLabel, objectives:[{count}] }`, `status(id) → { ready, progress:[] }`. Lives
- * on a fixed-size element (built by gemsQuestTracker, which sizes the element to the active
- * quests so an enclosing UIScroll can measure + reveal overflow). The whole list is
- * drawn directly in onDraw across one element — the same immediate-mode pattern as
- * UISlots, so it reads the source live each frame with no per-frame child rebuild
- * (rebuilding child rows every frame would be fragile churn). It does its own
- * status-color spans inline rather than nesting UIRichText. A null source renders empty.
+ * Quest tracker — live list bound to an injected quest source (`t.source`, e.g. the RPG's
+ * `QuestLog`), so this Core widget stays genre-agnostic. The source exposes `activeIds()`,
+ * `def(id) → { name, objLabel, objectives:[{count}] }`, `status(id) → { ready, progress:[] }`.
+ * Drawn entirely in onDraw over one element (immediate-mode, like UISlots), reading the source
+ * live each frame — no per-frame child rebuild. A null source renders empty.
  *
- * Per active quest (source.activeIds(), registration order): the quest `name` as a
- * title (gold when ready to turn in, else plain) over one line per objective —
- * `def.objLabel` formatted with (progress, count), lime when met, muted while pending.
- *
- * GMRT: status is read live from the source each frame (no cached primitive to clobber)
- * and there is no timer (no Time.raw/delta). The element's panel/bg is a separate
- * UIPanel component (NaN-guarded there); this draws text only and is NaN-guarded too.
+ * GMRT: status read live each frame (no cached primitive to clobber); NaN-guarded.
  */
 globalThis.UIQuestTracker = class UIQuestTracker {
   constructor(t = {}) {
-    // The quest source (activeIds()/def(id)/status(id)). Injected so this Core widget
-    // doesn't reference the RPG-layer QuestLog directly; null renders empty.
+    // injected source so this Core widget doesn't reference RPG-layer QuestLog; null = empty
     this.source = t.source ?? null;
-    // Font KEYS (resolved via I18n.font at DRAW time), not handles. I18n.font falls
-    // back to draw_get_font(), so capturing a handle at construction (a Create event)
-    // freezes a stale/invalid font that renders nothing when set later. null = inherit.
+    // Font KEYS (resolved via I18n.font at DRAW time), not handles: a handle captured at
+    // construction freezes a stale/invalid font that renders nothing later. null = inherit.
     this.titleFontKey = t.titleFontKey ?? null;
     this.bodyFontKey = t.bodyFontKey ?? null;
     this.padX = t.padX ?? 14;
@@ -44,10 +31,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.emptyText = t.emptyText ?? ""; // string or () => string
   }
 
-  /**
-   * Full pixel height needed by every currently-active quest — the factory sizes the element
-   * to this so a UIScroll around it can reveal the overflow. @returns {number}
-   */
+  /** Total pixel height of all active quests — the factory sizes the element to this for UIScroll overflow. @returns {number} */
   contentHeight() {
     const ids = this.source ? this.source.activeIds() : [];
     if (ids.length === 0) return this.padY * 2 + this.objH;
@@ -96,17 +80,16 @@ globalThis.UIQuestTracker = class UIQuestTracker {
         const def = this.source.def(ids[i]);
         const status = this.source.status(ids[i]);
 
-        // Title — gold once every objective is met (ready to turn in).
+        // title — gold once ready to turn in
         if (titleFont !== -1) draw_set_font(titleFont);
         draw_set_color(status.ready ? this.readyColor : this.titleColor);
         draw_text(x, y, I18n.text(def.name));
         y += this.titleH;
 
-        // One line per objective: a marker + formatted label, lime when met. The marker is a
-        // drawUICheck checkmark (met) / a draw_line_width_color dash (pending).
+        // one line per objective: marker (check when met, dash when pending) + label, lime when met
         if (bodyFont !== -1) draw_set_font(bodyFont);
         const markW = 16; // marker column width before the label
-        const fh = string_height("0"); // body line height, to vertically center the marker
+        const fh = string_height("0"); // body line height, to center the marker
         for (let o = 0; o < def.objectives.length; o++) {
           const obj = def.objectives[o];
           const prog = status.progress[o];

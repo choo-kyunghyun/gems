@@ -1,15 +1,11 @@
 /**
- * Facing-marker debug overlay: a small dot offset from each entity's box center
- * toward its `Direction`, so facing is visible on the colored-box stand-in. Reads
- * `Direction` + `Position` + `BBox` (a visible `Visual`); split out of
- * `RenderDebugBox` so it toggles on its own — insert it *after* the box pass.
- * Position interpolates via `InterpolationSystem.lerp`.
+ * facing dot offset from each box center toward its Direction. insert after RenderDebugBox.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugDirection = class RenderDebugDirection {
   constructor() {
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}

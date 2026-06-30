@@ -1,5 +1,4 @@
-// Draggable value slider (continuous, stepped, or snapped to a `values` array). Self-contained:
-// hit-tests + drags itself, draws track/fill/thumb + an optional right-aligned value readout.
+// Draggable slider — continuous, stepped, or snapped to a `values` array. Draws immediate-mode.
 /** @implements {UIComponent} */
 globalThis.UISlider = class UISlider {
   static VALUE_W = 58; // right-side width reserved for the value readout (showValue); wide enough that "100%" at the 16px body font clears the thumb
@@ -14,17 +13,13 @@ globalThis.UISlider = class UISlider {
     this.readOnly = slider.readOnly ?? false;
     this.onChange = slider.onChange ?? noop;
 
-    // Value readout drawn at the right end (so the user isn't guessing the value).
-    // `format` is an optional (value) => string; the default derives decimals from `step`.
-    // The track reserves VALUE_W on the right for it, so text never overlaps the thumb.
+    // readout at the right end; track reserves VALUE_W so text never overlaps the thumb.
     this.showValue = slider.showValue ?? true;
     this.format = slider.format ?? null;
     this.valueColor = slider.valueColor ?? c_white;
     this.valueFont = slider.font ?? -1; // -1 → current draw font
 
-    // Style structs: { color, rad?, border?, borderColor?, shadowAlpha? }. The track/fill/thumb
-    // are drawn directly in onDraw (immediate-mode, no child UIElements) — the kit's deliberate
-    // live-layout pattern (draw-time geometry, not flexpanel style mutation).
+    // style structs: { color, rad?, border?, borderColor?, shadowAlpha? }
     this._trackStyle = slider.track ?? {};
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
@@ -61,9 +56,7 @@ globalThis.UISlider = class UISlider {
     return this;
   }
 
-  // Shared geometry so onUpdate's hit-test matches onDraw exactly. The thumb is
-  // inset by its radius at both ends so it never clips past the track. With showValue
-  // the track is shortened by VALUE_W so the readout sits to its right without overlap.
+  // shared geometry so the hit-test matches the draw; thumb inset by its radius so it never clips the track.
   _metrics(pos) {
     const r = Math.max(7, pos.height * 0.45);
     const trackH = Math.max(4, pos.height * 0.3);
@@ -81,7 +74,7 @@ globalThis.UISlider = class UISlider {
     return { r, trackH, cy, inner, thumbX, trackW };
   }
 
-  // Decimal places for the default readout, derived from `step` (continuous → 2).
+  // decimal places for the default readout, from `step` (continuous → 2).
   _decimals() {
     if (typeof this.step !== "number" || this.step <= 0) return 2;
     let dec = 0;
@@ -134,7 +127,6 @@ globalThis.UISlider = class UISlider {
     const a0 = draw_get_alpha();
     draw_set_alpha(1);
 
-    // Track + its inset edge.
     const trackCol = this._trackStyle.color ?? c_dkgray;
     draw_roundrect_color_ext(
       x1,
@@ -152,7 +144,6 @@ globalThis.UISlider = class UISlider {
       draw_roundrect_color_ext(x1, ty1, x2, ty2, rad, rad, bc, bc, true);
     }
 
-    // Fill from the left up to the thumb.
     const fillCol = this._fillStyle.color ?? c_white;
     const fillR = Math.max(x1 + rad, m.thumbX);
     draw_roundrect_color_ext(
@@ -167,7 +158,7 @@ globalThis.UISlider = class UISlider {
       false,
     );
 
-    // Thumb — grows slightly while hovered/dragged for feedback.
+    // thumb grows slightly while hovered/dragged for feedback.
     const tr = m.r * (this._hold || this._over ? 1.12 : 1);
     draw_set_alpha(this._thumbStyle.shadowAlpha ?? 0.3);
     draw_roundrect_color_ext(
@@ -209,7 +200,6 @@ globalThis.UISlider = class UISlider {
       );
     }
 
-    // Value readout, right-aligned in the reserved gutter, vertically centered.
     if (this.showValue) {
       const ph = draw_get_halign();
       const pv = draw_get_valign();
@@ -241,8 +231,7 @@ globalThis.UISlider = class UISlider {
     draw_set_alpha(a0);
   }
 
-  // UINav: left/right nudges the value by `step` (or 1/20 of the range when
-  // continuous). Marks the element focusable.
+  // UINav: left/right nudges value by `step` (or 1/20 range when continuous).
   /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (this.readOnly) return;

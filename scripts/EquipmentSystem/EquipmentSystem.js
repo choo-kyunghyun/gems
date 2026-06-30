@@ -1,21 +1,14 @@
-// Pure operations on an entity's Equipment + Stats + Inventory (no world tick).
-// Equipment is { slots: { weapon, armor, trinket, backpack } } where each value is
-// an itemId or "". Equipped items STAY in the Inventory — they keep occupying a
-// slot and counting toward capacity/maxWeight; the Equipment slot only references
-// the equipped itemId. On equip/unequip the wearer's derived Stats are REBUILT from
-// source via StatModel.recompute (which folds every equipped item's `mods` onto the
-// attribute base) — so there's no +/- delta to keep balanced (the old fragile
-// "deltas must pair" invariant is gone; a re-derive can't drift). The wearer must be
-// attribute-driven (carry Attributes) for mods to apply; today only the player equips.
-// NOTE: unlike the old delta path, a +maxHp item raises the cap but does NOT auto-heal
-// (recompute only clamps a now-over-max resource down). A Container's capacity bonus is
-// still a direct Inventory.capacity delta (not a Stat, not attribute-derived). A plain
-// system object (the project's System pattern).
+// Pure operations on an entity's Equipment + Stats + Inventory (no world tick). Equipped items STAY
+// in the Inventory (still counting toward capacity/maxWeight); the slot only references their uid.
+// On equip/unequip the derived Stats are REBUILT from source via StatModel.recompute (folds every
+// equipped item's mods onto the attribute base) — no +/- delta to keep balanced, so it can't drift.
+// Wearer must carry Attributes for mods to apply (today only the player). Note: a +maxHp item raises
+// the cap but does NOT auto-heal (recompute only clamps over-max down). A Container's capacity bonus
+// stays a direct Inventory.capacity delta.
 globalThis.EquipmentSystem = {
-  // Equip the instance with this `uid` onto entity `id` (the item stays in its Inventory).
-  // Returns true on success. Fails (false) if the uid isn't owned, its item isn't equippable,
-  // or it's already equipped. If the slot holds a different instance, that one is unequipped
-  // first. (To equip "some instance of an itemId" — e.g. the hotbar — use equipFirst.)
+  // Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
+  // or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
+  // — e.g. the hotbar — use equipFirst.)
   equip(world, id, uid) {
     const inv = world.get(Inventory, id);
     const eq = world.get(Equipment, id);
@@ -30,14 +23,13 @@ globalThis.EquipmentSystem = {
 
     if (eq.slots[eqp.slot] !== "") this.unequip(world, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
-    StatModel.recompute(world, id); // re-derive WITH the newly equipped instance's mods folded in
+    StatModel.recompute(world, id); // re-derive with the equipped mods folded in
     this._applyContainer(world, id, item, 1);
     return true;
   },
 
-  // Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: the starting-gear
-  // seed and the hotbar, which only know an itemId). No-op-false if none is owned or it's not
-  // equippable. Returns true on success.
+  // Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
+  // hotbar, which only know an itemId). False if none owned / not equippable.
   equipFirst(world, id, itemId) {
     const inv = world.get(Inventory, id);
     if (inv === undefined) return false;
@@ -48,9 +40,8 @@ globalThis.EquipmentSystem = {
     return false;
   },
 
-  // Unequip whatever occupies `slot` — the item stays in the Inventory; only the
-  // reference and its Stat mods are cleared. Returns the unequipped instance uid, or ""
-  // if the slot was empty.
+  // Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
+  // Returns the unequipped uid, or "" if empty.
   unequip(world, id, slot) {
     const eq = world.get(Equipment, id);
     if (eq === undefined) return "";
@@ -67,15 +58,13 @@ globalThis.EquipmentSystem = {
     return uid;
   },
 
-  // ── Weapon composition (the equipped weapon's resolved attack profile) ─────────────────────────
-  // Kinetic-power tuning (gun branch): power = ammoPower + KIN_K * mass * (velocity / KIN_REF)^2, so a
-  // faster/heavier round hits harder (velocity squared rewards speed). Tuned so the blaster + a light
-  // round lands ≈ its legacy flat damage; both are content-tunable.
+  // Weapon composition. Kinetic-power tuning (gun): power = ammoPower + KIN_K * mass *
+  // (velocity/KIN_REF)^2 — velocity squared rewards speed. Content-tunable.
   KIN_K: 0.75,
   KIN_REF: 600,
 
-  // The equipped weapon's live Inventory SLOT (the instance carrying uid/mods/ammo/rounds), or null.
-  // The controller needs the real slot — not a composed copy — to decrement `rounds` on a shot.
+  // The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
+  // controller needs the real slot — not a copy — to decrement `rounds` on a shot.
   weaponSlot(world, id) {
     const eq = world.get(Equipment, id);
     if (eq === undefined) return null;
@@ -87,21 +76,16 @@ globalThis.EquipmentSystem = {
     return slot ?? null;
   },
 
-  // Composed attack profile of the equipped weapon, or null when unarmed / not a weapon → the caller
-  // (controller) falls back to its own unarmed defaults. Convenience over weaponSlot + composeWeapon.
+  // Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
+  // unarmed defaults. Convenience over weaponSlot + composeWeapon.
   weaponProfile(world, id) {
     const slot = this.weaponSlot(world, id);
     return slot !== null ? this.composeWeapon(slot) : null;
   },
 
-  // Fold an instance weapon SLOT into a FRESH composed profile. Branches on whether the item is a Gun
-  // (Item.hasComponent(Gun)):
-  //   • gun   → the loaded Ammo's base stats run through the gun-base ops + each installed
-  //             attachment's ops, then the kinetic power term → { kind:"gun", power, velocity, mass,
-  //             penetration, fireCd, magazine, ammo, rounds, noAmmo }.
-  //   • melee → the Weapon's damage/reach/fireCd run through the attachment ops →
-  //             { kind:"melee", damage, reach, fireCd }.
-  // Never mutates the item def. `slot.mods` is the named-slot map { slotId -> attachmentItemId }.
+  // Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
+  // ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
+  // damage/reach/fireCd → attachment ops → { kind:"melee", ... }.
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);
     if (item === undefined) return null;
@@ -112,8 +96,7 @@ globalThis.EquipmentSystem = {
     return this._composeMelee(slot, wpn);
   },
 
-  // Top up the EQUIPPED gun's magazine from the bag's ammo reserve (the controller's R / auto-reload).
-  // Returns rounds loaded. Resolves the equipped slot + bag, then delegates to reloadSlot.
+  // Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
   reload(world, id) {
     const slot = this.weaponSlot(world, id);
     if (slot === null) return 0;
@@ -122,17 +105,15 @@ globalThis.EquipmentSystem = {
     return this.reloadSlot(inv, slot);
   },
 
-  // Top up a specific gun instance's magazine from `inv`'s reserve of its loaded ammo. Pulls
-  // min(magazine - rounds, owned). Returns how many were loaded (0 if not a gun / nothing loaded /
-  // clip full / no reserve). The slot variant so the workbench panel can reload a SELECTED weapon
-  // that isn't the equipped one.
+  // Top up a specific gun instance's magazine from `inv`'s ammo reserve (min(need, owned)). The slot
+  // variant so the workbench panel can reload a SELECTED weapon that isn't equipped.
   reloadSlot(inv, slot) {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
     if (gun === undefined) return 0;
     if (slot.ammo === undefined || slot.ammo === "") return 0;
     if (slot.rounds === undefined) slot.rounds = 0;
-    const cap = this.composeWeapon(slot).magazine; // composed clip (extended-mag attachment)
+    const cap = this.composeWeapon(slot).magazine; // composed clip (incl. extended-mag attachment)
     const need = cap - slot.rounds;
     if (need <= 0) return 0;
     const have = InventorySystem.count(inv, slot.ammo);
@@ -143,7 +124,7 @@ globalThis.EquipmentSystem = {
     return take;
   },
 
-  // Load an ammo type into the EQUIPPED gun (caliber-gated), then top up. Delegates to loadAmmoSlot.
+  // Load an ammo type into the equipped gun (caliber-gated), then top up.
   loadAmmo(world, id, ammoItemId) {
     const slot = this.weaponSlot(world, id);
     if (slot === null) return false;
@@ -152,9 +133,8 @@ globalThis.EquipmentSystem = {
     return this.loadAmmoSlot(inv, slot, ammoItemId);
   },
 
-  // Load an ammo type into a specific gun instance (gated by caliber match), then top up the
-  // magazine. Switching to a different type refunds the currently-chambered rounds to `inv` first (so
-  // a swap doesn't lose loaded rounds). Returns true if loaded. The slot variant (see reloadSlot).
+  // Load an ammo type into a specific gun instance (caliber-gated), then top up. Switching type
+  // refunds the chambered rounds to `inv` first so a swap doesn't lose them. The slot variant.
   loadAmmoSlot(inv, slot, ammoItemId) {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
@@ -174,7 +154,7 @@ globalThis.EquipmentSystem = {
     return true;
   },
 
-  // The installed-attachment ops layers for an instance slot, in slot-map order (order-independent).
+  // Installed-attachment ops layers for an instance slot (order-independent).
   _modLayers(slot) {
     const layers = [];
     const mods = slot.mods;
@@ -209,8 +189,8 @@ globalThis.EquipmentSystem = {
     const ammo =
       ammoItem !== undefined ? ammoItem.getComponent(Ammo) : undefined;
 
-    // Base = loaded ammo's projectile stats (0 with no ammo) + the gun's fireCd/magazine. fireCd may
-    // be undefined (the controller falls back to its default), so _applyOps leaves it undefined.
+    // Base = loaded ammo stats (0 with no ammo) + gun fireCd/magazine. fireCd may be undefined
+    // (controller defaults it), so _applyOps leaves it undefined.
     const base = {
       mass: ammo !== undefined ? ammo.mass : 0,
       velocity: ammo !== undefined ? ammo.velocity : 0,
@@ -254,11 +234,9 @@ globalThis.EquipmentSystem = {
     };
   },
 
-  // Apply operator layers over a base map. Each layer is { field: { add?, mul? } }; per field the
-  // result is (base + Σadd) · Πmul (order-independent additive-then-multiplicative stacking). A field
-  // whose base is undefined is left undefined (ops can't fabricate a value the base never declared —
-  // mirrors the old "only delta declared fields" rule; the controller defaults it). for...in / index
-  // loops only — GMRT-safe.
+  // Apply operator layers over a base map: per field, (base + Σadd) · Πmul (order-independent). A
+  // field whose base is undefined stays undefined — ops can't fabricate a value the base never
+  // declared (the controller defaults it). Index loops only — GMRT-safe.
   _applyOps(base, layers, fields) {
     const out = {};
     for (let f = 0; f < fields.length; f++) {
@@ -281,11 +259,8 @@ globalThis.EquipmentSystem = {
     return out;
   },
 
-  // Add (sign +1) or remove (sign -1) an item's Container capacity bonus to/from
-  // the owner's Inventory.capacity. No-op if the item has no Container. Like mods,
-  // equip/unequip always pair, so the delta stays balanced. Items already held
-  // beyond a reduced capacity simply stay — add() just refuses new ones until
-  // the count drops back under it.
+  // Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
+  // Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
   _applyContainer(world, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;

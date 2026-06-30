@@ -1,20 +1,8 @@
-/**
- * @implements {UIComponent}
- * UIDropdown — a combobox field: shows the current selection, and on click (or nav
- * confirm) drops a popup list to pick a new one. Unlike UISelect (which cycles in
- * place with `< >`), this opens a list — the better fit when there are many options
- * (resolutions, locales).
- *
- * This component owns only the CLOSED field + the selection state. Building the popup
- * list is delegated to an injected `onOpen(dropdown, fieldElement)` callback so this
- * Core widget stays theme-agnostic — the popup's look/position/animation is the GemsUI
- * kit's concern (see gemsDropdown). The opener builds a positioned UIModal root (which
- * blocks the rows behind it, draws on top, closes on outside-click/Esc, and is UINav-
- * navigable for free) and calls `notifyClosed()` when it dismisses. Mirrors how
- * VirtualKeyboard delegates its on-screen keyboard to a gemsModal.
- *
- * items: [{ name, value }] — same shape as UISelect.
- */
+// Combobox field — opens a popup list to pick (vs UISelect's in-place `< >` cycle), the
+// better fit for many options. Owns only the closed field + selection; the popup is built
+// by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic (gemsDropdown
+// supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
+/** @implements {UIComponent} */
 globalThis.UIDropdown = class UIDropdown {
   /** @param {Object} [dd] { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
   constructor(dd = {}) {
@@ -37,19 +25,15 @@ globalThis.UIDropdown = class UIDropdown {
     this._hold = false;
   }
 
-  // A METHOD, not a `get index()` accessor: on GMRT 0.20, reading an instance getter
-  // *named `index`* faults with "cannot coerce undefined or null value into object"
-  // (even though it just returns a stored field, and sibling getters value/name work) —
-  // `index` is special in GameMaker. Pairs with setIndex(). See CLAUDE.md GMRT-Safe Idioms.
+  // METHOD not `get index()`: a getter named `index` faults on GMRT 0.20 (shadows a GM
+  // built-in) even returning a stored field. Pairs with setIndex(). See CLAUDE.md.
   /** @returns {number} the selected index */
   getIndex() {
     return this._index;
   }
 
-  // value/name are METHODS, not get accessors, for the same GMRT 0.20 reason as getIndex()
-  // above: `getValue` because a `get value()` accessor faults like `index` (both names shadow
-  // GameMaker built-ins). `get name()` happened to work, but the whole selection surface is
-  // exposed as get*() methods for consistency and to dodge any further reserved-name landmine.
+  // getValue/getName are methods for the same reason as getIndex: a `get value()` accessor
+  // faults like `index` (both shadow GM built-ins). get name() worked but stays a method too.
   /** @returns {*} the selected item's value (undefined if empty) */
   getValue() {
     const item = this.items[this._index];
@@ -69,8 +53,7 @@ globalThis.UIDropdown = class UIDropdown {
     return this;
   }
 
-  // The opener calls this when the popup is dismissed, so the field flips the chevron
-  // back and allows re-opening.
+  // opener calls this on dismiss — flips the chevron back and re-allows opening.
   notifyClosed() {
     this._open = false;
   }
@@ -112,7 +95,7 @@ globalThis.UIDropdown = class UIDropdown {
     draw_set_valign(fa_middle);
     const cy = pos.top + pos.height * 0.5;
 
-    // Current value (or the placeholder when nothing is selected / list is empty).
+    // current value, or placeholder when nothing is selected / list is empty.
     const label = this.getName();
     const has = label !== "";
     draw_set_halign(this.halign);
@@ -125,7 +108,7 @@ globalThis.UIDropdown = class UIDropdown {
           : pos.left + this.padX;
     draw_text(tx, cy, has ? label : this.placeholder);
 
-    // Chevron at the right edge (via drawUIArrow): down when closed, up when open.
+    // chevron: down when closed, up when open.
     const ah = 4;
     drawUIArrow(
       pos.left + pos.width - this.padX - ah,
@@ -141,9 +124,8 @@ globalThis.UIDropdown = class UIDropdown {
     draw_set_color(color);
   }
 
-  // UINav: confirm opens the list (its presence also marks the field focusable). No
-  // navAxis — a dropdown opens a list rather than cycling in place (use UISelect for
-  // a left/right cycler).
+  // UINav: confirm opens the list; presence marks the field focusable. No navAxis — use
+  // UISelect for a left/right cycler.
   /** @param {UIElement} element */
   navActivate(element) {
     this._toggle(element);

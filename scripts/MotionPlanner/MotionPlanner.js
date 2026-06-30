@@ -6,10 +6,8 @@ globalThis.MP_ALGORITHM = Object.freeze({
 });
 
 /**
- * Static A* planner over a `MotionPlanningGrid` (`size`/`inBounds`/`get`/`toIndex`/
- * `toPosition`; cost Infinity = blocked). `setGrid` allocates the reusable scratch
- * arrays sized to the grid, so it's called once per grid and `plan` reuses them.
- * Consumers: `PathfindingSystem` (over `Level.mpg` or a `NavGrid` window).
+ * Static A* planner over a `MotionPlanningGrid` (cost Infinity = blocked). `setGrid` allocates
+ * reusable scratch arrays once per grid; `plan` reuses them. Consumer: `PathfindingSystem`.
  */
 globalThis.MotionPlanner = class MotionPlanner {
   static SQRT_2 = Math.sqrt(2);

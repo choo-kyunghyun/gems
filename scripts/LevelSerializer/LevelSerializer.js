@@ -3,9 +3,8 @@ globalThis.LevelSerializer = {
 
   /**
    * Load and validate a level file.
-   * @param {string} path
-   * @param {{ genre?: string }} [opts]
-   * @returns {object|null} parsed level data, or null on error
+   * @param {string} path @param {{ genre?: string }} [opts]
+   * @returns {object|null} parsed data, or null on error
    */
   load(path, opts = {}) {
     const raw = File.read(path);
@@ -13,10 +12,9 @@ globalThis.LevelSerializer = {
       Log.error(`LevelSerializer: file not found: ${path}`);
       return null;
     }
-    // NOTE: native JSON.parse is unreliable on large/deeply-nested level JSON (drops
-    // trailing fields / faults non-deterministically — the parse-side sibling of the
-    // JSON.stringify nested fault). It works on the current hand-authored levels but is a
-    // known blocker for bigger levels / editor exports; the loader strategy is unresolved.
+    // native JSON.parse is unreliable on large/nested level JSON (drops fields / faults
+    // non-deterministically — parse-side sibling of the JSON.stringify nested fault). works
+    // on current hand-authored levels but blocks bigger levels / editor exports.
     const data = JSON.parse(raw);
     if (opts.genre !== undefined && data.genre !== opts.genre) {
       Log.error(
@@ -40,14 +38,10 @@ globalThis.LevelSerializer = {
   },
 
   /**
-   * Serialize level data to an INDENTED JSON string. Native JSON.stringify hard-faults on
-   * nested objects/arrays (see SaveData header), so we hand-roll the encoding, calling
-   * native JSON.stringify only on scalar leaves. Output is 2-space indented (objects +
-   * non-scalar arrays multi-line; scalar arrays like [x,y,w,h] inline) for human-readable,
-   * diff-friendly, hand-editable level files — matching the hand-authored ones.
-   * Object.keys is GMRT-safe (cf. Level.export).
-   * @param {object} data
-   * @returns {string}
+   * Serialize to indented JSON. Native JSON.stringify faults on nested objects/arrays (see
+   * SaveData), so hand-roll the encoding, calling native stringify only on scalar leaves.
+   * 2-space indent (scalar arrays inline) keeps level files diff-friendly + hand-editable.
+   * @param {object} data @returns {string}
    */
   serialize(data) {
     return LevelSerializer._enc(data, "");
@@ -56,15 +50,14 @@ globalThis.LevelSerializer = {
   _enc(v, indent) {
     if (v === null || v === undefined) return "null";
     const t = typeof v;
-    // Scalars: native stringify on a string/number/bool is safe and handles escaping.
+    // native stringify on a scalar is safe + handles escaping
     if (t === "string") return JSON.stringify(v);
     if (t === "number" || t === "boolean") return String(v);
 
     const ni = indent + "  ";
     if (Array.isArray(v)) {
       if (v.length === 0) return "[]";
-      // Arrays of pure scalars (e.g. a [x,y,w,h] rect) stay inline; arrays holding
-      // objects/arrays (walls, spawns, loot) go multi-line so no single line gets long.
+      // pure-scalar arrays (e.g. [x,y,w,h]) stay inline; object/array elements go multi-line
       let scalar = true;
       for (let i = 0; i < v.length; i++) {
         const e = v[i];
@@ -89,7 +82,7 @@ globalThis.LevelSerializer = {
       return out + "\n" + indent + "]";
     }
 
-    // Plain object — one key per line.
+    // plain object — one key per line
     const keys = Object.keys(v);
     if (keys.length === 0) return "{}";
     let out = "{\n";
@@ -104,12 +97,7 @@ globalThis.LevelSerializer = {
     return out + "\n" + indent + "}";
   },
 
-  /**
-   * Write level data to a file as JSON (via the manual serializer above).
-   * @param {string} path
-   * @param {object} data
-   * @returns {boolean}
-   */
+  /** @param {string} path @param {object} data @returns {boolean} */
   save(path, data) {
     return File.write(path, LevelSerializer.serialize(data));
   },

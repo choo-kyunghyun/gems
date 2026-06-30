@@ -1,9 +1,6 @@
-// Blob8 autotile lookup table (256 entries → 0-46 frame index).
-// Bit layout: N=1, E=2, S=4, W=8, NE=16, SE=32, SW=64, NW=128.
-// Corner bits are only counted when both adjacent cardinals are set; the 47
-// unique normalized bitmasks are numbered in first-appearance order over masks
-// 0-255. Precomputed as a literal: GMRT's interpreter fails to bind the scope
-// of functions nested inside a top-level IIFE, so this can't be built at load.
+// blob8 autotile table (256 → 0-46 frame). N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
+// corner bits only count when both adjacent cardinals are set.
+// precomputed literal — GMRT can't bind closures nested in a top-level IIFE.
 // prettier-ignore
 const _BLOB8 = [
    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
@@ -26,19 +23,16 @@ const _BLOB8 = [
 
 /**
  * @typedef {Object} RenderTileMapOptions
- * @property {0|16|47|"dual"|"corner"} [autotile] - 0: use TileType.id as frame, 16: blob4, 47: blob8,
- *   "dual": dual-grid corner sampling (16-frame, half-cell offset). The blob modes draw one
- *   tile per filled cell against empty; "dual" samples the 4 cells touching each grid corner,
- *   so a tile's empty corners stay transparent — stack several dual passes (one TileLayer per
- *   terrain) in priority order to get RPG-Maker-style A-over-B transitions.
- *   "corner": sub-tile autotiling — draws one filled cell as 4 half-cell quadrants, each picked
- *   from a 13-frame piece sprite by the 3 neighbors touching that corner (frame order: 0 fill,
- *   1-4 outer TL/TR/BR/BL, 5/6 edge top/bottom, 7/8 edge left/right, 9-12 inner TL/TR/BR/BL).
- *   Reproduces the full blob8 look from 13 pieces and covers all 256 masks (no _BLOB8 table).
+ * @property {0|16|47|"dual"|"corner"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
+ *   "dual": half-cell-offset grid; samples 4 cells per display corner (TL=1 TR=2 BR=4 BL=8 →
+ *   frame); transparent corners let lower terrain show through — stack dual passes per terrain
+ *   for RPG-Maker-style A-over-B transitions.
+ *   "corner": sub-tile; each filled cell drawn as 4 half-cell quads from a 13-piece sprite picked
+ *   by the 3 neighbors at that corner (0 fill, 1-4 outer TL/TR/BR/BL, 5-6 edge top/bottom,
+ *   7-8 edge left/right, 9-12 inner TL/TR/BR/BL). covers all 256 masks without _BLOB8.
  * @property {number} [alpha]
  * @property {number} [color]
- * @property {boolean} [softEdge] - per-vertex alpha blending at tile boundaries (RimWorld style).
- *   Per-cell modes only; ignored for "dual" (its corner art already carries the edge transparency).
+ * @property {boolean} [softEdge] - per-vertex alpha at tile edges; per-cell modes only, ignored for "dual".
  */
 
 /** @implements {RenderPass} */
@@ -89,7 +83,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     return !!this.layer.get(x, y);
   }
 
-  // Out-of-bounds is treated as solid so map edges don't produce soft edges.
+  // OOB counts as solid so map edges don't produce soft-edge bleeds
   _isSolidOrOOB(x, y) {
     const { cols, rows } = this.level;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
@@ -104,12 +98,9 @@ globalThis.RenderTileMap = class RenderTileMap {
       : 0;
   }
 
-  // sprite_get_uvs returns trim metadata in [4..7]: the texture packer crops each
-  // frame's transparent border, so the UV rect [0..3] covers only the opaque region.
-  // Honour the offset/size factors so a trimmed quad isn't stretched to fill the cell
-  // (which rendered border vs interior tiles at different sizes). When a frame isn't
-  // trimmed, offsets are 0 and ratios 1, so this reduces to the full-cell quad.
-  // Returns [x, y, w, h, u0, v0, u1, v1].
+  // honour sprite_get_uvs trim data [4..7] so texture-packer-cropped frames don't stretch to fill
+  // the cell. untrimmed frames have offsets=0 ratios=1, reducing to a full-cell quad.
+  // returns [x, y, w, h, u0, v0, u1, v1].
   _quad(frame, wx, wy, cw, ch) {
     const uvs = sprite_get_uvs(this.sprite, frame);
     const sw = sprite_get_width(this.sprite);
@@ -136,9 +127,8 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _blob8(x, y) {
-    // GMRT miscompiles cached primitive-bool locals (south "not defined" at
-    // runtime) — test _isSolid inline like _blob4 and read cardinals back off
-    // the mask bits for the diagonal checks (N=1, E=2, S=4, W=8).
+    // GMRT miscompiles cached primitive-bool locals — test _isSolid inline and read
+    // cardinals back off the mask bits for diagonal checks (N=1 E=2 S=4 W=8).
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
     if (this._isSolid(x + 1, y)) mask |= 2;
@@ -215,11 +205,8 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
-  // Dual-grid: the display grid is offset by half a cell so each display tile is
-  // centered on a data-grid corner and covers the 4 cells touching that corner.
-  // Corner bits: TL=1, TR=2, BR=4, BL=8 → frame index = mask (0-15, like blob4).
-  // Empty corners read transparent in the art, so stacking dual passes per terrain
-  // (lower terrain first) shows the lower one through the upper one's borders.
+  // dual-grid: display tile centered on each data-grid corner, sampling 4 touching cells.
+  // TL=1 TR=2 BR=4 BL=8 → frame = mask. transparent corners let lower terrain show through.
   _rebuildDual() {
     const { level, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = level;
@@ -231,7 +218,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._tex = sprite_get_texture(sprite, 0);
 
     this._vbuf.begin();
-    // Corner points run 0..cols and 0..rows inclusive (one extra row/col of tiles).
+    // one extra row/col of corner points (0..cols and 0..rows inclusive)
     for (let j = 0; j <= rows; j++) {
       for (let i = 0; i <= cols; i++) {
         let mask = 0;
@@ -265,11 +252,8 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
-  // Sub-tile (corner) autotiling: each filled cell is drawn as 4 half-cell quadrants, every
-  // quadrant's 8×8 piece picked independently from the 3 neighbors touching that corner. The
-  // 13-piece set reproduces all 256 blob8 masks, so this needs no _BLOB8 table. Piece frames:
-  //   0 fill · 1-4 outer TL/TR/BR/BL · 5 edge-top · 6 edge-bottom · 7 edge-left · 8 edge-right
-  //   · 9-12 inner TL/TR/BR/BL.  Neighbor mask bits: N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
+  // corner sub-tile: each filled cell as 4 half-cell quads, each piece picked by 3 neighbors.
+  // 13-piece set covers all 256 masks without _BLOB8. N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
   _rebuildCorner() {
     const { layer, level, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = level;
@@ -284,8 +268,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         if (!layer.get(x, y)) continue;
-        // Build one int mask of the 8 neighbors (no cached primitive-bool locals — GMRT
-        // miscompiles those; see _blob8). Corner selectors read bits back off this int.
+        // one int mask of all 8 neighbors — no cached bool locals (GMRT miscompiles; see _blob8)
         let m = 0;
         if (this._isSolid(x, y - 1)) m |= 1;
         if (this._isSolid(x + 1, y)) m |= 2;
@@ -323,11 +306,9 @@ globalThis.RenderTileMap = class RenderTileMap {
     );
   }
 
-  // Each selector reads the two cardinals + the diagonal touching its corner: both cardinals
-  // empty → outer corner; one cardinal → straight edge; both cardinals, diagonal empty → inner
-  // corner; all three → fill. Bits are read INLINE off the mask int each test (no `const N = m&1`
-  // locals): GMRT miscompiles cached primitive-bool-ish locals reused across a function, which
-  // flipped the inner-corner branch at runtime (correct offline, wrong in-engine). See _blob8.
+  // per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
+  // bits read INLINE each test (no `const N = m&1`) — GMRT miscompiles cached bool locals (flipped the
+  // inner-corner branch in-engine). See _blob8.
   _cornerTL(m) {
     if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
     if (m & 1 && !(m & 8)) return 7; // N solid → left edge

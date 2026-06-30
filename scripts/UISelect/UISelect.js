@@ -1,6 +1,4 @@
-// Inline value cycler: shows the current item's name between ◀ / ▶ arrows; clicking the left
-// half steps back, the right half forward. Holds its own index and fires onChange. (UIDropdown
-// is the popup-list counterpart for many options.)
+// ◀ / ▶ inline cycler — left half steps back, right forward. UIDropdown is the popup alternative for many options.
 /** @implements {UIComponent} */
 globalThis.UISelect = class UISelect {
   /** @param {Object} [select] { items: {name,value}[], index, onChange, color, arrowColor, arrowHover, font, halign, valign } */
@@ -9,8 +7,6 @@ globalThis.UISelect = class UISelect {
     this._index = select.index ?? 0;
     this.onChange = select.onChange ?? noop;
     this.color = select.color ?? c_white;
-    // Triangle arrow affordances drawn at each edge (◀ / ▶); brighten on the hovered
-    // side so the player reads it as a left/right cycler.
     this.arrowColor = select.arrowColor ?? c_gray;
     this.arrowHover = select.arrowHover ?? c_white;
     this.font = select.font ?? -1;
@@ -81,7 +77,6 @@ globalThis.UISelect = class UISelect {
     if (this._enter && UIPointer.pressed) this._hold = true;
 
     if (UIPointer.released) {
-      // Left half steps back, right half steps forward.
       if (this._hold && this._enter) {
         if (this._side < 0) this.retreat();
         else this.advance();
@@ -110,7 +105,6 @@ globalThis.UISelect = class UISelect {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // Left / right step arrows via the shared drawUIArrow helper.
     const ah = 5;
     drawUIArrow(
       pos.left + pad + ah,
@@ -127,7 +121,6 @@ globalThis.UISelect = class UISelect {
       this._side > 0 ? this.arrowHover : this.arrowColor,
     );
 
-    // Current value, centered.
     draw_set_halign(this.halign);
     draw_set_color(this.color);
     draw_text(pos.left + pos.width * 0.5, cy, this.name);
@@ -138,8 +131,7 @@ globalThis.UISelect = class UISelect {
     draw_set_color(color);
   }
 
-  // UINav: left/right cycles the value (so horizontal nav adjusts instead of moving
-  // focus); confirm advances. Both mark the element focusable.
+  // UINav: horizontal nav adjusts value instead of moving focus; confirm advances.
   /** @param {UIElement} element @param {number} dir -1 / +1 */
   navAxis(element, dir) {
     if (dir < 0) this.retreat();

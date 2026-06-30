@@ -1,15 +1,9 @@
-// ── GemsUI kit: containers ────────────────────────────────────
-// Layout/structure factories. See GemsTheme.js for the kit overview + the GMRT
-// globalThis-assignment rule (keep new factories in `globalThis.X = function X` form).
+// ── GemsUI kit: containers ───────────────────────────────────
+// Layout/structure factories. Keep new factories as `globalThis.X = function X` — GMRT globalThis rule.
 
-// Full-screen scene root: insert it into UI, hang everything else off it.
-//
-// With `opts.maxWidth`, the content is centered in a column capped at that width — the
-// menu look (no full-bleed buttons/sliders on a wide display). The returned wrapper
-// stays full-screen (so it's the UI root), but `insertChild` is redirected to the inner
-// column, so callers keep doing `root.insertChild(...)` unchanged. Without `maxWidth`,
-// it's a plain full-bleed root — what gameplay scenes want (an absolute-positioned HUD
-// anchors to the whole screen, not a centered column).
+// Full-screen scene root. With `opts.maxWidth`, content is centered in a capped column
+// (menu look); `insertChild` is redirected to the inner column so callers are unaffected.
+// Without `maxWidth`, plain full-bleed — for HUDs that must anchor to the whole screen.
 globalThis.gemsRoot = function gemsRoot(opts = {}) {
   if (opts.maxWidth == null) {
     return new UIElement({
@@ -23,24 +17,24 @@ globalThis.gemsRoot = function gemsRoot(opts = {}) {
     width: "100%",
     height: "100%",
     padding: opts.padding ?? GemsTheme.pad,
-    alignItems: "center", // center the content column horizontally
+    alignItems: "center",
   });
   const col = new UIElement({
     width: "100%",
     maxWidth: opts.maxWidth,
-    height: "100%", // fill vertically so a grow scroll can take the middle
+    height: "100%",
     gap: opts.gap ?? GemsTheme.gap,
   });
   wrap.insertChild(col);
   wrap.content = col;
-  // Redirect inserts to the centered column (callers treat the wrapper as the root).
+  // redirect inserts so callers treat the wrapper as the root
   wrap.insertChild = function (child, index) {
     return col.insertChild(child, index);
   };
   return wrap;
 };
 
-// Vertical stack (the default flexpanel direction).
+// Vertical stack.
 globalThis.gemsList = function gemsList(opts = {}) {
   return new UIElement({
     width: opts.width ?? "100%",
@@ -49,7 +43,7 @@ globalThis.gemsList = function gemsList(opts = {}) {
   });
 };
 
-// Horizontal wrapping row — for button bars / icon grids.
+// Horizontal wrapping row — button bars / icon grids.
 globalThis.gemsGrid = function gemsGrid(opts = {}) {
   return new UIElement({
     width: opts.width ?? "100%",
@@ -59,13 +53,13 @@ globalThis.gemsGrid = function gemsGrid(opts = {}) {
   });
 };
 
-// Bare rounded panel. `card: true` (the default via gemsCard) adds shadow + border.
+// Bare rounded panel. gemsCard adds shadow + border.
 globalThis.gemsPanel = function gemsPanel(opts = {}) {
   const el = new UIElement({
     width: opts.width ?? "100%",
     padding: opts.padding ?? GemsTheme.pad,
     gap: opts.gap ?? GemsTheme.gapSm,
-    flexGrow: opts.flexGrow ?? 0, // opt-in fill (e.g. a resizable gemsWindow's card)
+    flexGrow: opts.flexGrow ?? 0,
   });
   el.addComponent(
     new UIPanel({
@@ -98,10 +92,9 @@ globalThis.gemsCard = function gemsCard(opts = {}) {
   });
 };
 
-// Sprite-skinned panel: same content box as gemsPanel, but the background is a
-// nine-slice sprite frame (spr_uibox by default) instead of a drawn roundrect — so
-// the kit can wear hand-drawn skins. The sprite's IDE nine-slice keeps the border
-// crisp at any size. `color` tints the frame (theme key / hex / int).
+// Sprite-skinned panel — gemsPanel's content box over a nine-slice sprite frame
+// (spr_uibox default) instead of a drawn roundrect, so the kit can wear hand-drawn
+// skins. `color` tints the frame (theme key / hex / int).
 globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
   const el = new UIElement({
     width: opts.width ?? "100%",
@@ -119,19 +112,13 @@ globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
   return el;
 };
 
-// Scroll viewport. Insert items into the returned element's `.scrollBody` (a
-// flexShrink-0 column that overflows + scrolls); insert the viewport itself into the
-// layout. Clips via surface, scrolls via draw-time offset (wheel + drag-thumb) — no
-// flex mutation. The keystone for list-heavy scenes given the display/2 GUI clamp.
-// `opts.height` fixes the viewport; `opts.grow` instead lets it flex-fill the space
-// between siblings (e.g. a menu body between a header and a back button).
+// Scroll viewport. Add items to the returned element's `.scrollBody`; insert the
+// viewport into the layout. Clips via surface, scrolls via draw-time offset — no flex
+// mutation. `opts.height` fixes the viewport; `opts.grow` flex-fills between siblings.
 globalThis.gemsScroll = function gemsScroll(opts = {}) {
-  // Reserve the scrollbar gutter as the body's right padding so right-aligned children (slider
-  // value readouts, dropdown chevrons) lay out LEFT of the bar instead of being clipped under it:
-  // the viewport's clip drops this same gutter from the content area (UIScroll.clipInsetRight),
-  // but the body otherwise fills the full viewport width, so without the inset its right edge gets
-  // shaved when the scrollbar is present (worsening with uiScale, as the clip scales by window/gui).
-  // Must mirror UIScroll's clipInsetRight = barW + barPad*2 (barPad defaults to 4 there).
+  // reserve the scrollbar gutter as right padding so right-aligned children lay out LEFT
+  // of the bar (the clip drops this same gutter); must mirror UIScroll.clipInsetRight =
+  // barW + barPad*2 (barPad defaults to 4).
   const gutter = (opts.barW ?? 8) + 8;
   const body = new UIElement({
     width: "100%",
@@ -165,12 +152,11 @@ globalThis.gemsScroll = function gemsScroll(opts = {}) {
   return viewport;
 };
 
-// Modal dialog: a dimmed full-screen root (top of the UI stack) + a centered card
-// with an optional title, a body (string/() => string, or a prebuilt UIElement), and
-// a right-aligned button row. Each button runs its onClick then closes the modal
-// unless `keepOpen`. Returns the UIModal handle — call `.close()` to dismiss; it also
-// closes on Escape or a backdrop click. `opts`: { title, body, buttons:[{label,
-// onClick, primary, keepOpen, width}], width, dim, closeOnBackdrop, closeOnEscape }.
+// Modal dialog: dimmed full-screen root + centered card (title, body, right-aligned
+// button row). Each button runs onClick then closes unless `keepOpen`. Returns the
+// UIModal handle (`.close()`); also closes on Escape / backdrop click. `opts`: { title,
+// body, buttons:[{label, onClick, primary, keepOpen, width}], width, dim,
+// closeOnBackdrop, closeOnEscape }.
 globalThis.gemsModal = function gemsModal(opts = {}) {
   const root = new UIElement({
     width: "100%",
@@ -193,12 +179,11 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   root.addComponent(modal);
 
   const card = gemsCard({ width: opts.width ?? 440 });
-  // Swallow clicks anywhere on the card so they don't read as a backdrop dismiss.
+  // swallow card clicks so they don't read as a backdrop dismiss
   card.addComponent(new UITrigger({}));
 
-  // Labels self-size their element (UIText sets width/height in onUpdate, which the
-  // flexpanel layout now applies on GMRT 0.20), so a label is inserted directly — no
-  // fixed-height wrapper row is needed to stop the button row collapsing over it.
+  // labels self-size (UIText sets width/height in onUpdate, applied by flexpanel on
+  // GMRT 0.20), so insert directly — no fixed-height wrapper row needed.
   if (opts.title != null) {
     card.insertChild(
       gemsLabel(opts.title, {
@@ -242,16 +227,12 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   return modal;
 };
 
-// Draggable window: an absolute-positioned card with a title bar you can grab to move
-// the whole window (UIDrag → window.dragX/dragY → getLayoutPosition offset, never flex
-// mutation), plus an optional close button. Insert content into the returned wrapper's
-// `.body` column (e.g. a gemsScroll or fixed-height rows). Toggle visibility via the
-// wrapper's `.enabled`. The body's widgets stay UINav-navigable; only the title bar
-// drag is mouse-only. `opts`: { left, top, width, titleH, onClose, padding }.
+// Draggable window: a grab-to-move card (UIDrag → offset, never flex mutation) + an
+// optional close button. Add content to the wrapper's `.body`; toggle visibility via
+// `.enabled`. `opts`: { left, top, width, titleH, onClose, padding }.
 globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
-  // Full-screen, out-of-flow host that horizontally centers the window and pins it `top`
-  // px from the top. It re-centers when the GUI is resized (live uiScale), so callers no
-  // longer compute an absolute left from display_get_gui_width() (which would go stale).
+  // out-of-flow host that centers the window and re-centers on a GUI resize (live
+  // uiScale), so callers don't compute a stale absolute left from gui width
   const host = new UIElement({
     positionType: "absolute",
     left: 0,
@@ -262,27 +243,25 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
     paddingTop: opts.top ?? 40,
   });
 
-  // Windows are draggable AND resizable by default (a bottom-right grip; opt out with
-  // resizable:false). Resize mutates the window's flexpanel width/height live (UIResize),
-  // so the card + body flex-grow to fill it; an explicit `opts.height` gives a fixed
-  // starting size (needed when the content itself flex-grows, e.g. a grow table/tabs),
-  // otherwise the window starts content-sized and becomes fixed-size on the first resize.
+  // resizable by default (bottom-right grip; opt out with resizable:false). UIResize
+  // mutates width/height live so card + body flex-grow to fill; `opts.height` fixes the
+  // start size (needed when content itself flex-grows), else content-sized until first resize.
   const resizable = opts.resizable !== false;
 
-  // The draggable window: a relative flow child (centered by the host). UIDrag offsets
-  // wrap.dragX/dragY at draw time, so a dragged window keeps its offset across a re-center.
+  // the window: a relative flow child centered by the host; UIDrag offsets dragX/dragY at
+  // draw time so a drag survives a re-center
   const wrapStyle = { width: opts.width ?? 440, flexShrink: 0 };
   if (opts.height != null) wrapStyle.height = opts.height;
   const wrap = new UIElement(wrapStyle);
 
   const card = gemsCard({
     width: "100%",
-    flexGrow: resizable ? 1 : 0, // fill the resized wrap (no-op while content-sized)
+    flexGrow: resizable ? 1 : 0,
     padding: opts.padding ?? GemsTheme.padSm,
     gap: GemsTheme.gapSm,
   });
 
-  // Title bar: grab-to-drag (UIDrag moves `wrap`), title label, optional close button.
+  // title bar: grab-to-drag, title label, optional close button
   const bar = new UIElement({
     width: "100%",
     height: opts.titleH ?? 36,
@@ -320,15 +299,14 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   const body = new UIElement({
     width: "100%",
     gap: GemsTheme.gapSm,
-    flexGrow: resizable ? 1 : 0, // fill the card below the title bar when resized
+    flexGrow: resizable ? 1 : 0,
   });
   card.insertChild(body);
 
   wrap.insertChild(card);
 
-  // Resize grip: an out-of-flow square pinned to the window's bottom-right corner. Added
-  // LAST so it updates first (children update in reverse → input priority over the body
-  // beneath) and draws on top. UIResize mutates `wrap`'s size, clamped to the min/GUI.
+  // resize grip pinned bottom-right; added LAST so it updates first (children update in
+  // reverse → input priority over the body) and draws on top
   if (resizable) {
     const grip = new UIElement({
       positionType: "absolute",
@@ -343,7 +321,7 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
         minWidth: opts.minWidth ?? 240,
         minHeight: opts.minHeight ?? 160,
         color: gemsColor(GemsTheme.textMuted),
-        anchorCenterX: true, // the host centers `wrap` horizontally — resize from the left edge
+        anchorCenterX: true, // host centers `wrap` — resize from the left edge too
       }),
     );
     wrap.insertChild(grip);
@@ -354,15 +332,10 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   return host;
 };
 
-// Tabbed view: a tab strip over a fixed-height content host. `tabs` is
-// [{ label, content }] — label is a string/() => string, content a prebuilt
-// UIElement (e.g. a gemsList). Each content is wrapped in an absolute-positioned
-// overlay so all pages stack in the same rect; selecting a tab toggles their
-// `enabled` flag (no reflow). The host needs a definite height: pass `opts.height`
-// for a fixed size, or `opts.grow: true` to fill the parent's remaining space (the
-// root + host flex-grow) so the tabs reflow when the GUI is resized — pair it with
-// `gemsScroll({ grow: true })` content. Returns the root column; the UITabs component
-// is on `root.tabs` for programmatic `.select(i)`.
+// Tabbed view: tab strip over a content host. `tabs` is [{ label, content }]. Pages
+// stack as absolute overlays in one rect; selecting toggles `enabled` (no reflow).
+// Pass `opts.height` to fix the host, or `opts.grow: true` to flex-fill (reflows on a
+// GUI resize — pair with `gemsScroll({ grow: true })`). UITabs is on `root.tabs`.
 globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
   const root = new UIElement(
     opts.grow
@@ -387,8 +360,7 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
       : { width: "100%", height: opts.height ?? 360, flexShrink: 0 },
   );
 
-  // Wrap each page in an absolute overlay filling the host, so the pages stack
-  // (no reflow on switch — only the active overlay is enabled).
+  // wrap each page in an absolute overlay so they stack (no reflow on switch)
   const items = [];
   for (let i = 0; i < tabs.length; i++) {
     const overlay = new UIElement({
@@ -423,12 +395,9 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
   return root;
 };
 
-// Accordion: a vertical stack of collapsible sections. `sections` is
-// [{ title, content, open }] — title is a string/() => string, content a prebuilt
-// UIElement, open the initial state. Each section is a clickable UIAccordion header
-// over a padded body that is inserted/removed on toggle (so the stack reflows to the
-// open sections — sections are independent, multiple can be open). Returns the column;
-// each header's UIAccordion is reachable for programmatic control if needed.
+// Accordion: a stack of collapsible sections. `sections` is [{ title, content, open }].
+// Each header's body is inserted/removed on toggle so the stack reflows; sections are
+// independent (multiple can be open).
 globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
   const list = new UIElement({
     width: opts.width ?? "100%",
@@ -458,7 +427,7 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
     });
     header.addComponent(acc);
 
-    // Padded body; the component inserts/removes this whole wrapper on toggle.
+    // padded body; the component inserts/removes this wrapper on toggle
     const body = gemsPanel({
       color: GemsTheme.panelLo,
       rad: GemsTheme.radiusSm,
@@ -475,25 +444,18 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
   return list;
 };
 
-// Category bar with a pop-up flyout — a "long bar" of category buttons; clicking a
-// category toggles a flyout of its items ABOVE the bar (one open at a time; click the
-// same category again to hide it). Selecting an item highlights it and fires onSelect;
-// the flyout stays open until the category is toggled off — the "click a category to
-// show/hide its content list" model. Shared by the RPG build-mode HUD and the level
+// Category bar with a pop-up flyout — category buttons; clicking one toggles a flyout
+// of its items above the bar (one open at a time). Shared by the RPG build HUD + level
 // editor palette.
 //
-// `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]; a
-// label is a string or () => string. opts:
-//   onSelect(catIdx, itemIdx, item)  global hook fired after the item's own onSelect
+// `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]. opts:
+//   onSelect(catIdx, itemIdx, item)  global hook after the item's own onSelect
 //   selCat / selItem                 initial highlighted item (default 0 / 0)
-//   width, barHeight, itemWidth, itemHeight   geometry
-//   font                             category-button font (defaults to the header font)
+//   width, barHeight, itemWidth, itemHeight, font
 //
-// Returns the root column (flyout host on top, bar below). The CALLER anchors the root
-// (e.g. an absolute bottom-center wrapper); since the bar is the last child and the host
-// grows with the open list, a bottom anchor keeps the bar pinned and the list pops upward.
-// The flyout is driven by structural insert/remove (the kit's reliable-reflow pattern), and
-// prebuilt once per category (toggled, not rebuilt).
+// Returns the root (flyout host on top, bar below) — the caller anchors it (a bottom
+// anchor keeps the bar pinned and pops the list upward). Flyouts are prebuilt once and
+// driven by structural insert/remove (the reliable-reflow pattern).
 // `root.catbar` exposes { state, open(c), close(), select(c, k) }.
 globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
   const itemW = opts.itemWidth ?? 130;
@@ -509,11 +471,10 @@ globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
     gap: GemsTheme.gapSm,
   });
 
-  // Flyout host (above the bar): empty until a category opens; the active category's
-  // prebuilt card is inserted here and removed on close.
+  // flyout host above the bar; the active category's prebuilt card is inserted here
   const host = new UIElement({ width: "100%" });
 
-  // Prebuild one flyout card per category — a wrapping row of fixed-size item buttons.
+  // prebuild one flyout card per category — a wrapping row of item buttons
   const flyouts = [];
   for (let c = 0; c < categories.length; c++) {
     const items = categories[c].items;
@@ -638,9 +599,8 @@ globalThis.gemsHeader = function gemsHeader(title, opts = {}) {
   return bar;
 };
 
-// Titled card section. A divider under the title separates it from the body. The
-// title label self-sizes (UIText sets the element height in onUpdate, applied by the
-// flexpanel layout on GMRT 0.20), so it's inserted directly above the divider.
+// Titled card section with a divider under the title. The title self-sizes (UIText sets
+// height in onUpdate, applied by flexpanel on GMRT 0.20), so it's inserted directly.
 globalThis.gemsSection = function gemsSection(title, opts = {}) {
   const section = gemsCard({
     padding: GemsTheme.padSm,
@@ -663,10 +623,8 @@ globalThis.gemsDivider = function gemsDivider(opts = {}) {
   return el;
 };
 
-// Label + control on one line — a real two-column row (label cell | control cell), not
-// a stack: the label sits in a fixed-width left cell and the control fills the rest,
-// with `alignItems: center` lining them up vertically. (The fixed-width cell is a
-// layout choice, not a self-size workaround — the label self-sizes within it.)
+// Label + control on one line — a two-column row (fixed-width label cell | control fills
+// the rest), vertically centered.
 globalThis.gemsRow = function gemsRow(label, control, opts = {}) {
   const row = new UIElement({
     width: "100%",

@@ -1,39 +1,11 @@
-// In-engine level editor (tiles + floors + entity placement + player spawn + new/resize +
-// import/export).
-//
-// A dedicated authoring Scene — NOT a simulation. It loads a level file (or starts a fresh
-// blank one), holds the level data, renders a grid representation with a pan/zoom camera,
-// and lets you paint wall/floor tiles, place/delete entities, and set the player spawn,
-// then exports the edited level back to a JSON file. No World, no physics, no gameplay
-// systems: everything placed is pure data (entities are `spawns` records drawn as markers,
-// not live AI entities). Uses a pan/zoom camera over a `RenderDebugTileMap` + `RenderGrid`.
-//
-// Grid size is independent of the room — a level can be far larger than the view, and the
-// pan/zoom camera roams it. The "New WxH" control rebuilds the canvas blank at the chosen
-// size (with a border wall ring) so you can author bigger maps from scratch.
-//
-// Tools live in a bottom categorized palette bar (gemsCatBar, shared with the in-game build
-// mode): clicking a category pops a flyout of its items above the bar. Tiles selects a
-// wall/floor/erase brush (LMB drag-paints, RMB erases both layers); Tools selects Spawn (LMB
-// sets the player spawn cell), Select (LMB picks an entity to edit in the right property
-// panel), or Zone (LMB click-drag paints a buildable-zone rectangle, RMB erases it); Entities
-// selects a RpgCatalog preset (LMB places one at the cell and selects it, RMB deletes the one
-// there). File actions (New/Open/Test Play/Export/Back) stay in the top-left card.
-//
-// Export writes via File.write → buffer_save, which targets the SAVE dir
-// (%LOCALAPPDATA%/gems/), not the read-only bundled datafiles/. To ship an exported
-// level, copy it into datafiles/levels/ and register it in IncludedFiles. Open re-imports
-// a level file (the bundled source or the save-dir export) — the round-trip's other half,
-// and the only path that reads exported zoneMaps back in. Test Play serializes the level to
-// a playtest file and opens sceneRpg on it (via RpgLevel.playtestFile) so you can
-// play what you authored without the copy-to-datafiles step; returning lands in the lobby.
+// In-engine level editor: paint tiles/entities/spawn/zones, export to save dir, Test Play in
+// sceneRpg. No World — entities are spawns records (data only), not live AI.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
 const EDITOR_PLAYTEST_FILE = "topdown_playtest.json"; // Test Play target (separate from export)
 
-// Blank-level size presets for the "New" control (cols × rows). The cell size carries over
-// from the currently loaded level.
+// "New" size presets (cols × rows); cell size inherits from the loaded level.
 const EDITOR_SIZES = [
   [48, 32],
   [64, 48],
@@ -50,12 +22,10 @@ class _SceneEditorClass extends Scene {
   label = "Editor";
 
   create(openScene) {
-    // Item + quest registries back the property editor's item picker + quest select.
-    // Idempotent; the play scene calls it too — this just makes the data available here.
+    // item + quest registries for the property editor; idempotent if sceneRpg called it first
     RpgQuests.register();
 
-    // Renderer + camera are built once; _initLevel (re)binds the tilemap + zone passes to
-    // whatever level is current, so New/resize/Open don't rebuild the camera or the palette.
+    // renderer + camera built once; _initLevel rebinds passes per level so New/Open are cheap
     this.renderer = new Renderer();
     this.camera = CameraPan.create(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
     this.camera.assign(0);
@@ -78,25 +48,22 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // The single load path: (re)build all editor state from a level-data object. Shared by
-  // create() (the bundled source) and Open (a chosen file). Mirrors RpgLevel.build's
-  // bulk rect paint, plus the editable spawns / player spawn and any saved buildable zone.
+  // (re)build editor state from a level-data object — shared by create() and Open
   _loadData(data) {
-    this._cell = data.cell ?? 16; // 16px-cell convention (GEMS.md); a loaded file's `cell` wins
+    this._cell = data.cell ?? 16; // 16px-cell convention (GEMS.md); loaded file wins
     this._initLevel(data.cols, data.rows, this._cell);
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);
     this.level.syncAll();
 
-    this._spawns = (data.spawns ?? []).slice(); // add/remove entries (no field mutation)
+    this._spawns = (data.spawns ?? []).slice(); // copy so add/remove don't mutate the data obj
     this._spawnPoint = {
       gx: data.meta.playerSpawn.gx,
       gy: data.meta.playerSpawn.gy,
     };
 
-    // Restore a saved buildable zone when the file carries one (the editor exports it; the
-    // play scene doesn't read it back yet). import() replaces the map _initLevel just
-    // defined, so re-point _zoneId at the imported buildable zone for the Zone tool.
+    // restore saved buildable zone; import() replaces the map _initLevel just created,
+    // so re-point _zoneId at the imported zone for the Zone tool
     if (data.zoneMaps !== undefined && data.zoneMaps.buildable !== undefined) {
       const map = this.level.zoneMap("buildable");
       map.import(data.zoneMaps.buildable);
@@ -108,8 +75,7 @@ class _SceneEditorClass extends Scene {
     this._select(undefined); // also sets _propDirty so the panel rebuilds next step
   }
 
-  // Open (re-import) a level file, replacing the editor's current level. Reading the bundled
-  // source ("levels/…") and the save-dir export (flat name) both go through File.read.
+  // reload a level file (bundled source or save-dir export) into the editor
   _openFile(path) {
     const data = LevelSerializer.load(path, { genre: "topdown" });
     if (data === null) {
@@ -124,11 +90,9 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // (Re)build the level grid + tile layers at a given size and rebind the render pass to
-  // it. Destroys any previous level (and its inserted layers) first. Called from create()
-  // and from _newBlank() — the only place a fresh Level is constructed.
+  // rebuild level grid + tile layers at the given size; destroy previous level first
   _initLevel(cols, rows, cell) {
-    if (this.level !== undefined) this.level.destroy(); // also destroys inserted layers
+    if (this.level !== undefined) this.level.destroy(); // destroys inserted layers too
     this.level = new Level({ cellWidth: cell, cellHeight: cell, cols, rows });
     this.wallType = new TileType({ id: 1, name: "벽", pathCost: null });
     this.floorType = new TileType({ id: 2, name: "바닥" });
@@ -137,9 +101,7 @@ class _SceneEditorClass extends Scene {
     this.level.insert(this.floorLayer);
     this.level.insert(this.wallLayer);
 
-    // RenderDebugTileMap holds a level ref, so rebind it to the new level. It reads the
-    // level live each frame (no VBO), so edits show at once; it shades walls red (cost ∞)
-    // but not floors (cost 1) — the editor fills floor cells itself in draw().
+    // rebind to new level; reads live (no VBO) so edits show immediately
     if (this._tilePass !== undefined) this.renderer.remove(this._tilePass);
     this._tilePass = new RenderDebugTileMap(this.level, {
       names: true,
@@ -147,12 +109,10 @@ class _SceneEditorClass extends Scene {
     });
     this.renderer.insert(this._tilePass);
     if (this._gridPass !== undefined) this.renderer.remove(this._gridPass);
-    this._gridPass = new RenderGrid(this.level); // cell boundary lines
+    this._gridPass = new RenderGrid(this.level);
     this.renderer.insert(this._gridPass);
 
-    // Buildable zone channel — one zone the Zone tool drag-paints; RenderZone tints +
-    // outlines it over the grid (under the entity markers drawn in draw()). Rebound per
-    // level like the tile pass.
+    // buildable zone channel: the Zone tool drag-paints here; RenderZone tints it over the grid
     const zmap = this.level.addZoneMap("buildable");
     this._zoneId = zmap.define({
       name: I18n.text("BUILD_ZONE"),
@@ -170,8 +130,7 @@ class _SceneEditorClass extends Scene {
     this.renderer.insert(this._zoneLabelPass);
   }
 
-  // Start a fresh blank level at the chosen size: enclosed by a border wall ring (bounded +
-  // immediately playable), no entities, spawn reset just inside the corner.
+  // blank level at chosen size: border wall ring, no entities, spawn at (2,2)
   _newBlank(cols, rows) {
     this._initLevel(cols, rows, this._cell);
     for (let x = 0; x < cols; x++) {
@@ -185,7 +144,7 @@ class _SceneEditorClass extends Scene {
     this.level.syncAll();
     this._spawns = [];
     this._spawnPoint = { gx: 2, gy: 2 };
-    this._zoneDrag = undefined; // the zone map is freshly recreated by _initLevel
+    this._zoneDrag = undefined; // freshly recreated by _initLevel
     this._select(undefined);
     Toast.push(I18n.text("EDITOR_SIZE", cols, rows), { type: "info" });
   }
@@ -199,8 +158,7 @@ class _SceneEditorClass extends Scene {
     }
   }
 
-  // Build the palette: a bottom categorized bar (placement tools + entities) and a top-left
-  // card of file actions. Both rects (plus the property panel) are the paint-guard hit tests.
+  // palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting
   _buildPalette(openScene) {
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -209,9 +167,7 @@ class _SceneEditorClass extends Scene {
     this._buildFileCard(openScene);
   }
 
-  // Bottom categorized palette (gemsCatBar): Tiles (wall/floor/erase brushes) · Entities
-  // (catalog presets) · Tools (spawn/select/zone). Each item's onSelect sets this._tool
-  // (and _placePreset for entities); the active item highlights. catCol is the paint guard.
+  // catbar: Tiles / Entities / Tools — sets _tool (and _placePreset for entities)
   _buildCatBar() {
     const tiles = [
       {
@@ -272,12 +228,11 @@ class _SceneEditorClass extends Scene {
     col.insertChild(bar);
     wrap.insertChild(col);
     this.ui.insertChild(wrap);
-    this._catbar = bar; // gemsCatBar root (root.catbar for programmatic open/select)
+    this._catbar = bar; // gemsCatBar root
     this._catbarBox = col; // paint-guard rect (grows with the open flyout)
   }
 
-  // Top-left card: hint + current-tool status, the New/Open file pickers, and Test Play /
-  // Export / Back. Its rect is a paint-guard hit test.
+  // top-left file card: hint, tool status, New/Open pickers, Test Play / Export / Back
   _buildFileCard(openScene) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -286,9 +241,7 @@ class _SceneEditorClass extends Scene {
       width: 300,
     });
     const card = gemsCard({ padding: GemsTheme.pad, gap: GemsTheme.gapSm });
-    // Wrap each label in a fixed-height row so the card's rows share a uniform height
-    // (matching the RPG HUD). gemsLabel self-sizes on 0.20, so this is for consistent
-    // spacing, not to stop the old height-less collapse.
+    // fixed-height rows for uniform spacing (gemsLabel self-sizes on 0.20)
     const labelRow = (lbl, opts, h) => {
       const row = new UIElement({ width: "100%", height: h ?? 22 });
       row.insertChild(gemsLabel(lbl, opts));
@@ -297,13 +250,13 @@ class _SceneEditorClass extends Scene {
     labelRow(I18n.textRef("EDITOR_HINT"), { color: GemsTheme.textMuted });
     labelRow(() => this._toolStatus(), { color: GemsTheme.accent });
 
-    // Level section — current size + create a fresh blank level at a chosen preset size.
+    // current size + blank-level new at a chosen preset
     labelRow(
       () => I18n.text("EDITOR_SIZE", this.level.cols, this.level.rows),
       { color: GemsTheme.textMuted, font: "header" },
       26,
     );
-    // UISelect renders item.name (a { name, value } shape), not a bare string.
+    // UISelect renders item.name ({ name, value } shape), not a bare string
     const sizeItems = [];
     for (let i = 0; i < EDITOR_SIZES.length; i++)
       sizeItems.push({
@@ -328,8 +281,7 @@ class _SceneEditorClass extends Scene {
       ),
     );
 
-    // Open: re-import a level file (the bundled source or the save-dir export) — the other
-    // half of the round-trip, and the only path that reads exported zoneMaps back.
+    // open bundled source or save-dir export; only path that reads back exported zoneMaps
     const openItems = [
       { name: "topdown_1", value: EDITOR_SOURCE_FILE },
       { name: "export", value: EDITOR_EXPORT_FILE },
@@ -384,23 +336,18 @@ class _SceneEditorClass extends Scene {
   step() {
     this.camera.update();
 
-    // Rebuild the property panel body when the selection or an edited list changed.
     if (this._propDirty) {
       this._rebuildProps();
       this._propDirty = false;
     }
 
-    // Commit an in-progress zone drag on the release edge — checked before the panel guard
-    // so releasing the mouse over a panel still finalizes (never leaves a drag stuck). The
-    // start/preview-tracking is canvas-only (below); only the release is global.
+    // check release globally so dropping over a UI panel still finalizes the zone drag
     if (this._tool === "zone" && this._zoneDrag !== undefined) {
       const btn = this._zoneDrag.erase ? mb_right : mb_left;
       if (mouse_check_button_released(btn)) this._commitZone();
     }
 
-    // Paint guard: skip when the cursor is over any UI panel (GUI space) so clicking a widget
-    // doesn't also edit the canvas behind it — the file card, the property panel, or the
-    // bottom category bar (whose box grows to include an open flyout).
+    // skip canvas edits when cursor is over any UI panel (file card, prop panel, catbar flyout)
     const gmx = device_mouse_x_to_gui(0);
     const gmy = device_mouse_y_to_gui(0);
     if (
@@ -412,8 +359,7 @@ class _SceneEditorClass extends Scene {
 
     const cell = this.level.worldToGrid(mouse_x, mouse_y);
 
-    // Zone: a click-drag rectangle (LMB paints, RMB erases). Start + live preview track
-    // here (clamped to the grid); the release commits via the global check above.
+    // zone drag: start + live preview tracked here; release committed via the global check above
     if (this._tool === "zone") {
       this._zoneTrack(cell);
       return;
@@ -428,8 +374,7 @@ class _SceneEditorClass extends Scene {
       return;
 
     if (this._tool === "entity") {
-      // Entities: place on LMB click (and select it for editing), delete the one at the
-      // cell on RMB click (edge-triggered — held would spam-place/delete).
+      // LMB places + selects; RMB deletes — edge-triggered to avoid spam
       if (mouse_check_button_pressed(mb_left)) {
         const rec = RpgCatalog.get(this._placePreset).make(cell.x, cell.y);
         this._spawns.push(rec);
@@ -438,14 +383,11 @@ class _SceneEditorClass extends Scene {
         this._deleteSpawnAt(cell.x, cell.y);
       }
     } else if (this._tool === "select") {
-      // Select: LMB picks the topmost entity at the cell to edit (empty cell = deselect).
       if (mouse_check_button_pressed(mb_left)) this._selectAt(cell.x, cell.y);
     } else if (this._tool === "spawn") {
-      // Spawn: LMB click sets the player spawn cell (edge-triggered).
       if (mouse_check_button_pressed(mb_left))
         this._spawnPoint = { gx: cell.x, gy: cell.y };
     } else if (mouse_check_button(mb_left)) {
-      // Tile tools: LMB drag-paints the active brush.
       if (this._tool === "wall")
         TileEdit.set(this.level, this.wallLayer, cell.x, cell.y, this.wallType);
       else if (this._tool === "floor")
@@ -458,7 +400,7 @@ class _SceneEditorClass extends Scene {
         );
       else this._eraseBoth(cell.x, cell.y);
     } else if (mouse_check_button(mb_right)) {
-      this._eraseBoth(cell.x, cell.y); // RMB = quick erase (both layers)
+      this._eraseBoth(cell.x, cell.y); // quick erase both layers
     }
 
     Tooltip.set(`(${cell.x}, ${cell.y})`);
@@ -469,8 +411,7 @@ class _SceneEditorClass extends Scene {
     TileEdit.clear(this.level, this.floorLayer, gx, gy);
   }
 
-  // Zone tool: record the drag start on the press edge and track the current cell (both
-  // clamped to the grid so a drag that strays off-grid still rectangles to the edge).
+  // track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)
   _zoneTrack(cell) {
     const gx = clamp(cell.x, 0, this.level.cols - 1);
     const gy = clamp(cell.y, 0, this.level.rows - 1);
@@ -483,7 +424,7 @@ class _SceneEditorClass extends Scene {
     }
   }
 
-  // Finalize the drag rectangle into the zone map (paint or erase), then clear the drag.
+  // apply the drag rectangle to the zone map (paint or erase) and clear drag state
   _commitZone() {
     const d = this._zoneDrag;
     const cur = this._zoneCur ?? { x: d.sx, y: d.sy };
@@ -498,8 +439,7 @@ class _SceneEditorClass extends Scene {
     this._zoneCur = undefined;
   }
 
-  // True when the GUI-space cursor is over a panel's laid-out rect (`width > 0` dodges the
-  // first-frame NaN rect).
+  // true if GUI cursor overlaps the panel's rect (width > 0 guards the first-frame NaN rect)
   _overPanel(gmx, gmy, panel) {
     const p = panel.getLayoutPosition();
     return (
@@ -511,8 +451,7 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // Remove the last-placed spawn occupying (gx, gy), if any (clearing the selection if it
-  // was the deleted one).
+  // remove last spawn at cell; clears selection if it was the deleted one
   _deleteSpawnAt(gx, gy) {
     for (let i = this._spawns.length - 1; i >= 0; i--) {
       if (this._spawns[i].gx === gx && this._spawns[i].gy === gy) {
@@ -524,11 +463,11 @@ class _SceneEditorClass extends Scene {
   }
 
   _select(rec) {
-    this._selected = rec; // may be undefined (deselect)
+    this._selected = rec; // undefined = deselect
     this._propDirty = true;
   }
 
-  // Select the topmost spawn at a cell (undefined when the cell is empty).
+  // select topmost spawn at cell (deselects when empty)
   _selectAt(gx, gy) {
     let found;
     for (let i = this._spawns.length - 1; i >= 0; i--)
@@ -539,9 +478,7 @@ class _SceneEditorClass extends Scene {
     this._select(found);
   }
 
-  // ── Property panel (right) ───────────────────────────────────────────────
-  // Header + a body rebuilt (on _propDirty) from the selected spawn's catalog `fields`
-  // schema. Its rect also guards painting (handled in step()).
+  // property panel (right): header + body rebuilt from selected spawn's catalog fields
   _buildPropPanel() {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -566,9 +503,7 @@ class _SceneEditorClass extends Scene {
     this._propBody = body;
   }
 
-  // Repopulate the property body from the selected spawn (clear children + re-add rows —
-  // the RpgInventoryUI.rebuild pattern). Scalar fields edit the record in place (no
-  // rebuild); list add/remove sets _propDirty.
+  // repopulate the prop body from the selected spawn; scalar edits are in-place, list changes set _propDirty
   _rebuildProps() {
     const body = this._propBody;
     const kids = [...body.children];
@@ -609,8 +544,7 @@ class _SceneEditorClass extends Scene {
     }
   }
 
-  // One scalar field row: a stepper for int, a { name, value } picker for select/quest.
-  // Edits the record in place — the widget shows the new value, so no panel rebuild.
+  // one field row: stepper for int, picker for select/quest — edits record in place
   _fieldRow(rec, f) {
     if (f.kind === "int") {
       return gemsRow(
@@ -624,7 +558,7 @@ class _SceneEditorClass extends Scene {
         ),
       );
     }
-    // select / quest — quest sources its options live from the QuestLog registry.
+    // quest options sourced live from QuestLog registry
     let opts;
     if (f.kind === "quest") {
       opts = [{ name: "(none)", value: undefined }];
@@ -644,8 +578,7 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // An inventory/loot list field: a labeled add/remove list of { itemId, qty } rows.
-  // Length changes (add/remove) rebuild the panel; per-row edits mutate in place.
+  // inventory/loot list field: add/remove rows rebuild the panel; per-row edits mutate in place
   _itemListField(rec, f, body) {
     const arr = rec[f.key];
     const title = new UIElement({ width: "100%", height: 22 });
@@ -675,7 +608,7 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // One { itemId, qty } row: item picker (grows) + qty stepper + remove button.
+  // { itemId, qty } row: item picker + qty stepper + remove button
   _itemEntryRow(arr, i, itemOpts) {
     const e = arr[i];
     const row = new UIElement({
@@ -721,10 +654,7 @@ class _SceneEditorClass extends Scene {
     return row;
   }
 
-  // Assemble the edited level into a data object (the export + playtest payload). Walls/
-  // floors are re-derived from the painted grids via the greedy mesh; meta carries the
-  // player spawn; the buildable zone is emitted only when it has cells (matches
-  // Level.export, read back via ZoneMap.import; skipped empty to keep files lean).
+  // assemble level-data object (walls/floors greedy-meshed; zone only if non-empty)
   _buildData() {
     const data = {
       version: 1,
@@ -737,7 +667,7 @@ class _SceneEditorClass extends Scene {
       },
       walls: TileEdit.meshRects(this.level, this.wallLayer),
       floors: TileEdit.meshRects(this.level, this.floorLayer),
-      layers: [], // required by LevelSerializer.load; this editor uses walls/floors instead
+      layers: [], // LevelSerializer.load expects this key; editor uses walls/floors instead
       spawns: this._spawns,
     };
     const zmap = this.level.zoneMap("buildable");
@@ -746,7 +676,7 @@ class _SceneEditorClass extends Scene {
     return data;
   }
 
-  // Write the level to the export file (save dir). To ship it, copy into datafiles/levels/.
+  // write to save dir; copy into datafiles/levels/ to ship
   _export() {
     const data = this._buildData();
     const ok = LevelSerializer.save(EDITOR_EXPORT_FILE, data);
@@ -761,9 +691,7 @@ class _SceneEditorClass extends Scene {
     );
   }
 
-  // Test Play: serialize the current level to the playtest file, hand the path to
-  // sceneRpg (consume-once side-channel), and open it. Returning goes to the lobby, not
-  // back to the editor; the export persists, so reopen it via Open to keep editing.
+  // serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor
   _play(openScene) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
     RpgLevel.playtestFile = EDITOR_PLAYTEST_FILE;
@@ -772,15 +700,14 @@ class _SceneEditorClass extends Scene {
   }
 
   draw() {
-    this.renderer.draw(); // grid + walls (red) + tile labels, under the pan/zoom camera
-    this._drawFloors(); // translucent fill so painted floors are visible
-    this._drawMarkers(); // entity spawn records as colored boxes + labels
+    this.renderer.draw(); // grid + walls + tile labels
+    this._drawFloors(); // translucent fill for painted floors
+    this._drawMarkers(); // entity spawn records
     this._drawSpawn(); // player spawn marker
-    this._drawZonePreview(); // in-progress zone drag rectangle
+    this._drawZonePreview(); // in-progress zone drag
   }
 
-  // The live zone drag rectangle (green paint / red erase), from drag start to the current
-  // cell. The committed zone itself is drawn by the RenderZone pass in renderer.draw().
+  // preview the in-progress drag (green=paint, red=erase); committed zone drawn by RenderZone
   _drawZonePreview() {
     if (this._zoneDrag === undefined || this._zoneCur === undefined) return;
     const cw = this.level.cellWidth;
@@ -834,7 +761,6 @@ class _SceneEditorClass extends Scene {
     draw_set_color(c_white);
   }
 
-  // Player spawn cell: a filled green disc + label, distinct from the entity boxes.
   _drawSpawn() {
     const cw = this.level.cellWidth;
     const ch = this.level.cellHeight;
@@ -853,7 +779,7 @@ class _SceneEditorClass extends Scene {
   }
 
   destroy() {
-    this.level.destroy(); // also destroys its inserted wall/floor layers
+    this.level.destroy(); // destroys inserted layers too
     teardownScene(this);
   }
 }

@@ -1,7 +1,5 @@
-// Clickable button behavior over a UIElement (usually paired with a UIPanel + UIText). Runs a
-// hover/press state machine firing onEnter/Leave/Down/Up/Click, and eases the panel's
-// color/border/shadow between states on Time.raw (UI ignores Time.scale). Supports live
-// disabled + selected predicates and greys an attached label when disabled.
+// Hover/press state machine over a UIElement — eases panel color/border/shadow on Time.raw
+// (not Time.delta — UI must ignore sim time dilation). Supports live disabled + selected predicates.
 /** @implements {UIComponent} */
 globalThis.UIButton = class UIButton {
   /** @param {Object} [btn] see field defaults below for the accepted options */
@@ -13,18 +11,13 @@ globalThis.UIButton = class UIButton {
     this.alpha = btn.alpha ?? 1;
     this.alphaDisabled = btn.alphaDisabled ?? 0.5;
     this.disabled = btn.disabled ?? false;
-    this.getDisabled = btn.getDisabled ?? null; // optional live () => bool; overrides `disabled`
-    // Optional "selected/active" state — a live () => bool. While selected (and not
-    // hovered/pressed) the panel/border ease toward colorSelected/borderColorSelected
-    // instead of the normal colors, so a toggle button can show it's the active choice
-    // (the category-bar / build-palette use this). Both colorSelected and the predicate
-    // must be set for it to apply; hover/press still win on top.
+    this.getDisabled = btn.getDisabled ?? null; // live () => bool, overrides `disabled`
+    // live () => bool for a toggle's "active" state — hover/press still win on top.
+    // both colorSelected and the predicate must be set for it to apply.
     this.getSelected = btn.getSelected ?? null;
     this.colorSelected = btn.colorSelected;
     this.borderColorSelected = btn.borderColorSelected;
-    // Optional label UIText to grey out alongside the panel when disabled. The button
-    // drives its color so a disabled button reads disabled (panel dim alone left the
-    // text fully bright). Both colors must be set for it to apply.
+    // label UIText to grey alongside the panel when disabled; panel dim alone left text bright.
     this.label = btn.label ?? null;
     this.textColorNormal = btn.textColorNormal ?? c_white;
     this.textColorDisabled = btn.textColorDisabled ?? c_gray;
@@ -33,37 +26,28 @@ globalThis.UIButton = class UIButton {
     this.onDown = btn.onDown ?? noop;
     this.onUp = btn.onUp ?? noop;
     this.onClick = btn.onClick ?? noop;
-    // Optional border colors → the panel's outline glows toward `borderColorHover`
-    // while the cursor is over the button. Both must be set to animate.
+    // border glow — both must be set to animate.
     this.borderColorNormal = btn.borderColorNormal;
     this.borderColorHover = btn.borderColorHover;
-    // Per-second lerp rate for the hover/press easing (higher = snappier).
-    this.animSpeed = btn.animSpeed ?? 16;
+    this.animSpeed = btn.animSpeed ?? 16; // per-second lerp rate (higher = snappier)
     this.enter = false;
     this.hold = false;
-    // Animated state — eased toward the target each frame so hover/press feel smooth instead of
-    // snapping. Fill + border are eased as FLOAT [r,g,b] channels (rounded to the panel int each
-    // frame by _easeColor), not a packed int: a packed-int lerp loses a sub-1 per-frame step, so
-    // at unlimited FPS the tween would freeze (and GMRT's merge_color also drifts darker). ch[0]
-    // === undefined until first seeded → no fade-in. `_shadow` is already a plain float ease.
+    // ease float r/g/b channels, not a packed int — a packed-int lerp loses a sub-1 per-frame
+    // step at unlimited FPS (tween freezes), and GMRT's merge_color drifts darker. ch[0]
+    // undefined until first seeded so there's no fade-in from black.
     this._colorCh = [undefined, 0, 0];
     this._borderCh = [undefined, 0, 0];
     this._shadow = undefined;
     this._shadowBase = undefined;
   }
 
-  // Live disabled state: a getDisabled() predicate (evaluated each frame) wins over the
-  // static `disabled` flag, so a caller can gate a button on changing state (e.g. an
-  // empty inventory) without poking the field every frame.
+  // live predicate wins over static flag — callers can gate on changing state without polling.
   /** @returns {boolean} */
   _disabled() {
     return this.getDisabled !== null ? this.getDisabled() : this.disabled;
   }
 
-  // Ease a float [r,g,b] channel state `ch` (mutated in place) toward a target color int and
-  // return the rounded color int. Float accumulation, NOT a packed-int lerp: a sub-1 per-frame
-  // step would round to a standstill at unlimited FPS (the tween freezes), and merge_color drifts
-  // darker. Seeds straight to the target on the first call so there's no fade-in.
+  // float channel ease — see constructor note on why not a packed-int lerp.
   /** @param {number[]} ch @param {number} target @returns {number} */
   _easeColor(ch, target) {
     const tr = color_get_red(target);
@@ -86,8 +70,7 @@ globalThis.UIButton = class UIButton {
     const panel = element.getComponent(UIPanel);
     const disabled = this._disabled();
 
-    // Tint the label to match the enabled/disabled state (the panel dim alone left the
-    // text bright). Driven every frame off the live disabled state.
+    // grey the label when disabled — panel dim alone left text bright.
     if (this.label !== null) {
       this.label.color = disabled
         ? this.textColorDisabled
@@ -104,7 +87,7 @@ globalThis.UIButton = class UIButton {
         this.enter = false;
       }
       if (panel) {
-        // Snap the eased channels to the disabled color (so re-enabling eases out of it).
+        // snap channels so re-enable eases out of the disabled color, not from black.
         this._colorCh[0] = color_get_red(this.colorDisabled);
         this._colorCh[1] = color_get_green(this.colorDisabled);
         this._colorCh[2] = color_get_blue(this.colorDisabled);
@@ -141,10 +124,6 @@ globalThis.UIButton = class UIButton {
     }
 
     if (panel) {
-      // Frame-rate independent easing toward the current state's target values, via
-      // Tween.approach* (Time.raw wall-clock by default — UI must ignore Time.scale so
-      // menus don't slow / freeze when the sim is time-dilated or paused). Each value
-      // is seeded to its target on the first frame so there's no fade-in from black.
       panel.alpha = this.alpha;
 
       const selected = this.getSelected !== null && this.getSelected();
@@ -170,7 +149,7 @@ globalThis.UIButton = class UIButton {
         panel.borderColor = this._easeColor(this._borderCh, targetBorder);
       }
 
-      // Lift the shadow on hover, sink it on press — only if the panel casts one.
+      // lift on hover, sink on press — only when the panel has a shadow.
       if (this._shadowBase === undefined) this._shadowBase = panel.shadow;
       if (this._shadowBase > 0) {
         const targetShadow = this.hold
@@ -189,14 +168,13 @@ globalThis.UIButton = class UIButton {
     return this.hold || this.enter || block;
   }
 
-  /** Release any held/hovered state on teardown so onUp/onLeave still fire. @param {UIElement} element */
+  /** @param {UIElement} element */
   onDestroy(element) {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
   }
 
-  // UINav: confirm fires the click (unless disabled). Presence of this method also
-  // marks the element focusable for keyboard/gamepad navigation.
+  // UINav: confirm fires the click; presence marks element focusable.
   /** @param {UIElement} element */
   navActivate(element) {
     if (!this._disabled()) this.onClick();

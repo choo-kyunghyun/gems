@@ -1,37 +1,24 @@
 /**
- * ParticleFx — plays IDE Particle System ASSETS (made in the Particle System Editor) as
- * one-shot, positioned, aimable world-space effects. Standalone static singleton, like
- * FloatingText. Author the look in the IDE (e.g. ps_muzzle); gameplay code just spawns it:
+ * ParticleFx — plays IDE Particle System ASSETS as one-shot, positioned, aimable world-space
+ * effects. Static singleton, like FloatingText. Each spawnAsset instances the asset + parks it in
+ * an active list; update() reaps an instance once its particles die so concurrent systems stay
+ * bounded (no leak — see CLAUDE.md). A baked BURST emitter fires on its first update (verified
+ * 0.20), so position before that first update (spawnAsset does) and the burst lands right.
  *
- *   ParticleFx.spawnAsset(ps_muzzle, x, y, angDeg);  // fire it at (x,y), aimed at angDeg
+ * Wiring (mirrors FloatingText — world space, pause-aware): update() once per frame from step()
+ * (so effects freeze when the scene pauses), draw() from draw() AFTER the renderer; clear() on
+ * scene/map swap (world coords are scene-local, must not bleed into the next).
  *
- * Each call instances the asset (with its baked emitters), positions + rotates it, and parks
- * it in an active list; ParticleFx.update() ticks every instance once per frame and destroys
- * one as soon as its particles die, so concurrent systems stay bounded (no leak — see the
- * memory note in CLAUDE.md). A baked BURST emitter fires once on its first update (probe-
- * verified on 0.20), which is exactly a one-shot effect — position before that first update
- * (spawnAsset does) and the burst lands in the right place.
- *
- * Wiring (mirrors FloatingText — world space, pause-aware):
- *   - a scene calls ParticleFx.update() ONCE per frame from step() (so effects freeze while
- *     the SystemMenu pauses the scene, like WorldClock/Weather), and ParticleFx.draw() from
- *     its draw() AFTER the renderer (world space, over the day/night tint);
- *   - SceneManager._apply + RpgMap.go call ParticleFx.clear() on scene/map swap (live
- *     systems' world coords are scene-local and must not bleed into the next).
- *
- * GMRT notes (verified on 0.20): the native particle system renders to the application surface
- * via the MANUAL part_system_drawit path (auto-draw/update off); see CLAUDE.md. Particle
- * handles are OPAQUE STRUCT REFS, not numeric indices — never `>= 0`-test them. The native
- * stepper advances in whole frames, so update() ticks once per frame (it doesn't scale by
- * Time.delta) — pause comes from step() being skipped, which is enough here.
+ * GMRT (see CLAUDE.md): renders via the MANUAL part_system_drawit path (auto-draw/update off).
+ * Handles are OPAQUE STRUCT REFS — never `>= 0`-test them; use part_*_exists. The stepper advances
+ * in whole frames, so update() ticks once per frame (not Time.delta) — pause = step() being skipped.
  */
 globalThis.ParticleFx = class ParticleFx {
-  static _active = []; // live one-shot asset-system instances; reaped when empty
+  static _active = []; // live one-shot instances; reaped when empty
 
-  // Spawn a one-shot instance of an IDE Particle System ASSET at world (x, y), aimed at GM
-  // angle `angDeg` (0 = right, 90 = up; use point_direction). The editor's default emission
-  // points up (90), so the whole system is rotated by `angDeg - baseDeg` to face the aim;
-  // pass `baseDeg` if the asset was authored pointing elsewhere. Omit `angDeg` for no rotation.
+  // Spawn a one-shot instance at world (x, y), aimed at GM angle `angDeg` (0 = right, 90 = up).
+  // Rotated by `angDeg - baseDeg`; editor default emission is up (90), so pass `baseDeg` if the
+  // asset points elsewhere. Omit `angDeg` for no rotation.
   static spawnAsset(asset, x, y, angDeg, baseDeg = 90) {
     const s = part_system_create(asset); // instances the asset's baked emitters/types
     part_system_automatic_draw(s, false); // the scene draws it (z-ordered over day/night)
@@ -42,8 +29,7 @@ globalThis.ParticleFx = class ParticleFx {
     return s;
   }
 
-  // Advance every live instance one frame, destroying any whose particles have all died.
-  // Call once per frame from a scene's step() (skipped while paused → effects freeze).
+  // Advance every live instance one frame, reaping spent ones. Once per frame from step().
   static update() {
     const a = ParticleFx._active;
     const live = [];
@@ -55,8 +41,7 @@ globalThis.ParticleFx = class ParticleFx {
     ParticleFx._active = live;
   }
 
-  // Draw every live instance. Call from a scene's draw() in world space (inside the camera
-  // view), after the renderer so effects sit over the day/night tint.
+  // Draw every live instance — from a scene's draw() in world space, after the renderer.
   static draw() {
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) part_system_drawit(a[i]);

@@ -1,14 +1,11 @@
-// Maps an entity's carried weight to a speed multiplier. The PENALTY is now delivered through the
-// Buff/Status system, not applied by the mover directly: update() maintains an "encumbered" status
-// whose live speed `mult` is this gradient, and the mover reads StatusSystem.scale(world, id, "speed")
-// (so encumbrance composes with any other speed status — slow/haste). This module still OWNS the
-// weight→penalty mechanic (the gradient + the on/off decision); only how the slow reaches the entity
-// moved to the status layer. A plain system object (the project's System pattern).
+// Maps carried weight → speed multiplier. The penalty is delivered via a maintained "encumbered"
+// status (not by the mover directly), so it composes with other speed statuses (slow/haste) and the
+// mover reads StatusSystem.scale(..., "speed"). This module owns the weight→penalty mechanic; the
+// status layer just delivers it.
 globalThis.EncumbranceSystem = {
-  // Per-tick: refresh the "encumbered" status for every Encumbrance carrier from its current load.
-  // Overloaded (scale < 1) → maintain the status with the live { speed } multiplier (so the HUD
-  // shows it and the mover slows); not overloaded → clear it. maintain() carries no `mods`, so this
-  // never triggers a Stats re-derive. Run once per tick (sceneRpg.step), before the mover reads scale.
+  // Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
+  // live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the
+  // mover reads scale.
   update(world) {
     const ids = world.query(Encumbrance, Inventory);
     for (let i = 0; i < ids.length; i++) {
@@ -23,10 +20,8 @@ globalThis.EncumbranceSystem = {
     }
   },
 
-  // Speed multiplier in [enc.minScale, 1] from the entity's current Inventory load.
-  // Returns 1 (no penalty) when the entity lacks Encumbrance/Inventory or the
-  // inventory has no maxWeight. No penalty below `threshold`; linear from there to
-  // `minScale` at full load.
+  // Speed multiplier in [minScale, 1] from current load. Returns 1 (no penalty) without
+  // Encumbrance/Inventory/maxWeight, or below `threshold`; linear from threshold to minScale at full.
   scale(world, id) {
     const enc = world.get(Encumbrance, id);
     if (enc === undefined) return 1;
@@ -43,7 +38,6 @@ globalThis.EncumbranceSystem = {
     if (frac <= enc.threshold) return 1;
     if (frac >= 1) return enc.minScale;
 
-    // Linear blend from full speed at `threshold` to `minScale` at full load.
     const t = (frac - enc.threshold) / (1 - enc.threshold);
     return 1 + (enc.minScale - 1) * t;
   },

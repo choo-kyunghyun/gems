@@ -1,26 +1,16 @@
 /**
  * @implements {UIComponent}
- * Multi-run text: colored spans + inline icons parsed from one markup string, a
- * richer sibling of UIText (item rarity, damage colors, keybind glyphs in help text).
+ * Multi-run text: colored spans + inline icons from one markup string (richer UIText sibling).
  *
- * Markup (square-bracket tags):
- *   [c=#ff5555]…[/c]   colored span; [/] closes too. Color is a #rrggbb hex, or a
- *                      name resolved through `opts.palette` ({ name: colorInt }).
- *   [spr=spr_name]     inline icon by sprite asset name; [spr=spr_name:2] picks a
- *                      subimage. The sprite MUST be raster (SVG reports 0 frames on
- *                      GMRT and faults draw_sprite — see CLAUDE.md).
+ * Markup:
+ *   [c=#ff5555]…[/c]   colored span ([/] closes too); #rrggbb hex or an `opts.palette` name.
+ *   [spr=spr_name]     inline icon; [spr=spr_name:2] picks a subimage. sprite MUST be raster
+ *                      (SVG reports 0 frames on GMRT and faults draw_sprite — see CLAUDE.md).
  *   \n                 hard line break.
- * Spans nest (a color stack); unknown tags are dropped. Everything else is literal
- * text. The element self-sizes to the parsed content (setWidth/Height in onUpdate,
- * applied by the flexpanel layout on GMRT 0.20) — but, per the kit rule, this is a
- * text drawer and still takes NO `!(pos.width > 0)` guard: everything is drawn from
- * `pos.left/top` + our own measured advances (never from `pos.width`), which
- * draw_text/draw_sprite tolerate, so a NaN width on the first frame after a scene
- * transition is harmless. halign is resolved against the widest line internally,
- * independent of element width.
- *
- * GMRT note: parse result is cached and only rebuilt when the source string changes;
- * no cached primitive bool, no Map/Set iteration, no array destructuring.
+ * Spans nest; unknown tags dropped. Self-sizes to parsed content. Per the kit rule, a text drawer
+ * takes NO `!(pos.width > 0)` guard — draws from pos.left/top + own advances, so a NaN width is
+ * harmless. halign resolves against the widest line, independent of element width. Parse result is
+ * cached, rebuilt only on a source-string change.
  */
 globalThis.UIRichText = class UIRichText {
   /** @param {Object} [s] { textRef: () => string, color, alpha, halign, font, iconSize, palette } */
@@ -33,7 +23,7 @@ globalThis.UIRichText = class UIRichText {
     this.iconSize = s.iconSize ?? -1; // -1 = match the line height
     this.palette = s.palette ?? {}; // name → colorInt for [c=name]
 
-    this.cache = null; // force the first parse even when the text is ""
+    this.cache = null; // null forces the first parse even when text is ""
     this._items = []; // { kind:"text", s, c } | { kind:"icon", spr, sub, c } | { kind:"br" }
     this._lineWidths = [0];
     this._lineHeight = 0;
@@ -42,13 +32,13 @@ globalThis.UIRichText = class UIRichText {
     this._height = 0;
   }
 
-  /** Re-parse + re-measure + self-size when the source string changed. @param {UIElement} element @param {boolean} block @returns {boolean} */
+  /** re-parse + self-size on a source-string change. @param {UIElement} element @param {boolean} block @returns {boolean} */
   onUpdate(element, block) {
     const str = this.textRef();
     if (this.cache !== str) {
       this.cache = str;
 
-      // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
+      // resolve an I18n font key live (survives a locale reload); a raw handle passes through.
       const fnt =
         typeof this.font === "string" ? I18n.font(this.font) : this.font;
       const font0 = draw_get_font();
@@ -127,15 +117,14 @@ globalThis.UIRichText = class UIRichText {
     if (fnt !== -1) draw_set_font(font0);
   }
 
-  // Left edge of `line` so the widest line sits flush and shorter lines align within
-  // it — independent of the (width-0) element rect.
+  // left edge of `line` for halign against the widest line — independent of the element rect.
   _lineOffset(line) {
     if (this.halign === fa_left) return 0;
     const slack = this._width - this._lineWidths[line];
     return this.halign === fa_center ? slack * 0.5 : slack;
   }
 
-  // ── Parse ──────────────────────────────────────────────────────
+  // Parse
   _parse(str) {
     const items = [];
     const stack = [this.color]; // color stack; top is the active span color
@@ -165,7 +154,7 @@ globalThis.UIRichText = class UIRichText {
     this._items = items;
   }
 
-  // Split a literal run on newlines into text segments + break markers.
+  // split a literal run on newlines into text segments + break markers.
   _pushText(items, text, color) {
     let start = 0;
     for (let k = 0; k < text.length; k++) {
@@ -211,12 +200,12 @@ globalThis.UIRichText = class UIRichText {
       const n = parseInt(v.substring(colon + 1), 10);
       if (!isNaN(n)) sub = n;
     }
-    // asset_get_index returns an opaque sprite *ref* (not a numeric index) on GMRT,
-    // so a `>= 0` test fails — validity is checked with sprite_exists at draw time.
+    // asset_get_index returns an opaque sprite ref on GMRT (not a number), so a `>= 0` test fails —
+    // validity checked via sprite_exists at draw time.
     return { kind: "icon", spr: asset_get_index(name), sub, c: color };
   }
 
-  // ── Measure (font already set by the caller) ───────────────────
+  // Measure (font already set by the caller)
   _measure() {
     this._lineHeight = string_height("Mg");
     this._iconPx = this.iconSize > 0 ? this.iconSize : this._lineHeight;

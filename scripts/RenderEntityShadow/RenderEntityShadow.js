@@ -1,26 +1,17 @@
 /**
- * Foot-shadow pass for sprite entities: draws a flat, semi-transparent black ellipse at each visible
- * entity's foot (its `Position` — the foot-anchored sprite origin), UNDER the entity passes. Kept as
- * ONE runtime pass rather than baked into each sprite, so (a) the sprite art is purely the entity and
- * (b) every entity grounds consistently, sized live from its footprint. A FLAT ellipse (not a soft
- * blur) by design — it suits the flat/minimal entity art.
- *
- * Insert BEFORE `RenderEntity` (after the ground/tile passes) so shadows sit on the ground, under all
- * entities. Interpolates position like `RenderEntity` so a shadow tracks a moving body. Width comes
- * from the entity's `BBox` (its footprint) when present, else `defaultRx`. Bullets/drops carry no
- * `Visual`, so the `Visual`+`Position` query skips them for free.
- *
+ * flat foot-shadow ellipse per visible entity; insert BEFORE RenderEntity so shadows sit under sprites.
+ * one shared pass keeps art shadow-free and sizes consistent from BBox footprints.
  * @implements {RenderPass}
  */
 globalThis.RenderEntityShadow = class RenderEntityShadow {
   constructor(opt) {
     opt = opt ?? {};
-    this.enabled = true; // RenderPass
-    this.alpha = opt.alpha ?? 0.26; // shadow darkness (black @ this alpha)
-    this.scaleX = opt.scaleX ?? 0.6; // ellipse half-width as a fraction of the BBox width
-    this.flatten = opt.flatten ?? 0.32; // ellipse height / width (a low, ground-hugging ellipse)
-    this.defaultRx = opt.defaultRx ?? 8; // half-width for a Visual entity with no BBox
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this.enabled = true;
+    this.alpha = opt.alpha ?? 0.26; // shadow darkness
+    this.scaleX = opt.scaleX ?? 0.6; // half-width fraction of BBox width
+    this.flatten = opt.flatten ?? 0.32; // height/width ratio (low ellipse)
+    this.defaultRx = opt.defaultRx ?? 8; // fallback half-width when no BBox
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -39,8 +30,6 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
         rx = (b.x2 - b.x1) * this.scaleX;
       }
       const ry = Math.max(1.5, rx * this.flatten);
-      // Flat filled ellipse (both colors black) centered on the foot. draw_set_alpha carries the
-      // transparency; draw_line_width_color is the known-broken GMRT primitive, not this.
       draw_ellipse_colour(
         rp.x - rx,
         rp.y - ry,

@@ -1,18 +1,10 @@
-/**
- * @implements {UIComponent}
- * Non-interactive progress / fill bar (health, mana, XP, loading, cooldown). Reads a
- * live 0..1 value each frame and draws a rounded track with a left-anchored fill.
- * Pure readout — no input handling, so onUpdate is omitted. Optional centered label
- * (string or () => string, e.g. a percentage or "50 / 100").
- *
- * Style structs mirror UISlider: { color, rad?, border?, borderColor? }. Everything is
- * drawn directly in onDraw (immediate-mode) — no child UIElements.
- */
+// Non-interactive 0..1 fill bar (health, mana, loading). Read-only, so no onUpdate.
+// Style structs mirror UISlider: { color, rad?, border?, borderColor? }.
+/** @implements {UIComponent} */
 globalThis.UIProgress = class UIProgress {
   /** @param {Object} [progress] { getValue|value, label, track, fill, color, font } */
   constructor(progress = {}) {
-    // Static `value` or a live `getValue()` — either way treated as 0..1.
-    this._get = progress.getValue ?? (() => progress.value ?? 0);
+    this._get = progress.getValue ?? (() => progress.value ?? 0); // static or live, 0..1
     const label = progress.label;
     this.label =
       label != null
@@ -41,7 +33,6 @@ globalThis.UIProgress = class UIProgress {
     const y2 = pos.top + pos.height;
     const rad = this._trackStyle.rad ?? Math.min(pos.height, pos.width) * 0.5;
 
-    // Track.
     const trackCol = this._trackStyle.color ?? c_dkgray;
     draw_roundrect_color_ext(
       x1,
@@ -55,13 +46,12 @@ globalThis.UIProgress = class UIProgress {
       false,
     );
 
-    // Fill from the left. The right edge is held at >= x1 + 2*rad so the rounded caps
-    // never invert at tiny values, and clamped to x2 at the top end.
+    // right edge held >= x1 + 2*rad so the rounded caps can't invert at tiny values.
     const t = clamp(this._get(), 0, 1);
     if (t > 0) {
       const fillCol = this._fillStyle.color ?? c_white;
-      // draw_roundrect's two colors run center→edge (radial), so color2 reads as an
-      // edge tint, not a left→right gradient — see the UIPanel note in CLAUDE.md.
+      // draw_roundrect's two colors run center→edge (radial), so color2 is an edge tint,
+      // not a left→right gradient — see the UIPanel note in CLAUDE.md.
       const fillCol2 = this._fillStyle.color2 ?? fillCol;
       const fx = clamp(x1 + pos.width * t, x1 + rad * 2, x2);
       draw_roundrect_color_ext(
@@ -77,13 +67,12 @@ globalThis.UIProgress = class UIProgress {
       );
     }
 
-    // Border outline (drawn over the fill so it frames the whole track).
+    // outline over the fill so it frames the whole track.
     if (this._trackStyle.border) {
       const bc = this._trackStyle.borderColor ?? c_black;
       draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, bc, bc, true);
     }
 
-    // Centered label.
     if (this.label) {
       const str = this.label();
       if (str !== "") {

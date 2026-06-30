@@ -1,21 +1,17 @@
-// Buy / sell / price / restock logic for a Merchant (Gameplay/Trade). Pure operations over the
-// Merchant component + the buyer's and merchant's Inventory components — no world tick of its own
-// except `update` (the restock heartbeat a scene calls each frame). Currency-agnostic: the money is
-// `merchant.currencyId` (a fungible item the player carries), so the kit names no specific currency.
-//
-// Prices: marketValue = round(Rarity.modify(rarity, item.value)); buy = ceil(market·buyMargin),
-// sell = floor(market·sellMargin). buy/sell return { amount, reason } — `amount` transacted (0 = a
-// no-op) and a "" / i18n-key `reason` so the UI can toast WHY nothing happened. See Merchant for the
-// infinite-vs-finite split. Kills no items: an instance moves by reference (uid/mods preserved).
+// Buy/sell/price/restock for a Merchant. Pure ops over the Merchant + buyer's/merchant's Inventory; only
+// `update` is a per-frame tick (restock heartbeat). Currency-agnostic: money is `merchant.currencyId`.
+// Prices: marketValue = round(Rarity.modify(rarity, value)); buy = ceil(·buyMargin), sell = floor(·sellMargin).
+// buy/sell return { amount, reason } — reason is a ""/i18n key so the UI can toast why nothing happened.
+// An instance moves by reference (uid/mods preserved).
 globalThis.TradeSystem = {
-  // Rarity-scaled base value of an item (same formula the inventory "Value" column shows).
+  // rarity-scaled base value (same formula the inventory "Value" column shows).
   marketValue(itemId) {
     const it = Item.get(itemId);
     if (it === undefined) return 0;
     return Math.round(Rarity.modify(it.rarity, it.value));
   },
 
-  // Price the player PAYS to buy / RECEIVES to sell one unit, after the merchant's margins.
+  // per-unit price after the merchant's margins.
   buyPrice(m, itemId) {
     return Math.ceil(TradeSystem.marketValue(itemId) * m.buyMargin);
   },
@@ -23,9 +19,8 @@ globalThis.TradeSystem = {
     return Math.floor(TradeSystem.marketValue(itemId) * m.sellMargin);
   },
 
-  // Player buys `qty` (an instance is always 1) of the merchant's stock slot `idx`. Clamps to what
-  // the player can afford, the available stock (finite), and the buyer's free room — buys as much as
-  // fits. Returns { amount, reason }; reason is set only when amount is 0 (NO_FUNDS / NO_ROOM).
+  // Buy `qty` (instance always 1) of stock slot `idx`, clamped to affordable / available / free room —
+  // buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
   buy(world, buyerId, merchantId, idx, qty) {
     const m = world.get(Merchant, merchantId);
     const mInv = world.get(Inventory, merchantId);
@@ -49,11 +44,11 @@ globalThis.TradeSystem = {
     let bought = 0;
     if (instanced) {
       if (m.infinite) {
-        // Bottomless catalog: mint a fresh copy (new uid, no mods) into the buyer.
+        // bottomless catalog: mint a fresh copy (new uid, no mods).
         if (InventorySystem.add(bInv, itemId, 1) !== 0)
           return { amount: 0, reason: "TRADE_NO_ROOM" };
       } else {
-        // Move the actual stock slot by reference so its uid + installed mods survive.
+        // move the stock slot by reference so its uid + mods survive.
         if (!InventorySystem.addSlot(bInv, slot))
           return { amount: 0, reason: "TRADE_NO_ROOM" };
         mInv.slots.splice(idx, 1);
@@ -70,15 +65,13 @@ globalThis.TradeSystem = {
     }
 
     InventorySystem.remove(bInv, m.currencyId, bought * price); // pay
-    if (!m.infinite) m.credits += bought * price; // merchant's till (ignored when infinite)
+    if (!m.infinite) m.credits += bought * price; // merchant's till
     return { amount: bought, reason: "" };
   },
 
-  // Player sells `qty` (an instance is always 1) of their own bag slot `idx` to the merchant. A
-  // finite merchant must afford it (gated by `credits`) and have room for the buyback (adds it to its
-  // stock); an infinite merchant always pays and discards the item. The seller is paid in currency.
-  // Returns { amount, reason } (MERCHANT_BROKE / MERCHANT_FULL when 0). Equip/favorite protection is
-  // the caller's (TradeUI) — this is pure mechanics. The currency item itself is never sellable.
+  // Sell `qty` (instance always 1) of bag slot `idx`. Finite merchant must afford it (gated by `credits`)
+  // + have room for the buyback; infinite always pays and discards. reason when 0 = MERCHANT_BROKE/FULL.
+  // Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
   sell(world, sellerId, merchantId, idx, qty) {
     const m = world.get(Merchant, merchantId);
     const mInv = world.get(Inventory, merchantId);
@@ -123,9 +116,8 @@ globalThis.TradeSystem = {
     return { amount: sold, reason: "" };
   },
 
-  // Restock heartbeat: every `restockSecs` top each finite merchant's stock back UP to its `template`
-  // baseline (never removes — player-sold extras stay for buyback). Called once per frame by the
-  // scene with sim dt (so it pauses with the game). Infinite / restock-less merchants are skipped.
+  // Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
+  // removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
   update(world, dt) {
     const ids = world.query(Merchant, Inventory);
     for (let i = 0; i < ids.length; i++) {

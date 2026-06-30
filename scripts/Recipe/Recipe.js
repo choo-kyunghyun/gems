@@ -1,16 +1,5 @@
-// Crafting-recipe registry (modeled on Item). The shared RpgContent registers the recipe
-// set at create() time (see RpgContent.register). A recipe turns
-// a set of input items into one output item at a station of a given `kind`.
-//
-// {
-//   id,                              // unique recipe id
-//   station: "workbench",            // Station.kind this recipe shows up at
-//   requires: "machining_module",               // OPTIONAL: a WorkbenchModule itemId that must be slotted in
-//                                    //   the bench (Station.module) for this recipe to show/craft.
-//                                    //   Omit for a BASE recipe (always available at the bench).
-//   inputs: [{ itemId, qty }],       // consumed from the crafter's Inventory
-//   output: { itemId, qty },         // produced into the crafter's Inventory
-// }
+// Crafting-recipe registry. `requires` = WorkbenchModule itemId that must be slotted; omit for a base recipe.
+// { id, station, requires?, inputs: [{itemId,qty}], output: {itemId,qty} }
 globalThis.Recipe = class Recipe {
   constructor(def) {
     this.id = def.id;
@@ -23,7 +12,7 @@ globalThis.Recipe = class Recipe {
   static registry = new Map();
   static order = []; // registration order of ids
 
-  /** Register an array of recipe defs (later defs with the same id overwrite). */
+  /** later defs with the same id overwrite. */
   static register(defs) {
     for (let i = 0; i < defs.length; i++) {
       const r = new Recipe(defs[i]);
@@ -37,8 +26,7 @@ globalThis.Recipe = class Recipe {
     return this.registry.get(id);
   }
 
-  /** Recipes for a station kind, in registration order. Index-loops `order`
-   *  (no Map-iterator for-of on GMRT). */
+  /** recipes for a station kind, registration order. index-loop `order` (no Map-iterator for-of on GMRT). */
   static forStation(kind) {
     const out = [];
     for (let i = 0; i < this.order.length; i++) {

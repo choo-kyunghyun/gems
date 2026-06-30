@@ -1,38 +1,18 @@
 /**
- * Debug — the BACK-END of the debug system: a registry of named panels, each
- * holding live-bound entries (watch / slider / checkbox / input / dropdown /
- * button / text). It does NOT render. Two FRONT-ENDS consume this same registry:
- *
- *   - ImGui (dbg_*) — human-facing native overlay (`DebugImGui`). It works on GMRT
- *     0.20, but renders OUTSIDE the game surface, so screen_save can't capture
- *     it and is_debug_overlay_open() misreports — an AI agent can't see it.
- *   - Text dump (Debug.dump -> debug.txt) — agent-facing. The same registry
- *     serialized to a flat text file the agent can Read after a run.
- *
- * An entry's value is a LIVE binding, never a cached copy: either (obj, key)
- * — read/write obj[key] — or a getter function (read-only). Both front-ends
- * read the value live, and Debug.set(panel, label, value) / Debug.press(...)
- * write/trigger through it, so an agent can tune a value or fire a button and
- * then verify the effect on the game surface (which it CAN screenshot).
- *
- * A panel is plain data: { name, entries: [descriptor] }. The builder passed to
- * Debug.panel() is a transient plain object of emit closures (no class, so no
- * 50-method-ceiling concern). Register a panel once; bindings stay live.
- *
- * Wiring: Debug.update() in obj_game Step_0 (periodic text dump); built-in
- * panels (Time / Perf) registered in obj_game Create_0.
+ * Debug back-end: a registry of named panels with live-bound entries. Two front-ends
+ * read the same registry — DebugImGui (human, F3 overlay, outside game surface so
+ * screen_save misses it) and a text dump to debug.txt (agent-readable after a run).
+ * Wired: Debug.update() in Step_0; built-in panels registered in Create_0.
  */
 globalThis.Debug = class Debug {
-  static enabled = true; // master gate (a dev tool — set false for a release build)
+  static enabled = true; // set false for a release build
   static panels = []; // [{ name, entries: [] }]
   static dumpFile = "debug.txt"; // bare name -> save dir, next to game.log
   static dumpInterval = 30; // frames between automatic text dumps
   static _frame = 0;
-  static _version = 0; // bumped on any registry change; a front-end rebuilds when it shifts
+  static _version = 0; // bumped on registry change; front-ends rebuild when it shifts
 
-  // Register (or replace) a named panel. `builder(p)` populates it with live-
-  // bound entries via p.watch / p.slider / p.checkbox / p.dropdown / p.button /
-  // p.text. Re-registering the same name replaces it (safe across scene reloads).
+  // register (or replace) a named panel; safe to re-call across scene reloads.
   static panel(name, builder) {
     const entries = [];
     const p = {
@@ -49,8 +29,7 @@ globalThis.Debug = class Debug {
         return p;
       },
       checkbox: (label, a, b) => {
-        // (label, obj, key) for a field binding, or (label, getFn, setFn) for a
-        // computed toggle (e.g. a render pass found live in the current scene).
+        // (label, obj, key) field binding, or (label, getFn, setFn) computed toggle.
         const e = { kind: "checkbox", label };
         if (typeof b === "function") {
           e.get = a;
@@ -64,7 +43,7 @@ globalThis.Debug = class Debug {
       },
       input: (label, obj, key, type) => {
         const e = Debug._mk("input", label, obj, key);
-        e.inputType = type === undefined ? "f" : type; // "f" real, "i" int, "s" string
+        e.inputType = type === undefined ? "f" : type; // "f"=real "i"=int "s"=string
         entries.push(e);
         return p;
       },
@@ -114,17 +93,13 @@ globalThis.Debug = class Debug {
     Debug._version++;
   }
 
-  // A monotonically increasing token that shifts whenever the panel set changes,
-  // so a front-end (DebugImGui) knows to rebuild. A METHOD, not a static getter
-  // (computed static getters miscompile on GMRT — see CLAUDE.md).
+  // a method, not a static getter — computed static getters miscompile on GMRT (see CLAUDE.md).
   static version() {
     return Debug._version;
   }
 
-  // A descriptor is (obj, key) when a key is given, or a getter fn otherwise.
-  // The discriminator is whether `key` was passed — NOT typeof objOrFn, since a
-  // class (e.g. Time) is itself a function, which would mis-route (Time, "scale")
-  // into the getter branch and later call Time() — a hard crash.
+  // discriminate by whether `key` was passed, NOT typeof — a class like Time is a function,
+  // so typeof-routing mis-routes (Time, "scale") into the getter branch and calls Time() — crash.
   static _mk(kind, label, objOrFn, key) {
     const e = { kind, label };
     if (key === undefined) e.get = objOrFn;
@@ -135,7 +110,7 @@ globalThis.Debug = class Debug {
     return e;
   }
 
-  // ── Live read / write through a binding ───────────────────────────────────
+  // Live read / write through a binding
   static read(entry) {
     if (entry.get !== undefined) return entry.get();
     if (entry.obj !== undefined && entry.obj !== null)
@@ -152,10 +127,10 @@ globalThis.Debug = class Debug {
       entry.obj[entry.key] = value;
       return true;
     }
-    return false; // getter-only entries (watch/text) are read-only
+    return false; // watch/text entries are read-only
   }
 
-  // ── Agent-facing control (call from a temp harness, or wire to a hotkey) ──
+  // Agent-facing control
   static set(panelName, label, value) {
     const e = Debug._find(panelName, label);
     return e !== null ? Debug.write(e, value) : false;
@@ -181,7 +156,7 @@ globalThis.Debug = class Debug {
     return null;
   }
 
-  // ── Text front-end (agent) ────────────────────────────────────────────────
+  // Text front-end (agent)
   static snapshot() {
     let out = "";
     for (let i = 0; i < Debug.panels.length; i++) {
@@ -197,7 +172,7 @@ globalThis.Debug = class Debug {
 
   static _line(e) {
     if (e.kind === "button") return e.label + " : <button>";
-    if (e.kind === "text" && e.get === undefined) return e.label; // static note
+    if (e.kind === "text" && e.get === undefined) return e.label; // static label, no value
     const v = Debug.read(e);
     if (e.kind === "dropdown") return e.label + " = " + Debug._optName(e, v);
     return e.label + " = " + Debug._fmt(v);
@@ -221,14 +196,14 @@ globalThis.Debug = class Debug {
     return String(v);
   }
 
-  // Write the live snapshot to disk for the agent to Read. Returns the string.
+  // write live snapshot to debug.txt for the agent to Read.
   static dump() {
     const s = Debug.snapshot();
     File.write(Debug.dumpFile, s);
     return s;
   }
 
-  // Step_0: periodically refresh debug.txt so the agent's snapshot stays current.
+  // Step_0: periodic text dump so the agent's snapshot stays current.
   static update() {
     if (!Debug.enabled || Debug.panels.length === 0) return;
     Debug._frame++;

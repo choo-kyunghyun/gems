@@ -1,17 +1,6 @@
-// RPG status/buff content: the actual Status defs the demo uses. Registered once by
-// RpgContent.register() at a scene's create() (NOT at top level — avoids GMRT load-order issues),
-// alongside RpgItems/RpgRecipes/RpgPrefabs. The Status SYSTEM is genre-agnostic kit (Gameplay/Status);
-// these defs are the content, like RpgItems is to Item. Colors drive the HUD chip tint.
-//
-// One status per effect kind, each with a real in-game applier (no dead content):
-//   encumbered — a maintained DEBUFF whose speed multiplier is driven LIVE by EncumbranceSystem
-//                (the weight gradient); the def's `mult` here is only a fallback (always overridden).
-//   regen      — a timed HoT buff (granted by the Medgel consumable — RpgItems).
-//   fortify    — a timed `mods` buff (+attack/+defense) folded into Stats via StatModel — the
-//                recompute path (StatusSystem.onStatsChanged → StatModel.recompute); granted by the
-//                Combat Stim consumable.
-// A DoT debuff (poison) is the symmetric counterpart of regen (one line in StatusSystem._applyTick) —
-// add it here + an applier (e.g. an enemy on-hit hook) when a damage-over-time source exists.
+// RPG status defs. Registered once at scene create() (NOT top-level — GMRT load-order). The kit
+// system is genre-agnostic; these are the content. Colors drive HUD chip tints.
+// A DoT poison is symmetric to regen — one def + an applier away if needed.
 globalThis.RpgStatuses = {
   register() {
     Status.register([
@@ -20,7 +9,7 @@ globalThis.RpgStatuses = {
         name: "STATUS_ENCUMBERED",
         color: "#c79a5b",
         beneficial: false,
-        mult: { speed: 0.5 }, // fallback only — EncumbranceSystem overrides per-instance live
+        mult: { speed: 0.5 }, // fallback — EncumbranceSystem overrides per-instance live
       },
       {
         id: "regen",
@@ -39,9 +28,7 @@ globalThis.RpgStatuses = {
         duration: 12,
         mods: { attack: 3, defense: 2 },
       },
-      // Survival debuffs — applied/cleared by the need systems (Thirst/Hunger/Drowsiness) at their
-      // critical threshold. duration 0 = maintained until the need recovers (the system removes it).
-      // Thirst/Hunger bite with damage over time; drowsiness just slows (a speed multiplier).
+      // survival debuffs — applied/cleared by need systems at critical threshold
       {
         id: "dehydrated",
         name: "STATUS_DEHYDRATED",

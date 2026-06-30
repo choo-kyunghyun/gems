@@ -1,12 +1,9 @@
 /**
- * One tile material: identity (`id`/`name`) plus its pathfinding cost. Stored as the cell
- * value of a TileLayer's Grid; `pathCost` feeds the Level nav grid via getNavData.
+ * Tile material identity + nav cost. `pathCost: null` → Infinity (blocking); omit → 1.
+ * Stored as the cell value of a TileLayer's Grid.
  */
 globalThis.TileType = class TileType {
-  /**
-   * @param {{id:number, name?:string, pathCost?:number|null}} def
-   *   `pathCost: null` → Infinity (blocking); omitted → 1.
-   */
+  /** @param {{id:number, name?:string, pathCost?:number|null}} def */
   constructor(def) {
     this.id = def.id;
     this.name = def.name ?? "";
@@ -18,7 +15,7 @@ globalThis.TileType = class TileType {
     return new TileType(data);
   }
 
-  /** @returns {{id:number,name:string,pathCost:number}} serializable type. */
+  /** @returns {{id:number,name:string,pathCost:number}} */
   export() {
     return {
       id: this.id,

@@ -1,33 +1,16 @@
 /**
- * Audio — the project's sound wrapper: a thin, genre-agnostic facade over GameMaker's
- * audio_* API. Standalone static singleton, like ParticleFx / FloatingText (one audio space).
- * Plays the audio-kit's GMSound assets (snd_* SFX, mus_* BGM) three ways:
+ * Audio — static-singleton facade over GameMaker's audio_* API (one audio space, like ParticleFx).
+ * Plays the audio-kit's GMSound assets three ways: play (non-positional 2D), playAt (spatial), bgm
+ * (looping, cross-faded; re-request = no-op).
  *
- *   Audio.play("snd_ui_confirm");              // non-positional 2D cue (UI, global)
- *   Audio.playAt("snd_shoot", x, y);           // SPATIAL: attenuated + panned by the listener
- *   Audio.bgm("mus_overworld");                // looping music, cross-faded; re-request = no-op
+ * Spatial needs a listener + distance model, both owned here: setup() picks a falloff model (GM
+ * default is none = no attenuation) + fixes the listener orientation once; listener(x,y) moves the
+ * ears each frame. Wiring mirrors ParticleFx: setup in Create_0, update in Step_0 (reaps BGM fades),
+ * reset in SceneManager._apply only (NOT across a guest push / map change — music carries over).
  *
- * Spatial audio (audio_play_sound_at) needs a listener + a distance model, both owned here:
- *   - setup() (obj_game Create_0) picks audio_falloff_linear_distance_clamped (the default model
- *     is audio_falloff_none = no attenuation) and fixes the 2D listener ORIENTATION once;
- *   - listener(x, y) (the RPG scene, each frame, from the camera centre) moves the listener's
- *     EARS so a sound to the player's right pans right and a distant one is quieter.
- *
- * Wiring (mirrors ParticleFx):
- *   - obj_game Create_0 → Audio.setup() (falloff model + orientation; LOADS the bgm/sfx audio groups
- *     + applies the saved Settings volumes as group gains — category volume is the AUDIO GROUP gain,
- *     so the SystemMenu sliders scale every playing sound in a group live via setMusicGain/setSfxGain);
- *   - obj_game Step_0   → Audio.update() (reaps a finished BGM cross-fade on Time.raw — wall-clock,
- *     so a paused sim doesn't freeze the fade);
- *   - SceneManager._apply → Audio.reset() (stop the looping BGM + all SFX on a base scene swap, so
- *     RPG music doesn't bleed into the lobby — NOT on a guest push or an RPG map change, where the
- *     music should carry over);
- *   - the RPG scene → Audio.listener(camera.toX, camera.toY) each frame.
- *
- * GMRT notes (see CLAUDE.md): asset_get_index returns an OPAQUE ref (a not-found name is -1) —
- * validate via audio_exists, never a >=0 test; _asset() early-returns on -1 so audio_exists is
- * only ever asked about a real asset. All state is read-write static FIELDS + plain METHODS (no
- * static getters — those miscompile on 0.20). Falloff numbers below suit the 16px-cell world.
+ * GMRT (see CLAUDE.md): asset_get_index returns an OPAQUE ref (not-found = -1) — validate via
+ * audio_exists, never a >=0 test (_asset early-returns on -1 so audio_exists only sees real assets).
+ * State is read-write static FIELDS + plain METHODS — no static getters (miscompile on 0.20).
  */
 globalThis.Audio = class Audio {
   static _bgm = -1; // current looping BGM handle (-1 = none)
@@ -40,17 +23,15 @@ globalThis.Audio = class Audio {
   static MAX = 400; // ~25 cells
   static FACTOR = 1.0; // 1 = reach silence exactly at MAX
 
-  // Call once at boot. Picks the distance model (the default is "none" = no spatialisation),
-  // fixes the 2D listener orientation, LOADS the audio groups, and applies the saved volumes.
+  // Once at boot: distance model (GM default is "none" = no spatialisation), listener orientation,
+  // audio groups, saved volumes.
   static setup() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
-    // 2D top-down: face into the screen (+z); up = -y (GM y grows downward) makes +x emitters
-    // pan RIGHT. Only x then drives L/R pan; the y axis maps to front/back (no L/R skew), which
-    // is exactly right for a top-down view. Position changes each frame; orientation is fixed.
+    // 2D top-down: face +z, up = -y (GM y grows down) so +x emitters pan RIGHT — only x drives L/R
+    // pan, y maps to front/back. Fixed once; position updates per frame.
     audio_listener_orientation(0, 0, 1, 0, -1, 0);
-    // The snd_*/mus_* assets live in the `sfx`/`bgm` audio GROUPS, not the always-loaded default —
-    // a non-default group must be LOADED (async) before its sounds can play. Done at boot, long
-    // before any scene with sound opens. Category volume is then the group gain (setMusicGain/SfxGain).
+    // snd_*/mus_* live in the non-default `sfx`/`bgm` audio GROUPS, which must be LOADED (async)
+    // before playback. Category volume is then the group gain (setMusicGain/SfxGain).
     if (!audio_group_is_loaded(bgm)) audio_group_load(bgm);
     if (!audio_group_is_loaded(sfx)) audio_group_load(sfx);
     Audio.setMasterGain(Settings.get("volMaster"));
@@ -58,16 +39,15 @@ globalThis.Audio = class Audio {
     Audio.setSfxGain(Settings.get("volSfx"));
   }
 
-  // Resolve "snd_x" (or a raw asset handle) to a valid sound asset, else -1. Guards the -1 so
-  // audio_exists is never asked about a non-asset (the manual warns it errors on bad ids).
+  // Resolve "snd_x" (or a raw handle) to a valid sound asset, else -1. Guards -1 so audio_exists
+  // is never asked about a non-asset (it errors on bad ids).
   static _asset(sound) {
     const a = typeof sound === "string" ? asset_get_index(sound) : sound;
     if (a === -1 || a === undefined) return -1;
     return audio_exists(a) ? a : -1;
   }
 
-  // Non-positional SFX (UI, global cues). opts: { gain, pitch, loop, priority }. Returns the
-  // playing-sound handle (or -1 if the asset is missing).
+  // Non-positional SFX (UI, global). opts: { gain, pitch, loop, priority }. Returns handle, or -1.
   static play(sound, opts) {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
@@ -83,8 +63,8 @@ globalThis.Audio = class Audio {
     );
   }
 
-  // Spatial SFX at world (x, y) — attenuated + panned relative to the listener (set per frame by
-  // listener()). opts adds { ref, max, factor } to override the falloff window. Returns the handle.
+  // Spatial SFX at world (x, y) — attenuated + panned by the listener. opts adds { ref, max, factor }
+  // to override the falloff window. Returns the handle.
   static playAt(sound, x, y, opts) {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
@@ -112,8 +92,8 @@ globalThis.Audio = class Audio {
   }
 
   // Start / switch the looping BGM, cross-fading over opts.fadeMs (default 600). Re-requesting the
-  // track that's already playing is a no-op (so a scene can call this every frame). opts: { gain,
-  // pitch, fadeMs }. Pass a falsy / missing asset to stop the BGM.
+  // playing track is a no-op (safe to call every frame). opts: { gain, pitch, fadeMs }. Missing
+  // asset stops the BGM.
   static bgm(sound, opts) {
     opts = opts === undefined ? {} : opts;
     const a = Audio._asset(sound);
@@ -175,10 +155,9 @@ globalThis.Audio = class Audio {
     }
   }
 
-  // Category volume setters (0..1), live. Music/SFX drive their AUDIO GROUP gain, which scales every
-  // sound in the group — including the currently-playing BGM — with no per-sound bookkeeping. The
-  // SystemMenu slider writes the Settings value itself; these just apply it. (Music ramps over 50ms
-  // to avoid a click while dragging; SFX is instant since each cue is brief.)
+  // Live category-volume setters (0..1). Drive the AUDIO GROUP gain, which scales every sound in the
+  // group (incl. the playing BGM) with no per-sound bookkeeping. Music ramps 50ms to avoid a drag-
+  // click; SFX is instant (cues are brief).
   static setMusicGain(g) {
     audio_group_set_gain(bgm, g < 0 ? 0 : g > 1 ? 1 : g, 50);
   }
@@ -191,8 +170,7 @@ globalThis.Audio = class Audio {
     audio_master_gain(g < 0 ? 0 : g > 1 ? 1 : g);
   }
 
-  // Stop everything on a base scene swap: the looping BGM + any pending fade + lingering SFX.
-  // One-shot SFX would finish on their own, but audio_stop_all guarantees a clean slate.
+  // Stop everything on a base scene swap (BGM + pending fade + lingering SFX) — clean slate.
   static reset() {
     audio_stop_all();
     Audio._bgm = -1;

@@ -1,14 +1,9 @@
-// Render-interpolation bookkeeping for the fixed-timestep loop.
-//
-//   snapshot(world): call at the TOP of each physics tick, before any system moves
-//     Position — records each mover's current Position into PrevPosition.
-//   lerp(world, id, out): the read-back — the interpolated render position
-//     PrevPosition + (Position - PrevPosition) * world.alpha,
-//     so every render pass draws smooth fixed-step motion through ONE shared
-//     formula instead of re-deriving it. Only entities with Velocity get a
-//     PrevPosition (static bodies never move, so lerp falls back to raw Position).
+// render-interpolation bookkeeping.
+// snapshot: call at TOP of each tick before any system moves Position.
+// lerp: shared formula for all render passes — PrevPosition + (Position-PrevPosition)*alpha.
+// only movers get PrevPosition; static bodies fall back to raw Position.
 globalThis.InterpolationSystem = {
-  /** Record movers' Position into PrevPosition. Call at the top of each tick. @param {World} world */
+  /** @param {World} world */
   snapshot(world) {
     for (const id of world.query(Position, Velocity)) {
       const pos = world.get(Position, id);
@@ -24,10 +19,7 @@ globalThis.InterpolationSystem = {
   },
 
   /**
-   * Interpolated render position for `id`: PrevPosition→Position by world.alpha,
-   * falling back to raw Position when the entity has no PrevPosition. Writes into
-   * `out` (a reused {x,y} scratch) so render loops don't allocate per entity.
-   * Assumes the caller's query guarantees `id` has a Position.
+   * interpolated render position; writes into `out` (reused scratch, no alloc per entity).
    * @param {World} world @param {number} id @param {{x:number,y:number}} out
    * @returns {{x:number,y:number}} out
    */

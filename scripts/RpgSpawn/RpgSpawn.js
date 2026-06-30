@@ -1,27 +1,23 @@
-// Entity construction for the RPG levels — the "build the entities from spawn descriptors" half
-// of the old RpgLevel, split out so level/grid building (RpgLevel.build/buildChunked) and entity
-// building live in separate files. spawnEntity is the SINGLE place an entity is constructed:
+// Entity construction for the RPG levels. spawnEntity is the SINGLE place an entity is built —
 // up-front map spawns (RpgSpawn.spawn) and the chunk streamer (ChunkSource.spawn) both route
-// through it, so adding a preset touches one switch. Pure factory functions over `world`/`level`;
-// no state of its own.
+// through it, so adding a preset touches one switch. Pure factories over world/level; no state.
 //
 // Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
-//   human    hp? loot:[{itemId,qty}]   (hostile human "Raider"/raider — camp + quest enemy)
-//   rat      hp? loot:[{itemId,qty}]   (wildlife — the overworld ambient mobile-melee creature)
+//   raider   hp? loot[]   (hostile human — camp + quest enemy)
+//   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
 //   npc      label nameKey questId
-//   chest    capacity items:[{itemId,qty}]
-//   prop     label color(#hex) material? kind?   (material id w/ Material → tint, overrides color; kind → Station, else furniture)
-//   torch    label? color(#hex)?        (decorative light prop — small solid post; carries a Light)
-//   turret   label? color(#hex)?        (auto-firing defense — immovable Health + Faction "player" actor; stationary ranged CombatAI)
-//   reach    half?                      (quest zone marker — no entity)
-//   portal   toMap toEntry? label? color(#hex)?  (walk-onto door → RpgMap.go; non-solid sensor)
-//   follower label? color(#hex)? speed? range?   (companion; starts in "follow" state)
+//   chest    capacity items[]
+//   prop     label color material? kind?   (material → tint over color; kind → Station, else furniture)
+//   torch    label? color?        (decorative light prop — small solid post; carries a Light)
+//   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
+//   reach    half?                (quest zone marker — no entity)
+//   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
+//   follower label? color? speed? range?   (companion; starts in "follow")
 globalThis.RpgSpawn = {
   /**
-   * Spawn the level's entity instances (enemies, NPC, chest, props) from data.spawns. Enemies
-   * acquire their target live by faction (FactionSystem.nearestHostile), so this no longer needs
-   * the player id. Stations (chest/props) are discovered live by Interactable, so only the
-   * handles the scene's own logic needs are returned:
+   * Spawn the level's entities from data.spawns. Enemies acquire targets live by faction and
+   * stations are discovered live by Interactable, so only the handles the scene's logic needs
+   * are returned:
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
    */
@@ -33,10 +29,9 @@ globalThis.RpgSpawn = {
     let npc = -1;
     let reach;
 
-    // File-scope reconcile: a spawn with an `id` is a UNIQUE entity. `reconcile.gone` is the
-    // current map's set of uids removed during play (killed/recruited) — skip those so they
-    // don't re-spawn. id-less spawns are anonymous and always (re)spawn. Entities that ARE
-    // spawned get a Persistent{uid} tag so the scene can remember their fate (see _markGone).
+    // File-scope reconcile: a spawn with an `id` is UNIQUE (spawn-once). `gone` = uids removed
+    // during play — skip those so they don't re-spawn; id-less spawns always (re)spawn. Spawned
+    // unique entities get a Persistent{uid} tag so the scene can remember their fate (_markGone).
     const gone = (reconcile && reconcile.gone) || {};
 
     for (let i = 0; i < spawns.length; i++) {
@@ -48,7 +43,7 @@ globalThis.RpgSpawn = {
       }
       const id = RpgSpawn.spawnEntity(world, level, s);
       if (id === -1) continue;
-      // Classify the constructed entity into the scene's typed handles by its preset.
+      // classify into the scene's typed handles by preset
       if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
       else if (s.preset === "npc") npc = id;
       else if (s.preset === "portal")
@@ -59,18 +54,16 @@ globalThis.RpgSpawn = {
     return { enemies, npc, reach, portals, followers };
   },
 
-  // Reach-quest zone rect (world coords) for a "reach" spawn — no entity, just a region the
-  // scene tests the player against.
+  // Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
   reachZone(level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
     const half = s.half ?? 22;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
-  // Construct ONE spawn descriptor's entity and return its id (-1 for non-entity presets like
-  // "reach"). The single place entity construction lives, so the chunk streamer
-  // (ChunkSource.spawn) builds entities through the same code. `gx/gy` are grid coords
-  // (absolute; gridToWorld handles negatives, so chunk-streamed entities work too).
+  // Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
+  // The single place entity construction lives. `gx/gy` are absolute grid coords (gridToWorld
+  // handles negatives, so chunk-streamed entities work too).
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
@@ -78,8 +71,7 @@ globalThis.RpgSpawn = {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
-      // Dynamic (non-kinematic) so SolidSystem integrates the velocity CombatAI sets
-      // and collides it against the kinematic walls.
+      // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
       world.add(id, Collision, {
         solid: true,
         kinematic: false,
@@ -87,8 +79,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: s.hp ?? 3 });
-      // Stat sheet — a bandit's damage + toughness are Stats-driven like every combatant now (attack
-      // was the old Brain.damage). maxHp mirrors hp; stamina is vestigial for a monster.
+      // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
       world.add(id, Stats, {
         maxHp: s.hp ?? 3,
         maxStamina: 0,
@@ -100,9 +91,8 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["enemy", "raider"]) });
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Raider" });
-      // Loot table — no maxWeight (loot is authored, never weight-gated).
+      // loot table — no maxWeight (authored loot, never weight-gated)
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-      // Hostile human: the dedicated bandit sprite (hooded, red), animated so it looks alive.
       const vis = RpgSpawn._visual(spr_raider, c_white, 1);
       vis.speed = 6;
       world.add(id, Visual, vis);
@@ -110,9 +100,8 @@ globalThis.RpgSpawn = {
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
     } else if (s.preset === "rat") {
-      // Wildlife: the overworld's ambient creature (OverworldGen scatter). A weaker mobile-melee
-      // mob than the raider "raider" — smaller body, less hp, a touch quicker — but the SAME
-      // CombatAI (mobile melee) + Mortal despawn. Raiders ("raider") stay the camp/quest enemy.
+      // Wildlife (OverworldGen scatter): a weaker raider — smaller/less hp/quicker — but the SAME
+      // mobile-melee CombatAI + despawn Mortal.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
@@ -154,12 +143,10 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["npc"]) });
       world.add(id, Name, { name: s.label });
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
-      // Friendly human (the village elder): the hero sprite, untinted, standing still (no anim speed).
       world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, 1));
       // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
-      // Inventory (the merchant's OWN goods). The scene opens TradeUI on E instead of quest dialogue
-      // (see sceneRpg._npcActivate). Stock is built via InventorySystem.add so instanced gear gets a
-      // proper uid/mods; weightless (no maxWeight) so a vendor isn't encumbered by its catalogue.
+      // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
+      // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
       if (s.merchant !== undefined) {
         const mc = s.merchant;
         const mInv = { slots: [], capacity: mc.capacity ?? 32 };
@@ -199,8 +186,8 @@ globalThis.RpgSpawn = {
       world.add(id, Visual, RpgSpawn._visual(spr_chest, c_white, 1));
       return id;
     } else if (s.preset === "prop") {
-      // Solid kinematic prop. A Station `kind` makes it interactable (Interactable
-      // picks it by mouse/proximity, E opens its window); a decorative prop omits it.
+      // Solid kinematic prop. A Station `kind` makes it interactable (E opens its window); a
+      // decorative prop omits it.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
@@ -211,10 +198,8 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Name, { name: s.label });
-      // Dedicated DB32 art per station kind / furniture sub-type: a station picks by `kind`
-      // (workbench/claim/bed), a generic furniture prop by `furn` (crate/barrel/fence, default
-      // crate). The art is pre-colored, so it draws untinted UNLESS the descriptor explicitly
-      // authors a color/material (level-authored variant props → RpgSpawn._tint).
+      // Sprite per station `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/fence,
+      // default crate). Pre-colored art draws untinted unless the descriptor authors color/material.
       let sprite;
       let color = c_white;
       if (s.kind === "workbench") sprite = spr_bench;
@@ -232,9 +217,8 @@ globalThis.RpgSpawn = {
       else world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "torch") {
-      // A decorative LIGHT prop: a small solid post carrying a Light component, drawn by the
-      // RenderLighting pass. Persists/deconstructs like any built entity — EntitySnapshot copies
-      // every component, so the Light round-trips through a map reload with no special handling.
+      // Decorative LIGHT prop: a small solid post carrying a Light (drawn by RenderLighting).
+      // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -4, y: -4, width: 8, height: 8 }); // small footprint
@@ -246,7 +230,7 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Name, { name: s.label ?? "Lamp" });
       world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, 1));
-      // Warm, gently flickering torch light (archetype values; tune via the Light component).
+      // warm, gently flickering torch light (archetype values)
       world.add(id, Light, {
         radius: 75,
         color: Color.parse("#ffd09a"),
@@ -256,11 +240,9 @@ globalThis.RpgSpawn = {
       world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "turret") {
-      // Auto-firing defense post: an immovable, player-faction ACTOR — a stationary ranged
-      // CombatAI (mobile:false, ranged:true), no dedicated component. It carries Health + the
-      // player faction (so enemies target & damage it — two-sided combat); CombatAI reads its Brain
-      // to shoot the nearest hostile. Built-only today (BuildMode "Defense"); all components
-      // round-trip through map persistence like any built entity.
+      // Auto-firing defense post: an immovable player-faction ACTOR — a stationary ranged CombatAI
+      // (mobile:false, ranged:true), no dedicated component. Carries Health + player faction so
+      // enemies target/damage it (two-sided combat). Built-only today (BuildMode "Defense").
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
@@ -271,7 +253,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Health, { hp: 8 });
-      // Stat sheet — the turret's shot damage is Stats.attack now (was the Turret/Brain damage).
+      // shot damage is Stats.attack
       world.add(id, Stats, {
         maxHp: 8,
         maxStamina: 0,
@@ -279,13 +261,11 @@ globalThis.RpgSpawn = {
         defense: 0,
         speed: 0,
       });
-      world.add(id, Faction, { id: "player" }); // ally of the player; a hostile target for enemies
+      world.add(id, Faction, { id: "player" }); // player ally; a hostile target for enemies
       world.add(id, Name, { name: s.label ?? "Turret" });
       world.add(id, Visual, RpgSpawn._visual(spr_turret, c_white, 1));
       world.add(id, Tag, { tags: new Set(["turret"]) });
-      // Stationary ranged brain: aggro == fire range, so it acquires the nearest hostile in range
-      // and fires an instant hitscan shot (Combat.hitscan, see CombatAI._fireAt). No dedicated
-      // Turret component — a turret is just an immovable, player-faction CombatAI actor.
+      // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
       CombatAI.attach(world, id, level, {
         mobile: false,
         ranged: true,
@@ -298,9 +278,8 @@ globalThis.RpgSpawn = {
       });
       return id;
     } else if (s.preset === "portal") {
-      // A doorway: a non-solid sensor entity the player walks onto to travel to another
-      // map. Visible (Visual box + Name) and minimap-tagged. The destination rides on the
-      // entity (Portal component) so a streamed portal resolves via a live Tag "portal" query.
+      // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
+      // the entity (Portal component), so a streamed portal resolves via a live Tag "portal" query.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
@@ -323,13 +302,11 @@ globalThis.RpgSpawn = {
     return -1;
   },
 
-  // Spawn a companion (a dynamic solid body — SolidSystem integrates the velocity
-  // FollowerSystem sets and collides it against walls) at world coords; returns the id.
-  // Shared by the `follower` spawn preset and the scene's programmatic starting-party seed.
-  // NOTE: a companion is a *persistent* entity (it travels/stations via EntitySnapshot), so
-  // prefer the programmatic seed over authoring one in a PERSISTENT map's file — a file spawn
-  // re-runs on every revisit and would duplicate the restored party/stationed copy (the
-  // file-scope reconcile problem, deferred). The preset is fine for non-persistent maps.
+  // Spawn a companion (a dynamic solid body) at world coords. Shared by the `follower` preset +
+  // the scene's programmatic party seed. NOTE: a companion is persistent (travels/stations via
+  // EntitySnapshot), so prefer the programmatic seed over a file spawn in a PERSISTENT map — a
+  // file spawn re-runs every revisit and would duplicate the restored copy. Preset is fine for
+  // non-persistent maps.
   spawnFollower(world, wx, wy, opt = {}) {
     const id = world.create();
     world.add(id, Position, { x: wx, y: wy, z: 0 });
@@ -342,13 +319,11 @@ globalThis.RpgSpawn = {
       hits: [],
     });
     world.add(id, Tag, { tags: new Set(["follower"]) });
-    world.add(id, Faction, { id: "player" }); // party ally — friendly fire skips it; enemies DO aggro it (it has Health)
-    // A companion is mortal but recoverable: at 0 hp it goes Down (Health detached, dimmed) and,
-    // after Mortal.recoverSecs, revives at the recovery spot (claimed build zone / spawn) — see
-    // RpgScene.resolveHealth/_goDown/updateDowned. Not removed like an enemy.
+    world.add(id, Faction, { id: "player" }); // party ally; friendly fire skips it, but enemies aggro it (it has Health)
+    // mortal but recoverable: at 0 hp it goes Down, then revives at the recovery spot after
+    // Mortal.recoverSecs (see RpgScene.resolveHealth/updateDowned). Not removed like an enemy.
     world.add(id, Health, { hp: opt.hp ?? 6 });
-    // Stat sheet — a companion is a combatant (enemies attack it; it may fight later), so it carries
-    // defense (mitigation) + an attack stat like every other actor.
+    // a companion is a combatant, so it carries defense + attack like every other actor
     world.add(id, Stats, {
       maxHp: opt.hp ?? 6,
       maxStamina: 0,
@@ -362,7 +337,7 @@ globalThis.RpgSpawn = {
       reviveHp: opt.hp ?? 6,
     });
     world.add(id, Name, { name: opt.label ?? "Companion" });
-    // Friendly human companion: the hero sprite tinted toward green so it reads as an ally.
+    // hero sprite tinted green so it reads as an ally
     world.add(
       id,
       Visual,
@@ -373,21 +348,16 @@ globalThis.RpgSpawn = {
       speed: opt.speed ?? 130, // > player speed (110) so it can catch up when it lags
       range: opt.range ?? 20,
       homeMap: "",
-      // Carry bonus applied to the player's Inventory while this companion follows (0 = none).
-      // The `follower` spawn preset doesn't pass these, so file-authored followers stay
-      // benefit-free; only the scene's programmatic party seed grants a bonus.
+      // Carry bonus to the player's Inventory while following (0 = none). The `follower` preset
+      // doesn't pass these, so file-authored followers stay benefit-free; only the seed grants one.
       bonusCapacity: opt.bonusCapacity ?? 0,
       bonusWeight: opt.bonusWeight ?? 0,
     });
     return id;
   },
 
-  // Resolve a spawn descriptor's tint: a `material` id whose Item carries a Material component
-  // wins (RimWorld-style per-material tinting — one source of truth, so "wooden things look like
-  // wood" comes from the wood item, not a hex copied per furniture), else the explicit `color`
-  // (#hex), else `fallback`, else white. Material.color is pre-parsed in its constructor, so this
-  // returns a colour int either way. Item is registered at scene create() (RpgContent), well
-  // before any spawn, so the lookup is always populated.
+  // Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
+  // source of truth), else `color` (#hex), else `fallback`, else white. Returns a colour int.
   _tint(s, fallback) {
     if (s.material !== undefined) {
       const item = Item.get(s.material);
@@ -398,10 +368,8 @@ globalThis.RpgSpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Shared Visual component shape — caller passes a `scale` (the greenfield art is 16px-native, so
-  // entity sprites pass 1; a legacy 32px sprite would pass 0.5). Sprites are foot-anchored (origin
-  // 8,16), so this draws standing up from the entity's Position. Caller may set `speed` after for
-  // a looping idle/run cycle.
+  // Shared Visual shape. `scale` is 1 for 16px-native art (0.5 for legacy 32px). Sprites are
+  // foot-anchored (origin 8,16) so this draws standing up from Position. Caller may set `speed`.
   _visual(sprite, color, scale = 1) {
     return {
       visible: true,

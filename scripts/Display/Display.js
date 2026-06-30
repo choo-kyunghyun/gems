@@ -1,41 +1,30 @@
 // Display / window management: applies the saved display Settings (fullscreen + windowed
-// resolution + frame-rate cap) to the actual OS game window + the world's application_surface.
-// Used at boot (obj_game Create) and whenever the SystemMenu changes a display setting. The
-// GUI layer is sized separately by UI.applyScale (fixed design resolution); this owns the
-// window + the game frame rate.
+// resolution + fps cap) to the OS window + the application_surface. Used at boot and on a
+// SystemMenu display change. The GUI layer is sized separately by UI.applyScale.
 globalThis.Display = class Display {
-  // Frames to defer a window resize after leaving fullscreen. The GM manual warns that a
-  // window_set_size right after switching fullscreen→windowed "may not work correctly"
-  // unless it happens at least 10 steps later, so that one path goes through call_later.
+  // frames to defer a resize after leaving fullscreen — GM manual warns window_set_size right
+  // after fullscreen→windowed "may not work correctly" unless ≥10 steps later (via call_later).
   static RESIZE_DELAY = 10;
 
-  // Game speed used for the "Unlimited" fpsLimit (0) — high enough to be effectively
-  // uncapped (the fixed-rate sim is unaffected; only render/Step frequency rises).
+  // game speed for "Unlimited" fpsLimit (0) — effectively uncapped (sim is fixed-rate, unaffected).
   static UNCAPPED_FPS = 1000;
 
-  // The current GUI render-target (window back buffer) size in PHYSICAL pixels — windowed client
-  // area, or the monitor in fullscreen. The back buffer resizes SYNCHRONOUSLY to whatever size we
-  // request here, but window_get_width/height() (and the application surface) lag it by a frame
-  // (the OS resize arrives async via an SDL event), so on a resolution-change frame a query reports
-  // the OLD size. UIElement._drawClipped scales its GPU scissor by this instead — keying it off a
-  // lagged query sets a scissor bigger than the freshly-shrunk back buffer → a fatal "scissor not
-  // contained in the render target" validation error. Authoritative because the window is not
-  // drag-resizable (options_windows resize_window:false), so Display is the only thing that sets it.
+  // current render-target (back buffer) size in PHYSICAL px — windowed client area, or monitor in
+  // fullscreen. The back buffer resizes synchronously, but window_get_width/height() (and the app
+  // surface) lag a frame, so a query on a resize frame reports the OLD size — keying the GPU scissor
+  // off that overflows the freshly-shrunk target → fatal "scissor not contained" validation error.
+  // Authoritative because the window isn't drag-resizable (options_windows resize_window:false).
   static renderW = 0;
   static renderH = 0;
-  // renderW/H aged by one frame (advanceFrame, end of UI.draw). The GUI back buffer doesn't resize in
-  // lockstep with apply(): a SHRINK shrinks it the same frame, but a GROW lags it ONE frame (it's
-  // still the old, smaller size while renderW already holds the new bigger one). So a scissor sized
-  // to renderW would overflow the not-yet-grown target for a frame → fatal validation error.
+  // renderW/H aged one frame (advanceFrame). The back buffer doesn't track apply() in lockstep:
+  // a SHRINK shrinks it the same frame, a GROW lags ONE frame — so a scissor sized to renderW would
+  // overflow the not-yet-grown target → fatal validation error.
   static _prevW = 0;
   static _prevH = 0;
 
-  // Crash-safe GUI clip-target size: the SMALLER of the intended size (renderW) and its 1-frame-lagged
-  // value (_prevW). The live back buffer always equals one of the two mid-transition — a shrink makes
-  // renderW the smaller (and the target matches it immediately), a grow keeps _prevW the smaller (and
-  // the target stays there one frame while it catches up) — so min() can never exceed the target (a
-  // grow briefly under-clips by a frame, invisible, instead of overflowing it). Used for the GPU
-  // scissor in UIElement._drawClipped + the frame-start reset in UI.draw.
+  // crash-safe clip-target size: min of renderW and its 1-frame-lagged _prevW. The live back buffer
+  // always equals one of the two mid-transition, so min() can never exceed the target (a grow just
+  // under-clips one invisible frame). Used by UIElement._drawClipped + UI.draw's frame-start reset.
   static clipW() {
     if (Display.renderW <= 0) return window_get_width();
     return Display._prevW > 0
@@ -49,18 +38,15 @@ globalThis.Display = class Display {
       : Display.renderH;
   }
 
-  // Age renderW/H into the 1-frame-lagged _prevW/H. Called once per frame at the end of UI.draw, so a
-  // GROW's bigger size only takes clip effect on the NEXT frame (after the back buffer has caught up).
+  // age renderW/H into the 1-frame-lagged _prevW/H (end of UI.draw) — so a GROW only takes clip
+  // effect next frame, after the back buffer catches up.
   static advanceFrame() {
     Display._prevW = Display.renderW;
     Display._prevH = Display.renderH;
   }
 
-  // The fullscreen anti-aliasing levels this device can actually do, as an array of valid
-  // display_reset `aa` arguments: always 0 (off), plus 2/4/8 for each bit display_aa reports
-  // set. The bit value equals the level — 2x→bit 2, 4x→bit 4, 8x→bit 8 — so `display_aa & lvl`
-  // is `lvl` when supported, else 0 (see the display_aa manual). Used to build the AA setting's
-  // options so it only offers levels the GPU supports (a single `&` is GMRT-safe).
+  // supported fullscreen AA levels as valid display_reset `aa` args: 0 plus each 2/4/8 bit
+  // display_aa reports (bit value == level, so `display_aa & lvl` is lvl when supported). Single `&` is GMRT-safe.
   static aaLevels() {
     const out = [0];
     if (display_aa & 2) out.push(2);
@@ -69,41 +55,33 @@ globalThis.Display = class Display {
     return out;
   }
 
-  // Apply the saved vsync + fullscreen-AA settings. See applyVideoWith.
+  // apply the saved vsync + fullscreen-AA. See applyVideoWith.
   static applyVideo() {
     Display.applyVideoWith(Settings.get("antialias"), Settings.get("vsync"));
   }
 
-  // Apply a specific vsync + fullscreen-AA via display_reset(aa, vsync). That call also RESETS
-  // the display to its startup state (resolution/window), so re-impose our window + fps afterwards
-  // with apply(). Called at boot + when the SystemMenu flips vsync/AA (via applyVideo), and with an
-  // explicit aa=0 by DebugImGui to drop MSAA while the native ImGui overlay is open — that overlay
-  // draws single-sampled, so a multisampled (AA>0) back buffer makes it fail with a fatal WebGPU
-  // sampleCount mismatch. Not called on a plain resolution/fullscreen change (display_reset state
-  // sticks until the next call).
+  // display_reset(aa, vsync) also RESETS resolution/window to startup, so re-impose window + fps via
+  // apply(). DebugImGui calls it with aa=0 to drop MSAA while the native ImGui overlay is open —
+  // that overlay is single-sampled, so an AA>0 back buffer fails with a fatal WebGPU sampleCount mismatch.
   static applyVideoWith(aa, vsync) {
     display_reset(aa, vsync);
     Display.apply();
   }
 
-  // Apply the saved frame-rate cap (Settings "fpsLimit": 30/60/120, or 0 = Unlimited).
+  // apply the saved fps cap (fpsLimit 30/60/120, or 0 = Unlimited).
   static applyFps() {
     const fps = Settings.get("fpsLimit");
     game_set_speed(fps > 0 ? fps : Display.UNCAPPED_FPS, gamespeed_fps);
   }
 
-  // Apply the current Settings: the fps cap, then go fullscreen, else size the window to the
-  // saved windowed resolution (0/unset → half the monitor). Coming OUT of fullscreen the
-  // resize is deferred RESIZE_DELAY frames (manual caveat); boot + a plain resolution change
-  // resize inline.
+  // apply Settings: fps cap, then fullscreen, else size to the saved windowed resolution
+  // (0/unset → half the monitor). Leaving fullscreen defers the resize RESIZE_DELAY frames (manual caveat).
   static apply() {
     Display.applyFps();
     if (Settings.get("fullscreen")) {
       window_set_fullscreen(true);
-      // The fullscreen render target is the monitor. Record it for the clip scale (see renderW) and
-      // match the application surface to it so the world renders at full resolution instead of
-      // upscaling from the windowed size. Use display_get_* (the monitor, always known) not
-      // window_get_* (it can lag the fullscreen switch by frames).
+      // fullscreen target is the monitor: record it (renderW) and match the app surface so the world
+      // renders at full res. Use display_get_* (always known) not window_get_* (lags the switch by frames).
       Display.renderW = display_get_width();
       Display.renderH = display_get_height();
       surface_resize(application_surface, Display.renderW, Display.renderH);
@@ -116,8 +94,8 @@ globalThis.Display = class Display {
       h = display_get_height() / 2;
     }
     if (window_get_fullscreen()) {
-      // Leaving fullscreen: defer the resize so the runtime doesn't drop it. Record the intended
-      // windowed size now so the clip scale (renderW) tracks the target through the transition.
+      // leaving fullscreen: defer the resize so the runtime doesn't drop it; record the intended
+      // windowed size now so renderW tracks the target through the transition.
       window_set_fullscreen(false);
       Display.renderW = w;
       Display.renderH = h;
@@ -132,8 +110,8 @@ globalThis.Display = class Display {
     }
   }
 
-  // Size the window (+ the world's application_surface) and recenter it on the monitor. Records the
-  // requested size in renderW/renderH (the synchronous render-target size for the GUI clip scale).
+  // size the window + app surface, recenter, and record the requested size in renderW/H
+  // (the synchronous render-target size for the GUI clip scale).
   static _resize(w, h) {
     Display.renderW = w;
     Display.renderH = h;

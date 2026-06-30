@@ -1,10 +1,9 @@
-// The RPG scene's own content — its quests + achievements — layered over the shared
-// RpgContent (rarities + the full item set + recipes). Called once from sceneRpg.create()
-// (not at top level — avoids GMRT load-order issues). Idempotent.
+// RPG quests + achievements, layered over RpgContent. Called once from sceneRpg.create()
+// (not top-level — GMRT load-order). Idempotent.
 globalThis.RpgQuests = {
   registered: false,
 
-  // Quest ids (shared between content, scene, and NPC data).
+  // quest ids shared between content, scene, and NPC data
   QUEST_HUMANS: "td_humans",
   QUEST_GATHER: "td_gather",
   QUEST_REACH: "td_reach",
@@ -13,13 +12,13 @@ globalThis.RpgQuests = {
     if (this.registered) return;
     this.registered = true;
 
-    RpgContent.register(); // shared rarities + items + recipes (the whole item set)
+    RpgContent.register(); // shared rarities + items + recipes
 
     QuestLog.register([
       {
         id: this.QUEST_HUMANS,
         name: "QUEST_HUMANS_NAME",
-        objLabel: "QUEST_HUMANS_OBJ", // formatted as text(label, done, count)
+        objLabel: "QUEST_HUMANS_OBJ",
         objectives: [{ kind: "kill", target: "raider", count: 5 }],
         rewards: { items: [{ itemId: "medkit", qty: 2 }] },
       },
@@ -34,8 +33,7 @@ globalThis.RpgQuests = {
         id: this.QUEST_REACH,
         name: "QUEST_REACH_NAME",
         objLabel: "QUEST_REACH_OBJ",
-        // Explore the ruins → find a permanent attribute boost (the item-driven progression
-        // that replaced XP). Shows the *_shard consumable as a quest reward as well as a craft.
+        // permanent attribute boost reward — the item-driven progression path, gated on exploration
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
         rewards: { items: [{ itemId: "vitality_serum", qty: 1 }] },
       },

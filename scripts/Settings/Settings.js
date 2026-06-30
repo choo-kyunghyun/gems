@@ -1,9 +1,7 @@
 /**
- * Flat key→scalar settings persisted to `settings.json`. A `defaults` allowlist
- * (registered at startup via `registerDefaults`, additively) bounds what `load`
- * reads and `save` writes, so an unknown key on disk is ignored and only declared
- * keys round-trip. `get` falls back to the default when a key was never set.
- * Values must be scalars (GMRT's JSON.stringify faults on nested values).
+ * Flat key→scalar settings persisted to settings.json. A `defaults` allowlist bounds what
+ * load/save touch, so only declared keys round-trip and `get` falls back to the default.
+ * Values must be scalars — GMRT's JSON.stringify faults on nested values.
  */
 globalThis.Settings = class Settings {
   static PATH = "settings.json";
@@ -11,38 +9,38 @@ globalThis.Settings = class Settings {
   /** @type {Object<string, any>} declared keys + their default values. */
   static defaults = {};
 
-  /** @type {Object<string, any>} keys explicitly set this session (override defaults). */
+  /** @type {Object<string, any>} keys set this session (override defaults). */
   static _data = {};
 
-  /** Merge `obj` into the defaults allowlist (additive; call before `load`). @param {Object} obj @returns {Settings} */
+  /** merge into the defaults allowlist (additive; call before load). */
   static registerDefaults(obj) {
     Object.assign(this.defaults, obj);
     return this;
   }
 
-  /** @param {string} key @returns {*} the set value, else the default. */
+  /** the set value, else the default. */
   static get(key) {
     return key in this._data ? this._data[key] : this.defaults[key];
   }
 
-  /** Set `key` in memory (persisted on `save`). @returns {Settings} this */
+  /** set in memory (persisted on save). */
   static set(key, value) {
     this._data[key] = value;
     return this;
   }
 
-  /** @param {string} key @returns {boolean} whether `key` was set and differs from its default. */
+  /** whether `key` was set and differs from its default. */
   static isModified(key) {
     return key in this._data && this._data[key] !== this.defaults[key];
   }
 
-  /** Drop all set values (back to defaults). @returns {Settings} this */
+  /** drop all set values (back to defaults). */
   static reset() {
     this._data = {};
     return this;
   }
 
-  /** Load declared keys from `settings.json` (missing file / parse error is a no-op). @returns {Settings} this */
+  /** load declared keys from disk (missing file / parse error is a no-op). */
   static load() {
     const raw = File.read(this.PATH);
     if (raw === undefined) return this;
@@ -55,7 +53,7 @@ globalThis.Settings = class Settings {
     return this;
   }
 
-  /** Write every declared key (set value or default) to `settings.json`. @returns {Settings} this */
+  /** write every declared key (set value or default) to disk. */
   static save() {
     const out = {};
     for (const key of Object.keys(this.defaults)) {

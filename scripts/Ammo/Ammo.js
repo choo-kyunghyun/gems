@@ -1,18 +1,14 @@
-// Item-component: marks a (fungible) Item as a gun ROUND and carries the BASE projectile stats a
-// gun fires when this ammo is loaded. Ammo is the base of the firing pipeline — the gun-base and its
-// installed attachments are OPERATORS (+ - * /) that manipulate these numbers into the final shot
-// (see EquipmentSystem.composeWeapon / _applyOps). A round is consumed from the magazine per shot
-// (EquipmentSystem.reload tops the magazine up from the bag).
+// Item-component: marks a fungible Item as a gun round, carrying the BASE projectile stats the firing
+// pipeline operates on (gun-base + attachment ops manipulate these into the final shot; see
+// composeWeapon/_applyOps). Consumed from the magazine per shot.
 //
-// `caliber` gates which guns can chamber it: a Gun declares its caliber, and only matching Ammo loads.
-// The four base stats:
-//   • mass        — heavier rounds hit harder (kinetic power ~ mass * velocity^2) but are slower.
-//   • velocity    — the muzzle speed; drives BOTH the bullet's travel speed AND the kinetic power.
-//   • power       — flat base power added before the kinetic term (a round's intrinsic punch).
-//   • penetration — reduces the target's effective defense at the hit (Combat.mitigate), so AP rounds
-//                   bite armor.
+// `caliber` gates which guns chamber it. The four base stats:
+//   • mass        — heavier hits harder (kinetic power ~ mass * velocity^2) but slower.
+//   • velocity    — muzzle speed; drives both travel speed and kinetic power.
+//   • power       — flat base power before the kinetic term.
+//   • penetration — lowers target defense at the hit (Combat.mitigate) — AP rounds bite armor.
 //
-// A flat, standalone class queried by `instanceof` (Item.getComponent) — no inheritance (GMRT can't).
+// Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
 globalThis.Ammo = class Ammo {
   /**
    * @param {Object} d

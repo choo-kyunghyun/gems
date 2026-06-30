@@ -1,9 +1,6 @@
-// Pure operations on an Inventory component (no world tick). An Inventory is
-// { slots: [{ itemId, qty }], capacity, maxWeight? }. Stacking respects each
-// Item's stack size; adds are also capped by maxWeight (Item.weight * qty).
-// Methods take the component directly so any entity's inventory works.
+// Pure operations on an Inventory component (no world tick). Methods take the component directly so
+// any entity's inventory works. Stacking respects Item.stack; adds capped by maxWeight.
 globalThis.InventorySystem = {
-  // Total weight currently carried (sum of Item.weight * qty over all slots).
   weight(inv) {
     let total = 0;
     for (let i = 0; i < inv.slots.length; i++) {
@@ -13,21 +10,16 @@ globalThis.InventorySystem = {
     return total;
   },
 
-  // Add qty of itemId: clamps to the weight budget first, then tops up existing
-  // stacks, then fills new slots up to capacity. Returns the amount that did NOT
-  // fit (0 = everything was added) — refused by weight OR by slots alike.
-  //
-  // INSTANCE items (Item.isInstanced — equippable gear) never stack: each unit becomes its
-  // own slot with a freshly minted uid + empty mods, so two of the same itemId are distinct.
-  // This MINTS new instances; to insert a pre-existing instance preserving its uid/mods
-  // (transfer/drop), use addSlot instead.
+  // Add qty of itemId: weight gate → top up stacks → fill new slots. Returns the amount that did NOT
+  // fit (0 = all added). Instances never stack — one fresh-uid slot per unit. MINTS new instances;
+  // to insert a pre-existing instance preserving uid/mods (transfer/drop), use addSlot.
   add(inv, itemId, qty = 1) {
     const def = Item.get(itemId);
     const max = def !== undefined ? def.stack : 99;
     const unitW = def !== undefined ? def.weight : 1;
     const instanced = def !== undefined && def.isInstanced();
 
-    // Weight gate: cap the accepted qty to what maxWeight still allows.
+    // weight gate: cap accepted qty to what maxWeight allows.
     let accept = qty;
     if (inv.maxWeight !== undefined && unitW > 0) {
       const budget = inv.maxWeight - this.weight(inv);
@@ -36,9 +28,8 @@ globalThis.InventorySystem = {
     }
     let left = accept;
 
-    // Instances skip stacking — one capped slot per unit, each a fresh uid + empty mods. `mods` is a
-    // MAP { slotId -> attachmentItemId } (named typed slots), not an array; gun ammo/rounds are added
-    // lazily by the firing path (EquipmentSystem) so this stays generic.
+    // instances: one slot per unit, fresh uid + empty mods. `mods` is a MAP { slotId -> attachmentId }
+    // (not an array); gun ammo/rounds added lazily by the firing path so this stays generic.
     if (instanced) {
       while (left > 0 && inv.slots.length < inv.capacity) {
         inv.slots.push({ itemId: itemId, qty: 1, uid: uuid(), mods: {} });
@@ -63,20 +54,17 @@ globalThis.InventorySystem = {
       left -= move;
     }
 
-    // Leftover = unfit-by-slots plus whatever the weight gate refused.
-    return left + (qty - accept);
+    return left + (qty - accept); // unfit-by-slots + weight-gate refused
   },
 
-  // Insert a PRE-EXISTING slot object preserving its uid/mods (an instance moved by
-  // transfer/drop, so its installed mods aren't re-minted away). Gated by weight then a
-  // free slot. Returns true if it was inserted. A fungible slot falls back to add() (which
-  // stacks); for those the slot's qty is honored. The passed slot is taken by reference.
+  // Insert a pre-existing slot preserving uid/mods (an instance moved by transfer/drop). Gated by
+  // weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
     const instanced = def !== undefined && def.isInstanced();
     if (!instanced) return this.add(inv, slot.itemId, slot.qty) === 0;
 
-    // Weight gate (one unit — instances are qty 1).
+    // weight gate (one unit — instances are qty 1).
     const unitW = def !== undefined ? def.weight : 1;
     if (inv.maxWeight !== undefined && unitW > 0) {
       if (this.weight(inv) + unitW > inv.maxWeight) return false;
@@ -88,14 +76,12 @@ globalThis.InventorySystem = {
     return true;
   },
 
-  // The slot of a specific instance by uid, or undefined.
   findByUid(inv, uid) {
     for (let i = 0; i < inv.slots.length; i++)
       if (inv.slots[i].uid === uid) return inv.slots[i];
     return undefined;
   },
 
-  // Remove the instance slot with this uid. Returns true if one was removed.
   removeByUid(inv, uid) {
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].uid === uid) {
@@ -136,14 +122,11 @@ globalThis.InventorySystem = {
     return inv.slots.length === 0;
   },
 
-  // Tidy + sort in place: consolidate same-item stacks (up to each Item's stack size)
-  // and order by category (weapon < armor < trinket < other-equip < consumable <
-  // misc), then rarer first, then itemId. Equipment references items by uid (not slot
-  // index), so reordering is safe. Total quantities are preserved. INSTANCE items
-  // (equippable gear) are kept as individual slots — their uid/mods carry through
-  // unchanged; only fungible stacks are merged.
+  // Tidy + sort in place: merge fungible stacks, order by category then rarer-first then itemId.
+  // Reordering is safe — Equipment references by uid, not slot index. Instance slots kept individual
+  // (uid/mods preserved); only fungibles merge.
   sort(inv) {
-    // Tally fungible totals per itemId; keep instance slots whole, grouped by itemId.
+    // tally fungible totals; keep instance slots whole, grouped by itemId.
     const counts = {}; // fungible itemId -> total qty
     const insts = {}; // instance itemId -> InventorySlot[]
     const ids = [];
@@ -161,7 +144,7 @@ globalThis.InventorySystem = {
       }
     }
 
-    // Insertion sort (Array.prototype.sort is unused/untrusted on the GMRT runtime).
+    // insertion sort — Array.prototype.sort is untrusted on GMRT (comparator quirk; see CLAUDE.md).
     for (let i = 1; i < ids.length; i++) {
       const v = ids[i];
       let j = i - 1;
@@ -172,7 +155,7 @@ globalThis.InventorySystem = {
       ids[j + 1] = v;
     }
 
-    // Rebuild slots in sorted order: instance slots verbatim, fungibles merged into full stacks.
+    // rebuild: instance slots verbatim, fungibles merged into full stacks.
     const slots = [];
     for (let i = 0; i < ids.length; i++) {
       const itemId = ids[i];

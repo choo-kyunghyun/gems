@@ -1,8 +1,6 @@
-// Item-component: while equipped, expands the wearer's Inventory by extra slots
-// (quantity capacity). Read by EquipmentSystem on equip/unequip, which adds/removes
-// `capacity` from the owner's Inventory.capacity. A flat, standalone class queried
-// by `instanceof` (see Item.getComponent) — no inheritance, which GMRT can't do.
-// Pairs with Equippable on the same item (e.g. a backpack: Equippable + Container).
+// Item-component: while equipped, grows the wearer's Inventory.capacity (EquipmentSystem adds/removes
+// it on equip/unequip). Pairs with Equippable (e.g. a backpack). Flat class queried by `instanceof`
+// (composition over inheritance — GMRT can't super/subclass).
 globalThis.Container = class Container {
   /**
    * @param {Object} d

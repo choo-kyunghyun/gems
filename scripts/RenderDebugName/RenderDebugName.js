@@ -1,14 +1,11 @@
 /**
- * Entity `Name` labels: white text centered just above each entity's box top.
- * Split out of `RenderDebugBox` (which now draws only the colored box) so labels
- * toggle independently; insert it *after* the box pass so text sits on top.
- * Position is interpolated via `PrevPosition` + `world.alpha` like the box pass.
+ * white Name labels above each entity's box top. insert after RenderDebugBox.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugName = class RenderDebugName {
   constructor() {
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused interp scratch (no per-entity alloc)
+    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}

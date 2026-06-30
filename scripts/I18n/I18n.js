@@ -1,14 +1,14 @@
-// Localization registry. I18n.load(manifest) reads a locale's manifest.json — text-file masks
-// (merged flat key→string), fonts, images, sounds — into the four Maps below. Strings resolve
-// via text()/textRef() (the latter a live () => string for UI labels); fonts/images/sounds by
-// role key. obj_game loads the Settings.language locale at boot; switching language reloads.
+// Localization registry. load(manifest) reads a locale's manifest.json (text masks → flat
+// key→string, fonts/images/sounds by role key) into the Maps below. text()/textRef() resolve
+// strings (textRef is a live () => string for UI labels). obj_game loads the boot locale; a
+// language switch reloads.
 globalThis.I18n = class I18n {
   /** @type {Map<string,string>} */ static texts = new Map();
   /** @type {Map<string,number>} */ static fonts = new Map();
   /** @type {Map<string,number>} */ static images = new Map();
   /** @type {Map<string,number>} */ static sounds = new Map();
 
-  /** Free all loaded fonts/sprites/sound streams and clear every registry (called before each load). */
+  /** Free all loaded assets + clear every registry (runs before each load). */
   static destroy() {
     I18n.texts = new Map();
 
@@ -22,7 +22,7 @@ globalThis.I18n = class I18n {
     I18n.sounds = new Map();
   }
 
-  /** Load a locale from its manifest.json (texts + fonts + images + sounds). @param {string} fname manifest path */
+  /** Load a locale from its manifest.json. @param {string} fname manifest path */
   static load(fname) {
     I18n.destroy();
 
@@ -101,8 +101,8 @@ globalThis.I18n = class I18n {
   }
 
   /**
-   * Resolve a key to its localized string now (falls back to the key itself). Extra args fill
-   * `{0}`/`{1}`… placeholders. @param {string} key @param {...*} params @returns {string}
+   * Resolve a key now (falls back to the key). Extra args fill `{0}`/`{1}`… placeholders.
+   * @param {string} key @param {...*} params @returns {string}
    */
   static text(key, ...params) {
     if (params.length === 0) {
@@ -113,7 +113,7 @@ globalThis.I18n = class I18n {
   }
 
   /**
-   * A live `() => string` for UI labels that must re-resolve (language swap / changing params).
+   * Live `() => string` for UI labels that re-resolve (language swap / changing params).
    * `params` may be values or `() => value` getters. @param {string} key @param {...*} params
    * @returns {() => string}
    */

@@ -1,14 +1,6 @@
-// World-space render pass for a ChunkManager's streamed terrain + frozen entities. Draws, per
-// active chunk: an opaque ground fill (a subtle checker by chunk parity, so chunk seams — and
-// thus streaming — read at a glance; unloaded area stays the dark scene background = visible
-// "edge of the loaded world"), the chunk's wall rects, and — for LOAD-ring (frozen) chunks —
-// each held entity SNAPSHOT as a dimmed box + name (matching RenderDebugBox/Name). SIM-ring
-// entities are live in the World and drawn by the normal entity passes; insert this pass
-// BEFORE them so the ground sits under everything.
-//
-// The active chunk set is already tiny (bounded by loadRadius), so no per-chunk view culling
-// is needed. Reads the ChunkManager live each frame.
-//
+// streamed terrain pass: ground checker + wall rects per chunk, dimmed snapshots for LOAD-ring
+// frozen entities. insert BEFORE entity passes so ground sits under everything.
+// active set is bounded by loadRadius so no view culling is needed.
 // @implements {RenderPass}
 globalThis.RenderChunks = class RenderChunks {
   constructor(chunks, opt = {}) {
@@ -18,9 +10,8 @@ globalThis.RenderChunks = class RenderChunks {
     this.ground0 = opt.ground0 ?? make_colour_rgb(34, 42, 34);
     this.ground1 = opt.ground1 ?? make_colour_rgb(28, 34, 30);
     this.wallColor = opt.wallColor ?? make_colour_rgb(96, 84, 72);
-    this.frozenAlpha = opt.frozenAlpha ?? 0.6; // dim frozen entities to read as LOD'd
-    // Draw the per-chunk ground checker. Off when a TerrainStream draws the ground instead (RPG);
-    // the unloaded area still reads as the dark scene background = the edge of the loaded world.
+    this.frozenAlpha = opt.frozenAlpha ?? 0.6; // dim frozen entities (visual LOD cue)
+    // disable when TerrainStream owns the ground (RPG overworld)
     this.ground = opt.ground ?? true;
   }
 
@@ -41,7 +32,7 @@ globalThis.RenderChunks = class RenderChunks {
     const cw = this.chunks.cellW;
     const ch = this.chunks.cellH;
 
-    // 1. Ground fill per chunk (checker by parity) — skipped when a TerrainStream owns the ground.
+    // 1. ground fill (checker by chunk parity)
     if (this.ground)
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i];
@@ -54,7 +45,7 @@ globalThis.RenderChunks = class RenderChunks {
         draw_rectangle(gx, gy, gx + pxW, gy + pxH, false);
       }
 
-    // 2. Wall rects (filled + dark outline).
+    // 2. wall rects
     for (let i = 0; i < recs.length; i++) {
       const walls = recs[i].walls;
       for (let j = 0; j < walls.length; j++) {
@@ -70,8 +61,7 @@ globalThis.RenderChunks = class RenderChunks {
       }
     }
 
-    // 3. Frozen (LOAD-ring) entity snapshots: dimmed box + name. Snapshot components are keyed
-    //    by the global string tokens (Position/Visual/BBox/Name).
+    // 3. LOAD-ring frozen snapshots: dimmed box + name
     draw_set_halign(fa_center);
     draw_set_valign(fa_bottom);
     for (let i = 0; i < recs.length; i++) {

@@ -1,26 +1,18 @@
-// Level builder for the top-down demo. Reads level data produced by
-// LevelSerializer.load (genre "topdown"); add more level files to extend the game.
+// Level builder for the top-down demo (LevelSerializer genre "topdown").
 //
-// build() creates the resident tile layers from RpgLevel.LAYERS (terrain/floor/wall/fence,
-// bottom→top — see LAYERS) and returns { level, spawn, colliders, plus <key>Layer + <key>Type
-// per layer } — the scene owns level's lifecycle. The layers stay on the level so the
-// RenderTileMap passes (built in RpgMap from LAYERS) draw them and build mode can edit them;
-// wall colliders are greedy-meshed by the Core TileEdit service (TileEdit.meshSolid here,
-// TileEdit.remesh after build-mode edits).
+// build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top)
+// and returns { level, spawn, colliders, <key>Layer/<key>Type per layer }; the scene owns the
+// level's lifecycle. Wall colliders are greedy-meshed by TileEdit.
 //
-// Level data: { cell?, cols, rows, meta: { playerSpawn: { gx, gy } },
-//   walls: [[x, y, w, h], ...] } — walls are authored as cell rectangles (compact +
-// hand-authorable, and they map straight onto the greedy mesh below). Grid size comes
-// from cols/rows, NOT the room, so a level can exceed the view and the follow camera
-// scrolls across it.
+// Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are
+// cell rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so
+// a level can exceed the view and the follow camera scrolls across it.
 
-const RPG_CELL = 16; // fallback cell size when a level omits `cell` (G.E.M.S. 16px convention; see GEMS.md)
+const RPG_CELL = 16; // fallback cell size when a level omits `cell` (16px convention; see GEMS.md)
 
 globalThis.RpgLevel = {
-  // World graph: map id -> level file. The overworld hub, sub-levels (interiors/dungeons),
-  // and side-islands are all just map files connected by `portal` spawns (see RpgSpawn.spawn).
-  // This is the seed registry — extract to a `maps.json` manifest later if it grows. START is
-  // the map a normal lobby launch boots into; RpgMap.go(id, entry) resolves files here.
+  // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
+  // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
   MAPS: {
     overworld: "levels/overworld.json",
     interior_01: "levels/interior_01.json",
@@ -30,22 +22,17 @@ globalThis.RpgLevel = {
     return RpgLevel.MAPS[id];
   },
 
-  // Set by the level editor's Test Play to a save-dir level file; sceneRpg consumes it
-  // once on create (then clears it, falling back to the bundled level). Not gameplay state —
-  // a one-shot hand-off channel between the editor and the play scene.
+  // one-shot editor→play hand-off: the level editor's Test Play sets a save-dir level file;
+  // sceneRpg consumes it once on create, then clears it
   playtestFile: undefined,
 
-  // Resident-grid tile layers, drawn bottom→top — one render-distinct material each.
-  // RenderTileMap autotiles by OCCUPANCY (not tile-type identity), so two materials with
-  // different autotile modes (wall=blob47, fence=blob16) can't share a TileLayer; each gets its
-  // own layer + RenderTileMap pass (created in RpgMap from this table). Swap `type`/`sprite`/
-  // `color` to re-skin a layer. `type`: "dual" corner-grid, "corner" 13-piece sub-tile (full
-  // blob8 look from 13 quadrant frames), 0 raw single-frame, 16 blob4, 47 blob8. `id` is the
-  // TileType identity; for a SINGLE-sprite layer (type 0) RenderTileMap uses
-  // TileType.id as the frame index, so `floor.id` MUST be a real frame (0 = spr_square's only
-  // frame). `pathCost: null` → Infinity (blocking); `solid` layers are greedy-meshed into
-  // kinematic colliders. `fill` auto-fills the whole grid (the walkable terrain base) on plain
-  // maps; chunked maps build these EMPTY (player builds only). Order = nav priority (top wins).
+  // Resident-grid tile layers, bottom→top — one material each. RenderTileMap autotiles by
+  // OCCUPANCY (not tile-type), so materials with different autotile modes (wall=corner,
+  // fence=blob16) CAN'T share a TileLayer — each gets its own layer + pass. `type`: "dual"
+  // corner-grid, "corner" 13-piece sub-tile, 0 raw single-frame, 16 blob4, 47 blob8. For a
+  // type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
+  // frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed. `fill` auto-fills the
+  // grid (walkable base) on plain maps; chunked builds these EMPTY. Order = nav priority (top wins).
   LAYERS: [
     {
       key: "terrain",
@@ -91,10 +78,8 @@ globalThis.RpgLevel = {
     },
   ],
 
-  // Create the LAYERS TileLayers + TileTypes, insert them on the level bottom→top, and return a
-  // handles bag keyed `<key>Layer` / `<key>Type`. Shared by build() + buildChunked(); the caller
-  // does the painting/fill/colliders. The legacy wallLayer/floorLayer/wallType/floorType names
-  // BuildMode + sceneEditor read fall out of this for free (keys "wall"/"floor").
+  // Make the LAYERS TileLayers + TileTypes (bottom→top) and return a handles bag keyed
+  // `<key>Layer`/`<key>Type`. Shared by build() + buildChunked(); the caller paints/fills/meshes.
   _makeLayers(level) {
     const h = {};
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
@@ -113,8 +98,8 @@ globalThis.RpgLevel = {
     return h;
   },
 
-  // Auto-fill each `fill` layer's whole grid with its material (the walkable terrain base).
-  // Plain maps only — chunked maps leave the resident grid empty (ChunkManager owns terrain).
+  // Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
+  // chunked leaves the resident grid empty (ChunkManager owns terrain).
   _fillLayers(level, h) {
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
       const cfg = RpgLevel.LAYERS[i];
@@ -126,8 +111,8 @@ globalThis.RpgLevel = {
     }
   },
 
-  // Paint cell-rectangles ([x, y, w, h]) of `type` into a layer. Shared by the wall/floor
-  // file-rect painting; an absent array is a no-op, so older level files are unaffected.
+  // Paint cell-rectangles ([x,y,w,h]) of `type` into a layer. An absent array is a no-op, so
+  // older level files are unaffected.
   _paintRects(layer, rects, type) {
     if (rects === undefined) return;
     for (let i = 0; i < rects.length; i++) {
@@ -138,14 +123,10 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Creates a Level from data, paints walls into a persistent TileLayer, and spawns
-   * kinematic wall colliders into world. Returns the level handles; the caller owns
-   * level.destroy() and the collider entities.
-   *
-   * `entryId` selects where the player spawns from `meta.entries` (a named-point map, e.g.
-   * "default" or "from_interior" — the matching side of a portal). Falls back to
-   * entries.default, then to the legacy `meta.playerSpawn`, so older single-entry files
-   * still build unchanged.
+   * Build a Level: paint walls + mesh kinematic wall colliders. Returns the level handles; the
+   * caller owns level.destroy() and the colliders. `entryId` selects the player spawn from
+   * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
+   * meta.playerSpawn.
    */
   build(world, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
@@ -155,11 +136,8 @@ globalThis.RpgLevel = {
       cols: data.cols,
       rows: data.rows,
     });
-    // Resident tile layers (terrain/floor/wall/fence) from LAYERS, bottom→top. Terrain is
-    // auto-filled as the walkable base so the ground renders immediately; walls + optional
-    // floors come from the file's cell-rects. Fence has no file source yet (stays empty).
-    // Level._computeNav resolves a wall cell → Infinity, else falls through to the terrain
-    // base → 1 (top-priority layer with data wins).
+    // Terrain auto-filled as the walkable base; walls + optional floors from the file's
+    // cell-rects (fence has no file source yet). Nav: wall cell → Infinity, else terrain → 1.
     const h = RpgLevel._makeLayers(level);
     RpgLevel._fillLayers(level, h);
     RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
@@ -174,13 +152,10 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Build a Level for a CHUNK-STREAMED map: a large resident grid whose wall/floor TileLayers
-   * are left EMPTY (reserved for the player's own builds — build mode). The streamed terrain
-   * (authored hub + procedural wilderness) is owned by the ChunkManager, not this grid, so
-   * nothing is painted and no colliders are meshed here (returns `colliders: []`). Grid size
-   * comes from meta.worldCols/worldRows (the build-allowed home region); the world extends
-   * infinitely beyond it via chunks. Same return shape + layer order as build() so the scene
-   * code and Level.import (the _mapCache round-trip for player builds) are unchanged.
+   * Build a Level for a CHUNK-STREAMED map: a large resident grid left EMPTY (player builds only).
+   * The streamed terrain is owned by the ChunkManager, so nothing is painted/meshed here
+   * (colliders: []). Grid size from meta.worldCols/worldRows. Same return shape + layer order as
+   * build() so the scene code and Level.import round-trip unchanged.
    */
   buildChunked(world, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
@@ -192,9 +167,8 @@ globalThis.RpgLevel = {
       cols,
       rows,
     });
-    // Resident grid stays EMPTY (player builds only) — the streamed terrain + its colliders are
-    // the ChunkManager's. Same layer set/order as build() so Level.import (the _mapCache
-    // round-trip for player builds) matches; no fill, no colliders.
+    // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
+    // ChunkManager's. Same layer set/order as build() so Level.import matches.
     const h = RpgLevel._makeLayers(level);
     level.syncAll();
 
@@ -203,13 +177,10 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Wall border ringing a finite chunked world (worldCols × worldRows cells, anchored at cell 0)
-   * so the player + enemies can't leave the bounded overworld. The 4 colliders are ALWAYS present
-   * (not chunk-managed — like the party), kinematic-solid like any wall, so SolidSystem collides
-   * against them and NavGrid rasterizes them (pathfinding respects the edge for free). Same
-   * Position(top-left)+BBox(0,0,w,h)+kinematic-solid shape as ChunkManager._meshColliders. Returns the
-   * ids (freed by world.destroy() on a map swap). Top/bottom span the full width; left/right span
-   * one cell past each so the outer corners are covered (no diagonal slip-through).
+   * Wall border ringing a finite chunked world (anchored at cell 0) so the player + enemies can't
+   * leave. The 4 colliders are ALWAYS present (not chunk-managed), kinematic-solid like any wall,
+   * so SolidSystem collides + NavGrid rasterizes them. Returns the ids (freed by world.destroy()).
+   * Left/right span one cell past top/bottom to cover the outer corners (no diagonal slip-through).
    */
   buildWorldBorder(world, level, worldCols, worldRows) {
     const cw = level.cellWidth;
@@ -239,8 +210,7 @@ globalThis.RpgLevel = {
     return ids;
   },
 
-  // Resolve the player spawn point (world coords): named entry → entries.default → legacy
-  // meta.playerSpawn. Shared by build() and buildChunked().
+  // Resolve the player spawn (world coords): named entry → entries.default → legacy meta.playerSpawn.
   _resolveSpawn(level, data, entryId) {
     const entries = data.meta.entries;
     let entry = data.meta.playerSpawn;

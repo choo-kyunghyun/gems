@@ -1,6 +1,6 @@
-// Global helper grab-bag: small standalone functions shared across the codebase.
+// Standalone helpers shared across the codebase.
 
-/** No-op — a do-nothing default callback. */
+/** No-op default callback. */
 globalThis.noop = function noop() {};
 
 /** @returns {string} a random RFC-4122 v4 UUID. */
@@ -12,7 +12,7 @@ globalThis.uuid = function uuid() {
   });
 };
 
-/** @param {number} value @returns {number} `value` × the current font's pixel size (CSS-rem-like scaling; falls back to 16px). */
+/** @param {number} value @returns {number} `value` × current font pixel size (rem-like; falls back to 16px). */
 globalThis.rem = function rem(value) {
   const font = draw_get_font();
   const info = font_get_info(font);

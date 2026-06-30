@@ -1,25 +1,18 @@
 /**
- * One zone "channel" of a level: a Grid of zone-id ints (0 = none) plus a
- * registry of Zone definitions. A cell belongs to at most one zone *within a
- * map*, so lookup is O(1) and storage is one int per cell (like TileLayer wraps
- * a Grid of TileType). Purposes that can overlap — faction vs. weather vs. event
- * — use separate ZoneMaps. Sized to the Level grid; see Level.addZoneMap.
+ * one zone channel: Grid of zone-id ints (0 = none) + Zone registry.
+ * overlapping purposes (faction / weather / event) use separate ZoneMaps.
  */
 globalThis.ZoneMap = class ZoneMap {
   constructor(cols, rows) {
     this.grid = new Grid(cols, rows); // int zone ids, 0 = none
-    // Plain object keyed by id (for...in is fine; Map iteration is banned on GMRT).
+    // plain object — for...in is GMRT-safe; Map iteration is not
     this.zones = {};
-    // entityId -> zoneId, owned by ZoneSystem's enter/exit mark-and-sweep.
+    // entityId -> zoneId for ZoneSystem enter/exit sweep
     this._inside = {};
     this._nextId = 1;
   }
 
-  /**
-   * Register a zone. Auto-assigns an id when omitted.
-   * @param {ZoneOpt} opt
-   * @returns {Zone}
-   */
+  /** @param {ZoneOpt} opt @returns {Zone} */
   define(opt = {}) {
     const id = opt.id ?? this._nextId;
     const zone = new Zone({ id: id, name: opt.name, tags: opt.tags, data: opt.data });
@@ -96,7 +89,7 @@ globalThis.ZoneMap = class ZoneMap {
     return out;
   }
 
-  /** @returns {Object} serializable channel: grid + zone defs + nextId. */
+  /** @returns {Object} */
   export() {
     const zones = [];
     for (const id in this.zones) {
@@ -106,7 +99,7 @@ globalThis.ZoneMap = class ZoneMap {
     return { grid: this.grid.export(), zones: zones, nextId: this._nextId };
   }
 
-  /** Restore grid + zone defs from a prior export(). @param {Object} data @returns {ZoneMap} this */
+  /** @param {Object} data @returns {ZoneMap} this */
   import(data) {
     this.grid = Grid.import(data.grid);
     this.zones = {};

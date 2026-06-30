@@ -1,53 +1,30 @@
-/**
- * UINav — keyboard/gamepad menu navigation over the UI tree. Standalone static
- * singleton (NOT a UIComponent), like Tooltip / Toast / SlotDrag.
- *
- * It touches neither UI nor UIElement: an element is "focusable" iff one of its
- * components implements a nav hook — `navActivate(element)` (the confirm action)
- * and/or `navAxis(element, dir)` (horizontal adjust, dir = -1 left / +1 right). Each
- * frame UINav walks the enabled roots, collects focusable elements with a valid
- * (laid-out, on-screen, not scrolled-away) rect, and:
- *   - on a directional press (arrows / dpad / left stick) moves focus to the
- *     geometrically nearest focusable in that direction;
- *   - on a horizontal press, if the focused widget has `navAxis` it tweaks it
- *     (slider/select/stepper) instead of moving focus;
- *   - on confirm (Enter / Space / gamepad A) calls `navActivate`;
- *   - on cancel (Esc / gamepad B) disengages (hides the ring).
- *
- * Engagement: the focus ring shows only once "engaged" — the first nav input engages
- * and focuses but doesn't also act; moving the mouse disengages so pointer and pad
- * don't fight. While a UIInput is being typed (`UIInput.active` set) UINav ignores its
- * keys so the caret keeps the arrows/Enter.
- *
- * Wiring: `UINav.update()` in Step_0 (after `UI.update()`, before the pending-scene
- * swap so a confirm that calls openScene transitions this frame); `UINav.draw()` in
- * Draw_75. GMRT: each edge query is read once per frame; the ring pulse uses wall-clock
- * time (UI ignores Time.scale); no Map/Set iteration, no cached primitive bool.
- */
+// UINav — keyboard/gamepad menu navigation. Static singleton, not a UIComponent.
+// An element is focusable via navActivate(el) (confirm) and/or navAxis(el, dir) (adjust).
+// GMRT: edge queries read once per frame; ring pulse uses Time.raw; no Map/Set iteration,
+// no cached primitive bool.
 globalThis.UINav = class UINav {
   /** @type {UIElement|null} */
-  static focused = null; // the focused element, or null
-  static engaged = false; // ring visible / nav acting (set on first nav input)
-  static suspended = false; // gameplay context: genre scenes set this so gameplay keys (Space/arrows/Enter) don't drive the menu
-  static color = c_aqua; // focus-ring color (overridden by the demo theme)
-  static debugKey = vk_tab; // hold to show the traversal overlay (-1 disables)
+  static focused = null;
+  static engaged = false; // ring visible; set on first nav input
+  static suspended = false; // genre scenes set this so gameplay keys don't drive the menu
+  static color = c_aqua; // focus-ring color (overridden by demo theme)
+  static debugKey = vk_tab; // hold to show traversal overlay (-1 disables)
 
   static _mx = 0; // last mouse pos — movement disengages
   static _my = 0;
   static _stickX = 0; // left-stick re-arm latches (0 = armed)
   static _stickY = 0;
 
-  /** Clear focus + engagement + suspension (called on every scene swap). */
+  /** Reset on every scene swap. */
   static reset() {
     UINav.focused = null;
     UINav.engaged = false;
     UINav.suspended = false;
   }
 
-  /** Per-frame nav tick (Step_0, after UI.update): collect focusables, read input, move/act. */
+  /** Per-frame nav tick (Step_0, after UI.update). */
   static update() {
-    // Suspended (a genre scene is in active play): gameplay owns the keys, so don't
-    // collect or act — keeps gameplay presses (Space/arrows/Enter) off the menu.
+    // gameplay owns the keys while suspended — don't collect or act
     if (UINav.suspended) {
       UINav.engaged = false;
       UINav.focused = null;
@@ -60,12 +37,12 @@ globalThis.UINav = class UINav {
       return;
     }
 
-    // Drop focus if the focused element vanished (scene / tab change).
+    // drop stale focus (scene/tab change)
     if (UINav.focused !== null && UINav._indexOf(items, UINav.focused) === -1) {
       UINav.focused = null;
     }
 
-    // Mouse movement hands control back to the pointer (ring hidden).
+    // mouse movement disengages (ring hidden)
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     if (mx !== UINav._mx || my !== UINav._my) {
@@ -74,13 +51,9 @@ globalThis.UINav = class UINav {
       UINav.engaged = false;
     }
 
-    // Suspend while typing — let the caret keep arrows / Enter.
-    if (UIInput.active !== null) return;
-    // Suspend while a UITable is in keyboard browse mode (it claims the keys each frame;
-    // consume() clears the claim, so if the table stops updating nav resumes on its own).
-    if (UITable.consume()) return;
-    // Suspend while a dialogue box owns Enter / A / arrows for advancing.
-    if (Dialogue.isOpen()) return;
+    if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
+    if (UITable.consume()) return; // table browse mode claimed the keys this frame
+    if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
     const inp = UINav._readInput();
     if (inp.cancel) {
@@ -89,7 +62,7 @@ globalThis.UINav = class UINav {
     }
     if (inp.dx === 0 && inp.dy === 0 && !inp.confirm) return;
 
-    // The first nav input only engages + focuses; it doesn't also act.
+    // first nav input only engages — doesn't also act
     if (!UINav.engaged || UINav.focused === null) {
       UINav.engaged = true;
       if (UINav.focused === null) {
@@ -102,13 +75,13 @@ globalThis.UINav = class UINav {
     if (inp.confirm) {
       const comp = UINav._comp(UINav.focused, "navActivate");
       if (comp !== null) {
-        Audio.play("snd_ui_confirm"); // confirm cue for any focusable (before activate may swap scene)
+        Audio.play("snd_ui_confirm"); // cue before activate (which may swap scene)
         comp.navActivate(UINav.focused);
       }
       return;
     }
 
-    // Horizontal over a widget that consumes it adjusts; otherwise move focus.
+    // horizontal adjusts a navAxis widget (slider/select/stepper); otherwise moves focus
     if (inp.dx !== 0) {
       const comp = UINav._comp(UINav.focused, "navAxis");
       if (comp !== null) {
@@ -116,17 +89,14 @@ globalThis.UINav = class UINav {
         return;
       }
     }
-    // Move focus; a soft cue only when it actually lands on a NEW element. Input is press-edged
-    // (keyboard_check_pressed / debounced stick), so this is one cue per press, never per-frame.
+    // cue only on an actual focus change (input is already press-edged, so one cue per press)
     const prevFocus = UINav.focused;
     UINav._move(items, inp.dx, inp.dy);
     if (UINav.focused !== prevFocus) Audio.play("snd_ui_move");
   }
 
-  /** Draw the focus ring (Draw_75); the Tab debug overlay when held. */
+  /** Draw the focus ring (Draw_75); Tab debug overlay when held. */
   static draw() {
-    // Debug: hold UINav.debugKey (Tab) to overlay the traversal order + the four
-    // directional targets from the focused element — to diagnose awkward routing.
     if (UINav.debugKey !== -1 && keyboard_check(UINav.debugKey)) {
       UINav._drawDebug();
     }
@@ -135,8 +105,6 @@ globalThis.UINav = class UINav {
     if (UINav.focused._destroyed) return;
     const pos = UINav.focused.getLayoutPosition();
     if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
-
-    // Pulsing 2px outline just outside the focused element's rect.
     const pulse = 0.55 + 0.45 * (0.5 + 0.5 * sin(current_time * 0.006));
     const m = 3;
     const x1 = pos.left - m;
@@ -161,9 +129,7 @@ globalThis.UINav = class UINav {
     draw_set_alpha(a0);
   }
 
-  // Debug overlay: number every focusable in collection order and, from the focused
-  // element, draw a labelled line to each direction's target (U/D/L/R) using the same
-  // _pick the real moves use — so you can see exactly where each press would go.
+  // debug overlay: numbered focusables + directional target lines matching real _pick behavior
   static _drawDebug() {
     const items = UINav._collect();
     if (items.length === 0) return;
@@ -178,7 +144,6 @@ globalThis.UINav = class UINav {
 
     const fi = UINav._indexOf(items, UINav.focused);
 
-    // Each focusable: a numbered outline (the focused one brighter).
     for (let k = 0; k < items.length; k++) {
       const pos = items[k].el.getLayoutPosition();
       if (!(pos.width > 0)) continue;
@@ -200,22 +165,19 @@ globalThis.UINav = class UINav {
       draw_text_color(pos.left + 3, pos.top + 2, string(k), c, c, c, c, 1);
     }
 
-    // Directional targets from the focused element. Left/right are skipped when the
-    // widget consumes the horizontal axis (navAxis: slider/select/stepper/tabs) — those
-    // adjust the value rather than move focus, so a target line would mislead.
+    // skip horizontal target lines when navAxis consumes them (would mislead)
     if (fi !== -1) {
       const fx = items[fi].cx;
       const fy = items[fi].cy;
       const consumesAxis = UINav._comp(UINav.focused, "navAxis") !== null;
-      // dx, dy, label, color.
-      const dirs = [
+      const dirs = [ // dx, dy, label, color
         [0, -1, "U", c_red],
         [0, 1, "D", c_lime],
         [-1, 0, "L", c_aqua],
         [1, 0, "R", c_fuchsia],
       ];
       for (let d = 0; d < dirs.length; d++) {
-        if (dirs[d][0] !== 0 && consumesAxis) continue; // horizontal handled by navAxis
+        if (dirs[d][0] !== 0 && consumesAxis) continue; // navAxis handles horizontal
         const j = UINav._pick(items, fi, dirs[d][0], dirs[d][1]);
         if (j === -1) continue;
         const tx = items[j].cx;
@@ -238,15 +200,11 @@ globalThis.UINav = class UINav {
     draw_set_alpha(a0);
   }
 
-  // A solid direction line (debug overlay).
   static _dirLine(x1, y1, x2, y2, col) {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   }
 
-  // ── internals ──────────────────────────────────────────────────
-  // Walk roots top-down (highest index first); stop after an exclusive (modal) root
-  // so focusables on the roots beneath it aren't collected — mirroring the modal's
-  // pointer block, so nav can't reach the background while a dialog is open.
+  // walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background
   static _collect() {
     const out = [];
     for (let i = UI.roots.length - 1; i >= 0; i--) {
@@ -301,17 +259,14 @@ globalThis.UINav = class UINav {
     return null;
   }
 
-  // A laid-out element (valid, non-zero rect). NOTE: scrolled-out items in a UIScroll
-  // are intentionally still focusable — nav scrolls them into view on focus (see
-  // _scrollIntoView), otherwise a list taller than its viewport would be unreachable
-  // without the mouse. Disabled subtrees are already skipped in _walk.
+  // valid non-zero rect. scrolled-out UIScroll items stay focusable (nav scrolls them into
+  // view via _scrollIntoView), else a list taller than its viewport is unreachable by pad.
   static _visible(el) {
     const pos = el.getLayoutPosition();
     return pos.width > 0 && pos.height > 0;
   }
 
-  // Bring `el` into view inside each UIScroll ancestor by nudging its scroll, so the
-  // scroll follows keyboard/gamepad focus.
+  // nudge each UIScroll ancestor so it follows focus
   static _scrollIntoView(el) {
     let p = el.parent;
     while (p !== null) {
@@ -343,7 +298,6 @@ globalThis.UINav = class UINav {
     return -1;
   }
 
-  // Move focus to the nearest focusable in direction (dx, dy).
   static _move(items, dx, dy) {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
@@ -358,13 +312,10 @@ globalThis.UINav = class UINav {
     }
   }
 
-  // Index of the focusable that (dx, dy) from item `i` lands on, or -1. Edge-aware so
-  // wide elements route by reading order, not screen-center: `primary` is the
-  // dir-axis distance between centers; `perp` is the GAP between the two rects on the
-  // cross axis (0 when they overlap there). A full-width row therefore overlaps every
-  // item below it (perp 0), so Down picks the leftmost one (ties break by collection
-  // order = visual order) instead of whichever happens to sit nearest mid-screen.
-  // Shared by _move and the debug overlay so the picture matches behavior exactly.
+  // Nearest focusable from `i` along (dx, dy), or -1. Edge-aware: `primary` = center
+  // distance along dir, `perp` = cross-axis GAP between rects (0 when overlapping). So a
+  // full-width row overlaps everything below it and Down picks the leftmost (ties by
+  // collection order = visual order), not whatever sits nearest mid-screen.
   static _pick(items, i, dx, dy) {
     const s = items[i];
     let best = -1;

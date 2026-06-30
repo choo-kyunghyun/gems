@@ -1,32 +1,7 @@
-/**
- * Dialogue — an RPG-style paged dialogue box with typewriter reveal. Standalone
- * static singleton (NOT a UIComponent), like Tooltip / Toast / VirtualKeyboard /
- * SceneTransition. Game code drives it imperatively:
- *
- *   Dialogue.start(
- *     [
- *       "A plain narrator line.",
- *       { speaker: "Hana", text: "A line with a speaker name plate." },
- *     ],
- *     { speed: 45, onComplete: () => ... },
- *   );
- *
- * Each page's text reveals character-by-character at `speed` chars/sec (wall-clock,
- * Time.raw — so it ignores Time.scale like the rest of the UI). Advance with
- * Enter / Space / gamepad A, or by clicking the box: the first advance snaps the
- * current page to fully revealed, the next moves to the following page; advancing
- * past the last page closes and fires `onComplete`.
- *
- * Wiring: `Dialogue.update()` in obj_game Step_0 (typewriter timing + advance input),
- * `Dialogue.draw()` in Draw_75 (after Toast), `Dialogue.clear()` on every scene swap.
- * While it's open, UINav suspends (it owns Enter/A) — see UINav.update.
- *
- * GMRT notes: the box is sized off display_get_gui_* (never a flexpanel rect), so there's no
- * NaN-width hazard and no `!(pos.width > 0)` guard. The advance indicator is a filled
- * down-triangle via drawUIArrow (like UIAccordion/UISelect). Reveal counts a JS substring of
- * pre-wrapped lines, no Map/Set iteration. isOpen() is a METHOD, not a static getter (static
- * getters miscompile for computed state on GMRT 0.20 — see CLAUDE.md).
- */
+// RPG-style paged dialogue box with typewriter reveal. standalone static singleton (not UIComponent).
+// reveals at `speed` chars/sec on Time.raw; advance with Enter/Space/gamepad-A or click (first snaps
+// page to revealed, next pages on; past the last closes + fires onComplete). UINav suspends while open.
+// isOpen() is a METHOD not a static getter — comparison-body static getters miscompile on GMRT 0.20.
 globalThis.Dialogue = class Dialogue {
   static speedDefault = 45; // chars/sec
   static lines = 3; // visible text rows (fixed box height; design pages to fit)
@@ -50,29 +25,23 @@ globalThis.Dialogue = class Dialogue {
   static _open = false;
   static _pages = []; // { speaker, text }
   static _page = 0;
-  static _chars = 0; // revealed character count (fractional; floored to draw)
-  static speed = 45; // literal: a static initializer can't reference the class name
-  // (the `Dialogue` binding isn't live during class evaluation on GMRT) — kept in
-  // sync with speedDefault; methods below read Dialogue.speedDefault freely.
+  static _chars = 0; // revealed char count (fractional; floored to draw)
+  static speed = 45; // literal, not Dialogue.speedDefault — a static initializer can't
+  // reference its own class name on GMRT. keep in sync with speedDefault.
   static _onComplete = null;
 
-  // Wrap cache — recomputed only when the page or the inner width changes.
+  // wrap cache — recomputed only when page or inner width changes
   static _lines = [];
   static _total = 0;
   static _wrapPage = -1;
   static _wrapW = -1;
 
-  // A METHOD, not a `static get` — kept as a method for consistency with SystemMenu /
-  // VirtualKeyboard, whose comparison-body static getters miscompile on GMRT 0.20 (see
-  // CLAUDE.md). True while a dialogue is showing — read by UINav (to suspend) + game code.
+  // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
   static isOpen() {
     return Dialogue._open;
   }
 
-  /**
-   * Open a dialogue. @param {(string|{speaker?:string,text:string})[]} pages
-   * @param {Object} [opts] { speed (chars/sec), onComplete }
-   */
+  /** @param {(string|{speaker?:string,text:string})[]} pages @param {Object} [opts] { speed, onComplete } */
   static start(pages, opts = {}) {
     const list = [];
     for (let i = 0; i < pages.length; i++) {
@@ -89,25 +58,24 @@ globalThis.Dialogue = class Dialogue {
     Dialogue._open = list.length > 0;
   }
 
-  /** Force-close with no onComplete (scene swap / abort). */
+  /** force-close, no onComplete (scene swap / abort). */
   static clear() {
     Dialogue._open = false;
     Dialogue._pages = [];
   }
 
-  /** Advance the typewriter + handle advance input (Step_0). */
+  /** typewriter + advance input (Step_0). */
   static update() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
     Dialogue._ensureWrap(g);
 
-    // Typewriter advance (wall-clock, ignores Time.scale).
+    // typewriter advance (Time.raw, ignores Time.scale)
     Dialogue._chars += Dialogue.speed * Time.raw;
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
-    // Keyboard/gamepad advance anywhere; the LMB edge (latched by UIPointer, not re-queried
-    // — mouse edges flicker if re-read, see CLAUDE.md) advances only inside the box, so a
-    // click on background UI doesn't also page the dialogue.
+    // keyboard/gamepad advance anywhere; LMB only inside the box (so a click on background UI
+    // doesn't page too). UIPointer-latched edge, not re-queried — mouse edges flicker, see CLAUDE.md.
     let advance =
       keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space);
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face1))
@@ -121,7 +89,7 @@ globalThis.Dialogue = class Dialogue {
   }
 
   static _advance() {
-    // First press reveals the rest of the page; the next moves on.
+    // first press reveals the rest of the page; the next moves on
     if (Dialogue._chars < Dialogue._total) {
       Dialogue._chars = Dialogue._total;
       return;
@@ -138,7 +106,7 @@ globalThis.Dialogue = class Dialogue {
     }
   }
 
-  /** Draw the dialogue box (Draw_75, after Toast). */
+  /** draw the box (Draw_75, after Toast). */
   static draw() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
@@ -151,7 +119,7 @@ globalThis.Dialogue = class Dialogue {
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 
-    // Panel fill + border.
+    // panel fill + border
     draw_set_alpha(Dialogue.panelAlpha);
     draw_roundrect_color_ext(
       g.x1,
@@ -177,7 +145,7 @@ globalThis.Dialogue = class Dialogue {
       true,
     );
 
-    // Speaker name plate, tucked onto the box's top-left edge.
+    // speaker name plate on the box's top-left edge
     const speaker = Dialogue._pages[Dialogue._page].speaker;
     if (speaker !== null && speaker !== "") {
       const tw = string_width(speaker);
@@ -220,7 +188,7 @@ globalThis.Dialogue = class Dialogue {
       );
     }
 
-    // Revealed body text — count a substring across the pre-wrapped lines.
+    // revealed body text — count a substring across pre-wrapped lines
     const n = floor(Dialogue._chars);
     const lines = Dialogue._lines;
     let shown = 0;
@@ -235,7 +203,7 @@ globalThis.Dialogue = class Dialogue {
       shown += line.length;
     }
 
-    // Blinking advance chevron (down triangle, via drawUIArrow) once the page is fully revealed.
+    // blinking advance chevron once the page is fully revealed
     if (
       Dialogue._chars >= Dialogue._total &&
       floor(current_time / 450) % 2 === 0
@@ -256,7 +224,7 @@ globalThis.Dialogue = class Dialogue {
     draw_set_alpha(alpha0);
   }
 
-  // Box rectangle (centered, bottom-anchored) + inner text metrics.
+  // box rect (centered, bottom-anchored) + inner text metrics
   static _geom() {
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
@@ -293,8 +261,7 @@ globalThis.Dialogue = class Dialogue {
     Dialogue._wrapW = g.innerW;
   }
 
-  // Greedy word-wrap to `maxW`, honoring explicit "\n" breaks. Lines are fixed once
-  // here so the typewriter reveals along a stable layout (no reflow jiggle).
+  // greedy word-wrap to `maxW`, honoring "\n". fixed here so the typewriter has a stable layout.
   static _wrap(text, maxW) {
     const lines = [];
     const paras = text.split("\n");

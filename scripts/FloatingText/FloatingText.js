@@ -1,21 +1,6 @@
-/**
- * FloatingText — world-space floating combat text (damage / heal / status numbers
- * that rise + fade). Standalone static singleton, like Toast / Dialogue, but unlike
- * those it draws in WORLD space, so its `draw()` is called from a scene's own draw()
- * (inside the camera view), NOT from obj_game Draw_75. Push from gameplay code:
- *
- *   FloatingText.push(worldX, worldY, 12, { type: "damage" });   // white "12"
- *   FloatingText.push(worldX, worldY, "+8", { type: "heal" });   // green "+8"
- *
- * Wiring: a scene calls `FloatingText.draw()` in its draw() after the entities (world
- * space); obj_game calls `FloatingText.clear()` on every scene swap (a number must not
- * survive into the next scene, where its world coords are meaningless).
- *
- * GMRT/timing notes: numbers are drawn at caller-supplied world coords (no flexpanel,
- * no NaN-width hazard, no `!(pos.width > 0)` guard). Unlike the GUI singletons this
- * ages by Time.delta (sim time), NOT Time.raw — it's gameplay feedback, so a slow-mo /
- * time-dilation effect should slow the numbers too. The rise/pop use Tween curves (#16).
- */
+// world-space floating combat numbers (rise + fade). standalone static singleton.
+// drawn in WORLD space, so draw() is called from a scene's draw() (in camera view), not Draw_75.
+// ages by Time.delta (sim time) not Time.raw — gameplay feedback should slow with time-dilation.
 globalThis.FloatingText = class FloatingText {
   static _items = []; // { x, y, text, color, age, life, rise, scale }
 
@@ -26,7 +11,7 @@ globalThis.FloatingText = class FloatingText {
   static font = -1;
   static shadowColor = Color.parse("#0a0c10");
 
-  // Type → text color. `info` is the fallback for an unknown type.
+  // type → color; `info` is the unknown-type fallback
   static colors = {
     damage: Color.parse("#f1f4fa"), // enemy hit — white
     hurt: Color.parse("#e0584f"), // player hit — red
@@ -36,11 +21,7 @@ globalThis.FloatingText = class FloatingText {
     info: Color.parse("#cfd6e4"),
   };
 
-  /**
-   * Spawn a floating number/string at world (x, y).
-   * @param {number} x @param {number} y @param {number|string} text
-   * @param {Object} [opts] { type, color, life, rise, scale }
-   */
+  /** @param {number} x @param {number} y @param {number|string} text @param {Object} [opts] { type, color, life, rise, scale } */
   static push(x, y, text, opts = {}) {
     const type = opts.type ?? "damage";
     FloatingText._items.push({
@@ -56,24 +37,22 @@ globalThis.FloatingText = class FloatingText {
     });
   }
 
-  /** Drop all live numbers (obj_game calls this on every scene swap). */
+  /** called on every scene swap. */
   static clear() {
     FloatingText._items = [];
   }
 
   /**
-   * Age + cull the numbers and draw them in WORLD space (call from a scene's draw(), after
-   * entities). Under a 2.5D pitched camera pass `pitchDeg` (the camera pitch in degrees) so each
-   * number STANDS UP facing the camera — the same `-pitch` X-tilt RenderBillboard uses — instead
-   * of lying splayed flat on the ground; the rise then runs up the standing plane. Flat top-down
-   * passes 0 (the default) and draws exactly as before.
-   * @param {number} [pitchDeg=0] - Camera pitch in degrees (0 = flat top-down).
+   * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
+   * camera, pitchDeg stands each number up facing the camera (same -pitch X-tilt as RenderBillboard)
+   * instead of splayed flat; 0 (default) is flat top-down.
+   * @param {number} [pitchDeg=0]
    */
   static draw(pitchDeg = 0) {
     const items = FloatingText._items;
     if (items.length === 0) return;
 
-    // Age + cull expired (build survivors; no Array mutation mid-iterate, like Toast).
+    // cull expired; build survivors array to avoid mutation mid-iterate
     const dt = Time.delta;
     const live = [];
     for (let i = 0; i < items.length; i++) {
@@ -91,10 +70,8 @@ globalThis.FloatingText = class FloatingText {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
-    // 2.5D: stand each number up to face the pitched camera (foot at its world (x,y), tilt = -pitch
-    // like the entity billboards) so it reads upright; the rise runs up the standing plane (local
-    // -Y). Draw with the depth TEST off so a number is never occluded by the entity it reports on
-    // (combat feedback — always on top); z-write is already off here (RenderBillboard restored it).
+    // 2.5D: stand each number up to face the pitched camera (tilt = -pitch like the billboards).
+    // depth test OFF so a number is never occluded by the entity it reports on (always-on-top feedback).
     const billboard = pitchDeg !== 0;
     const tilt = -pitchDeg;
     const ident = matrix_build_identity();
@@ -105,17 +82,14 @@ globalThis.FloatingText = class FloatingText {
       const t = live[i];
       const p = t.age / t.life; // 0..1 progress
 
-      // Rise, decelerating (easeOutCubic) so the number shoots up then settles.
-      const riseAmt = Tween.easeOutCubic(p) * t.rise;
-      // Fade in fast, hold, then fade out over the last 35% of life.
+      const riseAmt = Tween.easeOutCubic(p) * t.rise; // decelerating rise
+      // fade in fast, fade out over the last 35% of life
       const fadeIn = clamp(t.age / FloatingText.fadeIn, 0, 1);
       const fadeOut = clamp((t.life - t.age) / (t.life * 0.35), 0, 1);
       const a = Math.min(fadeIn, fadeOut);
-      // Subtle entry pop: scale overshoots past 1 (easeOutBack) then settles.
-      const sc = t.scale * (0.6 + 0.4 * Tween.easeOutBack(fadeIn));
+      const sc = t.scale * (0.6 + 0.4 * Tween.easeOutBack(fadeIn)); // entry pop overshoot
 
-      // Flat numbers rise in world Y at their world x; billboarded numbers sit at the foot via a
-      // stood-up world matrix and rise along the local plane, so the glyph origin is local (0, 0).
+      // billboarded numbers sit at foot via the stood-up matrix, glyph origin local (0,0)
       let ox, oy;
       if (billboard) {
         matrix_set(
@@ -130,7 +104,7 @@ globalThis.FloatingText = class FloatingText {
       }
 
       const c = t.color;
-      // Drop shadow first (offset 1px), then the colored glyph on top.
+      // shadow first (1px offset), then the glyph
       draw_set_alpha(a * 0.7);
       draw_text_transformed_color(
         ox + 1,

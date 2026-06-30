@@ -1,18 +1,10 @@
 /**
  * @implements {UIComponent}
- * Slot grid with hover + single selection (inventory foundation) — lives on a
- * fixed-size element (built by gemsSlots, which sizes the element to exactly the
- * grid so the slots align with the element rect and a UIScroll can measure it). The
- * whole grid is drawn directly in onDraw across one element (like UISelect/UITabs,
- * no child-per-slot), so a large inventory is cheap.
- *
- * `items` is a flat array of slot data or null (empty slot). A slot item is
- * { sprite, subimg, count, color } — `sprite` MUST be a raster sprite (SVG sprites
- * report 0 frames on GMRT and faulting draw_sprite; see CLAUDE.md). Click selects a
- * slot and fires onSelect(index, item).
- *
- * GMRT note: hover/selection are read live from the pointer each frame (no cached
- * primitive bool to be clobbered) and there is no timer (no Time.raw/delta).
+ * Slot grid with hover + single selection (inventory foundation). Whole grid drawn
+ * immediate-mode across one element (no child-per-slot), so a large inventory is cheap.
+ * `items` is a flat array of { sprite, subimg, count, color } or null. `sprite` MUST be
+ * raster — SVG sprites report 0 frames + fault draw_sprite on GMRT (see CLAUDE.md).
+ * GMRT: hover/selection read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UISlots = class UISlots {
   /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
@@ -35,10 +27,10 @@ globalThis.UISlots = class UISlots {
     this.countColor = s.countColor ?? c_white;
 
     this._hover = -1; // hovered slot index, -1 = none
-    this._inside = false; // pointer within this grid (instance field — see onUpdate)
+    this._inside = false; // instance field, not a local bool — see onUpdate (GMRT)
   }
 
-  // Top-left of slot i, in gui space, relative to the element's laid-out rect.
+  // top-left of slot i in gui space, relative to the laid-out rect.
   _slotXY(pos, i) {
     const step = this.cellSize + this.gap;
     return {
@@ -55,11 +47,8 @@ globalThis.UISlots = class UISlots {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
 
-    // Hit-test into INSTANCE fields, not boolean local consts. On GMRT a primitive
-    // boolean cached in a local can flip true→false mid-function (see CLAUDE.md), which
-    // was making the hover branch below evaluate false even though the same `inside`
-    // read true a few lines up. Instance props + live object-property reads are safe
-    // (this is the UISelect `this._enter` pattern).
+    // hit-test into INSTANCE fields, not boolean local consts — on GMRT a local bool
+    // can flip true→false mid-function (see CLAUDE.md), gating the hover branch wrongly.
     this._inside = !block && element.positionMeeting(mx, my);
     this._hover = -1;
     if (this._inside) {
@@ -82,7 +71,7 @@ globalThis.UISlots = class UISlots {
     }
 
     if (this.draggable) {
-      // Press a filled slot → pick it up; press an empty slot → just select it.
+      // filled slot → pick up; empty slot → select.
       if (this._inside && this._hover >= 0 && UIPointer.pressed) {
         if (this.items[this._hover] != null) {
           SlotDrag.begin(this, this._hover);
@@ -91,9 +80,8 @@ globalThis.UISlots = class UISlots {
         }
         return true;
       }
-      // While a drag is active and the cursor is over a slot of this grid, report it
-      // as the drop target. SlotDrag.update resolves the drop on the release edge
-      // (Step_0, after UI.update) using the last reported slot — drift-forgiving.
+      // report the hovered slot as drop target; SlotDrag.update resolves on release
+      // using the last reported slot — drift-forgiving.
       if (SlotDrag.active && this._inside && this._hover >= 0) {
         SlotDrag.hover(this, this._hover);
         return true;
@@ -129,7 +117,7 @@ globalThis.UISlots = class UISlots {
       const x1 = p.x + sz;
       const y1 = p.y + sz;
 
-      // Cell background.
+      // cell background.
       const bg = i === this._hover ? this.slotHover : this.slotColor;
       draw_roundrect_color_ext(
         p.x,
@@ -143,7 +131,7 @@ globalThis.UISlots = class UISlots {
         false,
       );
 
-      // Icon (raster only).
+      // icon (raster only).
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
         const n = max(1, sprite_get_number(it.sprite));
@@ -160,7 +148,7 @@ globalThis.UISlots = class UISlots {
         );
       }
 
-      // Selection: a 2px accent outline. Else a 1px border.
+      // 2px accent outline if selected, else 1px border.
       if (i === this.selected) {
         draw_roundrect_color_ext(
           p.x,
@@ -199,7 +187,7 @@ globalThis.UISlots = class UISlots {
       }
     }
 
-    // Stack counts on top so the selection outline never covers them.
+    // counts drawn last so the selection outline never covers them.
     if (this.font !== -1) draw_set_font(this.font);
     draw_set_halign(fa_right);
     draw_set_valign(fa_bottom);

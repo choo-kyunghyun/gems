@@ -1,46 +1,31 @@
-// Player-centered directional radar — the "modern minimap": instead of a corner blip view, it
-// draws a ring of rounded arrows AROUND a target entity (the player), one per nearby entity,
-// each pointing toward that entity, colored by the first matching tag rule, and SIZED by
-// distance (near = big, far = small). So the player reads nearby/moving threats from the center
-// of the action without glancing at a corner radar.
-//
-// World-space, immediate-mode (reads the World live each frame like UIMinimap/RpgWorldOverlay):
-// call RadarArrows.draw(world, target, rules, opt) from a scene's draw() AFTER renderer.draw()
-// (inside the camera view), so the arrows sit bright over the scene with the other world cues.
-// Because it reads world/target live, it needs no rebuild across a map/world swap.
-//
-// GMRT: draw_triangle_color is 0.20-safe (each arrow = one filled triangle). Tag membership
-// via Set.has() (only for...of over a Set is banned). `rules` colors must be GM colour ints
-// (parse hex with Color.parse at the call site).
+// player-centered directional radar: a ring of arrows around the player, one per nearby entity,
+// pointing at it, colored by first matching tag rule, sized by distance (near big, far small).
+// world-space immediate-mode; draw() from a scene's draw() after renderer.draw(). reads world live,
+// so no rebuild across a map swap. Set.has() is fine (only for...of over a Set is banned); rules
+// colors must be GM colour ints.
 globalThis.RadarArrows = {
   /**
    * @param {object} world
-   * @param {number} target           center entity id (the player) — its arrows are skipped
-   * @param {{tag:string,color:number}[]} rules  first matching tag wins; others are not drawn
-   * @param {object} [opt]  { range, ring, near, far, lift } — detect radius, ring px from the
-   *                        player, arrow length at point-blank (near) vs at max range (far), and
-   *                        `lift` (2.5D world-z to raise the ring off the floor; 0 = flat, see draw)
+   * @param {number} target  center entity id (the player) — skipped
+   * @param {{tag:string,color:number}[]} rules  first matching tag wins
+   * @param {object} [opt]  { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat)
    */
   draw(world, target, rules, opt = {}) {
     const tp = world.get(Position, target);
     if (tp === undefined) return; // target gone — nothing to center on
     const range = opt.range ?? 230;
-    const ring = opt.ring ?? 26; // world px from the player to each arrow
+    const ring = opt.ring ?? 26; // world px from player to each arrow
     const near = opt.near ?? 11; // arrow length at the player
     const far = opt.far ?? 5; // arrow length at the radar edge
-    const lift = opt.lift ?? 0; // 2.5D: world-z to raise the ring off the floor (0 = flat top-down)
+    const lift = opt.lift ?? 0; // 2.5D: world-z to raise the ring off the floor (0 = flat)
 
     const color = draw_get_color();
     const alpha = draw_get_alpha();
 
-    // 2.5D: under a pitched camera the ring otherwise lies splayed flat on the ground at the
-    // player's feet (and is occluded by the entities it points at). Lift the whole ring to ~body
-    // height with a world-z translate (like RpgWorldOverlay's bullets — negative z maps up the
-    // screen) and draw depth-test OFF so an arrow is never hidden by a body (a HUD cue — always
-    // visible). The arrows stay in the horizontal plane, so each keeps pointing at the on-screen
-    // position of its target (same ground-plane foreshortening as the entities); billboarding
-    // them upright would instead point at the un-foreshortened azimuth and miss. Flat top-down
-    // passes lift 0 and keeps the old path.
+    // 2.5D: lift the ring to ~body height (else it lies splayed flat at the player's feet) and draw
+    // depth-test OFF so an arrow is never hidden by a body (always-visible HUD cue). arrows stay in
+    // the horizontal plane so each keeps pointing at its target's on-screen position; billboarding
+    // them upright would point at the un-foreshortened azimuth and miss.
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -73,8 +58,7 @@ globalThis.RadarArrows = {
     draw_set_alpha(alpha);
   },
 
-  // An arrow at (ax, ay) pointing along unit (nx, ny), `size` long: a filled triangle from a
-  // base behind the ring point to a tip ahead of it.
+  // filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long
   _arrow(ax, ay, nx, ny, size, col) {
     const px = -ny; // unit perpendicular
     const py = nx;

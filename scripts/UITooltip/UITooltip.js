@@ -1,20 +1,11 @@
-/**
- * @implements {UIComponent}
- * Hover-to-show tooltip. Self-contained: it detects its own hover (no separate
- * UITrigger needed) and honors the `block` flag so it stays hidden whenever a
- * higher element captured the pointer. Each frame the pointer dwells past
- * `delay`, it feeds the global `Tooltip` renderer, which draws once in Draw_75.
- *
- * Add it as the FIRST component on its element (the gemsTooltip factory does this
- * via index 0) so a sibling interactive component on the same element — a
- * UIButton setting `block` true while hovered — doesn't suppress the very tooltip
- * meant to describe it. The incoming `block` then reflects only higher roots and
- * children, which is exactly what should hide the tooltip.
- */
+// Hover-to-show tooltip; feeds the global Tooltip renderer once dwell passes `delay`.
+// Add it as the FIRST component (gemsTooltip does, index 0) so a sibling UIButton's
+// `block` while hovered doesn't suppress the very tooltip describing it.
+/** @implements {UIComponent} */
 globalThis.UITooltip = class UITooltip {
   /** @param {Object} [tooltip] { label: string | () => string, delay: seconds } */
   constructor(tooltip = {}) {
-    // Accept a string or a () => string (I18n.textRef-friendly), resolved live.
+    // string or () => string (I18n.textRef-friendly), resolved live.
     const label = tooltip.label ?? "";
     this.label = typeof label === "function" ? label : () => label;
     this.delay = tooltip.delay ?? 0.4;

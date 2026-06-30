@@ -1,10 +1,6 @@
-// Segment-vs-AABB raycast over all collider entities. Returns the nearest hit
-// { id, x, y, nx, ny, t } along the segment (x0,y0)->(x1,y1), or null. Shared by
-// ProjectileSystem (bullets) and line-of-sight queries.
-//
-//   opts: { ignore?:    number,        entity id to skip (e.g. the shooter)
-//           solidOnly?: boolean,       only test solid colliders (default true)
-//           mask?:      string[]|null } if set, also require a matching Tag
+// Segment-vs-AABB raycast over all collider entities. Returns nearest hit
+// { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS.
+//   opts: { ignore? (id to skip), solidOnly? (default true), mask? (require a matching Tag) }
 globalThis.Raycast = class Raycast {
   static cast(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
@@ -20,10 +16,8 @@ globalThis.Raycast = class Raycast {
       if (id === ignore) continue;
 
       const col = world.get(Collision, id);
-      // Read opts.solidOnly inline (default on) rather than caching it in a boolean
-      // local — a cached const boolean gets clobbered mid-function on GMRT (the
-      // boolean-local quirk in CLAUDE.md), which dropped this skip and let bullets
-      // stop on non-solid item drops/spikes.
+      // read opts.solidOnly inline — caching it in a bool local gets clobbered mid-function on
+      // GMRT (boolean-local quirk, CLAUDE.md); that dropped this skip → bullets stopped on item drops
       if (opts.solidOnly !== false && !col.solid) continue;
       if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
         continue;
@@ -45,10 +39,8 @@ globalThis.Raycast = class Raycast {
     return best;
   }
 
-  // Every solid collider the segment (x0,y0)->(x1,y1) crosses, ASCENDING by entry distance `t` —
-  // the multi-hit counterpart to cast() (which returns only the nearest). Same opts
-  // (ignore/solidOnly/mask). Each entry is { id, x, y, nx, ny, t } like cast()'s. Used by hitscan
-  // pierce walks (Combat.hitscan) that must see every body along the ray, not just the first.
+  // Every solid collider the segment crosses, ASCENDING by entry distance `t` — multi-hit
+  // counterpart to cast(). Used by hitscan pierce walks (Combat.hitscan) needing every body, not just the nearest.
   static castAll(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
     const mask = opts.mask ?? null;
@@ -80,16 +72,14 @@ globalThis.Raycast = class Raycast {
         });
       }
     }
-    // Sort ascending by entry distance. Return a SIGN (-1/0/1), not the raw `a.t - b.t` difference:
-    // t is in [0,1], so every fractional difference truncates to 0 on GMRT's sort and the array
-    // would stay in (arbitrary) query order — leaving the pierce walk hitting bodies out of order.
+    // sort by t. Return a SIGN, NOT `a.t - b.t`: t is in [0,1] so a fractional diff truncates to 0
+    // on GMRT's sort, leaving query order — pierce walk would hit bodies out of order. (GMRT-Safe Idiom)
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
   }
 
-  // Slab test of the segment (x0,y0) + (dx,dy)*t, t in [0,1], against an AABB.
-  // Returns { t, nx, ny } at the entry point (t clamped to 0 if it starts inside),
-  // or null. nx/ny is the surface normal pointing back along the ray.
+  // Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
+  // starting inside), or null. nx/ny is the surface normal pointing back along the ray.
   static _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;
 

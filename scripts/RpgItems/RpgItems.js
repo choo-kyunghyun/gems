@@ -1,9 +1,5 @@
-// RPG item content: the rarity tiers + the full item set (consumables / weapons / armor /
-// trinket / unique items / crafting materials). Registered once by RpgContent.register() at a
-// scene's create() (NOT at top level — avoids GMRT load-order issues). An item's `rarity` is a
-// tier id defined here, so rarities + items live together. lead_pipe = melee (swings a hitbox
-// in the facing dir); blaster = an ammo-driven gun — RpgController picks melee-swing vs fire by
-// whether the item carries a Gun component (composeWeapon's gun branch).
+// RPG item content — rarities + full item set. Registered once via RpgContent.register() at
+// scene create(), NOT top-level (avoids GMRT load-order issues).
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
   { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
@@ -17,7 +13,7 @@ globalThis.RpgItems = {
     Rarity.register(RPG_RARITIES);
 
     Item.register([
-      // Loot trash + currency-ish.
+      // loot trash
       {
         id: "rags",
         name: "ITEM_RAGS",
@@ -25,7 +21,7 @@ globalThis.RpgItems = {
         value: 2,
         rarity: "common",
       },
-      // Consumable — heals from the bag.
+      // instant heal from bag
       {
         id: "medkit",
         name: "ITEM_MEDKIT",
@@ -35,9 +31,7 @@ globalThis.RpgItems = {
         rarity: "uncommon",
         components: [new Consumable({ heal: 5 })],
       },
-      // Buff consumables — apply a timed Status (Buff/Status system). Medgel = Regen (HoT over 8s);
-      // Combat Stim = Fortify (+attack/+defense for 12s, folded into Stats via StatModel). The status id
-      // is content (RpgStatuses); ConsumableSystem.use routes it to StatusSystem.apply.
+      // buff consumables: Medgel = Regen (HoT), Combat Stim = Fortify (+attack/+defense)
       {
         id: "medgel",
         name: "ITEM_MEDGEL",
@@ -56,10 +50,7 @@ globalThis.RpgItems = {
         rarity: "rare",
         components: [new Consumable({ status: "fortify" })],
       },
-      // Survival drink + foods (Gameplay/Survival) — lower Thirst / Hunger when used from the bag.
-      // cooked_meat also heals a little. The Consumable thirst/hunger fields drive ThirstSystem /
-      // HungerSystem.restore (see ConsumableSystem). Sourced via workbench recipes for now (proper
-      // sourcing — farming/fishing — is on the roadmap).
+      // survival consumables: lower Thirst / Hunger (cooked_meat also heals)
       {
         id: "water_bottle",
         name: "ITEM_WATER_BOTTLE",
@@ -87,11 +78,7 @@ globalThis.RpgItems = {
         rarity: "uncommon",
         components: [new Consumable({ hunger: 60, heal: 3 })],
       },
-      // Permanent attribute-boost consumables (Terraria Life-Crystal style) — the item-driven
-      // progression that replaced leveling. Each raises ONE primary attribute by +1 forever (via
-      // ConsumableSystem.grantAttr → StatModel.recompute), so growth comes from finding/crafting
-      // these, not an XP grind. One per StatModel.ATTRS key; obtained by crafting (RpgRecipes) +
-      // quest rewards (RpgQuests). `attr` matches the Attributes bag key.
+      // permanent +1 to one attribute — item-driven progression instead of XP leveling
       {
         id: "power_serum",
         name: "ITEM_POWER_SERUM",
@@ -128,9 +115,7 @@ globalThis.RpgItems = {
         rarity: "epic",
         components: [new Consumable({ attr: "end", amount: 1 })],
       },
-      // Weapons. lead_pipe = melee (swings a hitbox in the facing dir); blaster = an ammo-driven
-      // gun (the Gun component → composeWeapon's gun branch). RpgController picks melee-swing vs
-      // fire by whether the item carries a Gun component.
+      // weapons: lead_pipe = melee, blaster = ammo-driven gun (Gun component → composeWeapon gun branch)
       {
         id: "lead_pipe",
         name: "ITEM_LEAD_PIPE",
@@ -140,9 +125,7 @@ globalThis.RpgItems = {
         rarity: "common",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 1 } }),
-          // Named, typed attachment slots (the unified slot model): mod_sharp fits "edge",
-          // mod_heavy fits "pommel". `damage`/`reach`/`fireCd` are the MELEE base the attachment
-          // `ops` operate on (no Gun component → composeWeapon's melee branch).
+          // melee base stats; mod_sharp fits "edge", mod_heavy fits "pommel"
           new Weapon({
             damage: 3,
             fireCd: 18,
@@ -163,10 +146,7 @@ globalThis.RpgItems = {
         rarity: "rare",
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
-          // An ammo-driven GUN: the `Gun` component makes composeWeapon take the gun branch — it
-          // fires whatever the LOADED Ammo describes (mass/velocity/power/penetration), run through
-          // the gun-base ops + each attachment's ops. `slots` are the named attachment slots; the
-          // gun-base `ops` are inert here (a neutral frame — attachments do the shaping).
+          // Gun component → ammo-driven; ops are neutral (attachments do the shaping)
           new Weapon({
             fireCd: 8,
             slots: [
@@ -180,7 +160,7 @@ globalThis.RpgItems = {
           new Gun({ caliber: "standard", magazine: 8 }),
         ],
       },
-      // Armor + trinket (flat Stats deltas while worn).
+      // armor + trinket
       {
         id: "armored_vest",
         name: "ITEM_ARMORED_VEST",
@@ -200,7 +180,7 @@ globalThis.RpgItems = {
         rarity: "rare",
         components: [new Equippable({ slot: "trinket", mods: { speed: 40 } })],
       },
-      // Backpack: equippable that grows the wearer's Inventory capacity (Container).
+      // backpack: Equippable + Container (expands inventory slots)
       {
         id: "backpack",
         name: "ITEM_BACKPACK",
@@ -212,8 +192,7 @@ globalThis.RpgItems = {
           new Container({ capacity: 8 }),
         ],
       },
-      // Currency + unique loot. coin stacks very high so a big credit balance stays ONE inventory
-      // slot (at the default stack of 99, 1000 coins would eat ~11 of the player's 16 slots).
+      // currency: coin stacks very high so a large balance occupies one slot
       { id: "coin", name: "ITEM_COIN", weight: 0, value: 1, rarity: "common", stack: 99999 },
       { id: "circuitry", name: "ITEM_CIRCUITRY", weight: 1, value: 50, rarity: "rare" },
       {
@@ -223,9 +202,7 @@ globalThis.RpgItems = {
         value: 0,
         rarity: "epic",
       },
-      // Crafting materials — consumed by Recipes at a workbench. The Material component
-      // carries the tint a structure/floor/furniture built from this stuff is drawn with
-      // (RimWorld-style per-material tinting; see Material / TerrainStream).
+      // crafting materials — Material component tints built structures using this material
       {
         id: "wood",
         name: "ITEM_WOOD",
@@ -242,11 +219,7 @@ globalThis.RpgItems = {
         rarity: "common",
         components: [new Material({ color: "#9aa3ad" })],
       },
-      // Gun ammo (Ammo) — the BASE projectile stats a gun fires (mass / velocity / power /
-      // penetration); the gun-base + installed attachments operate on these into the final shot.
-      // `caliber:"standard"` matches the blaster. Consumed one per shot (magazine-fed); weight 0 so a
-      // full belt doesn't dominate the weight budget. Crafted at the Machining. light = fast/low-pen,
-      // heavy = slow/punchy, ap = armor-piercing.
+      // ammo: base projectile stats a gun fires; light = fast/low-pen, heavy = slow/punchy, ap = armor-piercing
       {
         id: "ammo_light",
         name: "ITEM_AMMO_LIGHT",
@@ -298,13 +271,8 @@ globalThis.RpgItems = {
           }),
         ],
       },
-      // Weapon attachments (WeaponMod) — fungible items installed into a weapon instance's matching
-      // NAMED slot at a workbench with the Toolkit module slotted (WeaponModUI panel). `slot` is the
-      // category it fits (vs a weapon slot's `accepts`); `ops` are the operators it applies to the
-      // composed profile ({ field: { add?, mul? } } → (base+Σadd)·Πmul); `stat` folds into the
-      // wearer's derived Stats. An op on a field the weapon doesn't expose is simply inert. Crafted
-      // with the Machining module (RpgRecipes).
-      // ── Gun attachments (the blaster's scope/barrel/magazine/grip/muzzle slots) ──
+      // weapon attachments (WeaponMod): ops = (base+Σadd)·Πmul per field; inert ops on missing fields
+      // gun attachments (blaster's scope/barrel/magazine/grip/muzzle slots)
       {
         id: "mod_scope",
         name: "ITEM_MOD_SCOPE",
@@ -366,7 +334,7 @@ globalThis.RpgItems = {
           }),
         ],
       },
-      // ── Melee attachments (the lead pipe's edge/pommel slots) ──
+      // melee attachments (lead pipe's edge/pommel slots)
       {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
@@ -396,10 +364,7 @@ globalThis.RpgItems = {
           }),
         ],
       },
-      // Workbench modules (WorkbenchModule) — slotted into a workbench's single module slot to
-      // upgrade it. The three "recipes" modules unlock the recipes that declare `requires: <id>`
-      // (RpgRecipes); the Toolkit ("weaponmod") switches the bench into the weapon-mod panel. All
-      // are crafted at the BARE bench (base recipes), so the bench bootstraps its own upgrades.
+      // workbench modules: slot to unlock recipe gates or switch to weapon-mod panel (Toolkit)
       {
         id: "machining_module",
         name: "ITEM_MACHINING_MODULE",
@@ -407,7 +372,7 @@ globalThis.RpgItems = {
         weight: 3,
         value: 30,
         rarity: "uncommon",
-        components: [new WorkbenchModule()], // kind defaults "recipes"
+        components: [new WorkbenchModule()], // defaults kind:"recipes"
       },
       {
         id: "chem_module",
@@ -438,11 +403,8 @@ globalThis.RpgItems = {
       },
     ]);
 
-    // Auto-wire each item's icon sprite by the asset-naming convention `spr_item_<id>` (icons are
-    // generated by tools/pixel-art-kit/gm-import/item_sprites.py). asset_get_index returns an opaque
-    // ref (or -1 for a missing name), validated by sprite_exists — so an item with no generated icon
-    // simply keeps sprite -1, and every render site (UISlots/UITable/drops) guards on sprite_exists.
-    // A def that set its own `sprite` explicitly is left alone.
+    // auto-wire icon sprites by naming convention spr_item_<id>; asset_get_index returns an opaque
+    // ref so validate with sprite_exists, not >=0 (GMRT — see CLAUDE.md). defs with explicit sprites untouched.
     const items = Item.all();
     for (let i = 0; i < items.length; i++) {
       const it = items[i];

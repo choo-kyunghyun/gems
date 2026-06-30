@@ -1,8 +1,6 @@
-/**
- * Marks a patrolling enemy and holds its walk state. EnemySystem flips `dir`
- * when SolidSystem zeroes the body's horizontal velocity against a wall.
+/** patrolling enemy walk state; EnemySystem flips dir when SolidSystem zeroes vel.x
  * @typedef {Object} Enemy
- * @property {number} dir   walk direction, -1 (left) or 1 (right)
- * @property {number} speed horizontal walk speed in px/s
+ * @property {number} dir   -1 (left) or 1 (right)
+ * @property {number} speed px/s
  */
 globalThis.Enemy = "Enemy";

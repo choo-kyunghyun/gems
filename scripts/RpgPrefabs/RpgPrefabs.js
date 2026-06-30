@@ -1,12 +1,9 @@
-// RPG overworld prefabs — structured clusters OverworldGen stamps into procedural chunks
-// (tagged "overworld"; local grid coords, footprint cols/rows kept inside a chunk). Loot-less
-// enemies get the generator's standard scatter loot. Registered once by RpgContent.register() at
-// a scene's create() (NOT at top level — avoids GMRT load-order issues), before any ChunkSource
-// is built (OverworldGen resolves Prefab.byTag("overworld") in its constructor).
+// RPG overworld prefabs stamped by OverworldGen. Registered at scene create() (NOT top-level — GMRT
+// load-order), before ChunkSource is built (OverworldGen resolves Prefab.byTag in its constructor).
 globalThis.RpgPrefabs = {
   register() {
     Prefab.register([
-      // A loose field of rocks — terrain flavor, no enemies.
+      // terrain flavor, no enemies
       {
         id: "boulder_cluster",
         tags: ["overworld"],
@@ -20,7 +17,7 @@ globalThis.RpgPrefabs = {
           [3, 3, 1, 1],
         ],
       },
-      // A bandit camp — a sheltering rock corner with a pack of hostile humans (one tougher).
+      // sheltered corner with a raider pack (one tougher)
       {
         id: "raider_camp",
         tags: ["overworld"],
@@ -37,7 +34,7 @@ globalThis.RpgPrefabs = {
           { preset: "raider", lx: 4, ly: 4, hp: 5 },
         ],
       },
-      // A ruin — broken walls around a loot chest (the rare reward prefab).
+      // broken walls around a loot chest
       {
         id: "ruin",
         tags: ["overworld"],

@@ -1,66 +1,40 @@
 /**
- * DebugImGui — the HUMAN front-end of the debug system: renders the `Debug`
- * back-end registry through GameMaker's native ImGui overlay (show_debug_overlay
- * + dbg_view / dbg_section / dbg_* widgets + ref_create). It holds no state of
- * its own beyond the view handles and per-entry mirrors — `Debug` is the single
- * source of truth (the text port writes the same registry to debug.txt).
+ * DebugImGui — human front-end of the Debug registry via GameMaker's native ImGui overlay
+ * (F3 to toggle). Renders OUTSIDE the game surface — screen_save misses it; agent uses debug.txt.
  *
- * The overlay renders OUTSIDE the game surface, so an AI agent can't see it
- * (screen_save misses it; is_debug_overlay_open() misreports) — this port is for
- * a human at the keyboard. Toggle with F3.
- *
- * Binding model — why mirrors: ref_create needs a (struct, "field") pair, but a
- * Debug entry's value is often a getter fn (`() => fps`) or targets a class
- * static (`(Time, "scale")`) that ref_create may not accept. So each entry gets
- * a plain MIRROR struct `{ v }` (a plain object always ref_create-able), the
- * widget is ref_create'd to the mirror, and refresh() syncs mirror <-> binding
- * each frame:
- *   - read-only (watch/text): pull   mirror.v = Debug.read(entry)
- *   - editable (slider/checkbox/dropdown): change-detected push — if the overlay
- *     moved mirror.v since the last sync, write it back through the binding;
- *     otherwise pull. Comparing against the last SYNCED value (not the live one)
- *     means an external write (e.g. SystemMenu setting Time.scale = 0 on pause)
- *     is pulled in, not clobbered by the stale slider value.
- *
- * Wiring: DebugImGui.update() in obj_game Step_0 (after Debug.update()).
+ * Mirrors: ref_create needs (struct, "field") but entries are often getter fns or class statics.
+ * Each entry gets a plain mirror `{ v }`; refresh() syncs mirror↔binding each frame —
+ * read-only entries pull, editable entries change-detect and push so external writes
+ * (e.g. Time.scale=0 on pause) aren't clobbered by a stale slider.
  */
 globalThis.DebugImGui = class DebugImGui {
   static _open = false;
-  static _builtVersion = -1; // Debug.version() the views were last built at
-  // Two windows, rebuilt INDEPENDENTLY so a frequent change in one doesn't reset
-  // the other's position: "Debug" holds the stable panels (Time/Perf as sections);
-  // "Inspector" holds the dynamic Entity panel (re-registered on every pick).
+  static _builtVersion = -1; // Debug.version() at last build
+  // two windows rebuilt independently so entity picks don't move the stable Debug window
   static _debugView = undefined;
-  static _debugPanels = undefined; // stable panel objects the Debug view was built from
+  static _debugPanels = undefined; // panels the Debug view was built from
   static _debugMirrors = []; // [{ entry, mirror, last }]
   static _inspectView = undefined;
-  static _inspectSection = undefined; // the live section inside the Inspector view
-  static _inspectPanel = null; // the Entity panel object the Inspector was built from
+  static _inspectSection = undefined; // live section inside the Inspector view
+  static _inspectPanel = null; // Entity panel at last rebuild
   static _inspectMirrors = [];
 
-  // Overlay rendering. scale = -1 auto-derives a DPI-aware factor from the GUI
-  // height; default 1 (the GameMaker default) since a larger scale magnifies the
-  // label text and, in a fixed-width window, starves the control column (the
-  // dbg_* widgets use a fixed two-column label|control grid with no API to set
-  // the split — the only lever for control width is the window width below).
+  // scale=-1 auto-derives DPI factor from GUI height; 1 is the default — larger scale
+  // starves the control column (fixed two-column grid, no API to adjust the split).
   static scale = 1;
   static alpha = 0.95;
 
-  // Window layout (px). Explicit position keeps views off the right edge; the
-  // width must be comfortably WIDER than ImGui's 500 default so that, after the
-  // label column takes its share of the two-column grid, the control half is
-  // still wide enough to drag a slider.
-  static title = "Debug"; // the single dbg_view window title
+  // explicit position + generous width so the control half of the label|control grid stays dragable.
+  static title = "Debug";
   static marginX = 24;
-  static marginY = 72; // clear the menu bar + the minimised built-in FPS header
+  static marginY = 72; // clear the menu bar + minimised built-in FPS header
   static viewW = 620;
   static headerH = 44; // view title bar + padding
-  static sectionH = 34; // per-panel collapsing section header
+  static sectionH = 34; // per-panel section header
   static rowH = 30; // per-entry row
   static inspectorH = 460; // Inspector view height (fixed; content scrolls)
 
-  // Step_0: handle the F3 toggle and, while open, rebuild on a registry change
-  // (e.g. the inspector (re)registering the Entity panel) then sync the mirrors.
+  // Step_0: F3 toggle; while open, rebuild on a registry change then sync mirrors.
   static update() {
     if (!Debug.enabled) return;
     if (keyboard_check_pressed(vk_f3)) DebugImGui.toggle();
@@ -71,21 +45,15 @@ globalThis.DebugImGui = class DebugImGui {
 
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
-    // Drop fullscreen AA while the overlay is open: GameMaker's native ImGui draws with a
-    // single-sampled pipeline, so a multisampled (display_reset AA > 0) back buffer makes it
-    // fail with a fatal WebGPU sampleCount mismatch that breaks all rendering. Suspend to aa=0
-    // on open, restore the saved level on close. Guarded by AA > 0, so the usual AA-off path
-    // takes no display reset (no resize flicker on every F3).
+    // drop fullscreen AA while open: native ImGui is single-sampled, so an AA>0 back buffer
+    // fails with a fatal WebGPU sampleCount mismatch. Guarded by AA>0 so the AA-off path doesn't reset.
     if (Settings.get("antialias") > 0) {
       Display.applyVideoWith(
         DebugImGui._open ? 0 : Settings.get("antialias"),
         Settings.get("vsync"),
       );
     }
-    // minimised = true: open the built-in FPS window collapsed to a thin header.
-    // Left expanded it covers the top-left (where our custom views sit) with its
-    // graphs, occluding the label side of every row. The Perf panel already
-    // surfaces fps, so the graph isn't needed; the user can expand it if wanted.
+    // minimised=true: collapse the built-in FPS window so it doesn't occlude our views (Perf panel already shows fps).
     show_debug_overlay(
       DebugImGui._open,
       true,
@@ -99,10 +67,8 @@ globalThis.DebugImGui = class DebugImGui {
     return clamp(display_get_gui_height() / 900, 1.4, 3);
   }
 
-  // Rebuild the two windows, but only the one that actually changed: the Debug
-  // window when the stable panel set shifts, the Inspector window when the Entity
-  // panel is re-registered (a new pick → a fresh panel object). This keeps the
-  // Debug window put while you click around picking entities.
+  // rebuild only the window that changed — Debug when its panel set shifts, Inspector
+  // when a new pick re-registers the Entity panel — so the Debug window stays put.
   static build() {
     const panels = Debug.panels;
     let entity = null;
@@ -133,12 +99,9 @@ globalThis.DebugImGui = class DebugImGui {
     DebugImGui._builtVersion = Debug.version();
   }
 
-  // Update the Inspector window IN PLACE: keep the dbg_view alive (so it keeps its
-  // position as you pick around) and only swap the section's contents. There's no
-  // dbg_set_view on GMRT, so we rely on the Inspector view being the current one:
-  // it's created once here and nothing else creates a dbg_view afterward (the
-  // stable Debug view is built once at boot), so the current view stays this one
-  // across picks and the new section lands in it. Tear the view down on deselect.
+  // update the Inspector IN PLACE — keep the dbg_view alive, swap only the section. No
+  // dbg_set_view on GMRT, so this relies on the Inspector view staying the current one
+  // (nothing else creates a dbg_view after boot). Tear the view down on deselect.
   static _rebuildInspector(entity) {
     if (entity === null) {
       if (
@@ -180,17 +143,15 @@ globalThis.DebugImGui = class DebugImGui {
       DebugImGui._emit(es[j], DebugImGui._inspectMirrors);
   }
 
-  // (Re)create one dbg_view holding the given panels as explicit dbg_sections
-  // (without a section GM auto-creates a "Default" one and the first control
-  // bleeds onto its header). Returns { view, mirrors }; view is undefined for an
-  // empty panel list. Deletes the prior handle first.
+  // (re)create one dbg_view with each panel as an explicit dbg_section — without one GM
+  // auto-makes a "Default" section and the first control bleeds onto its header. Deletes the prior handle.
   static _buildView(oldView, title, x, y, panels) {
     if (oldView !== undefined && dbg_view_exists(oldView))
       dbg_view_delete(oldView);
     const mirrors = [];
     if (panels.length === 0) return { view: undefined, mirrors };
 
-    let lines = 0; // one row per entry (labelled two-column widgets)
+    let lines = 0; // one row per entry
     for (let i = 0; i < panels.length; i++) lines += panels[i].entries.length;
     const h =
       DebugImGui.headerH +
@@ -217,16 +178,14 @@ globalThis.DebugImGui = class DebugImGui {
       dbg_button(entry.label, entry.fn);
       return;
     }
-    // A static text label (no getter) needs no live ref.
+    // static text (no getter) needs no live ref.
     if (entry.kind === "text" && entry.get === undefined) {
       dbg_text(entry.label);
       return;
     }
 
-    // Live value -> plain mirror -> ref (the mirror is never replaced, so the
-    // ref stays valid; refresh() mutates mirror.v in place). The labelled dbg_*
-    // widgets render as proper two-column label|control rows now that each panel
-    // has its own dbg_section.
+    // live value -> mirror -> ref; the mirror is never replaced so the ref stays valid
+    // (refresh() mutates mirror.v in place).
     const v0 = Debug.read(entry);
     const mirror = { v: v0 };
     const ref = ref_create(mirror, "v");
@@ -270,11 +229,11 @@ globalThis.DebugImGui = class DebugImGui {
         e.kind === "dropdown" ||
         e.kind === "input";
       if (editable && m.mirror.v !== m.last) {
-        // The overlay moved the value since the last sync -> push it through.
+        // overlay moved it since last sync -> push through the binding.
         Debug.write(e, m.mirror.v);
         m.last = m.mirror.v;
       } else {
-        // Unchanged by the user -> pull (also reflects external writes).
+        // unchanged by user -> pull (reflects external writes).
         m.mirror.v = live;
         m.last = live;
       }

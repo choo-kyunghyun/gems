@@ -1,13 +1,9 @@
-// Shared follow step (assigned as Camera.onUpdate, so `this` is the camera). Tracks the
-// application_surface size so a resolution change rebuilds the view extent immediately —
-// the project drives the view by matrix, not GM's 2D view-size camera. followSnap rounds to
-// whole pixels for the 2D ortho variant. The wheel zooms by shrinking/growing the view extent
-// (the camera always re-centers on the target, so no cursor-anchored math like CameraPan);
-// the reset button returns zoom to the configured default. Wheel/reset set followZoomTarget;
-// followZoom eases toward it each frame (same lerp pattern as the position follow above).
+// Shared follow onUpdate (assigned as Camera.onUpdate, `this` = camera). Tracks surface size
+// so resolution changes rebuild the view extent immediately — view is driven by matrix, not GM's
+// 2D view-size API. Zoom shrinks/grows the ortho extent; followZoom eases toward followZoomTarget.
 /** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
 function _cameraFollowOnUpdate() {
-  // Read each realtime mouse query once per frame (GMRT samples them live — see GMRT-Safe Idioms).
+  // read each mouse query once — GMRT samples them live (see GMRT-Safe Idioms)
   if (mouse_wheel_up()) {
     this.followZoomTarget = Math.min(
       this.followMaxZoom,
@@ -23,10 +19,8 @@ function _cameraFollowOnUpdate() {
   if (mouse_check_button_pressed(this.followZoomButton)) {
     this.followZoomTarget = this.followZoomDefault;
   }
-  // Cap zoom-OUT so the view never exceeds the renderable world width (followViewCap, world px) —
-  // derived LIVE from the current surface (the build-time surface size can be stale/smaller, which
-  // would let the view zoom out past the streamed region into the dark unloaded area). Clamps the
-  // target so the wheel stops at the cap.
+  // cap zoom-out to the renderable world width — derived live from the current surface so a
+  // stale build-time size can't let the view zoom past the streamed region into dark unloaded area
   if (this.followViewCap !== undefined) {
     const minZ =
       surface_get_width(application_surface) / this.followViewCap;
@@ -42,18 +36,14 @@ function _cameraFollowOnUpdate() {
     surface_get_width(application_surface) / this.followZoom,
     surface_get_height(application_surface) / this.followZoom,
   );
-  // Pitch is LIVE-tunable (the Debug Camera panel writes pitchDeg): derive the radians each frame so
-  // a runtime change applies. pitchDeg is the source of truth; followPitch is read below by the
-  // edge-clamp + the pitch block, and elsewhere by FloatingText + the projected overlays (via the
-  // up vector), so they all track a live change.
+  // pitchDeg is live-tunable (Debug Camera panel); re-derive radians each frame so overlays track it
   this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
 
   if (this.freeCam) {
-    CameraFly.update(this); // 6DOF spectator: WASD/Space/Shift move, RMB+mouse look, Q/E roll
+    CameraFly.update(this);
     return;
   }
-  // Following: restore the base (ortho) projection — the fly mode switches to perspective — and
-  // reset the fly seed so re-entering fly re-initializes from the live view.
+  // restore ortho projection (fly switches to perspective) and reset seed for next fly entry
   this.projection = this._baseProjection;
   this._flyInit = false;
 
@@ -64,12 +54,9 @@ function _cameraFollowOnUpdate() {
   let x = lerp(this.toX, pos.x, this.followLerp);
   let y = lerp(this.toY, pos.y, this.followLerp);
 
-  // Edge-clamp the look-at to the world bounds so the pitched view never shows past a map edge
-  // (the dead space at the hub spawn, which sits in the world's top-left corner). Horizontal maps
-  // 1:1 to ground x; the pitch stretches the visible N-S ground reach by 1/cos(pitch) (derived: a
-  // tilted ortho's ground half-extent is (height/2)/cos(p), symmetric about the look-at), so the
-  // vertical half-extent accounts for it — flat (pitch 0 → cos 1) reduces to height/2, unchanged.
-  // If the world is narrower/shorter than the view, center on it instead of clamping to an edge.
+  // clamp look-at to world bounds so the view never shows past a map edge; vertical half-extent
+  // is divided by cos(pitch) because a tilted ortho stretches the N-S ground reach; center if
+  // the world is smaller than the view
   const cb = this.followClamp;
   if (cb !== undefined) {
     const halfW = this.width / 2;
@@ -89,9 +76,7 @@ function _cameraFollowOnUpdate() {
     y = Math.round(y);
   }
 
-  // 2.5D: an optional pitch tilts the ortho eye up out of the ground plane (rotating the eye + up
-  // vector about the X axis), so the view looks down at an angle for standing billboards. pitch 0
-  // (default) is the unchanged top-down look; followPitch is radians.
+  // 2.5D: pitch tilts the ortho eye out of the ground plane for billboard rendering; 0 = top-down
   const p = this.followPitch ?? 0;
   if (p === 0) {
     this.setFrom(x, y, this.followHeight);
@@ -105,12 +90,8 @@ function _cameraFollowOnUpdate() {
 }
 
 /**
- * Build a follow camera over the shared onUpdate; projection/snap/defaultHeight are the only
- * differences between the 3D and 2D variants.
- * @param {any} cam - Camera config bag (see CameraFollow.create/create2d).
- * @param {number} projection - A CAMERA_PROJECTION value.
- * @param {boolean} snap - Pixel-snap the followed position (2D ortho).
- * @param {number} defaultHeight - followHeight fallback.
+ * Shared follow-camera builder; create/create2d differ only in projection, snap, and default height.
+ * @param {any} cam @param {number} projection @param {boolean} snap @param {number} defaultHeight
  * @returns {Camera}
  */
 function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
@@ -123,21 +104,19 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followLerp = cam.followLerp ?? 0.1;
   camera.followHeight = cam.followHeight ?? defaultHeight;
   camera.followSnap = snap;
-  camera.pitchDeg = cam.pitch ?? 0; // 2.5D pitch in DEGREES — live-tunable (Debug Camera panel)
-  camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians (recomputed each onUpdate)
-  // Debug 6DOF free-fly camera (toggled via the Debug Camera panel). When freeCam is on, the
-  // follow onUpdate delegates to CameraFly.update — WASD/Space/Shift move + RMB-mouse look + Q/E
-  // roll, in a PERSPECTIVE projection. CameraFly.install adds the fly state fields here.
+  camera.pitchDeg = cam.pitch ?? 0; // degrees — live-tunable via Debug Camera panel
+  camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians, recomputed each onUpdate
+  // debug 6DOF fly mode (toggled via Debug Camera panel); delegates to CameraFly.update while on
   CameraFly.install(camera, {
     flySpeed: cam.flySpeed,
     mouseSens: cam.mouseSens,
   });
-  camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } world-px look-at bounds (edge-clamp)
-  camera.followViewCap = cam.viewCap; // optional max view width (world px) → live zoom-out cap
+  camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } look-at bounds
+  camera.followViewCap = cam.viewCap; // optional max view width (world px) — live zoom-out cap
 
-  camera.followZoom = cam.zoom ?? 1; // current (eased) zoom that drives the view extent
-  camera.followZoomTarget = camera.followZoom; // wheel/reset destination; followZoom eases to it
-  camera.followZoomDefault = camera.followZoom; // reset target (mouse-wheel reset button)
+  camera.followZoom = cam.zoom ?? 1; // current eased zoom
+  camera.followZoomTarget = camera.followZoom; // wheel/reset destination
+  camera.followZoomDefault = camera.followZoom; // reset target
   camera.followMinZoom = cam.minZoom ?? 0.5;
   camera.followMaxZoom = cam.maxZoom ?? 4;
   camera.followZoomStep = cam.zoomStep ?? 0.1;
@@ -146,25 +125,11 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   return camera;
 }
 
-// Namespace object (PascalCase, like CameraFly) over the shared follow build — `create` is the 3D
-// perspective variant, `create2d` the 2D ortho one. (Both are still plain factories internally; the
-// object grouping is what makes the PascalCase name correct.)
+// namespace over the shared follow builder: `create` = 3D perspective, `create2d` = 2D ortho
 globalThis.CameraFollow = {
   /**
-   * 3D perspective-FOV follow camera that eases toward followTarget's Position each update.
-   * Currently unused — scenes use the 2D create2d; kept as the 3D library variant.
-   * Zoom opts apply but are visually inert here (equal-scaled width/height keeps the FOV aspect).
-   * @param {object} [cam]
-   * @param {World} [cam.world] - World holding the target's Position.
-   * @param {number} [cam.followTarget=-1] - Entity id to follow.
-   * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
-   * @param {number} [cam.followHeight=256] - Camera Z above the target.
-   * @param {number} [cam.zoom=1] - Initial + reset zoom factor.
-   * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
-   * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
-   * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
-   * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
-   * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
+   * 3D perspective-FOV follow camera. Currently unused (scenes use create2d); kept as library variant.
+   * @param {object} [cam] - world, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton
    * @returns {Camera}
    */
   create(cam = {}) {
@@ -172,23 +137,9 @@ globalThis.CameraFollow = {
   },
 
   /**
-   * 2D orthographic follow camera (pixel-snapped) that eases toward followTarget's Position.
-   * The mouse wheel zooms (shrinking/growing the ortho view extent) within [minZoom, maxZoom];
-   * the middle mouse button resets zoom to `zoom`.
-   * @param {object} [cam]
-   * @param {World} [cam.world] - World holding the target's Position.
-   * @param {number} [cam.followTarget=-1] - Entity id to follow.
-   * @param {number} [cam.followLerp=0.1] - Per-update easing factor toward the target.
-   * @param {number} [cam.followHeight=-100] - Camera Z (ortho eye offset).
-   * @param {number} [cam.zoom=1] - Initial + reset zoom factor (>1 closer, <1 wider).
-   * @param {number} [cam.minZoom=0.5] - Lower zoom clamp (wider view).
-   * @param {number} [cam.maxZoom=4] - Upper zoom clamp (closer view).
-   * @param {number} [cam.zoomStep=0.1] - Multiplicative wheel-notch step.
-   * @param {number} [cam.zoomLerp=0.2] - Per-frame easing factor toward the target zoom.
-   * @param {number} [cam.zoomResetButton=mb_middle] - Mouse button that resets zoom to `zoom`.
-   * @param {object} [cam.clamp] - Optional world-px look-at bounds { x1, y1, x2, y2 }. The eased
-   *   look-at is clamped inside them each frame so the view never shows past a map edge (the pitch
-   *   stretches the N-S reach, accounted for); a world smaller than the view is centered instead.
+   * 2D pixel-snapped orthographic follow camera with wheel zoom. Middle-mouse resets zoom.
+   * @param {object} [cam] - world, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton,
+   *   clamp { x1, y1, x2, y2 } world-px look-at bounds (pitch-aware; centers when world < view), viewCap
    * @returns {Camera}
    */
   create2d(cam = {}) {

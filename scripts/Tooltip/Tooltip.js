@@ -1,7 +1,5 @@
-// Tooltip — single-slot hover hint, a standalone static singleton (NOT a UIComponent). Any code
-// calls Tooltip.set(str) during update; Tooltip.draw() (obj_game Draw_75, before Toast) renders
-// it once at the mouse and clears it, so a tooltip shows only while something keeps re-setting it
-// each frame (see UITooltip's dwell timer).
+// standalone static singleton (not UIComponent). set() each frame to show; draw() renders + clears.
+// visible only while something re-sets it each frame (see UITooltip's dwell timer).
 globalThis.Tooltip = class Tooltip {
   static text = "";
   static textColor = Color.parse("#f1f4fa");
@@ -19,17 +17,16 @@ globalThis.Tooltip = class Tooltip {
   static offsetX = 22;
   static offsetY = 24;
 
-  /** Set the tooltip text for this frame (drawn + cleared by draw()). @param {string} str */
+  /** @param {string} str */
   static set(str) {
     Tooltip.text = str;
   }
 
-  /** Clear the pending tooltip text. */
   static clear() {
     Tooltip.text = "";
   }
 
-  /** Draw the pending tooltip at the cursor, then clear it (Draw_75). */
+  /** draw at cursor then clear (Draw_75). */
   static draw() {
     if (Tooltip.text === "") return;
 

@@ -1,24 +1,17 @@
-// RPG crafting recipes (Station kind "workbench"). Inputs are pulled from, and the output deposited
-// into, the player's bag (CraftSystem). One bench, upgraded by a MODULE slot: `requires` is the
-// WorkbenchModule itemId that must be slotted for the recipe to show/craft (undefined = a BASE
-// recipe, always available). Registered once by RpgContent.register() at a scene's create() (NOT at
-// top level — avoids GMRT load-order issues).
-//
-// Groups: BASE (no module — basic gear + the four modules themselves, so the bare bench bootstraps
-// its own upgrades), MACHINING ("machining_module" — machining + weapon mods), CHEM ("chem_module" — meds/buffs +
-// attribute serums), COOKING ("cooking_module" — drink + foods). The Toolkit ("gunsmith_kit") module isn't a
-// recipe gate — it switches the bench into the weapon-mod panel (WeaponModUI).
+// RPG crafting recipes. `requires` = WorkbenchModule itemId that must be slotted (undefined = base, always available).
+// Registered once at scene create() NOT top-level (GMRT load-order). Toolkit module isn't a recipe gate — it
+// switches to the weapon-mod panel (WeaponModUI).
 globalThis.RpgRecipes = {
   register() {
     Recipe.register([
-      // ── BASE (no module needed) ──────────────────────────────────────────
+      // BASE (no module needed)
       {
         id: "craft_lead_pipe",
         station: "workbench",
         inputs: [{ itemId: "wood", qty: 3 }],
         output: { itemId: "lead_pipe", qty: 1 },
       },
-      // The four workbench modules — crafted at the bare bench so it can upgrade itself.
+      // modules crafted at bare bench so it bootstraps its own upgrades
       {
         id: "craft_machining_module",
         station: "workbench",
@@ -56,7 +49,7 @@ globalThis.RpgRecipes = {
         output: { itemId: "gunsmith_kit", qty: 1 },
       },
 
-      // ── MACHINING module — machining (gear), the gun, ammo + weapon attachments ─
+      // MACHINING module — gear, gun, ammo, weapon attachments
       {
         id: "craft_armored_vest",
         station: "workbench",
@@ -74,7 +67,7 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "blaster", qty: 1 },
       },
-      // Gun ammo — crafted in batches (consumed per shot). light = cheap iron; heavy/ap need more.
+      // ammo — crafted in batches
       {
         id: "craft_ammo_light",
         station: "workbench",
@@ -99,7 +92,7 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "ammo_ap", qty: 6 },
       },
-      // Gun attachments (scope / barrel / magazine / grip / muzzle slots).
+      // gun attachments
       {
         id: "craft_mod_scope",
         station: "workbench",
@@ -147,7 +140,7 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "mod_suppressor", qty: 1 },
       },
-      // Melee attachments (edge / pommel slots).
+      // melee attachments
       {
         id: "craft_mod_sharp",
         station: "workbench",
@@ -166,7 +159,7 @@ globalThis.RpgRecipes = {
         output: { itemId: "mod_heavy", qty: 1 },
       },
 
-      // ── CHEM module — meds, buffs, attribute serums ────────────────
+      // CHEM module — meds, buffs, attribute serums
       {
         id: "craft_medkit",
         station: "workbench",
@@ -177,7 +170,7 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "medkit", qty: 1 },
       },
-      // Buff consumables (Buff/Status system): Medgel = Regen, Combat Stim = Fortify.
+      // buff consumables: Medgel = Regen, Combat Stim = Fortify
       {
         id: "craft_medgel",
         station: "workbench",
@@ -195,8 +188,7 @@ globalThis.RpgRecipes = {
         ],
         output: { itemId: "combat_stim", qty: 1 },
       },
-      // Attribute-boost serums — the crafted, item-driven path to permanent growth (no leveling).
-      // Each costs a gem (rare drop) + a themed common material, so growth is gated on gathering.
+      // permanent attribute serums — growth gated on gathering, not playtime
       {
         id: "craft_power_serum",
         station: "workbench",
@@ -238,7 +230,7 @@ globalThis.RpgRecipes = {
         output: { itemId: "endurance_serum", qty: 1 },
       },
 
-      // ── COOKING module — drink + foods ───────────────────────────────────
+      // COOKING module — drink + foods
       {
         id: "craft_water_bottle",
         station: "workbench",

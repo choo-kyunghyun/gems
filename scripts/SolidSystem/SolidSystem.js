@@ -1,14 +1,11 @@
-// Discrete "move-and-collide" for dynamic solid bodies against kinematic solids
-// (GameMaker move_and_collide style). Integrates each body's Velocity itself,
-// sub-stepped so fast movers can't tunnel, and resolves overlaps per axis so
-// wall-slide falls out for free. A body pushed upward out of a downward move is
-// flagged Grounded. Because it integrates motion, the bodies it moves must NOT
-// also be moved by MovementSystem.
+// discrete move-and-collide for dynamic solid bodies vs kinematic solids.
+// integrates velocity itself (sub-stepped to prevent tunneling); resolves per axis (wall-slide is free).
+// bodies it moves must NOT also be in MovementSystem.
 globalThis.SolidSystem = {
-  maxStep: 8, // max px per sub-step; keep below the thinnest collider so fast movers can't tunnel
+  maxStep: 8, // keep below thinnest collider to prevent tunneling
   oneWayTol: 2, // px a body may sink into a one-way top and still be caught (resting slack)
 
-  /** Integrate + collide every dynamic solid body against the kinematic solids. @param {World} world */
+  /** @param {World} world */
   update(world) {
     const dt = world.tickDuration;
 
@@ -54,7 +51,7 @@ globalThis.SolidSystem = {
           false,
         );
         if (pushY !== 0) {
-          if (pushY > 0) grounded = true; // pushed up => standing on a floor
+          if (pushY > 0) grounded = true; // pushed up = standing on floor
           vel.y = 0;
         }
       }
@@ -68,10 +65,9 @@ globalThis.SolidSystem = {
     }
   },
 
-  // Pushes the body out of every overlapping static along one axis, applying the
-  // deepest correction. Direction follows motion (move v): a body moving + is
-  // pushed -. Returns the applied correction's sign (+1 = pushed toward -, i.e.
-  // up/left; -1 = pushed toward +; 0 = no contact). For Y, +1 means grounded.
+  // push body out of overlapping statics along one axis (deepest correction wins).
+  // returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
+  // for Y, +1 means grounded.
   _resolve(world, id, pos, box, colMover, statics, v, isX) {
     const a = AABB.edges(pos, box);
 
@@ -82,12 +78,9 @@ globalThis.SolidSystem = {
 
       const sCol = world.get(Collision, sid);
       if (sCol && sCol.oneWay) {
-        // Jump-through platform: only ever stops a body landing on it from
-        // above. It must never push horizontally (skip on the X axis) — pushing
-        // a body that has sunk into it sideways is what ejected the player to
-        // the ledge edge. It also lets a body through while moving up, while
-        // already below its top, or while a drop is active. oneWayTol keeps a
-        // body resting flush on top from slipping under on a sub-pixel sink.
+        // jump-through platform: only blocks downward landing.
+        // never push horizontally — sideways ejection was caused by that.
+        // oneWayTol lets a resting body avoid slipping through on a sub-pixel sink.
         if (isX) continue;
         if (colMover.passThroughTicks > 0) continue;
         if (v < 0) continue;

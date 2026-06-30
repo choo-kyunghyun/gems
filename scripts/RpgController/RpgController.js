@@ -8,25 +8,16 @@ const RPG_MELEE_REACH = 17; // fallback reach (px) for a melee weapon without `r
 const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // Player input + entity setup for the top-down genre.
-// Usage:
-//   const ctrl = RpgController.create(world, spawn);  // call once in scene create()
-//   RpgController.update(world, ctrl);                 // call each physics tick
-//   RpgController.destroy();                           // call in scene destroy()
-//
-// ctrl = { id, fireCd, attackCd } — hold this on the scene; pass it to update().
+// create() once in scene create(); update() each physics tick; destroy() in scene destroy().
+// ctrl = { id, fireCd, attackCd } — held on the scene, passed to update().
 
 globalThis.RpgController = {
-  // Register the RPG keymap (keyboard/mouse + gamepad + analog axes) and its InputContext tags.
-  // Split out of create() so the scene can RE-APPLY it on resume() after a guest minigame's
-  // controller unbinds shared action names (the platformer's destroy() unbinds moveLeft/moveRight,
-  // which the RPG also uses). Idempotent — bindAll/register overwrite, so calling it twice is safe.
+  // register the RPG keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
+  // guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
   //
-  // InputContext tags decide which actions are live per context (set by sceneRpg each frame):
-  // "play" = free roam, "build" = build mode, "window" = a gameplay window open. Movement stays
-  // live everywhere (the player keeps walking with a window open). fire is "play"-only, so it
-  // self-mutes while building (LMB places tiles) or with a window open (clicks don't shoot) — no
-  // per-frame BuildMode/window check in update(). interact opens in play + closes a station window
-  // in "window"; build/follow are inert while a window owns input. See InputContext / inContext.
+  // tags (set by sceneRpg each frame): movement live everywhere; fire "play"-only so it self-mutes
+  // while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
+  // build/follow inert with a window open. See InputContext / inContext.
   bindKeys() {
     const ANYWHERE = ["play", "build", "window"];
     Input.bindAll({
@@ -43,11 +34,8 @@ globalThis.RpgController = {
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
     });
 
-    // Gamepad (device 0), added ALONGSIDE the keyboard/mouse bindings above — InputAction
-    // OR-combines buttons and takes the largest-magnitude axis. Twin-stick: left stick = move,
-    // right stick = aim. Gameplay gamepad input self-mutes while a menu owns nav
-    // (InputAction._gamepadMuted), so the left stick / face buttons drive UINav — not the player —
-    // when a window is open.
+    // gamepad (device 0) added alongside the keyboard bindings (InputAction OR-combines). Twin-stick:
+    // left=move, right=aim. Self-mutes while a menu owns nav, so the sticks drive UINav with a window open.
     const GP = INPUT_SOURCE.GAMEPAD;
     Input.get("moveLeft").bindButton(GP, gp_padl);
     Input.get("moveRight").bindButton(GP, gp_padr);
@@ -59,8 +47,7 @@ globalThis.RpgController = {
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
     Input.get("follow").bindButton(GP, gp_shoulderr); // RB
-    // Analog stick axes (no keyboard equivalent): left stick drives movement, right stick aim.
-    // Tagged like their button siblings — movement everywhere, aim only in "play" (read in fire).
+    // analog axes: left stick = movement (everywhere), right stick = aim ("play" only)
     Input.register(
       "moveX",
       new InputAction()
@@ -86,10 +73,8 @@ globalThis.RpgController = {
         .inContext(["play"]),
     );
 
-    // Hotbar quick-use: number keys 1..N, each "play"-only so they self-mute while a window is
-    // open (the inventory's search box also captures() them) or building. Triggered edge-wise in
-    // sceneRpg.step; the bound item is used via RpgInventoryUI.useItem. (Keyboard only — the
-    // gamepad dpad is movement.)
+    // hotbar number keys 1..N, "play"-only so they self-mute with a window open or building (keyboard
+    // only — the gamepad dpad is movement)
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
@@ -104,8 +89,7 @@ globalThis.RpgController = {
   create(world, spawn) {
     RpgController.bindKeys(); // register the keymap + context tags (re-applied on host resume)
 
-    // The RPG player entity (RpgPlayer.spawn); then this genre's Animator. BBox is centered;
-    // faces down; move speed from Stats.
+    // the RPG player entity, then this genre's Animator
     const id = RpgPlayer.spawn(world, spawn, {
       bbox: { x: -6, y: -6, width: 12, height: 12 },
       dir: { x: 0, y: 1, z: 0 },
@@ -137,11 +121,8 @@ globalThis.RpgController = {
       time: 0,
     });
 
-    // Unarmed fallback: a weak melee "fist" so an attack is ALWAYS profile-shaped — being unarmed
-    // never means "fire a free bullet". It's a pre-COMPOSED melee profile (the same shape
-    // composeWeapon returns), fed straight to the melee branch (no inventory slot, no attachments).
-    // The player still spawns with a real lead_pipe equipped (sceneRpg.create); this only governs a
-    // fully unarmed wielder.
+    // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
+    // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder.
     return {
       id,
       fireCd: 0,
@@ -158,9 +139,7 @@ globalThis.RpgController = {
     let dy =
       (Input.get("moveDown").down() ? 1 : 0) -
       (Input.get("moveUp").down() ? 1 : 0);
-    // Analog left stick overrides the digital dirs when pushed past the deadzone. value() returns 0
-    // while a menu owns nav (InputAction._gamepadMuted), so the stick can't move the player with a
-    // window open — the left stick drives UINav there instead.
+    // analog left stick overrides digital dirs past the deadzone (value() is 0 while a menu owns nav)
     const sx = Input.get("moveX").value();
     const sy = Input.get("moveY").value();
     if (
@@ -174,20 +153,14 @@ globalThis.RpgController = {
     const vel = world.get(Velocity, ctrl.id);
     const dir = world.get(Direction, ctrl.id);
     const stats = world.get(Stats, ctrl.id);
-    // Status speed multiplier scales the final speed (heavier bag → slower via the "encumbered"
-    // status EncumbranceSystem maintains; also any slow/haste status). 1 when no speed status is
-    // active. Applied here, not on Stats.speed, so it never disturbs the derived sheet.
+    // status speed multiplier (encumbrance/slow/haste); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
       (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
       StatusSystem.scale(world, ctrl.id, "speed");
     const len = Math.sqrt(dx * dx + dy * dy);
-    // Sprint: hold Shift while moving for a speed boost that drains Stamina; it regenerates
-    // when not sprinting. StaminaSystem runs every tick (regen even while idle) and returns
-    // whether the boost actually applies — gated on stamina/exhaustion, so it cuts out when empty.
-    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below yields a boolean
-    // that clobbers such a local on GMRT (the boolean-local clobber quirk), which silently zeroed
-    // NON-sprint movement (the expr is false → flips the local false → `if (moving)` skipped).
-    // Recompute `len > 0` live at each use instead.
+    // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
+    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below clobbers such a local
+    // on GMRT (boolean-local clobber quirk), which silently zeroed non-sprint movement. Recompute live.
     const sprinting = StaminaSystem.sprint(
       world,
       ctrl.id,
@@ -195,8 +168,7 @@ globalThis.RpgController = {
     );
     const moveSpeed = speed * (sprinting ? RPG_SPRINT_MULT : 1);
     if (len > 0) {
-      // Magnitude clamps to 1, so a partly-tilted analog stick (len < 1) walks proportionally
-      // slower while digital input (len >= 1, normalized) is unchanged — keyboard speed identical.
+      // clamp magnitude to 1: a partly-tilted stick walks slower; digital input is unchanged
       const mag = Math.min(len, 1);
       vel.x = (dx / len) * moveSpeed * mag;
       vel.y = (dy / len) * moveSpeed * mag;
@@ -207,10 +179,8 @@ globalThis.RpgController = {
       vel.y = 0;
     }
 
-    // Twin-stick facing: the right stick aims CONTINUOUSLY (every frame, not only when firing) so
-    // the character visibly turns toward the aim and you can strafe (move one way, face another).
-    // Overrides the movement-derived facing while deflected; KBM cursor aim is resolved at fire time
-    // below. value() is 0 while a menu owns nav, so this is inert with a window open.
+    // twin-stick facing: right stick aims continuously (enables strafing), overriding the move-derived
+    // facing while deflected; KBM cursor aim resolved at fire time below
     const aimX = Input.get("aimX").value();
     const aimY = Input.get("aimY").value();
     if (
@@ -225,21 +195,17 @@ globalThis.RpgController = {
     if (ctrl.fireCd > 0) ctrl.fireCd--;
     if (ctrl.attackCd > 0) ctrl.attackCd--;
 
-    // Manual reload (R) — top the equipped gun's magazine up from the bag's ammo reserve. Tagged
-    // "play"-only, so it's inert while a window is open or building. No-op on a melee weapon.
+    // manual reload (R), "play"-only; no-op on a melee weapon
     if (Input.get("reload").pressed()) EquipmentSystem.reload(world, ctrl.id);
 
-    // fire is tagged "play"-only, so it already returns false while building or with a
-    // window open (InputContext) — no explicit BuildMode/window guard needed here.
+    // fire is "play"-only, so it already returns false while building / window open — no guard needed
     if (Input.get("fire").down() && ctrl.fireCd === 0) {
-      // Item-driven attack: the equipped weapon's COMPOSED profile — or the unarmed fist fallback —
-      // fully defines the action. Read the live SLOT (a gun mutates `rounds` on it) then compose;
-      // read live each shot. `wpn.kind` ("melee" | "gun") picks the branch.
+      // item-driven attack: the equipped weapon's composed profile (or the fist fallback) drives it.
+      // Read the live slot (a gun mutates `rounds`) then compose; `wpn.kind` picks melee/gun.
       const slot = EquipmentSystem.weaponSlot(world, ctrl.id);
       const wpn =
         slot !== null ? EquipmentSystem.composeWeapon(slot) : ctrl.fist;
-      // Aim drives the swing/shot direction. The right stick already set `dir` continuously above
-      // (twin-stick); for keyboard/mouse (stick centered), aim at the cursor instead.
+      // aim: right stick already set `dir` above; for KBM (stick centered) aim at the cursor instead
       const pos = world.get(Position, ctrl.id);
       const rx = Input.get("aimX").value();
       const ry = Input.get("aimY").value();
@@ -253,8 +219,7 @@ globalThis.RpgController = {
         dir.x = adx / adist;
         dir.y = ady / adist;
       }
-      // The wielder's attack stat (equipment mods + buffs) adds on top of the weapon's base/kinetic
-      // power, so the character sheet feeds combat. `stats` was read above for movement.
+      // the wielder's attack stat adds on top of the weapon's base/kinetic power
       const attack = stats !== undefined ? stats.attack : 0;
       if (wpn === null) {
         // equipped a weapon item with no Weapon component — nothing to do
@@ -262,8 +227,7 @@ globalThis.RpgController = {
         this._fireGun(world, ctrl, slot, wpn, dir, attack);
       } else {
         const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
-        // Round the composed melee damage (a `mul` attachment can make it fractional) so HP stays
-        // integer, then add the wielder's attack stat.
+        // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
         MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, damage);
         ctrl.fireCd =
@@ -272,8 +236,7 @@ globalThis.RpgController = {
       }
     }
 
-    // Animation tree: attack > walk > idle. attackCd is read live off ctrl each
-    // use (no cached boolean — see GMRT boolean-local clobber note).
+    // animation tree: attack > walk > idle. attackCd read live off ctrl (no cached boolean — GMRT clobber)
     const anim = world.get(Animator, ctrl.id);
     if (anim !== undefined) {
       let state = "idle";
@@ -282,8 +245,7 @@ globalThis.RpgController = {
       AnimationSystem.set(anim, state);
     }
 
-    // Facing: flip horizontally toward the last horizontal move (xscale ±1 = the 16px-native scale).
-    // The attack state has its own sprite (spr_heroAttack), so no placeholder tint is needed.
+    // facing: flip xscale ±1 toward the last horizontal move
     const vis = world.get(Visual, ctrl.id);
     if (vis !== undefined) {
       if (dir.x < -0.01) vis.xscale = -1;
@@ -291,24 +253,19 @@ globalThis.RpgController = {
     }
   },
 
-  // Fire the equipped GUN: spend a round, spawn an ammo-driven bullet along the resolved aim Dir, and
-  // set the cooldown. `wpn` is the composed gun profile (power/velocity/penetration/fireCd from the
-  // loaded ammo + ops); `slot` is the live inventory slot whose `rounds` is decremented. `attack` is
-  // the wielder's attack stat (added onto the kinetic power). An empty clip auto-reloads from the bag
-  // (if reserves exist); a dry gun (no ammo, or empty + no reserve) just doesn't fire — no cooldown.
+  // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
+  // gun profile; `slot.rounds` is decremented. An empty clip auto-reloads; a dry gun doesn't fire (no cooldown).
   _fireGun(world, ctrl, slot, wpn, dir, attack) {
     if (wpn.noAmmo) return; // nothing loaded
     if (slot.rounds <= 0) {
-      // Empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown).
+      // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
       if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;
     }
     if (slot.rounds <= 0) return; // still empty after the reload attempt
 
     const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
-    // Final damage = the round's kinetic power (rounded) + the wielder's attack stat. Penetration
-    // lowers target defense at the hit (Combat.mitigate); pierce (undefined → single target until a
-    // piercing weapon like a sniper sets it) is how many hostiles the hitscan passes through. Velocity
-    // no longer governs travel (the shot is instant) — it scales the reach instead.
+    // damage = round's kinetic power + attack. penetration lowers target defense; pierce = hostiles
+    // passed through. velocity scales reach (the shot is instant, not travel-based).
     const damage = Math.round(wpn.power) + attack;
     const aim = RpgPlayer.fireBullet(world, ctrl.id, {
       damage,
@@ -320,9 +277,7 @@ globalThis.RpgController = {
     });
     slot.rounds -= 1; // spend the round
 
-    // Muzzle flash at the barrel (player center pushed ~9px along the aim), aimed forward.
-    // GM angle (0=right, 90=up) from the aim vector; the ps_muzzle asset emits up (90), so
-    // ParticleFx rotates it to face the shot. Ticks/draws in world space (pause-aware).
+    // muzzle flash at the barrel (~9px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
     const pos = world.get(Position, ctrl.id);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(

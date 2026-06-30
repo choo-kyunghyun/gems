@@ -5,18 +5,9 @@ globalThis.CAMERA_PROJECTION = Object.freeze({
   PERSPECTIVE_FOV: 2,
 });
 
-/**
- * Wraps a GameMaker camera handle and drives its view + projection by matrix each update().
- * Construct directly for a static camera, or via the CameraFollow.create2d/.create/CameraPan.create
- * factories for behavior. Owns a native handle — call destroy() at teardown.
- */
+/** Wraps a GameMaker camera handle, driven by matrix each update(). Owns a native handle — call destroy() at teardown. */
 globalThis.Camera = class Camera {
-  /**
-   * @param {any} [cam] - Config bag (all optional): onUpdate (per-update hook, `this`=camera),
-   *   from{X,Y,Z} (eye), to{X,Y,Z} (look-at), up{X,Y,Z} (up vector, default 0/1/0),
-   *   width (=1366)/height (=768), znear (=1)/zfar (=32000)/fov (=70),
-   *   projection (a CAMERA_PROJECTION, default ORTHO).
-   */
+  /** @param {any} [cam] - config bag: onUpdate, from/to/up XYZ, width/height, znear/zfar/fov, projection. */
   constructor(cam = {}) {
     this.id = camera_create();
     this.viewport = -1;
@@ -43,7 +34,7 @@ globalThis.Camera = class Camera {
     this.projection = cam.projection ?? CAMERA_PROJECTION.ORTHO;
   }
 
-  /** Free the native camera handle (unassigns from its viewport first). */
+  /** Free the native handle; unassigns from its viewport first. */
   destroy() {
     this.unassign();
 
@@ -53,7 +44,7 @@ globalThis.Camera = class Camera {
     }
   }
 
-  /** Run onUpdate, rebuild the view + projection matrices, and apply if assigned. */
+  /** Rebuild view + projection matrices and apply if assigned to a viewport. */
   update() {
     this.onUpdate();
 
@@ -102,16 +93,12 @@ globalThis.Camera = class Camera {
     if (this.isAssigned()) camera_apply(this.id);
   }
 
-  /** @returns {boolean} Whether this camera is attached to a viewport. */
+  /** @returns {boolean} */
   isAssigned() {
     return this.viewport !== -1;
   }
 
-  /**
-   * Attach to a viewport (enabling views), detaching from any current one first.
-   * @param {number} [viewport=0]
-   * @returns {Camera} this
-   */
+  /** @param {number} [viewport=0] @returns {Camera} this */
   assign(viewport = 0) {
     if (this.isAssigned()) this.unassign();
     this.viewport = viewport;
@@ -121,17 +108,13 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * Detach from its viewport and restore default room rendering.
-   * @returns {Camera} this
-   */
+  /** Detach from its viewport and restore default room rendering. @returns {Camera} this */
   unassign() {
     if (this.isAssigned()) {
       view_set_camera(this.viewport, -1);
       view_set_visible(this.viewport, false);
       this.viewport = -1;
-      // Restore default room rendering: a view-enabled-but-none-visible state would freeze
-      // the previous scene's frame on the application surface.
+      // restore default room rendering — a view-enabled-but-none-visible state freezes the surface
       view_enabled = false;
     }
     return this;
@@ -175,12 +158,9 @@ globalThis.Camera = class Camera {
   }
 
   /**
-   * Project a world point to application-surface pixels under the current ortho view. The
-   * horizontal axis is world x; the vertical uses the camera up vector, so a pitched (2.5D)
-   * camera foreshortens world-y by cos(pitch) and lifts by world-z. Used by the screen-space
-   * overlays (RenderLighting light blobs) so they land correctly in BOTH the flat top-down and
-   * the pitched 2.5D view. `to` is centered on screen by the lookat; width/height are the ortho
-   * world extent, so sw/width and sh/height are the world->screen scale.
+   * World → surface-pixel projection under the current ortho view. Uses the up vector so a
+   * pitched (2.5D) camera foreshortens world-y correctly. Used by screen-space overlays (e.g.
+   * RenderLighting) to land in the right place in both flat and pitched views.
    * @param {number} wx @param {number} wy @param {number} [wz=0] @returns {{x:number, y:number}}
    */
   project(wx, wy, wz = 0) {

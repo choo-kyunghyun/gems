@@ -1,24 +1,18 @@
-// Item-component: marks an Item as usable from the bag, consuming one unit to
-// apply an instant effect. Presence on an item (item.hasComponent(Consumable))
-// is what makes it usable; ConsumableSystem.use reads the fields below. A flat,
-// standalone class queried by `instanceof` (see Item.getComponent) — no
-// inheritance, which GMRT can't do.
+// Item-component: marks an Item usable from the bag (one unit consumed for an instant effect).
+// Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
 globalThis.Consumable = class Consumable {
   /**
    * @param {Object} d
-   * @param {number} [d.heal] HP restored on use (clamped to the max-HP cap)
-   * @param {string} [d.attr] a PERMANENT attribute grant: the attribute key to raise (e.g. "pow").
-   *   Generic by design (a bare string key, no stat-model opinion) — the actual attribute set +
-   *   how it derives is the game's (Demo) concern, applied via the injected ConsumableSystem.grantAttr
-   *   hook. The kit just carries the intent. This is how attributes grow now that there's no leveling.
+   * @param {number} [d.heal] HP restored (clamped to max-HP)
+   * @param {string} [d.attr] permanent attribute grant — attribute key to raise (e.g. "pow"). Generic
+   *   (no stat-model opinion); applied via the injected ConsumableSystem.grantAttr hook (Demo). How
+   *   attributes grow now that there's no leveling.
    * @param {number} [d.amount] how much `attr` increases per use (default 1)
-   * @param {string} [d.status] a Status (buff/debuff) to apply on use — a Status def id (e.g.
-   *   "regen"). Generic like `attr`: the kit just applies it via StatusSystem; the def + effects
-   *   are content (Demo — RpgStatuses). "" = none.
-   * @param {number} [d.statusDuration] override seconds for the applied status; 0 = use the def's
-   *   own duration
-   * @param {number} [d.thirst] survival: lowers the user's Thirst need by this much (a drink)
-   * @param {number} [d.hunger] survival: lowers the user's Hunger need by this much (a food)
+   * @param {string} [d.status] Status def id to apply (e.g. "regen"). Generic like `attr`; def +
+   *   effects are content (Demo). "" = none.
+   * @param {number} [d.statusDuration] override seconds; 0 = use the def's duration
+   * @param {number} [d.thirst] survival: lowers Thirst (a drink)
+   * @param {number} [d.hunger] survival: lowers Hunger (a food)
    */
   constructor(d) {
     this.heal = d.heal ?? 0;

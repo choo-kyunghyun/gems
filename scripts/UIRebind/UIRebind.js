@@ -1,21 +1,8 @@
-/**
- * @implements {UIComponent}
- * Key-rebinding row: shows the current keyboard binding of an Input action and, when
- * clicked, enters a "press a key…" capture mode — the next key press rebinds the
- * action's first button (Esc or a mouse click cancels). Bridges the existing
- * Input / InputAction (`bindButton`), mutating the action in place so every consumer
- * (`Input.get(key).down()/pressed()`) picks up the new key immediately.
- *
- * Keyboard only (the common case); a mouse/gamepad binding is shown read-only via the
- * shared InputAction.label() ("LMB" / "Pad N"). The element carries a UIPanel for its background (built by
- * gemsRebind); this component draws the label + a capture-state accent outline and
- * owns the click/capture logic.
- *
- * GMRT notes: capture state lives in an instance field read live each frame (no
- * cached primitive bool — see the clobber note in CLAUDE.md); the NaN-width guard
- * gates the roundrect outline draw; each mouse edge query is called once per frame
- * per code path (the capturing branch returns early), matching UISelect.
- */
+// Key-rebind row: click → "press a key…" capture mode → next press rebinds the action's
+// first button (Esc/click cancels). Mutates the InputAction in place so every consumer
+// picks up the new key. Keyboard only; mouse/gamepad bindings show read-only via label().
+// GMRT: capture state is an instance field read live (no cached bool — clobber, see CLAUDE.md).
+/** @implements {UIComponent} */
 globalThis.UIRebind = class UIRebind {
   /** @param {Object} [s] { actionKey, prompt: () => string, onRebind, color, captureColor, font, rad } */
   constructor(s = {}) {
@@ -38,15 +25,12 @@ globalThis.UIRebind = class UIRebind {
     if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
 
     if (this._capturing) {
-      // Esc or any mouse click cancels; any other key press rebinds. Escape is
-      // checked first since the scan below would otherwise pick it up.
+      // Esc checked first — the scan below would otherwise pick it up.
       if (keyboard_check_pressed(vk_escape) || UIPointer.pressed) {
         this._capturing = false;
       } else {
-        // Scan for the keycode whose pressed-edge is live THIS frame, rather than
-        // reading keyboard_lastkey — on GMRT lastkey lags vk_anykey by a frame, so
-        // the first press would rebind to the stale previous key (the "rebind twice"
-        // bug). The scan stays in sync with the actual edge.
+        // scan for the live pressed-edge keycode, NOT keyboard_lastkey — on GMRT lastkey
+        // lags vk_anykey by a frame, so the first press would rebind the stale key ("rebind twice" bug).
         const code = this._scanKey();
         if (code > 0) {
           this._rebind(code);
@@ -87,7 +71,7 @@ globalThis.UIRebind = class UIRebind {
     const cy = pos.top + pos.height * 0.5;
 
     if (this._capturing) {
-      // A 2px accent outline so the row reads as "armed, waiting for a key".
+      // 2px accent outline — "armed, waiting for a key".
       const x1 = pos.left + pos.width;
       const y1 = pos.top + pos.height;
       draw_roundrect_color_ext(
@@ -125,17 +109,15 @@ globalThis.UIRebind = class UIRebind {
     draw_set_color(color);
   }
 
-  // Current binding as a display string (reads the action live, so a rebind updates
-  // the label without any extra wiring). The binding → text mapping lives on
-  // InputAction/InputButton so the rebind row and the key-hint bar stay in sync.
+  // current binding as text, read live so a rebind updates the label with no wiring.
+  // binding → text mapping lives on InputAction/InputButton (shared with the key-hint bar).
   _label() {
     const action = Input.get(this.actionKey);
     return action ? action.label() : "—";
   }
 
-  // The keycode in its pressed-edge this frame (0 = none). Skips vk_nokey (0) and
-  // vk_anykey (1); Esc is handled as cancel before this runs. Only called while
-  // capturing, so scanning the whole range each frame is negligible.
+  // first keycode with a live pressed-edge this frame (0 = none). Only runs while capturing,
+  // so scanning the whole range is negligible.
   _scanKey() {
     let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases
     while (code <= 255) {

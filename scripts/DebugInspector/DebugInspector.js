@@ -1,32 +1,20 @@
 /**
- * DebugInspector — the ECS entity inspector, a feature layered on the Debug
- * system (it registers a Debug panel; both front-ends render it for free). While
- * the DebugImGui overlay is open, left-click an entity in the world to select it:
- * the inspector reads world.componentsOf(id) and (re)registers an "Entity" panel
- * exposing each component's scalar fields — numbers as editable inputs, booleans
- * as checkboxes, strings as inputs — bound LIVE to the component data objects, so
- * editing a field (in the overlay, or via Debug.set("Entity", "Health.hp", …))
- * mutates the real entity. The selection is highlighted on the GUI layer.
- *
- * Wiring: DebugInspector.update(game) in obj_game Step_0 (after DebugImGui),
- * DebugInspector.draw(game) in Draw_75. The agent verifies via debug.txt (the
- * text port serialises the same Entity panel) + a screen_save of the highlight.
- *
- * Picking uses SlotDrag's latched LMB edge (mouse edges are realtime-sampled —
- * see CLAUDE.md), and only fires when the cursor is NOT over the overlay. A pick
- * click may also reach the scene (e.g. fire a weapon) — acceptable for a dev tool.
+ * DebugInspector — ECS entity inspector over the Debug system. While the overlay is open,
+ * left-click a world entity to select it: registers a live-bound "Entity" panel of each
+ * component's scalar fields (editing mutates the real entity). Selection highlighted on the GUI layer.
+ * Wired: update(game) in Step_0 (after DebugImGui), draw(game) in Draw_75.
+ * Picking uses the latched LMB edge (mouse edges are realtime-sampled — see CLAUDE.md).
  */
 globalThis.DebugInspector = class DebugInspector {
   static _world = null;
   static _id = -1;
-  static _registered = false; // the Entity panel has been registered at least once
-  static pickRadius = 64; // max world px from the cursor to accept a pick
+  static _registered = false; // Entity panel registered at least once
+  static pickRadius = 64; // max world px from cursor to accept a pick
   static markerR = 18; // highlight half-size (GUI px)
   static highlightColor = Color.parse("#ffd34d");
 
-  // Select an entity (or pass (null, -1) to deselect). The Entity panel always
-  // stays registered — Deselect empties it to a placeholder rather than removing
-  // it, so its Inspector window persists instead of vanishing.
+  // select an entity, or (null, -1) to deselect. Deselect empties the panel to a
+  // placeholder rather than removing it, so its Inspector window persists.
   static select(world, id) {
     const valid =
       world !== null &&
@@ -36,7 +24,7 @@ globalThis.DebugInspector = class DebugInspector {
       world.isValid(id);
     const nextWorld = valid ? world : null;
     const nextId = valid ? id : -1;
-    // No change (and already registered) → skip, to avoid a needless rebuild.
+    // no change and already registered → skip the rebuild.
     if (
       nextWorld === DebugInspector._world &&
       nextId === DebugInspector._id &&
@@ -48,9 +36,8 @@ globalThis.DebugInspector = class DebugInspector {
     DebugInspector._register();
   }
 
-  // (Re)register the Entity panel so its Inspector window exists from the moment
-  // the overlay opens (like Time/Perf): a placeholder line when nothing is
-  // selected, or the picked entity's live-bound scalar fields.
+  // (re)register the Entity panel: a placeholder when nothing is selected, else the
+  // picked entity's live-bound scalar fields.
   static _register() {
     DebugInspector._registered = true;
     const world = DebugInspector._world;
@@ -86,8 +73,7 @@ globalThis.DebugInspector = class DebugInspector {
 
   static update(game) {
     if (!Debug.enabled) return;
-    // Register the Entity panel once up front so its Inspector window is already
-    // there when the overlay first opens, rather than appearing on the first pick.
+    // register the Entity panel up front so its window exists before the first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
     const scene = game.scenes.current;
     const world =
@@ -95,7 +81,7 @@ globalThis.DebugInspector = class DebugInspector {
         ? scene.world
         : null;
 
-    // Drop a stale selection (entity removed, or the scene/world swapped out).
+    // drop a stale selection (entity removed, or scene/world swapped).
     if (DebugInspector._id !== -1) {
       if (
         world !== DebugInspector._world ||
@@ -106,8 +92,7 @@ globalThis.DebugInspector = class DebugInspector {
       }
     }
 
-    // Pick only while the overlay is open, the cursor isn't over it, and the
-    // scene has a world + camera.
+    // pick only while the overlay is open, cursor isn't over it, scene has world + camera.
     if (!DebugImGui._open || world === null) return;
     if (scene.camera === undefined) return;
     if (is_mouse_over_debug_overlay()) return;
@@ -149,9 +134,8 @@ globalThis.DebugInspector = class DebugInspector {
     draw_set_alpha(a0);
   }
 
-  // Cursor (GUI px) -> world px, via the ortho camera's own view rect (toX/toY/
-  // width/height — camera_get_view_* returns 0 for the matrix-driven Camera; see
-  // CLAUDE.md). Assumes the world view fills the GUI.
+  // cursor (GUI px) -> world px via the camera's own view rect — camera_get_view_*
+  // returns 0 for the matrix-driven Camera (see CLAUDE.md). Assumes world view fills the GUI.
   static _toWorldX(cam) {
     const mx = device_mouse_x_to_gui(0);
     return cam.toX - cam.width / 2 + (mx / display_get_gui_width()) * cam.width;

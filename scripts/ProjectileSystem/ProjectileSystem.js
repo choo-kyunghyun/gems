@@ -1,11 +1,8 @@
-// Move-and-raycast for projectiles. Each tick casts a ray along the bullet's
-// movement (pos -> pos + vel*dt); on the nearest hit it snaps the bullet to the
-// impact point, applies Projectile.damage to the target's Health (if any, removing
-// it at <= 0 hp), then removes the bullet. With no hit the bullet advances. Range
-// is bounded by Lifetime (LifetimeSystem). Bullets carry no Collision, so they are
-// invisible to Raycast/SolidSystem and pass through each other.
+// Move-and-raycast for lobbed projectiles (guns now hitscan; this is retained for grenades etc).
+// each tick raycasts the bullet's motion, damages a hit Health, despawns on impact. range bounded
+// by Lifetime. bullets carry no Collision, so they're invisible to Raycast/SolidSystem.
 globalThis.ProjectileSystem = {
-  /** Step every bullet: raycast its motion, damage a hit Health, then despawn it. @param {World} world */
+  /** @param {World} world */
   update(world) {
     const dt = world.tickDuration;
     for (const id of world.query(Projectile, Position, Velocity)) {
@@ -30,15 +27,11 @@ globalThis.ProjectileSystem = {
       pos.y = hit.y;
 
       const hp = world.get(Health, hit.id);
-      // Damage a hit body's Health, unless it's an ally (FactionSystem.allied) — an ally just
-      // blocks the shot like a wall. Only SUBTRACT hp — the death reaction (despawn/respawn/down)
-      // is decided centrally by the scene's Mortal-driven death pass (RpgScene.resolveHealth),
-      // not here, so all kills share one configurable path.
+      // damage a hit Health unless allied (ally blocks like a wall); death reaction is central
       if (
         hp !== undefined &&
         !FactionSystem.allied(world, proj.owner, hit.id)
       ) {
-        // mitigated by the injected hook; penetration (default 0 for turrets) lowers target defense.
         Combat.applyDamage(world, hit.id, proj.damage, proj.penetration ?? 0);
       }
       world.remove(id); // the bullet is spent on any impact (wall, ally, or hit)

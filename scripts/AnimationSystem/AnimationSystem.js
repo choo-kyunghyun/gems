@@ -1,8 +1,5 @@
-// Plays the current Animator state and writes the frame into the entity's Visual.
-// The controller/scene chooses the state (e.g. via AnimationSystem.set); this
-// system only advances playback. Run once per frame (uses Time.delta — sim time,
-// so animation pauses/dilates with the game), after state selection. Requires
-// Animator + Visual.
+// Advances the current Animator state into the entity's Visual. Run once per frame after state
+// selection; uses Time.delta (sim time, so animation pauses/dilates with the game).
 globalThis.AnimationSystem = {
   update(world) {
     for (const id of world.query(Animator, Visual)) {
@@ -11,8 +8,8 @@ globalThis.AnimationSystem = {
       const st = anim.graph[anim.state];
       if (st === undefined) continue;
 
-      // Clamp to >= 1: GMRT reports 0 frames for SVG sprites (still on 0.20), which
-      // would make a non-looping state land on frames-1 = -1 ("negative subimage").
+      // clamp frames >= 1: GMRT reports 0 frames for SVG sprites (0.20), which would land a
+      // non-looping state on frames-1 = -1 (negative subimage).
       const frames = st.frames > 0 ? st.frames : 1;
       const frameDur = st.fps > 0 ? 1 / st.fps : Infinity;
       anim.time += Time.delta;
@@ -29,8 +26,7 @@ globalThis.AnimationSystem = {
     }
   },
 
-  // Switch to a new state, resetting playback only when it actually changes
-  // (so holding a direction doesn't restart the walk cycle every frame).
+  // switch state, resetting playback only on an actual change (so holding a key doesn't restart it)
   set(anim, state) {
     if (anim.state === state) return;
     anim.state = state;

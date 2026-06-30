@@ -1,20 +1,14 @@
 /**
  * @typedef {Object} StateSchema
- * @property {function(number): void} [enter]   once when the state becomes current
- * @property {function(number): void} [update]  every tick while current
- * @property {function(number): void} [finish]  once when the state is left
+ * @property {function(number): void} [enter]   called once on transition in
+ * @property {function(number): void} [update]  called every tick while active
+ * @property {function(number): void} [finish]  called once on transition out
  */
 
-/**
- * Per-entity state machine over the `State` component. `change` queues a
- * transition; `update` applies queued transitions (firing finish→enter) then runs
- * the current state's update. Drives CombatAI's Idle→Chase→Attack and other
- * Brain-based actors.
- */
+// per-entity state machine; `change` queues, `update` applies (finish→enter) then ticks.
 globalThis.StateSystem = {
   /**
-   * Queue a transition to `schema`, applied on the next `update`. No-op if already
-   * in `schema` unless `force`.
+   * queue a transition; no-op if already in `schema` unless `force`.
    * @param {World} world @param {number} id @param {StateSchema} schema @param {boolean} [force]
    */
   change(world, id, schema, force = false) {
@@ -24,7 +18,7 @@ globalThis.StateSystem = {
     state.next = schema;
   },
 
-  /** Apply each entity's queued transition (finish→enter), then tick its current state. @param {World} world */
+  /** @param {World} world */
   update(world) {
     const ids = world.query(State);
     for (const id of ids) {

@@ -1,10 +1,8 @@
-// HUD + overlay panels for the RPG scene — the top-right HP/quest card and the bottom-center
-// dialogue box — extracted from sceneRpg as free functions taking the scene (composition;
-// mirrors RpgScene/RpgMap). The card + dialogue read scene.world/scene.ctrl LIVE via gemsLabel
-// callbacks, so they keep working after RpgMap.go swaps the world on a map change. (The corner
-// minimap was replaced by the player-centered RadarArrows radar, drawn in sceneRpg.draw.)
+// HUD + overlay panels for the RPG scene — free functions taking the scene (mirrors RpgScene/
+// RpgMap). Panels read scene.world/scene.ctrl LIVE via gemsLabel callbacks, so they survive the
+// world swap on a map change (RpgMap.go).
 globalThis.RpgHud = {
-  // Build the persistent HUD panels once (scene create): the HP/quest card + the dialogue box.
+  // build the persistent panels once (scene create)
   build(scene) {
     RpgHud._hud(scene);
     RpgHud._hotbar(scene);
@@ -12,11 +10,9 @@ globalThis.RpgHud = {
     RpgHud._sleepOverlay(scene);
   },
 
-  // Bottom-center quick-use bar — one card per Hotbar slot, each a LIVE label showing "[n] Name (qty)"
-  // for the bound item (or "[n]  —" when empty), read off the player's Hotbar/Inventory each frame so
-  // it survives a map/world swap with no rebuild. Display-only: binding/clearing happens in the
-  // inventory (RpgInventoryUI), and the number keys (RpgController hotbar1..N) do the using. sceneRpg
-  // hides this whole bar while build mode owns the bottom-center HUD.
+  // Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
+  // the player each frame. Display-only (binding is in RpgInventoryUI, using is RpgController).
+  // sceneRpg hides the whole bar while build mode owns the bottom-center HUD.
   _hotbar(scene) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -40,8 +36,7 @@ globalThis.RpgHud = {
       flexDirection: "row",
       alignItems: "center",
     });
-    // Live item icon left of the label. Re-parsed each frame off the bound slot; returns ""
-    // (→ 0 width, no gap) when the slot is empty, so it survives a map/world swap with no rebuild.
+    // live item icon left of the label; "" (→ 0 width, no gap) when the slot is empty
     row.insertChild(
       gemsRichText(
         () => {
@@ -74,8 +69,7 @@ globalThis.RpgHud = {
     return card;
   },
 
-  // One survival-need reserve bar: gemsProgress of (1 - value/max), so a full bar = satiated and it
-  // drains as the need rises toward critical. Reads the component live each frame.
+  // one survival-need RESERVE bar: gemsProgress of (1 - value/max), so full = satiated, read live
   _needBar(scene, token, labelKey, fillColor) {
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
@@ -92,8 +86,7 @@ globalThis.RpgHud = {
     return row;
   },
 
-  // Centered "Sleeping…" overlay, toggled by scene._sleeping (set by _sleep / cleared on wake).
-  // Drawn over the scene while a bed fast-forwards time; a key/click wakes (sceneRpg._wakeInput).
+  // centered "Sleeping…" overlay, toggled by scene._sleeping while a bed fast-forwards time
   _sleepOverlay(scene) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -118,7 +111,7 @@ globalThis.RpgHud = {
     scene.ui.insertChild(wrap);
   },
 
-  // Top-right HUD card: HP line (live) + the QuestLog-bound quest tracker.
+  // Top-right HUD card: HP / ammo / stamina / needs / clock / weather / status + quest tracker.
   _hud(scene) {
     const hud = new UIElement({
       positionType: "absolute",
@@ -140,9 +133,8 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(hpRow);
-    // Equipped-gun ammo readout (LIVE): "<ammo name>  rounds/magazine", or the unloaded hint when a
-    // gun has no ammo. Reads the composed weapon profile each frame (so it survives a map/world swap)
-    // and shows nothing for a melee weapon — the row self-sizes, so it collapses to ~0 height then.
+    // equipped-gun ammo readout (live): "<ammo>  rounds/magazine", unloaded hint, or "" for melee/
+    // unarmed (the row self-sizes, so it collapses to ~0 height then)
     const ammoRow = new UIElement({ width: "100%" });
     ammoRow.insertChild(
       gemsLabel(
@@ -162,9 +154,8 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(ammoRow);
-    // Stamina bar (sprint resource) — fraction of Stats.maxStamina, read live each frame.
-    // Tall enough to seat the centered label (the smaller "description" font) inside the bar
-    // rather than letting it overflow into the HP row above.
+    // stamina bar (sprint) — fraction of Stats.maxStamina, read live. Tall enough to seat the
+    // centered "description"-font label inside the bar.
     const staRow = new UIElement({ width: "100%", height: 20 });
     staRow.insertChild(
       gemsProgress(
@@ -184,15 +175,14 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(staRow);
-    // Survival needs (Gameplay/Survival) — Thirst / Hunger / Drowsiness, each shown as a RESERVE
-    // bar (1 - value/max, so full = satiated and it empties as the need worsens), read live. The
-    // need's critical debuff (dehydrated/starving/drowsy) shows in the status row below.
+    // survival needs — Thirst / Hunger / Drowsiness as reserve bars; the critical debuff
+    // (dehydrated/starving/drowsy) shows in the status row below
     card.insertChild(RpgHud._needBar(scene, Thirst, "RPG_THIRST", "#4aa3d6"));
     card.insertChild(RpgHud._needBar(scene, Hunger, "RPG_HUNGER", "#c98a3a"));
     card.insertChild(
       RpgHud._needBar(scene, Drowsiness, "RPG_DROWSY", "#8a7ec0"),
     );
-    // World clock: "Season · Day N  HH:MM", read live from the WorldClock each frame.
+    // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(
       gemsLabel(
@@ -207,8 +197,7 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(timeRow);
-    // Weather condition + ambient Kelvin temperature, both derived live (season + time of day +
-    // the active weather modifier).
+    // weather condition + ambient temperature, both derived live
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
       gemsLabel(
@@ -222,9 +211,8 @@ globalThis.RpgHud = {
       ),
     );
     card.insertChild(tempRow);
-    // Active buffs/debuffs (Buff/Status system) — each status name tinted by its def color, read
-    // live each frame (so it survives a map/world swap and updates as statuses come and go). Empty
-    // string when none active. Uses rich-text [c=#hex] spans so several statuses tint independently.
+    // active buffs/debuffs — each name tinted by its def color, read live; rich-text [c=#hex] spans
+    // so several statuses tint independently ("" when none)
     const statusRow = new UIElement({ width: "100%", height: 20 });
     statusRow.insertChild(
       gemsRichText(
