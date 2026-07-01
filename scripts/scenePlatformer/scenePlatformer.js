@@ -9,7 +9,7 @@ globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
 // side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
 // one-way drop-through, stomp enemies, spike/void respawn. no RPG layer.
-class _ScenePlatformerClass extends Scene {
+class _ScenePlatformerClass extends Level {
   create() {
     // set here, not as a class field: subclass field initializers don't run on GMRT.
     this.label = I18n.text("PLAT_NAME");

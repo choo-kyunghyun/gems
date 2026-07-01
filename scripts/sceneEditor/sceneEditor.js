@@ -18,7 +18,7 @@ SceneRegistry.add(() => new _SceneEditorClass(), {
   category: "SCENE_CAT_EDITOR",
 });
 
-class _SceneEditorClass extends Scene {
+class _SceneEditorClass extends Level {
   label = "Editor";
 
   create(openScene) {

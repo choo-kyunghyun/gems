@@ -43,7 +43,7 @@ globalThis.LevelManager = class LevelManager {
     return this._stack.length;
   }
 
-  /** Boot scene: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). @param {() => Scene} factory */
+  /** Boot scene: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). @param {() => Level} factory */
   start(factory) {
     this._apply(factory);
   }
@@ -51,14 +51,14 @@ globalThis.LevelManager = class LevelManager {
   /**
    * Queue a BASE scene change, applied next frame (after UI.update, so the UI tree isn't torn down
    * mid-traversal) collapsing guests first. Ignored mid-fade so a spammed button can't stack swaps.
-   * This is the `openScene` callback handed to every create(). @param {() => Scene} factory
+   * This is the `openScene` callback handed to every create(). @param {() => Level} factory
    */
   request(factory) {
     if (SceneTransition.isBusy()) return;
     this._pending = factory;
   }
 
-  /** Push a transient GUEST on top: suspend host, create guest, run until pop(). No fade. @param {() => Scene} factory @param {{ onResult?: (result:any) => void }} [opts] */
+  /** Push a transient GUEST on top: suspend host, create guest, run until pop(). No fade. @param {() => Level} factory @param {{ onResult?: (result:any) => void }} [opts] */
   push(factory, opts) {
     const host = this.current;
     if (host !== null && host.suspend !== undefined) host.suspend();
@@ -94,7 +94,7 @@ globalThis.LevelManager = class LevelManager {
     SceneTransition.update();
   }
 
-  /** Base swap at full cover: collapse the stack, reset cross-scene singletons, build the new base. @param {() => Scene} factory */
+  /** Base swap at full cover: collapse the stack, reset cross-scene singletons, build the new base. @param {() => Level} factory */
   _apply(factory) {
     this._destroyAll();
     UINav.reset(); // drop focus held on the outgoing scene's UI

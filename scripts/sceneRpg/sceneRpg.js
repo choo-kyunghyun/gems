@@ -15,7 +15,7 @@ SceneRegistry.add(SceneRpg, {
   category: "SCENE_CAT_RPG",
 });
 
-class _SceneRpgClass extends Scene {
+class _SceneRpgClass extends Level {
   label = "RPG";
 
   create() {

@@ -6,7 +6,7 @@ SceneRegistry.add(() => new _SceneUIKitClass(), {
   category: "SCENE_CAT_UI",
 });
 
-class _SceneUIKitClass extends Scene {
+class _SceneUIKitClass extends Level {
   label = "UIKit";
 
   create(openScene) {

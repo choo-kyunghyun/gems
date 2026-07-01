@@ -3,7 +3,7 @@
 
 globalThis.SCENES = {
   lobby: () =>
-    Object.assign(new Scene(), {
+    Object.assign(new Level(), {
       label: "Lobby",
 
       create(openScene) {
@@ -50,7 +50,7 @@ globalThis.SCENES = {
         col.insertChild(
           gemsButton(I18n.textRef("TITLE_QUIT"), () =>
             openScene(() =>
-              Object.assign(new Scene(), {
+              Object.assign(new Level(), {
                 create() {
                   game_end();
                 },
