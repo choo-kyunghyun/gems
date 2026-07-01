@@ -103,7 +103,7 @@ globalThis.WeaponModUI = {
   },
 
   // Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
-  // CraftingUI.LIST_H is sized to fit a fully-stuffed gun.
+  // the panel stacks within the near-fullscreen workbench card (ample room for a fully-stuffed gun).
   _fillDetail(scene, inv, weapons) {
     const host = scene._modDetail;
     const kids = [...host.children];

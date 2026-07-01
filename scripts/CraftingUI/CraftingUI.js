@@ -1,5 +1,6 @@
-// WORKBENCH window. one bench upgraded by a single MODULE slot (Station.module): slot a
-// WorkbenchModule to change what it does. two parts:
+// WORKBENCH window. near-fullscreen shell (absolute host + dim backdrop + centered card, shown/
+// hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI). one bench upgraded by a
+// single MODULE slot (Station.module): slot a WorkbenchModule to change what it does. two parts:
 //   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.
 //   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
 //     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
@@ -7,11 +8,10 @@
 // the two content rows are SAME-SIZE, swapped STRUCTURALLY (insert/removeChild) on a mode change —
 // `enabled` only gates update/draw, a disabled sibling still reserves its flex space (CLAUDE.md).
 // both rows are PLAIN columns (no gpu_set_scissor clip — unreliable in a master-detail row on
-// GMRT 0.20; was a long whack-a-mole), sized to fit via LIST_H.
+// GMRT 0.20; was a long whack-a-mole); the content body flex-grows to fill the card.
 // open/close owned by Interactable; state on scene (`_craft*`, plus `_mod*` for the weapon-mod panel).
 globalThis.CraftingUI = {
-  WRAP: 320, // description wrap width (px) — fits the fixed-size detail column
-  LIST_H: 560, // content height (px) — fits the longest panel (a gun's stats + ammo + slots + attachments)
+  WRAP: 320, // description wrap width (px) — a stable narrow column within the detail pane
 
   build(scene) {
     scene._craftOpen = false;
@@ -20,13 +20,55 @@ globalThis.CraftingUI = {
     scene._craftSel = ""; // selected recipe id (defaulted to the first on refresh)
     scene._craftMode = ""; // "craft" | "mod" — which content row is currently mounted
 
-    const win = gemsWindow(I18n.textRef("CRAFT_TITLE"), {
-      top: 80,
-      width: 600,
-      resizable: false, // a fixed master-detail panel (stable description wrap width)
-      onClose: () => CraftingUI.close(scene),
+    const margin = 28;
+    // absolute dim backdrop host — fills the screen, veils the HUD behind it.
+    const host = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      padding: margin,
+      alignItems: "center",
     });
-    win.enabled = false;
+    host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+    host.addComponent(new UITrigger({})); // swallow backdrop clicks
+    scene._craftWin = host;
+    scene._craftWin.enabled = false;
+    scene.ui.insertChild(scene._craftWin);
+
+    const inner = new UIElement({ width: "100%", maxWidth: 1100, height: "100%" });
+    const card = gemsCard({
+      width: "100%",
+      flexGrow: 1,
+      padding: GemsTheme.pad,
+      gap: GemsTheme.gapSm,
+    });
+
+    // title + close (x); Esc / E also close (handleEscape / _dispatchInteract).
+    const titleRow = new UIElement({
+      width: "100%",
+      height: 40,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    });
+    titleRow.insertChild(
+      gemsLabel(I18n.textRef("CRAFT_TITLE"), {
+        font: "header",
+        color: GemsTheme.text,
+      }),
+    );
+    titleRow.insertChild(
+      gemsButton("x", () => CraftingUI.close(scene), {
+        width: 32,
+        height: 32,
+        rad: GemsTheme.radiusSm,
+      }),
+    );
+    card.insertChild(titleRow);
+    card.insertChild(gemsDivider());
 
     // module slot bar (top), repopulated each refresh.
     const bar = new UIElement({
@@ -35,17 +77,18 @@ globalThis.CraftingUI = {
       gap: GemsTheme.gapSm,
     });
     scene._craftModuleBar = bar;
-    win.body.insertChild(bar);
-    win.body.insertChild(gemsDivider());
+    card.insertChild(bar);
+    card.insertChild(gemsDivider());
 
-    // content host: holds exactly one content row at a time (swapped structurally).
+    // content host: holds exactly one content row at a time (swapped structurally). grows to fill
+    // the near-fullscreen card.
     const body = new UIElement({
       width: "100%",
-      height: CraftingUI.LIST_H,
-      flexShrink: 0,
+      flexGrow: 1,
+      flexBasis: 0,
     });
     scene._craftBody = body;
-    win.body.insertChild(body);
+    card.insertChild(body);
 
     // ── CRAFT row: left recipe list + right detail ──
     const craftRow = new UIElement({
@@ -100,8 +143,8 @@ globalThis.CraftingUI = {
     body.insertChild(craftRow);
     scene._craftMode = "craft";
 
-    scene._craftWin = win;
-    scene.ui.insertChild(win);
+    inner.insertChild(card);
+    host.insertChild(inner);
   },
 
   open(scene, stationId) {

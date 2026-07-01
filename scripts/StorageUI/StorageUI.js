@@ -1,5 +1,6 @@
-// Bag↔Chest transfer window. two-column UITable layout, built once and toggled.
-// tables swap rows via setRows (not rebuilt) so column sort survives every transfer.
+// Bag↔Chest transfer window. near-fullscreen shell (absolute host + dim backdrop + centered card,
+// shown/hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI) over a two-column
+// UITable layout. tables swap rows via setRows (not rebuilt) so column sort survives every transfer.
 // open/close/prompt owned by Interactable; all state on scene (_store* namespace).
 globalThis.StorageUI = {
   build(scene) {
@@ -10,19 +11,59 @@ globalThis.StorageUI = {
     scene._storeClickTime = 0;
     scene._storeQtyModal = null; // open amount-picker modal, else null
 
-    const win = gemsWindow(I18n.textRef("STORAGE_TITLE"), {
-      top: 80,
-      width: 1100,
-      height: 432, // starting basis for the grow columns/tables
-      minWidth: 720,
-      minHeight: 300,
-      onClose: () => StorageUI.close(scene),
+    const margin = 28;
+    // absolute dim backdrop host — fills the screen, veils the HUD behind it.
+    const host = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      padding: margin,
+      alignItems: "center",
     });
-    win.enabled = false;
+    host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+    host.addComponent(new UITrigger({})); // swallow backdrop clicks
+    scene._storeWin = host;
+    scene._storeWin.enabled = false;
+    scene.ui.insertChild(scene._storeWin);
+
+    const inner = new UIElement({ width: "100%", maxWidth: 1100, height: "100%" });
+    const card = gemsCard({
+      width: "100%",
+      flexGrow: 1,
+      padding: GemsTheme.pad,
+      gap: GemsTheme.gapSm,
+    });
+
+    // title + close (x); Esc / E also close (handleEscape / _dispatchInteract).
+    const titleRow = new UIElement({
+      width: "100%",
+      height: 40,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    });
+    titleRow.insertChild(
+      gemsLabel(I18n.textRef("STORAGE_TITLE"), {
+        font: "header",
+        color: GemsTheme.text,
+      }),
+    );
+    titleRow.insertChild(
+      gemsButton("x", () => StorageUI.close(scene), {
+        width: 32,
+        height: 32,
+        rad: GemsTheme.radiusSm,
+      }),
+    );
+    card.insertChild(titleRow);
+    card.insertChild(gemsDivider());
 
     const cols = new UIElement({
       width: "100%",
-      flexGrow: 1, // tables grow with the resized window
+      flexGrow: 1, // tables grow to fill the card height
       flexBasis: 0,
       flexDirection: "row",
       gap: GemsTheme.gap,
@@ -49,16 +90,16 @@ globalThis.StorageUI = {
         () => scene.world.get(Inventory, scene._storageId),
       ),
     );
-    win.body.insertChild(cols);
+    card.insertChild(cols);
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       gemsLabel(I18n.textRef("STORAGE_HINT"), { color: GemsTheme.textMuted }),
     );
-    win.body.insertChild(hint);
+    card.insertChild(hint);
 
-    scene._storeWin = win;
-    scene.ui.insertChild(win);
+    inner.insertChild(card);
+    host.insertChild(inner);
   },
 
   // titled column: header (title + bulk "All" button) + live usage line + the table.
