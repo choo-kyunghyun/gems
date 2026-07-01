@@ -4,7 +4,7 @@
 // yourself (mind the JSON nested-value fault + Set fields).
 /** @typedef {Object} EntitySnapshotRecord @property {Object<string,Object>} components token -> data */
 globalThis.EntitySnapshot = {
-  /** Snapshot an entity's components (subset if `components` given, else all). @param {World} world @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */
+  /** Snapshot an entity's components (subset if `components` given, else all). @param {ECS} world @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */
   capture(world, id, components) {
     let comps;
     if (components === undefined) {
@@ -19,7 +19,7 @@ globalThis.EntitySnapshot = {
     return { components: comps };
   },
 
-  /** Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore). @param {World} world @param {number} id @param {EntitySnapshotRecord} snapshot @returns {number} same id */
+  /** Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore). @param {ECS} world @param {number} id @param {EntitySnapshotRecord} snapshot @returns {number} same id */
   apply(world, id, snapshot) {
     const comps = snapshot.components;
     // for...in over a plain object is GMRT-safe; Map/Set iteration is not.
@@ -27,7 +27,7 @@ globalThis.EntitySnapshot = {
     return id;
   },
 
-  /** world.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords). @param {World} world @param {EntitySnapshotRecord} snapshot @param {Object<string,Object>} [overrides] @returns {number} new entity id */
+  /** world.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords). @param {ECS} world @param {EntitySnapshotRecord} snapshot @param {Object<string,Object>} [overrides] @returns {number} new entity id */
   restore(world, snapshot, overrides) {
     const id = this.apply(world, world.create(), snapshot);
     if (overrides !== undefined)

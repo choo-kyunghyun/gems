@@ -9,7 +9,7 @@
 globalThis.StateSystem = {
   /**
    * queue a transition; no-op if already in `schema` unless `force`.
-   * @param {World} world @param {number} id @param {StateSchema} schema @param {boolean} [force]
+   * @param {ECS} world @param {number} id @param {StateSchema} schema @param {boolean} [force]
    */
   change(world, id, schema, force = false) {
     const state = world.get(State, id);
@@ -18,7 +18,7 @@ globalThis.StateSystem = {
     state.next = schema;
   },
 
-  /** @param {World} world */
+  /** @param {ECS} world */
   update(world) {
     const ids = world.query(State);
     for (const id of ids) {

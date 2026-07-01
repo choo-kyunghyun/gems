@@ -65,8 +65,10 @@ this.background = Color.parse("#222222");
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
-// SceneManager owns all lifecycle; obj_game delegates update/step/draw/destroy each event
-this.scenes = new SceneManager();
+// World.levels (LevelManager) owns scene/level lifecycle + the resident-level registry; obj_game
+// delegates update/step/draw/destroy each event via the `this.scenes` alias.
+World.levels = new LevelManager();
+this.scenes = World.levels;
 // lobby is the boot scene + dev launcher; F2 (Step_0) also returns here
 this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades in from black

@@ -14,7 +14,7 @@ class _ScenePlatformerClass extends Scene {
     // set here, not as a class field: subclass field initializers don't run on GMRT.
     this.label = I18n.text("PLAT_NAME");
 
-    this.world = new World(256, 60, { gravity: PLATF_GRAVITY });
+    this.world = new ECS(256, 60, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.world);
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.

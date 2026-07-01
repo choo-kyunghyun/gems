@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Universe",
+  "%Name":"ECS",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Universe",
+  "name":"ECS",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"World",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Universe.js",
+  "scriptSource":"ECS.js",
 }

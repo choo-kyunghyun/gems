@@ -97,9 +97,9 @@ globalThis.RpgMap = {
     else RpgMap.build(scene, mapId, entryId, carry, travelers);
     RpgMap._touch(scene, scene.mapId);
     RpgMap._evict(scene);
-    // index the now-active level in the Universe manager + embody any trader currently in it
-    Universe.register(scene.mapId, scene.world, scene.level);
-    Universe.setActive(scene.mapId);
+    // index the now-active level in the level manager + embody any trader currently in it
+    World.levels.register(scene.mapId, scene.world, scene.level);
+    World.levels.setActive(scene.mapId);
     Trader.onActivate(scene);
   },
 
@@ -192,7 +192,7 @@ globalThis.RpgMap = {
       if (victim === null) break; // safety — nothing parked
       RpgMap._evictSerialize(scene, scene._maps[victim]);
       RpgMap._free(scene._maps[victim]);
-      Universe.unregister(victim); // its World is destroyed — drop it from the manager index
+      World.levels.unregister(victim); // its store is destroyed — drop it from the manager index
       delete scene._maps[victim];
       scene._mapOrder.splice(scene._mapOrder.indexOf(victim), 1);
       count--;
@@ -313,7 +313,7 @@ globalThis.RpgMap = {
   // (a window of chunks' worth of entities + colliders + drops) and an empty resident grid (player
   // builds only).
   _buildWorld(scene, data, entryId, carry) {
-    scene.world = new World(scene._chunked ? 1024 : 256, 60);
+    scene.world = new ECS(scene._chunked ? 1024 : 256, 60);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
       : RpgLevel.build(scene.world, data, entryId);

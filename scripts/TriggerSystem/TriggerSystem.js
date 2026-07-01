@@ -2,7 +2,7 @@
 // solid-vs-solid pairs skipped (handled by SolidSystem/SeparationSystem).
 // O(n) via world.broadphase (cellSize > max entity diameter), else O(n²).
 globalThis.TriggerSystem = {
-  /** @param {World} world */
+  /** @param {ECS} world */
   update(world) {
     const ids = world.query(Collision, Position, BBox);
 

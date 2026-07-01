@@ -11,7 +11,7 @@ globalThis.EntityPreset = class EntityPreset {
     }
   }
 
-  /** Spawn a preset at (x, y, z). Throws for unknown ids. @param {string} presetId @param {World} world @param {number} x @param {number} y @param {number} [z=0] @returns {number} entity id */
+  /** Spawn a preset at (x, y, z). Throws for unknown ids. @param {string} presetId @param {ECS} world @param {number} x @param {number} y @param {number} [z=0] @returns {number} entity id */
   static spawn(presetId, world, x, y, z = 0) {
     const preset = this.presets.get(presetId);
     if (preset === undefined)

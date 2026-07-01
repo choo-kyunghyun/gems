@@ -5,7 +5,7 @@ globalThis.SolidSystem = {
   maxStep: 8, // keep below thinnest collider to prevent tunneling
   oneWayTol: 2, // px a body may sink into a one-way top and still be caught (resting slack)
 
-  /** @param {World} world */
+  /** @param {ECS} world */
   update(world) {
     const dt = world.tickDuration;
 

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"LevelManager",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"LevelManager",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"LevelManager.js",
+}

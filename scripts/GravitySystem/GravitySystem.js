@@ -6,7 +6,7 @@ globalThis.GravitySystem = {
   /** @type {{x:number,y:number,z:number}} unit direction (default down). */
   direction: { x: 0, y: 1, z: 0 },
 
-  /** @param {World} world */
+  /** @param {ECS} world */
   update(world) {
     const strength = world.gravity ?? this.strength;
     const { direction } = this;

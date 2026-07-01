@@ -58,7 +58,7 @@ class _SceneRpgClass extends Scene {
 
     // world event queue + level manager + wandering traders — reset per scene create so a fresh RPG
     // session can't inherit the previous one's schedule/records (Trader.reset re-installs handlers).
-    Universe.reset();
+    World.levels.reset();
     WorldEvents.reset();
     Trader.reset();
 
@@ -830,7 +830,7 @@ class _SceneRpgClass extends Scene {
     for (const id in this._maps) RpgMap._free(this._maps[id]);
     this._maps = {};
     RpgMap._free(this);
-    Universe.reset(); // drop the manager index (all Worlds freed above)
+    World.levels.reset(); // drop the manager index (all stores freed above)
     WorldEvents.reset(); // clear the world event queue
     Trader.reset(); // drop trader records + queued trader events
     if (this.ui) {

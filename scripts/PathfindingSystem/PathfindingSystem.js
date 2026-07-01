@@ -5,14 +5,14 @@ globalThis.PathfindingSystem = {
     MotionPlanner.setGrid(grid);
   },
 
-  /** drop all responses so stale paths re-plan after a grid change. @param {World} world */
+  /** drop all responses so stale paths re-plan after a grid change. @param {ECS} world */
   invalidate(world) {
     for (const id of world.query(PathResponse)) {
       world.detach(id, PathResponse);
     }
   },
 
-  /** @param {World} world */
+  /** @param {ECS} world */
   update(world) {
     for (const id of world.query(PathRequest)) {
       const req = world.get(PathRequest, id);
@@ -27,7 +27,7 @@ globalThis.PathfindingSystem = {
     }
   },
 
-  /** @param {World} world @param {number} id @returns {{x:number,y:number}|undefined} */
+  /** @param {ECS} world @param {number} id @returns {{x:number,y:number}|undefined} */
   current(world, id) {
     const response = world.get(PathResponse, id);
     if (response === undefined) return undefined;
@@ -36,7 +36,7 @@ globalThis.PathfindingSystem = {
 
   /**
    * advance cursor; returns false and detaches PathResponse when complete.
-   * @param {World} world @param {number} id @returns {boolean}
+   * @param {ECS} world @param {number} id @returns {boolean}
    */
   advance(world, id) {
     const response = world.get(PathResponse, id);

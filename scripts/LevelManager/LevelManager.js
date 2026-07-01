@@ -1,21 +1,34 @@
-// Scene lifecycle: a STACK of scenes (persistent base + transient guests), a queued base swap,
-// and the fade-coordinated transition. `obj_game` holds one as `this.scenes` and delegates each
-// event to it; SystemMenu reads/restarts/quits the live scene through this interface.
+// The level/scene lifecycle manager — a `World` sub-module, held as `World.levels`. Merges the old
+// SceneManager (the active-scene STACK + faded transitions + sim pause) and Universe (the resident-
+// level REGISTRY + whole-entity transfer between levels) into one coordinator, since both already
+// tracked "which levels are live" from opposite ends.
 //
-// Only the TOP scene is stepped + drawn; one below is suspended (UI hidden, camera detached) so a
-// minigame runs in front without the host losing context. push()/pop() drive that; request()/_apply()
-// own the faded BASE swap (lobby navigation), collapsing guests first.
+// STACK (was SceneManager): a persistent base + transient guests pushed on top; only the TOP is
+// stepped + drawn, one below is suspended (UI hidden, camera detached) so a minigame runs in front
+// without the host losing context. push()/pop() drive that; request()/_apply() own the faded BASE
+// swap (lobby navigation), collapsing guests first.
 //
-// Plain instance class, not a static singleton: `current` is an instance getter over the stack top —
-// instance get/set work on GMRT, only static computed getters miscompile.
-globalThis.SceneManager = class SceneManager {
+// REGISTRY (was Universe): a flat mapId -> { world, level } index of every RESIDENT level (active +
+// the parked map pool). RpgMap registers on build/resume, unregisters on evict. take/put/transfer
+// move a WHOLE entity (all components, via EntitySnapshot) between two resident levels' stores — the
+// wandering-trader path. Registry `reset()` drops the index (map-pool teardown); it is INDEPENDENT of
+// the scene stack (destroy() tears the stack down).
+//
+// Plain instance class (World.levels = new LevelManager()), not a static singleton: `current` is an
+// instance getter over the stack top — instance get/set work on GMRT, only static computed getters
+// miscompile.
+globalThis.LevelManager = class LevelManager {
   constructor() {
+    // ── scene/level stack ──
     // Stack of frames { scene, factory, label, onResult } — index 0 base, last live.
     this._stack = [];
     this._pending = null; // base-swap factory queued for next frame, awaiting a fade
     // Sim pause + frame-step, driven by the Debug overlay's "Sim" panel.
     this.paused = false; // gates scene.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
+    // ── resident-level registry (was Universe) ──
+    this._levels = {}; // mapId -> { world, level } for every RESIDENT level (active + parked pool)
+    this._active = null; // the mapId currently stepped + drawn
   }
 
   /** Live (top-of-stack) Scene, or null. */
@@ -150,7 +163,7 @@ globalThis.SceneManager = class SceneManager {
     const scene = this.current;
     if (scene === null) return;
     if (SystemMenu.isOpen()) {
-      // Menu forces Time.scale = 0; a step must restore a non-zero delta (world.update advances off
+      // Menu forces Time.scale = 0; a step must restore a non-zero delta (store.update advances off
       // Time.delta) then re-freeze.
       if (this._takeStep()) {
         Time.scale = SystemMenu.scale();
@@ -192,5 +205,75 @@ globalThis.SceneManager = class SceneManager {
   /** Teardown: destroys every scene's UI roots, so obj_game must call this before UI.destroy(). */
   destroy() {
     this._destroyAll();
+  }
+
+  // ── resident-level registry + whole-entity transfer (was Universe) ──
+
+  // Index a level's store under its map id (idempotent — re-registering a resumed map overwrites with
+  // the same live objects). Called by RpgMap on build/resume.
+  register(mapId, world, level) {
+    this._levels[mapId] = { world: world, level: level };
+  }
+
+  // Drop a level from the index (its store is about to be destroyed — evict / scene end).
+  unregister(mapId) {
+    delete this._levels[mapId];
+  }
+
+  setActive(mapId) {
+    this._active = mapId;
+  }
+
+  activeId() {
+    return this._active;
+  }
+
+  isResident(mapId) {
+    return this._levels[mapId] !== undefined;
+  }
+
+  worldOf(mapId) {
+    const l = this._levels[mapId];
+    return l !== undefined ? l.world : null;
+  }
+
+  levelOf(mapId) {
+    const l = this._levels[mapId];
+    return l !== undefined ? l.level : null;
+  }
+
+  // Capture a WHOLE entity (all components) out of a resident level's store and remove it. Returns the
+  // snapshot (the caller now owns it), or null if the level isn't resident. EntitySnapshot references
+  // the component data objects, so they survive the remove/flush (see EntitySnapshot).
+  take(mapId, id) {
+    const w = this.worldOf(mapId);
+    if (w === null) return null;
+    const snap = EntitySnapshot.capture(w, id); // no component list → every component
+    w.remove(id);
+    return snap;
+  }
+
+  // Restore a whole-entity snapshot into a resident level's store; `overrides` apply after (e.g. a
+  // fresh Position for the destination). Returns the new id, or -1 if the level isn't resident.
+  put(mapId, snap, overrides) {
+    const w = this.worldOf(mapId);
+    if (w === null) return -1;
+    return EntitySnapshot.restore(w, snap, overrides);
+  }
+
+  // Move a whole entity from one level to another. Destination resident → it lands there (new id); not
+  // resident → the snapshot is returned for the caller to hold until it loads.
+  transfer(fromMapId, toMapId, id, overrides) {
+    const snap = this.take(fromMapId, id);
+    if (snap === null) return null;
+    if (this.isResident(toMapId)) return this.put(toMapId, snap, overrides);
+    return snap;
+  }
+
+  // New game / map-pool teardown — the pooled stores are freed by RpgMap, so just drop the index.
+  // INDEPENDENT of the scene stack (destroy() tears that down).
+  reset() {
+    this._levels = {};
+    this._active = null;
   }
 };

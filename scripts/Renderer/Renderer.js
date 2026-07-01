@@ -35,7 +35,7 @@ globalThis.Renderer = class Renderer {
     return this;
   }
 
-  /** run every enabled pass in order. @param {World} world */
+  /** run every enabled pass in order. @param {ECS} world */
   draw(world) {
     for (const pass of this.passes) {
       if (!pass.enabled) continue;

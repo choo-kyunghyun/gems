@@ -15,7 +15,7 @@ globalThis.AABB = class AABB {
     return { x1, y1, x2, y2, cx: (x1 + x2) * 0.5, cy: (y1 + y2) * 0.5 };
   }
 
-  /** Edges of entity `id` from its Position + BBox. @param {World} world @param {number} id @returns {{x1:number,y1:number,x2:number,y2:number,cx:number,cy:number}} */
+  /** Edges of entity `id` from its Position + BBox. @param {ECS} world @param {number} id @returns {{x1:number,y1:number,x2:number,y2:number,cx:number,cy:number}} */
   static of(world, id) {
     return AABB.edges(world.get(Position, id), world.get(BBox, id));
   }

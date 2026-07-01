@@ -3,7 +3,7 @@
 // lerp: shared formula for all render passes — PrevPosition + (Position-PrevPosition)*alpha.
 // only movers get PrevPosition; static bodies fall back to raw Position.
 globalThis.InterpolationSystem = {
-  /** @param {World} world */
+  /** @param {ECS} world */
   snapshot(world) {
     for (const id of world.query(Position, Velocity)) {
       const pos = world.get(Position, id);
@@ -20,7 +20,7 @@ globalThis.InterpolationSystem = {
 
   /**
    * interpolated render position; writes into `out` (reused scratch, no alloc per entity).
-   * @param {World} world @param {number} id @param {{x:number,y:number}} out
+   * @param {ECS} world @param {number} id @param {{x:number,y:number}} out
    * @returns {{x:number,y:number}} out
    */
   lerp(world, id, out) {

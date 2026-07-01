@@ -32,7 +32,7 @@ globalThis.Broadphase = class Broadphase {
 
   /**
    * Clear + re-bucket every `ids` entity by center — the per-tick physics rebuild (centers move).
-   * @param {World} world @param {number[]} ids
+   * @param {ECS} world @param {number[]} ids
    */
   rebuild(world, ids) {
     this.clear();

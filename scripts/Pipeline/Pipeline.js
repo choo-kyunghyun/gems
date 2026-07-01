@@ -12,7 +12,7 @@ globalThis.Pipeline = class Pipeline {
     return this;
   }
 
-  /** Run every step in order. @param {World} world */
+  /** Run every step in order. @param {ECS} world */
   update(world) {
     for (const step of this._steps) {
       step.update(world);
