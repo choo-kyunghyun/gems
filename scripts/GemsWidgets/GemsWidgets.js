@@ -83,9 +83,9 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
 globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   const size = opts.size ?? 160;
   const rules = [];
-  const src = opts.rules ?? [];
+  const src = opts.rules ?? []; // [{ has: <component token>, color }] — presence rule per blip type
   for (let i = 0; i < src.length; i++)
-    rules.push({ tag: src[i].tag, color: gemsColor(src[i].color) });
+    rules.push({ has: src[i].has, color: gemsColor(src[i].color) });
 
   const el = new UIElement({ width: size, height: size, flexShrink: 0 });
   el.addComponent(

@@ -1,4 +1,4 @@
-// Destination carried on the portal entity so a live Tag "portal" query can resolve it —
+// Destination carried on the portal entity so a live world.query(Portal) can resolve it —
 // required when portals are chunk-streamed and the scene can't hold a fixed portals[] list.
 /**
  * @typedef {Object} Portal

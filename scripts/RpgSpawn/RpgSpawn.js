@@ -88,7 +88,7 @@ globalThis.RpgSpawn = {
         speed: 45,
       });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
-      world.add(id, Tag, { tags: new Set(["enemy", "raider"]) });
+      world.add(id, Raider, {}); // species marker (radar color + kill-quest type)
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Raider" });
       // loot table — no maxWeight (authored loot, never weight-gated)
@@ -120,7 +120,7 @@ globalThis.RpgSpawn = {
         speed: 60,
       });
       world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
-      world.add(id, Tag, { tags: new Set(["enemy", "rat"]) });
+      world.add(id, Rat, {}); // species marker (radar color + kill-quest type)
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Rat" });
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 4 });
@@ -140,9 +140,8 @@ globalThis.RpgSpawn = {
         mask: null,
         hits: [],
       });
-      world.add(id, Tag, { tags: new Set(["npc"]) });
       world.add(id, Name, { name: s.label });
-      world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId });
+      world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId }); // NPC presence = "is an NPC" (radar/query)
       world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, 1));
       // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
       // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
@@ -214,7 +213,6 @@ globalThis.RpgSpawn = {
       }
       world.add(id, Visual, RpgSpawn._visual(sprite, color, 1));
       if (s.kind !== undefined) world.add(id, Interaction, { kind: s.kind });
-      else world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "torch") {
       // Decorative LIGHT prop: a small solid post carrying a Light (drawn by RenderLighting).
@@ -237,7 +235,6 @@ globalThis.RpgSpawn = {
         intensity: 0.9,
         flicker: 0.18,
       });
-      world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "turret") {
       // Auto-firing defense post: an immovable player-faction ACTOR — a stationary ranged CombatAI
@@ -264,7 +261,6 @@ globalThis.RpgSpawn = {
       world.add(id, Faction, { id: "player" }); // player ally; a hostile target for enemies
       world.add(id, Name, { name: s.label ?? "Turret" });
       world.add(id, Visual, RpgSpawn._visual(spr_lightTurret, c_white, 1));
-      world.add(id, Tag, { tags: new Set(["turret"]) });
       // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
       CombatAI.attach(world, id, level, {
         mobile: false,
@@ -279,11 +275,10 @@ globalThis.RpgSpawn = {
       return id;
     } else if (s.preset === "portal") {
       // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
-      // the entity (Portal component), so a streamed portal resolves via a live Tag "portal" query.
+      // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
-      world.add(id, Tag, { tags: new Set(["portal"]) });
       world.add(id, Name, { name: s.label ?? "Door" });
       world.add(id, Visual, RpgSpawn._visual(spr_door, c_white, 1));
       world.add(id, Portal, {
@@ -318,7 +313,6 @@ globalThis.RpgSpawn = {
       mask: null,
       hits: [],
     });
-    world.add(id, Tag, { tags: new Set(["follower"]) });
     world.add(id, Faction, { id: "player" }); // party ally; friendly fire skips it, but enemies aggro it (it has Health)
     // mortal but recoverable: at 0 hp it goes Down, then revives at the recovery spot after
     // Mortal.recoverSecs (see RpgScene.resolveHealth/updateDowned). Not removed like an enemy.

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Raider",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Raider",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Demo/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Raider.js",
+}

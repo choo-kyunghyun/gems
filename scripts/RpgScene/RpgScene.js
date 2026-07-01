@@ -2,19 +2,20 @@
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 //
 // Contract: the scene owns `world`, `ctrl` (with `.id`), `followers`, `_hpTrack` (id → last hp),
-// `_invDirty`. The enemy set is derived LIVE by Tag "enemy" so chunk streaming needs no bookkeeping.
+// `_invDirty`. The enemy set is derived LIVE by Faction (hostile to the player) so chunk streaming
+// needs no bookkeeping — allegiance is the single source of "who's an enemy", not a marker/tag.
 //
 // Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down), resolved in ONE
 // place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole authority
 // that removes/respawns/incapacitates.
 globalThis.RpgScene = {
-  // live enemy set: Health + Tag "enemy". (Set.has is GMRT-safe; only Set ITERATION is banned.)
-  _enemies(world) {
+  // live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
+  // (followers/turrets, player faction) and neutral props (no Faction) are excluded.
+  _enemies(world, playerId) {
     const out = [];
-    const ids = world.query(Health, Tag);
+    const ids = world.query(Health);
     for (let i = 0; i < ids.length; i++) {
-      const tag = world.get(Tag, ids[i]);
-      if (tag.tags.has("enemy")) out.push(ids[i]);
+      if (FactionSystem.hostile(world, playerId, ids[i])) out.push(ids[i]);
     }
     return out;
   },
@@ -23,7 +24,7 @@ globalThis.RpgScene = {
   // change. Run after physics, before deaths flush, so the killing blow still pops.
   trackDamage(scene, yOffset) {
     RpgScene._diffHp(scene, scene.ctrl.id, true, yOffset);
-    const enemies = RpgScene._enemies(scene.world);
+    const enemies = RpgScene._enemies(scene.world, scene.ctrl.id);
     for (let i = 0; i < enemies.length; i++)
       RpgScene._diffHp(scene, enemies[i], false, yOffset);
     // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so no-op)

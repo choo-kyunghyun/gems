@@ -79,12 +79,15 @@ class _SceneRpgClass extends Level {
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
-    // RadarArrows tag→color rules; built here (not top level) so Color is loaded; read live so it survives a world swap
+    // RadarArrows component→color rules (first match wins); built here (not top level) so Color is
+    // loaded; read live so it survives a world swap. `has` is a component token — presence = a blip.
+    // Both enemy species share the enemy color; allies/props with none of these get no arrow.
     this._radarRules = [
-      { tag: "enemy", color: Color.parse("#e0584f") },
-      { tag: "npc", color: Color.parse("#ffd166") },
-      { tag: "portal", color: Color.parse("#9b8cff") },
-      { tag: "follower", color: Color.parse("#6fd0a0") },
+      { has: Raider, color: Color.parse("#e0584f") },
+      { has: Rat, color: Color.parse("#e0584f") },
+      { has: NPC, color: Color.parse("#ffd166") },
+      { has: Portal, color: Color.parse("#9b8cff") },
+      { has: Follower, color: Color.parse("#6fd0a0") },
     ];
     // binding-driven key hints; bar reads each action's live binding (ready for remap) and
     // `contexts` gates entries per InputContext. `text` entries are non-rebindable keys.
@@ -296,9 +299,8 @@ class _SceneRpgClass extends Level {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
-          // report by actual type so only raiders advance the "Raider Cull" quest (rats have no target)
-          const tag = this.world.get(Tag, id);
-          const kind = tag && tag.tags.has("rat") ? "rat" : "raider";
+          // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
+          const kind = this.world.get(Rat, id) !== undefined ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
           Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
@@ -623,9 +625,9 @@ class _SceneRpgClass extends Level {
     this.nearNpc = false;
     const p = this.world.get(Position, this.ctrl.id);
     if (p === undefined) return;
-    // nearest in-reach "npc" (streamed or up-front); none → no dialogue this frame
+    // nearest in-reach NPC (streamed or up-front); none → no dialogue this frame
     const id = Query.nearest(this.world, p.x, p.y, {
-      tag: "npc",
+      has: NPC,
       maxDist: RPG_NPC_RADIUS,
     });
     if (id === -1) return;

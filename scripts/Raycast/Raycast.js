@@ -1,10 +1,9 @@
 // Segment-vs-AABB raycast over all collider entities. Returns nearest hit
 // { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS.
-//   opts: { ignore? (id to skip), solidOnly? (default true), mask? (require a matching Tag) }
+//   opts: { ignore? (id to skip), solidOnly? (default true) }
 globalThis.Raycast = class Raycast {
   static cast(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
-    const mask = opts.mask ?? null;
 
     const dx = x1 - x0;
     const dy = y1 - y0;
@@ -19,8 +18,6 @@ globalThis.Raycast = class Raycast {
       // read opts.solidOnly inline — caching it in a bool local gets clobbered mid-function on
       // GMRT (boolean-local quirk, CLAUDE.md); that dropped this skip → bullets stopped on item drops
       if (opts.solidOnly !== false && !col.solid) continue;
-      if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
-        continue;
 
       const e = AABB.of(world, id);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
@@ -43,7 +40,6 @@ globalThis.Raycast = class Raycast {
   // counterpart to cast(). Used by hitscan pierce walks (Combat.hitscan) needing every body, not just the nearest.
   static castAll(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
-    const mask = opts.mask ?? null;
 
     const dx = x1 - x0;
     const dy = y1 - y0;
@@ -56,8 +52,6 @@ globalThis.Raycast = class Raycast {
       const col = world.get(Collision, id);
       // solidOnly read inline (default on) — see the boolean-local clobber note in cast().
       if (opts.solidOnly !== false && !col.solid) continue;
-      if (mask !== null && !Raycast._accepts(mask, world.get(Tag, id)))
-        continue;
 
       const e = AABB.of(world, id);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
@@ -117,11 +111,5 @@ globalThis.Raycast = class Raycast {
       nx: txEntry > tyEntry ? (dx > 0 ? -1 : 1) : 0,
       ny: txEntry > tyEntry ? 0 : dy > 0 ? -1 : 1,
     };
-  }
-
-  static _accepts(mask, tag) {
-    if (tag === undefined) return false;
-    for (const t of mask) if (tag.tags.has(t)) return true;
-    return false;
   }
 };

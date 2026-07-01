@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Tag",
+  "%Name":"Rat",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Tag",
+  "name":"Rat",
   "parent":{
     "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "path":"folders/Demo/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Tag.js",
+  "scriptSource":"Rat.js",
 }

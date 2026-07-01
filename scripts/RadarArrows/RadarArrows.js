@@ -1,13 +1,13 @@
 // player-centered directional radar: a ring of arrows around the player, one per nearby entity,
-// pointing at it, colored by first matching tag rule, sized by distance (near big, far small).
-// world-space immediate-mode; draw() from a scene's draw() after renderer.draw(). reads world live,
-// so no rebuild across a map swap. Set.has() is fine (only for...of over a Set is banned); rules
-// colors must be GM colour ints.
+// pointing at it, colored by the first matching rule, sized by distance (near big, far small).
+// A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
+// the entity has that component. world-space immediate-mode; draw() from a scene's draw() after
+// renderer.draw(). reads world live, so no rebuild across a map swap. rule colors must be GM colour ints.
 globalThis.RadarArrows = {
   /**
    * @param {object} world
    * @param {number} target  center entity id (the player) — skipped
-   * @param {{tag:string,color:number}[]} rules  first matching tag wins
+   * @param {{has:string,color:number}[]} rules  first entity-has-component rule wins
    * @param {object} [opt]  { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat)
    */
   draw(world, target, rules, opt = {}) {
@@ -82,10 +82,8 @@ globalThis.RadarArrows = {
   },
 
   _color(world, id, rules) {
-    const tag = world.get(Tag, id);
-    if (tag === undefined) return null;
     for (let r = 0; r < rules.length; r++)
-      if (tag.tags.has(rules[r].tag)) return rules[r].color;
+      if (world.get(rules[r].has, id) !== undefined) return rules[r].color;
     return null;
   },
 };

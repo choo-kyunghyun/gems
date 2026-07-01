@@ -1,5 +1,5 @@
 // Spatial lookup over entities with Position. Point tests only (no BBox — that's AABB's job).
-/** @typedef {Object} QueryOpts @property {string} [tag] require this Tag @property {number} [maxDist] cap search radius (world px) @property {boolean} [hasCollision] require a Collision component */
+/** @typedef {Object} QueryOpts @property {string} [has] require this component (its token) @property {number} [maxDist] cap search radius (world px) @property {boolean} [hasCollision] require a Collision component */
 globalThis.Query = class Query {
   /** Nearest match to (x, y), or -1. @param {ECS} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
   static nearest(world, x, y, opts = {}) {
@@ -61,11 +61,10 @@ globalThis.Query = class Query {
     return result;
   }
 
-  /** @returns {boolean} passes the tag / hasCollision filters in `opts` */
+  /** @returns {boolean} passes the has / hasCollision filters in `opts` */
   static _matchesOpts(world, id, opts) {
-    if (opts.tag !== undefined) {
-      const tag = world.get(Tag, id);
-      if (tag === undefined || !tag.tags.has(opts.tag)) return false;
+    if (opts.has !== undefined) {
+      if (world.get(opts.has, id) === undefined) return false;
     }
     if (opts.hasCollision) {
       if (world.get(Collision, id) === undefined) return false;

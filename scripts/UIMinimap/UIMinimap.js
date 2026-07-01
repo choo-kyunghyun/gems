@@ -1,14 +1,15 @@
 // Radar — top-down blip view of a World around a target, immediate-mode (reads World live).
-// Entities within `range` colored by first matching tag in `rules`; target gets a facing notch.
-// GMRT: NaN-width guard (first post-transition frame); Set.has() is fine — only for...of over a Set is banned.
+// Entities within `range` colored by the first matching rule in `rules`; target gets a facing notch.
+// A rule is { has, color }: `has` is a COMPONENT TOKEN — the entity blips when it has that component.
+// GMRT: NaN-width guard (first post-transition frame).
 /** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
-  /** @param {Object} [m] { world, target, range, rules: {tag,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
+  /** @param {Object} [m] { world, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
   constructor(m = {}) {
     this.world = m.world ?? null;
     this.target = m.target ?? -1; // center entity id (also the player marker)
     this.range = m.range ?? 480; // world units from center to the radar edge
-    this.rules = m.rules ?? []; // [{ tag, color }] — first match wins
+    this.rules = m.rules ?? []; // [{ has, color }] — first entity-has-component match wins
     this.inset = m.inset ?? 8; // px between the frame and the radar circle
     this.blipSize = m.blipSize ?? 3;
 
@@ -79,12 +80,11 @@ globalThis.UIMinimap = class UIMinimap {
     draw_set_alpha(a0);
   }
 
-  /** @param {number} id @returns {number|null} the first matching rule color, or null if untagged */
+  /** @param {number} id @returns {number|null} the first matching rule color, or null if no rule matches */
   _color(id) {
-    const tag = this.world.get(Tag, id);
-    if (tag === undefined) return null;
     for (let r = 0; r < this.rules.length; r++) {
-      if (tag.tags.has(this.rules[r].tag)) return this.rules[r].color;
+      if (this.world.get(this.rules[r].has, id) !== undefined)
+        return this.rules[r].color;
     }
     return null;
   }

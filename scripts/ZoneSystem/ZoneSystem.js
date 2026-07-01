@@ -6,21 +6,18 @@
 globalThis.ZoneSystem = {
   /**
    * @param {ECS} world @param {LevelGrid} level @param {ZoneMap} map
-   * @param {{ tag?: string, onEnter?: function, onExit?: function }} [opts]
-   *   tag filters tracked entities; callbacks get (entityId, zone).
+   * @param {{ has?: string, onEnter?: function, onExit?: function }} [opts]
+   *   has (a component token) filters tracked entities; callbacks get (entityId, zone).
    */
   update(world, level, map, opts = {}) {
-    const tag = opts.tag;
+    const has = opts.has;
     const onEnter = opts.onEnter;
     const onExit = opts.onExit;
     const inside = map._inside;
     const seen = {};
 
     world.forEach([Position], (id) => {
-      if (tag !== undefined) {
-        const tc = world.get(Tag, id);
-        if (tc === undefined || !tc.tags.has(tag)) return;
-      }
+      if (has !== undefined && world.get(has, id) === undefined) return;
       seen[id] = true;
       const pos = world.get(Position, id);
       const g = level.worldToGrid(pos.x, pos.y);
@@ -33,7 +30,7 @@ globalThis.ZoneSystem = {
       else inside[id] = cur;
     });
 
-    // sweep entities inside last frame but untracked now (removed / lost Position / tag changed).
+    // sweep entities inside last frame but untracked now (removed / lost Position / filtered out).
     // collect first, then mutate — don't delete while iterating. for...in is GMRT-safe.
     const stale = [];
     for (const key in inside) {
@@ -56,16 +53,13 @@ globalThis.ZoneSystem = {
 
   /**
    * @returns {number[]} ids of entities currently inside zone `id`.
-   * @param {{ tag?: string }} [opts]
+   * @param {{ has?: string }} [opts]  has = a component token filter
    */
   entitiesIn(world, level, map, id, opts = {}) {
-    const tag = opts.tag;
+    const has = opts.has;
     const out = [];
     world.forEach([Position], (eid) => {
-      if (tag !== undefined) {
-        const tc = world.get(Tag, eid);
-        if (tc === undefined || !tc.tags.has(tag)) return;
-      }
+      if (has !== undefined && world.get(has, eid) === undefined) return;
       const pos = world.get(Position, eid);
       const g = level.worldToGrid(pos.x, pos.y);
       if (map.idAt(g.x, g.y) === id) out.push(eid);
