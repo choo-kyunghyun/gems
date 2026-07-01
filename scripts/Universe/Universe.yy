@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Universe",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Universe",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Universe.js",
+}

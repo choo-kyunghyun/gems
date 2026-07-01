@@ -48,6 +48,11 @@ globalThis.WorldClock = class WorldClock {
     }
   }
 
+  // absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling (WorldEvents).
+  static absHours() {
+    return (WorldClock.day - 1) * 24 + WorldClock.hour;
+  }
+
   // "HH:MM" on a 24-hour clock
   static clockText() {
     const h = Math.floor(WorldClock.hour);

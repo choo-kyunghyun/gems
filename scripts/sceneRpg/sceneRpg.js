@@ -56,6 +56,12 @@ class _SceneRpgClass extends Scene {
     this._mapOrder = [];
     this._mapCache = {};
 
+    // world event queue + level manager + wandering traders — reset per scene create so a fresh RPG
+    // session can't inherit the previous one's schedule/records (Trader.reset re-installs handlers).
+    Universe.reset();
+    WorldEvents.reset();
+    Trader.reset();
+
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
@@ -161,6 +167,32 @@ class _SceneRpgClass extends Scene {
       this.world.get(Follower, companion),
       1,
     );
+
+    // a wandering trader (Trader/WorldEvents/Universe): crosses overworld <-> interior_01 off-focus on
+    // the WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
+    Trader.register(this, {
+      id: "peddler",
+      name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
+      travelH: 2, // in-game hours in transit between stops
+      route: [
+        { map: "overworld", dwellH: 6 },
+        { map: "interior_01", dwellH: 6 },
+      ],
+      merchant: {
+        infinite: true,
+        currencyId: "coin",
+        buyMargin: 1.2,
+        sellMargin: 0.5,
+        stock: [
+          { itemId: "medkit", qty: 1 },
+          { itemId: "water_bottle", qty: 1 },
+          { itemId: "ration_pack", qty: 1 },
+          { itemId: "ammo_light", qty: 1 },
+          { itemId: "wood", qty: 1 },
+          { itemId: "scrap_metal", qty: 1 },
+        ],
+      },
+    });
 
     // arcade cabinet Station: E launches the platformer as a guest minigame (Interactable kind
     // "arcade" → _openArcade). Lives directly in the world (not chunk-managed) so it persists.
@@ -321,6 +353,7 @@ class _SceneRpgClass extends Scene {
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
+    WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     TradeSystem.update(this.world, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
@@ -797,6 +830,9 @@ class _SceneRpgClass extends Scene {
     for (const id in this._maps) RpgMap._free(this._maps[id]);
     this._maps = {};
     RpgMap._free(this);
+    Universe.reset(); // drop the manager index (all Worlds freed above)
+    WorldEvents.reset(); // clear the world event queue
+    Trader.reset(); // drop trader records + queued trader events
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();

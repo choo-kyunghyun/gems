@@ -86,6 +86,7 @@ globalThis.RpgMap = {
         }
       }
       scene.followers = stay;
+      Trader.onSuspend(scene); // dehydrate any embodied wandering trader → its record (before park)
       scene.world.flush(); // commit traveler removals before parking
       RpgMap.suspend(scene);
     }
@@ -96,6 +97,10 @@ globalThis.RpgMap = {
     else RpgMap.build(scene, mapId, entryId, carry, travelers);
     RpgMap._touch(scene, scene.mapId);
     RpgMap._evict(scene);
+    // index the now-active level in the Universe manager + embody any trader currently in it
+    Universe.register(scene.mapId, scene.world, scene.level);
+    Universe.setActive(scene.mapId);
+    Trader.onActivate(scene);
   },
 
   // Park the live map. Unassign (not destroy) the camera — the parked map keeps it for resume;
@@ -187,6 +192,7 @@ globalThis.RpgMap = {
       if (victim === null) break; // safety — nothing parked
       RpgMap._evictSerialize(scene, scene._maps[victim]);
       RpgMap._free(scene._maps[victim]);
+      Universe.unregister(victim); // its World is destroyed — drop it from the manager index
       delete scene._maps[victim];
       scene._mapOrder.splice(scene._mapOrder.indexOf(victim), 1);
       count--;

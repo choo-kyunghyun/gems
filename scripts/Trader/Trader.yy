@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Trader",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Trader",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Trader.js",
+}

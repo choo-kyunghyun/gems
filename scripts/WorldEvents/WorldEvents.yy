@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"WorldEvents",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"WorldEvents",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"WorldEvents.js",
+}
