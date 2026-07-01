@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Level",
+  "%Name":"LevelGrid",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Level",
+  "name":"LevelGrid",
   "parent":{
     "name":"Level",
     "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Level.js",
+  "scriptSource":"LevelGrid.js",
 }

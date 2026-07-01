@@ -3,7 +3,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugPath = class RenderDebugPath {
-  /** @param {Level} level grid→world mapping source. */
+  /** @param {LevelGrid} level grid→world mapping source. */
   constructor(level) {
     this.enabled = true;
     this.level = level;

@@ -5,7 +5,7 @@
  */
 globalThis.ZoneSystem = {
   /**
-   * @param {ECS} world @param {Level} level @param {ZoneMap} map
+   * @param {ECS} world @param {LevelGrid} level @param {ZoneMap} map
    * @param {{ tag?: string, onEnter?: function, onExit?: function }} [opts]
    *   tag filters tracked entities; callbacks get (entityId, zone).
    */

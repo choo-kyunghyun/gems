@@ -93,7 +93,7 @@ class _SceneEditorClass extends Scene {
   // rebuild level grid + tile layers at the given size; destroy previous level first
   _initLevel(cols, rows, cell) {
     if (this.level !== undefined) this.level.destroy(); // destroys inserted layers too
-    this.level = new Level({ cellWidth: cell, cellHeight: cell, cols, rows });
+    this.level = new LevelGrid({ cellWidth: cell, cellHeight: cell, cols, rows });
     this.wallType = new TileType({ id: 1, name: "벽", pathCost: null });
     this.floorType = new TileType({ id: 2, name: "바닥" });
     this.floorLayer = new TileLayer(cols, rows, { emptyCost: 1 });

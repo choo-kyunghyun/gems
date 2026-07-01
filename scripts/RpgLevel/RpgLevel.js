@@ -130,7 +130,7 @@ globalThis.RpgLevel = {
    */
   build(world, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
-    const level = new Level({
+    const level = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,
       cols: data.cols,
@@ -161,7 +161,7 @@ globalThis.RpgLevel = {
     const cell = data.cell ?? RPG_CELL;
     const cols = data.meta.worldCols ?? data.cols ?? 128;
     const rows = data.meta.worldRows ?? data.rows ?? 128;
-    const level = new Level({
+    const level = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,
       cols,

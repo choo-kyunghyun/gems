@@ -28,7 +28,7 @@
 // GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {ECS} world @param {Level} level
+   * @param {ECS} world @param {LevelGrid} level
    * @param {Object} source generate(cx,cy) → {walls, spawns}; spawn(world, level, desc) → id.
    * @param {Object} [opts]
    * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.

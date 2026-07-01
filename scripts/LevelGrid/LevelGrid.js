@@ -1,3 +1,8 @@
+// The level's GRID DATA — tile layers + the derived nav grid (`mpg`) + zone channels (`zoneMaps`) +
+// cell dims and world<->grid conversion. Pure spatial data, no entities/systems/presentation. Was the
+// `Level` class, renamed so `Level` is free for the per-instance coordinator (the Scene replacement),
+// which composes one of these (a level owns its grid). Callers still reach it as `.level` for now —
+// that field rename (to e.g. `.grid`) is deferred; only the class + `new` sites moved to LevelGrid.
 /**
  * @typedef {Object} TileType
  * @property {number} id
@@ -19,7 +24,7 @@
  * @property {function(): void} destroy
  */
 
-globalThis.Level = class Level {
+globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
     this.cellWidth = opt.cellWidth ?? 32;
     this.cellHeight = opt.cellHeight ?? 32;
@@ -54,13 +59,13 @@ globalThis.Level = class Level {
     return map.at(g.x, g.y);
   }
 
-  /** Insert a LevelLayer at `index` (top by default; higher index = higher nav priority). @param {LevelLayer} layer @returns {Level} this */
+  /** Insert a LevelLayer at `index` (top by default; higher index = higher nav priority). @param {LevelLayer} layer @returns {LevelGrid} this */
   insert(layer, index = this.layers.length) {
     this.layers.splice(index, 0, layer);
     return this;
   }
 
-  /** Detach a LevelLayer. @param {LevelLayer} layer @returns {Level} this */
+  /** Detach a LevelLayer. @param {LevelLayer} layer @returns {LevelGrid} this */
   remove(layer) {
     const i = this.layers.indexOf(layer);
     if (i >= 0) this.layers.splice(i, 1);
@@ -75,13 +80,13 @@ globalThis.Level = class Level {
     return Infinity;
   }
 
-  /** Recompute nav cost for one cell after a tile edit. @param {number} x @param {number} y @returns {Level} this */
+  /** Recompute nav cost for one cell after a tile edit. @param {number} x @param {number} y @returns {LevelGrid} this */
   syncAt(x, y) {
     this.mpg.set(x, y, this._computeNav(x, y));
     return this;
   }
 
-  /** Recompute nav cost for every cell (after bulk layer changes). @returns {Level} this */
+  /** Recompute nav cost for every cell (after bulk layer changes). @returns {LevelGrid} this */
   syncAll() {
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
@@ -128,7 +133,7 @@ globalThis.Level = class Level {
     return data;
   }
 
-  /** @param {Object} data @returns {Level} this */
+  /** @param {Object} data @returns {LevelGrid} this */
   import(data) {
     for (let i = 0; i < this.layers.length; i++) {
       if (data.layers[i] !== undefined) {
