@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Level",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Core/Scene.yy",
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

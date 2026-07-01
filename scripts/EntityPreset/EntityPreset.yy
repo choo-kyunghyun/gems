@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EntityPreset",
   "parent":{
-    "name":"World",
-    "path":"folders/Core/World.yy",
+    "name":"ECS",
+    "path":"folders/Core/ECS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
