@@ -194,8 +194,8 @@ class _SceneRpgClass extends Level {
       },
     });
 
-    // arcade cabinet Station: E launches the platformer as a guest minigame (Interactable kind
-    // "arcade" → _openArcade). Lives directly in the world (not chunk-managed) so it persists.
+    // arcade cabinet: E launches the platformer as a guest minigame (Interaction kind
+    // "arcade" → the "arcade" InteractAction → _openArcade). Lives directly in the world (not chunk-managed) so it persists.
     const sg = this.level.worldToGrid(this.spawn.x, this.spawn.y);
     RpgSpawn.spawnEntity(this.world, this.level, {
       preset: "prop",
@@ -541,7 +541,7 @@ class _SceneRpgClass extends Level {
     );
   }
 
-  // start sleeping (a "bed" Station's E routes here); step() fast-forwards time until _wakeInput.
+  // start sleeping (the "bed" InteractAction's E routes here); step() fast-forwards time until _wakeInput.
   // costs water/food (those needs keep rising at the accelerated rate).
   _sleep() {
     this._sleeping = true;

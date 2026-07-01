@@ -1,6 +1,6 @@
 // WORKBENCH window. near-fullscreen shell (absolute host + dim backdrop + centered card, shown/
 // hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI). one bench upgraded by a
-// single MODULE slot (Station.module): slot a WorkbenchModule to change what it does. two parts:
+// single MODULE slot (Interaction.module): slot a WorkbenchModule to change what it does. two parts:
 //   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.
 //   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
 //     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
@@ -16,7 +16,7 @@ globalThis.CraftingUI = {
   build(scene) {
     scene._craftOpen = false;
     scene._craftDirty = false;
-    scene._craftStationId = -1; // the open workbench entity (its Station holds the module slot)
+    scene._craftStationId = -1; // the open workbench entity (its Interaction holds the module slot)
     scene._craftSel = ""; // selected recipe id (defaulted to the first on refresh)
     scene._craftMode = ""; // "craft" | "mod" — which content row is currently mounted
 
@@ -31,13 +31,19 @@ globalThis.CraftingUI = {
       padding: margin,
       alignItems: "center",
     });
-    host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+    host.addComponent(
+      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+    );
     host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._craftWin = host;
     scene._craftWin.enabled = false;
     scene.ui.insertChild(scene._craftWin);
 
-    const inner = new UIElement({ width: "100%", maxWidth: 1100, height: "100%" });
+    const inner = new UIElement({
+      width: "100%",
+      maxWidth: 1100,
+      height: "100%",
+    });
     const card = gemsCard({
       width: "100%",
       flexGrow: 1,
@@ -161,7 +167,7 @@ globalThis.CraftingUI = {
 
   // slotted module itemId of the open workbench ("" = empty).
   _module(scene) {
-    const st = scene.world.get(Station, scene._craftStationId);
+    const st = scene.world.get(Interaction, scene._craftStationId);
     return st !== undefined && st.module !== undefined ? st.module : "";
   },
 
@@ -312,7 +318,7 @@ globalThis.CraftingUI = {
   // slot module `id`, returning the previously slotted one. order matters: free the incoming module's
   // bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
   _installModule(scene, id) {
-    const st = scene.world.get(Station, scene._craftStationId);
+    const st = scene.world.get(Interaction, scene._craftStationId);
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     if (st === undefined || inv === undefined) return;
     if (InventorySystem.remove(inv, id, 1) < 1) return; // didn't own it
@@ -332,7 +338,7 @@ globalThis.CraftingUI = {
 
   // pop the slotted module back into the bag (refused if the bag is full).
   _removeModule(scene) {
-    const st = scene.world.get(Station, scene._craftStationId);
+    const st = scene.world.get(Interaction, scene._craftStationId);
     const inv = scene.world.get(Inventory, scene.ctrl.id);
     if (st === undefined || inv === undefined) return;
     if (st.module === undefined || st.module === "") return;

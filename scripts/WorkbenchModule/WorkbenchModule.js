@@ -1,5 +1,5 @@
 // Item-component: marks an Item as a workbench module — slotted into a bench's single module slot
-// (Station.module) to change what it can do; one upgradeable bench instead of a station per category.
+// (Interaction.module) to change what it can do; one upgradeable bench instead of a station per category.
 //
 // `kind` selects the window mode (CraftingUI):
 //   • "recipes" (default) — unlocks recipes whose `requires` matches this module's itemId (base

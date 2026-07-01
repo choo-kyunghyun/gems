@@ -7,7 +7,7 @@
 //   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
 //   npc      label nameKey questId
 //   chest    capacity items[]
-//   prop     label color material? kind?   (material → tint over color; kind → Station, else furniture)
+//   prop     label color material? kind?   (material → tint over color; kind → Interaction, else furniture)
 //   torch    label? color?        (decorative light prop — small solid post; carries a Light)
 //   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
 //   reach    half?                (quest zone marker — no entity)
@@ -177,7 +177,7 @@ globalThis.RpgSpawn = {
         mask: null,
         hits: [],
       });
-      world.add(id, Station, { kind: "storage" });
+      world.add(id, Interaction, { kind: "storage" });
       world.add(id, Name, { name: "Footlocker" });
       world.add(id, Inventory, {
         slots: s.items ?? [],
@@ -186,8 +186,8 @@ globalThis.RpgSpawn = {
       world.add(id, Visual, RpgSpawn._visual(spr_chest, c_white, 1));
       return id;
     } else if (s.preset === "prop") {
-      // Solid kinematic prop. A Station `kind` makes it interactable (E opens its window); a
-      // decorative prop omits it.
+      // Solid kinematic prop. An Interaction `kind` makes it interactable (E runs its InteractAction);
+      // a decorative prop omits it.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
@@ -198,7 +198,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Name, { name: s.label });
-      // Sprite per station `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/fence,
+      // Sprite per Interaction `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/fence,
       // default crate). Pre-colored art draws untinted unless the descriptor authors color/material.
       let sprite;
       let color = c_white;
@@ -213,7 +213,7 @@ globalThis.RpgSpawn = {
           color = RpgSpawn._tint(s);
       }
       world.add(id, Visual, RpgSpawn._visual(sprite, color, 1));
-      if (s.kind !== undefined) world.add(id, Station, { kind: s.kind });
+      if (s.kind !== undefined) world.add(id, Interaction, { kind: s.kind });
       else world.add(id, Tag, { tags: new Set(["furniture"]) });
       return id;
     } else if (s.preset === "torch") {

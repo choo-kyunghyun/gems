@@ -1,7 +1,9 @@
-// Station-selection module for the RPG scene. Each frame picks one target Station — under the
-// cursor if in range, else nearest in range — gives it a highlight + prompt; E opens its window.
-// Activation is E, not left-click, because combat fires on left-click (the mouse only CHOOSES the
-// target). mouse_x/mouse_y are world-space here. Per-frame/open state lives on the scene (_inter*).
+// Interaction engine for the RPG scene: each frame picks one target entity carrying an `Interaction`
+// component — under the cursor if in range, else nearest in range — gives it a highlight + prompt;
+// E runs its action. The action itself is data (InteractAction registry, RPG set in RpgInteractions),
+// so this engine is generic dispatch, not a per-kind switch — from opening a window to feeding the
+// player. Activation is E, not left-click, because combat fires on left-click (the mouse only CHOOSES
+// the target). mouse_x/mouse_y are world-space here. Per-frame/open state lives on the scene (_inter*).
 // Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
 globalThis.Interactable = {
   RADIUS: 36, // interact range (px); 16px-cell scale, see GEMS.md
@@ -53,12 +55,8 @@ globalThis.Interactable = {
   },
 
   _promptText(scene) {
-    if (scene._interKind === "workbench") return I18n.text("CRAFT_PROMPT");
-    if (scene._interKind === "storage") return I18n.text("STORAGE_PROMPT");
-    if (scene._interKind === "claim") return I18n.text("CLAIM_PROMPT");
-    if (scene._interKind === "arcade") return I18n.text("ARCADE_PROMPT");
-    if (scene._interKind === "bed") return I18n.text("BED_PROMPT");
-    return "";
+    const def = InteractAction.get(scene._interKind);
+    return def === undefined ? "" : I18n.text(def.prompt);
   },
 
   // Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
@@ -122,7 +120,7 @@ globalThis.Interactable = {
     let mousePick = -1;
     let mouseSq = Infinity;
 
-    const ids = world.query(Station);
+    const ids = world.query(Interaction);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       const pos = world.get(Position, id);
@@ -145,8 +143,8 @@ globalThis.Interactable = {
     const target = mousePick !== -1 ? mousePick : nearest;
     scene._interTarget = target;
     if (target !== -1) {
-      const st = world.get(Station, target);
-      scene._interKind = st !== undefined ? st.kind : "";
+      const comp = world.get(Interaction, target);
+      scene._interKind = comp !== undefined ? comp.kind : "";
     } else {
       scene._interKind = "";
     }
@@ -178,24 +176,22 @@ globalThis.Interactable = {
     return (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2 < rSq;
   },
 
+  // dispatch the target's Interaction via the registry: look up its `kind` and run the def. A window
+  // action's run() sets scene._interOpenId itself (so this stays generic — instant vs window is the
+  // def's concern, not the engine's). New interactions are a data entry in InteractAction, not here.
   _open(scene) {
     const id = scene._interTarget;
-    // claim / arcade / bed are instant actions, not windows
-    if (scene._interKind === "claim") {
-      BuildMode.claim(scene, id);
-      return;
-    }
-    if (scene._interKind === "arcade") {
-      scene._openArcade();
-      return;
-    }
-    if (scene._interKind === "bed") {
-      scene._sleep();
-      return;
-    }
-    scene._interOpenId = id;
-    if (scene._interKind === "storage") StorageUI.open(scene, id);
-    else if (scene._interKind === "workbench") CraftingUI.open(scene, id);
+    const comp = scene.world.get(Interaction, id);
+    if (comp === undefined) return;
+    const def = InteractAction.get(comp.kind);
+    if (def === undefined) return;
+    def.run({
+      scene,
+      world: scene.world,
+      id,
+      comp,
+      playerId: scene.ctrl.id,
+    });
   },
 
   _closeAll(scene) {

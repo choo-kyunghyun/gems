@@ -249,5 +249,9 @@
   "ARCADE_PROMPT": "[E] 아케이드 플레이",
   "ARCADE_REWARD": "아케이드 클리어 — 코인 +{0}",
 
-  "BED_PROMPT": "[E] 잠자기"
+  "BED_PROMPT": "[E] 잠자기",
+
+  "HYDRATE_PROMPT": "[E] 마시기",
+  "FEED_PROMPT": "[E] 먹기",
+  "BUFF_PROMPT": "[E] 기도하기"
 }

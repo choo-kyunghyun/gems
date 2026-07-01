@@ -10,11 +10,16 @@
 //   { key, kind: "select", label, options: [{name,value}] } → value picker (static list)
 //   { key, kind: "quest", label }                           → picker over QuestLog ids
 //   { key, kind: "items", label }                           → add/remove list of {itemId,qty}
-const TD_STATION_KINDS = [
+// Interaction kinds authorable on a prop in the editor (each = an InteractAction id). bed/arcade are
+// build-mode-only so they're omitted here; add a kind = one entry (matches the InteractAction registry).
+const TD_INTERACTION_KINDS = [
   { name: "(none)", value: undefined },
   { name: "storage", value: "storage" },
   { name: "workbench", value: "workbench" },
   { name: "claim", value: "claim" },
+  { name: "hydrate", value: "hydrate" },
+  { name: "feed", value: "feed" },
+  { name: "buff", value: "buff" },
 ];
 
 globalThis.RpgCatalog = {
@@ -68,8 +73,8 @@ globalThis.RpgCatalog = {
         {
           key: "kind",
           kind: "select",
-          label: "Station",
-          options: TD_STATION_KINDS,
+          label: "Interaction",
+          options: TD_INTERACTION_KINDS,
         },
       ],
     },

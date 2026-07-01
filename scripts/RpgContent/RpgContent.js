@@ -12,6 +12,7 @@ globalThis.RpgContent = {
     RpgStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
     RpgRecipes.register(); // workbench recipes
     RpgPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
+    RpgInteractions.register(); // InteractAction defs (storage/workbench/claim/arcade/bed + hydrate/feed/buff)
 
     // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
     // just one register + setRelation here.

@@ -78,7 +78,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // bed Station (kind "bed") — Interactable routes E to scene._sleep (fast-forward + drain Drowsiness).
+          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene._sleep (fast-forward + drain Drowsiness).
           id: "bed",
           labelKey: "BUILD_BED",
           cost: 6,
@@ -157,6 +157,55 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_TURRET"),
+          }),
+        },
+      ],
+    },
+    {
+      // survival stations — tinted props carrying an Interaction whose InteractAction acts on the
+      // player (hydrate/feed/buff). Same prop pattern as bed/workbench; the action is data (RpgInteractions).
+      labelKey: "BUILD_CAT_SURVIVAL",
+      items: [
+        {
+          id: "watertank",
+          labelKey: "BUILD_WATERTANK",
+          cost: 4,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_WATERTANK"),
+            color: "#3c8fd0",
+            kind: "hydrate",
+          }),
+        },
+        {
+          id: "rationbox",
+          labelKey: "BUILD_RATIONBOX",
+          cost: 4,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_RATIONBOX"),
+            color: "#6a9a4f",
+            kind: "feed",
+          }),
+        },
+        {
+          id: "shrine",
+          labelKey: "BUILD_SHRINE",
+          cost: 12,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_SHRINE"),
+            color: "#a066cc",
+            kind: "buff",
           }),
         },
       ],
@@ -354,7 +403,7 @@ globalThis.BuildMode = {
     if (ent !== undefined) {
       // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
       if (scene.world.isValid(ent.ent)) {
-        const st = scene.world.get(Station, ent.ent);
+        const st = scene.world.get(Interaction, ent.ent);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
           const inv = scene.world.get(Inventory, scene.ctrl.id);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
@@ -427,7 +476,7 @@ globalThis.BuildMode = {
   },
 
   // claim the buildable area around a Claim Post. paints a rect into the "buildable" channel, then
-  // *spends* the post (detach its Station). the painted zone is the stored state (round-trips
+  // *spends* the post (detach its Interaction). the painted zone is the stored state (round-trips
   // persistence), so a post re-spawned over an already-claimed area is still spent — no re-claiming.
   claim(scene, postId) {
     const level = scene.level;
@@ -445,7 +494,7 @@ globalThis.BuildMode = {
       Toast.push(I18n.text("BUILD_CLAIMED"), { type: "success" });
       Log.info(`claimed build area (${x1},${y1})-(${x2},${y2})`);
     }
-    scene.world.detach(postId, Station); // spent — stop prompting / block re-claim
+    scene.world.detach(postId, Interaction); // spent — stop prompting / block re-claim
   },
 
   // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.

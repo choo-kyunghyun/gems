@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgInteractions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgInteractions",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Demo/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgInteractions.js",
+}

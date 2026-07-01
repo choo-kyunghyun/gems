@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InteractAction",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InteractAction",
+  "parent":{
+    "name":"Interaction",
+    "path":"folders/Gameplay/Interaction.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InteractAction.js",
+}

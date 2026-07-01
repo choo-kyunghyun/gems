@@ -249,5 +249,9 @@
   "ARCADE_PROMPT": "[E] Play arcade",
   "ARCADE_REWARD": "Arcade cleared — +{0} coins",
 
-  "BED_PROMPT": "[E] Sleep"
+  "BED_PROMPT": "[E] Sleep",
+
+  "HYDRATE_PROMPT": "[E] Drink",
+  "FEED_PROMPT": "[E] Eat",
+  "BUFF_PROMPT": "[E] Pray"
 }
