@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ECSStorage",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ECSStorage",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ECSStorage.js",
+}

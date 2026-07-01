@@ -142,6 +142,7 @@
     {"id":{"name":"Downed","path":"scripts/Downed/Downed.yy",},},
     {"id":{"name":"Drowsiness","path":"scripts/Drowsiness/Drowsiness.yy",},},
     {"id":{"name":"DrowsinessSystem","path":"scripts/DrowsinessSystem/DrowsinessSystem.yy",},},
+    {"id":{"name":"ECSStorage","path":"scripts/ECSStorage/ECSStorage.yy",},},
     {"id":{"name":"Encumbrance","path":"scripts/Encumbrance/Encumbrance.yy",},},
     {"id":{"name":"EncumbranceSystem","path":"scripts/EncumbranceSystem/EncumbranceSystem.yy",},},
     {"id":{"name":"Enemy","path":"scripts/Enemy/Enemy.yy",},},
