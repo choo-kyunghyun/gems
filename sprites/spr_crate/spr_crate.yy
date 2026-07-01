@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":7,
   "parent":{
-    "name":"Handmade Sprites",
-    "path":"folders/Media/Handmade Sprites.yy",
+    "name":"Pending Sprite",
+    "path":"folders/Media/Pending Sprite.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

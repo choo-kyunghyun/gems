@@ -40,8 +40,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Tiles",
-    "path":"folders/Media/Handmade Sprites/Tiles.yy",
+    "name":"Fences",
+    "path":"folders/Media/Handmade Sprites/Fences.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

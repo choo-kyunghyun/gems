@@ -202,12 +202,12 @@ globalThis.RpgSpawn = {
       // default crate). Pre-colored art draws untinted unless the descriptor authors color/material.
       let sprite;
       let color = c_white;
-      if (s.kind === "workbench") sprite = spr_bench;
+      if (s.kind === "workbench") sprite = spr_workbench;
       else if (s.kind === "claim") sprite = spr_surveyPost;
-      else if (s.kind === "bed") sprite = spr_bed;
+      else if (s.kind === "bed") sprite = spr_simpleBed;
       else {
-        if (s.furn === "barrel") sprite = spr_barrel;
-        else if (s.furn === "fence") sprite = spr_fence;
+        if (s.furn === "barrel") sprite = spr_woodenBarrel;
+        else if (s.furn === "fence") sprite = spr_fenceSquare;
         else sprite = spr_crate;
         if (s.color !== undefined || s.material !== undefined)
           color = RpgSpawn._tint(s);
@@ -263,7 +263,7 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Faction, { id: "player" }); // player ally; a hostile target for enemies
       world.add(id, Name, { name: s.label ?? "Turret" });
-      world.add(id, Visual, RpgSpawn._visual(spr_turret, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_lightTurret, c_white, 1));
       world.add(id, Tag, { tags: new Set(["turret"]) });
       // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
       CombatAI.attach(world, id, level, {
@@ -285,7 +285,7 @@ globalThis.RpgSpawn = {
       world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
       world.add(id, Tag, { tags: new Set(["portal"]) });
       world.add(id, Name, { name: s.label ?? "Door" });
-      world.add(id, Visual, RpgSpawn._visual(spr_doorway, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_door, c_white, 1));
       world.add(id, Portal, {
         toMap: s.toMap,
         toEntry: s.toEntry ?? "default",

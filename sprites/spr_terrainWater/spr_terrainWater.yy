@@ -40,8 +40,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Handmade Sprites",
-    "path":"folders/Media/Handmade Sprites.yy",
+    "name":"Bitmap Sprites",
+    "path":"folders/Media/Bitmap Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

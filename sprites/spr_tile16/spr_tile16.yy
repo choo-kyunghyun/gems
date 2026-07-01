@@ -40,8 +40,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Tiles",
-    "path":"folders/Media/Handmade Sprites/Tiles.yy",
+    "name":"Tintable Tiles",
+    "path":"folders/Media/Handmade Sprites/Tintable Tiles.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
