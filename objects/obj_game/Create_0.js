@@ -65,6 +65,8 @@ this.background = Color.parse("#222222");
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
+// Wire the World singleton's sub-modules (composition; assigned here where load order is safe).
+World.sim = SimClock; // fixed-step tick clock (World.sim.advance / .alpha / .tickDuration)
 // World.levels (LevelManager) owns scene/level lifecycle + the resident-level registry; obj_game
 // delegates update/step/draw/destroy each event via the `this.scenes` alias.
 World.levels = new LevelManager();

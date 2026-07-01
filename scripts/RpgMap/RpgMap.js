@@ -313,7 +313,7 @@ globalThis.RpgMap = {
   // (a window of chunks' worth of entities + colliders + drops) and an empty resident grid (player
   // builds only).
   _buildWorld(scene, data, entryId, carry) {
-    scene.world = new ECS(scene._chunked ? 1024 : 256, 60);
+    scene.world = new ECS(scene._chunked ? 1024 : 256);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
       : RpgLevel.build(scene.world, data, entryId);

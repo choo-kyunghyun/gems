@@ -4,7 +4,7 @@
 globalThis.ProjectileSystem = {
   /** @param {ECS} world */
   update(world) {
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
     for (const id of world.query(Projectile, Position, Velocity)) {
       const proj = world.get(Projectile, id);
       const pos = world.get(Position, id);

@@ -4,7 +4,7 @@
 globalThis.Survival = {
   // Per tick: raise every `token`-carrying entity's `value` by rate*dt (clamped), then refresh its debuff.
   tick(world, token) {
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
     const ids = world.query(token);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];

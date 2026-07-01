@@ -1,19 +1,22 @@
 // The world-manager singleton — the TOP coordinator layer. A thin static namespace (one world) that
 // COMPOSES the world-scope sub-modules; it runs no simulation of its own, only delegates:
-//   • WorldClock   — time / tickrate authority (the sim clock)
-//   • WorldEvents  — cross-level scheduled events (off-focus world state, e.g. a wandering trader)
+//   • sim          — SimClock: the fixed-step engine TICK RATE (advance/alpha/tickDuration).
+//   • WorldClock   — in-game time-of-day / calendar (distinct from the sim tick above).
+//   • WorldEvents  — cross-level scheduled events (off-focus world state, e.g. a wandering trader).
 //   • levels       — LevelManager: the resident-level registry, the active-level stack, faded
 //                    transitions + pause, and whole-entity transfer between levels (folds in the old
-//                    Universe + SceneManager). Assigned once in obj_game Create_0.
+//                    Universe + SceneManager).
+// `sim`/`levels` are wired in obj_game Create_0 (where load order is safe).
 //
 // Was the per-instance ECS store class; that moved to `ECS` (a Level sub-module, `level.ecs`). This
 // name is now the manager. Static namespace, not a class — GMRT miscompiles static computed getters,
 // and the methods reference the sub-modules lazily so load order among the world scripts is irrelevant.
 //
-// PHASE 2 landed: `levels` (LevelManager) is live. update()/reset() below stay inert for now — the
-// existing direct WorldClock.* / WorldEvents.* call sites (sceneRpg) are UNCHANGED, so nothing invokes
-// World.update/reset yet; phase 3 routes the clock/events through them.
+// Phases 2-3 landed: `levels` (LevelManager) + `sim` (SimClock) are live. update()/reset() below stay
+// inert for now — the existing direct WorldClock.* / WorldEvents.* call sites (sceneRpg) are UNCHANGED,
+// so nothing invokes World.update/reset yet; a later phase routes time-of-day through them.
 globalThis.World = {
+  sim: null, // SimClock (the class) — assigned once in obj_game Create_0
   levels: null, // LevelManager instance — assigned once in obj_game Create_0
 
   // Advance world-scope time, then fire every event now due on that timeline. NOT yet wired: sceneRpg

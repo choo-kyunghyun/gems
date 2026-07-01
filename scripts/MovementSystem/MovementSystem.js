@@ -1,7 +1,7 @@
 // integrates velocity for free movers only — solids use SolidSystem, projectiles use ProjectileSystem.
 globalThis.MovementSystem = {
   update(world) {
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
     const ids = world.query(Position, Velocity);
     for (const id of ids) {
       const pos = world.get(Position, id);

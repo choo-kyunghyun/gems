@@ -1,27 +1,25 @@
 // The ECS entity store — a Level sub-module (a level owns one as `level.ecs`). A thin SUBSYSTEM
-// COORDINATOR: it owns `ids` (IdPool, id lifecycle) and `storage` (ECSStorage, component data), plus
-// an inline fixed-rate sim clock. The component-store methods below are one-line delegates to
-// `storage`, so the store's public API is unchanged (every system / Query / EntitySnapshot still calls
-// .add/get/query/... exactly as before). The clock (tickDuration/alpha/gravity) stays inline because
-// systems + renderers read it directly off the store instance.
+// COORDINATOR over pure entity/component data: it owns `ids` (IdPool, id lifecycle) and `storage`
+// (ECSStorage, component data), plus the deferred-removal queue and a per-store `gravity` override.
+// The component-store methods below are one-line delegates to `storage`, so the store's public API is
+// unchanged (every system / Query / EntitySnapshot still calls .add/get/query/... exactly as before).
+//
+// The fixed-step SIM CLOCK is NOT here — it moved to SimClock (World.sim), ONE global clock, since
+// only the active level steps. Systems read the tick dt via World.sim.tickDuration and renderers the
+// interpolation factor via World.sim.alpha, not off the store.
 //
 // NOTE: this was the old `World` class, renamed. The `World` name is now the static world-manager
-// singleton (WorldClock/WorldEvents/LevelManager coordinator). Callers still hold an instance as
-// `this.world` for now — that variable rename is deferred; only the class + `new` sites moved to ECS.
+// singleton (SimClock/WorldClock/WorldEvents/LevelManager coordinator). Callers still hold an instance
+// as `this.world` for now — that variable rename is deferred; only the class + `new` sites moved to ECS.
 /** @typedef {Object} ECSOpts @property {number} [gravity] override GravitySystem.strength for this store */
 globalThis.ECS = class ECS {
-  /** @param {number} maxEntities slot capacity @param {number} [tickrate=60] sim ticks/sec @param {ECSOpts} [opts] */
-  constructor(maxEntities, tickrate = 60, opts = {}) {
+  /** @param {number} maxEntities slot capacity @param {ECSOpts} [opts] */
+  constructor(maxEntities, opts = {}) {
     this.maxEntities = maxEntities;
     // subsystems
     this.ids = new IdPool(maxEntities); // entity id allocation (generational)
     this.storage = new ECSStorage(maxEntities, this.ids); // component data (SoA)
-    // inline sim clock (read externally as store.tickDuration / store.alpha)
-    this.tickDuration = 1 / tickrate;
-    this.accumulator = 0;
-    this.alpha = 0;
-    this.maxTicks = 5; // spiral-of-death guard: drop backlog instead of freezing the frame
-    this._pending = [];
+    this._pending = []; // deferred-removal queue (committed by flush)
     this.gravity = opts.gravity ?? null;
   }
 
@@ -104,19 +102,5 @@ globalThis.ECS = class ECS {
   import(snapshot) {
     this.ids.import(snapshot.ids);
     this.storage.import(snapshot.components);
-  }
-
-  // ── sim clock ──
-
-  /** Advance the fixed-step accumulator; sets `alpha` (render-interpolation factor). @returns {number} ticks to run */
-  update() {
-    this.accumulator += Time.delta;
-    let ticks = Math.floor(this.accumulator / this.tickDuration);
-    this.accumulator -= ticks * this.tickDuration;
-    // Spiral-of-death guard: cap ticks so a slow frame doesn't owe an ever-growing backlog —
-    // sim time slows under overload rather than freezing; alpha uses the drained accumulator.
-    if (ticks > this.maxTicks) ticks = this.maxTicks;
-    this.alpha = this.accumulator / this.tickDuration;
-    return ticks;
   }
 };

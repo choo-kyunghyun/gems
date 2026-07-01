@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SimClock",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SimClock",
+  "parent":{
+    "name":"World",
+    "path":"folders/Core/World.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SimClock.js",
+}

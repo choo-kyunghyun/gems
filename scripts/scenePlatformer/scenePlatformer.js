@@ -14,7 +14,7 @@ class _ScenePlatformerClass extends Scene {
     // set here, not as a class field: subclass field initializers don't run on GMRT.
     this.label = I18n.text("PLAT_NAME");
 
-    this.world = new ECS(256, 60, { gravity: PLATF_GRAVITY });
+    this.world = new ECS(256, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.world);
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.
@@ -64,7 +64,7 @@ class _ScenePlatformerClass extends Scene {
 
   step() {
     PlatformerController.pollInput(this.ctrl); // edge-triggered input latched once per frame
-    const ticks = this.world.update();
+    const ticks = World.sim.advance();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world);
       PlatformerController.update(this.world, this.ctrl);

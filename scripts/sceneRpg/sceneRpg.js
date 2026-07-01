@@ -1,7 +1,7 @@
 const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
 const RPG_TRADE_RANGE = 64; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
 const RPG_START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
-const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.maxTicks)
+const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.sim.maxTicks)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
@@ -269,7 +269,7 @@ class _SceneRpgClass extends Scene {
       this._navGy = nc.y;
     }
 
-    const ticks = this.world.update();
+    const ticks = World.sim.advance();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.world); // pre-move positions for render lerp
       StatusSystem.update(this.world); // tick buffs/debuffs (dot/hot + duration), then ↓
@@ -281,7 +281,7 @@ class _SceneRpgClass extends Scene {
         DrowsinessSystem.restore(
           this.world,
           this.ctrl.id,
-          RPG_SLEEP_RECOVER * this.world.tickDuration,
+          RPG_SLEEP_RECOVER * World.sim.tickDuration,
         );
       else DrowsinessSystem.update(this.world);
       RpgController.update(this.world, this.ctrl); // reads StatusSystem.scale("speed")

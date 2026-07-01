@@ -12,7 +12,7 @@ globalThis.StaminaSystem = {
     if (sta === undefined) return false;
     const stats = world.get(Stats, id);
     const max = stats !== undefined ? stats.maxStamina : 100;
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
 
     if (wantSprint && !sta.exhausted && sta.value > 0) {
       sta.value -= this.DRAIN * dt;

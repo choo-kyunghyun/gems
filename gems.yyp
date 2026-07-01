@@ -271,6 +271,7 @@
     {"id":{"name":"sceneUIKit","path":"scripts/sceneUIKit/sceneUIKit.yy",},},
     {"id":{"name":"SeparationSystem","path":"scripts/SeparationSystem/SeparationSystem.yy",},},
     {"id":{"name":"Settings","path":"scripts/Settings/Settings.yy",},},
+    {"id":{"name":"SimClock","path":"scripts/SimClock/SimClock.yy",},},
     {"id":{"name":"SlotDrag","path":"scripts/SlotDrag/SlotDrag.yy",},},
     {"id":{"name":"SolidSystem","path":"scripts/SolidSystem/SolidSystem.yy",},},
     {"id":{"name":"Spike","path":"scripts/Spike/Spike.yy",},},

@@ -116,7 +116,7 @@ globalThis.RpgScene = {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       const d = world.get(Downed, id);
-      d.timer -= world.tickDuration;
+      d.timer -= World.sim.tickDuration;
       if (d.timer > 0) continue;
       const m = world.get(Mortal, id);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;

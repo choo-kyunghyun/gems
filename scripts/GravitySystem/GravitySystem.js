@@ -10,7 +10,7 @@ globalThis.GravitySystem = {
   update(world) {
     const strength = world.gravity ?? this.strength;
     const { direction } = this;
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
     const ids = world.query(Velocity);
     for (const id of ids) {
       const col = world.get(Collision, id);

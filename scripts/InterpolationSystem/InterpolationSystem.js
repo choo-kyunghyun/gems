@@ -26,8 +26,8 @@ globalThis.InterpolationSystem = {
   lerp(world, id, out) {
     const pos = world.get(Position, id);
     const prev = world.get(PrevPosition, id);
-    out.x = prev !== undefined ? prev.x + (pos.x - prev.x) * world.alpha : pos.x;
-    out.y = prev !== undefined ? prev.y + (pos.y - prev.y) * world.alpha : pos.y;
+    out.x = prev !== undefined ? prev.x + (pos.x - prev.x) * World.sim.alpha : pos.x;
+    out.y = prev !== undefined ? prev.y + (pos.y - prev.y) * World.sim.alpha : pos.y;
     return out;
   },
 };

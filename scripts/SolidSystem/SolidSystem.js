@@ -7,7 +7,7 @@ globalThis.SolidSystem = {
 
   /** @param {ECS} world */
   update(world) {
-    const dt = world.tickDuration;
+    const dt = World.sim.tickDuration;
 
     const statics = [];
     for (const id of world.query(Collision, Position, BBox)) {
