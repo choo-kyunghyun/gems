@@ -37,6 +37,7 @@
     {"$GMFolder":"","%Name":"Animation","folderPath":"folders/Gameplay/Animation.yy","name":"Animation","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Combat","folderPath":"folders/Gameplay/Combat.yy","name":"Combat","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Crafting","folderPath":"folders/Gameplay/Crafting.yy","name":"Crafting","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Environment","folderPath":"folders/Gameplay/Environment.yy","name":"Environment","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Equipment","folderPath":"folders/Gameplay/Equipment.yy","name":"Equipment","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Inventory","folderPath":"folders/Gameplay/Inventory.yy","name":"Inventory","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Items","folderPath":"folders/Gameplay/Items.yy","name":"Items","resourceType":"GMFolder","resourceVersion":"2.0",},
