@@ -5,10 +5,16 @@
 //
 // two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
 //   d <= simRadius              → SIM:  entities live in the World, walls have colliders, sims + renders.
-//   simRadius < d <= loadRadius → LOAD: entities held as EntitySnapshots (not simulated), drawn
-//                                       statically by RenderChunks; walls drawn, no colliders.
-//   d > loadRadius              → UNLOADED: snapshots parked in an in-session cache, restored on
-//                                       return (so hurt/killed/moved entities persist).
+//   simRadius < d <= loadRadius → LOAD: walls drawn (no colliders). entities are held as frozen
+//                                       EntitySnapshots ONCE they've been sim'd (drawn statically by
+//                                       RenderChunks); a chunk not yet reached keeps only dormant
+//                                       spawn DESCRIPTORS and does no World work until it promotes.
+//   d > loadRadius              → UNLOADED: the WHOLE record (terrain/walls/spawns/snapshots) is
+//                                       parked in an in-session cache, restored on return — so a
+//                                       revisit never re-runs generate() and modified entities persist.
+//
+// fresh LOAD-ring loads (generate() is noise-heavy) are queued + drained loadBudget/frame, so a
+// border crossing doesn't generate a whole ring in one frame.
 //
 // the party (player + followers) is never chunk-managed — only chunk-spawned content + terrain colliders.
 //
@@ -55,12 +61,19 @@ globalThis.ChunkManager = class ChunkManager {
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
     this.pxH = this.chunkRows * this.cellH;
 
-    // active chunks keyed "cx,cy" → { cx, cy, ring, walls, terrain, colliders, entities, snapshots }
+    this.loadBudget = opts.loadBudget ?? 2; // fresh LOAD-ring chunks generated per frame (amortized)
+
+    // active chunks keyed "cx,cy" → record { cx, cy, ring, walls, solid, terrain, spawns,
+    //   colliders, entities, snapshots, hydrated }
     this._chunks = {};
-    // snapshots of unloaded chunks, keyed "cx,cy"; restored on revisit so modified entities persist.
+    // WHOLE records of unloaded chunks, keyed "cx,cy"; restored on revisit so a chunk never
+    // re-runs generate() (its terrain/walls/spawns are kept) and modified entities persist.
     // unbounded for now; eviction / disk-backing is the follow-up.
     this._cache = {};
-    // last player chunk — fast-path skips the diff until a border is crossed
+    // deferred fresh LOAD-ring loads (generate() is noise-heavy), drained loadBudget/frame so a
+    // border crossing doesn't generate a whole ring in one frame. FIFO of {cx,cy}.
+    this._loadQueue = [];
+    // last player chunk — fast-path skips the membership diff until a border is crossed
     this._pcx = undefined;
     this._pcy = undefined;
 
@@ -71,6 +84,7 @@ globalThis.ChunkManager = class ChunkManager {
   destroy() {
     this._chunks = {};
     this._cache = {};
+    this._loadQueue = [];
   }
 
   _key(cx, cy) {
@@ -91,41 +105,62 @@ globalThis.ChunkManager = class ChunkManager {
   update(centerX, centerY) {
     const pcx = this.chunkX(centerX);
     const pcy = this.chunkY(centerY);
-    if (pcx === this._pcx && pcy === this._pcy) return;
+    const moved = pcx !== this._pcx || pcy !== this._pcy;
     this._pcx = pcx;
     this._pcy = pcy;
 
-    const lr = this.loadRadius;
+    if (moved) {
+      const lr = this.loadRadius;
 
-    // 1. unload chunks beyond the load radius (snapshot any sim entities first)
-    const keys = Object.keys(this._chunks);
-    for (let i = 0; i < keys.length; i++) {
-      const rec = this._chunks[keys[i]];
-      const d = Math.max(Math.abs(rec.cx - pcx), Math.abs(rec.cy - pcy));
-      if (d > lr) this._unload(keys[i], rec);
-    }
+      // 1. unload chunks beyond the load radius (snapshot any sim entities first)
+      const keys = Object.keys(this._chunks);
+      for (let i = 0; i < keys.length; i++) {
+        const rec = this._chunks[keys[i]];
+        const d = Math.max(Math.abs(rec.cx - pcx), Math.abs(rec.cy - pcy));
+        if (d > lr) this._unload(keys[i], rec);
+      }
 
-    // 2. load new chunks in range + retier chunks whose ring changed
-    for (let dy = -lr; dy <= lr; dy++) {
-      for (let dx = -lr; dx <= lr; dx++) {
-        const cheb = Math.max(Math.abs(dx), Math.abs(dy));
-        const ring = cheb <= this.simRadius ? "sim" : "load";
-        const cx = pcx + dx;
-        const cy = pcy + dy;
-        // skip out-of-bounds chunks (no-op when unbounded — maxC* = Infinity)
-        if (cx < 0 || cy < 0 || cx > this.maxCx || cy > this.maxCy) continue;
-        const key = this._key(cx, cy);
-        const rec = this._chunks[key];
-        if (rec === undefined) this._load(key, cx, cy, ring);
-        else if (rec.ring !== ring) {
-          if (ring === "sim") this._promote(rec);
-          else this._demote(rec);
+      // 2. membership diff. SIM chunks load NOW (the player is on/next to them); fresh LOAD chunks
+      //    are QUEUED (off-screen, so their generate() can amortize). Rebuilt each crossing, which
+      //    prunes any still-pending entries that fell out of range.
+      this._loadQueue.length = 0;
+      for (let dy = -lr; dy <= lr; dy++) {
+        for (let dx = -lr; dx <= lr; dx++) {
+          const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+          const ring = cheb <= this.simRadius ? "sim" : "load";
+          const cx = pcx + dx;
+          const cy = pcy + dy;
+          // skip out-of-bounds chunks (no-op when unbounded — maxC* = Infinity)
+          if (cx < 0 || cy < 0 || cx > this.maxCx || cy > this.maxCy) continue;
+          const rec = this._chunks[this._key(cx, cy)];
+          if (rec === undefined) {
+            if (ring === "sim") this._activate(this._recordFor(cx, cy, "sim"));
+            else this._loadQueue.push({ cx, cy });
+          } else if (rec.ring !== ring) {
+            if (ring === "sim") this._promote(rec);
+            else this._demote(rec);
+          }
         }
       }
+
+      // 3. commit removals so demoted/unloaded entities aren't double-drawn this frame
+      this.world.flush();
     }
 
-    // 3. commit our removals so demoted/unloaded entities aren't double-drawn this frame
-    this.world.flush();
+    // drain a few queued LOAD-ring loads each frame (does no World mutation — no flush needed)
+    this._drainQueue();
+  }
+
+  // Load up to loadBudget queued fresh LOAD-ring chunks (holds descriptors, no World work — they
+  // materialize on promotion to SIM). Runs every frame so the ring fills over the frames after a crossing.
+  _drainQueue() {
+    let budget = this.loadBudget;
+    while (budget > 0 && this._loadQueue.length > 0) {
+      const c = this._loadQueue.shift();
+      if (this._chunks[this._key(c.cx, c.cy)] !== undefined) continue; // already loaded
+      this._activate(this._recordFor(c.cx, c.cy, "load"));
+      budget--;
+    }
   }
 
   /** @returns {Object[]} active chunk records (fresh array, for RenderChunks) */
@@ -148,47 +183,64 @@ globalThis.ChunkManager = class ChunkManager {
 
   // internal lifecycle
 
-  // Generate (or restore from cache) a chunk at `ring`. Walls come from the deterministic source
-  // (terrain regenerates identically); only entities are cached, so a revisit keeps modified state.
-  _load(key, cx, cy, ring) {
+  // A chunk's entity state has three forms: DESCRIPTORS (rec.spawns, not yet materialized —
+  // hydrated:false), LIVE (rec.entities in the World — SIM ring), or SNAPSHOTS (rec.snapshots,
+  // frozen — LOAD ring after a demote). `hydrated` marks "descriptors have become live/snapshots
+  // at least once", so we never spawn a chunk we don't sim, and never re-run generate() (whole
+  // records are cached).
+
+  // Fetch a chunk record: reuse the cached whole record (skips generate()), else generate fresh
+  // with its spawn DESCRIPTORS held dormant. Does not populate the World — see _activate.
+  _recordFor(cx, cy, ring) {
+    const key = this._key(cx, cy);
+    const cached = this._cache[key];
+    if (cached !== undefined) {
+      delete this._cache[key];
+      cached.ring = ring;
+      cached.colliders = []; // were dropped on unload
+      return cached;
+    }
     const gen = this.source.generate(cx, cy);
-    const rec = {
+    return {
       cx,
       cy,
       ring,
       walls: gen.walls, // [[gx,gy,w,h]...] absolute coords — mesh + render
       solid: gen.solid ?? [], // collide-only rects — meshed, NOT rendered
       terrain: gen.terrain, // per-cell material grid — TerrainStream renders it
+      spawns: gen.spawns ?? [], // dormant descriptors until first sim (hydrated:false)
       colliders: [],
       entities: [],
       snapshots: [],
+      hydrated: false,
     };
-    const cached = this._cache[key];
-    if (cached !== undefined) delete this._cache[key];
+  }
 
-    if (ring === "sim") {
-      this._meshColliders(rec);
-      if (cached !== undefined) this._restoreAll(rec, cached);
-      else this._spawnAll(rec, gen.spawns);
-    } else {
-      // load (freeze) ring: hold entities as snapshots, no colliders
-      if (cached !== undefined) {
-        rec.snapshots = cached;
-      } else {
-        // fresh: spawn (sets CombatAI's shared statics), then capture + remove to stay out of the World
-        this._spawnAll(rec, gen.spawns);
-        this._captureAll(rec);
-      }
-    }
-    this._chunks[key] = rec;
+  // Populate a fresh record into its ring + register it. SIM meshes colliders + materializes
+  // entities (from snapshots if seen before, else from descriptors); LOAD holds whatever it has
+  // (snapshots if hydrated, else dormant descriptors — no World work, so distant rings are cheap).
+  _activate(rec) {
+    if (rec.ring === "sim") this._materialize(rec);
+    this._chunks[this._key(rec.cx, rec.cy)] = rec;
     this.stats.loaded++;
   }
 
-  // load → sim: restore entities into the World + mesh wall/terrain colliders
-  _promote(rec) {
+  // Bring a record's entities into the World + mesh its colliders (SIM ring). Restores snapshots if
+  // the chunk has lived before, else spawns its descriptors for the first time.
+  _materialize(rec) {
     this._meshColliders(rec);
-    this._restoreAll(rec, rec.snapshots);
-    rec.snapshots = [];
+    if (rec.hydrated) {
+      this._restoreAll(rec, rec.snapshots);
+      rec.snapshots = [];
+    } else {
+      this._spawnAll(rec, rec.spawns);
+      rec.hydrated = true;
+    }
+  }
+
+  // load → sim
+  _promote(rec) {
+    this._materialize(rec);
     rec.ring = "sim";
     this.stats.promoted++;
   }
@@ -201,13 +253,14 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.demoted++;
   }
 
-  // beyond load radius: snapshot live entities, drop colliders, park snapshots in cache
+  // beyond load radius: snapshot live entities, drop colliders, park the WHOLE record in cache
+  // (so a revisit skips generate() and keeps modified entity state)
   _unload(key, rec) {
     if (rec.ring === "sim") {
       this._captureAll(rec);
       this._dropColliders(rec);
     }
-    this._cache[key] = rec.snapshots;
+    this._cache[key] = rec;
     delete this._chunks[key];
     this.stats.unloaded++;
   }

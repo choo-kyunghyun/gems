@@ -229,6 +229,13 @@ globalThis.RpgMap = {
     scene.nearNpc = false;
     scene._climateZone = 0;
     scene._npcId = -1;
+    // nav-rebuild gate (sceneRpg.step): force a rebuild on the first frame of a (re)activated map
+    scene._navGx = undefined;
+    scene._navGy = undefined;
+    scene._navTick = 0;
+    // portal re-entry guard: an arrival entry may overlap a portal, so lock travel until the player
+    // has stepped clear of every portal once (checkPortals arms it). Prevents door ping-pong.
+    scene._portalLock = true;
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared world/level statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built world and fault.
@@ -251,9 +258,36 @@ globalThis.RpgMap = {
   },
 
   // Build a map fresh from file (first visit, or an eviction-restore from the cold cache).
-  // carry + travelers are handed in by go() (null/[] on boot).
+  // carry + travelers are handed in by go() (null/[] on boot). Orchestrates the build helpers below.
   build(scene, mapId, entryId, carry = null, travelers = []) {
-    // load the map file (fall back to the start map if a referenced file is bad)
+    const loaded = RpgMap._loadData(mapId, entryId);
+    const data = loaded.data;
+    mapId = loaded.mapId;
+    entryId = loaded.entryId;
+    scene.mapId = mapId;
+    // chunked: streams terrain + entities around the player (overworld); plain builds up front
+    scene._chunked = data.meta.chunked === true;
+    // persistent (default true): player edits cached on evict + restored on cold rebuild.
+    // meta.persistent: false opts out (a dungeon that resets each entry).
+    scene._mapPersistent = data.meta.persistent !== false;
+    Log.info(
+      `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
+    );
+
+    RpgMap._buildWorld(scene, data, entryId, carry); // World + Level + player + zone channels
+    const saved = RpgMap._restoreCold(scene, mapId); // cold-cache player edits (persistent maps)
+    RpgMap._spawnWorld(scene, data, travelers, saved); // entities (streamed/up-front) + companions
+    RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
+    RpgMap._buildPipeline(scene); // nav window + physics pipeline
+    const entityPass = RpgMap._buildRenderer(scene, data); // render pass stack
+    RpgMap._buildCamera(scene, data, entityPass); // follow camera + view culling + debug
+
+    FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
+    ParticleFx.clear();
+  },
+
+  // Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
+  _loadData(mapId, entryId) {
     const file = RpgLevel.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
     if (data === null) {
@@ -266,18 +300,13 @@ globalThis.RpgMap = {
         genre: "topdown",
       });
     }
-    scene.mapId = mapId;
-    // chunked: streams terrain + entities around the player (overworld); plain builds up front
-    scene._chunked = data.meta.chunked === true;
-    // persistent (default true): player edits cached on evict + restored on cold rebuild.
-    // meta.persistent: false opts out (a dungeon that resets each entry).
-    scene._mapPersistent = data.meta.persistent !== false;
-    Log.info(
-      `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
-    );
+    return { data, mapId, entryId };
+  },
 
-    // World + level + player. Chunked needs a bigger entity cap (a window of chunks' worth of
-    // entities + colliders + drops) and an empty resident grid (player builds only).
+  // World + Level + player + the buildable/climate zone channels. Chunked gets a bigger entity cap
+  // (a window of chunks' worth of entities + colliders + drops) and an empty resident grid (player
+  // builds only).
+  _buildWorld(scene, data, entryId, carry) {
     scene.world = new World(scene._chunked ? 1024 : 256, 60);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
@@ -329,10 +358,13 @@ globalThis.RpgMap = {
         cmap.paintRect(z.id, r[0], r[1], r[2], r[3]);
       }
     }
+  },
 
-    // Restore a persistent map's player edits from the cold cache. Level.import overlays the
-    // cached TileLayers + buildable ZoneMap (same dims/layer order, so it round-trips; cached
-    // zone keeps id 1). Re-mesh wall colliders + restore deconstruct tracking. No cache → fresh.
+  // Restore a persistent map's player edits from the cold cache: Level.import overlays the cached
+  // TileLayers + buildable ZoneMap (same dims/layer order, so it round-trips; cached zone keeps
+  // id 1), re-mesh wall colliders, restore deconstruct tracking + built entities + the gone ledger.
+  // Returns the cache record (or undefined) for _spawnWorld. No cache → fresh state.
+  _restoreCold(scene, mapId) {
     const saved = scene._mapCache[mapId];
     if (saved !== undefined) {
       scene.level.import(saved.level); // also syncs nav (Level.import → syncAll)
@@ -360,10 +392,14 @@ globalThis.RpgMap = {
     // RpgSpawn.spawn to skip their file spawns. Empty on a first visit / non-persistent map.
     scene._gone =
       saved !== undefined && saved.gone !== undefined ? saved.gone : {};
+    return saved;
+  },
 
-    // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
-    // scene reads NPC/portal/enemy handles LIVE by tag — stored id lists would dangle as chunks
-    // stream in/out.
+  // Entities + companions. Chunked STREAMS entities via ChunkManager; plain spawns all up front.
+  // Either way the scene reads NPC/portal/enemy handles LIVE by tag — stored id lists would dangle
+  // as chunks stream in/out. Then re-spawn the traveling party around the entry + restore this
+  // map's cached stationed companions.
+  _spawnWorld(scene, data, travelers, saved) {
     if (scene._chunked) {
       scene.source = new ChunkSource({
         seed: data.meta.seed ?? 1337,
@@ -375,6 +411,12 @@ globalThis.RpgMap = {
       // clamps to it + a wall border rings it, so the player/enemies can't leave.
       const wc = data.meta.worldCols ?? data.cols ?? 128;
       const wr = data.meta.worldRows ?? data.rows ?? 128;
+      // The freeze (LOAD) tier earns its keep: simRadius 1 keeps only ~9 chunks fully simulated.
+      // Measured 2026-07-02: collapsing to simRadius=loadRadius (25 SIM chunks) tanks the sim to
+      // ~260-334ms/step (3fps) — per-tick cost scales ~quadratically with entity count. The
+      // broadphase wired in _buildPipeline fixes TriggerSystem's share but NOT the dominant one:
+      // SolidSystem's O(bodies×colliders) move-and-collide isn't broadphase-backed (still ~260ms at
+      // simRadius:2). So keep the SIM window small until SolidSystem is broadphase-aware.
       scene.chunks = new ChunkManager(scene.world, scene.level, scene.source, {
         chunkCols: data.meta.chunkCols ?? 16,
         chunkRows: data.meta.chunkRows ?? 16,
@@ -413,12 +455,26 @@ globalThis.RpgMap = {
         scene.followers.push(
           EntitySnapshot.restore(scene.world, saved.entities[i]),
         );
+  },
 
-    RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
+  // Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid
+  // runs once here per map (sceneRpg.step rebuilds occupancy around the player each frame).
+  _buildPipeline(scene) {
+    // O(n) broadphase for SeparationSystem + TriggerSystem (each rebuilds it per tick). It removes
+    // TriggerSystem's O(n²) sweep over every collider — measured 2026-07-02 to ~halve the step at
+    // the shipping simRadius:1 (≈22-36ms → ≈10-20ms). cellSize (48px) exceeds max dynamic-body /
+    // non-solid sensor diameter (~16-24px at 16px cells); huge SOLID colliders (world border, water
+    // rects) are exempt — TriggerSystem skips solid-vs-solid and SeparationSystem buckets dynamic
+    // bodies only. Rides with the World, so a parked map keeps it across a resume; rebuilt per cold
+    // build. NOTE: this does NOT make a wide SIM window affordable — at simRadius:2 the step is still
+    // ~260ms because SolidSystem (move-and-collide, O(bodies×colliders), NOT broadphase-backed)
+    // dominates; making SolidSystem broadphase-aware is the prerequisite for dropping the freeze tier.
+    scene.world.broadphase = new Broadphase(
+      scene.level.cols * scene.level.cellWidth,
+      scene.level.rows * scene.level.cellHeight,
+      48,
+    );
 
-    // Pathfinding nav window: a windowed occupancy grid over the live colliders, pointed at by
-    // MotionPlanner. size() is constant, so setGrid is called once here per map (sceneRpg.step
-    // rebuilds occupancy around the player each frame).
     scene.nav = new NavGrid(
       32,
       32,
@@ -427,8 +483,8 @@ globalThis.RpgMap = {
     );
     MotionPlanner.setGrid(scene.nav);
 
-    // Pipeline: AI decides velocity → resolve paths → collide → push crowders apart →
-    // triggers (pickups) → projectiles → expire.
+    // AI decides velocity → resolve paths → collide → push crowders apart → triggers (pickups) →
+    // projectiles → expire.
     scene.physics = new Pipeline()
       .add(StateSystem) // drives the CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
       .add(PathfindingSystem) // enemy PathRequest → PathResponse over scene.nav
@@ -437,14 +493,15 @@ globalThis.RpgMap = {
       .add(TriggerSystem)
       .add(ProjectileSystem)
       .add(LifetimeSystem);
+  },
 
-    // Renderer. Tiles are still placeholder: the resident layers render as a sprite-free debug
-    // fill (RenderDebugTileMap) rather than the per-layer RenderTileMap loop (restore that loop
-    // when tile art lands). Chunked terrain uses its real dual-grid tilesets (TerrainStream).
-    // 2.5D billboard camera: pitches the follow camera and stands sprites up (RenderBillboard);
-    // lighting/weather draw screen-space to survive the pitch. 0 = flat top-down (debug only —
-    // front-view art reads wrong flat).
-    const RPG_BB_PITCH = 35; // 2.5D adopted: camera pitch in degrees
+  // Assemble the renderer pass stack (ground → tiles → zones → shadows → entities → debug →
+  // weather → lighting). Returns the live entity pass — _buildCamera wires its pitch. Tiles are
+  // still placeholder: the resident layers render as a sprite-free debug fill (RenderDebugTileMap)
+  // rather than the per-layer RenderTileMap loop (restore that loop when tile art lands). Chunked
+  // terrain uses its real dual-grid tilesets (TerrainStream).
+  _buildRenderer(scene, data) {
+    const pitch = RpgMap.BB_PITCH;
     scene.renderer = new Renderer();
     // Chunk-streamed terrain UNDER everything, so RenderChunks runs ground:false (its checker is
     // replaced by the terrain) and only draws walls + frozen-entity snapshots.
@@ -483,9 +540,7 @@ globalThis.RpgMap = {
     // Entities via the production sprite pass. The colored-box + label debug passes stay inserted
     // but DISABLED, so the Debug menu can toggle them over the sprites.
     const entityPass =
-      RPG_BB_PITCH > 0
-        ? new RenderBillboard({ pitchDeg: RPG_BB_PITCH })
-        : new RenderEntity();
+      pitch > 0 ? new RenderBillboard({ pitchDeg: pitch }) : new RenderEntity();
     scene.renderer.insert(entityPass);
     const dbgBox = new RenderDebugBox();
     dbgBox.enabled = false;
@@ -541,10 +596,14 @@ globalThis.RpgMap = {
     // term ("lighting with no lights"); Light entities + a night vignette layer on top.
     scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
+    return entityPass;
+  },
 
-    // Follow camera on the new player.
-    // 16px-cell world (GEMS.md): base zoom 3.5 for the pitched 2.5D framing (flat fallback 2).
-    const baseZoom = RPG_BB_PITCH > 0 ? 3.5 : 2;
+  // Follow camera on the new player + view culling + the live Debug camera panel.
+  // 16px-cell world (GEMS.md): base zoom 3.5 for the pitched 2.5D framing (flat fallback 2).
+  _buildCamera(scene, data, entityPass) {
+    const pitch = RpgMap.BB_PITCH;
+    const baseZoom = pitch > 0 ? 3.5 : 2;
     // Cap zoom-OUT to the renderable world (a chunked map only streams a window; past it shows as
     // dark void). viewCap = max view WIDTH (world px); camera derives live minZoom from it + the
     // current surface each frame. Horizontal is the binding axis on a landscape surface.
@@ -557,7 +616,7 @@ globalThis.RpgMap = {
       world: scene.world,
       followTarget: scene.ctrl.id,
       followLerp: 0.15,
-      pitch: RPG_BB_PITCH, // 0 = flat top-down, > 0 pitches for standing billboards
+      pitch: pitch, // 0 = flat top-down, > 0 pitches for standing billboards
       // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
@@ -582,9 +641,6 @@ globalThis.RpgMap = {
     // Billboards track the camera's LIVE pitch (Debug pitch slider). RenderEntity flat ignores it.
     entityPass.camera = scene.camera;
     RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
-
-    FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
-    ParticleFx.clear();
   },
 
   // Register the Debug "Camera" panel bound to the LIVE scene camera (pitch + zoom) for runtime
@@ -632,15 +688,23 @@ globalThis.RpgMap = {
     const p = AABB.of(scene.world, scene.ctrl.id);
     // live query every doorway (Portal component) — no stored list to dangle as chunks stream
     const ids = scene.world.query(Portal);
+    let over = -1;
     for (let i = 0; i < ids.length; i++) {
       const z = AABB.of(scene.world, ids[i]);
       if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
-        const portal = scene.world.get(Portal, ids[i]);
-        Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
-        RpgMap.go(scene, portal.toMap, portal.toEntry);
-        return;
+        over = ids[i];
+        break;
       }
     }
+    // clear of all portals → arm; standing on one while locked (just arrived) → don't re-trigger
+    if (over === -1) {
+      scene._portalLock = false;
+      return;
+    }
+    if (scene._portalLock) return;
+    const portal = scene.world.get(Portal, over);
+    Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
+    RpgMap.go(scene, portal.toMap, portal.toEntry);
   },
 
   // Reach-quest zone from a chunked map's authored "reach" spawn. A region, not an entity, so
@@ -653,3 +717,8 @@ globalThis.RpgMap = {
     return undefined;
   },
 };
+
+// 2.5D adopted: camera pitch in degrees (0 = flat top-down, debug only — front-view art reads
+// wrong flat). Assigned after the object literal — GMRT static-field-init quirk. Read by
+// _buildRenderer (billboard vs flat entity pass) + _buildCamera (pitch + framing zoom).
+RpgMap.BB_PITCH = 35;

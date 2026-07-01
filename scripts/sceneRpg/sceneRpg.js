@@ -6,6 +6,7 @@ const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleepin
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
 const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
+const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
 // factory so the level editor's Test Play can open this scene; same ref SceneManager labels use
 globalThis.SceneRpg = () => new _SceneRpgClass();
@@ -224,10 +225,17 @@ class _SceneRpgClass extends Scene {
     this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
 
     // recenter the nav window on the player BEFORE the tick loop (PathfindingSystem plans over it);
-    // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap
+    // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap. Rebuild only when
+    // the player changed cell (window + occupancy are otherwise stable), with a periodic safety
+    // rebuild to pick up in-place collider edits (build mode) that don't move the player a cell.
     const np = this.world.get(Position, this.ctrl.id);
     const nc = this.level.worldToGrid(np.x, np.y);
-    this.nav.rebuild(this.world, nc.x, nc.y);
+    this._navTick = (this._navTick + 1) % RPG_NAV_REBUILD_EVERY;
+    if (nc.x !== this._navGx || nc.y !== this._navGy || this._navTick === 0) {
+      this.nav.rebuild(this.world, nc.x, nc.y);
+      this._navGx = nc.x;
+      this._navGy = nc.y;
+    }
 
     const ticks = this.world.update();
     for (let t = 0; t < ticks; t++) {
