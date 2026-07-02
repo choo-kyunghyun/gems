@@ -312,6 +312,13 @@ class _SceneRpgClass extends Level {
           pos.y = this.spawn.y;
           vel.x = 0;
           vel.y = 0;
+          // respawn half-hydrated/-fed/-slept: each need to mid-meter, refresh so a
+          // critical debuff (dehydrated/starving/drowsy) clears at once
+          for (const token of [Thirst, Hunger, Drowsiness]) {
+            const need = this.world.get(token, id);
+            need.value = need.max * 0.5;
+            Survival.refresh(this.world, id, need);
+          }
           Log.info("player died — respawned at spawn");
         },
         onDown: (id) => {
