@@ -38,9 +38,13 @@ globalThis.CombatAI = {
     this._world = world;
     this._level = level;
     const pos = world.get(Position, id);
+    // authored/base Visual color captured for the aggro wash (a doll actor's color is its SKIN
+    // tint, so the wash must blend FROM it, not from white). Flat int — snapshot-safe.
+    const vis = world.get(Visual, id);
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
     world.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
+      baseColor: vis !== undefined ? vis.color : c_white,
       target: -1,
       mobile: opt.mobile ?? true,
       ranged: opt.ranged ?? false,
@@ -139,26 +143,44 @@ globalThis.CombatAI = {
     if (w.get(PathRequest, id) !== undefined) w.detach(id, PathRequest);
   },
 
-  // Per-state aggro cue: a light wash toward the state color (mostly white) so the authored sprite
-  // shows while aggro still reads (a full multiply muddied the art). White = no tint; turrets keep
-  // their authored color.
-  _tint(id, r, g, b) {
+  // Per-state aggro cue: a light wash from the actor's BASE color (its skin tint on a doll,
+  // authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
+  // restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
+  // per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
+  _tint(id, r, g, b, k) {
     const w = this._world;
     const brain = w.get(Brain, id);
     if (brain !== undefined && !brain.mobile) return;
     const vis = w.get(Visual, id);
     if (vis === undefined) return;
-    const k = 0.35; // wash strength (0 = authored color, 1 = full state color)
-    vis.color = make_colour_rgb(
-      Math.round(255 + (r - 255) * k),
-      Math.round(255 + (g - 255) * k),
-      Math.round(255 + (b - 255) * k),
-    );
+    const base =
+      brain !== undefined && brain.baseColor !== undefined
+        ? brain.baseColor
+        : c_white;
+    vis.color = k > 0 ? Color.merge(base, make_colour_rgb(r, g, b), k) : base;
+  },
+
+  // Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
+  // carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
+  _animate(id, attacking) {
+    const w = this._world;
+    const anim = w.get(Animator, id);
+    if (anim === undefined) return;
+    const vel = w.get(Velocity, id);
+    let st = "idle";
+    if (attacking) st = "attack";
+    else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
+      st = "walk";
+    AnimationSystem.set(anim, st);
+    const vis = w.get(Visual, id);
+    if (vis === undefined || vel === undefined) return;
+    if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
+    else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
   },
 
   IDLE: {
     enter(id) {
-      CombatAI._tint(id, 255, 255, 255); // idle: no wash — enemy shows its authored brick-red
+      CombatAI._tint(id, 255, 255, 255, 0); // idle: no wash — back to the base/skin color
     },
     update(id) {
       const w = CombatAI._world;
@@ -184,13 +206,14 @@ globalThis.CombatAI = {
           brain.mobile ? CombatAI.CHASE : CombatAI.ATTACK,
         );
       }
+      CombatAI._animate(id, false); // doll actors: idle/walk (drift-home) + facing
     },
   },
 
   // entered only by mobile actors (a turret goes IDLE → ATTACK directly)
   CHASE: {
     enter(id) {
-      CombatAI._tint(id, 230, 170, 70); // alert orange
+      CombatAI._tint(id, 230, 170, 70, 0.35); // alert orange flush
     },
     update(id) {
       const w = CombatAI._world;
@@ -222,9 +245,11 @@ globalThis.CombatAI = {
         CombatAI._clearPath(id);
         brain.pathCd = 0; // replan immediately the next time a wall gets in the way
         CombatAI._seek(id, tp.x, tp.y, brain.speed);
+        CombatAI._animate(id, false);
         return;
       }
       CombatAI._followPath(id, brain, sp, tp);
+      CombatAI._animate(id, false);
     },
     finish(id) {
       CombatAI._clearPath(id);
@@ -233,7 +258,7 @@ globalThis.CombatAI = {
 
   ATTACK: {
     enter(id) {
-      CombatAI._tint(id, 235, 90, 90); // hostile red
+      CombatAI._tint(id, 235, 90, 90, 0.35); // hostile red flush
       CombatAI._stop(id);
     },
     update(id) {
@@ -261,6 +286,8 @@ globalThis.CombatAI = {
           id,
           brain.mobile ? CombatAI.CHASE : CombatAI.IDLE,
         );
+      // punch pose for a short window after each swing (cd counts DOWN from cdMax)
+      CombatAI._animate(id, brain.cd > brain.cdMax - 12);
     },
   },
 
@@ -294,10 +321,17 @@ globalThis.CombatAI = {
     const ny = dy / d;
     // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
     const range = brain.bulletSpeed * RPG_SHOT_RANGE_SECS;
-    const shot = Combat.hitscan(w, sp.x, sp.y, sp.x + nx * range, sp.y + ny * range, {
-      owner: id,
-      damage: CombatAI._attackPower(id),
-    });
+    const shot = Combat.hitscan(
+      w,
+      sp.x,
+      sp.y,
+      sp.x + nx * range,
+      sp.y + ny * range,
+      {
+        owner: id,
+        damage: CombatAI._attackPower(id),
+      },
+    );
     RpgWorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);
   },
 };

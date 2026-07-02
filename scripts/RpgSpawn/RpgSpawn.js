@@ -105,9 +105,24 @@ globalThis.RpgSpawn = {
       world.add(id, Name, { name: "Raider" });
       // loot table — no maxWeight (authored loot, never weight-gated)
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-      const vis = RpgSpawn._visual(spr_raider, c_white, k);
-      vis.speed = 6;
-      world.add(id, Visual, vis);
+      // paper-doll bandit: the same white humanoid template as the player — skin-tinted Visual,
+      // the shared strip graph (CombatAI drives idle/walk/attack + facing), and an AUTHORED
+      // outfit (no Equipment, so AppearanceSystem.rebuild leaves these layers alone)
+      world.add(id, Visual, RpgSpawn._visual(spr_human, RpgSpawn._skin(s), k));
+      world.add(id, Animator, {
+        graph: RpgPlayer.animGraph(),
+        state: "idle",
+        frame: 0,
+        time: 0,
+      });
+      world.add(id, Appearance, {
+        back: [],
+        front: [
+          { sprite: spr_wear_blackShirt, color: c_white },
+          { sprite: spr_wear_blackSneakers, color: c_white },
+          { sprite: spr_wear_redBandana, color: c_white },
+        ],
+      });
       CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
       if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
       return id;
@@ -381,6 +396,18 @@ globalThis.RpgSpawn = {
   // is float throughout (AABB).
   _box(x, y, w, h, k) {
     return { x: x * k, y: y * k, width: w * k, height: h * k };
+  },
+
+  // Skin tones for doll humanoids (Visual.color over the white spr_human template).
+  SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
+
+  // deterministic skin pick — hashed from the spawn CELL so a regenerated chunk's humanoid
+  // keeps the same face (OverworldGen chunks must regenerate identically)
+  _skin(s) {
+    const gx = s.gx ?? 0;
+    const gy = s.gy ?? 0;
+    const i = Math.abs(gx * 7 + gy * 13) % RpgSpawn.SKINS.length;
+    return Color.parse(RpgSpawn.SKINS[i]);
   },
 
   // Shared Visual shape. `scale` is the entity's baked size factor (preset base × per-spawn
