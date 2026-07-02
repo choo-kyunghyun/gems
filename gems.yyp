@@ -238,6 +238,7 @@
     {"id":{"name":"Recipe","path":"scripts/Recipe/Recipe.yy",},},
     {"id":{"name":"RenderBillboard","path":"scripts/RenderBillboard/RenderBillboard.yy",},},
     {"id":{"name":"RenderChunks","path":"scripts/RenderChunks/RenderChunks.yy",},},
+    {"id":{"name":"RenderCloudShadow","path":"scripts/RenderCloudShadow/RenderCloudShadow.yy",},},
     {"id":{"name":"RenderDebugEntity","path":"scripts/RenderDebugEntity/RenderDebugEntity.yy",},},
     {"id":{"name":"RenderDebugPath","path":"scripts/RenderDebugPath/RenderDebugPath.yy",},},
     {"id":{"name":"RenderDebugRange","path":"scripts/RenderDebugRange/RenderDebugRange.yy",},},

@@ -1,12 +1,14 @@
 // Global weather — current sky condition + a season-biased transition, a static singleton like
-// WorldClock (one sky). State advances on SIM time (Time.delta, so it freezes when the game pauses
-// and dilates with Time.scale); RenderWeather's particle fall runs on wall-clock. Conditions are a
-// fixed literal table (clear/cloudy/rain/storm/snow), each with a render look + a Kelvin tempMod.
+// WorldClock (one sky). State AND the visual clock advance on SIM time (Time.delta, so everything —
+// transitions, rain/snow fall, cloud drift — freezes when the game pauses and dilates with
+// Time.scale; the bed fast-forward races the sky). Conditions are a fixed literal table
+// (clear/cloudy/rain/storm/snow), each with a render look + a Kelvin tempMod.
 // A change CROSS-FADES over _fadeTime (lerped by blend()). A CLIMATE ZONE can override the open sky
 // (enterRegion/exitRegion); the displayed condition is the effective one (override ?? ambient).
 globalThis.Weather = class Weather {
-  // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, temp a
-  // scale-agnostic Kelvin delta. A literal — no class self-reference.
+  // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, cloud the
+  // cloud-shadow coverage for RenderCloudShadow, temp a scale-agnostic Kelvin delta. A literal — no
+  // class self-reference.
   static _COND = {
     clear: {
       id: "clear",
@@ -15,6 +17,7 @@ globalThis.Weather = class Weather {
       a: 0.0,
       particle: "none",
       density: 0,
+      cloud: 0.12,
       temp: 0,
     },
     cloudy: {
@@ -24,6 +27,7 @@ globalThis.Weather = class Weather {
       a: 0.12,
       particle: "none",
       density: 0,
+      cloud: 0.9,
       temp: -2,
     },
     rain: {
@@ -33,6 +37,7 @@ globalThis.Weather = class Weather {
       a: 0.26,
       particle: "rain",
       density: 0.6,
+      cloud: 0.55,
       temp: -4,
     },
     storm: {
@@ -42,6 +47,7 @@ globalThis.Weather = class Weather {
       a: 0.4,
       particle: "rain",
       density: 1.0,
+      cloud: 0.85,
       temp: -6,
     },
     snow: {
@@ -51,6 +57,7 @@ globalThis.Weather = class Weather {
       a: 0.2,
       particle: "snow",
       density: 0.5,
+      cloud: 0.45,
       temp: -8,
     },
   };
@@ -77,6 +84,7 @@ globalThis.Weather = class Weather {
   static _prev = "clear";
   static _blend = 1; // 1 = settled on _cur; eases 0..1 after each change
   static _timer = 0; // real seconds until the next re-roll
+  static _time = 0; // cumulative SIM seconds — the clock the weather VISUALS scroll on (see time())
 
   // reset to a settled clear sky, no region override (scene create() once)
   static reset() {
@@ -87,10 +95,12 @@ globalThis.Weather = class Weather {
     Weather._prev = "clear";
     Weather._blend = 1;
     Weather._timer = Weather._rollHold();
+    Weather._time = 0;
   }
 
   // advance by `dt` (Time.delta): re-roll ambient on hold expiry, recompute effective, ease the cross-fade
   static update(dt) {
+    Weather._time += dt;
     Weather._timer -= dt;
     if (Weather._timer <= 0) {
       Weather._ambient = Weather._rollAmbient();
@@ -157,6 +167,14 @@ globalThis.Weather = class Weather {
       i++;
     }
     return ids[ids.length - 1];
+  }
+
+  // cumulative sim-time clock (seconds) the weather visuals scroll on: RenderWeather's particle
+  // fall and RenderCloudShadow's drift both multiply speeds by this, so they FREEZE on pause and
+  // dilate with Time.scale, matching the condition transitions. A plain method, not a static
+  // getter (computed static get miscompiles on GMRT — see CLAUDE.md).
+  static time() {
+    return Weather._time;
   }
 
   // reads for HUD / Temperature / RenderWeather

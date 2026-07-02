@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderCloudShadow",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderCloudShadow",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderCloudShadow.js",
+}

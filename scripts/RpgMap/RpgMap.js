@@ -46,6 +46,7 @@ globalThis.RpgMap = {
     "_tilePasses",
     "_tilePass",
     "_gridPass",
+    "_clouds",
     "_weather",
     "_lighting",
   ],
@@ -602,10 +603,13 @@ globalThis.RpgMap = {
       ],
     });
     scene.renderer.insert(ranges);
-    // Weather (tint + rain/snow) just under the day/night tint, so night darkens the rain.
-    // Skipped indoors (meta.indoor) — no open sky inside a cave.
+    // Cloud shadows under the weather tint, weather (tint + rain/snow) just under the day/night
+    // tint, so night darkens the rain. Skipped indoors (meta.indoor) — no open sky inside a cave.
+    scene._clouds = undefined;
     scene._weather = undefined;
     if (!data.meta.indoor) {
+      scene._clouds = new RenderCloudShadow();
+      scene.renderer.insert(scene._clouds);
       scene._weather = new RenderWeather();
       scene.renderer.insert(scene._weather);
     }
@@ -653,6 +657,7 @@ globalThis.RpgMap = {
     // Cull the grid pass to the camera view (essential for the chunked map's large home grid).
     scene._gridPass.camera = scene.camera;
     scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill
+    if (scene._clouds !== undefined) scene._clouds.camera = scene.camera;
     if (scene._weather !== undefined) scene._weather.camera = scene.camera;
     scene._lighting.camera = scene.camera;
     // Billboards track the camera's LIVE pitch (Debug pitch slider). RenderEntity flat ignores it.

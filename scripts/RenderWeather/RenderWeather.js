@@ -2,11 +2,12 @@
 // cross-faded by Weather.blend(). Inserted just BEFORE RenderLighting so the night tint also darkens
 // the rain.
 //
-// Particles are screen-space and scroll on current_time (a cumulative wall-clock, monotonic — so
-// they keep falling while the sim is paused). NOT Time.raw, which is a per-frame DELTA, not a clock:
-// multiplying it by fall speed froze every particle near a constant offset (the old "static" bug).
-// Snow sways via Math.sin (trig works on GMRT 0.20); streaks use draw_line (draw_line_width_color
-// renders NOTHING on GMRT), snow uses draw_rectangle.
+// Particles are screen-space and scroll on Weather.time() — a cumulative SIM-second clock (advanced
+// by Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
+// Time.scale (bed fast-forward), matching the condition transitions. It must be a cumulative CLOCK:
+// multiplying a per-frame DELTA (Time.raw/Time.delta) by fall speed froze every particle near a
+// constant offset (the old "static" bug). Snow sways via Math.sin (trig works on GMRT 0.20);
+// streaks use draw_line (draw_line_width_color renders NOTHING on GMRT), snow uses draw_rectangle.
 //
 // View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
 // Camera; see CLAUDE.md). The scene assigns pass.camera after building the camera.
@@ -91,7 +92,7 @@ globalThis.RenderWeather = class RenderWeather {
   _rain(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = current_time / 1000; // cumulative wall-clock seconds (NOT Time.raw, a per-frame delta)
+    const t = Weather.time(); // cumulative SIM seconds (a clock, not a per-frame delta)
     const fall = 850; // px/s
     const slant = -5; // streak lean + wind direction
     draw_set_color(this._rainColor);
@@ -113,7 +114,7 @@ globalThis.RenderWeather = class RenderWeather {
   _snow(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = current_time / 1000; // cumulative wall-clock seconds (NOT Time.raw, a per-frame delta)
+    const t = Weather.time(); // cumulative SIM seconds (a clock, not a per-frame delta)
     const fall = 70; // px/s — gentle
     const wind = 18;
     draw_set_color(this._snowColor);
