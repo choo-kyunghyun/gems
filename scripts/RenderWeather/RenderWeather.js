@@ -51,11 +51,13 @@ globalThis.RenderWeather = class RenderWeather {
     const alpha = draw_get_alpha();
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
+    // Screen-ortho orientation PROBED on GMRT 0.20 (see CLAUDE.md / RenderLighting): up +1 keeps
+    // X true, NEGATIVE ortho height cancels the overlay path's Y-flip vs the world camera.
     matrix_set(
       matrix_view,
-      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
+      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),
     );
-    matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
+    matrix_set(matrix_projection, matrix_build_projection_ortho(w, -h, 0, 2));
     // Disable the depth TEST: entities wrote near depth in the world projection, so with the test on
     // this screen-ortho tint is rejected over every opaque entity pixel (skipping all sprites). The
     // overlay must cover everything; restore the default (on) after.

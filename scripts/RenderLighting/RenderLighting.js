@@ -111,11 +111,14 @@ globalThis.RenderLighting = class RenderLighting {
     //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
+    // Screen-ortho orientation PROBED on GMRT 0.20 (see CLAUDE.md): up +1 keeps X true (up -1
+    // X-mirrored the composite — the lantern flipped sides at a clamped map border), and the
+    // NEGATIVE ortho height cancels the overlay path's inherent Y-flip vs the world camera.
     matrix_set(
       matrix_view,
-      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, -1, 0),
+      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),
     );
-    matrix_set(matrix_projection, matrix_build_projection_ortho(w, h, 0, 2));
+    matrix_set(matrix_projection, matrix_build_projection_ortho(w, -h, 0, 2));
     // disable depth TEST: entities wrote depth in the world projection, so with the test on this
     // screen-space composite is REJECTED over every opaque entity pixel (sprites stay full-bright).
     gpu_set_ztestenable(false);
