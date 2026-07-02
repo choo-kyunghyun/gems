@@ -251,6 +251,7 @@
     {"id":{"name":"RenderWeather","path":"scripts/RenderWeather/RenderWeather.yy",},},
     {"id":{"name":"RenderZone","path":"scripts/RenderZone/RenderZone.yy",},},
     {"id":{"name":"RenderZoneLabel","path":"scripts/RenderZoneLabel/RenderZoneLabel.yy",},},
+    {"id":{"name":"RpgAchievements","path":"scripts/RpgAchievements/RpgAchievements.yy",},},
     {"id":{"name":"RpgCatalog","path":"scripts/RpgCatalog/RpgCatalog.yy",},},
     {"id":{"name":"RpgContent","path":"scripts/RpgContent/RpgContent.yy",},},
     {"id":{"name":"RpgController","path":"scripts/RpgController/RpgController.yy",},},

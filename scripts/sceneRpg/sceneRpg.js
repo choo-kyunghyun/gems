@@ -22,6 +22,7 @@ class _SceneRpgClass extends Level {
     // load before building anything
     SaveData.load();
     RpgQuests.register();
+    RpgAchievements.register(); // achievement defs + trigger rules (separate from quest data)
     Profile.load();
     Achievement.load();
     QuestLog.reset();
@@ -212,6 +213,26 @@ class _SceneRpgClass extends Level {
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
 
+    // dev controls for the Achievements tab (F3 overlay / debug.txt): unlock or relock the whole
+    // set. The tab's status labels read Achievement live, so no rebuild is needed.
+    Debug.panel("Achievements", (p) => {
+      p.watch("unlocked", () => {
+        const all = Achievement.all();
+        let n = 0;
+        for (let i = 0; i < all.length; i++)
+          if (Achievement.isUnlocked(all[i].id)) n++;
+        return `${n}/${all.length}`;
+      });
+      p.button("Unlock All", () => {
+        Achievement.unlockAll();
+        Log.info("debug: all achievements unlocked");
+      });
+      p.button("Clear All", () => {
+        Achievement.clear();
+        Log.info("debug: all achievements cleared");
+      });
+    });
+
     Log.info(
       `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
@@ -306,6 +327,7 @@ class _SceneRpgClass extends Level {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
+          this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
           const kind = this.world.get(Rat, id) !== undefined ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
@@ -347,6 +369,7 @@ class _SceneRpgClass extends Level {
         const pp = this.world.get(Position, this.ctrl.id);
         if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
         Profile.add("itemsCollected", got);
+        this._reportAchievements("itemsCollected");
         QuestLog.report("collect", itemId, got);
         Log.info(
           `picked up ${got}x ${itemId} — items=${Profile.get("itemsCollected")}`,
@@ -355,7 +378,6 @@ class _SceneRpgClass extends Level {
       this._checkReach(); // reach-quest zone
       this._tryTurnIn(RpgQuests.QUEST_GATHER); // passive quests auto-complete
       this._tryTurnIn(RpgQuests.QUEST_REACH);
-      this._checkAchievements();
 
       this.world.flush();
     }
@@ -617,13 +639,17 @@ class _SceneRpgClass extends Level {
     const reward = QuestLog.complete(qid);
     RpgProgression.applyReward(this, reward);
     Profile.add("questsCompleted", 1);
+    this._reportAchievements("questsCompleted");
     Log.info(
       `quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
     );
   }
 
-  _checkAchievements() {
-    const newly = Achievement.evaluate(Profile.counters());
+  // The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
+  // content rules (RpgAchievements), which turn met thresholds into Achievement.unlock requests.
+  // The engine never sweeps conditions; this push replaces the old per-tick evaluate().
+  _reportAchievements(counterKey) {
+    const newly = RpgAchievements.report(counterKey, Profile.get(counterKey));
     for (let i = 0; i < newly.length; i++) {
       const a = Achievement.get(newly[i]);
       Toast.push(I18n.text("RPG_UNLOCKED", I18n.text(a.name)), {
@@ -733,7 +759,7 @@ class _SceneRpgClass extends Level {
     if (QuestLog.isReady(qid)) {
       RpgProgression.applyReward(this, QuestLog.complete(qid));
       Profile.add("questsCompleted", 1);
-      this._checkAchievements();
+      this._reportAchievements("questsCompleted");
       Log.info(
         `turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
       );
@@ -839,6 +865,7 @@ class _SceneRpgClass extends Level {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
     Debug.remove("Camera"); // the live 2.5D-camera tuning panel is RPG-only (RpgMap registers it)
+    Debug.remove("Achievements"); // RPG-only debug panel (registered in create)
     RpgController.destroy();
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();

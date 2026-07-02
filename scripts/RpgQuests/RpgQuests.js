@@ -1,5 +1,5 @@
-// RPG quests + achievements, layered over RpgContent. Called once from sceneRpg.create()
-// (not top-level — GMRT load-order). Idempotent.
+// RPG quest data, layered over RpgContent (achievements live in RpgAchievements). Called once
+// from sceneRpg.create() (not top-level — GMRT load-order). Idempotent.
 globalThis.RpgQuests = {
   registered: false,
 
@@ -36,33 +36,6 @@ globalThis.RpgQuests = {
         // permanent attribute boost reward — the item-driven progression path, gated on exploration
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
         rewards: { items: [{ itemId: "vitality_serum", qty: 1 }] },
-      },
-    ]);
-
-    Achievement.register([
-      {
-        id: "td_first_kill",
-        name: "ACH_FIRST_KILL_NAME",
-        desc: "ACH_FIRST_KILL_DESC",
-        condition: (c) => (c.enemiesKilled ?? 0) >= 1,
-      },
-      {
-        id: "td_slayer",
-        name: "ACH_SLAYER_NAME",
-        desc: "ACH_SLAYER_DESC",
-        condition: (c) => (c.enemiesKilled ?? 0) >= 10,
-      },
-      {
-        id: "td_collector",
-        name: "ACH_COLLECTOR_NAME",
-        desc: "ACH_COLLECTOR_DESC",
-        condition: (c) => (c.itemsCollected ?? 0) >= 10,
-      },
-      {
-        id: "td_quester",
-        name: "ACH_QUESTER_NAME",
-        desc: "ACH_QUESTER_DESC",
-        condition: (c) => (c.questsCompleted ?? 0) >= 1,
       },
     ]);
   },

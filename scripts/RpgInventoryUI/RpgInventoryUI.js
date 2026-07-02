@@ -98,6 +98,10 @@ globalThis.RpgInventoryUI = {
           content: RpgInventoryUI._buildQuestsTab(scene),
         },
         {
+          label: I18n.textRef("INV_TAB_ACH"),
+          content: RpgInventoryUI._buildAchievementsTab(scene),
+        },
+        {
           label: I18n.textRef("INV_TAB_SETTINGS"),
           content: RpgInventoryUI._buildSettingsTab(scene),
         },
@@ -531,6 +535,52 @@ globalThis.RpgInventoryUI = {
       }),
     );
     return page;
+  },
+
+  // Achievements: one card per registered def. Built ONCE (the set is static after registration,
+  // which precedes the window build); the status label reads Achievement live, so unlocks — or the
+  // Debug panel's Unlock/Clear All — show with no rebuild.
+  _buildAchievementsTab(_scene) {
+    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const all = Achievement.all();
+    for (let i = 0; i < all.length; i++)
+      page.insertChild(RpgInventoryUI._achievementRow(all[i]));
+    return page;
+  },
+
+  // one achievement card: name + live unlock status on the head row, description under
+  _achievementRow(a) {
+    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+
+    const head = new UIElement({
+      width: "100%",
+      height: 22,
+      flexDirection: "row",
+      alignItems: "center",
+    });
+    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    nameCell.insertChild(
+      gemsLabel(I18n.textRef(a.name), {
+        color: GemsTheme.text,
+        font: "header",
+      }),
+    );
+    head.insertChild(nameCell);
+    head.insertChild(
+      gemsRichText(() =>
+        Achievement.isUnlocked(a.id)
+          ? "[c=accent]" + I18n.text("ACH_UNLOCKED") + "[/c]"
+          : "[c=dim]" + I18n.text("ACH_LOCKED") + "[/c]",
+      ),
+    );
+    card.insertChild(head);
+
+    const desc = new UIElement({ width: "100%", height: 20 });
+    desc.insertChild(
+      gemsLabel(I18n.textRef(a.desc), { color: GemsTheme.textMuted }),
+    );
+    card.insertChild(desc);
+    return card;
   },
 
   // Settings: per-column visibility toggles, persisted. Toggling calls setColumns, which keeps
