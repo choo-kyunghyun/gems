@@ -1,3 +1,7 @@
+// world-z bias between paper-doll layers so draw order beats coplanar float-rounding (see the
+// doll-stack comment in draw); world px — invisible on screen, decisive in the depth buffer
+const BB_LAYER_DZ = 0.05;
+
 /**
  * 2.5D entity renderer: stands each foot-anchored sprite up in 3D via a world matrix so
  * front-view art reads correctly under a pitched camera (CameraFollow.create2d `pitch`).
@@ -31,10 +35,15 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
-  // one Appearance layer at the body's subimg/transform. Layers keep their OWN color — the
-  // body's Visual.color is the SKIN tint of the white spr_human template, so it must not bleed
-  // into outfit colors; whole-doll effects (downed dim) ride visual.alpha, which layers share.
-  _drawLayer(layer, visual) {
+  // one Appearance layer at the body's subimg/transform, z-biased by `dz` (see the doll-stack
+  // comment in draw). Layers keep their OWN color — the body's Visual.color is the SKIN tint of
+  // the white spr_human template, so it must not bleed into outfit colors; whole-doll effects
+  // (downed dim) ride visual.alpha, which layers share.
+  _drawLayer(layer, visual, rp, tiltDeg, dz) {
+    matrix_set(
+      matrix_world,
+      matrix_build(rp.x, rp.y, dz, tiltDeg, 0, 0, 1, 1, 1),
+    );
     draw_sprite_ext(
       layer.sprite,
       visual.subimg,
@@ -70,17 +79,28 @@ globalThis.RenderBillboard = class RenderBillboard {
         visual.subimg =
           Math.floor(visual.time) % sprite_get_number(visual.sprite);
       }
-      const m = matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1);
-      matrix_set(matrix_world, m);
-      // paper-doll layers (Appearance): same matrix + subimg as the body, so they're coplanar —
-      // identical quad geometry gives identical depth per pixel, and the default cmpfunc_lessequal
-      // lets each later layer paint over the one before (sh_alphatest keeps transparent texels
-      // from writing depth). back layers under the body, front layers over it.
+      // Paper-doll layers (Appearance) draw at the body's subimg/transform but CANNOT rely on
+      // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
+      // quad has different vertices and the interpolated depth diverges by float rounding — a
+      // later layer randomly loses the lessequal test (a raider bald under its bandana). Bias
+      // each layer a hair along world z instead (front toward the camera = -z under the pitched
+      // view, back away), so stack order wins deterministically; BB_LAYER_DZ is far above fp
+      // error and far below a visible shift.
       const ap = world.get(Appearance, entity);
       if (ap !== undefined) {
         for (let i = 0; i < ap.back.length; i++)
-          this._drawLayer(ap.back[i], visual);
+          this._drawLayer(
+            ap.back[i],
+            visual,
+            rp,
+            tiltDeg,
+            (ap.back.length - i) * BB_LAYER_DZ,
+          );
       }
+      matrix_set(
+        matrix_world,
+        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
+      );
       draw_sprite_ext(
         visual.sprite,
         visual.subimg,
@@ -94,7 +114,13 @@ globalThis.RenderBillboard = class RenderBillboard {
       );
       if (ap !== undefined) {
         for (let i = 0; i < ap.front.length; i++)
-          this._drawLayer(ap.front[i], visual);
+          this._drawLayer(
+            ap.front[i],
+            visual,
+            rp,
+            tiltDeg,
+            -(i + 1) * BB_LAYER_DZ,
+          );
       }
       matrix_set(matrix_world, ident);
     }
