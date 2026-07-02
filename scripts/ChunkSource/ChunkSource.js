@@ -116,6 +116,13 @@ globalThis.ChunkSource = class ChunkSource {
       : 0;
   }
 
+  // per-cell terrain movement cost (NavGrid weights + PathFollow speed); no generator costAt → 1
+  costAt(ax, ay) {
+    return this.generator.costAt !== undefined
+      ? this.generator.costAt(ax, ay)
+      : 1;
+  }
+
   // construct one spawn descriptor's entity (delegated to RpgSpawn); non-entity presets return -1
   spawn(world, level, desc) {
     return RpgSpawn.spawnEntity(world, level, desc);

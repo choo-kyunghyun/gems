@@ -27,7 +27,7 @@ S = TM.S
 ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(P.KIT))
 NS = uuid.uuid5(uuid.NAMESPACE_DNS, "gems.terrain.tiles")  # stable namespace -> deterministic ids
 # The project IDE folder these sprites file under (project-specific; edit if reused elsewhere).
-PARENT = ("Handmade Sprites", "folders/Media/Handmade Sprites.yy")
+PARENT = ("Bitmap Sprites", "folders/Media/Bitmap Sprites.yy")
 
 
 def sprite_name(terr):

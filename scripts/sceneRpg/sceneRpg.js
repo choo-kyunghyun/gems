@@ -842,6 +842,7 @@ class _SceneRpgClass extends Level {
     RpgController.destroy();
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
+    PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     // free every parked pooled map, then the active map (its fields live on `this`); UI root removed last
     for (const id in this._maps) RpgMap._free(this._maps[id]);
     this._maps = {};

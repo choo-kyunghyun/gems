@@ -250,6 +250,19 @@ globalThis.RpgMap = {
     // Re-point CombatAI's shared world/level statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built world and fault.
     CombatAI.bind(scene.world, scene.level);
+    // Re-point the terrain movement pricing (mover speed × 1/cost) at the active map, same reason.
+    PathFollow.bind(RpgMap._terrainCost(scene));
+  },
+
+  // Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
+  // NavGrid's route weights and PathFollow's speed pricing. Chunked maps price the streamed biome
+  // via ChunkSource.costAt; plain maps (interiors) price no terrain → null (every cell costs 1).
+  _terrainCost(scene) {
+    if (!scene._chunked || scene.source === undefined) return null;
+    const src = scene.source;
+    const cw = scene.level.cellWidth;
+    const ch = scene.level.cellHeight;
+    return (wx, wy) => src.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
   },
 
   // World-coord entry points by name, for repositioning the player on a resume (no file reload).
@@ -498,6 +511,7 @@ globalThis.RpgMap = {
       32,
       scene.level.cellWidth,
       scene.level.cellHeight,
+      RpgMap._terrainCost(scene), // weight routes by terrain (wade only when it beats going around)
     );
     MotionPlanner.setGrid(scene.nav);
 

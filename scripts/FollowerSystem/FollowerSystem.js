@@ -23,7 +23,8 @@ globalThis.FollowerSystem = {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > f.range) {
           const ramp = Math.min(1, (dist - f.range) / FOLLOWER_EASE_BAND);
-          const speed = f.speed * ramp;
+          // terrain movement cost (PathFollow.speedScale) — a companion wades/slogs like everyone
+          const speed = f.speed * ramp * PathFollow.speedScale(pos.x, pos.y);
           vel.x = (dx / dist) * speed;
           vel.y = (dy / dist) * speed;
         } else {

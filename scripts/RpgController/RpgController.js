@@ -136,10 +136,13 @@ globalThis.RpgController = {
     const vel = world.get(Velocity, ctrl.id);
     const dir = world.get(Direction, ctrl.id);
     const stats = world.get(Stats, ctrl.id);
-    // status speed multiplier (encumbrance/slow/haste); applied here, not on Stats.speed, so it never disturbs the derived sheet
+    const pp = world.get(Position, ctrl.id);
+    // status speed multiplier (encumbrance/slow/haste) × terrain movement cost (wading/mud slow —
+    // PathFollow.speedScale); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
       (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
-      StatusSystem.scale(world, ctrl.id, "speed");
+      StatusSystem.scale(world, ctrl.id, "speed") *
+      PathFollow.speedScale(pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
     // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below clobbers such a local

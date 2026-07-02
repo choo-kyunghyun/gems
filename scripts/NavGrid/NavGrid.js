@@ -1,6 +1,7 @@
-// Windowed occupancy grid for pathfinding over the chunk-streamed overworld: adapts the LIVE
-// World colliders into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell
-// coords over a small fixed window re-centered on the agent each frame.
+// Windowed cost grid for pathfinding over the chunk-streamed overworld: adapts the LIVE World
+// colliders (blocked) plus an injected terrain-cost sampler (weighted ground — see constructor)
+// into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell coords over a small
+// fixed window re-centered on the agent each frame.
 //
 // why a window: on a chunked map the obstacles aren't in Level.mpg — terrain/walls/border exist
 // only as kinematic-solid collider ENTITIES, and only nearby chunks are loaded. one bounded grid
@@ -11,14 +12,19 @@
 // buffer, so paths come back in absolute cells. GMRT-safe: for-of over the world.query ARRAY is
 // fine (only Map/Set iterators break).
 globalThis.NavGrid = class NavGrid {
-  constructor(cols, rows, cellW, cellH) {
+  // `costAt` (optional): (wx, wy) → terrain movement cost (1 = easy, >1 = rough, Infinity =
+  // impassable) sampled per cell so MotionPlanner weights routes (it multiplies step distance by
+  // cell cost — a wade is chosen only when shorter than walking around). null → every cell costs 1.
+  constructor(cols, rows, cellW, cellH, costAt = null) {
     this.cols = cols;
     this.rows = rows;
     this.cellW = cellW;
     this.cellH = cellH;
-    this.grid = new Grid(cols, rows); // costs: 1 = walkable, Infinity = blocked
+    this.grid = new Grid(cols, rows); // costs: ≥1 = walkable (weighted), Infinity = blocked
     this.originX = 0; // absolute cell of the window's top-left
     this.originY = 0;
+    this.costAt = costAt;
+    this._terrain = null; // cached per-window terrain costs; resampled only when the origin moves
   }
 
   destroy() {
@@ -31,15 +37,27 @@ globalThis.NavGrid = class NavGrid {
     return this.cols * this.rows;
   }
 
-  // re-center, clear to walkable, stamp each kinematic-solid collider's footprint as blocked.
-  // walls only — dynamic bodies are non-kinematic so agents don't block each other's planning.
-  // call once per frame OUTSIDE the tick loop.
+  // re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
+  // blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
+  // planning. call once per frame OUTSIDE the tick loop.
   rebuild(world, centerGx, centerGy) {
-    this.originX = centerGx - (this.cols >> 1);
-    this.originY = centerGy - (this.rows >> 1);
+    const ox = centerGx - (this.cols >> 1);
+    const oy = centerGy - (this.rows >> 1);
+    const moved =
+      ox !== this.originX || oy !== this.originY || this._terrain === null;
+    this.originX = ox;
+    this.originY = oy;
 
     const d = this.grid.data;
-    for (let i = 0; i < d.length; i++) d[i] = 1; // fill in place (no realloc)
+    if (this.costAt === null) {
+      for (let i = 0; i < d.length; i++) d[i] = 1; // fill in place (no realloc)
+    } else {
+      // terrain is static per cell — resample only when the window moves; colliders re-stamp
+      // every rebuild on top of a copy of the cached base
+      if (moved) this._sampleTerrain();
+      const t = this._terrain;
+      for (let i = 0; i < d.length; i++) d[i] = t[i];
+    }
 
     const cw = this.cellW;
     const ch = this.cellH;
@@ -63,6 +81,21 @@ globalThis.NavGrid = class NavGrid {
         for (let ax = gx0; ax <= gx1; ax++)
           d[(ay - this.originY) * this.cols + (ax - this.originX)] = Infinity;
     }
+  }
+
+  // sample the injected terrain cost at each window cell's center (world coords)
+  _sampleTerrain() {
+    if (this._terrain === null)
+      this._terrain = new Array(this.cols * this.rows);
+    const t = this._terrain;
+    const cw = this.cellW;
+    const ch = this.cellH;
+    for (let ly = 0; ly < this.rows; ly++)
+      for (let lx = 0; lx < this.cols; lx++)
+        t[ly * this.cols + lx] = this.costAt(
+          (this.originX + lx + 0.5) * cw,
+          (this.originY + ly + 0.5) * ch,
+        );
   }
 
   // absolute-cell MotionPlanningGrid view

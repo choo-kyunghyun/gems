@@ -81,7 +81,8 @@ globalThis.CombatAI = {
     return Math.sqrt(dx * dx + dy * dy);
   },
 
-  // aim velocity at (tx, ty) at `speed`
+  // aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
+  // (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
   _seek(id, tx, ty, speed) {
     const w = this._world;
     const pos = w.get(Position, id);
@@ -89,58 +90,15 @@ globalThis.CombatAI = {
     const dx = tx - pos.x;
     const dy = ty - pos.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    vel.x = (dx / d) * speed;
-    vel.y = (dy / d) * speed;
+    const s = speed * PathFollow.speedScale(pos.x, pos.y);
+    vel.x = (dx / d) * s;
+    vel.y = (dy / d) * s;
   },
 
   _stop(id) {
     const vel = this._world.get(Velocity, id);
     vel.x = 0;
     vel.y = 0;
-  },
-
-  // Steer along an A* path, replanning on a throttle. PathfindingSystem resolves the request later
-  // this tick into a PathResponse the actor follows next tick; until one exists it heads straight.
-  _followPath(id, brain, sp, tp) {
-    const w = this._world;
-    const level = this._level;
-    if (brain.pathCd > 0) brain.pathCd--;
-    if (brain.pathCd <= 0) {
-      const s = level.worldToGrid(sp.x, sp.y);
-      const g = level.worldToGrid(tp.x, tp.y);
-      w.add(id, PathRequest, {
-        startX: s.x,
-        startY: s.y,
-        goalX: g.x,
-        goalY: g.y,
-      });
-      brain.pathCd = brain.pathRate;
-    }
-    let wp = PathfindingSystem.current(w, id);
-    if (wp === undefined) {
-      this._seek(id, tp.x, tp.y, brain.speed); // no path yet — head straight for now
-      return;
-    }
-    // skip a waypoint we've essentially reached (path's first cell is our own), then steer
-    let ww = level.gridToWorld(wp.x, wp.y);
-    const near = level.cellWidth * 0.4;
-    if ((sp.x - ww.x) ** 2 + (sp.y - ww.y) ** 2 < near * near) {
-      PathfindingSystem.advance(w, id);
-      wp = PathfindingSystem.current(w, id);
-      if (wp === undefined) {
-        this._seek(id, tp.x, tp.y, brain.speed);
-        return;
-      }
-      ww = level.gridToWorld(wp.x, wp.y);
-    }
-    this._seek(id, ww.x, ww.y, brain.speed);
-  },
-
-  // drop any path components (LOS cleared mid-chase, or leaving chase)
-  _clearPath(id) {
-    const w = this._world;
-    if (w.get(PathResponse, id) !== undefined) w.detach(id, PathResponse);
-    if (w.get(PathRequest, id) !== undefined) w.detach(id, PathRequest);
   },
 
   // Per-state aggro cue: a light wash from the actor's BASE color (its skin tint on a doll,
@@ -242,17 +200,28 @@ globalThis.CombatAI = {
       const hit = Raycast.cast(w, sp.x, sp.y, tp.x, tp.y, { ignore: id });
       const blocked = hit !== null && w.get(Collision, hit.id).kinematic;
       if (!blocked || CombatAI._level === undefined) {
-        CombatAI._clearPath(id);
+        PathFollow.clear(w, id);
         brain.pathCd = 0; // replan immediately the next time a wall gets in the way
         CombatAI._seek(id, tp.x, tp.y, brain.speed);
         CombatAI._animate(id, false);
         return;
       }
-      CombatAI._followPath(id, brain, sp, tp);
+      // wall in the way: steer at the path walker's movement point (waypoint, or straight while
+      // the throttled replan is still resolving)
+      const mp = PathFollow.target(
+        w,
+        CombatAI._level,
+        id,
+        brain,
+        sp,
+        tp.x,
+        tp.y,
+      );
+      CombatAI._seek(id, mp.x, mp.y, brain.speed);
       CombatAI._animate(id, false);
     },
     finish(id) {
-      CombatAI._clearPath(id);
+      PathFollow.clear(CombatAI._world, id);
     },
   },
 

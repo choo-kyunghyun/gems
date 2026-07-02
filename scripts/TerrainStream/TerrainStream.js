@@ -1,9 +1,10 @@
 // Per-chunk dual-grid renderer for the streamed overworld terrain. Caches VertexBuffers per loaded
 // chunk (one per material), built once on load and freed on unload, so a border crossing only builds
 // newly-entered chunks (the earlier windowed version rebuilt one ~80x80 VBO every crossing → ~50ms
-// hitch). Painter order water < sand < grass: upper terrains' transparent dual-grid corners reveal
-// the one below. Each material draws its own untinted spr_terrain* sprite into its own VBO with its
-// own texture, so the tilesets needn't share a texture page.
+// hitch). Painter order = OverworldGen.TERRAIN index (deep water … rocky): upper terrains'
+// transparent dual-grid corners reveal the one below. Each material draws its own untinted
+// spr_terrain* sprite into its own VBO with its own texture, so the tilesets needn't share a
+// texture page.
 //
 // Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
 // top/left edge: interior from the chunk record, apron from the deterministic source
@@ -33,7 +34,9 @@ globalThis.TerrainStream = class TerrainStream {
       const spr = asset_get_index(pal[i].sprite);
       if (!sprite_exists(spr)) {
         // GMRT: validate via sprite_exists, not >=0
-        Log.warn(`TerrainStream: ${pal[i].sprite} missing — overworld terrain off`);
+        Log.warn(
+          `TerrainStream: ${pal[i].sprite} missing — overworld terrain off`,
+        );
         this._ok = false;
         return;
       }
@@ -185,7 +188,8 @@ globalThis.TerrainStream = class TerrainStream {
   // Free every cached chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy).
   destroy() {
     const keys = Object.keys(this._cache);
-    for (let i = 0; i < keys.length; i++) this._destroyChunk(this._cache[keys[i]]);
+    for (let i = 0; i < keys.length; i++)
+      this._destroyChunk(this._cache[keys[i]]);
     this._cache = {};
   }
 };

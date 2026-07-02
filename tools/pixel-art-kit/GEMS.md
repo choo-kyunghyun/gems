@@ -87,9 +87,10 @@ drop/radar/floating-number cosmetics). Sprites stay foot-anchored (origin now 8,
 scale 1. (The `Platformer` minigame is unchanged — separate world, debug-box art, not the 16px set.)
 
 The committed `sprites/` are now **16px** too — the 13 entity sprites (`entity_sprites.py`) and the
-3 `spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`) were regenerated in place
-(deterministic uuids → churn-free re-runs). The migration is complete: regenerate any time by re-running
-the generators after editing a template.
+`spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`; 9 materials — deep water, water,
+sand, mud, soil, rich soil, grass, gravel, rocky) were regenerated in place (deterministic uuids →
+churn-free re-runs). The migration is complete: regenerate any time by re-running the generators
+after editing a template.
 
 **Not covered** (no procedural generator — outside the entity/terrain workflow): the lobby/editor UI
 icons `spr_back` / `spr_exit` / `spr_revert` (currently unused) and `spr_choo` / `spr_play` (the

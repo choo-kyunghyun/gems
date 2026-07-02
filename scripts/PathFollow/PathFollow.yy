@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PathFollow",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PathFollow",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PathFollow.js",
+}

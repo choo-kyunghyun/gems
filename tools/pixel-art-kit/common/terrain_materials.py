@@ -122,17 +122,42 @@ TERRAINS = {
               # lighter crest. No dark trough stripe.
               "tones": [(86, 116, 140), (86, 116, 140), (86, 116, 140), (120, 150, 165)],
               "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.04},
+    "deepwater": {"algo": "ripple", "seed": 31, "variants": 1,
+              # water's darker sibling (lake/sea centers); crest = water's base so the two read as one
+              # body. variants=1 like water — a continuous ripple must stay ONE seamless tile.
+              "tones": [(62, 88, 112), (62, 88, 112), (62, 88, 112), (86, 116, 140)],
+              "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.02},
     "sand":  {"algo": "grain", "seed": 23, "variants": 4,
               # RimWorld-earthy + calm: muted tan, sparse low-contrast specks (a clean backdrop, not
               # grainy static). See grass note below.
               "base": (168, 148, 106), "dark": (150, 132, 92), "light": (185, 166, 124),
               "density": 0.09},
+    "mud":   {"algo": "noise", "seed": 41, "variants": 4,
+              # wet dark grey-brown; big low-contrast blobs (L=4) read as damp puddled ground
+              "base": (96, 84, 68), "dark": (84, 74, 60), "light": (109, 96, 78),
+              "L": 4},
+    "soil":  {"algo": "grain", "seed": 43, "variants": 4,
+              # plain dry earth between sand and grass in tone; fine crumb speckle
+              "base": (140, 117, 88), "dark": (125, 104, 78), "light": (155, 131, 100),
+              "density": 0.10},
+    "richsoil": {"algo": "noise", "seed": 47, "variants": 4,
+              # dark fertile humus — deeper + warmer than soil, mottled organic blobs
+              "base": (110, 88, 64), "dark": (97, 77, 56), "light": (124, 101, 75),
+              "L": 6},
     "grass": {"algo": "blades", "seed": 7, "variants": 4,
               # RimWorld-earthy + calm: desaturated OLIVE (not bright green), sparse low-contrast
               # strokes so grass reads as a calm serious backdrop the muted entities sit on rather than
               # salt-and-pepper static. (Was bright (106,190,48) + dense = candy noise.)
               "base": (121, 130, 90), "dark": (107, 116, 80), "light": (138, 148, 104),
               "density": 0.10},
+    "gravel": {"algo": "grain", "seed": 59, "variants": 4,
+              # loose grey pebbles — denser speckle than sand so it reads coarse, not sandy
+              "base": (133, 129, 120), "dark": (112, 108, 100), "light": (152, 148, 138),
+              "density": 0.22},
+    "rocky": {"algo": "noise", "seed": 53, "variants": 4,
+              # bare stone — cooler + darker than gravel, wider thresholds for patchy rock faces
+              "base": (118, 116, 110), "dark": (100, 98, 93), "light": (136, 134, 127),
+              "L": 6, "dark_t": 0.28, "light_t": 0.74},
 }
 VARIANTS = 4  # default if a terrain omits "variants"
 

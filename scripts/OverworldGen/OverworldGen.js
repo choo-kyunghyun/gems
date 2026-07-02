@@ -8,8 +8,8 @@
 //   generate -> { terrain: Int[cols*rows], walls/solid: [[gx,gy,w,h]...], spawns: [...] }
 //   terrain  -> per-cell material-id grid (value-noise biome, see TERRAIN), pure in absolute coords
 //               so chunks agree at seams.
-//   solid    -> greedy-meshed rects of impassable cells (water) → collide-only colliders, so water
-//               blocks the player AND feeds NavGrid.
+//   solid    -> greedy-meshed rects of impassable cells (deep water; shallow water is wadeable)
+//               → collide-only colliders that block bodies AND feed NavGrid.
 //
 // Determinism comes from a per-chunk seed fed to a MINSTD LCG (see PRNG note below — GMRT
 // miscompiles xorshift). GMRT-safe: index loops, Object.keys (no Map/Set for-of), class on globalThis.
@@ -67,13 +67,27 @@ globalThis.OverworldGen = class OverworldGen {
     return this._material(ax, ay);
   }
 
-  // true if walkable (pathCost !== null); the single "can stand here" source for spawns + the solid mesh
+  // true if walkable (pathCost !== null — only deep water blocks); feeds the solid mesh
   _passable(ax, ay) {
     return OverworldGen.TERRAIN[this._material(ax, ay)].pathCost !== null;
   }
 
-  // Greedy-mesh impassable cells (water) into the fewest [gx,gy,w,h] rects, so ChunkManager makes one
-  // collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
+  // per-cell terrain movement cost (1 = easy … Infinity = impassable) — NavGrid's weight sampler
+  // + PathFollow's speed pricing, routed through ChunkSource.costAt
+  costAt(ax, ay) {
+    const c = OverworldGen.TERRAIN[this._material(ax, ay)].pathCost;
+    return c === null ? Infinity : c;
+  }
+
+  // spawn placement: walkable AND not water — nothing should spawn swimming (wading is for
+  // travel, not homes), and deep water has a collider a dynamic body would snag in
+  _spawnable(ax, ay) {
+    const c = OverworldGen.TERRAIN[this._material(ax, ay)].pathCost;
+    return c !== null && c < OverworldGen.WATER_COST;
+  }
+
+  // Greedy-mesh impassable cells (deep water) into the fewest [gx,gy,w,h] rects, so ChunkManager
+  // makes one collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
   // project_tile_collider_seams). Pure in (cx, cy, seed); returns [] when nothing is impassable.
   solidTerrain(cx, cy) {
     const cc = this.chunkCols;
@@ -118,17 +132,34 @@ globalThis.OverworldGen = class OverworldGen {
     return rects;
   }
 
-  // threshold the noise into a material id (index into TERRAIN, ascending thresholds)
+  // Cell material id (index into TERRAIN) from TWO noise channels. The ELEVATION channel thresholds
+  // the biome noise into the water-depth/shore gradient (`threshold` entries, ascending); any cell
+  // past the last threshold is LAND, where an independent GROUND-detail channel (`ground` entries,
+  // ascending) picks the surface material — so soil/mud/rock patches vary freely across the land
+  // instead of ringing every shoreline as fixed contour bands (what one shared gradient would do).
   _material(ax, ay) {
-    const n = this._noise(ax, ay);
     const pal = OverworldGen.TERRAIN;
-    for (let i = 0; i < pal.length; i++) if (n < pal[i].threshold) return i;
-    return pal.length - 1;
+    const n = this._noise(ax, ay);
+    let i = 0;
+    // GMRT: while, not for (empty-initializer for crashes the compiler)
+    while (pal[i].threshold !== undefined) {
+      if (n < pal[i].threshold) return i;
+      i++;
+    }
+    const g = this._noise(
+      ax,
+      ay,
+      OverworldGen.GROUND_SALT,
+      OverworldGen.GROUND_LATTICE,
+    );
+    while (i < pal.length - 1 && g >= pal[i].ground) i++;
+    return i;
   }
 
-  // value noise in [0,1): smoothstep-interpolated over a coarse hashed lattice; pure in (ax, ay, seed)
-  _noise(ax, ay) {
-    const L = OverworldGen.LATTICE;
+  // value noise in [0,1): smoothstep-interpolated over a coarse hashed lattice; pure in
+  // (ax, ay, seed, salt) — `salt` selects an independent channel, `lattice` its blob scale
+  _noise(ax, ay, salt = 0, lattice = OverworldGen.LATTICE) {
+    const L = lattice;
     const fx = ax / L;
     const fy = ay / L;
     const ix = Math.floor(fx);
@@ -137,10 +168,10 @@ globalThis.OverworldGen = class OverworldGen {
     let ty = fy - iy;
     tx = tx * tx * (3 - 2 * tx); // smoothstep for blobby, non-grid-aligned regions
     ty = ty * ty * (3 - 2 * ty);
-    const v00 = this._hash(ix, iy);
-    const v10 = this._hash(ix + 1, iy);
-    const v01 = this._hash(ix, iy + 1);
-    const v11 = this._hash(ix + 1, iy + 1);
+    const v00 = this._hash(ix, iy, salt);
+    const v10 = this._hash(ix + 1, iy, salt);
+    const v01 = this._hash(ix, iy + 1, salt);
+    const v11 = this._hash(ix + 1, iy + 1, salt);
     const a = v00 + (v10 - v00) * tx;
     const b = v01 + (v11 - v01) * tx;
     return a + (b - a) * ty;
@@ -148,9 +179,9 @@ globalThis.OverworldGen = class OverworldGen {
 
   // hash a lattice point to [0,1) — MINSTD integer-float math (no bitwise chain, which GMRT
   // miscompiles); every product stays < 2^53, so it's exact
-  _hash(ix, iy) {
+  _hash(ix, iy, salt = 0) {
     const M = 2147483647;
-    let h = this.seed % M;
+    let h = (this.seed + (salt | 0)) % M;
     h = (((h * 31 + (ix | 0) * 1900613) % M) + M) % M;
     h = (((h * 31 + (iy | 0) * 7368787) % M) + M) % M;
     h = (h * 48271) % M;
@@ -176,8 +207,8 @@ globalThis.OverworldGen = class OverworldGen {
     }
     for (let i = 0; i < p.spawns.length; i++) {
       const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
-      // don't drop a dynamic enemy into water — it'd snag in the collider
-      if (s.preset === "raider" && !this._passable(s.gx, s.gy)) continue;
+      // keep a spawned enemy off water (no swimming spawns; deep water would snag it)
+      if (s.preset === "raider" && !this._spawnable(s.gx, s.gy)) continue;
       spawns.push(s);
     }
   }
@@ -242,8 +273,8 @@ globalThis.OverworldGen = class OverworldGen {
     for (let i = 0; i < rats; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));
       const ly = 1 + Math.floor(rng() * (cr - 2));
-      // skip impassable terrain — a dynamic body inside a water collider snags
-      if (!this._passable(gx0 + lx, gy0 + ly)) continue;
+      // keep wildlife off water (no swimming spawns; deep water would snag it)
+      if (!this._spawnable(gx0 + lx, gy0 + ly)) continue;
       spawns.push({
         preset: "rat",
         gx: gx0 + lx,
@@ -288,20 +319,36 @@ globalThis.OverworldGen = class OverworldGen {
   }
 };
 
-// Biome palette: material id = index; ascending `threshold` over the value noise (water → grass).
+// Biome palette: material id = index = painter order (TerrainStream stacks cumulatively, so each
+// upper terrain's dual border reveals the one below). Two threshold kinds (see _material): the
+// `threshold` entries are the ELEVATION gradient (ascending over the biome noise — deep water →
+// water → sand; past the last one the cell is land), the `ground` entries (ascending over the
+// independent ground-detail noise) split the land — grass dominant, with wet depressions
+// (richsoil → soil → mud going in) and rock outcrops (gravel ringing rocky) as patchy features.
 // `sprite` is the untinted dual-grid tileset TerrainStream renders the layer with; `color` is the
-// design-reference tint (no longer drawn — real colored art now). Cumulative-stacked, so each upper
-// terrain's dual border reveals the one below. `pathCost` follows TileType (null → impassable →
-// collide-only collider per chunk via solidTerrain; walkable = 1, so nav stays binary).
-// Assigned after the class (not a static initializer) — GMRT static-field-init quirk.
+// design-reference tint (no longer drawn — real colored art now). `pathCost` is the WEIGHTED
+// movement cost (TileType convention: null → impassable): it prices both pathfinding (NavGrid
+// samples it, MotionPlanner multiplies step distance by it) and movement-point consumption
+// (PathFollow.speedScale — a mover's speed × 1/cost). Easy ground 1, loose 1.5, rough 2; shallow
+// water is WADEABLE at 3 (slow, and A* only wades when it beats walking around); only deep water
+// is null → a collide-only collider per chunk via solidTerrain. Assigned after the class (not a
+// static initializer) — GMRT static-field-init quirk.
 OverworldGen.TERRAIN = [
+  {
+    id: "deepwater",
+    name: "Deep Water",
+    color: "#3e5870",
+    sprite: "spr_terrainDeepwater",
+    threshold: 0.22,
+    pathCost: null,
+  },
   {
     id: "water",
     name: "Water",
     color: "#2e6b8f",
     sprite: "spr_terrainWater",
     threshold: 0.32,
-    pathCost: null,
+    pathCost: 3,
   },
   {
     id: "sand",
@@ -309,6 +356,30 @@ OverworldGen.TERRAIN = [
     color: "#c2a878",
     sprite: "spr_terrainSand",
     threshold: 0.5,
+    pathCost: 1.5,
+  },
+  {
+    id: "mud",
+    name: "Mud",
+    color: "#605444",
+    sprite: "spr_terrainMud",
+    ground: 0.16,
+    pathCost: 2,
+  },
+  {
+    id: "soil",
+    name: "Soil",
+    color: "#8c7558",
+    sprite: "spr_terrainSoil",
+    ground: 0.3,
+    pathCost: 1,
+  },
+  {
+    id: "richsoil",
+    name: "Rich Soil",
+    color: "#6e5840",
+    sprite: "spr_terrainRichsoil",
+    ground: 0.36,
     pathCost: 1,
   },
   {
@@ -316,24 +387,49 @@ OverworldGen.TERRAIN = [
     name: "Grass",
     color: "#5d8a46",
     sprite: "spr_terrainGrass",
-    threshold: Infinity,
+    ground: 0.76,
     pathCost: 1,
   },
+  {
+    id: "gravel",
+    name: "Gravel",
+    color: "#858178",
+    sprite: "spr_terrainGravel",
+    ground: 0.86,
+    pathCost: 1.5,
+  },
+  {
+    id: "rocky",
+    name: "Rocky",
+    color: "#76746e",
+    sprite: "spr_terrainRocky",
+    ground: Infinity,
+    pathCost: 2,
+  },
 ];
+// water's cost — the "swimming" line _spawnable keeps spawns under (kept in sync with the table)
+OverworldGen.WATER_COST = 3;
 
 // Design-reference material palette (full set by id + name + intended tint). TERRAIN above is the
-// currently-WIRED subset; entries here (e.g. thinice/ice — climate variants) await promotion into
-// the active gradient. Assigned after the class — GMRT static-field-init quirk.
+// currently-WIRED subset; the remaining entries (thinice/ice — climate variants; barren/jungle)
+// await promotion into the active gradient. Assigned after the class — GMRT static-field-init quirk.
 OverworldGen.PALETTE = [
   { id: "water", name: "Water", color: "#639bff" },
   { id: "deepwater", name: "Deep Water", color: "#5b6ee1" },
   { id: "thinice", name: "Thin Ice", color: "#cbdbfc" },
   { id: "ice", name: "Ice", color: "#5fcde4" },
   { id: "sand", name: "Sand", color: "#eec39a" },
+  { id: "mud", name: "Mud", color: "#695444" },
   { id: "soil", name: "Soil", color: "#8f563b" },
   { id: "barren", name: "Barren", color: "#d9a066" },
   { id: "richsoil", name: "Rich Soil", color: "#663931" },
   { id: "grass", name: "Grass", color: "#6abe30" },
   { id: "jungle", name: "Jungle", color: "#37946e" },
+  { id: "gravel", name: "Gravel", color: "#9badb7" },
+  { id: "rocky", name: "Rocky", color: "#847e87" },
 ];
 OverworldGen.LATTICE = 10; // value-noise lattice spacing in cells (bigger = larger biome blobs)
+// ground-detail channel: independent land-material noise (see _material). Smaller lattice = smaller
+// patches than the biome blobs; the salt just decorrelates it from the elevation channel.
+OverworldGen.GROUND_LATTICE = 6;
+OverworldGen.GROUND_SALT = 1013904223;
