@@ -5,9 +5,9 @@
 // `_invDirty`. The enemy set is derived LIVE by Faction (hostile to the player) so chunk streaming
 // needs no bookkeeping — allegiance is the single source of "who's an enemy", not a marker/tag.
 //
-// Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down), resolved in ONE
-// place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole authority
-// that removes/respawns/incapacitates.
+// Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
+// ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
+// authority that removes/respawns/incapacitates/leaves a body.
 globalThis.RpgScene = {
   // live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
   // (followers/turrets, player faction) and neutral props (no Faction) are excluded.
@@ -62,7 +62,8 @@ globalThis.RpgScene = {
   // configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
   // flush, so a despawning entity is still readable for its loot. Handlers `h` (all optional):
   //   spill { yBase, ySpread } — loot scatter for "despawn"
-  //   onDespawn(id)            — per-kill genre effects
+  //   onKill(id)               — per-kill genre effects ("despawn" + "corpse", before the body
+  //                              is transformed — the entity's components are still readable)
   //   onRespawn(id)            — reposition a "respawn" entity after refill
   //   downSpot(id) → {x,y}     — recovery spot for a "down" entity
   //   onDown(id)               — fired when an entity enters Down
@@ -79,8 +80,11 @@ globalThis.RpgScene = {
       const m = world.get(Mortal, id);
       if (m.kind === "despawn") {
         RpgScene.spillLoot(scene, id, h.spill);
-        if (h.onDespawn !== undefined) h.onDespawn(id);
+        if (h.onKill !== undefined) h.onKill(id);
         world.remove(id);
+      } else if (m.kind === "corpse") {
+        if (h.onKill !== undefined) h.onKill(id); // before the transform strips components
+        RpgScene._toCorpse(scene, id);
       } else if (m.kind === "respawn") {
         const st = world.get(Stats, id);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
@@ -140,6 +144,51 @@ globalThis.RpgScene = {
       world.detach(id, Downed);
       scene._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
       if (h.onRecover !== undefined) h.onRecover(id);
+    }
+  },
+
+  // transform a "corpse"-kind entity IN PLACE into a lootable body: strip the combatant —
+  // Health/Stats/AI/Faction (targeting, the death scan and CombatAI aggro all key on those) —
+  // make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
+  // so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
+  // the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
+  // Species markers (Raider/Rat — radar blips) are the scene's to drop in onKill, not ours.
+  _toCorpse(scene, id) {
+    const world = scene.world;
+    world.detach(id, Health);
+    world.detach(id, Mortal); // dead once — this pass is done with it
+    world.detach(id, Stats);
+    world.detach(id, Brain); // CombatAI off
+    world.detach(id, State);
+    world.detach(id, Velocity); // no integrator touches it again
+    world.detach(id, PrevPosition); // renderers lerp Prev→Pos when present — a stale one offsets the draw
+    world.detach(id, Faction);
+    world.detach(id, Animator); // stop the state machine writing subimg
+    const col = world.get(Collision, id);
+    if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight
+    const vis = world.get(Visual, id);
+    if (vis !== undefined) {
+      vis.alpha = 0.4; // dimmed = dead (the Downed convention; Appearance layers share alpha)
+      vis.speed = 0; // freeze self-animating sprites (rat scuttle)
+      vis.subimg = 0; // neutral contact pose
+      vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
+    }
+    world.add(id, Interaction, { kind: "corpse" });
+    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+  },
+
+  // remove looted-empty corpses (deferred remove; the tick's flush commits). Emptying one with
+  // its window open is safe: Interactable range-closes when the entity's Position vanishes and
+  // StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
+  // corpses — behaviorally the old despawn.
+  reapCorpses(scene) {
+    const world = scene.world;
+    const ids = world.query(Interaction);
+    for (let i = 0; i < ids.length; i++) {
+      const it = world.get(Interaction, ids[i]);
+      if (it === undefined || it.kind !== "corpse") continue;
+      const inv = world.get(Inventory, ids[i]);
+      if (inv === undefined || inv.slots.length === 0) world.remove(ids[i]);
     }
   },
 

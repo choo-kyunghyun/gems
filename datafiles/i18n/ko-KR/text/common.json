@@ -185,6 +185,7 @@
   "STORAGE_BAG": "가방",
   "STORAGE_BOX": "상자",
   "STORAGE_PROMPT": "[E] 상자 열기",
+  "CORPSE_PROMPT": "[E] 시체 뒤지기",
   "STORAGE_EMPTY": "(비어 있음)",
   "STORAGE_HINT": "더블 클릭하여 이동 (묶음은 수량 선택)",
   "STORAGE_TAKE_ALL": "모두 가져오기",

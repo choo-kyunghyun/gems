@@ -335,10 +335,10 @@ class _SceneRpgClass extends Level {
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
-      // hp-0 reactions by each entity's Mortal kind: despawn / respawn / down (recovers below)
+      // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
       RpgScene.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 14 },
-        onDespawn: (id) => {
+        onKill: (id) => {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_explosion", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
@@ -347,6 +347,10 @@ class _SceneRpgClass extends Level {
           const kind = this.world.get(Rat, id) !== undefined ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
           this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
+          // the "corpse" kind leaves the body in the world — drop its species marker so the
+          // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
+          this.world.detach(id, Raider);
+          this.world.detach(id, Rat);
           Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
         },
         onRespawn: (id) => {
@@ -380,16 +384,10 @@ class _SceneRpgClass extends Level {
           });
         },
       });
-      RpgScene.collectDrops(this, (itemId, got) => {
-        const pp = this.world.get(Position, this.ctrl.id);
-        if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
-        Profile.add("itemsCollected", got);
-        this._reportAchievements("itemsCollected");
-        QuestLog.report("collect", itemId, got);
-        Log.info(
-          `picked up ${got}x ${itemId} — items=${Profile.get("itemsCollected")}`,
-        );
-      });
+      RpgScene.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
+      RpgScene.collectDrops(this, (itemId, got) =>
+        this._onCollect(itemId, got),
+      );
       this._checkReach(); // reach-quest zone
       this._tryTurnIn(RpgQuests.QUEST_GATHER); // passive quests auto-complete
       this._tryTurnIn(RpgQuests.QUEST_REACH);
@@ -516,6 +514,19 @@ class _SceneRpgClass extends Level {
   _markGone(id) {
     const pc = this.world.get(Persistent, id);
     if (pc !== undefined) this._gone[pc.uid] = true;
+  }
+
+  // pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
+  // "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
+  _onCollect(itemId, got) {
+    const pp = this.world.get(Position, this.ctrl.id);
+    if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
+    Profile.add("itemsCollected", got);
+    this._reportAchievements("itemsCollected");
+    QuestLog.report("collect", itemId, got);
+    Log.info(
+      `picked up ${got}x ${itemId} — items=${Profile.get("itemsCollected")}`,
+    );
   }
 
   // F: toggle the nearest in-reach companion between follow and wait (a "wait" one stays stationed in this map)

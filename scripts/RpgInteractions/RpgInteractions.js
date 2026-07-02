@@ -22,6 +22,19 @@ globalThis.RpgInteractions = {
         },
       },
       {
+        // lootable body left by a "corpse"-kind Mortal (RpgScene._toCorpse) — the standard
+        // storage window over the body's Inventory, with takes counted as pickups (the same
+        // quest/achievement credit as ground drops; StorageUI.close clears the hook)
+        id: "corpse",
+        prompt: "CORPSE_PROMPT",
+        run(ctx) {
+          ctx.scene._interOpenId = ctx.id;
+          ctx.scene._storeOnTake = (itemId, qty) =>
+            ctx.scene._onCollect(itemId, qty);
+          StorageUI.open(ctx.scene, ctx.id);
+        },
+      },
+      {
         id: "workbench",
         prompt: "CRAFT_PROMPT",
         run(ctx) {

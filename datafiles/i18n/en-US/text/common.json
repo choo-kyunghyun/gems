@@ -185,6 +185,7 @@
   "STORAGE_BAG": "Bag",
   "STORAGE_BOX": "Chest",
   "STORAGE_PROMPT": "[E] Open chest",
+  "CORPSE_PROMPT": "[E] Loot corpse",
   "STORAGE_EMPTY": "(empty)",
   "STORAGE_HINT": "Double-click to transfer (pick an amount for stacks)",
   "STORAGE_TAKE_ALL": "Take All",

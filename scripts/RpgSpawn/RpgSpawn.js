@@ -99,7 +99,7 @@ globalThis.RpgSpawn = {
         defense: 0,
         speed: 45,
       });
-      world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
+      world.add(id, Mortal, { kind: "corpse" }); // hp 0 → lootable body, reaped when emptied (RpgScene)
       world.add(id, Raider, {}); // species marker (radar color + kill-quest type)
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Raider" });
@@ -128,7 +128,7 @@ globalThis.RpgSpawn = {
       return id;
     } else if (s.preset === "rat") {
       // Wildlife (OverworldGen scatter): a weaker raider — smaller/less hp/quicker — but the SAME
-      // mobile-melee CombatAI + despawn Mortal.
+      // mobile-melee CombatAI + corpse Mortal.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
       world.add(id, BBox, RpgSpawn._box(-5, -5, 10, 10, k));
@@ -146,7 +146,7 @@ globalThis.RpgSpawn = {
         defense: 0,
         speed: 60,
       });
-      world.add(id, Mortal, { kind: "despawn" }); // hp 0 → spill loot + remove (RpgScene)
+      world.add(id, Mortal, { kind: "corpse" }); // hp 0 → lootable body, reaped when emptied (RpgScene)
       world.add(id, Rat, {}); // species marker (radar color + kill-quest type)
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Rat" });

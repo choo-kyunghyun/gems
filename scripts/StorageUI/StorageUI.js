@@ -22,13 +22,19 @@ globalThis.StorageUI = {
       padding: margin,
       alignItems: "center",
     });
-    host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+    host.addComponent(
+      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+    );
     host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._storeWin = host;
     scene._storeWin.enabled = false;
     scene.ui.insertChild(scene._storeWin);
 
-    const inner = new UIElement({ width: "100%", maxWidth: 1100, height: "100%" });
+    const inner = new UIElement({
+      width: "100%",
+      maxWidth: 1100,
+      height: "100%",
+    });
     const card = gemsCard({
       width: "100%",
       flexGrow: 1,
@@ -204,6 +210,7 @@ globalThis.StorageUI = {
     scene._storeOpen = false;
     scene._storeWin.enabled = false;
     scene._storageId = -1;
+    scene._storeOnTake = undefined; // per-open hook (corpse looting) never outlives the window
     // dismiss a dangling amount picker if the window closed under it
     if (scene._storeQtyModal !== null && scene._storeQtyModal !== undefined)
       scene._storeQtyModal.close();
@@ -327,7 +334,13 @@ globalThis.StorageUI = {
         const hb = world.get(Hotbar, scene.ctrl.id);
         if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
       }
-    } else StorageUI._transfer(scene, box, bag, row.idx, amount);
+    } else {
+      const moved = StorageUI._transfer(scene, box, bag, row.idx, amount);
+      // optional take hook (set by the opener, e.g. corpse looting reports pickup credit);
+      // a plain chest never sets it, so withdrawing can't farm collect quests
+      if (moved > 0 && scene._storeOnTake !== undefined)
+        scene._storeOnTake(row.itemId, moved);
+    }
   },
 
   // move up to `amount` of slot `idx` src→dst (capped at what fits). `amount` only bounds a
@@ -378,7 +391,8 @@ globalThis.StorageUI = {
         StorageUI._equipKeep(scene),
         StorageUI._storeBlocked(scene, true), // bulk store protects hotbar items too
       );
-    else StorageUI._transferAll(scene, box, bag, null, null);
+    else
+      StorageUI._transferAll(scene, box, bag, null, null, scene._storeOnTake);
   },
 
   // items excluded from storing out of the bag, flat { itemId: true }. favorited always blocked;
@@ -412,8 +426,9 @@ globalThis.StorageUI = {
   },
 
   // `keep` ({ uid: true } or null) = equipped instances to leave behind; `blocked` ({ itemId: true }
-  // or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as fits.
-  _transferAll(scene, srcInv, dstInv, keep, blocked) {
+  // or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as
+  // fits. `onMoved(itemId, qty)` (optional) fires per stack moved — the take-direction hook.
+  _transferAll(scene, srcInv, dstInv, keep, blocked, onMoved) {
     let total = 0;
     let i = 0;
     while (i < srcInv.slots.length) {
@@ -432,6 +447,7 @@ globalThis.StorageUI = {
         if (InventorySystem.addSlot(dstInv, s)) {
           srcInv.slots.splice(i, 1); // moved by reference — next slot shifts into i, don't advance
           total += 1;
+          if (onMoved !== undefined) onMoved(s.itemId, 1);
           continue;
         }
         i++; // dst full — leave it
@@ -441,6 +457,7 @@ globalThis.StorageUI = {
       const moved = s.qty - leftover;
       if (moved > 0) {
         total += moved;
+        if (onMoved !== undefined) onMoved(s.itemId, moved);
         s.qty -= moved;
         if (s.qty <= 0) {
           srcInv.slots.splice(i, 1); // emptied — next slot shifts into i, don't advance
