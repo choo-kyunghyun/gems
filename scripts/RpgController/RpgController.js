@@ -239,9 +239,15 @@ globalThis.RpgController = {
   },
 
   // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
-  // gun profile; `slot.rounds` is decremented. An empty clip auto-reloads; a dry gun doesn't fire (no cooldown).
+  // gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
+  // chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
   _fireGun(world, ctrl, slot, wpn, dir, attack) {
-    if (wpn.noAmmo) return; // nothing loaded
+    if (wpn.noAmmo) {
+      // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
+      // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
+      if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;
+      wpn = EquipmentSystem.composeWeapon(slot);
+    }
     if (slot.rounds <= 0) {
       // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
       if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;

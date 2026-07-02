@@ -113,7 +113,11 @@ globalThis.EquipmentSystem = {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
     if (gun === undefined) return 0;
-    if (slot.ammo === undefined || slot.ammo === "") return 0;
+    // fresh gun (no ammo TYPE chosen yet): auto-load the first caliber-compatible ammo in the
+    // bag, so R fires a new gun without the Toolkit panel (deliberate type switching stays there).
+    if (slot.ammo === undefined || slot.ammo === "")
+      slot.ammo = this._firstAmmo(inv, gun.caliber);
+    if (slot.ammo === "") return 0;
     if (slot.rounds === undefined) slot.rounds = 0;
     const cap = this.composeWeapon(slot).magazine; // composed clip (incl. extended-mag attachment)
     const need = cap - slot.rounds;
@@ -154,6 +158,17 @@ globalThis.EquipmentSystem = {
     }
     this.reloadSlot(inv, slot);
     return true;
+  },
+
+  // First caliber-compatible Ammo itemId in `inv` (slot order), or "" when none owned.
+  _firstAmmo(inv, caliber) {
+    for (let i = 0; i < inv.slots.length; i++) {
+      const it = Item.get(inv.slots[i].itemId);
+      const am = it !== undefined ? it.getComponent(Ammo) : undefined;
+      if (am !== undefined && am.caliber === caliber)
+        return inv.slots[i].itemId;
+    }
+    return "";
   },
 
   // Installed-attachment ops layers for an instance slot (order-independent).
