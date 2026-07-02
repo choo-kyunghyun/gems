@@ -247,6 +247,10 @@
   "ACH_COLLECTOR_DESC": "아이템을 10개 획득했다.",
   "ACH_QUESTER_NAME": "생존자",
   "ACH_QUESTER_DESC": "퀘스트를 처음 완료했다.",
+  "ACH_TIME_SKIP_NAME": "메이드 인 헤븐",
+  "ACH_TIME_SKIP_DESC": "침대를 사용하여 세계의 시간을 가속하였다.",
+  "ACH_HOME_BUILDER_NAME": "Galvanized Square Steel",
+  "ACH_HOME_BUILDER_DESC": "방을 만들고 침대를 배치하였다.",
 
   "RARITY_COMMON": "일반",
   "RARITY_UNCOMMON": "고급",

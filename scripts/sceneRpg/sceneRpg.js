@@ -1,7 +1,8 @@
 const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
 const RPG_TRADE_RANGE = 64; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
 const RPG_START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
-const RPG_SLEEP_SCALE = 6; // Time.scale while sleeping in a bed (fast-forward; capped by World.sim.maxTicks)
+const RPG_SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
+const RPG_SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
 const RPG_SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const RPG_HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
@@ -68,6 +69,7 @@ class _SceneRpgClass extends Level {
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
     this._hotbarSlide = 0; // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
     this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see _sleep)
+    this._sleepPeaked = false; // this sleep session already hit the Time.scale ceiling (td_time_skip)
     this.nearNpc = false;
     this.dialogueName = "";
     this.dialogueLine = "";
@@ -249,7 +251,20 @@ class _SceneRpgClass extends Level {
         this._sleeping = false;
         Time.scale = 1;
       } else {
-        Time.scale = RPG_SLEEP_SCALE;
+        // ramp on Time.raw (wall clock — Time.delta is itself scaled): the fast-forward eases in
+        // instead of snapping, peaking at the ceiling in a few seconds
+        const s = Math.max(1, Time.scale) * (1 + RPG_SLEEP_ACCEL * Time.raw);
+        if (s >= RPG_SLEEP_SCALE_MAX) {
+          Time.scale = RPG_SLEEP_SCALE_MAX;
+          // hitting the ceiling IS the td_time_skip trigger — once per sleep session
+          if (!this._sleepPeaked) {
+            this._sleepPeaked = true;
+            Profile.add("sleepFastForwards", 1);
+            this._reportAchievements("sleepFastForwards");
+          }
+        } else {
+          Time.scale = s;
+        }
       }
     }
     this._sleepOverlay.enabled = this._sleeping;
@@ -579,10 +594,11 @@ class _SceneRpgClass extends Level {
     );
   }
 
-  // start sleeping (the "bed" InteractAction's E routes here); step() fast-forwards time until _wakeInput.
-  // costs water/food (those needs keep rising at the accelerated rate).
+  // start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
+  // _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
   _sleep() {
     this._sleeping = true;
+    this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
   }
 
   // any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;

@@ -32,6 +32,19 @@ globalThis.RpgAchievements = {
         name: "ACH_QUESTER_NAME",
         desc: "ACH_QUESTER_DESC",
       },
+      {
+        id: "td_time_skip",
+        name: "ACH_TIME_SKIP_NAME",
+        desc: "ACH_TIME_SKIP_DESC",
+      },
+      // Placeholder — def only, no trigger rule yet (stays Locked until a gameplay site reports
+      // it; the Debug panel's Unlock All covers testing). Planned trigger: building a room +
+      // placing a bed (needs room detection).
+      {
+        id: "td_home_builder",
+        name: "ACH_HOME_BUILDER_NAME",
+        desc: "ACH_HOME_BUILDER_DESC",
+      },
     ]);
   },
 
@@ -44,6 +57,8 @@ globalThis.RpgAchievements = {
     ],
     itemsCollected: [{ at: 10, id: "td_collector" }],
     questsCompleted: [{ at: 1, id: "td_quester" }],
+    // bumped by sceneRpg when a sleep's Time.scale ramp hits the ×20 ceiling
+    sleepFastForwards: [{ at: 1, id: "td_time_skip" }],
   },
 
   // The trigger: a gameplay site reports a counter it just changed (key + new value); every met
