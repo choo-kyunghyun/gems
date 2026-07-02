@@ -9,10 +9,23 @@ globalThis.SolidSystem = {
   update(world) {
     const dt = World.sim.tickDuration;
 
+    // Per-tick snapshot of the kinematic solids: edges + oneWay baked into flat records, so the
+    // body×static resolve loop below reads plain fields — no AABB.of / world.get per test. Those
+    // per-test Map lookups + edge allocs were ~70% of the RPG's tick cost (profiled 2026-07-02:
+    // ~20 bodies × ~90 statics × 2 axes ≈ 8ms/tick). Statics can't move mid-update, so a
+    // once-per-tick capture is exact.
     const statics = [];
     for (const id of world.query(Collision, Position, BBox)) {
       const col = world.get(Collision, id);
-      if (col.solid && col.kinematic) statics.push(id);
+      if (!col.solid || !col.kinematic) continue;
+      const e = AABB.of(world, id);
+      statics.push({
+        x1: e.x1,
+        y1: e.y1,
+        x2: e.x2,
+        y2: e.y2,
+        oneWay: col.oneWay === true,
+      });
     }
 
     for (const id of world.query(Collision, Position, BBox, Velocity)) {
@@ -36,20 +49,10 @@ globalThis.SolidSystem = {
 
       for (let s = 0; s < steps; s++) {
         pos.x += sx;
-        if (this._resolve(world, id, pos, box, col, statics, sx, true) !== 0)
-          vel.x = 0;
+        if (this._resolve(pos, box, col, statics, sx, true) !== 0) vel.x = 0;
 
         pos.y += sy;
-        const pushY = this._resolve(
-          world,
-          id,
-          pos,
-          box,
-          col,
-          statics,
-          sy,
-          false,
-        );
+        const pushY = this._resolve(pos, box, col, statics, sy, false);
         if (pushY !== 0) {
           if (pushY > 0) grounded = true; // pushed up = standing on floor
           vel.y = 0;
@@ -66,18 +69,19 @@ globalThis.SolidSystem = {
   },
 
   // push body out of overlapping statics along one axis (deepest correction wins).
+  // `statics` is update()'s per-tick snapshot (precomputed edges + oneWay flag), so the loop is
+  // flat field reads — keep it free of world.get / AABB.of (the profiled hot spot).
   // returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
   // for Y, +1 means grounded.
-  _resolve(world, id, pos, box, colMover, statics, v, isX) {
+  _resolve(pos, box, colMover, statics, v, isX) {
     const a = AABB.edges(pos, box);
 
     let correction = 0;
 
-    for (const sid of statics) {
-      const b = AABB.of(world, sid);
+    for (let i = 0; i < statics.length; i++) {
+      const b = statics[i];
 
-      const sCol = world.get(Collision, sid);
-      if (sCol && sCol.oneWay) {
+      if (b.oneWay) {
         // jump-through platform: only blocks downward landing.
         // never push horizontally — sideways ejection was caused by that.
         // oneWayTol lets a resting body avoid slipping through on a sub-pixel sink.

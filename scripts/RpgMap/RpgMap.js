@@ -483,6 +483,10 @@ globalThis.RpgMap = {
     // build. NOTE: this does NOT make a wide SIM window affordable — at simRadius:2 the step is still
     // ~260ms because SolidSystem (move-and-collide, O(bodies×colliders), NOT broadphase-backed)
     // dominates; making SolidSystem broadphase-aware is the prerequisite for dropping the freeze tier.
+    // UPDATE 2026-07-02 (later): SolidSystem now snapshots static edges+oneWay once per tick, so its
+    // resolve loop is flat field reads — measured ~8.5→~1.2ms/tick at simRadius:1 (tick loop
+    // ~3-4ms/frame, 60fps+ restored). The loop is still LINEAR over all statics, so the guidance
+    // stands: widening simRadius still wants spatial bucketing of the static snapshot first.
     scene.world.broadphase = new Broadphase(
       scene.level.cols * scene.level.cellWidth,
       scene.level.rows * scene.level.cellHeight,
