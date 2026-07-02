@@ -3,7 +3,8 @@
 // E runs its action. The action itself is data (InteractAction registry, RPG set in RpgInteractions),
 // so this engine is generic dispatch, not a per-kind switch — from opening a window to feeding the
 // player. Activation is E, not left-click, because combat fires on left-click (the mouse only CHOOSES
-// the target). mouse_x/mouse_y are world-space here. Per-frame/open state lives on the scene (_inter*).
+// the target). The world cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch — NOT
+// mouse_x/mouse_y, which are wrong under the pitched camera). Per-frame/open state on the scene (_inter*).
 // Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
 globalThis.Interactable = {
   RADIUS: 36, // interact range (px); 16px-cell scale, see GEMS.md
@@ -102,7 +103,11 @@ globalThis.Interactable = {
     if (id === -1) return false;
     const pos = scene.world.get(Position, id);
     if (pos === undefined) return false;
-    return Interactable._mouseInside(pos, scene.world.get(BBox, id));
+    return Interactable._mouseInside(
+      pos,
+      scene.world.get(BBox, id),
+      scene.mouseWorld,
+    );
   },
 
   // pick target = station under the mouse (if in range), else nearest in range
@@ -131,8 +136,11 @@ globalThis.Interactable = {
         nearestSq = dPlayer;
         nearest = id;
       }
-      if (Interactable._mouseInside(pos, world.get(BBox, id))) {
-        const dMouse = (pos.x - mouse_x) ** 2 + (pos.y - mouse_y) ** 2;
+      if (
+        Interactable._mouseInside(pos, world.get(BBox, id), scene.mouseWorld)
+      ) {
+        const dMouse =
+          (pos.x - scene.mouseWorld.x) ** 2 + (pos.y - scene.mouseWorld.y) ** 2;
         if (dMouse < mouseSq) {
           mouseSq = dMouse;
           mousePick = id;
@@ -150,20 +158,16 @@ globalThis.Interactable = {
     }
   },
 
-  // true when the mouse is inside the entity's world BBox (offset from Position)
-  _mouseInside(pos, bbox) {
+  // true when the world cursor `m` ({x,y} — the scene's per-frame pitch-aware latch) is inside
+  // the entity's world BBox (offset from Position)
+  _mouseInside(pos, bbox, m) {
     if (bbox === undefined) return false;
     const w = bbox.width;
     const h = bbox.height;
     if (!(w > 0) || !(h > 0)) return false;
     const left = pos.x + bbox.x;
     const top = pos.y + bbox.y;
-    return (
-      mouse_x >= left &&
-      mouse_x <= left + w &&
-      mouse_y >= top &&
-      mouse_y <= top + h
-    );
+    return m.x >= left && m.x <= left + w && m.y >= top && m.y <= top + h;
   },
 
   _inRange(scene, id) {

@@ -99,9 +99,10 @@ globalThis.DebugInspector = class DebugInspector {
     if (!UIPointer.pressed) return;
 
     const cam = scene.camera;
-    const wx = DebugInspector._toWorldX(cam);
-    const wy = DebugInspector._toWorldY(cam);
-    const id = Query.nearest(world, wx, wy, {
+    // pitch-aware ground-plane unprojection (GUI cursor → world) — the old linear view-rect
+    // mapping ignored camera pitch (see Camera.unproject)
+    const cur = cam.cursorWorld();
+    const id = Query.nearest(world, cur.x, cur.y, {
       maxDist: DebugInspector.pickRadius,
     });
     if (id !== -1) DebugInspector.select(world, id);
@@ -121,8 +122,11 @@ globalThis.DebugInspector = class DebugInspector {
     const cam = scene.camera;
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
-    const sx = ((pos.x - (cam.toX - cam.width / 2)) / cam.width) * gw;
-    const sy = ((pos.y - (cam.toY - cam.height / 2)) / cam.height) * gh;
+    // world → surface px via the pitch-aware projection, then surface → GUI scale (the old
+    // linear view-rect mapping drew the marker off the entity under a pitched camera)
+    const p = cam.project(pos.x, pos.y, 0);
+    const sx = (p.x / surface_get_width(application_surface)) * gw;
+    const sy = (p.y / surface_get_height(application_surface)) * gh;
     const r = DebugInspector.markerR;
     const c = DebugInspector.highlightColor;
 
@@ -132,19 +136,5 @@ globalThis.DebugInspector = class DebugInspector {
     draw_line_color(sx - r, sy, sx + r, sy, c, c);
     draw_line_color(sx, sy - r, sx, sy + r, c, c);
     draw_set_alpha(a0);
-  }
-
-  // cursor (GUI px) -> world px via the camera's own view rect — camera_get_view_*
-  // returns 0 for the matrix-driven Camera (see CLAUDE.md). Assumes world view fills the GUI.
-  static _toWorldX(cam) {
-    const mx = device_mouse_x_to_gui(0);
-    return cam.toX - cam.width / 2 + (mx / display_get_gui_width()) * cam.width;
-  }
-
-  static _toWorldY(cam) {
-    const my = device_mouse_y_to_gui(0);
-    return (
-      cam.toY - cam.height / 2 + (my / display_get_gui_height()) * cam.height
-    );
   }
 };

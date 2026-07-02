@@ -196,8 +196,10 @@ globalThis.RpgController = {
         Math.abs(rx) <= RPG_STICK_DEADZONE &&
         Math.abs(ry) <= RPG_STICK_DEADZONE
       ) {
-        const adx = mouse_x - pos.x;
-        const ady = mouse_y - pos.y;
+        // scene-latched ground-plane cursor — NOT mouse_x/mouse_y, which are wrong under the
+        // pitched matrix camera (see Camera.unproject; sceneRpg.step latches ctrl.cursorX/Y)
+        const adx = ctrl.cursorX - pos.x;
+        const ady = ctrl.cursorY - pos.y;
         const adist = Math.sqrt(adx * adx + ady * ady) || 1;
         dir.x = adx / adist;
         dir.y = ady / adist;

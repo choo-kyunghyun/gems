@@ -132,6 +132,9 @@ globalThis.RpgPlayer = {
       nx = opts.nx / m;
       ny = opts.ny / m;
     } else {
+      // flat-camera fallback ONLY — mouse_x/mouse_y are wrong under the pitched matrix camera,
+      // so callers there must resolve the aim themselves (RpgController passes nx/ny from the
+      // scene-latched world cursor; see Camera.unproject)
       const dx = mouse_x - pos.x;
       const dy = mouse_y - muzzleY;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;

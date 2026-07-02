@@ -233,6 +233,13 @@ class _SceneRpgClass extends Level {
     }
     this._sleepOverlay.enabled = this._sleeping;
 
+    // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-
+    // plane unprojection — GMRT's own mouse_x/mouse_y are wrong under the pitched matrix camera
+    // (see Camera.unproject). Read by RpgController (via ctrl), BuildMode, Interactable.
+    this.mouseWorld = this.camera.cursorWorld();
+    this.ctrl.cursorX = this.mouseWorld.x;
+    this.ctrl.cursorY = this.mouseWorld.y;
+
     // edge toggle — once per frame, outside the tick loop
     if (Input.get("inventory").pressed()) {
       this.invOpen = !this.invOpen;

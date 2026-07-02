@@ -172,4 +172,36 @@ globalThis.Camera = class Camera {
       y: sh / 2 + (up * sh) / this.height,
     };
   }
+
+  /**
+   * Surface-pixel → world on the GROUND PLANE (wz = 0) — the exact inverse of project().
+   * Pitch-aware via the up vector (a flat camera's upY=1/upZ=0 reduces to the linear mapping).
+   * GMRT's own mouse_x/mouse_y are wrong under a pitched matrix-driven camera (probed on 0.20),
+   * so world-cursor consumers must convert through this instead.
+   * @param {number} sx @param {number} sy @returns {{x:number, y:number}}
+   */
+  unproject(sx, sy) {
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
+    // project(): s = (wy−toY)·upY + (wz−toZ)·upZ — solve for wy at wz = 0
+    const s = ((sy - sh / 2) * this.height) / sh;
+    return {
+      x: this.toX + ((sx - sw / 2) * this.width) / sw,
+      y: this.toY + (s + this.toZ * this.upZ) / this.upY,
+    };
+  }
+
+  /**
+   * The mouse cursor as a ground-plane world point under this camera: GUI mouse → surface px
+   * (the GUI layer is scaled to the window/back buffer) → unproject(). Latch ONCE per frame
+   * and share (GMRT samples mouse queries live — see GMRT-Safe Idioms).
+   * @returns {{x:number, y:number}}
+   */
+  cursorWorld() {
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
+    const sx = (device_mouse_x_to_gui(0) / display_get_gui_width()) * sw;
+    const sy = (device_mouse_y_to_gui(0) / display_get_gui_height()) * sh;
+    return this.unproject(sx, sy);
+  }
 };

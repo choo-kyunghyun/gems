@@ -314,7 +314,8 @@ globalThis.BuildMode = {
       return;
     }
 
-    const cell = level.worldToGrid(mouse_x, mouse_y);
+    // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
+    const cell = level.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     scene._buildCell = cell;
     if (
       cell.x < 0 ||
