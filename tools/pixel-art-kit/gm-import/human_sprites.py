@@ -10,8 +10,10 @@ blobs, applies the per-frame offset table below, and imports:
                    windup/punch), pure white -> tinted per entity via Visual.color (skin).
   spr_wear_vest    worn overlays (Appearance): garments cut from the body parts themselves
   spr_wear_blackShirt   (torso / head crown / feet), tracking each part's per-frame offsets so
-  spr_wear_redBandana   they can never desync from the body. Vest+shirt are torso garments
-  spr_wear_blackSneakers (vest = equipment-worn, shirt/bandana/sneakers = the bandit outfit).
+  spr_wear_redBandana   they can never desync from the body. COLOR-NAMED sheets are pre-colored
+  spr_wear_blackSneakers (the bandit outfit, the vest); PLAIN-NAMED sheets (shirt/shoes) are
+  spr_wear_shirt        near-WHITE and tinted per entity via the Appearance layer color — one
+  spr_wear_shoes        sheet, any outfit color (the civilian NPCs/follower).
   spr_held_pipe    held-WEAPON overlays: the weapon drawn at the RIGHT hand's per-frame
   spr_held_blaster position (hand blob center + FRAMES offsets), so an equipped weapon rides
                    the hand through walk/punch. Wired via Equippable.worn like the vest.
@@ -46,6 +48,8 @@ BAND = (188, 52, 48)    # bandit bandana — red
 BAND_D = (134, 36, 34)  # bandana band edge
 SNEAK = (42, 44, 48)    # sneakers — black upper
 SOLE = (196, 200, 205)  # sneaker sole — light
+WHT = (240, 240, 244)   # tintable garment base (Appearance layer.color multiplies over it)
+WHT_D = (198, 198, 208) # tintable garment trim
 NECK = 2                # torso rows left uncovered at the top (skin shows at the neckline)
 PIPE = (112, 118, 124)  # lead pipe steel
 PIPE_D = (76, 82, 88)   # pipe grip-end shade
@@ -218,11 +222,15 @@ def main():
 
     vest = torso_garment(two_tone(VEST, VEST_D))
     shirt = torso_garment(two_tone(SHIRT, SHIRT_D))
+    shirt_w = torso_garment(two_tone(WHT, WHT_D))
     bandana = [compose(w, h, px, parts, f, only=("head",), recolor=crown(BAND, BAND_D))
                for f in FRAMES]
     sneakers = [compose(w, h, px, parts, f, only=("footL", "footR"),
                         recolor=two_tone(SNEAK, SOLE, split=0.55))
                 for f in FRAMES]
+    shoes_w = [compose(w, h, px, parts, f, only=("footL", "footR"),
+                       recolor=two_tone(WHT, WHT_D, split=0.55))
+               for f in FRAMES]
     pipe = held_frames(w, h, parts, draw_pipe)
     blaster = held_frames(w, h, parts, draw_blaster)
 
@@ -231,14 +239,20 @@ def main():
     F.build("spr_wear_blackShirt", shirt, 8.0, w, h)
     F.build("spr_wear_redBandana", bandana, 8.0, w, h)
     F.build("spr_wear_blackSneakers", sneakers, 8.0, w, h)
+    F.build("spr_wear_shirt", shirt_w, 8.0, w, h)
+    F.build("spr_wear_shoes", shoes_w, 8.0, w, h)
     F.build("spr_held_pipe", pipe, 8.0, w, h)
     F.build("spr_held_blaster", blaster, 8.0, w, h)
-    print(f"wrote spr_human + 4 wear + 2 held sheets ({len(FRAMES)} frames, {w}x{h})")
+    print(f"wrote spr_human + 6 wear + 2 held sheets ({len(FRAMES)} frames, {w}x{h})")
 
-    # contact sheet: body / vest+pipe / blaster / bandit-outfit rows -> out/entities/human_sheet.png
+    # contact sheet: body / vest+pipe / blaster / bandit / tinted-civilian rows
+    def tint(frame, rgb):
+        return [(p[0] * rgb[0] // 255, p[1] * rgb[1] // 255, p[2] * rgb[2] // 255, p[3])
+                if p[3] else p for p in frame]
+
     sc, pad = 4, 6
     sw = pad + len(FRAMES) * (w * sc + pad)
-    sh = pad + 4 * (h * sc + pad)
+    sh = pad + 5 * (h * sc + pad)
     sheet = [(46, 52, 46, 255)] * (sw * sh)
     for i in range(len(FRAMES)):
         skin = [(232, 184, 144, p[3]) if p[3] else p for p in body[i]]  # preview-only tint
@@ -248,10 +262,14 @@ def main():
         bandit = skin
         for layer in (shirt[i], sneakers[i], bandana[i]):
             bandit = [P.over(layer[j], bandit[j]) for j in range(w * h)]
+        civ = skin
+        for layer in (tint(shirt_w[i], (122, 138, 102)), tint(shoes_w[i], (85, 86, 94))):
+            civ = [P.over(layer[j], civ[j]) for j in range(w * h)]
         P.blit(sheet, sw, pad + i * (w * sc + pad), pad, skin, w, h, sc)
         P.blit(sheet, sw, pad + i * (w * sc + pad), pad * 2 + h * sc, armed, w, h, sc)
         P.blit(sheet, sw, pad + i * (w * sc + pad), pad * 3 + 2 * (h * sc), gunned, w, h, sc)
         P.blit(sheet, sw, pad + i * (w * sc + pad), pad * 4 + 3 * (h * sc), bandit, w, h, sc)
+        P.blit(sheet, sw, pad + i * (w * sc + pad), pad * 5 + 4 * (h * sc), civ, w, h, sc)
     od = P.out_dir("entities")
     P.write_png(os.path.join(od, "human_sheet.png"), sw, sh, sheet)
     print("preview:", os.path.join(od, "human_sheet.png"))

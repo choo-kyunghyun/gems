@@ -494,6 +494,8 @@
     {"id":{"name":"spr_wear_blackShirt","path":"sprites/spr_wear_blackShirt/spr_wear_blackShirt.yy",},},
     {"id":{"name":"spr_wear_blackSneakers","path":"sprites/spr_wear_blackSneakers/spr_wear_blackSneakers.yy",},},
     {"id":{"name":"spr_wear_redBandana","path":"sprites/spr_wear_redBandana/spr_wear_redBandana.yy",},},
+    {"id":{"name":"spr_wear_shirt","path":"sprites/spr_wear_shirt/spr_wear_shirt.yy",},},
+    {"id":{"name":"spr_wear_shoes","path":"sprites/spr_wear_shoes/spr_wear_shoes.yy",},},
     {"id":{"name":"spr_wear_vest","path":"sprites/spr_wear_vest/spr_wear_vest.yy",},},
     {"id":{"name":"spr_wood","path":"sprites/spr_wood/spr_wood.yy",},},
     {"id":{"name":"spr_woodenBarrel","path":"sprites/spr_woodenBarrel/spr_woodenBarrel.yy",},},

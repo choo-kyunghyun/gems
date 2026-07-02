@@ -53,7 +53,8 @@
       "gy": 2,
       "label": "Elder",
       "nameKey": "NPC_ELDER_NAME",
-      "questId": "td_humans"
+      "questId": "td_humans",
+      "color": "#6a5a86"
     },
 
     { "preset": "reach", "gx": 17, "gy": 2, "half": 44 },
@@ -145,6 +146,7 @@
       "gy": 9,
       "label": "Trader",
       "nameKey": "NPC_TRADER_NAME",
+      "color": "#a9743f",
       "merchant": {
         "infinite": true,
         "buyMargin": 1.25,
@@ -170,6 +172,7 @@
       "gy": 9,
       "label": "Quartermaster",
       "nameKey": "NPC_QUARTERMASTER_NAME",
+      "color": "#5a6a8a",
       "merchant": {
         "infinite": false,
         "buyMargin": 1.15,

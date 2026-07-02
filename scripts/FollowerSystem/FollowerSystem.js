@@ -16,20 +16,35 @@ globalThis.FollowerSystem = {
       if (f.state !== "follow" || world.get(Downed, id) !== undefined) {
         vel.x = 0;
         vel.y = 0;
-        continue;
-      }
-      const pos = world.get(Position, id);
-      const dx = pp.x - pos.x;
-      const dy = pp.y - pos.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > f.range) {
-        const ramp = Math.min(1, (dist - f.range) / FOLLOWER_EASE_BAND);
-        const speed = f.speed * ramp;
-        vel.x = (dx / dist) * speed;
-        vel.y = (dy / dist) * speed;
       } else {
-        vel.x = 0;
-        vel.y = 0;
+        const pos = world.get(Position, id);
+        const dx = pp.x - pos.x;
+        const dy = pp.y - pos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > f.range) {
+          const ramp = Math.min(1, (dist - f.range) / FOLLOWER_EASE_BAND);
+          const speed = f.speed * ramp;
+          vel.x = (dx / dist) * speed;
+          vel.y = (dy / dist) * speed;
+        } else {
+          vel.x = 0;
+          vel.y = 0;
+        }
+      }
+
+      // paper-doll drive (opt-in via Animator): idle/walk by velocity + facing flip. Flip by
+      // SIGN only — |xscale| carries the baked size factor (see RpgSpawn.SCALE).
+      const anim = world.get(Animator, id);
+      if (anim !== undefined) {
+        AnimationSystem.set(
+          anim,
+          vel.x * vel.x + vel.y * vel.y > 1 ? "walk" : "idle",
+        );
+        const vis = world.get(Visual, id);
+        if (vis !== undefined) {
+          if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
+          else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
+        }
       }
     }
   },

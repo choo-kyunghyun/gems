@@ -169,7 +169,16 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Name, { name: s.label });
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId }); // NPC presence = "is an NPC" (radar/query)
-      world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, k));
+      // paper-doll civilian: skin-tinted body + TINTED white shirt/shoes (outfit color from the
+      // descriptor so elder/merchants read distinct); static, so the idle bob just loops
+      world.add(id, Visual, RpgSpawn._visual(spr_human, RpgSpawn._skin(s), k));
+      world.add(id, Animator, {
+        graph: RpgPlayer.animGraph(),
+        state: "idle",
+        frame: 0,
+        time: 0,
+      });
+      world.add(id, Appearance, RpgSpawn._outfit(s.color ?? "#7a8a66"));
       // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
       // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
       // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
@@ -361,12 +370,24 @@ globalThis.RpgSpawn = {
       reviveHp: opt.hp ?? 6,
     });
     world.add(id, Name, { name: opt.label ?? "Companion" });
-    // hero sprite tinted green so it reads as an ally
+    // paper-doll companion: skin-tinted body (hashed from the spawn spot) + the civilian outfit
+    // in the ally color — `opt.color` is now the OUTFIT tint, not a whole-body wash
     world.add(
       id,
       Visual,
-      RpgSpawn._visual(spr_hero, Color.parse(opt.color ?? "#9fe0c0"), k),
+      RpgSpawn._visual(
+        spr_human,
+        RpgSpawn._skin({ gx: Math.round(wx), gy: Math.round(wy) }),
+        k,
+      ),
     );
+    world.add(id, Animator, {
+      graph: RpgPlayer.animGraph(),
+      state: "idle",
+      frame: 0,
+      time: 0,
+    });
+    world.add(id, Appearance, RpgSpawn._outfit(opt.color ?? "#9fe0c0"));
     world.add(id, Follower, {
       state: opt.state ?? "follow",
       speed: opt.speed ?? 130, // > player speed (110) so it can catch up when it lags
@@ -408,6 +429,18 @@ globalThis.RpgSpawn = {
     const gy = s.gy ?? 0;
     const i = Math.abs(gx * 7 + gy * 13) % RpgSpawn.SKINS.length;
     return Color.parse(RpgSpawn.SKINS[i]);
+  },
+
+  // Authored civilian outfit: the WHITE tintable garments colored per entity via the layer
+  // color (one sheet, any outfit). Shoes stay a fixed dark neutral so any shirt color reads.
+  _outfit(shirtColor) {
+    return {
+      back: [],
+      front: [
+        { sprite: spr_wear_shirt, color: Color.parse(shirtColor) },
+        { sprite: spr_wear_shoes, color: Color.parse("#55565e") },
+      ],
+    };
   },
 
   // Shared Visual shape. `scale` is the entity's baked size factor (preset base × per-spawn
