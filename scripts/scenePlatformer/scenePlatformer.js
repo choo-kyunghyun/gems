@@ -31,9 +31,9 @@ class _ScenePlatformerClass extends Level {
       .add(TriggerSystem); // fills col.hits for spike detection
 
     this.renderer = new Renderer();
-    this.renderer.insert(new RenderDebugBox());
-    this.renderer.insert(new RenderDebugName());
-    this.renderer.insert(new RenderDebugDirection());
+    // entities still carry the broken SVG sprites (spr_play/spr_choo), so they render as the
+    // spr_missing placeholder (RenderEntity's fallback) until the platformer gets real art
+    this.renderer.insert(new RenderEntity());
     const bbox = new RenderDebugEntity(); // off by default; toggled via Debug menu
     bbox.enabled = false;
     this.renderer.insert(bbox);

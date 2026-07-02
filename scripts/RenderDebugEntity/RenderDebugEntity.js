@@ -1,5 +1,5 @@
 /**
- * lime BBox outlines, one linelist draw call for the world. insert after RenderDebugBox.
+ * lime BBox outlines, one linelist draw call for the world. insert after the entity pass.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {

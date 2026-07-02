@@ -29,9 +29,6 @@ globalThis.DebugRender = class DebugRender {
     // built inside the method (not a static field) so the class refs resolve at call time —
     // a static field referencing a class that loads AFTER this script faults at load (see CLAUDE.md).
     const list = [
-      [RenderDebugBox, "Boxes"],
-      [RenderDebugName, "Names"],
-      [RenderDebugDirection, "Facing"],
       [RenderDebugEntity, "BBox"],
       [RenderDebugTileMap, "Tiles"],
       [RenderGrid, "Grid"],

@@ -551,26 +551,11 @@ globalThis.RpgMap = {
     );
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     scene.renderer.insert(new RenderEntityShadow());
-    // Entities via the production sprite pass. The colored-box + label debug passes stay inserted
-    // but DISABLED, so the Debug menu can toggle them over the sprites.
+    // Entities via the production sprite pass (per-entity data — name/facing/animator state —
+    // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
     const entityPass =
       pitch > 0 ? new RenderBillboard({ pitchDeg: pitch }) : new RenderEntity();
     scene.renderer.insert(entityPass);
-    const dbgBox = new RenderDebugBox();
-    dbgBox.enabled = false;
-    scene.renderer.insert(dbgBox);
-    const dbgName = new RenderDebugName();
-    dbgName.enabled = false;
-    scene.renderer.insert(dbgName);
-    const dbgDir = new RenderDebugDirection(); // facing dot (player Direction)
-    dbgDir.enabled = false;
-    scene.renderer.insert(dbgDir);
-    const dbgAnim = new RenderDebugAnimator(); // animator-state label
-    dbgAnim.enabled = false;
-    scene.renderer.insert(dbgAnim);
-    // RenderDebugAnimator reads the Demo-layer Animator, so the RPG (not Core's DebugRender)
-    // registers its toggle. add() dedupes, so repeated map loads are no-ops.
-    DebugRender.add(RenderDebugAnimator, "Anim");
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
     scene.renderer.insert(bbox);

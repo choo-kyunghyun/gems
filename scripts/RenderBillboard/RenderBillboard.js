@@ -74,10 +74,20 @@ globalThis.RenderBillboard = class RenderBillboard {
     for (const entity of world.query(Visual, Position)) {
       const visual = world.get(Visual, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
+      // draws as the spr_missing placeholder; re-wrap subimg into the placeholder's frame
+      // range. Appearance layers keep visual.subimg (their sheets mirror the body strip) and
+      // are sprite_exists-guarded upstream by AppearanceSystem.
+      let sprite = visual.sprite;
+      let subimg = visual.subimg;
+      if (!sprite_exists(sprite) || sprite_get_number(sprite) < 1) {
+        sprite = spr_missing;
+        subimg = subimg % sprite_get_number(sprite);
+      }
       if (visual.speed !== 0) {
         visual.time += visual.speed * Time.raw;
-        visual.subimg =
-          Math.floor(visual.time) % sprite_get_number(visual.sprite);
+        visual.subimg = Math.floor(visual.time) % sprite_get_number(sprite);
+        subimg = visual.subimg;
       }
       // Paper-doll layers (Appearance) draw at the body's subimg/transform but CANNOT rely on
       // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
@@ -102,8 +112,8 @@ globalThis.RenderBillboard = class RenderBillboard {
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
       );
       draw_sprite_ext(
-        visual.sprite,
-        visual.subimg,
+        sprite,
+        subimg,
         0,
         0,
         visual.xscale,
