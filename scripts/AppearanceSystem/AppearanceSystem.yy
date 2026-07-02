@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"AppearanceSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"AppearanceSystem",
+  "parent":{
+    "name":"Equipment",
+    "path":"folders/Gameplay/Equipment.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"AppearanceSystem.js",
+}

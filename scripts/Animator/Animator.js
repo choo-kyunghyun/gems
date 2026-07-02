@@ -4,6 +4,10 @@
  *
  * @typedef {Object} AnimState
  * @property {Asset.GMSprite} sprite
+ * @property {number} [start]  first subimage of this state within a shared strip (default 0).
+ *                             States sharing one strip let paper-doll layers (Appearance) draw at
+ *                             the body's subimg with zero animation knowledge — every layer sheet
+ *                             mirrors the same strip layout.
  * @property {number} frames   number of subimages in this state
  * @property {number} fps      playback rate (0 = static, hold frame 0)
  * @property {boolean} loop    restart at 0 when past the last frame

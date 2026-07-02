@@ -22,7 +22,8 @@ globalThis.AnimationSystem = {
       }
 
       vis.sprite = st.sprite;
-      vis.subimg = anim.frame < 0 ? 0 : anim.frame;
+      // `start` offsets into a shared strip (unified humanoid sheet); absent = standalone sprite
+      vis.subimg = (st.start ?? 0) + (anim.frame < 0 ? 0 : anim.frame);
     }
   },
 

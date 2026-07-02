@@ -31,6 +31,23 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
+  // one Appearance layer at the body's subimg/transform. Layers keep their OWN color — the
+  // body's Visual.color is the SKIN tint of the white spr_human template, so it must not bleed
+  // into outfit colors; whole-doll effects (downed dim) ride visual.alpha, which layers share.
+  _drawLayer(layer, visual) {
+    draw_sprite_ext(
+      layer.sprite,
+      visual.subimg,
+      0,
+      0,
+      visual.xscale,
+      visual.yscale,
+      0,
+      layer.color,
+      visual.alpha,
+    );
+  }
+
   draw(world) {
     const ident = matrix_build_identity();
     // live pitch tracks debug camera tweaks; fallback to constructor tilt
@@ -55,6 +72,15 @@ globalThis.RenderBillboard = class RenderBillboard {
       }
       const m = matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1);
       matrix_set(matrix_world, m);
+      // paper-doll layers (Appearance): same matrix + subimg as the body, so they're coplanar —
+      // identical quad geometry gives identical depth per pixel, and the default cmpfunc_lessequal
+      // lets each later layer paint over the one before (sh_alphatest keeps transparent texels
+      // from writing depth). back layers under the body, front layers over it.
+      const ap = world.get(Appearance, entity);
+      if (ap !== undefined) {
+        for (let i = 0; i < ap.back.length; i++)
+          this._drawLayer(ap.back[i], visual);
+      }
       draw_sprite_ext(
         visual.sprite,
         visual.subimg,
@@ -66,6 +92,10 @@ globalThis.RenderBillboard = class RenderBillboard {
         visual.color,
         visual.alpha,
       );
+      if (ap !== undefined) {
+        for (let i = 0; i < ap.front.length; i++)
+          this._drawLayer(ap.front[i], visual);
+      }
       matrix_set(matrix_world, ident);
     }
     matrix_set(matrix_world, ident);

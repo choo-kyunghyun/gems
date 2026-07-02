@@ -13,7 +13,17 @@
 //   reach    half?                (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")
+// Every descriptor also takes `scale?` — a per-spawn size multiplier over the preset base (SCALE).
 globalThis.RpgSpawn = {
+  // Per-preset base size factor (1 = art-native), BAKED at spawn into both Visual.xscale/yscale
+  // and the BBox — so the foot shadow (BBox-driven) and paper-doll layers (Visual-driven) follow
+  // for free. Presets absent here spawn at 1. A descriptor's `scale` multiplies on top.
+  SCALE: {
+    raider: 0.85,
+    rat: 0.7,
+    npc: 0.8,
+    follower: 0.75,
+  },
   /**
    * Spawn the level's entities from data.spawns. Enemies acquire targets live by faction and
    * stations are discovered live by Interactable, so only the handles the scene's logic needs
@@ -66,11 +76,13 @@ globalThis.RpgSpawn = {
   // handles negatives, so chunk-streamed entities work too).
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
+    // baked size factor: preset base × optional per-spawn override (see SCALE)
+    const k = (RpgSpawn.SCALE[s.preset] ?? 1) * (s.scale ?? 1);
 
     if (s.preset === "raider") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
+      world.add(id, BBox, RpgSpawn._box(-6, -6, 12, 12, k));
       // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
       world.add(id, Collision, {
         solid: true,
@@ -93,7 +105,7 @@ globalThis.RpgSpawn = {
       world.add(id, Name, { name: "Raider" });
       // loot table — no maxWeight (authored loot, never weight-gated)
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-      const vis = RpgSpawn._visual(spr_raider, c_white, 1);
+      const vis = RpgSpawn._visual(spr_raider, c_white, k);
       vis.speed = 6;
       world.add(id, Visual, vis);
       CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
@@ -104,7 +116,7 @@ globalThis.RpgSpawn = {
       // mobile-melee CombatAI + despawn Mortal.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
+      world.add(id, BBox, RpgSpawn._box(-5, -5, 10, 10, k));
       world.add(id, Collision, {
         solid: true,
         kinematic: false,
@@ -124,7 +136,7 @@ globalThis.RpgSpawn = {
       world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
       world.add(id, Name, { name: "Rat" });
       world.add(id, Inventory, { slots: s.loot ?? [], capacity: 4 });
-      const vis = RpgSpawn._visual(spr_rat, c_white, 1);
+      const vis = RpgSpawn._visual(spr_rat, c_white, k);
       vis.speed = 6; // looping scuttle cycle
       world.add(id, Visual, vis);
       CombatAI.attach(world, id, level); // mobile melee, acquires target by faction
@@ -133,7 +145,7 @@ globalThis.RpgSpawn = {
     } else if (s.preset === "npc") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
+      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -142,7 +154,7 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Name, { name: s.label });
       world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId }); // NPC presence = "is an NPC" (radar/query)
-      world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_hero, c_white, k));
       // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
       // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
       // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
@@ -169,7 +181,7 @@ globalThis.RpgSpawn = {
     } else if (s.preset === "chest") {
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
+      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -182,14 +194,14 @@ globalThis.RpgSpawn = {
         slots: s.items ?? [],
         capacity: s.capacity ?? 12,
       });
-      world.add(id, Visual, RpgSpawn._visual(spr_chest, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_chest, c_white, k));
       return id;
     } else if (s.preset === "prop") {
       // Solid kinematic prop. An Interaction `kind` makes it interactable (E runs its InteractAction);
       // a decorative prop omits it.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
+      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -211,7 +223,7 @@ globalThis.RpgSpawn = {
         if (s.color !== undefined || s.material !== undefined)
           color = RpgSpawn._tint(s);
       }
-      world.add(id, Visual, RpgSpawn._visual(sprite, color, 1));
+      world.add(id, Visual, RpgSpawn._visual(sprite, color, k));
       if (s.kind !== undefined) world.add(id, Interaction, { kind: s.kind });
       return id;
     } else if (s.preset === "torch") {
@@ -219,7 +231,7 @@ globalThis.RpgSpawn = {
       // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -4, y: -4, width: 8, height: 8 }); // small footprint
+      world.add(id, BBox, RpgSpawn._box(-4, -4, 8, 8, k)); // small footprint
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -227,7 +239,7 @@ globalThis.RpgSpawn = {
         hits: [],
       });
       world.add(id, Name, { name: s.label ?? "Lamp" });
-      world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, k));
       // warm, gently flickering torch light (archetype values)
       world.add(id, Light, {
         radius: 75,
@@ -242,7 +254,7 @@ globalThis.RpgSpawn = {
       // enemies target/damage it (two-sided combat). Built-only today (BuildMode "Defense").
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -6, y: -6, width: 12, height: 12 });
+      world.add(id, BBox, RpgSpawn._box(-6, -6, 12, 12, k));
       world.add(id, Collision, {
         solid: true,
         kinematic: true,
@@ -260,7 +272,7 @@ globalThis.RpgSpawn = {
       });
       world.add(id, Faction, { id: "player" }); // player ally; a hostile target for enemies
       world.add(id, Name, { name: s.label ?? "Turret" });
-      world.add(id, Visual, RpgSpawn._visual(spr_lightTurret, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_lightTurret, c_white, k));
       // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
       CombatAI.attach(world, id, level, {
         mobile: false,
@@ -278,9 +290,9 @@ globalThis.RpgSpawn = {
       // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
       const id = world.create();
       world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, { x: -7, y: -7, width: 14, height: 14 });
+      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
       world.add(id, Name, { name: s.label ?? "Door" });
-      world.add(id, Visual, RpgSpawn._visual(spr_door, c_white, 1));
+      world.add(id, Visual, RpgSpawn._visual(spr_door, c_white, k));
       world.add(id, Portal, {
         toMap: s.toMap,
         toEntry: s.toEntry ?? "default",
@@ -292,6 +304,7 @@ globalThis.RpgSpawn = {
         color: s.color,
         speed: s.speed,
         range: s.range,
+        scale: s.scale, // per-spawn override; spawnFollower folds in the preset base
       });
     }
     return -1;
@@ -304,9 +317,11 @@ globalThis.RpgSpawn = {
   // non-persistent maps.
   spawnFollower(world, wx, wy, opt = {}) {
     const id = world.create();
+    // baked size factor, like spawnEntity (preset base × optional override)
+    const k = (RpgSpawn.SCALE.follower ?? 1) * (opt.scale ?? 1);
     world.add(id, Position, { x: wx, y: wy, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, { x: -5, y: -5, width: 10, height: 10 });
+    world.add(id, BBox, RpgSpawn._box(-5, -5, 10, 10, k));
     world.add(id, Collision, {
       solid: true,
       kinematic: false,
@@ -335,7 +350,7 @@ globalThis.RpgSpawn = {
     world.add(
       id,
       Visual,
-      RpgSpawn._visual(spr_hero, Color.parse(opt.color ?? "#9fe0c0"), 1),
+      RpgSpawn._visual(spr_hero, Color.parse(opt.color ?? "#9fe0c0"), k),
     );
     world.add(id, Follower, {
       state: opt.state ?? "follow",
@@ -362,8 +377,15 @@ globalThis.RpgSpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Shared Visual shape. `scale` is 1 for 16px-native art (0.5 for legacy 32px). Sprites are
-  // foot-anchored (origin 8,16) so this draws standing up from Position. Caller may set `speed`.
+  // Scaled BBox for a preset's baked size factor. Fractional extents are fine — collision math
+  // is float throughout (AABB).
+  _box(x, y, w, h, k) {
+    return { x: x * k, y: y * k, width: w * k, height: h * k };
+  },
+
+  // Shared Visual shape. `scale` is the entity's baked size factor (preset base × per-spawn
+  // override — see SCALE). Sprites are foot-anchored so this draws standing up from Position.
+  // Caller may set `speed`.
   _visual(sprite, color, scale = 1) {
     return {
       visible: true,

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Appearance",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Appearance",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Appearance.js",
+}

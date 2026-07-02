@@ -119,7 +119,11 @@ globalThis.RpgMap = {
     delete scene._maps[scene.mapId]; // mapId restored above; live now, not parked
     MotionPlanner.setGrid(scene.nav);
     if (scene.camera) scene.camera.assign(0);
-    if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+    if (carry !== null) {
+      EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+      // Equipment arrived outside equip() — re-derive the paper-doll layers from it
+      AppearanceSystem.rebuild(scene.world, scene.ctrl.id);
+    }
 
     // snap the follow camera to the entry so it doesn't pan from the parked position
     const sp = scene.entries[entryId] ?? scene.spawn;
@@ -332,7 +336,11 @@ globalThis.RpgMap = {
     scene.ctrl = RpgController.create(scene.world, built.spawn);
 
     // re-attach the carried sheet (no re-equip — equip mods already baked into carried Stats)
-    if (carry !== null) EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+    if (carry !== null) {
+      EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
+      // Equipment arrived outside equip() — re-derive the paper-doll layers from it
+      AppearanceSystem.rebuild(scene.world, scene.ctrl.id);
+    }
 
     // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
     // placement to it; RenderZone visualizes it

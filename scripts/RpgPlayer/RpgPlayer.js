@@ -1,12 +1,23 @@
 // Player setup for the RPG genre. Builds the player entity and owns the cursor-aimed HITSCAN
 // firing (fireBullet — an instant Combat.hitscan shot, reused by CombatAI for turrets).
 globalThis.RpgPlayer = {
-  // create the player entity, return its id. `opts`: bbox, dir, speed.
+  // default skin tint for the white spr_human template — "#e8b890" as a GM BGR color int
+  // (a literal, not Color.parse: top-level code runs in script load order on GMRT)
+  SKIN: 0x90b8e8,
+
+  // create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
+  // factor over art-native 1.0 — multiplies the bbox AND the Visual, like RpgSpawn.SCALE).
   spawn(world, spawn, opts) {
+    const k = opts.scale ?? 1;
     const id = world.create();
     world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
     world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, opts.bbox);
+    world.add(id, BBox, {
+      x: opts.bbox.x * k,
+      y: opts.bbox.y * k,
+      width: opts.bbox.width * k,
+      height: opts.bbox.height * k,
+    });
     // oneWay/passThroughTicks unused in the RPG; falsy defaults keep the Collision shape explicit
     world.add(id, Collision, {
       solid: true,
@@ -65,19 +76,24 @@ globalThis.RpgPlayer = {
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) hotbarSlots.push("");
     world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
     world.add(id, Favorites, { ids: [] });
-    // hero sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing flip)
+    // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
+    // flip + baked size — the flip must preserve |xscale|, see RpgController). spr_human is a
+    // WHITE template — color IS the skin tint (layers keep their own color).
     world.add(id, Visual, {
       visible: true,
-      sprite: spr_hero,
+      sprite: spr_human,
       subimg: 0,
-      xscale: 1,
-      yscale: 1,
+      xscale: k,
+      yscale: k,
       rot: 0,
-      color: c_white,
+      color: RpgPlayer.SKIN,
       alpha: 1,
       speed: 0,
       time: 0,
     });
+    // paper-doll: worn-gear overlays drawn around the body (rebuilt from Equipment by
+    // AppearanceSystem — the gear seed's equip fills it, a map-travel sheet apply re-derives it)
+    world.add(id, Appearance, { back: [], front: [] });
     // the player's lantern — reference Light for RenderLighting (reveals night; no-op in daylight)
     world.add(id, Light, {
       radius: 90,
@@ -87,6 +103,19 @@ globalThis.RpgPlayer = {
     // derive combat Stats from Attributes (recompute-from-source — the single derivation path)
     StatModel.recompute(world, id);
     return id;
+  },
+
+  // Canonical humanoid animation over the unified spr_human strip (the white tintable Rayman-
+  // style template, animated by tools/pixel-art-kit/gm-import/human_sprites.py): frames 0-1 =
+  // walk cycle (idle plays it slower), 2-3 = attack. EVERY paper-doll layer sheet (Appearance /
+  // Equippable.worn) mirrors this exact strip layout — cell size, frame order, foot anchor — so
+  // a layer draws at the body's subimg with zero animation knowledge. Fresh object per call.
+  animGraph() {
+    return {
+      idle: { sprite: spr_human, start: 0, frames: 2, fps: 3, loop: true },
+      walk: { sprite: spr_human, start: 0, frames: 2, fps: 8, loop: true },
+      attack: { sprite: spr_human, start: 2, frames: 2, fps: 10, loop: false },
+    };
   },
 
   // INSTANT hitscan shot along the resolved aim (no bullet entity; visual is a fading tracer).

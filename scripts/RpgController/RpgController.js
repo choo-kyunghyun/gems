@@ -1,4 +1,5 @@
 const RPG_MOVE_SPEED = 110; // world px/s (16px-cell scale; see GEMS.md)
+const RPG_PLAYER_SCALE = 0.75; // baked size factor over the 48px spr_human template (bbox + Visual)
 const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const RPG_BULLET_SPEED = 300; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const RPG_SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
@@ -94,28 +95,10 @@ globalThis.RpgController = {
       bbox: { x: -6, y: -6, width: 12, height: 12 },
       dir: { x: 0, y: 1, z: 0 },
       speed: RPG_MOVE_SPEED,
+      scale: RPG_PLAYER_SCALE,
     });
     world.add(id, Animator, {
-      graph: {
-        idle: {
-          sprite: spr_hero,
-          frames: sprite_get_number(spr_hero),
-          fps: 3, // gentle bob at rest
-          loop: true,
-        },
-        walk: {
-          sprite: spr_hero,
-          frames: sprite_get_number(spr_hero),
-          fps: 8,
-          loop: true,
-        },
-        attack: {
-          sprite: spr_heroAttack,
-          frames: sprite_get_number(spr_heroAttack),
-          fps: 10,
-          loop: false,
-        },
-      },
+      graph: RpgPlayer.animGraph(), // canonical humanoid strip (paper-doll layers mirror it)
       state: "idle",
       frame: 0,
       time: 0,
@@ -248,8 +231,10 @@ globalThis.RpgController = {
     // facing: flip xscale ±1 toward the last horizontal move
     const vis = world.get(Visual, ctrl.id);
     if (vis !== undefined) {
-      if (dir.x < -0.01) vis.xscale = -1;
-      else if (dir.x > 0.01) vis.xscale = 1;
+      // flip by SIGN only — |xscale| carries the baked size factor (RPG_PLAYER_SCALE), so a
+      // bare ±1 here would silently reset the player's size
+      if (dir.x < -0.01) vis.xscale = -Math.abs(vis.xscale);
+      else if (dir.x > 0.01) vis.xscale = Math.abs(vis.xscale);
     }
   },
 

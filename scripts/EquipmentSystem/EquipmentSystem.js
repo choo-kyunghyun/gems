@@ -24,6 +24,7 @@ globalThis.EquipmentSystem = {
     if (eq.slots[eqp.slot] !== "") this.unequip(world, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
     StatModel.recompute(world, id); // re-derive with the equipped mods folded in
+    AppearanceSystem.rebuild(world, id); // worn gear shows on the paper-doll (no-op sans Appearance)
     this._applyContainer(world, id, item, 1);
     return true;
   },
@@ -50,6 +51,7 @@ globalThis.EquipmentSystem = {
 
     eq.slots[slot] = ""; // clear FIRST so the re-derive drops the removed item's mods
     StatModel.recompute(world, id);
+    AppearanceSystem.rebuild(world, id); // drop the removed item's paper-doll layer
     const inv = world.get(Inventory, id);
     const s =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
