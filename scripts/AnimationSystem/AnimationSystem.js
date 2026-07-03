@@ -21,11 +21,11 @@ globalThis.AnimationSystem = {
         }
       }
 
-      // a state may swap to a sheet of different ArtDensity (e.g. denser attack frames): refit
-      // the draw scale from the DESIGN scale, preserving the facing sign. Legacy Visuals with no
-      // `scale` field keep their raw xscale/yscale untouched.
+      // a state may swap to a sheet of different declared density (e.g. denser attack frames):
+      // refit the draw scale from the DESIGN scale, preserving the facing sign. Legacy Visuals
+      // with no `scale` field keep their raw xscale/yscale untouched.
       if (st.sprite !== vis.sprite && vis.scale !== undefined) {
-        const k = ArtDensity.fit(vis.scale, st.sprite);
+        const k = SpriteMeta.fit(vis.scale, st.sprite);
         vis.xscale = vis.xscale < 0 ? -k : k;
         vis.yscale = k;
       }

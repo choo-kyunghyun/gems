@@ -19,7 +19,7 @@
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")
 // Every descriptor also takes `scale?` — a per-spawn size multiplier over the def's design scale
-// (the Alpha/boss knob; see EntityPreset — ArtDensity divides the DRAW scale separately).
+// (the Alpha/boss knob; see EntityPreset — SpriteMeta density divides the DRAW scale separately).
 globalThis.RpgSpawn = {
   // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
   // Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a

@@ -61,6 +61,10 @@ I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
 draw_set_font(I18n.font("default"));
 UI.applyScale(Settings.get("uiScale"));
 
+// sprite metadata manifests (kind/density/cell per sheet, emitted by the pixel-art-kit
+// importers) — before any scene spawns entities, so the density bake reads declared values
+SpriteMeta.load();
+
 this.background = Color.parse("#222222");
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme

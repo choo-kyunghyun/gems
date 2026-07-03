@@ -27,7 +27,7 @@ them HERE from the same parts/offsets, never freehand.
 
 Usage:  python tools/pixel-art-kit/gm-import/human_sprites.py [project_root]
 """
-import os, sys
+import json, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "common"))
 import pixlib as P
 import flat_sprites as F  # reuse the .yy emitter/build machinery (PARENT overridden below)
@@ -204,6 +204,23 @@ def held_frames(w, h, parts, draw_fn):
     return out
 
 
+def write_manifest(w, h, overlays):
+    """SpriteMeta manifest (datafiles/spritemeta/human.json): the runtime's semantic sprite
+    layer — kind / density / cell per sheet — is GENERATED alongside the art so declarations
+    can never drift from it (see scripts/SpriteMeta). Density 1 = the template is authored at
+    world scale (1 source px per world px); raise it here if the template is ever redrawn
+    denser. The included file must be REGISTERED in gems.yyp once (like the sprite resources);
+    re-runs only rewrite the content."""
+    entries = [{"sprite": "spr_human", "kind": "entity", "density": 1, "cell": [w, h]}]
+    for name in overlays:
+        entries.append({"sprite": name, "kind": "overlay", "density": 1, "cell": [w, h]})
+    md = os.path.join(ROOT, "datafiles", "spritemeta")
+    os.makedirs(md, exist_ok=True)
+    with open(os.path.join(md, "human.json"), "w", newline="\n") as f:
+        json.dump(entries, f, indent=2)
+        f.write("\n")
+
+
 def main():
     w0, h, px0 = P.read_png(TEMPLATE)
     # widen the cell (content centered, foot anchor preserved) — punch hand + weapon need room
@@ -243,7 +260,12 @@ def main():
     F.build("spr_wear_shoes", shoes_w, 8.0, w, h)
     F.build("spr_held_pipe", pipe, 8.0, w, h)
     F.build("spr_held_blaster", blaster, 8.0, w, h)
-    print(f"wrote spr_human + 6 wear + 2 held sheets ({len(FRAMES)} frames, {w}x{h})")
+    write_manifest(w, h, (
+        "spr_wear_vest", "spr_wear_blackShirt", "spr_wear_redBandana",
+        "spr_wear_blackSneakers", "spr_wear_shirt", "spr_wear_shoes",
+        "spr_held_pipe", "spr_held_blaster",
+    ))
+    print(f"wrote spr_human + 6 wear + 2 held sheets ({len(FRAMES)} frames, {w}x{h}) + spritemeta manifest")
 
     # contact sheet: body / vest+pipe / blaster / bandit / tinted-civilian rows
     def tint(frame, rgb):

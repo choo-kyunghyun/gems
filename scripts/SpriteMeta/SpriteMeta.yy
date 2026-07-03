@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"ArtDensity",
+  "%Name":"SpriteMeta",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"ArtDensity",
+  "name":"SpriteMeta",
   "parent":{
     "name":"Util",
     "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"ArtDensity.js",
+  "scriptSource":"SpriteMeta.js",
 }

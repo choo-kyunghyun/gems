@@ -73,6 +73,11 @@ no longer gets squished into the square cell; square icons are unaffected.
 3. **Import** — `gm-import/` writes the GameMaker sprite into `sprites/spr_*/`. Register the resource
    first (IDE or `gm-cli resourcetool`); frame/layer UUIDs are deterministic (uuid5), so re-running is
    churn-free.
+4. **Declare** — an importer also emits its sheets' **`SpriteMeta` manifest**
+   (`datafiles/spritemeta/<name>.json` — kind / density / cell per sheet, loaded by the engine's
+   `SpriteMeta` registry at boot). Generated alongside the art so declarations can't drift from it;
+   the included file is registered in `gems.yyp` once, re-runs only rewrite content. Today
+   `human_sprites.py` emits `human.json`; new importers follow the same shape.
 
 ## Status / migration
 

@@ -79,14 +79,15 @@ globalThis.RpgPlayer = {
     // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
     // flip + baked size — the flip must preserve |xscale|, see RpgController). spr_human is a
     // WHITE template — color IS the skin tint (layers keep their own color). `scale` is the
-    // DESIGN size; the sheet's ArtDensity divides the draw scale only (BBox stays design-scale).
+    // DESIGN size; the sheet's declared density (SpriteMeta) divides the draw scale only
+    // (BBox stays design-scale).
     world.add(id, Visual, {
       visible: true,
       sprite: spr_human,
       subimg: 0,
       scale: k,
-      xscale: ArtDensity.fit(k, spr_human),
-      yscale: ArtDensity.fit(k, spr_human),
+      xscale: SpriteMeta.fit(k, spr_human),
+      yscale: SpriteMeta.fit(k, spr_human),
       rot: 0,
       color: RpgPlayer.SKIN,
       alpha: 1,

@@ -9,7 +9,7 @@
  *   the BBox and the Visual. A per-spawn `opts.scale` multiplies on top (the Alpha/boss knob).
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
- *   Visual.xscale/yscale are DERIVED (design scale / ArtDensity), never authored.
+ *   Visual.xscale/yscale are DERIVED (design scale / SpriteMeta density), never authored.
  * @property {function} [post]   post(world, id, ctx) spawn hook for what data can't express
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  */
@@ -117,7 +117,7 @@ globalThis.EntityPreset = class EntityPreset {
 
   // Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
   // shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
-  // scale / ArtDensity (see ArtDensity — art resolution never touches the BBox).
+  // scale / density (see SpriteMeta — art resolution never touches the BBox).
   static _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
     vis.subimg = vis.subimg ?? 0;
@@ -127,7 +127,7 @@ globalThis.EntityPreset = class EntityPreset {
     vis.speed = vis.speed ?? 0;
     vis.time = vis.time ?? 0;
     vis.scale = k;
-    const f = ArtDensity.fit(k, vis.sprite);
+    const f = SpriteMeta.fit(k, vis.sprite);
     vis.xscale = f;
     vis.yscale = f;
   }

@@ -1,0 +1,83 @@
+[
+  {
+    "sprite": "spr_human",
+    "kind": "entity",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_vest",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_blackShirt",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_redBandana",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_blackSneakers",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_shirt",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_wear_shoes",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_held_pipe",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  },
+  {
+    "sprite": "spr_held_blaster",
+    "kind": "overlay",
+    "density": 1,
+    "cell": [
+      64,
+      48
+    ]
+  }
+]
