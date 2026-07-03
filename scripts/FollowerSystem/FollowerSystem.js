@@ -34,7 +34,7 @@ globalThis.FollowerSystem = {
       }
 
       // paper-doll drive (opt-in via Animator): idle/walk by velocity + facing flip. Flip by
-      // SIGN only — |xscale| carries the baked size factor (see RpgSpawn.SCALE).
+      // SIGN only — |xscale| carries the baked size factor (see the preset design scale).
       const anim = world.get(Animator, id);
       if (anim !== undefined) {
         AnimationSystem.set(

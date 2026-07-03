@@ -14,6 +14,7 @@ globalThis.RpgContent = {
     RpgPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
     RpgInteractions.register(); // InteractAction defs (storage/workbench/claim/arcade/bed + hydrate/feed/buff)
     CombatAI.register(); // named combat states (combat.idle/chase/attack) into the StateSystem pool
+    RpgSpawn.register(); // entity archetypes (raider/rat/npc/chest/prop/torch/turret/portal/follower) as EntityPreset defs
 
     // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
     // just one register + setRelation here.

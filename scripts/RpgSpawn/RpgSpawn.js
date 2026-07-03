@@ -1,11 +1,16 @@
-// Entity construction for the RPG levels. spawnEntity is the SINGLE place an entity is built —
-// up-front map spawns (RpgSpawn.spawn) and the chunk streamer (ChunkSource.spawn) both route
-// through it, so adding a preset touches one switch. Pure factories over world/level; no state.
+// Entity construction for the RPG levels. The archetypes are EntityPreset DEFS (register(),
+// called by RpgContent.register) — component data + design scale + a `post` hook for the wiring
+// data can't express (CombatAI.attach). spawnEntity is the DESCRIPTOR ADAPTER — the single place
+// a spawn descriptor becomes an entity: grid→world, per-spawn overrides (field-merged onto the
+// def like a variant), the reconcile marker. Up-front map spawns (RpgSpawn.spawn), the chunk
+// streamer (ChunkSource.spawn), BuildMode, and the Trader all route through it. A variant preset
+// (e.g. `extends: "raider"`) spawns through the same path with zero adapter changes when its
+// descriptor fields match its base's.
 //
-// Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in code):
+// Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in the defs):
 //   raider   hp? loot[]   (hostile human — camp + quest enemy)
 //   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
-//   npc      label nameKey questId
+//   npc      label nameKey questId merchant?
 //   chest    capacity items[]
 //   prop     label color material? kind?   (material → tint over color; kind → Interaction, else furniture)
 //   torch    label? color?        (decorative light prop — small solid post; carries a Light)
@@ -13,19 +18,214 @@
 //   reach    half?                (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")
-// Every descriptor also takes `scale?` — a per-spawn size multiplier over the preset base (SCALE).
+// Every descriptor also takes `scale?` — a per-spawn size multiplier over the def's design scale
+// (the Alpha/boss knob; see EntityPreset — ArtDensity divides the DRAW scale separately).
 globalThis.RpgSpawn = {
-  // Per-preset base DESIGN size factor (1 = normal size; special mobs — Alpha/boss — scale via
-  // the per-spawn override), BAKED at spawn into Visual.scale and the BBox — the foot shadow
-  // (BBox-driven) and paper-doll layers (Visual-driven) follow for free. The DRAW scale
-  // (xscale/yscale) is scale / ArtDensity.of(sprite), so a denser sheet lands at the same world
-  // size. Presets absent here spawn at 1. A descriptor's `scale` multiplies on top.
-  SCALE: {
-    raider: 0.85,
-    rat: 0.7,
-    npc: 0.8,
-    follower: 0.75,
+  // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
+  // Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
+  // scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
+  // through by reference — see EntityPreset._clone).
+  register() {
+    EntityPreset.register([
+      {
+        id: "raider",
+        scale: 0.85,
+        components: {
+          BBox: { x: -6, y: -6, width: 12, height: 12 },
+          // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
+          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Health: { hp: 3 },
+          // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
+          Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 45 },
+          Mortal: { kind: "corpse" }, // hp 0 → lootable body, reaped when emptied (RpgScene)
+          Raider: {}, // species marker (radar color + kill-quest type)
+          Faction: { id: "monster" }, // hostile to "player" → CombatAI aggro target
+          Name: { name: "Raider" },
+          // loot table — no maxWeight (authored loot, never weight-gated)
+          Inventory: { slots: [], capacity: 8 },
+          // paper-doll bandit: the white humanoid template — color = per-spawn skin (adapter)
+          Visual: { sprite: spr_human },
+          Animator: {
+            graph: RpgPlayer.animGraph(),
+            state: "idle",
+            frame: 0,
+            time: 0,
+          },
+          // AUTHORED outfit (no Equipment, so AppearanceSystem.rebuild leaves these layers alone)
+          Appearance: {
+            back: [],
+            front: [
+              { sprite: spr_wear_blackShirt, color: c_white },
+              { sprite: spr_wear_blackSneakers, color: c_white },
+              { sprite: spr_wear_redBandana, color: c_white },
+            ],
+          },
+        },
+        post(world, id, ctx) {
+          CombatAI.attach(world, id, ctx.opts.level); // Velocity + Brain + State (mobile melee)
+        },
+      },
+      {
+        // Wildlife (OverworldGen scatter): a weaker raider — smaller/less hp/quicker — but the
+        // SAME mobile-melee CombatAI + corpse Mortal.
+        id: "rat",
+        scale: 0.7,
+        components: {
+          BBox: { x: -5, y: -5, width: 10, height: 10 },
+          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Health: { hp: 2 },
+          Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 60 },
+          Mortal: { kind: "corpse" },
+          Rat: {}, // species marker (radar color + kill-quest type)
+          Faction: { id: "monster" },
+          Name: { name: "Rat" },
+          Inventory: { slots: [], capacity: 4 },
+          Visual: { sprite: spr_rat, speed: 6 }, // looping scuttle cycle
+        },
+        post(world, id, ctx) {
+          CombatAI.attach(world, id, ctx.opts.level); // mobile melee, acquires target by faction
+        },
+      },
+      {
+        id: "npc",
+        scale: 0.8,
+        components: {
+          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "" },
+          NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
+          // paper-doll civilian: skin + TINTED white shirt/shoes (colors from the adapter);
+          // static, so the idle bob just loops
+          Visual: { sprite: spr_human },
+          Animator: {
+            graph: RpgPlayer.animGraph(),
+            state: "idle",
+            frame: 0,
+            time: 0,
+          },
+          Appearance: RpgSpawn._outfit("#7a8a66"),
+        },
+      },
+      {
+        id: "chest",
+        components: {
+          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Interaction: { kind: "storage" },
+          Name: { name: "Footlocker" },
+          Inventory: { slots: [], capacity: 12 },
+          Visual: { sprite: spr_chest },
+        },
+      },
+      {
+        // Solid kinematic prop. The adapter resolves sprite/tint/Interaction from the descriptor
+        // (kind → station sprite + Interaction; furn → furniture sprite; color/material → tint).
+        id: "prop",
+        components: {
+          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "" },
+          Visual: { sprite: spr_crate },
+        },
+      },
+      {
+        // Decorative LIGHT prop: a small solid post carrying a Light (drawn by RenderLighting).
+        // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
+        id: "torch",
+        components: {
+          BBox: { x: -4, y: -4, width: 8, height: 8 }, // small footprint
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "Lamp" },
+          Visual: { sprite: spr_torch },
+          // warm, gently flickering torch light (archetype values)
+          Light: {
+            radius: 75,
+            color: Color.parse("#ffd09a"),
+            intensity: 0.9,
+            flicker: 0.18,
+          },
+        },
+      },
+      {
+        // Auto-firing defense post: an immovable player-faction ACTOR — a stationary ranged
+        // CombatAI (mobile:false, ranged:true), no dedicated component. Carries Health + player
+        // faction so enemies target/damage it (two-sided combat). Built-only today (BuildMode).
+        id: "turret",
+        components: {
+          BBox: { x: -6, y: -6, width: 12, height: 12 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Health: { hp: 8 },
+          // shot damage is Stats.attack
+          Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
+          Faction: { id: "player" }, // player ally; a hostile target for enemies
+          Name: { name: "Turret" },
+          Visual: { sprite: spr_lightTurret },
+        },
+        post(world, id, ctx) {
+          // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
+          CombatAI.attach(world, id, ctx.opts.level, {
+            mobile: false,
+            ranged: true,
+            aggro: 110,
+            deAggro: 110,
+            attackRange: 110,
+            cdMax: 30,
+            bulletSpeed: 190,
+            speed: 0,
+          });
+        },
+      },
+      {
+        // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
+        // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
+        id: "portal",
+        components: {
+          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          Name: { name: "Door" },
+          Visual: { sprite: spr_door },
+          Portal: { toMap: "", toEntry: "default" },
+        },
+      },
+      {
+        // Companion (a dynamic solid body). Mortal-but-recoverable: at 0 hp it goes Down, then
+        // revives at the recovery spot (see RpgScene.resolveHealth/updateDowned). No AI attach —
+        // FollowerSystem drives it from the scene.
+        id: "follower",
+        scale: 0.75,
+        components: {
+          Velocity: { x: 0, y: 0, z: 0 },
+          BBox: { x: -5, y: -5, width: 10, height: 10 },
+          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Faction: { id: "player" }, // party ally; friendly fire skips it, but enemies aggro it (it has Health)
+          Health: { hp: 6 },
+          // a companion is a combatant, so it carries defense + attack like every other actor
+          Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 130 },
+          Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
+          Name: { name: "Companion" },
+          Visual: { sprite: spr_human },
+          Animator: {
+            graph: RpgPlayer.animGraph(),
+            state: "idle",
+            frame: 0,
+            time: 0,
+          },
+          Appearance: RpgSpawn._outfit("#9fe0c0"),
+          Follower: {
+            state: "follow",
+            speed: 130, // > player speed (110) so it can catch up when it lags
+            range: 20,
+            homeMap: "",
+            // Carry bonus to the player's Inventory while following (0 = none). The `follower`
+            // preset doesn't pass these, so file-authored followers stay benefit-free; only the
+            // programmatic seed grants one.
+            bonusCapacity: 0,
+            bonusWeight: 0,
+          },
+        },
+      },
+    ]);
   },
+
   /**
    * Spawn the level's entities from data.spawns. Enemies acquire targets live by faction and
    * stations are discovered live by Interactable, so only the handles the scene's logic needs
@@ -74,171 +274,49 @@ globalThis.RpgSpawn = {
   },
 
   // Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
-  // The single place entity construction lives. `gx/gy` are absolute grid coords (gridToWorld
-  // handles negatives, so chunk-streamed entities work too).
+  // The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
+  // (field-merged onto the def), passes `level` through opts for the post hooks (CombatAI), and
+  // applies the reconcile marker. `gx/gy` are absolute grid coords (gridToWorld handles
+  // negatives, so chunk-streamed entities work too).
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
-    // baked size factor: preset base × optional per-spawn override (see SCALE)
-    const k = (RpgSpawn.SCALE[s.preset] ?? 1) * (s.scale ?? 1);
 
-    if (s.preset === "raider") {
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-6, -6, 12, 12, k));
-      // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: false,
-        mask: null,
-        hits: [],
+    if (s.preset === "follower")
+      return RpgSpawn.spawnFollower(world, w.x, w.y, {
+        label: s.label,
+        color: s.color,
+        speed: s.speed,
+        range: s.range,
+        scale: s.scale, // per-spawn override; spawnFollower folds in the def base
       });
-      world.add(id, Health, { hp: s.hp ?? 3 });
-      // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
-      world.add(id, Stats, {
-        maxHp: s.hp ?? 3,
-        maxStamina: 0,
-        attack: 1,
-        defense: 0,
-        speed: 45,
-      });
-      world.add(id, Mortal, { kind: "corpse" }); // hp 0 → lootable body, reaped when emptied (RpgScene)
-      world.add(id, Raider, {}); // species marker (radar color + kill-quest type)
-      world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
-      world.add(id, Name, { name: "Raider" });
-      // loot table — no maxWeight (authored loot, never weight-gated)
-      world.add(id, Inventory, { slots: s.loot ?? [], capacity: 8 });
-      // paper-doll bandit: the same white humanoid template as the player — skin-tinted Visual,
-      // the shared strip graph (CombatAI drives idle/walk/attack + facing), and an AUTHORED
-      // outfit (no Equipment, so AppearanceSystem.rebuild leaves these layers alone)
-      world.add(id, Visual, RpgSpawn._visual(spr_human, RpgSpawn._skin(s), k));
-      world.add(id, Animator, {
-        graph: RpgPlayer.animGraph(),
-        state: "idle",
-        frame: 0,
-        time: 0,
-      });
-      world.add(id, Appearance, {
-        back: [],
-        front: [
-          { sprite: spr_wear_blackShirt, color: c_white },
-          { sprite: spr_wear_blackSneakers, color: c_white },
-          { sprite: spr_wear_redBandana, color: c_white },
-        ],
-      });
-      CombatAI.attach(world, id, level); // adds Velocity + Brain + State (acquires target by faction)
-      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
-      return id;
-    } else if (s.preset === "rat") {
-      // Wildlife (OverworldGen scatter): a weaker raider — smaller/less hp/quicker — but the SAME
-      // mobile-melee CombatAI + corpse Mortal.
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-5, -5, 10, 10, k));
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: false,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Health, { hp: s.hp ?? 2 });
-      world.add(id, Stats, {
-        maxHp: s.hp ?? 2,
-        maxStamina: 0,
-        attack: 1,
-        defense: 0,
-        speed: 60,
-      });
-      world.add(id, Mortal, { kind: "corpse" }); // hp 0 → lootable body, reaped when emptied (RpgScene)
-      world.add(id, Rat, {}); // species marker (radar color + kill-quest type)
-      world.add(id, Faction, { id: "monster" }); // hostile to "player" → CombatAI aggro target
-      world.add(id, Name, { name: "Rat" });
-      world.add(id, Inventory, { slots: s.loot ?? [], capacity: 4 });
-      const vis = RpgSpawn._visual(spr_rat, c_white, k);
-      vis.speed = 6; // looping scuttle cycle
-      world.add(id, Visual, vis);
-      CombatAI.attach(world, id, level); // mobile melee, acquires target by faction
-      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id });
-      return id;
-    } else if (s.preset === "npc") {
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Name, { name: s.label });
-      world.add(id, NPC, { name: s.nameKey, lines: [], questId: s.questId }); // NPC presence = "is an NPC" (radar/query)
-      // paper-doll civilian: skin-tinted body + TINTED white shirt/shoes (outfit color from the
-      // descriptor so elder/merchants read distinct); static, so the idle bob just loops
-      world.add(id, Visual, RpgSpawn._visual(spr_human, RpgSpawn._skin(s), k));
-      world.add(id, Animator, {
-        graph: RpgPlayer.animGraph(),
-        state: "idle",
-        frame: 0,
-        time: 0,
-      });
-      world.add(id, Appearance, RpgSpawn._outfit(s.color ?? "#7a8a66"));
-      // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
-      // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
-      // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
-      if (s.merchant !== undefined) {
-        const mc = s.merchant;
-        const mInv = { slots: [], capacity: mc.capacity ?? 32 };
-        const stock = mc.stock ?? [];
-        for (let k = 0; k < stock.length; k++)
-          InventorySystem.add(mInv, stock[k].itemId, stock[k].qty);
-        world.add(id, Inventory, mInv);
-        world.add(id, Merchant, {
-          currencyId: mc.currencyId ?? "coin",
-          buyMargin: mc.buyMargin ?? 1.25,
-          sellMargin: mc.sellMargin ?? 0.5,
-          infinite: mc.infinite ?? false,
-          credits: mc.credits ?? 0,
-          restockSecs: mc.restockSecs ?? 0,
-          restockTimer: mc.restockSecs ?? 0,
-          template: mc.template,
-        });
+    if (!EntityPreset.has(s.preset)) return -1;
+
+    const over = {};
+    if (s.preset === "raider" || s.preset === "rat") {
+      if (s.hp !== undefined) {
+        over.Health = { hp: s.hp };
+        over.Stats = { maxHp: s.hp };
       }
-      if (s.id !== undefined) world.add(id, Persistent, { uid: s.id }); // unique → reconcile
-      return id;
+      if (s.loot !== undefined) over.Inventory = { slots: s.loot };
+      // deterministic skin over the white doll template (rat keeps its own art untinted)
+      if (s.preset === "raider") over.Visual = { color: RpgSpawn._skin(s) };
+    } else if (s.preset === "npc") {
+      over.Name = { name: s.label };
+      over.NPC = { name: s.nameKey, questId: s.questId };
+      over.Visual = { color: RpgSpawn._skin(s) };
+      // outfit color from the descriptor so elder/merchants read distinct
+      over.Appearance = RpgSpawn._outfit(s.color ?? "#7a8a66");
     } else if (s.preset === "chest") {
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Interaction, { kind: "storage" });
-      world.add(id, Name, { name: "Footlocker" });
-      world.add(id, Inventory, {
-        slots: s.items ?? [],
-        capacity: s.capacity ?? 12,
-      });
-      world.add(id, Visual, RpgSpawn._visual(spr_chest, c_white, k));
-      return id;
+      const inv = {};
+      if (s.items !== undefined) inv.slots = s.items;
+      if (s.capacity !== undefined) inv.capacity = s.capacity;
+      if (Object.keys(inv).length > 0) over.Inventory = inv;
     } else if (s.preset === "prop") {
-      // Solid kinematic prop. An Interaction `kind` makes it interactable (E runs its InteractAction);
-      // a decorative prop omits it.
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Name, { name: s.label });
-      // Sprite per Interaction `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/fence,
-      // default crate). Pre-colored art draws untinted unless the descriptor authors color/material.
+      // Sprite per Interaction `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/
+      // fence, default crate). Pre-colored art draws untinted unless the descriptor authors
+      // color/material.
       let sprite;
-      let color = c_white;
+      let color;
       if (s.kind === "workbench") sprite = spr_workbench;
       else if (s.kind === "claim") sprite = spr_surveyPost;
       else if (s.kind === "bed") sprite = spr_simpleBed;
@@ -249,158 +327,90 @@ globalThis.RpgSpawn = {
         if (s.color !== undefined || s.material !== undefined)
           color = RpgSpawn._tint(s);
       }
-      world.add(id, Visual, RpgSpawn._visual(sprite, color, k));
-      if (s.kind !== undefined) world.add(id, Interaction, { kind: s.kind });
-      return id;
+      over.Visual = color !== undefined ? { sprite, color } : { sprite };
+      over.Name = { name: s.label };
+      if (s.kind !== undefined) over.Interaction = { kind: s.kind };
     } else if (s.preset === "torch") {
-      // Decorative LIGHT prop: a small solid post carrying a Light (drawn by RenderLighting).
-      // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-4, -4, 8, 8, k)); // small footprint
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Name, { name: s.label ?? "Lamp" });
-      world.add(id, Visual, RpgSpawn._visual(spr_torch, c_white, k));
-      // warm, gently flickering torch light (archetype values)
-      world.add(id, Light, {
-        radius: 75,
-        color: Color.parse("#ffd09a"),
-        intensity: 0.9,
-        flicker: 0.18,
-      });
-      return id;
+      if (s.label !== undefined) over.Name = { name: s.label };
     } else if (s.preset === "turret") {
-      // Auto-firing defense post: an immovable player-faction ACTOR — a stationary ranged CombatAI
-      // (mobile:false, ranged:true), no dedicated component. Carries Health + player faction so
-      // enemies target/damage it (two-sided combat). Built-only today (BuildMode "Defense").
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-6, -6, 12, 12, k));
-      world.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      world.add(id, Health, { hp: 8 });
-      // shot damage is Stats.attack
-      world.add(id, Stats, {
-        maxHp: 8,
-        maxStamina: 0,
-        attack: 2,
-        defense: 0,
-        speed: 0,
-      });
-      world.add(id, Faction, { id: "player" }); // player ally; a hostile target for enemies
-      world.add(id, Name, { name: s.label ?? "Turret" });
-      world.add(id, Visual, RpgSpawn._visual(spr_lightTurret, c_white, k));
-      // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
-      CombatAI.attach(world, id, level, {
-        mobile: false,
-        ranged: true,
-        aggro: 110,
-        deAggro: 110,
-        attackRange: 110,
-        cdMax: 30,
-        bulletSpeed: 190,
-        speed: 0,
-      });
-      return id;
+      if (s.label !== undefined) over.Name = { name: s.label };
     } else if (s.preset === "portal") {
-      // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
-      // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
-      const id = world.create();
-      world.add(id, Position, { x: w.x, y: w.y, z: 0 });
-      world.add(id, BBox, RpgSpawn._box(-7, -7, 14, 14, k));
-      world.add(id, Name, { name: s.label ?? "Door" });
-      world.add(id, Visual, RpgSpawn._visual(spr_door, c_white, k));
-      world.add(id, Portal, {
-        toMap: s.toMap,
-        toEntry: s.toEntry ?? "default",
-      });
-      return id;
-    } else if (s.preset === "follower") {
-      return RpgSpawn.spawnFollower(world, w.x, w.y, {
-        label: s.label,
-        color: s.color,
-        speed: s.speed,
-        range: s.range,
-        scale: s.scale, // per-spawn override; spawnFollower folds in the preset base
+      if (s.label !== undefined) over.Name = { name: s.label };
+      over.Portal = { toMap: s.toMap, toEntry: s.toEntry ?? "default" };
+    }
+
+    const id = EntityPreset.spawn(s.preset, world, w.x, w.y, 0, {
+      scale: s.scale,
+      components: over,
+      level, // post hooks (CombatAI.attach) read ctx.opts.level
+    });
+
+    // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
+    // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
+    // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
+    if (s.preset === "npc" && s.merchant !== undefined) {
+      const mc = s.merchant;
+      const mInv = { slots: [], capacity: mc.capacity ?? 32 };
+      const stock = mc.stock ?? [];
+      for (let i = 0; i < stock.length; i++)
+        InventorySystem.add(mInv, stock[i].itemId, stock[i].qty);
+      world.add(id, Inventory, mInv);
+      world.add(id, Merchant, {
+        currencyId: mc.currencyId ?? "coin",
+        buyMargin: mc.buyMargin ?? 1.25,
+        sellMargin: mc.sellMargin ?? 0.5,
+        infinite: mc.infinite ?? false,
+        credits: mc.credits ?? 0,
+        restockSecs: mc.restockSecs ?? 0,
+        restockTimer: mc.restockSecs ?? 0,
+        template: mc.template,
       });
     }
-    return -1;
+
+    // unique spawn-once reconcile marker (the presets the ledger tracks today)
+    if (
+      s.id !== undefined &&
+      (s.preset === "raider" || s.preset === "rat" || s.preset === "npc")
+    )
+      world.add(id, Persistent, { uid: s.id });
+    return id;
   },
 
-  // Spawn a companion (a dynamic solid body) at world coords. Shared by the `follower` preset +
-  // the scene's programmatic party seed. NOTE: a companion is persistent (travels/stations via
-  // EntitySnapshot), so prefer the programmatic seed over a file spawn in a PERSISTENT map — a
-  // file spawn re-runs every revisit and would duplicate the restored copy. Preset is fine for
-  // non-persistent maps.
+  // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
+  // descriptor + the scene's programmatic party seed. NOTE: a companion is persistent (travels/
+  // stations via EntitySnapshot), so prefer the programmatic seed over a file spawn in a
+  // PERSISTENT map — a file spawn re-runs every revisit and would duplicate the restored copy.
   spawnFollower(world, wx, wy, opt = {}) {
-    const id = world.create();
-    // baked size factor, like spawnEntity (preset base × optional override)
-    const k = (RpgSpawn.SCALE.follower ?? 1) * (opt.scale ?? 1);
-    world.add(id, Position, { x: wx, y: wy, z: 0 });
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, RpgSpawn._box(-5, -5, 10, 10, k));
-    world.add(id, Collision, {
-      solid: true,
-      kinematic: false,
-      mask: null,
-      hits: [],
+    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
+    // `opt.color` is the OUTFIT tint, not a whole-body wash.
+    const over = {
+      Visual: {
+        color: RpgSpawn._skin({ gx: Math.round(wx), gy: Math.round(wy) }),
+      },
+      Appearance: RpgSpawn._outfit(opt.color ?? "#9fe0c0"),
+    };
+    if (opt.hp !== undefined) {
+      over.Health = { hp: opt.hp };
+      over.Mortal = { reviveHp: opt.hp };
+    }
+    if (opt.recoverSecs !== undefined)
+      over.Mortal = { ...(over.Mortal ?? {}), recoverSecs: opt.recoverSecs };
+    const stats = {};
+    if (opt.hp !== undefined) stats.maxHp = opt.hp;
+    if (opt.speed !== undefined) stats.speed = opt.speed;
+    if (Object.keys(stats).length > 0) over.Stats = stats;
+    if (opt.label !== undefined) over.Name = { name: opt.label };
+    const fol = {};
+    if (opt.state !== undefined) fol.state = opt.state;
+    if (opt.speed !== undefined) fol.speed = opt.speed;
+    if (opt.range !== undefined) fol.range = opt.range;
+    if (opt.bonusCapacity !== undefined) fol.bonusCapacity = opt.bonusCapacity;
+    if (opt.bonusWeight !== undefined) fol.bonusWeight = opt.bonusWeight;
+    if (Object.keys(fol).length > 0) over.Follower = fol;
+    return EntityPreset.spawn("follower", world, wx, wy, 0, {
+      scale: opt.scale,
+      components: over,
     });
-    world.add(id, Faction, { id: "player" }); // party ally; friendly fire skips it, but enemies aggro it (it has Health)
-    // mortal but recoverable: at 0 hp it goes Down, then revives at the recovery spot after
-    // Mortal.recoverSecs (see RpgScene.resolveHealth/updateDowned). Not removed like an enemy.
-    world.add(id, Health, { hp: opt.hp ?? 6 });
-    // a companion is a combatant, so it carries defense + attack like every other actor
-    world.add(id, Stats, {
-      maxHp: opt.hp ?? 6,
-      maxStamina: 0,
-      attack: 1,
-      defense: 0,
-      speed: opt.speed ?? 130,
-    });
-    world.add(id, Mortal, {
-      kind: "down",
-      recoverSecs: opt.recoverSecs ?? 6,
-      reviveHp: opt.hp ?? 6,
-    });
-    world.add(id, Name, { name: opt.label ?? "Companion" });
-    // paper-doll companion: skin-tinted body (hashed from the spawn spot) + the civilian outfit
-    // in the ally color — `opt.color` is now the OUTFIT tint, not a whole-body wash
-    world.add(
-      id,
-      Visual,
-      RpgSpawn._visual(
-        spr_human,
-        RpgSpawn._skin({ gx: Math.round(wx), gy: Math.round(wy) }),
-        k,
-      ),
-    );
-    world.add(id, Animator, {
-      graph: RpgPlayer.animGraph(),
-      state: "idle",
-      frame: 0,
-      time: 0,
-    });
-    world.add(id, Appearance, RpgSpawn._outfit(opt.color ?? "#9fe0c0"));
-    world.add(id, Follower, {
-      state: opt.state ?? "follow",
-      speed: opt.speed ?? 130, // > player speed (110) so it can catch up when it lags
-      range: opt.range ?? 20,
-      homeMap: "",
-      // Carry bonus to the player's Inventory while following (0 = none). The `follower` preset
-      // doesn't pass these, so file-authored followers stay benefit-free; only the seed grants one.
-      bonusCapacity: opt.bonusCapacity ?? 0,
-      bonusWeight: opt.bonusWeight ?? 0,
-    });
-    return id;
   },
 
   // Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
@@ -413,12 +423,6 @@ globalThis.RpgSpawn = {
     }
     const hex = s.color ?? fallback;
     return hex !== undefined ? Color.parse(hex) : c_white;
-  },
-
-  // Scaled BBox for a preset's baked size factor. Fractional extents are fine — collision math
-  // is float throughout (AABB).
-  _box(x, y, w, h, k) {
-    return { x: x * k, y: y * k, width: w * k, height: h * k };
   },
 
   // Skin tones for doll humanoids (Visual.color over the white spr_human template).
@@ -442,27 +446,6 @@ globalThis.RpgSpawn = {
         { sprite: spr_wear_shirt, color: Color.parse(shirtColor) },
         { sprite: spr_wear_shoes, color: Color.parse("#55565e") },
       ],
-    };
-  },
-
-  // Shared Visual shape. `scale` is the entity's DESIGN size factor (preset base × per-spawn
-  // override — see SCALE); the sheet's ArtDensity divides the draw scale only, so denser art
-  // lands at the same world size (BBox stays design-scale). Sprites are foot-anchored so this
-  // draws standing up from Position. Caller may set `speed`.
-  _visual(sprite, color, scale = 1) {
-    const k = ArtDensity.fit(scale, sprite);
-    return {
-      visible: true,
-      sprite: sprite,
-      subimg: 0,
-      scale: scale,
-      xscale: k,
-      yscale: k,
-      rot: 0,
-      color: color,
-      alpha: 1,
-      speed: 0,
-      time: 0,
     };
   },
 };

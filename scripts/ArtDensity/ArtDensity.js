@@ -3,10 +3,10 @@
 // cell can mean a denser subject OR a taller one, and only the art's author knows which — a sheet
 // that needs more detail declares >1 and draws at the same world size as its 1x counterpart.
 //
-// Split of concerns: Visual.scale is the entity's DESIGN size (RpgSpawn.SCALE x per-spawn scale —
+// Split of concerns: Visual.scale is the entity's DESIGN size (preset scale x per-spawn scale —
 // bosses/Alpha mobs), which also scales the BBox; density is an art fact that divides the DRAW
 // scale only (xscale/yscale = scale / density) and never touches the BBox. Bake sites:
-// RpgSpawn._visual / RpgPlayer.spawn; AnimationSystem refits when a graph state swaps sheets.
+// EntityPreset.spawn / RpgPlayer.spawn; AnimationSystem refits when a graph state swaps sheets.
 //
 // Storage is PARALLEL ARRAYS keyed by the sprite handle via === (opaque-ref identity) — a Map
 // keyed by a sprite ref crashes GMRT 0.20 natively at .get ("Bad optional access"), verified

@@ -6,7 +6,7 @@ globalThis.RpgPlayer = {
   SKIN: 0x90b8e8,
 
   // create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
-  // factor over art-native 1.0 — multiplies the bbox AND the Visual, like RpgSpawn.SCALE).
+  // factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
   spawn(world, spawn, opts) {
     const k = opts.scale ?? 1;
     const id = world.create();
