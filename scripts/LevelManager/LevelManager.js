@@ -6,11 +6,13 @@
 // arcade cabinet), which also hands the guest's result() to the switch's onResult. One kept
 // level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
 //
-// REGISTRY (was Universe): a flat mapId -> { world, level } index of every RESIDENT map (the
-// active one + the parked map pool inside the RPG level). RpgMap registers on build; take/put/
-// transfer move a WHOLE entity (all components, via EntitySnapshot) between two resident maps'
-// stores — the portal-squad + wandering-trader path. Registry `reset()` drops the index (map-
-// pool teardown); it is INDEPENDENT of the level collection (destroy() tears that down).
+// REGISTRY (was Universe): a flat mapId -> entry index of every RESIDENT map — THE map pool
+// (there is no scene-side pool anymore). An entry is opaque to Core except for { world, level }:
+// RpgMap registers a minimal pair at build and overwrites it with its full park bundle at each
+// suspend, so parked worlds live here. take/put/transfer move a WHOLE entity (all components,
+// via EntitySnapshot) between two resident maps' stores — the portal-squad + wandering-trader
+// path. Registry `reset()` drops the index (map-pool teardown; the owner frees the stores
+// first); it is INDEPENDENT of the level collection (destroy() tears that down).
 //
 // Plain instance class (World.levels = new LevelManager()), not a static singleton: `current` is
 // an instance getter — instance get/set work on GMRT, only static computed getters miscompile.
@@ -26,7 +28,7 @@ globalThis.LevelManager = class LevelManager {
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
     // ── resident-map registry (was Universe) ──
-    this._levels = {}; // mapId -> { world, level } for every RESIDENT map (active + parked pool)
+    this._levels = {}; // mapId -> entry (at least { world, level }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
   }
 
@@ -216,15 +218,24 @@ globalThis.LevelManager = class LevelManager {
 
   // ── resident-map registry + whole-entity transfer (was Universe) ──
 
-  // Index a map's store under its map id (idempotent — re-registering a resumed map overwrites with
-  // the same live objects). Called by RpgMap on build.
-  register(mapId, world, level) {
-    this._levels[mapId] = { world: world, level: level };
+  // Index a map under its id. `entry` must carry at least { world, level } — Core reads only
+  // those two fields; everything else is the owner's business (the RPG's park bundle).
+  // Overwrites: RpgMap.build stores a minimal { world, level }, each RpgMap.suspend replaces it
+  // with the full park bundle. A resumed map's entry may retain stale bundle fields until its
+  // next suspend — harmless, nothing reads them (world/level are the same live objects throughout).
+  register(mapId, entry) {
+    this._levels[mapId] = entry;
   }
 
-  // Drop a map from the index (its store is about to be destroyed — scene end).
-  unregister(mapId) {
-    delete this._levels[mapId];
+  /** @returns {Object|null} the registered entry (a park bundle, or the minimal { world, level }) */
+  entryOf(mapId) {
+    const e = this._levels[mapId];
+    return e !== undefined ? e : null;
+  }
+
+  /** @returns {string[]} every resident map id (teardown walks) */
+  ids() {
+    return Object.keys(this._levels);
   }
 
   setActive(mapId) {
@@ -240,13 +251,8 @@ globalThis.LevelManager = class LevelManager {
   }
 
   worldOf(mapId) {
-    const l = this._levels[mapId];
-    return l !== undefined ? l.world : null;
-  }
-
-  levelOf(mapId) {
-    const l = this._levels[mapId];
-    return l !== undefined ? l.level : null;
+    const e = this._levels[mapId];
+    return e !== undefined ? e.world : null;
   }
 
   // Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the

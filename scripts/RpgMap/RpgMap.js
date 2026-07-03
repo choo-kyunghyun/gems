@@ -1,8 +1,9 @@
 // Map-graph engine for the RPG scene — portal travel, map pool, and persistence.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 //
-// Visited worlds are kept ALIVE in a per-scene pool (scene._maps) — no destroy/rebuild on
-// a door trip. Only the SQUAD migrates: every entity sharing the player's Squad id (player
+// Visited worlds are kept ALIVE in the World.levels registry (the map pool — the registry
+// entry IS the park bundle; there is no scene-side pool) — no destroy/rebuild on a door
+// trip. Only the SQUAD migrates: every entity sharing the player's Squad id (player
 // included) moves as a WHOLE entity through World.levels.take/put — a portal forces a "wait"
 // member back to "follow" first, so the squad always travels together. There is no per-map
 // player and no carried component subset; kicked/unhired companions are plain map residents.
@@ -79,8 +80,10 @@ globalThis.RpgMap = {
       RpgMap.suspend(scene);
     }
     // ── PHASE B: enter the target — resume its parked world, else build from file ──
-    const bundle = scene._maps[mapId];
-    if (bundle !== undefined) RpgMap.resume(scene, bundle, entryId, squad);
+    // every resident map is parked at this point (Phase A parked the current one), so a
+    // registry hit is always a full park bundle
+    const bundle = World.levels.entryOf(mapId);
+    if (bundle !== null) RpgMap.resume(scene, bundle, entryId, squad);
     else RpgMap.build(scene, mapId, entryId, squad);
     World.levels.setActive(scene.mapId);
     Trader.onActivate(scene); // embody any trader currently in this map
@@ -102,20 +105,21 @@ globalThis.RpgMap = {
       });
   },
 
-  // Park the live map. Unassign (not destroy) the camera — the parked map keeps it for resume;
-  // without the unassign its later destroy() would tear down the live view. exitRegion so the
-  // next map re-detects its climate.
+  // Park the live map: its registry entry becomes the full bundle (was the minimal
+  // { world, level } from build, or the previous park). Unassign (not destroy) the camera —
+  // the parked map keeps it for resume; without the unassign its later destroy() would tear
+  // down the live view. exitRegion so the next map re-detects its climate.
   suspend(scene) {
     if (scene.camera) scene.camera.unassign();
     Weather.exitRegion();
-    scene._maps[scene.mapId] = RpgMap._stash(scene);
+    World.levels.register(scene.mapId, RpgMap._stash(scene));
   },
 
   // Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
   // at the entry (the parked world has no player — the squad left through the portal).
   resume(scene, bundle, entryId, squad) {
     RpgMap._restore(scene, bundle);
-    delete scene._maps[scene.mapId]; // mapId restored above; live now, not parked
+    // the registry entry stays (the map is resident either way); the next suspend overwrites it
     MotionPlanner.setGrid(scene.nav);
     if (scene.camera) scene.camera.assign(0);
 
@@ -218,8 +222,12 @@ globalThis.RpgMap = {
     );
 
     RpgMap._buildWorld(scene, data, entryId, squad); // World + Level (+ player on boot) + zones
-    // register BEFORE the squad lands — World.levels.put targets the registry
-    World.levels.register(scene.mapId, scene.world, scene.level);
+    // register BEFORE the squad lands — World.levels.put targets the registry. Minimal entry;
+    // suspend later overwrites it with the full park bundle.
+    World.levels.register(scene.mapId, {
+      world: scene.world,
+      level: scene.level,
+    });
     RpgMap._arriveSquad(scene, squad, scene.spawn); // scene.spawn is already entry-resolved
     // build-mode tracking, fresh per first visit (parks with the bundle thereafter). _builtEnts
     // persists on the scene across map swaps (BuildMode.build runs once) — reset explicitly.

@@ -52,11 +52,10 @@ class _SceneRpgClass extends Level {
       StatModel.recompute(world, id);
     };
 
-    // map pool: every visited map stays alive/suspended here for the whole session (see RpgMap.go)
-    this._maps = {};
-
-    // world event queue + level manager + wandering traders — reset per scene create so a fresh RPG
-    // session can't inherit the previous one's schedule/records (Trader.reset re-installs handlers).
+    // world event queue + level manager (its registry is the map pool — every visited map stays
+    // alive/suspended there for the whole session, see RpgMap.go) + wandering traders — reset per
+    // scene create so a fresh RPG session can't inherit the previous one's maps/schedule/records
+    // (Trader.reset re-installs handlers).
     World.levels.reset();
     WorldEvents.reset();
     Trader.reset();
@@ -866,10 +865,12 @@ class _SceneRpgClass extends Level {
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
-    // free every parked pooled map, then the active map (its fields live on `this`); UI root removed last
-    for (const id in this._maps) RpgMap._free(this._maps[id]);
-    this._maps = {};
-    RpgMap._free(this);
+    // free every resident map via the manager index: park the active one first (its fields live
+    // flat on `this`) so every registry entry is a full bundle, then reclaim them all
+    RpgMap.suspend(this);
+    const mapIds = World.levels.ids();
+    for (let i = 0; i < mapIds.length; i++)
+      RpgMap._free(World.levels.entryOf(mapIds[i]));
     World.levels.reset(); // drop the manager index (all stores freed above)
     WorldEvents.reset(); // clear the world event queue
     Trader.reset(); // drop trader records + queued trader events
