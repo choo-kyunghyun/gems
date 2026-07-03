@@ -41,13 +41,33 @@ globalThis.TerrainStream = class TerrainStream {
         return;
       }
       // frames 0..15 are the dual-grid corner masks; frames past 15 are extra full-tile (mask-15)
-      // variants — `variants` = how many (>=1); a full cell picks one by position hash to break repetition
+      // variants. The WEIGHTED table [[frame, weight], ...] comes from the sheet's SpriteMeta
+      // def (`variants["15"]`, emitted by terrain_sprites.py — plain re-rolls heavy, decorated
+      // frames light); an undeclared sheet falls back to the legacy inference — every frame past
+      // 15 as a uniform-weight variant. A full cell picks by position hash to break repetition.
+      const def = SpriteMeta.of(spr);
+      let table =
+        def !== undefined && def.variants !== undefined
+          ? def.variants["15"]
+          : undefined;
+      if (table === undefined) {
+        table = [];
+        const n = Math.max(1, sprite_get_number(spr) - 15);
+        let v = 0;
+        while (v < n) {
+          table.push([15 + v, 1]);
+          v++;
+        }
+      }
+      let total = 0;
+      for (let k = 0; k < table.length; k++) total += table[k][1];
       this._sprites.push({
         spr,
         tex: sprite_get_texture(spr, 0),
         sw: sprite_get_width(spr),
         sh: sprite_get_height(spr),
-        variants: Math.max(1, sprite_get_number(spr) - 15),
+        table,
+        total,
       });
     }
   }
@@ -138,11 +158,11 @@ globalThis.TerrainStream = class TerrainStream {
           if (pad[bj * pw + bi] >= m) mask |= 4; // BR
           if (pad[bj * pw + (bi - 1)] >= m) mask |= 8; // BL
           if (mask === 0) continue;
-          // frame = corner mask; a full cell (15) picks a full-tile variant by position hash to break
-          // visible repetition. Borders (1..14) use the base variant (frame == mask).
+          // frame = corner mask; a full cell (15) picks a weighted full-tile variant by position
+          // hash to break visible repetition. Borders (1..14) use the base variant (frame == mask).
           const frame =
-            mask === 15 && s.variants > 1
-              ? 15 + this._variant(x0 + lx, y0 + ly, s.variants)
+            mask === 15 && s.table.length > 1
+              ? this._variant(x0 + lx, y0 + ly, s)
               : mask;
           // trim-aware quad (mirrors RenderTileMap._quad): honor the packer's per-frame UV factors so a
           // trimmed frame isn't stretched. Untinted — the sprite carries the material color.
@@ -169,15 +189,23 @@ globalThis.TerrainStream = class TerrainStream {
     return out;
   }
 
-  // deterministic per-cell variant index in [0, n): MINSTD integer-float hash (no bitwise chain —
-  // GMRT miscompiles xorshift; mirrors OverworldGen._hash). Pure in (gx, gy), so reloads stay stable.
-  _variant(gx, gy, n) {
+  // deterministic per-cell WEIGHTED variant frame: MINSTD integer-float hash (no bitwise chain —
+  // GMRT miscompiles xorshift; mirrors OverworldGen._hash) walked down the material's cumulative
+  // [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
+  _variant(gx, gy, s) {
     const M = 2147483647;
     let h = 374761393 % M;
     h = (((h * 31 + (gx | 0) * 1900613) % M) + M) % M;
     h = (((h * 31 + (gy | 0) * 7368787) % M) + M) % M;
     h = (h * 48271) % M;
-    return h % n;
+    let r = h % s.total;
+    let k = 0;
+    while (k < s.table.length) {
+      r -= s.table[k][1];
+      if (r < 0) return s.table[k][0];
+      k++;
+    }
+    return s.table[0][0];
   }
 
   // free one chunk's per-material VBOs

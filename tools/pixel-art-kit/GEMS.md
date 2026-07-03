@@ -74,10 +74,13 @@ no longer gets squished into the square cell; square icons are unaffected.
    first (IDE or `gm-cli resourcetool`); frame/layer UUIDs are deterministic (uuid5), so re-running is
    churn-free.
 4. **Declare** — an importer also emits its sheets' **`SpriteMeta` manifest**
-   (`datafiles/spritemeta/<name>.json` — kind / density / cell per sheet, loaded by the engine's
-   `SpriteMeta` registry at boot). Generated alongside the art so declarations can't drift from it;
-   the included file is registered in `gems.yyp` once, re-runs only rewrite content. Today
-   `human_sprites.py` emits `human.json`; new importers follow the same shape.
+   (`datafiles/spritemeta/<name>.json` — kind / density / cell per sheet, plus a tileset's
+   weighted `variants` table, loaded by the engine's `SpriteMeta` registry at boot). Generated
+   alongside the art so declarations can't drift from it; the included file is registered in
+   `gems.yyp` once, re-runs only rewrite content. Today `human_sprites.py` emits `human.json`
+   and `terrain_sprites.py` `terrain.json` (its variant weights come from
+   `terrain_materials.variant_plan` — plain re-rolls heavy, decorated frames light); new
+   importers follow the same shape.
 
 ## Status / migration
 

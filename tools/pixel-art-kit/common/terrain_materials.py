@@ -10,9 +10,13 @@ the texture algorithm suited to it — extend ALGOS and select via cfg["algo"]:
   grain  — fine 1px speckle over a base (sand: grainy)
 
 All algorithms are TILEABLE by construction (wrapping sines / wrapping strokes / isolated specks)
-and emit their colors directly (inline per terrain; no external palette dependency). `variants` per terrain
-feed TerrainStream's per-cell variant pick: water=1 (a continuous ripple must stay ONE seamless
-tile — per-variant phase jumps would seam), sand/grass=4 (blobby/grainy: variants break the grid).
+and emit their colors directly (inline per terrain; no external palette dependency). Full-tile
+variants feed TerrainStream's per-cell variant pick: `variants` plain texture re-rolls (water=1 —
+a continuous ripple must stay ONE seamless tile; per-variant phase jumps would seam) plus optional
+`decor` entries — DECORATED variants (a fresh texture roll stamped with flowers/pebbles/...) at a
+low `weight` vs `plain_weight`, so decorations are occasional accents by probability. The weighted
+table is `variant_plan(name)` — the single source of truth terrain_sprites.py turns into the
+sheet's SpriteMeta manifest (the engine picks per cell by deterministic hash).
 
 Usage:  python common/terrain_materials.py        # -> out/materials/<terrain>_<i>.png
 """
@@ -115,6 +119,62 @@ def algo_grain(S, cfg, seed):
 
 ALGOS = {"noise": algo_noise, "ripple": algo_ripple, "blades": algo_blades, "grain": algo_grain}
 
+
+# ---- decorations (stamped over a variant patch) ------------------------------
+
+def _scatter(rng, S, count, margin, sep=5):
+    """`count` stamp anchors, each >=`margin` from the border and >=`sep` (Chebyshev) apart —
+    adjacent stamps would merge into one odd blob. Rejection-sampled; a crowded tile just gets
+    fewer stamps."""
+    pts = []
+    for _ in range(count):
+        for _try in range(12):
+            x = rng.randrange(margin, S - margin)
+            y = rng.randrange(margin, S - margin)
+            if all(max(abs(x - ox), abs(y - oy)) >= sep for ox, oy in pts):
+                pts.append((x, y))
+                break
+    return pts
+
+
+def _decor_flowers(px, S, rng):
+    """2-3 small blooms: a 1px warm core + 4 muted petals (plus shape). Colors stay low-contrast
+    against the olive grass so blooms read as accents, not confetti."""
+    petals = [(208, 202, 178), (172, 152, 174)]  # dusty white / soft lilac
+    core = (198, 174, 112)
+    for x, y in _scatter(rng, S, rng.randint(2, 3), 3):
+        pet = petals[rng.randrange(len(petals))] + (255,)
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            px[(y + dy) * S + (x + dx)] = pet
+        px[y * S + x] = core + (255,)
+
+
+def _decor_pebbles(px, S, rng, lit=(146, 142, 132), dark=(108, 104, 96)):
+    """2-3 small stones: a 2x2 lit block with a 2px darker shadow row below."""
+    for x, y in _scatter(rng, S, rng.randint(2, 3), 3):
+        for dy in range(2):
+            for dx in range(2):
+                px[(y + dy) * S + (x + dx)] = lit + (255,)
+        for dx in range(2):
+            px[(y + 2) * S + (x + dx)] = dark + (255,)
+
+
+def _decor_stones(px, S, rng):
+    """pebbles in warmer greys — stones on sand."""
+    _decor_pebbles(px, S, rng, lit=(158, 150, 132), dark=(128, 120, 104))
+
+
+DECOR = {"flowers": _decor_flowers, "pebbles": _decor_pebbles, "stones": _decor_stones}
+
+
+def decorate(patch, S, kind, seed):
+    """A decorated FULL-TILE variant: copy of `patch` with sparse decoration stamps. Shapes keep
+    clear of the tile border so a decorated cell abuts plain neighbors seamlessly (the base
+    texture is statistically continuous; only a decoration clipped mid-shape would seam)."""
+    px = list(patch)
+    DECOR[kind](px, S, random.Random(seed))
+    return px
+
 # Per-terrain algorithm selection + params (example terrains; colors inline). `variants` overrides the default count.
 TERRAINS = {
     "water": {"algo": "ripple", "seed": 11, "variants": 1,
@@ -131,7 +191,8 @@ TERRAINS = {
               # RimWorld-earthy + calm: muted tan, sparse low-contrast specks (a clean backdrop, not
               # grainy static). See grass note below.
               "base": (168, 148, 106), "dark": (150, 132, 92), "light": (185, 166, 124),
-              "density": 0.09},
+              "density": 0.09,
+              "decor": [{"kind": "stones", "n": 1, "weight": 1}]},
     "mud":   {"algo": "noise", "seed": 41, "variants": 4,
               # wet dark grey-brown; big low-contrast blobs (L=4) read as damp puddled ground
               "base": (96, 84, 68), "dark": (84, 74, 60), "light": (109, 96, 78),
@@ -149,7 +210,9 @@ TERRAINS = {
               # strokes so grass reads as a calm serious backdrop the muted entities sit on rather than
               # salt-and-pepper static. (Was bright (106,190,48) + dense = candy noise.)
               "base": (121, 130, 90), "dark": (107, 116, 80), "light": (138, 148, 104),
-              "density": 0.10},
+              "density": 0.10,
+              "decor": [{"kind": "flowers", "n": 2, "weight": 1},
+                        {"kind": "pebbles", "n": 1, "weight": 1}]},
     "gravel": {"algo": "grain", "seed": 59, "variants": 4,
               # loose grey pebbles — denser speckle than sand so it reads coarse, not sandy
               "base": (133, 129, 120), "dark": (112, 108, 100), "light": (152, 148, 138),
@@ -159,12 +222,30 @@ TERRAINS = {
               "base": (118, 116, 110), "dark": (100, 98, 93), "light": (136, 134, 127),
               "L": 6, "dark_t": 0.28, "light_t": 0.74},
 }
-VARIANTS = 4  # default if a terrain omits "variants"
+VARIANTS = 4      # default plain variant count if a terrain omits "variants"
+PLAIN_WEIGHT = 8  # pick weight per plain variant (a decor entry defaults to weight 1)
+
+
+def variant_plan(name):
+    """[(index, weight), ...] over every full-tile variant of a terrain, in the material-file /
+    sprite-frame order generate() writes: plain variants 0..nv-1 (index 0 is the base the 16 dual
+    frames are cut from), then each decor entry's frames. Single source of truth shared by
+    generate() and terrain_sprites.py's SpriteMeta manifest."""
+    cfg = TERRAINS[name]
+    pw = cfg.get("plain_weight", PLAIN_WEIGHT)
+    plan = [(i, pw) for i in range(cfg.get("variants", VARIANTS))]
+    idx = len(plan)
+    for d in cfg.get("decor", ()):
+        for _ in range(d.get("n", 1)):
+            plan.append((idx, d.get("weight", 1)))
+            idx += 1
+    return plan
 
 
 def generate():
-    """Write every terrain's variant materials; return {terrain: variant_count}. Clears stale
-    variant PNGs first so a reduced count leaves no orphans."""
+    """Write every terrain's variant materials (plain re-rolls, then decorated); return
+    {terrain: variant_count}. Clears stale variant PNGs first so a reduced count leaves no
+    orphans."""
     out = P.out_dir("materials")
     for fn in os.listdir(out):
         if fn.endswith(".png") and "_" in fn:
@@ -176,7 +257,14 @@ def generate():
         for i in range(nv):
             px = fn(S, cfg, cfg["seed"] + i * 1009)  # distinct seed per variant
             P.write_png(os.path.join(out, f"{name}_{i}.png"), S, S, px)
-        counts[name] = nv
+        idx = nv
+        for d in cfg.get("decor", ()):
+            for k in range(d.get("n", 1)):
+                seed = cfg["seed"] + idx * 1009
+                px = decorate(fn(S, cfg, seed), S, d["kind"], seed * 31 + k)
+                P.write_png(os.path.join(out, f"{name}_{idx}.png"), S, S, px)
+                idx += 1
+        counts[name] = idx
     return counts
 
 

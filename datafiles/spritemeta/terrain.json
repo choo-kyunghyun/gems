@@ -1,0 +1,239 @@
+[
+  {
+    "sprite": "spr_terrainWater",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ]
+  },
+  {
+    "sprite": "spr_terrainDeepwater",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ]
+  },
+  {
+    "sprite": "spr_terrainSand",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ],
+        [
+          19,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainMud",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainSoil",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainRichsoil",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainGrass",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ],
+        [
+          19,
+          1
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          21,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainGravel",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "spr_terrainRocky",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      16,
+      16
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          8
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          8
+        ]
+      ]
+    }
+  }
+]

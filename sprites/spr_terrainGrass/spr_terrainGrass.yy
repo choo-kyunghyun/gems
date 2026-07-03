@@ -31,6 +31,9 @@
     {"$GMSpriteFrame":"v1","%Name":"22653832-950f-55d1-af3f-ca4a13193c19","name":"22653832-950f-55d1-af3f-ca4a13193c19","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
     {"$GMSpriteFrame":"v1","%Name":"ec61a7d0-4d10-583f-8e11-2aef80225799","name":"ec61a7d0-4d10-583f-8e11-2aef80225799","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
     {"$GMSpriteFrame":"v1","%Name":"5b2defa8-42e4-5331-9b1c-369d35154e1e","name":"5b2defa8-42e4-5331-9b1c-369d35154e1e","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"0ba878d7-c083-53ab-9999-f90f505d3ce3","name":"0ba878d7-c083-53ab-9999-f90f505d3ce3","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"255cc9c4-2d1e-5834-a493-4dad8023a3ef","name":"255cc9c4-2d1e-5834-a493-4dad8023a3ef","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"c2665ef0-d22a-57df-a3b1-35fe0db87b9d","name":"c2665ef0-d22a-57df-a3b1-35fe0db87b9d","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
   ],
   "gridX":8,
   "gridY":8,
@@ -67,7 +70,7 @@
     },
     "eventStubScript":null,
     "eventToFunction":{},
-    "length":19.0,
+    "length":22.0,
     "lockOrigin":false,
     "moments":{
       "$KeyframeStore<MomentsEventKeyframe>":"",
@@ -143,6 +146,15 @@
             {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
                 "0":{"$SpriteFrameKeyframe":"","Id":{"name":"5b2defa8-42e4-5331-9b1c-369d35154e1e","path":"sprites/spr_terrainGrass/spr_terrainGrass.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
               },"Disabled":false,"id":"9d3cf2e4-c1f9-51ca-801a-deb58be066aa","IsCreationKey":false,"Key":18.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"0ba878d7-c083-53ab-9999-f90f505d3ce3","path":"sprites/spr_terrainGrass/spr_terrainGrass.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"78a26b2e-cf1b-580b-9cda-0e5a25e72a16","IsCreationKey":false,"Key":19.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"255cc9c4-2d1e-5834-a493-4dad8023a3ef","path":"sprites/spr_terrainGrass/spr_terrainGrass.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"e3db0cc9-10cb-5ab1-8889-8f07c70641c3","IsCreationKey":false,"Key":20.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"c2665ef0-d22a-57df-a3b1-35fe0db87b9d","path":"sprites/spr_terrainGrass/spr_terrainGrass.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"bce9e55c-3be9-5a66-9e25-335ca1f73660","IsCreationKey":false,"Key":21.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
           ],"resourceType":"KeyframeStore<SpriteFrameKeyframe>","resourceVersion":"2.0",},"modifiers":[],"name":"frames","resourceType":"GMSpriteFramesTrack","resourceVersion":"2.0","spriteId":null,"trackColour":0,"tracks":[],"traits":0,},
     ],
     "visibleRange":null,

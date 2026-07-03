@@ -3,10 +3,13 @@
 
 Stage 2 of the terrain-tile pipeline (run terrain_materials.py first). For each terrain it cuts the
 16 dual-grid corner frames from variant 0 (via tileset.py), appends the remaining variant materials
-as extra FULL-tile (mask-15) frames, and writes a multi-frame GMSprite — the `.yy` plus a per-frame
-composite PNG and a single-layer PNG — into the project's sprites/<spr_terrain*>/, templated on the
-engine's existing dual-grid sprite. TerrainStream infers the variant count from the frame count
-(frames beyond index 15 are full-tile variants picked per cell by hash).
+(plain re-rolls, then decorated) as extra FULL-tile (mask-15) frames, and writes a multi-frame
+GMSprite — the `.yy` plus a per-frame composite PNG and a single-layer PNG — into the project's
+sprites/<spr_terrain*>/, templated on the engine's existing dual-grid sprite. It also emits the
+sheets' SpriteMeta manifest (datafiles/spritemeta/terrain.json): per sprite the WEIGHTED mask-15
+variant table from terrain_materials.variant_plan (frame 15 = the base, 16+ = the extra variants;
+decorated frames carry a low weight), which TerrainStream picks from per cell by deterministic
+hash. The manifest is generated alongside the frames so the table can't drift from them.
 
 The sprite resources must already be REGISTERED (once, via the IDE or
 `gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=spr_terrain<T>"`); this only fills in
@@ -16,7 +19,7 @@ their frames. Frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-runnin
 Usage:  python tools/pixel-art-kit/gm-import/terrain_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
 """
-import os, sys, uuid
+import json, os, sys, uuid
 # this adapter lives in the kit (gm-import/); add the sibling common/ to the path so the kit modules resolve.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "common"))
 import pixlib as P
@@ -181,8 +184,29 @@ def build(terr):
     return name, n
 
 
+def write_manifest(entries):
+    """SpriteMeta manifest (datafiles/spritemeta/terrain.json) — see module doc. The included
+    file must be REGISTERED in gems.yyp once; re-runs only rewrite the content."""
+    md = os.path.join(ROOT, "datafiles", "spritemeta")
+    os.makedirs(md, exist_ok=True)
+    with open(os.path.join(md, "terrain.json"), "w", newline="\n") as f:
+        json.dump(entries, f, indent=2)
+        f.write("\n")
+
+
 if __name__ == "__main__":
     print(f"importing into {ROOT}/sprites/")
+    entries = []
     for terr in TM.TERRAINS:
         name, n = build(terr)
+        plan = TM.variant_plan(terr)
+        # frames = 16 dual masks + (len(plan) - 1) extra full tiles (frame 15 IS plan entry 0);
+        # a mismatch means out/materials is stale vs TERRAINS — regenerate stage 1 first
+        assert n - 15 == len(plan), f"{name}: {n} frames vs plan {len(plan)} — rerun terrain_materials.py"
+        entry = {"sprite": name, "kind": "tileset", "autotile": "dual", "cell": [S, S]}
+        if len(plan) > 1:
+            entry["variants"] = {"15": [[15 + i, w] for i, w in plan]}
+        entries.append(entry)
         print(f"  {name}: {n} frames ({n - 15} full-tile variant(s))")
+    write_manifest(entries)
+    print(f"  spritemeta manifest: datafiles/spritemeta/terrain.json ({len(entries)} sheets)")
