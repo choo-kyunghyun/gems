@@ -159,20 +159,15 @@ class _SceneRpgClass extends Level {
     InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
     // seed one companion programmatically (not file-authored, so a persistent-map reload won't
-    // dup it). spawns following → apply its carry bonus now; balanced thereafter by F-toggle/dismiss.
+    // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
+    // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
     const pp = this.world.get(Position, this.ctrl.id);
     const companion = RpgSpawn.spawnFollower(this.world, pp.x - 14, pp.y + 11, {
       label: "Companion",
       bonusCapacity: 4,
       bonusWeight: 15,
     });
-    this.followers.push(companion);
-    FollowerSystem.applyBenefit(
-      this.world,
-      this.ctrl.id,
-      this.world.get(Follower, companion),
-      1,
-    );
+    FollowerSystem.hire(this.world, this.ctrl.id, companion);
 
     // a wandering trader (Trader/WorldEvents/Universe): crosses overworld <-> interior_01 off-focus on
     // the WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
@@ -331,7 +326,7 @@ class _SceneRpgClass extends Level {
         );
       else DrowsinessSystem.update(this.world);
       RpgController.update(this.world, this.ctrl); // reads StatusSystem.scale("speed")
-      FollowerSystem.update(this.world, this.ctrl.id, this.followers); // seek (before physics)
+      FollowerSystem.update(this.world, this.ctrl.id); // seek, by live Follower query (before physics)
       this.physics.update(this.world);
 
       RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
@@ -529,62 +524,45 @@ class _SceneRpgClass extends Level {
     );
   }
 
-  // F: toggle the nearest in-reach companion between follow and wait (a "wait" one stays stationed in this map)
+  // F: toggle the nearest in-reach SQUAD companion between follow and wait. Waiting is map-local
+  // ("hold here for now") — a portal forces every member back to follow (see RpgMap.go).
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
     const p = this.world.get(Position, this.ctrl.id);
-    if (p === undefined) return;
+    const squad = this.world.get(Squad, this.ctrl.id);
+    if (p === undefined || squad === undefined) return;
+    const members = FollowerSystem.members(this.world, squad.id, this.ctrl.id);
     let best = -1;
     let bestSq = 40 * 40; // reach to a companion (px)
-    for (let i = 0; i < this.followers.length; i++) {
-      const pos = this.world.get(Position, this.followers[i]);
+    for (let i = 1; i < members.length; i++) {
+      // [0] is the player
+      const pos = this.world.get(Position, members[i]);
       if (pos === undefined) continue;
       const d = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
       if (d < bestSq) {
         bestSq = d;
-        best = this.followers[i];
+        best = members[i];
       }
     }
     if (best === -1) return;
     const f = this.world.get(Follower, best);
     if (f.state === "follow") {
-      FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, -1); // stops carrying
-      f.state = "wait";
-      f.homeMap = this.mapId;
+      FollowerSystem.setState(this.world, this.ctrl.id, best, "wait");
       Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
     } else {
-      f.state = "follow";
-      f.homeMap = "";
-      FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, 1); // carries again
+      FollowerSystem.setState(this.world, this.ctrl.id, best, "follow");
       Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
   }
 
-  // dismiss a following companion to the claimed build-zone centroid: drop its carry bonus + station
-  // it there for recall. No-op unless it's following and a build area is claimed.
-  _dismissFollower(fid) {
-    const f = this.world.get(Follower, fid);
-    if (f === undefined || f.state !== "follow") return;
-    if (this.world.get(Downed, fid) !== undefined) return; // downed → it's already recovering to base
-    const spot = this._buildZoneSpot();
-    if (spot === null) {
-      Toast.push(I18n.text("FOLLOWER_NO_ZONE"), { type: "warn" });
-      return;
-    }
-    FollowerSystem.applyBenefit(this.world, this.ctrl.id, f, -1); // stops carrying
-    f.state = "wait";
-    f.homeMap = this.mapId;
-    const pos = this.world.get(Position, fid);
-    const vel = this.world.get(Velocity, fid);
-    if (pos !== undefined) {
-      pos.x = spot.x;
-      pos.y = spot.y;
-    }
-    if (vel !== undefined) {
-      vel.x = 0;
-      vel.y = 0;
-    }
-    Toast.push(I18n.text("FOLLOWER_DISMISSED"), { type: "info" });
+  // Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
+  // with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
+  _kickFollower(fid) {
+    if (this.world.get(Squad, fid) === undefined) return; // not a member
+    if (this.world.get(Downed, fid) !== undefined) return; // recovering — can't kick mid-revive
+    FollowerSystem.kick(this.world, this.ctrl.id, fid);
+    this._invDirty = true; // squad roster changed
+    Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
   // world-coord centroid of this map's claimed build area, or null if none (rect zone → centroid lands inside)

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"AuthoredStamp",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"AuthoredStamp",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"AuthoredStamp.js",
+}

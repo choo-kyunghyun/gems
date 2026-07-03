@@ -1,12 +1,14 @@
 // The procedural-generation FRAME — Renderer:RenderPass :: ChunkGenerator:gen pass. An ordered
 // list of passes builds one chunk's output over a shared context; the terrain base comes from a
 // composed `field` (TerrainField-like sampler), so the frame satisfies the full generator contract
-// ChunkSource routes (generate + palette + materialAt/costAt/terrain/solidTerrain). Content-free:
-// a game composes it with its field + passes (the RPG's composition is `OverworldGen.create`).
+// ChunkManager consumes (generate + palette + materialAt/costAt/terrain/solidTerrain). Content-
+// free: a game composes it with its field + passes (the RPG's composition is `OverworldGen.create`).
 //
 // A PASS is `{ salt?, apply(ctx) }` or a bare `function(ctx)` (wrapped on insert, like Pipeline).
-// ctx = { gen, field, cx, cy, gx0, gy0, cols, rows, rng, out: { walls, spawns } } — a pass reads
-// the field and pushes ABSOLUTE-coord walls/spawns into `out`.
+// ctx = { gen, field, cx, cy, gx0, gy0, cols, rows, rng, authored, out: { walls, spawns } } — a
+// pass reads the field and pushes ABSOLUTE-coord walls/spawns into `out`. `authored` starts false;
+// an overlay pass (AuthoredStamp) sets it to claim the chunk as hand-built, and procedural passes
+// (PrefabStamp, scatters) respect the claim by early-outing.
 //
 // Determinism: each pass draws from its OWN stream, seeded from (cx, cy, seed, pass salt) — so
 // the same seed lays out the same world on every BUILD (visits are served from the manager's
@@ -38,7 +40,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     this.seed = (opts.seed ?? 1337) | 0;
     this.chunkCols = opts.chunkCols ?? 16;
     this.chunkRows = opts.chunkRows ?? 16;
-    // the material table ChunkSource.palette() exposes to TerrainStream
+    // the material table TerrainStream renders by + costAt prices by
     this.palette = opts.palette ?? opts.field.palette;
     /** @type {GenPass[]} */
     this.passes = [];
@@ -60,7 +62,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     return this;
   }
 
-  // deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkSource contract
+  // deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkManager contract
   generate(cx, cy) {
     const out = { walls: [], spawns: [] };
     const ctx = {
@@ -73,6 +75,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
       cols: this.chunkCols,
       rows: this.chunkRows,
       rng: null,
+      authored: false, // set by an overlay pass to suppress procedural passes
       out: out,
     };
     for (let i = 0; i < this.passes.length; i++) {
@@ -91,7 +94,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     };
   }
 
-  // thin delegates to the terrain sampler — the duck-typed surface ChunkSource routes
+  // thin delegates to the terrain sampler — the duck-typed surface ChunkManager consumes
   // (TerrainStream's seam apron, NavGrid weights + PathFollow speed pricing)
   materialAt(ax, ay) {
     return this.field.materialAt(ax, ay);

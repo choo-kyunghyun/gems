@@ -1,9 +1,10 @@
 // Combat/loot plumbing for the RPG scene — free functions taking the scene (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 //
-// Contract: the scene owns `world`, `ctrl` (with `.id`), `followers`, `_hpTrack` (id → last hp),
-// `_invDirty`. The enemy set is derived LIVE by Faction (hostile to the player) so chunk streaming
-// needs no bookkeeping — allegiance is the single source of "who's an enemy", not a marker/tag.
+// Contract: the scene owns `world`, `ctrl` (with `.id`), `_hpTrack` (id → last hp), `_invDirty`.
+// The enemy set is derived LIVE by Faction (hostile to the player) and companions LIVE by the
+// Follower component, so chunk streaming/squad transfer need no bookkeeping — allegiance and
+// membership are component queries, not stored lists.
 //
 // Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
 // ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
@@ -27,11 +28,11 @@ globalThis.RpgScene = {
     const enemies = RpgScene._enemies(scene.world, scene.ctrl.id);
     for (let i = 0; i < enemies.length; i++)
       RpgScene._diffHp(scene, enemies[i], false, yOffset);
-    // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so no-op)
-    const followers = scene.followers;
-    if (followers !== undefined)
-      for (let i = 0; i < followers.length; i++)
-        RpgScene._diffHp(scene, followers[i], true, yOffset);
+    // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
+    // no-op). Live Follower query — squad members and residents alike are allies.
+    const followers = scene.world.query(Follower);
+    for (let i = 0; i < followers.length; i++)
+      RpgScene._diffHp(scene, followers[i], true, yOffset);
   },
 
   _diffHp(scene, id, isAlly, yOffset) {

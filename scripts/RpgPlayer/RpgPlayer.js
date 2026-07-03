@@ -29,7 +29,9 @@ globalThis.RpgPlayer = {
     });
     world.add(id, Direction, opts.dir);
     world.add(id, Name, { name: "Player" });
-    world.add(id, Faction, { id: "player" }); // party faction — enemies aggro this by relation
+    world.add(id, Faction, { id: "player" }); // squad faction — enemies aggro this by relation
+    // squad identity — hired companions copy this id; a portal transfers every member with it
+    world.add(id, Squad, { id: uuid() });
     world.add(id, Health, { hp: 10 });
     world.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
     world.add(id, Stamina, { value: 100, exhausted: false });

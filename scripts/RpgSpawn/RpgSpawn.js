@@ -3,7 +3,7 @@
 // data can't express (CombatAI.attach). spawnEntity is the DESCRIPTOR ADAPTER — the single place
 // a spawn descriptor becomes an entity: grid→world, per-spawn overrides (field-merged onto the
 // def like a variant), the reconcile marker. Up-front map spawns (RpgSpawn.spawn), the chunk
-// streamer (ChunkSource.spawn), BuildMode, and the Trader all route through it. A variant preset
+// streamer (ChunkManager's spawn adapter), BuildMode, and the Trader all route through it. A variant preset
 // (e.g. `extends: "raider"`) spawns through the same path with zero adapter changes when its
 // descriptor fields match its base's.
 //
@@ -187,9 +187,11 @@ globalThis.RpgSpawn = {
         },
       },
       {
-        // Companion (a dynamic solid body). Mortal-but-recoverable: at 0 hp it goes Down, then
-        // revives at the recovery spot (see RpgScene.resolveHealth/updateDowned). No AI attach —
-        // FollowerSystem drives it from the scene.
+        // Companion (a dynamic solid body). Spawns UNHIRED — a map resident with a "rehire"
+        // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + drops the
+        // Interaction). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
+        // recovery spot (see RpgScene.resolveHealth/updateDowned). No AI attach — FollowerSystem
+        // drives every Follower entity by query.
         id: "follower",
         scale: 0.75,
         components: {
@@ -211,16 +213,16 @@ globalThis.RpgSpawn = {
           },
           Appearance: RpgSpawn._outfit("#9fe0c0"),
           Follower: {
-            state: "follow",
+            state: "wait", // unhired residents hold still; hire() flips to follow
             speed: 130, // > player speed (110) so it can catch up when it lags
             range: 20,
-            homeMap: "",
             // Carry bonus to the player's Inventory while following (0 = none). The `follower`
             // preset doesn't pass these, so file-authored followers stay benefit-free; only the
             // programmatic seed grants one.
             bonusCapacity: 0,
             bonusWeight: 0,
           },
+          Interaction: { kind: "rehire" }, // talk (E) to hire; hire() detaches this
         },
       },
     ]);

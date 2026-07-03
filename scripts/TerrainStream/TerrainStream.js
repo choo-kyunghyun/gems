@@ -1,8 +1,8 @@
 // Per-chunk dual-grid renderer for the streamed overworld terrain. Caches VertexBuffers per loaded
 // chunk (one per material), built once on load and freed on unload, so a border crossing only builds
 // newly-entered chunks (the earlier windowed version rebuilt one ~80x80 VBO every crossing → ~50ms
-// hitch). Painter order = the source palette's index (ChunkSource.palette(); deep water … rocky
-// for the overworld): upper terrains'
+// hitch). Painter order = the generator palette's index (deep water … rocky for the overworld):
+// upper terrains'
 // transparent dual-grid corners reveal the one below. Each material draws its own untinted
 // spr_terrain* sprite into its own VBO with its own texture, so the tilesets needn't share a
 // texture page.
@@ -24,19 +24,18 @@ globalThis.TerrainStream = class TerrainStream {
     this.cellW = chunks.cellW;
     this.cellH = chunks.cellH;
     this.chunks = chunks; // store-backed materialAt for the seam apron
-    this.source = chunks.source; // palette
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
     this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
 
-    // One untinted dual-grid sprite per material, painter-ordered. The palette rides the SOURCE
-    // (ChunkSource.palette() → the generator's table), not a generator class static — a swapped-in
+    // One untinted dual-grid sprite per material, painter-ordered. The palette rides the
+    // GENERATOR instance (ChunkGenerator.palette), not a generator class static — a swapped-in
     // generator (cave/desert) brings its own material set + tilesets.
     const pal =
-      this.source.palette !== undefined ? this.source.palette() : undefined;
+      chunks.generator !== undefined ? chunks.generator.palette : undefined;
     this._sprites = [];
     this._ok = true;
     if (pal === undefined || pal.length === 0) {
-      Log.warn("TerrainStream: source has no terrain palette — terrain off");
+      Log.warn("TerrainStream: generator has no terrain palette — terrain off");
       this.palette = [];
       this._ok = false;
       return;

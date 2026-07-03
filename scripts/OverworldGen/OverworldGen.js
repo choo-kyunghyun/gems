@@ -1,23 +1,26 @@
 // The RPG overworld generator COMPOSITION — after the frame/pass split this file holds only
 // what is RPG policy/content: `create(opts)` wires a Core **ChunkGenerator** (the pass frame)
-// with the RPG's TerrainField (data in RpgBiomes), a **PrefabStamp** pass carrying the RPG
-// spawn policy, and the two scatter passes (rocks + rats). A different world (cave/desert/…)
+// with the RPG's TerrainField (data in RpgBiomes) and four passes — the **AuthoredStamp**
+// overlay (the hand-built hub, procedural-free inside its box), a **PrefabStamp** carrying the
+// RPG spawn policy, and the two scatter passes (rocks + rats). A different world (cave/desert/…)
 // is a different composition of the same Core pieces, not a rewrite; a variant overworld
 // overrides the policy hooks via opts.
 //
-// Contract: `create` returns a ChunkGenerator, which satisfies the surface ChunkSource routes —
+// Contract: `create` returns a ChunkGenerator — the source ChunkManager holds directly:
 // generate(cx,cy) → { terrain, solid, walls, spawns } (absolute grid coords, deterministic from
 // (cx, cy, seed, pass salt) — the same seed MUST rebuild the same world, since a cold rebuild
 // after map eviction re-runs pregeneration; each pass draws from its OWN salted stream, so
-// adding/removing a pass never reshuffles the others' output), plus palette + the samplers
-// (materialAt/costAt/terrain/solidTerrain).
+// adding/removing a pass never reshuffles the others' output), plus the `palette` field + the
+// samplers (materialAt/costAt/terrain/solidTerrain).
 //
 // GMRT-safe: index loops, namespace object on globalThis.
 globalThis.OverworldGen = {
   /**
-   * Build the overworld generator. opts: { seed, chunkCols, chunkRows, prefabChance, prefabTag,
-   * spawnFilter, defaultLoot } — the last two override the RPG spawn policy (see PrefabStamp).
-   * Register prefabs before calling (PrefabStamp resolves Prefab.byTag in its constructor).
+   * Build the overworld generator. opts: { seed, chunkCols, chunkRows, authored, prefabChance,
+   * prefabTag, spawnFilter, defaultLoot } — `authored` is the level-file data whose walls/spawns
+   * overlay the hub chunks (see AuthoredStamp); the last two override the RPG spawn policy (see
+   * PrefabStamp). Register prefabs before calling (PrefabStamp resolves Prefab.byTag in its
+   * constructor).
    * @returns {ChunkGenerator}
    */
   create(opts = {}) {
@@ -25,7 +28,7 @@ globalThis.OverworldGen = {
     const chunkCols = opts.chunkCols ?? 16;
     const chunkRows = opts.chunkRows ?? 16;
     // the generic terrain sampler (Core) over the RPG's biome data; its palette is what
-    // ChunkSource.palette() exposes to TerrainStream (render order = palette order)
+    // TerrainStream renders by (render order = palette order)
     const field = new TerrainField(RpgBiomes.TERRAIN, {
       seed: seed,
       chunkCols: chunkCols,
@@ -40,6 +43,14 @@ globalThis.OverworldGen = {
       chunkRows: chunkRows,
       field: field,
       passes: [
+        // hand-built hub overlaid onto its chunks FIRST — claims them (ctx.authored), so the
+        // procedural passes below leave the hub area alone
+        new AuthoredStamp({
+          data: opts.authored,
+          chunkCols: chunkCols,
+          chunkRows: chunkRows,
+          salt: 4,
+        }),
         new PrefabStamp({
           tag: opts.prefabTag ?? "overworld",
           salt: 1,
@@ -70,6 +81,7 @@ globalThis.OverworldGen = {
     return {
       salt: 2,
       apply(ctx) {
+        if (ctx.authored === true) return; // hub chunks are hand-built
         const rng = ctx.rng;
         const rocks = 2 + Math.floor(rng() * 3); // 2..4
         for (let i = 0; i < rocks; i++) {
@@ -88,6 +100,7 @@ globalThis.OverworldGen = {
     return {
       salt: 3,
       apply(ctx) {
+        if (ctx.authored === true) return; // hub chunks are hand-built
         const rng = ctx.rng;
         const rats = 1 + Math.floor(rng() * 3); // 1..3
         for (let i = 0; i < rats; i++) {

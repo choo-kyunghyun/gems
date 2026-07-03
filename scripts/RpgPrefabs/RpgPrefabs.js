@@ -1,5 +1,6 @@
-// RPG overworld prefabs stamped by OverworldGen. Registered at scene create() (NOT top-level — GMRT
-// load-order), before ChunkSource is built (OverworldGen resolves Prefab.byTag in its constructor).
+// RPG overworld prefabs stamped by the overworld generator. Registered at scene create() (NOT
+// top-level — GMRT load-order), before the generator is built (PrefabStamp resolves Prefab.byTag
+// in its constructor).
 globalThis.RpgPrefabs = {
   register() {
     Prefab.register([

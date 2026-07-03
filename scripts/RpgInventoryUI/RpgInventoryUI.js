@@ -361,7 +361,7 @@ globalThis.RpgInventoryUI = {
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       gemsLabel(
-        () => I18n.text("FOLLOWER_RECALL_HINT", Input.get("follow").label()),
+        () => I18n.text("FOLLOWER_RECALL_HINT", Input.get("interact").label()),
         { color: GemsTheme.textDim },
       ),
     );
@@ -369,11 +369,16 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // One card per companion in scene.followers (empty notice when none). Called from rebuild(),
-  // not build() — the party isn't seeded until after the window is built.
+  // One card per squad companion, by live membership query (empty notice when none). Called from
+  // rebuild(), not build() — the squad isn't seeded until after the window is built.
   _buildFollowerRows(scene, host) {
-    const ids = scene.followers;
-    if (ids === undefined || ids.length === 0) {
+    const squad = scene.world.get(Squad, scene.ctrl.id);
+    const ids =
+      squad !== undefined
+        ? FollowerSystem.members(scene.world, squad.id, scene.ctrl.id)
+        : [];
+    if (ids.length <= 1) {
+      // [0] is the player
       const empty = new UIElement({ width: "100%", height: 24 });
       empty.insertChild(
         gemsLabel(I18n.textRef("INV_NO_FOLLOWERS"), {
@@ -383,14 +388,14 @@ globalThis.RpgInventoryUI = {
       host.insertChild(empty);
       return;
     }
-    for (let i = 0; i < ids.length; i++) {
+    for (let i = 1; i < ids.length; i++) {
       if (!scene.world.isValid(ids[i])) continue;
       host.insertChild(RpgInventoryUI._followerRow(scene, ids[i]));
     }
   },
 
-  // one companion card: name, live status + carry-bonus line, Dismiss button (sends to the
-  // claimed build area, disabled unless currently following — recall is walk-up + follow key)
+  // one companion card: name, live status + carry-bonus line, Kick button (leaves the squad
+  // PERMANENTLY, in place — rehire by walking up and talking)
   _followerRow(scene, fid) {
     const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
 
@@ -436,15 +441,13 @@ globalThis.RpgInventoryUI = {
     card.insertChild(
       gemsButton(
         I18n.textRef("FOLLOWER_DISMISS"),
-        () => scene._dismissFollower(fid),
+        () => scene._kickFollower(fid),
         {
           height: 30,
           disabled: () => {
-            const f = scene.world.get(Follower, fid);
             return (
-              f === undefined ||
-              f.state !== "follow" ||
-              scene.world.get(Downed, fid) !== undefined // can't dismiss while down
+              scene.world.get(Squad, fid) === undefined || // already out
+              scene.world.get(Downed, fid) !== undefined // can't kick while down
             );
           },
         },

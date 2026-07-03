@@ -65,6 +65,17 @@ globalThis.RpgInteractions = {
           ctx.scene._sleep();
         },
       },
+      {
+        // unhired/kicked companion — talking recruits it into the player's squad
+        // (FollowerSystem.hire adds Squad + follow + carry bonus and drops this Interaction)
+        id: "rehire",
+        prompt: "REHIRE_PROMPT",
+        run(ctx) {
+          FollowerSystem.hire(ctx.world, ctx.playerId, ctx.id);
+          ctx.scene._invDirty = true; // squad roster changed
+          Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
+        },
+      },
 
       // survival stations — act on the player (ctx.playerId). restore() returns false when the need
       // is already satisfied, so a full player gets a "no effect" cue instead of wasting the visit.

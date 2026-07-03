@@ -2,21 +2,25 @@
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 //
 // Visited worlds are kept ALIVE in a per-scene pool (scene._maps) — no destroy/rebuild on
-// a door trip. Only the party (player sheet + "follow" companions) migrates via EntitySnapshot;
-// everything else stays resident. Level.export() cache is the COLD path only: LRU eviction
-// (_evict, past POOL_MAX) serializes a map and frees it; revisit then rebuilds from file.
+// a door trip. Only the SQUAD migrates: every entity sharing the player's Squad id (player
+// included) moves as a WHOLE entity through World.levels.take/put — a portal forces a "wait"
+// member back to "follow" first, so the squad always travels together. There is no per-map
+// player and no carried component subset; kicked/unhired companions are plain map residents.
+// Level.export() cache is the COLD path only: LRU eviction (_evict, past POOL_MAX) serializes
+// a map and frees it; revisit then rebuilds from file.
 globalThis.RpgMap = {
   // max parked worlds in pool before LRU eviction (active map is not counted)
   POOL_MAX: 3,
 
   // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open)
+  // (ctrl is NOT bundled — it's scene-scoped: created once at boot, its `id` re-pointed to the
+  // transferred player on every arrival)
   BUNDLE_KEYS: [
     "world",
     "level",
     "spawn",
     "entries",
-    "ctrl",
     "mapId",
     "_chunked",
     "_mapPersistent",
@@ -33,16 +37,17 @@ globalThis.RpgMap = {
     "_built",
     "_builtEnts",
     "_gone",
-    "followers",
     "reachZone",
     "reachDone",
     "nav",
     "physics",
     "renderer",
-    "source",
+    "generator",
     "chunks",
     "terrain",
     "camera",
+    // NOTE: no "followers"/"ctrl" — squad members leave before the park; residents live in the world
+
     "_tilePasses",
     "_tilePass",
     "_gridPass",
@@ -51,57 +56,56 @@ globalThis.RpgMap = {
     "_lighting",
   ],
 
-  // Park the current map in the pool and resume or build the target. Called from create() + checkPortals.
+  // Take the SQUAD through a portal: every member (player FIRST) leaves the current world as a
+  // whole entity via World.levels.take, the map parks, and the members land in the target via
+  // World.levels.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
+  // portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
+  // together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
   go(scene, mapId, entryId) {
-    let carry = null;
-    let travelers = []; // "follow" companions — captured + re-spawned in the target (party scope)
-    // ── PHASE A: leave the current map, keeping its World alive in the pool ──
+    let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
+    // ── PHASE A: pull the squad out, then park the current map (its World stays alive) ──
     if (scene.ctrl !== undefined) {
-      // capture the sheet only (position/visual rebuilt by the controller on the new map);
-      // Attributes ride along so recompute derives from grown values, not defaults.
-      carry = EntitySnapshot.capture(scene.world, scene.ctrl.id, [
-        Attributes,
-        Stats,
-        Health,
-        Stamina,
-        Inventory,
-        Equipment,
-        Encumbrance,
-        Hotbar, // hotbar/favorites reference itemIds the carried bag holds — desync if left per-map
-        Favorites,
-        Thirst, // survival needs are session-scoped player state (like Stamina) — travel with
-        Hunger, // the party, not reset/diverge per map
-        Drowsiness,
-      ]);
-      // partition followers: "follow" travels (captured + removed); "wait" stays resident
-      const stay = [];
-      for (let i = 0; i < scene.followers.length; i++) {
-        const fid = scene.followers[i];
-        const f = scene.world.get(Follower, fid);
-        if (f === undefined) continue;
-        if (f.state === "follow") {
-          travelers.push(EntitySnapshot.capture(scene.world, fid));
-          scene.world.remove(fid);
-        } else {
-          stay.push(fid);
-        }
+      const sid = scene.world.get(Squad, scene.ctrl.id).id;
+      const members = FollowerSystem.members(scene.world, sid, scene.ctrl.id);
+      squad = [];
+      for (let i = 0; i < members.length; i++) {
+        // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus)
+        FollowerSystem.setState(
+          scene.world,
+          scene.ctrl.id,
+          members[i],
+          "follow",
+        );
+        squad.push(World.levels.take(scene.mapId, members[i]));
       }
-      scene.followers = stay;
       Trader.onSuspend(scene); // dehydrate any embodied wandering trader → its record (before park)
-      scene.world.flush(); // commit traveler removals before parking
+      scene.world.flush(); // commit the taken members' removals before parking
       RpgMap.suspend(scene);
     }
     // ── PHASE B: enter the target — resume its parked world, else build from file ──
     const bundle = scene._maps[mapId];
-    if (bundle !== undefined)
-      RpgMap.resume(scene, bundle, entryId, carry, travelers);
-    else RpgMap.build(scene, mapId, entryId, carry, travelers);
+    if (bundle !== undefined) RpgMap.resume(scene, bundle, entryId, squad);
+    else RpgMap.build(scene, mapId, entryId, squad);
     RpgMap._touch(scene, scene.mapId);
     RpgMap._evict(scene);
-    // index the now-active level in the level manager + embody any trader currently in it
-    World.levels.register(scene.mapId, scene.world, scene.level);
     World.levels.setActive(scene.mapId);
-    Trader.onActivate(scene);
+    Trader.onActivate(scene); // embody any trader currently in this map
+  },
+
+  // Land the traveling squad at the entry: the player (squad[0]) first — ctrl re-points to its
+  // new id — then companions staggered beside it. Whole-entity restore (World.levels.put), so
+  // Appearance/Equipment/Stats arrive intact with no re-derive.
+  _arriveSquad(scene, squad, sp) {
+    if (squad === null || squad.length === 0) return;
+    scene.ctrl.id = World.levels.put(scene.mapId, squad[0], {
+      [Position]: { x: sp.x, y: sp.y, z: 0 },
+      [Velocity]: { x: 0, y: 0, z: 0 },
+    });
+    for (let i = 1; i < squad.length; i++)
+      World.levels.put(scene.mapId, squad[i], {
+        [Position]: { x: sp.x - 12 - i * 11, y: sp.y + 12, z: 0 },
+        [Velocity]: { x: 0, y: 0, z: 0 },
+      });
   },
 
   // Park the live map. Unassign (not destroy) the camera — the parked map keeps it for resume;
@@ -113,40 +117,21 @@ globalThis.RpgMap = {
     scene._maps[scene.mapId] = RpgMap._stash(scene);
   },
 
-  // Resume a parked map: restore its fields, re-claim the viewport, re-sync the carried sheet onto
-  // the resident (dormant) player, reposition it to the entry, and re-spawn travelers.
-  resume(scene, bundle, entryId, carry, travelers) {
+  // Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
+  // at the entry (the parked world has no player — the squad left through the portal).
+  resume(scene, bundle, entryId, squad) {
     RpgMap._restore(scene, bundle);
     delete scene._maps[scene.mapId]; // mapId restored above; live now, not parked
     MotionPlanner.setGrid(scene.nav);
     if (scene.camera) scene.camera.assign(0);
-    if (carry !== null) {
-      EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
-      // Equipment arrived outside equip() — re-derive the paper-doll layers from it
-      AppearanceSystem.rebuild(scene.world, scene.ctrl.id);
-    }
 
-    // snap the follow camera to the entry so it doesn't pan from the parked position
     const sp = scene.entries[entryId] ?? scene.spawn;
-    const pp = scene.world.get(Position, scene.ctrl.id);
-    const pv = scene.world.get(Velocity, scene.ctrl.id);
-    pp.x = sp.x;
-    pp.y = sp.y;
-    pv.x = 0;
-    pv.y = 0;
+    RpgMap._arriveSquad(scene, squad, sp);
+    // snap the follow camera to the entry so it doesn't pan from the parked position
     if (scene.camera) {
       scene.camera.toX = sp.x;
       scene.camera.toY = sp.y;
     }
-
-    // re-spawn the traveling party around the entry (fresh Position/Velocity)
-    for (let i = 0; i < travelers.length; i++)
-      scene.followers.push(
-        EntitySnapshot.restore(scene.world, travelers[i], {
-          [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
-          [Velocity]: { x: 0, y: 0, z: 0 },
-        }),
-      );
 
     // chunked: seed the streaming rings around the entry so the first frame back has no ring gap
     if (scene.chunks !== undefined) {
@@ -205,7 +190,7 @@ globalThis.RpgMap = {
   },
 
   // Serialize a parked map into the cold cache in the shape build() restores (level export,
-  // deconstruct tracking, built entities, stationed companions, gone ledger). Live enemies/loot
+  // deconstruct tracking, built entities, resident companions, gone ledger). Live enemies/loot
   // are deliberately NOT snapshotted — they respawn on the cold rebuild. No-op if non-persistent.
   _evictSerialize(scene, b) {
     if (!b._mapPersistent) return;
@@ -219,9 +204,11 @@ globalThis.RpgMap = {
         snap: EntitySnapshot.capture(b.world, e.ent),
       });
     }
+    // resident (kicked/unhired) companions, by live query — squad members never sit in a parked world
     const stationed = [];
-    for (let i = 0; i < b.followers.length; i++)
-      stationed.push(EntitySnapshot.capture(b.world, b.followers[i]));
+    const resid = b.world.query(Follower);
+    for (let i = 0; i < resid.length; i++)
+      stationed.push(EntitySnapshot.capture(b.world, resid[i]));
     scene._mapCache[b.mapId] = {
       level: b.level.export(),
       built: { ...b._built },
@@ -283,8 +270,8 @@ globalThis.RpgMap = {
   },
 
   // Build a map fresh from file (first visit, or an eviction-restore from the cold cache).
-  // carry + travelers are handed in by go() (null/[] on boot). Orchestrates the build helpers below.
-  build(scene, mapId, entryId, carry = null, travelers = []) {
+  // `squad` is handed in by go() (null on boot → spawn a fresh player). Orchestrates the helpers below.
+  build(scene, mapId, entryId, squad = null) {
     const loaded = RpgMap._loadData(mapId, entryId);
     const data = loaded.data;
     mapId = loaded.mapId;
@@ -299,9 +286,12 @@ globalThis.RpgMap = {
       `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
     );
 
-    RpgMap._buildWorld(scene, data, entryId, carry); // World + Level + player + zone channels
+    RpgMap._buildWorld(scene, data, entryId, squad); // World + Level (+ player on boot) + zones
+    // register BEFORE the squad lands — World.levels.put targets the registry
+    World.levels.register(scene.mapId, scene.world, scene.level);
+    RpgMap._arriveSquad(scene, squad, scene.spawn); // scene.spawn is already entry-resolved
     const saved = RpgMap._restoreCold(scene, mapId); // cold-cache player edits (persistent maps)
-    RpgMap._spawnWorld(scene, data, travelers, saved); // entities (streamed/up-front) + companions
+    RpgMap._spawnWorld(scene, data, saved); // entities (streamed/up-front) + cached residents
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
     const entityPass = RpgMap._buildRenderer(scene, data); // render pass stack
@@ -328,10 +318,12 @@ globalThis.RpgMap = {
     return { data, mapId, entryId };
   },
 
-  // World + Level + player + the buildable/climate zone channels. Chunked gets a bigger entity cap
-  // (a window of chunks' worth of entities + colliders + drops) and an empty resident grid (player
-  // builds only).
-  _buildWorld(scene, data, entryId, carry) {
+  // World + Level + the buildable/climate zone channels. The player spawns here ONLY on boot
+  // (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad, and
+  // ctrl is scene-scoped (created once at boot, id re-pointed per arrival). Chunked gets a bigger
+  // entity cap (a window of chunks' worth of entities + colliders + drops) and an empty resident
+  // grid (player builds only).
+  _buildWorld(scene, data, entryId, squad) {
     scene.world = new ECS(scene._chunked ? 1024 : 256);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
@@ -348,14 +340,10 @@ globalThis.RpgMap = {
     scene.wallType = built.wallType;
     scene.fenceType = built.fenceType;
     scene.colliders = built.colliders;
-    scene.ctrl = RpgController.create(scene.world, built.spawn);
-
-    // re-attach the carried sheet (no re-equip — equip mods already baked into carried Stats)
-    if (carry !== null) {
-      EntitySnapshot.apply(scene.world, scene.ctrl.id, carry);
-      // Equipment arrived outside equip() — re-derive the paper-doll layers from it
-      AppearanceSystem.rebuild(scene.world, scene.ctrl.id);
-    }
+    // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival keeps
+    // the existing scene ctrl; the transferred player lands in _arriveSquad right after this.
+    if (squad === null)
+      scene.ctrl = RpgController.create(scene.world, built.spawn);
 
     // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
     // placement to it; RenderZone visualizes it
@@ -424,17 +412,18 @@ globalThis.RpgMap = {
     return saved;
   },
 
-  // Entities + companions. Chunked STREAMS entities via ChunkManager; plain spawns all up front.
-  // Either way the scene reads NPC/portal/enemy handles LIVE by tag — stored id lists would dangle
-  // as chunks stream in/out. Then re-spawn the traveling party around the entry + restore this
-  // map's cached stationed companions.
-  _spawnWorld(scene, data, travelers, saved) {
+  // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
+  // scene reads NPC/portal/enemy/companion handles LIVE by component query — stored id lists
+  // would dangle as chunks stream in/out. Then restore this map's cached RESIDENT companions
+  // (kicked/unhired — the squad itself arrived via _arriveSquad before this).
+  _spawnWorld(scene, data, saved) {
     if (scene._chunked) {
-      scene.source = new ChunkSource({
+      // the pass-composed generator: authored hub overlay + procedural wilderness in one
+      scene.generator = OverworldGen.create({
         seed: data.meta.seed ?? 1337,
         chunkCols: data.meta.chunkCols ?? 16,
         chunkRows: data.meta.chunkRows ?? 16,
-        authored: data, // hand-built hub overlaid onto its chunks; procedural elsewhere
+        authored: data, // hand-built hub overlaid onto its chunks (AuthoredStamp)
       });
       // Finite world: a worldCols × worldRows rectangle (matches the resident grid). Streaming
       // clamps to it + a wall border rings it, so the player/enemies can't leave.
@@ -446,14 +435,22 @@ globalThis.RpgMap = {
       // broadphase wired in _buildPipeline fixes TriggerSystem's share but NOT the dominant one:
       // SolidSystem's O(bodies×colliders) move-and-collide isn't broadphase-backed (still ~260ms at
       // simRadius:2). So keep the SIM window small until SolidSystem is broadphase-aware.
-      scene.chunks = new ChunkManager(scene.world, scene.level, scene.source, {
-        chunkCols: data.meta.chunkCols ?? 16,
-        chunkRows: data.meta.chunkRows ?? 16,
-        simRadius: 1,
-        loadRadius: 2,
-        worldCols: wc,
-        worldRows: wr,
-      });
+      scene.chunks = new ChunkManager(
+        scene.world,
+        scene.level,
+        scene.generator,
+        {
+          chunkCols: data.meta.chunkCols ?? 16,
+          chunkRows: data.meta.chunkRows ?? 16,
+          simRadius: 1,
+          loadRadius: 2,
+          worldCols: wc,
+          worldRows: wr,
+          // descriptor adapter — streamed spawns build through the same path as file spawns
+          spawn: (world, level, desc) =>
+            RpgSpawn.spawnEntity(world, level, desc),
+        },
+      );
       RpgLevel.buildWorldBorder(scene.world, scene.level, wc, wr); // edge walls (always present)
       // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
       // scene fade) — mid-game streaming is pure load/unload; generate() never runs in play.
@@ -465,32 +462,19 @@ globalThis.RpgMap = {
       const sp = scene.world.get(Position, scene.ctrl.id);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
-      scene.followers = [];
     } else {
       const ents = RpgSpawn.spawn(scene.world, scene.level, data, {
         gone: scene._gone, // file-scope reconcile (unique entities removed on a prior visit)
       });
       scene.reachZone = ents.reach; // undefined when the map has no reach marker
-      scene.followers = ents.followers; // this map's file-spawned companions
     }
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
     scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
 
-    // Companions: the traveling party re-spawned around the entry (fresh Position/Velocity), then
-    // this map's cached stationed companions (full snapshot, restored where left).
-    const ep = scene.world.get(Position, scene.ctrl.id);
-    for (let i = 0; i < travelers.length; i++)
-      scene.followers.push(
-        EntitySnapshot.restore(scene.world, travelers[i], {
-          [Position]: { x: ep.x - 12 - i * 11, y: ep.y + 12, z: 0 },
-          [Velocity]: { x: 0, y: 0, z: 0 },
-        }),
-      );
+    // this map's cached RESIDENT companions (full snapshot, restored where left)
     if (saved !== undefined && saved.entities !== undefined)
       for (let i = 0; i < saved.entities.length; i++)
-        scene.followers.push(
-          EntitySnapshot.restore(scene.world, saved.entities[i]),
-        );
+        EntitySnapshot.restore(scene.world, saved.entities[i]);
   },
 
   // Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid

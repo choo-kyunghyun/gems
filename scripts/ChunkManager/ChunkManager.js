@@ -1,5 +1,6 @@
 // Chunk-streaming engine: windows a large/infinite world around a moving center so the World
-// only holds entities near the player. Takes a `source` (content provider, e.g. ChunkSource)
+// only holds entities near the player. Takes a `generator` (content provider — a ChunkGenerator,
+// or anything matching the contract below) plus an injected `opts.spawn` adapter for descriptors,
 // and drives EntitySnapshot capture/restore as chunks cross the rings. Plain instance class
 // (GMRT doesn't fire static getters, so stateful singletons are instance classes).
 //
@@ -16,34 +17,39 @@
 // pregenerate() (finite worlds) generates EVERY in-bounds chunk into that cache at map build,
 // making the cache the world STORE: mid-game streaming is then pure load/unload — generate()
 // never runs during play, and materialAt/costAt read stored terrain instead of re-sampling
-// noise (TerrainStream apron, NavGrid weights, PathFollow pricing). Without pregenerate the
-// lazy path below still works: fresh LOAD-ring loads (generate() is noise-heavy) are queued +
-// drained loadBudget/frame, so a border crossing doesn't generate a whole ring in one frame.
+// noise (TerrainStream apron, NavGrid weights, PathFollow pricing). A non-pregenerated chunk
+// still generates lazily on first load (a fallback, unamortized — the old load queue existed to
+// spread noise-heavy generates over frames, which pregeneration made moot).
 //
-// the party (player + followers) is never chunk-managed — only chunk-spawned content + terrain colliders.
+// the squad (player + hired companions) is never chunk-managed — only chunk-spawned content + terrain colliders.
 //
-// source contract:
-//   source.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
-//                                solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects, e.g. water — not drawn),
-//                                spawns: [descriptor...],            (deterministic per cx,cy)
-//                                terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
-//   source.spawn(world, level, descriptor) -> entityId
+// generator contract (ChunkGenerator satisfies it):
+//   generator.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
+//                                   solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects, e.g. water — not drawn),
+//                                   spawns: [descriptor...],            (deterministic per cx,cy)
+//                                   terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
+//   generator.palette  (field, optional) — material table (pathCost per id; costAt + TerrainStream)
+//   generator.materialAt / costAt (optional) — pure samplers, the out-of-store fallback
+//   opts.spawn(world, level, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
+//     RpgSpawn.spawnEntity); required only when chunks carry spawns
 //
 // GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
    * @param {ECS} world @param {LevelGrid} level
-   * @param {Object} source generate(cx,cy) → {walls, spawns}; spawn(world, level, desc) → id.
+   * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
    * @param {Object} [opts]
+   * @param {function(ECS, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
    * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.
    * @param {number} [opts.simRadius=1] @param {number} [opts.loadRadius=2] ring distances.
    * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);
    *   chunks outside never load. omit both for unbounded.
    */
-  constructor(world, level, source, opts = {}) {
+  constructor(world, level, generator, opts = {}) {
     this.world = world;
     this.level = level;
-    this.source = source;
+    this.generator = generator;
+    this._spawn = opts.spawn ?? null;
     this.chunkCols = opts.chunkCols ?? 16;
     this.chunkRows = opts.chunkRows ?? 16;
     this.simRadius = opts.simRadius ?? 1;
@@ -65,11 +71,9 @@ globalThis.ChunkManager = class ChunkManager {
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
     this.pxH = this.chunkRows * this.cellH;
 
-    this.loadBudget = opts.loadBudget ?? 2; // fresh LOAD-ring chunks generated per frame (amortized)
-
     // material table for the store-backed costAt (mirrors TerrainField's pathCost mapping);
-    // absent on a palette-less source → costAt delegates to the source
-    this._palette = source.palette !== undefined ? source.palette() : undefined;
+    // absent on a palette-less generator → costAt delegates to the generator
+    this._palette = generator.palette;
 
     // active chunks keyed "cx,cy" → record { cx, cy, ring, walls, solid, terrain, spawns,
     //   colliders, entities, snapshots, hydrated }
@@ -79,9 +83,6 @@ globalThis.ChunkManager = class ChunkManager {
     // pregenerate() fills it for every in-bounds chunk up front — the world STORE.
     // in-session only; disk-backing is the follow-up.
     this._cache = {};
-    // deferred fresh LOAD-ring loads (generate() is noise-heavy), drained loadBudget/frame so a
-    // border crossing doesn't generate a whole ring in one frame. FIFO of {cx,cy}.
-    this._loadQueue = [];
     // last player chunk — fast-path skips the membership diff until a border is crossed
     this._pcx = undefined;
     this._pcy = undefined;
@@ -93,7 +94,6 @@ globalThis.ChunkManager = class ChunkManager {
   destroy() {
     this._chunks = {};
     this._cache = {};
-    this._loadQueue = [];
   }
 
   _key(cx, cy) {
@@ -129,10 +129,9 @@ globalThis.ChunkManager = class ChunkManager {
         if (d > lr) this._unload(keys[i], rec);
       }
 
-      // 2. membership diff. SIM chunks load NOW (the player is on/next to them); fresh LOAD chunks
-      //    are QUEUED (off-screen, so their generate() can amortize). Rebuilt each crossing, which
-      //    prunes any still-pending entries that fell out of range.
-      this._loadQueue.length = 0;
+      // 2. membership diff — the whole ring loads NOW. With a pregenerated store a load is a
+      //    cache move (no generate()), and a LOAD-ring record does no World work anyway (its
+      //    descriptors stay dormant until it promotes to SIM), so nothing needs amortizing.
       for (let dy = -lr; dy <= lr; dy++) {
         for (let dx = -lr; dx <= lr; dx++) {
           const cheb = Math.max(Math.abs(dx), Math.abs(dy));
@@ -143,8 +142,7 @@ globalThis.ChunkManager = class ChunkManager {
           if (cx < 0 || cy < 0 || cx > this.maxCx || cy > this.maxCy) continue;
           const rec = this._chunks[this._key(cx, cy)];
           if (rec === undefined) {
-            if (ring === "sim") this._activate(this._recordFor(cx, cy, "sim"));
-            else this._loadQueue.push({ cx, cy });
+            this._activate(this._recordFor(cx, cy, ring));
           } else if (rec.ring !== ring) {
             if (ring === "sim") this._promote(rec);
             else this._demote(rec);
@@ -154,21 +152,6 @@ globalThis.ChunkManager = class ChunkManager {
 
       // 3. commit removals so demoted/unloaded entities aren't double-drawn this frame
       this.world.flush();
-    }
-
-    // drain a few queued LOAD-ring loads each frame (does no World mutation — no flush needed)
-    this._drainQueue();
-  }
-
-  // Load up to loadBudget queued fresh LOAD-ring chunks (holds descriptors, no World work — they
-  // materialize on promotion to SIM). Runs every frame so the ring fills over the frames after a crossing.
-  _drainQueue() {
-    let budget = this.loadBudget;
-    while (budget > 0 && this._loadQueue.length > 0) {
-      const c = this._loadQueue.shift();
-      if (this._chunks[this._key(c.cx, c.cy)] !== undefined) continue; // already loaded
-      this._activate(this._recordFor(c.cx, c.cy, "load"));
-      budget--;
     }
   }
 
@@ -217,7 +200,7 @@ globalThis.ChunkManager = class ChunkManager {
 
   // run generate() and wrap its output in a dormant record (ring set by the caller)
   _freshRecord(cx, cy) {
-    const gen = this.source.generate(cx, cy);
+    const gen = this.generator.generate(cx, cy);
     return {
       cx,
       cy,
@@ -260,15 +243,15 @@ globalThis.ChunkManager = class ChunkManager {
   }
 
   // store-backed terrain samplers — read the material a cell was GENERATED with (active or
-  // cached record) instead of re-sampling the source's noise; out-of-store coords (e.g. the
-  // render apron past the world edge) fall back to the source's pure sampler.
+  // cached record) instead of re-sampling the generator's noise; out-of-store coords (e.g. the
+  // render apron past the world edge) fall back to the generator's pure sampler.
 
   /** @returns {number} material id at an absolute cell */
   materialAt(ax, ay) {
     const m = this._storedMaterial(ax, ay);
     if (m !== undefined) return m;
-    return this.source.materialAt !== undefined
-      ? this.source.materialAt(ax, ay)
+    return this.generator.materialAt !== undefined
+      ? this.generator.materialAt(ax, ay)
       : 0;
   }
 
@@ -279,7 +262,9 @@ globalThis.ChunkManager = class ChunkManager {
       const c = this._palette[m].pathCost; // mirrors TerrainField.costAt's mapping
       return c === null ? Infinity : c;
     }
-    return this.source.costAt !== undefined ? this.source.costAt(ax, ay) : 1;
+    return this.generator.costAt !== undefined
+      ? this.generator.costAt(ax, ay)
+      : 1;
   }
 
   // stored material id at an absolute cell, or undefined when the chunk (or its terrain) isn't held
@@ -384,8 +369,13 @@ globalThis.ChunkManager = class ChunkManager {
   }
 
   _spawnAll(rec, spawns) {
+    if (spawns.length === 0) return;
+    if (this._spawn === null)
+      throw new Error(
+        "ChunkManager: chunk has spawns but no opts.spawn adapter",
+      );
     for (let i = 0; i < spawns.length; i++) {
-      const id = this.source.spawn(this.world, this.level, spawns[i]);
+      const id = this._spawn(this.world, this.level, spawns[i]);
       if (id !== undefined && id !== -1) rec.entities.push(id);
     }
   }

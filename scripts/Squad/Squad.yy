@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Follower",
+  "%Name":"Squad",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Follower",
+  "name":"Squad",
   "parent":{
     "name":"Squad",
     "path":"folders/Gameplay/Squad.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Follower.js",
+  "scriptSource":"Squad.js",
 }

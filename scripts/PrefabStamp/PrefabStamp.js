@@ -37,8 +37,9 @@ globalThis.PrefabStamp = class PrefabStamp {
     }
   }
 
-  // one optional stamped prefab per chunk
+  // one optional stamped prefab per chunk (never on an authored chunk — see AuthoredStamp)
   apply(ctx) {
+    if (ctx.authored === true) return;
     if (this.prefabs.length === 0) return;
     const rng = ctx.rng;
     if (rng() >= this.chance) return;
