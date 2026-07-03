@@ -3,6 +3,9 @@
  * @property {boolean} visible
  * @property {Asset.GMSprite} sprite
  * @property {number} subimg
+ * @property {number} [scale] design size (preset SCALE x per-spawn override); xscale/yscale are
+ *   the DERIVED draw scale (scale / ArtDensity.of(sprite), sign = facing). Absent = legacy raw
+ *   xscale/yscale (AnimationSystem then never refits on a sheet swap).
  * @property {number} xscale
  * @property {number} yscale
  * @property {number} rot

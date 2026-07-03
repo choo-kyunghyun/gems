@@ -15,9 +15,11 @@
 //   follower label? color? speed? range?   (companion; starts in "follow")
 // Every descriptor also takes `scale?` — a per-spawn size multiplier over the preset base (SCALE).
 globalThis.RpgSpawn = {
-  // Per-preset base size factor (1 = art-native), BAKED at spawn into both Visual.xscale/yscale
-  // and the BBox — so the foot shadow (BBox-driven) and paper-doll layers (Visual-driven) follow
-  // for free. Presets absent here spawn at 1. A descriptor's `scale` multiplies on top.
+  // Per-preset base DESIGN size factor (1 = normal size; special mobs — Alpha/boss — scale via
+  // the per-spawn override), BAKED at spawn into Visual.scale and the BBox — the foot shadow
+  // (BBox-driven) and paper-doll layers (Visual-driven) follow for free. The DRAW scale
+  // (xscale/yscale) is scale / ArtDensity.of(sprite), so a denser sheet lands at the same world
+  // size. Presets absent here spawn at 1. A descriptor's `scale` multiplies on top.
   SCALE: {
     raider: 0.85,
     rat: 0.7,
@@ -443,16 +445,19 @@ globalThis.RpgSpawn = {
     };
   },
 
-  // Shared Visual shape. `scale` is the entity's baked size factor (preset base × per-spawn
-  // override — see SCALE). Sprites are foot-anchored so this draws standing up from Position.
-  // Caller may set `speed`.
+  // Shared Visual shape. `scale` is the entity's DESIGN size factor (preset base × per-spawn
+  // override — see SCALE); the sheet's ArtDensity divides the draw scale only, so denser art
+  // lands at the same world size (BBox stays design-scale). Sprites are foot-anchored so this
+  // draws standing up from Position. Caller may set `speed`.
   _visual(sprite, color, scale = 1) {
+    const k = ArtDensity.fit(scale, sprite);
     return {
       visible: true,
       sprite: sprite,
       subimg: 0,
-      xscale: scale,
-      yscale: scale,
+      scale: scale,
+      xscale: k,
+      yscale: k,
       rot: 0,
       color: color,
       alpha: 1,

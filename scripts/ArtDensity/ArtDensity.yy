@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ArtDensity",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ArtDensity",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ArtDensity.js",
+}

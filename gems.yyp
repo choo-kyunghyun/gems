@@ -115,6 +115,7 @@
     {"id":{"name":"Animator","path":"scripts/Animator/Animator.yy",},},
     {"id":{"name":"Appearance","path":"scripts/Appearance/Appearance.yy",},},
     {"id":{"name":"AppearanceSystem","path":"scripts/AppearanceSystem/AppearanceSystem.yy",},},
+    {"id":{"name":"ArtDensity","path":"scripts/ArtDensity/ArtDensity.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
