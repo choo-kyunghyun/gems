@@ -6,7 +6,8 @@ SceneRegistry.add(() => new _SceneUIKitClass(), {
   category: "SCENE_CAT_UI",
 });
 
-class _SceneUIKitClass extends Level {
+// standalone SCREEN class — no base (GMRT subclassing is broken); duck-typed contract, see Level.
+class _SceneUIKitClass {
   label = "UIKit";
 
   create(openScene) {
@@ -754,6 +755,11 @@ class _SceneUIKitClass extends Level {
     scrollSec.insertChild(sc);
     return scrollSec;
   }
+
+  // pure UI — no sim/world view; declared because LevelManager calls them unconditionally
+  // (standalone class: these were previously inherited Level stubs)
+  step() {}
+  draw() {}
 
   destroy() {
     Input.unbindAll(["uikit_jump", "uikit_fire"]);

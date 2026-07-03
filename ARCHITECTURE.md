@@ -2,7 +2,7 @@
 
 Detailed architecture reference for **G.E.M.S.**, imported into context by [CLAUDE.md](CLAUDE.md) (via its `@ARCHITECTURE.md` line), so it is always loaded alongside it. See CLAUDE.md for the project overview, build & run, asset-creation workflow, code style, and the **GMRT-Safe Idioms** that always apply — those live there (kept always-in-context) and are referenced by name in code comments.
 
-## Demo Layer — `obj_game`, `Scene` & `LevelManager`
+## Demo Layer — `obj_game`, `Level` & `LevelManager`
 
 `obj_game` is the unified controller — it drives global system ticks each event and **delegates the scene lifecycle to `LevelManager`** (held as `this.scenes`, an alias of `World.levels`).
 
@@ -23,7 +23,7 @@ GameMaker's built-in per-instance events: **Create** (`Create_0`) runs once at b
 - **Base navigation** — `switchTo(factory)` (the `openScene` callback handed to each `create()`) queues a faded swap that **destroys every live level** first (a quit from a guest also drops its frozen host); `_apply` resets the cross-scene singletons (`UINav`/`SystemMenu`/`Dialogue`/`FloatingText`/`ParticleFx`). The app **boots into the lobby** (`scenes.start(SCENES.lobby)`) — the dev launcher / scene catalogue, also reached via **F2** (gated by `DEV_MODE`); from it the RPG + other genres open.
 - **Guest minigames** — `switchTo(factory, { keep: true, onResult })` freezes the host and runs a guest in front (no fade — an instant in-world switch); `back()` reads the guest's optional `result()`, destroys it, thaws the host, and fires `onResult(result)`. **One kept level at a time** (no nesting — a second keep-switch warns and refuses). The world-space singletons (`FloatingText`/`ParticleFx`/`Dialogue`) are cleared across both boundaries so a host's leftovers don't bleed into the guest. The reference consumer is the RPG **arcade cabinet** (an `Interaction` of kind `"arcade"` → `sceneRpg._openArcade` → a kept switch to `ScenePlatformer`, rewarding coins from the run's `result()` score). A guest is exited with **Esc / gamepad-B** — `SystemMenu` calls `back()` (returns false when nothing is kept), before falling through to the pause menu. The genre showcases (`scenePlatformer`, …) are thus reusable as embedded minigames unchanged; the host depends on a guest only via the factory it switches to.
 
-**`Scene`** (`scripts/Scene/Scene.js`) is the base class for all demo scenes (`label`, `create()`, `step()`, `draw()`, `destroy()`, plus the freeze hooks `suspend()`/`resume()`). Scenes are **factory functions** returning a fresh instance each time they open. `create(openScene)` receives the navigation callback (`LevelManager.switchTo`); the manager also sets `scene.manager` (the back-ref a host uses to open guests — `switchTo` with `keep: true`). `destroy()` tears down UI and resources. **`suspend()`/`resume()`** pause/restore a scene while a guest runs in front — the defaults hide the single UI root + re-claim viewport 0; a host with extra state overrides them (the RPG re-binds its keymap on `resume`, since a guest controller's `destroy` unbinds shared action names like `moveLeft`/`moveRight`). GMRT doesn't reliably inherit non-overridden methods, so a host defines its own hooks rather than relying on the base default.
+**`Level`** (`scripts/Level/Level.js`) is **not a base class to extend** — it is (1) the **duck-typed screen contract** LevelManager drives, and (2) the **blank screen** menus instantiate bare (the lobby's `Object.assign(new Level(), { create, destroy })`, its no-op stubs covering the rest). The contract: `create(openScene)` / `step()` / `draw()` / `destroy()` are required (called unconditionally); `suspend()`/`resume()` (keep-switch freeze/thaw), `result()` (a guest's return value), `handleEscape()` (SystemMenu's Esc hook), and the `label`/`gameplay` fields are optional. The genre screens (`sceneRpg`/`scenePlatformer`/`sceneEditor`/`sceneUIKit`) are **standalone classes** satisfying it — composition, never `extends Level` (GMRT subclassing is broken: subclass field inits don't run, `super` faults). Screens are **factory functions** returning a fresh instance each time they open. `create(openScene)` receives the navigation callback (`LevelManager.switchTo`); the manager also sets `scene.manager` (the back-ref a host uses to open guests — `switchTo` with `keep: true`). **`suspend()`/`resume()`** freeze/thaw a screen while a guest runs in front — a host with extra state defines its own (the RPG re-binds its keymap on `resume`, since a guest controller's `destroy` unbinds shared action names like `moveLeft`/`moveRight`).
 
 **Scene navigation**: call `openScene(factory)` to queue a base transition (applied after the current UI update completes). The only **built-in scene** (`scripts/sceneLobby/sceneLobby.js`) is `SCENES.lobby` — the merged **title + lobby**, the **boot scene** + dev launcher (also reached via **F2**): a G.E.M.S. header, a **tabbed** scene catalogue (registry categories grouped into RPG / Showcase tabs), and a footer of global actions (Settings → SystemMenu, Credits → SystemMenu's About tab, Quit). There is no separate title or credits scene; Settings/Pause are the **`SystemMenu`** overlay, not scenes (see Genre UI managers below).
 
@@ -35,11 +35,14 @@ SceneRegistry.add(() => new MyScene(), {
   category: "SCENE_CAT_FOO",
 });
 
-class MyScene extends Scene {
+// standalone — never `extends Level` (GMRT); declare the full required contract
+class MyScene {
   label = "My Scene";
   create(openScene) {
     /* build UI; openScene(SCENES.lobby) to go back */
   }
+  step() {}
+  draw() {}
   destroy() {
     /* remove UI, clean up */
   }

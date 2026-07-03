@@ -16,7 +16,9 @@ SceneRegistry.add(SceneRpg, {
   category: "SCENE_CAT_RPG",
 });
 
-class _SceneRpgClass extends Level {
+// standalone SCREEN class — no base (GMRT subclassing is broken); satisfies the duck-typed
+// screen contract LevelManager drives (see Level).
+class _SceneRpgClass {
   label = "RPG";
 
   create() {

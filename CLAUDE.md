@@ -150,7 +150,7 @@ The GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms 
 
 See @ARCHITECTURE.md for the full reference — every layer, system, component, renderer pass, and UI widget. That `@`-import keeps it in context alongside this file; the bullets below only index into it:
 
-- **Demo shell** (`obj_game`, `Scene`, `LevelManager`, `SceneRegistry`, the GemsUI factory kit) — the single-room app + its UI scaffolding. → § _Demo Layer_
+- **Demo shell** (`obj_game`, `Level` (the duck-typed screen contract + blank menu screen — genre screens are standalone classes, never `extends`), `LevelManager`, `SceneRegistry`, the GemsUI factory kit) — the single-room app + its UI scaffolding. → § _Demo Layer_
 - **ECS Core** (`World`, `IdPool`, `EntitySnapshot`, string-token components, plain-object systems) — instance-based ECS, fixed-rate tick, render interpolation. → § _ECS Core_ / _Component Pattern_ / _System Pattern_ / _Fixed-Rate Simulation_
 - **Built-in systems** (gravity, movement, solid/separation/trigger collision, projectiles, state machine, lifetime, pathfinding) — genre-agnostic, dispatched from a scene's `step()` (often via a `Pipeline`). → § _Built-in Systems_ / _Pathfinding Flow_
 - **Genre templates** (`Platformer` controller + gameplay systems over Core) — a lean movement showcase; the action-RPG genre (`sceneRpg`) lives in `Demo/Scene`. → § _Genre Controllers & Template Gameplay Systems_

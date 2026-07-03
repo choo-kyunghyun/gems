@@ -1,18 +1,21 @@
-// A LEVEL — the per-instance coordinator layer, one per screen the LevelManager runs. The bottom of
-// the two-layer model (World singleton on top). Was the `Scene` base class, renamed: "Scene is
-// integrated into Level". A Level COMPOSES its sub-modules (none are on this base — GMRT doesn't run
-// subclass field initializers, so each concrete Level sets what it needs in create()):
-//   • ecs       — the ECS entity store (component data + id alloc)   — gameplay levels
-//   • grid      — LevelGrid: tile layers / nav / zone channels        — levels with terrain (this.level for now)
-//   • systems   — the per-tick update Pipeline                        — gameplay levels
-//   • renderer / camera — the world view                             — levels that draw a world
-//   • ui        — the UI root                                        — every level (menus are UI-only)
-// A menu (lobby / UI kit) is just a Level with only `ui` set — every sub-module is optional.
+// A LEVEL — the per-instance coordinator layer, one per screen the LevelManager runs. The bottom
+// of the two-layer model (World singleton on top). NOT a base class to extend — GMRT subclassing
+// is broken (subclass field inits never run, `super` faults), so this class has exactly two jobs:
 //
-// Thin base by design: only the lifecycle below. Concrete levels override create/step/draw/destroy and
-// wire their own sub-modules; the LevelManager stack drives them (only the TOP level is stepped +
-// drawn, one below is suspended). Fields set in create(), NOT as class-field initializers — a subclass
-// field never runs on GMRT (so `label` here is a base default; a genre level re-sets it in create()).
+// 1. THE CONTRACT (duck-typed): LevelManager drives any object shaped like this class —
+//      create(openScene) / step() / draw() / destroy()   required (called unconditionally)
+//      suspend() / resume()   optional — keep-switch freeze/thaw (a guest's host)
+//      result()               optional — a guest's return value, handed to back()'s onResult
+//      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
+//      label / gameplay       optional fields — display fallback / pause+nav opt-in
+//    Genre screens (sceneRpg / scenePlatformer / sceneEditor / sceneUIKit) are STANDALONE
+//    classes satisfying it — composition, never `extends Level`.
+//
+// 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need
+//    (the lobby: `Object.assign(new Level(), { create, destroy })` — the no-op stubs below
+//    cover the rest). A screen COMPOSES its sub-modules, all optional:
+//      ecs/world · grid/level (LevelGrid) · systems (Pipeline) · renderer · camera · ui
+//    A menu is just a screen with only `ui` set.
 globalThis.Level = class Level {
   label = "";
 
@@ -25,9 +28,9 @@ globalThis.Level = class Level {
   /** Tear down UI roots + resources. */
   destroy() {}
 
-  // Stack pause/resume hooks: suspend when a guest runs in front, resume when it pops. Defaults fit one
-  // UI root + one camera; a level with extra state overrides them (the RPG re-binds its keymap on
-  // resume). GMRT doesn't reliably inherit non-overridden methods, so a host defines its own hooks.
+  // Freeze/thaw hooks: suspend when a guest keep-switches in front, resume when back() returns.
+  // These defaults fit one UI root + one camera; a screen with extra state defines its own (the
+  // RPG re-binds its keymap on resume).
   /** Hide this level while a guest runs in front. */
   suspend() {
     if (this.ui) UI.setEnabled(this.ui, false);
