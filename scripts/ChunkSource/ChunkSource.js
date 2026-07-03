@@ -9,10 +9,11 @@ globalThis.ChunkSource = class ChunkSource {
   constructor(opts = {}) {
     this.chunkCols = opts.chunkCols ?? 16;
     this.chunkRows = opts.chunkRows ?? 16;
-    // procedural generator for non-authored chunks; injectable, defaults to a seeded OverworldGen
+    // procedural generator for non-authored chunks; injectable, defaults to the RPG overworld
+    // composition (a ChunkGenerator built by OverworldGen.create)
     this.generator =
       opts.generator ??
-      new OverworldGen({
+      OverworldGen.create({
         seed: opts.seed ?? 1337,
         chunkCols: this.chunkCols,
         chunkRows: this.chunkRows,

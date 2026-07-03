@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PrefabStamp",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PrefabStamp",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PrefabStamp.js",
+}

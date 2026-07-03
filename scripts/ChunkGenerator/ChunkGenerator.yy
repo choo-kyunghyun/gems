@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ChunkGenerator",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ChunkGenerator",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ChunkGenerator.js",
+}
