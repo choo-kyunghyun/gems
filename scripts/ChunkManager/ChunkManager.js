@@ -13,8 +13,12 @@
 //                                       parked in an in-session cache, restored on return — so a
 //                                       revisit never re-runs generate() and modified entities persist.
 //
-// fresh LOAD-ring loads (generate() is noise-heavy) are queued + drained loadBudget/frame, so a
-// border crossing doesn't generate a whole ring in one frame.
+// pregenerate() (finite worlds) generates EVERY in-bounds chunk into that cache at map build,
+// making the cache the world STORE: mid-game streaming is then pure load/unload — generate()
+// never runs during play, and materialAt/costAt read stored terrain instead of re-sampling
+// noise (TerrainStream apron, NavGrid weights, PathFollow pricing). Without pregenerate the
+// lazy path below still works: fresh LOAD-ring loads (generate() is noise-heavy) are queued +
+// drained loadBudget/frame, so a border crossing doesn't generate a whole ring in one frame.
 //
 // the party (player + followers) is never chunk-managed — only chunk-spawned content + terrain colliders.
 //
@@ -63,12 +67,17 @@ globalThis.ChunkManager = class ChunkManager {
 
     this.loadBudget = opts.loadBudget ?? 2; // fresh LOAD-ring chunks generated per frame (amortized)
 
+    // material table for the store-backed costAt (mirrors TerrainField's pathCost mapping);
+    // absent on a palette-less source → costAt delegates to the source
+    this._palette = source.palette !== undefined ? source.palette() : undefined;
+
     // active chunks keyed "cx,cy" → record { cx, cy, ring, walls, solid, terrain, spawns,
     //   colliders, entities, snapshots, hydrated }
     this._chunks = {};
     // WHOLE records of unloaded chunks, keyed "cx,cy"; restored on revisit so a chunk never
     // re-runs generate() (its terrain/walls/spawns are kept) and modified entities persist.
-    // unbounded for now; eviction / disk-backing is the follow-up.
+    // pregenerate() fills it for every in-bounds chunk up front — the world STORE.
+    // in-session only; disk-backing is the follow-up.
     this._cache = {};
     // deferred fresh LOAD-ring loads (generate() is noise-heavy), drained loadBudget/frame so a
     // border crossing doesn't generate a whole ring in one frame. FIFO of {cx,cy}.
@@ -189,8 +198,9 @@ globalThis.ChunkManager = class ChunkManager {
   // at least once", so we never spawn a chunk we don't sim, and never re-run generate() (whole
   // records are cached).
 
-  // Fetch a chunk record: reuse the cached whole record (skips generate()), else generate fresh
-  // with its spawn DESCRIPTORS held dormant. Does not populate the World — see _activate.
+  // Fetch a chunk record: reuse the cached whole record (skips generate() — always the case
+  // after pregenerate()), else generate fresh with its spawn DESCRIPTORS held dormant. Does not
+  // populate the World — see _activate.
   _recordFor(cx, cy, ring) {
     const key = this._key(cx, cy);
     const cached = this._cache[key];
@@ -200,11 +210,18 @@ globalThis.ChunkManager = class ChunkManager {
       cached.colliders = []; // were dropped on unload
       return cached;
     }
+    const rec = this._freshRecord(cx, cy);
+    rec.ring = ring;
+    return rec;
+  }
+
+  // run generate() and wrap its output in a dormant record (ring set by the caller)
+  _freshRecord(cx, cy) {
     const gen = this.source.generate(cx, cy);
     return {
       cx,
       cy,
-      ring,
+      ring: "load",
       walls: gen.walls, // [[gx,gy,w,h]...] absolute coords — mesh + render
       solid: gen.solid ?? [], // collide-only rects — meshed, NOT rendered
       terrain: gen.terrain, // per-cell material grid — TerrainStream renders it
@@ -214,6 +231,67 @@ globalThis.ChunkManager = class ChunkManager {
       snapshots: [],
       hydrated: false,
     };
+  }
+
+  /**
+   * Generate EVERY in-bounds chunk into the whole-record cache NOW (map build time, behind the
+   * scene fade) — the "generate the level once, then only load/unload" model: after this,
+   * mid-game streaming never runs generate(), and the samplers below read stored terrain.
+   * Idempotent — chunks already active or cached keep their (possibly modified) records, so a
+   * resume/second call can't wipe live state. Requires finite world bounds.
+   * @returns {number} chunks generated
+   */
+  pregenerate() {
+    if (this.maxCx === Infinity || this.maxCy === Infinity)
+      throw new Error(
+        "ChunkManager.pregenerate needs finite bounds (worldCols/worldRows)",
+      );
+    let n = 0;
+    for (let cy = 0; cy <= this.maxCy; cy++) {
+      for (let cx = 0; cx <= this.maxCx; cx++) {
+        const key = this._key(cx, cy);
+        if (this._cache[key] !== undefined || this._chunks[key] !== undefined)
+          continue;
+        this._cache[key] = this._freshRecord(cx, cy);
+        n++;
+      }
+    }
+    return n;
+  }
+
+  // store-backed terrain samplers — read the material a cell was GENERATED with (active or
+  // cached record) instead of re-sampling the source's noise; out-of-store coords (e.g. the
+  // render apron past the world edge) fall back to the source's pure sampler.
+
+  /** @returns {number} material id at an absolute cell */
+  materialAt(ax, ay) {
+    const m = this._storedMaterial(ax, ay);
+    if (m !== undefined) return m;
+    return this.source.materialAt !== undefined
+      ? this.source.materialAt(ax, ay)
+      : 0;
+  }
+
+  /** @returns {number} movement cost at an absolute cell (1 = easy … Infinity = impassable) */
+  costAt(ax, ay) {
+    const m = this._storedMaterial(ax, ay);
+    if (m !== undefined && this._palette !== undefined) {
+      const c = this._palette[m].pathCost; // mirrors TerrainField.costAt's mapping
+      return c === null ? Infinity : c;
+    }
+    return this.source.costAt !== undefined ? this.source.costAt(ax, ay) : 1;
+  }
+
+  // stored material id at an absolute cell, or undefined when the chunk (or its terrain) isn't held
+  _storedMaterial(ax, ay) {
+    const cx = Math.floor(ax / this.chunkCols);
+    const cy = Math.floor(ay / this.chunkRows);
+    const key = this._key(cx, cy);
+    const rec = this._chunks[key] ?? this._cache[key];
+    if (rec === undefined || rec.terrain === undefined) return undefined;
+    const lx = ax - cx * this.chunkCols;
+    const ly = ay - cy * this.chunkRows;
+    return rec.terrain[ly * this.chunkCols + lx];
   }
 
   // Populate a fresh record into its ring + register it. SIM meshes colliders + materializes

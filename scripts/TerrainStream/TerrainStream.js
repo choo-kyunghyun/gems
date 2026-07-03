@@ -8,8 +8,9 @@
 // texture page.
 //
 // Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
-// top/left edge: interior from the chunk record, apron from the deterministic source
-// (ChunkSource.materialAt), so seams match the neighbor with no load-order dependency.
+// top/left edge: interior from the chunk record, apron from the manager's STORE-backed sampler
+// (ChunkManager.materialAt — stored terrain, falling back to the source's pure sampler past the
+// world edge), so seams match the neighbor with no load-order dependency.
 //
 // GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
 //
@@ -22,7 +23,8 @@ globalThis.TerrainStream = class TerrainStream {
     this.chunkRows = chunks.chunkRows;
     this.cellW = chunks.cellW;
     this.cellH = chunks.cellH;
-    this.source = chunks.source; // ChunkSource.materialAt for the seam apron
+    this.chunks = chunks; // store-backed materialAt for the seam apron
+    this.source = chunks.source; // palette
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
     this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
 
@@ -146,7 +148,7 @@ globalThis.TerrainStream = class TerrainStream {
         pad[j * pw + i] =
           i > 0 && j > 0 && interior !== undefined
             ? interior[(gy - y0) * cc + (gx - x0)]
-            : this.source.materialAt(gx, gy);
+            : this.chunks.materialAt(gx, gy);
       }
     }
 

@@ -256,14 +256,15 @@ globalThis.RpgMap = {
   },
 
   // Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
-  // NavGrid's route weights and PathFollow's speed pricing. Chunked maps price the streamed biome
-  // via ChunkSource.costAt; plain maps (interiors) price no terrain → null (every cell costs 1).
+  // NavGrid's route weights and PathFollow's speed pricing. Chunked maps price the biome via the
+  // manager's STORE-backed costAt (stored terrain — the world is pregenerated, so this is a
+  // lookup, not a noise resample); plain maps (interiors) price no terrain → null (cost 1).
   _terrainCost(scene) {
-    if (!scene._chunked || scene.source === undefined) return null;
-    const src = scene.source;
+    if (!scene._chunked || scene.chunks === undefined) return null;
+    const chunks = scene.chunks;
     const cw = scene.level.cellWidth;
     const ch = scene.level.cellHeight;
-    return (wx, wy) => src.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
+    return (wx, wy) => chunks.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
   },
 
   // World-coord entry points by name, for repositioning the player on a resume (no file reload).
@@ -454,6 +455,13 @@ globalThis.RpgMap = {
         worldRows: wr,
       });
       RpgLevel.buildWorldBorder(scene.world, scene.level, wc, wr); // edge walls (always present)
+      // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
+      // scene fade) — mid-game streaming is pure load/unload; generate() never runs in play.
+      const t0 = current_time;
+      const pregen = scene.chunks.pregenerate();
+      Log.info(
+        `RpgMap: pregenerated ${pregen} chunks in ${current_time - t0}ms`,
+      );
       const sp = scene.world.get(Position, scene.ctrl.id);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
