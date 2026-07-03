@@ -392,19 +392,30 @@ The **RPG scene** is the reference consumer: `RpgController.create` tags its key
 
 ## `EntityPreset`
 
-`EntityPreset` (`scripts/EntityPreset/`) spawns entities from named presets:
+`EntityPreset` (`scripts/EntityPreset/`) spawns entities from named presets — the **declarative side of entity construction** (component data + size + a `post` hook for the wiring data can't express), with **variant inheritance**:
 
 ```js
 EntityPreset.register([
   {
-    id: "enemy",
-    components: { Velocity: { x: 0, y: 0, z: 0 }, Lifetime: { ticks: 120 } },
+    id: "raider",
+    scale: 0.85, // DESIGN size — scales the BBox and the Visual (see below)
+    components: {
+      BBox: { x: -6, y: -6, width: 12, height: 12 }, // world units at scale 1
+      Visual: { sprite: spr_human, color: c_white }, // xscale/yscale are DERIVED, never authored
+      Health: { hp: 3 },
+      Inventory: { slots: [], capacity: 8 },
+    },
+    post(world, id, ctx) { CombatAI.attach(world, id, ctx.opts.level); }, // irreducible code
   },
+  { id: "boss_raider", extends: "raider", scale: 1.5, components: { Health: { hp: 12 } } },
 ]);
-const id = EntityPreset.spawn("enemy", world, x, y, z);
-EntityPreset.has("enemy");
-EntityPreset.get("enemy"); // → boolean / preset or undefined
+const id = EntityPreset.spawn("boss_raider", world, x, y, z, opts?); // opts: { scale?, components? }
+EntityPreset.has("raider"); EntityPreset.get("raider");
 ```
+
+- **`extends`** resolves at **register time** (base must register first; unknown base throws): per-component **field** merge, the variant's fields win, new components add; `scale`/`post` inherit unless overridden. Per-spawn `opts.components` merges the same way (e.g. a descriptor's `{ Health: { hp } }`), and `opts.scale` multiplies the design scale (the Alpha/boss knob).
+- **Every spawn deep-copies its component data** (instances never share nested arrays/objects like `Inventory.slots`) via a GMRT-safe clone: a GM **asset ref** also reports `typeof "object"` but its `constructor !== Object` (probed on 0.20), so refs/scalars/functions pass through **by reference** — a stored sprite handle survives.
+- **The size/art bake**: `Visual` is authored lean (`sprite`/`color` + optional overrides) and spawn normalizes it — `Visual.scale` = design scale (preset × opts), `xscale/yscale = scale / ArtDensity.of(sprite)` (see _Utility Modules → ArtDensity_), and the `BBox` multiplies by the design scale only. Art resolution never touches the collision footprint.
 
 ## `Query` — Spatial Entity Lookup
 
