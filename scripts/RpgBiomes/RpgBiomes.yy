@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RpgBiomes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RpgBiomes",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Demo/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RpgBiomes.js",
+}
