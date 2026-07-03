@@ -28,6 +28,15 @@ globalThis.OverworldGen = class OverworldGen {
     // prefab scope: only prefabs with this tag are eligible (a cave generator draws a different set);
     // empty set ⇒ stamping is a no-op
     this.prefabs = Prefab.byTag(opts.prefabTag ?? "overworld");
+    // chunk output has no tiles/zones channel — warn once at construction so an authored
+    // channel doesn't silently vanish (apply()-based generators consume them; this one can't)
+    for (let i = 0; i < this.prefabs.length; i++) {
+      const p = this.prefabs[i];
+      if (p.tiles.length > 0 || p.zones.length > 0)
+        Log.warn(
+          `OverworldGen: prefab '${p.id}' has tiles/zones — chunk output drops them`,
+        );
+    }
     // the generic terrain sampler (Core) over this generator's palette (data in RpgBiomes);
     // `palette` is the field ChunkSource.palette() exposes to TerrainStream (render order =
     // palette order)
@@ -94,8 +103,9 @@ globalThis.OverworldGen = class OverworldGen {
 
   // prefab stamping (generic engine — content enters via the constructor hooks)
 
-  // Pick a prefab (weighted) and translate its local coords to absolute at a random interior
-  // offset (1-cell margin so its walls don't merge across a chunk seam).
+  // Pick a prefab (weighted) and stamp it (Prefab.stamp translates local→absolute) at a random
+  // interior offset (1-cell margin so its walls don't merge across a chunk seam). Chunk output
+  // consumes the walls + spawns channels only (see the constructor warn).
   _stamp(rng, gx0, gy0, walls, spawns) {
     const p = this._pick(rng);
     if (p === undefined) return;
@@ -105,12 +115,18 @@ globalThis.OverworldGen = class OverworldGen {
     const ox = gx0 + 1 + Math.floor(rng() * (maxOx + 1));
     const oy = gy0 + 1 + Math.floor(rng() * (maxOy + 1));
 
-    for (let i = 0; i < p.walls.length; i++) {
-      const r = p.walls[i];
-      walls.push([ox + r[0], oy + r[1], r[2], r[3]]);
-    }
-    for (let i = 0; i < p.spawns.length; i++) {
-      const s = this._placeSpawn(p.spawns[i], ox, oy, rng);
+    const st = p.stamp(ox, oy);
+    for (let i = 0; i < st.walls.length; i++) walls.push(st.walls[i]);
+    for (let i = 0; i < st.spawns.length; i++) {
+      const s = st.spawns[i];
+      // stamp's spawn copy is shallow — deep-copy item arrays so stamped instances never
+      // share (and mutate on pickup) the registry def's arrays
+      if (s.loot !== undefined) s.loot = this._cloneItems(s.loot);
+      if (s.items !== undefined) s.items = this._cloneItems(s.items);
+      // defaultLoot draws its roll BEFORE the spawnFilter verdict so a filtered-out spawn
+      // consumes the same rng draws — the chunk's remaining placements must not shift
+      const extra = this.defaultLoot(s, rng);
+      if (extra !== undefined) s.loot = extra;
       if (!this.spawnFilter(s, this.field)) continue;
       spawns.push(s);
     }
@@ -127,27 +143,6 @@ globalThis.OverworldGen = class OverworldGen {
       if (r < 0) return all[i];
     }
     return all[all.length - 1];
-  }
-
-  // Local → absolute spawn descriptor. Deep-copies item arrays (loot/items) so stamped instances
-  // never share — and mutate on pickup — the registry def's arrays. defaultLoot draws its roll
-  // HERE (before the spawnFilter verdict) so a filtered-out spawn consumes the same rng draws —
-  // the chunk's remaining placements must not shift.
-  _placeSpawn(s, ox, oy, rng) {
-    const out = {};
-    const keys = Object.keys(s);
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      if (k === "lx" || k === "ly") continue;
-      out[k] = s[k];
-    }
-    out.gx = ox + s.lx;
-    out.gy = oy + s.ly;
-    if (out.loot !== undefined) out.loot = this._cloneItems(out.loot);
-    if (out.items !== undefined) out.items = this._cloneItems(out.items);
-    const extra = this.defaultLoot(out, rng);
-    if (extra !== undefined) out.loot = extra;
-    return out;
   }
 
   _cloneItems(arr) {
@@ -173,7 +168,7 @@ globalThis.OverworldGen = class OverworldGen {
       walls.push([gx0 + lx, gy0 + ly, w, h]);
     }
 
-    // wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (bandit_camp prefab)
+    // wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (raider_camp prefab)
     const rats = 1 + Math.floor(rng() * 3); // 1..3
     for (let i = 0; i < rats; i++) {
       const lx = 1 + Math.floor(rng() * (cc - 2));

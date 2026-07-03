@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Prefab",
   "parent":{
-    "name":"Content",
-    "path":"folders/Demo/Content.yy",
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
