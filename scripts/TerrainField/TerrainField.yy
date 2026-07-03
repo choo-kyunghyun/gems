@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TerrainField",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TerrainField",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"TerrainField.js",
+}

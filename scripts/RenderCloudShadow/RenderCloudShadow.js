@@ -6,7 +6,7 @@
 // Clouds live on a fixed world-aligned grid in CLOUD SPACE (world + wind*time, so the field drifts
 // over the world): at most one CLOUD per cell — a cumulus CLUSTER of 3–5 overlapping lobes strung
 // along a wind-ish axis (fat middle, tapered ends), everything hashed from the cell index with
-// MINSTD integer-float math (a chained xorshift collapses on GMRT — see CLAUDE.md / OverworldGen).
+// Rand's MINSTD integer-float math (a chained xorshift collapses on GMRT — see CLAUDE.md).
 // Lobe overlap is deliberate: the multiplicative blend compounds where lobes cross, so each cloud
 // darkens toward its core (per-lobe darkness is halved in multiplier space to compensate — the
 // overlapped core hits `darkness`, a lone fringe about half). Coverage gates each cell against its
@@ -143,19 +143,15 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     draw_set_alpha(prevAlpha);
   }
 
-  // Park–Miller MINSTD over integer-float math (products stay < 2^53, exact) — NOT xorshift32,
-  // whose shift chain collapses on GMRT (see CLAUDE.md). Mirrors OverworldGen._seedFor/_rng.
+  // Reseed the inline stream for one cloud-grid cell (Rand's MINSTD — state kept in a field, not
+  // a Rand.lcg closure: this reseeds per cell per frame, and a closure each time would be churn).
   _seedCell(ix, iy) {
-    const M = 2147483647;
-    let s = this.seed % M;
-    s = (((s * 31 + (ix | 0) * 1900613) % M) + M) % M;
-    s = (((s * 31 + (iy | 0) * 7368787) % M) + M) % M;
-    this._s = s + 1; // [1, M]
+    this._s = Rand.seed2(ix, iy, this.seed);
   }
 
   // next float in [0, 1) for the seeded cell
   _rand() {
-    this._s = (this._s * 48271) % 2147483647;
-    return (this._s - 1) / 2147483646;
+    this._s = Rand.step(this._s);
+    return Rand.norm(this._s);
   }
 };

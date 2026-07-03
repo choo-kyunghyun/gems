@@ -1,7 +1,8 @@
 // Per-chunk dual-grid renderer for the streamed overworld terrain. Caches VertexBuffers per loaded
 // chunk (one per material), built once on load and freed on unload, so a border crossing only builds
 // newly-entered chunks (the earlier windowed version rebuilt one ~80x80 VBO every crossing → ~50ms
-// hitch). Painter order = OverworldGen.TERRAIN index (deep water … rocky): upper terrains'
+// hitch). Painter order = the source palette's index (ChunkSource.palette(); deep water … rocky
+// for the overworld): upper terrains'
 // transparent dual-grid corners reveal the one below. Each material draws its own untinted
 // spr_terrain* sprite into its own VBO with its own texture, so the tilesets needn't share a
 // texture page.
@@ -25,11 +26,20 @@ globalThis.TerrainStream = class TerrainStream {
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
     this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
 
-    // one untinted dual-grid sprite per material, painter-ordered; cache texture + source size for the quad
-    const pal = OverworldGen.TERRAIN;
-    this.palette = pal;
+    // One untinted dual-grid sprite per material, painter-ordered. The palette rides the SOURCE
+    // (ChunkSource.palette() → the generator's table), not a generator class static — a swapped-in
+    // generator (cave/desert) brings its own material set + tilesets.
+    const pal =
+      this.source.palette !== undefined ? this.source.palette() : undefined;
     this._sprites = [];
     this._ok = true;
+    if (pal === undefined || pal.length === 0) {
+      Log.warn("TerrainStream: source has no terrain palette — terrain off");
+      this.palette = [];
+      this._ok = false;
+      return;
+    }
+    this.palette = pal;
     for (let i = 0; i < pal.length; i++) {
       const spr = asset_get_index(pal[i].sprite);
       if (!sprite_exists(spr)) {
@@ -189,16 +199,10 @@ globalThis.TerrainStream = class TerrainStream {
     return out;
   }
 
-  // deterministic per-cell WEIGHTED variant frame: MINSTD integer-float hash (no bitwise chain —
-  // GMRT miscompiles xorshift; mirrors OverworldGen._hash) walked down the material's cumulative
-  // [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
+  // deterministic per-cell WEIGHTED variant frame: Rand position hash walked down the material's
+  // cumulative [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
   _variant(gx, gy, s) {
-    const M = 2147483647;
-    let h = 374761393 % M;
-    h = (((h * 31 + (gx | 0) * 1900613) % M) + M) % M;
-    h = (((h * 31 + (gy | 0) * 7368787) % M) + M) % M;
-    h = (h * 48271) % M;
-    let r = h % s.total;
+    let r = Rand.int2(gx, gy, 374761393) % s.total;
     let k = 0;
     while (k < s.table.length) {
       r -= s.table[k][1];

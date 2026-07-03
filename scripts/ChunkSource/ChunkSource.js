@@ -109,6 +109,12 @@ globalThis.ChunkSource = class ChunkSource {
     return this.generator.generate(cx, cy); // generate() already includes terrain + solid
   }
 
+  // the generator's terrain palette (material id = index = painter order) — TerrainStream reads
+  // it HERE, not off a generator class static, so a swapped-in generator brings its own tilesets
+  palette() {
+    return this.generator.palette;
+  }
+
   // single-cell terrain material (for TerrainStream's seam apron); no generator materialAt → 0
   materialAt(ax, ay) {
     return this.generator.materialAt !== undefined
