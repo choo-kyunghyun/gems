@@ -57,6 +57,8 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 After the asset exists, edit its `.js`/`.yy` freely. **Renaming or deleting** an asset must also go through the IDE or `resourcetool`, never by moving/removing files manually — to delete: `gm-cli resourcetool eval "RESOURCE DELETE NAME=<name> TYPE=Script"` (removes it from `gems.yyp` and deletes its `scripts/<name>/` folder).
 
+⚠️ **resourcetool re-saves the whole project on every CREATE/DELETE** (observed on 2026.0.17): it rewrites ~970 files under `sprites/` — recomputed `.yy` `bbox_*` values + re-encoded frame/layer PNGs — none of which your change needs (the project doesn't use GM sprite collision; ECS `BBox` is its own component). After any resourcetool mutation, revert the churn with `git checkout -- sprites/` and confirm `git status` shows only your intended files before committing.
+
 ## Tools
 
 Repo tooling lives under **`tools/`** — standalone, run directly, never imported by the game. Today it holds two: the **pixel-art-kit** (sprites) and the **audio-kit** (sound). Both are portable **zero-dependency** Python (stdlib only) with the same shape — **author** a data file → **render** to an engine-agnostic artifact → **import** as a GameMaker asset (resource registered first; re-runs are churn-free) — and a project conventions doc (`GEMS.md`) answering the kit's "scan/ask".
