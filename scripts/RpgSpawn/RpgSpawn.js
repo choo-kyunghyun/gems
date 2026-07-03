@@ -2,7 +2,7 @@
 // called by RpgContent.register) — component data + design scale + a `post` hook for the wiring
 // data can't express (CombatAI.attach). spawnEntity is the DESCRIPTOR ADAPTER — the single place
 // a spawn descriptor becomes an entity: grid→world, per-spawn overrides (field-merged onto the
-// def like a variant), the reconcile marker. Up-front map spawns (RpgSpawn.spawn), the chunk
+// def like a variant). Up-front map spawns (RpgSpawn.spawn), the chunk
 // streamer (ChunkManager's spawn adapter), BuildMode, and the Trader all route through it. A variant preset
 // (e.g. `extends: "raider"`) spawns through the same path with zero adapter changes when its
 // descriptor fields match its base's.
@@ -235,7 +235,7 @@ globalThis.RpgSpawn = {
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
    */
-  spawn(world, level, data, reconcile) {
+  spawn(world, level, data) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
@@ -243,14 +243,8 @@ globalThis.RpgSpawn = {
     let npc = -1;
     let reach;
 
-    // File-scope reconcile: a spawn with an `id` is UNIQUE (spawn-once). `gone` = uids removed
-    // during play — skip those so they don't re-spawn; id-less spawns always (re)spawn. Spawned
-    // unique entities get a Persistent{uid} tag so the scene can remember their fate (_markGone).
-    const gone = (reconcile && reconcile.gone) || {};
-
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
-      if (s.id !== undefined && gone[s.id]) continue; // removed this map — don't re-spawn
       if (s.preset === "reach") {
         reach = RpgSpawn.reachZone(level, s); // a region, not an entity
         continue;
@@ -277,9 +271,9 @@ globalThis.RpgSpawn = {
 
   // Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
   // The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
-  // (field-merged onto the def), passes `level` through opts for the post hooks (CombatAI), and
-  // applies the reconcile marker. `gx/gy` are absolute grid coords (gridToWorld handles
-  // negatives, so chunk-streamed entities work too).
+  // (field-merged onto the def) and passes `level` through opts for the post hooks (CombatAI).
+  // `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
+  // entities work too).
   spawnEntity(world, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
@@ -369,19 +363,11 @@ globalThis.RpgSpawn = {
       });
     }
 
-    // unique spawn-once reconcile marker (the presets the ledger tracks today)
-    if (
-      s.id !== undefined &&
-      (s.preset === "raider" || s.preset === "rat" || s.preset === "npc")
-    )
-      world.add(id, Persistent, { uid: s.id });
     return id;
   },
 
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
-  // descriptor + the scene's programmatic party seed. NOTE: a companion is persistent (travels/
-  // stations via EntitySnapshot), so prefer the programmatic seed over a file spawn in a
-  // PERSISTENT map — a file spawn re-runs every revisit and would duplicate the restored copy.
+  // descriptor + the scene's programmatic party seed.
   spawnFollower(world, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
     // `opt.color` is the OUTFIT tint, not a whole-body wash.

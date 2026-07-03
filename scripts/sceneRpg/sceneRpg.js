@@ -52,11 +52,8 @@ class _SceneRpgClass extends Level {
       StatModel.recompute(world, id);
     };
 
-    // map pool: visited maps stay alive/suspended here (see RpgMap.go); _mapOrder is LRU order for
-    // eviction past POOL_MAX; _mapCache holds cold-serialized evicted maps (Level.export + entities)
+    // map pool: every visited map stays alive/suspended here for the whole session (see RpgMap.go)
     this._maps = {};
-    this._mapOrder = [];
-    this._mapCache = {};
 
     // world event queue + level manager + wandering traders — reset per scene create so a fresh RPG
     // session can't inherit the previous one's schedule/records (Trader.reset re-installs handlers).
@@ -341,7 +338,6 @@ class _SceneRpgClass extends Level {
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
           const kind = this.world.get(Rat, id) !== undefined ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
-          this._markGone(id); // a unique (id'd) enemy won't re-spawn on revisit
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
           this.world.detach(id, Raider);
@@ -502,13 +498,6 @@ class _SceneRpgClass extends Level {
     const inst =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     return inst !== undefined && inst.itemId === itemId;
-  }
-
-  // mark a unique (Persistent) entity gone so it won't re-spawn on revisit (file-scope reconcile);
-  // no-op for id-less entities. Read the uid while still alive (before world.remove).
-  _markGone(id) {
-    const pc = this.world.get(Persistent, id);
-    if (pc !== undefined) this._gone[pc.uid] = true;
   }
 
   // pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
@@ -826,9 +815,11 @@ class _SceneRpgClass extends Level {
     Audio.bgm("mus_overworld"); // restore the RPG theme after a guest crossfaded its own
   }
 
-  // launch the platformer as a guest minigame; on return its result() score becomes a coin reward
+  // launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()
+  // thaws it); on return its result() score becomes a coin reward
   _openArcade() {
-    this.manager.push(ScenePlatformer, {
+    this.manager.switchTo(ScenePlatformer, {
+      keep: true,
       onResult: (r) => {
         const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
         if (n > 0) {

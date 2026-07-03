@@ -1,131 +1,138 @@
-// The level/scene lifecycle manager — a `World` sub-module, held as `World.levels`. Merges the old
-// SceneManager (the active-scene STACK + faded transitions + sim pause) and Universe (the resident-
-// level REGISTRY + whole-entity transfer between levels) into one coordinator, since both already
-// tracked "which levels are live" from opposite ends.
+// The level lifecycle manager — a `World` sub-module, held as `World.levels`. There is NO scene
+// stack: every live level sits in a FLAT collection with ONE active pointer, and `switchTo()` is
+// the single transition. Switching away from a level either DESTROYS it (plain navigation —
+// lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its world/state stay
+// untouched in the collection) to be thawed by `back()` — the guest-minigame path (the RPG's
+// arcade cabinet), which also hands the guest's result() to the switch's onResult. One kept
+// level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
 //
-// STACK (was SceneManager): a persistent base + transient guests pushed on top; only the TOP is
-// stepped + drawn, one below is suspended (UI hidden, camera detached) so a minigame runs in front
-// without the host losing context. push()/pop() drive that; request()/_apply() own the faded BASE
-// swap (lobby navigation), collapsing guests first.
+// REGISTRY (was Universe): a flat mapId -> { world, level } index of every RESIDENT map (the
+// active one + the parked map pool inside the RPG level). RpgMap registers on build; take/put/
+// transfer move a WHOLE entity (all components, via EntitySnapshot) between two resident maps'
+// stores — the portal-squad + wandering-trader path. Registry `reset()` drops the index (map-
+// pool teardown); it is INDEPENDENT of the level collection (destroy() tears that down).
 //
-// REGISTRY (was Universe): a flat mapId -> { world, level } index of every RESIDENT level (active +
-// the parked map pool). RpgMap registers on build/resume, unregisters on evict. take/put/transfer
-// move a WHOLE entity (all components, via EntitySnapshot) between two resident levels' stores — the
-// wandering-trader path. Registry `reset()` drops the index (map-pool teardown); it is INDEPENDENT of
-// the scene stack (destroy() tears the stack down).
-//
-// Plain instance class (World.levels = new LevelManager()), not a static singleton: `current` is an
-// instance getter over the stack top — instance get/set work on GMRT, only static computed getters
-// miscompile.
+// Plain instance class (World.levels = new LevelManager()), not a static singleton: `current` is
+// an instance getter — instance get/set work on GMRT, only static computed getters miscompile.
 globalThis.LevelManager = class LevelManager {
   constructor() {
-    // ── scene/level stack ──
-    // Stack of frames { scene, factory, label, onResult } — index 0 base, last live.
-    this._stack = [];
-    this._pending = null; // base-swap factory queued for next frame, awaiting a fade
+    // ── flat level collection ──
+    this._all = []; // every live level entry { level, factory, label } — active + frozen
+    this._current = null; // the ACTIVE entry (stepped + drawn) — the pointer into _all
+    this._returnTo = null; // the frozen entry back() thaws (set by a keep switch); null = none
+    this._onResult = null; // the kept switch's result handler, fired by back()
+    this._pending = null; // queued switch { factory, opts }, applied next update()
     // Sim pause + frame-step, driven by the Debug overlay's "Sim" panel.
-    this.paused = false; // gates scene.step() like the menu pause does
+    this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
-    // ── resident-level registry (was Universe) ──
-    this._levels = {}; // mapId -> { world, level } for every RESIDENT level (active + parked pool)
+    // ── resident-map registry (was Universe) ──
+    this._levels = {}; // mapId -> { world, level } for every RESIDENT map (active + parked pool)
     this._active = null; // the mapId currently stepped + drawn
   }
 
-  /** Live (top-of-stack) Scene, or null. */
+  /** Active Level instance, or null. */
   get current() {
-    return this._stack.length > 0
-      ? this._stack[this._stack.length - 1].scene
-      : null;
+    return this._current !== null ? this._current.level : null;
   }
 
-  /** 1 = lone base scene; >1 = a guest minigame is on top. */
-  depth() {
-    return this._stack.length;
-  }
-
-  /** Boot scene: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). @param {() => Level} factory */
+  /** Boot level: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). @param {() => Level} factory */
   start(factory) {
-    this._apply(factory);
+    this._apply(factory, {});
   }
 
   /**
-   * Queue a BASE scene change, applied next frame (after UI.update, so the UI tree isn't torn down
-   * mid-traversal) collapsing guests first. Ignored mid-fade so a spammed button can't stack swaps.
-   * This is the `openScene` callback handed to every create(). @param {() => Level} factory
+   * THE transition: queue an active-level switch, applied next frame (after UI.update, so the UI
+   * tree isn't torn down mid-traversal). Default DESTROYS every live level first (plain
+   * navigation) and runs through the fade; `keep: true` instead FREEZES the current level
+   * (suspend(), world intact, instant — no fade) and records it as back()'s return target, with
+   * `onResult` fired when the guest returns. Ignored mid-fade so a spammed button can't stack
+   * swaps. This is the `openScene` callback handed to every create().
+   * @param {() => Level} factory
+   * @param {{ keep?: boolean, fade?: boolean, onResult?: (result:any) => void }} [opts]
    */
-  request(factory) {
+  switchTo(factory, opts = {}) {
     if (SceneTransition.isBusy()) return;
-    this._pending = factory;
+    this._pending = { factory, opts };
   }
 
-  /** Push a transient GUEST on top: suspend host, create guest, run until pop(). No fade. @param {() => Level} factory @param {{ onResult?: (result:any) => void }} [opts] */
-  push(factory, opts) {
-    const host = this.current;
-    if (host !== null && host.suspend !== undefined) host.suspend();
-    this._clearOverlays(); // host's world-space numbers/particles/dialogue must not bleed into the guest
-    const frame = this._make(factory);
-    frame.onResult = opts !== undefined ? (opts.onResult ?? null) : null;
-    this._stack.push(frame);
-    frame.scene.create((s) => this.request(s));
-  }
-
-  /** Pop the live guest, resume the host, and hand its result() to the push() onResult. No-op at depth 1. */
-  pop() {
-    if (this._stack.length <= 1) return;
-    const frame = this._stack[this._stack.length - 1];
-    const scene = frame.scene;
-    const result = scene.result !== undefined ? scene.result() : undefined;
-    scene.destroy();
-    this._stack.pop();
+  /**
+   * Return from a kept switch: destroy the active guest, thaw the kept level, and hand the
+   * guest's result() to the switch's onResult. @returns {boolean} false when nothing is kept.
+   */
+  back() {
+    if (this._returnTo === null) return false;
+    const guest = this._current;
+    const result =
+      guest.level.result !== undefined ? guest.level.result() : undefined;
+    guest.level.destroy();
+    this._all.splice(this._all.indexOf(guest), 1);
     this._clearOverlays();
-    const host = this.current;
-    if (host !== null && host.resume !== undefined) host.resume();
-    if (frame.onResult !== null) frame.onResult(result);
+    this._current = this._returnTo;
+    this._returnTo = null;
+    if (this._current.level.resume !== undefined) this._current.level.resume();
+    const onResult = this._onResult;
+    this._onResult = null;
+    if (onResult !== null) onResult(result);
+    return true;
   }
 
-  // Per-frame: flush a queued base swap through a fade (SceneTransition.start runs _apply at full
-  // cover), then advance the fade timer. Busy guard stops a second openScene from stacking swaps.
+  // Per-frame: flush a queued switch — a destroying swap goes through the fade (SceneTransition
+  // .start runs _apply at full cover), a kept swap applies instantly (an in-world guest open) —
+  // then advance the fade timer. Busy guard stops a second switchTo from stacking swaps.
   update() {
     if (this._pending !== null && !SceneTransition.isBusy()) {
-      const factory = this._pending;
+      const p = this._pending;
       this._pending = null;
-      SceneTransition.start(() => this._apply(factory));
+      if (p.opts.keep === true || p.opts.fade === false)
+        this._apply(p.factory, p.opts);
+      else SceneTransition.start(() => this._apply(p.factory, p.opts));
     }
     SceneTransition.update();
   }
 
-  /** Base swap at full cover: collapse the stack, reset cross-scene singletons, build the new base. @param {() => Level} factory */
-  _apply(factory) {
-    this._destroyAll();
-    UINav.reset(); // drop focus held on the outgoing scene's UI
-    SystemMenu.reset(); // close the overlay (+ its pause) + restore time scale
-    Dialogue.clear();
-    FloatingText.clear(); // world coords are scene-local
-    ParticleFx.clear(); // world coords are scene-local
-    Audio.reset(); // one scene's BGM/SFX must not bleed into the next
-    const frame = this._make(factory);
-    this._stack.push(frame);
-    frame.scene.create((s) => this.request(s));
+  // Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)
+  // and activate the new one in front. Otherwise: destroy every live level (a quit from a guest
+  // must also drop its frozen host), reset the cross-level singletons, build the target fresh.
+  _apply(factory, opts) {
+    if (opts.keep === true && this._current !== null) {
+      if (this._returnTo !== null) {
+        Log.warn("LevelManager: keep-switch while a level is already kept");
+        return;
+      }
+      if (this._current.level.suspend !== undefined)
+        this._current.level.suspend();
+      this._returnTo = this._current;
+      this._onResult = opts.onResult ?? null;
+      // host's world-space numbers/particles/dialogue must not bleed into the guest
+      this._clearOverlays();
+    } else {
+      this._destroyAll();
+      UINav.reset(); // drop focus held on the outgoing level's UI
+      SystemMenu.reset(); // close the overlay (+ its pause) + restore time scale
+      Dialogue.clear();
+      FloatingText.clear(); // world coords are level-local
+      ParticleFx.clear(); // world coords are level-local
+      Audio.reset(); // one level's BGM/SFX must not bleed into the next
+    }
+    const entry = this._make(factory);
+    this._all.push(entry);
+    this._current = entry;
+    entry.level.create((s) => this.switchTo(s));
   }
 
-  // Build a frame: create the scene, resolve its display label, back-reference the manager.
+  // Build an entry: create the level, resolve its display label, back-reference the manager.
   _make(factory) {
-    // GMRT doesn't run subclass field initializers, so a class scene's `label` field never sets —
+    // GMRT doesn't run subclass field initializers, so a class level's `label` field never sets —
     // the registry label (localized) is the reliable source; built-ins fall back to their instance
-    // label. Lookup matches by factory ref, so a pushable scene must register with the same factory.
+    // label. Lookup matches by factory ref, so a guest level must register with the same factory.
     const entry = SceneRegistry._entries.find((e) => e.factory === factory);
-    const scene = factory();
-    scene.manager = this;
-    return {
-      scene,
-      factory,
-      label: entry != null ? entry.label : null,
-      onResult: null,
-    };
+    const level = factory();
+    level.manager = this;
+    return { level, factory, label: entry != null ? entry.label : null };
   }
 
-  // Lighter reset than _apply for a push/pop boundary: clears world-space singletons + drops nav
-  // focus (so it can't point at a hidden host widget), but leaves the paused host's menu state.
+  // Lighter reset than _apply for a keep/back boundary: clears world-space singletons + drops nav
+  // focus (so it can't point at a hidden host widget), but leaves the frozen host's menu state.
   _clearOverlays() {
     UINav.reset();
     Dialogue.clear();
@@ -133,42 +140,42 @@ globalThis.LevelManager = class LevelManager {
     ParticleFx.clear();
   }
 
-  // Tear down every frame top-down (guest before host).
+  // Tear down every live level, newest first (a guest before its frozen host).
   _destroyAll() {
-    for (let i = this._stack.length - 1; i >= 0; i--)
-      this._stack[i].scene.destroy();
-    this._stack = [];
+    for (let i = this._all.length - 1; i >= 0; i--)
+      this._all[i].level.destroy();
+    this._all = [];
+    this._current = null;
+    this._returnTo = null;
+    this._onResult = null;
   }
 
-  /** Re-open the live scene from scratch (SystemMenu "Restart Scene"); a re-request collapses the stack to a fresh base. */
+  /** Re-open the active level from scratch (Debug "Restart Scene") — a destroying re-switch. */
   restart() {
-    if (this._stack.length > 0) {
-      this.request(this._stack[this._stack.length - 1].factory);
-    }
+    if (this._current !== null) this.switchTo(this._current.factory);
   }
 
-  /** Display label of the live frame: registry label, else instance label, else "-". @returns {string} */
+  /** Display label of the active level: registry label, else instance label, else "-". @returns {string} */
   label() {
-    if (this._stack.length === 0) return "-";
-    const frame = this._stack[this._stack.length - 1];
-    const lbl = frame.label;
+    if (this._current === null) return "-";
+    const lbl = this._current.label;
     if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
-    const scene = frame.scene;
-    return scene.label != null && scene.label !== "" ? scene.label : "-";
+    const level = this._current.level;
+    return level.label != null && level.label !== "" ? level.label : "-";
   }
 
   // Per-frame sim tick, pause-gated two ways: the SystemMenu overlay and the Debug "Pause" toggle.
-  // While paused, scene.step() is skipped except for a one-frame advance via requestStep().
+  // While paused, level.step() is skipped except for a one-frame advance via requestStep().
   step() {
-    const scene = this.current;
-    if (scene === null) return;
+    const level = this.current;
+    if (level === null) return;
     if (SystemMenu.isOpen()) {
       // Menu forces Time.scale = 0; a step must restore a non-zero delta (store.update advances off
       // Time.delta) then re-freeze.
       if (this._takeStep()) {
         Time.scale = SystemMenu.scale();
         Time.delta = Time.raw * Time.scale;
-        scene.step();
+        level.step();
         Time.delta = 0;
         Time.scale = 0;
       }
@@ -177,11 +184,11 @@ globalThis.LevelManager = class LevelManager {
     if (this.paused) {
       // Debug pause leaves Time.scale untouched (so it doesn't fight the Time panel's Scale slider)
       // and just gates the sim — a step lets one frame through at live delta.
-      if (this._takeStep()) scene.step();
+      if (this._takeStep()) level.step();
       return;
     }
     this._stepRequested = false; // don't carry a stale step into normal play
-    scene.step();
+    level.step();
   }
 
   /** Request a one-frame sim advance while paused (Debug "Step Frame"). */
@@ -196,26 +203,26 @@ globalThis.LevelManager = class LevelManager {
     return true;
   }
 
-  /** Render the live scene. */
+  /** Render the active level. */
   draw() {
-    const scene = this.current;
-    if (scene !== null) scene.draw();
+    const level = this.current;
+    if (level !== null) level.draw();
   }
 
-  /** Teardown: destroys every scene's UI roots, so obj_game must call this before UI.destroy(). */
+  /** Teardown: destroys every level's UI roots, so obj_game must call this before UI.destroy(). */
   destroy() {
     this._destroyAll();
   }
 
-  // ── resident-level registry + whole-entity transfer (was Universe) ──
+  // ── resident-map registry + whole-entity transfer (was Universe) ──
 
-  // Index a level's store under its map id (idempotent — re-registering a resumed map overwrites with
-  // the same live objects). Called by RpgMap on build/resume.
+  // Index a map's store under its map id (idempotent — re-registering a resumed map overwrites with
+  // the same live objects). Called by RpgMap on build.
   register(mapId, world, level) {
     this._levels[mapId] = { world: world, level: level };
   }
 
-  // Drop a level from the index (its store is about to be destroyed — evict / scene end).
+  // Drop a map from the index (its store is about to be destroyed — scene end).
   unregister(mapId) {
     delete this._levels[mapId];
   }
@@ -242,8 +249,8 @@ globalThis.LevelManager = class LevelManager {
     return l !== undefined ? l.level : null;
   }
 
-  // Capture a WHOLE entity (all components) out of a resident level's store and remove it. Returns the
-  // snapshot (the caller now owns it), or null if the level isn't resident. EntitySnapshot references
+  // Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the
+  // snapshot (the caller now owns it), or null if the map isn't resident. EntitySnapshot references
   // the component data objects, so they survive the remove/flush (see EntitySnapshot).
   take(mapId, id) {
     const w = this.worldOf(mapId);
@@ -253,15 +260,15 @@ globalThis.LevelManager = class LevelManager {
     return snap;
   }
 
-  // Restore a whole-entity snapshot into a resident level's store; `overrides` apply after (e.g. a
-  // fresh Position for the destination). Returns the new id, or -1 if the level isn't resident.
+  // Restore a whole-entity snapshot into a resident map's store; `overrides` apply after (e.g. a
+  // fresh Position for the destination). Returns the new id, or -1 if the map isn't resident.
   put(mapId, snap, overrides) {
     const w = this.worldOf(mapId);
     if (w === null) return -1;
     return EntitySnapshot.restore(w, snap, overrides);
   }
 
-  // Move a whole entity from one level to another. Destination resident → it lands there (new id); not
+  // Move a whole entity from one map to another. Destination resident → it lands there (new id); not
   // resident → the snapshot is returned for the caller to hold until it loads.
   transfer(fromMapId, toMapId, id, overrides) {
     const snap = this.take(fromMapId, id);
@@ -271,7 +278,7 @@ globalThis.LevelManager = class LevelManager {
   }
 
   // New game / map-pool teardown — the pooled stores are freed by RpgMap, so just drop the index.
-  // INDEPENDENT of the scene stack (destroy() tears that down).
+  // INDEPENDENT of the level collection (destroy() tears that down).
   reset() {
     this._levels = {};
     this._active = null;

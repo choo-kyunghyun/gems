@@ -6,12 +6,10 @@
 // included) moves as a WHOLE entity through World.levels.take/put — a portal forces a "wait"
 // member back to "follow" first, so the squad always travels together. There is no per-map
 // player and no carried component subset; kicked/unhired companions are plain map residents.
-// Level.export() cache is the COLD path only: LRU eviction (_evict, past POOL_MAX) serializes
-// a map and frees it; revisit then rebuilds from file.
+// EVERYTHING is persistent for the session: a map builds from file exactly ONCE (first visit),
+// then only freezes/thaws as-is — there is no eviction, no cold serialize, and no respawn-from-
+// file reconcile (the old Persistent/gone ledger). Disk saves are the follow-up seam.
 globalThis.RpgMap = {
-  // max parked worlds in pool before LRU eviction (active map is not counted)
-  POOL_MAX: 3,
-
   // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open)
   // (ctrl is NOT bundled — it's scene-scoped: created once at boot, its `id` re-pointed to the
@@ -23,7 +21,6 @@ globalThis.RpgMap = {
     "entries",
     "mapId",
     "_chunked",
-    "_mapPersistent",
     "terrainLayer",
     "floorLayer",
     "wallLayer",
@@ -36,7 +33,6 @@ globalThis.RpgMap = {
     "buildZoneId",
     "_built",
     "_builtEnts",
-    "_gone",
     "reachZone",
     "reachDone",
     "nav",
@@ -86,8 +82,6 @@ globalThis.RpgMap = {
     const bundle = scene._maps[mapId];
     if (bundle !== undefined) RpgMap.resume(scene, bundle, entryId, squad);
     else RpgMap.build(scene, mapId, entryId, squad);
-    RpgMap._touch(scene, scene.mapId);
-    RpgMap._evict(scene);
     World.levels.setActive(scene.mapId);
     Trader.onActivate(scene); // embody any trader currently in this map
   },
@@ -157,67 +151,6 @@ globalThis.RpgMap = {
     for (let i = 0; i < keys.length; i++) scene[keys[i]] = b[keys[i]];
   },
 
-  // move mapId to the MRU end of the activation order (LRU bookkeeping for _evict)
-  _touch(scene, mapId) {
-    const ord = scene._mapOrder;
-    const i = ord.indexOf(mapId);
-    if (i !== -1) ord.splice(i, 1);
-    ord.push(mapId);
-  },
-
-  // Evict parked maps down to POOL_MAX: serialize the LRU one into the cold cache (_mapCache),
-  // free it, drop it. Revisit rebuilds from file + cache. Never touches the active map.
-  _evict(scene) {
-    let count = 0;
-    for (const id in scene._maps) count++;
-    while (count > RpgMap.POOL_MAX) {
-      // earliest still-parked map in activation order
-      let victim = null;
-      for (let i = 0; i < scene._mapOrder.length; i++) {
-        if (scene._maps[scene._mapOrder[i]] !== undefined) {
-          victim = scene._mapOrder[i];
-          break;
-        }
-      }
-      if (victim === null) break; // safety — nothing parked
-      RpgMap._evictSerialize(scene, scene._maps[victim]);
-      RpgMap._free(scene._maps[victim]);
-      World.levels.unregister(victim); // its store is destroyed — drop it from the manager index
-      delete scene._maps[victim];
-      scene._mapOrder.splice(scene._mapOrder.indexOf(victim), 1);
-      count--;
-    }
-  },
-
-  // Serialize a parked map into the cold cache in the shape build() restores (level export,
-  // deconstruct tracking, built entities, resident companions, gone ledger). Live enemies/loot
-  // are deliberately NOT snapshotted — they respawn on the cold rebuild. No-op if non-persistent.
-  _evictSerialize(scene, b) {
-    if (!b._mapPersistent) return;
-    const builtEnts = [];
-    for (const key in b._builtEnts) {
-      const e = b._builtEnts[key];
-      if (e === undefined || !b.world.isValid(e.ent)) continue;
-      builtEnts.push({
-        key,
-        itemId: e.itemId,
-        snap: EntitySnapshot.capture(b.world, e.ent),
-      });
-    }
-    // resident (kicked/unhired) companions, by live query — squad members never sit in a parked world
-    const stationed = [];
-    const resid = b.world.query(Follower);
-    for (let i = 0; i < resid.length; i++)
-      stationed.push(EntitySnapshot.capture(b.world, resid[i]));
-    scene._mapCache[b.mapId] = {
-      level: b.level.export(),
-      built: { ...b._built },
-      builtEnts,
-      entities: stationed,
-      gone: b._gone,
-    };
-  },
-
   // Per-activate transient reset (build + resume). Kept off the bundle so a resume can't restore
   // a stale transient.
   _activateReset(scene) {
@@ -269,8 +202,9 @@ globalThis.RpgMap = {
     return out;
   },
 
-  // Build a map fresh from file (first visit, or an eviction-restore from the cold cache).
-  // `squad` is handed in by go() (null on boot → spawn a fresh player). Orchestrates the helpers below.
+  // Build a map fresh from file — first visit ONLY (a revisit always resumes its live parked
+  // world; nothing is ever rebuilt). `squad` is handed in by go() (null on boot → spawn a fresh
+  // player). Orchestrates the helpers below.
   build(scene, mapId, entryId, squad = null) {
     const loaded = RpgMap._loadData(mapId, entryId);
     const data = loaded.data;
@@ -279,9 +213,6 @@ globalThis.RpgMap = {
     scene.mapId = mapId;
     // chunked: streams terrain + entities around the player (overworld); plain builds up front
     scene._chunked = data.meta.chunked === true;
-    // persistent (default true): player edits cached on evict + restored on cold rebuild.
-    // meta.persistent: false opts out (a dungeon that resets each entry).
-    scene._mapPersistent = data.meta.persistent !== false;
     Log.info(
       `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
     );
@@ -290,8 +221,11 @@ globalThis.RpgMap = {
     // register BEFORE the squad lands — World.levels.put targets the registry
     World.levels.register(scene.mapId, scene.world, scene.level);
     RpgMap._arriveSquad(scene, squad, scene.spawn); // scene.spawn is already entry-resolved
-    const saved = RpgMap._restoreCold(scene, mapId); // cold-cache player edits (persistent maps)
-    RpgMap._spawnWorld(scene, data, saved); // entities (streamed/up-front) + cached residents
+    // build-mode tracking, fresh per first visit (parks with the bundle thereafter). _builtEnts
+    // persists on the scene across map swaps (BuildMode.build runs once) — reset explicitly.
+    scene._built = {};
+    scene._builtEnts = {};
+    RpgMap._spawnWorld(scene, data); // entities (streamed or up-front)
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
     const entityPass = RpgMap._buildRenderer(scene, data); // render pass stack
@@ -377,46 +311,10 @@ globalThis.RpgMap = {
     }
   },
 
-  // Restore a persistent map's player edits from the cold cache: Level.import overlays the cached
-  // TileLayers + buildable ZoneMap (same dims/layer order, so it round-trips; cached zone keeps
-  // id 1), re-mesh wall colliders, restore deconstruct tracking + built entities + the gone ledger.
-  // Returns the cache record (or undefined) for _spawnWorld. No cache → fresh state.
-  _restoreCold(scene, mapId) {
-    const saved = scene._mapCache[mapId];
-    if (saved !== undefined) {
-      scene.level.import(saved.level); // also syncs nav (Level.import → syncAll)
-      TileEdit.remesh(
-        scene.world,
-        scene.level,
-        scene.wallLayer,
-        scene.colliders,
-      );
-      scene._built = { ...saved.built };
-    } else {
-      scene._built = {}; // player-built deconstructable cells, fresh on first visit
-    }
-    // Restore built entities from the cache. Reset first — _builtEnts persists on the scene
-    // across map swaps (BuildMode.build runs once), so clear the previous map's entries.
-    scene._builtEnts = {};
-    if (saved !== undefined && saved.builtEnts !== undefined) {
-      for (let i = 0; i < saved.builtEnts.length; i++) {
-        const b = saved.builtEnts[i];
-        const id = EntitySnapshot.restore(scene.world, b.snap);
-        scene._builtEnts[b.key] = { ent: id, itemId: b.itemId };
-      }
-    }
-    // File-scope reconcile ledger: uids of unique entities removed during play. Passed to
-    // RpgSpawn.spawn to skip their file spawns. Empty on a first visit / non-persistent map.
-    scene._gone =
-      saved !== undefined && saved.gone !== undefined ? saved.gone : {};
-    return saved;
-  },
-
   // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
   // scene reads NPC/portal/enemy/companion handles LIVE by component query — stored id lists
-  // would dangle as chunks stream in/out. Then restore this map's cached RESIDENT companions
-  // (kicked/unhired — the squad itself arrived via _arriveSquad before this).
-  _spawnWorld(scene, data, saved) {
+  // would dangle as chunks stream in/out.
+  _spawnWorld(scene, data) {
     if (scene._chunked) {
       // the pass-composed generator: authored hub overlay + procedural wilderness in one
       scene.generator = OverworldGen.create({
@@ -463,18 +361,11 @@ globalThis.RpgMap = {
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
     } else {
-      const ents = RpgSpawn.spawn(scene.world, scene.level, data, {
-        gone: scene._gone, // file-scope reconcile (unique entities removed on a prior visit)
-      });
+      const ents = RpgSpawn.spawn(scene.world, scene.level, data);
       scene.reachZone = ents.reach; // undefined when the map has no reach marker
     }
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
     scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
-
-    // this map's cached RESIDENT companions (full snapshot, restored where left)
-    if (saved !== undefined && saved.entities !== undefined)
-      for (let i = 0; i < saved.entities.length; i++)
-        EntitySnapshot.restore(scene.world, saved.entities[i]);
   },
 
   // Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid
@@ -687,7 +578,7 @@ globalThis.RpgMap = {
   },
 
   // Reclaim ONE map bundle's owned resources. No global input/weather teardown — those are
-  // scene-scoped. Used by _evict + scene teardown. renderer.destroy() frees the terrain VBOs.
+  // scene-scoped. Used by scene teardown. renderer.destroy() frees the terrain VBOs.
   _free(b) {
     if (b.chunks) b.chunks.destroy();
     if (b.camera) b.camera.destroy();

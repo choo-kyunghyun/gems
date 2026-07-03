@@ -44,7 +44,6 @@
 
     {
       "preset": "raider",
-      "id": "cave_captain",
       "gx": 6,
       "gy": 7,
       "hp": 5,

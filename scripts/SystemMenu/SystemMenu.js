@@ -48,8 +48,8 @@ globalThis.SystemMenu = class SystemMenu {
     if (keyboard_check_pressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
-      } else if (game.scenes.depth() > 1) {
-        game.scenes.pop(); // guest minigame on top — Esc leaves it, not open the menu
+      } else if (game.scenes.back()) {
+        // guest minigame was active — Esc returned to the frozen host, not open the menu
       } else {
         SystemMenu.open();
       }
@@ -63,10 +63,7 @@ globalThis.SystemMenu = class SystemMenu {
         UINav.suspended = true; // consumed
         return;
       }
-      if (game.scenes.depth() > 1) {
-        game.scenes.pop(); // B also exits a guest minigame back to the host
-        return;
-      }
+      if (game.scenes.back()) return; // B also exits a guest minigame back to the host
     }
 
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
@@ -242,7 +239,7 @@ globalThis.SystemMenu = class SystemMenu {
         I18n.textRef("SYS_QUIT"),
         () => {
           const g = SystemMenu._game;
-          if (g !== null) g.scenes.request(SCENES.lobby);
+          if (g !== null) g.scenes.switchTo(SCENES.lobby);
           SystemMenu.close();
         },
         { width: 200 },
