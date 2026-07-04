@@ -76,7 +76,7 @@ class _SceneRpgClass {
     // flag gameplay so SystemMenu suspends nav while playing; can't be a field initializer (GMRT)
     this.gameplay = true;
 
-    // persistent UI built once; reads world/ctrl live so it survives RpgMap.go's world swap
+    // persistent UI built once; reads world/playerId live so it survives RpgMap.go's world swap
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
@@ -151,21 +151,21 @@ class _SceneRpgClass {
 
     // starting loadout, equipped so the attack is item-driven from frame one; travels with the
     // carried inventory across maps
-    const startInv = this.world.get(Inventory, this.ctrl.id);
+    const startInv = this.world.get(Inventory, this.playerId);
     InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
-    EquipmentSystem.equipFirst(this.world, this.ctrl.id, "lead_pipe"); // equip that instance by uid
+    EquipmentSystem.equipFirst(this.world, this.playerId, "lead_pipe"); // equip that instance by uid
     InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
     // seed one companion programmatically (not file-authored, so a persistent-map reload won't
     // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
     // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
-    const pp = this.world.get(Position, this.ctrl.id);
+    const pp = this.world.get(Position, this.playerId);
     const companion = RpgSpawn.spawnFollower(this.world, pp.x - 14, pp.y + 11, {
       label: "Companion",
       bonusCapacity: 4,
       bonusWeight: 15,
     });
-    FollowerSystem.hire(this.world, this.ctrl.id, companion);
+    FollowerSystem.hire(this.world, this.playerId, companion);
 
     // a wandering trader (Trader/WorldEvents/Universe): crosses overworld <-> interior_01 off-focus on
     // the WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
@@ -237,6 +237,10 @@ class _SceneRpgClass {
   step() {
     // no pause gate — obj_game skips scene.step() while the SystemMenu is open
 
+    // re-latch the player id from the live Playable query (derived, not stored — RpgMap.go's
+    // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
+    this.playerId = PlayerSystem.id(this.world);
+
     // sleeping (bed): fast-forward Time.scale while Drowsiness drains; any input wakes. Checked
     // BEFORE the tick loop so the waking press wakes instead of moving this frame.
     if (this._sleeping) {
@@ -266,7 +270,7 @@ class _SceneRpgClass {
     // plane unprojection — GMRT's own mouse_x/mouse_y are wrong under the pitched matrix camera
     // (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
     this.mouseWorld = this.camera.cursorWorld();
-    const pl = this.world.get(Playable, this.ctrl.id);
+    const pl = this.world.get(Playable, this.playerId);
     pl.cursorX = this.mouseWorld.x;
     pl.cursorY = this.mouseWorld.y;
 
@@ -300,7 +304,7 @@ class _SceneRpgClass {
     // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap. Rebuild only when
     // the player changed cell (window + occupancy are otherwise stable), with a periodic safety
     // rebuild to pick up in-place collider edits (build mode) that don't move the player a cell.
-    const np = this.world.get(Position, this.ctrl.id);
+    const np = this.world.get(Position, this.playerId);
     const nc = this.level.worldToGrid(np.x, np.y);
     this._navTick = (this._navTick + 1) % RPG_NAV_REBUILD_EVERY;
     if (nc.x !== this._navGx || nc.y !== this._navGy || this._navTick === 0) {
@@ -320,11 +324,11 @@ class _SceneRpgClass {
       if (this._sleeping)
         DrowsinessSystem.restore(
           this.world,
-          this.ctrl.id,
+          this.playerId,
           RPG_SLEEP_RECOVER * World.sim.tickDuration,
         );
       else DrowsinessSystem.update(this.world);
-      FollowerSystem.update(this.world, this.ctrl.id); // seek, by live Follower query (before physics)
+      FollowerSystem.update(this.world, this.playerId); // seek, by live Follower query (before physics)
       this.physics.update(this.world); // PlayerSystem (input) heads the pipeline, then AI + collision
 
       RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
@@ -407,7 +411,7 @@ class _SceneRpgClass {
 
     // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
     if (this.chunks !== undefined) {
-      const pp = this.world.get(Position, this.ctrl.id);
+      const pp = this.world.get(Position, this.playerId);
       this.chunks.update(pp.x, pp.y);
       // rebuild newly-streamed terrain VBOs (diff-based; cheap when unchanged)
       if (this.terrain !== undefined) this.terrain.rebuild(this.chunks);
@@ -451,7 +455,7 @@ class _SceneRpgClass {
     // merchant shop: refresh when dirty; auto-close if the player walked out of range (no station range-close)
     if (this._tradeOpen) {
       const mp = this.world.get(Position, this._tradeMerchantId);
-      const tp = this.world.get(Position, this.ctrl.id);
+      const tp = this.world.get(Position, this.playerId);
       if (
         mp === undefined ||
         tp === undefined ||
@@ -471,7 +475,7 @@ class _SceneRpgClass {
 
   // number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
   _useHotbar() {
-    const hb = this.world.get(Hotbar, this.ctrl.id);
+    const hb = this.world.get(Hotbar, this.playerId);
     if (hb === undefined) return;
     for (let i = 0; i < hb.size; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
@@ -491,11 +495,11 @@ class _SceneRpgClass {
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
-    const eq = this.world.get(Equipment, this.ctrl.id);
+    const eq = this.world.get(Equipment, this.playerId);
     if (eq === undefined) return false;
     const uid = eq.slots[it.getComponent(Equippable).slot];
     if (uid === undefined || uid === "") return false;
-    const inv = this.world.get(Inventory, this.ctrl.id);
+    const inv = this.world.get(Inventory, this.playerId);
     const inst =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     return inst !== undefined && inst.itemId === itemId;
@@ -504,7 +508,7 @@ class _SceneRpgClass {
   // pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
   // "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
   _onCollect(itemId, got) {
-    const pp = this.world.get(Position, this.ctrl.id);
+    const pp = this.world.get(Position, this.playerId);
     if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
     Profile.add("itemsCollected", got);
     this._reportAchievements("itemsCollected");
@@ -518,10 +522,10 @@ class _SceneRpgClass {
   // ("hold here for now") — a portal forces every member back to follow (see RpgMap.go).
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
-    const p = this.world.get(Position, this.ctrl.id);
-    const squad = this.world.get(Squad, this.ctrl.id);
+    const p = this.world.get(Position, this.playerId);
+    const squad = this.world.get(Squad, this.playerId);
     if (p === undefined || squad === undefined) return;
-    const members = FollowerSystem.members(this.world, squad.id, this.ctrl.id);
+    const members = FollowerSystem.members(this.world, squad.id, this.playerId);
     let best = -1;
     let bestSq = 40 * 40; // reach to a companion (px)
     for (let i = 1; i < members.length; i++) {
@@ -537,10 +541,10 @@ class _SceneRpgClass {
     if (best === -1) return;
     const f = this.world.get(Follower, best);
     if (f.state === "follow") {
-      FollowerSystem.setState(this.world, this.ctrl.id, best, "wait");
+      FollowerSystem.setState(this.world, this.playerId, best, "wait");
       Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
     } else {
-      FollowerSystem.setState(this.world, this.ctrl.id, best, "follow");
+      FollowerSystem.setState(this.world, this.playerId, best, "follow");
       Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
   }
@@ -550,7 +554,7 @@ class _SceneRpgClass {
   _kickFollower(fid) {
     if (this.world.get(Squad, fid) === undefined) return; // not a member
     if (this.world.get(Downed, fid) !== undefined) return; // recovering — can't kick mid-revive
-    FollowerSystem.kick(this.world, this.ctrl.id, fid);
+    FollowerSystem.kick(this.world, this.playerId, fid);
     this._invDirty = true; // squad roster changed
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
@@ -605,7 +609,7 @@ class _SceneRpgClass {
 
   _checkReach() {
     if (this.reachDone || this.reachZone === undefined) return;
-    const p = AABB.of(this.world, this.ctrl.id);
+    const p = AABB.of(this.world, this.playerId);
     const z = this.reachZone;
     if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
       this.reachDone = true;
@@ -619,7 +623,7 @@ class _SceneRpgClass {
   _updateClimate() {
     const cmap = this.level.zoneMap("climate");
     if (cmap === undefined) return;
-    const pos = this.world.get(Position, this.ctrl.id);
+    const pos = this.world.get(Position, this.playerId);
     const g = this.level.worldToGrid(pos.x, pos.y);
     const id = cmap.idAt(g.x, g.y);
     if (id === this._climateZone) return; // no border crossed this frame
@@ -658,7 +662,7 @@ class _SceneRpgClass {
   _updateNpc() {
     this._npcId = -1;
     this.nearNpc = false;
-    const p = this.world.get(Position, this.ctrl.id);
+    const p = this.world.get(Position, this.playerId);
     if (p === undefined) return;
     // nearest in-reach NPC (streamed or up-front); none → no dialogue this frame
     const id = Query.nearest(this.world, p.x, p.y, {
@@ -729,7 +733,7 @@ class _SceneRpgClass {
       if (sCur !== nCur) {
         toStation = sCur;
       } else {
-        const p = this.world.get(Position, this.ctrl.id);
+        const p = this.world.get(Position, this.playerId);
         const sp = this.world.get(Position, stationId);
         const np = this.world.get(Position, npcId);
         toStation =
@@ -825,7 +829,7 @@ class _SceneRpgClass {
         const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
         if (n > 0) {
           InventorySystem.add(
-            this.world.get(Inventory, this.ctrl.id),
+            this.world.get(Inventory, this.playerId),
             "coin",
             n,
           );
@@ -844,7 +848,7 @@ class _SceneRpgClass {
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("rpgRadar"))
       // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
-      RadarArrows.draw(this.world, this.ctrl.id, this._radarRules, {
+      RadarArrows.draw(this.world, this.playerId, this._radarRules, {
         lift:
           this.camera !== undefined && this.camera.followPitch !== 0 ? 16 : 0,
       });

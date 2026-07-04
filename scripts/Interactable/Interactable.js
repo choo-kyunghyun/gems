@@ -113,7 +113,7 @@ globalThis.Interactable = {
   // pick target = station under the mouse (if in range), else nearest in range
   _pick(scene) {
     const world = scene.world;
-    const p = world.get(Position, scene.ctrl.id);
+    const p = world.get(Position, scene.playerId);
     if (p === undefined) {
       scene._interTarget = -1;
       scene._interKind = "";
@@ -173,7 +173,7 @@ globalThis.Interactable = {
   _inRange(scene, id) {
     if (id === -1) return false;
     const world = scene.world;
-    const p = world.get(Position, scene.ctrl.id);
+    const p = world.get(Position, scene.playerId);
     const pos = world.get(Position, id);
     if (p === undefined || pos === undefined) return false;
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
@@ -194,7 +194,7 @@ globalThis.Interactable = {
       world: scene.world,
       id,
       comp,
-      playerId: scene.ctrl.id,
+      playerId: scene.playerId,
     });
   },
 

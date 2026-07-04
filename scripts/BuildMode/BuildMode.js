@@ -5,7 +5,7 @@
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
 // state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
-// scene contract (create()/RpgMap.build): world, ctrl.id, level, ui, wallLayer, floorLayer,
+// scene contract (create()/RpgMap.build): world, playerId, level, ui, wallLayer, floorLayer,
 // colliders, wallType, floorType, buildZoneId, _tilePasses (RenderTileMap pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
@@ -285,7 +285,7 @@ globalThis.BuildMode = {
   },
 
   _statusText(scene) {
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
     const it = scene._buildItem;
@@ -354,7 +354,7 @@ globalThis.BuildMode = {
     if (TileEdit.occupied(scene.floorLayer, gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     if (
       inv === undefined ||
       !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
@@ -362,7 +362,7 @@ globalThis.BuildMode = {
       return false;
     const solid = !(item.kind === "tile" && item.layer === "floor");
     if (solid) {
-      const pp = scene.world.get(Position, scene.ctrl.id);
+      const pp = scene.world.get(Position, scene.playerId);
       if (pp !== undefined) {
         const pc = level.worldToGrid(pp.x, pp.y);
         if (pc.x === gx && pc.y === gy) return false;
@@ -375,7 +375,7 @@ globalThis.BuildMode = {
     if (!BuildMode._canBuild(scene, gx, gy)) return;
     const item = scene._buildItem;
     const level = scene.level;
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
     const key = gx + "," + gy;
     if (item.kind === "tile") {
@@ -406,7 +406,7 @@ globalThis.BuildMode = {
       if (scene.world.isValid(ent.ent)) {
         const st = scene.world.get(Interaction, ent.ent);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
-          const inv = scene.world.get(Inventory, scene.ctrl.id);
+          const inv = scene.world.get(Inventory, scene.playerId);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
         // spill the entity's Inventory as drops first, else world.remove silently deletes the
@@ -446,7 +446,7 @@ globalThis.BuildMode = {
 
   _refund(scene, itemId) {
     const item = BuildMode.item(itemId);
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },

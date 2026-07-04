@@ -135,7 +135,7 @@ globalThis.RpgInventoryUI = {
       // change while the window is open, so a captured ref would read the parked old world.
       gemsLabel(
         () => {
-          const v = scene.world.get(Inventory, scene.ctrl.id);
+          const v = scene.world.get(Inventory, scene.playerId);
           let s =
             I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
@@ -285,7 +285,7 @@ globalThis.RpgInventoryUI = {
   _hotbarBtn(scene, i) {
     return gemsButton(
       () => {
-        const hb = scene.world.get(Hotbar, scene.ctrl.id);
+        const hb = scene.world.get(Hotbar, scene.playerId);
         const itemId = hb !== undefined ? hb.slots[i] : "";
         if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
         const it = Item.get(itemId);
@@ -302,7 +302,7 @@ globalThis.RpgInventoryUI = {
   },
 
   _assignHotbar(scene, i) {
-    const hb = scene.world.get(Hotbar, scene.ctrl.id);
+    const hb = scene.world.get(Hotbar, scene.playerId);
     if (hb === undefined) return;
     if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
     else HotbarSystem.clear(hb, i);
@@ -312,7 +312,7 @@ globalThis.RpgInventoryUI = {
   // favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
   _favLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
-    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    const fav = scene.world.get(Favorites, scene.playerId);
     return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
@@ -320,7 +320,7 @@ globalThis.RpgInventoryUI = {
 
   _toggleFav(scene) {
     if (scene._invSel === null) return;
-    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    const fav = scene.world.get(Favorites, scene.playerId);
     if (fav === undefined) return;
     FavoritesSystem.toggle(fav, scene._invSel.itemId);
     scene._invDirty = true;
@@ -373,10 +373,10 @@ globalThis.RpgInventoryUI = {
   // One card per squad companion, by live membership query (empty notice when none). Called from
   // rebuild(), not build() — the squad isn't seeded until after the window is built.
   _buildFollowerRows(scene, host) {
-    const squad = scene.world.get(Squad, scene.ctrl.id);
+    const squad = scene.world.get(Squad, scene.playerId);
     const ids =
       squad !== undefined
-        ? FollowerSystem.members(scene.world, squad.id, scene.ctrl.id)
+        ? FollowerSystem.members(scene.world, squad.id, scene.playerId)
         : [];
     if (ids.length <= 1) {
       // [0] is the player
@@ -475,7 +475,7 @@ globalThis.RpgInventoryUI = {
       row.insertChild(
         gemsLabel(
           () => {
-            const st = scene.world.get(Stats, scene.ctrl.id);
+            const st = scene.world.get(Stats, scene.playerId);
             return st === undefined ? "" : String(getter(st));
           },
           { color: GemsTheme.text },
@@ -508,7 +508,7 @@ globalThis.RpgInventoryUI = {
       row.insertChild(
         gemsLabel(
           () => {
-            const at = scene.world.get(Attributes, scene.ctrl.id);
+            const at = scene.world.get(Attributes, scene.playerId);
             return at === undefined ? "" : String(at[def.id]);
           },
           { color: GemsTheme.text },
@@ -722,9 +722,9 @@ globalThis.RpgInventoryUI = {
   // Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
   // same equippable only the worn instance lights.
   _buildRows(scene) {
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
-    const eq = scene.world.get(Equipment, scene.ctrl.id);
-    const fav = scene.world.get(Favorites, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
+    const eq = scene.world.get(Equipment, scene.playerId);
+    const fav = scene.world.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
@@ -805,10 +805,10 @@ globalThis.RpgInventoryUI = {
   // One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
   // the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
   _equipRow(scene, slot, labelKey) {
-    const eq = scene.world.get(Equipment, scene.ctrl.id);
+    const eq = scene.world.get(Equipment, scene.playerId);
     const uid = eq !== undefined ? eq.slots[slot] : "";
     if (uid !== undefined && uid !== "") {
-      const inv = scene.world.get(Inventory, scene.ctrl.id);
+      const inv = scene.world.get(Inventory, scene.playerId);
       const inst =
         inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
       const itemId = inst !== undefined ? inst.itemId : "";
@@ -822,7 +822,7 @@ globalThis.RpgInventoryUI = {
       return gemsButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
-          EquipmentSystem.unequip(scene.world, scene.ctrl.id, slot);
+          EquipmentSystem.unequip(scene.world, scene.playerId, slot);
           scene._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
@@ -851,17 +851,17 @@ globalThis.RpgInventoryUI = {
     if (item.hasComponent(Equippable)) {
       const eqp = item.getComponent(Equippable);
       if (wasWorn) {
-        EquipmentSystem.unequip(scene.world, scene.ctrl.id, eqp.slot);
+        EquipmentSystem.unequip(scene.world, scene.playerId, eqp.slot);
         Log.info(`unequipped ${itemId}`);
       } else {
         const ok =
           uid !== undefined
-            ? EquipmentSystem.equip(scene.world, scene.ctrl.id, uid)
-            : EquipmentSystem.equipFirst(scene.world, scene.ctrl.id, itemId);
+            ? EquipmentSystem.equip(scene.world, scene.playerId, uid)
+            : EquipmentSystem.equipFirst(scene.world, scene.playerId, itemId);
         if (ok) Log.info(`equipped ${itemId}`);
       }
     } else if (item.hasComponent(Consumable)) {
-      if (ConsumableSystem.use(scene.world, scene.ctrl.id, itemId)) {
+      if (ConsumableSystem.use(scene.world, scene.playerId, itemId)) {
         Audio.play("snd_powerup"); // consumable used (heal / buff / attribute grant)
         Log.info(`used ${itemId}`);
       }

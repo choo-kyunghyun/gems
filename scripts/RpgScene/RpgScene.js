@@ -1,7 +1,7 @@
 // Combat/loot plumbing for the RPG scene — free functions taking the scene (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 //
-// Contract: the scene owns `world`, `ctrl` (with `.id`), `_hpTrack` (id → last hp), `_invDirty`.
+// Contract: the scene owns `world`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`.
 // The enemy set is derived LIVE by Faction (hostile to the player) and companions LIVE by the
 // Follower component, so chunk streaming/squad transfer need no bookkeeping — allegiance and
 // membership are component queries, not stored lists.
@@ -24,8 +24,8 @@ globalThis.RpgScene = {
   // floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
   // change. Run after physics, before deaths flush, so the killing blow still pops.
   trackDamage(scene, yOffset) {
-    RpgScene._diffHp(scene, scene.ctrl.id, true, yOffset);
-    const enemies = RpgScene._enemies(scene.world, scene.ctrl.id);
+    RpgScene._diffHp(scene, scene.playerId, true, yOffset);
+    const enemies = RpgScene._enemies(scene.world, scene.playerId);
     for (let i = 0; i < enemies.length; i++)
       RpgScene._diffHp(scene, enemies[i], false, yOffset);
     // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
@@ -242,8 +242,8 @@ globalThis.RpgScene = {
   // pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
   collectDrops(scene, onCollect) {
     const world = scene.world;
-    const hits = world.get(Collision, scene.ctrl.id).hits;
-    const inv = world.get(Inventory, scene.ctrl.id);
+    const hits = world.get(Collision, scene.playerId).hits;
+    const inv = world.get(Inventory, scene.playerId);
     for (let i = 0; i < hits.length; i++) {
       const id = hits[i];
       const d = world.get(ItemDrop, id);

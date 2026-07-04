@@ -21,7 +21,7 @@ globalThis.WeaponModUI = {
   // rebuild both panels, ensuring a valid selection (default to the first weapon; reset if the
   // selected uid is no longer owned).
   refresh(scene) {
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     const weapons = WeaponModUI._weaponInstances(inv);
     if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, scene._modSel))
       scene._modSel = weapons[0].uid;
@@ -73,7 +73,7 @@ globalThis.WeaponModUI = {
       );
       return;
     }
-    const eq = scene.world.get(Equipment, scene.ctrl.id);
+    const eq = scene.world.get(Equipment, scene.playerId);
     const equippedUid = eq !== undefined ? eq.slots.weapon : "";
     for (let i = 0; i < weapons.length; i++) {
       body.insertChild(WeaponModUI._listButton(scene, weapons[i], equippedUid));
@@ -376,10 +376,10 @@ globalThis.WeaponModUI = {
   _installFirst(scene, slot, wpn, modId) {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
     if (slotId === undefined) return; // no matching empty slot
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     if (InventorySystem.remove(inv, modId, 1) < 1) return; // not owned
     slot.mods[slotId] = modId;
-    StatModel.recompute(scene.world, scene.ctrl.id); // an attachment may grant Stats
+    StatModel.recompute(scene.world, scene.playerId); // an attachment may grant Stats
     scene._craftDirty = true;
     scene._invDirty = true;
     Log.info(`installed ${modId} into ${slotId} on ${slot.itemId}`);
@@ -390,9 +390,9 @@ globalThis.WeaponModUI = {
     const modId = slot.mods[slotId];
     if (modId === undefined) return;
     delete slot.mods[slotId];
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     InventorySystem.add(inv, modId, 1); // refund
-    StatModel.recompute(scene.world, scene.ctrl.id);
+    StatModel.recompute(scene.world, scene.playerId);
     scene._craftDirty = true;
     scene._invDirty = true;
     Log.info(`removed ${modId} from ${slotId} on ${slot.itemId}`);

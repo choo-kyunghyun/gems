@@ -199,7 +199,7 @@ globalThis.CraftingUI = {
       WeaponModUI.refresh(scene);
       return;
     }
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     const recipes = CraftingUI._visibleRecipes(module);
     if (recipes.length > 0 && !CraftingUI._hasRecipe(recipes, scene._craftSel))
       scene._craftSel = recipes[0].id;
@@ -299,7 +299,7 @@ globalThis.CraftingUI = {
 
   // distinct itemIds of owned WorkbenchModule items (in slot order).
   _ownedModules(scene) {
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     const out = [];
     const seen = {};
     if (inv === undefined) return out;
@@ -319,7 +319,7 @@ globalThis.CraftingUI = {
   // bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
   _installModule(scene, id) {
     const st = scene.world.get(Interaction, scene._craftStationId);
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     if (st === undefined || inv === undefined) return;
     if (InventorySystem.remove(inv, id, 1) < 1) return; // didn't own it
     const prev = st.module;
@@ -339,7 +339,7 @@ globalThis.CraftingUI = {
   // pop the slotted module back into the bag (refused if the bag is full).
   _removeModule(scene) {
     const st = scene.world.get(Interaction, scene._craftStationId);
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     if (st === undefined || inv === undefined) return;
     if (st.module === undefined || st.module === "") return;
     if (InventorySystem.add(inv, st.module, 1) !== 0) {
@@ -448,7 +448,7 @@ globalThis.CraftingUI = {
         I18n.textRef("CRAFT_DO"),
         () => {
           if (
-            CraftSystem.craft(scene.world, scene.ctrl.id, recipe.id, module)
+            CraftSystem.craft(scene.world, scene.playerId, recipe.id, module)
           ) {
             scene._craftDirty = true;
             scene._invDirty = true; // keep the inventory window in sync

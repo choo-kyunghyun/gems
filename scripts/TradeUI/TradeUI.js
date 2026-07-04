@@ -24,13 +24,19 @@ globalThis.TradeUI = {
       padding: margin,
       alignItems: "center",
     });
-    host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+    host.addComponent(
+      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+    );
     host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._tradeWin = host;
     scene._tradeWin.enabled = false;
     scene.ui.insertChild(scene._tradeWin);
 
-    const inner = new UIElement({ width: "100%", maxWidth: 1100, height: "100%" });
+    const inner = new UIElement({
+      width: "100%",
+      maxWidth: 1100,
+      height: "100%",
+    });
     const card = gemsCard({
       width: "100%",
       flexGrow: 1,
@@ -52,7 +58,9 @@ globalThis.TradeUI = {
       gemsLabel(
         () => {
           const npc = scene.world.get(NPC, scene._tradeMerchantId);
-          return npc !== undefined ? I18n.text(npc.name) : I18n.text("TRADE_TITLE");
+          return npc !== undefined
+            ? I18n.text(npc.name)
+            : I18n.text("TRADE_TITLE");
         },
         { font: "header", color: GemsTheme.text },
       ),
@@ -112,7 +120,7 @@ globalThis.TradeUI = {
 
   // player's balance in the active merchant's currencyId (else "coin").
   _coins(scene) {
-    const inv = scene.world.get(Inventory, scene.ctrl.id);
+    const inv = scene.world.get(Inventory, scene.playerId);
     const m = scene.world.get(Merchant, scene._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
@@ -157,7 +165,9 @@ globalThis.TradeUI = {
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
-      emptyText: I18n.text(side === "buy" ? "TRADE_BUY_EMPTY" : "TRADE_SELL_EMPTY"),
+      emptyText: I18n.text(
+        side === "buy" ? "TRADE_BUY_EMPTY" : "TRADE_SELL_EMPTY",
+      ),
       onSelect: (row) => TradeUI._click(scene, side, row),
       onActivate: (row) => TradeUI._act(scene, side, row),
     });
@@ -209,10 +219,12 @@ globalThis.TradeUI = {
     const inv =
       side === "buy"
         ? world.get(Inventory, scene._tradeMerchantId)
-        : world.get(Inventory, scene.ctrl.id);
+        : world.get(Inventory, scene.playerId);
     if (inv === undefined) return [];
-    const fav = side === "sell" ? world.get(Favorites, scene.ctrl.id) : undefined;
-    const eq = side === "sell" ? world.get(Equipment, scene.ctrl.id) : undefined;
+    const fav =
+      side === "sell" ? world.get(Favorites, scene.playerId) : undefined;
+    const eq =
+      side === "sell" ? world.get(Equipment, scene.playerId) : undefined;
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -272,7 +284,11 @@ globalThis.TradeUI = {
     if (row === null || row === undefined) return;
     const now = current_time;
     const key =
-      side + "|" + (row.uid !== undefined ? row.uid : row.itemId) + "|" + row.idx;
+      side +
+      "|" +
+      (row.uid !== undefined ? row.uid : row.itemId) +
+      "|" +
+      row.idx;
     if (scene._tradeClickKey === key && now - scene._tradeClickTime < 350) {
       TradeUI._act(scene, side, row);
       return;
@@ -386,7 +402,7 @@ globalThis.TradeUI = {
   _doBuy(scene, row, amount) {
     const res = TradeSystem.buy(
       scene.world,
-      scene.ctrl.id,
+      scene.playerId,
       scene._tradeMerchantId,
       row.idx,
       amount,
@@ -397,7 +413,7 @@ globalThis.TradeUI = {
   _doSell(scene, row, amount) {
     const res = TradeSystem.sell(
       scene.world,
-      scene.ctrl.id,
+      scene.playerId,
       scene._tradeMerchantId,
       row.idx,
       amount,

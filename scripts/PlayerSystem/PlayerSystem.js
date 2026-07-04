@@ -105,6 +105,13 @@ globalThis.PlayerSystem = {
     });
   },
 
+  // resolve THE player entity live by query (never a stored id — a map transfer can't dangle
+  // it); -1 when no Playable entity exists. sceneRpg latches it per frame as scene.playerId.
+  id(world) {
+    const ids = world.query(Playable);
+    return ids.length > 0 ? ids[0] : -1;
+  },
+
   // once per tick, from the physics Pipeline: drive every Playable entity
   update(world) {
     const ids = world.query(Playable);

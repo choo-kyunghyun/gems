@@ -13,8 +13,8 @@
 globalThis.RpgMap = {
   // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open)
-  // (ctrl is NOT bundled — it's scene-scoped: created once at boot, its `id` re-pointed to the
-  // transferred player on every arrival)
+  // (playerId is NOT bundled — it's DERIVED: set on boot spawn/arrival and re-latched per frame
+  // from the Playable query, so the bundle never carries a player handle)
   BUNDLE_KEYS: [
     "world",
     "level",
@@ -43,7 +43,7 @@ globalThis.RpgMap = {
     "chunks",
     "terrain",
     "camera",
-    // NOTE: no "followers"/"ctrl" — squad members leave before the park; residents live in the world
+    // NOTE: no "followers"/"playerId" — squad members leave before the park; residents live in the world
 
     "_tilePasses",
     "_tilePass",
@@ -61,15 +61,15 @@ globalThis.RpgMap = {
   go(scene, mapId, entryId) {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
     // ── PHASE A: pull the squad out, then park the current map (its World stays alive) ──
-    if (scene.ctrl !== undefined) {
-      const sid = scene.world.get(Squad, scene.ctrl.id).id;
-      const members = FollowerSystem.members(scene.world, sid, scene.ctrl.id);
+    if (scene.playerId !== undefined) {
+      const sid = scene.world.get(Squad, scene.playerId).id;
+      const members = FollowerSystem.members(scene.world, sid, scene.playerId);
       squad = [];
       for (let i = 0; i < members.length; i++) {
         // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus)
         FollowerSystem.setState(
           scene.world,
-          scene.ctrl.id,
+          scene.playerId,
           members[i],
           "follow",
         );
@@ -89,12 +89,12 @@ globalThis.RpgMap = {
     Trader.onActivate(scene); // embody any trader currently in this map
   },
 
-  // Land the traveling squad at the entry: the player (squad[0]) first — ctrl re-points to its
-  // new id — then companions staggered beside it. Whole-entity restore (World.levels.put), so
-  // Appearance/Equipment/Stats arrive intact with no re-derive.
+  // Land the traveling squad at the entry: the player (squad[0]) first — scene.playerId
+  // re-latches to its new id — then companions staggered beside it. Whole-entity restore
+  // (World.levels.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
   _arriveSquad(scene, squad, sp) {
     if (squad === null || squad.length === 0) return;
-    scene.ctrl.id = World.levels.put(scene.mapId, squad[0], {
+    scene.playerId = World.levels.put(scene.mapId, squad[0], {
       [Position]: { x: sp.x, y: sp.y, z: 0 },
       [Velocity]: { x: 0, y: 0, z: 0 },
     });
@@ -261,10 +261,9 @@ globalThis.RpgMap = {
   },
 
   // World + Level + the buildable/climate zone channels. The player spawns here ONLY on boot
-  // (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad, and
-  // ctrl is scene-scoped (created once at boot, id re-pointed per arrival). Chunked gets a bigger
-  // entity cap (a window of chunks' worth of entities + colliders + drops) and an empty resident
-  // grid (player builds only).
+  // (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad,
+  // which re-latches scene.playerId. Chunked gets a bigger entity cap (a window of chunks' worth
+  // of entities + colliders + drops) and an empty resident grid (player builds only).
   _buildWorld(scene, data, entryId, squad) {
     scene.world = new ECS(scene._chunked ? 1024 : 256);
     const built = scene._chunked
@@ -282,11 +281,11 @@ globalThis.RpgMap = {
     scene.wallType = built.wallType;
     scene.fenceType = built.fenceType;
     scene.colliders = built.colliders;
-    // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival keeps
-    // the existing scene ctrl; the transferred player lands in _arriveSquad right after this.
+    // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival
+    // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
       PlayerSystem.bindKeys();
-      scene.ctrl = { id: PlayerSystem.spawn(scene.world, built.spawn) };
+      scene.playerId = PlayerSystem.spawn(scene.world, built.spawn);
     }
 
     // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
@@ -367,7 +366,7 @@ globalThis.RpgMap = {
       Log.info(
         `RpgMap: pregenerated ${pregen} chunks in ${current_time - t0}ms`,
       );
-      const sp = scene.world.get(Position, scene.ctrl.id);
+      const sp = scene.world.get(Position, scene.playerId);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
     } else {
@@ -529,7 +528,7 @@ globalThis.RpgMap = {
       : scene.level.cols * scene.level.cellWidth;
     scene.camera = CameraFollow.create2d({
       world: scene.world,
-      followTarget: scene.ctrl.id,
+      followTarget: scene.playerId,
       followLerp: 0.15,
       pitch: pitch, // 0 = flat top-down, > 0 pitches for standing billboards
       // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
@@ -601,7 +600,7 @@ globalThis.RpgMap = {
   // Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
   // go() swaps the world out so we return immediately.
   checkPortals(scene) {
-    const p = AABB.of(scene.world, scene.ctrl.id);
+    const p = AABB.of(scene.world, scene.playerId);
     // live query every doorway (Portal component) — no stored list to dangle as chunks stream
     const ids = scene.world.query(Portal);
     let over = -1;
