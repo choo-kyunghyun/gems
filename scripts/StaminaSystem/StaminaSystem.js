@@ -1,4 +1,4 @@
-// drains Stamina while sprinting, regenerates otherwise. driven once per tick by RpgController.update
+// drains Stamina while sprinting, regenerates otherwise. driven once per tick by PlayerSystem
 // (named-method system, not auto-run by World). Stats.maxStamina caps the pool.
 globalThis.StaminaSystem = {
   DRAIN: 34, // stamina/sec spent while sprinting (~3s from full)

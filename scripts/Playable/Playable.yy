@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Playable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Playable",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Demo/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Playable.js",
+}

@@ -264,10 +264,11 @@ class _SceneRpgClass {
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-
     // plane unprojection — GMRT's own mouse_x/mouse_y are wrong under the pitched matrix camera
-    // (see Camera.unproject). Read by RpgController (via ctrl), BuildMode, Interactable.
+    // (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
     this.mouseWorld = this.camera.cursorWorld();
-    this.ctrl.cursorX = this.mouseWorld.x;
-    this.ctrl.cursorY = this.mouseWorld.y;
+    const pl = this.world.get(Playable, this.ctrl.id);
+    pl.cursorX = this.mouseWorld.x;
+    pl.cursorY = this.mouseWorld.y;
 
     // edge toggle — once per frame, outside the tick loop
     if (Input.get("inventory").pressed()) {
@@ -277,7 +278,7 @@ class _SceneRpgClass {
     }
 
     // resolve input context BEFORE the tick loop so the tick's movement/fire reads see it.
-    // window > build > play (see InputContext + RpgController tags).
+    // window > build > play (see InputContext + PlayerSystem tags).
     this._resolveContext();
 
     // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
@@ -323,9 +324,8 @@ class _SceneRpgClass {
           RPG_SLEEP_RECOVER * World.sim.tickDuration,
         );
       else DrowsinessSystem.update(this.world);
-      RpgController.update(this.world, this.ctrl); // reads StatusSystem.scale("speed")
       FollowerSystem.update(this.world, this.ctrl.id); // seek, by live Follower query (before physics)
-      this.physics.update(this.world);
+      this.physics.update(this.world); // PlayerSystem (input) heads the pipeline, then AI + collision
 
       RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
@@ -812,7 +812,7 @@ class _SceneRpgClass {
   resume() {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
-    RpgController.bindKeys();
+    PlayerSystem.bindKeys();
     Audio.bgm("mus_overworld"); // restore the RPG theme after a guest crossfaded its own
   }
 
@@ -863,7 +863,7 @@ class _SceneRpgClass {
     InputContext.reset(); // hand input back to "default" for the next scene
     Debug.remove("Camera"); // the live 2.5D-camera tuning panel is RPG-only (RpgMap registers it)
     Debug.remove("Achievements"); // RPG-only debug panel (registered in create)
-    RpgController.destroy();
+    PlayerSystem.unbind();
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)

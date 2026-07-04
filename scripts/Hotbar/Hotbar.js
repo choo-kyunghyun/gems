@@ -5,7 +5,7 @@
 // @property {number}   size   slot count
 globalThis.Hotbar = "Hotbar";
 
-// single source of truth for slot count (RpgPlayer.spawn / RpgController bindings / RpgHud / RpgInventoryUI)
+// single source of truth for slot count (RpgPlayer.spawn / PlayerSystem bindings / RpgHud / RpgInventoryUI)
 globalThis.RPG_HOTBAR_SIZE = 5;
 
 // stateless operations on a Hotbar component

@@ -11,7 +11,7 @@ globalThis.RpgHud = {
   },
 
   // Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
-  // the player each frame. Display-only (binding is in RpgInventoryUI, using is RpgController).
+  // the player each frame. Display-only (binding is in RpgInventoryUI, using is sceneRpg._useHotbar).
   // sceneRpg hides the whole bar while build mode owns the bottom-center HUD.
   _hotbar(scene) {
     const wrap = new UIElement({

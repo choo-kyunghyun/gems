@@ -8,11 +8,18 @@ const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
 const RPG_MELEE_REACH = 17; // fallback reach (px) for a melee weapon without `reach`
 const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
-// Player input + entity setup for the top-down genre.
-// create() once in scene create(); update() each physics tick; destroy() in scene destroy().
-// ctrl = { id, fireCd, attackCd } — held on the scene, passed to update().
+// unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
+// pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
+const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 11 };
 
-globalThis.RpgController = {
+// The player brain as an ECS system (the input counterpart of CombatAI): update(world) drives
+// every Playable entity once per tick — it runs at the HEAD of the physics Pipeline, before
+// SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
+// latched world cursor) lives in the Playable component, so it rides the map transfer with the
+// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the scene calls them from
+// create()/resume()/destroy() (see sceneRpg).
+
+globalThis.PlayerSystem = {
   // register the RPG keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
   // guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
   //
@@ -86,36 +93,27 @@ globalThis.RpgController = {
     }
   },
 
-  /** @param {{ x: number, y: number }} spawn */
-  create(world, spawn) {
-    RpgController.bindKeys(); // register the keymap + context tags (re-applied on host resume)
-
-    // the RPG player entity, then this genre's Animator
-    const id = RpgPlayer.spawn(world, spawn, {
+  // build the RPG player entity (RpgPlayer.spawn adds Playable + Animator with the rest of the
+  // sheet) at this genre's tuning. Boot only — a portal arrival transfers the existing player.
+  /** @param {{ x: number, y: number }} spawn @returns {number} the player entity id */
+  spawn(world, spawn) {
+    return RpgPlayer.spawn(world, spawn, {
       bbox: { x: -6, y: -6, width: 12, height: 12 },
       dir: { x: 0, y: 1, z: 0 },
       speed: RPG_MOVE_SPEED,
       scale: RPG_PLAYER_SCALE,
     });
-    world.add(id, Animator, {
-      graph: RpgPlayer.animGraph(), // canonical humanoid strip (paper-doll layers mirror it)
-      state: "idle",
-      frame: 0,
-      time: 0,
-    });
-
-    // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
-    // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder.
-    return {
-      id,
-      fireCd: 0,
-      attackCd: 0,
-      fist: { kind: "melee", damage: 1, fireCd: 22, reach: 11 },
-    };
   },
 
-  /** @param {{ id: number, fireCd: number, attackCd: number }} ctrl */
-  update(world, ctrl) {
+  // once per tick, from the physics Pipeline: drive every Playable entity
+  update(world) {
+    const ids = world.query(Playable);
+    for (let i = 0; i < ids.length; i++) PlayerSystem._drive(world, ids[i]);
+  },
+
+  // the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state
+  _drive(world, id) {
+    const pl = world.get(Playable, id);
     let dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
@@ -133,15 +131,15 @@ globalThis.RpgController = {
       dy = sy;
     }
 
-    const vel = world.get(Velocity, ctrl.id);
-    const dir = world.get(Direction, ctrl.id);
-    const stats = world.get(Stats, ctrl.id);
-    const pp = world.get(Position, ctrl.id);
+    const vel = world.get(Velocity, id);
+    const dir = world.get(Direction, id);
+    const stats = world.get(Stats, id);
+    const pp = world.get(Position, id);
     // status speed multiplier (encumbrance/slow/haste) × terrain movement cost (wading/mud slow —
     // PathFollow.speedScale); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
       (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
-      StatusSystem.scale(world, ctrl.id, "speed") *
+      StatusSystem.scale(world, id, "speed") *
       PathFollow.speedScale(pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
@@ -149,7 +147,7 @@ globalThis.RpgController = {
     // on GMRT (boolean-local clobber quirk), which silently zeroed non-sprint movement. Recompute live.
     const sprinting = StaminaSystem.sprint(
       world,
-      ctrl.id,
+      id,
       len > 0 && Input.get("sprint").down(),
     );
     const moveSpeed = speed * (sprinting ? RPG_SPRINT_MULT : 1);
@@ -178,21 +176,21 @@ globalThis.RpgController = {
       dir.y = aimY / al;
     }
 
-    if (ctrl.fireCd > 0) ctrl.fireCd--;
-    if (ctrl.attackCd > 0) ctrl.attackCd--;
+    if (pl.fireCd > 0) pl.fireCd--;
+    if (pl.attackCd > 0) pl.attackCd--;
 
     // manual reload (R), "play"-only; no-op on a melee weapon
-    if (Input.get("reload").pressed()) EquipmentSystem.reload(world, ctrl.id);
+    if (Input.get("reload").pressed()) EquipmentSystem.reload(world, id);
 
     // fire is "play"-only, so it already returns false while building / window open — no guard needed
-    if (Input.get("fire").down() && ctrl.fireCd === 0) {
+    if (Input.get("fire").down() && pl.fireCd === 0) {
       // item-driven attack: the equipped weapon's composed profile (or the fist fallback) drives it.
       // Read the live slot (a gun mutates `rounds`) then compose; `wpn.kind` picks melee/gun.
-      const slot = EquipmentSystem.weaponSlot(world, ctrl.id);
+      const slot = EquipmentSystem.weaponSlot(world, id);
       const wpn =
-        slot !== null ? EquipmentSystem.composeWeapon(slot) : ctrl.fist;
+        slot !== null ? EquipmentSystem.composeWeapon(slot) : PLAYER_FIST;
       // aim: right stick already set `dir` above; for KBM (stick centered) aim at the cursor instead
-      const pos = world.get(Position, ctrl.id);
+      const pos = world.get(Position, id);
       const rx = Input.get("aimX").value();
       const ry = Input.get("aimY").value();
       if (
@@ -200,9 +198,9 @@ globalThis.RpgController = {
         Math.abs(ry) <= RPG_STICK_DEADZONE
       ) {
         // scene-latched ground-plane cursor — NOT mouse_x/mouse_y, which are wrong under the
-        // pitched matrix camera (see Camera.unproject; sceneRpg.step latches ctrl.cursorX/Y)
-        const adx = ctrl.cursorX - pos.x;
-        const ady = ctrl.cursorY - pos.y;
+        // pitched matrix camera (see Camera.unproject; sceneRpg.step latches Playable.cursorX/Y)
+        const adx = pl.cursorX - pos.x;
+        const ady = pl.cursorY - pos.y;
         const adist = Math.sqrt(adx * adx + ady * ady) || 1;
         dir.x = adx / adist;
         dir.y = ady / adist;
@@ -212,29 +210,29 @@ globalThis.RpgController = {
       if (wpn === null) {
         // equipped a weapon item with no Weapon component — nothing to do
       } else if (wpn.kind === "gun") {
-        this._fireGun(world, ctrl, slot, wpn, dir, attack);
+        PlayerSystem._fireGun(world, id, pl, slot, wpn, dir, attack);
       } else {
         const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
-        MeleeSystem.swing(world, ctrl.id, dir.x, dir.y, reach, damage);
-        ctrl.fireCd =
+        MeleeSystem.swing(world, id, dir.x, dir.y, reach, damage);
+        pl.fireCd =
           wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : RPG_FIRE_CD;
-        ctrl.attackCd = RPG_ATTACK_ANIM;
+        pl.attackCd = RPG_ATTACK_ANIM;
       }
     }
 
-    // animation tree: attack > walk > idle. attackCd read live off ctrl (no cached boolean — GMRT clobber)
-    const anim = world.get(Animator, ctrl.id);
+    // animation tree: attack > walk > idle. attackCd read live off the component (no cached boolean — GMRT clobber)
+    const anim = world.get(Animator, id);
     if (anim !== undefined) {
       let state = "idle";
-      if (ctrl.attackCd > 0) state = "attack";
+      if (pl.attackCd > 0) state = "attack";
       else if (len > 0) state = "walk";
       AnimationSystem.set(anim, state);
     }
 
     // facing: flip xscale ±1 toward the last horizontal move
-    const vis = world.get(Visual, ctrl.id);
+    const vis = world.get(Visual, id);
     if (vis !== undefined) {
       // flip by SIGN only — |xscale| carries the baked size factor (RPG_PLAYER_SCALE), so a
       // bare ±1 here would silently reset the player's size
@@ -246,16 +244,16 @@ globalThis.RpgController = {
   // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
   // gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
   // chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
-  _fireGun(world, ctrl, slot, wpn, dir, attack) {
+  _fireGun(world, id, pl, slot, wpn, dir, attack) {
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
       // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
-      if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;
+      if (EquipmentSystem.reload(world, id) <= 0) return;
       wpn = EquipmentSystem.composeWeapon(slot);
     }
     if (slot.rounds <= 0) {
       // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
-      if (EquipmentSystem.reload(world, ctrl.id) <= 0) return;
+      if (EquipmentSystem.reload(world, id) <= 0) return;
     }
     if (slot.rounds <= 0) return; // still empty after the reload attempt
 
@@ -263,7 +261,7 @@ globalThis.RpgController = {
     // damage = round's kinetic power + attack. penetration lowers target defense; pierce = hostiles
     // passed through. velocity scales reach (the shot is instant, not travel-based).
     const damage = Math.round(wpn.power) + attack;
-    const aim = RpgPlayer.fireBullet(world, ctrl.id, {
+    const aim = RpgPlayer.fireBullet(world, id, {
       damage,
       penetration: wpn.penetration,
       pierce: wpn.pierce,
@@ -274,7 +272,7 @@ globalThis.RpgController = {
     slot.rounds -= 1; // spend the round
 
     // muzzle flash at the barrel (~9px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
-    const pos = world.get(Position, ctrl.id);
+    const pos = world.get(Position, id);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(
       ps_muzzle,
@@ -284,11 +282,12 @@ globalThis.RpgController = {
     );
     Audio.playAt("snd_shoot", pos.x, pos.y); // gunshot (spatial); the bullet's hit plays snd_hit later
 
-    ctrl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
-    ctrl.attackCd = RPG_ATTACK_ANIM;
+    pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
+    pl.attackCd = RPG_ATTACK_ANIM;
   },
 
-  destroy() {
+  // drop the keymap (scene destroy; a guest's own unbind is why resume() re-runs bindKeys)
+  unbind() {
     const keys = [
       "moveLeft",
       "moveRight",

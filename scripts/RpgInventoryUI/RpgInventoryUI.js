@@ -258,7 +258,8 @@ globalThis.RpgInventoryUI = {
     page.insertChild(action);
 
     // Hotbar manage strip: click a slot to bind the selected bag item, or clear when none selected.
-    // The number keys 1..N USE the bound item in play (RpgController). Labels read the live Hotbar.
+    // The number keys 1..N USE the bound item in play (bound by PlayerSystem, dispatched by
+    // sceneRpg._useHotbar). Labels read the live Hotbar.
     const hbTitle = new UIElement({ width: "100%", height: 20 });
     hbTitle.insertChild(
       gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "#ffd166" }),

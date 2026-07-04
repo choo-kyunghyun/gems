@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PlayerSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PlayerSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Demo/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PlayerSystem.js",
+}

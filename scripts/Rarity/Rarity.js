@@ -16,7 +16,7 @@ globalThis.Rarity = class Rarity {
     this.valueMod = def.valueMod ?? 1;
   }
 
-  // each genre template registers its own tiers (e.g. RpgController.create).
+  // each genre registers its own tiers (the RPG's via RpgContent.register).
   static registry = new Map();
   static order = []; // insertion order of ids (low → high tier)
 

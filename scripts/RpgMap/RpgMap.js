@@ -284,8 +284,10 @@ globalThis.RpgMap = {
     scene.colliders = built.colliders;
     // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival keeps
     // the existing scene ctrl; the transferred player lands in _arriveSquad right after this.
-    if (squad === null)
-      scene.ctrl = RpgController.create(scene.world, built.spawn);
+    if (squad === null) {
+      PlayerSystem.bindKeys();
+      scene.ctrl = { id: PlayerSystem.spawn(scene.world, built.spawn) };
+    }
 
     // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
     // placement to it; RenderZone visualizes it
@@ -407,9 +409,10 @@ globalThis.RpgMap = {
     );
     MotionPlanner.setGrid(scene.nav);
 
-    // AI decides velocity → resolve paths → collide → push crowders apart → triggers (pickups) →
-    // projectiles → expire.
+    // brains decide velocity (player input, then AI) → resolve paths → collide → push crowders
+    // apart → triggers (pickups) → projectiles → expire.
     scene.physics = new Pipeline()
+      .add(PlayerSystem) // the player brain: input → Velocity/fire (drives Playable entities)
       .add(StateSystem) // drives the CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
       .add(PathfindingSystem) // enemy PathRequest → PathResponse over scene.nav
       .add(SolidSystem)

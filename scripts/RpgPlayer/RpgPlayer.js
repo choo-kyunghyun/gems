@@ -79,7 +79,7 @@ globalThis.RpgPlayer = {
     world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
     world.add(id, Favorites, { ids: [] });
     // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
-    // flip + baked size — the flip must preserve |xscale|, see RpgController). spr_human is a
+    // flip + baked size — the flip must preserve |xscale|, see PlayerSystem). spr_human is a
     // WHITE template — color IS the skin tint (layers keep their own color). `scale` is the
     // DESIGN size; the sheet's declared density (SpriteMeta) divides the draw scale only
     // (BBox stays design-scale).
@@ -99,6 +99,21 @@ globalThis.RpgPlayer = {
     // paper-doll: worn-gear overlays drawn around the body (rebuilt from Equipment by
     // AppearanceSystem — the gear seed's equip fills it, a map-travel sheet apply re-derives it)
     world.add(id, Appearance, { back: [], front: [] });
+    // the PlayerSystem brain state: presence marks the input-driven entity (found live by query);
+    // flat scalars so fireCd/attackCd + the frame-latched world cursor ride the map transfer
+    world.add(id, Playable, {
+      fireCd: 0,
+      attackCd: 0,
+      cursorX: spawn.x,
+      cursorY: spawn.y,
+    });
+    // canonical humanoid strip states; PlayerSystem picks idle/walk/attack per tick
+    world.add(id, Animator, {
+      graph: RpgPlayer.animGraph(),
+      state: "idle",
+      frame: 0,
+      time: 0,
+    });
     // the player's lantern — reference Light for RenderLighting (reveals night; no-op in daylight)
     world.add(id, Light, {
       radius: 90,
@@ -138,7 +153,7 @@ globalThis.RpgPlayer = {
       ny = opts.ny / m;
     } else {
       // flat-camera fallback ONLY — mouse_x/mouse_y are wrong under the pitched matrix camera,
-      // so callers there must resolve the aim themselves (RpgController passes nx/ny from the
+      // so callers there must resolve the aim themselves (PlayerSystem passes nx/ny from the
       // scene-latched world cursor; see Camera.unproject)
       const dx = mouse_x - pos.x;
       const dy = mouse_y - muzzleY;
