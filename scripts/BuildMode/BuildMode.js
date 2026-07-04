@@ -381,7 +381,7 @@ globalThis.BuildMode = {
     if (item.kind === "tile") {
       const layer = item.layer === "wall" ? scene.wallLayer : scene.floorLayer;
       const type = item.layer === "wall" ? scene.wallType : scene.floorType;
-      TileEdit.set(level, layer, gx, gy, type);
+      TileEdit.set(layer, gx, gy, type);
       if (item.layer === "wall")
         TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
@@ -424,11 +424,11 @@ globalThis.BuildMode = {
     if (tileId === undefined) return; // only player-built cells are deconstructable
     const item = BuildMode.item(tileId);
     if (item !== undefined && item.layer === "wall") {
-      TileEdit.clear(level, scene.wallLayer, gx, gy);
+      TileEdit.clear(scene.wallLayer, gx, gy);
       TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
       BuildMode._markTileDirty(scene, "wall");
     } else {
-      TileEdit.clear(level, scene.floorLayer, gx, gy);
+      TileEdit.clear(scene.floorLayer, gx, gy);
       BuildMode._markTileDirty(scene, "floor");
     }
     BuildMode._refund(scene, tileId);

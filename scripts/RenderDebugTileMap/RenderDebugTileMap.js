@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} RenderDebugTileMapOptions
- * @property {boolean} [cost] - shade cells by nav cost from Level.mpg (default true)
+ * @property {boolean} [cost] - shade cells by tile nav cost (level.costAt, default true)
  * @property {boolean} [tiles] - label occupied cells with the topmost TileType (default true)
  * @property {boolean} [coords] - label every cell with its grid (x, y) (default false)
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
@@ -11,7 +11,7 @@
 
 /**
  * overlay for inspecting Level tile costs + types (grid lines are a separate RenderGrid pass).
- * cost shading reads level.mpg — call level.syncAll() first or costs read as the default 1.
+ * cost shading reads level.costAt(x, y) live — computed from the layers on demand, no sync step.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
@@ -70,7 +70,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     const font = draw_get_font();
     if (this.font !== undefined) draw_set_font(this.font);
 
-    const { cellWidth, cellHeight, mpg } = this.level;
+    const { cellWidth, cellHeight } = this.level;
     const r = this._range();
 
     // cost shading: blocking cells red, costlier-than-default orange
@@ -78,7 +78,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       draw_set_alpha(this.alpha);
       for (let y = r.y0; y <= r.y1; y++) {
         for (let x = r.x0; x <= r.x1; x++) {
-          const c = mpg.get(x, y);
+          const c = this.level.costAt(x, y);
           if (c === 1) continue; // default walkable
           draw_set_color(c === Infinity ? c_red : c_orange);
           const wx = x * cellWidth;

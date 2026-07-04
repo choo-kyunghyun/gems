@@ -3,10 +3,11 @@
 // into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell coords over a small
 // fixed window re-centered on the agent each frame.
 //
-// why a window: on a chunked map the obstacles aren't in Level.mpg — terrain/walls/border exist
-// only as kinematic-solid collider ENTITIES, and only nearby chunks are loaded. one bounded grid
+// why a window: obstacles aren't tile data — terrain/walls/border exist only as kinematic-solid
+// collider ENTITIES (and on a chunked map only nearby chunks are loaded). one bounded grid
 // unifies every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE
-// while only occupancy/origin change per frame.
+// while only occupancy/origin change per frame. This is the ONE live nav source — the tile
+// layers' costs (LevelGrid.costAt) feed only the debug cost shading.
 //
 // coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
 // buffer, so paths come back in absolute cells. GMRT-safe: for-of over the world.query ARRAY is

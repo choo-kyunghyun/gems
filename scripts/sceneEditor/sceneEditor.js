@@ -55,7 +55,6 @@ class _SceneEditorClass {
     this._initLevel(data.cols, data.rows, this._cell);
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);
-    this.level.syncAll();
 
     this._spawns = (data.spawns ?? []).slice(); // copy so add/remove don't mutate the data obj
     this._spawnPoint = {
@@ -147,7 +146,6 @@ class _SceneEditorClass {
       this.wallLayer.set(0, y, this.wallType);
       this.wallLayer.set(cols - 1, y, this.wallType);
     }
-    this.level.syncAll();
     this._spawns = [];
     this._spawnPoint = { gx: 2, gy: 2 };
     this._zoneDrag = undefined; // freshly recreated by _initLevel
@@ -395,15 +393,9 @@ class _SceneEditorClass {
         this._spawnPoint = { gx: cell.x, gy: cell.y };
     } else if (mouse_check_button(mb_left)) {
       if (this._tool === "wall")
-        TileEdit.set(this.level, this.wallLayer, cell.x, cell.y, this.wallType);
+        TileEdit.set(this.wallLayer, cell.x, cell.y, this.wallType);
       else if (this._tool === "floor")
-        TileEdit.set(
-          this.level,
-          this.floorLayer,
-          cell.x,
-          cell.y,
-          this.floorType,
-        );
+        TileEdit.set(this.floorLayer, cell.x, cell.y, this.floorType);
       else this._eraseBoth(cell.x, cell.y);
     } else if (mouse_check_button(mb_right)) {
       this._eraseBoth(cell.x, cell.y); // quick erase both layers
@@ -413,8 +405,8 @@ class _SceneEditorClass {
   }
 
   _eraseBoth(gx, gy) {
-    TileEdit.clear(this.level, this.wallLayer, gx, gy);
-    TileEdit.clear(this.level, this.floorLayer, gx, gy);
+    TileEdit.clear(this.wallLayer, gx, gy);
+    TileEdit.clear(this.floorLayer, gx, gy);
   }
 
   // track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)

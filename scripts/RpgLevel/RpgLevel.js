@@ -137,12 +137,11 @@ globalThis.RpgLevel = {
       rows: data.rows,
     });
     // Terrain auto-filled as the walkable base; walls + optional floors from the file's
-    // cell-rects (fence has no file source yet). Nav: wall cell → Infinity, else terrain → 1.
+    // cell-rects (fence has no file source yet).
     const h = RpgLevel._makeLayers(level);
     RpgLevel._fillLayers(level, h);
     RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
     RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
-    level.syncAll();
 
     const colliders = [];
     TileEdit.meshSolid(world, level, h.wallLayer, colliders);
@@ -170,7 +169,6 @@ globalThis.RpgLevel = {
     // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
     // ChunkManager's. Same layer set/order as build() so Level.import matches.
     const h = RpgLevel._makeLayers(level);
-    level.syncAll();
 
     const spawn = this._resolveSpawn(level, data, entryId);
     return { level, spawn, colliders: [], ...h };

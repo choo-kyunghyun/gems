@@ -1,8 +1,10 @@
-// The level's GRID DATA — tile layers + the derived nav grid (`mpg`) + zone channels (`zoneMaps`) +
-// cell dims and world<->grid conversion. Pure spatial data, no entities/systems/presentation. Was the
-// `Level` class, renamed so `Level` is free for the per-instance coordinator (the Scene replacement),
-// which composes one of these (a level owns its grid). Callers still reach it as `.level` for now —
-// that field rename (to e.g. `.grid`) is deferred; only the class + `new` sites moved to LevelGrid.
+// The level's GRID DATA — tile layers + zone channels (`zoneMaps`) + cell dims and world<->grid
+// conversion. Pure spatial data, no entities/systems/presentation. Was the `Level` class, renamed
+// so `Level` is free for the per-instance coordinator (the Scene replacement), which composes one
+// of these (a level owns its grid). Callers still reach it as `.level` for now — that field rename
+// (to e.g. `.grid`) is deferred; only the class + `new` sites moved to LevelGrid.
+// NOTE: live pathfinding does NOT read the tile layers — NavGrid (colliders + streamed-terrain
+// costs) is the one nav source. `costAt` below is on-demand layer cost, for debug/inspection.
 /**
  * @typedef {Object} TileType
  * @property {number} id
@@ -30,7 +32,6 @@ globalThis.LevelGrid = class LevelGrid {
     this.cellHeight = opt.cellHeight ?? 32;
     this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
-    this.mpg = new Grid(this.cols, this.rows).clear(1);
 
     /** @type {LevelLayer[]} */
     this.layers = [];
@@ -72,28 +73,18 @@ globalThis.LevelGrid = class LevelGrid {
     return this;
   }
 
-  _computeNav(x, y) {
+  /**
+   * On-demand tile nav cost of a cell: topmost layer with a defined cost wins (higher index =
+   * higher priority); no layer reporting → Infinity. Debug/inspection only (RenderDebugTileMap
+   * shading) — live pathfinding reads NavGrid, never the tile layers.
+   * @param {number} x @param {number} y @returns {number}
+   */
+  costAt(x, y) {
     for (let i = this.layers.length - 1; i >= 0; i--) {
       const nav = this.layers[i].getNavData(x, y);
       if (nav.cost !== undefined) return nav.cost;
     }
     return Infinity;
-  }
-
-  /** Recompute nav cost for one cell after a tile edit. @param {number} x @param {number} y @returns {LevelGrid} this */
-  syncAt(x, y) {
-    this.mpg.set(x, y, this._computeNav(x, y));
-    return this;
-  }
-
-  /** Recompute nav cost for every cell (after bulk layer changes). @returns {LevelGrid} this */
-  syncAll() {
-    for (let y = 0; y < this.rows; y++) {
-      for (let x = 0; x < this.cols; x++) {
-        this.mpg.set(x, y, this._computeNav(x, y));
-      }
-    }
-    return this;
   }
 
   /** @param {number} wx @param {number} wy @returns {{x:number,y:number}} the grid cell containing the point. */
@@ -148,11 +139,10 @@ globalThis.LevelGrid = class LevelGrid {
         map.import(data.zoneMaps[key]);
       }
     }
-    this.syncAll();
     return this;
   }
 
-  /** free layers, zone channels, and nav grid */
+  /** free layers + zone channels */
   destroy() {
     for (const layer of this.layers) {
       layer.destroy();
@@ -162,8 +152,6 @@ globalThis.LevelGrid = class LevelGrid {
       this.zoneMaps[keys[i]].destroy();
     }
     this.zoneMaps = {};
-    this.mpg.destroy();
-    this.mpg = undefined;
     this.layers = [];
   }
 };

@@ -143,7 +143,7 @@ globalThis.Prefab = class Prefab {
         const r = t.rects[j];
         for (let y = r[1]; y < r[1] + r[3]; y++) {
           for (let x = r[0]; x < r[0] + r[2]; x++) {
-            TileEdit.set(level, layer, x, y, t.type);
+            TileEdit.set(layer, x, y, t.type);
           }
         }
       }

@@ -1,4 +1,4 @@
-/** flat row-major 2D array; used by TileLayer, ZoneMap, NavGrid, Level.mpg */
+/** flat row-major 2D array; used by TileLayer, ZoneMap, NavGrid */
 globalThis.Grid = class Grid {
   /** @param {number} width @param {number} height */
   constructor(width, height) {

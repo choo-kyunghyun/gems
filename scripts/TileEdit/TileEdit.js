@@ -1,5 +1,6 @@
-// tile-layer editing service: write cells + keep nav cost + solid colliders in sync.
-// one place for the "edit a solid tile → resync nav + rebuild colliders" invariant.
+// tile-layer editing service: write cells + keep solid COLLIDERS in sync (meshSolid/remesh).
+// one place for the "edit a solid tile → rebuild colliders" invariant. (There is no nav resync —
+// live pathfinding reads NavGrid, and the debug cost shading computes level.costAt on demand.)
 //
 // cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined),
 // so occupancy is a truthy test, never `!== undefined`.
@@ -10,14 +11,12 @@ globalThis.TileEdit = {
   },
 
   // caller must remesh after editing a solid layer
-  set(level, layer, gx, gy, type) {
+  set(layer, gx, gy, type) {
     layer.set(gx, gy, type);
-    level.syncAt(gx, gy);
   },
 
-  clear(level, layer, gx, gy) {
+  clear(layer, gx, gy) {
     layer.set(gx, gy, undefined);
-    level.syncAt(gx, gy);
   },
 
   // greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
