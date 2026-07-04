@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Volume",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Volume",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Volume.js",
+}

@@ -463,6 +463,10 @@ globalThis.RpgMap = {
     );
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     scene.renderer.insert(new RenderEntityShadow());
+    // Deep-furniture boxes (VOLUME category of the projection contract — see ROADMAP.md):
+    // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
+    // a flat map has no depth-writing entity pass to sort against.
+    if (pitch > 0) scene.renderer.insert(new RenderVolume());
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
     const entityPass =
