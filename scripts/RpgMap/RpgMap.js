@@ -125,8 +125,13 @@ globalThis.RpgMap = {
 
     const sp = scene.entries[entryId] ?? scene.spawn;
     RpgMap._arriveSquad(scene, squad, sp);
-    // snap the follow camera to the entry so it doesn't pan from the parked position
+    // snap the follow camera to the entry so it doesn't pan from the parked position — and
+    // RE-AIM it at the arrived player: the squad crosses as whole entities (take/put mints a
+    // fresh id), so the parked camera's followTarget is the id that LEFT through the portal
+    // (invalid in this world) and the camera would freeze at the snap point on every revisit.
+    // (The build path is immune — _buildCamera runs after _arriveSquad with the fresh id.)
     if (scene.camera) {
+      scene.camera.followTarget = scene.playerId;
       scene.camera.toX = sp.x;
       scene.camera.toY = sp.y;
     }
