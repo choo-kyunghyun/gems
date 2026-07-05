@@ -75,8 +75,9 @@ globalThis.OverworldGen = {
     });
   },
 
-  // rock clusters; kept off the 1-cell border so a cluster never merges across a seam or
-  // blocks an entrance
+  // rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over
+  // the w×h cells; the adapter gives it the same solid footprint the old wall rect had); kept
+  // off the 1-cell border so a cluster never merges across a seam or blocks an entrance
   rocks() {
     return {
       salt: 2,
@@ -89,7 +90,13 @@ globalThis.OverworldGen = {
           const h = 1 + Math.floor(rng() * 2);
           const lx = 1 + Math.floor(rng() * (ctx.cols - 2 - w));
           const ly = 1 + Math.floor(rng() * (ctx.rows - 2 - h));
-          ctx.out.walls.push([ctx.gx0 + lx, ctx.gy0 + ly, w, h]);
+          ctx.out.spawns.push({
+            preset: "rock",
+            gx: ctx.gx0 + lx,
+            gy: ctx.gy0 + ly,
+            w: w,
+            h: h,
+          });
         }
       },
     };

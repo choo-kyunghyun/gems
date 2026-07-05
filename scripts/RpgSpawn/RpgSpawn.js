@@ -12,9 +12,11 @@
 //   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
 //   npc      label nameKey questId merchant?
 //   chest    capacity items[]
-//   prop     label color material? kind?   (material → tint over color; kind → Interaction, else furniture)
+//   prop     label color material? kind? furn?  (kind/furn picks a vox MESH where one exists, else a sprite; material → tint over color (sprites only); kind → Interaction, else furniture)
 //   torch    label? color?        (decorative light prop — small solid post; carries a Light)
+//   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
 //   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
+//   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
 //   reach    half?                (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")
@@ -118,14 +120,15 @@ globalThis.RpgSpawn = {
         },
       },
       {
-        // Solid kinematic prop. The adapter resolves sprite/tint/Interaction from the descriptor
-        // (kind → station sprite + Interaction; furn → furniture sprite; color/material → tint).
+        // Solid kinematic prop. The adapter resolves the LOOK from the descriptor — a vox Mesh
+        // where kind/furn has a model (VOLUME category; RenderMesh draws it, the billboard/shadow
+        // passes skip the Visual-less entity), else a sprite (+ color/material tint) — plus the
+        // Interaction for a kind. No Visual/Mesh in the def: the adapter always adds one.
         id: "prop",
         components: {
           BBox: { x: -7, y: -7, width: 14, height: 14 },
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "" },
-          Visual: { sprite: spr_crate },
         },
       },
       {
@@ -136,13 +139,29 @@ globalThis.RpgSpawn = {
           BBox: { x: -4, y: -4, width: 8, height: 8 }, // small footprint
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Lamp" },
-          Visual: { sprite: spr_torch },
+          Mesh: { model: "torch" }, // vox mesh — no Visual, billboard/shadow passes skip it
           // warm, gently flickering torch light (archetype values)
           Light: {
             radius: 75,
             color: Color.parse("#ffd09a"),
             intensity: 0.9,
             flicker: 0.18,
+          },
+        },
+      },
+      {
+        // Standing lamp: the lantern mesh with a steadier, wider, whiter light than the torch.
+        id: "lantern",
+        components: {
+          BBox: { x: -4, y: -4, width: 8, height: 8 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "Lantern" },
+          Mesh: { model: "lantern" },
+          Light: {
+            radius: 95,
+            color: Color.parse("#ffedc9"),
+            intensity: 0.95,
+            flicker: 0.04,
           },
         },
       },
@@ -159,7 +178,7 @@ globalThis.RpgSpawn = {
           Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
           Faction: { id: "player" }, // player ally; a hostile target for enemies
           Name: { name: "Turret" },
-          Visual: { sprite: spr_lightTurret },
+          Mesh: { model: "turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
         },
         post(world, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
@@ -173,6 +192,18 @@ globalThis.RpgSpawn = {
             bulletSpeed: 190,
             speed: 0,
           });
+        },
+      },
+      {
+        // Wilderness boulder (OverworldGen scatter): an immovable solid the rock mesh is drawn
+        // over. One entity per cluster — the adapter stretches Mesh + BBox to the w×h cell rect,
+        // so the collider matches the old scatter wall rect exactly (NavGrid/pathing unchanged).
+        id: "rock",
+        components: {
+          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "Rock" },
+          Mesh: { model: "rock" },
         },
       },
       {
@@ -308,26 +339,51 @@ globalThis.RpgSpawn = {
       if (s.capacity !== undefined) inv.capacity = s.capacity;
       if (Object.keys(inv).length > 0) over.Inventory = inv;
     } else if (s.preset === "prop") {
-      // Sprite per Interaction `kind` (workbench/claim/bed) or furniture `furn` (crate/barrel/
-      // fence, default crate). Pre-colored art draws untinted unless the descriptor authors
-      // color/material.
-      let sprite;
-      let color;
-      if (s.kind === "workbench") sprite = spr_workbench;
-      else if (s.kind === "claim") sprite = spr_surveyPost;
-      else if (s.kind === "bed") sprite = spr_simpleBed;
-      else {
-        if (s.furn === "barrel") sprite = spr_woodenBarrel;
-        else if (s.furn === "fence") sprite = spr_fenceSquare;
-        else sprite = spr_crate;
-        if (s.color !== undefined || s.material !== undefined)
-          color = RpgSpawn._tint(s);
+      // Vox MESH per Interaction `kind` (workbench/bed — furn "cot" picks the cot bunk) or
+      // furniture `furn` (barrel) where a model exists — vertex-colored, so color/material
+      // don't apply. The rest keep sprites (claim post, crate/fence, the tinted survival
+      // stations): pre-colored art draws untinted unless the descriptor authors color/material.
+      let model;
+      if (s.kind === "workbench") model = "workbench";
+      else if (s.kind === "bed") model = s.furn === "cot" ? "prisonBed" : "bed";
+      else if (s.furn === "barrel") model = "woodenBarrel";
+      if (model !== undefined) {
+        over.Mesh = { model };
+      } else {
+        let sprite;
+        let color;
+        if (s.kind === "claim") sprite = spr_surveyPost;
+        else {
+          if (s.furn === "fence") sprite = spr_fenceSquare;
+          else sprite = spr_crate;
+          if (s.color !== undefined || s.material !== undefined)
+            color = RpgSpawn._tint(s);
+        }
+        over.Visual = color !== undefined ? { sprite, color } : { sprite };
       }
-      over.Visual = color !== undefined ? { sprite, color } : { sprite };
       over.Name = { name: s.label };
       if (s.kind !== undefined) over.Interaction = { kind: s.kind };
-    } else if (s.preset === "torch") {
+    } else if (s.preset === "torch" || s.preset === "lantern") {
       if (s.label !== undefined) over.Name = { name: s.label };
+    } else if (s.preset === "rock") {
+      // cluster footprint (w×h cells, from the overworld scatter): center the entity on the
+      // rect and stretch Mesh + BBox over it — the collider equals the old scatter wall rect
+      const cw = s.w ?? 1;
+      const ch = s.h ?? 1;
+      w.x += ((cw - 1) * level.cellWidth) / 2;
+      w.y += ((ch - 1) * level.cellHeight) / 2;
+      over.BBox = {
+        x: (-cw * level.cellWidth) / 2,
+        y: (-ch * level.cellHeight) / 2,
+        width: cw * level.cellWidth,
+        height: ch * level.cellHeight,
+      };
+      over.Mesh = {
+        model: "rock",
+        xscale: cw,
+        yscale: ch,
+        zscale: (cw + ch) / 2, // bigger clusters read as taller boulders
+      };
     } else if (s.preset === "turret") {
       if (s.label !== undefined) over.Name = { name: s.label };
     } else if (s.preset === "portal") {

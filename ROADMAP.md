@@ -2,7 +2,7 @@
 
 ## Art Rework — flat style over a strict projection contract (ACTIVE, decided 2026-07-04)
 
-Retire pixel art for entities. New style: **flat, simple, minimal-shading bitmap art at free resolution** (modern sci-fi — RimWorld's production economics *without* its mixed-projection depth chaos), authored with the two proven tools: **hand-drawn flat parts + Spine animation**. GM3D and AI pixel-art generation are parked (see bottom).
+Retire pixel art for entities. New style: **flat, simple, minimal-shading bitmap art at free resolution** (modern sci-fi — RimWorld's production economics _without_ its mixed-projection depth chaos), authored with the two proven tools: **hand-drawn flat parts + Spine animation**. GM3D and AI pixel-art generation are parked (see bottom).
 
 ### Projection contract (the depth-coherence rule)
 
@@ -27,7 +27,7 @@ Write a half-page style spec **before drawing asset #1**: one implied camera ang
 ### Character pipeline (Spine, license-clean for open source)
 
 - Draw flat parts → rig + animate in **Spine** → export **PNG strips at high resolution** (fixed export bounds per animation so cells stay uniform; 12–15 fps is fine — pixel-cluster stability is no longer a concern) → deterministic import → **`SpriteMeta.density`** scales art to world size (BBox untouched; old and new art coexist during migration).
-- **License**: only **baked strips** are game assets — the Spine editor license allows shipping exported images; the restricted parts (runtime + skeleton data) never enter the repo. Commit the `.spine` project files as editable *source* — the same `.mid`→WAV pattern audio-kit uses. Spine's CLI export can script the re-bake like the other importers.
+- **License**: only **baked strips** are game assets — the Spine editor license allows shipping exported images; the restricted parts (runtime + skeleton data) never enter the repo. Commit the `.spine` project files as editable _source_ — the same `.mid`→WAV pattern audio-kit uses. Spine's CLI export can script the re-bake like the other importers.
 - **Paper-doll survives**: gear = Spine **skins** on the one skeleton; export the base-body strip + one overlay strip per gear piece from the same timeline → frame-aligned by construction → `Appearance`/`AppearanceSystem` and the strip-layout invariant carry over unchanged.
 - AI is optional and unblocked: high-res flat/clean styles are what image models are actually good at — usable for part references to trace and clean. No pixel LoRA, no framing fight.
 
@@ -37,7 +37,8 @@ Write a half-page style spec **before drawing asset #1**: one implied camera ang
 2. First character (player) through Spine → bake → import → verify in-game over the real overworld (screenshot day + night).
 3. Strip importer under `tools/` (author → render → import, like the other kits).
 4. ~~`Mesh` component + `RenderMesh` pass (as `Volume`/`RenderVolume`)~~ — DONE 2026-07-04 (Core/Component + Core/Render, inserted in `RpgMap.build` for pitched maps; occlusion verified in-game: player in front / behind bench / behind deep table, all per-pixel correct with placeholder colored faces).
-   - **MagicaVoxel pipeline DONE 2026-07-05**: `tools/vox-kit/vox2vbuf.py` (stdlib, deterministic) bakes a committed `.vox` (source in `tools/vox-kit/templates/`) into `datafiles/meshes/<name>.vbuf` — visible faces only (top ×1.00 / south ×0.80 shading baked into vertex colors, footprint-centered, 1 voxel = 1 world px, 24 B/vertex lockstep with `RenderMesh`'s `position_3d+colour+texcoord` format). `Mesh { model: "<name>" }` submits the frozen mesh in the same depth pass; verified in-game with the authored workbench (front/behind occlusion + palette colors + leg gaps). Convention: MV **+x = east (width), +y = south (front)**. Next: convert the furniture presets (`RpgSpawn`) to models; later niceties — greedy meshing, `scale`, manifest-driven `BBox`, `.obj` frontend for non-voxel meshes.
+   - **MagicaVoxel pipeline DONE 2026-07-05**: `tools/vox-kit/vox2vbuf.py` (stdlib, deterministic) bakes a committed `.vox` (source in `tools/vox-kit/templates/`) into `datafiles/meshes/<name>.vbuf` — visible faces only (top ×1.00 / south ×0.80 shading baked into vertex colors, footprint-centered, 1 voxel = 1 world px, 24 B/vertex lockstep with `RenderMesh`'s `position_3d+colour+texcoord` format). `Mesh { model: "<name>" }` submits the frozen mesh in the same depth pass; verified in-game with the authored workbench (front/behind occlusion + palette colors + leg gaps). Convention: MV **+x = east (width), +y = south (front)**. `Mesh` scaling (`scale` + per-axis `xscale/yscale/zscale`) DONE 2026-07-05.
+   - **Furniture conversion DONE 2026-07-05**: 8 authored models baked + wired — the `prop` kinds/furns with a model (workbench/bed/cot→`prisonBed`/barrel→`woodenBarrel`) and the `torch`/`turret` presets carry `Mesh` INSTEAD of `Visual` (billboard/shadow passes skip them; CombatAI's Visual reads are all guarded); new `lantern` preset (steadier, wider light) + Build Mode **Cot**/**Lantern** items; the overworld **rock** scatter + `boulder_cluster` prefab now spawn `rock` mesh entities stretched over the same cell rects the old collide-only walls covered (identical solid footprint → NavGrid/pathing unchanged). `stand.vox` baked but unwired (no target yet). Still sprites: crate, fence, chest, survey post, survival-station tinted props, door, arcade. Later niceties — greedy meshing, manifest-driven `BBox`, `.obj` frontend for non-voxel meshes.
 5. Replace entities incrementally (the density seam lets old/new coexist); then items/icons (flat redraw, or SVG→PNG).
 6. Terrain **last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`); walls stay tiles.
 
@@ -58,24 +59,25 @@ Write a half-page style spec **before drawing asset #1**: one implied camera ang
 ## Gameplay
 
 - Modular turret
-    - Auto turrets fire mounted weapons
-    - Mountable turrets
+  - Auto turrets fire mounted weapons
+  - Mountable turrets
 - Explosive like grenade and mine
 - Minify furnitures
 - Merchants and wandering traders
-    - Inter-level interaction
+  - Inter-level interaction
 - Settlement and outpost
 - Farming and fishing
 - Gamepad reloading
 - More role-playing infos
-    - Biological sex(Display as XX and XY)
-    - Optional age
-    - Virtual companies and ads
+  - Biological sex(Display as XX and XY)
+  - Optional age
+  - Virtual companies and ads
 - Gacha capsule with new UI
 - Raid event: Defend the settlement
 - Radio
 - UI Concept: Smart HUD
 - Darkmode and lightmode theme
+- Conway's Game of Life
 
 ## Build Mode
 

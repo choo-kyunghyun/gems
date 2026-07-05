@@ -92,6 +92,21 @@ globalThis.BuildMode = {
             kind: "bed",
           }),
         },
+        {
+          // cheaper cot: the same "bed" sleep Interaction, the prisonBed bunk mesh (furn "cot")
+          id: "cot",
+          labelKey: "BUILD_COT",
+          cost: 4,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_COT"),
+            kind: "bed",
+            furn: "cot",
+          }),
+        },
       ],
     },
     {
@@ -108,6 +123,19 @@ globalThis.BuildMode = {
             gy,
             label: I18n.text("BUILD_TORCH"),
             color: "#ff9a3c",
+          }),
+        },
+        {
+          // standing lantern — steadier, wider, whiter light than the torch (lantern preset)
+          id: "lantern",
+          labelKey: "BUILD_LANTERN",
+          cost: 5,
+          kind: "entity",
+          make: (gx, gy) => ({
+            preset: "lantern",
+            gx,
+            gy,
+            label: I18n.text("BUILD_LANTERN"),
           }),
         },
       ],

@@ -4,18 +4,19 @@
 globalThis.RpgPrefabs = {
   register() {
     Prefab.register([
-      // terrain flavor, no enemies
+      // terrain flavor, no enemies — rock mesh entities (same rects the old collide-only
+      // walls covered; the `rock` adapter branch rebuilds the identical solid footprint)
       {
         id: "boulder_cluster",
         tags: ["overworld"],
         weight: 4,
         cols: 4,
         rows: 4,
-        walls: [
-          [0, 0, 1, 2],
-          [2, 0, 1, 1],
-          [1, 2, 2, 1],
-          [3, 3, 1, 1],
+        spawns: [
+          { preset: "rock", lx: 0, ly: 0, w: 1, h: 2 },
+          { preset: "rock", lx: 2, ly: 0, w: 1, h: 1 },
+          { preset: "rock", lx: 1, ly: 2, w: 2, h: 1 },
+          { preset: "rock", lx: 3, ly: 3, w: 1, h: 1 },
         ],
       },
       // sheltered corner with a raider pack (one tougher)
