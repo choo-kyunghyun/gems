@@ -1,14 +1,18 @@
 /**
  * VOLUME pass of the art projection contract (ROADMAP.md — Art Rework): draws each
- * `Volume` + `Position` entity as an axis-aligned box. Under the fixed-yaw pitched ortho
- * camera only TWO faces are ever visible — the plan-view TOP (lying at -height over the
- * footprint) and the elevation FRONT (a true vertical quad at the footprint's south edge) —
- * so a box is exactly two quads. Real geometry in the depth buffer (z-write on for this loop
+ * `Volume` + `Position` entity as real depth-writing geometry (z-write on for this loop
  * only, like RenderBillboard), so pawns sort against deep furniture per-pixel with zero
- * manual layering. Face textures are authored in canonical views (top = plan, front =
- * elevation, north/top row first); the pitched camera foreshortens them like the terrain.
- * Faces must stay OPAQUE or alpha-test cutout: alpha-blended geometry that writes depth
- * occludes what's behind its soft pixels (the billboard hard-alpha rule).
+ * manual layering. Two paths per entity:
+ * - `model` set → a baked MagicaVoxel mesh (tools/vox-kit vox2vbuf.py → volumes/<name>.vbuf,
+ *   loaded via buffer_load + vertex_create_buffer_from_buffer, frozen + cached, vertex-color
+ *   shaded — no texture). The converter emits only the faces this camera can see (top+south).
+ * - else → an analytic axis-aligned box: under the fixed-yaw pitched ortho camera only TWO
+ *   faces are ever visible — the plan-view TOP (lying at -height over the footprint) and the
+ *   elevation FRONT (a true vertical quad at the footprint's south edge) — so two quads.
+ *   Face textures are authored in canonical views (top = plan, front = elevation); the
+ *   pitched camera foreshortens them like the terrain. Faces must stay OPAQUE or alpha-test
+ *   cutout: alpha-blended geometry that writes depth occludes what's behind its soft pixels
+ *   (the billboard hard-alpha rule).
  * @implements {RenderPass}
  */
 globalThis.RenderVolume = class RenderVolume {
@@ -26,9 +30,43 @@ globalThis.RenderVolume = class RenderVolume {
       ? shader_get_uniform(this._shader, "u_alphaRef")
       : -1;
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
+    // baked-mesh models (tools/vox-kit): position_3d + colour + texcoord, 24 bytes/vertex —
+    // this declaration and the converter's byte layout are a lockstep pair
+    vertex_format_begin();
+    vertex_format_add_position_3d();
+    vertex_format_add_colour();
+    vertex_format_add_texcoord();
+    this._format = vertex_format_end();
+    this._models = new Map(); // name -> { vb } (string keys only — ref-keyed Maps crash GMRT)
+    this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
   }
 
-  destroy() {}
+  destroy() {
+    for (let i = 0; i < this._vbs.length; i++)
+      vertex_delete_buffer(this._vbs[i]);
+    this._vbs.length = 0;
+    this._models.clear();
+    vertex_format_delete(this._format);
+  }
+
+  // baked model lookup: volumes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
+  // a missing file caches vb -1 so the warning fires once, not per frame
+  _model(name) {
+    let m = this._models.get(name);
+    if (m !== undefined) return m;
+    m = { vb: -1 };
+    const buf = buffer_load(`volumes/${name}.vbuf`);
+    if (buffer_exists(buf)) {
+      m.vb = vertex_create_buffer_from_buffer(buf, this._format);
+      buffer_delete(buf);
+      vertex_freeze(m.vb);
+      this._vbs.push(m.vb);
+    } else {
+      Log.warn(`RenderVolume: missing model volumes/${name}.vbuf`);
+    }
+    this._models.set(name, m);
+    return m;
+  }
 
   // one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
   // over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
@@ -54,6 +92,18 @@ globalThis.RenderVolume = class RenderVolume {
     for (const entity of world.query(Volume, Position)) {
       const vol = world.get(Volume, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      // baked-mesh path: a vox-kit model replaces the two analytic quads entirely
+      if (vol.model !== undefined && vol.model !== "") {
+        const m = this._model(vol.model);
+        if (m.vb !== -1) {
+          matrix_set(
+            matrix_world,
+            matrix_build(rp.x, rp.y, 0, 0, 0, 0, 1, 1, 1),
+          );
+          vertex_submit(m.vb, pr_trianglelist, -1);
+        }
+        continue;
+      }
       const x0 = rp.x - vol.width / 2;
       const y0 = rp.y - vol.depth / 2;
       const alpha = vol.alpha ?? 1;

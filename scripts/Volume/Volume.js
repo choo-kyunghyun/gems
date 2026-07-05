@@ -8,6 +8,9 @@
  * GM ints — a color fills the face when its sprite is unset, and tints the sprite when set.
  *
  * @typedef {Object} Volume
+ * @property {string} [model]     baked vox-kit mesh NAME (volumes/<model>.vbuf) — when set,
+ *                                RenderVolume submits the frozen mesh and every field below
+ *                                is ignored for drawing (footprint fields still document size)
  * @property {number} width       footprint x extent (world px)
  * @property {number} depth       footprint y extent (world px)
  * @property {number} height      vertical extent (world px)

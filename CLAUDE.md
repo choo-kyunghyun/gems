@@ -145,6 +145,7 @@ The GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms 
 
 - **Trig + `draw_triangle_color`/`draw_line_width_color`/`draw_circle_color` work.** UI arrows/chevrons go through `drawUIArrow`, check/dash markers through `drawUICheck` (both in `scripts/UIDraw`); `draw_circle_color` draws `RenderLighting`'s light blobs. Trig (`Math.PI`/`cos`/`sin`/`atan2`) is used directly (`Temperature.diurnal` cosine curve, `RenderWeather` snow sway). **`WorldClock.tint`/`_KF` keeps its hand-authored keyframe table by design — don't "trig-ify" it.**
 - **Off-screen surfaces + `surface_getpixel`, `bm_add`, and multiply via `gpu_set_blendmode_ext(bm_dest_colour, bm_zero)`** (no `bm_multiply` constant) work — the `RenderLighting` 2D light-map infra.
+- **Baked-mesh vertex buffers work (verified 2026-07-05)** — `buffer_load` of an included binary → `vertex_create_buffer_from_buffer` → `vertex_freeze` → `vertex_submit(vb, pr_trianglelist, -1)` (untextured, custom `position_3d + colour + texcoord` format) renders vertex-colored 3D geometry in the depth pass. Colour byte order in buffer memory is **R,G,B,A**; the binary layout and the in-engine format declaration are a lockstep pair (24 B/vertex) — see `tools/vox-kit/vox2vbuf.py` ↔ `RenderVolume._model`.
 
 ## Architecture
 

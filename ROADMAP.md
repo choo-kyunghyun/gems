@@ -36,13 +36,14 @@ Write a half-page style spec **before drawing asset #1**: one implied camera ang
 1. The half-page art style spec (camera angle, light direction, palette).
 2. First character (player) through Spine → bake → import → verify in-game over the real overworld (screenshot day + night).
 3. Strip importer under `tools/` (author → render → import, like the other kits).
-4. ~~`Volume` component + `RenderVolume` pass~~ — DONE 2026-07-04 (Core/Component + Core/Render, inserted in `RpgMap.build` for pitched maps; occlusion verified in-game: player in front / behind bench / behind deep table, all per-pixel correct with placeholder colored faces). Remaining: convert real furniture (workbench etc.) once face art exists.
+4. ~~`Volume` component + `RenderVolume` pass~~ — DONE 2026-07-04 (Core/Component + Core/Render, inserted in `RpgMap.build` for pitched maps; occlusion verified in-game: player in front / behind bench / behind deep table, all per-pixel correct with placeholder colored faces).
+   - **MagicaVoxel pipeline DONE 2026-07-05**: `tools/vox-kit/vox2vbuf.py` (stdlib, deterministic) bakes a committed `.vox` (source in `tools/vox-kit/templates/`) into `datafiles/volumes/<name>.vbuf` — visible faces only (top ×1.00 / south ×0.80 shading baked into vertex colors, footprint-centered, 1 voxel = 1 world px, 24 B/vertex lockstep with `RenderVolume`'s `position_3d+colour+texcoord` format). `Volume { model: "<name>" }` submits the frozen mesh in the same depth pass; verified in-game with the authored workbench (front/behind occlusion + palette colors + leg gaps). Convention: MV **+x = east (width), +y = south (front)**. Next: convert the furniture presets (`RpgSpawn`) to models; later niceties — greedy meshing, `scale`, manifest-driven `BBox`, `.obj` frontend for non-voxel meshes.
 5. Replace entities incrementally (the density seam lets old/new coexist); then items/icons (flat redraw, or SVG→PNG).
 6. Terrain **last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`); walls stay tiles.
 
 ### Parked / rejected (don't relitigate without new facts)
 
-- **GM3D runtime 3D** (glTF skinned-mesh imposters) — experimental undocumented API, new skill stack, converts an art bottleneck into an engine project. Revisit only if continuous weapon aim becomes a must-have.
+- **GM3D runtime 3D** — SPIKED 2026-07-05: works on our toolchain (glTF loads, renders, no state clobber; camera matched to the pitched ortho exactly), **but a Screen-target camera always clears its rect (color + depth) and `setAlpha` is whole-output opacity** — no depth sharing with the billboard pass, no overlay mode → disqualified for VOLUME furniture. Furniture models go through our own pass: converter → vertex-buffer binary (`buffer_load` → `vertex_create_buffer_from_buffer`) drawn by `RenderVolume`. GM3D stays parked for character imposters via render-to-texture (untested). JS quirk: GM3D array-returning getters throw — use `getMaterial(i)`/counts.
 - **AI pixel-art entity generation** (ComfyUI 32px pipeline) — superseded by this rework; toolchain kept for reference.
 - **Spine runtime in-engine** (license-incompatible with open source), **per-frame AI animation** (flicker), **pixel-art LoRA hunting** — dead ends.
 
@@ -69,8 +70,12 @@ Write a half-page style spec **before drawing asset #1**: one implied camera ang
 - More role-playing infos
     - Biological sex(Display as XX and XY)
     - Optional age
+    - Virtual companies and ads
 - Gacha capsule with new UI
 - Raid event: Defend the settlement
+- Radio
+- UI Concept: Smart HUD
+- Darkmode and lightmode theme
 
 ## Build Mode
 
