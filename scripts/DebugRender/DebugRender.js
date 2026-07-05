@@ -35,6 +35,7 @@ globalThis.DebugRender = class DebugRender {
       [RenderDebugPath, "Paths"],
       [RenderDebugRange, "Ranges"],
       [RenderEntityShadow, "Shadows"],
+      [RenderWalls, "Walls"],
     ];
     for (let i = 0; i < DebugRender._extra.length; i++)
       list.push(DebugRender._extra[i]);

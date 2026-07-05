@@ -267,6 +267,7 @@
     {"id":{"name":"RenderLighting","path":"scripts/RenderLighting/RenderLighting.yy",},},
     {"id":{"name":"RenderMesh","path":"scripts/RenderMesh/RenderMesh.yy",},},
     {"id":{"name":"RenderTileMap","path":"scripts/RenderTileMap/RenderTileMap.yy",},},
+    {"id":{"name":"RenderWalls","path":"scripts/RenderWalls/RenderWalls.yy",},},
     {"id":{"name":"RenderWeather","path":"scripts/RenderWeather/RenderWeather.yy",},},
     {"id":{"name":"RenderZone","path":"scripts/RenderZone/RenderZone.yy",},},
     {"id":{"name":"RenderZoneLabel","path":"scripts/RenderZoneLabel/RenderZoneLabel.yy",},},

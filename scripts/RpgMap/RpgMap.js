@@ -443,8 +443,9 @@ globalThis.RpgMap = {
       );
     }
     // Resident layers drawn by ONE sprite-free RenderDebugTileMap (shades cells by nav cost) in
-    // place of the per-layer RenderTileMap passes. _tilePasses stays empty, so
-    // BuildMode._markTileDirty no-ops. Restore: the RpgLevel.LAYERS loop keyed into _tilePasses.
+    // place of the per-layer RenderTileMap passes. _tilePasses holds only the wall layer's
+    // RenderWalls mesh pass (inserted below); the other layers' edits no-op in
+    // BuildMode._markTileDirty. Restore: the RpgLevel.LAYERS loop keyed into _tilePasses.
     scene._tilePasses = {};
     scene._tilePass = new RenderDebugTileMap(scene.level, {
       cost: true,
@@ -471,6 +472,18 @@ globalThis.RpgMap = {
     if (pitch > 0) {
       scene._meshPass = new RenderMesh({ sun: () => WorldClock.sunDir() });
       scene.renderer.insert(scene._meshPass);
+      // WALLS category (art projection contract): the resident wall layer as lit boxes
+      // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
+      // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
+      // markDirty reaches it (the flat "corner" autotile config stays for the editor).
+      let wallCfg;
+      for (let i = 0; i < RpgLevel.LAYERS.length; i++)
+        if (RpgLevel.LAYERS[i].key === "wall") wallCfg = RpgLevel.LAYERS[i];
+      scene._tilePasses.wall = new RenderWalls(scene.level, scene.wallLayer, {
+        color: Color.parse(wallCfg.color),
+        lights: scene._meshPass,
+      });
+      scene.renderer.insert(scene._tilePasses.wall);
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
