@@ -491,7 +491,12 @@ globalThis.RpgMap = {
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
-    const entityPass = pitch > 0 ? new RenderBillboard() : new RenderEntity(); // upright sprites (pass default)
+    // Pitched maps hand the billboard pass the mesh pass as its light source (sprite sun
+    // response: sprites dim/warm with the sun + catch torchlight like the mesh faces).
+    const entityPass =
+      pitch > 0
+        ? new RenderBillboard({ lights: scene._meshPass })
+        : new RenderEntity();
     scene.renderer.insert(entityPass);
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;

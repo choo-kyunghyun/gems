@@ -98,6 +98,7 @@ globalThis.RenderMesh = class RenderMesh {
     this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
     this._lp = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0); // reused uniform scratch
     this._lc = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0);
+    this._lightN = 0; // gathered count this frame — RenderBillboard's sprite sun response reads it
   }
 
   destroy() {
@@ -129,7 +130,9 @@ globalThis.RenderMesh = class RenderMesh {
 
   // set sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
   // MAX_LIGHTS `Light` entities as point lights (same flicker formula as RenderLighting so
-  // the mesh response tracks the visible glow pools). Arrays are reused scratch.
+  // the mesh response tracks the visible glow pools). Arrays are reused scratch. The gathered
+  // set (_lp/_lc/_lightN) doubles as the frame's shared light state: RenderBillboard's CPU
+  // sprite sun response reads it (this pass draws first), so sprites and meshes can't diverge.
   _setupLights(world) {
     shader_set(this._lit);
     shader_set_uniform_f(this._uUseTex, 0); // vox mode; RenderWalls flips it for its submits
@@ -204,6 +207,7 @@ globalThis.RenderMesh = class RenderMesh {
       this._lc[i * 4 + 2] = color_get_blue(lt.color) / 255;
       this._lc[i * 4 + 3] = intensity;
     }
+    this._lightN = n;
     shader_set_uniform_f(this._uLightCount, n);
     if (n > 0) {
       shader_set_uniform_f_array(this._uLightPos, this._lp);

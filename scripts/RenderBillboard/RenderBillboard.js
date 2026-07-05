@@ -6,6 +6,17 @@
 // z-fight returned); ±y moves the plane itself toward/away from the south-side camera.
 const BB_LAYER_DY = 0.05;
 
+// Sprite sun response (ROADMAP art rework): the sh_meshlit lighting model evaluated ONCE per
+// entity on the CPU at a fixed BENT normal — no shader — so STANDING sprites dim/warm with the
+// sun and catch torchlight like the mesh faces beside them. The normal leans 30° south of
+// straight-up: it nearly faces the noon sun (daylight modulation ~1 → the authored colors,
+// clamped), dims + warms toward dawn/dusk, and gives point lights a camera-side preference
+// (a flame south of the sprite lights the face you see; behind it falls to the wrap fill).
+const BB_SUN_NY = 0.5; // bent normal (0, 0.5, -0.866) — unit, up = -z
+const BB_SUN_NZ = -0.866;
+const BB_POINT_FILL = 0.4; // wrap-light fill share — must match sh_meshlit.fsh POINT_FILL
+const BB_SAMPLE_Z = -8; // the one sample point per sprite: mid-body height
+
 /**
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
  * Starve / Paper Mario) via a world matrix, under the pitch-by-zoom camera
@@ -19,6 +30,8 @@ const BB_LAYER_DY = 0.05;
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
  * requires hard-alpha sprites: soft edges write depth on transparent pixels and occlude
  * what's behind them.
+ * With `opt.lights` (the host RenderMesh pass) each sprite's tint is modulated by the
+ * sh_meshlit model at a bent normal — the SPRITE SUN RESPONSE (see the consts above).
  * @implements {RenderPass}
  */
 globalThis.RenderBillboard = class RenderBillboard {
@@ -38,16 +51,68 @@ globalThis.RenderBillboard = class RenderBillboard {
       ? shader_get_uniform(this._shader, "u_alphaRef")
       : -1;
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, dim-safe)
+    // sprite sun response: opt.lights = the host RenderMesh pass (like RenderWalls), which
+    // supplies the sun provider + this frame's gathered point-light set (it draws first).
+    // Unset → no modulation: sprites stay full-bright albedo (flat maps, kit default).
+    this.lights = opt.lights;
+    this._lmod = { r: 1, g: 1, b: 1 }; // reused per-entity light scratch
   }
 
   destroy() {}
+
+  // evaluate this frame's light color at a sprite's foot (x, y): ambient + sun at the bent
+  // normal + the point-light set RenderMesh gathered for the meshes this frame (view cull,
+  // nearest-first budget, and flicker all shared, so a sprite and the mesh beside it can't
+  // diverge). Fills + returns the reused scratch; null → draw unmodulated (no mesh pass
+  // wired, or its shader unavailable — then meshes are flat albedo, sprites should match).
+  _lightAt(x, y) {
+    const mesh = this.lights;
+    if (mesh === undefined || !mesh._litOk) return null;
+    const sun = mesh.sun !== undefined ? mesh.sun() : RenderMesh.SUN_DEFAULT;
+    const ambient = 1 - 0.9 * sun.strength; // the sun's complement — as _setupLights sends it
+    const ndl = Math.max(0, BB_SUN_NY * sun.y + BB_SUN_NZ * sun.z);
+    const sunK = sun.strength * ndl;
+    const lm = this._lmod;
+    lm.r = ambient + sun.r * sunK;
+    lm.g = ambient + sun.g * sunK;
+    lm.b = ambient + sun.b * sunK;
+    const lp = mesh._lp;
+    const lc = mesh._lc;
+    const n = mesh._lightN;
+    for (let i = 0; i < n; i++) {
+      const dx = lp[i * 4] - x;
+      const dy = lp[i * 4 + 1] - y;
+      const dz = lp[i * 4 + 2] - BB_SAMPLE_Z;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz), 0.001);
+      const atten = 1 - dist / lp[i * 4 + 3]; // linear falloff, like the shader/light map
+      if (atten <= 0) continue;
+      const pndl = Math.max(0, (BB_SUN_NY * dy + BB_SUN_NZ * dz) / dist);
+      const k =
+        lc[i * 4 + 3] * atten * (BB_POINT_FILL + (1 - BB_POINT_FILL) * pndl);
+      lm.r += lc[i * 4] * k;
+      lm.g += lc[i * 4 + 1] * k;
+      lm.b += lc[i * 4 + 2] * k;
+    }
+    return lm;
+  }
+
+  // channel-multiply a packed color by the light modulation, clamped — a fresh one-shot
+  // compute from the source color each frame, never an eased/fed-back packed int (the GMRT
+  // merge_color drift trap only bites iterative easing).
+  _tint(color, lm) {
+    return make_colour_rgb(
+      Math.min(255, Math.round(color_get_red(color) * lm.r)),
+      Math.min(255, Math.round(color_get_green(color) * lm.g)),
+      Math.min(255, Math.round(color_get_blue(color) * lm.b)),
+    );
+  }
 
   // one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
   // (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
   // OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
   // it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
-  // which layers share.
-  _drawLayer(layer, visual, rp, tiltDeg, dy) {
+  // which layers share — with the entity's light modulation applied identically to each.
+  _drawLayer(layer, visual, rp, tiltDeg, dy, lm) {
     matrix_set(
       matrix_world,
       matrix_build(rp.x, rp.y + dy, 0, tiltDeg, 0, 0, 1, 1, 1),
@@ -60,7 +125,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       visual.xscale,
       visual.yscale,
       0,
-      layer.color,
+      lm === null ? layer.color : this._tint(layer.color, lm),
       visual.alpha,
     );
   }
@@ -95,6 +160,9 @@ globalThis.RenderBillboard = class RenderBillboard {
         visual.subimg = Math.floor(visual.time) % sprite_get_number(sprite);
         subimg = visual.subimg;
       }
+      // sun response: one light evaluation per entity, shared by body + doll layers
+      // (an object ref local, not a cached primitive bool — GMRT clobber trap)
+      const lm = this._lightAt(rp.x, rp.y);
       // Paper-doll layers (Appearance) draw at the body's subimg/transform but CANNOT rely on
       // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
       // quad has different vertices and the interpolated depth diverges by float rounding — a
@@ -112,6 +180,7 @@ globalThis.RenderBillboard = class RenderBillboard {
             rp,
             tiltDeg,
             -(ap.back.length - i) * BB_LAYER_DY,
+            lm,
           );
       }
       matrix_set(
@@ -126,7 +195,7 @@ globalThis.RenderBillboard = class RenderBillboard {
         visual.xscale,
         visual.yscale,
         0,
-        visual.color,
+        lm === null ? visual.color : this._tint(visual.color, lm),
         visual.alpha,
       );
       if (ap !== undefined) {
@@ -137,6 +206,7 @@ globalThis.RenderBillboard = class RenderBillboard {
             rp,
             tiltDeg,
             (i + 1) * BB_LAYER_DY,
+            lm,
           );
       }
       matrix_set(matrix_world, ident);
