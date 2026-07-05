@@ -1,15 +1,21 @@
-// Mesh lighting, vertex stage: forward world-space position + the face normal PACKED in
-// the texcoord by tools/vox-kit/vox2vbuf.py (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) --
-// valid because the converter never emits a BOTTOM face, so nz <= 0 with up = -z).
-// The world matrix on this path is scale + translate only (no rotation), so transforming
-// the axis-aligned normal by mat3(world) + renormalizing keeps it exact -- and a negative
-// xscale (mirrored model) flips nx correctly.
+// Mesh lighting, vertex stage. The texcoord has TWO interpretations, selected by the
+// FRAGMENT stage's u_useTex (all uniforms live in the fsh — the proven-on-GMRT stage):
+// - vox mode: the texcoord is the face normal PACKED by tools/vox-kit/vox2vbuf.py
+//   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because the converter never emits a
+//   BOTTOM face, so nz <= 0 with up = -z). The world matrix on this path is scale +
+//   translate only (no rotation), so transforming the axis-aligned normal by mat3(world) +
+//   renormalizing keeps it exact — and a negative xscale (mirrored model) flips nx.
+// - textured mode (RenderWalls): the texcoord is REAL UVs — the decode below then produces
+//   garbage the fsh mixes away in favor of its u_normal uniform. The 1e-6 floor keeps the
+//   garbage FINITE: real UVs can hit u^2+v^2 >= 1, and normalize(vec3(0)) is NaN — which
+//   would survive the fsh mix() (NaN*0 = NaN) and black the fragment.
 attribute vec3 in_Position; // (x,y,z)
-attribute vec4 in_Colour; // (r,g,b,a) - UNSHADED albedo
-attribute vec2 in_TextureCoord; // packed face normal (u = nx, v = ny)
+attribute vec4 in_Colour; // (r,g,b,a) - UNSHADED albedo (vox) or material tint (textured)
+attribute vec2 in_TextureCoord; // packed face normal OR real UVs (see fsh u_useTex)
 
 varying vec3 v_worldPos;
 varying vec3 v_normal;
+varying vec2 v_texcoord;
 varying vec4 v_vColour;
 
 void main() {
@@ -19,7 +25,8 @@ void main() {
 
   float nx = in_TextureCoord.x;
   float ny = in_TextureCoord.y;
-  float nz = -sqrt(max(0.0, 1.0 - nx * nx - ny * ny));
+  float nz = -sqrt(max(1e-6, 1.0 - nx * nx - ny * ny));
   v_normal = normalize(mat3(gm_Matrices[MATRIX_WORLD]) * vec3(nx, ny, nz));
+  v_texcoord = in_TextureCoord;
   v_vColour = in_Colour;
 }

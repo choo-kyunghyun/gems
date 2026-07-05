@@ -82,6 +82,14 @@ globalThis.RenderMesh = class RenderMesh {
     this._uLightCol = this._litOk
       ? shader_get_uniform(this._lit, "u_lightCol")
       : -1;
+    // textured mode (RenderWalls): texcoord = real UVs, normal via u_normal per submit.
+    // _setupLights resets u_useTex to 0 so the vox models always draw in packed-normal mode.
+    this._uUseTex = this._litOk
+      ? shader_get_uniform(this._lit, "u_useTex")
+      : -1;
+    this._uNormal = this._litOk
+      ? shader_get_uniform(this._lit, "u_normal")
+      : -1;
     // (no ambient field: ambient is derived per frame as the sun's complement — see _setupLights)
     // sun provider: () => flat { x, y, z (toward the sun, up = -z), strength, r, g, b }.
     // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a kit
@@ -124,6 +132,7 @@ globalThis.RenderMesh = class RenderMesh {
   // the mesh response tracks the visible glow pools). Arrays are reused scratch.
   _setupLights(world) {
     shader_set(this._lit);
+    shader_set_uniform_f(this._uUseTex, 0); // vox mode; RenderWalls flips it for its submits
     const sun = this.sun !== undefined ? this.sun() : RenderMesh.SUN_DEFAULT;
     // ambient = the sun's complement: 0.55 in full daylight (sun fills the rest), 1.0 at
     // night so unlit meshes match the map-lit world around them (see sh_meshlit.fsh) —

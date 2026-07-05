@@ -7,7 +7,18 @@
 // pools. Sun strength goes to 0 at night (WorldClock.sunDir), leaving ambient + points.
 varying vec3 v_worldPos;
 varying vec3 v_normal;
+varying vec2 v_texcoord;
 varying vec4 v_vColour;
+
+// 0 = vox mode (albedo = vertex colour; texcoord is a packed normal the vsh decoded into
+// v_normal), 1 = textured mode (RenderWalls: albedo = gm_BaseTexture sample x vertex tint;
+// the normal is u_normal — constant per submit, a UNIT axis vector in world space). The
+// texture sample runs in BOTH modes — an untextured vox submit reads gm_BaseTexture as
+// black (GMRT), but the mix() throws that sample away at u_useTex = 0, so it's harmless;
+// likewise the vsh's normal decode of real UVs is finite garbage this mix discards.
+// u_useTex is only ever exactly 0 or 1, so each mix returns an endpoint exactly.
+uniform float u_useTex;
+uniform vec3 u_normal;
 
 #define MAX_LIGHTS 8
 // Point-light FILL fraction: this share of a light's attenuated energy applies regardless
@@ -31,7 +42,7 @@ uniform vec4 u_lightPos[MAX_LIGHTS]; // xyz world pos (up = -z), w = radius
 uniform vec4 u_lightCol[MAX_LIGHTS]; // rgb color, w = intensity (flicker pre-applied)
 
 void main() {
-  vec3 n = normalize(v_normal);
+  vec3 n = mix(normalize(v_normal), u_normal, u_useTex);
   vec3 light = vec3(u_ambient) + u_sunColor * (u_sunDir.w * max(0.0, dot(n, u_sunDir.xyz)));
   for (int i = 0; i < MAX_LIGHTS; i++) {
     if (float(i) >= u_lightCount) break;
@@ -45,5 +56,8 @@ void main() {
     light += u_lightCol[i].rgb *
       (u_lightCol[i].w * atten * mix(POINT_FILL, 1.0, ndl));
   }
-  gl_FragColor = vec4(v_vColour.rgb * light, v_vColour.a);
+  vec4 tex = texture2D(gm_BaseTexture, v_texcoord);
+  vec3 albedo = mix(v_vColour.rgb, v_vColour.rgb * tex.rgb, u_useTex);
+  float alpha = v_vColour.a * mix(1.0, tex.a, u_useTex);
+  gl_FragColor = vec4(albedo * light, alpha);
 }
