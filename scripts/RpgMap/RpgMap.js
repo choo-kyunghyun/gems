@@ -236,8 +236,8 @@ globalThis.RpgMap = {
     RpgMap._spawnWorld(scene, data); // entities (streamed or up-front)
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
-    const entityPass = RpgMap._buildRenderer(scene, data); // render pass stack
-    RpgMap._buildCamera(scene, data, entityPass); // follow camera + view culling + debug
+    RpgMap._buildRenderer(scene, data); // render pass stack
+    RpgMap._buildCamera(scene, data); // follow camera + view culling + debug
 
     FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
     ParticleFx.clear();
@@ -422,7 +422,7 @@ globalThis.RpgMap = {
   },
 
   // Assemble the renderer pass stack (ground → tiles → zones → shadows → entities → debug →
-  // weather → lighting). Returns the live entity pass — _buildCamera wires its pitch. Tiles are
+  // weather → lighting). Tiles are
   // still placeholder: the resident layers render as a sprite-free debug fill (RenderDebugTileMap)
   // rather than the per-layer RenderTileMap loop (restore that loop when tile art lands). Chunked
   // terrain uses its real dual-grid tilesets (TerrainStream).
@@ -476,19 +476,22 @@ globalThis.RpgMap = {
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
       // markDirty reaches it (the flat "corner" autotile config stays for the editor).
+      // Face texture: spr_floorTiles frame 0 as a stand-in brick (a dedicated wall
+      // texture is the art task); the LAYERS tint colors it (texture × tint × light).
       let wallCfg;
       for (let i = 0; i < RpgLevel.LAYERS.length; i++)
         if (RpgLevel.LAYERS[i].key === "wall") wallCfg = RpgLevel.LAYERS[i];
       scene._tilePasses.wall = new RenderWalls(scene.level, scene.wallLayer, {
         color: Color.parse(wallCfg.color),
+        sprite: spr_floorTiles,
+        frame: 0,
         lights: scene._meshPass,
       });
       scene.renderer.insert(scene._tilePasses.wall);
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
-    const entityPass =
-      pitch > 0 ? new RenderBillboard({ pitchDeg: pitch }) : new RenderEntity();
+    const entityPass = pitch > 0 ? new RenderBillboard() : new RenderEntity(); // upright sprites (pass default)
     scene.renderer.insert(entityPass);
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
@@ -532,12 +535,11 @@ globalThis.RpgMap = {
     // term ("lighting with no lights"); Light entities + a night vignette layer on top.
     scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
     scene.renderer.insert(scene._lighting);
-    return entityPass;
   },
 
   // Follow camera on the new player + view culling + the live Debug camera panel.
   // 16px-cell world (GEMS.md): base zoom 3.5 for the pitched 2.5D framing (flat fallback 2).
-  _buildCamera(scene, data, entityPass) {
+  _buildCamera(scene, data) {
     const pitch = RpgMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 3.5 : 2;
     // Cap zoom-OUT to the renderable world (a chunked map only streams a window; past it shows as
@@ -552,7 +554,12 @@ globalThis.RpgMap = {
       world: scene.world,
       followTarget: scene.playerId,
       followLerp: 0.15,
-      pitch: pitch, // 0 = flat top-down, > 0 pitches for standing billboards
+      pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
+      // pitch-by-zoom (upright-sprite camera, ROADMAP art rework) — see RpgMap._pitchCurve
+      pitchCurve: RpgMap._pitchCurve,
+      // ortho eye distance: the -100 default near-clips close ground at steep pitch
+      // (a black band along the screen bottom); image-identical otherwise under ortho
+      followHeight: -1000,
       // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
@@ -575,8 +582,7 @@ globalThis.RpgMap = {
     if (scene._clouds !== undefined) scene._clouds.camera = scene.camera;
     if (scene._weather !== undefined) scene._weather.camera = scene.camera;
     scene._lighting.camera = scene.camera;
-    // Billboards track the camera's LIVE pitch (Debug pitch slider). RenderEntity flat ignores it.
-    entityPass.camera = scene.camera;
+    // (sprites are UPRIGHT constants now — the entity pass no longer tracks camera pitch)
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
     RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
   },
@@ -589,6 +595,14 @@ globalThis.RpgMap = {
     const cam = scene.camera;
     if (cam === undefined) return;
     Debug.panel("Camera", (p) => {
+      // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
+      p.checkbox(
+        "Pitch by zoom",
+        () => cam.followPitchCurve !== undefined,
+        (v) => {
+          cam.followPitchCurve = v ? RpgMap._pitchCurve : undefined;
+        },
+      );
       p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
       p.slider("Zoom", cam, "followZoomTarget", 1, 8, 0.1);
       // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
@@ -659,4 +673,11 @@ globalThis.RpgMap = {
 // 2.5D adopted: camera pitch in degrees (0 = flat top-down, debug only — front-view art reads
 // wrong flat). Assigned after the object literal — GMRT static-field-init quirk. Read by
 // _buildRenderer (billboard vs flat entity pass) + _buildCamera (pitch + framing zoom).
-RpgMap.BB_PITCH = 35;
+// With the upright-sprite camera this is the frame-0 seed + the pitched-map GATE only —
+// the LIVE pitch is _pitchCurve below (42° zoomed out → 58° zoomed in).
+RpgMap.BB_PITCH = 42;
+// Pitch-by-zoom curve (upright-sprite camera, ROADMAP art rework): shallow 42° at the
+// zoom-out floor (~2.5 on a 1920 surface) easing to 58° at max zoom-in (5.25) — "look
+// further = flatter". Constants tuned by the 2026-07-05 spike; shared with the Debug
+// Camera panel's "Pitch by zoom" toggle.
+RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 2.5) / 2.75, 0, 1);

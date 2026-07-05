@@ -3,9 +3,15 @@
 const BB_LAYER_DZ = 0.05;
 
 /**
- * 2.5D entity renderer: stands each foot-anchored sprite up in 3D via a world matrix so
- * front-view art reads correctly under a pitched camera (CameraFollow.create2d `pitch`).
- * only geometry that writes depth — z-write on for this loop only so overlapping bodies
+ * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
+ * Starve / Paper Mario) via a world matrix, under the pitch-by-zoom camera
+ * (CameraFollow.create2d `pitchCurve`). Upright — NOT perpendicular-to-view: a
+ * camera-facing billboard under a mostly-top-down pitch reclines ~cos(pitch) of its height
+ * along the ground, so at wall contact the body crossed the wall mesh's depth and buried
+ * (adopted 2026-07-05, replacing the tilt = -cameraPitch tracking); an upright sprite's top
+ * is always camera-side of geometry it stands in front of. The camera pitch foreshortens
+ * upright sprites to sin(pitch) of their height — the accepted look of the art rework.
+ * Only geometry that writes depth — z-write on for this loop only so overlapping bodies
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
  * requires hard-alpha sprites: soft edges write depth on transparent pixels and occlude
  * what's behind them.
@@ -15,10 +21,7 @@ globalThis.RenderBillboard = class RenderBillboard {
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
-    // negated camera pitch stands the sprite facing the lens (verified by in-engine sweep)
-    this.tiltDeg = -(opt.pitchDeg ?? 0);
-    // when set, tracks live camera pitch each frame so debug pitch tweaks stay in sync
-    this.camera = opt.camera;
+    this.tiltDeg = opt.tiltDeg ?? -90; // -90 = upright off the flat-on-ground default
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
     // GMRT's fixed-function alpha test (gpu_set_alphatestref) is inert — transparent pixels still
     // write depth and occlude geometry behind them. sh_alphatest discards sub-threshold TEXEL
@@ -59,9 +62,7 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   draw(world) {
     const ident = matrix_build_identity();
-    // live pitch tracks debug camera tweaks; fallback to constructor tilt
-    const tiltDeg =
-      this.camera !== undefined ? -(this.camera.pitchDeg ?? 0) : this.tiltDeg;
+    const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
     // only pass that writes depth; global default is off (obj_game Create_0) to avoid z-fighting
     // in coplanar ground passes — restore after
     gpu_set_zwriteenable(true);

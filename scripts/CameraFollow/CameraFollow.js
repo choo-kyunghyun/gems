@@ -22,8 +22,7 @@ function _cameraFollowOnUpdate() {
   // cap zoom-out to the renderable world width — derived live from the current surface so a
   // stale build-time size can't let the view zoom past the streamed region into dark unloaded area
   if (this.followViewCap !== undefined) {
-    const minZ =
-      surface_get_width(application_surface) / this.followViewCap;
+    const minZ = surface_get_width(application_surface) / this.followViewCap;
     if (this.followZoomTarget < minZ) this.followZoomTarget = minZ;
   }
   this.followZoom = lerp(
@@ -36,6 +35,11 @@ function _cameraFollowOnUpdate() {
     surface_get_width(application_surface) / this.followZoom,
     surface_get_height(application_surface) / this.followZoom,
   );
+  // optional pitch-by-zoom curve (upright-sprite 2.5D: zoomed out = shallower, zoomed in =
+  // steeper). Overwrites pitchDeg each frame, so the Debug pitch slider is inert while a
+  // curve is installed (clear followPitchCurve to hand-tune).
+  if (this.followPitchCurve !== undefined)
+    this.pitchDeg = this.followPitchCurve(this.followZoom);
   // pitchDeg is live-tunable (Debug Camera panel); re-derive radians each frame so overlays track it
   this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
 
@@ -113,6 +117,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   });
   camera.followClamp = cam.clamp; // optional { x1, y1, x2, y2 } look-at bounds
   camera.followViewCap = cam.viewCap; // optional max view width (world px) — live zoom-out cap
+  camera.followPitchCurve = cam.pitchCurve; // optional (zoom) => pitch°, applied each update
 
   camera.followZoom = cam.zoom ?? 1; // current eased zoom
   camera.followZoomTarget = camera.followZoom; // wheel/reset destination
@@ -133,7 +138,12 @@ globalThis.CameraFollow = {
    * @returns {Camera}
    */
   create(cam = {}) {
-    return _cameraFollowBuild(cam, CAMERA_PROJECTION.PERSPECTIVE_FOV, false, 256);
+    return _cameraFollowBuild(
+      cam,
+      CAMERA_PROJECTION.PERSPECTIVE_FOV,
+      false,
+      256,
+    );
   },
 
   /**

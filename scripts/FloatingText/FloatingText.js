@@ -44,8 +44,9 @@ globalThis.FloatingText = class FloatingText {
 
   /**
    * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
-   * camera, pitchDeg stands each number up facing the camera (same -pitch X-tilt as RenderBillboard)
-   * instead of splayed flat; 0 (default) is flat top-down.
+   * camera, pitchDeg tilts each number to face the camera head-on (text readability — unlike the
+   * entity sprites, which draw UPRIGHT via RenderBillboard) instead of splayed flat; 0 = flat
+   * top-down. sceneRpg passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
    * @param {number} [pitchDeg=0]
    */
   static draw(pitchDeg = 0) {
@@ -70,7 +71,8 @@ globalThis.FloatingText = class FloatingText {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
-    // 2.5D: stand each number up to face the pitched camera (tilt = -pitch like the billboards).
+    // 2.5D: tilt each number to face the pitched camera head-on (readability; entity sprites
+    // themselves are upright — RenderBillboard).
     // depth test OFF so a number is never occluded by the entity it reports on (always-on-top feedback).
     const billboard = pitchDeg !== 0;
     const tilt = -pitchDeg;

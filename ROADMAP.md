@@ -13,7 +13,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 | GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)     | live; restyle LAST     |
 | VOLUME — furniture, machines, rocks | MagicaVoxel meshes (vox-kit), lit by `sh_meshlit` | **DONE**               |
 | WALLS / structures                  | meshes too (lit boxes over the wall `TileLayer`)  | resident layer LIVE    |
-| STANDING — pawns, creatures         | flat sprites, front elevation, billboards         | Spine pipeline pending |
+| STANDING — pawns, creatures         | flat sprites, front elevation, UPRIGHT billboards | Spine pipeline pending |
 | Items / icons                       | flat redraw (or SVG→PNG)                          | pending                |
 
 ### Done (details live in ARCHITECTURE → `RenderMesh`, CLAUDE.md → Capabilities, `tools/vox-kit/README.md`)
@@ -23,12 +23,14 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 - ~~Furniture conversion~~ — 2026-07-05: workbench/bed/cot/barrel/torch/lantern/turret presets + the rock scatter/`boulder_cluster` prefab are mesh entities (`Mesh` INSTEAD of `Visual`); Build Mode Cot + Lantern. `stand.vox` baked, unwired. Still sprites: crate, fence, chest, survey post, survival stations, door, arcade.
 - ~~Mesh lighting~~ — 2026-07-05: albedo + packed per-face normals, `sh_meshlit` = `WorldClock.sunDir()` sun + ≤8 point lights (wrap-lit, linear falloff, sun-complement ambient, CPU view culling). Composes under the light map: shader = direction, light map = absolute darkness.
 - ~~Wall-mesh pass, phase 1~~ — 2026-07-05: `RenderWalls` draws the resident wall `TileLayer` as lit boxes (per-cell top + exposed south faces, build-time hidden-face removal) under `sh_meshlit`, sharing `RenderMesh`'s sun + culled point lights; day/night + lantern verified, BuildMode edits remesh via the existing markDirty chain.
+- ~~Wall textures, engine side~~ — 2026-07-05: `sh_meshlit` textured mode (`u_useTex` + per-submit `u_normal`; fsh-declared — vsh uniforms silently dead on GMRT, see CLAUDE.md) — texture × tint × light on wall faces; stand-in texture = `spr_floorTiles` frame 0 as brick.
+- ~~Camera: upright sprites + pitch-by-zoom~~ — ADOPTED 2026-07-05: `RenderBillboard` draws upright (tilt −90 constant; a perpendicular-to-view billboard reclines ~cos(pitch) along the ground and buried into wall meshes at contact), camera pitch = `RpgMap._pitchCurve` (42° zoomed out → 58° in, Debug-toggleable), `followHeight` −1000 (near-plane fix). Mob/player BBoxes bumped toward visual size (player 12 wp, raider ≈13.6 — still through 16px doorways).
 
 ### Next
 
 1. **Style spec** (half a page, BEFORE drawing asset #1): ONE world density (voxel 1 px/world-px ↔ sprite `SpriteMeta.density`), **no outlines** (separation = lighting + palette contrast: floors desaturated/dark, entities saturated/bright), light direction, palette.
-2. **Camera decision**: upright sprites + pitch-by-zoom (Don't Starve / Paper Mario) — SPIKED OK 2026-07-05: upright billboards work across 42–58° pitch, sprite sun = one per-entity scalar (bent normal, no shader). Needs the `followHeight` near-plane fix + a pitch curve over the live zoom range (2.5–5.25). Adopt, or stay fixed at 35°.
-3. **Wall-mesh pass, remaining**: convert the chunked overworld's AUTHORED walls (`RenderChunks` flat rects → the lit pass) and add textured faces — `sh_walllit` (sample × tint × light, normal as a uniform, two submits: tops then souths; per-cell UVs, sprite pages can't wrap). Art bill per wall pattern: TWO tileable grayscale textures (top + side) + a tint per material. Floors/terrain stay tiles.
+2. **Sprite sun response** (from the camera spike): one per-entity scalar — bent normal, CPU `merge_color` modulation, no shader — so STANDING sprites react to the sun/torches like meshes do. Small, unblocked.
+3. **Wall-mesh pass, remaining**: convert the chunked overworld's AUTHORED walls (`RenderChunks` flat rects → the lit pass), then the real wall art — per wall pattern TWO tileable grayscale textures (top + side, replacing the single stand-in on both faces) + a tint per material. Floors/terrain stay tiles.
 4. **First character through Spine** → bake → import → verify in-game day + night. Then the strip importer under `tools/` (author → render → import, like the other kits).
 5. Replace entities incrementally (the density seam lets old/new coexist); then items/icons.
 6. **Terrain last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`).
