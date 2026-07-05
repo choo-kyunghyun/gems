@@ -445,16 +445,39 @@ globalThis.RpgMap = {
         }),
       );
     }
-    // Resident layers drawn by ONE sprite-free RenderDebugTileMap (shades cells by nav cost) in
-    // place of the per-layer RenderTileMap passes. _tilePasses holds only the wall layer's
-    // RenderWalls mesh pass (inserted below); the other layers' edits no-op in
-    // BuildMode._markTileDirty. Restore: the RpgLevel.LAYERS loop keyed into _tilePasses.
+    // Resident tile layers (terrain/floor/fence) as real tilemaps again — bottom→top per
+    // RpgLevel.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
+    // (flat fallback keeps its "corner" RenderTileMap). VBO-cached + keyed by layer so a
+    // BuildMode edit markDirty's the matching pass. Chunked maps hold these layers EMPTY
+    // (streamed terrain is TerrainStream's) — an empty layer emits no quads, so free there.
     scene._tilePasses = {};
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
+      if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
+      const spr = asset_get_index(cfg.sprite);
+      if (!sprite_exists(spr)) {
+        Log.warn(`tile sprite missing: ${cfg.sprite}`); // GMRT: validate via sprite_exists, not >=0
+        continue;
+      }
+      const pass = new RenderTileMap(
+        scene[cfg.key + "Layer"],
+        scene.level,
+        spr,
+        {
+          autotile: cfg.type,
+          color: Color.parse(cfg.color),
+        },
+      );
+      scene._tilePasses[cfg.key] = pass;
+      scene.renderer.insert(pass);
+    }
+    // the sprite-free cost fill stays as a debug overlay — Debug → Render → Tiles
     scene._tilePass = new RenderDebugTileMap(scene.level, {
       cost: true,
       tiles: false,
       alpha: 0.5,
     });
+    scene._tilePass.enabled = false;
     scene.renderer.insert(scene._tilePass);
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
     scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid

@@ -177,6 +177,8 @@ globalThis.RenderWalls = class RenderWalls {
       }
       vertex_submit(this._vbTop, pr_trianglelist, tex);
       if (this._vbSouth !== -1) {
+        // per-submit uniform swap verified pixel-exact on 0.20 (top ×1.0, south ×0.76 —
+        // probed 2026-07-06): a uniform re-set between two vertex_submits applies correctly
         if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 1, 0);
         vertex_submit(this._vbSouth, pr_trianglelist, tex);
       }
