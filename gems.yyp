@@ -135,6 +135,7 @@
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
     {"id":{"name":"CameraFly","path":"scripts/CameraFly/CameraFly.yy",},},
+    {"id":{"name":"CameraFocus","path":"scripts/CameraFocus/CameraFocus.yy",},},
     {"id":{"name":"CameraFollow","path":"scripts/CameraFollow/CameraFollow.yy",},},
     {"id":{"name":"CameraPan","path":"scripts/CameraPan/CameraPan.yy",},},
     {"id":{"name":"ChunkGenerator","path":"scripts/ChunkGenerator/ChunkGenerator.yy",},},

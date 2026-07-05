@@ -125,13 +125,10 @@ globalThis.RpgMap = {
 
     const sp = scene.entries[entryId] ?? scene.spawn;
     RpgMap._arriveSquad(scene, squad, sp);
-    // snap the follow camera to the entry so it doesn't pan from the parked position — and
-    // RE-AIM it at the arrived player: the squad crosses as whole entities (take/put mints a
-    // fresh id), so the parked camera's followTarget is the id that LEFT through the portal
-    // (invalid in this world) and the camera would freeze at the snap point on every revisit.
-    // (The build path is immune — _buildCamera runs after _arriveSquad with the fresh id.)
+    // snap the follow camera to the entry so it doesn't pan from the parked position (the
+    // TARGET needs no re-aim: the arrived player carries CameraFocus — take/put re-mints its
+    // id, but CameraFollow resolves the marker by live query each update)
     if (scene.camera) {
-      scene.camera.followTarget = scene.playerId;
       scene.camera.toX = sp.x;
       scene.camera.toY = sp.y;
     }
@@ -610,7 +607,7 @@ globalThis.RpgMap = {
       : scene.level.cols * scene.level.cellWidth;
     scene.camera = CameraFollow.create2d({
       world: scene.world,
-      followTarget: scene.playerId,
+      followTarget: scene.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
       followLerp: 0.15,
       pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
       // pitch-by-zoom (upright-sprite camera, ROADMAP art rework) — see RpgMap._pitchCurve
@@ -668,10 +665,13 @@ globalThis.RpgMap = {
       p.checkbox("Free cam (WASD/RMB)", cam, "freeCam");
       p.slider("Fly speed", cam, "flySpeed", 30, 1200, 10);
       p.button("Recenter on player", () => {
-        const pos =
-          cam.world !== undefined
-            ? cam.world.get(Position, cam.followTarget)
-            : undefined;
+        // same live resolution as CameraFollow: the CameraFocus carrier, else followTarget
+        if (cam.world === undefined) return;
+        const foci = cam.world.query(CameraFocus);
+        const pos = cam.world.get(
+          Position,
+          foci.length > 0 ? foci[0] : cam.followTarget,
+        );
         if (pos !== undefined) {
           cam.toX = pos.x;
           cam.toY = pos.y;

@@ -120,6 +120,10 @@ globalThis.RpgPlayer = {
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });
+    // the follow camera's target marker — CameraFollow resolves it by LIVE query, and it
+    // rides the whole-entity map transfer, so the camera re-finds the player in every
+    // resumed/built world with no stored id to dangle
+    world.add(id, CameraFocus, {});
     // derive combat Stats from Attributes (recompute-from-source — the single derivation path)
     StatModel.recompute(world, id);
     return id;

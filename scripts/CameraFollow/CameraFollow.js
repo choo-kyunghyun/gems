@@ -52,7 +52,14 @@ function _cameraFollowOnUpdate() {
   this._flyInit = false;
 
   if (this.world === undefined) return;
-  const pos = this.world.get(Position, this.followTarget);
+  // Resolve the target LIVE each update: an entity carrying CameraFocus wins (so the camera
+  // never dangles a stored id — a portal transfer re-mints the player's entity id, but the
+  // marker rides the EntitySnapshot into the new world and the query just finds it);
+  // followTarget is the raw-id fallback for worlds that don't use the marker.
+  let target = this.followTarget;
+  const foci = this.world.query(CameraFocus);
+  if (foci.length > 0) target = foci[0];
+  const pos = this.world.get(Position, target);
   if (pos === undefined) return;
 
   let x = lerp(this.toX, pos.x, this.followLerp);

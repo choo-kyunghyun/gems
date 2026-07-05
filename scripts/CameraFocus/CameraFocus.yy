@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"CameraFocus",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"CameraFocus",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"CameraFocus.js",
+}
