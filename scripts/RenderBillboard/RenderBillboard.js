@@ -1,6 +1,10 @@
-// world-z bias between paper-doll layers so draw order beats coplanar float-rounding (see the
-// doll-stack comment in draw); world px — invisible on screen, decisive in the depth buffer
-const BB_LAYER_DZ = 0.05;
+// world-Y bias between paper-doll layers so draw order beats coplanar float-rounding (see the
+// doll-stack comment in draw); world px — invisible on screen, decisive in the depth buffer.
+// Y, not Z: an UPRIGHT sprite's quad is a constant-y vertical plane, so a z offset just
+// slides the layer WITHIN that plane (zero depth separation — the z-bias that worked for the
+// old reclined billboards silently died with the upright adoption, and the bald-raider
+// z-fight returned); ±y moves the plane itself toward/away from the south-side camera.
+const BB_LAYER_DY = 0.05;
 
 /**
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
@@ -38,14 +42,15 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
-  // one Appearance layer at the body's subimg/transform, z-biased by `dz` (see the doll-stack
-  // comment in draw). Layers keep their OWN color — the body's Visual.color is the SKIN tint of
-  // the white spr_human template, so it must not bleed into outfit colors; whole-doll effects
-  // (downed dim) ride visual.alpha, which layers share.
-  _drawLayer(layer, visual, rp, tiltDeg, dz) {
+  // one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
+  // (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
+  // OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
+  // it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
+  // which layers share.
+  _drawLayer(layer, visual, rp, tiltDeg, dy) {
     matrix_set(
       matrix_world,
-      matrix_build(rp.x, rp.y, dz, tiltDeg, 0, 0, 1, 1, 1),
+      matrix_build(rp.x, rp.y + dy, 0, tiltDeg, 0, 0, 1, 1, 1),
     );
     draw_sprite_ext(
       layer.sprite,
@@ -94,9 +99,10 @@ globalThis.RenderBillboard = class RenderBillboard {
       // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
       // quad has different vertices and the interpolated depth diverges by float rounding — a
       // later layer randomly loses the lessequal test (a raider bald under its bandana). Bias
-      // each layer a hair along world z instead (front toward the camera = -z under the pitched
-      // view, back away), so stack order wins deterministically; BB_LAYER_DZ is far above fp
-      // error and far below a visible shift.
+      // each layer a hair along world Y instead (front toward the south-side camera = +y, back
+      // away = -y — an upright quad is a constant-y plane, so only a Y offset separates depth;
+      // a z offset slides within the plane), so stack order wins deterministically;
+      // BB_LAYER_DY is far above fp error and far below a visible shift.
       const ap = world.get(Appearance, entity);
       if (ap !== undefined) {
         for (let i = 0; i < ap.back.length; i++)
@@ -105,7 +111,7 @@ globalThis.RenderBillboard = class RenderBillboard {
             visual,
             rp,
             tiltDeg,
-            (ap.back.length - i) * BB_LAYER_DZ,
+            -(ap.back.length - i) * BB_LAYER_DY,
           );
       }
       matrix_set(
@@ -130,7 +136,7 @@ globalThis.RenderBillboard = class RenderBillboard {
             visual,
             rp,
             tiltDeg,
-            -(i + 1) * BB_LAYER_DZ,
+            (i + 1) * BB_LAYER_DY,
           );
       }
       matrix_set(matrix_world, ident);
