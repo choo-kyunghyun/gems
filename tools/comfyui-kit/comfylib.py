@@ -179,23 +179,85 @@ def _status_errors(status):
 # -- workflow (API-format graph) helpers --------------------------------------
 
 
+class GraphNode:
+    """Handle returned by Graph.add. Index it for an output link: node[0] ->
+    ["<id>", 0]. Passing the bare node as an input means its output 0."""
+
+    def __init__(self, nid):
+        self.id = nid
+
+    def __getitem__(self, slot):
+        return [self.id, slot]
+
+
+class Graph:
+    """Programmatic API-format workflow builder -- the Python alternative to a
+    GUI 'Export (API)' file. Node ids are auto-assigned; inputs take literals
+    or another node's output (node[slot], or the bare node for slot 0).
+
+        g = Graph()
+        ckpt = g.add("CheckpointLoaderSimple", ckpt_name="model.safetensors")
+        pos = g.add("CLIPTextEncode", title="Positive", text="...", clip=ckpt[1])
+
+    Node class names + input specs: probe.py --node CLASS."""
+
+    def __init__(self):
+        self._nodes = {}
+        self._next = 1
+
+    def add(self, class_type, title=None, **inputs):
+        nid = str(self._next)
+        self._next += 1
+        node = {"class_type": class_type, "inputs": {
+            k: (v[0] if isinstance(v, GraphNode) else v)
+            for k, v in inputs.items()
+        }}
+        if title:
+            node["_meta"] = {"title": title}
+        self._nodes[nid] = node
+        return GraphNode(nid)
+
+    def build(self):
+        return self._nodes
+
+
 def load_workflow(path):
-    """Load an API-format workflow JSON; rejects GUI-format exports with a hint."""
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    """Load a workflow: an API-format JSON export, or a Python script defining
+    build() -> graph (a dict or a Graph). Rejects GUI-format exports with a
+    hint."""
+    if path.endswith(".py"):
+        data = _run_workflow_script(path)
+    else:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("nodes"), list):
+            raise ComfyError(
+                path + " is a GUI-format export. In ComfyUI use 'Export (API)' "
+                "(older builds: Settings > Dev mode, then 'Save (API Format)') "
+                "and use that file instead."
+            )
     if not isinstance(data, dict) or not data:
-        raise ComfyError(path + ": not a workflow JSON object")
-    if "nodes" in data and isinstance(data["nodes"], list):
-        raise ComfyError(
-            path + " is a GUI-format export. In ComfyUI use 'Export (API)' "
-            "(older builds: Settings > Dev mode, then 'Save (API Format)') and "
-            "use that file instead."
-        )
+        raise ComfyError(path + ": not a workflow graph")
     for nid, node in data.items():
         if not (isinstance(node, dict) and "class_type" in node):
             raise ComfyError(f"{path}: node {nid!r} has no class_type -- "
                              f"not an API-format workflow")
     return data
+
+
+def _run_workflow_script(path):
+    """Execute a .py workflow and return its graph: build()'s return value,
+    or a module-level GRAPH. Either may be a dict or a Graph."""
+    import runpy
+    ns = runpy.run_path(path)
+    graph = ns["build"]() if callable(ns.get("build")) else ns.get("GRAPH")
+    if isinstance(graph, Graph):
+        graph = graph.build()
+    if not isinstance(graph, dict):
+        raise ComfyError(path + ": expected build() returning the graph "
+                         "(a comfylib.Graph or an API-format dict), or a "
+                         "module-level GRAPH")
+    return graph
 
 
 def is_link(v):

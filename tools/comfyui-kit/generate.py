@@ -2,8 +2,9 @@
 """Queue a ComfyUI workflow (API format) with overrides, wait, save the images.
 
 The workflow file IS the model combination (checkpoint/LoRA/sampler wiring) --
-author it in the ComfyUI GUI, export with 'Export (API)', drop it in
-workflows/ (gitignored). This script only overrides the per-run knobs:
+author it in the ComfyUI GUI and export with 'Export (API)', or write it as a
+Python script defining build() over comfylib.Graph; drop either in workflows/
+(gitignored). This script only overrides the per-run knobs:
 
   python generate.py workflows/flux_items.json -p "a flat wrench icon" --runs 4
   python generate.py wf.json -p "..." -n "blurry" --seed 42 --size 512x512
@@ -138,7 +139,8 @@ def parse_size(s):
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("workflow", help="API-format workflow JSON")
+    ap.add_argument("workflow",
+                    help="API-format workflow JSON, or a .py defining build()")
     ap.add_argument("-p", "--prompt", help="positive prompt text")
     ap.add_argument("-n", "--negative", help="negative prompt text")
     ap.add_argument("--seed", type=int, help="fixed seed (default: random)")

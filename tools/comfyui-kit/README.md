@@ -52,6 +52,30 @@ Server address: `--server host:port` > `local/config.json` > `127.0.0.1:8188`.
 
 Import into GameMaker stays out of this kit: picked winners go through the existing deterministic importers (pixel-art-kit `gm-import/` machinery) or a future strip importer — this kit ends at `out/`.
 
+## Python workflows
+
+A workflow can be a Python script instead of a GUI export — `generate.py` accepts a `.py` path that defines `build()` returning the graph. `comfylib.Graph` handles node ids and links (`node[N]` = output slot N; a bare node = its output 0), so the combination becomes readable, diffable code:
+
+```python
+# workflows/sdxl_items.py — loaded via generate.py (which puts the kit dir on sys.path)
+from comfylib import Graph
+
+def build():
+    g = Graph()
+    ckpt = g.add("CheckpointLoaderSimple", ckpt_name="sd_xl_base_1.0.safetensors")
+    pos = g.add("CLIPTextEncode", title="Positive", text="flat vector icon", clip=ckpt[1])
+    neg = g.add("CLIPTextEncode", title="Negative", text="", clip=ckpt[1])
+    lat = g.add("EmptyLatentImage", width=1024, height=1024, batch_size=1)
+    smp = g.add("KSampler", model=ckpt, positive=pos, negative=neg, latent_image=lat,
+                seed=0, steps=20, cfg=7.0, sampler_name="euler",
+                scheduler="normal", denoise=1.0)
+    img = g.add("VAEDecode", samples=smp, vae=ckpt[2])
+    g.add("SaveImage", images=img, filename_prefix="items")
+    return g
+```
+
+Node class names, input names, and output slot order are exactly what the server exposes — `probe.py --node KSampler` prints a class's spec, and a GUI _Export (API)_ of a working graph is the ground truth to transcribe from. Overrides (`-p`, `--seed`, `--set`, …) apply on top of the built graph the same as for JSON, and `run.json` still records the final graph, so runs stay reproducible either way. The trade-off: a `.py` workflow can't be loaded back into the ComfyUI GUI — keep using GUI exports for visual experimentation and scripts for combinations you want to parameterize and version.
+
 ## Notes
 
 - `--dry-run` prints which nodes the prompt/seed/size overrides resolved to (id + title) without submitting — use it once per new workflow.
