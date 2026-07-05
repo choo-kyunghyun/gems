@@ -54,6 +54,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = true;
     this._vbuf = new VertexBuffer();
     this._tex = undefined;
+    this.lights = opt.lights; // host RenderMesh pass → lit ground (see draw); unset = unlit
 
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
@@ -334,9 +335,20 @@ globalThis.RenderTileMap = class RenderTileMap {
     return m & 64 ? 0 : 12;
   }
 
-  draw(_world) {
+  draw(world) {
     if (this.dirty) this._rebuild();
+    // GROUND under the one lit shader: `lights` (the host RenderMesh pass, assigned by the
+    // scene on pitched maps) supplies the shared sun/point gather; the normal is straight up
+    // — flat ground. z-write stays off (painter order), so only the shading changes; unset
+    // (kit default / flat maps / editor) submits fixed-function unlit exactly as before.
+    const lit = this.lights !== undefined && this.lights._litOk;
+    if (lit) {
+      this.lights._setupLights(world);
+      shader_set_uniform_f(this.lights._uUseTex, 1);
+      shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+    }
     this._vbuf.submit(this._tex);
+    if (lit) shader_reset();
   }
 
   destroy() {

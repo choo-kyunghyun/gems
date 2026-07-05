@@ -26,6 +26,7 @@ globalThis.TerrainStream = class TerrainStream {
     this.chunks = chunks; // store-backed materialAt for the seam apron
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
     this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
+    this.lights = undefined; // host RenderMesh pass (scene-assigned) → lit ground; unset = unlit
 
     // One untinted dual-grid sprite per material, painter-ordered. The palette rides the
     // GENERATOR instance (ChunkGenerator.palette), not a generator class static — a swapped-in
@@ -115,13 +116,23 @@ globalThis.TerrainStream = class TerrainStream {
   }
 
   // submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
-  draw(_world) {
+  draw(world) {
     if (!this._ok) return;
+    // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
+    // host RenderMesh pass supplies the shared sun/point gather, normal straight up; z-write
+    // stays off (painter order) so only the shading changes. Unset → fixed-function unlit.
+    const lit = this.lights !== undefined && this.lights._litOk;
+    if (lit) {
+      this.lights._setupLights(world);
+      shader_set_uniform_f(this.lights._uUseTex, 1);
+      shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+    }
     const keys = Object.keys(this._cache);
     for (let i = 0; i < keys.length; i++) {
       const list = this._cache[keys[i]];
       for (let j = 0; j < list.length; j++) list[j].vb.submit(list[j].tex);
     }
+    if (lit) shader_reset();
   }
 
   // Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with

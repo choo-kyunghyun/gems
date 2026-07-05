@@ -498,6 +498,14 @@ globalThis.RpgMap = {
     if (pitch > 0) {
       scene._meshPass = new RenderMesh({ sun: () => WorldClock.sunDir() });
       scene.renderer.insert(scene._meshPass);
+      // GROUND joins the one lit shader: the streamed terrain + every resident tile pass
+      // read this pass's light gather (up normal — flat ground). Assigned post-construction
+      // because the ground passes are built above, before the mesh pass exists; the wall
+      // passes below take it at construction. Flat maps (pitch 0) stay unlit.
+      if (scene.terrain !== undefined) scene.terrain.lights = scene._meshPass;
+      const tileKeys = Object.keys(scene._tilePasses);
+      for (let i = 0; i < tileKeys.length; i++)
+        scene._tilePasses[tileKeys[i]].lights = scene._meshPass;
       // WALLS category (art projection contract): the resident wall layer as lit boxes
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit

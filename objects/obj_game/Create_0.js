@@ -7,12 +7,12 @@ randomize();
 
 gpu_set_ztestenable(true);
 // GMRT quirk: fixed-function alpha test is INERT (see CLAUDE.md) — gpu_set_alphatestenable rounds-trips
-// its getters but never discards at draw time. sh_alphatest does the cutout via `discard` instead.
-// left commented as a record of the dead end:
+// its getters but never discards at draw time. sh_meshlit's u_alphaRef does the cutout via
+// `discard` instead. left commented as a record of the dead end:
 // gpu_set_alphatestenable(true);
-// only RenderBillboard writes depth (for 2.5D entity z-sort); flat ground passes are coplanar
+// only the entity passes write depth (for 2.5D z-sort); flat ground passes are coplanar
 // at z=0 and must NOT write depth or they z-fight (dual-grid terrain layers flicker hard).
-// default z-write off; RenderBillboard enables it around its draw loop only.
+// default z-write off; RenderBillboard/RenderMesh/RenderWalls enable it around their loops only.
 gpu_set_zwriteenable(false);
 
 draw_set_circle_precision(64);

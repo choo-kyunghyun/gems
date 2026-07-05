@@ -5,10 +5,10 @@
 //   BOTTOM face, so nz <= 0 with up = -z). The world matrix on this path is scale +
 //   translate only (no rotation), so transforming the axis-aligned normal by mat3(world) +
 //   renormalizing keeps it exact — and a negative xscale (mirrored model) flips nx.
-// - textured mode (RenderWalls): the texcoord is REAL UVs — the decode below then produces
-//   garbage the fsh mixes away in favor of its u_normal uniform. The 1e-6 floor keeps the
-//   garbage FINITE: real UVs can hit u^2+v^2 >= 1, and normalize(vec3(0)) is NaN — which
-//   would survive the fsh mix() (NaN*0 = NaN) and black the fragment.
+// - textured mode (walls / billboards / ground tiles): the texcoord is REAL UVs — the decode
+//   below then produces garbage the fsh mixes away in favor of its u_normal uniform. The
+//   1e-6 floor keeps the garbage FINITE: real UVs can hit u^2+v^2 >= 1, and normalize(vec3(0))
+//   is NaN — which would survive the fsh mix() (NaN*0 = NaN) and black the fragment.
 attribute vec3 in_Position; // (x,y,z)
 attribute vec4 in_Colour; // (r,g,b,a) - UNSHADED albedo (vox) or material tint (textured)
 attribute vec2 in_TextureCoord; // packed face normal OR real UVs (see fsh u_useTex)

@@ -380,7 +380,6 @@
     {"id":{"name":"Zone","path":"scripts/Zone/Zone.yy",},},
     {"id":{"name":"ZoneMap","path":"scripts/ZoneMap/ZoneMap.yy",},},
     {"id":{"name":"ZoneSystem","path":"scripts/ZoneSystem/ZoneSystem.yy",},},
-    {"id":{"name":"sh_alphatest","path":"shaders/sh_alphatest/sh_alphatest.yy",},},
     {"id":{"name":"sh_meshlit","path":"shaders/sh_meshlit/sh_meshlit.yy",},},
     {"id":{"name":"mus_battle","path":"sounds/mus_battle/mus_battle.yy",},},
     {"id":{"name":"mus_overworld","path":"sounds/mus_overworld/mus_overworld.yy",},},

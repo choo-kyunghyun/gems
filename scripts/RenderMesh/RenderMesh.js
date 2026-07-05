@@ -13,7 +13,7 @@
  *   toward a torch brighten, tops of tall meshes stay dark to a ground-level flame). This
  *   composes UNDER RenderLighting's screen-space multiply: the shader differentiates faces
  *   by direction, the light map owns absolute night darkness + the visible glow pools.
- *   No-shader fallback submits flat albedo (guarded like sh_alphatest).
+ *   No-shader fallback submits flat albedo.
  * - else → an analytic axis-aligned box: under the fixed-yaw pitched ortho camera only TWO
  *   faces are ever visible — the plan-view TOP (lying at -height over the footprint) and the
  *   elevation FRONT (a true vertical quad at the footprint's south edge) — so two quads.
@@ -41,15 +41,6 @@ globalThis.RenderMesh = class RenderMesh {
     opt = opt ?? {};
     this.enabled = true;
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
-    // same guarded texel-alpha cutout as RenderBillboard (GMRT's fixed-function alpha test is
-    // inert). Set ONLY around sprite faces: sh_alphatest samples gm_BaseTexture, which reads
-    // BLACK on an untextured primitive and would discard the flat-fill faces entirely.
-    this._shader = asset_get_index("sh_alphatest");
-    this._shaderOk =
-      shaders_are_supported() && shader_is_compiled(this._shader);
-    this._uAlphaRef = this._shaderOk
-      ? shader_get_uniform(this._shader, "u_alphaRef")
-      : -1;
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
     // baked-mesh models (tools/vox-kit): position_3d + colour + texcoord, 24 bytes/vertex —
     // this declaration and the converter's byte layout are a lockstep pair (the texcoord
@@ -61,7 +52,7 @@ globalThis.RenderMesh = class RenderMesh {
     this._format = vertex_format_end();
     this._models = new Map(); // name -> { vb } (string keys only — ref-keyed Maps crash GMRT)
     this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
-    // mesh lighting shader (guarded like sh_alphatest; without it models draw flat albedo)
+    // THE world shader (guarded — without it models draw flat unlit albedo)
     this._lit = asset_get_index("sh_meshlit");
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this._litOk
@@ -82,13 +73,17 @@ globalThis.RenderMesh = class RenderMesh {
     this._uLightCol = this._litOk
       ? shader_get_uniform(this._lit, "u_lightCol")
       : -1;
-    // textured mode (RenderWalls): texcoord = real UVs, normal via u_normal per submit.
-    // _setupLights resets u_useTex to 0 so the vox models always draw in packed-normal mode.
+    // textured mode (RenderWalls/RenderBillboard/ground passes): texcoord = real UVs, normal
+    // via u_normal per submit. _setupLights resets u_useTex to 0 so the vox models always
+    // draw in packed-normal mode, and u_alphaRef to 0 (no cutout) so they never discard.
     this._uUseTex = this._litOk
       ? shader_get_uniform(this._lit, "u_useTex")
       : -1;
     this._uNormal = this._litOk
       ? shader_get_uniform(this._lit, "u_normal")
+      : -1;
+    this._uAlphaRef = this._litOk
+      ? shader_get_uniform(this._lit, "u_alphaRef")
       : -1;
     // (no ambient field: ambient is derived per frame as the sun's complement — see _setupLights)
     // sun provider: () => flat { x, y, z (toward the sun, up = -z), strength, r, g, b }.
@@ -98,7 +93,6 @@ globalThis.RenderMesh = class RenderMesh {
     this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
     this._lp = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0); // reused uniform scratch
     this._lc = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0);
-    this._lightN = 0; // gathered count this frame — RenderBillboard's sprite sun response reads it
   }
 
   destroy() {
@@ -130,12 +124,14 @@ globalThis.RenderMesh = class RenderMesh {
 
   // set sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
   // MAX_LIGHTS `Light` entities as point lights (same flicker formula as RenderLighting so
-  // the mesh response tracks the visible glow pools). Arrays are reused scratch. The gathered
-  // set (_lp/_lc/_lightN) doubles as the frame's shared light state: RenderBillboard's CPU
-  // sprite sun response reads it (this pass draws first), so sprites and meshes can't diverge.
+  // the mesh response tracks the visible glow pools). Arrays are reused scratch. This is the
+  // ONE light gather every lit pass shares (walls/billboards/ground call it via opt.lights),
+  // so the whole scene can't diverge — each caller then overrides u_useTex/u_normal/
+  // u_alphaRef for its own submits.
   _setupLights(world) {
     shader_set(this._lit);
-    shader_set_uniform_f(this._uUseTex, 0); // vox mode; RenderWalls flips it for its submits
+    shader_set_uniform_f(this._uUseTex, 0); // vox mode; textured callers flip it
+    shader_set_uniform_f(this._uAlphaRef, 0); // no cutout; billboards/sprite faces raise it
     const sun = this.sun !== undefined ? this.sun() : RenderMesh.SUN_DEFAULT;
     // ambient = the sun's complement: 0.55 in full daylight (sun fills the rest), 1.0 at
     // night so unlit meshes match the map-lit world around them (see sh_meshlit.fsh) —
@@ -207,7 +203,6 @@ globalThis.RenderMesh = class RenderMesh {
       this._lc[i * 4 + 2] = color_get_blue(lt.color) / 255;
       this._lc[i * 4 + 3] = intensity;
     }
-    this._lightN = n;
     shader_set_uniform_f(this._uLightCount, n);
     if (n > 0) {
       shader_set_uniform_f_array(this._uLightPos, this._lp);
@@ -217,16 +212,26 @@ globalThis.RenderMesh = class RenderMesh {
 
   // one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
   // over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
-  // sprite_exists, never >= 0), else a flat color fill
+  // sprite_exists, never >= 0), else a flat color fill. A sprite face runs under sh_meshlit
+  // in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
+  // stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
+  // depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
+  // black on an untextured primitive and would blacken it).
   _face(name, color, alpha, w, h) {
     const spr = name ? asset_get_index(name) : -1;
     if (name && sprite_exists(spr)) {
-      if (this._shaderOk) {
-        shader_set(this._shader);
+      if (this._litOk) {
+        shader_set(this._lit);
+        shader_set_uniform_f(this._uAmbient, 1);
+        shader_set_uniform_f(this._uSunDir, 0, 0, -1, 0);
+        shader_set_uniform_f(this._uSunColor, 1, 1, 1);
+        shader_set_uniform_f(this._uLightCount, 0);
+        shader_set_uniform_f(this._uUseTex, 1);
+        shader_set_uniform_f(this._uNormal, 0, 0, -1);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
       }
       draw_sprite_stretched_ext(spr, 0, 0, 0, w, h, color, alpha);
-      if (this._shaderOk) shader_reset();
+      if (this._litOk) shader_reset();
     } else {
       draw_rectangle_color(0, 0, w, h, color, color, color, color, false);
     }

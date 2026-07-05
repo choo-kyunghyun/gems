@@ -11,14 +11,21 @@ varying vec2 v_texcoord;
 varying vec4 v_vColour;
 
 // 0 = vox mode (albedo = vertex colour; texcoord is a packed normal the vsh decoded into
-// v_normal), 1 = textured mode (RenderWalls: albedo = gm_BaseTexture sample x vertex tint;
-// the normal is u_normal — constant per submit, a UNIT axis vector in world space). The
-// texture sample runs in BOTH modes — an untextured vox submit reads gm_BaseTexture as
-// black (GMRT), but the mix() throws that sample away at u_useTex = 0, so it's harmless;
-// likewise the vsh's normal decode of real UVs is finite garbage this mix discards.
-// u_useTex is only ever exactly 0 or 1, so each mix returns an endpoint exactly.
+// v_normal), 1 = textured mode (walls / billboards / ground tiles: albedo = gm_BaseTexture
+// sample x vertex tint; the normal is u_normal — constant per submit, a UNIT vector in
+// world space: walls swap top/south, billboards pass the bent sprite normal, ground passes
+// straight up). The texture sample runs in BOTH modes — an untextured vox submit reads
+// gm_BaseTexture as black (GMRT), but the mix() throws that sample away at u_useTex = 0, so
+// it's harmless; likewise the vsh's normal decode of real UVs is finite garbage this mix
+// discards. u_useTex is only ever exactly 0 or 1, so each mix returns an endpoint exactly.
 uniform float u_useTex;
 uniform vec3 u_normal;
+// texel-alpha cutout (billboards / sprite faces; 0 = off — RenderMesh._setupLights pins 0 so
+// vox/wall submits never discard). Tested on the TEXEL alpha (the sprite SHAPE), never the
+// final v_vColour*tex alpha, so a dimmed/tinted entity stays fully visible — only the shape
+// is cut. A discarded fragment writes no depth (GMRT's fixed-function alpha test is inert;
+// this replaces the retired sh_alphatest).
+uniform float u_alphaRef;
 
 #define MAX_LIGHTS 8
 // Point-light FILL fraction: this share of a light's attenuated energy applies regardless
@@ -57,6 +64,7 @@ void main() {
       (u_lightCol[i].w * atten * mix(POINT_FILL, 1.0, ndl));
   }
   vec4 tex = texture2D(gm_BaseTexture, v_texcoord);
+  if (u_alphaRef > 0.0 && tex.a < u_alphaRef) discard;
   vec3 albedo = mix(v_vColour.rgb, v_vColour.rgb * tex.rgb, u_useTex);
   float alpha = v_vColour.a * mix(1.0, tex.a, u_useTex);
   gl_FragColor = vec4(albedo * light, alpha);
