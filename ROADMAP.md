@@ -6,11 +6,11 @@ Retire pixel art for entities. **Flat, simple bitmap art at free resolution** (m
 
 ### Per-category plan (the projection contract)
 
-Each world thing is exactly one category, decided by rule, never per-asset taste (RimWorld's mistake: mixing plan-view and elevation art freely forces manual depth-sorting forever). GROUND never competes for depth by construction; VOLUME/WALLS are real depth-writing geometry; STANDING billboards sort per-pixel via the depth buffer + `sh_alphatest`.
+Each world thing is exactly one category, decided by rule, never per-asset taste (RimWorld's mistake: mixing plan-view and elevation art freely forces manual depth-sorting forever). GROUND never competes for depth by construction; VOLUME/WALLS are real depth-writing geometry; STANDING billboards sort per-pixel via the depth buffer + `sh_meshlit`'s texel cutout. **Every world pass lights through the ONE shader** (`sh_meshlit` — vox or textured mode, normals per-vertex or per-submit; unified 2026-07-06).
 
 | Category                            | Art                                               | Status                 |
 | ----------------------------------- | ------------------------------------------------- | ---------------------- |
-| GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)     | live; restyle LAST     |
+| GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)     | **DONE** (lit + bands) |
 | VOLUME — furniture, machines, rocks | MagicaVoxel meshes (vox-kit), lit by `sh_meshlit` | **DONE**               |
 | WALLS / structures                  | meshes too (lit boxes over the wall `TileLayer`)  | LIVE (art pending)     |
 | STANDING — pawns, creatures         | flat sprites, front elevation, UPRIGHT billboards | Spine pipeline pending |
@@ -27,6 +27,8 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 - ~~Camera: upright sprites + pitch-by-zoom~~ — ADOPTED 2026-07-05: `RenderBillboard` draws upright (tilt −90 constant; a perpendicular-to-view billboard reclines ~cos(pitch) along the ground and buried into wall meshes at contact), camera pitch = `RpgMap._pitchCurve` (42° zoomed out → 58° in, Debug-toggleable), `followHeight` −1000 (near-plane fix). Mob/player BBoxes bumped toward visual size (player 12 wp, raider ≈13.6 — still through 16px doorways).
 - ~~Sprite sun response~~ — 2026-07-06: `RenderBillboard` modulates each sprite's tint (body + doll layers identically) by the `sh_meshlit` model evaluated once per entity on the CPU at a fixed bent normal, reading the sun + the point-light set `RenderMesh` gathered that frame — sprites dim/warm with the sun and catch torchlight like the mesh faces beside them (noon = authored colors; light map still owns darkness). Verified by red-sun A/B + night torch shots.
 - ~~Chunked-overworld authored walls → lit pass~~ — 2026-07-06: `ChunkManager.wallLayer()` (whole-store wall occupancy — records are the immutable world after pregeneration, so it rasterizes once, no streaming coupling) feeds a second `RenderWalls` instance; `RenderChunks`' flat wall rects retired on pitched maps (`opt.walls`). Hub building + prefab ruins/camps now brick lit boxes; verified noon + midnight.
+- ~~Terrain + floor finish~~ — 2026-07-06: resident layers render as real tilemaps again (interiors were the debug cost fill; the fill is now an off-default debug overlay); terrain materials pulled into the spec GROUND bands (deepwater/richsoil were the outliers); floor = `spr_floorTiles` frame 4 offset-weave tinted wood-tan (frame 0 brick stays the wall stand-in); resident terrain tint = the streamed-grass olive.
+- ~~ONE world shader~~ — 2026-07-06: `sh_meshlit` gains the texel-cutout mode (`u_alphaRef`; `sh_alphatest` deleted) and EVERY world pass submits through it — billboards per-pixel at the bent `u_normal` (the CPU per-entity tint retired), ground (`TerrainStream` + `RenderTileMap`, `VertexBuffer` → `position_3d`) under the straight-up normal, walls/meshes as before. One light gather per frame (`RenderMesh._setupLights`) feeds all of it; the light map keeps owning absolute darkness. Verified: a red sun tints terrain, walls, rocks, and every sprite together; noon identical to authored colors.
 
 ### Next
 
@@ -34,7 +36,6 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 2. **Wall art**: per wall pattern TWO tileable grayscale textures (top + side, replacing the single `spr_floorTiles` stand-in on both faces) + a tint per material. Floors/terrain stay tiles.
 3. **First character through Spine** → bake → import → verify in-game day + night. Then the strip importer under `tools/` (author → render → import, like the other kits).
 4. Replace entities incrementally (the density seam lets old/new coexist); then items/icons.
-5. **Terrain last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`).
 
 ### Style spec (DRAFT — review/edit, then this section governs every new asset)
 
