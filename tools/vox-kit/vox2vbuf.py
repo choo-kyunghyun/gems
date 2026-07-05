@@ -5,16 +5,23 @@ commit the .vox as editable source, bake to a raw vertex stream the runtime load
 buffer_load -> vertex_create_buffer_from_buffer (RenderMesh draws it in the depth pass).
 
 Vertex layout (must mirror RenderMesh's declared format EXACTLY, little-endian):
-    position 3 x f32 | colour 4 x u8 (RGBA) | texcoord 2 x f32 (zeros, untextured)
+    position 3 x f32 | colour 4 x u8 (RGBA albedo, UNSHADED palette color)
+    | texcoord 2 x f32 (PACKED FACE NORMAL: u = nx, v = ny; the shader derives
+      nz = -sqrt(max(0, 1 - u^2 - v^2)) -- valid because no BOTTOM face is ever
+      emitted, so nz is always <= 0 in the up-is-negative-z convention)
     = 24 bytes per vertex, pr_trianglelist.
+
+Shading is NOT baked: sh_meshlit lights the albedo live (directional sun + point
+lights) from the packed normals. (Pre-lighting versions baked top x1.00 / south
+x0.80 into the colour; re-run this converter after pulling to refresh old .vbuf.)
 
 Coordinate map (MagicaVoxel is z-up):  game x = vox x,  game y = vox y (+y = south/front),
 game z = -vox z (up is negative z, the RenderBillboard convention). The mesh is centered on
 the footprint (Position = footprint center), feet at z = 0.
 
 Only the two face orientations the fixed-yaw pitched camera can see are emitted:
-    TOP faces   (air above)          at brightness 1.00
-    SOUTH faces (air to +y)          at brightness 0.80  (one implied sun, baked)
+    TOP faces   (air above,  normal (0, 0, -1) -> packed (0, 0))
+    SOUTH faces (air to +y,  normal (0, 1, 0)  -> packed (0, 1))
 
 Usage:  python tools/vox-kit/vox2vbuf.py <input.vox> <output.vbuf>
 Zero dependencies (stdlib only), deterministic output.
@@ -22,9 +29,6 @@ Zero dependencies (stdlib only), deterministic output.
 
 import struct
 import sys
-
-TOP_SHADE = 1.00
-SOUTH_SHADE = 0.80
 
 
 def parse_vox(path):
@@ -77,21 +81,19 @@ def bake(path_in, path_out):
 
     verts = bytearray()
 
-    def vert(x, y, z, r, g, b):
-        verts.extend(struct.pack("<fffBBBBff", x, y, z, r, g, b, 255, 0.0, 0.0))
+    def vert(x, y, z, r, g, b, nu, nv):
+        verts.extend(struct.pack("<fffBBBBff", x, y, z, r, g, b, 255, nu, nv))
 
-    def quad(p1, p2, p3, p4, rgb):
+    def quad(p1, p2, p3, p4, rgb, nu, nv):
         # two triangles, consistent order (cull mode is off in-engine)
         for p in (p1, p2, p3, p1, p3, p4):
-            vert(p[0], p[1], p[2], rgb[0], rgb[1], rgb[2])
+            vert(p[0], p[1], p[2], rgb[0], rgb[1], rgb[2], nu, nv)
 
     quads = 0
     for (x, y, z), c in voxels.items():
-        pr, pg, pb, _pa = palette[c - 1]  # XYZI color index is 1-based
+        rgb = palette[c - 1][:3]  # XYZI color index is 1-based; raw albedo
         gx, gy = x - ox, y - oy
         if (x, y, z + 1) not in voxels:  # TOP face, lying at height z+1
-            s = TOP_SHADE
-            rgb = (int(pr * s), int(pg * s), int(pb * s))
             h = -(z + 1)
             quad(
                 (gx, gy, h),
@@ -99,17 +101,19 @@ def bake(path_in, path_out):
                 (gx + 1, gy + 1, h),
                 (gx, gy + 1, h),
                 rgb,
+                0.0,
+                0.0,  # normal (0, 0, -1)
             )
             quads += 1
         if (x, y + 1, z) not in voxels:  # SOUTH face (faces the camera)
-            s = SOUTH_SHADE
-            rgb = (int(pr * s), int(pg * s), int(pb * s))
             quad(
                 (gx, gy + 1, -(z + 1)),
                 (gx + 1, gy + 1, -(z + 1)),
                 (gx + 1, gy + 1, -z),
                 (gx, gy + 1, -z),
                 rgb,
+                0.0,
+                1.0,  # normal (0, 1, 0)
             )
             quads += 1
 

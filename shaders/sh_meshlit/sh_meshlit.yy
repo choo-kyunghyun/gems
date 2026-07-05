@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_meshlit",
+  "name":"sh_meshlit",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

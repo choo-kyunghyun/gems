@@ -34,16 +34,20 @@ but the mesh itself replaces the analytic two-quad box.
 - **MagicaVoxel +x = east (width), +y = south (the face toward the camera)**, z = up. Author
   furniture front along +y.
 - Only the two face orientations the fixed-yaw pitched camera can see are emitted (**top +
-  south**), with the one-sun shading baked into vertex colors (top ×1.00, south ×0.80) — the
-  palette IS the texture; no bitmap assets involved.
+  south**). The vertex colour is the raw palette **albedo** (the palette IS the texture; no
+  bitmap assets) and the texcoord slot carries the **packed face normal** (`u = nx, v = ny`;
+  the shader derives `nz = -sqrt(1-u²-v²)` — valid since no bottom face is ever emitted).
+  Shading is LIVE, not baked: `sh_meshlit` lights the albedo per frame (directional sun via
+  `WorldClock.sunDir()` + the torch/lantern `Light` entities as point lights).
 - The emitted vertex layout (`position 3×f32 | colour RGBA u8 | texcoord 2×f32`, 24 B/vertex)
-  and `RenderMesh`'s declared vertex format are a **lockstep pair** — change both or neither.
+  and `RenderMesh`'s declared vertex format are a **lockstep pair** — change both or neither
+  (and the texcoord's normal encoding pairs with `sh_meshlit.vsh`).
 
 ## License & provenance
 
 Everything here is under the repository's MIT license. The models in `templates/` are
 **original works of this project** (MIT like the rest of the repo). MagicaVoxel is only the
-recommended *editor*: a free tool (free for personal and commercial use) that claims no rights
+recommended _editor_: a free tool (free for personal and commercial use) that claims no rights
 over user-created content, with an openly published `.vox` format specification
 ([ephtracy/voxel-model](https://github.com/ephtracy/voxel-model), MIT). No MagicaVoxel code or
 assets ship in this repository; `vox2vbuf.py` is an original parser written from the open spec.

@@ -465,8 +465,13 @@ globalThis.RpgMap = {
     scene.renderer.insert(new RenderEntityShadow());
     // Deep-furniture meshes (VOLUME category of the projection contract — see ROADMAP.md):
     // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
-    // a flat map has no depth-writing entity pass to sort against.
-    if (pitch > 0) scene.renderer.insert(new RenderMesh());
+    // a flat map has no depth-writing entity pass to sort against. Sun injected like
+    // RenderLighting's ambient (the pass is Core, WorldClock is Demo); camera assigned in
+    // _buildCamera (the nearest-point-light selection center).
+    if (pitch > 0) {
+      scene._meshPass = new RenderMesh({ sun: () => WorldClock.sunDir() });
+      scene.renderer.insert(scene._meshPass);
+    }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
     const entityPass =
@@ -559,6 +564,7 @@ globalThis.RpgMap = {
     scene._lighting.camera = scene.camera;
     // Billboards track the camera's LIVE pitch (Debug pitch slider). RenderEntity flat ignores it.
     entityPass.camera = scene.camera;
+    if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
     RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
   },
 

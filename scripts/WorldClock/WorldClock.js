@@ -80,6 +80,35 @@ globalThis.WorldClock = class WorldClock {
     return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
   }
 
+  // Directional sun for mesh lighting (RenderMesh's injected `sun` provider): a flat
+  // { x, y, z, strength, r, g, b } — unit vector TOWARD the sun (up = -z), strength 0 at
+  // night (meshes fall to ambient + point lights), color warmed toward dawn/dusk. The sun
+  // rises east (+x), sets west (-x), with a constant southward lean so the camera-side
+  // faces still catch light at midday.
+  static sunDir() {
+    const h = WorldClock.hour;
+    if (h < 6 || h > 18)
+      return { x: 0, y: 0.33, z: -0.94, strength: 0, r: 1, g: 1, b: 1 };
+    const t = (h - 6) / 12;
+    const elev = Math.sin(Math.PI * t) * ((65 * Math.PI) / 180);
+    let hx = Math.cos(Math.PI * t); // east at sunrise → west at sunset
+    let hy = 0.35; // southward lean (the camera side)
+    const hn = Math.sqrt(hx * hx + hy * hy);
+    hx /= hn;
+    hy /= hn;
+    const ce = Math.cos(elev);
+    const warm = 1 - Math.sin(Math.PI * t); // 1 at the horizons, 0 at noon
+    return {
+      x: hx * ce,
+      y: hy * ce,
+      z: -Math.sin(elev),
+      strength: 0.5 * Math.sqrt(Math.sin(Math.PI * t)), // rises fast, flat through midday
+      r: 1,
+      g: 1 - 0.25 * warm,
+      b: 1 - 0.45 * warm,
+    };
+  }
+
   // day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
   // Color.parse/merge from a method is fine — only a static-field self-reference breaks on GMRT.
   static tint() {
