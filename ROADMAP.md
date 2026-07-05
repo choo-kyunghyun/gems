@@ -29,11 +29,25 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 
 ### Next
 
-1. **Style spec** (half a page, BEFORE drawing asset #1): ONE world density (voxel 1 px/world-px ↔ sprite `SpriteMeta.density`), **no outlines** (separation = lighting + palette contrast: floors desaturated/dark, entities saturated/bright), light direction, palette.
+1. **Style spec** — DRAFTED below (2026-07-06); review, edit, approve — then it governs asset #1.
 2. **Wall-mesh pass, remaining**: convert the chunked overworld's AUTHORED walls (`RenderChunks` flat rects → the lit pass), then the real wall art — per wall pattern TWO tileable grayscale textures (top + side, replacing the single stand-in on both faces) + a tint per material. Floors/terrain stay tiles.
 3. **First character through Spine** → bake → import → verify in-game day + night. Then the strip importer under `tools/` (author → render → import, like the other kits).
 4. Replace entities incrementally (the density seam lets old/new coexist); then items/icons.
 5. **Terrain last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`).
+
+### Style spec (DRAFT — review/edit, then this section governs every new asset)
+
+**One sentence**: flat, saturated, outline-free subjects on desaturated ground, separated by real lighting, not contour lines — a modern-survival palette for a failed-terraforming colony.
+
+- **World density** (one anchor: the 16 px cell). VOLUME/WALLS author at **1 source px = 1 world px** (a 16³ vox block per cell; wall face textures 16×16 per cell). STANDING sprites (Spine bakes) export at **`SpriteMeta.density: 4`** (4 source px per world px — a ~48-world-px character exports ~192 px tall): at max zoom (×5.25 on a 1080p surface) that is ≥ 1 source px per ~1.3 screen px, so characters stay crisp everywhere while texture pages stay sane; density 8 doubles page cost for no visible gain. Item icons: density 2 (drawn small, UI-only).
+- **No outlines, anywhere.** Separation is (1) the projection contract (depth buffer), (2) lighting — sun N·L + point lights hit meshes per-face and sprites per-entity (the sprite sun response), and (3) **palette contrast bands**:
+  - GROUND: desaturated, mid-dark — **S ≤ 35 %, V 40–70 %**. Terrain must recede.
+  - VOLUME/WALLS: mid saturation — **S 30–60 %**; material reads by hue + the lit face split (bright top / darker south), not texture noise.
+  - STANDING + interactables: saturated, bright — **S 60–90 %, V 70–95 %**. Pawns pop off any floor with no contour line.
+- **Author albedo only.** No baked directional shading or shadows — the runtime shades (sun arc, torches) and `RenderEntityShadow` grounds every body. Interior detail (a seam, a panel line) is a hue/value step, never a dark outline stroke.
+- **Light**: the canonical sun is the `WorldClock` arc — east → west, constant southward lean, 65° max elevation, warm at the horizons, white at noon; night is the light map plus warm points (torch `#ffd09a`, lantern `#ffedc9`). **Acceptance check for every asset**: screenshot at noon, dusk, and night-beside-a-torch before it lands.
+- **Palette**: DB32 is retired for entities (it stays inside the legacy pixel tilesets until the terrain restyle). Ground hues harmonize with the `RpgBiomes.PALETTE` reference; entities are free RGB within the bands above. Reserved signal colors stay signals — ally green, hostile red, rarity tiers, UI accent `#4a9eff` — never costume colors.
+- **Proportions**: keep the big-head readable silhouette (~3 heads tall) from the blob template era; author upright and slightly tall — the pitched camera foreshortens upright sprites to sin(pitch) (~74–85 %), so err tall, never squat. Foot-anchored, hard alpha (soft edges write depth — billboard rule).
 
 ### Character pipeline (Spine, license-clean for open source)
 
