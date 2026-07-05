@@ -140,8 +140,8 @@ def _scatter(rng, S, count, margin, sep=5):
 def _decor_flowers(px, S, rng):
     """2-3 small blooms: a 1px warm core + 4 muted petals (plus shape). Colors stay low-contrast
     against the olive grass so blooms read as accents, not confetti."""
-    petals = [(208, 202, 178), (172, 152, 174)]  # dusty white / soft lilac
-    core = (198, 174, 112)
+    petals = [(196, 190, 172), (172, 152, 174)]  # dusty white / soft lilac
+    core = (190, 172, 128)
     for x, y in _scatter(rng, S, rng.randint(2, 3), 3):
         pet = petals[rng.randrange(len(petals))] + (255,)
         for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
@@ -178,32 +178,32 @@ def decorate(patch, S, kind, seed):
 # Per-terrain algorithm selection + params (example terrains; colors inline). `variants` overrides the default count.
 TERRAINS = {
     "water": {"algo": "ripple", "seed": 11, "variants": 1,
-              # RimWorld-earthy: muted steel blue-grey (desaturated from the old bright blue) + a soft
-              # lighter crest. No dark trough stripe.
-              "tones": [(86, 116, 140), (86, 116, 140), (86, 116, 140), (120, 150, 165)],
+              # style-spec GROUND band (S<=35%, V 40-70% — ROADMAP -> Style spec): muted steel
+              # blue-grey + a soft lighter crest. No dark trough stripe.
+              "tones": [(95, 120, 140), (95, 120, 140), (95, 120, 140), (120, 150, 165)],
               "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.04},
     "deepwater": {"algo": "ripple", "seed": 31, "variants": 1,
               # water's darker sibling (lake/sea centers); crest = water's base so the two read as one
               # body. variants=1 like water — a continuous ripple must stay ONE seamless tile.
-              "tones": [(62, 88, 112), (62, 88, 112), (62, 88, 112), (86, 116, 140)],
+              "tones": [(76, 95, 112), (76, 95, 112), (76, 95, 112), (95, 120, 140)],
               "cyc_y": 2, "cyc_x": 2, "warp": 0.06, "glint": 0.02},
     "sand":  {"algo": "grain", "seed": 23, "variants": 4,
-              # RimWorld-earthy + calm: muted tan, sparse low-contrast specks (a clean backdrop, not
-              # grainy static). See grass note below.
-              "base": (168, 148, 106), "dark": (150, 132, 92), "light": (185, 166, 124),
+              # muted tan, sparse low-contrast specks (a clean backdrop, not grainy static);
+              # spec ground band. See grass note below.
+              "base": (168, 150, 113), "dark": (150, 135, 102), "light": (185, 167, 126),
               "density": 0.09,
               "decor": [{"kind": "stones", "n": 1, "weight": 1}]},
     "mud":   {"algo": "noise", "seed": 41, "variants": 4,
               # wet dark grey-brown; big low-contrast blobs (L=4) read as damp puddled ground
-              "base": (96, 84, 68), "dark": (84, 74, 60), "light": (109, 96, 78),
+              "base": (103, 90, 73), "dark": (90, 79, 64), "light": (117, 103, 83),
               "L": 4},
     "soil":  {"algo": "grain", "seed": 43, "variants": 4,
               # plain dry earth between sand and grass in tone; fine crumb speckle
-              "base": (140, 117, 88), "dark": (125, 104, 78), "light": (155, 131, 100),
+              "base": (140, 120, 94), "dark": (125, 107, 84), "light": (155, 133, 104),
               "density": 0.10},
     "richsoil": {"algo": "noise", "seed": 47, "variants": 4,
               # dark fertile humus — deeper + warmer than soil, mottled organic blobs
-              "base": (110, 88, 64), "dark": (97, 77, 56), "light": (124, 101, 75),
+              "base": (110, 92, 73), "dark": (97, 81, 64), "light": (124, 104, 82),
               "L": 6},
     "grass": {"algo": "blades", "seed": 7, "variants": 4,
               # RimWorld-earthy + calm: desaturated OLIVE (not bright green), sparse low-contrast

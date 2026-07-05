@@ -40,7 +40,8 @@ globalThis.RpgLevel = {
       name: "지형",
       type: "dual",
       sprite: "spr_tiledual",
-      color: "#5d8a46",
+      // desaturated olive matching the streamed grass base (style-spec GROUND band)
+      color: "#79825a",
       solid: false,
       pathCost: 1,
       emptyCost: 1,
@@ -48,11 +49,14 @@ globalThis.RpgLevel = {
     },
     {
       key: "floor",
-      id: 0,
+      // spr_floorTiles frame 4 = the offset-weave pattern (frame 0 brick stays the WALL
+      // stand-in texture — see RpgMap._buildRenderer); wood-tan tint -> parquet flooring.
+      // For a type-0 layer the id IS the frame index.
+      id: 4,
       name: "바닥",
       type: 0,
-      sprite: "spr_square",
-      color: "#b0936a",
+      sprite: "spr_floorTiles",
+      color: "#aa9472",
       solid: false,
       pathCost: 1,
     },
