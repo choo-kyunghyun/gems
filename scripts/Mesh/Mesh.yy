@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Volume",
+  "%Name":"Mesh",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Volume",
+  "name":"Mesh",
   "parent":{
     "name":"Component",
     "path":"folders/Core/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Volume.js",
+  "scriptSource":"Mesh.js",
 }

@@ -5,8 +5,8 @@ The VOLUME furniture pipeline (see ROADMAP.md — Art Rework): author boxy props
 GameMaker vertex-buffer binary the engine draws as real depth-writing geometry.
 
 ```
-templates/<name>.vox  --vox2vbuf.py-->  datafiles/volumes/<name>.vbuf  --RenderVolume-->  screen
-   (editable source)                        (committed asset)             (Volume { model })
+templates/<name>.vox  --vox2vbuf.py-->  datafiles/meshes/<name>.vbuf  --RenderMesh-->  screen
+   (editable source)                        (committed asset)             (Mesh { model })
 ```
 
 Zero dependencies (Python stdlib only), deterministic output — same shape as the other kits
@@ -15,15 +15,15 @@ Zero dependencies (Python stdlib only), deterministic output — same shape as t
 ## Usage
 
 ```sh
-python tools/vox-kit/vox2vbuf.py tools/vox-kit/templates/workbench.vox datafiles/volumes/workbench.vbuf
+python tools/vox-kit/vox2vbuf.py tools/vox-kit/templates/workbench.vox datafiles/meshes/workbench.vbuf
 ```
 
 A NEW model's `.vbuf` must be registered once in `gems.yyp` under `IncludedFiles`
-(`filePath: "datafiles/volumes"`). ⚠️ Insert the entry in **alphabetical filePath order** —
+(`filePath: "datafiles/meshes"`). ⚠️ Insert the entry in **alphabetical filePath order** —
 GameMaker re-saves canonicalize the array and will DUPLICATE an out-of-place entry, after which
 the yyp fails to load. Re-bakes need no registration (churn-free).
 
-Spawn side: `world.add(id, Volume, { model: "<name>", width, depth, height })` — `RenderVolume`
+Spawn side: `world.add(id, Mesh, { model: "<name>", width, depth, height })` — `RenderMesh`
 loads, freezes, and caches the mesh; the width/depth/height document the footprint (BBox tuning)
 but the mesh itself replaces the analytic two-quad box.
 
@@ -37,7 +37,7 @@ but the mesh itself replaces the analytic two-quad box.
   south**), with the one-sun shading baked into vertex colors (top ×1.00, south ×0.80) — the
   palette IS the texture; no bitmap assets involved.
 - The emitted vertex layout (`position 3×f32 | colour RGBA u8 | texcoord 2×f32`, 24 B/vertex)
-  and `RenderVolume`'s declared vertex format are a **lockstep pair** — change both or neither.
+  and `RenderMesh`'s declared vertex format are a **lockstep pair** — change both or neither.
 
 ## License & provenance
 

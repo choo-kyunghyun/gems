@@ -2,9 +2,9 @@
 
 The VOLUME art pipeline (ROADMAP.md - Art Rework): author furniture in MagicaVoxel,
 commit the .vox as editable source, bake to a raw vertex stream the runtime loads with
-buffer_load -> vertex_create_buffer_from_buffer (RenderVolume draws it in the depth pass).
+buffer_load -> vertex_create_buffer_from_buffer (RenderMesh draws it in the depth pass).
 
-Vertex layout (must mirror RenderVolume's declared format EXACTLY, little-endian):
+Vertex layout (must mirror RenderMesh's declared format EXACTLY, little-endian):
     position 3 x f32 | colour 4 x u8 (RGBA) | texcoord 2 x f32 (zeros, untextured)
     = 24 bytes per vertex, pr_trianglelist.
 

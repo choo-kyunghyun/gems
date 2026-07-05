@@ -1,9 +1,9 @@
 /**
  * VOLUME pass of the art projection contract (ROADMAP.md — Art Rework): draws each
- * `Volume` + `Position` entity as real depth-writing geometry (z-write on for this loop
+ * `Mesh` + `Position` entity as real depth-writing geometry (z-write on for this loop
  * only, like RenderBillboard), so pawns sort against deep furniture per-pixel with zero
  * manual layering. Two paths per entity:
- * - `model` set → a baked MagicaVoxel mesh (tools/vox-kit vox2vbuf.py → volumes/<name>.vbuf,
+ * - `model` set → a baked MagicaVoxel mesh (tools/vox-kit vox2vbuf.py → meshes/<name>.vbuf,
  *   loaded via buffer_load + vertex_create_buffer_from_buffer, frozen + cached, vertex-color
  *   shaded — no texture). The converter emits only the faces this camera can see (top+south).
  * - else → an analytic axis-aligned box: under the fixed-yaw pitched ortho camera only TWO
@@ -15,7 +15,7 @@
  *   (the billboard hard-alpha rule).
  * @implements {RenderPass}
  */
-globalThis.RenderVolume = class RenderVolume {
+globalThis.RenderMesh = class RenderMesh {
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
@@ -49,20 +49,20 @@ globalThis.RenderVolume = class RenderVolume {
     vertex_format_delete(this._format);
   }
 
-  // baked model lookup: volumes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
+  // baked model lookup: meshes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
   // a missing file caches vb -1 so the warning fires once, not per frame
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
     m = { vb: -1 };
-    const buf = buffer_load(`volumes/${name}.vbuf`);
+    const buf = buffer_load(`meshes/${name}.vbuf`);
     if (buffer_exists(buf)) {
       m.vb = vertex_create_buffer_from_buffer(buf, this._format);
       buffer_delete(buf);
       vertex_freeze(m.vb);
       this._vbs.push(m.vb);
     } else {
-      Log.warn(`RenderVolume: missing model volumes/${name}.vbuf`);
+      Log.warn(`RenderMesh: missing model meshes/${name}.vbuf`);
     }
     this._models.set(name, m);
     return m;
@@ -89,12 +89,12 @@ globalThis.RenderVolume = class RenderVolume {
     const ident = matrix_build_identity();
     // depth-writing like RenderBillboard (global default is off — obj_game Create_0)
     gpu_set_zwriteenable(true);
-    for (const entity of world.query(Volume, Position)) {
-      const vol = world.get(Volume, entity);
+    for (const entity of world.query(Mesh, Position)) {
+      const mesh = world.get(Mesh, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
       // baked-mesh path: a vox-kit model replaces the two analytic quads entirely
-      if (vol.model !== undefined && vol.model !== "") {
-        const m = this._model(vol.model);
+      if (mesh.model !== undefined && mesh.model !== "") {
+        const m = this._model(mesh.model);
         if (m.vb !== -1) {
           matrix_set(
             matrix_world,
@@ -104,24 +104,30 @@ globalThis.RenderVolume = class RenderVolume {
         }
         continue;
       }
-      const x0 = rp.x - vol.width / 2;
-      const y0 = rp.y - vol.depth / 2;
-      const alpha = vol.alpha ?? 1;
+      const x0 = rp.x - mesh.width / 2;
+      const y0 = rp.y - mesh.depth / 2;
+      const alpha = mesh.alpha ?? 1;
       // TOP: plan-view quad lying flat at -height over the footprint (up = -z)
       matrix_set(
         matrix_world,
-        matrix_build(x0, y0, -vol.height, 0, 0, 0, 1, 1, 1),
+        matrix_build(x0, y0, -mesh.height, 0, 0, 0, 1, 1, 1),
       );
-      this._face(vol.topSprite, vol.topColor, alpha, vol.width, vol.depth);
+      this._face(mesh.topSprite, mesh.topColor, alpha, mesh.width, mesh.depth);
       // FRONT: true vertical quad at the south edge — xrot -90 maps local +y to world +z
       // (the billboard tilt extended to fully upright), so anchoring the local origin at
       // -height spans the face from its top edge down to the ground; it shares that top
       // edge with the TOP quad exactly, so the seam can't gap or z-fight
       matrix_set(
         matrix_world,
-        matrix_build(x0, y0 + vol.depth, -vol.height, -90, 0, 0, 1, 1, 1),
+        matrix_build(x0, y0 + mesh.depth, -mesh.height, -90, 0, 0, 1, 1, 1),
       );
-      this._face(vol.frontSprite, vol.frontColor, alpha, vol.width, vol.height);
+      this._face(
+        mesh.frontSprite,
+        mesh.frontColor,
+        alpha,
+        mesh.width,
+        mesh.height,
+      );
     }
     matrix_set(matrix_world, ident);
     gpu_set_zwriteenable(false); // restore global default — ground passes stay painter-order

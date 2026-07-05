@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"RenderVolume",
+  "%Name":"RenderMesh",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"RenderVolume",
+  "name":"RenderMesh",
   "parent":{
     "name":"Render",
     "path":"folders/Core/Render.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"RenderVolume.js",
+  "scriptSource":"RenderMesh.js",
 }

@@ -1,0 +1,24 @@
+/**
+ * VOLUME category of the art projection contract (ROADMAP.md — Art Rework): boxy
+ * furniture/machines (bench, table, bed, crate, terminal) drawn by RenderMesh as real
+ * depth-writing 3D geometry, so bodies sort against deep furniture per-pixel — no manual
+ * layering. The counterpart of Visual: Visual = sprite/billboard, Mesh = 3D geometry.
+ * Position is the footprint CENTER (BBox convention); `height` rises toward the camera
+ * (world -z, the RenderBillboard convention). Flat, export-safe scalars only: face sprites
+ * are NAMES resolved at draw time (sprite_exists-guarded, like UISlots), colors are GM
+ * ints — a color fills the face when its sprite is unset, and tints the sprite when set.
+ *
+ * @typedef {Object} Mesh
+ * @property {string} [model]     baked vox-kit mesh NAME (meshes/<model>.vbuf) — when set,
+ *                                RenderMesh submits the frozen mesh and every field below
+ *                                is ignored for drawing (footprint fields still document size)
+ * @property {number} width       footprint x extent (world px)
+ * @property {number} depth       footprint y extent (world px)
+ * @property {number} height      vertical extent (world px)
+ * @property {number} topColor    plan-view top face fill / sprite tint
+ * @property {number} frontColor  elevation front face fill / sprite tint
+ * @property {string} [topSprite]   sprite NAME stretched over the top face ("" = flat fill)
+ * @property {string} [frontSprite] sprite NAME stretched over the front face ("" = flat fill)
+ * @property {number} [alpha]     whole-box alpha (default 1; keep faces opaque — see RenderMesh)
+ */
+globalThis.Mesh = "Mesh";
