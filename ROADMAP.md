@@ -18,7 +18,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 
 ### Front 1 — TEXTURES (walls first; unblocks the built world's look)
 
-1. **Wall art**: per wall pattern **TWO tileable grayscale 16×16 textures** — a TOP (plan view) and a SIDE (elevation) — replacing the single `spr_floorTiles` frame-0 brick standing in on both faces today; the material color stays a TINT (`texture × tint × light`), so one pattern serves every material. `RenderWalls` already takes `sprite`/`frame` per face orientation — the engine seam is ready. Author via a `terrain_materials.py`-style generator (`wall_materials`?) or hand-drawn 16px — decide at asset #1. Starter pattern set to decide: poured concrete, metal panel, brick, scrap/plank.
+1. **Wall art**: per wall pattern **TWO tileable grayscale 16×16 textures** — a TOP (plan view) and a SIDE (elevation) — replacing the single `spr_floorTiles` frame-0 brick standing in on both faces today; the material color stays a TINT (`texture × tint × light`), so one pattern serves every material. `RenderWalls` already takes `sprite`/`frame` per face orientation — the engine seam is ready. Author via a `terrain_materials.py`-style generator (`wall_materials`?), hand-drawn 16px, or AI (`tools/comfyui-kit/` — tileable-texture prompts) — decide at asset #1. Starter pattern set to decide: poured concrete, metal panel, brick, scrap/plank.
 2. **Floor patterns**: extend/replace the legacy `spr_floorTiles` grayscale pattern sheet (offset-weave shipped as parquet; candidates: concrete slab, metal deck, tile) — each is one new frame + a Build-Mode floor variant later.
 3. Terrain is DONE — only revisit if the spec's ground bands change.
 
@@ -49,7 +49,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 - Draw flat parts → rig + animate in **Spine** → export **PNG strips at high resolution** (fixed export bounds per animation so cells stay uniform; 12–15 fps is fine) → deterministic import → **`SpriteMeta.density`** scales art to world size (BBox untouched).
 - **License**: only **baked strips** are game assets — the Spine editor license allows shipping exported images; the restricted parts (runtime + skeleton data) never enter the repo. Commit the `.spine` project files as editable _source_ — the same `.mid`→WAV pattern audio-kit uses. Spine's CLI export can script the re-bake.
 - **Paper-doll survives**: gear = Spine **skins** on the one skeleton; export base-body + one overlay strip per gear piece from the same timeline → frame-aligned by construction → `Appearance`/`AppearanceSystem` carry over unchanged.
-- AI is optional and unblocked: high-res flat/clean styles are what image models are good at — part references to trace and clean.
+- AI is optional and unblocked: high-res flat/clean styles are what image models are good at — part references to trace and clean. Driver: `tools/comfyui-kit/` (generic txt2img ComfyUI client — scripts committed, workflows/outputs gitignored).
 
 ### Mesh rules (still true)
 
