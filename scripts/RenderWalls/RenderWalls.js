@@ -28,7 +28,9 @@
 globalThis.RenderWalls = class RenderWalls {
   /**
    * @param {LevelGrid} level - grid geometry (cols/rows/cellWidth/cellHeight)
-   * @param {TileLayer} layer - the solid layer to draw (truthy cell = wall)
+   * @param {TileLayer} layer - the solid layer to draw (truthy cell = wall). Only `get(gx, gy)`
+   *   is read, so any occupancy view satisfies it — ChunkManager.wallLayer() hands the streamed
+   *   overworld's authored walls to a second instance of this pass.
    * @param {{ height?: number, color?: number, sprite?: any, frame?: number, lights?: RenderMesh }} [opt]
    *   `sprite` is an asset REF (validated via sprite_exists — asset_get_index refs never
    *   compare >= 0 on GMRT); `frame` picks the subimage (default 0).

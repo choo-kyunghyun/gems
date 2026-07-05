@@ -439,6 +439,9 @@ globalThis.RpgMap = {
         new RenderChunks(scene.chunks, {
           font: I18n.font("default"),
           ground: false,
+          // pitched maps draw the streamed walls as lit boxes (the RenderWalls insert
+          // below, over chunks.wallLayer()) — the flat rects stay only for the flat fallback
+          walls: !(pitch > 0),
         }),
       );
     }
@@ -488,6 +491,20 @@ globalThis.RpgMap = {
         lights: scene._meshPass,
       });
       scene.renderer.insert(scene._tilePasses.wall);
+      // The chunked overworld's AUTHORED/streamed walls (hub building, prefab ruins/camps)
+      // join the same lit-box pass over the manager's whole-store occupancy view — walls are
+      // static after pregeneration, so it's one lazy VBO build with no streaming coupling
+      // (RenderChunks' flat rects are disabled above in its favor; never edited, so it's not
+      // keyed into _tilePasses). Same stand-in texture/tint until the dedicated wall art.
+      if (scene._chunked)
+        scene.renderer.insert(
+          new RenderWalls(scene.level, scene.chunks.wallLayer(), {
+            color: Color.parse(wallCfg.color),
+            sprite: spr_floorTiles,
+            frame: 0,
+            lights: scene._meshPass,
+          }),
+        );
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).

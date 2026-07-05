@@ -12,7 +12,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 | ----------------------------------- | ------------------------------------------------- | ---------------------- |
 | GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)     | live; restyle LAST     |
 | VOLUME — furniture, machines, rocks | MagicaVoxel meshes (vox-kit), lit by `sh_meshlit` | **DONE**               |
-| WALLS / structures                  | meshes too (lit boxes over the wall `TileLayer`)  | resident layer LIVE    |
+| WALLS / structures                  | meshes too (lit boxes over the wall `TileLayer`)  | LIVE (art pending)     |
 | STANDING — pawns, creatures         | flat sprites, front elevation, UPRIGHT billboards | Spine pipeline pending |
 | Items / icons                       | flat redraw (or SVG→PNG)                          | pending                |
 
@@ -26,11 +26,12 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 - ~~Wall textures, engine side~~ — 2026-07-05: `sh_meshlit` textured mode (`u_useTex` + per-submit `u_normal`; fsh-declared — vsh uniforms silently dead on GMRT, see CLAUDE.md) — texture × tint × light on wall faces; stand-in texture = `spr_floorTiles` frame 0 as brick.
 - ~~Camera: upright sprites + pitch-by-zoom~~ — ADOPTED 2026-07-05: `RenderBillboard` draws upright (tilt −90 constant; a perpendicular-to-view billboard reclines ~cos(pitch) along the ground and buried into wall meshes at contact), camera pitch = `RpgMap._pitchCurve` (42° zoomed out → 58° in, Debug-toggleable), `followHeight` −1000 (near-plane fix). Mob/player BBoxes bumped toward visual size (player 12 wp, raider ≈13.6 — still through 16px doorways).
 - ~~Sprite sun response~~ — 2026-07-06: `RenderBillboard` modulates each sprite's tint (body + doll layers identically) by the `sh_meshlit` model evaluated once per entity on the CPU at a fixed bent normal, reading the sun + the point-light set `RenderMesh` gathered that frame — sprites dim/warm with the sun and catch torchlight like the mesh faces beside them (noon = authored colors; light map still owns darkness). Verified by red-sun A/B + night torch shots.
+- ~~Chunked-overworld authored walls → lit pass~~ — 2026-07-06: `ChunkManager.wallLayer()` (whole-store wall occupancy — records are the immutable world after pregeneration, so it rasterizes once, no streaming coupling) feeds a second `RenderWalls` instance; `RenderChunks`' flat wall rects retired on pitched maps (`opt.walls`). Hub building + prefab ruins/camps now brick lit boxes; verified noon + midnight.
 
 ### Next
 
 1. **Style spec** — DRAFTED below (2026-07-06); review, edit, approve — then it governs asset #1.
-2. **Wall-mesh pass, remaining**: convert the chunked overworld's AUTHORED walls (`RenderChunks` flat rects → the lit pass), then the real wall art — per wall pattern TWO tileable grayscale textures (top + side, replacing the single stand-in on both faces) + a tint per material. Floors/terrain stay tiles.
+2. **Wall art**: per wall pattern TWO tileable grayscale textures (top + side, replacing the single `spr_floorTiles` stand-in on both faces) + a tint per material. Floors/terrain stay tiles.
 3. **First character through Spine** → bake → import → verify in-game day + night. Then the strip importer under `tools/` (author → render → import, like the other kits).
 4. Replace entities incrementally (the density seam lets old/new coexist); then items/icons.
 5. **Terrain last**: restyle the material textures fed to the style-agnostic dual-grid machinery (`tileset.py`).

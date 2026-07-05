@@ -13,6 +13,8 @@ globalThis.RenderChunks = class RenderChunks {
     this.frozenAlpha = opt.frozenAlpha ?? 0.6; // dim frozen entities (visual LOD cue)
     // disable when TerrainStream owns the ground (RPG overworld)
     this.ground = opt.ground ?? true;
+    // disable when a lit RenderWalls pass draws the streamed walls (ChunkManager.wallLayer)
+    this.walls = opt.walls ?? true;
   }
 
   destroy() {}
@@ -45,21 +47,22 @@ globalThis.RenderChunks = class RenderChunks {
         draw_rectangle(gx, gy, gx + pxW, gy + pxH, false);
       }
 
-    // 2. wall rects
-    for (let i = 0; i < recs.length; i++) {
-      const walls = recs[i].walls;
-      for (let j = 0; j < walls.length; j++) {
-        const r = walls[j];
-        const x1 = r[0] * cw;
-        const y1 = r[1] * ch;
-        const x2 = x1 + r[2] * cw;
-        const y2 = y1 + r[3] * ch;
-        draw_set_color(this.wallColor);
-        draw_rectangle(x1, y1, x2, y2, false);
-        draw_set_color(c_black);
-        draw_rectangle(x1, y1, x2, y2, true);
+    // 2. wall rects (flat) — skipped when the lit wall pass owns them
+    if (this.walls)
+      for (let i = 0; i < recs.length; i++) {
+        const walls = recs[i].walls;
+        for (let j = 0; j < walls.length; j++) {
+          const r = walls[j];
+          const x1 = r[0] * cw;
+          const y1 = r[1] * ch;
+          const x2 = x1 + r[2] * cw;
+          const y2 = y1 + r[3] * ch;
+          draw_set_color(this.wallColor);
+          draw_rectangle(x1, y1, x2, y2, false);
+          draw_set_color(c_black);
+          draw_rectangle(x1, y1, x2, y2, true);
+        }
       }
-    }
 
     // 3. LOAD-ring frozen snapshots: dimmed box + name
     draw_set_halign(fa_center);

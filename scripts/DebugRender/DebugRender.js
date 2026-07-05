@@ -45,28 +45,31 @@ globalThis.DebugRender = class DebugRender {
         p.checkbox(
           list[i][1],
           () => {
-            const pass = DebugRender._passOf(cls);
-            return pass !== null && pass.enabled;
+            const passes = DebugRender._passesOf(cls);
+            return passes.length > 0 && passes[0].enabled;
           },
           (v) => {
-            const pass = DebugRender._passOf(cls);
-            if (pass !== null) pass.enabled = v;
+            // flip EVERY instance — a class can appear twice in one renderer (the RPG's
+            // resident + chunk RenderWalls), and toggling only the first would mislead
+            const passes = DebugRender._passesOf(cls);
+            for (let j = 0; j < passes.length; j++) passes[j].enabled = v;
           },
         );
       }
     });
   }
 
-  // The live scene's first renderer pass that is an instance of `cls`, or null.
-  static _passOf(cls) {
+  // The live scene's renderer passes that are instances of `cls` ([] when none).
+  static _passesOf(cls) {
+    const out = [];
     const g = DebugRender._game;
     const scene = g !== null ? g.scenes.current : null;
     if (scene === null || scene === undefined || scene.renderer == null)
-      return null;
+      return out;
     const passes = scene.renderer.passes;
     for (let i = 0; i < passes.length; i++) {
-      if (passes[i] instanceof cls) return passes[i];
+      if (passes[i] instanceof cls) out.push(passes[i]);
     }
-    return null;
+    return out;
   }
 };

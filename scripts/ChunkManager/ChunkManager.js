@@ -155,6 +155,49 @@ globalThis.ChunkManager = class ChunkManager {
     }
   }
 
+  /**
+   * Whole-world WALL occupancy as a read-only layer view (`{ get(gx, gy) → bool }`, absolute
+   * cells) — the `layer` a RenderWalls pass takes, so streamed/authored walls draw as the same
+   * lit boxes as a resident wall TileLayer. Requires the pregenerated store (finite bounds):
+   * after pregenerate() the records ARE the whole world and walls never change in-session, so
+   * the cell set is rasterized ONCE on first get() and cached for the manager's lifetime.
+   * (`solid` rects — water — are collide-only and stay excluded, exactly like RenderChunks.)
+   */
+  wallLayer() {
+    if (this.maxCx === Infinity || this.maxCy === Infinity)
+      throw new Error(
+        "ChunkManager.wallLayer needs the pregenerated store (finite worldCols/worldRows)",
+      );
+    const mgr = this;
+    return {
+      _cells: null,
+      get(gx, gy) {
+        if (this._cells === null) this._cells = mgr._rasterizeWalls();
+        return this._cells[gx + "," + gy] === true;
+      },
+    };
+  }
+
+  // every record's wall rects (active + cached — the whole world after pregenerate())
+  // rasterized into a cell-occupancy map "gx,gy" → true
+  _rasterizeWalls() {
+    const cells = {};
+    const put = (rec) => {
+      const walls = rec.walls;
+      for (let i = 0; i < walls.length; i++) {
+        const r = walls[i];
+        for (let dy = 0; dy < r[3]; dy++)
+          for (let dx = 0; dx < r[2]; dx++)
+            cells[r[0] + dx + "," + (r[1] + dy)] = true;
+      }
+    };
+    let keys = Object.keys(this._chunks);
+    for (let i = 0; i < keys.length; i++) put(this._chunks[keys[i]]);
+    keys = Object.keys(this._cache);
+    for (let i = 0; i < keys.length; i++) put(this._cache[keys[i]]);
+    return cells;
+  }
+
   /** @returns {Object[]} active chunk records (fresh array, for RenderChunks) */
   records() {
     const out = [];
