@@ -33,7 +33,9 @@ globalThis.RpgSpawn = {
         id: "raider",
         scale: 0.85,
         components: {
-          BBox: { x: -6, y: -6, width: 12, height: 12 },
+          // 16 design × 0.85 ≈ 13.6 world px — near the doll's visual body (mob bboxes were
+          // ~2/3 of the visual, letting sprites bury into walls/each other); < 16px cell
+          BBox: { x: -8, y: -8, width: 16, height: 16 },
           // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Health: { hp: 3 },
@@ -73,7 +75,7 @@ globalThis.RpgSpawn = {
         id: "rat",
         scale: 0.7,
         components: {
-          BBox: { x: -5, y: -5, width: 10, height: 10 },
+          BBox: { x: -6, y: -6, width: 12, height: 12 }, // ×0.7 ≈ 8.4 world px (visual-match bump)
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Health: { hp: 2 },
           Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 60 },
@@ -92,7 +94,7 @@ globalThis.RpgSpawn = {
         id: "npc",
         scale: 0.8,
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×0.8 = 12.8 world px (visual-match bump)
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "" },
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
@@ -227,7 +229,7 @@ globalThis.RpgSpawn = {
         scale: 0.75,
         components: {
           Velocity: { x: 0, y: 0, z: 0 },
-          BBox: { x: -5, y: -5, width: 10, height: 10 },
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×0.75 = 12 world px — matches the player
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Faction: { id: "player" }, // party ally; friendly fire skips it, but enemies aggro it (it has Health)
           Health: { hp: 6 },

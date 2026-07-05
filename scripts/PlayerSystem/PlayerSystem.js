@@ -98,7 +98,10 @@ globalThis.PlayerSystem = {
   /** @param {{ x: number, y: number }} spawn @returns {number} the player entity id */
   spawn(world, spawn) {
     return RpgPlayer.spawn(world, spawn, {
-      bbox: { x: -6, y: -6, width: 12, height: 12 },
+      // 16 design × 0.75 scale = 12 world px — nearer the doll's visual body (was 9, which
+      // let the sprite hug walls/mobs deep enough to bury); stays under the 16px cell so
+      // 1-cell doorways remain passable
+      bbox: { x: -8, y: -8, width: 16, height: 16 },
       dir: { x: 0, y: 1, z: 0 },
       speed: RPG_MOVE_SPEED,
       scale: RPG_PLAYER_SCALE,
