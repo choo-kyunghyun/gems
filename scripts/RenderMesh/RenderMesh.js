@@ -92,13 +92,26 @@ globalThis.RenderMesh = class RenderMesh {
     for (const entity of world.query(Mesh, Position)) {
       const mesh = world.get(Mesh, entity);
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
-      // baked-mesh path: a vox-kit model replaces the two analytic quads entirely
+      // baked-mesh path: a vox-kit model replaces the two analytic quads entirely.
+      // scale is visual-only (BBox stays authored) and per-axis in WORLD axes — zscale is
+      // height; a negative xscale mirrors the model (cull is off, shading is baked)
       if (mesh.model !== undefined && mesh.model !== "") {
         const m = this._model(mesh.model);
         if (m.vb !== -1) {
+          const s = mesh.scale ?? 1;
           matrix_set(
             matrix_world,
-            matrix_build(rp.x, rp.y, 0, 0, 0, 0, 1, 1, 1),
+            matrix_build(
+              rp.x,
+              rp.y,
+              0,
+              0,
+              0,
+              0,
+              mesh.xscale ?? s,
+              mesh.yscale ?? s,
+              mesh.zscale ?? s,
+            ),
           );
           vertex_submit(m.vb, pr_trianglelist, -1);
         }
