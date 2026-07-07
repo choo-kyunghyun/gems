@@ -11,7 +11,7 @@ A ComfyUI client for the art rework's **flat items and textures** experiments, w
 
 | Path                | Committed? | What                                                                   |
 | ------------------- | ---------- | ---------------------------------------------------------------------- |
-| `comfylib.py`       | yes        | engine: `Client`, `Graph`, `generate()`, interactive review            |
+| `comfylib.py`       | yes        | engine: `Client`, `Graph`, `generate()` (submit → poll → save)         |
 | `nodes.py`          | yes        | node builders (`load_checkpoint`, `ksampler`, `save_image`, …)         |
 | `generate.py`       | yes        | CLI runner for a `.py` workflow (`--seed`/`--runs`/`--out`/`--server`) |
 | `probe.py`          | yes        | server stats + installed model/sampler inventory                       |
@@ -34,34 +34,33 @@ from nodes import *
 
 SERVER = "127.0.0.1:8188"
 CHECKPOINT = "sd_xl_base_1.0.safetensors"
-OUTPUT_PATH = ""     # "" = next to this script
-REVIEW = True
+OUTPUT = "items.png"     # one fixed file, overwritten each run
 SEED, STEPS, CFG = 0, 20, 7.0
 
 def build(g, client):
     model, clip, vae = load_checkpoint(g, CHECKPOINT)
     pos = encode_text(g, "a flat wrench icon", clip)
     neg = encode_text(g, "", clip)
-    latent = empty_latent(g, 1024, 1024, batch=4)
+    latent = empty_latent(g, 1024, 1024)
     samples = ksampler(g, model, pos, neg, latent, SEED, STEPS, CFG,
                        "euler", "normal", 1.0)
     save_image(g, vae_decode(g, samples, vae), "items")
 
 if __name__ == "__main__":
-    C.generate(build, server=SERVER, output=OUTPUT_PATH, review=REVIEW)
+    C.generate(build, server=SERVER, output=OUTPUT)
 ```
 
-`workflows/testrun.py` (Anima/Qwen txt2img) and `workflows/pixel.py` (img2img pixel-art sprites, with background removal) are the two reference scripts.
+`workflows/testrun.py` (Anima/Qwen txt2img) and `workflows/pixel.py` (img2img pixel-art sprites, with background removal) are the two reference scripts, and they **chain**: `testrun.py` writes `gen.png`, `pixel.py`'s `INPUT` defaults to that same `gen.png`. So the two-step sprite flow is: re-run `testrun.py` tweaking the prompt until `gen.png` looks right, then run `pixel.py` to pixelate it into `sprite.png`. `OUTPUT` is one fixed file overwritten every run — no `_00001_` counter, nothing to clean up.
 
 ### Running
 
 ```sh
-python workflows/pixel.py                                  # its own constants
-python generate.py workflows/testrun.py --seed 42 --runs 4 # sweep, no edit
-python generate.py workflows/pixel.py --out ./sprites --no-review
+python workflows/testrun.py                     # step 1 -> gen.png
+python workflows/pixel.py                        # step 2 -> sprite.png (reads gen.png)
+python generate.py workflows/testrun.py --seed 42 --out gen.png
 ```
 
-Run a script directly for its defaults; the `generate.py` runner overrides `SERVER`/`OUTPUT_PATH`/`REVIEW`/`SEED` without editing the file and sweeps consecutive seeds with `--runs`.
+Run a script directly for its defaults; the `generate.py` runner overrides `SERVER`/`OUTPUT`/`SEED` without editing the file (`--runs` sweeps consecutive seeds — but a fixed `OUTPUT` means each overwrites, so give `--runs` a distinct `--out` per intent).
 
 ### Building the graph
 
@@ -88,7 +87,7 @@ python jobs.py --history 10  # recent results
 
 ## Notes
 
-- **Review** opens each finished image in your OS viewer and asks keep/discard before saving; only kept images hit `OUTPUT_PATH`. It's interactive (`input()`), so run from a terminal; `--no-review` (or `REVIEW = False`) saves everything for batch/sweep runs.
+- **`OUTPUT`** names one fixed local file, overwritten each run (a relative name resolves next to the script). Set it to `""` to keep the server's own incrementing filename instead. A batch's extra images get a `-2`/`-3` suffix.
 - `Client.submit` accepts a `Graph` or a raw API-format dict, so a GUI _Save (API Format)_ export can be run as-is (`C.Client().submit(json.load(open(path)))`) without transcribing.
 - Ctrl-C stops the _client_ only — the server keeps rendering; `jobs.py --interrupt` stops the server side.
 - Import into GameMaker stays out of this kit: picked winners go through the existing deterministic importers (pixel-art-kit `gm-import/`) or a future strip importer — this kit ends at the saved image.

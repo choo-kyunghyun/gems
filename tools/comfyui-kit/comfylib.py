@@ -28,13 +28,11 @@ import inspect
 import json
 import os
 import sys
-import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-import webbrowser
 
 KIT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_DIR = os.path.join(KIT_DIR, "local")
@@ -239,35 +237,22 @@ def _status_errors(status):
     return "\n".join(lines) or "  " + json.dumps(status)[:2000]
 
 
-# -- review + run ------------------------------------------------------------
+# -- run ---------------------------------------------------------------------
 
 
-def _review(data, filename):
-    """Open an image in the OS viewer and ask keep/discard; True to keep. Writes
-    a temp file first (the viewer needs a path), then removes it."""
-    tmp = os.path.join(tempfile.gettempdir(), "comfy_review_" + filename)
-    with open(tmp, "wb") as f:
-        f.write(data)
-    try:
-        if hasattr(os, "startfile"):
-            os.startfile(tmp)  # Windows: default image viewer
-        else:
-            webbrowser.open("file://" + os.path.abspath(tmp))
-        answer = input(f"keep {filename}? [y/N] ").strip().lower()
-    finally:
-        try:
-            os.remove(tmp)  # viewer has loaded it by the time input returns
-        except OSError:
-            pass  # some viewers hold the handle; a stray temp is harmless
-    return answer in ("y", "yes")
+def _numbered(path, i):
+    root, ext = os.path.splitext(path)
+    return f"{root}-{i + 1}{ext}"
 
 
-def generate(build, *, server=None, output="", review=True):
+def generate(build, *, server=None, output=""):
     """Run a workflow: call build(graph, client) to wire it, submit, wait, then
-    download and (optionally) review + save each image. Returns the saved paths.
+    download + save each image. Returns the saved paths.
 
-    output="" saves next to the workflow script (build's defining file); pass a
-    dir to redirect. review=False saves every image without prompting."""
+    output names ONE fixed local file, OVERWRITTEN each run (a relative name
+    resolves next to the workflow script); a batch's extra images get a -2/-3
+    suffix. output="" falls back to the server's own (incrementing) filename in
+    the script's directory."""
     client = Client(server)
     graph = Graph()
     build(graph, client)
@@ -283,18 +268,23 @@ def generate(build, *, server=None, output="", review=True):
     entry = client.wait(prompt_id, on_tick=tick)
     sys.stdout.write("\r" + " " * 42 + "\r")
 
-    out_dir = output or os.path.dirname(os.path.abspath(inspect.getfile(build)))
-    os.makedirs(out_dir, exist_ok=True)
+    script_dir = os.path.dirname(os.path.abspath(inspect.getfile(build)))
+    fixed = None
+    if output:
+        fixed = output if os.path.isabs(output) else os.path.join(script_dir, output)
+
+    images = [img for out in (entry.get("outputs") or {}).values()
+              for img in out.get("images", [])]
     saved = []
-    for out in (entry.get("outputs") or {}).values():
-        for img in out.get("images", []):
-            data = client.image_bytes(img)
-            if review and not _review(data, img["filename"]):
-                print("discarded", img["filename"])
-                continue
-            path = os.path.join(out_dir, img["filename"])
-            with open(path, "wb") as f:
-                f.write(data)
-            print("saved", path)
-            saved.append(path)
+    for i, img in enumerate(images):
+        data = client.image_bytes(img)
+        if fixed is not None:
+            path = fixed if i == 0 else _numbered(fixed, i)
+        else:
+            path = os.path.join(script_dir, img["filename"])
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(data)
+        print("saved", path)
+        saved.append(path)
     return saved
