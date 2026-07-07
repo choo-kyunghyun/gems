@@ -1,84 +1,95 @@
 # comfyui-kit
 
-Robust Python client for a running [ComfyUI](https://github.com/comfyanonymous/ComfyUI) server — the AI-image experiment harness for the art rework's **flat items and textures**. Deliberately scripts over a web GUI: every run is reproducible (seed + final graph recorded), sweepable (`--runs`), and diffable.
+A ComfyUI client for the art rework's **flat items and textures** experiments, where **a workflow is a Python script**. Scripts over a web GUI: every run is reproducible (edit constants, re-run), sweepable (`--runs`), and diffable (it's code). Zero-dependency stdlib Python, like the sibling kits (plain HTTP polling, no websocket).
 
 **Scope (learned the hard way):**
 
-- **txt2img only.** No img2img, no furniture, no world objects — the angle/lighting problems that once pushed us toward img2img are solved in-engine (`sh_meshlit`, the projection contract). Subjects are flat item art and tileable textures.
-- **Model-agnostic.** The scripts carry no model names, prompts, or styles. The workflow file IS the model combination — you author it in the ComfyUI GUI, export it, and hunt the best combination yourself by iterating workflows + seeds.
-- **Zero-dependency** stdlib Python (like the sibling kits) — plain HTTP polling, no websocket library.
+- **txt2img and img2img for flat items + textures only.** No furniture, no world objects — the angle/lighting problems that once motivated a complex pipeline are solved in-engine (`sh_meshlit`, the projection contract).
+- **Model-agnostic.** The kit carries no model names, prompts, or styles. A workflow script names the model combination; you hunt the best one yourself.
 
 ## Layout
 
-| Path          | Committed? | What                                                               |
-| ------------- | ---------- | ------------------------------------------------------------------ |
-| `comfylib.py` | yes        | shared HTTP client (config, submit, poll, download, graph helpers) |
-| `generate.py` | yes        | queue a workflow with overrides, wait, save images + `run.json`    |
-| `probe.py`    | yes        | server stats + installed model/sampler inventory                   |
-| `jobs.py`     | yes        | queue view / interrupt / clear / delete                            |
-| `workflows/`  | **no**     | your API-format workflow exports (the model combinations)          |
-| `out/`        | **no**     | generated images + per-run manifests                               |
-| `local/`      | **no**     | machine config: `config.json` → `{"server": "127.0.0.1:8188"}`     |
+| Path                | Committed? | What                                                                   |
+| ------------------- | ---------- | ---------------------------------------------------------------------- |
+| `comfylib.py`       | yes        | engine: `Client`, `Graph`, `generate()`, interactive review            |
+| `nodes.py`          | yes        | node builders (`load_checkpoint`, `ksampler`, `save_image`, …)         |
+| `generate.py`       | yes        | CLI runner for a `.py` workflow (`--seed`/`--runs`/`--out`/`--server`) |
+| `probe.py`          | yes        | server stats + installed model/sampler inventory                       |
+| `jobs.py`           | yes        | queue view / interrupt / clear / delete                                |
+| `workflows/`        | **no**     | your workflow scripts + their output images                            |
+| `local/config.json` | **no**     | machine config: `{"server": "127.0.0.1:8188"}`                         |
 
-Server address: `--server host:port` > `local/config.json` > `127.0.0.1:8188`.
+Server address: an explicit `server` arg (or `--server`) > `local/config.json` > `127.0.0.1:8188`.
 
-## Workflow
+## A workflow is a script
 
-1. **Author the combination in the ComfyUI GUI** — checkpoint/LoRA/sampler wiring, any architecture (SD, SDXL, Flux — natural-language models welcome). Export with **Export (API)** (older builds: Settings → Dev mode → _Save (API Format)_) into `workflows/`. GUI-format exports are rejected with a hint.
-2. **Probe the server** for what's installed:
-
-   ```sh
-   python tools/comfyui-kit/probe.py                 # version, VRAM, models, samplers
-   python tools/comfyui-kit/probe.py --node KSampler # one node's input spec
-   ```
-
-3. **Generate.** Overrides find their nodes by tracing the graph (sampler → conditioning → text encode; seed/latent inputs by name), so most workflows need no annotation; `--set` covers anything else by node id, exact title, or class_type:
-
-   ```sh
-   python tools/comfyui-kit/generate.py workflows/wf.json -p "a flat wrench icon" --runs 4
-   python tools/comfyui-kit/generate.py workflows/wf.json -p "..." -n "blurry" --seed 42 --size 512x512
-   python tools/comfyui-kit/generate.py workflows/wf.json --set "KSampler.steps=30" --set "6.text=hello"
-   python tools/comfyui-kit/generate.py workflows/wf.json -p "..." --dry-run   # verify targeting first
-   ```
-
-4. **Compare runs.** Each run lands in `out/<name>/<stamp>-s<seed>/` with the images and `run.json` — server, workflow path, prompt, seed, every override, and the **final submitted graph**. Re-submitting that graph reproduces the image exactly; diffing two `run.json`s shows exactly what changed between a good and a bad result.
-5. **Queue control** while iterating:
-
-   ```sh
-   python tools/comfyui-kit/jobs.py               # running/pending
-   python tools/comfyui-kit/jobs.py --interrupt   # stop the current prompt
-   python tools/comfyui-kit/jobs.py --history 10  # recent results
-   ```
-
-Import into GameMaker stays out of this kit: picked winners go through the existing deterministic importers (pixel-art-kit `gm-import/` machinery) or a future strip importer — this kit ends at `out/`.
-
-## Python workflows
-
-A workflow can be a Python script instead of a GUI export — `generate.py` accepts a `.py` path that defines `build()` returning the graph. `comfylib.Graph` handles node ids and links (`node[N]` = output slot N; a bare node = its output 0), so the combination becomes readable, diffable code:
+Each workflow is a Python script that defines `build(graph, client)` — wiring nodes with the builders in `nodes.py` — plus a constants block you edit. `comfylib.generate()` submits it, polls to completion, and (with `REVIEW`) previews each image for a keep/discard before saving.
 
 ```python
-# workflows/sdxl_items.py — loaded via generate.py (which puts the kit dir on sys.path)
-from comfylib import Graph
+# workflows/items.py
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import comfylib as C
+from nodes import *
 
-def build():
-    g = Graph()
-    ckpt = g.add("CheckpointLoaderSimple", ckpt_name="sd_xl_base_1.0.safetensors")
-    pos = g.add("CLIPTextEncode", title="Positive", text="flat vector icon", clip=ckpt[1])
-    neg = g.add("CLIPTextEncode", title="Negative", text="", clip=ckpt[1])
-    lat = g.add("EmptyLatentImage", width=1024, height=1024, batch_size=1)
-    smp = g.add("KSampler", model=ckpt, positive=pos, negative=neg, latent_image=lat,
-                seed=0, steps=20, cfg=7.0, sampler_name="euler",
-                scheduler="normal", denoise=1.0)
-    img = g.add("VAEDecode", samples=smp, vae=ckpt[2])
-    g.add("SaveImage", images=img, filename_prefix="items")
-    return g
+SERVER = "127.0.0.1:8188"
+CHECKPOINT = "sd_xl_base_1.0.safetensors"
+OUTPUT_PATH = ""     # "" = next to this script
+REVIEW = True
+SEED, STEPS, CFG = 0, 20, 7.0
+
+def build(g, client):
+    model, clip, vae = load_checkpoint(g, CHECKPOINT)
+    pos = encode_text(g, "a flat wrench icon", clip)
+    neg = encode_text(g, "", clip)
+    latent = empty_latent(g, 1024, 1024, batch=4)
+    samples = ksampler(g, model, pos, neg, latent, SEED, STEPS, CFG,
+                       "euler", "normal", 1.0)
+    save_image(g, vae_decode(g, samples, vae), "items")
+
+if __name__ == "__main__":
+    C.generate(build, server=SERVER, output=OUTPUT_PATH, review=REVIEW)
 ```
 
-Node class names, input names, and output slot order are exactly what the server exposes — `probe.py --node KSampler` prints a class's spec, and a GUI _Export (API)_ of a working graph is the ground truth to transcribe from. Overrides (`-p`, `--seed`, `--set`, …) apply on top of the built graph the same as for JSON, and `run.json` still records the final graph, so runs stay reproducible either way. The trade-off: a `.py` workflow can't be loaded back into the ComfyUI GUI — keep using GUI exports for visual experimentation and scripts for combinations you want to parameterize and version.
+`workflows/testrun.py` (Anima/Qwen txt2img) and `workflows/pixel.py` (img2img pixel-art sprites, with background removal) are the two reference scripts.
+
+### Running
+
+```sh
+python workflows/pixel.py                                  # its own constants
+python generate.py workflows/testrun.py --seed 42 --runs 4 # sweep, no edit
+python generate.py workflows/pixel.py --out ./sprites --no-review
+```
+
+Run a script directly for its defaults; the `generate.py` runner overrides `SERVER`/`OUTPUT_PATH`/`REVIEW`/`SEED` without editing the file and sweeps consecutive seeds with `--runs`.
+
+### Building the graph
+
+`nodes.py` builders each take the `Graph` first, register one node, and return its output link(s) — a `[id, slot]` list (or a tuple for multi-output loaders) that you pass as inputs downstream, wiring the graph like the GUI noodles. It's a starter library; for any node class not there, call `g.node("ClassName", **inputs)` directly. Input/output names come from the server:
+
+```sh
+python probe.py                 # version, VRAM, installed models, samplers
+python probe.py --node KSampler # one node's input spec
+```
+
+A GUI graph exported with **Save (API Format)** is the ground truth to transcribe a new node combination from (its `class_type` + `inputs` map straight onto `g.node(...)` calls).
+
+### img2img
+
+`img2img` needs the source image on the server first — `client.upload_image(path)` (multipart POST to `/upload/image`, overwrites) returns the name `load_image(g, name)` reads. `pixel.py` uses this; the sprite's size is the source size × the pixel scale.
+
+## Queue control
+
+```sh
+python jobs.py               # running / pending
+python jobs.py --interrupt   # stop the current prompt
+python jobs.py --history 10  # recent results
+```
 
 ## Notes
 
-- `--dry-run` prints which nodes the prompt/seed/size overrides resolved to (id + title) without submitting — use it once per new workflow.
-- Flux-style graphs (no negative conditioning, `BasicGuider`) are handled: `-p` falls back to tracing `conditioning` links; `-n` just warns if there is nothing to set.
+- **Review** opens each finished image in your OS viewer and asks keep/discard before saving; only kept images hit `OUTPUT_PATH`. It's interactive (`input()`), so run from a terminal; `--no-review` (or `REVIEW = False`) saves everything for batch/sweep runs.
+- `Client.submit` accepts a `Graph` or a raw API-format dict, so a GUI _Save (API Format)_ export can be run as-is (`C.Client().submit(json.load(open(path)))`) without transcribing.
 - Ctrl-C stops the _client_ only — the server keeps rendering; `jobs.py --interrupt` stops the server side.
-- `jobs.py` is not named `queue.py` because that would shadow the Python stdlib `queue` module for anything run from this directory.
+- Import into GameMaker stays out of this kit: picked winners go through the existing deterministic importers (pixel-art-kit `gm-import/`) or a future strip importer — this kit ends at the saved image.
+- `jobs.py` is not named `queue.py` — that would shadow the Python stdlib `queue` module.
