@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """Run a .py workflow script through the kit, with universal overrides.
 
-  python generate.py workflows/pixel.py
+  python generate.py workflows/testrun.py
   python generate.py workflows/testrun.py --seed 42 --runs 4
-  python generate.py workflows/pixel.py --server host:port --out sprite.png
+  python generate.py workflows/testrun.py --server host:port --out img.png
 
 A workflow script defines build(graph, client) and (optionally) module-level
 SERVER / OUTPUT / SEED constants -- the flags here override them. Running a
-script directly (python workflows/pixel.py) uses its own defaults; this runner
-adds seed sweeps (--runs) and one-off overrides without editing it.
+script directly (python workflows/testrun.py) uses its own defaults; this
+runner adds seed sweeps (--runs) and one-off overrides without editing it.
 """
 
 import argparse

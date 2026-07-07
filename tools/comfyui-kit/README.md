@@ -50,14 +50,13 @@ if __name__ == "__main__":
     C.generate(build, server=SERVER, output=OUTPUT)
 ```
 
-`workflows/testrun.py` (Anima/Qwen txt2img) and `workflows/pixel.py` (img2img pixel-art sprites, with background removal) are the two reference scripts, and they **chain**: `testrun.py` writes `gen.png`, `pixel.py`'s `INPUT` defaults to that same `gen.png`. So the two-step sprite flow is: re-run `testrun.py` tweaking the prompt until `gen.png` looks right, then run `pixel.py` to pixelate it into `sprite.png`. `OUTPUT` is one fixed file overwritten every run — no `_00001_` counter, nothing to clean up.
+`workflows/testrun.py` (Anima/Qwen txt2img) is the reference script. `OUTPUT` is one fixed file overwritten every run — no `_00001_` counter, nothing to clean up.
 
 ### Running
 
 ```sh
-python workflows/testrun.py                     # step 1 -> gen.png
-python workflows/pixel.py                        # step 2 -> sprite.png (reads gen.png)
-python generate.py workflows/testrun.py --seed 42 --out gen.png
+python workflows/testrun.py                      # uses its constants -> out.png
+python generate.py workflows/testrun.py --seed 42 --out img.png
 ```
 
 Run a script directly for its defaults; the `generate.py` runner overrides `SERVER`/`OUTPUT`/`SEED` without editing the file (`--runs` sweeps consecutive seeds — but a fixed `OUTPUT` means each overwrites, so give `--runs` a distinct `--out` per intent).
@@ -75,7 +74,7 @@ A GUI graph exported with **Save (API Format)** is the ground truth to transcrib
 
 ### img2img
 
-`img2img` needs the source image on the server first — `client.upload_image(path)` (multipart POST to `/upload/image`, overwrites) returns the name `load_image(g, name)` reads. `pixel.py` uses this; the sprite's size is the source size × the pixel scale.
+The kit supports img2img generically (no shipping example script): `client.upload_image(path)` (multipart POST to `/upload/image`, overwrites) puts a local source on the server and returns the name `load_image(g, name)` reads; feed that through `vae_encode(g, …)` into the sampler's `latent_image`.
 
 ## Queue control
 
