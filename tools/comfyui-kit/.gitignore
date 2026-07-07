@@ -1,8 +1,0 @@
-# Only the helper scripts + docs are committed. Everything the user experiments
-# with (workflow exports = model combinations), everything generated, and
-# machine-specific config stay out of the repo.
-workflows/
-out/
-local/
-__pycache__/
-*.pyc
