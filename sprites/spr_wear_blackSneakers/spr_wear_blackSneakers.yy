@@ -35,8 +35,8 @@
   "nineSlice":null,
   "origin":7,
   "parent":{
-    "name":"Pending Sprite",
-    "path":"folders/Media/Pending Sprite.yy",
+    "name":"Human",
+    "path":"folders/Media/Bitmap Sprites/Entities/Human.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
