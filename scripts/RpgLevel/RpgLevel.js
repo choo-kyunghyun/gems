@@ -49,13 +49,13 @@ globalThis.RpgLevel = {
     },
     {
       key: "floor",
-      // spr_floorTiles frame 4 = the offset-weave pattern (frame 0 brick stays the WALL
-      // stand-in texture — see RpgMap._buildRenderer); wood-tan tint -> parquet flooring.
-      // For a type-0 layer the id IS the frame index.
-      id: 4,
+      // spr_tex_plaid = near-white checker weave (spr_tex_brick is the WALL texture — see
+      // RpgMap._buildRenderer); wood-tan tint -> parquet flooring. For a type-0 layer the
+      // id IS the frame index (and must be non-zero: 0 reads as empty occupancy).
+      id: 1,
       name: "바닥",
       type: 0,
-      sprite: "spr_floorTiles",
+      sprite: "spr_tex_plaid",
       color: "#aa9472",
       solid: false,
       pathCost: 1,

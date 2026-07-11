@@ -40,8 +40,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Bitmap Sprites",
-    "path":"folders/Media/Bitmap Sprites.yy",
+    "name":"Terrains",
+    "path":"folders/Media/Bitmap Sprites/Terrains.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

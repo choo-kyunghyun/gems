@@ -71,8 +71,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Tintable Tiles",
-    "path":"folders/Media/Handmade Sprites/Tintable Tiles.yy",
+    "name":"Tile Templates",
+    "path":"folders/Media/Bitmap Sprites/Tile Templates.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

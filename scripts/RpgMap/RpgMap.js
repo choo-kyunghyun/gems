@@ -512,14 +512,14 @@ globalThis.RpgMap = {
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
       // markDirty reaches it (the flat "corner" autotile config stays for the editor).
-      // Face texture: spr_floorTiles frame 0 as a stand-in brick (a dedicated wall
-      // texture is the art task); the LAYERS tint colors it (texture × tint × light).
+      // Face texture: spr_tex_brick frame 0 (near-white brick, authored for tinting);
+      // the LAYERS tint colors it (texture × tint × light).
       let wallCfg;
       for (let i = 0; i < RpgLevel.LAYERS.length; i++)
         if (RpgLevel.LAYERS[i].key === "wall") wallCfg = RpgLevel.LAYERS[i];
       scene._tilePasses.wall = new RenderWalls(scene.level, scene.wallLayer, {
         color: Color.parse(wallCfg.color),
-        sprite: spr_floorTiles,
+        sprite: spr_tex_brick,
         frame: 0,
         lights: scene._meshPass,
       });
@@ -528,12 +528,12 @@ globalThis.RpgMap = {
       // join the same lit-box pass over the manager's whole-store occupancy view — walls are
       // static after pregeneration, so it's one lazy VBO build with no streaming coupling
       // (RenderChunks' flat rects are disabled above in its favor; never edited, so it's not
-      // keyed into _tilePasses). Same stand-in texture/tint until the dedicated wall art.
+      // keyed into _tilePasses). Same brick texture/tint as the resident walls.
       if (scene._chunked)
         scene.renderer.insert(
           new RenderWalls(scene.level, scene.chunks.wallLayer(), {
             color: Color.parse(wallCfg.color),
-            sprite: spr_floorTiles,
+            sprite: spr_tex_brick,
             frame: 0,
             lights: scene._meshPass,
           }),

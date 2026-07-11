@@ -118,7 +118,7 @@ globalThis.RpgSpawn = {
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
           Inventory: { slots: [], capacity: 12 },
-          Visual: { sprite: spr_chest },
+          Mesh: { model: "military_crate" }, // vox mesh — no Visual, billboard/shadow passes skip it
         },
       },
       {
@@ -158,7 +158,7 @@ globalThis.RpgSpawn = {
           BBox: { x: -4, y: -4, width: 8, height: 8 },
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Lantern" },
-          Mesh: { model: "lantern" },
+          Mesh: { model: "lantern_floor" },
           Light: {
             radius: 95,
             color: Color.parse("#ffedc9"),
@@ -180,7 +180,7 @@ globalThis.RpgSpawn = {
           Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
           Faction: { id: "player" }, // player ally; a hostile target for enemies
           Name: { name: "Turret" },
-          Mesh: { model: "turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
+          Mesh: { model: "military_turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
         },
         post(world, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
@@ -215,7 +215,7 @@ globalThis.RpgSpawn = {
         components: {
           BBox: { x: -7, y: -7, width: 14, height: 14 },
           Name: { name: "Door" },
-          Visual: { sprite: spr_door },
+          Mesh: { model: "portal" }, // vox mesh — no Visual, billboard/shadow passes skip it
           Portal: { toMap: "", toEntry: "default" },
         },
       },
@@ -341,27 +341,30 @@ globalThis.RpgSpawn = {
       if (s.capacity !== undefined) inv.capacity = s.capacity;
       if (Object.keys(inv).length > 0) over.Inventory = inv;
     } else if (s.preset === "prop") {
-      // Vox MESH per Interaction `kind` (workbench/bed — furn "cot" picks the cot bunk) or
-      // furniture `furn` (barrel) where a model exists — vertex-colored, so color/material
-      // don't apply. The rest keep sprites (claim post, crate/fence, the tinted survival
-      // stations): pre-colored art draws untinted unless the descriptor authors color/material.
+      // Vox MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
+      // "cot" picks the cot bunk) or furniture `furn` where a model exists — vertex-colored,
+      // so color/material don't apply. Only the fence keeps a sprite (tintable via the
+      // descriptor's color/material).
       let model;
-      if (s.kind === "workbench") model = "workbench";
-      else if (s.kind === "bed") model = s.furn === "cot" ? "prisonBed" : "bed";
-      else if (s.furn === "barrel") model = "woodenBarrel";
+      if (s.kind === "workbench") model = "wooden_workbench";
+      else if (s.kind === "bed")
+        model = s.furn === "cot" ? "prison_bed" : "wooden_bed";
+      else if (s.kind === "claim") model = "wooden_sign";
+      else if (s.kind === "hydrate") model = "wooden_tub";
+      else if (s.kind === "feed") model = "wooden_bin";
+      else if (s.kind === "buff") model = "wooden_alter";
+      else if (s.furn === "barrel") model = "wooden_barrel";
+      else if (s.furn !== "fence") model = "wooden_crate";
       if (model !== undefined) {
         over.Mesh = { model };
       } else {
-        let sprite;
         let color;
-        if (s.kind === "claim") sprite = spr_surveyPost;
-        else {
-          if (s.furn === "fence") sprite = spr_fenceSquare;
-          else sprite = spr_crate;
-          if (s.color !== undefined || s.material !== undefined)
-            color = RpgSpawn._tint(s);
-        }
-        over.Visual = color !== undefined ? { sprite, color } : { sprite };
+        if (s.color !== undefined || s.material !== undefined)
+          color = RpgSpawn._tint(s);
+        over.Visual =
+          color !== undefined
+            ? { sprite: spr_fenceSquare, color }
+            : { sprite: spr_fenceSquare };
       }
       over.Name = { name: s.label };
       if (s.kind !== undefined) over.Interaction = { kind: s.kind };

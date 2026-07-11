@@ -45,7 +45,7 @@
   "origin":0,
   "parent":{
     "name":"UI",
-    "path":"folders/Media/Handmade Sprites/UI.yy",
+    "path":"folders/Media/Bitmap Sprites/UI.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

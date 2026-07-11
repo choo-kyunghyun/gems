@@ -862,7 +862,11 @@ globalThis.RpgInventoryUI = {
       }
     } else if (item.hasComponent(Consumable)) {
       if (ConsumableSystem.use(scene.world, scene.playerId, itemId)) {
-        Audio.play("snd_powerup"); // consumable used (heal / buff / attribute grant)
+        // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
+        const c = item.getComponent(Consumable);
+        if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0) Audio.play("snd_drink");
+        else if ((c.heal ?? 0) > 0) Audio.play("snd_bandage");
+        else Audio.play("snd_magic");
         Log.info(`used ${itemId}`);
       }
     }

@@ -26,7 +26,7 @@
   "origin":4,
   "parent":{
     "name":"Basics",
-    "path":"folders/Media/Handmade Sprites/Basics.yy",
+    "path":"folders/Media/Bitmap Sprites/Basics.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

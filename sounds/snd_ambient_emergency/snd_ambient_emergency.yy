@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"snd_ambient_emergency",
+  "audioGroupId":{
+    "name":"bgm",
+    "path":"audiogroups/bgm",
+  },
+  "bitDepth":1,
+  "channelFormat":1,
+  "compression":1,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":120.000725,
+  "exportDir":"",
+  "name":"snd_ambient_emergency",
+  "parent":{
+    "name":"BGM",
+    "path":"folders/Media/Audio/BGM.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"snd_ambient_emergency.ogg",
+  "volume":1.0,
+}

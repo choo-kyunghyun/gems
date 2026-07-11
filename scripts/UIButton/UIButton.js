@@ -116,7 +116,7 @@ globalThis.UIButton = class UIButton {
       if (this.hold) {
         this.onUp();
         if (this.enter) {
-          Audio.play("snd_ui_confirm"); // click cue (before onClick, which may swap the scene)
+          Audio.play("snd_button_click"); // click cue (before onClick, which may swap the scene)
           this.onClick();
         }
       }

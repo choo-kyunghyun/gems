@@ -251,6 +251,12 @@ globalThis.PlayerSystem = {
     }
   },
 
+  // dry-click cue for a gun with no round to fire. Edge-gated: the fire key is held-polled
+  // (.down()), so an un-gated cue would repeat every tick while the trigger is held.
+  _dryClick() {
+    if (Input.get("fire").pressed()) Audio.play("snd_gun_uncocked");
+  },
+
   // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
   // gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
   // chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
@@ -258,14 +264,14 @@ globalThis.PlayerSystem = {
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
       // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
-      if (EquipmentSystem.reload(world, id) <= 0) return;
+      if (EquipmentSystem.reload(world, id) <= 0) return PlayerSystem._dryClick();
       wpn = EquipmentSystem.composeWeapon(slot);
     }
     if (slot.rounds <= 0) {
       // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
-      if (EquipmentSystem.reload(world, id) <= 0) return;
+      if (EquipmentSystem.reload(world, id) <= 0) return PlayerSystem._dryClick();
     }
-    if (slot.rounds <= 0) return; // still empty after the reload attempt
+    if (slot.rounds <= 0) return PlayerSystem._dryClick(); // still empty after the reload attempt
 
     const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
     // damage = round's kinetic power + attack. penetration lowers target defense; pierce = hostiles
@@ -290,7 +296,7 @@ globalThis.PlayerSystem = {
       pos.y + aim.ny * 9,
       ang,
     );
-    Audio.playAt("snd_shoot", pos.x, pos.y); // gunshot (spatial); the bullet's hit plays snd_hit later
+    Audio.playAt("snd_gun_fire", pos.x, pos.y); // gunshot (spatial); the hit plays a hitsound later
 
     pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
     pl.attackCd = RPG_ATTACK_ANIM;

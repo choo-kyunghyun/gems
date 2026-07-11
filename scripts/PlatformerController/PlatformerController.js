@@ -145,7 +145,7 @@ globalThis.PlatformerController = {
   // teleport to spawn, clear motion/jump state, grant i-frames to avoid instant re-hit
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(world, ctrl, spawn) {
-    Audio.play("snd_hurt");
+    Audio.play("snd_hitsound_armor");
     const pos = world.get(Position, ctrl.id);
     const vel = world.get(Velocity, ctrl.id);
     pos.x = spawn.x;

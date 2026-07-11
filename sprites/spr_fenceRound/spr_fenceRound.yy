@@ -41,7 +41,7 @@
   "origin":0,
   "parent":{
     "name":"Fences",
-    "path":"folders/Media/Handmade Sprites/Fences.yy",
+    "path":"folders/Media/Bitmap Sprites/Fences.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

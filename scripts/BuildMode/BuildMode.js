@@ -42,7 +42,7 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          // furn sub-type picks the dedicated sprite (RpgSpawn prop branch); art is already wood-colored.
+          // furn sub-type picks the vox mesh (RpgSpawn prop branch, wooden_crate).
           make: (gx, gy) => ({
             preset: "prop",
             gx,
@@ -93,7 +93,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // cheaper cot: the same "bed" sleep Interaction, the prisonBed bunk mesh (furn "cot")
+          // cheaper cot: the same "bed" sleep Interaction, the prison_bed bunk mesh (furn "cot")
           id: "cot",
           labelKey: "BUILD_COT",
           cost: 4,
@@ -190,8 +190,9 @@ globalThis.BuildMode = {
       ],
     },
     {
-      // survival stations — tinted props carrying an Interaction whose InteractAction acts on the
-      // player (hydrate/feed/buff). Same prop pattern as bed/workbench; the action is data (RpgInteractions).
+      // survival stations — vox-mesh props (tub/bin/alter) carrying an Interaction whose
+      // InteractAction acts on the player (hydrate/feed/buff). Same prop pattern as
+      // bed/workbench; the action is data (RpgInteractions).
       labelKey: "BUILD_CAT_SURVIVAL",
       items: [
         {
@@ -204,7 +205,6 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_WATERTANK"),
-            color: "#3c8fd0",
             kind: "hydrate",
           }),
         },
@@ -218,7 +218,6 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_RATIONBOX"),
-            color: "#6a9a4f",
             kind: "feed",
           }),
         },
@@ -232,7 +231,6 @@ globalThis.BuildMode = {
             gx,
             gy,
             label: I18n.text("BUILD_SHRINE"),
-            color: "#a066cc",
             kind: "buff",
           }),
         },

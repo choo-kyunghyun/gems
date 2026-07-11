@@ -26,8 +26,8 @@
   "nineSlice":null,
   "origin":7,
   "parent":{
-    "name":"Bitmap Sprites",
-    "path":"folders/Media/Bitmap Sprites.yy",
+    "name":"Entities",
+    "path":"folders/Media/Bitmap Sprites/Entities.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

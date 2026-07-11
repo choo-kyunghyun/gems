@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.29,
+  "duration":0.7761451,
   "exportDir":"",
   "name":"snd_coin",
   "parent":{

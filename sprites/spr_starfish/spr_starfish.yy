@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":4,
   "parent":{
-    "name":"Icons",
-    "path":"folders/Media/Handmade Sprites/Icons.yy",
+    "name":"MIsc",
+    "path":"folders/Media/Bitmap Sprites/MIsc.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

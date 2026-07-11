@@ -34,7 +34,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 
 **One sentence**: flat, saturated, outline-free subjects on desaturated ground, separated by real lighting, not contour lines — a modern-survival palette for a failed-terraforming colony.
 
-- **World density** (one anchor: the 16 px cell). VOLUME/WALLS author at **1 source px = 1 world px** (a 16³ vox block per cell; wall face textures 16×16 per cell). STANDING sprites (Spine bakes) export at **`SpriteMeta.density: 4`** (4 source px per world px — a ~48-world-px character exports ~192 px tall): at max zoom (×5.25 on a 1080p surface) that is ≥ 1 source px per ~1.3 screen px, so characters stay crisp everywhere while texture pages stay sane; density 8 doubles page cost for no visible gain. Item icons: density 2 (drawn small, UI-only).
+- **World density** (one anchor: the 16 px cell). VOLUME/WALLS author at **1 source px = 1 world px** (a 16³ vox block per cell; wall face textures 16×16 per cell). STANDING sprites (Spine bakes) export at **`SpriteMeta.density: 4`** (4 source px per world px — a ~48-world-px character exports ~192 px tall): at max zoom (×5.25 on a 1080p surface) that is ≥ 1 source px per ~1.3 screen px, so characters stay crisp everywhere while texture pages stay sane; density 8 doubles page cost for no visible gain. (The **lower** bound is the real driver: density 1 — 16 px source — can't hold a modern subject (a person with a gun, gear, a readable face), the floor **hand-drawing confirmed** after the AI path was already dropped; the fix is detail density on the **unchanged 16 px world cell**, so VOLUME/WALLS keep their 16³ vox / 16 px textures and nothing rescales — world size is decoupled from detail.) Item icons: density 2 (drawn small, UI-only).
 - **No outlines, anywhere.** Separation is (1) the projection contract (depth buffer), (2) lighting — sun N·L + point lights hit meshes per-face and sprites per-entity (the sprite sun response), and (3) **palette contrast bands**:
   - GROUND: desaturated, mid-dark — **S ≤ 35 %, V 40–70 %**. Terrain must recede.
   - VOLUME/WALLS: mid saturation — **S 30–60 %**; material reads by hue + the lit face split (bright top / darker south), not texture noise.
@@ -62,7 +62,7 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
 ### Parked / rejected (don't relitigate without new facts)
 
 - **GM3D runtime 3D** — spiked 2026-07-05: glTF loads + renders and the camera was matched exactly, but a Screen-target camera always clears its rect (color + depth) and `setAlpha` is whole-output opacity → no depth interop with the billboard pass → disqualified for VOLUME. Parked for character imposters via render-to-texture (untested).
-- **AI pixel-art entity generation** (ComfyUI 32px pipeline) — superseded by this rework; toolchain kept for reference.
+- **Pixel art for entities — AI-generated _or_ hand-drawn** (confirmed 2026-07-09) — the AI 32 px ComfyUI pipeline was superseded by this rework; hand-drawing then confirmed 16 px source is the modern-subject readability floor. A hand-pixel bump to 32, or enlarging the 16 px world cell itself (coarser build grid, 32³ vox), was weighed off — both fix nothing density-4 flat-HD doesn't already, since detail is decoupled from world size. Pixel is done for entities; the AI toolchain is kept for reference only.
 - **Spine runtime in-engine** (license-incompatible with open source), **per-frame AI animation** (flicker), **pixel-art LoRA hunting** — dead ends.
 
 ## Features

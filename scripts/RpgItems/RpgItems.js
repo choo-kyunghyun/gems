@@ -28,10 +28,14 @@ globalThis.RpgItems = {
     adrenal_implant: "spr_energy",
     backpack: "spr_leatherBackpack",
     coin: "spr_goldCoin",
-    circuitry: "spr_circuitry",
-    keycard: "spr_card",
+    // circuitry art was retired with the media overhaul — colored-box fallback until new art
+    keycard: "spr_keycard",
     wood: "spr_wood",
     scrap_metal: "spr_scrap",
+    // one shared round icon for all three calibers (the only ammo art in the new set)
+    ammo_light: "spr_ammo_pistol",
+    ammo_heavy: "spr_ammo_pistol",
+    ammo_ap: "spr_ammo_pistol",
   },
 
   register() {

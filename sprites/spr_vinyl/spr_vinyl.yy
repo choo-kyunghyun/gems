@@ -30,7 +30,7 @@
   "origin":4,
   "parent":{
     "name":"Icons",
-    "path":"folders/Media/Handmade Sprites/Icons.yy",
+    "path":"folders/Media/Bitmap Sprites/Icons.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
