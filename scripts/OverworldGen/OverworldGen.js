@@ -90,12 +90,21 @@ globalThis.OverworldGen = {
           const h = 1 + Math.floor(rng() * 2);
           const lx = 1 + Math.floor(rng() * (ctx.cols - 2 - w));
           const ly = 1 + Math.floor(rng() * (ctx.rows - 2 - h));
+          const gx = ctx.gx0 + lx;
+          const gy = ctx.gy0 + ly;
+          // random quarter-turn facing so the one boulder mesh doesn't visibly repeat —
+          // by POSITION HASH, not the pass rng (no extra stream draws, so placement is
+          // untouched). A stretched oblong cluster only takes 0/180: the per-cluster
+          // scale is model-space before the yaw, so 90/270 would swing the long axis
+          // out of the cell-rect BBox. Square clusters take any quarter turn.
+          const q = Rand.int2(gx, gy, ctx.gen.seed + 11);
           ctx.out.spawns.push({
             preset: "rock",
-            gx: ctx.gx0 + lx,
-            gy: ctx.gy0 + ly,
+            gx: gx,
+            gy: gy,
             w: w,
             h: h,
+            yaw: w === h ? (q % 4) * 90 : (q % 2) * 180,
           });
         }
       },
