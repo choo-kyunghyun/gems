@@ -6,7 +6,7 @@
 // from the sheets; hand-authored sprites get hand entries. Supersedes ArtDensity (density
 // is now one field of the def).
 //
-// Def shape (flat, JSON-manifest-safe): { sprite: "spr_name", kind, density?, cell? }
+// Def shape (JSON-manifest-safe): { sprite: "spr_name", kind, density?, cell?, anchors? }
 //   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read
 //            specific FIELDS, never switch on kind (its value is tooling/validation).
 //   density  source px per world px, default 1 (today's baseline). DECLARED, never inferred:
@@ -15,6 +15,10 @@
 //            never touches the BBox. Bake sites: EntityPreset.spawn / RpgPlayer.spawn;
 //            AnimationSystem refits when a graph state swaps sheets.
 //   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
+//   anchors  { name: [[dx, dy], ...] } — named per-frame attachment points as offsets from
+//            the sprite ORIGIN in source px (dy negative = up). Emitted by the humanoid
+//            importer from the segmented parts (handR/head/...); read via anchor() — the
+//            substrate for anchored Appearance layers (a held item icon at the hand).
 //
 // Storage: defs are authored by sprite NAME (string-keyed Map — safe), resolved to asset
 // refs at registration; the draw-time ref lookup is PARALLEL ARRAYS via === identity — a
@@ -87,5 +91,19 @@ globalThis.SpriteMeta = {
   /** Final draw scale for a design scale on a sheet: scale / density. */
   fit(scale, sprite) {
     return scale / SpriteMeta.density(sprite);
+  },
+
+  /** Named per-frame attachment point: [dx, dy] offset from the sprite origin (source px,
+   *  dy negative = up), frame clamped into the table — or undefined (sheet has no anchors
+   *  or no such name; an anchored consumer skips drawing). */
+  anchor(sprite, name, frame) {
+    const def = SpriteMeta.of(sprite);
+    if (def === undefined || def.anchors === undefined) return undefined;
+    const table = def.anchors[name];
+    if (table === undefined || table.length === 0) return undefined;
+    let i = Math.floor(frame);
+    if (i < 0) i = 0;
+    if (i >= table.length) i = table.length - 1;
+    return table[i];
   },
 };

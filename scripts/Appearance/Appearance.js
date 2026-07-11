@@ -8,9 +8,15 @@
  * entity, never serialized (a carried sheet re-derives it after EntitySnapshot.apply).
  *
  * @typedef {Object} AppearanceLayer
- * @property {Asset.GMSprite} sprite  same strip layout as the body sprite
+ * @property {Asset.GMSprite} sprite  same strip layout as the body sprite — UNLESS `anchor`
+ *                                    is set: then any single-frame sprite (a held item icon)
  * @property {number} color           layer tint — independent of the body's Visual.color (the
  *                                    SKIN tint); whole-doll effects ride Visual.alpha instead
+ * @property {string} [anchor]        ANCHORED variant: draw the sprite (subimg 0) at this named
+ *                                    per-frame attachment point of the body sheet (SpriteMeta
+ *                                    `anchors`, e.g. "handR" — the held weapon), not at the
+ *                                    shared subimg; skipped if the body sheet declares none
+ * @property {number} [scale]         anchored only: size relative to the body draw scale
  *
  * @typedef {Object} Appearance
  * @property {AppearanceLayer[]} back   drawn before the body (e.g. backpack)

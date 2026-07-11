@@ -88,6 +88,29 @@ globalThis.RenderBillboard = class RenderBillboard {
       matrix_world,
       matrix_build(rp.x, rp.y + dy, 0, tiltDeg, 0, 0, 1, 1, 1),
     );
+    if (layer.anchor !== undefined) {
+      // ANCHORED layer: a single-frame sprite (a held item's icon) drawn at the BODY
+      // sheet's named per-frame attachment point (SpriteMeta `anchors`) instead of the
+      // shared strip subimg — so any item sprite rides the hand with no dedicated held
+      // sheet. Offset is origin-relative source px; the signed xscale mirrors both the
+      // offset and the icon with the facing flip. No anchor table on the body sheet →
+      // nothing drawn (an undeclared sheet is legal).
+      const a = SpriteMeta.anchor(visual.sprite, layer.anchor, visual.subimg);
+      if (a === undefined) return;
+      const k = layer.scale ?? 1;
+      draw_sprite_ext(
+        layer.sprite,
+        0,
+        a[0] * visual.xscale,
+        a[1] * visual.yscale,
+        visual.xscale * k,
+        visual.yscale * k,
+        0,
+        layer.color,
+        visual.alpha,
+      );
+      return;
+    }
     draw_sprite_ext(
       layer.sprite,
       visual.subimg,

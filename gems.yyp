@@ -445,8 +445,6 @@
     {"id":{"name":"spr_grenade","path":"sprites/spr_grenade/spr_grenade.yy",},},
     {"id":{"name":"spr_health","path":"sprites/spr_health/spr_health.yy",},},
     {"id":{"name":"spr_heart","path":"sprites/spr_heart/spr_heart.yy",},},
-    {"id":{"name":"spr_held_blaster","path":"sprites/spr_held_blaster/spr_held_blaster.yy",},},
-    {"id":{"name":"spr_held_pipe","path":"sprites/spr_held_pipe/spr_held_pipe.yy",},},
     {"id":{"name":"spr_human","path":"sprites/spr_human/spr_human.yy",},},
     {"id":{"name":"spr_item_armored_vest","path":"sprites/spr_item_armored_vest/spr_item_armored_vest.yy",},},
     {"id":{"name":"spr_item_chem_module","path":"sprites/spr_item_chem_module/spr_item_chem_module.yy",},},

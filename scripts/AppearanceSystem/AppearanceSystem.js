@@ -1,12 +1,16 @@
 // Rebuilds an entity's Appearance layer stack from its Equipment — derived-from-source like
 // StatModel.recompute (a full rebuild can't drift), run at the same chokepoints (equip/unequip,
 // plus after a carried sheet lands via EntitySnapshot.apply). No-op for entities without an
-// Appearance (opt-in: paper-doll humanoids only). An Equippable shows on the doll only when its
-// `worn` names an existing sprite that mirrors the body's strip layout (see Appearance).
+// Appearance (opt-in: paper-doll humanoids only). An Equippable shows on the doll when its
+// `worn` names an existing sprite that mirrors the body's strip layout (see Appearance) — and
+// the WEAPON slot needs no worn sheet at all: an unset `worn` falls back to the item's own
+// icon drawn ANCHORED at the body's right-hand attachment point (SpriteMeta `anchors`), so
+// every weapon gets a held visual with zero dedicated art.
 globalThis.AppearanceSystem = {
   // slot -> draw-order policy: back layers render behind the body, front layers over it in order
   BACK_SLOTS: ["backpack"],
   FRONT_SLOTS: ["armor", "trinket", "weapon"],
+  HELD_SCALE: 0.5, // anchored held-icon size relative to the body's draw scale
 
   rebuild(world, id) {
     const ap = world.get(Appearance, id);
@@ -31,11 +35,22 @@ globalThis.AppearanceSystem = {
       const item = Item.get(s.itemId);
       const eqp =
         item !== undefined ? item.getComponent(Equippable) : undefined;
-      if (eqp === undefined || eqp.worn === "") continue;
-      // asset_get_index returns an opaque ref (not a number) — validate via sprite_exists
-      const spr = asset_get_index(eqp.worn);
-      if (!sprite_exists(spr)) continue;
-      out.push({ sprite: spr, color: c_white });
+      if (eqp === undefined) continue;
+      if (eqp.worn !== "") {
+        // asset_get_index returns an opaque ref (not a number) — validate via sprite_exists
+        const spr = asset_get_index(eqp.worn);
+        if (sprite_exists(spr)) out.push({ sprite: spr, color: c_white });
+      } else if (slotName === "weapon" && sprite_exists(item.sprite)) {
+        // held-icon fallback: the item's own icon at the right hand's per-frame anchor
+        // (RenderBillboard's anchored-layer branch; item.sprite is the ref RpgItems'
+        // spr_item_<id> auto-wire resolved, -1 = none and sprite_exists rejects it)
+        out.push({
+          sprite: item.sprite,
+          color: c_white,
+          anchor: "handR",
+          scale: this.HELD_SCALE,
+        });
+      }
     }
   },
 };
