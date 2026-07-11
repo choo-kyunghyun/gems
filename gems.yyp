@@ -67,7 +67,6 @@
     {"$GMFolder":"","%Name":"UI","folderPath":"folders/Media/Bitmap Sprites/UI.yy","name":"UI","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Particles","folderPath":"folders/Media/Particles.yy","name":"Particles","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Pending Sprite","folderPath":"folders/Media/Pending Sprite.yy","name":"Pending Sprite","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Item","folderPath":"folders/Media/Pending Sprite/Item.yy","name":"Item","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Vector Sprites","folderPath":"folders/Media/Vector Sprites.yy","name":"Vector Sprites","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
   "ForcedPrefabProjectReferences":[],
