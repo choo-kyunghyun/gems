@@ -44,7 +44,7 @@ import flat_sprites as F  # reuse the .yy emitter/build machinery (PARENT overri
 
 ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(P.KIT))
 F.ROOT = ROOT
-F.PARENT = ("Pending Sprite", "folders/Media/Pending Sprite.yy")  # where the doll sheets live
+F.PARENT = ("Human", "folders/Media/Bitmap Sprites/Entities/Human.yy")  # where the doll sheets live
 
 SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "human")
 
