@@ -4,8 +4,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ]
   },
   {
@@ -13,8 +13,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ]
   },
   {
@@ -22,8 +22,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -55,8 +55,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -84,8 +84,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -113,8 +113,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -142,8 +142,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -183,8 +183,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [
@@ -212,8 +212,8 @@
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
-      16,
-      16
+      32,
+      32
     ],
     "variants": {
       "15": [

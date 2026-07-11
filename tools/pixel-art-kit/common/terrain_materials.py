@@ -23,7 +23,9 @@ Usage:  python common/terrain_materials.py        # -> out/materials/<terrain>_<
 import os, math, random
 import pixlib as P
 
-S = 16  # material/tile size in px (G.E.M.S. convention; see GEMS.md)
+S = 32  # material/tile size in px — 1:1 with the 32px world cell since 2026-07 (see GEMS.md)
+K = S // 16  # stamp scale: the hand-shaped stamps (blades/decor) were authored at 16 — scale
+             # their absolute-px geometry so a bump of S keeps the same world-space look, crisper
 
 
 # ---- algorithm: coarse value-noise (general) -------------------------------
@@ -88,15 +90,17 @@ def algo_ripple(S, cfg, seed):
 # ---- algorithm: dense vertical blades (grass) ------------------------------
 
 def algo_blades(S, cfg, seed):
-    """Base fill + many fine vertical strokes (1px wide, 1-2px tall, wrapping vertically) in a
-    darker + lighter tone => a dense, fluffy texture. Sparse horizontally, so it tiles."""
+    """Base fill + many fine vertical strokes (1px wide, K-2K px tall, wrapping vertically) in a
+    darker + lighter tone => a dense, fluffy texture. Sparse horizontally, so it tiles. Height
+    scales with K so a blade keeps its 16px-era world proportion; width stays 1px (the crispness
+    a native-resolution sheet buys)."""
     rng = random.Random(seed)
     base, dark, light = cfg["base"], cfg["dark"], cfg["light"]
     px = [base + (255,)] * (S * S)
     for _ in range(int(S * S * cfg.get("density", 0.26))):
         x = rng.randrange(S); y = rng.randrange(S)
         col = dark if rng.random() < 0.6 else light
-        for dy in range(2 if rng.random() < 0.5 else 1):
+        for dy in range(K * (2 if rng.random() < 0.5 else 1)):
             px[((y + dy) % S) * S + x] = col + (255,)
     return px
 
@@ -137,26 +141,31 @@ def _scatter(rng, S, count, margin, sep=5):
     return pts
 
 
+def _stamp(px, S, x, y, w, h, color):
+    """Fill a w×h block at (x, y) — the K-scaled unit of the decor shapes."""
+    for dy in range(h):
+        for dx in range(w):
+            px[(y + dy) * S + (x + dx)] = color
+
+
 def _decor_flowers(px, S, rng):
-    """2-3 small blooms: a 1px warm core + 4 muted petals (plus shape). Colors stay low-contrast
-    against the olive grass so blooms read as accents, not confetti."""
+    """2-3 small blooms: a KxK warm core + 4 muted petals (plus shape, K-scaled so a bloom keeps
+    its 16px-era world size). Colors stay low-contrast against the olive grass so blooms read as
+    accents, not confetti."""
     petals = [(196, 190, 172), (172, 152, 174)]  # dusty white / soft lilac
     core = (190, 172, 128)
-    for x, y in _scatter(rng, S, rng.randint(2, 3), 3):
+    for x, y in _scatter(rng, S, rng.randint(2, 3), 3 * K, 5 * K):
         pet = petals[rng.randrange(len(petals))] + (255,)
-        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-            px[(y + dy) * S + (x + dx)] = pet
-        px[y * S + x] = core + (255,)
+        for dx, dy in ((-K, 0), (K, 0), (0, -K), (0, K)):
+            _stamp(px, S, x + dx, y + dy, K, K, pet)
+        _stamp(px, S, x, y, K, K, core + (255,))
 
 
 def _decor_pebbles(px, S, rng, lit=(146, 142, 132), dark=(108, 104, 96)):
-    """2-3 small stones: a 2x2 lit block with a 2px darker shadow row below."""
-    for x, y in _scatter(rng, S, rng.randint(2, 3), 3):
-        for dy in range(2):
-            for dx in range(2):
-                px[(y + dy) * S + (x + dx)] = lit + (255,)
-        for dx in range(2):
-            px[(y + 2) * S + (x + dx)] = dark + (255,)
+    """2-3 small stones: a 2Kx2K lit block with a K-tall darker shadow row below."""
+    for x, y in _scatter(rng, S, rng.randint(2, 3), 3 * K, 5 * K):
+        _stamp(px, S, x, y, 2 * K, 2 * K, lit + (255,))
+        _stamp(px, S, x, y + 2 * K, 2 * K, K, dark + (255,))
 
 
 def _decor_stones(px, S, rng):

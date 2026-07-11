@@ -84,22 +84,22 @@ no longer gets squished into the square cell; square icons are unaffected.
 
 ## Status / migration
 
-The gm-import generators emit **16×16**: `entity_sprites.py` draws at 16px (foot-anchored 8,16),
-`terrain_sprites.py` follows `terrain_materials.S = 16`, and the `templates/` demos are 16×16 DB32.
+The entity generators emit **16×16** (`entity_sprites.py` draws at 16px, foot-anchored 8,16, and
+the `templates/` demos are 16×16 DB32); the **terrain pipeline emits 32×32** since the 2026-07-12
+regen (`terrain_materials.S = 32`, 1:1 with the world cell — the hand-shaped stamps scale by
+`K = S // 16` so blades/blooms/pebbles keep their 16px-era world size, just crisper).
 
-⚠️ **The engine is no longer 16px-native** — since the 2026-07 migration the RPG runs a
+⚠️ **The engine is not 16px-native** — since the 2026-07 migration the RPG runs a
 **32-world-px cell** (`RpgLevel` `RPG_CELL = 32` + `cell: 32` in the level JSONs; the 2026-07 media
-set — vox meshes, `spr_tex_*` wall/floor textures — authors 1:1 at 32 px/cell). This kit's 16px
-sheets still work: terrain/wall tiles are UV-stretched over the cell, and 16px entity sprites draw
-at a ×2 scale (declare `SpriteMeta density: 0.5`, as the fence does). Regenerating the terrain set
-at 32 px (bump `terrain_materials.S`) is an optional follow-up for extra detail. (The `Platformer`
-minigame is unchanged — separate world, debug-box art, not the 16px set.)
+set — vox meshes, `spr_tex_*` wall/floor textures — authors 1:1 at 32 px/cell). The kit's remaining
+16px sheets still work: tiles are UV-stretched over the cell, and 16px entity sprites draw at a
+×2 scale (declare `SpriteMeta density: 0.5`, as the fence does). (The `Platformer` minigame is
+unchanged — separate world, debug-box art, not the 16px set.)
 
-The committed `sprites/` are now **16px** too — the 13 entity sprites (`entity_sprites.py`) and the
-`spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`; 9 materials — deep water, water,
-sand, mud, soil, rich soil, grass, gravel, rocky) were regenerated in place (deterministic uuids →
-churn-free re-runs). The migration is complete: regenerate any time by re-running the generators
-after editing a template.
+The committed `spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`; 9 materials —
+deep water, water, sand, mud, soil, rich soil, grass, gravel, rocky) are **32px**; the 13 entity
+sprites (`entity_sprites.py`) remain 16px. Deterministic uuids → churn-free re-runs: regenerate
+any time by re-running the generators after editing a template.
 
 **Not covered** (no procedural generator — outside the entity/terrain workflow): the lobby/editor UI
 icons `spr_back` / `spr_exit` / `spr_revert` (currently unused) and `spr_choo` / `spr_play` (the

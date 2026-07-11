@@ -14,7 +14,8 @@ hash. The manifest is generated alongside the frames so the table can't drift fr
 The sprite resources must already be REGISTERED (once, via the IDE or
 `gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=spr_terrain_<T>"`); this only fills in
 their frames. Frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible
-(no churn). Tile size matches terrain_materials (16px; see GEMS.md); TerrainStream scales it to the cell.
+(no churn). Tile size matches terrain_materials (32px, 1:1 with the world cell since the 2026-07
+regen; see GEMS.md); TerrainStream stretches it over the cell either way.
 
 Usage:  python tools/pixel-art-kit/gm-import/terrain_sprites.py [project_root]
   project_root defaults to the repo two levels above the kit (tools/pixel-art-kit/../..).
