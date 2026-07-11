@@ -53,6 +53,7 @@ globalThis.UINav = class UINav {
 
     if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
     if (UITable.consume()) return; // table browse mode claimed the keys this frame
+    if (UISlots.consume()) return; // slot-grid browse mode claimed the keys this frame
     if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
     const inp = UINav._readInput();
@@ -170,7 +171,8 @@ globalThis.UINav = class UINav {
       const fx = items[fi].cx;
       const fy = items[fi].cy;
       const consumesAxis = UINav._comp(UINav.focused, "navAxis") !== null;
-      const dirs = [ // dx, dy, label, color
+      const dirs = [
+        // dx, dy, label, color
         [0, -1, "U", c_red],
         [0, 1, "D", c_lime],
         [-1, 0, "L", c_aqua],

@@ -146,6 +146,7 @@
   "INV_NOACTION": "-",
   "INV_SEARCH": "검색...",
   "INV_CLEAR": "지우기",
+  "INV_SORT": "정렬",
 
   "SLOT_WEAPON": "무기",
   "SLOT_ARMOR": "방어구",
@@ -156,6 +157,8 @@
   "STAT_ATK": "공격",
   "STAT_DEF": "방어",
   "STAT_SPD": "속도",
+  "STAT_HP": "최대 체력",
+  "STAT_STA": "최대 기력",
 
   "INV_ATTRIBUTES": "능력치",
   "ATTR_POW": "힘",

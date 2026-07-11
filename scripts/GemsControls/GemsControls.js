@@ -370,6 +370,7 @@ globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
       gap,
       selected: opts.selected ?? -1,
       onSelect: opts.onSelect,
+      onActivate: opts.onActivate,
       draggable: opts.draggable ?? false,
       font: opts.font ?? -1,
       slotColor: gemsColor(opts.slotColor ?? GemsTheme.btnPress),

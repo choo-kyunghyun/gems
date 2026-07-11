@@ -2,12 +2,30 @@
  * @implements {UIComponent}
  * Slot grid with hover + single selection (inventory foundation). Whole grid drawn
  * immediate-mode across one element (no child-per-slot), so a large inventory is cheap.
- * `items` is a flat array of { sprite, subimg, count, color } or null. `sprite` MUST be
- * raster — SVG sprites report 0 frames + fault draw_sprite on GMRT (see CLAUDE.md).
+ * `items` is a flat array of { sprite, subimg, count, color, borderColor?, badge?, badgeColor? }
+ * or null — `borderColor` overrides the grid border per cell (rarity tint), `badge` is a short
+ * corner marker ("E"/"*"). `sprite` MUST be raster — SVG sprites report 0 frames + fault
+ * draw_sprite on GMRT (see CLAUDE.md).
+ *
+ * Browse mode: `navActivate` enters it; the grid then owns the arrows (a 2D slot cursor,
+ * confirm → onActivate). It claims keys by setting `UISlots.active = this` each frame; UINav
+ * consumes the flag — a per-frame REQUEST, so a stale claim lapses (same contract as UITable).
+ *
  * GMRT: hover/selection read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UISlots = class UISlots {
-  /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
+  // grid requesting keyboard browse this frame (UINav.consume reads + clears it).
+  // A plain static field, not a static getter (GMRT doesn't fire those).
+  static active = null;
+
+  /** @returns {boolean} whether a grid is requesting keyboard browse this frame */
+  static consume() {
+    if (UISlots.active === null) return false;
+    UISlots.active = null;
+    return true;
+  }
+
+  /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, onActivate, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
   constructor(s = {}) {
     this.items = s.items ?? []; // flat array; entry is item-or-null
     this.cols = s.cols ?? 4;
@@ -16,6 +34,7 @@ globalThis.UISlots = class UISlots {
     this.pad = s.pad ?? 8; // icon inset inside a cell
     this.selected = s.selected ?? -1;
     this.onSelect = s.onSelect ?? noop;
+    this.onActivate = s.onActivate ?? noop; // browse-mode confirm on the cursor slot
     this.draggable = s.draggable ?? false; // opt into SlotDrag pick-up/drop
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
@@ -28,6 +47,10 @@ globalThis.UISlots = class UISlots {
 
     this._hover = -1; // hovered slot index, -1 = none
     this._inside = false; // instance field, not a local bool — see onUpdate (GMRT)
+    this._browsing = false; // keyboard/gamepad browse mode (navActivate enters)
+    this._cursor = 0; // browse-mode slot cursor
+    this._mx = -1; // last pointer position — a move hands browse back to the mouse
+    this._my = -1;
   }
 
   // top-left of slot i in gui space, relative to the laid-out rect.
@@ -50,6 +73,24 @@ globalThis.UISlots = class UISlots {
     // hit-test into INSTANCE fields, not boolean local consts — on GMRT a local bool
     // can flip true→false mid-function (see CLAUDE.md), gating the hover branch wrongly.
     this._inside = !block && element.positionMeeting(mx, my);
+    const moved = mx !== this._mx || my !== this._my;
+    this._mx = mx;
+    this._my = my;
+
+    // browse mode owns input while latched; a pointer move/click hands control back to the
+    // mouse. Re-requests nav suspension each frame and absorbs that frame's keys (incl. the
+    // exit Esc) — same contract as UITable browse mode.
+    if (this._browsing) {
+      if (moved || (this._inside && UIPointer.pressed)) {
+        this._browsing = false; // pointer takes over → fall through to mouse handling
+      } else {
+        this._hover = -1; // no stale mouse hover under the key cursor
+        this._browseKeys();
+        UISlots.active = this; // re-request nav suspension THIS frame (self-healing)
+        return true;
+      }
+    }
+
     this._hover = -1;
     if (this._inside) {
       for (let i = 0; i < this.items.length; i++) {
@@ -99,6 +140,67 @@ globalThis.UISlots = class UISlots {
     this.onSelect(i, this.items[i]);
   }
 
+  // ── nav ─────────────────────────────────────────────────────
+  // confirm enters browse mode; its presence marks the element focusable (UINav duck-typing)
+  /** @param {UIElement} element */
+  navActivate(element) {
+    this._browsing = true;
+    // seed the cursor on the current selection, else the first slot
+    this._cursor =
+      this.selected >= 0 && this.selected < this.items.length
+        ? this.selected
+        : 0;
+  }
+
+  _browseKeys() {
+    const e = this._navEdge();
+    if (e.cancel) {
+      this._browsing = false;
+      return;
+    }
+    const n = this.items.length;
+    if (n === 0) return;
+    if (e.dx !== 0 || e.dy !== 0) {
+      const c = clamp(this._cursor + e.dx + e.dy * this.cols, 0, n - 1);
+      if (c !== this._cursor) {
+        this._cursor = c;
+        this._select(c);
+      }
+    }
+    if (e.confirm) this.onActivate(this._cursor, this.items[this._cursor]);
+  }
+
+  // Minimal directional edge read for browse mode (keyboard + gamepad dpad), mirroring
+  // UITable._navEdge. The full stick/analog handling lives in UINav; the grid only needs
+  // discrete steps.
+  _navEdge() {
+    let dx = 0;
+    let dy = 0;
+    let confirm = false;
+    let cancel = false;
+    if (keyboard_check_pressed(vk_left)) dx = -1;
+    else if (keyboard_check_pressed(vk_right)) dx = 1;
+    if (keyboard_check_pressed(vk_up)) dy = -1;
+    else if (keyboard_check_pressed(vk_down)) dy = 1;
+    if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space))
+      confirm = true;
+    if (keyboard_check_pressed(vk_escape)) cancel = true;
+    if (gamepad_is_connected(0)) {
+      if (gamepad_button_check_pressed(0, gp_padl)) dx = -1;
+      else if (gamepad_button_check_pressed(0, gp_padr)) dx = 1;
+      if (gamepad_button_check_pressed(0, gp_padu)) dy = -1;
+      else if (gamepad_button_check_pressed(0, gp_padd)) dy = 1;
+      if (gamepad_button_check_pressed(0, gp_face1)) confirm = true;
+      if (gamepad_button_check_pressed(0, gp_face2)) cancel = true;
+    }
+    return { dx, dy, confirm, cancel };
+  }
+
+  /** Release the browse-mode key claim on teardown. @param {UIElement} element */
+  onDestroy(element) {
+    if (UISlots.active === this) UISlots.active = null;
+  }
+
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
@@ -117,8 +219,11 @@ globalThis.UISlots = class UISlots {
       const x1 = p.x + sz;
       const y1 = p.y + sz;
 
-      // cell background.
-      const bg = i === this._hover ? this.slotHover : this.slotColor;
+      // cell background (the browse cursor highlights like a hover).
+      const bg =
+        i === this._hover || (this._browsing && i === this._cursor)
+          ? this.slotHover
+          : this.slotColor;
       draw_roundrect_color_ext(
         p.x,
         p.y,
@@ -183,6 +288,11 @@ globalThis.UISlots = class UISlots {
           true,
         );
       } else {
+        // per-item border (rarity tint) wins over the grid default
+        const bc =
+          it != null && it.borderColor != null
+            ? it.borderColor
+            : this.borderColor;
         draw_roundrect_color_ext(
           p.x,
           p.y,
@@ -190,14 +300,14 @@ globalThis.UISlots = class UISlots {
           y1,
           this.rad,
           this.rad,
-          this.borderColor,
-          this.borderColor,
+          bc,
+          bc,
           true,
         );
       }
     }
 
-    // counts drawn last so the selection outline never covers them.
+    // counts + corner badges drawn last so the selection outline never covers them.
     if (this.font !== -1) draw_set_font(this.font);
     draw_set_halign(fa_right);
     draw_set_valign(fa_bottom);
@@ -207,6 +317,16 @@ globalThis.UISlots = class UISlots {
       if (it != null && it.count != null && it.count > 1) {
         const p = this._slotXY(pos, i);
         draw_text(p.x + sz - 4, p.y + sz - 3, string(it.count));
+      }
+    }
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    for (let i = 0; i < this.items.length; i++) {
+      const it = this.items[i];
+      if (it != null && it.badge != null && it.badge !== "") {
+        const p = this._slotXY(pos, i);
+        draw_set_color(it.badgeColor ?? this.countColor);
+        draw_text(p.x + 4, p.y + 2, it.badge);
       }
     }
 

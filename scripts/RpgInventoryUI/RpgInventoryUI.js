@@ -1,5 +1,7 @@
 // Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests / Settings).
-// Built ONCE; rebuild() only swaps data so sort/filter/scroll/tab survive every equip or use.
+// Built ONCE; rebuild() only swaps data so filter/selection/active tab survive every equip or use.
+// The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the
+// pane carries the metadata the old table spread across columns (chest/trade keep their tables).
 globalThis.RpgInventoryUI = {
   // Build the hidden overlay + persistent tabbed structure once. Fixed panel (not a UIModal):
   // absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
@@ -73,7 +75,6 @@ globalThis.RpgInventoryUI = {
     scene._invSel = null; // selected row model
     scene._invSelTime = 0; // last select time (ms) for double-click-to-use
     scene._invCat = ""; // active category filter code ("" = all)
-    scene._invSearch = ""; // active name search (lowercased; "" = none)
 
     const tabs = gemsTabs(
       [
@@ -111,10 +112,25 @@ globalThis.RpgInventoryUI = {
     scene._invWin.body.insertChild(tabs);
   },
 
+  // Items-tab grid geometry + detail-pane tuning (plain data on the namespace object)
+  GRID_COLS: 6,
+  GRID_CELL: 64,
+  GRID_GAP: 6,
+  DETAIL_WRAP: 520, // wrap width for lore/description text in the detail pane
+  // Equippable.mods stat keys → i18n labels for the detail pane bonus lines
+  STAT_KEYS: {
+    attack: "STAT_ATK",
+    defense: "STAT_DEF",
+    speed: "STAT_SPD",
+    maxHp: "STAT_HP",
+    maxStamina: "STAT_STA",
+  },
+
   // ── tab pages
-  // Items: usage + category filter, search + clear, the bag table, select/action row.
+  // Items: usage + category filter + sort, the bag slot GRID (icons; rarity borders, worn/fav
+  // badges) beside a detail pane (name, maker + lore, description, stats), select/action row.
   _buildItemsTab(scene) {
-    // fill the tab host so the grow table takes leftover height + reflows its row count on resize
+    // fill the tab host so the grid+detail row takes the leftover height
     const page = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -165,59 +181,69 @@ globalThis.RpgInventoryUI = {
     filterCell.insertChild(
       gemsSelectCustom(cats, 0, (_i, code) => {
         scene._invCat = code;
-        RpgInventoryUI._applyFilter(scene);
+        RpgInventoryUI._refreshGrid(scene);
+        RpgInventoryUI._refreshDetail(scene); // the selection may have filtered away
       }),
     );
     top.insertChild(filterCell);
-    page.insertChild(top);
-
-    // free-text name filter + Clear; composes with the category select into one predicate
-    // (see _applyFilter). Typing sets UIInput.active, which suspends UINav so the caret keeps keys.
-    const searchRow = new UIElement({
-      width: "100%",
-      height: 32,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: GemsTheme.gapSm,
-    });
-    const searchCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    const searchInput = gemsInput({
-      height: 30,
-      placeholder: I18n.text("INV_SEARCH"),
-      onChange: (v) => {
-        scene._invSearch = InvTable.lower(v);
-        RpgInventoryUI._applyFilter(scene);
-      },
-    });
-    const searchComp = searchInput.getComponent(UIInput);
-    searchCell.insertChild(searchInput);
-    searchRow.insertChild(searchCell);
-    searchRow.insertChild(
+    // tidy the REAL bag order (merge stacks, category → rarer-first); the grid mirrors it
+    top.insertChild(
       gemsButton(
-        I18n.textRef("INV_CLEAR"),
+        I18n.textRef("INV_SORT"),
         () => {
-          searchComp.setValue(""); // setValue doesn't fire onChange — reset by hand
-          scene._invSearch = "";
-          RpgInventoryUI._applyFilter(scene);
+          InventorySystem.sort(scene.world.get(Inventory, scene.playerId));
+          scene._invDirty = true;
         },
-        { width: 76, height: 28 },
+        { width: 90, height: 28 },
       ),
     );
-    page.insertChild(searchRow);
+    page.insertChild(top);
 
-    // bag table, built once with the Settings-driven column set; rebuild() only swaps rows (a
-    // column toggle calls setColumns), so sort/filter/scroll persist.
-    const table = gemsTable(InvTable.columns({ worn: true, fav: true }), {
-      grow: true, // fill the page; UITable reflows its row count to the live height
-      rowH: 26,
-      headerH: 26,
-      sortBy: 1, // Name (always column index 1: worn marker is 0, Name is 1)
-      emptyText: I18n.text("RPG_EMPTY"),
-      onSelect: (row) => RpgInventoryUI._onSelect(scene, row),
-      onActivate: (row) => RpgInventoryUI._activate(scene, row),
+    // grid (left, sized to the bag) + detail pane (right, fills the rest & stretches).
+    // No gemsScroll around the grid — a clipped scroll beside a non-clipped sibling is the
+    // GMRT batch-flush whack-a-mole (see CraftingUI); the grid fits the tall card instead.
+    const content = new UIElement({
+      width: "100%",
+      flexGrow: 1,
+      flexBasis: 0,
+      flexDirection: "row",
+      gap: GemsTheme.gap,
     });
-    scene._invTable = table.getComponent(UITable);
-    page.insertChild(table);
+    const grid = gemsSlots([], {
+      cols: RpgInventoryUI.GRID_COLS,
+      cellSize: RpgInventoryUI.GRID_CELL,
+      gap: RpgInventoryUI.GRID_GAP,
+      onSelect: (i) => RpgInventoryUI._onGridSelect(scene, i),
+      onActivate: (i) => {
+        // browse-mode confirm acts on the cursor slot (the mouse path double-clicks)
+        const row = scene._invView[i];
+        if (row !== undefined) RpgInventoryUI._activate(scene, row);
+      },
+    });
+    scene._invGrid = grid.getComponent(UISlots);
+    scene._invGridEl = grid;
+    scene._invView = []; // filtered row models, parallel to the grid's items
+    const gridCell = new UIElement({ flexShrink: 0 });
+    gridCell.insertChild(grid);
+    content.insertChild(gridCell);
+
+    const detail = new UIElement({
+      flexGrow: 1,
+      flexBasis: 0,
+      padding: GemsTheme.padSm,
+      gap: 4,
+    });
+    detail.addComponent(
+      new UIPanel({
+        color: gemsColor(GemsTheme.panel),
+        rad: GemsTheme.radius,
+        border: 1,
+        borderColor: gemsColor(GemsTheme.border),
+      }),
+    );
+    scene._invDetailHost = detail;
+    content.insertChild(detail);
+    page.insertChild(content);
 
     // selected item name + a context action (Use/Equip/Unequip)
     const action = new UIElement({
@@ -663,26 +689,12 @@ globalThis.RpgInventoryUI = {
     return page;
   },
 
-  // Refresh live data only (so the view/scroll/active tab survive): swap rows keeping
-  // sort/filter, re-map the selection, rebuild equipment + extra + party sections.
+  // Refresh live data only (so the view/filter/active tab survive): swap the grid's items,
+  // re-map the selection, refresh the detail pane, rebuild equipment + extra + party sections.
   //   opts: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
   rebuild(scene, opts) {
-    const rows = RpgInventoryUI._buildRows(scene);
-    scene._invTable.setRows(rows);
-
-    // re-map the selection by uid/itemId so the highlight survives the swap (row models are
-    // fresh objects each refresh, so the old _invSel ref is stale)
-    if (scene._invSel !== null) {
-      let found = null;
-      for (let i = 0; i < rows.length; i++) {
-        if (RpgInventoryUI._sameRow(rows[i], scene._invSel)) {
-          found = rows[i];
-          break;
-        }
-      }
-      scene._invSel = found;
-      scene._invTable.selectRow(found);
-    }
+    RpgInventoryUI._refreshGrid(scene);
+    RpgInventoryUI._refreshDetail(scene);
 
     // equipment rows: clear + re-add for the new contents
     const eh = scene._invEquipHost;
@@ -713,10 +725,9 @@ globalThis.RpgInventoryUI = {
     }
   },
 
-  // Push the current Settings-driven column set onto the live table (setColumns remaps the sort
-  // by column key). The chest shares these Settings, so sync its tables too when both are open.
+  // The bag is a grid now (no columns), but the Settings toggles still govern the shared
+  // chest/trade tables — sync the chest window when it's open.
   _applyColumns(scene) {
-    scene._invTable.setColumns(InvTable.columns({ worn: true, fav: true }));
     if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
@@ -746,37 +757,263 @@ globalThis.RpgInventoryUI = {
     return rows;
   },
 
-  // Compose the category select + search box into ONE predicate (UITable takes one filter fn);
-  // null when neither active.
-  _applyFilter(scene) {
+  // Rebuild the grid view from the live bag: filter row models by category, map to UISlots
+  // items (icon + rarity border + worn/fav badge), pad the unfiltered view with empty cells up
+  // to capacity (the bag's size reads at a glance), re-map the selection, resize the element.
+  _refreshGrid(scene) {
+    const rows = RpgInventoryUI._buildRows(scene);
     const cat = scene._invCat;
-    const q = scene._invSearch;
-    if (cat === "" && q === "") {
-      scene._invTable.setFilter(null);
-      return;
+    const view = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
+      if (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) view.push(r);
     }
-    // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
-    scene._invTable.setFilter(
-      (r) =>
-        (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) &&
-        (q === "" || r.search.indexOf(q) >= 0),
-    );
+    scene._invView = view;
+
+    const gold = gemsColor("#ffd166");
+    const accent = gemsColor(GemsTheme.accent);
+    const items = [];
+    for (let i = 0; i < view.length; i++) {
+      const r = view[i];
+      const it = Item.get(r.itemId);
+      items.push({
+        sprite: it !== undefined ? it.sprite : -1,
+        count: r.qty > 1 ? r.qty : null,
+        borderColor: r.color, // rarity tint
+        badge: r.worn ? "E" : r.fav ? "*" : null,
+        badgeColor: r.worn ? accent : gold,
+      });
+    }
+    if (cat === "") {
+      const inv = scene.world.get(Inventory, scene.playerId);
+      for (let i = view.length; i < inv.capacity; i++) items.push(null);
+    }
+
+    const g = scene._invGrid;
+    g.items = items;
+
+    // re-map the selection by uid/itemId (row models are fresh objects each refresh)
+    let sel = -1;
+    if (scene._invSel !== null) {
+      for (let i = 0; i < view.length; i++) {
+        if (RpgInventoryUI._sameRow(view[i], scene._invSel)) {
+          sel = i;
+          break;
+        }
+      }
+      scene._invSel = sel >= 0 ? view[sel] : null;
+    }
+    g.selected = sel;
+
+    // fit the host element to the item count (flexpanel point mutation — the UIText idiom)
+    const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
+    const w = g.cols * g.cellSize + (g.cols - 1) * g.gap;
+    const h = rowsN * g.cellSize + (rowsN - 1) * g.gap;
+    const el = scene._invGridEl;
+    if (el.getWidth().value != w || el.getHeight().value != h) {
+      el.setWidth(w, flexpanel_unit.point);
+      el.setHeight(h, flexpanel_unit.point);
+      el.markDirty();
+    }
   },
 
-  // Click selects; a second click on the SAME row within 350ms acts on it (double-click).
-  // Identity is the instance uid when present (so a re-click hits the same instance, not its twin).
-  _onSelect(scene, row) {
+  // Grid click → select the backing row model; a second click on the SAME item within 350ms
+  // acts on it (double-click). Identity is the instance uid when present (so a re-click hits
+  // the same instance, not its twin). Clicking an empty/padding cell clears the selection.
+  _onGridSelect(scene, i) {
+    const row = i >= 0 && i < scene._invView.length ? scene._invView[i] : null;
+    if (row === null) {
+      scene._invSel = null;
+      scene._invGrid.selected = -1;
+      RpgInventoryUI._refreshDetail(scene);
+      return;
+    }
     const now = current_time;
     if (
       scene._invSel !== null &&
       RpgInventoryUI._sameRow(scene._invSel, row) &&
       now - scene._invSelTime < 350
     ) {
-      RpgInventoryUI._activate(scene, row);
+      RpgInventoryUI._activate(scene, row); // sets _invDirty → rebuild refreshes grid+detail
       return;
     }
     scene._invSel = row;
     scene._invSelTime = now;
+    RpgInventoryUI._refreshDetail(scene);
+  },
+
+  // Rebuild the detail pane for the current selection: icon + name + rarity, maker + lore,
+  // description, the instance's COMPOSED weapon stats (maker ops + attachments included),
+  // ammo ballistics, equip bonuses, installed attachments, qty/weight/value. Rebuilt on
+  // selection change + rebuild() — cheap (a dozen elements), same pattern as CraftingUI.
+  _refreshDetail(scene) {
+    const host = scene._invDetailHost;
+    if (host === undefined) return;
+    const kids = [...host.children];
+    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+
+    const row = scene._invSel;
+    if (row === null) {
+      host.insertChild(
+        gemsLabel(I18n.textRef("INV_SELECT_NONE"), {
+          color: GemsTheme.textDim,
+        }),
+      );
+      return;
+    }
+    const it = Item.get(row.itemId);
+    const inv = scene.world.get(Inventory, scene.playerId);
+    const inst =
+      row.uid !== undefined
+        ? InventorySystem.findByUid(inv, row.uid)
+        : undefined;
+
+    // head: icon + name over rarity
+    const head = new UIElement({
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    if (it !== undefined && sprite_exists(it.sprite)) {
+      const ic = new UIElement({ width: 48, height: 48, flexShrink: 0 });
+      ic.addComponent(
+        new UIImage({ sprite: it.sprite, fit: OBJECT_FIT.CONTAIN }),
+      );
+      head.insertChild(ic);
+    }
+    const hcol = new UIElement({ flexGrow: 1, flexBasis: 0, gap: 2 });
+    hcol.insertChild(gemsLabel(row.name, { font: "header", color: row.color }));
+    const rar = it !== undefined ? Rarity.get(it.rarity) : undefined;
+    if (rar !== undefined)
+      hcol.insertChild(
+        gemsLabel(I18n.textRef(rar.name), {
+          font: "description",
+          color: rar.color,
+        }),
+      );
+    head.insertChild(hcol);
+    host.insertChild(head);
+
+    // maker: company name in brand color + its lore line
+    const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
+    if (mk !== undefined) {
+      host.insertChild(gemsLabel(I18n.textRef(mk.name), { color: mk.color }));
+      if (mk.lore !== "")
+        host.insertChild(
+          gemsLabel(I18n.textRef(mk.lore), {
+            font: "description",
+            color: GemsTheme.textDim,
+            wrap: RpgInventoryUI.DETAIL_WRAP,
+          }),
+        );
+    }
+
+    if (it !== undefined && it.description !== "")
+      host.insertChild(
+        gemsLabel(I18n.textRef(it.description), {
+          color: GemsTheme.textMuted,
+          wrap: RpgInventoryUI.DETAIL_WRAP,
+        }),
+      );
+
+    host.insertChild(gemsDivider());
+    const statLine = (key, v) =>
+      gemsLabel(I18n.text(key) + ": " + v, { color: GemsTheme.textMuted });
+
+    // weapon: this INSTANCE's composed profile (maker ops + installed attachments applied)
+    const prof =
+      inst !== undefined && it !== undefined && it.hasComponent(Weapon)
+        ? EquipmentSystem.composeWeapon(inst)
+        : null;
+    if (prof !== null) {
+      if (prof.kind === "gun") {
+        host.insertChild(statLine("MOD_POWER", Math.round(prof.power)));
+        host.insertChild(statLine("MOD_VELOCITY", Math.round(prof.velocity)));
+        host.insertChild(statLine("MOD_PEN", prof.penetration));
+        if (prof.fireCd !== undefined)
+          host.insertChild(statLine("MOD_FIRECD", prof.fireCd));
+        const am = Item.get(prof.ammo);
+        host.insertChild(
+          statLine(
+            "MOD_AMMO",
+            (am !== undefined
+              ? I18n.text(am.name)
+              : I18n.text("MOD_UNLOADED")) +
+              "  " +
+              prof.rounds +
+              "/" +
+              prof.magazine,
+          ),
+        );
+      } else {
+        host.insertChild(
+          statLine("MOD_DMG", Math.round(prof.damage * 10) / 10),
+        );
+        host.insertChild(statLine("MOD_REACH", prof.reach));
+        host.insertChild(statLine("MOD_FIRECD", Math.round(prof.fireCd)));
+      }
+    }
+
+    // ammo item: the base ballistics a gun fires
+    const ammo = it !== undefined ? it.getComponent(Ammo) : undefined;
+    if (ammo !== undefined) {
+      host.insertChild(statLine("MOD_MASS", ammo.mass));
+      host.insertChild(statLine("MOD_VELOCITY", ammo.velocity));
+      host.insertChild(statLine("MOD_POWER", ammo.power));
+      host.insertChild(statLine("MOD_PEN", ammo.penetration));
+    }
+
+    // equip stat bonuses (Equippable.mods folded into the sheet while worn)
+    const eqp = it !== undefined ? it.getComponent(Equippable) : undefined;
+    if (eqp !== undefined && eqp.mods !== undefined) {
+      for (const k in eqp.mods) {
+        const key = RpgInventoryUI.STAT_KEYS[k];
+        const v = eqp.mods[k];
+        host.insertChild(
+          gemsLabel(
+            (key !== undefined ? I18n.text(key) : k) +
+              " " +
+              (v >= 0 ? "+" : "") +
+              v,
+            { color: GemsTheme.accent },
+          ),
+        );
+      }
+    }
+
+    // installed attachments on this instance ("+N" in the name)
+    if (inst !== undefined && inst.mods !== undefined) {
+      for (const sid in inst.mods) {
+        const m = Item.get(inst.mods[sid]);
+        if (m !== undefined)
+          host.insertChild(
+            gemsLabel("+ " + I18n.text(m.name), {
+              font: "description",
+              color: RpgWorldOverlay._rarityColor(m.id),
+            }),
+          );
+      }
+    }
+
+    host.insertChild(gemsDivider());
+    host.insertChild(
+      gemsLabel(
+        I18n.text("INV_COL_QTY") +
+          " " +
+          row.qty +
+          "   " +
+          I18n.text("INV_COL_WT") +
+          " " +
+          row.weight +
+          "   " +
+          I18n.text("INV_COL_VAL") +
+          " " +
+          row.value,
+        { color: "#ffd166" },
+      ),
+    );
   },
 
   // same item: by instance uid when present, else by itemId
