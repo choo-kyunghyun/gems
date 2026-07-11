@@ -45,42 +45,30 @@ const RPG_MAKERS = [
 ];
 
 globalThis.RpgItems = {
-  // Icon aliases for ids whose art predates the spr_item_<id> naming convention (the legacy-named
-  // sprites are otherwise unreferenced). Resolved by NAME + sprite_exists in register()'s
-  // auto-wire, so a missing/renamed asset just keeps the colored-box fallback.
+  // Icon aliases for ids SHARING one sprite — 1:1 art auto-wires by the spr_item_<id> naming
+  // convention (2026-07 rename), so only many-to-one entries live here. Resolved by NAME +
+  // sprite_exists in register()'s auto-wire, so a missing asset keeps the colored-box fallback.
+  // (circuitry art was retired with the media overhaul — colored-box fallback until new art)
   ICONS: {
-    rags: "spr_rags",
-    medkit: "spr_firstAid",
-    medgel: "spr_potion",
-    combat_stim: "spr_syringe",
-    water_bottle: "spr_waterBottle",
-    ration_pack: "spr_cannedFood",
-    power_serum: "spr_serum",
-    vitality_serum: "spr_serum",
-    agility_serum: "spr_serum",
-    endurance_serum: "spr_serum",
-    lead_pipe: "spr_leadPipe",
-    blaster: "spr_pistol",
-    adrenal_implant: "spr_energy",
-    backpack: "spr_leatherBackpack",
-    coin: "spr_goldCoin",
-    // circuitry art was retired with the media overhaul — colored-box fallback until new art
-    keycard: "spr_keycard",
-    wood: "spr_wood",
-    scrap_metal: "spr_scrap",
+    // one serum icon for all four attribute shards
+    power_serum: "spr_item_serum",
+    vitality_serum: "spr_item_serum",
+    agility_serum: "spr_item_serum",
+    endurance_serum: "spr_item_serum",
+    ration_pack: "spr_item_canned_food",
+    blaster: "spr_item_pistol",
+    adrenal_implant: "spr_item_energy",
     // one shared round icon for all three calibers (the only ammo art in the new set)
-    ammo_light: "spr_ammo_pistol",
-    ammo_heavy: "spr_ammo_pistol",
-    ammo_ap: "spr_ammo_pistol",
-    // branded gear reuses base art (dedicated icons are a follow-up); spr_pipeWrench is exact
-    aeon_pistol: "spr_pistol",
-    vekt_pistol: "spr_pistol",
-    aeon_cutter: "spr_energy",
-    vekt_wrench: "spr_pipeWrench",
+    ammo_light: "spr_item_rounds",
+    ammo_heavy: "spr_item_rounds",
+    ammo_ap: "spr_item_rounds",
+    // branded gear reuses base art (dedicated icons are a follow-up)
+    aeon_pistol: "spr_item_pistol",
+    vekt_pistol: "spr_item_pistol",
+    aeon_cutter: "spr_item_energy",
     helios_vest: "spr_item_armored_vest",
-    helios_trauma_kit: "spr_bandage",
-    helios_ration: "spr_cannedFood",
-    aeon_rounds: "spr_ammo_pistol",
+    helios_ration: "spr_item_canned_food",
+    aeon_rounds: "spr_item_rounds",
   },
 
   register() {

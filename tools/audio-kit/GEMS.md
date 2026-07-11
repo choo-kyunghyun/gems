@@ -40,10 +40,10 @@ Audio pairs with the **DB32 16px pixel art** — keep it deliberately **chiptune
 ⚠️ **The kit-generated set is RETIRED (2026-07-11)** — the committed `sounds/` are now hand-authored
 media (a 2026-07 asset overhaul), not this kit's output: **14 SFX** (`snd_coin` / `snd_jump` /
 `snd_gun_fire` / `snd_gun_uncocked` / `snd_hitsound_flesh` / `snd_hitsound_armor` /
-`snd_hitsound_metal` / `snd_small_explosion` / `snd_large_explosion` / `snd_bandage` / `snd_drink` /
+`snd_hitsound_metal` / `snd_explosion_small` / `snd_explosion_large` / `snd_bandage` / `snd_drink` /
 `snd_magic` / `snd_button_click` / `snd_button_muted`) and **4 BGM ambient loops**
-(`snd_ambient_cozy` / `snd_ambient_tense` / `snd_ambient_danger` / `snd_ambient_emergency` — in the
-`bgm` audio group despite the `snd_` prefix). The old kit templates in `templates/` still describe the
+(`mus_ambient_cozy` / `mus_ambient_tense` / `mus_ambient_danger` / `mus_ambient_emergency` — the
+`bgm` audio group). The old kit templates in `templates/` still describe the
 retired chiptune set — **do NOT re-run the importers over the live names** (`sfx_sounds.py` would
 overwrite the hand-made `snd_coin`/`snd_jump` and recreate deregistered assets). The kit remains valid
 machinery for FUTURE generated sounds (author a template under a fresh name, register, import).
@@ -51,10 +51,10 @@ machinery for FUTURE generated sounds (author a template under a fresh name, reg
 Playback goes through the **`Audio`** Core wrapper (`scripts/Audio/`): `Audio.play` (2D),
 `Audio.playAt` (spatial, via `audio_play_sound_at` + a player-following listener set each frame from
 the RPG camera), `Audio.bgm` (cross-faded loop). **Wired into the Demo**: the RPG plays
-`snd_ambient_tense` with spatial `snd_gun_fire`/`snd_hitsound_flesh` (enemy hit)/`snd_hitsound_armor`
-(ally hit)/`snd_small_explosion` (kill)/`snd_coin`, plus `snd_gun_uncocked` (dry-fire) and the
-per-consumable `snd_drink`/`snd_bandage`/`snd_magic`; the Platformer plays `snd_ambient_danger` with
+`mus_ambient_tense` with spatial `snd_gun_fire`/`snd_hitsound_flesh` (enemy hit)/`snd_hitsound_armor`
+(ally hit)/`snd_explosion_small` (kill)/`snd_coin`, plus `snd_gun_uncocked` (dry-fire) and the
+per-consumable `snd_drink`/`snd_bandage`/`snd_magic`; the Platformer plays `mus_ambient_danger` with
 `snd_jump`/`snd_hitsound_flesh` (stomp)/`snd_hitsound_armor` (respawn); the `snd_button_*` cues are
 wired into the Core UI (`UIButton`/`UINav` — click on activate, muted on focus change). Unwired spares:
-`snd_hitsound_metal`, `snd_large_explosion`, `snd_ambient_cozy`/`snd_ambient_emergency`
+`snd_hitsound_metal`, `snd_explosion_large`, `mus_ambient_cozy`/`mus_ambient_emergency`
 (see ARCHITECTURE → _Utility Modules → Audio_).

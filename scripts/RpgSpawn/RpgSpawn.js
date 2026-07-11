@@ -36,7 +36,7 @@ globalThis.RpgSpawn = {
     wooden_tub: { w: 58, h: 26 }, // content 60×28
     wooden_bin: { w: 10, h: 10 }, // content 10×10
     wooden_sign: { w: 20, h: 8 }, // content 22×4 — depth padded for robust collision
-    wooden_alter: { w: 22, h: 22 }, // content 22×24
+    wooden_altar: { w: 22, h: 22 }, // content 22×24
     wooden_barrel: { w: 20, h: 20 }, // content 20×20
     wooden_crate: { w: 26, h: 26 }, // content 28×28
   },
@@ -87,9 +87,9 @@ globalThis.RpgSpawn = {
           Appearance: {
             back: [],
             front: [
-              { sprite: spr_wear_blackShirt, color: c_white },
-              { sprite: spr_wear_blackSneakers, color: c_white },
-              { sprite: spr_wear_redBandana, color: c_white },
+              { sprite: spr_wear_black_shirt, color: c_white },
+              { sprite: spr_wear_black_sneakers, color: c_white },
+              { sprite: spr_wear_red_bandana, color: c_white },
             ],
           },
         },
@@ -380,7 +380,7 @@ globalThis.RpgSpawn = {
       else if (s.kind === "claim") model = "wooden_sign";
       else if (s.kind === "hydrate") model = "wooden_tub";
       else if (s.kind === "feed") model = "wooden_bin";
-      else if (s.kind === "buff") model = "wooden_alter";
+      else if (s.kind === "buff") model = "wooden_altar";
       else if (s.furn === "barrel") model = "wooden_barrel";
       else if (s.furn !== "fence") model = "wooden_crate";
       if (model !== undefined) {

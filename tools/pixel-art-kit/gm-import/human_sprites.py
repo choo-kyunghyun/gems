@@ -10,13 +10,13 @@ overlays from the segmented parts, which therefore can never desync from the bod
 
   spr_human        the canonical humanoid strip, imported verbatim from the sheet; pure
                    white fill -> tinted per entity via Visual.color (skin).
-  spr_wear_vest    worn overlays (Appearance): garments cut from the body parts themselves
-  spr_wear_blackShirt   (torso / head crown / feet) per frame. COLOR-NAMED sheets are
-  spr_wear_redBandana   pre-colored (the bandit outfit, the vest); PLAIN-NAMED sheets
-  spr_wear_blackSneakers (shirt/shoes) are near-WHITE and tinted per entity via the
-  spr_wear_shirt        Appearance layer color — one sheet, any outfit color (the civilian
-  spr_wear_shoes        NPCs/follower). Garments recolor only the white FILL; the dark
-                        outline pixels copy through, keeping the hand-drawn look.
+  spr_wear_vest        worn overlays (Appearance): garments cut from the body parts themselves
+  spr_wear_black_shirt    (torso / head crown / feet) per frame. COLOR-NAMED sheets are
+  spr_wear_red_bandana    pre-colored (the bandit outfit, the vest); PLAIN-NAMED sheets
+  spr_wear_black_sneakers (shirt/shoes) are near-WHITE and tinted per entity via the
+  spr_wear_shirt       Appearance layer color — one sheet, any outfit color (the civilian
+  spr_wear_shoes       NPCs/follower). Garments recolor only the white FILL; the dark
+                       outline pixels copy through, keeping the hand-drawn look.
 
 Held weapons are NOT sheets anymore: the manifest's spr_human entry carries an `anchors`
 table — each part's per-frame centroid as an [dx, dy] OFFSET FROM THE SPRITE ORIGIN
@@ -236,14 +236,14 @@ def main():
 
     F.build("spr_human", body, 8.0, w, h)
     F.build("spr_wear_vest", vest, 8.0, w, h)
-    F.build("spr_wear_blackShirt", shirt, 8.0, w, h)
-    F.build("spr_wear_redBandana", bandana, 8.0, w, h)
-    F.build("spr_wear_blackSneakers", sneakers, 8.0, w, h)
+    F.build("spr_wear_black_shirt", shirt, 8.0, w, h)
+    F.build("spr_wear_red_bandana", bandana, 8.0, w, h)
+    F.build("spr_wear_black_sneakers", sneakers, 8.0, w, h)
     F.build("spr_wear_shirt", shirt_w, 8.0, w, h)
     F.build("spr_wear_shoes", shoes_w, 8.0, w, h)
     write_manifest(w, h, (
-        "spr_wear_vest", "spr_wear_blackShirt", "spr_wear_redBandana",
-        "spr_wear_blackSneakers", "spr_wear_shirt", "spr_wear_shoes",
+        "spr_wear_vest", "spr_wear_black_shirt", "spr_wear_red_bandana",
+        "spr_wear_black_sneakers", "spr_wear_shirt", "spr_wear_shoes",
     ), part_anchors(w, h, frame_parts))
     print(f"wrote spr_human + 6 wear sheets ({len(body)} frames, {w}x{h}) "
           f"+ spritemeta manifest (part anchors); tags: {tags}")

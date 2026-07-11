@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"mus_ambient_cozy",
+  "audioGroupId":{
+    "name":"bgm",
+    "path":"audiogroups/bgm",
+  },
+  "bitDepth":1,
+  "channelFormat":1,
+  "compression":1,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":120.000725,
+  "exportDir":"",
+  "name":"mus_ambient_cozy",
+  "parent":{
+    "name":"BGM",
+    "path":"folders/Media/Audio/BGM.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"mus_ambient_cozy.ogg",
+  "volume":1.0,
+}

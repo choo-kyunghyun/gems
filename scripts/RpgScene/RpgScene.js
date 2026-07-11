@@ -49,7 +49,7 @@ globalThis.RpgScene = {
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
             type: isAlly ? "hurt" : "damage",
           });
-          // impact SFX; let the death pass own the killing blow (snd_small_explosion), so skip
+          // impact SFX; let the death pass own the killing blow (snd_explosion_small), so skip
           // enemy hp→0. Allies read as armored (geared squad), enemies as flesh (raiders/rats).
           if (isAlly) Audio.playAt("snd_hitsound_armor", pos.x, pos.y);
           else if (hp.hp > 0) Audio.playAt("snd_hitsound_flesh", pos.x, pos.y);

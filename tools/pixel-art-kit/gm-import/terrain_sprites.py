@@ -5,14 +5,14 @@ Stage 2 of the terrain-tile pipeline (run terrain_materials.py first). For each 
 16 dual-grid corner frames from variant 0 (via tileset.py), appends the remaining variant materials
 (plain re-rolls, then decorated) as extra FULL-tile (mask-15) frames, and writes a multi-frame
 GMSprite — the `.yy` plus a per-frame composite PNG and a single-layer PNG — into the project's
-sprites/<spr_terrain*>/, templated on the engine's existing dual-grid sprite. It also emits the
+sprites/<spr_terrain_*>/, templated on the engine's existing dual-grid sprite. It also emits the
 sheets' SpriteMeta manifest (datafiles/spritemeta/terrain.json): per sprite the WEIGHTED mask-15
 variant table from terrain_materials.variant_plan (frame 15 = the base, 16+ = the extra variants;
 decorated frames carry a low weight), which TerrainStream picks from per cell by deterministic
 hash. The manifest is generated alongside the frames so the table can't drift from them.
 
 The sprite resources must already be REGISTERED (once, via the IDE or
-`gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=spr_terrain<T>"`); this only fills in
+`gm-cli resourcetool eval "RESOURCE CREATE TYPE=Sprite NAME=spr_terrain_<T>"`); this only fills in
 their frames. Frame/layer/keyframe UUIDs are DETERMINISTIC (uuid5), so re-running is reproducible
 (no churn). Tile size matches terrain_materials (16px; see GEMS.md); TerrainStream scales it to the cell.
 
@@ -34,7 +34,7 @@ PARENT = ("Bitmap Sprites", "folders/Media/Bitmap Sprites.yy")
 
 
 def sprite_name(terr):
-    return "spr_terrain" + terr.capitalize()
+    return "spr_terrain_" + terr
 
 
 def frames_for(terr):

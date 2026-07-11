@@ -147,7 +147,7 @@ class _SceneRpgClass {
     WorldClock.reset(); // once — survives map changes below
     Weather.reset(); // once — survives map changes, like the clock
     RpgMap.go(this, bootMap, "default");
-    Audio.bgm("snd_ambient_tense"); // carries across map changes (only _apply's reset stops it)
+    Audio.bgm("mus_ambient_tense"); // carries across map changes (only _apply's reset stops it)
 
     // starting loadout, equipped so the attack is item-driven from frame one; travels with the
     // carried inventory across maps
@@ -337,7 +337,7 @@ class _SceneRpgClass {
         spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
           const dp = this.world.get(Position, id);
-          if (dp !== undefined) Audio.playAt("snd_small_explosion", dp.x, dp.y); // death pop (spatial)
+          if (dp !== undefined) Audio.playAt("snd_explosion_small", dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
           this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
@@ -817,7 +817,7 @@ class _SceneRpgClass {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
     PlayerSystem.bindKeys();
-    Audio.bgm("snd_ambient_tense"); // restore the RPG theme after a guest crossfaded its own
+    Audio.bgm("mus_ambient_tense"); // restore the RPG theme after a guest crossfaded its own
   }
 
   // launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()

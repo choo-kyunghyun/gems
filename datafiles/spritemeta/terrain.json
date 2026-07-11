@@ -1,6 +1,6 @@
 [
   {
-    "sprite": "spr_terrainWater",
+    "sprite": "spr_terrain_water",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -9,7 +9,7 @@
     ]
   },
   {
-    "sprite": "spr_terrainDeepwater",
+    "sprite": "spr_terrain_deepwater",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -18,7 +18,7 @@
     ]
   },
   {
-    "sprite": "spr_terrainSand",
+    "sprite": "spr_terrain_sand",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -51,7 +51,7 @@
     }
   },
   {
-    "sprite": "spr_terrainMud",
+    "sprite": "spr_terrain_mud",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -80,7 +80,7 @@
     }
   },
   {
-    "sprite": "spr_terrainSoil",
+    "sprite": "spr_terrain_soil",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -109,7 +109,7 @@
     }
   },
   {
-    "sprite": "spr_terrainRichsoil",
+    "sprite": "spr_terrain_richsoil",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -138,7 +138,7 @@
     }
   },
   {
-    "sprite": "spr_terrainGrass",
+    "sprite": "spr_terrain_grass",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -179,7 +179,7 @@
     }
   },
   {
-    "sprite": "spr_terrainGravel",
+    "sprite": "spr_terrain_gravel",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
@@ -208,7 +208,7 @@
     }
   },
   {
-    "sprite": "spr_terrainRocky",
+    "sprite": "spr_terrain_rocky",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [

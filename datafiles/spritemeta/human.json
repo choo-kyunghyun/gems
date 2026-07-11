@@ -296,7 +296,7 @@
     ]
   },
   {
-    "sprite": "spr_wear_blackShirt",
+    "sprite": "spr_wear_black_shirt",
     "kind": "overlay",
     "density": 1,
     "cell": [
@@ -305,7 +305,7 @@
     ]
   },
   {
-    "sprite": "spr_wear_redBandana",
+    "sprite": "spr_wear_red_bandana",
     "kind": "overlay",
     "density": 1,
     "cell": [
@@ -314,7 +314,7 @@
     ]
   },
   {
-    "sprite": "spr_wear_blackSneakers",
+    "sprite": "spr_wear_black_sneakers",
     "kind": "overlay",
     "density": 1,
     "cell": [
