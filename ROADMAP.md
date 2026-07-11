@@ -1,69 +1,35 @@
 # Roadmap
 
-## Art Rework — flat sprites & textures (ACTIVE; engine substrate COMPLETE 2026-07-06)
+## Art — SETTLED (2026-07-11)
 
-Retire pixel art for entities. **Flat, simple bitmap art at free resolution** (modern sci-fi — RimWorld's production economics _without_ its mixed-projection depth chaos) for what animates, **voxel meshes** for the static boxy world — unified by **real 3D lighting instead of outlines**. The engine half is DONE: every world pass lights through the ONE shader (`sh_meshlit` — vox or textured mode, texel cutout, normals per-vertex or per-submit), the upright-sprite pitch-by-zoom camera is adopted, terrain/floors are lit and inside the spec's ground bands. **What remains is pure art on two fronts: FLAT SPRITES (Spine characters) and TEXTURES (walls, floor patterns).** Engine milestone history lives in the git log (2026-07-04 → 07-06) and ARCHITECTURE (`RenderMesh`/`RenderWalls`/`RenderBillboard`/Ground lighting).
+The 2026-07 art rework is closed. The engine half landed as designed — every world pass lights through the ONE shader (`sh_meshlit`), the upright-sprite pitch-by-zoom camera is adopted, and the projection contract below is law. The art half settled on a **different endgame than the flat-HD draft**: **hand-drawn 32 px pixel art** for what animates (the Aseprite `spr_human` strip — outlined 2-color figure, white fill tinted per entity as skin; outfit overlays cut from the segmented parts; held weapons = the item's own icon at the hand anchor) plus **hand-drawn 32 px item icons**, **MagicaVoxel meshes** for the boxy world (vox-kit), **near-white 32×32 wall/floor textures** (`spr_tex_*`, texture × tint × light), and the procedural dual-grid terrain. Reference docs: ARCHITECTURE → _Renderer_ + _Paper-doll appearance_ (engine); `tools/pixel-art-kit/GEMS.md` + the importers (source conventions).
 
-### The projection contract (engine: DONE — per-asset status)
+Each world thing is exactly one projection category, decided by rule, never per-asset taste (RimWorld's mistake: mixing plan-view and elevation art freely forces manual depth-sorting forever). GROUND never competes for depth by construction; VOLUME/WALLS are depth-writing geometry; STANDING billboards sort per-pixel via the depth buffer + the texel cutout.
 
-Each world thing is exactly one category, decided by rule, never per-asset taste (RimWorld's mistake: mixing plan-view and elevation art freely forces manual depth-sorting forever). GROUND never competes for depth by construction; VOLUME/WALLS are depth-writing geometry; STANDING billboards sort per-pixel via the depth buffer + the texel cutout.
+| Category                            | Art                                                    |
+| ----------------------------------- | ------------------------------------------------------ |
+| GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)          |
+| VOLUME — furniture, machines, rocks | MagicaVoxel meshes (vox-kit), lit by `sh_meshlit`      |
+| WALLS / structures                  | lit boxes, near-white face texture × material tint     |
+| STANDING — pawns, creatures         | 32 px hand-drawn strips, upright depth-writing sprites |
+| Items / icons                       | 32 px hand-drawn icons (double as the held visuals)    |
 
-| Category                            | Art                                               | Status                     |
-| ----------------------------------- | ------------------------------------------------- | -------------------------- |
-| GROUND — floors, terrain, decals    | flat textures, plan view (dual-grid pipeline)     | **DONE** (lit + bands)     |
-| VOLUME — furniture, machines, rocks | MagicaVoxel meshes (vox-kit), lit by `sh_meshlit` | **DONE**                   |
-| WALLS / structures                  | lit boxes; textures = the TEXTURES front below    | engine done, ART pending   |
-| STANDING — pawns, creatures         | flat sprites, upright billboards, per-pixel lit   | engine done, SPINE pending |
-| Items / icons                       | flat redraw (density 2)                           | pending (after STANDING)   |
+Mesh rules that stay true: `BBox`/`Collision` are the 2D footprint (mesh size/rotation is visual-only); faces stay opaque or alpha-test cutout — never alpha-blend depth-writing geometry; pawn-on-furniture (sleeping IN a bed) is a `Position.z` lift the depth buffer resolves per-pixel (unbuilt).
 
-### Front 1 — TEXTURES (walls first; unblocks the built world's look)
+### Art follow-ups (incremental, none blocking)
 
-1. **Wall art**: LANDED (2026-07-11 media set) — `spr_tex_brick` (32×32, near-white, 3 frames) is the wall texture (`texture × tint × light`); siblings `spr_tex_tile`/`carpet`/`mosaic` are unwired spares. Remaining: a dedicated TOP (plan-view) pattern per material if the shared face texture ever reads wrong, plus more materials (poured concrete, metal panel, scrap/plank).
-2. **Floor patterns**: LANDED — `spr_tex_plaid` (wood-tan tinted parquet) is the floor layer; the spare `spr_tex_*` sheets are ready as Build-Mode floor variants later.
-3. Terrain is DONE — only revisit if the spec's ground bands change.
-
-### Front 2 — FLAT SPRITES (Spine characters — the deep-focus track)
-
-1. **Style spec approval** (below) — the STANDING bands, density 4, and proportions govern asset #1; the ground bands are already approved-by-use.
-2. **First character end-to-end**: draw flat parts → rig in Spine → bake strips → import at `SpriteMeta.density: 4` → verify in-game noon / dusk / night-beside-a-torch. Prove the pipeline on ONE character (the player) before scaling.
-3. **Strip importer** under `tools/` (author → render → import, churn-free re-runs — same shape as the other kits), including the paper-doll overlay contract: base body + one frame-aligned overlay strip per gear piece from the same timeline (skins), so `Appearance`/`AppearanceSystem` carry over unchanged.
-4. **Replace entities incrementally** (the `SpriteMeta.density` seam lets old/new coexist): humanoid doll + outfits first (player/raider/NPC/companion all share the one skeleton), then the rat, then the remaining sprite props — crate, fence, chest, survey post, survival stations, door, arcade — deciding per prop: boxy → vox model, organic/flat → sprite.
-5. **Items/icons last** (flat redraw or SVG→PNG at density 2).
-
-### Style spec (DRAFT — ground bands approved-by-use 2026-07-06; review the STANDING bands, density 4, and proportions before asset #1)
-
-**One sentence**: flat, saturated, outline-free subjects on desaturated ground, separated by real lighting, not contour lines — a modern-survival palette for a failed-terraforming colony.
-
-- **World density** (one anchor: the **32 px cell** — migrated 2026-07-11 to meet the media set, which authors at 32/cell). VOLUME/WALLS author at **1 source px = 1 world px** (a 32³ vox block per cell; wall face textures 32×32 per cell). STANDING sprites (Spine bakes) export at **`SpriteMeta.density: 2`** (2 source px per world px — a ~96-world-px character exports ~192 px tall, the same source resolution the old density-4-on-16px anchor targeted): at max zoom (×2.625 zoom on a 1920 surface ≈ the same screen magnification as before) characters stay crisp everywhere while texture pages stay sane. (The lower bound remains the driver: a 16 px-source subject can't hold a modern character — the fix is source detail, decoupled from world size. The legacy 16px sheets — terrain, the `spr_human` doll — keep working via UV-stretch / a ×2 draw scale until replaced.) Item icons: density 1 at 32 (the current 16px icons draw ×2; redraw at 32+ when they're revisited).
-- **No outlines, anywhere.** Separation is (1) the projection contract (depth buffer), (2) lighting — sun N·L + point lights hit meshes per-face and sprites per-entity (the sprite sun response), and (3) **palette contrast bands**:
-  - GROUND: desaturated, mid-dark — **S ≤ 35 %, V 40–70 %**. Terrain must recede.
-  - VOLUME/WALLS: mid saturation — **S 30–60 %**; material reads by hue + the lit face split (bright top / darker south), not texture noise.
-  - STANDING + interactables: saturated, bright — **S 60–90 %, V 70–95 %**. Pawns pop off any floor with no contour line.
-- **Author albedo only.** No baked directional shading or shadows — the runtime shades (sun arc, torches) and `RenderEntityShadow` grounds every body. Interior detail (a seam, a panel line) is a hue/value step, never a dark outline stroke.
-- **Light**: the canonical sun is the `WorldClock` arc — east → west, constant southward lean, 65° max elevation, warm at the horizons, white at noon; night is the light map plus warm points (torch `#ffd09a`, lantern `#ffedc9`). **Acceptance check for every asset**: screenshot at noon, dusk, and night-beside-a-torch before it lands.
-- **Palette**: DB32 is retired for entities. Ground hues harmonize with the `RpgBiomes.PALETTE` reference (the terrain materials already sit in the bands); entities are free RGB within the bands above. Reserved signal colors stay signals — ally green, hostile red, rarity tiers, UI accent `#4a9eff` — never costume colors.
-- **Proportions**: keep the big-head readable silhouette (~3 heads tall) from the blob template era; author upright and slightly tall — the pitched camera foreshortens upright sprites to sin(pitch) (~74–85 %), so err tall, never squat. Foot-anchored, hard alpha (soft edges write depth — billboard rule).
-
-### Character pipeline (Spine, license-clean for open source)
-
-- Draw flat parts → rig + animate in **Spine** → export **PNG strips at high resolution** (fixed export bounds per animation so cells stay uniform; 12–15 fps is fine) → deterministic import → **`SpriteMeta.density`** scales art to world size (BBox untouched).
-- **License**: only **baked strips** are game assets — the Spine editor license allows shipping exported images; the restricted parts (runtime + skeleton data) never enter the repo. Commit the `.spine` project files as editable _source_ — the same `.mid`→WAV pattern audio-kit uses. Spine's CLI export can script the re-bake.
-- **Paper-doll survives**: gear = Spine **skins** on the one skeleton; export base-body + one overlay strip per gear piece from the same timeline → frame-aligned by construction → `Appearance`/`AppearanceSystem` carry over unchanged.
-- AI is optional: high-res flat/clean styles are what image models are good at — part references to trace and clean. Generated externally if used at all (the in-repo ComfyUI experiment client was removed); picked winners still enter GameMaker through the existing importers.
-
-### Mesh rules (still true)
-
-- `BBox`/`Collision` stay the 2D footprint — mesh size/scale is visual-only.
-- Faces stay **opaque** or alpha-test cutout — never alpha-blend depth-writing geometry.
-- Pawn-on-furniture (sleeping in a bed): set the pawn's `Position.z` to the furniture height; the depth buffer resolves it per-pixel.
-- The analytic two-quad box (`width/depth/height` + top/front sprite-or-color faces) remains for model-less `Mesh` — unlit by contract (sprite faces pass through `sh_meshlit` only for the texel cutout).
-- Later niceties: greedy meshing, manifest-driven `BBox`, `.obj` frontend, 90° furniture rotation (needs east/west faces + `sideSprite`).
+- More wall/floor materials (poured concrete, metal panel, scrap plank); the spare `spr_tex_tile`/`carpet`/`mosaic` sheets as Build-Mode floor variants; a dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
+- Regenerate the 16 px terrain sheets at 32 (they render correctly via UV-stretch; crispness only).
+- Wire the spare media: `tree_pine`/`wooden_door`/table/dresser/stool vox meshes, `spr_soda`/`spr_sodaTrash` sprites, the spare SFX/BGM (`snd_hitsound_metal`, `snd_large_explosion`, `snd_ambient_cozy`/`emergency`). Redraw the 16 px fence sheet at 32 (`SpriteMeta density: 0.5` carries it meanwhile).
+- Mesh niceties: greedy meshing, manifest-driven `BBox`, `.obj` frontend, box-path side sprites.
 
 ### Parked / rejected (don't relitigate without new facts)
 
+- **Flat-HD Spine characters** — the outline-free flat style the rework originally drafted (density-2 Spine bakes, S/V palette bands, albedo-only). PARKED 2026-07-11: the hand-drawn 32 px doll settled the style first. The pipeline design stays valid for a future fidelity jump — flat parts → Spine rig → baked PNG strips (license-clean: only exported images ship, `.spine` files committed as source, runtime/skeleton data never enter the repo) → one frame-aligned overlay strip per gear skin keeps the paper-doll contract → `SpriteMeta.density` scales art to world size with BBoxes untouched. The manifest `anchors` system is the runtime seam it slots into.
 - **GM3D runtime 3D** — spiked 2026-07-05: glTF loads + renders and the camera was matched exactly, but a Screen-target camera always clears its rect (color + depth) and `setAlpha` is whole-output opacity → no depth interop with the billboard pass → disqualified for VOLUME. Parked for character imposters via render-to-texture (untested).
-- **Pixel art for entities — AI-generated _or_ hand-drawn** (confirmed 2026-07-09) — the AI 32 px ComfyUI pipeline was superseded by this rework; hand-drawing then confirmed 16 px source is the modern-subject readability floor. A hand-pixel bump to 32, or enlarging the 16 px world cell itself (coarser build grid, 32³ vox), was weighed off — both fix nothing density-4 flat-HD doesn't already, since detail is decoupled from world size. Pixel is done for entities; the AI toolchain is kept for reference only. **REVISED 2026-07-11**: the cell WAS then enlarged to 32 px — not for entity detail (that argument stands; STANDING stays flat-HD Spine at density 2 under the new anchor) but because the hand-authored media set (vox furniture, wall/floor textures) was built at 32/cell and moving the one world anchor beat rescaling every asset.
-- **Spine runtime in-engine** (license-incompatible with open source), **per-frame AI animation** (flicker), **pixel-art LoRA hunting** — dead ends.
+- **AI-generated entity art** (the ComfyUI 32 px pipeline, pixel-art LoRA hunting) — superseded twice: by the flat-HD draft, then by hand-drawing (2026-07-08/09 decision, confirmed by the settled set). Toolchain kept for reference only.
+- **Enlarging the world cell** — RESOLVED 2026-07-11: the cell moved 16 → 32 px to meet the hand-authored media set (moving the one world anchor beat rescaling every asset), not for entity detail.
+- **Spine runtime in-engine** (license-incompatible with open source), **per-frame AI animation** (flicker) — dead ends.
 
 ## Features
 
@@ -80,8 +46,6 @@ Each world thing is exactly one category, decided by rule, never per-asset taste
   - Mountable turrets
 - Explosive like grenade and mine
 - Minify furnitures
-- Merchants and wandering traders
-  - Inter-level interaction
 - Settlement and outpost
 - Farming and fishing
 - Gamepad reloading
