@@ -13,7 +13,7 @@ reusable kit stays style-agnostic; this file is G.E.M.S.'s filled-in style.
 | **Color style** | Flat color + **one dark outline** around each silhouette; **hard alpha** (no anti-aliasing, no semi-transparent edges). |
 | **Entity origin** | **Foot-anchored** (bottom-center, `8,16`) — the engine's `RenderEntity` draws at the entity `Position`, so the sprite stands up from its feet. Items / icons / tiles are centered. |
 | **Output** | Horizontal **strip + JSON manifest** — `<base>_strip<N>.png` (GameMaker `_stripN` auto-slice). |
-| **GM naming** | `spr_<thing>` — entities `spr_hero` / `spr_bandit` / …; tiles `spr_terrain*`. |
+| **GM naming** | `spr_<family>_<subject>[_<variant>]`, snake_case (rule in CLAUDE.md → Code Style): `spr_item_<item_id>` icons, `spr_wear_<garment>` overlays, `spr_tex_<material>` textures, `spr_terrain_<material>` tilesets; a **bare subject** (`spr_human`, `spr_rat`) is reserved for entity strips. |
 
 ## Frame size (per-sprite, non-square OK)
 
