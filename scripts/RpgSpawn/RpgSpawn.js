@@ -23,7 +23,7 @@
 // Every descriptor also takes `size?` — the per-spawn SCALAR for special entities (Alpha/boss
 // knob), multiplying the def's basic `scale` factor across BBox + Visual + Mesh (see
 // EntityPreset.spawn — SpriteMeta density divides the DRAW scale separately) — and, on
-// mesh-bearing spawns, `rot?` — a visual yaw in degrees (BBox stays axis-aligned).
+// mesh-bearing spawns, `yaw?` — a visual turn in degrees (BBox stays axis-aligned).
 globalThis.RpgSpawn = {
   // Content-measured vox footprints for the prop adapter's mesh models (BBox ≤ voxel content,
   // erring small for walkability). 1 vox = 1 world px; big furniture is genuinely multi-cell
@@ -428,17 +428,17 @@ globalThis.RpgSpawn = {
       over.Portal = { toMap: s.toMap, toEntry: s.toEntry ?? "default" };
     }
 
-    // visual yaw for any mesh look (`rot?`, degrees — vbufs bake all four sides, so any
+    // visual yaw for any mesh look (`yaw?`, degrees — vbufs bake all four sides, so any
     // facing is solid). Gated to mesh-bearing spawns: on a sprite entity (fence) a bare
-    // Mesh {rot} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
+    // Mesh {yaw} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
     // author the swapped footprint for 90° turns of oblong furniture.
-    if (s.rot !== undefined) {
+    if (s.yaw !== undefined) {
       const def = EntityPreset.get(s.preset);
       if (
         over.Mesh !== undefined ||
         (def.components !== undefined && def.components[Mesh] !== undefined)
       )
-        over.Mesh = { ...(over.Mesh ?? {}), rot: s.rot };
+        over.Mesh = { ...(over.Mesh ?? {}), yaw: s.yaw };
     }
 
     const id = EntityPreset.spawn(s.preset, world, w.x, w.y, 0, {

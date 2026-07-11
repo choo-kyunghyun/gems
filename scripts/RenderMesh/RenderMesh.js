@@ -251,7 +251,7 @@ globalThis.RenderMesh = class RenderMesh {
       if (m.vb === -1) continue;
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
-      // axes — zscale is height; a negative xscale mirrors the model. `rot` yaws about the
+      // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
       // footprint center (vbufs bake all four side faces, so any facing is solid); the shader
       // re-derives flipped/rotated normals from the world matrix, so lighting follows.
       const s = mesh.scale ?? 1;
@@ -261,9 +261,9 @@ globalThis.RenderMesh = class RenderMesh {
           rp.x,
           rp.y,
           0,
-          mesh.xrot ?? 0,
-          mesh.yrot ?? 0,
-          mesh.rot ?? 0,
+          mesh.pitch ?? 0,
+          mesh.roll ?? 0,
+          mesh.yaw ?? 0,
           mesh.xscale ?? s,
           mesh.yscale ?? s,
           mesh.zscale ?? s,
@@ -286,9 +286,9 @@ globalThis.RenderMesh = class RenderMesh {
         rp.x,
         rp.y,
         0,
-        mesh.xrot ?? 0,
-        mesh.yrot ?? 0,
-        mesh.rot ?? 0,
+        mesh.pitch ?? 0,
+        mesh.roll ?? 0,
+        mesh.yaw ?? 0,
         1,
         1,
         1,

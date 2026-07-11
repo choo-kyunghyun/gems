@@ -33,7 +33,7 @@ but the mesh itself replaces the analytic two-quad box.
   center), feet at ground level.
 - **MagicaVoxel +x = east (width), +y = south (the face toward the camera)**, z = up. Author
   furniture front along +y.
-- **Top + all four side orientations** are emitted, so a runtime `Mesh.rot` yaw shows a solid
+- **Top + all four side orientations** are emitted, so a runtime `Mesh.yaw` turn shows a solid
   model from any facing (bottoms never — unrepresentable in the normal packing and only visible
   past a ~90° tip; unrotated meshes render identically to the old top+south bake). The vertex
   colour is the raw palette **albedo** (the palette IS the texture; no bitmap assets) and the

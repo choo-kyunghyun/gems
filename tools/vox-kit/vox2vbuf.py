@@ -19,7 +19,7 @@ Coordinate map (MagicaVoxel is z-up):  game x = vox x,  game y = vox y (+y = sou
 game z = -vox z (up is negative z, the RenderBillboard convention). The mesh is centered on
 the footprint (Position = footprint center), feet at z = 0.
 
-TOP + all FOUR side orientations are emitted, so a runtime Mesh yaw (`Mesh.rot`) shows a
+TOP + all FOUR side orientations are emitted, so a runtime Mesh yaw (`Mesh.yaw`) shows a
 solid model from any facing (sh_meshlit rotates the packed normals by mat3(world)):
     TOP faces   (air above,  normal (0, 0, -1) -> packed (0, 0))
     SOUTH faces (air to +y,  normal (0, 1, 0)  -> packed (0, 1))

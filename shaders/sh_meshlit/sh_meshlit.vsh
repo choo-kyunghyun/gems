@@ -3,7 +3,7 @@
 // - vox mode: the texcoord is the face normal PACKED by tools/vox-kit/vox2vbuf.py
 //   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because the converter never emits a
 //   BOTTOM face, so nz <= 0 with up = -z). The world matrix on this path is scale +
-//   OPTIONAL rotation (Mesh.rot/xrot/yrot) + translate: transforming the normal by
+//   OPTIONAL rotation (Mesh.yaw/pitch/roll) + translate: transforming the normal by
 //   mat3(world) + renormalizing rotates it with the model (a yawed mesh lights per its
 //   world-facing sides) — and a negative xscale (mirrored model) flips nx.
 // - textured mode (walls / billboards / ground tiles): the texcoord is REAL UVs — the decode
