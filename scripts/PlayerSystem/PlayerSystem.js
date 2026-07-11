@@ -1,10 +1,11 @@
 const RPG_MOVE_SPEED = 220; // world px/s (32px-cell scale)
-const RPG_PLAYER_SCALE = 1.5; // baked size factor over the 48px spr_human template (bbox + Visual)
+const RPG_PLAYER_SCALE = 1.5; // baked size factor over the 32px spr_human sheet (bbox + Visual)
 const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const RPG_BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const RPG_SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
 const RPG_FIRE_CD = 8; // ticks between shots while held
-const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
+const RPG_ATTACK_ANIM = 18; // ticks the punch pose stays up after a shot/swing (3 frames @ 10fps)
+const RPG_KICK_ANIM = 23; // ticks the kick plays (5 frames @ 13fps — fits the fist's 22-tick cadence)
 const RPG_MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
 const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
@@ -228,7 +229,12 @@ globalThis.PlayerSystem = {
         MeleeSystem.swing(world, id, dir.x, dir.y, reach, damage);
         pl.fireCd =
           wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : RPG_FIRE_CD;
-        pl.attackCd = RPG_ATTACK_ANIM;
+        // the unarmed fist fallback alternates punch/kick; an armed swing stays the punch
+        // thrust (the held-weapon overlay rides the hand through it)
+        pl.attackAnim =
+          wpn === PLAYER_FIST && pl.attackAnim !== "kick" ? "kick" : "attack";
+        pl.attackCd =
+          pl.attackAnim === "kick" ? RPG_KICK_ANIM : RPG_ATTACK_ANIM;
       }
     }
 
@@ -236,7 +242,7 @@ globalThis.PlayerSystem = {
     const anim = world.get(Animator, id);
     if (anim !== undefined) {
       let state = "idle";
-      if (pl.attackCd > 0) state = "attack";
+      if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
       else if (len > 0) state = "walk";
       AnimationSystem.set(anim, state);
     }
@@ -301,6 +307,7 @@ globalThis.PlayerSystem = {
     Audio.playAt("snd_gun_fire", pos.x, pos.y); // gunshot (spatial); the hit plays a hitsound later
 
     pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
+    pl.attackAnim = "attack"; // gun fire plays the punch thrust (reads as recoil), never the kick
     pl.attackCd = RPG_ATTACK_ANIM;
   },
 

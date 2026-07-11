@@ -171,8 +171,9 @@ globalThis.CombatAI = {
               id,
               brain.mobile ? "combat.chase" : "combat.idle",
             );
-          // punch pose for a short window after each swing (cd counts DOWN from cdMax)
-          CombatAI._animate(world, id, brain.cd > brain.cdMax - 12);
+          // punch pose for a short window after each swing (cd counts DOWN from cdMax;
+          // 18 ticks = the 3-frame punch @ 10fps plays out)
+          CombatAI._animate(world, id, brain.cd > brain.cdMax - 18);
         },
       },
     ]);

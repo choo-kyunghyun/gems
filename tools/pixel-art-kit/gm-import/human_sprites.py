@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
-"""human_sprites — animate the Rayman-style humanoid template into the paper-doll base strip.
+"""human_sprites — import the hand-drawn humanoid strip + derive the paper-doll overlays.
 
-The SOURCE is the hand-authored white tintable template `templates/human/base.png` (48x48,
-foot-anchored, hard alpha): a floating-limb body — head, torso, two hands, two feet as
-DISCONNECTED blobs — so animation is per-part offsets, no redraw. This script segments the
-blobs, applies the per-frame offset table below, and imports:
+The SOURCE is the hand-animated Aseprite export `templates/human/sheet.png` + `sheet.json`
+(32x32 cells; frame tags idle/walk/fist/kick — re-export from Aseprite over those two names).
+There is no offset table anymore: the artist animates freely, and every frame keeps the
+Rayman floating-parts CONTRACT — head, torso, two hands, two feet as six DISCONNECTED blobs
+in 2-color art (white fill + dark outline) — so this script SEGMENTS each frame and cuts the
+overlays from the segmented parts, which therefore can never desync from the body:
 
-  spr_human        the canonical humanoid strip (frames 0-1 walk contact poses, 2-3 attack
-                   windup/punch), pure white -> tinted per entity via Visual.color (skin).
+  spr_human        the canonical humanoid strip, imported verbatim from the sheet; pure
+                   white fill -> tinted per entity via Visual.color (skin).
   spr_wear_vest    worn overlays (Appearance): garments cut from the body parts themselves
-  spr_wear_blackShirt   (torso / head crown / feet), tracking each part's per-frame offsets so
-  spr_wear_redBandana   they can never desync from the body. COLOR-NAMED sheets are pre-colored
-  spr_wear_blackSneakers (the bandit outfit, the vest); PLAIN-NAMED sheets (shirt/shoes) are
-  spr_wear_shirt        near-WHITE and tinted per entity via the Appearance layer color — one
-  spr_wear_shoes        sheet, any outfit color (the civilian NPCs/follower).
-  spr_held_pipe    held-WEAPON overlays: the weapon drawn at the RIGHT hand's per-frame
-  spr_held_blaster position (hand blob center + FRAMES offsets), so an equipped weapon rides
-                   the hand through walk/punch. Wired via Equippable.worn like the vest.
+  spr_wear_blackShirt   (torso / head crown / feet) per frame. COLOR-NAMED sheets are
+  spr_wear_redBandana   pre-colored (the bandit outfit, the vest); PLAIN-NAMED sheets
+  spr_wear_blackSneakers (shirt/shoes) are near-WHITE and tinted per entity via the
+  spr_wear_shirt        Appearance layer color — one sheet, any outfit color (the civilian
+  spr_wear_shoes        NPCs/follower). Garments recolor only the white FILL; the dark
+                        outline pixels copy through, keeping the hand-drawn look.
+  spr_held_pipe    held-WEAPON overlays: the weapon drawn at the RIGHT hand's segmented
+  spr_held_blaster per-frame position (windup/thrust poses keyed off the `fist` tag), so an
+                   equipped weapon rides the hand. Wired via Equippable.worn like the vest.
 
-The cell is the template WIDENED by PADX per side (48x48 -> 64x48, content centered, foot
-anchor unchanged) so the punch-thrust hand + a held weapon never clip the frame.
+Part classification: the two biggest blobs are head/torso (head is the higher); the four
+limbs split into hands/feet by SIZE — the neutral frame (frame 0) teaches which blob size
+is the hand pair (the higher pair) and which the foot pair, then every frame classifies by
+that size, so a kicking foot swung above a hand can't be misread. Fails fast (assert) if a
+redraw breaks the contract: exactly 6 blobs, constant sizes, hands and feet drawn at
+DIFFERENT sizes.
 
 Same deterministic-uuid5 import contract as flat_sprites (resources must be REGISTERED;
-re-runs are churn-free). Every overlay sheet must mirror spr_human's strip layout — generate
-them HERE from the same parts/offsets, never freehand.
+re-runs are churn-free).
 
 Usage:  python tools/pixel-art-kit/gm-import/human_sprites.py [project_root]
 """
@@ -34,12 +40,10 @@ import flat_sprites as F  # reuse the .yy emitter/build machinery (PARENT overri
 
 ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(P.KIT))
 F.ROOT = ROOT
-F.PARENT = ("Pending Sprite", "folders/Media/Pending Sprite.yy")  # next to the other entity art
+F.PARENT = ("Pending Sprite", "folders/Media/Pending Sprite.yy")  # where the doll sheets live
 
-TEMPLATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                        "templates", "human", "base.png")
+SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "human")
 
-PADX = 8                # cell widening per side (see module doc — held weapons need the room)
 VEST = (198, 116, 54)   # armored vest — burnt orange
 VEST_D = (140, 78, 36)  # vest lower trim
 SHIRT = (52, 52, 58)    # bandit shirt — near-black
@@ -50,17 +54,34 @@ SNEAK = (42, 44, 48)    # sneakers — black upper
 SOLE = (196, 200, 205)  # sneaker sole — light
 WHT = (240, 240, 244)   # tintable garment base (Appearance layer.color multiplies over it)
 WHT_D = (198, 198, 208) # tintable garment trim
-NECK = 2                # torso rows left uncovered at the top (skin shows at the neckline)
+NECK = 1                # torso rows left uncovered at the top (skin shows at the neckline)
+CROWN = 5               # bandana: head rows covered from the top (darker final row)
 PIPE = (112, 118, 124)  # lead pipe steel
 PIPE_D = (76, 82, 88)   # pipe grip-end shade
 GUN = (56, 60, 68)      # blaster gunmetal
 GUN_L = (146, 154, 164) # blaster slide accent
 
 
-def segment(w, h, px):
-    """4-neighbor connected components of opaque pixels -> {part: [(x, y), ...]}."""
+def load_source():
+    """sheet.png + sheet.json -> (cell_w, cell_h, [frame pixel buffers], {tag: (from, to)})."""
+    with open(os.path.join(SRC, "sheet.json")) as f:
+        meta = json.load(f)
+    first = next(iter(meta["frames"].values()))
+    cw, ch = first["frame"]["w"], first["frame"]["h"]
+    tags = {t["name"]: (t["from"], t["to"]) for t in meta["meta"]["frameTags"]}
+    w, h, px = P.read_png(os.path.join(SRC, "sheet.png"))
+    assert h == ch and w % cw == 0, f"sheet {w}x{h} does not slice into {cw}x{ch} cells"
+    frames = []
+    n = w // cw
+    for i in range(n):
+        frames.append([px[y * w + i * cw + x] for y in range(ch) for x in range(cw)])
+    return cw, ch, frames, tags
+
+
+def blobs(w, h, px):
+    """4-neighbor connected components of opaque pixels -> [(size, cx, cy, cells)]."""
     seen = [False] * (w * h)
-    blobs = []
+    out = []
     for i in range(w * h):
         if seen[i] or px[i][3] < 128:
             continue
@@ -77,57 +98,61 @@ def segment(w, h, px):
                     if not seen[k] and px[k][3] >= 128:
                         seen[k] = True
                         stack.append(k)
-        cy = sum(y for _, y in cells) / len(cells)
-        cx = sum(x for x, _ in cells) / len(cells)
-        blobs.append((len(cells), cx, cy, cells))
-    assert len(blobs) == 6, f"expected 6 floating parts, got {len(blobs)}"
-    blobs.sort(reverse=True, key=lambda b: b[0])          # by size: head, torso, then limbs
-    head, torso = blobs[0], blobs[1]
-    if head[2] > torso[2]:                                # head is the higher of the two big blobs
-        head, torso = torso, head
-    limbs = sorted(blobs[2:], key=lambda b: b[2])         # by center y: hands above feet
-    hands = sorted(limbs[:2], key=lambda b: b[1])         # by center x: left, right
-    feet = sorted(limbs[2:], key=lambda b: b[1])
+        out.append((len(cells),
+                    sum(x for x, _ in cells) / len(cells),
+                    sum(y for _, y in cells) / len(cells),
+                    cells))
+    return out
+
+
+def segment(w, h, px, hand_size=None):
+    """One frame -> {part: [(x, y), ...]}. `hand_size` (learned from the neutral frame)
+    classifies the limb pairs by blob size; None = classify by height (neutral frame only)."""
+    bl = blobs(w, h, px)
+    assert len(bl) == 6, f"expected 6 floating parts, got {len(bl)}"
+    bl.sort(reverse=True, key=lambda b: b[0])
+    big = sorted(bl[:2], key=lambda b: b[2])              # head is the higher of the two
+    head, torso = big[0], big[1]
+    limbs = bl[2:]
+    assert limbs[0][0] != limbs[3][0], "hands and feet must be drawn at different sizes"
+    if hand_size is None:
+        by_y = sorted(limbs, key=lambda b: b[2])          # neutral pose: hands above feet
+        hand_size = by_y[0][0]
+    hands = sorted((b for b in limbs if b[0] == hand_size), key=lambda b: b[1])
+    feet = sorted((b for b in limbs if b[0] != hand_size), key=lambda b: b[1])
+    assert len(hands) == 2 and len(feet) == 2, "limb sizes did not split into two pairs"
     return {
         "head": head[3], "torso": torso[3],
         "handL": hands[0][3], "handR": hands[1][3],
         "footL": feet[0][3], "footR": feet[1][3],
-    }
+    }, hand_size
 
 
-# Canonical strip: per-part (dx, dy) offsets per frame. Frames 0-1 = walk contact poses
-# (feet alternate, hands counter-swing, 1px body bob); 2-3 = attack windup -> right-hand punch
-# (the template faces slightly right; xscale flips for left). Keep offsets small — the parts
-# must stay inside the 48x48 cell at every frame.
-FRAMES = [
-    {"head": (0, 1), "torso": (0, 1), "handL": (0, -2), "handR": (0, 1), "footL": (0, -3), "footR": (0, 0)},
-    {"head": (0, 1), "torso": (0, 1), "handL": (0, 1), "handR": (0, -2), "footL": (0, 0), "footR": (0, -3)},
-    {"head": (-1, 0), "torso": (-1, 0), "handL": (1, 0), "handR": (-3, -1), "footL": (0, 0), "footR": (0, 0)},
-    {"head": (2, 0), "torso": (1, 0), "handL": (0, 1), "handR": (8, -2), "footL": (0, 0), "footR": (0, 0)},
-]
+def is_fill(p):
+    """white body fill vs the dark outline (2-color contract)."""
+    return p[0] >= 200
 
 
-def compose(w, h, px, parts, frame, only=None, recolor=None, skip_top=0):
-    """One frame: each part's template pixels shifted by its offset. `only` limits to some
-    parts (overlay sheets); `recolor(x, y, top, bot)` maps a pixel color (None = leave the
-    pixel uncovered — partial garments like the bandana crown); `skip_top` drops the part's
-    top rows (neckline)."""
+def cut(w, h, px, parts, only, recolor, skip_top=0):
+    """Garment frame: the named parts' own pixels in place — FILL pixels recolored, outline
+    pixels copied through; `recolor(x, y, top, bot)` may return None to leave a fill pixel
+    uncovered (partial garments); `skip_top` drops the part's top rows (neckline)."""
     out = [(0, 0, 0, 0)] * (w * h)
-    for name, cells in parts.items():
-        if only is not None and name not in only:
-            continue
-        dx, dy = frame[name]
+    for name in only:
+        cells = parts[name]
         top = min(y for _, y in cells)
         bot = max(y for _, y in cells)
         for x, y in cells:
             if y - top < skip_top:
                 continue
-            nx, ny = x + dx, y + dy
-            assert 0 <= nx < w and 0 <= ny < h, f"{name} leaves the cell at ({nx},{ny})"
-            col = recolor(x, y, top, bot) if recolor is not None else px[y * w + x]
-            if col is None:
-                continue
-            out[ny * w + nx] = col
+            src = px[y * w + x]
+            if is_fill(src):
+                col = recolor(x, y, top, bot)
+                if col is None:
+                    continue
+                out[y * w + x] = col
+            else:
+                out[y * w + x] = src
     return out
 
 
@@ -139,7 +164,7 @@ def two_tone(base, trim, split=0.62):
     return fn
 
 
-def crown(base, edge, rows=6):
+def crown(base, edge, rows=CROWN):
     """bandana recolor: only the part's top `rows` (the head crown), darker final row."""
     def fn(x, y, top, bot):
         if y - top >= rows:
@@ -167,39 +192,45 @@ def stamp_line(buf, w, h, x0, y0, x1, y1, thick, col):
         i += 1
 
 
-def draw_pipe(buf, w, h, gx, gy, fi):
-    """lead pipe gripped at (gx, gy): rested diagonal on walk frames, pulled back on the
+def draw_pipe(buf, w, h, gx, gy, pose):
+    """lead pipe gripped at (gx, gy): rested diagonal by default, pulled back on the fist
     windup, thrust flat on the punch."""
-    if fi == 3:                                   # punch — horizontal thrust
-        stamp_line(buf, w, h, gx - 2, gy - 1, gx + 9, gy - 1, 2, PIPE)
+    if pose == "thrust":
+        stamp_line(buf, w, h, gx - 2, gy - 1, gx + 5, gy - 1, 2, PIPE)
         stamp_line(buf, w, h, gx - 2, gy - 1, gx - 1, gy - 1, 2, PIPE_D)
-    elif fi == 2:                                 # windup — steep, pulled in
-        stamp_line(buf, w, h, gx - 1, gy + 2, gx + 3, gy - 6, 2, PIPE)
-        stamp_line(buf, w, h, gx - 1, gy + 2, gx, gy, 2, PIPE_D)
-    else:                                         # rest — diagonal up-forward
-        stamp_line(buf, w, h, gx - 2, gy + 2, gx + 5, gy - 5, 2, PIPE)
-        stamp_line(buf, w, h, gx - 2, gy + 2, gx - 1, gy + 1, 2, PIPE_D)
+    elif pose == "windup":
+        stamp_line(buf, w, h, gx - 1, gy + 1, gx + 2, gy - 4, 2, PIPE)
+        stamp_line(buf, w, h, gx - 1, gy + 1, gx, gy, 2, PIPE_D)
+    else:
+        stamp_line(buf, w, h, gx - 1, gy + 1, gx + 3, gy - 3, 2, PIPE)
+        stamp_line(buf, w, h, gx - 1, gy + 1, gx, gy, 2, PIPE_D)
 
 
-def draw_blaster(buf, w, h, gx, gy, fi):
+def draw_blaster(buf, w, h, gx, gy, pose):
     """compact pistol pointing +x, gripped at (gx, gy); same silhouette every frame (the
-    hand offsets carry the recoil/thrust motion)."""
-    stamp_line(buf, w, h, gx - 1, gy - 3, gx + 5, gy - 3, 2, GUN)   # body slab
-    stamp_line(buf, w, h, gx + 5, gy - 3, gx + 7, gy - 3, 1, GUN)   # muzzle
-    stamp_line(buf, w, h, gx - 1, gy - 4, gx + 5, gy - 4, 1, GUN_L) # slide accent
-    stamp_line(buf, w, h, gx - 1, gy - 1, gx, gy + 1, 2, GUN)       # grip (into the hand)
+    hand's own motion carries the recoil/thrust)."""
+    stamp_line(buf, w, h, gx - 1, gy - 2, gx + 4, gy - 2, 2, GUN)   # body slab
+    stamp_line(buf, w, h, gx + 4, gy - 2, gx + 6, gy - 2, 1, GUN)   # muzzle
+    stamp_line(buf, w, h, gx - 1, gy - 3, gx + 4, gy - 3, 1, GUN_L) # slide accent
+    stamp_line(buf, w, h, gx - 1, gy, gx, gy + 1, 2, GUN)           # grip (into the hand)
 
 
-def held_frames(w, h, parts, draw_fn):
-    """one strip frame per FRAMES entry: the weapon drawn at the right hand's frame position."""
-    cells = parts["handR"]
-    hx = round(sum(c[0] for c in cells) / len(cells))
-    hy = round(sum(c[1] for c in cells) / len(cells))
+def held_frames(w, h, frame_parts, tags, draw_fn):
+    """one strip frame per body frame: the weapon drawn at the RIGHT hand's segmented
+    position; the melee pose follows the `fist` tag (windup -> thrust -> recover)."""
+    fist = tags.get("fist", (-1, -1))
     out = []
-    for fi in range(len(FRAMES)):
+    for fi, parts in enumerate(frame_parts):
+        cells = parts["handR"]
+        hx = round(sum(c[0] for c in cells) / len(cells))
+        hy = round(sum(c[1] for c in cells) / len(cells))
+        pose = "rest"
+        if fi == fist[0]:
+            pose = "windup"
+        elif fi == fist[0] + 1:
+            pose = "thrust"
         buf = [(0, 0, 0, 0)] * (w * h)
-        off = FRAMES[fi]["handR"]
-        draw_fn(buf, w, h, hx + off[0], hy + off[1], fi)
+        draw_fn(buf, w, h, hx, hy, pose)
         out.append(buf)
     return out
 
@@ -207,10 +238,10 @@ def held_frames(w, h, parts, draw_fn):
 def write_manifest(w, h, overlays):
     """SpriteMeta manifest (datafiles/spritemeta/human.json): the runtime's semantic sprite
     layer — kind / density / cell per sheet — is GENERATED alongside the art so declarations
-    can never drift from it (see scripts/SpriteMeta). Density 1 = the template is authored at
-    world scale (1 source px per world px); raise it here if the template is ever redrawn
-    denser. The included file must be REGISTERED in gems.yyp once (like the sprite resources);
-    re-runs only rewrite the content."""
+    can never drift from it (see scripts/SpriteMeta). Density 1 = the sheet is authored at
+    world scale (1 source px per world px, the 2026-07 32px-cell convention); raise it here
+    if the sheet is ever redrawn denser. The included file must be REGISTERED in gems.yyp
+    once (like the sprite resources); re-runs only rewrite the content."""
     entries = [{"sprite": "spr_human", "kind": "entity", "density": 1, "cell": [w, h]}]
     for name in overlays:
         entries.append({"sprite": name, "kind": "overlay", "density": 1, "cell": [w, h]})
@@ -222,34 +253,30 @@ def write_manifest(w, h, overlays):
 
 
 def main():
-    w0, h, px0 = P.read_png(TEMPLATE)
-    # widen the cell (content centered, foot anchor preserved) — punch hand + weapon need room
-    w = w0 + PADX * 2
-    px = [(0, 0, 0, 0)] * (w * h)
-    for y in range(h):
-        for x in range(w0):
-            px[y * w + x + PADX] = px0[y * w0 + x]
-    parts = segment(w, h, px)
-
-    body = [compose(w, h, px, parts, f) for f in FRAMES]
+    w, h, body, tags = load_source()
+    frame_parts = []
+    hand_size = None
+    for fi, frame in enumerate(body):
+        parts, hand_size = segment(w, h, frame, hand_size)
+        frame_parts.append(parts)
 
     def torso_garment(recolor):
-        return [compose(w, h, px, parts, f, only=("torso",), recolor=recolor, skip_top=NECK)
-                for f in FRAMES]
+        return [cut(w, h, body[fi], frame_parts[fi], ("torso",), recolor, skip_top=NECK)
+                for fi in range(len(body))]
+
+    def feet_garment(recolor):
+        return [cut(w, h, body[fi], frame_parts[fi], ("footL", "footR"), recolor)
+                for fi in range(len(body))]
 
     vest = torso_garment(two_tone(VEST, VEST_D))
     shirt = torso_garment(two_tone(SHIRT, SHIRT_D))
     shirt_w = torso_garment(two_tone(WHT, WHT_D))
-    bandana = [compose(w, h, px, parts, f, only=("head",), recolor=crown(BAND, BAND_D))
-               for f in FRAMES]
-    sneakers = [compose(w, h, px, parts, f, only=("footL", "footR"),
-                        recolor=two_tone(SNEAK, SOLE, split=0.55))
-                for f in FRAMES]
-    shoes_w = [compose(w, h, px, parts, f, only=("footL", "footR"),
-                       recolor=two_tone(WHT, WHT_D, split=0.55))
-               for f in FRAMES]
-    pipe = held_frames(w, h, parts, draw_pipe)
-    blaster = held_frames(w, h, parts, draw_blaster)
+    bandana = [cut(w, h, body[fi], frame_parts[fi], ("head",), crown(BAND, BAND_D))
+               for fi in range(len(body))]
+    sneakers = feet_garment(two_tone(SNEAK, SOLE, split=0.55))
+    shoes_w = feet_garment(two_tone(WHT, WHT_D, split=0.55))
+    pipe = held_frames(w, h, frame_parts, tags, draw_pipe)
+    blaster = held_frames(w, h, frame_parts, tags, draw_blaster)
 
     F.build("spr_human", body, 8.0, w, h)
     F.build("spr_wear_vest", vest, 8.0, w, h)
@@ -265,7 +292,8 @@ def main():
         "spr_wear_blackSneakers", "spr_wear_shirt", "spr_wear_shoes",
         "spr_held_pipe", "spr_held_blaster",
     ))
-    print(f"wrote spr_human + 6 wear + 2 held sheets ({len(FRAMES)} frames, {w}x{h}) + spritemeta manifest")
+    print(f"wrote spr_human + 6 wear + 2 held sheets ({len(body)} frames, {w}x{h}) "
+          f"+ spritemeta manifest; tags: {tags}")
 
     # contact sheet: body / vest+pipe / blaster / bandit / tinted-civilian rows
     def tint(frame, rgb):
@@ -273,11 +301,12 @@ def main():
                 if p[3] else p for p in frame]
 
     sc, pad = 4, 6
-    sw = pad + len(FRAMES) * (w * sc + pad)
+    n = len(body)
+    sw = pad + n * (w * sc + pad)
     sh = pad + 5 * (h * sc + pad)
     sheet = [(46, 52, 46, 255)] * (sw * sh)
-    for i in range(len(FRAMES)):
-        skin = [(232, 184, 144, p[3]) if p[3] else p for p in body[i]]  # preview-only tint
+    for i in range(n):
+        skin = tint(body[i], (232, 184, 144))  # preview-only skin tint
         dressed = [P.over(vest[i][j], skin[j]) for j in range(w * h)]
         armed = [P.over(pipe[i][j], dressed[j]) for j in range(w * h)]
         gunned = [P.over(blaster[i][j], dressed[j]) for j in range(w * h)]

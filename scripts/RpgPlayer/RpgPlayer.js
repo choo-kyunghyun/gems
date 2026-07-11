@@ -104,6 +104,7 @@ globalThis.RpgPlayer = {
     world.add(id, Playable, {
       fireCd: 0,
       attackCd: 0,
+      attackAnim: "",
       cursorX: spawn.x,
       cursorY: spawn.y,
     });
@@ -130,15 +131,18 @@ globalThis.RpgPlayer = {
   },
 
   // Canonical humanoid animation over the unified spr_human strip (the white tintable Rayman-
-  // style template, animated by tools/pixel-art-kit/gm-import/human_sprites.py): frames 0-1 =
-  // walk cycle (idle plays it slower), 2-3 = attack. EVERY paper-doll layer sheet (Appearance /
-  // Equippable.worn) mirrors this exact strip layout — cell size, frame order, foot anchor — so
-  // a layer draws at the body's subimg with zero animation knowledge. Fresh object per call.
+  // style figure, hand-drawn in Aseprite — source tools/pixel-art-kit/templates/human/, whose
+  // frame tags this graph mirrors): 0 = idle, 1-2 = walk, 3-5 = fist punch, 6-10 = kick (the
+  // unarmed swing alternates attack/kick — see PlayerSystem). EVERY paper-doll layer sheet
+  // (Appearance / Equippable.worn) mirrors this exact strip layout — cell size, frame order,
+  // foot anchor — so a layer draws at the body's subimg with zero animation knowledge (they are
+  // derived from the same sheet by human_sprites.py). Fresh object per call.
   animGraph() {
     return {
-      idle: { sprite: spr_human, start: 0, frames: 2, fps: 3, loop: true },
-      walk: { sprite: spr_human, start: 0, frames: 2, fps: 8, loop: true },
-      attack: { sprite: spr_human, start: 2, frames: 2, fps: 10, loop: false },
+      idle: { sprite: spr_human, start: 0, frames: 1, fps: 1, loop: true },
+      walk: { sprite: spr_human, start: 1, frames: 2, fps: 10, loop: true },
+      attack: { sprite: spr_human, start: 3, frames: 3, fps: 10, loop: false },
+      kick: { sprite: spr_human, start: 6, frames: 5, fps: 13, loop: false },
     };
   },
 
