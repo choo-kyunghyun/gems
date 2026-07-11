@@ -33,10 +33,12 @@ but the mesh itself replaces the analytic two-quad box.
   center), feet at ground level.
 - **MagicaVoxel +x = east (width), +y = south (the face toward the camera)**, z = up. Author
   furniture front along +y.
-- Only the two face orientations the fixed-yaw pitched camera can see are emitted (**top +
-  south**). The vertex colour is the raw palette **albedo** (the palette IS the texture; no
-  bitmap assets) and the texcoord slot carries the **packed face normal** (`u = nx, v = ny`;
-  the shader derives `nz = -sqrt(1-u²-v²)` — valid since no bottom face is ever emitted).
+- **Top + all four side orientations** are emitted, so a runtime `Mesh.rot` yaw shows a solid
+  model from any facing (bottoms never — unrepresentable in the normal packing and only visible
+  past a ~90° tip; unrotated meshes render identically to the old top+south bake). The vertex
+  colour is the raw palette **albedo** (the palette IS the texture; no bitmap assets) and the
+  texcoord slot carries the **packed face normal** (`u = nx, v = ny`; the shader derives
+  `nz = -sqrt(1-u²-v²)` — valid since no bottom face is ever emitted).
   Shading is LIVE, not baked: `sh_meshlit` lights the albedo per frame (directional sun via
   `WorldClock.sunDir()` + the torch/lantern `Light` entities as point lights).
 - The emitted vertex layout (`position 3×f32 | colour RGBA u8 | texcoord 2×f32`, 24 B/vertex)

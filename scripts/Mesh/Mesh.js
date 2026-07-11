@@ -22,6 +22,16 @@
  * @property {number} [xscale]    per-axis override (world x — width); negative mirrors
  * @property {number} [yscale]    per-axis override (world y — depth)
  * @property {number} [zscale]    per-axis override (world z — height)
+ * @property {number} [rot]       yaw in degrees about the up axis, pivoting on the footprint
+ *                                center (default 0). Visual-only like scale: the BBox stays
+ *                                axis-aligned — author the swapped footprint for a 90° turn of
+ *                                oblong furniture. Vox models bake all four side faces, so any
+ *                                facing renders solid and sh_meshlit lights it correctly (the
+ *                                packed normals rotate with the world matrix). The analytic box
+ *                                rotates its two authored faces (its "front" stays local south).
+ * @property {number} [xrot]      tilt in degrees about world x (default 0). Vox models have no
+ *                                BOTTOM faces — a tip past ~90° shows a hollow underside.
+ * @property {number} [yrot]      tilt in degrees about world y (default 0; same bottom caveat)
  * @property {number} width       footprint x extent (world px)
  * @property {number} depth       footprint y extent (world px)
  * @property {number} height      vertical extent (world px)

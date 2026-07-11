@@ -19,9 +19,16 @@ Coordinate map (MagicaVoxel is z-up):  game x = vox x,  game y = vox y (+y = sou
 game z = -vox z (up is negative z, the RenderBillboard convention). The mesh is centered on
 the footprint (Position = footprint center), feet at z = 0.
 
-Only the two face orientations the fixed-yaw pitched camera can see are emitted:
+TOP + all FOUR side orientations are emitted, so a runtime Mesh yaw (`Mesh.rot`) shows a
+solid model from any facing (sh_meshlit rotates the packed normals by mat3(world)):
     TOP faces   (air above,  normal (0, 0, -1) -> packed (0, 0))
     SOUTH faces (air to +y,  normal (0, 1, 0)  -> packed (0, 1))
+    NORTH faces (air to -y,  normal (0, -1, 0) -> packed (0, -1))
+    EAST faces  (air to +x,  normal (1, 0, 0)  -> packed (1, 0))
+    WEST faces  (air to -x,  normal (-1, 0, 0) -> packed (-1, 0))
+BOTTOM faces are never emitted (nz > 0 is unrepresentable in the packing, and a bottom can
+only show past a ~90-degree tip); unrotated meshes render identically to the old top+south
+bake (north faces hide behind the body via the depth test, east/west are edge-on).
 
 Usage:  python tools/vox-kit/vox2vbuf.py <input.vox> <output.vbuf>
 Zero dependencies (stdlib only), deterministic output.
@@ -105,7 +112,7 @@ def bake(path_in, path_out):
                 0.0,  # normal (0, 0, -1)
             )
             quads += 1
-        if (x, y + 1, z) not in voxels:  # SOUTH face (faces the camera)
+        if (x, y + 1, z) not in voxels:  # SOUTH face (faces the camera when unrotated)
             quad(
                 (gx, gy + 1, -(z + 1)),
                 (gx + 1, gy + 1, -(z + 1)),
@@ -114,6 +121,39 @@ def bake(path_in, path_out):
                 rgb,
                 0.0,
                 1.0,  # normal (0, 1, 0)
+            )
+            quads += 1
+        if (x, y - 1, z) not in voxels:  # NORTH face (visible under a runtime yaw)
+            quad(
+                (gx + 1, gy, -(z + 1)),
+                (gx, gy, -(z + 1)),
+                (gx, gy, -z),
+                (gx + 1, gy, -z),
+                rgb,
+                0.0,
+                -1.0,  # normal (0, -1, 0)
+            )
+            quads += 1
+        if (x + 1, y, z) not in voxels:  # EAST face
+            quad(
+                (gx + 1, gy + 1, -(z + 1)),
+                (gx + 1, gy, -(z + 1)),
+                (gx + 1, gy, -z),
+                (gx + 1, gy + 1, -z),
+                rgb,
+                1.0,
+                0.0,  # normal (1, 0, 0)
+            )
+            quads += 1
+        if (x - 1, y, z) not in voxels:  # WEST face
+            quad(
+                (gx, gy, -(z + 1)),
+                (gx, gy + 1, -(z + 1)),
+                (gx, gy + 1, -z),
+                (gx, gy, -z),
+                rgb,
+                -1.0,
+                0.0,  # normal (-1, 0, 0)
             )
             quads += 1
 

@@ -250,9 +250,10 @@ globalThis.RenderMesh = class RenderMesh {
       const m = this._model(mesh.model);
       if (m.vb === -1) continue;
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
-      // scale is visual-only (BBox stays authored) and per-axis in WORLD axes — zscale is
-      // height; a negative xscale mirrors the model (cull is off; the shader re-derives the
-      // flipped normal from the world matrix)
+      // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
+      // axes — zscale is height; a negative xscale mirrors the model. `rot` yaws about the
+      // footprint center (vbufs bake all four side faces, so any facing is solid); the shader
+      // re-derives flipped/rotated normals from the world matrix, so lighting follows.
       const s = mesh.scale ?? 1;
       matrix_set(
         matrix_world,
@@ -260,9 +261,9 @@ globalThis.RenderMesh = class RenderMesh {
           rp.x,
           rp.y,
           0,
-          0,
-          0,
-          0,
+          mesh.xrot ?? 0,
+          mesh.yrot ?? 0,
+          mesh.rot ?? 0,
           mesh.xscale ?? s,
           mesh.yscale ?? s,
           mesh.zscale ?? s,
@@ -276,22 +277,61 @@ globalThis.RenderMesh = class RenderMesh {
       const mesh = world.get(Mesh, entity);
       if (mesh.model !== undefined && mesh.model !== "") continue;
       const rp = InterpolationSystem.lerp(world, entity, this._rp);
-      const x0 = rp.x - mesh.width / 2;
-      const y0 = rp.y - mesh.depth / 2;
       const alpha = mesh.alpha ?? 1;
+      // Face matrices are CENTER-relative and composed with an entity world matrix, so the
+      // optional rotation pivots on the footprint center (matrix_multiply applies the left
+      // matrix first — face placement, then entity rotate+translate). With no rotation this
+      // reduces exactly to the old corner-anchored translate.
+      const entM = matrix_build(
+        rp.x,
+        rp.y,
+        0,
+        mesh.xrot ?? 0,
+        mesh.yrot ?? 0,
+        mesh.rot ?? 0,
+        1,
+        1,
+        1,
+      );
       // TOP: plan-view quad lying flat at -height over the footprint (up = -z)
       matrix_set(
         matrix_world,
-        matrix_build(x0, y0, -mesh.height, 0, 0, 0, 1, 1, 1),
+        matrix_multiply(
+          matrix_build(
+            -mesh.width / 2,
+            -mesh.depth / 2,
+            -mesh.height,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+          ),
+          entM,
+        ),
       );
       this._face(mesh.topSprite, mesh.topColor, alpha, mesh.width, mesh.depth);
-      // FRONT: true vertical quad at the south edge — xrot -90 maps local +y to world +z
-      // (the billboard tilt extended to fully upright), so anchoring the local origin at
+      // FRONT: true vertical quad at the (local) south edge — xrot -90 maps local +y to world
+      // +z (the billboard tilt extended to fully upright), so anchoring the local origin at
       // -height spans the face from its top edge down to the ground; it shares that top
       // edge with the TOP quad exactly, so the seam can't gap or z-fight
       matrix_set(
         matrix_world,
-        matrix_build(x0, y0 + mesh.depth, -mesh.height, -90, 0, 0, 1, 1, 1),
+        matrix_multiply(
+          matrix_build(
+            -mesh.width / 2,
+            mesh.depth / 2,
+            -mesh.height,
+            -90,
+            0,
+            0,
+            1,
+            1,
+            1,
+          ),
+          entM,
+        ),
       );
       this._face(
         mesh.frontSprite,
