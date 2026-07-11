@@ -232,6 +232,7 @@
     {"id":{"name":"LifetimeSystem","path":"scripts/LifetimeSystem/LifetimeSystem.yy",},},
     {"id":{"name":"Light","path":"scripts/Light/Light.yy",},},
     {"id":{"name":"Log","path":"scripts/Log/Log.yy",},},
+    {"id":{"name":"Manufacturer","path":"scripts/Manufacturer/Manufacturer.yy",},},
     {"id":{"name":"Material","path":"scripts/Material/Material.yy",},},
     {"id":{"name":"MeleeSystem","path":"scripts/MeleeSystem/MeleeSystem.yy",},},
     {"id":{"name":"Merchant","path":"scripts/Merchant/Merchant.yy",},},

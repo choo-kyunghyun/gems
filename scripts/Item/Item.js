@@ -12,6 +12,7 @@ globalThis.Item = class Item {
    * @param {number} [def.weight]          per-unit weight (default 1)
    * @param {number} [def.value]           base value (scaled by rarity)
    * @param {string} [def.rarity]          Rarity id (default "common")
+   * @param {string} [def.maker]           Manufacturer id (default "" = unbranded)
    * @param {Object[]} [def.components]    capability/marker instances — queried via getComponent
    */
   constructor(def) {
@@ -23,6 +24,7 @@ globalThis.Item = class Item {
     this.weight = def.weight ?? 1;
     this.value = def.value ?? 0;
     this.rarity = def.rarity ?? "common";
+    this.maker = def.maker ?? "";
     this.components = def.components ?? [];
   }
 

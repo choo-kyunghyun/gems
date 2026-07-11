@@ -50,6 +50,16 @@ globalThis.InvTable = {
         color: (r) => r.color,
         sortValue: (r) => r.rarityRank,
       });
+    if (Settings.get("invColMaker"))
+      cols.push({
+        key: "maker",
+        label: I18n.text("INV_COL_MAKER"),
+        width: 110,
+        flex: 1,
+        text: (r) => r.makerName,
+        color: (r) => r.makerColor,
+        sortValue: (r) => r.makerRank,
+      });
     if (Settings.get("invColType"))
       cols.push({
         key: "type",
@@ -99,6 +109,7 @@ globalThis.InvTable = {
     const name = it !== undefined ? I18n.text(it.name) : itemId;
     const rarId = it !== undefined ? it.rarity : undefined;
     const rar = rarId !== undefined ? Rarity.get(rarId) : undefined;
+    const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
     return {
       itemId,
       qty,
@@ -111,6 +122,9 @@ globalThis.InvTable = {
       catKey: cat.key,
       rarityName: rar !== undefined ? I18n.text(rar.name) : "",
       rarityRank: rarId !== undefined ? Rarity.order.indexOf(rarId) : -1,
+      makerName: mk !== undefined ? I18n.text(mk.name) : "",
+      makerColor: mk !== undefined ? mk.color : c_white,
+      makerRank: mk !== undefined ? Manufacturer.order.indexOf(mk.id) : -1,
       weight: it !== undefined ? it.weight * qty : 0,
       value:
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,

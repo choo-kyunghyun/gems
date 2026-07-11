@@ -137,6 +137,15 @@ globalThis.WeaponModUI = {
         },
       ),
     );
+    // maker line: company name in brand color (unbranded weapons have none)
+    const maker = it !== undefined ? Manufacturer.get(it.maker) : undefined;
+    if (maker !== undefined)
+      host.insertChild(
+        gemsLabel(I18n.textRef(maker.name), {
+          font: "description",
+          color: maker.color,
+        }),
+      );
     host.insertChild(gemsDivider());
 
     // Composed stats, laid out 2-up to stay compact.

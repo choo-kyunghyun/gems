@@ -39,6 +39,7 @@ Settings.registerDefaults({
   rawInput: false,
   // RPG inventory column visibility (toggled in inventory Settings tab)
   invColRarity: false,
+  invColMaker: true,
   invColType: true,
   invColWeight: true,
   invColValue: true,

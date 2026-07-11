@@ -610,6 +610,7 @@ globalThis.RpgInventoryUI = {
         { style: "switch" },
       );
     page.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
+    page.insertChild(toggle("INV_COL_MAKER", "invColMaker"));
     page.insertChild(toggle("INV_COL_TYPE", "invColType"));
     page.insertChild(toggle("INV_COL_WT", "invColWeight"));
     page.insertChild(toggle("INV_COL_VAL", "invColValue"));

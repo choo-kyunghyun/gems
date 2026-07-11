@@ -160,6 +160,10 @@
           { "itemId": "ammo_light", "qty": 1 },
           { "itemId": "ammo_heavy", "qty": 1 },
           { "itemId": "ammo_ap", "qty": 1 },
+          { "itemId": "aeon_rounds", "qty": 1 },
+          { "itemId": "helios_ration", "qty": 1 },
+          { "itemId": "helios_trauma_kit", "qty": 1 },
+          { "itemId": "aeon_cutter", "qty": 1 },
           { "itemId": "wood", "qty": 1 },
           { "itemId": "scrap_metal", "qty": 1 },
           { "itemId": "backpack", "qty": 1 }
@@ -183,8 +187,12 @@
         "stock": [
           { "itemId": "combat_stim", "qty": 3 },
           { "itemId": "armored_vest", "qty": 2 },
+          { "itemId": "helios_vest", "qty": 1 },
           { "itemId": "adrenal_implant", "qty": 1 },
           { "itemId": "blaster", "qty": 1 },
+          { "itemId": "aeon_pistol", "qty": 1 },
+          { "itemId": "vekt_pistol", "qty": 1 },
+          { "itemId": "vekt_wrench", "qty": 1 },
           { "itemId": "mod_scope", "qty": 1 },
           { "itemId": "mod_grip", "qty": 1 },
           { "itemId": "ammo_ap", "qty": 20 }
@@ -192,8 +200,12 @@
         "template": [
           { "itemId": "combat_stim", "qty": 3 },
           { "itemId": "armored_vest", "qty": 2 },
+          { "itemId": "helios_vest", "qty": 1 },
           { "itemId": "adrenal_implant", "qty": 1 },
           { "itemId": "blaster", "qty": 1 },
+          { "itemId": "aeon_pistol", "qty": 1 },
+          { "itemId": "vekt_pistol", "qty": 1 },
+          { "itemId": "vekt_wrench", "qty": 1 },
           { "itemId": "mod_scope", "qty": 1 },
           { "itemId": "mod_grip", "qty": 1 },
           { "itemId": "ammo_ap", "qty": 20 }

@@ -1,11 +1,47 @@
-// RPG item content — rarities + full item set. Registered once via RpgContent.register() at
-// scene create(), NOT top-level (avoids GMRT load-order issues).
+// RPG item content — rarities + manufacturers + full item set. Registered once via
+// RpgContent.register() at scene create(), NOT top-level (avoids GMRT load-order issues).
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
   { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
   { id: "rare", name: "RARITY_RARE", color: "#2196f3", valueMod: 5 },
   { id: "epic", name: "RARITY_EPIC", color: "#9c27b0", valueMod: 12 },
   { id: "legendary", name: "RARITY_LEGENDARY", color: "#ff9800", valueMod: 30 },
+];
+
+// The colony-era companies (Item.maker). A maker's `ops` is its signature weapon layer, folded
+// into composeWeapon like an attachment — Aeon = fast/precise but soft, Vekt = slow but punchy
+// with small clips. Helios (the failed terraformer itself) makes survival gear, no weapon ops.
+const RPG_MAKERS = [
+  {
+    id: "aeon",
+    name: "MAKER_AEON",
+    lore: "MAKER_AEON_LORE",
+    color: "#4dd0e1",
+    ops: {
+      fireCd: { mul: 0.8 },
+      velocity: { mul: 1.15 },
+      power: { mul: 0.9 },
+      damage: { mul: 0.9 },
+    },
+  },
+  {
+    id: "vekt",
+    name: "MAKER_VEKT",
+    lore: "MAKER_VEKT_LORE",
+    color: "#e08a3c",
+    ops: {
+      fireCd: { mul: 1.25 },
+      power: { mul: 1.3 },
+      damage: { mul: 1.3 },
+      magazine: { mul: 0.75 },
+    },
+  },
+  {
+    id: "helios",
+    name: "MAKER_HELIOS",
+    lore: "MAKER_HELIOS_LORE",
+    color: "#9ccc65",
+  },
 ];
 
 globalThis.RpgItems = {
@@ -36,10 +72,20 @@ globalThis.RpgItems = {
     ammo_light: "spr_ammo_pistol",
     ammo_heavy: "spr_ammo_pistol",
     ammo_ap: "spr_ammo_pistol",
+    // branded gear reuses base art (dedicated icons are a follow-up); spr_pipeWrench is exact
+    aeon_pistol: "spr_pistol",
+    vekt_pistol: "spr_pistol",
+    aeon_cutter: "spr_energy",
+    vekt_wrench: "spr_pipeWrench",
+    helios_vest: "spr_item_armored_vest",
+    helios_trauma_kit: "spr_bandage",
+    helios_ration: "spr_cannedFood",
+    aeon_rounds: "spr_ammo_pistol",
   },
 
   register() {
     Rarity.register(RPG_RARITIES);
+    Manufacturer.register(RPG_MAKERS);
 
     Item.register([
       // loot trash
@@ -455,6 +501,151 @@ globalThis.RpgItems = {
         value: 40,
         rarity: "rare",
         components: [new WorkbenchModule({ kind: "weaponmod" })],
+      },
+      // ── branded gear (maker → Manufacturer registry) ─────────────────────────────────────
+      // a maker's signature ops fold into composeWeapon on top of the authored base, so two
+      // companies' takes on the same weapon class genuinely play differently.
+      {
+        id: "aeon_pistol",
+        name: "ITEM_AEON_PISTOL",
+        description: "ITEM_AEON_PISTOL_DESC",
+        weight: 4,
+        value: 85,
+        rarity: "rare",
+        maker: "aeon",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
+          new Weapon({
+            fireCd: 8,
+            slots: [
+              { id: "scope", accepts: "scope" },
+              { id: "barrel", accepts: "barrel" },
+              { id: "magazine", accepts: "magazine" },
+              { id: "grip", accepts: "grip" },
+              { id: "muzzle", accepts: "muzzle" },
+            ],
+          }),
+          new Gun({ caliber: "standard", magazine: 10 }),
+        ],
+      },
+      {
+        id: "vekt_pistol",
+        name: "ITEM_VEKT_PISTOL",
+        description: "ITEM_VEKT_PISTOL_DESC",
+        weight: 7,
+        value: 85,
+        rarity: "rare",
+        maker: "vekt",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 3 } }),
+          new Weapon({
+            fireCd: 9,
+            slots: [
+              { id: "scope", accepts: "scope" },
+              { id: "barrel", accepts: "barrel" },
+              { id: "magazine", accepts: "magazine" },
+              { id: "grip", accepts: "grip" },
+              { id: "muzzle", accepts: "muzzle" },
+            ],
+          }),
+          new Gun({ caliber: "standard", magazine: 8 }),
+        ],
+      },
+      {
+        id: "aeon_cutter",
+        name: "ITEM_AEON_CUTTER",
+        description: "ITEM_AEON_CUTTER_DESC",
+        weight: 3,
+        value: 70,
+        rarity: "rare",
+        maker: "aeon",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
+          new Weapon({
+            damage: 3,
+            fireCd: 12,
+            reach: 60,
+            slots: [
+              { id: "edge", accepts: "edge" },
+              { id: "pommel", accepts: "pommel" },
+            ],
+          }),
+        ],
+      },
+      {
+        id: "vekt_wrench",
+        name: "ITEM_VEKT_WRENCH",
+        description: "ITEM_VEKT_WRENCH_DESC",
+        weight: 6,
+        value: 75,
+        rarity: "rare",
+        maker: "vekt",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
+          new Weapon({
+            damage: 5,
+            fireCd: 24,
+            reach: 72,
+            slots: [
+              { id: "edge", accepts: "edge" },
+              { id: "pommel", accepts: "pommel" },
+            ],
+          }),
+        ],
+      },
+      {
+        id: "helios_vest",
+        name: "ITEM_HELIOS_VEST",
+        description: "ITEM_HELIOS_VEST_DESC",
+        weight: 7,
+        value: 45,
+        rarity: "rare",
+        maker: "helios",
+        components: [
+          new Equippable({
+            slot: "armor",
+            mods: { defense: 3, maxHp: 8 },
+            worn: "spr_wear_vest",
+          }),
+        ],
+      },
+      {
+        id: "helios_trauma_kit",
+        name: "ITEM_HELIOS_TRAUMA_KIT",
+        description: "ITEM_HELIOS_TRAUMA_KIT_DESC",
+        weight: 1,
+        value: 25,
+        rarity: "rare",
+        maker: "helios",
+        components: [new Consumable({ heal: 12 })],
+      },
+      {
+        id: "helios_ration",
+        name: "ITEM_HELIOS_RATION",
+        description: "ITEM_HELIOS_RATION_DESC",
+        weight: 1,
+        value: 12,
+        rarity: "uncommon",
+        maker: "helios",
+        components: [new Consumable({ hunger: 50, thirst: 25 })],
+      },
+      {
+        id: "aeon_rounds",
+        name: "ITEM_AEON_ROUNDS",
+        description: "ITEM_AEON_ROUNDS_DESC",
+        weight: 0,
+        value: 4,
+        rarity: "rare",
+        maker: "aeon",
+        components: [
+          new Ammo({
+            caliber: "standard",
+            mass: 2,
+            velocity: 1800,
+            power: 2,
+            penetration: 2,
+          }),
+        ],
       },
     ]);
 
