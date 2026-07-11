@@ -23,24 +23,50 @@
 // Every descriptor also takes `scale?` — a per-spawn size multiplier over the def's design scale
 // (the Alpha/boss knob; see EntityPreset — SpriteMeta density divides the DRAW scale separately).
 globalThis.RpgSpawn = {
+  // Content-measured vox footprints for the prop adapter's mesh models (BBox ≤ voxel content,
+  // erring small for walkability). 1 vox = 1 world px; big furniture is genuinely multi-cell
+  // (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not the
+  // one-size prop preset box.
+  FOOTPRINTS: {
+    wooden_workbench: { w: 60, h: 28 }, // content 62×30
+    wooden_bed: { w: 60, h: 30 }, // content 62×32
+    prison_bed: { w: 58, h: 26 }, // content 60×28 (cot)
+    wooden_tub: { w: 58, h: 26 }, // content 60×28
+    wooden_bin: { w: 10, h: 10 }, // content 10×10
+    wooden_sign: { w: 20, h: 8 }, // content 22×4 — depth padded for robust collision
+    wooden_alter: { w: 22, h: 22 }, // content 22×24
+    wooden_barrel: { w: 20, h: 20 }, // content 20×20
+    wooden_crate: { w: 26, h: 26 }, // content 28×28
+  },
+
   // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
   // Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
   // scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
   // through by reference — see EntityPreset._clone).
   register() {
+    // the fence keeps 16px sprite art in the 32px world: density 0.5 → draw scale ×2, BBox
+    // untouched (SpriteMeta.fit). Code-registered — no manifest file/gems.yyp entry needed.
+    SpriteMeta.register([
+      {
+        sprite: "spr_fenceSquare",
+        kind: "entity",
+        density: 0.5,
+        cell: [16, 16],
+      },
+    ]);
     EntityPreset.register([
       {
         id: "raider",
-        scale: 0.85,
+        scale: 1.7,
         components: {
-          // 16 design × 0.85 ≈ 13.6 world px — near the doll's visual body (mob bboxes were
-          // ~2/3 of the visual, letting sprites bury into walls/each other); < 16px cell
+          // 16 design × 1.7 ≈ 27.2 world px — near the doll's visual body (mob bboxes were
+          // ~2/3 of the visual, letting sprites bury into walls/each other); < 32px cell
           BBox: { x: -8, y: -8, width: 16, height: 16 },
           // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Health: { hp: 3 },
           // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
-          Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 45 },
+          Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 90 },
           Mortal: { kind: "corpse" }, // hp 0 → lootable body, reaped when emptied (RpgScene)
           Raider: {}, // species marker (radar color + kill-quest type)
           Faction: { id: "monster" }, // hostile to "player" → CombatAI aggro target
@@ -73,12 +99,12 @@ globalThis.RpgSpawn = {
         // Wildlife (OverworldGen scatter): a weaker raider — smaller/less hp/quicker — but the
         // SAME mobile-melee CombatAI + corpse Mortal.
         id: "rat",
-        scale: 0.7,
+        scale: 1.4,
         components: {
-          BBox: { x: -6, y: -6, width: 12, height: 12 }, // ×0.7 ≈ 8.4 world px (visual-match bump)
+          BBox: { x: -6, y: -6, width: 12, height: 12 }, // ×1.4 ≈ 16.8 world px (visual-match bump)
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Health: { hp: 2 },
-          Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 60 },
+          Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 120 },
           Mortal: { kind: "corpse" },
           Rat: {}, // species marker (radar color + kill-quest type)
           Faction: { id: "monster" },
@@ -92,9 +118,9 @@ globalThis.RpgSpawn = {
       },
       {
         id: "npc",
-        scale: 0.8,
+        scale: 1.6,
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×0.8 = 12.8 world px (visual-match bump)
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.6 = 25.6 world px (visual-match bump)
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "" },
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
@@ -113,7 +139,7 @@ globalThis.RpgSpawn = {
       {
         id: "chest",
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          BBox: { x: -11, y: -9, width: 22, height: 18 }, // military_crate content 22×18
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
@@ -128,7 +154,7 @@ globalThis.RpgSpawn = {
         // Interaction for a kind. No Visual/Mesh in the def: the adapter always adds one.
         id: "prop",
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; FOOTPRINTS overrides per mesh model
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "" },
         },
@@ -138,13 +164,13 @@ globalThis.RpgSpawn = {
         // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
         id: "torch",
         components: {
-          BBox: { x: -4, y: -4, width: 8, height: 8 }, // small footprint
+          BBox: { x: -3, y: -3, width: 6, height: 6 }, // thin post (content 2×2, padded)
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Lamp" },
           Mesh: { model: "torch" }, // vox mesh — no Visual, billboard/shadow passes skip it
           // warm, gently flickering torch light (archetype values)
           Light: {
-            radius: 75,
+            radius: 150,
             color: Color.parse("#ffd09a"),
             intensity: 0.9,
             flicker: 0.18,
@@ -155,12 +181,12 @@ globalThis.RpgSpawn = {
         // Standing lamp: the lantern mesh with a steadier, wider, whiter light than the torch.
         id: "lantern",
         components: {
-          BBox: { x: -4, y: -4, width: 8, height: 8 },
+          BBox: { x: -5, y: -5, width: 10, height: 10 }, // lantern_floor content 10×10
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Lantern" },
           Mesh: { model: "lantern_floor" },
           Light: {
-            radius: 95,
+            radius: 190,
             color: Color.parse("#ffedc9"),
             intensity: 0.95,
             flicker: 0.04,
@@ -173,7 +199,7 @@ globalThis.RpgSpawn = {
         // faction so enemies target/damage it (two-sided combat). Built-only today (BuildMode).
         id: "turret",
         components: {
-          BBox: { x: -6, y: -6, width: 12, height: 12 },
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // military_turret content 16×16
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Health: { hp: 8 },
           // shot damage is Stats.attack
@@ -187,11 +213,11 @@ globalThis.RpgSpawn = {
           CombatAI.attach(world, id, ctx.opts.level, {
             mobile: false,
             ranged: true,
-            aggro: 110,
-            deAggro: 110,
-            attackRange: 110,
+            aggro: 220,
+            deAggro: 220,
+            attackRange: 220,
             cdMax: 30,
-            bulletSpeed: 190,
+            bulletSpeed: 380,
             speed: 0,
           });
         },
@@ -202,7 +228,7 @@ globalThis.RpgSpawn = {
         // so the collider matches the old scatter wall rect exactly (NavGrid/pathing unchanged).
         id: "rock",
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per-cluster (adapter)
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Rock" },
           Mesh: { model: "rock" },
@@ -213,7 +239,7 @@ globalThis.RpgSpawn = {
         // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
         id: "portal",
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 },
+          BBox: { x: -14, y: -14, width: 28, height: 28 }, // walk-onto sensor under the 32×32 gate mesh
           Name: { name: "Door" },
           Mesh: { model: "portal" }, // vox mesh — no Visual, billboard/shadow passes skip it
           Portal: { toMap: "", toEntry: "default" },
@@ -226,15 +252,15 @@ globalThis.RpgSpawn = {
         // recovery spot (see RpgScene.resolveHealth/updateDowned). No AI attach — FollowerSystem
         // drives every Follower entity by query.
         id: "follower",
-        scale: 0.75,
+        scale: 1.5,
         components: {
           Velocity: { x: 0, y: 0, z: 0 },
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×0.75 = 12 world px — matches the player
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — matches the player
           Collision: { solid: true, kinematic: false, mask: null, hits: [] },
           Faction: { id: "player" }, // party ally; friendly fire skips it, but enemies aggro it (it has Health)
           Health: { hp: 6 },
           // a companion is a combatant, so it carries defense + attack like every other actor
-          Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 130 },
+          Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 260 },
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Visual: { sprite: spr_human },
@@ -247,8 +273,8 @@ globalThis.RpgSpawn = {
           Appearance: RpgSpawn._outfit("#9fe0c0"),
           Follower: {
             state: "wait", // unhired residents hold still; hire() flips to follow
-            speed: 130, // > player speed (110) so it can catch up when it lags
-            range: 20,
+            speed: 260, // > player speed (220) so it can catch up when it lags
+            range: 40,
             // Carry bonus to the player's Inventory while following (0 = none). The `follower`
             // preset doesn't pass these, so file-authored followers stay benefit-free; only the
             // programmatic seed grants one.
@@ -298,7 +324,7 @@ globalThis.RpgSpawn = {
   // Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
   reachZone(level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
-    const half = s.half ?? 22;
+    const half = s.half ?? 44;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
@@ -357,6 +383,10 @@ globalThis.RpgSpawn = {
       else if (s.furn !== "fence") model = "wooden_crate";
       if (model !== undefined) {
         over.Mesh = { model };
+        // collider matched to the model's measured voxel footprint (big furniture is multi-cell)
+        const fp = RpgSpawn.FOOTPRINTS[model];
+        if (fp !== undefined)
+          over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
       } else {
         let color;
         if (s.color !== undefined || s.material !== undefined)

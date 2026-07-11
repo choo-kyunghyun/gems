@@ -40,14 +40,14 @@ globalThis.RpgWorldOverlay = {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
       if (sprite_exists(spr)) {
-        // centered-origin 16px icon, drawn on the drop position
-        draw_sprite_ext(spr, 0, p.x, p.y, 1, 1, 0, c_white, 1);
+        // centered-origin 16px icon drawn ×2 (32 world px on the 32px-cell world)
+        draw_sprite_ext(spr, 0, p.x, p.y, 2, 2, 0, c_white, 1);
       } else {
         // no icon — fall back to the rarity-colored square
         draw_set_color(this._rarityColor(d.itemId));
-        draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, false);
+        draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, false);
         draw_set_color(c_black);
-        draw_rectangle(p.x - 4, p.y - 4, p.x + 4, p.y + 4, true);
+        draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);
       }
     }
 
@@ -55,7 +55,7 @@ globalThis.RpgWorldOverlay = {
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
     // Flat top-down (pitch 0) lifts nothing.
     const lift =
-      scene.camera !== undefined && scene.camera.followPitch !== 0 ? 16 : 0;
+      scene.camera !== undefined && scene.camera.followPitch !== 0 ? 32 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -66,7 +66,7 @@ globalThis.RpgWorldOverlay = {
     const bullets = world.query(Projectile, Position);
     for (const id of bullets) {
       const p = world.get(Position, id);
-      draw_circle(p.x, p.y, 2, false);
+      draw_circle(p.x, p.y, 4, false);
     }
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw. Plain draw_line — the
     // bare-width and *_color line variants render nothing on GMRT (see RenderGrid/RenderWeather).

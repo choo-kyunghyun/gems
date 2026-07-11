@@ -1,16 +1,16 @@
-const RPG_MOVE_SPEED = 110; // world px/s (16px-cell scale; see GEMS.md)
-const RPG_PLAYER_SCALE = 0.75; // baked size factor over the 48px spr_human template (bbox + Visual)
+const RPG_MOVE_SPEED = 220; // world px/s (32px-cell scale)
+const RPG_PLAYER_SCALE = 1.5; // baked size factor over the 48px spr_human template (bbox + Visual)
 const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
-const RPG_BULLET_SPEED = 300; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
+const RPG_BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const RPG_SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
 const RPG_FIRE_CD = 8; // ticks between shots while held
 const RPG_ATTACK_ANIM = 12; // ticks the attack pose stays up after a shot
-const RPG_MELEE_REACH = 17; // fallback reach (px) for a melee weapon without `reach`
+const RPG_MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
 const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
-const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 11 };
+const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 
 // The player brain as an ECS system (the input counterpart of CombatAI): update(world) drives
 // every Playable entity once per tick — it runs at the HEAD of the physics Pipeline, before
@@ -98,8 +98,8 @@ globalThis.PlayerSystem = {
   /** @param {{ x: number, y: number }} spawn @returns {number} the player entity id */
   spawn(world, spawn) {
     return RpgPlayer.spawn(world, spawn, {
-      // 16 design × 0.75 scale = 12 world px — nearer the doll's visual body (was 9, which
-      // let the sprite hug walls/mobs deep enough to bury); stays under the 16px cell so
+      // 16 design × 1.5 scale = 24 world px — nearer the doll's visual body (a smaller box
+      // let the sprite hug walls/mobs deep enough to bury); stays under the 32px cell so
       // 1-cell doorways remain passable
       bbox: { x: -8, y: -8, width: 16, height: 16 },
       dir: { x: 0, y: 1, z: 0 },
@@ -264,12 +264,14 @@ globalThis.PlayerSystem = {
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
       // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
-      if (EquipmentSystem.reload(world, id) <= 0) return PlayerSystem._dryClick();
+      if (EquipmentSystem.reload(world, id) <= 0)
+        return PlayerSystem._dryClick();
       wpn = EquipmentSystem.composeWeapon(slot);
     }
     if (slot.rounds <= 0) {
       // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
-      if (EquipmentSystem.reload(world, id) <= 0) return PlayerSystem._dryClick();
+      if (EquipmentSystem.reload(world, id) <= 0)
+        return PlayerSystem._dryClick();
     }
     if (slot.rounds <= 0) return PlayerSystem._dryClick(); // still empty after the reload attempt
 
@@ -287,13 +289,13 @@ globalThis.PlayerSystem = {
     });
     slot.rounds -= 1; // spend the round
 
-    // muzzle flash at the barrel (~9px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
+    // muzzle flash at the barrel (~18px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
     const pos = world.get(Position, id);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(
       ps_muzzle,
-      pos.x + aim.nx * 9,
-      pos.y + aim.ny * 9,
+      pos.x + aim.nx * 18,
+      pos.y + aim.ny * 18,
       ang,
     );
     Audio.playAt("snd_gun_fire", pos.x, pos.y); // gunshot (spatial); the hit plays a hitsound later

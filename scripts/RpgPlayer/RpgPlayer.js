@@ -116,7 +116,7 @@ globalThis.RpgPlayer = {
     });
     // the player's lantern — reference Light for RenderLighting (reveals night; no-op in daylight)
     world.add(id, Light, {
-      radius: 90,
+      radius: 180,
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });
@@ -165,7 +165,7 @@ globalThis.RpgPlayer = {
       nx = dx / dist;
       ny = dy / dist;
     }
-    const range = opts.range ?? 460; // px (defensive default; callers pass a velocity-scaled reach)
+    const range = opts.range ?? 920; // px (defensive default; callers pass a velocity-scaled reach)
     const shot = Combat.hitscan(
       world,
       pos.x,

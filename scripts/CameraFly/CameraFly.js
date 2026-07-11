@@ -18,7 +18,7 @@ globalThis.CameraFly = {
     camera.flyYaw = 0;
     camera.flyPitch = 0;
     camera.flyRoll = 0;
-    camera.flySpeed = opts.flySpeed ?? 300;
+    camera.flySpeed = opts.flySpeed ?? 600;
     camera.mouseSens = opts.mouseSens ?? 0.005;
   },
 

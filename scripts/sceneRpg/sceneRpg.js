@@ -1,5 +1,5 @@
-const RPG_NPC_RADIUS = 30; // interact range to the elder NPC (16px-cell scale; see GEMS.md)
-const RPG_TRADE_RANGE = 64; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
+const RPG_NPC_RADIUS = 60; // interact range to the elder NPC (32px-cell scale)
+const RPG_TRADE_RANGE = 128; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
 const RPG_START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
 const RPG_SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const RPG_SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
@@ -160,7 +160,7 @@ class _SceneRpgClass {
     // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
     // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
     const pp = this.world.get(Position, this.playerId);
-    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 14, pp.y + 11, {
+    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
       label: "Companion",
       bonusCapacity: 4,
       bonusWeight: 15,
@@ -331,10 +331,10 @@ class _SceneRpgClass {
       FollowerSystem.update(this.world, this.playerId); // seek, by live Follower query (before physics)
       this.physics.update(this.world); // PlayerSystem (input) heads the pipeline, then AI + collision
 
-      RpgScene.trackDamage(this, 7); // floating numbers for any hp change this tick
+      RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
       RpgScene.resolveHealth(this, {
-        spill: { yBase: 0, ySpread: 14 },
+        spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
           const dp = this.world.get(Position, id);
           if (dp !== undefined) Audio.playAt("snd_small_explosion", dp.x, dp.y); // death pop (spatial)
@@ -527,7 +527,7 @@ class _SceneRpgClass {
     if (p === undefined || squad === undefined) return;
     const members = FollowerSystem.members(this.world, squad.id, this.playerId);
     let best = -1;
-    let bestSq = 40 * 40; // reach to a companion (px)
+    let bestSq = 80 * 80; // reach to a companion (px)
     for (let i = 1; i < members.length; i++) {
       // [0] is the player
       const pos = this.world.get(Position, members[i]);
@@ -850,7 +850,7 @@ class _SceneRpgClass {
       // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
       RadarArrows.draw(this.world, this.playerId, this._radarRules, {
         lift:
-          this.camera !== undefined && this.camera.followPitch !== 0 ? 16 : 0,
+          this.camera !== undefined && this.camera.followPitch !== 0 ? 32 : 0,
       });
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)

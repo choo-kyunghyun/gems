@@ -1,7 +1,7 @@
 {
   "version": 1,
   "genre": "topdown",
-  "cell": 16,
+  "cell": 32,
   "cols": 48,
   "rows": 32,
   "meta": {
@@ -57,7 +57,7 @@
       "color": "#6a5a86"
     },
 
-    { "preset": "reach", "gx": 17, "gy": 2, "half": 44 },
+    { "preset": "reach", "gx": 17, "gy": 2, "half": 88 },
 
     {
       "preset": "portal",

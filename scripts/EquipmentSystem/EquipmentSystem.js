@@ -63,7 +63,7 @@ globalThis.EquipmentSystem = {
   // Weapon composition. Kinetic-power tuning (gun): power = ammoPower + KIN_K * mass *
   // (velocity/KIN_REF)^2 — velocity squared rewards speed. Content-tunable.
   KIN_K: 0.75,
-  KIN_REF: 600,
+  KIN_REF: 1200, // doubled with the 32px-cell ammo velocities so (v/KIN_REF)² — and damage — is unchanged
 
   // The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
   // controller needs the real slot — not a copy — to decrement `rounds` on a shot.

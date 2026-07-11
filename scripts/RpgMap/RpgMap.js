@@ -100,7 +100,7 @@ globalThis.RpgMap = {
     });
     for (let i = 1; i < squad.length; i++)
       World.levels.put(scene.mapId, squad[i], {
-        [Position]: { x: sp.x - 12 - i * 11, y: sp.y + 12, z: 0 },
+        [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
   },
@@ -398,7 +398,7 @@ globalThis.RpgMap = {
     scene.world.broadphase = new Broadphase(
       scene.level.cols * scene.level.cellWidth,
       scene.level.rows * scene.level.cellHeight,
-      48,
+      96,
     );
 
     scene.nav = new NavGrid(
@@ -593,10 +593,11 @@ globalThis.RpgMap = {
   },
 
   // Follow camera on the new player + view culling + the live Debug camera panel.
-  // 16px-cell world (GEMS.md): base zoom 3.5 for the pitched 2.5D framing (flat fallback 2).
+  // 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
+  // old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
   _buildCamera(scene, data) {
     const pitch = RpgMap.BB_PITCH;
-    const baseZoom = pitch > 0 ? 3.5 : 2;
+    const baseZoom = pitch > 0 ? 1.75 : 1;
     // Cap zoom-OUT to the renderable world (a chunked map only streams a window; past it shows as
     // dark void). viewCap = max view WIDTH (world px); camera derives live minZoom from it + the
     // current surface each frame. Horizontal is the binding axis on a landscape surface.
@@ -614,7 +615,7 @@ globalThis.RpgMap = {
       pitchCurve: RpgMap._pitchCurve,
       // ortho eye distance: the -100 default near-clips close ground at steep pitch
       // (a black band along the screen bottom); image-identical otherwise under ortho
-      followHeight: -1000,
+      followHeight: -2000,
       // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
@@ -659,11 +660,11 @@ globalThis.RpgMap = {
         },
       );
       p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
-      p.slider("Zoom", cam, "followZoomTarget", 1, 8, 0.1);
+      p.slider("Zoom", cam, "followZoomTarget", 0.5, 4, 0.1);
       // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
       // from the player to inspect the render from any angle. Switches to perspective projection.
       p.checkbox("Free cam (WASD/RMB)", cam, "freeCam");
-      p.slider("Fly speed", cam, "flySpeed", 30, 1200, 10);
+      p.slider("Fly speed", cam, "flySpeed", 60, 2400, 10);
       p.button("Recenter on player", () => {
         // same live resolution as CameraFollow: the CameraFocus carrier, else followTarget
         if (cam.world === undefined) return;
@@ -735,7 +736,8 @@ globalThis.RpgMap = {
 // the LIVE pitch is _pitchCurve below (42° zoomed out → 58° zoomed in).
 RpgMap.BB_PITCH = 42;
 // Pitch-by-zoom curve (upright-sprite camera, ROADMAP art rework): shallow 42° at the
-// zoom-out floor (~2.5 on a 1920 surface) easing to 58° at max zoom-in (5.25) — "look
-// further = flatter". Constants tuned by the 2026-07-05 spike; shared with the Debug
-// Camera panel's "Pitch by zoom" toggle.
-RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 2.5) / 2.75, 0, 1);
+// zoom-out floor (~1.25 on a 1920 surface) easing to 58° at max zoom-in (2.625) — "look
+// further = flatter". Thresholds are the 2026-07-05 spike values HALVED for the 32px-cell
+// world (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
+// Shared with the Debug Camera panel's "Pitch by zoom" toggle.
+RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);

@@ -10,7 +10,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
     this.alpha = opt.alpha ?? 0.26; // shadow darkness
     this.scaleX = opt.scaleX ?? 0.6; // half-width fraction of BBox width
     this.flatten = opt.flatten ?? 0.32; // height/width ratio (low ellipse)
-    this.defaultRx = opt.defaultRx ?? 8; // fallback half-width when no BBox
+    this.defaultRx = opt.defaultRx ?? 16; // fallback half-width when no BBox
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
@@ -29,7 +29,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
         const b = AABB.of(world, entity);
         rx = (b.x2 - b.x1) * this.scaleX;
       }
-      const ry = Math.max(1.5, rx * this.flatten);
+      const ry = Math.max(3, rx * this.flatten);
       draw_ellipse_colour(
         rp.x - rx,
         rp.y - ry,

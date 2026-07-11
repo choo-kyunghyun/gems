@@ -27,10 +27,10 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
-    this.cell = opt.cell ?? 140; // cloud-grid cell in world px (≤ one blob per cell)
+    this.cell = opt.cell ?? 280; // cloud-grid cell in world px (≤ one blob per cell)
     this.darkness = opt.darkness ?? 0.38; // core darkening at full coverage + full sun
-    this.windX = opt.windX ?? -11; // drift, world px/s — leftward like the rain's slant
-    this.windY = opt.windY ?? 4;
+    this.windX = opt.windX ?? -22; // drift, world px/s — leftward like the rain's slant
+    this.windY = opt.windY ?? 8;
     this.seed = opt.seed ?? 1337; // cloud-field layout seed (fixed — the DRIFT animates, not the field)
     this._s = 1; // per-cell LCG scratch (see _rand)
   }

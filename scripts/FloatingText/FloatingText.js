@@ -5,7 +5,7 @@ globalThis.FloatingText = class FloatingText {
   static _items = []; // { x, y, text, color, age, life, rise, scale }
 
   static life = 0.9; // seconds on screen (incl. fades)
-  static rise = 30; // pixels risen over life
+  static rise = 60; // world px risen over life (32px-cell scale)
   static fadeIn = 0.12; // pop / fade-in time (seconds)
 
   static font = -1;
@@ -33,7 +33,7 @@ globalThis.FloatingText = class FloatingText {
       age: 0,
       life: opts.life ?? FloatingText.life,
       rise: opts.rise ?? FloatingText.rise,
-      scale: opts.scale ?? 1,
+      scale: opts.scale ?? 2, // world-space text under a half-zoom camera — ×2 keeps screen size
     });
   }
 

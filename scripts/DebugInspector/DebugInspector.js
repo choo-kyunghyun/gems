@@ -9,7 +9,7 @@ globalThis.DebugInspector = class DebugInspector {
   static _world = null;
   static _id = -1;
   static _registered = false; // Entity panel registered at least once
-  static pickRadius = 64; // max world px from cursor to accept a pick
+  static pickRadius = 128; // max world px from cursor to accept a pick
   static markerR = 18; // highlight half-size (GUI px)
   static highlightColor = Color.parse("#ffd34d");
 

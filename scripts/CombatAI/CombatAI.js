@@ -49,7 +49,7 @@ globalThis.CombatAI = {
           if (brain.mobile) {
             const dx = brain.home.x - pos.x;
             const dy = brain.home.y - pos.y;
-            if (dx * dx + dy * dy > 64)
+            if (dx * dx + dy * dy > 256)
               CombatAI._seek(
                 world,
                 id,
@@ -193,10 +193,10 @@ globalThis.CombatAI = {
       target: -1,
       mobile: opt.mobile ?? true,
       ranged: opt.ranged ?? false,
-      aggro: opt.aggro ?? 80,
-      deAggro: opt.deAggro ?? 120,
-      attackRange: opt.attackRange ?? 15,
-      speed: opt.speed ?? 45,
+      aggro: opt.aggro ?? 160,
+      deAggro: opt.deAggro ?? 240,
+      attackRange: opt.attackRange ?? 30,
+      speed: opt.speed ?? 90,
       cdMax: opt.cdMax ?? 45,
       cd: 0,
       bulletSpeed: opt.bulletSpeed ?? 0,

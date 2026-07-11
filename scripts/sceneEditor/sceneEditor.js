@@ -51,7 +51,7 @@ class _SceneEditorClass {
 
   // (re)build editor state from a level-data object — shared by create() and Open
   _loadData(data) {
-    this._cell = data.cell ?? 16; // 16px-cell convention (GEMS.md); loaded file wins
+    this._cell = data.cell ?? 32; // 32px-cell convention; loaded file wins
     this._initLevel(data.cols, data.rows, this._cell);
     this._paintRects(this.wallLayer, data.walls, this.wallType);
     this._paintRects(this.floorLayer, data.floors, this.floorType);

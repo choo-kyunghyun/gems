@@ -7,7 +7,7 @@
 // mouse_x/mouse_y, which are wrong under the pitched camera). Per-frame/open state on the scene (_inter*).
 // Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
 globalThis.Interactable = {
-  RADIUS: 36, // interact range (px); 16px-cell scale, see GEMS.md
+  RADIUS: 72, // interact range (px); 32px-cell scale
 
   build(scene) {
     scene._interTarget = -1;
@@ -218,7 +218,7 @@ globalThis.Interactable = {
     const left = pos.x + bbox.x;
     const top = pos.y + bbox.y;
     draw_set_color(c_yellow);
-    draw_rectangle(left - 2, top - 2, left + w + 2, top + h + 2, true);
+    draw_rectangle(left - 4, top - 4, left + w + 4, top + h + 4, true);
     draw_set_color(c_white);
   },
 };

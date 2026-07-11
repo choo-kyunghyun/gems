@@ -19,8 +19,8 @@ globalThis.Audio = class Audio {
   static _fadeAt = 0; // Time.raw (s) at which to stop _fadeStop
 
   // Linear-clamped falloff window (world px): full volume within REF, silent past MAX.
-  static REF = 48; // 3 cells @ 16px
-  static MAX = 400; // ~25 cells
+  static REF = 96; // 3 cells @ 32px
+  static MAX = 800; // ~25 cells
   static FACTOR = 1.0; // 1 = reach silence exactly at MAX
 
   // Once at boot: distance model (GM default is "none" = no spatialisation), listener orientation,

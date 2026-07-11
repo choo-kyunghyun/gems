@@ -87,12 +87,13 @@ no longer gets squished into the square cell; square icons are unaffected.
 The gm-import generators emit **16×16**: `entity_sprites.py` draws at 16px (foot-anchored 8,16),
 `terrain_sprites.py` follows `terrain_materials.S = 16`, and the `templates/` demos are 16×16 DB32.
 
-The **engine is now 16px-native** too — the RPG runs a 16-world-px cell: `RpgLevel` `RPG_CELL = 16`
-+ `cell: 16` in the level JSONs, the follow camera at `zoom: 2` (same cell framing the old 32px world
-had at zoom 1), and every world-px gameplay constant halved (player/enemy/prop bboxes, move/bullet
-speeds, melee reach, light radii, `CombatAI` aggro/range, interact/NPC radii, companion offsets,
-drop/radar/floating-number cosmetics). Sprites stay foot-anchored (origin now 8,16) and draw at
-scale 1. (The `Platformer` minigame is unchanged — separate world, debug-box art, not the 16px set.)
+⚠️ **The engine is no longer 16px-native** — since the 2026-07 migration the RPG runs a
+**32-world-px cell** (`RpgLevel` `RPG_CELL = 32` + `cell: 32` in the level JSONs; the 2026-07 media
+set — vox meshes, `spr_tex_*` wall/floor textures — authors 1:1 at 32 px/cell). This kit's 16px
+sheets still work: terrain/wall tiles are UV-stretched over the cell, and 16px entity sprites draw
+at a ×2 scale (declare `SpriteMeta density: 0.5`, as the fence does). Regenerating the terrain set
+at 32 px (bump `terrain_materials.S`) is an optional follow-up for extra detail. (The `Platformer`
+minigame is unchanged — separate world, debug-box art, not the 16px set.)
 
 The committed `sprites/` are now **16px** too — the 13 entity sprites (`entity_sprites.py`) and the
 `spr_terrain*` sets (`terrain_materials.py` + `terrain_sprites.py`; 9 materials — deep water, water,

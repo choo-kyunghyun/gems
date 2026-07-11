@@ -7,7 +7,7 @@
 // bonus, drops the "rehire" Interaction), kick() leaves it PERMANENTLY in place (the companion
 // becomes a map resident with a "rehire" Interaction — talk to re-hire; there is no dismiss-and-
 // recall). setState() is the ONE home for the wait/follow transition + its carry-bonus pairing.
-const FOLLOWER_EASE_BAND = 24; // px over `range` across which approach speed ramps to full
+const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ramps to full
 
 globalThis.FollowerSystem = {
   update(world, playerId) {

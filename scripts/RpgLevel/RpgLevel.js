@@ -8,7 +8,7 @@
 // cell rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so
 // a level can exceed the view and the follow camera scrolls across it.
 
-const RPG_CELL = 16; // fallback cell size when a level omits `cell` (16px convention; see GEMS.md)
+const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
 
 globalThis.RpgLevel = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).

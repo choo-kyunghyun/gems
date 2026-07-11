@@ -82,7 +82,7 @@ globalThis.RpgCatalog = {
       id: "reach",
       label: "Reach",
       color: "#5aa0ff",
-      make: (gx, gy) => ({ preset: "reach", gx, gy, half: 44 }),
+      make: (gx, gy) => ({ preset: "reach", gx, gy, half: 88 }),
       fields: [
         {
           key: "half",

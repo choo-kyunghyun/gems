@@ -163,7 +163,7 @@ globalThis.RpgItems = {
           new Weapon({
             damage: 3,
             fireCd: 18,
-            reach: 34,
+            reach: 68,
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -221,7 +221,7 @@ globalThis.RpgItems = {
         weight: 1,
         value: 40,
         rarity: "rare",
-        components: [new Equippable({ slot: "trinket", mods: { speed: 40 } })],
+        components: [new Equippable({ slot: "trinket", mods: { speed: 80 } })],
       },
       // backpack: Equippable + Container (expands inventory slots)
       {
@@ -287,7 +287,7 @@ globalThis.RpgItems = {
           new Ammo({
             caliber: "standard",
             mass: 3,
-            velocity: 720,
+            velocity: 1440,
             power: 2,
             penetration: 1,
           }),
@@ -304,7 +304,7 @@ globalThis.RpgItems = {
           new Ammo({
             caliber: "standard",
             mass: 8,
-            velocity: 480,
+            velocity: 960,
             power: 4,
             penetration: 3,
           }),
@@ -321,7 +321,7 @@ globalThis.RpgItems = {
           new Ammo({
             caliber: "standard",
             mass: 5,
-            velocity: 600,
+            velocity: 1200,
             power: 3,
             penetration: 6,
           }),
@@ -339,7 +339,7 @@ globalThis.RpgItems = {
         components: [
           new WeaponMod({
             slot: "scope",
-            ops: { velocity: { add: 80 }, penetration: { add: 1 } },
+            ops: { velocity: { add: 160 }, penetration: { add: 1 } },
           }),
         ],
       },

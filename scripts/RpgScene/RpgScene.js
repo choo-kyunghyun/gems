@@ -52,8 +52,7 @@ globalThis.RpgScene = {
           // impact SFX; let the death pass own the killing blow (snd_small_explosion), so skip
           // enemy hp→0. Allies read as armored (geared squad), enemies as flesh (raiders/rats).
           if (isAlly) Audio.playAt("snd_hitsound_armor", pos.x, pos.y);
-          else if (hp.hp > 0)
-            Audio.playAt("snd_hitsound_flesh", pos.x, pos.y);
+          else if (hp.hp > 0) Audio.playAt("snd_hitsound_flesh", pos.x, pos.y);
         } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
         }
@@ -204,10 +203,10 @@ globalThis.RpgScene = {
     const yBase =
       opts !== undefined && opts.yBase !== undefined ? opts.yBase : 0;
     const ySpread =
-      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : 12;
+      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : 24;
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
-      const ox = (i % 2 === 0 ? -1 : 1) * 16;
+      const ox = (i % 2 === 0 ? -1 : 1) * 32;
       const oy = (i < 2 ? -1 : 1) * ySpread;
       RpgScene.spawnDrop(
         scene,
@@ -225,8 +224,8 @@ globalThis.RpgScene = {
     const world = scene.world;
     const id = world.create();
     world.add(id, Position, { x: x, y: y, z: 0 });
-    // match the 16px icon sprite RpgWorldOverlay draws so the trigger box lines up with the drop
-    world.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+    // match the ×2-drawn 16px icon sprite RpgWorldOverlay draws so the trigger box lines up with the drop
+    world.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
     world.add(id, Collision, {
       solid: false,
       kinematic: false,

@@ -20,14 +20,14 @@ globalThis.StatModel = {
     return a;
   },
 
-  // derive combat stats from attrs. default values → maxHp 10, attack 1, defense 0, speed 220, maxStamina 100
-  // (pre-attribute sheet reproduced exactly). swap formulas + ATTRS to re-model.
+  // derive combat stats from attrs. default values → maxHp 10, attack 1, defense 0, speed 440, maxStamina 100
+  // (the pre-attribute sheet at 32px-cell scale). swap formulas + ATTRS to re-model.
   derive(a) {
     return {
       maxHp: 4 + a.vit * 2,
       attack: Math.floor(a.pow / 2),
       defense: Math.floor(a.vit / 4),
-      speed: 160 + a.agi * 12,
+      speed: 320 + a.agi * 24,
       maxStamina: 40 + a.end * 10,
     };
   },
