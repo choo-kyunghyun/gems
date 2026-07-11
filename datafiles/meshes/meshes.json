@@ -1,0 +1,326 @@
+{
+  "lantern_floor": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      10,
+      10,
+      16
+    ]
+  },
+  "military_crate": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      22,
+      18,
+      14
+    ]
+  },
+  "military_turret": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      16,
+      16,
+      18
+    ]
+  },
+  "portal": {
+    "size": [
+      32,
+      32,
+      64
+    ],
+    "content": [
+      32,
+      32,
+      48
+    ]
+  },
+  "prison_bed": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      60,
+      28,
+      16
+    ]
+  },
+  "rock": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      28,
+      28,
+      18
+    ]
+  },
+  "stand": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      18,
+      18,
+      16
+    ]
+  },
+  "torch": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      2,
+      2,
+      9
+    ]
+  },
+  "tree_pine": {
+    "size": [
+      64,
+      64,
+      96
+    ],
+    "content": [
+      48,
+      48,
+      83
+    ]
+  },
+  "wooden_altar": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      22,
+      24,
+      21
+    ]
+  },
+  "wooden_barrel": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      20,
+      20,
+      24
+    ]
+  },
+  "wooden_bed": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      62,
+      32,
+      20
+    ]
+  },
+  "wooden_bed_simple": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      62,
+      32,
+      14
+    ]
+  },
+  "wooden_bin": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      10,
+      10,
+      11
+    ]
+  },
+  "wooden_crate": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      28,
+      28,
+      20
+    ]
+  },
+  "wooden_door": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      32,
+      6,
+      32
+    ]
+  },
+  "wooden_dresser_double": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      56,
+      26,
+      26
+    ]
+  },
+  "wooden_dresser_single": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      56,
+      26,
+      20
+    ]
+  },
+  "wooden_night_stand": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      20,
+      20,
+      20
+    ]
+  },
+  "wooden_sign": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      22,
+      4,
+      27
+    ]
+  },
+  "wooden_stool_round": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      16,
+      16,
+      12
+    ]
+  },
+  "wooden_stool_square": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      16,
+      16,
+      12
+    ]
+  },
+  "wooden_table": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      62,
+      30,
+      20
+    ]
+  },
+  "wooden_table_coffee": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      58,
+      26,
+      10
+    ]
+  },
+  "wooden_table_small": {
+    "size": [
+      32,
+      32,
+      32
+    ],
+    "content": [
+      30,
+      30,
+      20
+    ]
+  },
+  "wooden_tub": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      60,
+      28,
+      16
+    ]
+  },
+  "wooden_workbench": {
+    "size": [
+      64,
+      32,
+      32
+    ],
+    "content": [
+      62,
+      30,
+      20
+    ]
+  }
+}

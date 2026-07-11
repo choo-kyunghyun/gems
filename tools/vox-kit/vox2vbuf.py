@@ -1,8 +1,9 @@
 """vox2vbuf - bake a MagicaVoxel .vox model into a GameMaker vertex-buffer binary.
 
-The VOLUME art pipeline (ROADMAP.md - Art Rework): author furniture in MagicaVoxel,
-commit the .vox as editable source, bake to a raw vertex stream the runtime loads with
-buffer_load -> vertex_create_buffer_from_buffer (RenderMesh draws it in the depth pass).
+The VOLUME art pipeline (ARCHITECTURE.md - Renderer / RenderMesh): author furniture in
+MagicaVoxel, commit the .vox as editable source, bake to a raw vertex stream the runtime
+loads with buffer_load -> vertex_create_buffer_from_buffer (RenderMesh draws it in the
+depth pass).
 
 Vertex layout (must mirror RenderMesh's declared format EXACTLY, little-endian):
     position 3 x f32 | colour 4 x u8 (RGBA albedo, UNSHADED palette color)
@@ -30,10 +31,26 @@ BOTTOM faces are never emitted (nz > 0 is unrepresentable in the packing, and a 
 only show past a ~90-degree tip); unrotated meshes render identically to the old top+south
 bake (north faces hide behind the body via the depth test, east/west are edge-on).
 
+Exposed faces are GREEDY-MESHED per orientation plane: coplanar exposed faces of the same
+palette color merge into one quad (flat vertex color + constant per-orientation normal, so
+the merged output renders identically to the old one-quad-per-voxel bake at a fraction of
+the vertex count).
+
+Alongside the .vbuf, a shared MANIFEST (<outdir>/meshes.json, one JSON object keyed by
+model name) records each bake's dimensions:
+    "wooden_crate": { "size": [sx, sy, sz], "content": [w, h, d] }
+`size` is the .vox canvas, `content` the tight non-empty-voxel extent (x, y, z order,
+voxels = world px). The runtime derives mesh-prop colliders from `content`
+(RpgSpawn.footprint), replacing hand-measured tables -- register meshes.json once in
+gems.yyp IncludedFiles like any .vbuf; re-bakes only rewrite content.
+
 Usage:  python tools/vox-kit/vox2vbuf.py <input.vox> <output.vbuf>
+        python tools/vox-kit/vox2vbuf.py --all   (bake every templates/*.vox -> datafiles/meshes/)
 Zero dependencies (stdlib only), deterministic output.
 """
 
+import json
+import os
 import struct
 import sys
 
@@ -82,7 +99,39 @@ def parse_vox(path):
     return size[0], size[1], size[2], voxels, palette
 
 
-def bake(path_in, path_out):
+def greedy_rects(cells):
+    """Merge {(u,v): color} cells into maximal same-color rects: [(u0, v0, w, h, color)].
+
+    Row-major scan (v outer), extend along +u first, then grow +v while the whole run
+    matches. Deterministic for a given cell set."""
+    out = []
+    done = set()
+    for key in sorted(cells, key=lambda k: (k[1], k[0])):
+        if key in done:
+            continue
+        u0, v0 = key
+        c = cells[key]
+        w = 1
+        while (u0 + w, v0) in cells and (u0 + w, v0) not in done and cells[
+            (u0 + w, v0)
+        ] == c:
+            w += 1
+        h = 1
+        while all(
+            (u0 + i, v0 + h) in cells
+            and (u0 + i, v0 + h) not in done
+            and cells[(u0 + i, v0 + h)] == c
+            for i in range(w)
+        ):
+            h += 1
+        for i in range(w):
+            for j in range(h):
+                done.add((u0 + i, v0 + j))
+        out.append((u0, v0, w, h, c))
+    return out
+
+
+def bake(path_in, path_out, manifest=None):
     sx, sy, sz, voxels, palette = parse_vox(path_in)
     ox, oy = sx / 2.0, sy / 2.0  # center the footprint on Position
 
@@ -91,67 +140,111 @@ def bake(path_in, path_out):
     def vert(x, y, z, r, g, b, nu, nv):
         verts.extend(struct.pack("<fffBBBBff", x, y, z, r, g, b, 255, nu, nv))
 
-    def quad(p1, p2, p3, p4, rgb, nu, nv):
+    def quad(p1, p2, p3, p4, c, nu, nv):
         # two triangles, consistent order (cull mode is off in-engine)
+        rgb = palette[c - 1][:3]  # XYZI color index is 1-based; raw albedo
         for p in (p1, p2, p3, p1, p3, p4):
             vert(p[0], p[1], p[2], rgb[0], rgb[1], rgb[2], nu, nv)
 
     quads = 0
-    for (x, y, z), c in voxels.items():
-        rgb = palette[c - 1][:3]  # XYZI color index is 1-based; raw albedo
-        gx, gy = x - ox, y - oy
-        if (x, y, z + 1) not in voxels:  # TOP face, lying at height z+1
-            h = -(z + 1)
+
+    # Per-orientation exposed-face sets, greedy-merged per plane. Plane iteration and the
+    # in-plane row-major scan are both sorted, so output is deterministic.
+    # TOP: plane per z, cells keyed (x, y)
+    for z in range(sz):
+        cells = {
+            (x, y): c
+            for (x, y, vz), c in voxels.items()
+            if vz == z and (x, y, z + 1) not in voxels
+        }
+        for x0, y0, w, h, c in greedy_rects(cells):
+            gx, gy, hh = x0 - ox, y0 - oy, -(z + 1)
             quad(
-                (gx, gy, h),
-                (gx + 1, gy, h),
-                (gx + 1, gy + 1, h),
-                (gx, gy + 1, h),
-                rgb,
+                (gx, gy, hh),
+                (gx + w, gy, hh),
+                (gx + w, gy + h, hh),
+                (gx, gy + h, hh),
+                c,
                 0.0,
                 0.0,  # normal (0, 0, -1)
             )
             quads += 1
-        if (x, y + 1, z) not in voxels:  # SOUTH face (faces the camera when unrotated)
+
+    # SOUTH: plane per y, cells keyed (x, z), face lies at y+1
+    for y in range(sy):
+        cells = {
+            (x, z): c
+            for (x, vy, z), c in voxels.items()
+            if vy == y and (x, y + 1, z) not in voxels
+        }
+        for x0, z0, w, h, c in greedy_rects(cells):
+            gx, gy = x0 - ox, y + 1 - oy
             quad(
-                (gx, gy + 1, -(z + 1)),
-                (gx + 1, gy + 1, -(z + 1)),
-                (gx + 1, gy + 1, -z),
-                (gx, gy + 1, -z),
-                rgb,
+                (gx, gy, -(z0 + h)),
+                (gx + w, gy, -(z0 + h)),
+                (gx + w, gy, -z0),
+                (gx, gy, -z0),
+                c,
                 0.0,
                 1.0,  # normal (0, 1, 0)
             )
             quads += 1
-        if (x, y - 1, z) not in voxels:  # NORTH face (visible under a runtime yaw)
+
+    # NORTH: plane per y, cells keyed (x, z), face lies at y
+    for y in range(sy):
+        cells = {
+            (x, z): c
+            for (x, vy, z), c in voxels.items()
+            if vy == y and (x, y - 1, z) not in voxels
+        }
+        for x0, z0, w, h, c in greedy_rects(cells):
+            gx, gy = x0 - ox, y - oy
             quad(
-                (gx + 1, gy, -(z + 1)),
-                (gx, gy, -(z + 1)),
-                (gx, gy, -z),
-                (gx + 1, gy, -z),
-                rgb,
+                (gx + w, gy, -(z0 + h)),
+                (gx, gy, -(z0 + h)),
+                (gx, gy, -z0),
+                (gx + w, gy, -z0),
+                c,
                 0.0,
                 -1.0,  # normal (0, -1, 0)
             )
             quads += 1
-        if (x + 1, y, z) not in voxels:  # EAST face
+
+    # EAST: plane per x, cells keyed (y, z), face lies at x+1
+    for x in range(sx):
+        cells = {
+            (y, z): c
+            for (vx, y, z), c in voxels.items()
+            if vx == x and (x + 1, y, z) not in voxels
+        }
+        for y0, z0, w, h, c in greedy_rects(cells):
+            gx, gy = x + 1 - ox, y0 - oy
             quad(
-                (gx + 1, gy + 1, -(z + 1)),
-                (gx + 1, gy, -(z + 1)),
-                (gx + 1, gy, -z),
-                (gx + 1, gy + 1, -z),
-                rgb,
+                (gx, gy + w, -(z0 + h)),
+                (gx, gy, -(z0 + h)),
+                (gx, gy, -z0),
+                (gx, gy + w, -z0),
+                c,
                 1.0,
                 0.0,  # normal (1, 0, 0)
             )
             quads += 1
-        if (x - 1, y, z) not in voxels:  # WEST face
+
+    # WEST: plane per x, cells keyed (y, z), face lies at x
+    for x in range(sx):
+        cells = {
+            (y, z): c
+            for (vx, y, z), c in voxels.items()
+            if vx == x and (x - 1, y, z) not in voxels
+        }
+        for y0, z0, w, h, c in greedy_rects(cells):
+            gx, gy = x - ox, y0 - oy
             quad(
-                (gx, gy, -(z + 1)),
-                (gx, gy + 1, -(z + 1)),
-                (gx, gy + 1, -z),
-                (gx, gy, -z),
-                rgb,
+                (gx, gy, -(z0 + h)),
+                (gx, gy + w, -(z0 + h)),
+                (gx, gy + w, -z0),
+                (gx, gy, -z0),
+                c,
                 -1.0,
                 0.0,  # normal (-1, 0, 0)
             )
@@ -159,14 +252,70 @@ def bake(path_in, path_out):
 
     with open(path_out, "wb") as f:
         f.write(verts)
+
+    # tight content extent (x, y, z) — the manifest's collider-relevant dims
+    xs = [v[0] for v in voxels]
+    ys = [v[1] for v in voxels]
+    zs = [v[2] for v in voxels]
+    content = (max(xs) - min(xs) + 1, max(ys) - min(ys) + 1, max(zs) - min(zs) + 1)
+    if manifest is not None:
+        name = os.path.splitext(os.path.basename(path_out))[0]
+        manifest[name] = {"size": [sx, sy, sz], "content": list(content)}
+
     n = len(verts) // 24
     print(
         f"{path_in} -> {path_out}: {sx}x{sy}x{sz} vox, {len(voxels)} voxels, "
+        f"content {content[0]}x{content[1]}x{content[2]}, "
         f"{quads} faces, {n} verts, {len(verts)} bytes"
     )
 
 
+def manifest_path(out_dir):
+    return os.path.join(out_dir, "meshes.json")
+
+
+def load_manifest(out_dir):
+    path = manifest_path(out_dir)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_manifest(out_dir, manifest):
+    path = manifest_path(out_dir)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({k: manifest[k] for k in sorted(manifest)}, f, indent=2)
+        f.write("\n")
+    print(f"manifest: {path} ({len(manifest)} models)")
+
+
+def main(argv):
+    root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if len(argv) == 2 and argv[1] == "--all":
+        tpl_dir = os.path.join(root, "tools", "vox-kit", "templates")
+        out_dir = os.path.join(root, "datafiles", "meshes")
+        manifest = {}
+        for fname in sorted(os.listdir(tpl_dir)):
+            if not fname.endswith(".vox"):
+                continue
+            name = os.path.splitext(fname)[0]
+            bake(
+                os.path.join(tpl_dir, fname),
+                os.path.join(out_dir, name + ".vbuf"),
+                manifest,
+            )
+        save_manifest(out_dir, manifest)
+    elif len(argv) == 3:
+        out_dir = os.path.dirname(os.path.abspath(argv[2]))
+        manifest = load_manifest(out_dir)
+        bake(argv[1], argv[2], manifest)
+        save_manifest(out_dir, manifest)
+    else:
+        raise SystemExit(
+            "usage: vox2vbuf.py <input.vox> <output.vbuf>  |  vox2vbuf.py --all"
+        )
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit("usage: vox2vbuf.py <input.vox> <output.vbuf>")
-    bake(sys.argv[1], sys.argv[2])
+    main(sys.argv)

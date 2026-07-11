@@ -25,20 +25,35 @@
 // EntityPreset.spawn — SpriteMeta density divides the DRAW scale separately) — and, on
 // mesh-bearing spawns, `yaw?` — a visual turn in degrees (BBox stays axis-aligned).
 globalThis.RpgSpawn = {
-  // Content-measured vox footprints for the prop adapter's mesh models (BBox ≤ voxel content,
-  // erring small for walkability). 1 vox = 1 world px; big furniture is genuinely multi-cell
-  // (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not the
-  // one-size prop preset box.
-  FOOTPRINTS: {
-    wooden_workbench: { w: 60, h: 28 }, // content 62×30
-    wooden_bed: { w: 60, h: 30 }, // content 62×32
-    prison_bed: { w: 58, h: 26 }, // content 60×28 (cot)
-    wooden_tub: { w: 58, h: 26 }, // content 60×28
-    wooden_bin: { w: 10, h: 10 }, // content 10×10
-    wooden_sign: { w: 20, h: 8 }, // content 22×4 — depth padded for robust collision
-    wooden_altar: { w: 22, h: 22 }, // content 22×24
-    wooden_barrel: { w: 20, h: 20 }, // content 20×20
-    wooden_crate: { w: 26, h: 26 }, // content 28×28
+  // Baked vox dimensions (meshes/meshes.json, emitted by vox2vbuf.py --all alongside the
+  // .vbuf set) — loaded once by register(). Replaces the old hand-measured FOOTPRINTS table:
+  // each entry is { size: [sx,sy,sz], content: [w,h,d] }, content = tight voxel extent.
+  _meshMeta: null,
+
+  _loadMeshMeta() {
+    if (RpgSpawn._meshMeta !== null) return;
+    RpgSpawn._meshMeta = {};
+    const text = File.read("meshes/meshes.json");
+    if (text === undefined) {
+      Log.warn("RpgSpawn: meshes/meshes.json missing — mesh props keep preset BBoxes");
+      return;
+    }
+    RpgSpawn._meshMeta = JSON.parse(text);
+  },
+
+  // Collider footprint for a vox model, derived from the manifest's content dims:
+  // max(8, content − 2) per axis — BBox ≤ voxel content, erring small for walkability
+  // (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
+  // 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
+  // (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
+  // the one-size prop preset box. Returns undefined for an unknown model.
+  footprint(model) {
+    const m = RpgSpawn._meshMeta === null ? undefined : RpgSpawn._meshMeta[model];
+    if (m === undefined) return undefined;
+    return {
+      w: Math.max(8, m.content[0] - 2),
+      h: Math.max(8, m.content[1] - 2),
+    };
   },
 
   // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
@@ -46,6 +61,7 @@ globalThis.RpgSpawn = {
   // scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
   // through by reference — see EntityPreset._clone).
   register() {
+    RpgSpawn._loadMeshMeta(); // mesh-prop footprints (vox2vbuf manifest)
     // the fence keeps 16px sprite art in the 32px world: density 0.5 → draw scale ×2, BBox
     // untouched (SpriteMeta.fit). Code-registered — no manifest file/gems.yyp entry needed.
     SpriteMeta.register([
@@ -156,7 +172,7 @@ globalThis.RpgSpawn = {
         // Interaction for a kind. No Visual/Mesh in the def: the adapter always adds one.
         id: "prop",
         components: {
-          BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; FOOTPRINTS overrides per mesh model
+          BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; footprint() overrides per mesh model
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "" },
         },
@@ -385,8 +401,8 @@ globalThis.RpgSpawn = {
       else if (s.furn !== "fence") model = "wooden_crate";
       if (model !== undefined) {
         over.Mesh = { model };
-        // collider matched to the model's measured voxel footprint (big furniture is multi-cell)
-        const fp = RpgSpawn.FOOTPRINTS[model];
+        // collider matched to the model's baked voxel footprint (big furniture is multi-cell)
+        const fp = RpgSpawn.footprint(model);
         if (fp !== undefined)
           over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
       } else {

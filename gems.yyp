@@ -97,6 +97,7 @@
     {"$GMIncludedFile":"","%Name":"overworld.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"overworld.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"topdown_1.json","CopyToMask":-1,"filePath":"datafiles/levels","name":"topdown_1.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"lantern_floor.vbuf","CopyToMask":-1,"filePath":"datafiles/meshes","name":"lantern_floor.vbuf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"meshes.json","CopyToMask":-1,"filePath":"datafiles/meshes","name":"meshes.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"military_crate.vbuf","CopyToMask":-1,"filePath":"datafiles/meshes","name":"military_crate.vbuf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"military_turret.vbuf","CopyToMask":-1,"filePath":"datafiles/meshes","name":"military_turret.vbuf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"portal.vbuf","CopyToMask":-1,"filePath":"datafiles/meshes","name":"portal.vbuf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},

@@ -16,12 +16,21 @@ Zero dependencies (Python stdlib only), deterministic output — same shape as t
 
 ```sh
 python tools/vox-kit/vox2vbuf.py tools/vox-kit/templates/workbench.vox datafiles/meshes/workbench.vbuf
+python tools/vox-kit/vox2vbuf.py --all   # bake every templates/*.vox + rewrite the manifest
 ```
+
+Faces are **greedy-meshed** per orientation plane (coplanar same-color faces merge into one
+quad — flat vertex color + constant normal, so output renders identically at a fraction of
+the vertex count). Every bake also updates **`datafiles/meshes/meshes.json`** — the shared
+dimensions manifest (`{ "<name>": { size: [sx,sy,sz], content: [w,h,d] } }`, content = tight
+voxel extent) the runtime derives mesh-prop colliders from (`RpgSpawn.footprint`:
+`max(8, content − 2)` per axis), replacing the old hand-measured FOOTPRINTS table.
 
 A NEW model's `.vbuf` must be registered once in `gems.yyp` under `IncludedFiles`
 (`filePath: "datafiles/meshes"`). ⚠️ Insert the entry in **alphabetical filePath order** —
 GameMaker re-saves canonicalize the array and will DUPLICATE an out-of-place entry, after which
-the yyp fails to load. Re-bakes need no registration (churn-free).
+the yyp fails to load. Re-bakes need no registration (churn-free; the manifest is one included
+file, registered once like a `.vbuf`).
 
 Spawn side: `world.add(id, Mesh, { model: "<name>", width, depth, height })` — `RenderMesh`
 loads, freezes, and caches the mesh; the width/depth/height document the footprint (BBox tuning)
