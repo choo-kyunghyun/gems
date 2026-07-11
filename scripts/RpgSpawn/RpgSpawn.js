@@ -20,8 +20,9 @@
 //   reach    half?                (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")
-// Every descriptor also takes `scale?` — a per-spawn size multiplier over the def's design scale
-// (the Alpha/boss knob; see EntityPreset — SpriteMeta density divides the DRAW scale separately).
+// Every descriptor also takes `size?` — the per-spawn SCALAR for special entities (Alpha/boss
+// knob), multiplying the def's basic `scale` factor across BBox + Visual + Mesh (see
+// EntityPreset.spawn — SpriteMeta density divides the DRAW scale separately).
 globalThis.RpgSpawn = {
   // Content-measured vox footprints for the prop adapter's mesh models (BBox ≤ voxel content,
   // erring small for walkability). 1 vox = 1 world px; big furniture is genuinely multi-cell
@@ -342,7 +343,7 @@ globalThis.RpgSpawn = {
         color: s.color,
         speed: s.speed,
         range: s.range,
-        scale: s.scale, // per-spawn override; spawnFollower folds in the def base
+        size: s.size, // per-spawn scalar; spawnFollower folds in the def base
       });
     if (!EntityPreset.has(s.preset)) return -1;
 
@@ -427,7 +428,7 @@ globalThis.RpgSpawn = {
     }
 
     const id = EntityPreset.spawn(s.preset, world, w.x, w.y, 0, {
-      scale: s.scale,
+      size: s.size,
       components: over,
       level, // post hooks (CombatAI.attach) read ctx.opts.level
     });
@@ -487,7 +488,7 @@ globalThis.RpgSpawn = {
     if (opt.bonusWeight !== undefined) fol.bonusWeight = opt.bonusWeight;
     if (Object.keys(fol).length > 0) over.Follower = fol;
     return EntityPreset.spawn("follower", world, wx, wy, 0, {
-      scale: opt.scale,
+      size: opt.size,
       components: over,
     });
   },

@@ -14,8 +14,11 @@
  *                                is ignored for drawing (footprint fields still document size)
  * @property {number} [scale]     uniform model scale (default 1; model path only — analytic
  *                                boxes size via width/depth/height). Visual-only: BBox stays
- *                                authored. Note a scaled model's voxels change apparent size —
- *                                fine for variation, style-visible past ~1.5×
+ *                                authored. A spawn-time `size` (EntityPreset._bakeMesh) folds
+ *                                into these fields AND the BBox together, so authored values
+ *                                stay the archetype's basic factor. Note a scaled model's
+ *                                voxels change apparent size — fine for variation,
+ *                                style-visible past ~1.5×
  * @property {number} [xscale]    per-axis override (world x — width); negative mirrors
  * @property {number} [yscale]    per-axis override (world y — depth)
  * @property {number} [zscale]    per-axis override (world z — height)

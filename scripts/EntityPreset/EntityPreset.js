@@ -5,8 +5,9 @@
  * @property {string} id
  * @property {string} [extends]  base preset id, resolved at REGISTER time (base registers first;
  *   unknown base throws). Per-component FIELD merge — this def's fields win, new components add.
- * @property {number} [scale]    DESIGN size factor (default 1; inherited from the base) — scales
- *   the BBox and the Visual. A per-spawn `opts.scale` multiplies on top (the Alpha/boss knob).
+ * @property {number} [scale]    DESIGN size factor (default 1; inherited from the base) — the
+ *   archetype's BASIC factor, scaling BBox + Visual + Mesh. A per-spawn `opts.size` scalar
+ *   multiplies on top (the dedicated Alpha/boss knob — see spawn()).
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
  *   Visual.xscale/yscale are DERIVED (design scale / SpriteMeta density), never authored.
@@ -39,7 +40,9 @@ globalThis.EntityPreset = class EntityPreset {
 
   /**
    * Spawn a preset at (x, y, z). Throws for unknown ids.
-   * `opts`: { scale?, components? } — scale multiplies the preset's design scale; components
+   * `opts`: { size?, components? } — `size` is the per-spawn SCALAR for special entities
+   * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
+   * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
    * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
    * @param {string} presetId @param {ECS} world @param {number} x @param {number} y
    * @param {number} [z=0] @param {Object} [opts] @returns {number} entity id
@@ -49,7 +52,7 @@ globalThis.EntityPreset = class EntityPreset {
     if (preset === undefined)
       throw new Error(`Unknown entity preset: ${presetId}`);
 
-    const k = (preset.scale ?? 1) * (opts.scale ?? 1);
+    const k = (preset.scale ?? 1) * (opts.size ?? 1);
     const id = world.create();
     world.add(id, Position, { x, y, z });
 
@@ -64,6 +67,7 @@ globalThis.EntityPreset = class EntityPreset {
       const data = EntityPreset._clone(components[token]);
       if (token === Visual) EntityPreset._bakeVisual(data, k);
       else if (token === BBox) EntityPreset._bakeBox(data, k);
+      else if (token === Mesh) EntityPreset._bakeMesh(data, k);
       world.add(id, token, data);
     }
 
@@ -138,5 +142,20 @@ globalThis.EntityPreset = class EntityPreset {
     box.y *= k;
     box.width *= k;
     box.height *= k;
+  }
+
+  // Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
+  // model never diverges from its collider. The authored Mesh fields stay the archetype's
+  // basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
+  // over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
+  static _bakeMesh(mesh, k) {
+    if (k === 1) return;
+    mesh.scale = (mesh.scale ?? 1) * k;
+    if (mesh.xscale !== undefined) mesh.xscale *= k;
+    if (mesh.yscale !== undefined) mesh.yscale *= k;
+    if (mesh.zscale !== undefined) mesh.zscale *= k;
+    if (mesh.width !== undefined) mesh.width *= k;
+    if (mesh.depth !== undefined) mesh.depth *= k;
+    if (mesh.height !== undefined) mesh.height *= k;
   }
 };
