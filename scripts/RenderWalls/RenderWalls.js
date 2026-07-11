@@ -1,5 +1,5 @@
 /**
- * WALLS pass of the art projection contract (ROADMAP.md — Art Rework): draws a solid tile
+ * WALLS pass of the art projection contract (ARCHITECTURE.md — Renderer): draws a solid tile
  * layer as lit boxes. Per wall cell it emits a plan-view TOP quad (at -height) plus a
  * vertical SOUTH face only where the south neighbor is empty — the two orientations the
  * fixed-yaw pitched camera can ever see (the vox-kit contract). Hidden-face removal happens
@@ -10,7 +10,7 @@
  * two sh_meshlit modes (both share the sun + view-culled point lights supplied by the host
  * RenderMesh pass, `opt.lights`, whose _setupLights runs before the submits — walls join the
  * same depth pool as furniture and billboards, z-write on for the submit):
- * - TEXTURED (opt.sprite set): texcoord = real frame UVs, colour = the material tint
+ * - TEXTURED (sprite set): texcoord = real frame UVs, colour = the material tint
  *   (texture × tint × light — grayscale-ish pattern textures let one texture serve every
  *   material color), and the face normal rides the u_normal UNIFORM — constant per
  *   orientation, so the pass keeps tops and souths in separate buffers and submits each
@@ -19,6 +19,14 @@
  *   colour = the tint — the vox mode, u_useTex = 0. Also the sprite-missing fallback.
  * Without the shader (or no host pass) both modes submit fixed-function: textured × colour
  * or flat colour, unlit — same degradation as RenderMesh.
+ *
+ * PER-CELL MATERIALS (opt.materials): cells are bucketed by their TileType id, each bucket
+ * a { sprite, frame, color } of its own — one solid layer renders brick/concrete/metal/plank
+ * side by side while colliders/nav stay occupancy-based (one TileEdit layer). A cell whose
+ * id matches no material — including bare-occupancy views like ChunkManager.wallLayer(),
+ * whose get() returns booleans/1s without a TileType — falls to the DEFAULT bucket
+ * (opt.sprite/opt.color). Without opt.materials everything is the default bucket (the
+ * original single-material behavior).
  *
  * VBO-cached like RenderTileMap: call markDirty() after any tile edit — BuildMode's
  * _markTileDirty reaches it through scene._tilePasses. Coords are absolute world px, so the
@@ -31,9 +39,11 @@ globalThis.RenderWalls = class RenderWalls {
    * @param {TileLayer} layer - the solid layer to draw (truthy cell = wall). Only `get(gx, gy)`
    *   is read, so any occupancy view satisfies it — ChunkManager.wallLayer() hands the streamed
    *   overworld's authored walls to a second instance of this pass.
-   * @param {{ height?: number, color?: number, sprite?: any, frame?: number, lights?: RenderMesh }} [opt]
+   * @param {{ height?: number, color?: number, sprite?: any, frame?: number, lights?: RenderMesh,
+   *   materials?: Array<{ id: number, sprite?: any, frame?: number, color?: number }> }} [opt]
    *   `sprite` is an asset REF (validated via sprite_exists — asset_get_index refs never
-   *   compare >= 0 on GMRT); `frame` picks the subimage (default 0).
+   *   compare >= 0 on GMRT); `frame` picks the subimage (default 0). `materials` buckets cells
+   *   by TileType id (see the class doc); id-less/unmatched cells use the top-level defaults.
    */
   constructor(level, layer, opt) {
     opt = opt ?? {};
@@ -41,19 +51,41 @@ globalThis.RenderWalls = class RenderWalls {
     this.level = level;
     this.layer = layer;
     this.height = opt.height ?? 32; // wall height in world px (visual only — colliders are TileEdit's)
-    this.color = opt.color ?? c_white;
-    this.sprite = opt.sprite;
-    this.frame = opt.frame ?? 0;
-    this._texOk = this.sprite !== undefined && sprite_exists(this.sprite);
     this.lights = opt.lights; // host RenderMesh pass (shares sh_meshlit + its light gather)
+    // normalized material buckets: [0] = the default/catch-all, then each opt.materials entry.
+    // texOk resolved per bucket (a bucket with a missing sprite degrades to flat tint alone).
+    this._mats = [
+      {
+        sprite: opt.sprite,
+        frame: opt.frame ?? 0,
+        color: opt.color ?? c_white,
+        texOk: opt.sprite !== undefined && sprite_exists(opt.sprite),
+      },
+    ];
+    this._matIndex = {}; // TileType id (string key) -> _mats index; misses fall to 0
+    const mats = opt.materials ?? [];
+    for (let i = 0; i < mats.length; i++) {
+      const m = mats[i];
+      this._matIndex["" + m.id] = this._mats.length;
+      this._mats.push({
+        sprite: m.sprite,
+        frame: m.frame ?? 0,
+        color: m.color ?? c_white,
+        texOk: m.sprite !== undefined && sprite_exists(m.sprite),
+      });
+    }
     // same 24 B/vertex declaration as RenderMesh._format — the lockstep vox-kit layout
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
-    this._vbTop = -1; // all top quads; textured mode submits it under normal (0,0,-1)
-    this._vbSouth = -1; // all exposed south quads; textured normal (0,1,0)
+    this._vbTops = []; // per-bucket top quads; textured mode submits under normal (0,0,-1)
+    this._vbSouths = []; // per-bucket exposed south quads; textured normal (0,1,0)
+    for (let i = 0; i < this._mats.length; i++) {
+      this._vbTops.push(-1);
+      this._vbSouths.push(-1);
+    }
     this._dirty = true;
   }
 
@@ -67,127 +99,170 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   _free() {
-    if (this._vbTop !== -1) vertex_delete_buffer(this._vbTop);
-    if (this._vbSouth !== -1) vertex_delete_buffer(this._vbSouth);
-    this._vbTop = -1;
-    this._vbSouth = -1;
+    for (let i = 0; i < this._mats.length; i++) {
+      if (this._vbTops[i] !== -1) vertex_delete_buffer(this._vbTops[i]);
+      if (this._vbSouths[i] !== -1) vertex_delete_buffer(this._vbSouths[i]);
+      this._vbTops[i] = -1;
+      this._vbSouths[i] = -1;
+    }
   }
 
-  // rebuild the two whole-layer VBOs: count quads for exact fixed buffers, then write
-  // vertices (byte order per vox2vbuf: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord). An empty
-  // layer leaves both at -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
+  // material bucket for a cell value: a TileType keys by id, a bare-occupancy truthy (1/true)
+  // has none — both fall to bucket 0 (the default) on a miss.
+  _bucketOf(t) {
+    const tid = typeof t === "object" ? t.id : t;
+    const mi = this._matIndex["" + tid];
+    return mi === undefined ? 0 : mi;
+  }
+
+  // rebuild the per-bucket whole-layer VBOs: count quads per bucket for exact fixed buffers,
+  // then write vertices (byte order per vox2vbuf: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
+  // An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
   _rebuild() {
     this._dirty = false;
     this._free();
     const cols = this.level.cols;
     const rows = this.level.rows;
-    let tops = 0;
-    let souths = 0;
+    const n = this._mats.length;
+    const tops = [];
+    const souths = [];
+    let total = 0;
+    while (tops.length < n) {
+      tops.push(0);
+      souths.push(0);
+    }
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {
-        if (!this.layer.get(gx, gy)) continue;
-        tops++;
-        if (!this.layer.get(gx, gy + 1)) souths++; // exposed south face only
+        const t = this.layer.get(gx, gy);
+        if (!t) continue;
+        const mi = this._bucketOf(t);
+        tops[mi]++;
+        total++;
+        if (!this.layer.get(gx, gy + 1)) souths[mi]++; // exposed south face only
       }
     }
-    if (tops === 0) return;
+    if (total === 0) return;
 
-    // textured mode: the frame's texture-page UV rect, stretched over each face (trim
-    // insets [4..7] ignored — a full-bleed tile texture is never trimmed); flat mode: the
-    // packed face normals sh_meshlit's vox path decodes
-    const uv = this._texOk
-      ? sprite_get_uvs(this.sprite, this.frame)
-      : [0, 0, 0, 0];
-    const u0 = uv[0];
-    const v0 = uv[1];
-    const u1 = this._texOk ? uv[2] : 0;
-    const v1 = this._texOk ? uv[3] : 0;
-    const r = color_get_red(this.color);
-    const g = color_get_green(this.color);
-    const b = color_get_blue(this.color);
-    const vert = (buf, x, y, z, u, v) => {
+    // per-bucket write state: buffers + UVs + tint (textured mode: the frame's texture-page
+    // UV rect stretched over each face, trim insets [4..7] ignored — a full-bleed tile
+    // texture is never trimmed; flat mode: packed face normals sh_meshlit's vox path decodes)
+    const bufT = [];
+    const bufS = [];
+    const U0 = [];
+    const V0 = [];
+    const U1 = [];
+    const V1 = [];
+    const SV0 = [];
+    const SV1 = [];
+    const R = [];
+    const G = [];
+    const B = [];
+    for (let i = 0; i < n; i++) {
+      const m = this._mats[i];
+      bufT.push(tops[i] > 0 ? buffer_create(tops[i] * 6 * 24, buffer_fixed, 1) : -1);
+      bufS.push(souths[i] > 0 ? buffer_create(souths[i] * 6 * 24, buffer_fixed, 1) : -1);
+      const uv = m.texOk ? sprite_get_uvs(m.sprite, m.frame) : [0, 0, 0, 0];
+      U0.push(uv[0]);
+      V0.push(uv[1]);
+      U1.push(m.texOk ? uv[2] : 0);
+      V1.push(m.texOk ? uv[3] : 0);
+      // flat mode packs the SOUTH normal (0,1) into the south quads' texcoord; textured mode
+      // reuses the same UV rect on both faces (dedicated top/side textures are the art seam)
+      SV0.push(m.texOk ? uv[1] : 1);
+      SV1.push(m.texOk ? uv[3] : 1);
+      R.push(color_get_red(m.color));
+      G.push(color_get_green(m.color));
+      B.push(color_get_blue(m.color));
+    }
+    const vert = (buf, mi, x, y, z, u, v) => {
       buffer_write(buf, buffer_f32, x);
       buffer_write(buf, buffer_f32, y);
       buffer_write(buf, buffer_f32, z);
-      buffer_write(buf, buffer_u8, r);
-      buffer_write(buf, buffer_u8, g);
-      buffer_write(buf, buffer_u8, b);
+      buffer_write(buf, buffer_u8, R[mi]);
+      buffer_write(buf, buffer_u8, G[mi]);
+      buffer_write(buf, buffer_u8, B[mi]);
       buffer_write(buf, buffer_u8, 255);
       buffer_write(buf, buffer_f32, u);
       buffer_write(buf, buffer_f32, v);
     };
-    const bufT = buffer_create(tops * 6 * 24, buffer_fixed, 1);
-    const bufS =
-      souths > 0 ? buffer_create(souths * 6 * 24, buffer_fixed, 1) : -1;
     const cw = this.level.cellWidth;
     const ch = this.level.cellHeight;
     const H = this.height;
-    // flat mode packs the SOUTH normal (0,1) into the south quads' texcoord; textured mode
-    // reuses the same UV rect on both faces (dedicated top/side textures are the art seam)
-    const sv0 = this._texOk ? v0 : 1;
-    const sv1 = this._texOk ? v1 : 1;
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {
-        if (!this.layer.get(gx, gy)) continue;
+        const t = this.layer.get(gx, gy);
+        if (!t) continue;
+        const mi = this._bucketOf(t);
         const x0 = gx * cw;
         const y0 = gy * ch;
         const x1 = x0 + cw;
         const y1 = y0 + ch;
         // TOP quad lying flat at -H (up = -z)
-        vert(bufT, x0, y0, -H, u0, v0);
-        vert(bufT, x1, y0, -H, u1, v0);
-        vert(bufT, x1, y1, -H, u1, v1);
-        vert(bufT, x0, y0, -H, u0, v0);
-        vert(bufT, x1, y1, -H, u1, v1);
-        vert(bufT, x0, y1, -H, u0, v1);
+        const bt = bufT[mi];
+        vert(bt, mi, x0, y0, -H, U0[mi], V0[mi]);
+        vert(bt, mi, x1, y0, -H, U1[mi], V0[mi]);
+        vert(bt, mi, x1, y1, -H, U1[mi], V1[mi]);
+        vert(bt, mi, x0, y0, -H, U0[mi], V0[mi]);
+        vert(bt, mi, x1, y1, -H, U1[mi], V1[mi]);
+        vert(bt, mi, x0, y1, -H, U0[mi], V1[mi]);
         // SOUTH face at y1, top edge shared with the TOP quad (no seam)
         if (!this.layer.get(gx, gy + 1)) {
-          vert(bufS, x0, y1, -H, u0, sv0);
-          vert(bufS, x1, y1, -H, u1, sv0);
-          vert(bufS, x1, y1, 0, u1, sv1);
-          vert(bufS, x0, y1, -H, u0, sv0);
-          vert(bufS, x1, y1, 0, u1, sv1);
-          vert(bufS, x0, y1, 0, u0, sv1);
+          const bs = bufS[mi];
+          vert(bs, mi, x0, y1, -H, U0[mi], SV0[mi]);
+          vert(bs, mi, x1, y1, -H, U1[mi], SV0[mi]);
+          vert(bs, mi, x1, y1, 0, U1[mi], SV1[mi]);
+          vert(bs, mi, x0, y1, -H, U0[mi], SV0[mi]);
+          vert(bs, mi, x1, y1, 0, U1[mi], SV1[mi]);
+          vert(bs, mi, x0, y1, 0, U0[mi], SV1[mi]);
         }
       }
     }
-    this._vbTop = vertex_create_buffer_from_buffer(bufT, this._format);
-    buffer_delete(bufT);
-    vertex_freeze(this._vbTop);
-    if (bufS !== -1) {
-      this._vbSouth = vertex_create_buffer_from_buffer(bufS, this._format);
-      buffer_delete(bufS);
-      vertex_freeze(this._vbSouth);
+    for (let i = 0; i < n; i++) {
+      if (bufT[i] !== -1) {
+        this._vbTops[i] = vertex_create_buffer_from_buffer(bufT[i], this._format);
+        buffer_delete(bufT[i]);
+        vertex_freeze(this._vbTops[i]);
+      }
+      if (bufS[i] !== -1) {
+        this._vbSouths[i] = vertex_create_buffer_from_buffer(bufS[i], this._format);
+        buffer_delete(bufS[i]);
+        vertex_freeze(this._vbSouths[i]);
+      }
+    }
+  }
+
+  // submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
+  // already set by the caller; flat: packed-normal vox mode). Per-submit uniform swaps are
+  // verified pixel-exact on 0.20 (probed 2026-07-06).
+  _submit(vb, m, lit) {
+    if (vb === -1) return;
+    if (m.texOk) {
+      if (lit) shader_set_uniform_f(this.lights._uUseTex, 1);
+      vertex_submit(vb, pr_trianglelist, sprite_get_texture(m.sprite, m.frame));
+    } else {
+      if (lit) shader_set_uniform_f(this.lights._uUseTex, 0);
+      vertex_submit(vb, pr_trianglelist, -1);
     }
   }
 
   draw(world) {
     if (this._dirty) this._rebuild();
-    if (this._vbTop === -1) return;
+    let any = false;
+    for (let i = 0; i < this._mats.length; i++)
+      if (this._vbTops[i] !== -1) any = true;
+    if (!any) return;
     // depth-writing like RenderMesh/RenderBillboard (global default is off)
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights._litOk;
     if (lit) this.lights._setupLights(world); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
-    if (this._texOk) {
-      // textured: real UVs, face normal per SUBMIT via uniform (all tops, then all souths)
-      const tex = sprite_get_texture(this.sprite, this.frame);
-      if (lit) {
-        shader_set_uniform_f(this.lights._uUseTex, 1);
-        shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
-      }
-      vertex_submit(this._vbTop, pr_trianglelist, tex);
-      if (this._vbSouth !== -1) {
-        // per-submit uniform swap verified pixel-exact on 0.20 (top ×1.0, south ×0.76 —
-        // probed 2026-07-06): a uniform re-set between two vertex_submits applies correctly
-        if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 1, 0);
-        vertex_submit(this._vbSouth, pr_trianglelist, tex);
-      }
-    } else {
-      // flat tint: packed-normal vox mode, untextured
-      vertex_submit(this._vbTop, pr_trianglelist, -1);
-      if (this._vbSouth !== -1)
-        vertex_submit(this._vbSouth, pr_trianglelist, -1);
-    }
+    // all tops under normal (0,0,-1), then all souths under (0,1,0) — one normal set per
+    // orientation; flat buckets ignore u_normal (their normals ride the packed texcoord).
+    if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+    for (let i = 0; i < this._mats.length; i++)
+      this._submit(this._vbTops[i], this._mats[i], lit);
+    if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 1, 0);
+    for (let i = 0; i < this._mats.length; i++)
+      this._submit(this._vbSouths[i], this._mats[i], lit);
     if (lit) shader_reset();
     gpu_set_zwriteenable(false);
   }

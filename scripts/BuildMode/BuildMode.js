@@ -5,8 +5,9 @@
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
 // state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
-// scene contract (create()/RpgMap.build): world, playerId, level, ui, wallLayer, floorLayer,
-// colliders, wallType, floorType, buildZoneId, _tilePasses (RenderTileMap pass per layer key).
+// scene contract (create()/RpgMap.build): world, playerId, level, ui, a <key>Layer/<key>Type per
+// RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
+// buildZoneId, _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
@@ -16,6 +17,8 @@ globalThis.BuildMode = {
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
+      // tile items: `layer` names the RpgLevel.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
+      // a wall item's `mat` picks the per-cell material TileType (scene.wallTypes[mat]).
       labelKey: "BUILD_CAT_TILES",
       items: [
         {
@@ -24,6 +27,31 @@ globalThis.BuildMode = {
           cost: 1,
           kind: "tile",
           layer: "wall",
+          mat: "brick",
+        },
+        {
+          id: "wall_concrete",
+          labelKey: "BUILD_WALL_CONCRETE",
+          cost: 2,
+          kind: "tile",
+          layer: "wall",
+          mat: "concrete",
+        },
+        {
+          id: "wall_metal",
+          labelKey: "BUILD_WALL_METAL",
+          cost: 3,
+          kind: "tile",
+          layer: "wall",
+          mat: "metal",
+        },
+        {
+          id: "wall_plank",
+          labelKey: "BUILD_WALL_PLANK",
+          cost: 1,
+          kind: "tile",
+          layer: "wall",
+          mat: "plank",
         },
         {
           id: "floor",
@@ -31,6 +59,27 @@ globalThis.BuildMode = {
           cost: 1,
           kind: "tile",
           layer: "floor",
+        },
+        {
+          id: "floor_tile",
+          labelKey: "BUILD_FLOOR_TILE",
+          cost: 1,
+          kind: "tile",
+          layer: "floorTile",
+        },
+        {
+          id: "floor_carpet",
+          labelKey: "BUILD_FLOOR_CARPET",
+          cost: 2,
+          kind: "tile",
+          layer: "floorCarpet",
+        },
+        {
+          id: "floor_mosaic",
+          labelKey: "BUILD_FLOOR_MOSAIC",
+          cost: 2,
+          kind: "tile",
+          layer: "floorMosaic",
         },
       ],
     },
@@ -370,14 +419,32 @@ globalThis.BuildMode = {
     );
   },
 
-  // can the selected item be placed at (gx, gy): in the claimed zone, cell empty, enough wood, and
-  // a SOLID item (not a floor) isn't on the player's own cell. shared by place + cursor highlight.
+  // the distinct layer keys the catalog's tile items edit (derived once) — the cell-occupancy
+  // check spans them all, so one built thing per cell across every wall/floor variant.
+  _tileLayerKeys: null,
+  tileLayerKeys() {
+    if (BuildMode._tileLayerKeys !== null) return BuildMode._tileLayerKeys;
+    const keys = [];
+    for (let c = 0; c < BuildMode.CATALOG.length; c++) {
+      const items = BuildMode.CATALOG[c].items;
+      for (let i = 0; i < items.length; i++)
+        if (items[i].kind === "tile" && keys.indexOf(items[i].layer) === -1)
+          keys.push(items[i].layer);
+    }
+    BuildMode._tileLayerKeys = keys;
+    return keys;
+  },
+
+  // can the selected item be placed at (gx, gy): in the claimed zone, cell empty (across every
+  // buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a floor)
+  // isn't on the player's own cell. shared by place + cursor highlight.
   _canBuild(scene, gx, gy) {
     const level = scene.level;
     const zmap = level.zoneMap("buildable");
     if (zmap === undefined || zmap.idAt(gx, gy) === 0) return false;
-    if (TileEdit.occupied(scene.wallLayer, gx, gy)) return false;
-    if (TileEdit.occupied(scene.floorLayer, gx, gy)) return false;
+    const lkeys = BuildMode.tileLayerKeys();
+    for (let i = 0; i < lkeys.length; i++)
+      if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
     const inv = scene.world.get(Inventory, scene.playerId);
@@ -386,7 +453,9 @@ globalThis.BuildMode = {
       !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
     )
       return false;
-    const solid = !(item.kind === "tile" && item.layer === "floor");
+    const solid = !(
+      item.kind === "tile" && RpgLevel.layerCfg(item.layer).solid !== true
+    );
     if (solid) {
       const pp = scene.world.get(Position, scene.playerId);
       if (pp !== undefined) {
@@ -405,11 +474,17 @@ globalThis.BuildMode = {
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
     const key = gx + "," + gy;
     if (item.kind === "tile") {
-      const layer = item.layer === "wall" ? scene.wallLayer : scene.floorLayer;
-      const type = item.layer === "wall" ? scene.wallType : scene.floorType;
+      // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType
+      // (per-cell wall materials — see RpgLevel LAYERS). Only the solid layer (wall) has
+      // colliders to remesh; scene.colliders is that one layer's set.
+      const layer = scene[item.layer + "Layer"];
+      const type =
+        item.mat !== undefined
+          ? scene[item.layer + "Types"][item.mat]
+          : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      if (item.layer === "wall")
-        TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
+      if (RpgLevel.layerCfg(item.layer).solid === true)
+        TileEdit.remesh(scene.world, level, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
     } else {
@@ -449,14 +524,11 @@ globalThis.BuildMode = {
     const tileId = scene._built[key];
     if (tileId === undefined) return; // only player-built cells are deconstructable
     const item = BuildMode.item(tileId);
-    if (item !== undefined && item.layer === "wall") {
-      TileEdit.clear(scene.wallLayer, gx, gy);
-      TileEdit.remesh(scene.world, level, scene.wallLayer, scene.colliders);
-      BuildMode._markTileDirty(scene, "wall");
-    } else {
-      TileEdit.clear(scene.floorLayer, gx, gy);
-      BuildMode._markTileDirty(scene, "floor");
-    }
+    const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
+    TileEdit.clear(scene[lkey + "Layer"], gx, gy);
+    if (RpgLevel.layerCfg(lkey).solid === true)
+      TileEdit.remesh(scene.world, level, scene[lkey + "Layer"], scene.colliders);
+    BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
     delete scene._built[key];
     scene._invDirty = true;

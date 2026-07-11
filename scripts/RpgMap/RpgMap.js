@@ -24,11 +24,18 @@ globalThis.RpgMap = {
     "_chunked",
     "terrainLayer",
     "floorLayer",
+    "floorTileLayer",
+    "floorCarpetLayer",
+    "floorMosaicLayer",
     "wallLayer",
     "fenceLayer",
     "terrainType",
     "floorType",
+    "floorTileType",
+    "floorCarpetType",
+    "floorMosaicType",
     "wallType",
+    "wallTypes",
     "fenceType",
     "colliders",
     "buildZoneId",
@@ -274,14 +281,15 @@ globalThis.RpgMap = {
     scene.level = built.level;
     scene.spawn = built.spawn; // for player respawn on death
     scene.entries = RpgMap._entryTable(scene.level, data); // named entries → world coords (resume)
-    scene.terrainLayer = built.terrainLayer; // tilemap handles (render passes + build mode)
-    scene.floorLayer = built.floorLayer;
-    scene.wallLayer = built.wallLayer;
-    scene.fenceLayer = built.fenceLayer;
-    scene.terrainType = built.terrainType;
-    scene.floorType = built.floorType;
-    scene.wallType = built.wallType;
-    scene.fenceType = built.fenceType;
+    // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
+    // plus <key>Types for a materials-bearing layer (wall). Mirrored in BUNDLE_KEYS.
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const key = RpgLevel.LAYERS[i].key;
+      scene[key + "Layer"] = built[key + "Layer"];
+      scene[key + "Type"] = built[key + "Type"];
+      if (built[key + "Types"] !== undefined)
+        scene[key + "Types"] = built[key + "Types"];
+    }
     scene.colliders = built.colliders;
     // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival
     // instead lands the transferred player in _arriveSquad right after this.
@@ -512,16 +520,27 @@ globalThis.RpgMap = {
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
       // markDirty reaches it (the flat "corner" autotile config stays for the editor).
-      // Face texture: spr_tex_brick frame 0 (near-white brick, authored for tinting);
-      // the LAYERS tint colors it (texture × tint × light).
-      let wallCfg;
-      for (let i = 0; i < RpgLevel.LAYERS.length; i++)
-        if (RpgLevel.LAYERS[i].key === "wall") wallCfg = RpgLevel.LAYERS[i];
+      // PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per material,
+      // bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
+      // default bucket for file/streamed walls.
+      const wallCfg = RpgLevel.layerCfg("wall");
+      const wallMats = [];
+      for (let i = 0; i < wallCfg.materials.length; i++) {
+        const m = wallCfg.materials[i];
+        const ms = asset_get_index(m.sprite);
+        wallMats.push({
+          id: m.id,
+          sprite: sprite_exists(ms) ? ms : undefined, // GMRT: validate via sprite_exists
+          frame: 0,
+          color: Color.parse(m.color),
+        });
+      }
       scene._tilePasses.wall = new RenderWalls(scene.level, scene.wallLayer, {
-        color: Color.parse(wallCfg.color),
-        sprite: spr_tex_brick,
+        color: wallMats[0].color,
+        sprite: wallMats[0].sprite,
         frame: 0,
         lights: scene._meshPass,
+        materials: wallMats,
       });
       scene.renderer.insert(scene._tilePasses.wall);
       // The chunked overworld's AUTHORED/streamed walls (hub building, prefab ruins/camps)
@@ -532,8 +551,8 @@ globalThis.RpgMap = {
       if (scene._chunked)
         scene.renderer.insert(
           new RenderWalls(scene.level, scene.chunks.wallLayer(), {
-            color: Color.parse(wallCfg.color),
-            sprite: spr_tex_brick,
+            color: wallMats[0].color, // occupancy view has no TileTypes — all default brick
+            sprite: wallMats[0].sprite,
             frame: 0,
             lights: scene._meshPass,
           }),

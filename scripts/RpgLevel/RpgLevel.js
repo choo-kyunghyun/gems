@@ -60,6 +60,39 @@ globalThis.RpgLevel = {
       solid: false,
       pathCost: 1,
     },
+    // Floor VARIANTS — one type-0 layer per material (the LAYERS design rule: one material
+    // per layer + pass; the spare near-white spr_tex_* sheets each get their own tint).
+    // Build-Mode-only surfaces: level files paint only `floor`, chunked maps hold them empty.
+    {
+      key: "floorTile",
+      id: 1,
+      name: "타일 바닥",
+      type: 0,
+      sprite: "spr_tex_tile",
+      color: "#9dadb2",
+      solid: false,
+      pathCost: 1,
+    },
+    {
+      key: "floorCarpet",
+      id: 1,
+      name: "카펫 바닥",
+      type: 0,
+      sprite: "spr_tex_carpet",
+      color: "#a05a50",
+      solid: false,
+      pathCost: 1,
+    },
+    {
+      key: "floorMosaic",
+      id: 1,
+      name: "모자이크 바닥",
+      type: 0,
+      sprite: "spr_tex_mosaic",
+      color: "#7096a8",
+      solid: false,
+      pathCost: 1,
+    },
     {
       key: "wall",
       id: 1,
@@ -69,6 +102,17 @@ globalThis.RpgLevel = {
       color: "#707888",
       solid: true,
       pathCost: null,
+      // Wall MATERIALS — per-cell TileTypes within this ONE solid layer (unlike the floor
+      // variants above, walls stay a single layer so colliders/remesh/nav are untouched —
+      // TileEdit meshes by occupancy). Each material = a near-white face texture + tint;
+      // RenderWalls buckets cells by TileType id and submits per material (RpgMap wires it).
+      // materials[0] is the default (file walls, the editor, streamed occupancy views).
+      materials: [
+        { key: "brick", id: 1, name: "벽", sprite: "spr_tex_brick", color: "#707888" },
+        { key: "concrete", id: 2, name: "콘크리트 벽", sprite: "spr_tex_concrete", color: "#9aa0a4" },
+        { key: "metal", id: 3, name: "금속 벽", sprite: "spr_tex_metal", color: "#7d8a96" },
+        { key: "plank", id: 4, name: "판자 벽", sprite: "spr_tex_plank", color: "#a08050" },
+      ],
     },
     {
       key: "fence",
@@ -82,8 +126,17 @@ globalThis.RpgLevel = {
     },
   ],
 
+  // LAYERS config by key (BuildMode reads `solid`/`materials` off it).
+  layerCfg(key) {
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++)
+      if (RpgLevel.LAYERS[i].key === key) return RpgLevel.LAYERS[i];
+    return undefined;
+  },
+
   // Make the LAYERS TileLayers + TileTypes (bottom→top) and return a handles bag keyed
-  // `<key>Layer`/`<key>Type`. Shared by build() + buildChunked(); the caller paints/fills/meshes.
+  // `<key>Layer`/`<key>Type` — plus, for a materials-bearing layer (wall), `<key>Types`:
+  // one TileType per material keyed by material key (`<key>Type` stays materials[0], the
+  // default every existing consumer paints). Shared by build() + buildChunked().
   _makeLayers(level) {
     const h = {};
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
@@ -93,11 +146,25 @@ globalThis.RpgLevel = {
       });
       level.insert(layer);
       h[cfg.key + "Layer"] = layer;
-      h[cfg.key + "Type"] = new TileType({
-        id: cfg.id,
-        name: cfg.name,
-        pathCost: cfg.pathCost,
-      });
+      if (cfg.materials !== undefined) {
+        const types = {};
+        for (let m = 0; m < cfg.materials.length; m++) {
+          const mat = cfg.materials[m];
+          types[mat.key] = new TileType({
+            id: mat.id,
+            name: mat.name,
+            pathCost: cfg.pathCost,
+          });
+        }
+        h[cfg.key + "Types"] = types;
+        h[cfg.key + "Type"] = types[cfg.materials[0].key];
+      } else {
+        h[cfg.key + "Type"] = new TileType({
+          id: cfg.id,
+          name: cfg.name,
+          pathCost: cfg.pathCost,
+        });
+      }
     }
     return h;
   },
