@@ -346,6 +346,98 @@ globalThis.SaveGame = {
     };
   },
 
+  // ── menu UI (injected into SystemMenu as an extra tab; see obj_game Create_0) ──
+  SLOTS: 3, // fixed named save slots shown in the menu
+
+  // Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
+  // Called fresh on each menu open, so the rows reflect the current index. English literals for
+  // now (i18n is a cleanup follow-up).
+  buildMenuTab() {
+    const scroll = gemsScroll({ grow: true });
+    const sec = gemsSection(() => "SAVE / LOAD");
+    for (let i = 1; i <= SaveGame.SLOTS; i++)
+      sec.insertChild(SaveGame._slotRow("slot" + i, i));
+    scroll.scrollBody.insertChild(sec);
+    return scroll;
+  },
+
+  _slotRow(slot, n) {
+    const row = new UIElement({
+      width: "100%",
+      height: GemsTheme.rowH,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: GemsTheme.gapSm,
+    });
+    // live label (function ref re-reads the index each frame → updates in place after a save)
+    const wrap = new UIElement({
+      flexGrow: 1,
+      height: "100%",
+      justifyContent: "center",
+    });
+    wrap.insertChild(gemsLabel(() => SaveGame._slotText(slot, n), {
+      color: GemsTheme.text,
+    }));
+    row.insertChild(wrap);
+    row.insertChild(
+      gemsButton(() => "Save", () => SaveGame._menuSave(slot, n), {
+        width: 120,
+        primary: true,
+      }),
+    );
+    row.insertChild(
+      gemsButton(() => "Load", () => SaveGame._menuLoad(slot, n), {
+        width: 120,
+      }),
+    );
+    return row;
+  },
+
+  _slotText(slot, n) {
+    const meta = SaveGame.list()[slot];
+    if (meta === undefined) return "Slot " + n + "  —  (empty)";
+    return (
+      "Slot " + n + "  —  Day " + meta.day + "  " + meta.clock +
+      "   ·   " + meta.map + "   ·   " + meta.credits + " cr"
+    );
+  },
+
+  // the current scene if it's saveable (has an ECS + player), else null — Save is gated on it.
+  _saveable() {
+    const g = SystemMenu._game;
+    if (g === null) return null;
+    const s = g.scenes.current;
+    if (s === null || s === undefined || s.world === undefined || s.playerId === undefined)
+      return null;
+    return s;
+  },
+
+  _menuSave(slot, n) {
+    const s = SaveGame._saveable();
+    if (s === null) {
+      Toast.push("Nothing to save here");
+      return;
+    }
+    SaveGame.save(s, slot);
+    Toast.push("Saved to slot " + n);
+  },
+
+  _menuLoad(slot, n) {
+    if (!SaveGame.has(slot)) {
+      Toast.push("Slot " + n + " is empty");
+      return;
+    }
+    const g = SystemMenu._game;
+    if (g === null) return;
+    if (!SaveGame.load(slot)) {
+      Toast.push("Load failed");
+      return;
+    }
+    SystemMenu.close();
+    g.scenes.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
+  },
+
   // ── restore helpers: pull entities back out of a world export ──
 
   // the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.

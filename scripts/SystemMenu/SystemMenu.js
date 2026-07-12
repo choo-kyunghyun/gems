@@ -8,6 +8,14 @@ globalThis.SystemMenu = class SystemMenu {
   static _modal = null; // open UIModal handle, or null
   static _game = null; // the obj_game controller (scene lifecycle in game.scenes)
   static _scale = 1; // Time.scale to restore on resume
+  // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
+  // this Core menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
+  static _extraTabs = [];
+
+  /** Register an extra tab. @param {string|Function} label textRef or string @param {() => UIElement} build content builder, called each open (so it reads live state) */
+  static addTab(label, build) {
+    SystemMenu._extraTabs.push({ label, build });
+  }
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
@@ -161,23 +169,27 @@ globalThis.SystemMenu = class SystemMenu {
     card.insertChild(titleRow);
     card.insertChild(gemsDivider());
 
-    const tabsRoot = gemsTabs(
-      [
-        {
-          label: I18n.textRef("SYS_TAB_SYSTEM"),
-          content: SystemMenu._systemTab(),
-        },
-        {
-          label: I18n.textRef("SYS_TAB_SETTINGS"),
-          content: SystemMenu._settingsTab(),
-        },
-        {
-          label: I18n.textRef("SYS_TAB_ABOUT"),
-          content: SystemMenu._aboutTab(),
-        },
-      ],
-      { grow: true },
-    );
+    const tabDefs = [
+      {
+        label: I18n.textRef("SYS_TAB_SYSTEM"),
+        content: SystemMenu._systemTab(),
+      },
+      {
+        label: I18n.textRef("SYS_TAB_SETTINGS"),
+        content: SystemMenu._settingsTab(),
+      },
+      {
+        label: I18n.textRef("SYS_TAB_ABOUT"),
+        content: SystemMenu._aboutTab(),
+      },
+    ];
+    // Demo-injected tabs (Save/Load) after the built-ins; built fresh each open so they read live state
+    for (let i = 0; i < SystemMenu._extraTabs.length; i++)
+      tabDefs.push({
+        label: SystemMenu._extraTabs[i].label,
+        content: SystemMenu._extraTabs[i].build(),
+      });
+    const tabsRoot = gemsTabs(tabDefs, { grow: true });
     card.insertChild(tabsRoot);
 
     // footer: a universal Close (Esc / backdrop also close)
