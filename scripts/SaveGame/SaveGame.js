@@ -294,6 +294,15 @@ globalThis.SaveGame = {
         }
         if (scene.chunks !== undefined) scene.chunks.update(pinfo.x, pinfo.y);
       }
+      // restore the player's builds: the claimed buildable zone, then the tiles + built entities
+      // (via Blueprint.stamp — same path as the Build Mode blueprint feature). Built entities carry
+      // their exact snapshot from the world export, so a chest keeps its contents.
+      const zones = active.gridMeta !== undefined ? active.gridMeta.zones : undefined;
+      if (zones !== undefined && zones.buildable !== undefined) {
+        const zm = scene.level.zoneMap("buildable");
+        if (zm !== undefined) zm.import(zones.buildable);
+      }
+      Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(active));
     },
   },
 
@@ -480,6 +489,31 @@ globalThis.SaveGame = {
     const out = [];
     for (let i = 0; i < idxs.length; i++) out.push(SaveGame._recordAt(exp, idxs[i]));
     return out;
+  },
+
+  // Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
+  // entity carrying its EXACT snapshot pulled from the world export (so a built chest keeps its
+  // contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
+  _buildPlan(active) {
+    const built = active.built !== undefined ? active.built : {};
+    const be = active.builtEnts !== undefined ? active.builtEnts : {};
+    const tiles = [];
+    const bk = Object.keys(built);
+    for (let i = 0; i < bk.length; i++) {
+      const c = bk[i].split(",");
+      tiles.push({ dx: Number(c[0]), dy: Number(c[1]), item: built[bk[i]] });
+    }
+    const ents = [];
+    const ek = Object.keys(be);
+    for (let i = 0; i < ek.length; i++) {
+      const c = ek[i].split(",");
+      const rec = be[ek[i]];
+      const ent = { dx: Number(c[0]), dy: Number(c[1]), item: rec.itemId };
+      const snap = SaveGame._recordAt(active.world, IdPool.getIndex(rec.ent));
+      if (Object.keys(snap.components).length > 0) ent.snapshot = snap;
+      ents.push(ent);
+    }
+    return { w: 0, h: 0, tiles, ents };
   },
 
   // the player's saved Position, for repositioning after the entry arrival.

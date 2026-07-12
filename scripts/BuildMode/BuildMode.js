@@ -595,33 +595,54 @@ globalThis.BuildMode = {
   _tryPlace(scene, gx, gy) {
     if (!BuildMode._canBuild(scene, gx, gy)) return;
     const item = scene._buildItem;
-    const level = scene.level;
     const inv = scene.world.get(Inventory, scene.playerId);
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
+    BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
+    scene._invDirty = true;
+    Log.info(`built ${item.id} at ${gx},${gy}`);
+  },
+
+  // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement,
+  // Blueprint.stamp, and save-restore. It does NOT gate on cost/validity (the caller decides) or
+  // touch inventory. Options:
+  //   opts.snapshot    restore an EXACT entity from an EntitySnapshot (chest contents, turret
+  //                    damage) instead of a fresh make(); Position is overridden to this cell.
+  //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
+  // Updates _built / _builtEnts. Returns the entity id (entity) or whether a solid tile was placed
+  // (so a deferred caller knows a wall remesh is pending).
+  applyItem(scene, gx, gy, item, opts = {}) {
+    const level = scene.level;
     const key = gx + "," + gy;
     if (item.kind === "tile") {
-      // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType
-      // (per-cell wall materials — see RpgLevel LAYERS). Only the solid layer (wall) has
-      // colliders to remesh; scene.colliders is that one layer's set.
+      // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
+      // wall materials). Only the solid layer (wall) has colliders to remesh (scene.colliders).
       const layer = scene[item.layer + "Layer"];
       const type =
         item.mat !== undefined
           ? scene[item.layer + "Types"][item.mat]
           : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      if (RpgLevel.layerCfg(item.layer).solid === true)
+      const solid = RpgLevel.layerCfg(item.layer).solid === true;
+      if (solid && opts.deferRemesh !== true)
         TileEdit.remesh(scene.world, level, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
-    } else {
-      // spawn through the shared constructor so a built prop is identical to a file/streamed one
-      // (and persists via EntitySnapshot, see RpgMap). make's optional 3rd arg is the scene
-      // (the door auto-orients off the wall layer).
-      const id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy, scene));
-      scene._builtEnts[key] = { ent: id, itemId: item.id };
+      return solid;
     }
-    scene._invDirty = true;
-    Log.info(`built ${item.id} at ${gx},${gy}`);
+    // entity: an exact snapshot restore (state preserved) or a fresh make() (a new instance).
+    // make's optional 3rd arg is the scene (the door auto-orients off the wall layer); a built
+    // prop is identical to a file/streamed one and persists via EntitySnapshot (see RpgMap).
+    let id;
+    if (opts.snapshot !== undefined) {
+      const wp = level.gridToWorld(gx, gy);
+      id = EntitySnapshot.restore(scene.world, opts.snapshot, {
+        [Position]: { x: wp.x, y: wp.y, z: 0 },
+      });
+    } else {
+      id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy, scene));
+    }
+    scene._builtEnts[key] = { ent: id, itemId: item.id };
+    return id;
   },
 
   _tryRemove(scene, gx, gy) {

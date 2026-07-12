@@ -148,6 +148,7 @@
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
     {"id":{"name":"AuthoredStamp","path":"scripts/AuthoredStamp/AuthoredStamp.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
+    {"id":{"name":"Blueprint","path":"scripts/Blueprint/Blueprint.yy",},},
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
