@@ -216,6 +216,84 @@ globalThis.ChunkManager = class ChunkManager {
     return { cx: this._pcx, cy: this._pcy };
   }
 
+  // ── disk persistence (the "deep" save) ──
+  // walls/solid/terrain/spawns are DETERMINISTIC from the seed (pregenerate regenerates them
+  // identically), so a save serializes only the ENTITY-STATE DELTA of chunks that have been
+  // touched: which mobs are dead/moved/hurt, what loot dropped. Untouched (hydrated:false) chunks
+  // are skipped entirely — they come back from generate(). Import runs after pregenerate(), before
+  // the first stream, so each restored chunk materializes its saved snapshots instead of fresh spawns.
+
+  /** Every live SIM-ring entity id the manager owns — the caller excludes these from its own world
+   * export so they aren't saved twice (they ride the chunk cache instead). @returns {number[]} */
+  entityIds() {
+    const out = [];
+    const keys = Object.keys(this._chunks);
+    for (let i = 0; i < keys.length; i++) {
+      const ents = this._chunks[keys[i]].entities;
+      for (let j = 0; j < ents.length; j++) out.push(ents[j]);
+    }
+    return out;
+  }
+
+  /**
+   * Serialize the entity-state delta of every hydrated chunk (active + cached). A SIM chunk's live
+   * entities are captured NON-destructively (the game continues); a demoted/cached chunk already
+   * holds snapshots. `exclude` drops runtime-rebuilt components (PrevPosition/Path*) from each
+   * snapshot. A hydrated chunk with zero entities is still recorded (the player cleared it — it must
+   * stay clear on load, not repopulate from seed).
+   * @param {string[]} [exclude] component tokens to omit
+   * @returns {{cx:number,cy:number,snaps:Object[]}[]}
+   */
+  exportCache(exclude = []) {
+    const filtered = (comps) => {
+      const out = {};
+      const toks = Object.keys(comps);
+      for (let i = 0; i < toks.length; i++)
+        if (exclude.indexOf(toks[i]) === -1) out[toks[i]] = comps[toks[i]];
+      return out;
+    };
+    const out = [];
+    const grab = (rec) => {
+      if (!rec.hydrated) return; // untouched → regenerates identically
+      const snaps = [];
+      if (rec.ring === "sim") {
+        for (let i = 0; i < rec.entities.length; i++)
+          if (this.world.isValid(rec.entities[i]))
+            snaps.push({
+              components: filtered(this.world.componentsOf(rec.entities[i])),
+            });
+      } else {
+        for (let i = 0; i < rec.snapshots.length; i++)
+          snaps.push({ components: filtered(rec.snapshots[i].components) });
+      }
+      out.push({ cx: rec.cx, cy: rec.cy, snaps });
+    };
+    let keys = Object.keys(this._chunks);
+    for (let i = 0; i < keys.length; i++) grab(this._chunks[keys[i]]);
+    keys = Object.keys(this._cache);
+    for (let i = 0; i < keys.length; i++) grab(this._cache[keys[i]]);
+    return out;
+  }
+
+  /**
+   * Overwrite the pregenerated cache with a saved entity-state delta — call AFTER pregenerate() and
+   * BEFORE the first update(), so each saved chunk materializes its snapshots (not fresh spawns).
+   * Chunks absent from the save keep their generated spawns (untouched terrain, unmet mobs).
+   * @param {{cx:number,cy:number,snaps:Object[]}[]} list
+   */
+  importCache(list) {
+    if (list === undefined) return;
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      const key = this._key(e.cx, e.cy);
+      const rec = this._chunks[key] ?? this._cache[key];
+      if (rec === undefined) continue; // out of bounds / not pregenerated
+      rec.snapshots = e.snaps;
+      rec.entities = [];
+      rec.hydrated = true; // _materialize now restores snapshots instead of spawning descriptors
+    }
+  }
+
   // internal lifecycle
 
   // A chunk's entity state has three forms: DESCRIPTORS (rec.spawns, not yet materialized —

@@ -18,6 +18,9 @@ globalThis.SaveGame = {
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
+  // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
+  // are re-derived each tick; dropping them shrinks the save and avoids a cyclic runtime ref).
+  _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse"],
 
   // Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
   // the active map, etc. (locked in when restore lands).
@@ -233,9 +236,15 @@ globalThis.SaveGame = {
         // are re-derived each tick; dropping them also shrinks the save and dodges any cyclic
         // reference a runtime component might carry — see Json's cycle guard).
         const exp = world.export();
-        delete exp.components["PrevPosition"];
-        delete exp.components["PathRequest"];
-        delete exp.components["PathResponse"];
+        for (let t = 0; t < SaveGame._TRANSIENT.length; t++)
+          delete exp.components[SaveGame._TRANSIENT[t]];
+        // DEEP: chunk-owned wilderness/hub entities ride the chunk cache (exact state), NOT the world
+        // export — exclude them here so they aren't saved twice, then capture the chunk delta.
+        let chunkCache;
+        if (src.chunks !== undefined) {
+          SaveGame._excludeChunkOwned(exp, src.chunks);
+          chunkCache = src.chunks.exportCache(SaveGame._TRANSIENT);
+        }
         const blobName = "grid_" + mapId;
         SaveGame._packGrid(grid, ctx, blobName);
         maps.push({
@@ -247,6 +256,7 @@ globalThis.SaveGame = {
           built: src._built !== undefined ? src._built : {},
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
           world: exp,
+          chunkCache: chunkCache, // undefined on plain maps (Json drops it)
           gridBlob: blobName,
           gridMeta: SaveGame._gridMeta(grid),
         });
@@ -277,8 +287,11 @@ globalThis.SaveGame = {
       }
       // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
       PlayerSystem.bindKeys();
-      // build the saved active map fresh, arriving the restored squad at its default entry
-      RpgMap.build(scene, activeMap, "default", squad);
+      // build the saved active map fresh, arriving the restored squad at its default entry; the
+      // deep chunk cache (if any) restores touched wilderness/hub chunks to their saved state.
+      RpgMap.build(scene, activeMap, "default", squad, {
+        chunkCache: active.chunkCache,
+      });
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
@@ -448,6 +461,24 @@ globalThis.SaveGame = {
   },
 
   // ── restore helpers: pull entities back out of a world export ──
+
+  // Drop a chunk manager's live SIM entities from a world export (they're saved in the chunk cache
+  // instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
+  // as-is (restore reads specific entities out, never re-imports the whole export).
+  _excludeChunkOwned(exp, chunks) {
+    const ids = chunks.entityIds();
+    if (ids.length === 0) return;
+    const excl = {}; // index -> true (numeric-keyed plain object, not a Map — GMRT)
+    for (let i = 0; i < ids.length; i++) excl[IdPool.getIndex(ids[i])] = true;
+    const toks = Object.keys(exp.components);
+    for (let t = 0; t < toks.length; t++) {
+      const entries = exp.components[toks[t]];
+      const kept = [];
+      for (let e = 0; e < entries.length; e++)
+        if (excl[entries[e][0]] !== true) kept.push(entries[e]);
+      exp.components[toks[t]] = kept;
+    }
+  },
 
   // the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
   _entryAt(entries, idx) {

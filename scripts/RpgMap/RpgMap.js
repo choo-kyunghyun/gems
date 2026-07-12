@@ -227,7 +227,7 @@ globalThis.RpgMap = {
   // Build a map fresh from file — first visit ONLY (a revisit always resumes its live parked
   // world; nothing is ever rebuilt). `squad` is handed in by go() (null on boot → spawn a fresh
   // player). Orchestrates the helpers below.
-  build(scene, mapId, entryId, squad = null) {
+  build(scene, mapId, entryId, squad = null, opts = {}) {
     const loaded = RpgMap._loadData(mapId, entryId);
     const data = loaded.data;
     mapId = loaded.mapId;
@@ -253,7 +253,7 @@ globalThis.RpgMap = {
     // persists on the scene across map swaps (BuildMode.build runs once) — reset explicitly.
     scene._built = {};
     scene._builtEnts = {};
-    RpgMap._spawnWorld(scene, data); // entities (streamed or up-front)
+    RpgMap._spawnWorld(scene, data, opts); // entities (streamed or up-front; opts.chunkCache = a deep-save restore)
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
     RpgMap._buildRenderer(scene, data); // render pass stack
@@ -345,7 +345,7 @@ globalThis.RpgMap = {
   // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
   // scene reads NPC/portal/enemy/companion handles LIVE by component query — stored id lists
   // would dangle as chunks stream in/out.
-  _spawnWorld(scene, data) {
+  _spawnWorld(scene, data, opts = {}) {
     if (scene._chunked) {
       // the pass-composed generator: authored hub overlay + procedural wilderness in one
       scene.generator = OverworldGen.create({
@@ -388,6 +388,10 @@ globalThis.RpgMap = {
       Log.info(
         `RpgMap: pregenerated ${pregen} chunks in ${current_time - t0}ms`,
       );
+      // deep-save restore: overwrite touched chunks with their saved entity state BEFORE the first
+      // stream, so they materialize saved snapshots (dead mobs stay dead) instead of fresh spawns.
+      if (opts.chunkCache !== undefined)
+        scene.chunks.importCache(opts.chunkCache);
       const sp = scene.world.get(Position, scene.playerId);
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
