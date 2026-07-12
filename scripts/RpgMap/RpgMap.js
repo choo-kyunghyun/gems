@@ -227,12 +227,15 @@ globalThis.RpgMap = {
   // Build a map fresh from file — first visit ONLY (a revisit always resumes its live parked
   // world; nothing is ever rebuilt). `squad` is handed in by go() (null on boot → spawn a fresh
   // player). Orchestrates the helpers below.
-  build(scene, mapId, entryId, squad = null, opts = {}) {
+  build(scene, mapId, entryId, squad = null) {
     const loaded = RpgMap._loadData(mapId, entryId);
     const data = loaded.data;
     mapId = loaded.mapId;
     entryId = loaded.entryId;
     scene.mapId = mapId;
+    // On a LOAD, SaveGame stashes each saved map's state; consume this map's here (null for a new
+    // game / an unvisited map). Its chunk cache feeds _spawnWorld; its builds apply after scaffolding.
+    const mapState = SaveGame.takePendingMap(mapId);
     // chunked: streams terrain + entities around the player (overworld); plain builds up front
     scene._chunked = data.meta.chunked === true;
     // indoor maps (meta.indoor): no sky passes, and the cozy interior BGM below
@@ -253,7 +256,11 @@ globalThis.RpgMap = {
     // persists on the scene across map swaps (BuildMode.build runs once) — reset explicitly.
     scene._built = {};
     scene._builtEnts = {};
-    RpgMap._spawnWorld(scene, data, opts); // entities (streamed or up-front; opts.chunkCache = a deep-save restore)
+    // entities (streamed or up-front). A loaded map threads its deep chunk cache in here so touched
+    // chunks materialize their saved state instead of fresh spawns.
+    RpgMap._spawnWorld(scene, data, {
+      chunkCache: mapState !== null ? mapState.chunkCache : undefined,
+    });
     RpgMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
     RpgMap._buildRenderer(scene, data); // render pass stack
@@ -262,6 +269,9 @@ globalThis.RpgMap = {
 
     FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
     ParticleFx.clear();
+
+    // a loaded map's builds + claimed zone (after scaffolding, so the tile layers/colliders exist)
+    if (mapState !== null) SaveGame.applyMapState(scene, mapState);
   },
 
   // Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.

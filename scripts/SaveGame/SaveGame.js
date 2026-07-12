@@ -18,6 +18,10 @@ globalThis.SaveGame = {
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
+  // per-map saved state awaiting each map's first build after a load — the active map consumes its
+  // entry immediately; a parked map consumes its entry when the player first portals to it (so a
+  // visited map's builds/chunk-state don't rebuild fresh from file). mapId -> saved map entry.
+  _pendingMaps: {},
   // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
   // are re-derived each tick; dropping them shrinks the save and avoids a cyclic runtime ref).
   _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse"],
@@ -120,6 +124,42 @@ globalThis.SaveGame = {
     const names = Object.keys(p.blobs);
     for (let i = 0; i < names.length; i++) buffer_delete(p.blobs[names[i]]);
     Log.info("SaveGame: restored slot '" + p.slot + "'");
+  },
+
+  // stash every saved map so each map's build consumes its own state (active now, others on portal).
+  _stashPending(maps) {
+    SaveGame._pendingMaps = {};
+    for (let i = 0; i < maps.length; i++)
+      SaveGame._pendingMaps[maps[i].id] = maps[i];
+  },
+
+  /** Drop any stashed per-map state — a NEW game must not inherit a prior load's maps. */
+  clearPending() {
+    SaveGame._pendingMaps = {};
+  },
+
+  /** Consume a map's stashed state (applied once, at its first build after a load). @returns {Object|null} */
+  takePendingMap(mapId) {
+    const m = SaveGame._pendingMaps[mapId];
+    if (m === undefined) return null;
+    delete SaveGame._pendingMaps[mapId];
+    return m;
+  },
+
+  /**
+   * Apply a saved map's build state onto a freshly-built map: the claimed buildable zone, then the
+   * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
+   * the world export, so a chest keeps its contents). Shared by the active-map restore and every
+   * parked map's first build. The deep chunk cache is applied earlier, inside build().
+   * @param {Object} scene @param {Object} savedMap a manifest maps[] entry
+   */
+  applyMapState(scene, savedMap) {
+    const zones = savedMap.gridMeta !== undefined ? savedMap.gridMeta.zones : undefined;
+    if (zones !== undefined && zones.buildable !== undefined) {
+      const zm = scene.level.zoneMap("buildable");
+      if (zm !== undefined) zm.import(zones.buildable);
+    }
+    Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
   },
 
   // index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
@@ -272,8 +312,11 @@ globalThis.SaveGame = {
       const scene = ctx.scene;
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
-      let active = null;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
+      // Stash EVERY saved map. The active one is applied by the build() below (RpgMap.build consults
+      // takePendingMap for chunk cache + applyMapState); parked maps apply on their first portal.
+      SaveGame._stashPending(maps);
+      let active = null;
       for (let i = 0; i < maps.length; i++)
         if (maps[i].id === activeMap) active = maps[i];
       if (active === null) {
@@ -287,11 +330,9 @@ globalThis.SaveGame = {
       }
       // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
       PlayerSystem.bindKeys();
-      // build the saved active map fresh, arriving the restored squad at its default entry; the
-      // deep chunk cache (if any) restores touched wilderness/hub chunks to their saved state.
-      RpgMap.build(scene, activeMap, "default", squad, {
-        chunkCache: active.chunkCache,
-      });
+      // Build the active map, arriving the restored squad at its default entry. build() consumes the
+      // active map's stashed state (deep chunk cache + builds + claimed zone).
+      RpgMap.build(scene, activeMap, "default", squad);
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
@@ -307,15 +348,6 @@ globalThis.SaveGame = {
         }
         if (scene.chunks !== undefined) scene.chunks.update(pinfo.x, pinfo.y);
       }
-      // restore the player's builds: the claimed buildable zone, then the tiles + built entities
-      // (via Blueprint.stamp — same path as the Build Mode blueprint feature). Built entities carry
-      // their exact snapshot from the world export, so a chest keeps its contents.
-      const zones = active.gridMeta !== undefined ? active.gridMeta.zones : undefined;
-      if (zones !== undefined && zones.buildable !== undefined) {
-        const zm = scene.level.zoneMap("buildable");
-        if (zm !== undefined) zm.import(zones.buildable);
-      }
-      Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(active));
     },
   },
 

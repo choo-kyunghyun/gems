@@ -150,7 +150,10 @@ class _SceneRpgClass {
     // world-sim in place of the fresh map + starting-loadout + companion seeding below.
     const loaded = SaveGame.pending();
     if (loaded) SaveGame.restore(this); // restore() drives the map build + squad arrival itself
-    else RpgMap.go(this, bootMap, "default");
+    else {
+      SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
+      RpgMap.go(this, bootMap, "default");
+    }
     Audio.bgm("mus_ambient_tense"); // carries across map changes (only _apply's reset stops it)
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
