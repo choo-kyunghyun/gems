@@ -127,6 +127,26 @@ globalThis.BuildMode = {
           }),
         },
         {
+          // openable door (wooden_door slab; the "door" InteractAction toggles Collision.solid).
+          // auto-oriented at placement: walls above+below → a vertical door in a N-S wall run
+          // (make's optional 3rd arg is the scene — only this item reads it).
+          id: "door",
+          labelKey: "BUILD_DOOR",
+          cost: 4,
+          kind: "entity",
+          make: (gx, gy, scene) => ({
+            preset: "prop",
+            gx,
+            gy,
+            label: I18n.text("BUILD_DOOR"),
+            kind: "door",
+            vertical:
+              scene !== undefined &&
+              TileEdit.occupied(scene.wallLayer, gx, gy - 1) &&
+              TileEdit.occupied(scene.wallLayer, gx, gy + 1),
+          }),
+        },
+        {
           // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene._sleep (fast-forward + drain Drowsiness).
           id: "bed",
           labelKey: "BUILD_BED",
@@ -595,8 +615,9 @@ globalThis.BuildMode = {
       scene._built[key] = item.id;
     } else {
       // spawn through the shared constructor so a built prop is identical to a file/streamed one
-      // (and persists via EntitySnapshot, see RpgMap).
-      const id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy));
+      // (and persists via EntitySnapshot, see RpgMap). make's optional 3rd arg is the scene
+      // (the door auto-orients off the wall layer).
+      const id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy, scene));
       scene._builtEnts[key] = { ent: id, itemId: item.id };
     }
     scene._invDirty = true;

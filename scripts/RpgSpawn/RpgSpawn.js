@@ -422,6 +422,7 @@ globalThis.RpgSpawn = {
       else if (s.kind === "bed")
         model = s.furn === "cot" ? "prison_bed" : "wooden_bed";
       else if (s.kind === "claim") model = "wooden_sign";
+      else if (s.kind === "door") model = "wooden_door";
       else if (s.kind === "hydrate") model = "wooden_tub";
       else if (s.kind === "feed") model = "wooden_bin";
       else if (s.kind === "buff") model = "wooden_altar";
@@ -433,6 +434,18 @@ globalThis.RpgSpawn = {
         const fp = RpgSpawn.footprint(model);
         if (fp !== undefined)
           over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
+        // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
+        // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
+        if (s.kind === "door" && s.vertical === true) {
+          over.Mesh.yaw = 90;
+          if (fp !== undefined)
+            over.BBox = {
+              x: -fp.h / 2,
+              y: -fp.w / 2,
+              width: fp.h,
+              height: fp.w,
+            };
+        }
       } else {
         let color;
         if (s.color !== undefined || s.material !== undefined)
@@ -443,7 +456,11 @@ globalThis.RpgSpawn = {
             : { sprite: spr_fenceSquare };
       }
       over.Name = { name: s.label };
-      if (s.kind !== undefined) over.Interaction = { kind: s.kind };
+      if (s.kind !== undefined)
+        over.Interaction =
+          s.kind === "door"
+            ? { kind: "door", open: 0 } // toggle state rides the component (EntitySnapshot-safe)
+            : { kind: s.kind };
     } else if (s.preset === "torch" || s.preset === "lantern") {
       if (s.label !== undefined) over.Name = { name: s.label };
     } else if (s.preset === "rock") {

@@ -45,6 +45,46 @@ globalThis.RpgInteractions = {
 
       // ── instant actions ──
       {
+        // built door (wooden_door prop): toggles passability. Closed = a solid slab (blocks
+        // bodies AND pathing — NavGrid rasterizes the kinematic collider live); open = non-solid
+        // with the slab swung 80° on its center. State (`open`) + yaw are component data, so a
+        // door round-trips map parking/EntitySnapshot as-is.
+        id: "door",
+        prompt: "DOOR_PROMPT",
+        run(ctx) {
+          const col = ctx.world.get(Collision, ctx.id);
+          const mesh = ctx.world.get(Mesh, ctx.id);
+          if (col === undefined) return;
+          if (ctx.comp.open === 1) {
+            // refuse to close over a standing body — it would trap it inside the collider
+            const box = AABB.of(ctx.world, ctx.id);
+            const ids = Query.inRect(
+              ctx.world,
+              box.x1 - 4,
+              box.y1 - 4,
+              box.x2 + 4,
+              box.y2 + 4,
+              { hasCollision: true },
+            );
+            for (let i = 0; i < ids.length; i++) {
+              if (ids[i] === ctx.id) continue;
+              const c = ctx.world.get(Collision, ids[i]);
+              if (c !== undefined && c.solid === true && c.kinematic === false) {
+                Toast.push(I18n.text("DOOR_BLOCKED"), { type: "info" });
+                return;
+              }
+            }
+            ctx.comp.open = 0;
+            col.solid = true;
+            if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) - 80;
+          } else {
+            ctx.comp.open = 1;
+            col.solid = false;
+            if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) + 80;
+          }
+        },
+      },
+      {
         id: "claim",
         prompt: "CLAIM_PROMPT",
         run(ctx) {

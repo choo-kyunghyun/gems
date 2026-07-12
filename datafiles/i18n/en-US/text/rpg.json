@@ -56,6 +56,7 @@
   "BUILD_CRATE": "Crate",
   "BUILD_BARREL": "Barrel",
   "BUILD_FENCE": "Fence",
+  "BUILD_DOOR": "Door",
   "BUILD_CHEST": "Footlocker",
   "BUILD_WORKBENCH": "Workbench",
   "BUILD_TORCH": "Lamp",

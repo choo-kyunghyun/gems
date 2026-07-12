@@ -252,6 +252,9 @@
 
   "BED_PROMPT": "[E] 잠자기",
 
+  "DOOR_PROMPT": "[E] 열기/닫기",
+  "DOOR_BLOCKED": "문가에 무언가 서 있습니다",
+
   "HYDRATE_PROMPT": "[E] 마시기",
   "FEED_PROMPT": "[E] 먹기",
   "BUFF_PROMPT": "[E] 기도하기"

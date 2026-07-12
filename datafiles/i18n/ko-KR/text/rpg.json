@@ -56,6 +56,7 @@
   "BUILD_CRATE": "나무 상자",
   "BUILD_BARREL": "통",
   "BUILD_FENCE": "울타리",
+  "BUILD_DOOR": "문",
   "BUILD_CHEST": "보관함",
   "BUILD_WORKBENCH": "작업대",
   "BUILD_TORCH": "조명등",

@@ -252,6 +252,9 @@
 
   "BED_PROMPT": "[E] Sleep",
 
+  "DOOR_PROMPT": "[E] Open/Close",
+  "DOOR_BLOCKED": "Something is standing in the doorway",
+
   "HYDRATE_PROMPT": "[E] Drink",
   "FEED_PROMPT": "[E] Eat",
   "BUFF_PROMPT": "[E] Pray"
