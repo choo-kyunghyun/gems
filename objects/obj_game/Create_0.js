@@ -112,4 +112,4 @@ DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
 // the Demo's SaveGame/SceneRpg). Save is gated on a saveable scene; Load boots a fresh RPG.
-SystemMenu.addTab(() => "Save / Load", () => SaveGame.buildMenuTab());
+SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () => SaveGame.buildMenuTab());

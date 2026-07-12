@@ -86,6 +86,33 @@ globalThis.Weather = class Weather {
   static _timer = 0; // real seconds until the next re-roll
   static _time = 0; // cumulative SIM seconds — the clock the weather VISUALS scroll on (see time())
 
+  // Flat save state: the whole sky is these eight scalars (see fields above). No _sync() on import —
+  // the fields fully define the sky, and the next update() re-syncs from them.
+  static export() {
+    return {
+      ambient: Weather._ambient,
+      override: Weather._override,
+      regionTemp: Weather._regionTemp,
+      cur: Weather._cur,
+      prev: Weather._prev,
+      blend: Weather._blend,
+      timer: Weather._timer,
+      time: Weather._time,
+    };
+  }
+
+  static import(d) {
+    if (d === undefined) return;
+    Weather._ambient = d.ambient;
+    Weather._override = d.override;
+    Weather._regionTemp = d.regionTemp;
+    Weather._cur = d.cur;
+    Weather._prev = d.prev;
+    Weather._blend = d.blend;
+    Weather._timer = d.timer;
+    Weather._time = d.time;
+  }
+
   // reset to a settled clear sky, no region override (scene create() once)
   static reset() {
     Weather._ambient = "clear";

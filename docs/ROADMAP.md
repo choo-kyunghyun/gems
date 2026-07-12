@@ -7,10 +7,6 @@
 - Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
 - A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
 
-## Features
-
-- Save and Load
-
 ## UI
 
 - Killfeed UI
@@ -36,7 +32,7 @@
 
 ### Build Mode
 
-- Blueprint
+- Blueprint UI
 - Drag to select
 
 ## Editor

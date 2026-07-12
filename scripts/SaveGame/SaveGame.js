@@ -48,13 +48,18 @@ globalThis.SaveGame = {
     const t0 = current_time;
     const bundle = SaveGame.frame().capture(scene);
     const dir = SaveGame.DIR + slot + "/";
-    File.write(dir + "manifest.json", Json.encode(bundle.manifest));
-    // binary blobs — the bundle owns them; write then free
+    // binary blobs first — the bundle owns them; write, RECORD the name (so load is self-describing
+    // for any pass's blobs, not hard-coded to one), then free. Currently no pass emits a blob (the
+    // dense tile grid proved reproducible from the build log), so this is the hybrid channel kept
+    // ready for future dense data.
+    bundle.manifest._blobs = [];
     for (let i = 0; i < bundle.blobs.length; i++) {
       const b = bundle.blobs[i];
       File.writeBuffer(dir + b.name + ".bin", b.buffer);
+      bundle.manifest._blobs.push(b.name);
       buffer_delete(b.buffer);
     }
+    File.write(dir + "manifest.json", Json.encode(bundle.manifest));
     SaveGame._writeIndex(slot, bundle.manifest.meta);
     Log.info(
       "SaveGame: saved '" + slot + "' — " + bundle.manifest.maps.length +
@@ -92,14 +97,12 @@ globalThis.SaveGame = {
       Log.error("SaveGame: manifest for '" + slot + "' is corrupt");
       return false;
     }
-    // load every referenced binary blob (name -> buffer; freed after restore runs)
+    // load every blob the manifest recorded (name -> buffer; freed after restore runs)
     const blobs = {};
-    const maps = manifest.maps !== undefined ? manifest.maps : [];
-    for (let i = 0; i < maps.length; i++) {
-      const name = maps[i].gridBlob;
-      if (name === undefined) continue;
-      const buf = File.readBuffer(dir + name + ".bin");
-      if (buf !== undefined) blobs[name] = buf;
+    const names = manifest._blobs !== undefined ? manifest._blobs : [];
+    for (let i = 0; i < names.length; i++) {
+      const buf = File.readBuffer(dir + names[i] + ".bin");
+      if (buf !== undefined) blobs[names[i]] = buf;
     }
     SaveGame._pending = { manifest, blobs, slot };
     return true;
@@ -154,7 +157,7 @@ globalThis.SaveGame = {
    * @param {Object} scene @param {Object} savedMap a manifest maps[] entry
    */
   applyMapState(scene, savedMap) {
-    const zones = savedMap.gridMeta !== undefined ? savedMap.gridMeta.zones : undefined;
+    const zones = savedMap.zones;
     if (zones !== undefined && zones.buildable !== undefined) {
       const zm = scene.level.zoneMap("buildable");
       if (zm !== undefined) zm.import(zones.buildable);
@@ -216,17 +219,7 @@ globalThis.SaveGame = {
         if (Achievement.isUnlocked(all[i].id)) ach.push(all[i].id);
       ctx.manifest.sim = {
         clock: { hour: WorldClock.hour, day: WorldClock.day },
-        // Weather has no export() yet — read its flat static state directly (Demo-internal coupling).
-        weather: {
-          ambient: Weather._ambient,
-          override: Weather._override,
-          regionTemp: Weather._regionTemp,
-          cur: Weather._cur,
-          prev: Weather._prev,
-          blend: Weather._blend,
-          timer: Weather._timer,
-          time: Weather._time,
-        },
+        weather: Weather.export(),
         profile: Profile.counters(),
         achievements: ach,
       };
@@ -236,17 +229,7 @@ globalThis.SaveGame = {
       if (sim === undefined) return;
       WorldClock.hour = sim.clock.hour;
       WorldClock.day = sim.clock.day;
-      // restore Weather's flat static state (symmetric with capture; no _sync needed — the fields
-      // fully define the sky, and the next update() re-syncs from them).
-      const w = sim.weather;
-      Weather._ambient = w.ambient;
-      Weather._override = w.override;
-      Weather._regionTemp = w.regionTemp;
-      Weather._cur = w.cur;
-      Weather._prev = w.prev;
-      Weather._blend = w.blend;
-      Weather._timer = w.timer;
-      Weather._time = w.time;
+      Weather.import(sim.weather);
       // lifetime counters + achievement unlocks
       const prof = sim.profile;
       const pk = Object.keys(prof);
@@ -285,8 +268,6 @@ globalThis.SaveGame = {
           SaveGame._excludeChunkOwned(exp, src.chunks);
           chunkCache = src.chunks.exportCache(SaveGame._TRANSIENT);
         }
-        const blobName = "grid_" + mapId;
-        SaveGame._packGrid(grid, ctx, blobName);
         maps.push({
           id: mapId,
           chunked: src._chunked === true,
@@ -297,8 +278,7 @@ globalThis.SaveGame = {
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
           world: exp,
           chunkCache: chunkCache, // undefined on plain maps (Json drops it)
-          gridBlob: blobName,
-          gridMeta: SaveGame._gridMeta(grid),
+          zones: SaveGame._zonesOf(grid), // claimed buildable zone (tiles come from `built` via Blueprint)
         });
       }
       ctx.manifest.maps = maps;
@@ -353,62 +333,26 @@ globalThis.SaveGame = {
 
   // ── helpers ──
 
-  // Pack all of a level's tile layers into one binary blob: a small header then, per layer, one
-  // u16 per cell = TileType.id + 1 (0 = empty, so id 0 doesn't collide with the empty sentinel).
-  // Dense grids as objects-per-cell in JSON would dwarf the rest of the save — this is the binary
-  // half of the hybrid bundle.
-  _packGrid(grid, ctx, name) {
-    const layers = grid.layers;
-    const cols = grid.cols;
-    const rows = grid.rows;
-    const cells = cols * rows;
-    const buf = buffer_create(6 + layers.length * cells * 2, buffer_grow, 1);
-    buffer_write(buf, buffer_u16, layers.length);
-    buffer_write(buf, buffer_u16, cols);
-    buffer_write(buf, buffer_u16, rows);
-    for (let l = 0; l < layers.length; l++) {
-      const layer = layers[l];
-      // TileLayer exposes its cells via export().data (array of TileType|0); guard a non-tile layer.
-      const data =
-        layer.export !== undefined ? layer.export().data : undefined;
-      for (let c = 0; c < cells; c++) {
-        const cell = data !== undefined ? data[c] : 0;
-        const v =
-          cell === 0 || cell === undefined || cell.id === undefined
-            ? 0
-            : cell.id + 1;
-        buffer_write(buf, buffer_u16, v);
-      }
-    }
-    ctx.putBlob(name, buf);
-  },
-
-  // grid dimensions + layer count + zone channels (JSON — zones are sparse regions, and
-  // zoneMap.export() is already the disk-safe form the level editor writes).
-  _gridMeta(grid) {
+  // Zone channels (JSON — zones are sparse regions, and zoneMap.export() is the disk-safe form the
+  // level editor already writes). The resident TILE grid is NOT captured: it holds player builds
+  // only, and those replay exactly from `built` via Blueprint.stamp on restore (file tiles come back
+  // from the file), so a raw grid blob would be dead weight.
+  _zonesOf(grid) {
     const zones = {};
     const keys = Object.keys(grid.zoneMaps);
     for (let i = 0; i < keys.length; i++)
       zones[keys[i]] = grid.zoneMaps[keys[i]].export();
-    return {
-      cols: grid.cols,
-      rows: grid.rows,
-      cellW: grid.cellWidth,
-      cellH: grid.cellHeight,
-      layers: grid.layers.length,
-      zones,
-    };
+    return zones;
   },
 
   // ── menu UI (injected into SystemMenu as an extra tab; see obj_game Create_0) ──
   SLOTS: 3, // fixed named save slots shown in the menu
 
   // Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
-  // Called fresh on each menu open, so the rows reflect the current index. English literals for
-  // now (i18n is a cleanup follow-up).
+  // Called fresh on each menu open, so the rows reflect the current index.
   buildMenuTab() {
     const scroll = gemsScroll({ grow: true });
-    const sec = gemsSection(() => "SAVE / LOAD");
+    const sec = gemsSection(I18n.textRef("SAVE_TITLE"));
     for (let i = 1; i <= SaveGame.SLOTS; i++)
       sec.insertChild(SaveGame._slotRow("slot" + i, i));
     scroll.scrollBody.insertChild(sec);
@@ -435,13 +379,13 @@ globalThis.SaveGame = {
     }));
     row.insertChild(wrap);
     row.insertChild(
-      gemsButton(() => "Save", () => SaveGame._menuSave(slot, n), {
+      gemsButton(I18n.textRef("SAVE_ACTION"), () => SaveGame._menuSave(slot, n), {
         width: 120,
         primary: true,
       }),
     );
     row.insertChild(
-      gemsButton(() => "Load", () => SaveGame._menuLoad(slot, n), {
+      gemsButton(I18n.textRef("LOAD_ACTION"), () => SaveGame._menuLoad(slot, n), {
         width: 120,
       }),
     );
@@ -450,10 +394,14 @@ globalThis.SaveGame = {
 
   _slotText(slot, n) {
     const meta = SaveGame.list()[slot];
-    if (meta === undefined) return "Slot " + n + "  —  (empty)";
-    return (
-      "Slot " + n + "  —  Day " + meta.day + "  " + meta.clock +
-      "   ·   " + meta.map + "   ·   " + meta.credits + " cr"
+    if (meta === undefined) return I18n.text("SAVE_SLOT_EMPTY", n);
+    return I18n.text(
+      "SAVE_SLOT_INFO",
+      n,
+      meta.day,
+      meta.clock,
+      meta.map,
+      meta.credits,
     );
   },
 
@@ -470,22 +418,22 @@ globalThis.SaveGame = {
   _menuSave(slot, n) {
     const s = SaveGame._saveable();
     if (s === null) {
-      Toast.push("Nothing to save here");
+      Toast.push(I18n.text("SAVE_TOAST_NOSCENE"));
       return;
     }
     SaveGame.save(s, slot);
-    Toast.push("Saved to slot " + n);
+    Toast.push(I18n.text("SAVE_TOAST_SAVED", n), { type: "success" });
   },
 
   _menuLoad(slot, n) {
     if (!SaveGame.has(slot)) {
-      Toast.push("Slot " + n + " is empty");
+      Toast.push(I18n.text("SAVE_TOAST_EMPTY", n));
       return;
     }
     const g = SystemMenu._game;
     if (g === null) return;
     if (!SaveGame.load(slot)) {
-      Toast.push("Load failed");
+      Toast.push(I18n.text("SAVE_TOAST_LOADFAIL"), { type: "warn" });
       return;
     }
     SystemMenu.close();
