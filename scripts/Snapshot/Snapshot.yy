@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Snapshot",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Snapshot",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Snapshot.js",
+}
