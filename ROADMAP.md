@@ -4,11 +4,8 @@
 
 ### Art follow-ups
 
-(The 2026-07-12 pass closed the rest: wall/floor materials + floor variants, terrain regenerated at 32, the spare vox/sprite/audio media wired — incl. the openable door — and greedy meshing + the manifest-driven `BBox`.)
-
 - Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
 - A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
-- Parked mesh niceties (speculative until a consumer exists): `.obj` frontend, box-path side sprites.
 
 ## Features
 
