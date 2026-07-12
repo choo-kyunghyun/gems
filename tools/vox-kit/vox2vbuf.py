@@ -1,6 +1,6 @@
 """vox2vbuf - bake a MagicaVoxel .vox model into a GameMaker vertex-buffer binary.
 
-The VOLUME art pipeline (ARCHITECTURE.md - Renderer / RenderMesh): author furniture in
+The VOLUME art pipeline (docs/architecture/renderer.md - RenderMesh): author furniture in
 MagicaVoxel, commit the .vox as editable source, bake to a raw vertex stream the runtime
 loads with buffer_load -> vertex_create_buffer_from_buffer (RenderMesh draws it in the
 depth pass).

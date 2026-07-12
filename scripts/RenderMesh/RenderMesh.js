@@ -1,5 +1,5 @@
 /**
- * VOLUME pass of the art projection contract (ROADMAP.md — Art Rework): draws each
+ * VOLUME pass of the art projection contract (docs/ROADMAP.md — Art Rework): draws each
  * `Mesh` + `Position` entity as real depth-writing geometry (z-write on for this loop
  * only, like RenderBillboard), so pawns sort against deep furniture per-pixel with zero
  * manual layering. Two paths per entity:

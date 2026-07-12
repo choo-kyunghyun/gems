@@ -1,6 +1,6 @@
 # GMRT-Safe Idioms
 
-Runtime-quirk reference for **G.E.M.S.** on the GMRT runtime, imported into context by [CLAUDE.md](CLAUDE.md) (via its `@GMRT.md` line) so it is always loaded alongside it.
+Runtime-quirk reference for **G.E.M.S.** on the GMRT runtime, imported into context by [CLAUDE.md](../CLAUDE.md) (via its `@docs/GMRT.md` line) so it is always loaded alongside it.
 
 **Everything below is verified against GMRT 0.20** (the toolchain pinned by `gm-options.json`) — re-audit this document on a runtime upgrade. The GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms. Avoid the quirks, don't "clean up" code back into them, leave a one-line comment where one forces an unusual idiom so it isn't "fixed" back, and record new quirks here as found.
 

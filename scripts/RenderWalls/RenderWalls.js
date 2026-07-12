@@ -1,5 +1,5 @@
 /**
- * WALLS pass of the art projection contract (ARCHITECTURE.md — Renderer): draws a solid tile
+ * WALLS pass of the art projection contract (docs/architecture/renderer.md): draws a solid tile
  * layer as lit boxes. Per wall cell it emits a plan-view TOP quad (at -height) plus a
  * vertical SOUTH face only where the south neighbor is empty — the two orientations the
  * fixed-yaw pitched camera can ever see (the vox-kit contract). Hidden-face removal happens

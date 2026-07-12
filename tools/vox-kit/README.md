@@ -1,6 +1,6 @@
 # vox-kit
 
-The VOLUME furniture pipeline (see ROADMAP.md — Art Rework): author boxy props in
+The VOLUME furniture pipeline (see docs/ROADMAP.md — Art Rework): author boxy props in
 [MagicaVoxel](https://ephtracy.github.io/), commit the `.vox` as editable source, bake it to a
 GameMaker vertex-buffer binary the engine draws as real depth-writing geometry.
 

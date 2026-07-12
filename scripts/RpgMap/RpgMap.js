@@ -512,7 +512,7 @@ globalThis.RpgMap = {
     );
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     scene.renderer.insert(new RenderEntityShadow());
-    // Deep-furniture meshes (VOLUME category of the projection contract — see ROADMAP.md):
+    // Deep-furniture meshes (VOLUME category of the projection contract — see docs/ROADMAP.md):
     // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
     // a flat map has no depth-writing entity pass to sort against. Sun injected like
     // RenderLighting's ambient (the pass is Core, WorldClock is Demo); camera assigned in

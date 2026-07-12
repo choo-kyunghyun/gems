@@ -7,10 +7,10 @@ Project guidelines for Claude Code.
 **G.E.M.S.** (GameMaker Entity & Map System) is a UI and entity management library for GameMaker, published as a public repository under the MIT license. The essentials:
 
 - **Library**: everything is built for reuse — hold every piece to library-grade code quality (the demo is the showcase, not the product).
-- **GMRT**: runs on GMRT, GameMaker's next-generation runtime (0.20 — see GameMaker CLI; its quirks live in GMRT.md).
+- **GMRT**: runs on GMRT, GameMaker's next-generation runtime (0.20 — see GameMaker CLI; its quirks live in docs/GMRT.md).
 - **JS**: JavaScript is the main language — all game logic is JS, never GML; TypeScript serves as the type checker (`jsconfig.json` `checkJs` over JSDoc + `.d.js` stubs), not a source language.
 - **ECS**: data-oriented programming, not object-oriented — entities are ids, components plain data, systems plain objects.
-- **Layers**: the project splits into four top-level pillars for reuse — `Core` (pure engine) / `Gameplay` (genre-agnostic gameplay kit) / `GemsUI` (themed UI kit) / `Demo` (the integrated showcase consuming the other three). Placement rule + full breakdown: ARCHITECTURE.md.
+- **Layers**: the project splits into four top-level pillars for reuse — `Core` (pure engine) / `Gameplay` (genre-agnostic gameplay kit) / `GemsUI` (themed UI kit) / `Demo` (the integrated showcase consuming the other three). Placement rule + full breakdown: docs/ARCHITECTURE.md.
 
 ## Working Guidelines
 
@@ -21,7 +21,7 @@ Quality over speed. Follow these principles:
 - **Simple is best.** Shorter and leaner is better, as long as readability doesn't suffer — add nothing unnecessary.
 - **Don't hide errors.** Write code so an error surfaces as early as possible; an object must never handle an error that is not its responsibility.
 - **Change only what's needed.** Touch only the code the task requires. Report pre-existing dead or broken code to the user instead of fixing it on the spot.
-- **Keep CLAUDE.md stable.** This file is the rarely-edited core; record new knowledge in its proper home instead — structural changes in ARCHITECTURE.md, runtime quirks in GMRT.md, tool details in the tool's README, plans in ROADMAP.md. Edit this file only when a core rule itself changes.
+- **Keep CLAUDE.md stable.** This file is the rarely-edited core; record new knowledge in its proper home instead — structural changes in the area's docs/architecture/ file (cross-cutting rules in docs/ARCHITECTURE.md), runtime quirks in docs/GMRT.md, tool details in the tool's README, plans in docs/ROADMAP.md. Edit this file only when a core rule itself changes.
 
 ## GameMaker CLI
 
@@ -39,7 +39,7 @@ Optional flags: `--target`, `--runtime`, `--toolchain`, and `--errors-only`. The
 
 ### Manual
 
-`gm-cli manual read "<query>"` prints the official GameMaker manual page — the full specification of a built-in (signature, arguments, return, accepted constants) with usage examples. When anything is uncertain, check the manual first. The query is a semantic search, so pass the exact page name to be sure of the article you get. Note that the manual does **not** reflect GMRT: it states an API's intended contract only — whether GMRT honors it is a separate question (the known divergences live in GMRT.md).
+`gm-cli manual read "<query>"` prints the official GameMaker manual page — the full specification of a built-in (signature, arguments, return, accepted constants) with usage examples. When anything is uncertain, check the manual first. The query is a semantic search, so pass the exact page name to be sure of the article you get. Note that the manual does **not** reflect GMRT: it states an API's intended contract only — whether GMRT honors it is a separate question (the known divergences live in docs/GMRT.md).
 
 Example:
 
@@ -77,7 +77,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 ### Runtime Log (`game.log`)
 
-The **`Log`** class (`Log.info/warn/error/debug`, see ARCHITECTURE → _Utility Modules → Log_) buffers timestamped lines that `obj_game` flushes to **`game.log`** in the save dir (`%LOCALAPPDATA%\gems\`) once per frame — `Read` it after a `gm-cli run` to confirm runtime behavior without watching the window (add temporary `Log.debug` lines around the code under test, then revert). An uncaught runtime fault is also recorded there by `Log.exception` (the registered unhandled-exception handler) as `UNHANDLED EXCEPTION: <message>` — if a run dies with no such line, the crash was native and the log simply stops at its last flush.
+The **`Log`** class (`Log.info/warn/error/debug`, see docs/architecture/utilities.md → _Log_) buffers timestamped lines that `obj_game` flushes to **`game.log`** in the save dir (`%LOCALAPPDATA%\gems\`) once per frame — `Read` it after a `gm-cli run` to confirm runtime behavior without watching the window (add temporary `Log.debug` lines around the code under test, then revert). An uncaught runtime fault is also recorded there by `Log.exception` (the registered unhandled-exception handler) as `UNHANDLED EXCEPTION: <message>` — if a run dies with no such line, the crash was native and the log simply stops at its last flush.
 
 ### Visual Verification (Screenshot)
 
@@ -85,7 +85,7 @@ The agent can't press F5, so add a temporary auto-capture: in `obj_game/Draw_75.
 
 ### Live State Inspection (`debug.txt`)
 
-To _read_ live runtime values (not pixels), use the **`Debug`** back-end (see ARCHITECTURE → _Debug_): code registers live-bound panels (`Debug.panel(name, (p) => p.watch/slider/checkbox/...)`), and `Debug.update()` (wired in `Step_0`) periodically writes a flat snapshot to **`debug.txt`** in the save dir — `Read` it after a `gm-cli run` like `game.log`. An agent can `Debug.set(panel, label, value)` / `Debug.press(panel, label)` from a temp harness to tune a value or fire a button, then screenshot to verify. This text port exists because the native ImGui overlay (`show_debug_overlay` + `dbg_*`) renders **outside** the game surface, so `screen_save` can't capture it — that overlay (`DebugImGui`, toggle **F3**) is human-only.
+To _read_ live runtime values (not pixels), use the **`Debug`** back-end (see docs/architecture/utilities.md → _Debug_): code registers live-bound panels (`Debug.panel(name, (p) => p.watch/slider/checkbox/...)`), and `Debug.update()` (wired in `Step_0`) periodically writes a flat snapshot to **`debug.txt`** in the save dir — `Read` it after a `gm-cli run` like `game.log`. An agent can `Debug.set(panel, label, value)` / `Debug.press(panel, label)` from a temp harness to tune a value or fire a button, then screenshot to verify. This text port exists because the native ImGui overlay (`show_debug_overlay` + `dbg_*`) renders **outside** the game surface, so `screen_save` can't capture it — that overlay (`DebugImGui`, toggle **F3**) is human-only.
 
 ### Stale-Cache Reset
 
@@ -105,7 +105,7 @@ The repo bundles standalone tools under `tools/` — not part of the game itself
 ### General
 
 - **Language**: JavaScript (GMRT JS runtime), not GML. All scripts in `scripts/` use `.js`.
-- **Global exposure**: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in ARCHITECTURE.md.
+- **Global exposure**: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
 - **Formatter**: [Prettier](https://prettier.io/) with `{ "bracketSameLine": true }` (MDN config). Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 
 ### Script Naming
@@ -129,8 +129,8 @@ Each scene owns its `World` (`this.world = new World(maxEntities, tickrate, opts
 
 ## GMRT-Safe Idioms
 
-See @GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms, and that always-in-context reference catalogues the quirks still live on 0.20 (language/compiler, strings/serialization/PRNG, sprites/assets/camera, rendering/shaders/clip, timing/input, flexpanel layout) plus the verified **Capabilities** to use freely. Avoid the quirks, don't "clean up" code back into them, and record new ones there as found.
+See @docs/GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms, and that always-in-context reference catalogues the quirks still live on 0.20 (language/compiler, strings/serialization/PRNG, sprites/assets/camera, rendering/shaders/clip, timing/input, flexpanel layout) plus the verified **Capabilities** to use freely. Avoid the quirks, don't "clean up" code back into them, and record new ones there as found.
 
 ## Architecture
 
-See @ARCHITECTURE.md — the full architecture reference (every layer, system, component, renderer pass, and UI widget), kept in context alongside this file by the `@`-import. Its _Contents_ section indexes the layers.
+See @docs/ARCHITECTURE.md — the always-loaded architecture **core** (the layer map, the cross-cutting invariants, and the reference index), kept in context alongside this file by the `@`-import. The per-area detail lives in `docs/architecture/*.md` — **Read the area's file before designing or modifying anything in it**; the core's index routes you to the right one.
