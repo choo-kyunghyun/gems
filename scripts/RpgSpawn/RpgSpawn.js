@@ -17,6 +17,7 @@
 //   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
 //   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
 //   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
+//   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
 //   reach    half?                (quest zone marker — no entity)
 //   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
 //   follower label? color? speed? range?   (companion; starts in "follow")

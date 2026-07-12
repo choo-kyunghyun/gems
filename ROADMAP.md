@@ -4,10 +4,11 @@
 
 ### Art follow-ups
 
-- More wall/floor materials (poured concrete, metal panel, scrap plank); the spare `spr_tex_tile`/`carpet`/`mosaic` sheets as Build-Mode floor variants; a dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
-- Regenerate the 16 px terrain sheets at 32 (they render correctly via UV-stretch; crispness only).
-- Wire the spare media: `tree_pine`/`wooden_door`/table/dresser/stool vox meshes, `spr_soda`/`spr_sodaTrash` sprites, the spare SFX/BGM (`snd_hitsound_metal`, `snd_explosion_large`, `mus_ambient_cozy`/`emergency`). Redraw the 16 px fence sheet at 32 (`SpriteMeta density: 0.5` carries it meanwhile).
-- Mesh niceties: greedy meshing, manifest-driven `BBox`, `.obj` frontend, box-path side sprites.
+(The 2026-07-12 pass closed the rest: wall/floor materials + floor variants, terrain regenerated at 32, the spare vox/sprite/audio media wired — incl. the openable door — and greedy meshing + the manifest-driven `BBox`.)
+
+- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
+- A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
+- Parked mesh niceties (speculative until a consumer exists): `.obj` frontend, box-path side sprites.
 
 ## Features
 
@@ -22,7 +23,7 @@
 - Modular turret
   - Auto turrets fire mounted weapons
   - Mountable turrets
-- Explosive like grenade and mine
+- Explosive like grenade and mine (`snd_explosion_large` is its reserved SFX)
 - Minify furnitures
 - Settlement and outpost
 - Farming and fishing
@@ -31,7 +32,7 @@
   - Biological sex(Display as XX and XY)
   - Entity age
 - Gacha capsule with new UI
-- Raid event: Defend the settlement
+- Raid event: Defend the settlement (`mus_ambient_emergency` is its reserved BGM)
 - Radio
 - UI Concept: Smart HUD
 - Darkmode and lightmode theme
