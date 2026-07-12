@@ -817,7 +817,7 @@ class _SceneRpgClass {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
     PlayerSystem.bindKeys();
-    Audio.bgm("mus_ambient_tense"); // restore the RPG theme after a guest crossfaded its own
+    RpgMap._applyBgm(this); // restore the map's ambient after a guest crossfaded its own
   }
 
   // launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()

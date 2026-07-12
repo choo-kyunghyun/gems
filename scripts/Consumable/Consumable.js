@@ -13,6 +13,7 @@ globalThis.Consumable = class Consumable {
    * @param {number} [d.statusDuration] override seconds; 0 = use the def's duration
    * @param {number} [d.thirst] survival: lowers Thirst (a drink)
    * @param {number} [d.hunger] survival: lowers Hunger (a food)
+   * @param {string} [d.yields] item id left behind after use (e.g. an empty can). "" = none.
    */
   constructor(d) {
     this.heal = d.heal ?? 0;
@@ -22,5 +23,6 @@ globalThis.Consumable = class Consumable {
     this.statusDuration = d.statusDuration ?? 0;
     this.thirst = d.thirst ?? 0;
     this.hunger = d.hunger ?? 0;
+    this.yields = d.yields ?? "";
   }
 };

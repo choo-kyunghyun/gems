@@ -124,6 +124,26 @@ globalThis.RpgItems = {
         components: [new Consumable({ thirst: 45 })],
       },
       {
+        // pre-collapse fizzy drink — a lighter thirst hit than the bottle, and the can
+        // survives the drink (Consumable.yields → soda_trash junk)
+        id: "soda",
+        name: "ITEM_SODA",
+        description: "ITEM_SODA_DESC",
+        weight: 1,
+        value: 6,
+        rarity: "common",
+        components: [new Consumable({ thirst: 30, yields: "soda_trash" })],
+      },
+      {
+        // the empty can (no components — sellable junk; a future scrap recipe input)
+        id: "soda_trash",
+        name: "ITEM_SODA_TRASH",
+        description: "ITEM_SODA_TRASH_DESC",
+        weight: 1,
+        value: 1,
+        rarity: "common",
+      },
+      {
         id: "ration_pack",
         name: "ITEM_RATION_PACK",
         description: "ITEM_RATION_PACK_DESC",

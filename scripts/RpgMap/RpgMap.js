@@ -22,6 +22,7 @@ globalThis.RpgMap = {
     "entries",
     "mapId",
     "_chunked",
+    "_indoor",
     "terrainLayer",
     "floorLayer",
     "floorTileLayer",
@@ -148,8 +149,16 @@ globalThis.RpgMap = {
 
     RpgMap._activateReset(scene);
     RpgMap._registerCameraDebug(scene);
+    RpgMap._applyBgm(scene); // crossfade to the resumed map's ambient (indoor ⇄ overworld)
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
+  },
+
+  // Map-appropriate ambient: interiors (meta.indoor) get the cozy loop, the open world the
+  // tense one. Called on every map arrival (build + resume); Audio.bgm cross-fades and treats
+  // a same-track re-request as a no-op, so this is safe to call unconditionally.
+  _applyBgm(scene) {
+    Audio.bgm(scene._indoor === true ? "mus_ambient_cozy" : "mus_ambient_tense");
   },
 
   // Pointer-copy per-map fields scene↔bundle. Index loop (no Map/Set iteration — GMRT).
@@ -226,6 +235,8 @@ globalThis.RpgMap = {
     scene.mapId = mapId;
     // chunked: streams terrain + entities around the player (overworld); plain builds up front
     scene._chunked = data.meta.chunked === true;
+    // indoor maps (meta.indoor): no sky passes, and the cozy interior BGM below
+    scene._indoor = data.meta.indoor === true;
     Log.info(
       `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
     );
@@ -247,6 +258,7 @@ globalThis.RpgMap = {
     RpgMap._buildPipeline(scene); // nav window + physics pipeline
     RpgMap._buildRenderer(scene, data); // render pass stack
     RpgMap._buildCamera(scene, data); // follow camera + view culling + debug
+    RpgMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
 
     FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
     ParticleFx.clear();

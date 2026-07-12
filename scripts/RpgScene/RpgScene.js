@@ -33,6 +33,11 @@ globalThis.RpgScene = {
     const followers = scene.world.query(Follower);
     for (let i = 0; i < followers.length; i++)
       RpgScene._diffHp(scene, followers[i], true, yOffset);
+    // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
+    // Follower); a double-diffed id is harmless (the first call settles _hpTrack).
+    const meshBodies = scene.world.query(Health, Mesh);
+    for (let i = 0; i < meshBodies.length; i++)
+      RpgScene._diffHp(scene, meshBodies[i], true, yOffset);
   },
 
   _diffHp(scene, id, isAlly, yOffset) {
@@ -50,8 +55,11 @@ globalThis.RpgScene = {
             type: isAlly ? "hurt" : "damage",
           });
           // impact SFX; let the death pass own the killing blow (snd_explosion_small), so skip
-          // enemy hp→0. Allies read as armored (geared squad), enemies as flesh (raiders/rats).
-          if (isAlly) Audio.playAt("snd_hitsound_armor", pos.x, pos.y);
+          // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
+          // armored (geared squad), enemies as flesh (raiders/rats).
+          if (world.get(Mesh, id) !== undefined)
+            Audio.playAt("snd_hitsound_metal", pos.x, pos.y);
+          else if (isAlly) Audio.playAt("snd_hitsound_armor", pos.x, pos.y);
           else if (hp.hp > 0) Audio.playAt("snd_hitsound_flesh", pos.x, pos.y);
         } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });

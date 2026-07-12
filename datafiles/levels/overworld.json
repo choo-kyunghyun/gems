@@ -155,6 +155,7 @@
           { "itemId": "medkit", "qty": 1 },
           { "itemId": "medgel", "qty": 1 },
           { "itemId": "water_bottle", "qty": 1 },
+          { "itemId": "soda", "qty": 1 },
           { "itemId": "ration_pack", "qty": 1 },
           { "itemId": "cooked_meat", "qty": 1 },
           { "itemId": "ammo_light", "qty": 1 },

@@ -20,6 +20,8 @@ globalThis.ConsumableSystem = {
 
     if (!this._apply(world, id, con)) return false; // nothing to do — don't waste it
     InventorySystem.remove(inv, itemId, 1);
+    // leftover container (an empty can) — best-effort: a full bag just loses the trash
+    if (con.yields !== "") InventorySystem.add(inv, con.yields, 1);
     return true;
   },
 
