@@ -70,9 +70,37 @@ globalThis.OverworldGen = {
                 : undefined),
         }),
         OverworldGen.rocks(),
+        OverworldGen.trees(),
         OverworldGen.rats(),
       ],
     });
+  },
+
+  // scattered pines — one solid `tree` preset entity each (trunk collider, overhanging canopy
+  // mesh); off water like the wildlife, with a position-hashed quarter-turn + size so the one
+  // model doesn't visibly repeat (hashes draw nothing from the pass stream)
+  trees() {
+    return {
+      salt: 5,
+      apply(ctx) {
+        if (ctx.authored === true) return; // hub chunks are hand-built
+        const rng = ctx.rng;
+        const trees = 2 + Math.floor(rng() * 4); // 2..5
+        for (let i = 0; i < trees; i++) {
+          const gx = ctx.gx0 + 1 + Math.floor(rng() * (ctx.cols - 2));
+          const gy = ctx.gy0 + 1 + Math.floor(rng() * (ctx.rows - 2));
+          if (!ctx.field.spawnable(gx, gy)) continue; // no pines in water
+          const q = Rand.int2(gx, gy, ctx.gen.seed + 13);
+          ctx.out.spawns.push({
+            preset: "tree",
+            gx: gx,
+            gy: gy,
+            yaw: (q % 4) * 90,
+            size: 0.8 + (q % 5) * 0.15, // 0.8..1.4 specimen variety
+          });
+        }
+      },
+    };
   },
 
   // rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over

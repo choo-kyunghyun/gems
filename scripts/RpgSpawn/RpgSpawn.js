@@ -56,6 +56,22 @@ globalThis.RpgSpawn = {
     };
   },
 
+  // Furniture `furn` → vox model for the prop adapter; an unknown/absent furn falls back to
+  // the crate (matching the old behavior). "fence" is the one sprite prop; "cot" rides the
+  // kind:"bed" branch.
+  FURN_MODELS: {
+    barrel: "wooden_barrel",
+    crate: "wooden_crate",
+    table: "wooden_table",
+    table_small: "wooden_table_small",
+    table_coffee: "wooden_table_coffee",
+    dresser: "wooden_dresser_single",
+    dresser_double: "wooden_dresser_double",
+    stool: "wooden_stool_square",
+    stool_round: "wooden_stool_round",
+    nightstand: "wooden_night_stand",
+  },
+
   // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
   // Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
   // scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
@@ -241,6 +257,18 @@ globalThis.RpgSpawn = {
         },
       },
       {
+        // Wilderness pine (OverworldGen scatter): a solid TRUNK collider under a canopy that
+        // visually overhangs it (Mesh is visual-only) — the tree reads big while bodies path
+        // around the trunk; a spawn descriptor's `size` scalar varies specimens.
+        id: "tree",
+        components: {
+          BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48×48 canopy
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "Pine" },
+          Mesh: { model: "tree_pine" },
+        },
+      },
+      {
         // Wilderness boulder (OverworldGen scatter): an immovable solid the rock mesh is drawn
         // over. One entity per cluster — the adapter stretches Mesh + BBox to the w×h cell rect,
         // so the collider matches the old scatter wall rect exactly (NavGrid/pathing unchanged).
@@ -397,8 +425,8 @@ globalThis.RpgSpawn = {
       else if (s.kind === "hydrate") model = "wooden_tub";
       else if (s.kind === "feed") model = "wooden_bin";
       else if (s.kind === "buff") model = "wooden_altar";
-      else if (s.furn === "barrel") model = "wooden_barrel";
-      else if (s.furn !== "fence") model = "wooden_crate";
+      else if (s.furn !== "fence")
+        model = RpgSpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
       if (model !== undefined) {
         over.Mesh = { model };
         // collider matched to the model's baked voxel footprint (big furniture is multi-cell)
