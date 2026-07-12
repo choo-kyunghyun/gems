@@ -168,7 +168,7 @@ Genre scenes compose these into a **`Pipeline`** (`scripts/Pipeline/`): `this.ph
 
 **Motion integrators are exclusive per body**: `MovementSystem` integrates _free_ movers (no collision response), `SolidSystem` is move-and-collide for solid bodies, `ProjectileSystem` is move-and-raycast for projectiles. A given mover is integrated by exactly one of them.
 
-**`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` before `scene.step()` — always available in scene code.
+**`Time`** (`scripts/Time/Time.js`): `Time.delta` (scaled seconds), `Time.raw` (wall-clock), `Time.scale` (time dilation). Updated by `obj_game` in `Step_0` before `scene.step()` — always available in scene code. **The clock split is the pause/dilation rule**: `Time.delta` is scaled by `Time.scale`, so anything on it freezes/slows with the sim — gameplay motion wants exactly that, but **UI timers/easing must use `Time.raw`** (hover/press fades, caret blink, key-repeat, toggle easing — `UIButton`/`UIInput`/`UICheckbox`; likewise the GUI singletons `Toast`/`SceneTransition`/`Dialogue`), else menus freeze while the game is paused. World-space effects deliberately stay on `Time.delta` so slow-mo slows them too (`FloatingText`, `Weather`).
 
 ## Genre Controllers & Template Gameplay Systems
 

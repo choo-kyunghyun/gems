@@ -53,7 +53,6 @@ Runtime-quirk reference for **G.E.M.S.** on the GMRT runtime, imported into cont
 
 ## Timing / input
 
-- **UI timers/easing use `Time.raw`, not `Time.delta`** — `Time.delta` is scaled by `Time.scale`, so UI on it freezes/slows when the sim dilates or pauses. Use `Time.raw` (wall-clock) for hover/press fades, caret blink, key-repeat, toggle easing (`UIButton`/`UIInput`/`UICheckbox`).
 - **`mouse_check_button*` are sampled realtime, NOT latched per frame** — calling the same query twice in a frame can return different values. Call each edge query once at frame start and share it; don't derive edges from the button level. **`UIPointer.poll()`** (in `Step_0` before `UI.update`) latches `pressed`/`released`/`down`/`wheel` once for every widget + `SlotDrag`/`BuildMode`/`Dialogue` to read.
 - **`keyboard_lastkey` lags `keyboard_check_pressed(vk_anykey)` by a frame** — on the pressed-edge frame it still holds the previous key, so a rebind handler binds the stale key. Scan the keycode range for the one whose `keyboard_check_pressed(code)` is live this frame (see `UIRebind._scanKey`, scans 8..255).
 
