@@ -26,6 +26,11 @@ globalThis.Brain = "Brain";
  * @property {number} bulletSpeed muzzle velocity (px/s) scaling the hitscan reach; 0 for melee
  * @property {number} pathCd      A* replan throttle countdown (ticks) while a chase is wall-blocked
  * @property {number} pathRate    ticks between A* replans during a blocked chase
+ * @property {number} aggroRate   ticks between idle target-acquisition scans (nearestHostile is O(n))
+ * @property {number} aggroCd     acquisition throttle countdown (ticks)
+ * @property {number} losRate     ticks between chase LOS raycasts (Raycast.cast is O(colliders))
+ * @property {number} losCd       LOS throttle countdown (ticks)
+ * @property {boolean} losBlocked cached "a wall blocks the shot" decision between LOS raycasts
  */
 
 globalThis.CombatAI = {
@@ -60,22 +65,30 @@ globalThis.CombatAI = {
             else CombatAI._stop(world, id);
           }
 
-          // acquire nearest hostile in aggro range (by faction)
-          const t = FactionSystem.nearestHostile(
-            world,
-            id,
-            pos.x,
-            pos.y,
-            brain.aggro,
-          );
-          if (t !== -1) {
-            brain.target = t;
-            // mobile actor closes the distance; turret attacks in place
-            StateSystem.change(
+          // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile scans
+          // every combatant (O(n)), so an idle actor rescans only every aggroRate ticks — a ~0.25s
+          // acquisition delay is imperceptible, and this is the dominant idle-crowd cost at a wide
+          // SIM window (a swarm of idle enemies each scanning every tick).
+          if (brain.aggroCd > 0) {
+            brain.aggroCd--;
+          } else {
+            brain.aggroCd = brain.aggroRate;
+            const t = FactionSystem.nearestHostile(
               world,
               id,
-              brain.mobile ? "combat.chase" : "combat.attack",
+              pos.x,
+              pos.y,
+              brain.aggro,
             );
+            if (t !== -1) {
+              brain.target = t;
+              // mobile actor closes the distance; turret attacks in place
+              StateSystem.change(
+                world,
+                id,
+                brain.mobile ? "combat.chase" : "combat.attack",
+              );
+            }
           }
           CombatAI._animate(world, id, false); // doll actors: idle/walk (drift-home) + facing
         },
@@ -86,6 +99,7 @@ globalThis.CombatAI = {
         id: "combat.chase",
         enter(world, id) {
           CombatAI._tint(world, id, 230, 170, 70, 0.35); // alert orange flush
+          world.get(Brain, id).losCd = 0; // raycast LOS immediately on entering the chase
         },
         update(world, id) {
           const brain = world.get(Brain, id);
@@ -110,11 +124,19 @@ globalThis.CombatAI = {
 
           // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
           // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
-          const hit = Raycast.cast(world, sp.x, sp.y, tp.x, tp.y, {
-            ignore: id,
-          });
-          const blocked =
-            hit !== null && world.get(Collision, hit.id).kinematic;
+          // THROTTLED: Raycast.cast is O(all colliders); re-cast every losRate ticks and cache the
+          // decision (a moving target's occlusion shifts slowly — ~0.13s staleness is imperceptible).
+          if (brain.losCd > 0) {
+            brain.losCd--;
+          } else {
+            brain.losCd = brain.losRate;
+            const hit = Raycast.cast(world, sp.x, sp.y, tp.x, tp.y, {
+              ignore: id,
+            });
+            brain.losBlocked =
+              hit !== null && world.get(Collision, hit.id).kinematic;
+          }
+          const blocked = brain.losBlocked;
           if (!blocked || CombatAI._level === undefined) {
             PathFollow.clear(world, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
@@ -203,6 +225,14 @@ globalThis.CombatAI = {
       bulletSpeed: opt.bulletSpeed ?? 0,
       pathCd: 0, // replan throttle (ticks) — counts down while a chase is wall-blocked
       pathRate: opt.pathRate ?? 12,
+      // acquisition + LOS throttles: both scans are O(entities/colliders), so idle actors re-scan
+      // for targets every aggroRate ticks and chasers re-raycast LOS every losRate ticks. aggroCd is
+      // staggered by id so a freshly-streamed crowd doesn't scan all on the same tick (a load spike).
+      aggroRate: opt.aggroRate ?? 15,
+      aggroCd: id % (opt.aggroRate ?? 15),
+      losRate: opt.losRate ?? 8,
+      losCd: 0,
+      losBlocked: false,
     });
     world.add(id, State, { current: "", next: "combat.idle" });
   },
