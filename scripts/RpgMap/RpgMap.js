@@ -158,7 +158,9 @@ globalThis.RpgMap = {
   // tense one. Called on every map arrival (build + resume); Audio.bgm cross-fades and treats
   // a same-track re-request as a no-op, so this is safe to call unconditionally.
   _applyBgm(scene) {
-    Audio.bgm(scene._indoor === true ? "mus_ambient_cozy" : "mus_ambient_tense");
+    Audio.bgm(
+      scene._indoor === true ? "mus_ambient_cozy" : "mus_ambient_tense",
+    );
   },
 
   // Pointer-copy per-map fields scene↔bundle. Index loop (no Map/Set iteration — GMRT).
@@ -368,12 +370,12 @@ globalThis.RpgMap = {
       // clamps to it + a wall border rings it, so the player/enemies can't leave.
       const wc = data.meta.worldCols ?? data.cols ?? 128;
       const wr = data.meta.worldRows ?? data.rows ?? 128;
-      // The freeze (LOAD) tier earns its keep: simRadius 1 keeps only ~9 chunks fully simulated.
-      // Measured 2026-07-02: collapsing to simRadius=loadRadius (25 SIM chunks) tanks the sim to
-      // ~260-334ms/step (3fps) — per-tick cost scales ~quadratically with entity count. The
-      // broadphase wired in _buildPipeline fixes TriggerSystem's share but NOT the dominant one:
-      // SolidSystem's O(bodies×colliders) move-and-collide isn't broadphase-backed (still ~260ms at
-      // simRadius:2). So keep the SIM window small until SolidSystem is broadphase-aware.
+      // The freeze (LOAD) tier: simRadius 1 keeps only ~9 chunks fully simulated. Historically a
+      // wider window was unaffordable — measured 2026-07-02 that simRadius=loadRadius (25 SIM chunks)
+      // tanked the sim to ~260-334ms/step (3fps), dominated by SolidSystem's move-and-collide. That
+      // blocker is now lifted: SolidSystem is spatially indexed (its own static grid — see
+      // SolidSystem._gridRebuild). simRadius:1 stays the shipped default pending a simRadius:2
+      // re-measure with the grid in place.
       scene.chunks = new ChunkManager(
         scene.world,
         scene.level,
@@ -422,13 +424,12 @@ globalThis.RpgMap = {
     // non-solid sensor diameter (~16-24px at 16px cells); huge SOLID colliders (world border, water
     // rects) are exempt — TriggerSystem skips solid-vs-solid and SeparationSystem buckets dynamic
     // bodies only. Rides with the World, so a parked map keeps it across a resume; rebuilt per cold
-    // build. NOTE: this does NOT make a wide SIM window affordable — at simRadius:2 the step is still
-    // ~260ms because SolidSystem (move-and-collide, O(bodies×colliders), NOT broadphase-backed)
-    // dominates; making SolidSystem broadphase-aware is the prerequisite for dropping the freeze tier.
-    // UPDATE 2026-07-02 (later): SolidSystem now snapshots static edges+oneWay once per tick, so its
-    // resolve loop is flat field reads — measured ~8.5→~1.2ms/tick at simRadius:1 (tick loop
-    // ~3-4ms/frame, 60fps+ restored). The loop is still LINEAR over all statics, so the guidance
-    // stands: widening simRadius still wants spatial bucketing of the static snapshot first.
+    // build. NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob, mob↔sensor).
+    // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
+    // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
+    // History: SolidSystem was O(bodies×statics); a per-tick static snapshot (2026-07-02) cut per-test
+    // allocs (~8.5→~1.2ms/tick at simRadius:1), then spatial bucketing of that snapshot (2026-07-13)
+    // removed the linear-over-all-statics scan — lifting the wide-SIM blocker (pending re-measure).
     scene.world.broadphase = new Broadphase(
       scene.level.cols * scene.level.cellWidth,
       scene.level.rows * scene.level.cellHeight,
