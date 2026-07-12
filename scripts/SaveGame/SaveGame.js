@@ -17,6 +17,7 @@ globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
+  _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
 
   // Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
   // the active map, etc. (locked in when restore lands).
@@ -63,6 +64,59 @@ globalThis.SaveGame = {
   /** @returns {boolean} whether a slot exists in the index. */
   has(slot) {
     return SaveGame._readIndex().slots[slot] !== undefined;
+  },
+
+  // ── load ──
+
+  /**
+   * Read a slot's bundle off disk and PARK it for the RPG scene's create() load-branch (the
+   * actual reconstruction needs a fresh scene). The caller then boots/switches to SceneRpg.
+   * @param {string} slot @returns {boolean} false if the slot can't be read
+   */
+  load(slot) {
+    const dir = SaveGame.DIR + slot + "/";
+    const raw = File.read(dir + "manifest.json");
+    if (raw === undefined) {
+      Log.error("SaveGame: no manifest for slot '" + slot + "'");
+      return false;
+    }
+    const manifest = Json.decode(raw); // revives {"$spr"} tags → live sprite refs
+    if (manifest === undefined) {
+      Log.error("SaveGame: manifest for '" + slot + "' is corrupt");
+      return false;
+    }
+    // load every referenced binary blob (name -> buffer; freed after restore runs)
+    const blobs = {};
+    const maps = manifest.maps !== undefined ? manifest.maps : [];
+    for (let i = 0; i < maps.length; i++) {
+      const name = maps[i].gridBlob;
+      if (name === undefined) continue;
+      const buf = File.readBuffer(dir + name + ".bin");
+      if (buf !== undefined) blobs[name] = buf;
+    }
+    SaveGame._pending = { manifest, blobs, slot };
+    return true;
+  },
+
+  /** @returns {boolean} a bundle is parked for the load-branch. */
+  pending() {
+    return SaveGame._pending !== null;
+  },
+
+  /**
+   * Reconstruct the session into a FRESH RPG scene — called from sceneRpg.create()'s load-branch
+   * in place of the new-game map+player seeding. Runs the frame's restore passes, then frees the
+   * loaded blobs. Clears the pending bundle.
+   * @param {Object} scene the fresh RPG scene
+   */
+  restore(scene) {
+    const p = SaveGame._pending;
+    if (p === null) return;
+    SaveGame._pending = null;
+    SaveGame.frame().restore(scene, p.manifest, p.blobs);
+    const names = Object.keys(p.blobs);
+    for (let i = 0; i < names.length; i++) buffer_delete(p.blobs[names[i]]);
+    Log.info("SaveGame: restored slot '" + p.slot + "'");
   },
 
   // index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
@@ -134,7 +188,30 @@ globalThis.SaveGame = {
         achievements: ach,
       };
     },
-    restore(_ctx) {}, // TODO(restore): apply clock/weather/profile/achievements
+    restore(ctx) {
+      const sim = ctx.manifest.sim;
+      if (sim === undefined) return;
+      WorldClock.hour = sim.clock.hour;
+      WorldClock.day = sim.clock.day;
+      // restore Weather's flat static state (symmetric with capture; no _sync needed — the fields
+      // fully define the sky, and the next update() re-syncs from them).
+      const w = sim.weather;
+      Weather._ambient = w.ambient;
+      Weather._override = w.override;
+      Weather._regionTemp = w.regionTemp;
+      Weather._cur = w.cur;
+      Weather._prev = w.prev;
+      Weather._blend = w.blend;
+      Weather._timer = w.timer;
+      Weather._time = w.time;
+      // lifetime counters + achievement unlocks
+      const prof = sim.profile;
+      const pk = Object.keys(prof);
+      for (let i = 0; i < pk.length; i++) Profile.set(pk[i], prof[pk[i]]);
+      Profile.save();
+      for (let i = 0; i < sim.achievements.length; i++)
+        Achievement.unlock(sim.achievements[i]);
+    },
   },
 
   // per-map state: entities (JSON component export) + tile grids (binary blob) + build state + zones.
@@ -176,7 +253,48 @@ globalThis.SaveGame = {
       }
       ctx.manifest.maps = maps;
     },
-    restore(_ctx) {}, // TODO(restore): rebuild each map from file, then overwrite world/grid/build
+    // v1 (Full-session): rebuild the ACTIVE map fresh from file and re-arrive the SAVED squad
+    // (player + companions) through the existing portal-transfer machinery, then drop the player
+    // back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
+    // TODO(deep): per-map build state (grid unpack + built entities + zones), non-active maps,
+    // and the ChunkManager cache pass — see docs.
+    restore(ctx) {
+      const scene = ctx.scene;
+      const manifest = ctx.manifest;
+      const activeMap = manifest.activeMap;
+      let active = null;
+      const maps = manifest.maps !== undefined ? manifest.maps : [];
+      for (let i = 0; i < maps.length; i++)
+        if (maps[i].id === activeMap) active = maps[i];
+      if (active === null) {
+        Log.error("SaveGame: active map '" + activeMap + "' missing from save");
+        return;
+      }
+      const squad = SaveGame._extractSquad(active.world);
+      if (squad === null) {
+        Log.error("SaveGame: no player in save — cannot restore");
+        return;
+      }
+      // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
+      PlayerSystem.bindKeys();
+      // build the saved active map fresh, arriving the restored squad at its default entry
+      RpgMap.build(scene, activeMap, "default", squad);
+      // then move the player from the entry back to where it was saved
+      const pinfo = SaveGame._playerPos(active.world);
+      if (pinfo !== null && scene.playerId !== undefined) {
+        const pos = scene.world.get(Position, scene.playerId);
+        if (pos !== undefined) {
+          pos.x = pinfo.x;
+          pos.y = pinfo.y;
+          pos.z = pinfo.z !== undefined ? pinfo.z : 0;
+        }
+        if (scene.camera !== undefined) {
+          scene.camera.toX = pinfo.x;
+          scene.camera.toY = pinfo.y;
+        }
+        if (scene.chunks !== undefined) scene.chunks.update(pinfo.x, pinfo.y);
+      }
+    },
   },
 
   // ── helpers ──
@@ -226,6 +344,57 @@ globalThis.SaveGame = {
       layers: grid.layers.length,
       zones,
     };
+  },
+
+  // ── restore helpers: pull entities back out of a world export ──
+
+  // the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
+  _entryAt(entries, idx) {
+    if (entries === undefined) return undefined;
+    for (let i = 0; i < entries.length; i++)
+      if (entries[i][0] === idx) return entries[i][1];
+    return undefined;
+  },
+
+  // rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
+  // EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.levels.put) consume.
+  _recordAt(exp, idx) {
+    const comps = {};
+    const toks = Object.keys(exp.components);
+    for (let i = 0; i < toks.length; i++) {
+      const data = SaveGame._entryAt(exp.components[toks[i]], idx);
+      if (data !== undefined) comps[toks[i]] = data;
+    }
+    return { components: comps };
+  },
+
+  // the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
+  // RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+  _extractSquad(exp) {
+    const players = exp.components["Playable"];
+    if (players === undefined || players.length === 0) return null;
+    const pidx = players[0][0]; // the player's entity index
+    const squads = exp.components["Squad"];
+    let sid = null;
+    if (squads !== undefined) {
+      const pd = SaveGame._entryAt(squads, pidx);
+      if (pd !== undefined) sid = pd.id;
+    }
+    const idxs = [pidx];
+    if (sid !== null && squads !== undefined)
+      for (let i = 0; i < squads.length; i++)
+        if (squads[i][0] !== pidx && squads[i][1].id === sid)
+          idxs.push(squads[i][0]);
+    const out = [];
+    for (let i = 0; i < idxs.length; i++) out.push(SaveGame._recordAt(exp, idxs[i]));
+    return out;
+  },
+
+  // the player's saved Position, for repositioning after the entry arrival.
+  _playerPos(exp) {
+    const players = exp.components["Playable"];
+    if (players === undefined || players.length === 0) return null;
+    return SaveGame._entryAt(exp.components["Position"], players[0][0]) ?? null;
   },
 
   // sum of the currency item in a bag (for the metadata card).

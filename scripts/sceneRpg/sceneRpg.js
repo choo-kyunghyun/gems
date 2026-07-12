@@ -146,26 +146,32 @@ class _SceneRpgClass {
     }
     WorldClock.reset(); // once — survives map changes below
     Weather.reset(); // once — survives map changes, like the clock
-    RpgMap.go(this, bootMap, "default");
+    // LOAD vs NEW GAME: a parked SaveGame bundle rebuilds the saved active map + character +
+    // world-sim in place of the fresh map + starting-loadout + companion seeding below.
+    const loaded = SaveGame.pending();
+    if (loaded) SaveGame.restore(this); // restore() drives the map build + squad arrival itself
+    else RpgMap.go(this, bootMap, "default");
     Audio.bgm("mus_ambient_tense"); // carries across map changes (only _apply's reset stops it)
 
-    // starting loadout, equipped so the attack is item-driven from frame one; travels with the
-    // carried inventory across maps
-    const startInv = this.world.get(Inventory, this.playerId);
-    InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
-    EquipmentSystem.equipFirst(this.world, this.playerId, "lead_pipe"); // equip that instance by uid
-    InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits (coin stacks high → 1 slot)
+    // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
+    if (!loaded) {
+      // equipped so the attack is item-driven from frame one; travels with the carried inventory
+      const startInv = this.world.get(Inventory, this.playerId);
+      InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
+      EquipmentSystem.equipFirst(this.world, this.playerId, "lead_pipe"); // equip that instance by uid
+      InventorySystem.add(startInv, "coin", RPG_START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
-    // seed one companion programmatically (not file-authored, so a persistent-map reload won't
-    // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
-    // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
-    const pp = this.world.get(Position, this.playerId);
-    const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
-      label: "Companion",
-      bonusCapacity: 4,
-      bonusWeight: 15,
-    });
-    FollowerSystem.hire(this.world, this.playerId, companion);
+      // seed one companion programmatically (not file-authored, so a persistent-map reload won't
+      // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
+      // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
+      const pp = this.world.get(Position, this.playerId);
+      const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
+        label: "Companion",
+        bonusCapacity: 4,
+        bonusWeight: 15,
+      });
+      FollowerSystem.hire(this.world, this.playerId, companion);
+    }
 
     // a wandering trader (Trader/WorldEvents/Universe): crosses overworld <-> interior_01 off-focus on
     // the WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
