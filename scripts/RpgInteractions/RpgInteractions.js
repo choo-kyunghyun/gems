@@ -69,7 +69,11 @@ globalThis.RpgInteractions = {
             for (let i = 0; i < ids.length; i++) {
               if (ids[i] === ctx.id) continue;
               const c = ctx.world.get(Collision, ids[i]);
-              if (c !== undefined && c.solid === true && c.kinematic === false) {
+              if (
+                c !== undefined &&
+                c.solid === true &&
+                c.kinematic === false
+              ) {
                 Toast.push(I18n.text("DOOR_BLOCKED"), { type: "info" });
                 return;
               }
@@ -85,8 +89,10 @@ globalThis.RpgInteractions = {
         },
       },
       {
+        // Survey Post — founds the player's Settlement (its buildable land). Keeps the "claim"
+        // id so existing level JSON (kind:"claim") is unchanged; the prompt reads as founding.
         id: "claim",
-        prompt: "CLAIM_PROMPT",
+        prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {
           BuildMode.claim(ctx.scene, ctx.id);
         },

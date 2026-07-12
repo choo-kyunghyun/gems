@@ -62,8 +62,15 @@ globalThis.SaveGame = {
     File.write(dir + "manifest.json", Json.encode(bundle.manifest));
     SaveGame._writeIndex(slot, bundle.manifest.meta);
     Log.info(
-      "SaveGame: saved '" + slot + "' — " + bundle.manifest.maps.length +
-      " map(s), " + bundle.blobs.length + " blob(s) in " + (current_time - t0) + "ms",
+      "SaveGame: saved '" +
+        slot +
+        "' — " +
+        bundle.manifest.maps.length +
+        " map(s), " +
+        bundle.blobs.length +
+        " blob(s) in " +
+        (current_time - t0) +
+        "ms",
     );
     return true;
   },
@@ -150,7 +157,7 @@ globalThis.SaveGame = {
   },
 
   /**
-   * Apply a saved map's build state onto a freshly-built map: the claimed buildable zone, then the
+   * Apply a saved map's build state onto a freshly-built map: the founded settlements, then the
    * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
    * the world export, so a chest keeps its contents). Shared by the active-map restore and every
    * parked map's first build. The deep chunk cache is applied earlier, inside build().
@@ -158,9 +165,9 @@ globalThis.SaveGame = {
    */
   applyMapState(scene, savedMap) {
     const zones = savedMap.zones;
-    if (zones !== undefined && zones.buildable !== undefined) {
-      const zm = scene.level.zoneMap("buildable");
-      if (zm !== undefined) zm.import(zones.buildable);
+    if (zones !== undefined && zones.settlement !== undefined) {
+      const zm = scene.level.zoneMap("settlement");
+      if (zm !== undefined) zm.import(zones.settlement);
     }
     Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
   },
@@ -251,7 +258,8 @@ globalThis.SaveGame = {
         const mapId = ids[m];
         // the ACTIVE map's live truth is on the scene (its registry entry is minimal until a
         // suspend overwrites it); parked maps carry their full bundle in the registry.
-        const src = mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
+        const src =
+          mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
         if (src === null || src.world === undefined) continue;
         const world = src.world;
         const grid = src.level;
@@ -273,12 +281,11 @@ globalThis.SaveGame = {
           chunked: src._chunked === true,
           indoor: src._indoor === true,
           reachDone: src.reachDone === true,
-          buildZoneId: src.buildZoneId,
           built: src._built !== undefined ? src._built : {},
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
           world: exp,
           chunkCache: chunkCache, // undefined on plain maps (Json drops it)
-          zones: SaveGame._zonesOf(grid), // claimed buildable zone (tiles come from `built` via Blueprint)
+          zones: SaveGame._zonesOf(grid), // founded settlements (tiles come from `built` via Blueprint)
         });
       }
       ctx.manifest.maps = maps;
@@ -374,20 +381,30 @@ globalThis.SaveGame = {
       height: "100%",
       justifyContent: "center",
     });
-    wrap.insertChild(gemsLabel(() => SaveGame._slotText(slot, n), {
-      color: GemsTheme.text,
-    }));
-    row.insertChild(wrap);
-    row.insertChild(
-      gemsButton(I18n.textRef("SAVE_ACTION"), () => SaveGame._menuSave(slot, n), {
-        width: 120,
-        primary: true,
+    wrap.insertChild(
+      gemsLabel(() => SaveGame._slotText(slot, n), {
+        color: GemsTheme.text,
       }),
     );
+    row.insertChild(wrap);
     row.insertChild(
-      gemsButton(I18n.textRef("LOAD_ACTION"), () => SaveGame._menuLoad(slot, n), {
-        width: 120,
-      }),
+      gemsButton(
+        I18n.textRef("SAVE_ACTION"),
+        () => SaveGame._menuSave(slot, n),
+        {
+          width: 120,
+          primary: true,
+        },
+      ),
+    );
+    row.insertChild(
+      gemsButton(
+        I18n.textRef("LOAD_ACTION"),
+        () => SaveGame._menuLoad(slot, n),
+        {
+          width: 120,
+        },
+      ),
     );
     return row;
   },
@@ -410,7 +427,12 @@ globalThis.SaveGame = {
     const g = SystemMenu._game;
     if (g === null) return null;
     const s = g.scenes.current;
-    if (s === null || s === undefined || s.world === undefined || s.playerId === undefined)
+    if (
+      s === null ||
+      s === undefined ||
+      s.world === undefined ||
+      s.playerId === undefined
+    )
       return null;
     return s;
   },
@@ -498,7 +520,8 @@ globalThis.SaveGame = {
         if (squads[i][0] !== pidx && squads[i][1].id === sid)
           idxs.push(squads[i][0]);
     const out = [];
-    for (let i = 0; i < idxs.length; i++) out.push(SaveGame._recordAt(exp, idxs[i]));
+    for (let i = 0; i < idxs.length; i++)
+      out.push(SaveGame._recordAt(exp, idxs[i]));
     return out;
   },
 

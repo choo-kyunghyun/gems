@@ -39,7 +39,6 @@ globalThis.RpgMap = {
     "wallTypes",
     "fenceType",
     "colliders",
-    "buildZoneId",
     "_built",
     "_builtEnts",
     "reachZone",
@@ -322,14 +321,23 @@ globalThis.RpgMap = {
       scene.playerId = PlayerSystem.spawn(scene.world, built.spawn);
     }
 
-    // buildable zone channel (one per map) — the Claim Post paints into it; build mode gates
-    // placement to it; RenderZone visualizes it
-    const bmap = scene.level.addZoneMap("buildable");
-    scene.buildZoneId = bmap.define({
-      name: I18n.text("BUILD_ZONE"),
-      tags: ["buildable"],
-      data: { color: "#55aa55" },
-    }).id;
+    // settlement channel (one per map) — Survey Posts found player-owned Settlements into it, build
+    // mode gates placement to owned land, RenderZone visualizes every settlement's territory. Created
+    // empty up front so the persistence import + RenderZone have a target before anything is founded.
+    Settlement.channel(scene.level);
+    // Authored non-player settlements (optional meta.settlements, mirroring meta.climate below):
+    // faction hubs / raider camps. A data-driven capability — none are authored in the demo maps yet.
+    const settlements = data.meta.settlements;
+    if (settlements !== undefined)
+      for (let i = 0; i < settlements.length; i++) {
+        const s = settlements[i];
+        const r = s.rect;
+        Settlement.found(scene.level, r[0], r[1], r[2], r[3], {
+          name: s.name ?? "",
+          factionId: s.faction ?? "",
+          color: s.color,
+        });
+      }
 
     // Climate zones (optional, from meta.climate): regions that override the open sky (forced
     // Weather condition + Kelvin temp offset) while the player is inside. Built before the
@@ -519,9 +527,9 @@ globalThis.RpgMap = {
     scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
     scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid
     scene.renderer.insert(scene._gridPass);
-    scene.renderer.insert(new RenderZone(scene.level, "buildable"));
+    scene.renderer.insert(new RenderZone(scene.level, "settlement"));
     scene.renderer.insert(
-      new RenderZoneLabel(scene.level, "buildable", {
+      new RenderZoneLabel(scene.level, "settlement", {
         font: I18n.font("default"),
       }),
     );

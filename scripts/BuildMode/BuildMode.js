@@ -1,16 +1,19 @@
 // Grid build mode (stateless singleton like Interactable): toggleable, consumes/refunds wood to
-// place content from a categorized palette. gated to a *claimed* buildable zone (the "buildable"
-// ZoneMap channel) — claimed by pressing E at a Claim Post (Interactable routes to BuildMode.claim).
+// place content from a categorized palette. gated to a PLAYER-OWNED Settlement (a Zone in the
+// "settlement" ZoneMap channel, owner faction "player") — founded by pressing E at a Survey Post
+// (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS while the
+// player stands in an owned settlement, and placement is gated cell-by-cell to owned land.
 // palette = a bottom-center gemsCatBar; an item is a TILE (TileLayer via TileEdit) or an ENTITY
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
 // state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
 // scene contract (create()/RpgMap.build): world, playerId, level, ui, a <key>Layer/<key>Type per
 // RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
-// buildZoneId, _tilePasses (render pass per layer key).
+// _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
+  OWNER: "player", // the Settlement owner faction id that gates building (Demo policy)
 
   // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
   // spawns via make()'s RpgSpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
@@ -496,7 +499,13 @@ globalThis.BuildMode = {
   // per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
   // RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
   update(scene) {
-    if (Input.get("build").pressed()) scene._buildActive = !scene._buildActive;
+    // B toggles build mode, but it only OPENS while the player stands on land they OWN (a
+    // player-owned Settlement) — "you can only build in your own settlement". Closing is free.
+    if (Input.get("build").pressed()) {
+      if (scene._buildActive) scene._buildActive = false;
+      else if (BuildMode._playerOwnsHere(scene)) scene._buildActive = true;
+      else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
+    }
     // active only when toggled on AND the build context owns input — an open window makes the
     // context "window" (priority over build), so building pauses and window clicks can't place/remove.
     const on = scene._buildActive === true && InputContext.is("build");
@@ -561,13 +570,20 @@ globalThis.BuildMode = {
     return keys;
   },
 
-  // can the selected item be placed at (gx, gy): in the claimed zone, cell empty (across every
-  // buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a floor)
-  // isn't on the player's own cell. shared by place + cursor highlight.
+  // does the player currently stand on land of a settlement they OWN? gates opening build mode.
+  _playerOwnsHere(scene) {
+    const pp = scene.world.get(Position, scene.playerId);
+    if (pp === undefined) return false;
+    const c = scene.level.worldToGrid(pp.x, pp.y);
+    return Settlement.ownerAt(scene.level, c.x, c.y) === BuildMode.OWNER;
+  },
+
+  // can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
+  // (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
+  // floor) isn't on the player's own cell. shared by place + cursor highlight.
   _canBuild(scene, gx, gy) {
     const level = scene.level;
-    const zmap = level.zoneMap("buildable");
-    if (zmap === undefined || zmap.idAt(gx, gy) === 0) return false;
+    if (Settlement.ownerAt(level, gx, gy) !== BuildMode.OWNER) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
@@ -675,7 +691,12 @@ globalThis.BuildMode = {
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(scene[lkey + "Layer"], gx, gy);
     if (RpgLevel.layerCfg(lkey).solid === true)
-      TileEdit.remesh(scene.world, level, scene[lkey + "Layer"], scene.colliders);
+      TileEdit.remesh(
+        scene.world,
+        level,
+        scene[lkey + "Layer"],
+        scene.colliders,
+      );
     BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
     delete scene._built[key];
@@ -722,26 +743,29 @@ globalThis.BuildMode = {
     }
   },
 
-  // claim the buildable area around a Claim Post. paints a rect into the "buildable" channel, then
-  // *spends* the post (detach its Interaction). the painted zone is the stored state (round-trips
-  // persistence), so a post re-spawned over an already-claimed area is still spent — no re-claiming.
+  // Found the player's settlement around a Survey Post: a player-owned Settlement zone over a rect,
+  // then *spend* the post (detach its Interaction). The founded settlement is the stored state
+  // (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
+  // land is still spent — no re-founding.
   claim(scene, postId) {
     const level = scene.level;
     const pos = scene.world.get(Position, postId);
     if (pos === undefined) return;
-    const zmap = level.zoneMap("buildable");
-    if (zmap === undefined) return;
     const c = level.worldToGrid(pos.x, pos.y);
-    if (zmap.idAt(c.x, c.y) === 0) {
+    if (Settlement.at(level, c.x, c.y) === undefined) {
       const x1 = Math.max(0, c.x - BuildMode.CLAIM_HALF_W);
       const y1 = Math.max(0, c.y - BuildMode.CLAIM_HALF_H);
       const x2 = Math.min(level.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
       const y2 = Math.min(level.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
-      zmap.paintRect(scene.buildZoneId, x1, y1, x2, y2);
-      Toast.push(I18n.text("BUILD_CLAIMED"), { type: "success" });
-      Log.info(`claimed build area (${x1},${y1})-(${x2},${y2})`);
+      Settlement.found(level, x1, y1, x2, y2, {
+        name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
+        factionId: BuildMode.OWNER,
+        color: "#55aa55",
+      });
+      Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
+      Log.info(`founded settlement (${x1},${y1})-(${x2},${y2})`);
     }
-    scene.world.detach(postId, Interaction); // spent — stop prompting / block re-claim
+    scene.world.detach(postId, Interaction); // spent — stop prompting / block re-founding
   },
 
   // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.

@@ -255,7 +255,7 @@
   "MOD_SLOT_POMMEL": "Pommel",
   "MOD_SLOT_GENERIC": "Slot",
 
-  "CLAIM_PROMPT": "[E] Claim build area",
+  "SETTLEMENT_FOUND_PROMPT": "[E] Found settlement",
 
   "ARCADE_PROMPT": "[E] Play arcade",
   "ARCADE_REWARD": "Arcade cleared — +{0} coins",

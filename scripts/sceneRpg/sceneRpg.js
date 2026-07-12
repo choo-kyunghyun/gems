@@ -149,7 +149,8 @@ class _SceneRpgClass {
     // LOAD vs NEW GAME: a parked SaveGame bundle rebuilds the saved active map + character +
     // world-sim in place of the fresh map + starting-loadout + companion seeding below.
     const loaded = SaveGame.pending();
-    if (loaded) SaveGame.restore(this); // restore() drives the map build + squad arrival itself
+    if (loaded)
+      SaveGame.restore(this); // restore() drives the map build + squad arrival itself
     else {
       SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
       RpgMap.go(this, bootMap, "default");
@@ -168,11 +169,16 @@ class _SceneRpgClass {
       // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
       // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
       const pp = this.world.get(Position, this.playerId);
-      const companion = RpgSpawn.spawnFollower(this.world, pp.x - 28, pp.y + 22, {
-        label: "Companion",
-        bonusCapacity: 4,
-        bonusWeight: 15,
-      });
+      const companion = RpgSpawn.spawnFollower(
+        this.world,
+        pp.x - 28,
+        pp.y + 22,
+        {
+          label: "Companion",
+          bonusCapacity: 4,
+          bonusWeight: 15,
+        },
+      );
       FollowerSystem.hire(this.world, this.playerId, companion);
     }
 
@@ -380,7 +386,7 @@ class _SceneRpgClass {
           });
         },
       });
-      // revive a downed companion at the recovery spot (claimed build area, else map spawn)
+      // revive a downed companion at the recovery spot (player's settlement, else map spawn)
       RpgScene.updateDowned(this, {
         downSpot: () => this._recoverSpot(),
         onRecover: (id) => {
@@ -568,22 +574,14 @@ class _SceneRpgClass {
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
-  // world-coord centroid of this map's claimed build area, or null if none (rect zone → centroid lands inside)
-  _buildZoneSpot() {
-    const zmap = this.level.zoneMap("buildable");
-    if (zmap === undefined) return null;
-    const cells = zmap.cells(this.buildZoneId);
-    if (cells.length === 0) return null;
-    let sx = 0;
-    let sy = 0;
-    for (let i = 0; i < cells.length; i++) {
-      sx += cells[i].x;
-      sy += cells[i].y;
-    }
-    return this.level.gridToWorld(
-      Math.round(sx / cells.length),
-      Math.round(sy / cells.length),
-    );
+  // world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
+  // (rect settlement → centroid lands inside). The downed-companion recovery anchor.
+  _settlementSpot() {
+    const owned = Settlement.all(this.level);
+    for (let i = 0; i < owned.length; i++)
+      if (owned[i].data.factionId === BuildMode.OWNER)
+        return Settlement.centroidWorld(this.level, owned[i]);
+    return null;
   }
 
   // start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
@@ -605,9 +603,9 @@ class _SceneRpgClass {
     );
   }
 
-  // where a downed companion revives: claimed build area, else map spawn
+  // where a downed companion revives: the player's settlement, else map spawn
   _recoverSpot() {
-    return this._buildZoneSpot() ?? { x: this.spawn.x, y: this.spawn.y };
+    return this._settlementSpot() ?? { x: this.spawn.x, y: this.spawn.y };
   }
 
   // Display name of a companion (for the down/recover toasts).

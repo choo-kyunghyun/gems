@@ -255,7 +255,7 @@
   "MOD_SLOT_POMMEL": "손잡이 끝",
   "MOD_SLOT_GENERIC": "슬롯",
 
-  "CLAIM_PROMPT": "[E] 건설 구역 점유",
+  "SETTLEMENT_FOUND_PROMPT": "[E] 정착지 건설",
 
   "ARCADE_PROMPT": "[E] 아케이드 플레이",
   "ARCADE_REWARD": "아케이드 클리어 — 코인 +{0}",
