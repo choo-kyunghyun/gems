@@ -5,7 +5,7 @@
       "label": "Run",
       "type": "shell",
       "command": "gm-cli",
-      "args": ["run", "--toolchain", "GMRT@0.20", "gems.yyp"],
+      "args": ["run", "gems.yyp"],
       "problemMatcher": [],
       "group": {
         "kind": "build",
@@ -16,45 +16,20 @@
       "label": "Compile",
       "type": "shell",
       "command": "gm-cli",
-      "args": ["compile", "--toolchain", "GMRT@0.20", "gems.yyp"],
+      "args": ["compile", "gems.yyp"],
       "problemMatcher": [],
       "group": "build"
     },
     {
-      "label": "Compile (errors only)",
+      "label": "Open Working Directory",
+      "detail": "Open the save dir (%LOCALAPPDATA%\\gems\\) in File Explorer — holds game.log, save.json, settings.json, debug.txt.",
       "type": "shell",
-      "command": "gm-cli",
-      "args": ["compile", "--toolchain", "GMRT@0.20", "--errors-only", "gems.yyp"],
-      "problemMatcher": [],
-      "group": "build"
-    },
-    {
-      "label": "Open game.log",
-      "detail": "Open the runtime log (%LOCALAPPDATA%\\gems\\game.log) in the editor.",
-      "type": "shell",
-      "command": "code",
-      "args": ["-r", "${env:LOCALAPPDATA}\\gems\\game.log"],
+      "command": "explorer",
+      "args": ["${env:LOCALAPPDATA}\\gems"],
       "problemMatcher": [],
       "presentation": {
         "reveal": "silent",
         "close": true
-      }
-    },
-    {
-      "label": "Project structure",
-      "detail": "Print the resource tree (folders + resources) via gm-cli resourcetool.",
-      "type": "shell",
-      "command": "gm-cli",
-      "args": [
-        "resourcetool",
-        "eval",
-        { "value": "FOLDER LIST RESOURCES", "quoting": "strong" }
-      ],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "focus": true,
-        "clear": true
       }
     }
   ]
