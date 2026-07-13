@@ -17,11 +17,21 @@ globalThis.RpgContent = {
     RpgSpawn.register(); // entity archetypes (raider/rat/npc/chest/prop/torch/turret/portal/follower) as EntityPreset defs
 
     // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
-    // just one register + setRelation here.
+    // just one register + setRelation here. "colony" is the neutral settler faction that owns the
+    // hub settlement (neutral to the player by default, so its land isn't player-buildable).
     FactionSystem.register([
       { id: "player", name: "Player", color: "#5aa0ff" },
       { id: "monster", name: "Hostiles", color: "#e65a5a" },
+      { id: "colony", name: "Colony", color: "#5a86d0" },
     ]);
     FactionSystem.setRelation("player", "monster", "hostile");
+
+    // Settlement capability defs (the faction-style component layer): a settlement carries a flat
+    // comma-joined id list; a system acting on "settlements that have X" layers on later.
+    SettlementComponent.register([
+      { id: "market", name: "Market", color: "#d0b45a" },
+      { id: "depot", name: "Depot", color: "#5a86d0" },
+      { id: "farm", name: "Farm", color: "#6fae5a" },
+    ]);
   },
 };

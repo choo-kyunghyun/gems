@@ -36,7 +36,9 @@ globalThis.RpgSpawn = {
     RpgSpawn._meshMeta = {};
     const text = File.read("meshes/meshes.json");
     if (text === undefined) {
-      Log.warn("RpgSpawn: meshes/meshes.json missing — mesh props keep preset BBoxes");
+      Log.warn(
+        "RpgSpawn: meshes/meshes.json missing — mesh props keep preset BBoxes",
+      );
       return;
     }
     RpgSpawn._meshMeta = JSON.parse(text);
@@ -49,7 +51,8 @@ globalThis.RpgSpawn = {
   // (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
   // the one-size prop preset box. Returns undefined for an unknown model.
   footprint(model) {
-    const m = RpgSpawn._meshMeta === null ? undefined : RpgSpawn._meshMeta[model];
+    const m =
+      RpgSpawn._meshMeta === null ? undefined : RpgSpawn._meshMeta[model];
     if (m === undefined) return undefined;
     return {
       w: Math.max(8, m.content[0] - 2),
@@ -502,6 +505,11 @@ globalThis.RpgSpawn = {
       )
         over.Mesh = { ...(over.Mesh ?? {}), yaw: s.yaw };
     }
+
+    // Settlement membership (any preset): `settlement: <sid>` tags the entity a Resident of that
+    // settlement (SettlementSystem resolves inhabitants by live query). Explicit — no auto-by-location.
+    if (s.settlement !== undefined)
+      over.Resident = { settlementId: s.settlement };
 
     const id = EntityPreset.spawn(s.preset, world, w.x, w.y, 0, {
       size: s.size,

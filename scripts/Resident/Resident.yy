@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Resident",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Resident",
+  "parent":{
+    "name":"Settlement",
+    "path":"folders/Gameplay/Settlement.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Resident.js",
+}

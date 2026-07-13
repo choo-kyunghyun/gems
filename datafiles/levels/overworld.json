@@ -24,6 +24,16 @@
         "tempMod": -15,
         "color": "#bcd4e8"
       }
+    ],
+    "settlements": [
+      {
+        "id": "hub",
+        "name": "SETTLEMENT_HUB_NAME",
+        "faction": "colony",
+        "comp": "market,depot",
+        "rect": [3, 1, 12, 5],
+        "color": "#5a86d0"
+      }
     ]
   },
   "walls": [
@@ -54,7 +64,8 @@
       "label": "Elder",
       "nameKey": "NPC_ELDER_NAME",
       "questId": "td_humans",
-      "color": "#6a5a86"
+      "color": "#6a5a86",
+      "settlement": "hub"
     },
 
     { "preset": "reach", "gx": 17, "gy": 2, "half": 88 },
@@ -114,6 +125,7 @@
       "gx": 10,
       "gy": 9,
       "capacity": 12,
+      "settlement": "hub",
       "items": [
         { "itemId": "medkit", "qty": 2 },
         { "itemId": "circuitry", "qty": 1 },
@@ -147,6 +159,7 @@
       "label": "Trader",
       "nameKey": "NPC_TRADER_NAME",
       "color": "#a9743f",
+      "settlement": "hub",
       "merchant": {
         "infinite": true,
         "buyMargin": 1.25,
@@ -178,6 +191,7 @@
       "label": "Quartermaster",
       "nameKey": "NPC_QUARTERMASTER_NAME",
       "color": "#5a6a8a",
+      "settlement": "hub",
       "merchant": {
         "infinite": false,
         "buyMargin": 1.15,

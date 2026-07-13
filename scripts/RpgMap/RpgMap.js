@@ -333,9 +333,12 @@ globalThis.RpgMap = {
         const s = settlements[i];
         const r = s.rect;
         Settlement.found(scene.level, r[0], r[1], r[2], r[3], {
-          name: s.name ?? "",
+          id: s.id, // stable authored sid (residents reference it)
+          // name is an i18n key — the label renders in-world (RenderZoneLabel), so localize it
+          name: s.name !== undefined ? I18n.text(s.name) : "",
           factionId: s.faction ?? "",
           color: s.color,
+          comp: s.comp, // comma-joined SettlementComponent ids
         });
       }
 
