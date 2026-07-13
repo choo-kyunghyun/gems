@@ -157,6 +157,17 @@ globalThis.LevelManager = class LevelManager {
     if (this._current !== null) this.switchTo(this._current.factory);
   }
 
+  /**
+   * Live theme swap: rebuild the active level's UI in place (colors are baked at build, so a
+   * palette change only shows after a rebuild). Delegates to the level's optional retheme() —
+   * a UI-only rebuild that never regenerates world/gameplay state, unlike restart(). A level
+   * that doesn't implement it keeps its old-palette UI until its next natural rebuild.
+   */
+  retheme() {
+    const level = this.current;
+    if (level !== null && level.retheme !== undefined) level.retheme();
+  }
+
   /** Display label of the active level: registry label, else instance label, else "-". @returns {string} */
   label() {
     if (this._current === null) return "-";

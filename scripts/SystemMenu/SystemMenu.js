@@ -6,6 +6,7 @@
 // (scene.handleEscape() gets first refusal). a scene opts into gameplay pause/nav via this.gameplay.
 globalThis.SystemMenu = class SystemMenu {
   static _modal = null; // open UIModal handle, or null
+  static _root = null; // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
   static _game = null; // the obj_game controller (scene lifecycle in game.scenes)
   static _scale = 1; // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
@@ -213,6 +214,7 @@ globalThis.SystemMenu = class SystemMenu {
     root.insertChild(inner);
     UI.insert(root); // top of the stack → blocks lower roots, draws last
     SystemMenu._modal = modal;
+    SystemMenu._root = root;
     UINav.suspended = false;
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
   }
@@ -229,6 +231,43 @@ globalThis.SystemMenu = class SystemMenu {
       Time.scale = SystemMenu._scale;
     }
     SystemMenu._modal = null;
+    SystemMenu._root = null;
+  }
+
+  // Rebuild the overlay in place (after a live theme swap) so it bakes the new palette. Removes the
+  // current root SYNCHRONOUSLY — not the animated close(), whose deferred onClose would null the
+  // fresh modal + recapture the (frozen) time scale — then reopens on the same tab, staying paused.
+  static reopen(tabIndex = 0) {
+    if (SystemMenu._modal === null) {
+      SystemMenu.open(tabIndex);
+      return;
+    }
+    const resume = SystemMenu._scale; // preserve the real resume speed across the rebuild
+    UI.remove(SystemMenu._root);
+    SystemMenu._root.destroy();
+    SystemMenu._modal = null;
+    SystemMenu._root = null;
+    SystemMenu.open(tabIndex); // re-captures _scale from the now-frozen live scale…
+    SystemMenu._scale = resume; // …so restore the pre-open value
+  }
+
+  // Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
+  // re-seed the Core focus-ring + scene backdrop, rebuild the active scene's UI (colors bake at
+  // build time) and this overlay, and fade back. No-op when the mode is unchanged.
+  static _applyTheme(mode) {
+    if (mode === GemsTheme.mode) return;
+    Settings.set("theme", mode);
+    SceneTransition.start(() => {
+      GemsTheme.setMode(mode);
+      UINav.color = Color.parse(GemsTheme.accent);
+      const game = SystemMenu._game;
+      if (game !== null) {
+        game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
+        if (game.scenes !== undefined) game.scenes.retheme(); // rebuild active scene UI in place
+      }
+      UINav.reset(); // focus was on now-destroyed elements
+      SystemMenu.reopen(1); // reopen on the Settings tab, recolored
+    });
   }
 
   // tabs
@@ -388,6 +427,27 @@ globalThis.SystemMenu = class SystemMenu {
       ),
     );
     scroll.scrollBody.insertChild(uiSection);
+
+    // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds
+    // the scene UI + this menu under cover (colors are baked at build, so a rebuild is required)
+    const themeSection = gemsSection(I18n.textRef("SETTINGS_THEME_TITLE"));
+    const themeItems = [
+      { name: I18n.text("SETTINGS_THEME_DARK"), value: "dark" },
+      { name: I18n.text("SETTINGS_THEME_LIGHT"), value: "light" },
+    ];
+    const themeIdx = Math.max(
+      0,
+      themeItems.findIndex((it) => it.value === Settings.get("theme")),
+    );
+    themeSection.insertChild(
+      gemsRow(
+        I18n.textRef("SETTINGS_THEME_LABEL"),
+        gemsSelectCustom(themeItems, themeIdx, (_i, value) =>
+          SystemMenu._applyTheme(value),
+        ),
+      ),
+    );
+    scroll.scrollBody.insertChild(themeSection);
 
     const langSection = gemsSection(I18n.textRef("SETTINGS_LANG_TITLE"));
     const langItems = [

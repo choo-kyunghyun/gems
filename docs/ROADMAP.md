@@ -1,8 +1,6 @@
 # Roadmap
 
-## Art
-
-### Art follow-ups
+## Media
 
 - Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
 - A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
@@ -28,7 +26,6 @@
 - Raid event: Defend the settlement (`mus_ambient_emergency` is its reserved BGM)
 - Radio
 - UI Concept: Smart HUD
-- Darkmode and lightmode theme
 
 ### Build Mode
 

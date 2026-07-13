@@ -7,6 +7,20 @@ globalThis.SCENES = {
       label: "Lobby",
 
       create(openScene) {
+        this._openScene = openScene; // stashed so retheme() can rebuild the button callbacks
+        this._buildUI();
+      },
+
+      // Live theme swap (LevelManager.retheme): tear down + rebuild the UI so it bakes the new
+      // palette. The lobby holds no world/gameplay state, so a plain UI rebuild is enough.
+      retheme() {
+        UI.remove(this.ui);
+        this.ui.destroy();
+        this._buildUI();
+      },
+
+      _buildUI() {
+        const openScene = this._openScene;
         this.ui = gemsRoot({ maxWidth: 720 });
         UI.insert(this.ui);
 

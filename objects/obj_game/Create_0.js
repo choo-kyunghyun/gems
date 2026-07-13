@@ -47,8 +47,13 @@ Settings.registerDefaults({
   tempUnit: "K",
   // RPG HUD directional radar (RadarArrows; toggled in inventory Settings tab)
   rpgRadar: false,
+  // GemsUI color theme ("dark"|"light"; switched live in the Settings tab)
+  theme: "dark",
 });
 Settings.load();
+
+// apply the saved GemsUI color theme before any UI (or the backdrop) reads GemsTheme colors
+GemsTheme.setMode(Settings.get("theme"));
 
 // restore saved display state (vsync, AA, fps cap, fullscreen/resolution); GUI sized by UI.applyScale
 Display.applyVideo();
@@ -66,7 +71,7 @@ UI.applyScale(Settings.get("uiScale"));
 // importers) — before any scene spawns entities, so the density bake reads declared values
 SpriteMeta.load();
 
-this.background = Color.parse("#222222");
+this.background = Color.parse(GemsTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
@@ -112,4 +117,6 @@ DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
 // the Demo's SaveGame/SceneRpg). Save is gated on a saveable scene; Load boots a fresh RPG.
-SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () => SaveGame.buildMenuTab());
+SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
+  SaveGame.buildMenuTab(),
+);

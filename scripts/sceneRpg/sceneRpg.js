@@ -76,10 +76,6 @@ class _SceneRpgClass {
     // flag gameplay so SystemMenu suspends nav while playing; can't be a field initializer (GMRT)
     this.gameplay = true;
 
-    // persistent UI built once; reads world/playerId live so it survives RpgMap.go's world swap
-    this.ui = gemsRoot();
-    UI.insert(this.ui);
-
     // RadarArrows component→color rules (first match wins); built here (not top level) so Color is
     // loaded; read live so it survives a world swap. `has` is a component token — presence = a blip.
     // Both enemy species share the enemy color; allies/props with none of these get no arrow.
@@ -90,52 +86,9 @@ class _SceneRpgClass {
       { has: Portal, color: Color.parse("#9b8cff") },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
-    // binding-driven key hints; bar reads each action's live binding (ready for remap) and
-    // `contexts` gates entries per InputContext. `text` entries are non-rebindable keys.
-    this.ui.insertChild(
-      gemsKeyHints(
-        [
-          {
-            actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
-            label: "RPG_HINT_MOVE",
-            contexts: ["play", "build", "window"],
-          },
-          {
-            actions: ["sprint"],
-            label: "RPG_HINT_SPRINT",
-            contexts: ["play", "build"],
-          },
-          { actions: ["fire"], label: "RPG_HINT_ATTACK", contexts: ["play"] },
-          { text: "LMB", label: "RPG_HINT_PLACE", contexts: ["build"] },
-          { text: "RMB", label: "RPG_HINT_REMOVE", contexts: ["build"] },
-          {
-            actions: ["inventory"],
-            label: "RPG_HINT_BAG",
-            contexts: ["play", "build"],
-          },
-          { text: "1-5", label: "RPG_HINT_HOTBAR", contexts: ["play"] },
-          { actions: ["interact"], label: "RPG_HINT_TALK", contexts: ["play"] },
-          { actions: ["build"], label: "RPG_HINT_BUILD", contexts: ["play"] },
-          {
-            actions: ["build"],
-            label: "RPG_HINT_EXIT_BUILD",
-            contexts: ["build"],
-          },
-          {
-            actions: ["follow"],
-            label: "RPG_HINT_COMPANION",
-            contexts: ["play", "build"],
-          },
-          { text: "Esc", label: "RPG_HINT_CLOSE", contexts: ["window"] },
-        ],
-        { color: "#888888" },
-      ),
-    );
-    RpgHud.build(this); // top-right HP/quest card + bottom-center dialogue box
-    RpgInventoryUI.build(this);
-    Interactable.build(this); // station prompt + storage + crafting windows
-    TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
-    BuildMode.build(this); // grid build mode (HUD + per-scene state)
+    // persistent UI (key-hints bar + HUD/inventory/interaction/trade/build managers) — extracted to
+    // _buildUI() so retheme() can rebuild it in place on a live theme swap, no world regen.
+    this._buildUI();
 
     // boot at the overworld hub; the editor's Test Play overrides with a portal-less playtest file
     let bootMap = RpgLevel.START;
@@ -247,6 +200,72 @@ class _SceneRpgClass {
       `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
     );
+  }
+
+  // Build the persistent UI tree. Reads world/playerId LIVE (survives RpgMap.go's world swap) and
+  // holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
+  _buildUI() {
+    this.ui = gemsRoot();
+    UI.insert(this.ui);
+    this.ui.insertChild(
+      gemsKeyHints(
+        [
+          {
+            actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
+            label: "RPG_HINT_MOVE",
+            contexts: ["play", "build", "window"],
+          },
+          {
+            actions: ["sprint"],
+            label: "RPG_HINT_SPRINT",
+            contexts: ["play", "build"],
+          },
+          { actions: ["fire"], label: "RPG_HINT_ATTACK", contexts: ["play"] },
+          { text: "LMB", label: "RPG_HINT_PLACE", contexts: ["build"] },
+          { text: "RMB", label: "RPG_HINT_REMOVE", contexts: ["build"] },
+          {
+            actions: ["inventory"],
+            label: "RPG_HINT_BAG",
+            contexts: ["play", "build"],
+          },
+          { text: "1-5", label: "RPG_HINT_HOTBAR", contexts: ["play"] },
+          { actions: ["interact"], label: "RPG_HINT_TALK", contexts: ["play"] },
+          { actions: ["build"], label: "RPG_HINT_BUILD", contexts: ["play"] },
+          {
+            actions: ["build"],
+            label: "RPG_HINT_EXIT_BUILD",
+            contexts: ["build"],
+          },
+          {
+            actions: ["follow"],
+            label: "RPG_HINT_COMPANION",
+            contexts: ["play", "build"],
+          },
+          { text: "Esc", label: "RPG_HINT_CLOSE", contexts: ["window"] },
+        ],
+        { color: "#888888" },
+      ),
+    );
+    RpgHud.build(this); // top-right HP/quest card + bottom-center dialogue box
+    RpgInventoryUI.build(this);
+    Interactable.build(this); // station prompt + storage + crafting windows
+    TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
+    BuildMode.build(this); // grid build mode (HUD + per-scene state)
+  }
+
+  // Live theme swap (LevelManager.retheme): close any open transient window/build/sleep via the
+  // existing Esc chain — cheaper + safer than re-applying each window's state onto fresh elements —
+  // then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
+  retheme() {
+    // BOUNDED: a qty-picker modal's close() doesn't null its field synchronously, so an unbounded
+    // loop could spin (GMRT hangs, no crash). 8 covers every stacked window type; close() is idempotent.
+    let guard = 8;
+    while (guard-- > 0 && this.handleEscape()) {} // window → build → sleep, until nothing is open
+    if (this.ui) {
+      UI.remove(this.ui);
+      this.ui.destroy();
+    }
+    this._buildUI();
   }
 
   step() {

@@ -150,7 +150,7 @@ globalThis.RpgHud = {
           const nm = it !== undefined ? I18n.text(it.name) : prof.ammo;
           return nm + "  " + prof.rounds + "/" + prof.magazine;
         },
-        { color: "#ffd166", font: "description" },
+        { color: GemsTheme.warn, font: "description" },
       ),
     );
     card.insertChild(ammoRow);
@@ -255,7 +255,7 @@ globalThis.RpgHud = {
     const name = new UIElement({ width: "100%", height: 26 });
     name.insertChild(
       gemsLabel(() => I18n.text(scene.dialogueName), {
-        color: "#ffd166",
+        color: GemsTheme.warn,
         font: "header",
       }),
     );
@@ -270,7 +270,7 @@ globalThis.RpgHud = {
           scene.dialogueAction !== ""
             ? "[E] " + I18n.text(scene.dialogueAction)
             : "",
-        { color: "#54c98a" },
+        { color: GemsTheme.good },
       ),
     );
     card.insertChild(name);

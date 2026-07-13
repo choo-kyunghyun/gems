@@ -55,8 +55,8 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
     bodyFontKey: "description",
     emptyText: opts.emptyText ?? "",
     titleColor: gemsColor(opts.titleColor ?? GemsTheme.text),
-    readyColor: gemsColor(opts.readyColor ?? "#ffd166"),
-    metColor: gemsColor(opts.metColor ?? "#54c98a"),
+    readyColor: gemsColor(opts.readyColor ?? GemsTheme.warn),
+    metColor: gemsColor(opts.metColor ?? GemsTheme.good),
     pendColor: gemsColor(opts.pendColor ?? GemsTheme.textMuted),
     emptyColor: gemsColor(opts.emptyColor ?? GemsTheme.textMuted),
   });
@@ -196,7 +196,11 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
     opts.colorPress ?? (primary ? GemsTheme.accentPress : GemsTheme.btnPress);
   const bdr =
     opts.borderColor ?? (primary ? GemsTheme.accentHi : GemsTheme.border);
-  const bdrHover = primary ? GemsTheme.text : GemsTheme.borderHi;
+  const bdrHover = primary ? GemsTheme.onAccent : GemsTheme.borderHi;
+  // label sits ON the accent fill for a primary button, so it takes onAccent (light in both
+  // modes) — plain `text` would go dark in light mode and vanish against the blue.
+  const labelColor =
+    opts.textColor ?? (primary ? GemsTheme.onAccent : GemsTheme.text);
 
   // opts.icon: optional sprite drawn left of the label; only then does the layout become a
   // row (no-icon path unchanged)
@@ -226,7 +230,7 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
   );
   const labelEl = gemsLabel(label, {
     halign: fa_center,
-    color: opts.textColor ?? GemsTheme.text,
+    color: labelColor,
     font: opts.font,
   });
   btn.addComponent(
@@ -249,7 +253,7 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
       ),
       // grey the label alongside the panel when disabled
       label: labelEl.getComponent(UIText),
-      textColorNormal: gemsColor(opts.textColor ?? GemsTheme.text),
+      textColorNormal: gemsColor(labelColor),
       textColorDisabled: gemsColor(GemsTheme.textDim),
       onClick,
     }),
