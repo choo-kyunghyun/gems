@@ -36,6 +36,15 @@
 
 - Prefabs
 
+## Known Issues & Deferred Cleanups
+
+Found during the 2026-07-16 UI component overhaul (47508bd) — pre-existing, deliberately left untouched:
+
+- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
+- **`UIImage.onDestroy` is an empty stub** — dead code, delete when touching the file.
+- **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
+- **Deferred dedup — shared scrollbar model for `UIScroll` + `UITable`**: the two ~60-line track/thumb implementations (metrics, drag, draw) remain duplicated by choice — UITable's is row-quantized, UIScroll's pixel-based, so sharing needs parameterization; deferred from the overhaul to keep its risk down.
+
 ## Code Review (file-by-file)
 
 Review batches from the 2026-07-13 coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
