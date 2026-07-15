@@ -35,3 +35,26 @@
 ## Editor
 
 - Prefabs
+
+## Code Review (file-by-file)
+
+Review batches from the 2026-07-13 coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
+
+| # | Batch | Folders | Files | LOC | Watch for | Done |
+|---|-------|---------|------:|----:|-----------|------|
+| 1 | Core utilities | Core/Util | 28 | 2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `Rand`, `AABB`, `File`) — everything sits on these | |
+| 2 | ECS heart | Core/Component, Core/ECS, Core/World | 24 | 1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo) | |
+| 3 | Systems + levels | Core/System, Core/Level | 25 | 2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones | |
+| 4 | Camera + input | Core/Camera, Core/Input | 10 | 1,072 | Small, self-contained | |
+| 5 | Renderer | Core/Render | 16 | 2,009 | `RenderMesh` queries the `Light` token (Gameplay) | |
+| 6 | UI infra | Core/UI | 13 | 1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge | |
+| 7 | UI widgets | Core/UI/Element (plain widgets) | ~14 | ~2,800 | Half of the biggest folder | |
+| 8 | UI singletons | Core/UI/Element (heavy singletons) | ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges | |
+| 9 | GemsUI kit | GemsUI | 4 | 1,588 | Theme + the three factory buckets | |
+| 10 | Gameplay: economy | Items, Inventory, Equipment, Crafting, Trade | ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge | |
+| 11 | Gameplay: simulation | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest | ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly | |
+| 12 | Demo systems + content | Demo/System, Demo/Content, Demo/Component | 29 | 4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries | |
+| 13 | Demo scenes | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` | 19 | 6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish | |
+| 14 | Demo UI | Demo/UI | 9 | 3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs | |
+
+`tools/` is self-contained (never imported by the game) — review separately if at all.
