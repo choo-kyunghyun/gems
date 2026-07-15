@@ -235,7 +235,7 @@ globalThis.gemsDropdownPopup = function gemsDropdownPopup(
   const scroll = n > maxVisible ? gemsScroll({ height: listH }) : null;
   const host = scroll !== null ? scroll.scrollBody : card;
   if (scroll !== null) card.insertChild(scroll);
-  const sel = dropdown.getIndex(); // method, not a .index getter (GMRT faults on it — see UIDropdown)
+  const sel = dropdown.getIndex(); // method, not a .index getter (UIDropdown house style)
   for (let i = 0; i < n; i++) {
     const item = dropdown.items[i];
     const selected = i === sel;

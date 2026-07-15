@@ -86,7 +86,7 @@ globalThis.SystemMenu = class SystemMenu {
 
   /** @returns {boolean} */
   static isOpen() {
-    // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
+    // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
     return SystemMenu._modal !== null;
   }
 

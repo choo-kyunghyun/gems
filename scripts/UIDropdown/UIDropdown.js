@@ -25,15 +25,14 @@ globalThis.UIDropdown = class UIDropdown {
     this._hold = false;
   }
 
-  // METHOD not `get index()`: a getter named `index` faults on GMRT 0.20 (shadows a GM
-  // built-in) even returning a stored field. Pairs with setIndex(). See CLAUDE.md.
+  // METHOD not `get index()` — house style; the old "getter shadowing a GM name faults"
+  // report was dismissed (2026-07 re-audit). Pairs with setIndex().
   /** @returns {number} the selected index */
   getIndex() {
     return this._index;
   }
 
-  // getValue/getName are methods for the same reason as getIndex: a `get value()` accessor
-  // faults like `index` (both shadow GM built-ins). get name() worked but stays a method too.
+  // getValue/getName are methods for symmetry with getIndex (same house style).
   /** @returns {*} the selected item's value (undefined if empty) */
   getValue() {
     const item = this.items[this._index];

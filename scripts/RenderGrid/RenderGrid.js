@@ -6,7 +6,7 @@
  */
 
 /**
- * world-space cell boundary lines. plain draw_line (draw_line_width_color renders nothing on GMRT).
+ * world-space cell boundary lines. plain draw_line (kept from 0.19; draw_line_width_color works on 0.20).
  * @implements {RenderPass}
  */
 globalThis.RenderGrid = class RenderGrid {
@@ -37,7 +37,7 @@ globalThis.RenderGrid = class RenderGrid {
     let y1 = rows;
     if (this.camera !== undefined && this.camera.width > 0) {
       // read the Camera's OWN fields, not camera_get_view_* (returns 0 for the matrix-driven
-      // Camera; see CLAUDE.md). ORTHO camera is centered on (toX,toY) spanning width × height.
+      // Camera). ORTHO camera is centered on (toX,toY) spanning width × height.
       const vw = this.camera.width;
       const vh = this.camera.height;
       const vx = this.camera.toX - vw / 2;

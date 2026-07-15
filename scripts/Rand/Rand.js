@@ -11,7 +11,8 @@
 //     (per-frame hot loops that reseed per cell without allocating).
 //
 // The GML random_* built-ins are NOT a substitute here: one global stream, and random_get_seed()
-// doesn't track the stream on GMRT 0.20 (see CLAUDE.md), so save/seed/restore can't be emulated.
+// doesn't track the stream position — it returns the last seed SET (documented GameMaker
+// behaviour, both runtimes), so save/seed/restore can't be emulated.
 globalThis.Rand = {
   // fold (x, y) into a seeded int in [0, M) — the shared mixing core of the hashes below.
   // The multipliers keep x/y contributions decorrelated; double-mod (+M) absorbs negative inputs.

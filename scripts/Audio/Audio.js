@@ -10,7 +10,7 @@
  *
  * GMRT (see CLAUDE.md): asset_get_index returns an OPAQUE ref (not-found = -1) — validate via
  * audio_exists, never a >=0 test (_asset early-returns on -1 so audio_exists only sees real assets).
- * State is read-write static FIELDS + plain METHODS — no static getters (miscompile on 0.20).
+ * State is read-write static FIELDS + plain METHODS — house style (static getters are safe on 0.20).
  */
 globalThis.Audio = class Audio {
   static _bgm = -1; // current looping BGM handle (-1 = none)

@@ -3,7 +3,7 @@
  * left-click a world entity to select it: registers a live-bound "Entity" panel of each
  * component's scalar fields (editing mutates the real entity). Selection highlighted on the GUI layer.
  * Wired: update(game) in Step_0 (after DebugImGui), draw(game) in Draw_75.
- * Picking uses the latched LMB edge (mouse edges are realtime-sampled — see CLAUDE.md).
+ * Picking uses the latched LMB edge (the UIPointer poll-once rule — see docs/architecture/ui.md).
  */
 globalThis.DebugInspector = class DebugInspector {
   static _world = null;

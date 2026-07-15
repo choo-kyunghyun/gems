@@ -34,7 +34,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
   destroy() {}
 
   // visible cell range, culled to the camera view rect when set. read the Camera's OWN fields,
-  // not camera_get_view_* (returns 0 for the matrix-driven Camera; see CLAUDE.md). ORTHO camera
+  // not camera_get_view_* (returns 0 for the matrix-driven Camera). ORTHO camera
   // is centered on (toX,toY) spanning width × height.
   _range() {
     const { cols, rows, cellWidth, cellHeight } = this.level;

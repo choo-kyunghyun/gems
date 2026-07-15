@@ -13,7 +13,7 @@
  * vertical axis is already top-anchored).
  *
  * Mouse-only — doesn't touch UINav. Pointer edges from UIPointer (frame-latched), not
- * mouse_check_button* (realtime on GMRT — see CLAUDE.md).
+ * mouse_check_button* (the poll-once rule — see docs/architecture/ui.md).
  */
 globalThis.UIResize = class UIResize {
   /** @param {Object} [opts] { target, minWidth, minHeight, color, anchorCenterX } */

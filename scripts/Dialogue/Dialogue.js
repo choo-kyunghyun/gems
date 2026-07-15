@@ -1,7 +1,7 @@
 // RPG-style paged dialogue box with typewriter reveal. standalone static singleton (not UIComponent).
 // reveals at `speed` chars/sec on Time.raw; advance with Enter/Space/gamepad-A or click (first snaps
 // page to revealed, next pages on; past the last closes + fires onComplete). UINav suspends while open.
-// isOpen() is a METHOD not a static getter — comparison-body static getters miscompile on GMRT 0.20.
+// isOpen() is a METHOD not a static getter — house style (the old GMRT miscompile report was dismissed).
 globalThis.Dialogue = class Dialogue {
   static speedDefault = 45; // chars/sec
   static lines = 3; // visible text rows (fixed box height; design pages to fit)
@@ -36,7 +36,7 @@ globalThis.Dialogue = class Dialogue {
   static _wrapPage = -1;
   static _wrapW = -1;
 
-  // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
+  // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
   static isOpen() {
     return Dialogue._open;
   }
@@ -75,7 +75,7 @@ globalThis.Dialogue = class Dialogue {
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
     // keyboard/gamepad advance anywhere; LMB only inside the box (so a click on background UI
-    // doesn't page too). UIPointer-latched edge, not re-queried — mouse edges flicker, see CLAUDE.md.
+    // doesn't page too). UIPointer-latched edge, not re-queried — the poll-once rule (see docs/architecture/ui.md).
     let advance =
       keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space);
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face1))

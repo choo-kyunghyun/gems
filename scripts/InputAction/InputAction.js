@@ -78,7 +78,7 @@ globalThis.InputAction = class InputAction {
   }
 
   // mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
-  // UIInput.active is a plain static field; GMRT miscompiles static getters with computed bodies.
+  // UIInput.active is a plain static field, read live each call.
   static captured() {
     return UIInput.active !== null;
   }

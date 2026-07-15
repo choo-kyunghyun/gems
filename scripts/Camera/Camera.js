@@ -194,7 +194,7 @@ globalThis.Camera = class Camera {
   /**
    * The mouse cursor as a ground-plane world point under this camera: GUI mouse → surface px
    * (the GUI layer is scaled to the window/back buffer) → unproject(). Latch ONCE per frame
-   * and share (GMRT samples mouse queries live — see GMRT-Safe Idioms).
+   * and share (the poll-once rule — see docs/architecture/ui.md).
    * @returns {{x:number, y:number}}
    */
   cursorWorld() {

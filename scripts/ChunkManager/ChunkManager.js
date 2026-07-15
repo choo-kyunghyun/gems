@@ -2,7 +2,7 @@
 // only holds entities near the player. Takes a `generator` (content provider — a ChunkGenerator,
 // or anything matching the contract below) plus an injected `opts.spawn` adapter for descriptors,
 // and drives EntitySnapshot capture/restore as chunks cross the rings. Plain instance class
-// (GMRT doesn't fire static getters, so stateful singletons are instance classes).
+// (stateful singletons are instance classes — house convention).
 //
 // two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
 //   d <= simRadius              → SIM:  entities live in the World, walls have colliders, sims + renders.

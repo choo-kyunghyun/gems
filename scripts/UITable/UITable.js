@@ -100,8 +100,8 @@ globalThis.UITable = class UITable {
     this._recompute();
     return this;
   }
-  // Methods, NOT instance getters: an external `table.view`/`rows` read faults on GMRT
-  // (shadows GML view/global names); methods read reliably across scripts.
+  // Methods, NOT instance getters — house style; the old "getter shadowing a GML name
+  // faults" report was dismissed (2026-07 re-audit).
   /** @returns {Object[]} the source rows */
   getRows() {
     return this._rows;

@@ -2,8 +2,8 @@
 // begin() picks up on the press edge, hover() records the drop target each frame, update()
 // resolves on release. The target is PERSISTED, so a small drift off the slot at button-up
 // still drops.
-// GMRT: pointer edges come from UIPointer (frame-latched) — never mouse_check_button* directly,
-// which are sampled realtime (see CLAUDE.md).
+// Pointer edges come from UIPointer (frame-latched) — never mouse_check_button* directly
+// (the poll-once rule — see docs/architecture/ui.md).
 globalThis.SlotDrag = class SlotDrag {
   static active = false;
   static source = null; // the UISlots the item came from

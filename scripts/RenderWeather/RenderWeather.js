@@ -7,10 +7,10 @@
 // Time.scale (bed fast-forward), matching the condition transitions. It must be a cumulative CLOCK:
 // multiplying a per-frame DELTA (Time.raw/Time.delta) by fall speed froze every particle near a
 // constant offset (the old "static" bug). Snow sways via Math.sin (trig works on GMRT 0.20);
-// streaks use draw_line (draw_line_width_color renders NOTHING on GMRT), snow uses draw_rectangle.
+// streaks use draw_line (kept from 0.19; draw_line_width_color works on 0.20), snow uses draw_rectangle.
 //
 // View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
-// Camera; see CLAUDE.md). The scene assigns pass.camera after building the camera.
+// Camera). The scene assigns pass.camera after building the camera.
 //
 // @implements {RenderPass}
 globalThis.RenderWeather = class RenderWeather {
@@ -52,7 +52,7 @@ globalThis.RenderWeather = class RenderWeather {
     const alpha = draw_get_alpha();
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
-    // Screen-ortho orientation PROBED on GMRT 0.20 (see CLAUDE.md / RenderLighting): up +1 keeps
+    // Screen-ortho orientation PROBED on GMRT 0.20 (see docs/architecture/renderer.md / RenderLighting): up +1 keeps
     // X true, NEGATIVE ortho height cancels the overlay path's Y-flip vs the world camera.
     matrix_set(
       matrix_view,

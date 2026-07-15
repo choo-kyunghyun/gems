@@ -199,7 +199,7 @@ globalThis.Weather = class Weather {
   // cumulative sim-time clock (seconds) the weather visuals scroll on: RenderWeather's particle
   // fall and RenderCloudShadow's drift both multiply speeds by this, so they FREEZE on pause and
   // dilate with Time.scale, matching the condition transitions. A plain method, not a static
-  // getter (computed static get miscompiles on GMRT — see CLAUDE.md).
+  // getter — house style; static getters are safe on 0.20 (2026-07 re-audit).
   static time() {
     return Weather._time;
   }

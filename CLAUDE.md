@@ -129,7 +129,7 @@ Each scene owns its `World` (`this.world = new World(maxEntities, tickrate, opts
 
 ## GMRT-Safe Idioms
 
-See @docs/GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms, and that always-in-context reference catalogues the quirks still live on 0.20 (language/compiler, strings/serialization/PRNG, sprites/assets/camera, rendering/shaders/clip, timing/input, flexpanel layout) plus the verified **Capabilities** to use freely. Avoid the quirks, don't "clean up" code back into them, and record new ones there as found.
+See @docs/GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms, and that always-in-context reference catalogues the quirks still live on 0.20 by ownership/status (reported & tracked bugs with `[#00000]` tickets, unreported divergences, officially unsupported features, project idioms) plus the verified **Capabilities** to use freely. Avoid the quirks, don't "clean up" code back into them, and record new ones there as found.
 
 ## Architecture
 

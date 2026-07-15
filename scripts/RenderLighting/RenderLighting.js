@@ -10,7 +10,7 @@
 // (zero surface work). Surfaces + bm_add + multiply probe-verified on GMRT 0.20. NO shadows — falloff only.
 //
 // Inserted LAST in the RPG renderer; the scene draws its bright cues AFTER so they stay above the tint.
-// View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0; see CLAUDE.md).
+// View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
 // @implements {RenderPass}
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
@@ -111,7 +111,7 @@ globalThis.RenderLighting = class RenderLighting {
     //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
-    // Screen-ortho orientation PROBED on GMRT 0.20 (see CLAUDE.md): up +1 keeps X true (up -1
+    // Screen-ortho orientation PROBED on GMRT 0.20 (see docs/architecture/renderer.md): up +1 keeps X true (up -1
     // X-mirrored the composite — the lantern flipped sides at a clamped map border), and the
     // NEGATIVE ortho height cancels the overlay path's inherent Y-flip vs the world camera.
     matrix_set(

@@ -62,7 +62,7 @@ globalThis.RenderZone = class RenderZone {
         draw_rectangle(wx, wy, wx + cellWidth, wy + cellHeight, false);
 
         // line only on edges where the neighbor differs (idAt treats OOB as 0, so map edges
-        // outline too). plain draw_line — draw_line_width_color renders nothing on GMRT.
+        // outline too). plain draw_line — kept from 0.19; draw_line_width_color works on 0.20.
         if (this.border) {
           draw_set_alpha(1);
           if (map.idAt(x, y - 1) !== id) draw_line(wx, wy, wx + cellWidth, wy);

@@ -93,7 +93,7 @@ globalThis.Debug = class Debug {
     Debug._version++;
   }
 
-  // a method, not a static getter — computed static getters miscompile on GMRT (see CLAUDE.md).
+  // a method, not a static getter — house style; static getters are safe on 0.20 (2026-07 re-audit).
   static version() {
     return Debug._version;
   }

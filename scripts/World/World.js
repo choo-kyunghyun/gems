@@ -9,7 +9,7 @@
 // `sim`/`levels` are wired in obj_game Create_0 (where load order is safe).
 //
 // Was the per-instance ECS store class; that moved to `ECS` (a Level sub-module, `level.ecs`). This
-// name is now the manager. Static namespace, not a class — GMRT miscompiles static computed getters,
+// name is now the manager. Static namespace, not a class (house convention for stateful singletons),
 // and the methods reference the sub-modules lazily so load order among the world scripts is irrelevant.
 //
 // Phases 2-3 landed: `levels` (LevelManager) + `sim` (SimClock) are live. update()/reset() below stay

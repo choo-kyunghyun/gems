@@ -9,7 +9,7 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
   static _buffer = "";
   static _shift = false;
 
-  // METHOD not `static get` — comparison-body static getters miscompile on GMRT 0.20 (see CLAUDE.md).
+  // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
   /** @returns {boolean} */
   static isOpen() {
     return VirtualKeyboard._input !== null;

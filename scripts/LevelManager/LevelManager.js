@@ -15,7 +15,7 @@
 // first); it is INDEPENDENT of the level collection (destroy() tears that down).
 //
 // Plain instance class (World.levels = new LevelManager()), not a static singleton: `current` is
-// an instance getter — instance get/set work on GMRT, only static computed getters miscompile.
+// an instance getter (house convention for stateful singletons).
 globalThis.LevelManager = class LevelManager {
   constructor() {
     // ── flat level collection ──
