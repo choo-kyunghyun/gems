@@ -3,7 +3,8 @@
  * Collapsible-section header. Toggling must change layout height, so it inserts/removes
  * the body from the container (structural insert/remove reflows reliably) rather than the
  * `enabled`-flag toggle UITabs uses. Body is removed not destroyed, so reopening is cheap.
- * GMRT: hover read live each frame (no cached primitive bool to clobber).
+ * Toggles on release-inside (standard click semantics, via the UITrigger delegate) — the
+ * one widget deliberately moved off press-commit in the FSM consolidation.
  */
 globalThis.UIAccordion = class UIAccordion {
   /** @param {Object} [acc] { title, expanded, body, onToggle, font, rad, titleColor, headerColor, headerHover, chevronColor, chevronHover } */
@@ -21,7 +22,11 @@ globalThis.UIAccordion = class UIAccordion {
     this.chevronColor = acc.chevronColor ?? c_gray;
     this.chevronHover = acc.chevronHover ?? c_white;
 
-    this._hover = false;
+    this._el = null; // host element, stashed each onUpdate for the onClick closure
+    // internal FSM delegate (UITrigger) — commit on release-inside toggles the section.
+    this._fsm = new UITrigger({
+      onClick: () => this.toggle(this._el),
+    });
   }
 
   _title() {
@@ -45,35 +50,19 @@ globalThis.UIAccordion = class UIAccordion {
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    this._hover = !block && element.positionMeeting(mx, my);
-
-    if (this._hover && UIPointer.pressed) {
-      this.toggle(element);
-      return true;
-    }
-    return this._hover || block;
+    this._el = element;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
-
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
 
     draw_set_alpha(1);
 
     // header background.
-    const bg = this._hover ? this.headerHover : this.headerColor;
+    const bg = element.state.hover ? this.headerHover : this.headerColor;
     draw_roundrect_color_ext(
       pos.left,
       pos.top,
@@ -89,14 +78,12 @@ globalThis.UIAccordion = class UIAccordion {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    // resolve I18n font KEY live (survives locale reload); raw handle passes through.
-    const fnt =
-      typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
 
     // chevron: right when collapsed, down when expanded. shared drawUIArrow.
-    const ch = this._hover ? this.chevronHover : this.chevronColor;
+    const ch = element.state.hover ? this.chevronHover : this.chevronColor;
     const ah = 5;
     drawUIArrow(
       pos.left + pos.width - pad - ah,
@@ -111,11 +98,7 @@ globalThis.UIAccordion = class UIAccordion {
     draw_set_color(this.titleColor);
     draw_text(pos.left + pad, cy, this._title());
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 
   // UINav: confirm expands/collapses the section.

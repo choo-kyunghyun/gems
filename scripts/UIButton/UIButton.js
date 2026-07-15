@@ -1,5 +1,8 @@
-// Hover/press state machine over a UIElement — eases panel color/border/shadow on Time.raw
-// (not Time.delta — UI must ignore sim time dilation). Supports live disabled + selected predicates.
+// Themed button behavior over the shared UITrigger FSM (the internal `_fsm` delegate runs the
+// hover/press/commit logic and writes element.state) — this component adds the theming: eases
+// panel color/border/shadow on Time.raw (not Time.delta — UI must ignore sim time dilation),
+// greys the label, and supports live disabled + selected predicates (written to
+// element.state.disabled/selected for any sibling reader).
 /** @implements {UIComponent} */
 globalThis.UIButton = class UIButton {
   /** @param {Object} [btn] see field defaults below for the accepted options */
@@ -30,8 +33,18 @@ globalThis.UIButton = class UIButton {
     this.borderColorNormal = btn.borderColorNormal;
     this.borderColorHover = btn.borderColorHover;
     this.animSpeed = btn.animSpeed ?? 16; // per-second lerp rate (higher = snappier)
-    this.enter = false;
-    this.hold = false;
+    // internal FSM delegate; callbacks are live arrow closures so reassigning
+    // this.onClick etc. after construction keeps working.
+    this._fsm = new UITrigger({
+      onEnter: () => this.onEnter(),
+      onLeave: () => this.onLeave(),
+      onDown: () => this.onDown(),
+      onUp: () => this.onUp(),
+      onClick: () => {
+        Audio.play("snd_button_click"); // click cue (before onClick, which may swap the scene)
+        this.onClick();
+      },
+    });
     // ease float r/g/b channels, not a packed int — a packed-int lerp loses a sub-1 per-frame
     // step at unlimited FPS (tween freezes), and GMRT's merge_color drifts darker. ch[0]
     // undefined until first seeded so there's no fade-in from black.
@@ -69,6 +82,7 @@ globalThis.UIButton = class UIButton {
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
     const disabled = this._disabled();
+    element.state.disabled = disabled;
 
     // grey the label when disabled — panel dim alone left text bright.
     if (this.label !== null) {
@@ -78,14 +92,13 @@ globalThis.UIButton = class UIButton {
     }
 
     if (disabled) {
-      if (this.hold) {
-        this.onUp();
-        this.hold = false;
-      }
-      if (this.enter) {
-        this.onLeave();
-        this.enter = false;
-      }
+      // force-release any latched hover/press (fires onUp/onLeave) and clear the bag —
+      // the FSM doesn't run this frame, so it can't clear its own state.
+      this._fsm.release();
+      element.state.hover = false;
+      element.state.held = false;
+      element.state.clicked = false;
+      element.state.selected = false;
       if (panel) {
         // snap channels so re-enable eases out of the disabled color, not from black.
         this._colorCh[0] = color_get_red(this.colorDisabled);
@@ -97,42 +110,25 @@ globalThis.UIButton = class UIButton {
       return block;
     }
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    const enterPrev = this.enter;
-    this.enter = !block && element.positionMeeting(mx, my);
+    const selected = this.getSelected !== null && this.getSelected();
+    element.state.selected = selected;
 
-    if (this.enter) {
-      if (!enterPrev) this.onEnter();
-      if (UIPointer.pressed) {
-        this.hold = true;
-        this.onDown();
-      }
-    } else if (enterPrev) {
-      this.onLeave();
-    }
-
-    if (UIPointer.released) {
-      if (this.hold) {
-        this.onUp();
-        if (this.enter) {
-          Audio.play("snd_button_click"); // click cue (before onClick, which may swap the scene)
-          this.onClick();
-        }
-      }
-      this.hold = false;
-    }
+    const result = this._fsm.onUpdate(element, block);
+    const hover = this._fsm.enter;
+    const held = this._fsm.hold;
 
     if (panel) {
       panel.alpha = this.alpha;
 
-      const selected = this.getSelected !== null && this.getSelected();
-      const targetColor = this.hold
+      // ternaries only — `selected` must not be reused as a `&&`/`||` left operand (#15549).
+      const targetColor = held
         ? this.colorPress
-        : this.enter
+        : hover
           ? this.colorHover
-          : selected && this.colorSelected !== undefined
-            ? this.colorSelected
+          : selected
+            ? this.colorSelected !== undefined
+              ? this.colorSelected
+              : this.colorNormal
             : this.colorNormal;
       panel.color = this._easeColor(this._colorCh, targetColor);
 
@@ -141,10 +137,12 @@ globalThis.UIButton = class UIButton {
         this.borderColorHover !== undefined
       ) {
         const targetBorder =
-          this.enter || this.hold
+          hover || held
             ? this.borderColorHover
-            : selected && this.borderColorSelected !== undefined
-              ? this.borderColorSelected
+            : selected
+              ? this.borderColorSelected !== undefined
+                ? this.borderColorSelected
+                : this.borderColorNormal
               : this.borderColorNormal;
         panel.borderColor = this._easeColor(this._borderCh, targetBorder);
       }
@@ -152,9 +150,9 @@ globalThis.UIButton = class UIButton {
       // lift on hover, sink on press — only when the panel has a shadow.
       if (this._shadowBase === undefined) this._shadowBase = panel.shadow;
       if (this._shadowBase > 0) {
-        const targetShadow = this.hold
+        const targetShadow = held
           ? this._shadowBase * 0.25
-          : this.enter
+          : hover
             ? this._shadowBase * 1.4
             : this._shadowBase;
         this._shadow =
@@ -165,13 +163,12 @@ globalThis.UIButton = class UIButton {
       }
     }
 
-    return this.hold || this.enter || block;
+    return result;
   }
 
   /** @param {UIElement} element */
   onDestroy(element) {
-    if (this.hold) this.onUp();
-    if (this.enter) this.onLeave();
+    this._fsm.onDestroy(element);
   }
 
   // UINav: confirm fires the click; presence marks element focusable.

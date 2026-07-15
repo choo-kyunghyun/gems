@@ -1,7 +1,6 @@
 // Radar — top-down blip view of a World around a target, immediate-mode (reads World live).
 // Entities within `range` colored by the first matching rule in `rules`; target gets a facing notch.
 // A rule is { has, color }: `has` is a COMPONENT TOKEN — the entity blips when it has that component.
-// GMRT: NaN-width guard (first post-transition frame).
 /** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
   /** @param {Object} [m] { world, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
@@ -23,7 +22,6 @@ globalThis.UIMinimap = class UIMinimap {
   onDraw(element) {
     if (this.world === null) return;
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
     const tp = this.world.get(Position, this.target);
     if (tp === undefined) return; // target gone — nothing to center on
 

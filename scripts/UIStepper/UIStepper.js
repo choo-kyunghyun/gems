@@ -20,9 +20,14 @@ globalThis.UIStepper = class UIStepper {
     this.halign = stepper.halign ?? fa_center;
     this.valign = stepper.valign ?? fa_middle;
 
-    this._enter = false;
-    this._hold = false;
     this._side = 0; // -1 = over left arrow, 1 = right, 0 = not hovering
+    // internal FSM delegate (UITrigger); onClick reads the _side latched in onUpdate.
+    this._fsm = new UITrigger({
+      onClick: () => {
+        if (this._side < 0) this.decrement();
+        else this.increment();
+      },
+    });
   }
 
   // snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004).
@@ -62,37 +67,21 @@ globalThis.UIStepper = class UIStepper {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
-    this._enter = !block && element.positionMeeting(mx, my);
-    this._side = this._enter ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
-
-    if (this._enter && UIPointer.pressed) this._hold = true;
-
-    if (UIPointer.released) {
-      if (this._hold && this._enter) {
-        if (this._side < 0) this.decrement();
-        else this.increment();
-      }
-      this._hold = false;
-    }
-
-    return this._hold || this._enter || block;
+    // latch the arrow side BEFORE the FSM runs — its onClick commits from this frame's _side.
+    const over = !block && element.positionMeeting(mx, my);
+    this._side = over ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — skip this frame
+    const st = uiDrawSave();
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
     const cy = pos.top + pos.height * 0.5;
@@ -107,24 +96,29 @@ globalThis.UIStepper = class UIStepper {
       cy,
       "left",
       ah,
-      !canDec ? this.arrowDisabled : this._side < 0 ? this.arrowHover : this.arrowColor,
+      !canDec
+        ? this.arrowDisabled
+        : this._side < 0
+          ? this.arrowHover
+          : this.arrowColor,
     );
     drawUIArrow(
       pos.left + pos.width - pad - ah,
       cy,
       "right",
       ah,
-      !canInc ? this.arrowDisabled : this._side > 0 ? this.arrowHover : this.arrowColor,
+      !canInc
+        ? this.arrowDisabled
+        : this._side > 0
+          ? this.arrowHover
+          : this.arrowColor,
     );
 
     draw_set_halign(this.halign);
     draw_set_color(this.color);
     draw_text(pos.left + pos.width * 0.5, cy, this.format(this.value));
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
+    uiDrawRestore(st);
   }
 
   // UINav: left/right steps value (horizontal nav adjusts instead of moving focus).

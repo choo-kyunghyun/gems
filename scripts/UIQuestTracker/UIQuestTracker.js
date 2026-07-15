@@ -6,7 +6,7 @@
  * Drawn entirely in onDraw over one element (immediate-mode, like UISlots), reading the source
  * live each frame — no per-frame child rebuild. A null source renders empty.
  *
- * GMRT: status read live each frame (no cached primitive to clobber); NaN-guarded.
+ * GMRT: status read live each frame (no cached primitive to clobber).
  */
 globalThis.UIQuestTracker = class UIQuestTracker {
   constructor(t = {}) {
@@ -47,13 +47,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
-
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
     draw_set_alpha(1);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
@@ -114,10 +108,6 @@ globalThis.UIQuestTracker = class UIQuestTracker {
       }
     }
 
-    if (font !== -1) draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 };

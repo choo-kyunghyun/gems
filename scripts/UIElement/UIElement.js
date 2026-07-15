@@ -5,6 +5,19 @@
  * @property {function(UIElement): void} onDestroy
  */
 
+/**
+ * Shared per-element runtime state (the `element.state` blackboard) — written by behavior
+ * components (UITrigger is the canonical writer), read by any sibling. Flat scalars only
+ * (an object-keyed Map/Set crashes GMRT natively, and nested data invites deep-copy bugs).
+ * Component array order = write order: a writer must precede its readers on the element.
+ * @typedef {Object} UIState
+ * @property {boolean} [hover] pointer inside the element and not blocked upstream
+ * @property {boolean} [held] press started inside; cleared on release
+ * @property {boolean} [clicked] one-frame pulse: released inside this frame
+ * @property {boolean} [disabled] live disabled state (written by UIButton)
+ * @property {boolean} [selected] live selected/toggled state (written by UIButton)
+ */
+
 // flexpanel-backed tree node. Runtime scroll/drag/clip uses draw-time offset math through
 // getLayoutPosition — not live style mutation — so movement applies at both draw and hit-test
 // without a reflow. See CLAUDE.md for the flexpanel-mutation idiom.
@@ -20,6 +33,8 @@ globalThis.UIElement = class UIElement {
     this.children = [];
     /** @type {UIComponent[]} */
     this.components = [];
+    /** @type {UIState} shared component blackboard — see the UIState typedef */
+    this.state = {};
     this.dirty = true;
     // clip: children scissored to this rect. scrollY shifts descendants (not self) at draw+hit-test.
     // clipInsetRight reserves a right gutter (e.g. scrollbar) outside the clip.

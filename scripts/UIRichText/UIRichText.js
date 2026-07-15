@@ -7,10 +7,9 @@
  *   [spr=spr_name]     inline icon; [spr=spr_name:2] picks a subimage. sprite MUST be raster
  *                      (SVG reports 0 frames on GMRT and faults draw_sprite — see CLAUDE.md).
  *   \n                 hard line break.
- * Spans nest; unknown tags dropped. Self-sizes to parsed content. Per the kit rule, a text drawer
- * takes NO `!(pos.width > 0)` guard — draws from pos.left/top + own advances, so a NaN width is
- * harmless. halign resolves against the widest line, independent of element width. Parse result is
- * cached, rebuilt only on a source-string change.
+ * Spans nest; unknown tags dropped. Self-sizes to parsed content; draws from pos.left/top + own
+ * advances, never reading the element width. halign resolves against the widest line, independent
+ * of element width. Parse result is cached, rebuilt only on a source-string change.
  */
 globalThis.UIRichText = class UIRichText {
   /** @param {Object} [s] { textRef: () => string, color, alpha, halign, font, iconSize, palette } */
@@ -38,9 +37,7 @@ globalThis.UIRichText = class UIRichText {
     if (this.cache !== str) {
       this.cache = str;
 
-      // resolve an I18n font key live (survives a locale reload); a raw handle passes through.
-      const fnt =
-        typeof this.font === "string" ? I18n.font(this.font) : this.font;
+      const fnt = resolveUIFont(this.font);
       const font0 = draw_get_font();
       if (fnt !== -1) draw_set_font(fnt);
 
@@ -64,14 +61,9 @@ globalThis.UIRichText = class UIRichText {
   onDraw(element) {
     const pos = element.getLayoutPosition();
 
-    const fnt =
-      typeof this.font === "string" ? I18n.font(this.font) : this.font;
-    const font0 = draw_get_font();
+    const st = uiDrawSave();
+    const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
-    const halign0 = draw_get_halign();
-    const valign0 = draw_get_valign();
-    const color0 = draw_get_color();
-    const alpha0 = draw_get_alpha();
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 
@@ -90,11 +82,9 @@ globalThis.UIRichText = class UIRichText {
         y += lh;
       } else if (it.kind === "icon") {
         if (sprite_exists(it.spr)) {
-          const n = max(1, sprite_get_number(it.spr));
-          const sub = clamp(it.sub, 0, n - 1);
           draw_sprite_stretched_ext(
             it.spr,
-            sub,
+            it.sub,
             x,
             y + (lh - iconPx) * 0.5,
             iconPx,
@@ -110,11 +100,7 @@ globalThis.UIRichText = class UIRichText {
       }
     }
 
-    draw_set_halign(halign0);
-    draw_set_valign(valign0);
-    draw_set_color(color0);
-    draw_set_alpha(alpha0);
-    if (fnt !== -1) draw_set_font(font0);
+    uiDrawRestore(st);
   }
 
   // left edge of `line` for halign against the widest line — independent of the element rect.

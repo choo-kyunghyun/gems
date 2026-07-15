@@ -29,7 +29,7 @@ globalThis.UIText = class UIText {
 
   /** re-resolve each call so it survives a locale reload. @returns {number} */
   _font() {
-    return typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    return resolveUIFont(this.font);
   }
 
   /**

@@ -16,27 +16,15 @@
  * external predicate (`setFilter`). Selection tracks the row OBJECT (survives re-sort/filter).
  *
  * Browse mode: `navActivate` enters it; the table then owns the arrows (Up/Down row cursor,
- * Left/Right re-pick the sort column). It claims keys by setting `UITable.active = this` each
- * frame; UINav consumes the flag — a per-frame REQUEST, so if the table stops updating the
- * claim lapses and nav resumes.
+ * Left/Right re-pick the sort column). It claims the keys via `UINav.claimKeys(this)` each
+ * frame — a per-frame REQUEST UINav consumes, so if the table stops updating the claim
+ * lapses and nav resumes. Edge reads come from the shared `UINav.readEdge()`.
  *
  * GMRT: hit-test/hover live in instance fields (cached primitive bool gets clobbered — see
  * CLAUDE.md); no Map/Set iteration; pointer edges via UIPointer (frame-latched), never a
  * re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
-  // table requesting keyboard browse this frame (UINav.consume reads + clears it).
-  // A plain static field, not a static getter (GMRT doesn't fire those).
-  static active = null;
-
-  // UINav.update: if a table claimed the keys this frame, suspend nav and clear the claim.
-  /** @returns {boolean} whether a table is requesting keyboard browse this frame */
-  static consume() {
-    if (UITable.active === null) return false;
-    UITable.active = null;
-    return true;
-  }
-
   constructor(t = {}) {
     this.columns = t.columns ?? [];
     this._rows = t.rows ?? [];
@@ -269,8 +257,6 @@ globalThis.UITable = class UITable {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
-
     const g = this._geometry(pos);
     const cols = g.cols;
     const headerTop = g.headerTop;
@@ -278,7 +264,9 @@ globalThis.UITable = class UITable {
     const bodyRows = g.bodyRows;
     const maxTop = g.maxTop;
     const barOn = g.barOn;
-    this._top = clamp(this._top, 0, maxTop);
+    // positive test: maxTop can be NaN if this widget lands in the residual mid-pass-insert
+    // window (subtree inserted into a not-yet-traversed branch) — never let NaN into _top.
+    this._top = maxTop > 0 ? clamp(this._top, 0, maxTop) : 0;
 
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
@@ -295,7 +283,7 @@ globalThis.UITable = class UITable {
         this._browsing = false; // pointer takes over → fall through to mouse handling
       } else {
         this._browseKeys(pos);
-        UITable.active = this; // re-request nav suspension THIS frame (self-healing)
+        UINav.claimKeys(this); // re-request nav suspension THIS frame (self-healing)
         return true;
       }
     }
@@ -376,7 +364,7 @@ globalThis.UITable = class UITable {
   }
 
   _browseKeys(pos) {
-    const e = this._navEdge();
+    const e = UINav.readEdge();
     if (e.cancel) {
       this._browsing = false;
       return;
@@ -413,54 +401,20 @@ globalThis.UITable = class UITable {
     }
   }
 
-  // Minimal directional edge read for browse mode (keyboard + gamepad dpad). The full
-  // stick/analog handling lives in UINav; the table only needs discrete steps.
-  _navEdge() {
-    let dx = 0;
-    let dy = 0;
-    let confirm = false;
-    let cancel = false;
-    if (keyboard_check_pressed(vk_left)) dx = -1;
-    else if (keyboard_check_pressed(vk_right)) dx = 1;
-    if (keyboard_check_pressed(vk_up)) dy = -1;
-    else if (keyboard_check_pressed(vk_down)) dy = 1;
-    if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space))
-      confirm = true;
-    if (keyboard_check_pressed(vk_escape)) cancel = true;
-    if (gamepad_is_connected(0)) {
-      if (gamepad_button_check_pressed(0, gp_padl)) dx = -1;
-      else if (gamepad_button_check_pressed(0, gp_padr)) dx = 1;
-      if (gamepad_button_check_pressed(0, gp_padu)) dy = -1;
-      else if (gamepad_button_check_pressed(0, gp_padd)) dy = 1;
-      if (gamepad_button_check_pressed(0, gp_face1)) confirm = true;
-      if (gamepad_button_check_pressed(0, gp_face2)) cancel = true;
-    }
-    return { dx, dy, confirm, cancel };
-  }
-
   // ── draw ────────────────────────────────────────────────────
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) width — NaN <= 0 is false
     const g = this._geometry(pos); // live geometry — stays glued to a dragged window
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
     draw_set_alpha(1);
 
     this._drawBody(pos, g);
     this._drawHeader(pos, g);
     if (g.barOn) this._drawBar(pos, g);
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 
   _drawHeader(pos, g) {
@@ -491,11 +445,7 @@ globalThis.UITable = class UITable {
       false,
     );
 
-    // resolve I18n font KEY live (survives a locale reload); a raw handle passes through
-    const hf =
-      typeof this.headerFont === "string"
-        ? I18n.font(this.headerFont)
-        : this.headerFont;
+    const hf = resolveUIFont(this.headerFont);
     if (hf !== -1) draw_set_font(hf);
     draw_set_valign(fa_middle);
     const cy = g.headerTop + this.headerH * 0.5;
@@ -528,8 +478,7 @@ globalThis.UITable = class UITable {
     const w = pos.width - this.pad * 2;
     const bodyH = g.bodyRows * this.rowH;
 
-    // resolve I18n font KEY live (survives a locale reload); a raw handle passes through
-    const bf = typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    const bf = resolveUIFont(this.font);
     if (bf !== -1) draw_set_font(bf);
     draw_set_valign(fa_middle);
 
@@ -564,8 +513,7 @@ globalThis.UITable = class UITable {
           const ic = col.sprite(row);
           const spr = ic != null && ic.sprite != null ? ic.sprite : ic;
           if (spr != null && sprite_exists(spr)) {
-            const n = max(1, sprite_get_number(spr));
-            const sub = clamp((ic != null && ic.subimg) || 0, 0, n - 1);
+            const sub = (ic != null && ic.subimg) || 0;
             const s = this.rowH - this.iconPad * 2;
             draw_sprite_stretched_ext(
               spr,
@@ -698,6 +646,6 @@ globalThis.UITable = class UITable {
 
   /** Release the browse-mode key claim on teardown. @param {UIElement} element */
   onDestroy(element) {
-    if (UITable.active === this) UITable.active = null;
+    UINav.releaseClaim(this);
   }
 };

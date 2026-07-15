@@ -15,11 +15,28 @@ globalThis.UINav = class UINav {
   static _stickX = 0; // left-stick re-arm latches (0 = armed)
   static _stickY = 0;
 
+  // browse-mode key claim: a widget that owns the arrows this frame (UITable/UISlots browse)
+  // re-asserts claimKeys(this) EVERY frame; update() consumes it once per frame, so a stale
+  // claim self-heals the moment the owner stops updating.
+  /** @type {Object|null} */
+  static _claimed = null;
+
+  /** claim the nav keys for this frame — call every frame browse mode stays latched. @param {Object} owner */
+  static claimKeys(owner) {
+    UINav._claimed = owner;
+  }
+
+  /** release on owner teardown so a claim asserted earlier this frame can't outlive it. @param {Object} owner */
+  static releaseClaim(owner) {
+    if (UINav._claimed === owner) UINav._claimed = null;
+  }
+
   /** Reset on every scene swap. */
   static reset() {
     UINav.focused = null;
     UINav.engaged = false;
     UINav.suspended = false;
+    UINav._claimed = null;
   }
 
   /** Per-frame nav tick (Step_0, after UI.update). */
@@ -52,8 +69,10 @@ globalThis.UINav = class UINav {
     }
 
     if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
-    if (UITable.consume()) return; // table browse mode claimed the keys this frame
-    if (UISlots.consume()) return; // slot-grid browse mode claimed the keys this frame
+    if (UINav._claimed !== null) {
+      UINav._claimed = null; // consume — the browse-mode owner re-asserts each frame
+      return;
+    }
     if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
     const inp = UINav._readInput();
@@ -135,11 +154,7 @@ globalThis.UINav = class UINav {
     const items = UINav._collect();
     if (items.length === 0) return;
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 
@@ -195,11 +210,7 @@ globalThis.UINav = class UINav {
       }
     }
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 
   static _dirLine(x1, y1, x2, y2, col) {
@@ -340,7 +351,14 @@ globalThis.UINav = class UINav {
     return best;
   }
 
-  static _readInput() {
+  /**
+   * discrete directional edge read (keyboard arrows + dpad + Enter/Space/face1 confirm +
+   * Esc/face2 cancel) — the shared core used by nav itself and by browse-mode widgets
+   * (UITable/UISlots) while they hold the key claim. Analog-stick handling stays in
+   * _readInput (it needs the per-frame re-arm latches).
+   * @returns {{dx:number, dy:number, confirm:boolean, cancel:boolean}}
+   */
+  static readEdge() {
     let dx = 0;
     let dy = 0;
     let confirm = false;
@@ -361,22 +379,28 @@ globalThis.UINav = class UINav {
       else if (gamepad_button_check_pressed(0, gp_padd)) dy = 1;
       if (gamepad_button_check_pressed(0, gp_face1)) confirm = true;
       if (gamepad_button_check_pressed(0, gp_face2)) cancel = true;
+    }
 
+    return { dx, dy, confirm, cancel };
+  }
+
+  static _readInput() {
+    const e = UINav.readEdge();
+    if (gamepad_is_connected(0)) {
       // Left stick → debounced edges: re-arm under 0.4, fire over 0.6.
       const ax = gamepad_axis_value(0, gp_axislh);
       const ay = gamepad_axis_value(0, gp_axislv);
       if (abs(ax) < 0.4) UINav._stickX = 0;
       else if (UINav._stickX === 0 && abs(ax) > 0.6) {
-        dx = ax < 0 ? -1 : 1;
-        UINav._stickX = dx;
+        e.dx = ax < 0 ? -1 : 1;
+        UINav._stickX = e.dx;
       }
       if (abs(ay) < 0.4) UINav._stickY = 0;
       else if (UINav._stickY === 0 && abs(ay) > 0.6) {
-        dy = ay < 0 ? -1 : 1;
-        UINav._stickY = dy;
+        e.dy = ay < 0 ? -1 : 1;
+        UINav._stickY = e.dy;
       }
     }
-
-    return { dx, dy, confirm, cancel };
+    return e;
   }
 };

@@ -247,15 +247,15 @@ globalThis.UIInput = class UIInput {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const over = !block && element.positionMeeting(mx, my);
 
-    // set field font so string_width calls below match render width.
+    // set field font so string_width calls below match render width; resolve an I18n key
+    // here too — the measure font must match the draw font after a locale reload.
     const prevFont = draw_get_font();
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
 
     if (UIPointer.pressed) {
       if (over) {
@@ -279,8 +279,7 @@ globalThis.UIInput = class UIInput {
     }
 
     if (this._dragging) {
-      if (UIPointer.down)
-        this._setCursor(this._indexAtX(pos, mx), true);
+      if (UIPointer.down) this._setCursor(this._indexAtX(pos, mx), true);
       else this._dragging = false;
     }
 
@@ -429,16 +428,12 @@ globalThis.UIInput = class UIInput {
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
     const tr = this._textRegion(pos);
 
-    const prevFont = draw_get_font();
-    const prevColor = draw_get_color();
-    const prevAlpha = draw_get_alpha();
-    const prevHalign = draw_get_halign();
-    const prevValign = draw_get_valign();
+    const st = uiDrawSave();
 
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_left);
     draw_set_valign(fa_middle);
     draw_set_alpha(1);
@@ -511,11 +506,7 @@ globalThis.UIInput = class UIInput {
       }
     }
 
-    draw_set_font(prevFont);
-    draw_set_color(prevColor);
-    draw_set_alpha(prevAlpha);
-    draw_set_halign(prevHalign);
-    draw_set_valign(prevValign);
+    uiDrawRestore(st);
   }
 
   /** @param {UIElement} element */

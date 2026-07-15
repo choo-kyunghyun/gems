@@ -21,8 +21,11 @@ globalThis.UIDropdown = class UIDropdown {
     this.padX = dd.padX ?? 12;
 
     this._open = false; // popup currently shown — drives the chevron direction
-    this._enter = false;
-    this._hold = false;
+    this._el = null; // host element, stashed each onUpdate for the onClick closure
+    // internal FSM delegate (UITrigger) — commit on release-inside opens the popup.
+    this._fsm = new UITrigger({
+      onClick: () => this._toggle(this._el),
+    });
   }
 
   // METHOD not `get index()` — house style; the old "getter shadowing a GM name faults"
@@ -65,32 +68,17 @@ globalThis.UIDropdown = class UIDropdown {
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) width — NaN <= 0 is false
-
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    this._enter = !block && element.positionMeeting(mx, my);
-
-    if (this._enter && UIPointer.pressed) this._hold = true;
-    if (UIPointer.released) {
-      if (this._hold && this._enter) this._toggle(element);
-      this._hold = false;
-    }
-    return this._hold || this._enter || block;
+    this._el = element;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) width — NaN <= 0 is false
+    const st = uiDrawSave();
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
     const cy = pos.top + pos.height * 0.5;
 
@@ -117,10 +105,7 @@ globalThis.UIDropdown = class UIDropdown {
       this.chevronColor,
     );
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
+    uiDrawRestore(st);
   }
 
   // UINav: confirm opens the list; presence marks the field focusable. No navAxis — use

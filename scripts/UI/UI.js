@@ -22,6 +22,12 @@ globalThis.UI = class UI {
   static insert(root, index = UI.roots.length, enabled = true) {
     root.enabled = enabled;
     UI.roots.splice(index, 0, root);
+    // layout reads are NaN until the first flexpanel_calculate_layout (probe-verified on
+    // GMRT 0.20) — refresh at registration so a root inserted mid-frame (modal/dropdown
+    // opened from an onClick) never reaches UI.draw un-laid-out. Together with the
+    // end-of-update refresh (UIElement.update) and the pre-draw dirty refresh (UI.draw),
+    // components never observe NaN layout — they carry no per-widget guards.
+    root.refresh();
     return UI;
   }
 
@@ -63,7 +69,14 @@ globalThis.UI = class UI {
       gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
     }
     for (const root of UI.roots) {
-      if (root.enabled) root.draw();
+      if (root.enabled) {
+        // a root can still be dirty here: scenes insert-then-build (children added after
+        // UI.insert's refresh), and UINav-driven mutations (accordion expand) land after
+        // UI.update's end-of-update refresh. Recompute before drawing so no subtree draws
+        // with NaN layout.
+        if (root.dirty) root.refresh();
+        root.draw();
+      }
     }
     // advance so a GROW only clips next frame once the back buffer catches up; see Display.clipW.
     Display.advanceFrame();

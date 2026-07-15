@@ -49,7 +49,6 @@ globalThis.UITabs = class UITabs {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
     const n = this.tabs.length;
     if (n === 0) return block;
 
@@ -72,20 +71,12 @@ globalThis.UITabs = class UITabs {
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
     const n = this.tabs.length;
     if (n === 0) return;
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
 
-    // resolve I18n font KEY live (cached handle dangles on locale reload); raw handle
-    // passes through. see the resolve-at-draw GMRT-Safe Idiom.
-    const fnt =
-      typeof this.font === "string" ? I18n.font(this.font) : this.font;
+    const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
@@ -164,11 +155,7 @@ globalThis.UITabs = class UITabs {
       this.border,
     );
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 
   // UINav: left/right switches tabs (one focus stop); confirm advances, wrapping.

@@ -89,8 +89,7 @@ globalThis.SlotDrag = class SlotDrag {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const sz = SlotDrag.iconSize;
-    const n = max(1, sprite_get_number(it.sprite));
-    const sub = clamp(it.subimg ?? 0, 0, n - 1);
+    const sub = it.subimg ?? 0;
     draw_sprite_stretched_ext(
       it.sprite,
       sub,

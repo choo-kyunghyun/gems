@@ -12,25 +12,32 @@ globalThis.UISelect = class UISelect {
     this.font = select.font ?? -1;
     this.halign = select.halign ?? fa_center;
     this.valign = select.valign ?? fa_middle;
-    this._enter = false;
-    this._hold = false;
     // -1 = cursor over left arrow, 1 = right, 0 = not hovering.
     this._side = 0;
+    // internal FSM delegate (UITrigger); its onClick fires on release-inside and reads the
+    // _side latched earlier in the same onUpdate.
+    this._fsm = new UITrigger({
+      onClick: () => {
+        if (this._side < 0) this.retreat();
+        else this.advance();
+      },
+    });
   }
 
+  // METHODS not accessors — house style (mirrors UIDropdown.getIndex/getValue/getName).
   /** @returns {number} the selected index */
-  get index() {
+  getIndex() {
     return this._index;
   }
 
   /** @returns {*} the selected item's value (undefined if empty) */
-  get value() {
+  getValue() {
     const item = this.items[this._index];
     return item ? item.value : undefined;
   }
 
   /** @returns {string} the selected item's display name ("" if empty) */
-  get name() {
+  getName() {
     const item = this.items[this._index];
     return item ? item.name : "";
   }
@@ -39,7 +46,7 @@ globalThis.UISelect = class UISelect {
   advance() {
     if (this.items.length === 0) return this;
     this._index = (this._index + 1) % this.items.length;
-    this.onChange(this._index, this.value);
+    this.onChange(this._index, this.getValue());
     return this;
   }
 
@@ -47,14 +54,14 @@ globalThis.UISelect = class UISelect {
   retreat() {
     if (this.items.length === 0) return this;
     this._index = (this._index - 1 + this.items.length) % this.items.length;
-    this.onChange(this._index, this.value);
+    this.onChange(this._index, this.getValue());
     return this;
   }
 
   /** Select index `i` (clamped). @param {number} i @returns {UISelect} */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
-    this.onChange(this._index, this.value);
+    this.onChange(this._index, this.getValue());
     return this;
   }
 
@@ -67,24 +74,13 @@ globalThis.UISelect = class UISelect {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
-    this._enter = !block && element.positionMeeting(mx, my);
-    this._side = this._enter ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
-
-    if (this._enter && UIPointer.pressed) this._hold = true;
-
-    if (UIPointer.released) {
-      if (this._hold && this._enter) {
-        if (this._side < 0) this.retreat();
-        else this.advance();
-      }
-      this._hold = false;
-    }
-
-    return this._hold || this._enter || block;
+    // latch the arrow side BEFORE the FSM runs — its onClick (fired inside onUpdate on the
+    // release edge) commits by reading this frame's _side.
+    const over = !block && element.positionMeeting(mx, my);
+    this._side = over ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
@@ -92,14 +88,10 @@ globalThis.UISelect = class UISelect {
     if (this.items.length === 0) return;
 
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
+    const st = uiDrawSave();
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
     const cy = pos.top + pos.height * 0.5;
@@ -123,12 +115,9 @@ globalThis.UISelect = class UISelect {
 
     draw_set_halign(this.halign);
     draw_set_color(this.color);
-    draw_text(pos.left + pos.width * 0.5, cy, this.name);
+    draw_text(pos.left + pos.width * 0.5, cy, this.getName());
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
+    uiDrawRestore(st);
   }
 
   // UINav: horizontal nav adjusts value instead of moving focus; confirm advances.

@@ -22,8 +22,6 @@ globalThis.UIProgress = class UIProgress {
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
-
     const a0 = draw_get_alpha();
     draw_set_alpha(1);
 
@@ -77,9 +75,7 @@ globalThis.UIProgress = class UIProgress {
       const str = this.label();
       if (str !== "") {
         const font = draw_get_font();
-        // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
-        const fnt =
-          typeof this.font === "string" ? I18n.font(this.font) : this.font;
+        const fnt = resolveUIFont(this.font);
         if (fnt !== -1) draw_set_font(fnt);
         const ha = draw_get_halign();
         const va = draw_get_valign();

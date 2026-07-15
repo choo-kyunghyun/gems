@@ -18,9 +18,6 @@ globalThis.UIDrag = class UIDrag {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const target = this.target ?? element;
-    const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const over = !block && element.positionMeeting(mx, my);

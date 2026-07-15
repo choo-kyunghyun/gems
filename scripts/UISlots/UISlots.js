@@ -8,23 +8,13 @@
  * draw_sprite on GMRT (see CLAUDE.md).
  *
  * Browse mode: `navActivate` enters it; the grid then owns the arrows (a 2D slot cursor,
- * confirm → onActivate). It claims keys by setting `UISlots.active = this` each frame; UINav
- * consumes the flag — a per-frame REQUEST, so a stale claim lapses (same contract as UITable).
+ * confirm → onActivate). It claims the keys via `UINav.claimKeys(this)` each frame — a
+ * per-frame REQUEST UINav consumes, so a stale claim lapses (same contract as UITable).
+ * Edge reads come from the shared `UINav.readEdge()`.
  *
  * GMRT: hover/selection read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UISlots = class UISlots {
-  // grid requesting keyboard browse this frame (UINav.consume reads + clears it).
-  // A plain static field, not a static getter (GMRT doesn't fire those).
-  static active = null;
-
-  /** @returns {boolean} whether a grid is requesting keyboard browse this frame */
-  static consume() {
-    if (UISlots.active === null) return false;
-    UISlots.active = null;
-    return true;
-  }
-
   /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, onActivate, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
   constructor(s = {}) {
     this.items = s.items ?? []; // flat array; entry is item-or-null
@@ -65,8 +55,6 @@ globalThis.UISlots = class UISlots {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
 
@@ -86,7 +74,7 @@ globalThis.UISlots = class UISlots {
       } else {
         this._hover = -1; // no stale mouse hover under the key cursor
         this._browseKeys();
-        UISlots.active = this; // re-request nav suspension THIS frame (self-healing)
+        UINav.claimKeys(this); // re-request nav suspension THIS frame (self-healing)
         return true;
       }
     }
@@ -153,7 +141,7 @@ globalThis.UISlots = class UISlots {
   }
 
   _browseKeys() {
-    const e = this._navEdge();
+    const e = UINav.readEdge();
     if (e.cancel) {
       this._browsing = false;
       return;
@@ -170,47 +158,15 @@ globalThis.UISlots = class UISlots {
     if (e.confirm) this.onActivate(this._cursor, this.items[this._cursor]);
   }
 
-  // Minimal directional edge read for browse mode (keyboard + gamepad dpad), mirroring
-  // UITable._navEdge. The full stick/analog handling lives in UINav; the grid only needs
-  // discrete steps.
-  _navEdge() {
-    let dx = 0;
-    let dy = 0;
-    let confirm = false;
-    let cancel = false;
-    if (keyboard_check_pressed(vk_left)) dx = -1;
-    else if (keyboard_check_pressed(vk_right)) dx = 1;
-    if (keyboard_check_pressed(vk_up)) dy = -1;
-    else if (keyboard_check_pressed(vk_down)) dy = 1;
-    if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space))
-      confirm = true;
-    if (keyboard_check_pressed(vk_escape)) cancel = true;
-    if (gamepad_is_connected(0)) {
-      if (gamepad_button_check_pressed(0, gp_padl)) dx = -1;
-      else if (gamepad_button_check_pressed(0, gp_padr)) dx = 1;
-      if (gamepad_button_check_pressed(0, gp_padu)) dy = -1;
-      else if (gamepad_button_check_pressed(0, gp_padd)) dy = 1;
-      if (gamepad_button_check_pressed(0, gp_face1)) confirm = true;
-      if (gamepad_button_check_pressed(0, gp_face2)) cancel = true;
-    }
-    return { dx, dy, confirm, cancel };
-  }
-
   /** Release the browse-mode key claim on teardown. @param {UIElement} element */
   onDestroy(element) {
-    if (UISlots.active === this) UISlots.active = null;
+    UINav.releaseClaim(this);
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
-
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-    const a0 = draw_get_alpha();
+    const st = uiDrawSave();
     draw_set_alpha(1);
 
     const sz = this.cellSize;
@@ -236,21 +192,19 @@ globalThis.UISlots = class UISlots {
         false,
       );
 
-      // icon (raster only). Aspect-preserving fit inside the cell's inner box: a non-square icon
-      // (wide gun / tall item) keeps its shape instead of being squished into a square. A square
-      // sprite fits identically to the old square stretch, so this is a no-op for those. stretched_ext
-      // fills the given rect ignoring origin, so center by offset. (sprite_get_width/height are 0 for
-      // SVG sprites — sprite_exists already gated those out; guard >0 anyway and fall back to the box.)
+      // icon (raster only — an invalid subimg or SVG sprite is the caller's bug and faults
+      // loudly rather than being clamped away). Aspect-preserving fit inside the cell's inner
+      // box: a non-square icon (wide gun / tall item) keeps its shape instead of being squished
+      // into a square. stretched_ext fills the given rect ignoring origin, so center by offset.
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
-        const n = max(1, sprite_get_number(it.sprite));
-        const sub = clamp(it.subimg ?? 0, 0, n - 1);
+        const sub = it.subimg ?? 0;
         const box = sz - this.pad * 2;
         const sw = sprite_get_width(it.sprite);
         const sh = sprite_get_height(it.sprite);
-        const fit = sw > 0 && sh > 0 ? min(box / sw, box / sh) : 1;
-        const dw = sw > 0 ? sw * fit : box;
-        const dh = sh > 0 ? sh * fit : box;
+        const fit = min(box / sw, box / sh);
+        const dw = sw * fit;
+        const dh = sh * fit;
         draw_sprite_stretched_ext(
           it.sprite,
           sub,
@@ -308,7 +262,8 @@ globalThis.UISlots = class UISlots {
     }
 
     // counts + corner badges drawn last so the selection outline never covers them.
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_right);
     draw_set_valign(fa_bottom);
     draw_set_color(this.countColor);
@@ -330,10 +285,6 @@ globalThis.UISlots = class UISlots {
       }
     }
 
-    if (this.font !== -1) draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
-    draw_set_alpha(a0);
+    uiDrawRestore(st);
   }
 };

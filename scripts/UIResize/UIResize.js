@@ -35,9 +35,6 @@ globalThis.UIResize = class UIResize {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const target = this.target ?? element;
-    const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-size
-
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
     const over = !block && element.positionMeeting(mx, my);
@@ -79,7 +76,6 @@ globalThis.UIResize = class UIResize {
   /** @param {UIElement} element draws the corner grip glyph (diagonal hatch). */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return;
     const a0 = draw_get_alpha();
     const x2 = pos.left + pos.width - 3;
     const y2 = pos.top + pos.height - 3;

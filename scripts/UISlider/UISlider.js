@@ -24,8 +24,8 @@ globalThis.UISlider = class UISlider {
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
 
-    this._over = false;
-    this._hold = false;
+    // internal FSM delegate (UITrigger) — no callbacks; the drag below reads its hold flag.
+    this._fsm = new UITrigger({});
   }
 
   _snap(value) {
@@ -94,30 +94,24 @@ globalThis.UISlider = class UISlider {
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
+    const result = this._fsm.onUpdate(element, block);
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    this._over = !block && element.positionMeeting(mx, my);
-
-    if (!this.readOnly) {
-      if (this._over && UIPointer.pressed) this._hold = true;
-      if (UIPointer.released) this._hold = false;
-      if (this._hold) {
-        const m = this._metrics(pos);
-        const t = clamp((mx - pos.left - m.r) / m.inner, 0, 1);
-        this.setValue(this.min + t * (this.max - this.min));
-      }
+    // drag: the FSM latches hold on the press frame (value jumps immediately) and clears it
+    // during the release-frame update (no set on release) — same order as before delegation.
+    if (!this.readOnly && this._fsm.hold) {
+      const mx = device_mouse_x_to_gui(0);
+      const m = this._metrics(pos);
+      const t = clamp((mx - pos.left - m.r) / m.inner, 0, 1);
+      this.setValue(this.min + t * (this.max - this.min));
     }
 
-    return this._hold || this._over || block;
+    // readOnly: hover still captures but a press must not latch capture on drag-off.
+    return this.readOnly ? this._fsm.enter || block : result;
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width — NaN <= 0 is false
-
     const m = this._metrics(pos);
     const x1 = pos.left;
     const x2 = pos.left + m.trackW;
@@ -159,7 +153,7 @@ globalThis.UISlider = class UISlider {
     );
 
     // thumb grows slightly while hovered/dragged for feedback.
-    const tr = m.r * (this._hold || this._over ? 1.12 : 1);
+    const tr = m.r * (element.state.held || element.state.hover ? 1.12 : 1);
     draw_set_alpha(this._thumbStyle.shadowAlpha ?? 0.3);
     draw_roundrect_color_ext(
       m.thumbX - tr,
@@ -204,11 +198,7 @@ globalThis.UISlider = class UISlider {
       const ph = draw_get_halign();
       const pv = draw_get_valign();
       const pf = draw_get_font();
-      // Resolve an I18n font KEY live (survives a locale reload); a raw handle passes through.
-      const vf =
-        typeof this.valueFont === "string"
-          ? I18n.font(this.valueFont)
-          : this.valueFont;
+      const vf = resolveUIFont(this.valueFont);
       if (vf !== -1) draw_set_font(vf);
       draw_set_halign(fa_right);
       draw_set_valign(fa_middle);

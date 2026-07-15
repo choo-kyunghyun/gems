@@ -14,16 +14,17 @@ globalThis.UIRebind = class UIRebind {
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
-    this._enter = false; // pointer over the row
-    this._hold = false; // press started inside (commit on release)
     this._capturing = false; // waiting for the next key
+    // internal FSM delegate (UITrigger) — release-inside arms capture mode.
+    this._fsm = new UITrigger({
+      onClick: () => {
+        this._capturing = true;
+      },
+    });
   }
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
     if (this._capturing) {
       // Esc checked first — the scan below would otherwise pick it up.
       if (keyboard_check_pressed(vk_escape) || UIPointer.pressed) {
@@ -37,33 +38,22 @@ globalThis.UIRebind = class UIRebind {
           this._capturing = false;
         }
       }
+      // no stale hover/held flags in the bag while armed — the FSM isn't running.
+      element.state.hover = false;
+      element.state.held = false;
       return true; // swallow input from the rest of the tree while capturing
     }
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    this._enter = !block && element.positionMeeting(mx, my);
-
-    if (this._enter && UIPointer.pressed) this._hold = true;
-    if (UIPointer.released) {
-      if (this._hold && this._enter) this._capturing = true;
-      this._hold = false;
-    }
-
-    return this._hold || this._enter || block;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return; // unlaid-out (NaN) or zero-width
+    const st = uiDrawSave();
 
-    const font = draw_get_font();
-    const halign = draw_get_halign();
-    const valign = draw_get_valign();
-    const color = draw_get_color();
-
-    if (this.font !== -1) draw_set_font(this.font);
+    const fnt = resolveUIFont(this.font);
+    if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
@@ -103,10 +93,7 @@ globalThis.UIRebind = class UIRebind {
       draw_text(cx, cy, this._label());
     }
 
-    draw_set_font(font);
-    draw_set_halign(halign);
-    draw_set_valign(valign);
-    draw_set_color(color);
+    uiDrawRestore(st);
   }
 
   // current binding as text, read live so a rebind updates the label with no wiring.

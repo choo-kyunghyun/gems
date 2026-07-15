@@ -44,8 +44,6 @@ globalThis.UIScroll = class UIScroll {
   /** @param {UIElement} element the clip viewport @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    if (!(pos.width > 0)) return block; // unlaid-out (NaN) or zero-width
-
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;
     const m = this._metrics(pos, contentH);
 
@@ -87,7 +85,9 @@ globalThis.UIScroll = class UIScroll {
       }
     }
 
-    this.scroll = clamp(this.scroll, 0, m.max);
+    // positive test: m.max can be NaN in the residual mid-pass-insert window — never let
+    // NaN into the persistent scroll (it would poison scrollY for the whole subtree).
+    this.scroll = m.max > 0 ? clamp(this.scroll, 0, m.max) : 0;
     element.scrollY = this.scroll; // offsets subtree via getLayoutPosition
     this._track = m;
 
@@ -98,7 +98,9 @@ globalThis.UIScroll = class UIScroll {
   /** @param {UIElement} element */
   onDraw(element) {
     const m = this._track;
-    if (m === null || m.max <= 0) return; // nothing overflowing → no scrollbar
+    // positive test — a NaN-metrics _track (cached during the residual mid-pass-insert
+    // window) must also skip, and NaN <= 0 is false.
+    if (m === null || !(m.max > 0)) return; // nothing overflowing → no scrollbar
 
     const a0 = draw_get_alpha();
     const rad = this.barW * 0.5;
