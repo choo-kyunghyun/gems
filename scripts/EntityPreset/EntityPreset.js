@@ -44,7 +44,7 @@ globalThis.EntityPreset = class EntityPreset {
    * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
    * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
    * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
-   * @param {string} presetId @param {ECS} world @param {number} x @param {number} y
+   * @param {string} presetId @param {Entity} world @param {number} x @param {number} y
    * @param {number} [z=0] @param {Object} [opts] @returns {number} entity id
    */
   static spawn(presetId, world, x, y, z = 0, opts = {}) {

@@ -36,10 +36,10 @@
 // GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {ECS} world @param {LevelGrid} level
+   * @param {Entity} world @param {LevelGrid} level
    * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
    * @param {Object} [opts]
-   * @param {function(ECS, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
+   * @param {function(Entity, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
    * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.
    * @param {number} [opts.simRadius=1] @param {number} [opts.loadRadius=2] ring distances.
    * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);

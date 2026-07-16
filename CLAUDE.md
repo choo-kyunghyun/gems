@@ -68,7 +68,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 - **Filing under a project folder** (`folders/*.yy`): **edit the asset's own `.yy`** `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — safe local metadata. Do **not** `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root.
 - **New folders**: `gm-cli resourcetool eval "FOLDER CREATE FOLDER=Parent/Child"`. Its name validator rejects spaces/`&` (over-strict — existing folder names like `UI Sprites` legally contain them); for such names hand-add a `GMFolder` line to the `Folders` array in `gems.yyp` — that array (unlike `resources`) is safe to hand-edit, and editing it is also how empty folders are deleted (resourcetool has no FOLDER DELETE).
 - **Delete**: `gm-cli resourcetool eval "RESOURCE DELETE NAME=<name> TYPE=Script"` — removes the asset from `gems.yyp` and deletes its `scripts/<name>/` folder. Never delete by removing files manually.
-- **Rename**: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free. ⚠️ **One `eval` per rename, never via `SCRIPT PATH=`** — a SCRIPT batch renames the asset files without saving `gems.yyp`, leaving the project unloadable (verified 2026-07-12).
+- **Rename**: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free (a script's `.js` source file + `scriptSource` are NOT renamed — `mv` the file, then `RESOURCE SET EXPR=<newname>.scriptSource`). ⚠️ **One CLI `eval` per rename, never via `SCRIPT PATH=` and never via the MCP server** — both rename the asset files without saving `gems.yyp`, leaving the project unloadable (SCRIPT verified 2026-07-12, MCP 2026-07-17; recover by reverting the fs renames, then redo via CLI evals).
 - **Two renames resourcetool can't do**: an **included file** (its dotted name defeats the EXPR parser — rename the file + hand-edit its one line in the yyp's `IncludedFiles` array, safe to hand-edit like `Folders`), and an **importer-owned sprite** (additionally needs the importer's name derivation updated + a re-run).
 - ⚠️ **Sprite churn**: a resourcetool CREATE/DELETE can leave mass churn under `sprites/` — after any mutation, revert it (`git checkout -- sprites/`) and confirm `git status` shows only your intended files before committing.
 - **Verify**: `gm-cli resourcetool eval "CHECK PROJECTPATH=gems.yyp"`, then `gm-cli compile`.
@@ -115,7 +115,8 @@ The repo bundles standalone tools under `tools/` — not part of the game itself
 3. A known quirk or invariant is cited, never re-explained: `// #15549: no && reuse`, `// Time.raw: UI runs while paused`.
 4. A file header is at most 2 lines: what the file is + one docs pointer.
 5. JSDoc carries types, not essays: `@typedef`s and typed `@param`s stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`.
-6. Existing comments are grandfathered — tighten only code you are already touching (migration plan: docs/ROADMAP.md → Comment Refactor).
+6. JSDoc tags cluster, they don't stack: bare typed tags share a line (`@param {number} r @param {number} g @returns {number}`), wrapping whenever a line would pass 80 chars (the Prettier print width — comments included); a tag takes its own line only when it carries a description (typedef `@property` lists, a param needing a why).
+7. Existing comments are grandfathered — tighten only code you are already touching (migration plan: docs/ROADMAP.md → Comment Refactor).
 
 ### Script Naming
 
@@ -134,7 +135,7 @@ A script's directory + filename matches the identifier it exposes, cased to JS n
 
 ### ECS Bootstrap
 
-Each scene owns its `World` (`this.world = new World(maxEntities, tickrate, opts)`). There is no `WORLD`/`MAX_ENTITIES` global.
+Each level owns its `Entity` store (canonically `this.entities = new Entity(maxEntities, opts)`); `World` is the world-manager singleton (`World.sim`, `World.levels`) and holds no entity data. The store's ubiquitous legacy name `world` (bindings + system params) is grandfathered — rename to `entities` only in files already being touched (plan: docs/ROADMAP.md → Code Review).
 
 ## GMRT-Safe Idioms
 

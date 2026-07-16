@@ -1,7 +1,7 @@
 // Spatial lookup over entities with Position. Point tests only (no BBox — that's AABB's job).
 /** @typedef {Object} QueryOpts @property {string} [has] require this component (its token) @property {number} [maxDist] cap search radius (world px) @property {boolean} [hasCollision] require a Collision component */
 globalThis.Query = class Query {
-  /** Nearest match to (x, y), or -1. @param {ECS} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
+  /** Nearest match to (x, y), or -1. @param {Entity} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
   static nearest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist =
@@ -18,7 +18,7 @@ globalThis.Query = class Query {
     return bestId;
   }
 
-  /** Farthest match within `maxDist`, or -1. @param {ECS} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
+  /** Farthest match within `maxDist`, or -1. @param {Entity} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
   static farthest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist = -1;
@@ -36,7 +36,7 @@ globalThis.Query = class Query {
     return bestId;
   }
 
-  /** Matches within rect [x1,y1]-[x2,y2] (inclusive). @param {ECS} world @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 @param {QueryOpts} [opts] @returns {number[]} */
+  /** Matches within rect [x1,y1]-[x2,y2] (inclusive). @param {Entity} world @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 @param {QueryOpts} [opts] @returns {number[]} */
   static inRect(world, x1, y1, x2, y2, opts = {}) {
     const result = [];
     for (const id of world.query(Position)) {
@@ -48,7 +48,7 @@ globalThis.Query = class Query {
     return result;
   }
 
-  /** Matches within `radius` of (x, y). @param {ECS} world @param {number} x @param {number} y @param {number} radius @param {QueryOpts} [opts] @returns {number[]} */
+  /** Matches within `radius` of (x, y). @param {Entity} world @param {number} x @param {number} y @param {number} radius @param {QueryOpts} [opts] @returns {number[]} */
   static inRadius(world, x, y, radius, opts = {}) {
     const result = [];
     const rSq = radius * radius;

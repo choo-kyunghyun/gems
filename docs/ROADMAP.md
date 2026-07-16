@@ -65,6 +65,8 @@ Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured 2026-07-
 
 Review batches from the 2026-07-13 coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
 
+Each batch also renames its files' legacy `world` store identifiers (system params, `this.world` bindings) to `entities` — the two-layer restructure's deferred rename (rule: CLAUDE.md → ECS Bootstrap). GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so run the game after a rename batch, not just compile.
+
 | #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
 | 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `Rand`, `AABB`, `File`) — everything sits on these |      |

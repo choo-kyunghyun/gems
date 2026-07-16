@@ -1,9 +1,9 @@
 /**
  * @typedef {Object} StateSchema
  * @property {string} id                             registry name (e.g. "combat.idle")
- * @property {function(ECS, number): void} [enter]   called once on transition in
- * @property {function(ECS, number): void} [update]  called every tick while active
- * @property {function(ECS, number): void} [finish]  called once on transition out
+ * @property {function(Entity, number): void} [enter]   called once on transition in
+ * @property {function(Entity, number): void} [update]  called every tick while active
+ * @property {function(Entity, number): void} [finish]  called once on transition out
  */
 
 // Per-entity state machine over a NAMED state pool. States register once by id (like
@@ -30,7 +30,7 @@ globalThis.StateSystem = {
 
   /**
    * queue a transition to a registered state id; no-op if already in it unless `force`.
-   * @param {ECS} world @param {number} id @param {string} name @param {boolean} [force]
+   * @param {Entity} world @param {number} id @param {string} name @param {boolean} [force]
    */
   change(world, id, name, force = false) {
     const state = world.get(State, id);
@@ -39,7 +39,7 @@ globalThis.StateSystem = {
     state.next = name;
   },
 
-  /** @param {ECS} world */
+  /** @param {Entity} world */
   update(world) {
     const ids = world.query(State);
     for (const id of ids) {

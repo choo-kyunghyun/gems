@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"ECS",
+  "%Name":"Entity",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"ECS",
+  "name":"Entity",
   "parent":{
     "name":"ECS",
     "path":"folders/Core/ECS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"ECS.js",
+  "scriptSource":"Entity.js",
 }

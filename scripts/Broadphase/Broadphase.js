@@ -25,14 +25,20 @@ globalThis.Broadphase = class Broadphase {
 
   /** Bucket entity `id` by center; out-of-bounds clamps to the edge cell. @param {number} id @param {number} cx @param {number} cy */
   insert(id, cx, cy) {
-    const gx = Math.max(0, Math.min(this.cols - 1, Math.floor(cx / this.cellSize)));
-    const gy = Math.max(0, Math.min(this.rows - 1, Math.floor(cy / this.cellSize)));
+    const gx = Math.max(
+      0,
+      Math.min(this.cols - 1, Math.floor(cx / this.cellSize)),
+    );
+    const gy = Math.max(
+      0,
+      Math.min(this.rows - 1, Math.floor(cy / this.cellSize)),
+    );
     this._buckets[gy * this.cols + gx].push(id);
   }
 
   /**
    * Clear + re-bucket every `ids` entity by center — the per-tick physics rebuild (centers move).
-   * @param {ECS} world @param {number[]} ids
+   * @param {Entity} world @param {number[]} ids
    */
   rebuild(world, ids) {
     this.clear();

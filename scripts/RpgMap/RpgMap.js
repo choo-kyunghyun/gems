@@ -297,7 +297,7 @@ globalThis.RpgMap = {
   // which re-latches scene.playerId. Chunked gets a bigger entity cap (a window of chunks' worth
   // of entities + colliders + drops) and an empty resident grid (player builds only).
   _buildWorld(scene, data, entryId, squad) {
-    scene.world = new ECS(scene._chunked ? 1024 : 256);
+    scene.world = new Entity(scene._chunked ? 1024 : 256);
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.world, data, entryId)
       : RpgLevel.build(scene.world, data, entryId);

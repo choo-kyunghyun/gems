@@ -2,20 +2,19 @@
 
 Area reference split out of the always-loaded core ([ARCHITECTURE.md](../ARCHITECTURE.md)). Loaded on demand: **Read this file before designing or modifying anything in this area.** Runtime quirks live in [GMRT.md](../GMRT.md).
 
-## ECS Core — `World`
+## ECS Core — `Entity`
 
-`World` is the instance-based ECS core, owning all component storage and the generational ID allocator (each scene holds its own — the ECS-shape invariant, ARCHITECTURE.md). The API surface is JSDoc in the source; the behavioral contracts:
+`Entity` is the instance-based entity store, owning component storage (`EntityData`, SoA) and the generational ID allocator (each level holds its own — the ECS-shape invariant, ARCHITECTURE.md; `World` is the world-manager singleton above it, no entity data). The API surface is JSDoc in the source; the behavioral contracts:
 
 - `remove(id)` is **deferred** — it marks; `flush()` commits the queued removals (systems call it at a safe point, never mid-iteration).
 - `add(id, Token, data)` auto-registers the component's storage; `query(...)` returns ids having **all** listed components; `forEach([...], fn)` is the allocation-free variant.
-- `update()` returns the number of fixed-rate ticks to run this frame and advances `alpha` (the `[0, 1)` render-interpolation factor). `maxTicks` (default 5) is the spiral-of-death guard — under overload the sim **slows** instead of freezing.
 - `export()` → a plain object keyed by string token (sparse entries); `import()` restores ids + registered components and ignores unknown keys; `componentsOf(id)` → `{ token: data }` for one entity.
 
-**`IdPool`** (owned as `world.ids`) is the generational allocator: an id encodes index (lower 20 bits) + generation (upper 12 bits), so a freed-and-reused index invalidates stale handles (`isValid`).
+**`EntityID`** (owned as `world.ids`) is the generational allocator: an id encodes index (lower 20 bits) + generation (upper 12 bits), so a freed-and-reused index invalidates stale handles (`isValid`).
 
 ## `EntitySnapshot`
 
-`EntitySnapshot` (Core) is the single-entity serialize/migrate primitive — the counterpart to `World.export` for one entity. `capture(world, id, components?)` → `{ components: { token: data } }`; `apply(world, id, snapshot)` adds those components onto an **existing** entity; `restore(world, snapshot, overrides?)` creates a fresh entity, applies the snapshot, then the `overrides` (e.g. a new `Position`/zeroed `Velocity`). Data objects are **referenced, not deep-copied** — a captured component re-attaches by reference, and the objects survive the source world's `destroy()` (only the storage map is dropped). It is the substrate for migrating an entity between Worlds (`World.levels.take`/`put`/`transfer` wrap it; the RPG squad crosses portals as whole-entity take/put) and the seed for disk saves + chunk streaming (a chunk un/load is the same capture/restore over a region). Serialize the record yourself for disk — mind the `JSON.stringify` fault + no `Set` fields (GMRT.md).
+`EntitySnapshot` (Core) is the single-entity serialize/migrate primitive — the counterpart to the store's `export()` for one entity. `capture(world, id, components?)` → `{ components: { token: data } }`; `apply(world, id, snapshot)` adds those components onto an **existing** entity; `restore(world, snapshot, overrides?)` creates a fresh entity, applies the snapshot, then the `overrides` (e.g. a new `Position`/zeroed `Velocity`). Data objects are **referenced, not deep-copied** — a captured component re-attaches by reference, and the objects survive the source world's `destroy()` (only the storage map is dropped). It is the substrate for migrating an entity between level stores (`World.levels.take`/`put`/`transfer` wrap it; the RPG squad crosses portals as whole-entity take/put) and the seed for disk saves + chunk streaming (a chunk un/load is the same capture/restore over a region). Serialize the record yourself for disk — mind the `JSON.stringify` fault + no `Set` fields (GMRT.md).
 
 ## Component & System Patterns
 
@@ -23,7 +22,7 @@ The shapes are the ARCHITECTURE.md ECS invariant; the conventions this area adds
 
 ## Fixed-Rate Simulation (ECS Scene Pattern)
 
-A scene dispatches systems explicitly inside `step()`: `world.update()` yields the tick count; each tick runs the system sequence and ends with `world.flush()`. Two ordering contracts: **`InterpolationSystem.snapshot` runs first** in every tick (it must record pre-move positions before any system moves `Position`), and `flush()` ends the tick (commits removals queued by the systems). Genre scenes compose the sequence into a **`Pipeline`** (`this.physics = new Pipeline().add(SystemA).add(stepFn)`; a step is any `{ update(world) }` object or a bare function) — platformer `Gravity → clampFall → SolidSystem`; top-down/RPG `SolidSystem → SeparationSystem → ProjectileSystem`.
+A scene dispatches systems explicitly inside `step()`: `World.sim.advance()` yields the tick count and sets `alpha` (the `[0, 1)` render-interpolation factor, read as `World.sim.alpha`); `World.sim.maxTicks` (default 5) is the spiral-of-death guard — under overload the sim **slows** instead of freezing. Each tick runs the system sequence and ends with `world.flush()`. Two ordering contracts: **`InterpolationSystem.snapshot` runs first** in every tick (it must record pre-move positions before any system moves `Position`), and `flush()` ends the tick (commits removals queued by the systems). Genre scenes compose the sequence into a **`Pipeline`** (`this.physics = new Pipeline().add(SystemA).add(stepFn)`; a step is any `{ update(world) }` object or a bare function) — platformer `Gravity → clampFall → SolidSystem`; top-down/RPG `SolidSystem → SeparationSystem → ProjectileSystem`.
 
 **Motion integrators are exclusive per body**: `MovementSystem` integrates _free_ movers (no collision response), `SolidSystem` is move-and-collide for solid bodies, `ProjectileSystem` is move-and-raycast for projectiles. A given mover is integrated by exactly one of them.
 
@@ -40,7 +39,7 @@ A scene dispatches systems explicitly inside `step()`: `world.update()` yields t
 | `TriggerSystem`       | Overlap detection only → owns `col.hits` (fills/clears; pairs where at least one side is non-solid). Uses `world.broadphase` if set, else O(n²).                                                                                                                                                            |
 | `StateSystem`         | State machine over a **named pool**: `register([{ id, enter?, update?, finish? }])` (callbacks receive `(world, id)`; re-register replaces), `get(id)` throws on unknown — fail fast. `State.current/next` hold the id **strings** (`""` = none), so a captured/parked actor round-trips its state as data. |
 | `LifetimeSystem`      | Decrements `lt.ticks`; `world.remove(id)` at `≤ 0`.                                                                                                                                                                                                                                                         |
-| `InterpolationSystem` | `snapshot(world)` records each `Velocity` mover's `Position` into `PrevPosition` — call at the **top of each tick**. Renderers draw at `PrevPosition + (Position − PrevPosition) * world.alpha`; static bodies fall back to `Position`.                                                                     |
+| `InterpolationSystem` | `snapshot(world)` records each `Velocity` mover's `Position` into `PrevPosition` — call at the **top of each tick**. Renderers draw at `PrevPosition + (Position − PrevPosition) * World.sim.alpha`; static bodies fall back to `Position`.                                                                     |
 | `PathfindingSystem`   | Resolves `PathRequest`s; the grid is wired via `MotionPlanner.setGrid` (once per map). See Pathfinding Flow.                                                                                                                                                                                                |
 
 ## Pathfinding Flow

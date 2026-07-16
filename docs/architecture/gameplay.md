@@ -11,7 +11,7 @@ The Core built-in systems ([ecs.md](ecs.md)) are genre-agnostic. A playable genr
 **The platformer keeps a genre controller** (`PlatformerController`) — player input + entity setup as a three-phase lifecycle over a plain `ctrl` state bag, not an `update(world)`. It is a movement showcase: it builds a plain player itself (transform + `Collision` + `Direction`/`Grounded`/`Visual`, **no** RPG components) and has no firing.
 
 - `create(world, spawn)` — registers the keymap (`Input.bindAll`), spawns the player, returns the `ctrl` state bag.
-- `pollInput(ctrl)` — call **once per frame, before `world.update()`**, outside the tick loop. Samples _edge-triggered_ input (jump `pressed()`/`released()`) into buffers so presses aren't lost on 0-tick frames or double-counted on multi-tick frames. (The RPG brain reads no buffered edges, so `PlayerSystem` has no poll step.)
+- `pollInput(ctrl)` — call **once per frame, before `World.sim.advance()`**, outside the tick loop. Samples _edge-triggered_ input (jump `pressed()`/`released()`) into buffers so presses aren't lost on 0-tick frames or double-counted on multi-tick frames. (The RPG brain reads no buffered edges, so `PlayerSystem` has no poll step.)
 - `update(world, ctrl)` — call **once per physics tick**. Reads _continuous_ input (movement) and applies acceleration/jump to `Velocity` (before `SolidSystem` integrates it).
 - `destroy()` — unregisters input. Plus genre verbs like `respawn`.
 

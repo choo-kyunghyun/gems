@@ -422,7 +422,7 @@ globalThis.SaveGame = {
     );
   },
 
-  // the current scene if it's saveable (has an ECS + player), else null — Save is gated on it.
+  // the current scene if it's saveable (has an entity store + player), else null — Save is gated on it.
   _saveable() {
     const g = SystemMenu._game;
     if (g === null) return null;
@@ -471,7 +471,7 @@ globalThis.SaveGame = {
     const ids = chunks.entityIds();
     if (ids.length === 0) return;
     const excl = {}; // index -> true (numeric-keyed plain object, not a Map — GMRT)
-    for (let i = 0; i < ids.length; i++) excl[IdPool.getIndex(ids[i])] = true;
+    for (let i = 0; i < ids.length; i++) excl[EntityID.getIndex(ids[i])] = true;
     const toks = Object.keys(exp.components);
     for (let t = 0; t < toks.length; t++) {
       const entries = exp.components[toks[t]];
@@ -543,7 +543,7 @@ globalThis.SaveGame = {
       const c = ek[i].split(",");
       const rec = be[ek[i]];
       const ent = { dx: Number(c[0]), dy: Number(c[1]), item: rec.itemId };
-      const snap = SaveGame._recordAt(active.world, IdPool.getIndex(rec.ent));
+      const snap = SaveGame._recordAt(active.world, EntityID.getIndex(rec.ent));
       if (Object.keys(snap.components).length > 0) ent.snapshot = snap;
       ents.push(ent);
     }

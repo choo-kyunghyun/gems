@@ -5,7 +5,7 @@
  */
 globalThis.ZoneSystem = {
   /**
-   * @param {ECS} world @param {LevelGrid} level @param {ZoneMap} map
+   * @param {Entity} world @param {LevelGrid} level @param {ZoneMap} map
    * @param {{ has?: string, onEnter?: function, onExit?: function }} [opts]
    *   has (a component token) filters tracked entities; callbacks get (entityId, zone).
    */

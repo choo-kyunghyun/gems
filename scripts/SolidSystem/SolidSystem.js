@@ -15,7 +15,7 @@ globalThis.SolidSystem = {
   _rows: 0,
   _buckets: [], // _buckets[gy * _cols + gx] = [staticIndex, ...]
 
-  /** @param {ECS} world */
+  /** @param {Entity} world */
   update(world) {
     const dt = World.sim.tickDuration;
 

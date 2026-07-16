@@ -4,7 +4,7 @@
 // fixed ticks and exposes `alpha`, the [0,1) render-interpolation remainder renderers lerp by.
 //
 // Distinct from WorldClock (in-game time-of-day / calendar): SimClock is the engine TICK RATE — this
-// is "World rules tickrate". Was the inline clock on the old World/ECS store; moved out so the ECS
+// is "World rules tickrate". Was the inline clock on the old store class; moved out so the Entity
 // store is pure entity/component data. Static singleton (one sim clock), like WorldClock / Time.
 globalThis.SimClock = class SimClock {
   static tickDuration = 1 / 60; // seconds per fixed tick (60 Hz)

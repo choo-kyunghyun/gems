@@ -2,14 +2,14 @@
 // waypoints → invalidate on grid change. The grid is wired via MotionPlanner.setGrid (RpgMap
 // points it at the per-map NavGrid window once per map).
 globalThis.PathfindingSystem = {
-  /** drop all responses so stale paths re-plan after a grid change. @param {ECS} world */
+  /** drop all responses so stale paths re-plan after a grid change. @param {Entity} world */
   invalidate(world) {
     for (const id of world.query(PathResponse)) {
       world.detach(id, PathResponse);
     }
   },
 
-  /** @param {ECS} world */
+  /** @param {Entity} world */
   update(world) {
     for (const id of world.query(PathRequest)) {
       const req = world.get(PathRequest, id);
@@ -24,7 +24,7 @@ globalThis.PathfindingSystem = {
     }
   },
 
-  /** @param {ECS} world @param {number} id @returns {{x:number,y:number}|undefined} */
+  /** @param {Entity} world @param {number} id @returns {{x:number,y:number}|undefined} */
   current(world, id) {
     const response = world.get(PathResponse, id);
     if (response === undefined) return undefined;
@@ -33,7 +33,7 @@ globalThis.PathfindingSystem = {
 
   /**
    * advance cursor; returns false and detaches PathResponse when complete.
-   * @param {ECS} world @param {number} id @returns {boolean}
+   * @param {Entity} world @param {number} id @returns {boolean}
    */
   advance(world, id) {
     const response = world.get(PathResponse, id);

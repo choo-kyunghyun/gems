@@ -8,7 +8,7 @@
 //                    Universe + SceneManager).
 // `sim`/`levels` are wired in obj_game Create_0 (where load order is safe).
 //
-// Was the per-instance ECS store class; that moved to `ECS` (a Level sub-module, `level.ecs`). This
+// Was the per-instance entity store; that moved to `Entity` (a Level sub-module, `level.world`). This
 // name is now the manager. Static namespace, not a class (house convention for stateful singletons),
 // and the methods reference the sub-modules lazily so load order among the world scripts is irrelevant.
 //

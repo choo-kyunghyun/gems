@@ -1,24 +1,13 @@
-// The ECS entity store — a Level sub-module (a level owns one as `level.ecs`). A thin SUBSYSTEM
-// COORDINATOR over pure entity/component data: it owns `ids` (IdPool, id lifecycle) and `storage`
-// (ECSStorage, component data), plus the deferred-removal queue and a per-store `gravity` override.
-// The component-store methods below are one-line delegates to `storage`, so the store's public API is
-// unchanged (every system / Query / EntitySnapshot still calls .add/get/query/... exactly as before).
-//
-// The fixed-step SIM CLOCK is NOT here — it moved to SimClock (World.sim), ONE global clock, since
-// only the active level steps. Systems read the tick dt via World.sim.tickDuration and renderers the
-// interpolation factor via World.sim.alpha, not off the store.
-//
-// NOTE: this was the old `World` class, renamed. The `World` name is now the static world-manager
-// singleton (SimClock/WorldClock/WorldEvents/LevelManager coordinator). Callers still hold an instance
-// as `this.world` for now — that variable rename is deferred; only the class + `new` sites moved to ECS.
-/** @typedef {Object} ECSOpts @property {number} [gravity] override GravitySystem.strength for this store */
-globalThis.ECS = class ECS {
-  /** @param {number} maxEntities slot capacity @param {ECSOpts} [opts] */
+// The per-level entity store — ids (EntityID) + component data (EntityData).
+// Contracts + naming (legacy `world` handles): docs/architecture/ecs.md.
+/** @typedef {Object} EntityOpts @property {number} [gravity] override GravitySystem.strength for this store */
+globalThis.Entity = class Entity {
+  /** @param {number} maxEntities slot capacity @param {EntityOpts} [opts] */
   constructor(maxEntities, opts = {}) {
     this.maxEntities = maxEntities;
     // subsystems
-    this.ids = new IdPool(maxEntities); // entity id allocation (generational)
-    this.storage = new ECSStorage(maxEntities, this.ids); // component data (SoA)
+    this.ids = new EntityID(maxEntities); // entity id allocation (generational)
+    this.storage = new EntityData(maxEntities, this.ids); // component data (SoA)
     this._pending = []; // deferred-removal queue (committed by flush)
     this.gravity = opts.gravity ?? null;
   }
@@ -49,7 +38,7 @@ globalThis.ECS = class ECS {
   /** Commit all queued removals: clear each entity's component slots, then free its id. */
   flush() {
     for (const id of this._pending) {
-      this.storage.clear(IdPool.getIndex(id));
+      this.storage.clear(EntityID.getIndex(id));
       this.ids.free(id);
     }
     this._pending = [];

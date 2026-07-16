@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"ECSStorage",
+  "%Name":"EntityData",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"ECSStorage",
+  "name":"EntityData",
   "parent":{
     "name":"ECS",
     "path":"folders/Core/ECS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"ECSStorage.js",
+  "scriptSource":"EntityData.js",
 }

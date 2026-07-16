@@ -15,7 +15,7 @@ class _ScenePlatformerClass {
     // set here, not as a class field: I18n may not have this locale's text at class-def time.
     this.label = I18n.text("PLAT_NAME");
 
-    this.world = new ECS(256, { gravity: PLATF_GRAVITY });
+    this.world = new Entity(256, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.world);
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.

@@ -3,7 +3,7 @@
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
-  /** @param {ECS} world */
+  /** @param {Entity} world */
   update(world) {
     // collect once; positions shift per pass but the body list is stable
     const bodies = [];

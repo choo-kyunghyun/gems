@@ -2,7 +2,7 @@
 // each tick raycasts the bullet's motion, damages a hit Health, despawns on impact. range bounded
 // by Lifetime. bullets carry no Collision, so they're invisible to Raycast/SolidSystem.
 globalThis.ProjectileSystem = {
-  /** @param {ECS} world */
+  /** @param {Entity} world */
   update(world) {
     const dt = World.sim.tickDuration;
     for (const id of world.query(Projectile, Position, Velocity)) {

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"IdPool",
+  "%Name":"EntityID",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"IdPool",
+  "name":"EntityID",
   "parent":{
     "name":"ECS",
     "path":"folders/Core/ECS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"IdPool.js",
+  "scriptSource":"EntityID.js",
 }

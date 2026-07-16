@@ -1,23 +1,18 @@
-// ECS component store — the entity→component data half of the ECS, split out of `World` so World is a
-// thin subsystem coordinator (World owns an `ids` IdPool + this `storage` + the sim clock). Pure data;
-// no id allocation, no tick. One instance per World (per level), not a singleton: queries scan only
-// this level's slots, and a whole store is dropped as a unit on evict (see Universe / RpgMap pool).
-//
-// Storage is SoA: one dense Array per component token, indexed by IdPool.getIndex(id). The `_keys`/
-// `_storages` parallel arrays mirror the `components` Map in registration order — iterate THOSE, never
-// a Map iterator (`for...of` over .values()/.keys() hangs in the GMRT runtime; the Map is kept only for
-// O(1) token lookup). Holds a back-ref to the World's IdPool for query bounds (`ids.next`/generations).
-globalThis.ECSStorage = class ECSStorage {
-  /** @param {number} maxEntities slot capacity @param {IdPool} ids the owning World's id allocator */
+// SoA component store — one dense Array per component token, indexed by
+// EntityID.getIndex(id); one per entity store. Contracts: docs/architecture/ecs.md.
+globalThis.EntityData = class EntityData {
+  /** @param {number} maxEntities slot capacity @param {EntityID} ids the owning store's allocator */
   constructor(maxEntities, ids) {
     this.maxEntities = maxEntities;
     this.ids = ids; // for query bounds (ids.next) + generations, to rebuild ids from indices
     this.components = new Map();
+    // #15095: iterate _keys/_storages (Map mirror, registration order), never a Map iterator;
+    // the Map is only O(1) token lookup.
     this._keys = [];
     this._storages = [];
   }
 
-  /** Drop all storage (World.destroy). Ids are the World's concern. */
+  /** Drop all storage (Entity.destroy). Ids are the store's concern. */
   destroy() {
     this.components.clear();
     this._keys = [];
@@ -38,20 +33,20 @@ globalThis.ECSStorage = class ECSStorage {
   /** Set component data at an entity's slot; auto-registers the token. @param {number} id @param {string} ComponentClass @param {Object} data */
   add(id, ComponentClass, data) {
     if (!this.components.has(ComponentClass)) this.register(ComponentClass);
-    this.components.get(ComponentClass)[IdPool.getIndex(id)] = data;
+    this.components.get(ComponentClass)[EntityID.getIndex(id)] = data;
   }
 
   /** @param {string} ComponentClass @param {number} id @returns {Object|undefined} */
   get(ComponentClass, id) {
     const storage = this.components.get(ComponentClass);
     if (storage === undefined) return undefined;
-    return storage[IdPool.getIndex(id)];
+    return storage[EntityID.getIndex(id)];
   }
 
   /** @param {number} id @param {string} ComponentClass */
   detach(id, ComponentClass) {
     const storage = this.components.get(ComponentClass);
-    if (storage !== undefined) storage[IdPool.getIndex(id)] = undefined;
+    if (storage !== undefined) storage[EntityID.getIndex(id)] = undefined;
   }
 
   /** Null every component slot at an entity index (World.flush, after removal). @param {number} index */
@@ -63,7 +58,7 @@ globalThis.ECSStorage = class ECSStorage {
   /** All components this entity has, keyed by token. Used by EntitySnapshot. @param {number} id @returns {Object<string,Object>} */
   componentsOf(id) {
     const out = {};
-    const i = IdPool.getIndex(id);
+    const i = EntityID.getIndex(id);
     for (let s = 0; s < this._keys.length; s++) {
       const data = this._storages[s][i];
       if (data !== undefined) out[this._keys[s]] = data;
@@ -90,7 +85,7 @@ globalThis.ECSStorage = class ECSStorage {
     for (let i = 0; i < hi; i++) {
       let c = 0;
       while (c < n && storages[c][i] !== undefined) c++;
-      if (c === n) result.push(IdPool.makeId(i, gens[i]));
+      if (c === n) result.push(EntityID.makeId(i, gens[i]));
     }
     return result;
   }
@@ -110,7 +105,7 @@ globalThis.ECSStorage = class ECSStorage {
     for (let i = 0; i < hi; i++) {
       let c = 0;
       while (c < n && storages[c][i] !== undefined) c++;
-      if (c === n) fn(IdPool.makeId(i, gens[i]));
+      if (c === n) fn(EntityID.makeId(i, gens[i]));
     }
   }
 

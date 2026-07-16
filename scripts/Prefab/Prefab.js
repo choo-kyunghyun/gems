@@ -44,7 +44,7 @@
 /**
  * @typedef {Object} PrefabApplyOpts
  * @property {LevelGrid} level   the level grid (tile layers / zones / cell dims)
- * @property {ECS} [world]       the ECS entity store — required only when the def has walls
+ * @property {Entity} [world]       the ECS entity store — required only when the def has walls
  * @property {number} ox         absolute cell offset of the prefab origin
  * @property {number} oy
  * @property {Object<string, TileLayer>} [layers] named TileLayer map the def's tiles refer to
@@ -168,7 +168,7 @@ globalThis.Prefab = class Prefab {
     if (st.walls.length > 0) {
       if (opts.world === undefined)
         throw new Error(`Prefab '${this.id}': walls need opts.world`);
-      const world = /** @type {ECS} */ (opts.world);
+      const world = /** @type {Entity} */ (opts.world);
       const cw = level.cellWidth;
       const ch = level.cellHeight;
       for (let i = 0; i < st.walls.length; i++) {

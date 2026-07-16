@@ -1,6 +1,6 @@
 // Generational id allocator. An id packs slot index (low 20 bits) + generation (high 12 bits);
 // freeing bumps the generation so stale ids fail isValid(). LIFO reuse keeps `next` low.
-globalThis.IdPool = class IdPool {
+globalThis.EntityID = class EntityID {
   static INDEX_BITS = 20;
   // Literal 20, not (1 << INDEX_BITS): GMRT static field initializers can't reference the
   // class's own name — keep the two in sync by hand.
@@ -40,24 +40,24 @@ globalThis.IdPool = class IdPool {
       generation = 0;
       this.generations[index] = generation;
     }
-    return IdPool.makeId(index, generation);
+    return EntityID.makeId(index, generation);
   }
 
   /** Free a slot, bumping its generation. No-op for a stale id. @param {number} id @returns {boolean} was live */
   free(id) {
-    const index = IdPool.getIndex(id);
-    const generation = IdPool.getGeneration(id);
+    const index = EntityID.getIndex(id);
+    const generation = EntityID.getGeneration(id);
     if (this.generations[index] !== generation) return false;
     this.generations[index] =
-      (this.generations[index] + 1) & IdPool.GENERATION_MASK;
+      (this.generations[index] + 1) & EntityID.GENERATION_MASK;
     this.freeIndices.push(index);
     return true;
   }
 
   /** @param {number} id @returns {boolean} generation matches slot (id is live) */
   isValid(id) {
-    const index = IdPool.getIndex(id);
-    const generation = IdPool.getGeneration(id);
+    const index = EntityID.getIndex(id);
+    const generation = EntityID.getGeneration(id);
     return this.generations[index] === generation;
   }
 
