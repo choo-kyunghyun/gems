@@ -7,70 +7,17 @@ globalThis.RpgInventoryUI = {
   // absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
   // uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
   build(scene) {
-    const margin = 28;
-    // Absolute → fills the screen ignoring gemsRoot padding. Inserted AFTER the HUD so the
-    // backdrop veils it.
-    const host = new UIElement({
-      positionType: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      padding: margin,
-      alignItems: "center",
+    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // Inserted AFTER the HUD so the backdrop veils it; Esc / the inventory key also close
+    // (sceneRpg.handleEscape + step() toggle). Tabs (built below) flex-grow in host.body.
+    const host = gemsOverlay(I18n.textRef("INV_TITLE"), {
+      onClose: () => {
+        scene.invOpen = false;
+        scene._invWin.enabled = false;
+      },
     });
-    host.addComponent(
-      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
-    );
-    host.addComponent(new UITrigger({})); // swallow clicks on the dim so they don't reach the world
     scene._invWin = host;
-    scene._invWin.enabled = false;
-    scene.ui.insertChild(scene._invWin);
-
-    // full-height card, capped on ultra-wide displays
-    const inner = new UIElement({
-      width: "100%",
-      maxWidth: 1100,
-      height: "100%",
-    });
-    const card = gemsCard({
-      width: "100%",
-      flexGrow: 1,
-      padding: GemsTheme.pad,
-      gap: GemsTheme.gapSm,
-    });
-
-    // title + close (x); Esc / the inventory key also close (sceneRpg.handleEscape + step() toggle)
-    const titleRow = new UIElement({
-      width: "100%",
-      height: 40,
-      flexShrink: 0,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    });
-    titleRow.insertChild(
-      gemsLabel(I18n.textRef("INV_TITLE"), {
-        font: "header",
-        color: GemsTheme.text,
-      }),
-    );
-    titleRow.insertChild(
-      gemsButton(
-        "x",
-        () => {
-          scene.invOpen = false;
-          scene._invWin.enabled = false;
-        },
-        { width: 32, height: 32, rad: GemsTheme.radiusSm },
-      ),
-    );
-    card.insertChild(titleRow);
-    card.insertChild(gemsDivider());
-
-    inner.insertChild(card);
-    host.insertChild(inner);
-    host.body = card; // the tabs (built below) flex-grow inside the card, under the title row
+    scene.ui.insertChild(host);
 
     scene._invSel = null; // selected row model
     scene._invSelTime = 0; // last select time (ms) for double-click-to-use

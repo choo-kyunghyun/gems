@@ -20,61 +20,14 @@ globalThis.CraftingUI = {
     scene._craftSel = ""; // selected recipe id (defaulted to the first on refresh)
     scene._craftMode = ""; // "craft" | "mod" — which content row is currently mounted
 
-    const margin = 28;
-    // absolute dim backdrop host — fills the screen, veils the HUD behind it.
-    const host = new UIElement({
-      positionType: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      padding: margin,
-      alignItems: "center",
+    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // Esc / E also close (handleEscape / _dispatchInteract).
+    const host = gemsOverlay(I18n.textRef("CRAFT_TITLE"), {
+      onClose: () => CraftingUI.close(scene),
     });
-    host.addComponent(
-      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
-    );
-    host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._craftWin = host;
-    scene._craftWin.enabled = false;
-    scene.ui.insertChild(scene._craftWin);
-
-    const inner = new UIElement({
-      width: "100%",
-      maxWidth: 1100,
-      height: "100%",
-    });
-    const card = gemsCard({
-      width: "100%",
-      flexGrow: 1,
-      padding: GemsTheme.pad,
-      gap: GemsTheme.gapSm,
-    });
-
-    // title + close (x); Esc / E also close (handleEscape / _dispatchInteract).
-    const titleRow = new UIElement({
-      width: "100%",
-      height: 40,
-      flexShrink: 0,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    });
-    titleRow.insertChild(
-      gemsLabel(I18n.textRef("CRAFT_TITLE"), {
-        font: "header",
-        color: GemsTheme.text,
-      }),
-    );
-    titleRow.insertChild(
-      gemsButton("x", () => CraftingUI.close(scene), {
-        width: 32,
-        height: 32,
-        rad: GemsTheme.radiusSm,
-      }),
-    );
-    card.insertChild(titleRow);
-    card.insertChild(gemsDivider());
+    scene.ui.insertChild(host);
+    const card = host.body;
 
     // module slot bar (top), repopulated each refresh.
     const bar = new UIElement({
@@ -148,9 +101,6 @@ globalThis.CraftingUI = {
     // Mount craft mode by default.
     body.insertChild(craftRow);
     scene._craftMode = "craft";
-
-    inner.insertChild(card);
-    host.insertChild(inner);
   },
 
   open(scene, stationId) {

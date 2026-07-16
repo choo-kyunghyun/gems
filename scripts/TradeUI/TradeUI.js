@@ -13,74 +13,29 @@ globalThis.TradeUI = {
     scene._tradeClickTime = 0;
     scene._tradeQtyModal = null; // open amount-picker modal, else null
 
-    const margin = 28;
-    // absolute dim backdrop host — fills the screen, veils the HUD behind it.
-    const host = new UIElement({
-      positionType: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      padding: margin,
-      alignItems: "center",
-    });
-    host.addComponent(
-      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // Title reads the ACTIVE merchant live; Esc / E also close.
+    const host = gemsOverlay(
+      () => {
+        const npc = scene.world.get(NPC, scene._tradeMerchantId);
+        return npc !== undefined
+          ? I18n.text(npc.name)
+          : I18n.text("TRADE_TITLE");
+      },
+      { onClose: () => TradeUI.close(scene) },
     );
-    host.addComponent(new UITrigger({})); // swallow backdrop clicks
     scene._tradeWin = host;
-    scene._tradeWin.enabled = false;
-    scene.ui.insertChild(scene._tradeWin);
+    scene.ui.insertChild(host);
+    const card = host.body;
 
-    const inner = new UIElement({
-      width: "100%",
-      maxWidth: 1100,
-      height: "100%",
-    });
-    const card = gemsCard({
-      width: "100%",
-      flexGrow: 1,
-      padding: GemsTheme.pad,
-      gap: GemsTheme.gapSm,
-    });
-
-    // Title row: merchant name · player credits · close (x). all read live to track the active merchant.
-    const titleRow = new UIElement({
-      width: "100%",
-      height: 40,
-      flexShrink: 0,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: GemsTheme.gapSm,
-    });
-    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    nameCell.insertChild(
-      gemsLabel(
-        () => {
-          const npc = scene.world.get(NPC, scene._tradeMerchantId);
-          return npc !== undefined
-            ? I18n.text(npc.name)
-            : I18n.text("TRADE_TITLE");
-        },
-        { font: "header", color: GemsTheme.text },
-      ),
-    );
-    titleRow.insertChild(nameCell);
-    titleRow.insertChild(
+    // player credits, live, right-aligned just before the close button.
+    host.titleRow.insertChild(
       gemsLabel(() => TradeUI._balanceText(scene), {
         font: "header",
         color: "#ffd166",
       }),
+      1,
     );
-    titleRow.insertChild(
-      gemsButton("x", () => TradeUI.close(scene), {
-        width: 32,
-        height: 32,
-        rad: GemsTheme.radiusSm,
-      }),
-    );
-    card.insertChild(titleRow);
-    card.insertChild(gemsDivider());
 
     // BUY (merchant stock) | SELL (player bag); flexGrow so the tables fill the height.
     const cols = new UIElement({
@@ -113,9 +68,6 @@ globalThis.TradeUI = {
       gemsLabel(I18n.textRef("TRADE_HINT"), { color: GemsTheme.textMuted }),
     );
     card.insertChild(hint);
-
-    inner.insertChild(card);
-    host.insertChild(inner);
   },
 
   // player's balance in the active merchant's currencyId (else "coin").

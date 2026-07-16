@@ -130,24 +130,14 @@ globalThis.SystemMenu = class SystemMenu {
       maxWidth: 1040,
       height: "100%",
     });
-    const card = new UIElement({
+    const card = gemsCard({
       width: "100%",
       flexGrow: 1,
       padding: GemsTheme.pad,
       gap: GemsTheme.gapSm,
+      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused scene
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
-    card.addComponent(
-      new UIPanel({
-        color: gemsColor(GemsTheme.panel),
-        color2: gemsColor(GemsTheme.panelLo),
-        rad: GemsTheme.radius,
-        border: 1,
-        borderColor: gemsColor(GemsTheme.border),
-        shadow: 12,
-        highlight: 1,
-      }),
-    );
 
     // title row: name left, "Paused" badge right
     const titleRow = new UIElement({

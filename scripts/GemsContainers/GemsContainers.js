@@ -227,6 +227,75 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
   return modal;
 };
 
+// Near-fullscreen overlay window — gemsModal's non-modal sibling for the big gameplay
+// windows (bag / workbench / chest / trade). Absolute dim host that veils the HUD, a
+// centered full-height card capped for ultra-wide, and a title row (title + close "x")
+// over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
+// content keeps sort/filter/selection; the caller inserts it into its scene root itself.
+// Content goes into the returned host's `.body` (the card, under the divider); callers
+// needing extra title-row items (TradeUI's credits) insert into `.titleRow` before its
+// close button. `opts`: { onClose, maxWidth }.
+globalThis.gemsOverlay = function gemsOverlay(title, opts = {}) {
+  // absolute → fills the screen ignoring the scene root's padding; 28px margin around the card.
+  const host = new UIElement({
+    positionType: "absolute",
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    padding: 28,
+    alignItems: "center",
+  });
+  host.addComponent(new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }));
+  host.addComponent(new UITrigger({})); // swallow backdrop clicks so they don't reach the world
+  host.enabled = false; // owner shows/hides via .enabled
+
+  // full-height card, capped on ultra-wide displays
+  const inner = new UIElement({
+    width: "100%",
+    maxWidth: opts.maxWidth ?? 1100,
+    height: "100%",
+  });
+  const card = gemsCard({
+    width: "100%",
+    flexGrow: 1,
+    padding: GemsTheme.pad,
+    gap: GemsTheme.gapSm,
+  });
+
+  // title (in a growing cell so extra items + the close "x" sit right) + divider.
+  const titleRow = new UIElement({
+    width: "100%",
+    height: 40,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: GemsTheme.gapSm,
+  });
+  const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  titleCell.insertChild(
+    gemsLabel(title, { font: "header", color: GemsTheme.text }),
+  );
+  titleRow.insertChild(titleCell);
+  if (opts.onClose != null) {
+    titleRow.insertChild(
+      gemsButton("x", opts.onClose, {
+        width: 32,
+        height: 32,
+        rad: GemsTheme.radiusSm,
+      }),
+    );
+  }
+  card.insertChild(titleRow);
+  card.insertChild(gemsDivider());
+
+  inner.insertChild(card);
+  host.insertChild(inner);
+  host.body = card; // content lands under the title row
+  host.titleRow = titleRow;
+  return host;
+};
+
 // Draggable window: a grab-to-move card (UIDrag → offset, never flex mutation) + an
 // optional close button. Add content to the wrapper's `.body`; toggle visibility via
 // `.enabled`. `opts`: { left, top, width, titleH, onClose, padding }.
