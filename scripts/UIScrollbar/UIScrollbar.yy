@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIScrollbar",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIScrollbar",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIScrollbar.js",
+}

@@ -383,6 +383,7 @@
     {"id":{"name":"UIResize","path":"scripts/UIResize/UIResize.yy",},},
     {"id":{"name":"UIRichText","path":"scripts/UIRichText/UIRichText.yy",},},
     {"id":{"name":"UIScroll","path":"scripts/UIScroll/UIScroll.yy",},},
+    {"id":{"name":"UIScrollbar","path":"scripts/UIScrollbar/UIScrollbar.yy",},},
     {"id":{"name":"UISelect","path":"scripts/UISelect/UISelect.yy",},},
     {"id":{"name":"UISlider","path":"scripts/UISlider/UISlider.yy",},},
     {"id":{"name":"UISlots","path":"scripts/UISlots/UISlots.yy",},},

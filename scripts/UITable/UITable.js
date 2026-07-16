@@ -55,11 +55,8 @@ globalThis.UITable = class UITable {
     this.colorArrow2 = t.colorArrow2 ?? c_gray; // secondary sort arrows
     this.rowAlpha = t.rowAlpha ?? 1;
 
-    this.barW = t.barW ?? 8;
-    this.trackColor = t.trackColor ?? c_black;
-    this.thumbColor = t.thumbColor ?? c_gray;
-    this.thumbHover = t.thumbHover ?? c_ltgray;
-    this.minThumb = t.minThumb ?? 24;
+    // shared track/thumb model — bar style opts (barW/minThumb/colors) pass through.
+    this._bar = new UIScrollbar(t);
 
     this._sort = []; // [{ ci, dir }] — primary first; dir +1 asc / -1 desc
     this._view = []; // filtered + sorted row refs
@@ -73,9 +70,6 @@ globalThis.UITable = class UITable {
     this._browsing = false; // keyboard browse mode latched
     this._mx = 0; // last pointer pos — movement hands control back to mouse
     this._my = 0;
-    this._barDrag = false;
-    this._barDY = 0;
-    this._overThumb = false;
 
     if (t.sortBy != null) this._pushSort(t.sortBy, t.sortDir ?? 1);
     this._recompute();
@@ -231,7 +225,7 @@ globalThis.UITable = class UITable {
   // `barOn` reserves the scrollbar gutter.
   _columns(pos, barOn) {
     const innerW =
-      pos.width - this.pad * 2 - (barOn ? this.barW + this.cellPad : 0);
+      pos.width - this.pad * 2 - (barOn ? this._bar.barW + this.cellPad : 0);
     let base = 0;
     let totalFlex = 0;
     for (let i = 0; i < this.columns.length; i++) {
@@ -290,8 +284,8 @@ globalThis.UITable = class UITable {
 
     this._hoverRow = -1;
     this._hoverCol = -1;
-    this._overThumb = false;
-    if (!this._inside && !this._barDrag) return block;
+    this._bar.over = false;
+    if (!this._inside && !this._bar.dragging) return block;
 
     // Header: hover + click-to-sort.
     if (my >= headerTop && my < bodyTop) {
@@ -325,42 +319,27 @@ globalThis.UITable = class UITable {
     // Scrollbar drag (row-based thumb).
     if (barOn) this._barInput(pos, mx, my, bodyTop, bodyH, maxTop);
 
-    return this._inside || this._barDrag || block;
+    return this._inside || this._bar.dragging || block;
   }
 
   _barInput(pos, mx, my, bodyTop, bodyH, maxTop) {
     const m = this._barMetrics(pos, bodyTop, bodyH, maxTop);
-    this._overThumb =
-      !this._barDrag &&
-      mx >= m.x &&
-      mx <= m.x + this.barW &&
-      my >= m.thumbY &&
-      my <= m.thumbY + m.thumbH;
-    if (this._overThumb && UIPointer.pressed) {
-      this._barDrag = true;
-      this._barDY = my - m.thumbY;
-    }
-    if (this._barDrag) {
-      if (UIPointer.down) {
-        const travel = m.h - m.thumbH;
-        const t = travel > 0 ? (my - this._barDY - m.y) / travel : 0;
-        this._top = Math.round(clamp(t, 0, 1) * maxTop);
-      } else {
-        this._barDrag = false;
-      }
-    }
+    const t = this._bar.input(m, mx, my, true);
+    if (t >= 0) this._top = Math.round(t * maxTop); // row-quantized (UIScroll maps to px)
   }
 
   _barMetrics(pos, bodyTop, bodyH, maxTop) {
-    const x = pos.left + pos.width - this.pad - this.barW;
-    const y = bodyTop;
-    const h = bodyH;
+    const x = pos.left + pos.width - this.pad - this._bar.barW;
     const rowsVis = this._bodyRows(pos);
     const total = Math.max(1, this._view.length);
-    const thumbH = clamp((rowsVis / total) * h, this.minThumb, h);
-    const t = maxTop > 0 ? this._top / maxTop : 0;
-    const thumbY = y + t * (h - thumbH);
-    return { x, y, h, thumbH, thumbY };
+    return this._bar.metrics(
+      x,
+      bodyTop,
+      bodyH,
+      rowsVis,
+      total,
+      maxTop > 0 ? this._top / maxTop : 0,
+    );
   }
 
   _browseKeys(pos) {
@@ -585,34 +564,7 @@ globalThis.UITable = class UITable {
 
   _drawBar(pos, g) {
     const bodyH = g.bodyRows * this.rowH;
-    const m = this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop);
-    const rad = this.barW * 0.5;
-    draw_set_alpha(0.25);
-    draw_roundrect_color_ext(
-      m.x,
-      m.y,
-      m.x + this.barW,
-      m.y + m.h,
-      rad,
-      rad,
-      this.trackColor,
-      this.trackColor,
-      false,
-    );
-    draw_set_alpha(1);
-    const col =
-      this._overThumb || this._barDrag ? this.thumbHover : this.thumbColor;
-    draw_roundrect_color_ext(
-      m.x,
-      m.thumbY,
-      m.x + this.barW,
-      m.thumbY + m.thumbH,
-      rad,
-      rad,
-      col,
-      col,
-      false,
-    );
+    this._bar.draw(this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop));
   }
 
   // cell text fit to `maxW` (hard-truncate — the default font has no ellipsis glyph)

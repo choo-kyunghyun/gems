@@ -2,8 +2,9 @@
  * @implements {UIComponent}
  * Vertical scroll controller for a clip viewport. Drives scrolling by draw-time offset
  * (sets viewport scrollY, which getLayoutPosition subtracts for the subtree) — never flex
- * mutation. Scrollbar sits in a right gutter reserved via clipInsetRight (outside the
- * clipped content); gutter collapses to 0 when nothing overflows. Wheel + drag-thumb input.
+ * mutation. The scrollbar itself (geometry/drag/draw) is the shared UIScrollbar model;
+ * it sits in a right gutter reserved via clipInsetRight (outside the clipped content),
+ * and the gutter collapses to 0 when nothing overflows. Wheel + drag-thumb input.
  * GMRT: pointer read live each frame (no cached primitive to clobber).
  */
 globalThis.UIScroll = class UIScroll {
@@ -11,130 +12,67 @@ globalThis.UIScroll = class UIScroll {
   constructor(scroll = {}) {
     this.content = scroll.content; // body element to measure + scroll
     this.scroll = 0; // scrollY in px
-    this.barW = scroll.barW ?? 8;
     this.barPad = scroll.barPad ?? 4;
-    this.minThumb = scroll.minThumb ?? 24;
     this.wheelStep = scroll.wheelStep ?? 48;
-
-    this.trackColor = scroll.trackColor ?? c_black;
-    this.trackAlpha = scroll.trackAlpha ?? 0.25;
-    this.thumbColor = scroll.thumbColor ?? c_gray;
-    this.thumbHover = scroll.thumbHover ?? c_ltgray;
-
-    this._dragging = false;
-    this._dragDY = 0; // grab offset inside the thumb
-    this._overThumb = false;
+    // shared track/thumb model — bar style opts (barW/minThumb/colors) pass through.
+    this._bar = new UIScrollbar(scroll);
     this._track = null; // geometry cached in onUpdate for onDraw (same frame)
-  }
-
-  // shared track/thumb geometry so hit-test + draw match.
-  _metrics(pos, contentH) {
-    const barW = this.barW;
-    const x1 = pos.left + pos.width - barW - this.barPad;
-    const y1 = pos.top + this.barPad;
-    const h = Math.max(1, pos.height - this.barPad * 2);
-    const ratio = contentH > 0 ? pos.height / contentH : 1;
-    const thumbH = clamp(ratio * h, this.minThumb, h);
-    const max = Math.max(0, contentH - pos.height);
-    const t = max > 0 ? this.scroll / max : 0;
-    const thumbY = y1 + t * (h - thumbH);
-    return { x1, y1, h, thumbH, thumbY, max };
+    this._max = 0; // px of overflow at the last update
   }
 
   /** @param {UIElement} element the clip viewport @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;
-    const m = this._metrics(pos, contentH);
+
+    const barW = this._bar.barW;
+    const max = Math.max(0, contentH - pos.height);
+    const m = this._bar.metrics(
+      pos.left + pos.width - barW - this.barPad,
+      pos.top + this.barPad,
+      Math.max(1, pos.height - this.barPad * 2),
+      pos.height,
+      contentH,
+      max > 0 ? this.scroll / max : 0,
+    );
 
     // reserve the gutter only when scrollable, so a short list uses full width.
-    element.clipInsetRight = m.max > 0 ? this.barW + this.barPad * 2 : 0;
+    element.clipInsetRight = max > 0 ? barW + this.barPad * 2 : 0;
 
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
 
-    if (m.max > 0) {
-      // positionMeeting read live each use, never cached in a local — a cached bool
-      // clobbers mid-function on GMRT (that bug gated the wheel to fire only over the thumb).
+    // positionMeeting read live each use, never cached in a local — a cached bool
+    // clobbers mid-function on GMRT (that bug gated the wheel to fire only over the thumb).
+    if (max > 0) {
       const wheel = UIPointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))
         this.scroll += wheel * this.wheelStep;
-
-      this._overThumb =
-        !this._dragging &&
-        element.positionMeeting(mx, my) &&
-        mx >= m.x1 &&
-        mx <= m.x1 + this.barW &&
-        my >= m.thumbY &&
-        my <= m.thumbY + m.thumbH;
-      if (this._overThumb && UIPointer.pressed) {
-        this._dragging = true;
-        this._dragDY = my - m.thumbY;
-      }
-    } else {
-      this._overThumb = false;
     }
+    // input() runs even at max <= 0 so a drag latched before the content shrank still
+    // releases; the hover gate goes false so no new drag can start.
+    const t = this._bar.input(
+      m,
+      mx,
+      my,
+      max > 0 && element.positionMeeting(mx, my),
+    );
+    if (t >= 0 && max > 0) this.scroll = t * max;
 
-    if (this._dragging) {
-      if (UIPointer.down) {
-        const travel = m.h - m.thumbH;
-        const t = travel > 0 ? (my - this._dragDY - m.y1) / travel : 0;
-        this.scroll = clamp(t, 0, 1) * m.max;
-      } else {
-        this._dragging = false;
-      }
-    }
-
-    // positive test: m.max can be NaN in the residual mid-pass-insert window — never let
+    // positive test: max can be NaN in the residual mid-pass-insert window — never let
     // NaN into the persistent scroll (it would poison scrollY for the whole subtree).
-    this.scroll = m.max > 0 ? clamp(this.scroll, 0, m.max) : 0;
+    this.scroll = max > 0 ? clamp(this.scroll, 0, max) : 0;
     element.scrollY = this.scroll; // offsets subtree via getLayoutPosition
     this._track = m;
+    this._max = max;
 
     // capture the pointer over the viewport (or dragging) so wheel/drag don't leak behind.
-    return this._dragging || element.positionMeeting(mx, my) || block;
+    return this._bar.dragging || element.positionMeeting(mx, my) || block;
   }
 
   /** @param {UIElement} element */
   onDraw(element) {
-    const m = this._track;
-    // positive test — a NaN-metrics _track (cached during the residual mid-pass-insert
-    // window) must also skip, and NaN <= 0 is false.
-    if (m === null || !(m.max > 0)) return; // nothing overflowing → no scrollbar
-
-    const a0 = draw_get_alpha();
-    const rad = this.barW * 0.5;
-
-    // track.
-    draw_set_alpha(this.trackAlpha);
-    draw_roundrect_color_ext(
-      m.x1,
-      m.y1,
-      m.x1 + this.barW,
-      m.y1 + m.h,
-      rad,
-      rad,
-      this.trackColor,
-      this.trackColor,
-      false,
-    );
-
-    // thumb.
-    draw_set_alpha(1);
-    const col =
-      this._overThumb || this._dragging ? this.thumbHover : this.thumbColor;
-    draw_roundrect_color_ext(
-      m.x1,
-      m.thumbY,
-      m.x1 + this.barW,
-      m.thumbY + m.thumbH,
-      rad,
-      rad,
-      col,
-      col,
-      false,
-    );
-
-    draw_set_alpha(a0);
+    if (this._track === null || !(this._max > 0)) return; // nothing overflowing → no scrollbar
+    this._bar.draw(this._track);
   }
 };
