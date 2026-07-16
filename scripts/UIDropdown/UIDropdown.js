@@ -38,14 +38,12 @@ globalThis.UIDropdown = class UIDropdown {
   // getValue/getName are methods for symmetry with getIndex (same house style).
   /** @returns {*} the selected item's value (undefined if empty) */
   getValue() {
-    const item = this.items[this._index];
-    return item ? item.value : undefined;
+    return uiItemValue(this.items, this._index);
   }
 
   /** @returns {string} the selected item's display name ("" if empty) */
   getName() {
-    const item = this.items[this._index];
-    return item ? item.name : "";
+    return uiItemName(this.items, this._index);
   }
 
   /** Select index `i` (clamped). @param {number} i @returns {UIDropdown} */

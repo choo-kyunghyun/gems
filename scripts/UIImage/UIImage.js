@@ -26,8 +26,6 @@ globalThis.UIImage = class UIImage {
     this.fit = image.fit ?? OBJECT_FIT.FILL;
   }
 
-  onDestroy(element) {}
-
   /** advance the subimage if `speed` is set. @param {UIElement} element @param {boolean} block @returns {boolean} */
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;
@@ -65,21 +63,22 @@ globalThis.UIImage = class UIImage {
         break;
       case OBJECT_FIT.CONTAIN:
       case OBJECT_FIT.SCALE_DOWN:
-        let scale = Math.min(w / sw, h / sh);
-        if (this.fit === OBJECT_FIT.SCALE_DOWN) {
-          scale = Math.min(scale, this.xscale);
-        }
-        w = sw * scale;
-        h = sh * scale;
-        x += (pos.width - w) / 2;
-        y += (pos.height - h) / 2;
-        draw_sprite_stretched_ext(
-          this.sprite,
-          this.subimg,
+        const fit = uiContainRect(
+          sw,
+          sh,
           x,
           y,
           w,
           h,
+          this.fit === OBJECT_FIT.SCALE_DOWN ? this.xscale : 0,
+        );
+        draw_sprite_stretched_ext(
+          this.sprite,
+          this.subimg,
+          fit.x,
+          fit.y,
+          fit.w,
+          fit.h,
           this.color,
           this.alpha,
         );

@@ -32,14 +32,12 @@ globalThis.UISelect = class UISelect {
 
   /** @returns {*} the selected item's value (undefined if empty) */
   getValue() {
-    const item = this.items[this._index];
-    return item ? item.value : undefined;
+    return uiItemValue(this.items, this._index);
   }
 
   /** @returns {string} the selected item's display name ("" if empty) */
   getName() {
-    const item = this.items[this._index];
-    return item ? item.name : "";
+    return uiItemName(this.items, this._index);
   }
 
   /** Step forward one item (wraps). @returns {UISelect} */
@@ -73,13 +71,9 @@ globalThis.UISelect = class UISelect {
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pos = element.getLayoutPosition();
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
     // latch the arrow side BEFORE the FSM runs — its onClick (fired inside onUpdate on the
     // release edge) commits by reading this frame's _side.
-    const over = !block && element.positionMeeting(mx, my);
-    this._side = over ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
+    this._side = uiPointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
 
@@ -94,22 +88,9 @@ globalThis.UISelect = class UISelect {
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
-    const cy = pos.top + pos.height * 0.5;
-    const pad = 14;
-
-    const ah = 5;
-    drawUIArrow(
-      pos.left + pad + ah,
-      cy,
-      "left",
-      ah,
+    const cy = drawUIArrowPair(
+      pos,
       this._side < 0 ? this.arrowHover : this.arrowColor,
-    );
-    drawUIArrow(
-      pos.left + pos.width - pad - ah,
-      cy,
-      "right",
-      ah,
       this._side > 0 ? this.arrowHover : this.arrowColor,
     );
 

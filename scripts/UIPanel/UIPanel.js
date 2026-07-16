@@ -91,21 +91,8 @@ globalThis.UIPanel = class UIPanel {
       );
     }
 
-    // draw_roundrect outlines are 1px; loop to fake thickness.
     draw_set_alpha(this.alpha);
-    for (let i = 0; i < this.border; i++) {
-      draw_roundrect_color_ext(
-        x1 + i,
-        y1 + i,
-        x2 - i,
-        y2 - i,
-        this.rad,
-        this.rad,
-        this.borderColor,
-        this.borderColor,
-        true,
-      );
-    }
+    drawUIOutline(x1, y1, x2, y2, this.rad, this.borderColor, this.border);
 
     draw_set_alpha(alpha);
   }

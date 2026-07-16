@@ -1,4 +1,6 @@
-// shared UI arrow/check draw primitives so every chevron/step/sort/tick affordance matches.
+// shared widget primitives — draw glyphs (arrow/check/outline/bar), draw-state save/restore,
+// and the small update-time idioms every widget repeats (font/text resolution, pointer-side
+// latch, contain fit, flexpanel self-size). One home so the affordances can't drift apart.
 // in Core (not Utils) since GemsUI's widgets depend on Core.
 
 /**
@@ -62,6 +64,177 @@ globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
       false,
     ); // down
   }
+};
+
+/**
+ * the ◀ ▶ pair chrome shared by UISelect/UIStepper: arrows inset a fixed pad from each
+ * end, at the row's vertical center. The caller supplies per-arrow colors (hover vs
+ * disabled dimming differs) and draws its own centered label at the returned cy.
+ * @param {{left:number, top:number, width:number, height:number}} pos the laid-out rect
+ * @param {number} leftCol @param {number} rightCol
+ * @returns {number} cy — the row's vertical center
+ */
+globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
+  const cy = pos.top + pos.height * 0.5;
+  const pad = 14;
+  const ah = 5;
+  drawUIArrow(pos.left + pad + ah, cy, "left", ah, leftCol);
+  drawUIArrow(pos.left + pos.width - pad - ah, cy, "right", ah, rightCol);
+  return cy;
+};
+
+/**
+ * which half of `element` the pointer is over: -1 left / +1 right / 0 not hovering (or
+ * blocked). The ◀/▶ side latch UISelect/UIStepper stash BEFORE running their FSM, so the
+ * release-edge onClick commits from the same frame's side.
+ * @param {UIElement} element @param {boolean} block @returns {number}
+ */
+globalThis.uiPointerSide = function uiPointerSide(element, block) {
+  if (block) return 0;
+  const mx = device_mouse_x_to_gui(0);
+  if (!element.positionMeeting(mx, device_mouse_y_to_gui(0))) return 0;
+  const pos = element.getLayoutPosition();
+  return mx < pos.left + pos.width * 0.5 ? -1 : 1;
+};
+
+/**
+ * fake-thickness outline: `thick` nested 1px roundrect strokes insetting inward (GM
+ * roundrect outlines are always 1px). Shared by UIPanel's border, the UISlider thumb ring,
+ * UISlots' selection, UIRebind's armed ring, and UINav's focus ring (which passes its
+ * outer rect so the inward insets land on the same pixels as its old outward growth).
+ * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+ * @param {number} rad corner radius (constant across insets) @param {number} col @param {number} thick
+ */
+globalThis.drawUIOutline = function drawUIOutline(
+  x1,
+  y1,
+  x2,
+  y2,
+  rad,
+  col,
+  thick,
+) {
+  for (let i = 0; i < thick; i++) {
+    draw_roundrect_color_ext(
+      x1 + i,
+      y1 + i,
+      x2 - i,
+      y2 - i,
+      rad,
+      rad,
+      col,
+      col,
+      true,
+    );
+  }
+};
+
+/**
+ * capsule track + fill bar — the shared body of UISlider and UIProgress. Draws the track
+ * roundrect, the fill from x1 to `fillTo` (skipped when fillTo <= x1 — pass x1 for an
+ * empty bar; the CALLER clamps fillTo so the rounded caps can't invert), and the 1px
+ * border when `track.border` is set. `borderOver` picks the stacking: UIProgress strokes
+ * the border OVER the fill (frames the whole track); UISlider strokes it under (the fill
+ * covers its left span). Styles: track { color, border?, borderColor? },
+ * fill { color, color2? } (color2 = roundrect's center→edge tint, not a gradient).
+ * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+ * @param {number} rad @param {number} fillTo fill's right edge (px)
+ * @param {Object} track @param {Object} fill @param {boolean} borderOver
+ */
+globalThis.drawUIBar = function drawUIBar(
+  x1,
+  y1,
+  x2,
+  y2,
+  rad,
+  fillTo,
+  track,
+  fill,
+  borderOver,
+) {
+  const tc = track.color ?? c_dkgray;
+  const bc = track.borderColor ?? c_black;
+  draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, tc, tc, false);
+  if (track.border && !borderOver)
+    draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, bc, bc, true);
+  if (fillTo > x1) {
+    const fc = fill.color ?? c_white;
+    const fc2 = fill.color2 ?? fc;
+    draw_roundrect_color_ext(x1, y1, fillTo, y2, rad, rad, fc, fc2, false);
+  }
+  if (track.border && borderOver)
+    draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, bc, bc, true);
+};
+
+/**
+ * aspect-preserving CONTAIN fit: scale a sw×sh sprite into the (x, y, w, h) box and
+ * center it — the draw rect for draw_sprite_stretched_ext. Shared by UIImage
+ * (CONTAIN/SCALE_DOWN) and UISlots' cell icons. `maxScale` > 0 additionally caps the
+ * scale (SCALE_DOWN); 0 = no cap.
+ * @param {number} sw @param {number} sh sprite size
+ * @param {number} x @param {number} y @param {number} w @param {number} h the box
+ * @param {number} [maxScale]
+ * @returns {{x:number, y:number, w:number, h:number}}
+ */
+globalThis.uiContainRect = function uiContainRect(
+  sw,
+  sh,
+  x,
+  y,
+  w,
+  h,
+  maxScale = 0,
+) {
+  let s = Math.min(w / sw, h / sh);
+  if (maxScale > 0) s = Math.min(s, maxScale);
+  const dw = sw * s;
+  const dh = sh * s;
+  return { x: x + (w - dw) / 2, y: y + (h - dh) / 2, w: dw, h: dh };
+};
+
+/**
+ * flexpanel self-size: apply a measured content size to the element's fixed width/height
+ * styles, as a no-op when unchanged so re-running it never dirties the tree. THE
+ * style-mutation self-size mechanism (measure callbacks are unsupported on GMRT —
+ * docs/GMRT.md §3); setWidth/setHeight mark the root dirty themselves.
+ * @param {UIElement} element @param {number} width @param {number} height
+ */
+globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
+  if (
+    element.getWidth().value != width ||
+    element.getHeight().value != height
+  ) {
+    element.setWidth(width, flexpanel_unit.point);
+    element.setHeight(height, flexpanel_unit.point);
+  }
+};
+
+/**
+ * normalize a `string | () => string` label into a live textRef fn — the Core twin of
+ * gemsTextRef (which delegates here), reachable by Core widgets (UITooltip/UIProgress/
+ * UIRebind). Normalize once at construction; don't call per frame (it allocates).
+ * @param {string|(() => string)} label @returns {() => string}
+ */
+globalThis.uiTextRef = function uiTextRef(label) {
+  return typeof label === "function" ? label : () => label;
+};
+
+/**
+ * the { name, value }[] item-list accessors shared by UISelect/UIDropdown — one home for
+ * the out-of-range fallbacks (value → undefined, name → ""), so the two widgets' selection
+ * contracts can't drift. The list/index stay plain fields on the widgets (consumers read
+ * `dropdown.items` directly).
+ * @param {{name:string, value:*}[]} items @param {number} i @returns {*}
+ */
+globalThis.uiItemValue = function uiItemValue(items, i) {
+  const item = items[i];
+  return item ? item.value : undefined;
+};
+
+/** @param {{name:string, value:*}[]} items @param {number} i @returns {string} */
+globalThis.uiItemName = function uiItemName(items, i) {
+  const item = items[i];
+  return item ? item.name : "";
 };
 
 /**

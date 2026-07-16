@@ -48,16 +48,11 @@ globalThis.UIText = class UIText {
       const font = draw_get_font();
       if (fnt !== -1) draw_set_font(fnt);
 
-      const width = string_width_ext(this.cache, this.sep, this.w);
-      const height = string_height_ext(this.cache, this.sep, this.w);
-
-      if (
-        element.getWidth().value != width ||
-        element.getHeight().value != height
-      ) {
-        element.setWidth(width, flexpanel_unit.point);
-        element.setHeight(height, flexpanel_unit.point);
-      }
+      uiResizeTo(
+        element,
+        string_width_ext(this.cache, this.sep, this.w),
+        string_height_ext(this.cache, this.sep, this.w),
+      );
 
       if (fnt !== -1) draw_set_font(font);
     }

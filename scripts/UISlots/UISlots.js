@@ -193,25 +193,26 @@ globalThis.UISlots = class UISlots {
       );
 
       // icon (raster only — an invalid subimg or SVG sprite is the caller's bug and faults
-      // loudly rather than being clamped away). Aspect-preserving fit inside the cell's inner
-      // box: a non-square icon (wide gun / tall item) keeps its shape instead of being squished
-      // into a square. stretched_ext fills the given rect ignoring origin, so center by offset.
+      // loudly rather than being clamped away). CONTAIN fit inside the cell's inner box: a
+      // non-square icon (wide gun / tall item) keeps its shape instead of being squished.
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
-        const sub = it.subimg ?? 0;
         const box = sz - this.pad * 2;
-        const sw = sprite_get_width(it.sprite);
-        const sh = sprite_get_height(it.sprite);
-        const fit = min(box / sw, box / sh);
-        const dw = sw * fit;
-        const dh = sh * fit;
+        const fit = uiContainRect(
+          sprite_get_width(it.sprite),
+          sprite_get_height(it.sprite),
+          p.x + this.pad,
+          p.y + this.pad,
+          box,
+          box,
+        );
         draw_sprite_stretched_ext(
           it.sprite,
-          sub,
-          p.x + this.pad + (box - dw) / 2,
-          p.y + this.pad + (box - dh) / 2,
-          dw,
-          dh,
+          it.subimg ?? 0,
+          fit.x,
+          fit.y,
+          fit.w,
+          fit.h,
           it.color ?? c_white,
           1,
         );
@@ -219,28 +220,7 @@ globalThis.UISlots = class UISlots {
 
       // 2px accent outline if selected, else 1px border.
       if (i === this.selected) {
-        draw_roundrect_color_ext(
-          p.x,
-          p.y,
-          x1,
-          y1,
-          this.rad,
-          this.rad,
-          this.selectColor,
-          this.selectColor,
-          true,
-        );
-        draw_roundrect_color_ext(
-          p.x + 1,
-          p.y + 1,
-          x1 - 1,
-          y1 - 1,
-          this.rad,
-          this.rad,
-          this.selectColor,
-          this.selectColor,
-          true,
-        );
+        drawUIOutline(p.x, p.y, x1, y1, this.rad, this.selectColor, 2);
       } else {
         // per-item border (rarity tint) wins over the grid default
         const bc =

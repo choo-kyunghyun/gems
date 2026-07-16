@@ -4,10 +4,10 @@
 // GMRT: capture state is an instance field read live (no cached bool — clobber, see CLAUDE.md).
 /** @implements {UIComponent} */
 globalThis.UIRebind = class UIRebind {
-  /** @param {Object} [s] { actionKey, prompt: () => string, onRebind, color, captureColor, font, rad } */
+  /** @param {Object} [s] { actionKey, prompt: string | () => string, onRebind, color, captureColor, font, rad } */
   constructor(s = {}) {
     this.actionKey = s.actionKey ?? "";
-    this.promptRef = s.prompt ?? (() => "Press a key…");
+    this.promptRef = uiTextRef(s.prompt ?? "Press a key…");
     this.onRebind = s.onRebind ?? noop;
     this.color = s.color ?? c_white;
     this.captureColor = s.captureColor ?? c_aqua;
@@ -62,29 +62,14 @@ globalThis.UIRebind = class UIRebind {
 
     if (this._capturing) {
       // 2px accent outline — "armed, waiting for a key".
-      const x1 = pos.left + pos.width;
-      const y1 = pos.top + pos.height;
-      draw_roundrect_color_ext(
+      drawUIOutline(
         pos.left,
         pos.top,
-        x1,
-        y1,
-        this.rad,
-        this.rad,
-        this.captureColor,
-        this.captureColor,
-        true,
-      );
-      draw_roundrect_color_ext(
-        pos.left + 1,
-        pos.top + 1,
-        x1 - 1,
-        y1 - 1,
-        this.rad,
+        pos.left + pos.width,
+        pos.top + pos.height,
         this.rad,
         this.captureColor,
-        this.captureColor,
-        true,
+        2,
       );
       draw_set_color(this.captureColor);
       draw_text(cx, cy, this.promptRef());

@@ -121,34 +121,17 @@ globalThis.UISlider = class UISlider {
     const a0 = draw_get_alpha();
     draw_set_alpha(1);
 
-    const trackCol = this._trackStyle.color ?? c_dkgray;
-    draw_roundrect_color_ext(
+    // border (if any) strokes UNDER the fill — the fill capsule covers its left span.
+    const fillR = Math.max(x1 + rad, m.thumbX);
+    drawUIBar(
       x1,
       ty1,
       x2,
       ty2,
       rad,
-      rad,
-      trackCol,
-      trackCol,
-      false,
-    );
-    if (this._trackStyle.border) {
-      const bc = this._trackStyle.borderColor ?? c_black;
-      draw_roundrect_color_ext(x1, ty1, x2, ty2, rad, rad, bc, bc, true);
-    }
-
-    const fillCol = this._fillStyle.color ?? c_white;
-    const fillR = Math.max(x1 + rad, m.thumbX);
-    draw_roundrect_color_ext(
-      x1,
-      ty1,
       fillR,
-      ty2,
-      rad,
-      rad,
-      fillCol,
-      fillCol,
+      this._trackStyle,
+      this._fillStyle,
       false,
     );
 
@@ -180,19 +163,15 @@ globalThis.UISlider = class UISlider {
       false,
     );
     const thumbBorder = this._thumbStyle.borderColor ?? c_black;
-    for (let i = 0; i < 2; i++) {
-      draw_roundrect_color_ext(
-        m.thumbX - tr + i,
-        m.cy - tr + i,
-        m.thumbX + tr - i,
-        m.cy + tr - i,
-        tr,
-        tr,
-        thumbBorder,
-        thumbBorder,
-        true,
-      );
-    }
+    drawUIOutline(
+      m.thumbX - tr,
+      m.cy - tr,
+      m.thumbX + tr,
+      m.cy + tr,
+      tr,
+      thumbBorder,
+      2,
+    );
 
     if (this.showValue) {
       const ph = draw_get_halign();

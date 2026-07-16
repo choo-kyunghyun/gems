@@ -102,7 +102,7 @@ globalThis.gemsColor = function gemsColor(c) {
   return Color.parse(c);
 };
 
-/** Normalize a string or () => string into a live textRef. @param {string|(() => string)} label @returns {() => string} */
+/** Normalize a string or () => string into a live textRef — kit-facing alias of Core's uiTextRef. @param {string|(() => string)} label @returns {() => string} */
 globalThis.gemsTextRef = function gemsTextRef(label) {
-  return typeof label === "function" ? label : () => label;
+  return uiTextRef(label);
 };

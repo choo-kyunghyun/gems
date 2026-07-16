@@ -133,19 +133,9 @@ globalThis.UINav = class UINav {
     const y2 = pos.top + pos.height + m;
     const a0 = draw_get_alpha();
     draw_set_alpha(pulse);
-    for (let i = 0; i < 2; i++) {
-      draw_roundrect_color_ext(
-        x1 - i,
-        y1 - i,
-        x2 + i,
-        y2 + i,
-        8,
-        8,
-        UINav.color,
-        UINav.color,
-        true,
-      );
-    }
+    // pass the 1px-grown rect: the helper's inward insets land on the same two rects the
+    // old outward-growing loop drew.
+    drawUIOutline(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 8, UINav.color, 2);
     draw_set_alpha(a0);
   }
 

@@ -43,14 +43,7 @@ globalThis.UIRichText = class UIRichText {
 
       this._parse(str);
       this._measure();
-
-      if (
-        element.getWidth().value != this._width ||
-        element.getHeight().value != this._height
-      ) {
-        element.setWidth(this._width, flexpanel_unit.point);
-        element.setHeight(this._height, flexpanel_unit.point);
-      }
+      uiResizeTo(element, this._width, this._height);
 
       if (fnt !== -1) draw_set_font(font0);
     }

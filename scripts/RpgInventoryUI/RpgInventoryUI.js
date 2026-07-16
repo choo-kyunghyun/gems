@@ -719,14 +719,11 @@ globalThis.RpgInventoryUI = {
 
     // fit the host element to the item count (flexpanel point mutation — the UIText idiom)
     const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
-    const w = g.cols * g.cellSize + (g.cols - 1) * g.gap;
-    const h = rowsN * g.cellSize + (rowsN - 1) * g.gap;
-    const el = scene._invGridEl;
-    if (el.getWidth().value != w || el.getHeight().value != h) {
-      el.setWidth(w, flexpanel_unit.point);
-      el.setHeight(h, flexpanel_unit.point);
-      el.markDirty();
-    }
+    uiResizeTo(
+      scene._invGridEl,
+      g.cols * g.cellSize + (g.cols - 1) * g.gap,
+      rowsN * g.cellSize + (rowsN - 1) * g.gap,
+    );
   },
 
   // Grid click → select the backing row model; a second click on the SAME item within 350ms

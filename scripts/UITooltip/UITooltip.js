@@ -6,8 +6,7 @@ globalThis.UITooltip = class UITooltip {
   /** @param {Object} [tooltip] { label: string | () => string, delay: seconds } */
   constructor(tooltip = {}) {
     // string or () => string (I18n.textRef-friendly), resolved live.
-    const label = tooltip.label ?? "";
-    this.label = typeof label === "function" ? label : () => label;
+    this.label = uiTextRef(tooltip.label ?? "");
     this.delay = tooltip.delay ?? 0.4;
     this._elapsed = 0;
   }

@@ -66,12 +66,8 @@ globalThis.UIStepper = class UIStepper {
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const pos = element.getLayoutPosition();
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
     // latch the arrow side BEFORE the FSM runs — its onClick commits from this frame's _side.
-    const over = !block && element.positionMeeting(mx, my);
-    this._side = over ? (mx < pos.left + pos.width * 0.5 ? -1 : 1) : 0;
+    this._side = uiPointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
 
@@ -84,29 +80,17 @@ globalThis.UIStepper = class UIStepper {
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
-    const cy = pos.top + pos.height * 0.5;
-    const pad = 14;
     const canDec = this.wrap || this.value > this.min;
     const canInc = this.wrap || this.value < this.max;
 
     // step arrows — dimmed when they can't step, brightened on hover.
-    const ah = 5;
-    drawUIArrow(
-      pos.left + pad + ah,
-      cy,
-      "left",
-      ah,
+    const cy = drawUIArrowPair(
+      pos,
       !canDec
         ? this.arrowDisabled
         : this._side < 0
           ? this.arrowHover
           : this.arrowColor,
-    );
-    drawUIArrow(
-      pos.left + pos.width - pad - ah,
-      cy,
-      "right",
-      ah,
       !canInc
         ? this.arrowDisabled
         : this._side > 0
