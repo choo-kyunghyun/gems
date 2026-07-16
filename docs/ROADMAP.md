@@ -51,16 +51,6 @@ Found during the 2026-07-16 UI component overhaul (47508bd) — pre-existing, de
 - **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
 
-## Docs Refactor
-
-Bring the remaining docs/architecture files up to the ARCHITECTURE.md doc laws (audited 2026-07-17; rpg.md rewritten 87.8→53.8 KB the same day). Same relocate-before-deleting rule as the Comment Refactor. Remaining, by yield:
-
-1. **demo.md** — collapse the `gems*` factory catalog to contracts-only + a source pointer; cut the GameMaker-event tutorial (line 19).
-2. **utilities.md** — reduce the Audio entry to its wiring rules (drop the per-cue call-site index); dead `Broadphase`/`gemsWindow` paragraphs → one clause.
-3. **ecs.md** — drop the `World`/system/component API code blocks (JSDoc owns them); keep the exclusivity/snapshot/nav-source contracts.
-4. **ui.md / renderer.md** — strip GMRT-narrative already owned by GMRT.md (the `draw_line` 0.19 story ×3, the static-getter re-audit asides ×3); split widget-catalog contracts from inventory.
-5. **gameplay.md / levels.md** — light: cut the triplicated placement rule; thin the Settlement sub-tree (documented in three files).
-
 ## Comment Refactor
 
 Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured 2026-07-17: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). **No standalone sweep** — fold into the Code Review batches below and into files already being touched. Per file:
