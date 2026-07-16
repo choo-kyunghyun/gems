@@ -108,6 +108,15 @@ The repo bundles standalone tools under `tools/` — not part of the game itself
 - **Global exposure**: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
 - **Formatter**: [Prettier](https://prettier.io/) with `{ "bracketSameLine": true }` (MDN config). Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 
+### Comments
+
+1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does.
+2. A prose comment is one line. Longer is documentation — move it to the area's docs/ file and leave a pointer.
+3. A known quirk or invariant is cited, never re-explained: `// #15549: no && reuse`, `// Time.raw: UI runs while paused`.
+4. A file header is at most 2 lines: what the file is + one docs pointer.
+5. JSDoc carries types, not essays: `@typedef`s and typed `@param`s stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`.
+6. Existing comments are grandfathered — tighten only code you are already touching (migration plan: docs/ROADMAP.md → Comment Refactor).
+
 ### Script Naming
 
 A script's directory + filename matches the identifier it exposes, cased to JS norms — **PascalCase** for a class or namespace object (classes `World`/`Camera`; namespace objects `CameraFollow`/`CameraFly`), **camelCase** for a plain function (`teardownScene`). A script exposing a _family_ of free functions (no single matching global) is a **PascalCase category bucket**: the GemsUI kit (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`), `Utils` (`noop`/`uuid`/`rem`), `UIDraw` (`drawUIArrow`/`drawUICheck`). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).

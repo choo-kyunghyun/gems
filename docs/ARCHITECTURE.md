@@ -4,6 +4,14 @@ The always-loaded **core** of the architecture reference, imported into context 
 
 **Routing rule: Read the area's reference file before designing or modifying anything in it.** The index summaries below exist to route you to the right file — they name what exists, not the contracts. Never implement against a summary alone.
 
+**Doc laws** — what this file and the area files may contain:
+
+1. A doc records contracts: invariants, conventions, and cross-module coupling an agent must not break. Not what the code does — read the source.
+2. No history. What a design replaced, when, and why lives in git and the source header — never in docs.
+3. One owner per fact: GMRT quirks in GMRT.md, cross-cutting invariants here, an area fact once in its area file. Everyone else cites.
+4. No API inventories, content catalogs, or tutorials — signatures live in JSDoc, content in its registry, GameMaker in the manual.
+5. Dead or unwired code gets a clause, not a paragraph.
+
 ## Layers & Placement
 
 Four top-level pillars (project folders), each reusable without the ones after it:

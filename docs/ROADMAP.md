@@ -36,34 +36,60 @@
 
 - Prefabs
 
+## Engine
+
+Deferred chunk-streaming work (moved from docs/architecture/rpg.md):
+
+- Per-chunk _build_ persistence (player builds inside streamed chunks)
+- On-disk chunk saves (beyond the in-session cache + save-game delta)
+- Throttled distant ticks (LOAD-ring entities simulate at low rate)
+
 ## Known Issues & Deferred Cleanups
 
 Found during the 2026-07-16 UI component overhaul (47508bd) — pre-existing, deliberately left untouched:
 
 - **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
-- ~~**`UIImage.onDestroy` is an empty stub** — dead code, delete when touching the file.~~ **done** (removed in the Tier-2 dedupe pass).
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
-- ~~Deferred dedup — shared scrollbar model for `UIScroll` + `UITable`~~ **done**: extracted as the `UIScrollbar` model (normalized t ∈ [0,1]; hosts map to px/rows).
+
+## Docs Refactor
+
+Bring the remaining docs/architecture files up to the ARCHITECTURE.md doc laws (audited 2026-07-17; rpg.md rewritten 87.8→53.8 KB the same day). Same relocate-before-deleting rule as the Comment Refactor. Remaining, by yield:
+
+1. **demo.md** — collapse the `gems*` factory catalog to contracts-only + a source pointer; cut the GameMaker-event tutorial (line 19).
+2. **utilities.md** — reduce the Audio entry to its wiring rules (drop the per-cue call-site index); dead `Broadphase`/`gemsWindow` paragraphs → one clause.
+3. **ecs.md** — drop the `World`/system/component API code blocks (JSDoc owns them); keep the exclusivity/snapshot/nav-source contracts.
+4. **ui.md / renderer.md** — strip GMRT-narrative already owned by GMRT.md (the `draw_line` 0.19 story ×3, the static-getter re-audit asides ×3); split widget-catalog contracts from inventory.
+5. **gameplay.md / levels.md** — light: cut the triplicated placement rule; thin the Settlement sub-tree (documented in three files).
+
+## Comment Refactor
+
+Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured 2026-07-17: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). **No standalone sweep** — fold into the Code Review batches below and into files already being touched. Per file:
+
+1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to the area's `docs/architecture/*.md` (or GMRT.md) first, then shrinks to a citation — never delete a fact that has no docs home.
+2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `UIElement`, `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
+3. **Invariants**: replace every re-explanation with the one-line citation form (law 3).
+4. **JSDoc**: keep `@typedef`s/typed `@param`s, cut identifier-restating prose; opts-struct factories to one prose block.
+5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
 
 ## Code Review (file-by-file)
 
 Review batches from the 2026-07-13 coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
 
-| # | Batch | Folders | Files | LOC | Watch for | Done |
-|---|-------|---------|------:|----:|-----------|------|
-| 1 | Core utilities | Core/Util | 28 | 2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `Rand`, `AABB`, `File`) — everything sits on these | |
-| 2 | ECS heart | Core/Component, Core/ECS, Core/World | 24 | 1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo) | |
-| 3 | Systems + levels | Core/System, Core/Level | 25 | 2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones | |
-| 4 | Camera + input | Core/Camera, Core/Input | 10 | 1,072 | Small, self-contained | |
-| 5 | Renderer | Core/Render | 16 | 2,009 | `RenderMesh` queries the `Light` token (Gameplay) | |
-| 6 | UI infra | Core/UI | 13 | 1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge | |
-| 7 | UI widgets | Core/UI/Element (plain widgets) | ~14 | ~2,800 | Half of the biggest folder | |
-| 8 | UI singletons | Core/UI/Element (heavy singletons) | ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges | |
-| 9 | GemsUI kit | GemsUI | 4 | 1,588 | Theme + the three factory buckets | |
-| 10 | Gameplay: economy | Items, Inventory, Equipment, Crafting, Trade | ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge | |
-| 11 | Gameplay: simulation | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest | ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly | |
-| 12 | Demo systems + content | Demo/System, Demo/Content, Demo/Component | 29 | 4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries | |
-| 13 | Demo scenes | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` | 19 | 6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish | |
-| 14 | Demo UI | Demo/UI | 9 | 3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs | |
+| #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
+| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `Rand`, `AABB`, `File`) — everything sits on these |      |
+| 2   | ECS heart              | Core/Component, Core/ECS, Core/World                                                                   |    24 |  1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo)             |      |
+| 3   | Systems + levels       | Core/System, Core/Level                                                                                |    25 |  2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones                                                            |      |
+| 4   | Camera + input         | Core/Camera, Core/Input                                                                                |    10 |  1,072 | Small, self-contained                                                                                     |      |
+| 5   | Renderer               | Core/Render                                                                                            |    16 |  2,009 | `RenderMesh` queries the `Light` token (Gameplay)                                                         |      |
+| 6   | UI infra               | Core/UI                                                                                                |    13 |  1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge             |      |
+| 7   | UI widgets             | Core/UI/Element (plain widgets)                                                                        |   ~14 | ~2,800 | Half of the biggest folder                                                                                |      |
+| 8   | UI singletons          | Core/UI/Element (heavy singletons)                                                                     |   ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges                                                         |      |
+| 9   | GemsUI kit             | GemsUI                                                                                                 |     4 |  1,588 | Theme + the three factory buckets                                                                         |      |
+| 10  | Gameplay: economy      | Items, Inventory, Equipment, Crafting, Trade                                                           |   ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge              |      |
+| 11  | Gameplay: simulation   | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest |   ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly                 |      |
+| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                                    |      |
+| 13  | Demo scenes            | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game`                                      |    19 |  6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish                                       |      |
+| 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                                     |      |
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
