@@ -116,23 +116,34 @@ globalThis.gemsSlider = function gemsSlider(
 };
 
 // Panel-backed cycling select with an explicit index/onChange.
+// Framed field chassis shared by the boxed controls (select/dropdown/stepper/rebind/input):
+// a fixed-size element carrying the themed field UIPanel; the caller adds its control
+// component on top. `opts`: { width, height, color, rad, highlightAlpha }.
+globalThis.gemsFieldPanel = function gemsFieldPanel(opts = {}) {
+  const el = new UIElement({
+    height: opts.height ?? 36,
+    width: opts.width ?? "100%",
+  });
+  el.addComponent(
+    new UIPanel({
+      color: gemsColor(opts.color ?? GemsTheme.btn),
+      rad: opts.rad ?? GemsTheme.radiusSm,
+      border: 1,
+      borderColor: gemsColor(GemsTheme.border),
+      highlight: 1,
+      highlightAlpha: opts.highlightAlpha ?? 0.07,
+    }),
+  );
+  return el;
+};
+
 globalThis.gemsSelectCustom = function gemsSelectCustom(
   items,
   index,
   onChange,
   opts = {},
 ) {
-  const el = new UIElement({ height: 36, width: "100%" });
-  el.addComponent(
-    new UIPanel({
-      color: gemsColor(GemsTheme.btn),
-      rad: GemsTheme.radiusSm,
-      border: 1,
-      borderColor: gemsColor(GemsTheme.border),
-      highlight: 1,
-      highlightAlpha: 0.07,
-    }),
-  );
+  const el = gemsFieldPanel({});
   el.addComponent(
     new UISelect({
       items,
@@ -158,20 +169,7 @@ globalThis.gemsDropdownCustom = function gemsDropdownCustom(
   onChange,
   opts = {},
 ) {
-  const el = new UIElement({
-    height: opts.height ?? 36,
-    width: opts.width ?? "100%",
-  });
-  el.addComponent(
-    new UIPanel({
-      color: gemsColor(GemsTheme.btn),
-      rad: GemsTheme.radiusSm,
-      border: 1,
-      borderColor: gemsColor(GemsTheme.border),
-      highlight: 1,
-      highlightAlpha: 0.07,
-    }),
-  );
+  const el = gemsFieldPanel({ height: opts.height, width: opts.width });
   el.addComponent(
     new UIDropdown({
       items,
@@ -277,20 +275,7 @@ globalThis.gemsDropdown = function gemsDropdown(key, items, opts = {}) {
 // fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
 // the centered display string (default `${v}`).
 globalThis.gemsStepper = function gemsStepper(value, onChange, opts = {}) {
-  const el = new UIElement({
-    height: opts.height ?? 36,
-    width: opts.width ?? "100%",
-  });
-  el.addComponent(
-    new UIPanel({
-      color: gemsColor(GemsTheme.btn),
-      rad: GemsTheme.radiusSm,
-      border: 1,
-      borderColor: gemsColor(GemsTheme.border),
-      highlight: 1,
-      highlightAlpha: 0.07,
-    }),
-  );
+  const el = gemsFieldPanel({ height: opts.height, width: opts.width });
   el.addComponent(
     new UIStepper({
       value,
@@ -314,20 +299,13 @@ globalThis.gemsStepper = function gemsStepper(value, onChange, opts = {}) {
 // `field.getComponent(UIInput)`. `placeholder` is resolved once (a plain string, not a
 // textRef), so it won't re-translate on a live language switch.
 globalThis.gemsInput = function gemsInput(opts = {}) {
-  const el = new UIElement({
+  const el = gemsFieldPanel({
     height: opts.height ?? GemsTheme.rowH,
-    width: opts.width ?? "100%",
+    width: opts.width,
+    color: opts.color ?? GemsTheme.btnPress, // input field sits a shade deeper than a button
+    rad: opts.rad,
+    highlightAlpha: 0.05,
   });
-  el.addComponent(
-    new UIPanel({
-      color: gemsColor(opts.color ?? GemsTheme.btnPress),
-      rad: opts.rad ?? GemsTheme.radiusSm,
-      border: 1,
-      borderColor: gemsColor(GemsTheme.border),
-      highlight: 1,
-      highlightAlpha: 0.05,
-    }),
-  );
   el.addComponent(
     new UIInput({
       value: opts.value ?? "",
@@ -387,20 +365,10 @@ globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
 // next key rebinds its first button (Esc / mouse-click cancels). `actionKey` must already
 // be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on rebind.
 globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
-  const el = new UIElement({
+  const el = gemsFieldPanel({
     height: opts.height ?? GemsTheme.rowH,
-    width: opts.width ?? "100%",
+    width: opts.width,
   });
-  el.addComponent(
-    new UIPanel({
-      color: gemsColor(GemsTheme.btn),
-      rad: GemsTheme.radiusSm,
-      border: 1,
-      borderColor: gemsColor(GemsTheme.border),
-      highlight: 1,
-      highlightAlpha: 0.07,
-    }),
-  );
   el.addComponent(
     new UIRebind({
       actionKey,
