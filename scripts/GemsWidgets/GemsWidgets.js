@@ -125,6 +125,63 @@ globalThis.gemsHint = function gemsHint(label, opts = {}) {
   return card;
 };
 
+// label:value row — label in a growing left cell, value pushed to the right edge by flex.
+// `label`/`value` are strings or live () => string (gemsLabel normalizes). `opts`:
+//   { height (26), gap (0), labelColor (textMuted), valueColor (text),
+//     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
+//     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
+globalThis.gemsKeyValueRow = function gemsKeyValueRow(label, value, opts = {}) {
+  const row = new UIElement(
+    opts.grow
+      ? {
+          flexGrow: 1,
+          flexBasis: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: opts.gap ?? 0,
+        }
+      : {
+          width: "100%",
+          height: opts.height ?? 26,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: opts.gap ?? 0,
+        },
+  );
+  const labelCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  labelCell.insertChild(
+    gemsLabel(label, { color: opts.labelColor ?? GemsTheme.textMuted }),
+  );
+  row.insertChild(labelCell);
+  row.insertChild(
+    gemsLabel(value, { color: opts.valueColor ?? GemsTheme.text }),
+  );
+  return row;
+};
+
+// Clear + refill a list host with one selectable gemsButton per entry, or a dim empty
+// notice. The refill shape shared by the workbench master lists (recipes / weapons):
+// `entries` is [{ label, onPick, selected: () => bool, textColor?, icon? }].
+globalThis.gemsFillList = function gemsFillList(host, entries, emptyLabel) {
+  const kids = [...host.children];
+  for (let i = 0; i < kids.length; i++) kids[i].destroy();
+  if (entries.length === 0) {
+    host.insertChild(gemsLabel(emptyLabel, { color: GemsTheme.textDim }));
+    return;
+  }
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    host.insertChild(
+      gemsButton(e.label, e.onPick, {
+        height: 32,
+        selected: e.selected,
+        textColor: e.textColor,
+        icon: e.icon,
+      }),
+    );
+  }
+};
+
 // Live, context-aware key-bind hint bar. `entries` is { label, contexts?, actions? | text? }:
 //   • label    i18n key or () => string — the action's human name.
 //   • actions  action keys whose CURRENT bindings are read LIVE each frame (a remap updates

@@ -433,29 +433,11 @@ globalThis.RpgInventoryUI = {
   // Stats: live character sheet + the genre's extra records (Profile) host.
   _buildStatsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-    const statRow = (labelKey, getter) => {
-      const row = new UIElement({
-        width: "100%",
-        height: 26,
-        flexDirection: "row",
-        alignItems: "center",
+    const statRow = (labelKey, getter) =>
+      gemsKeyValueRow(I18n.textRef(labelKey), () => {
+        const st = scene.world.get(Stats, scene.playerId);
+        return st === undefined ? "" : String(getter(st));
       });
-      const lc = new UIElement({ flexGrow: 1, flexBasis: 0 });
-      lc.insertChild(
-        gemsLabel(I18n.textRef(labelKey), { color: GemsTheme.textMuted }),
-      );
-      row.insertChild(lc);
-      row.insertChild(
-        gemsLabel(
-          () => {
-            const st = scene.world.get(Stats, scene.playerId);
-            return st === undefined ? "" : String(getter(st));
-          },
-          { color: GemsTheme.text },
-        ),
-      );
-      return row;
-    };
     page.insertChild(statRow("STAT_ATK", (st) => st.attack));
     page.insertChild(statRow("STAT_DEF", (st) => st.defense));
     page.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
@@ -466,29 +448,11 @@ globalThis.RpgInventoryUI = {
     page.insertChild(
       gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "#ffd166" }),
     );
-    const attrRow = (def) => {
-      const row = new UIElement({
-        width: "100%",
-        height: 26,
-        flexDirection: "row",
-        alignItems: "center",
+    const attrRow = (def) =>
+      gemsKeyValueRow(I18n.textRef(def.name), () => {
+        const at = scene.world.get(Attributes, scene.playerId);
+        return at === undefined ? "" : String(at[def.id]);
       });
-      const lc = new UIElement({ flexGrow: 1, flexBasis: 0 });
-      lc.insertChild(
-        gemsLabel(I18n.textRef(def.name), { color: GemsTheme.textMuted }),
-      );
-      row.insertChild(lc);
-      row.insertChild(
-        gemsLabel(
-          () => {
-            const at = scene.world.get(Attributes, scene.playerId);
-            return at === undefined ? "" : String(at[def.id]);
-          },
-          { color: GemsTheme.text },
-        ),
-      );
-      return row;
-    };
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
       page.insertChild(attrRow(StatModel.ATTRS[i]));
     }

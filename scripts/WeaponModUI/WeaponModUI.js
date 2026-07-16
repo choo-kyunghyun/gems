@@ -61,45 +61,32 @@ globalThis.WeaponModUI = {
     else if (slot.mods.length !== undefined) slot.mods = {}; // old array → reset to a map
   },
 
-  // Left: one selectable button per weapon instance (name "+N", "[E]" when equipped).
+  // Left: one selectable button per weapon instance (name "+N", "[E]" when equipped),
+  // refilled via the shared gemsFillList.
   _fillList(scene, inv, weapons) {
-    const body = scene._modList;
-    const kids = [...body.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
-
-    if (weapons.length === 0) {
-      body.insertChild(
-        gemsLabel(I18n.textRef("MOD_EMPTY"), { color: GemsTheme.textDim }),
-      );
-      return;
-    }
     const eq = scene.world.get(Equipment, scene.playerId);
     const equippedUid = eq !== undefined ? eq.slots.weapon : "";
+    const entries = [];
     for (let i = 0; i < weapons.length; i++) {
-      body.insertChild(WeaponModUI._listButton(scene, weapons[i], equippedUid));
-    }
-  },
-
-  _listButton(scene, slot, equippedUid) {
-    const uid = slot.uid;
-    const it = Item.get(slot.itemId);
-    const base = it !== undefined ? I18n.text(it.name) : slot.itemId;
-    const n = WeaponModUI._modCount(slot);
-    let label = n > 0 ? base + " +" + n : base;
-    if (uid === equippedUid) label += "  [E]";
-    return gemsButton(
-      label,
-      () => {
-        scene._modSel = uid;
-        scene._craftDirty = true; // workbench repopulates the panel
-      },
-      {
-        height: 32,
+      const slot = weapons[i];
+      const uid = slot.uid;
+      const it = Item.get(slot.itemId);
+      const base = it !== undefined ? I18n.text(it.name) : slot.itemId;
+      const n = WeaponModUI._modCount(slot);
+      let label = n > 0 ? base + " +" + n : base;
+      if (uid === equippedUid) label += "  [E]";
+      entries.push({
+        label,
+        onPick: () => {
+          scene._modSel = uid;
+          scene._craftDirty = true; // workbench repopulates the panel
+        },
         selected: () => scene._modSel === uid,
         textColor: RpgWorldOverlay._rarityColor(slot.itemId),
         icon: it !== undefined ? it.sprite : -1,
-      },
-    );
+      });
+    }
+    gemsFillList(scene._modList, entries, I18n.textRef("MOD_EMPTY"));
   },
 
   // Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
@@ -490,37 +477,21 @@ globalThis.WeaponModUI = {
     return row;
   },
 
+  // one label:value CELL (two pack side-by-side per _statRow2) — gemsKeyValueRow grow mode.
   _statCell(labelKey, value) {
-    const cell = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      flexDirection: "row",
-      alignItems: "center",
-    });
-    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    nameCell.insertChild(
-      gemsLabel(I18n.textRef(labelKey), { color: GemsTheme.text }),
+    return gemsKeyValueRow(
+      I18n.textRef(labelKey),
+      string(value === undefined ? "-" : value),
+      { grow: true, labelColor: GemsTheme.text },
     );
-    cell.insertChild(nameCell);
-    cell.insertChild(
-      gemsLabel(string(value === undefined ? "-" : value), {
-        color: GemsTheme.text,
-      }),
-    );
-    return cell;
   },
 
   // label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
   _kvRow(left, right, leftColor) {
-    const row = WeaponModUI._row(20);
-    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    cell.insertChild(
-      gemsLabel(left, {
-        color: leftColor === undefined ? GemsTheme.text : leftColor,
-      }),
-    );
-    row.insertChild(cell);
-    row.insertChild(gemsLabel(string(right), { color: GemsTheme.text }));
-    return row;
+    return gemsKeyValueRow(left, string(right), {
+      height: 20,
+      gap: GemsTheme.gapSm,
+      labelColor: leftColor === undefined ? GemsTheme.text : leftColor,
+    });
   },
 };

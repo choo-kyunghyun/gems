@@ -302,45 +302,33 @@ globalThis.CraftingUI = {
     scene._invDirty = true;
   },
 
-  // Craft panel — left: one selectable button per recipe (dimmed when uncraftable).
+  // Craft panel — left: one selectable button per recipe (dimmed when uncraftable),
+  // refilled via the shared gemsFillList.
   _fillList(scene, inv, recipes) {
-    const body = scene._craftList;
-    const kids = [...body.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
-
-    if (inv === undefined || recipes.length === 0) {
-      body.insertChild(
-        gemsLabel(I18n.textRef("CRAFT_EMPTY"), { color: GemsTheme.textDim }),
-      );
-      return;
+    const entries = [];
+    if (inv !== undefined) {
+      for (let i = 0; i < recipes.length; i++) {
+        const recipe = recipes[i];
+        const id = recipe.id;
+        const out = recipe.output;
+        const def = Item.get(out.itemId);
+        // list is pre-filtered so the gate always holds — pass the recipe's own `requires`
+        // so canCraft only checks ingredients.
+        const can = CraftSystem.canCraft(inv, recipe, recipe.requires);
+        entries.push({
+          label: def !== undefined ? I18n.text(def.name) : out.itemId,
+          onPick: () => {
+            scene._craftSel = id;
+            scene._craftDirty = true; // repopulate the detail
+          },
+          selected: () => scene._craftSel === id,
+          textColor: can
+            ? RpgWorldOverlay._rarityColor(out.itemId)
+            : GemsTheme.textDim,
+        });
+      }
     }
-    for (let i = 0; i < recipes.length; i++) {
-      body.insertChild(CraftingUI._listButton(scene, inv, recipes[i]));
-    }
-  },
-
-  _listButton(scene, inv, recipe) {
-    const id = recipe.id;
-    const out = recipe.output;
-    const def = Item.get(out.itemId);
-    const name = def !== undefined ? I18n.text(def.name) : out.itemId;
-    // list is pre-filtered so the gate always holds — pass the recipe's own `requires` so canCraft
-    // only checks ingredients.
-    const can = CraftSystem.canCraft(inv, recipe, recipe.requires);
-    return gemsButton(
-      name,
-      () => {
-        scene._craftSel = id;
-        scene._craftDirty = true; // repopulate the detail
-      },
-      {
-        height: 32,
-        selected: () => scene._craftSel === id,
-        textColor: can
-          ? RpgWorldOverlay._rarityColor(out.itemId)
-          : GemsTheme.textDim,
-      },
-    );
+    gemsFillList(scene._craftList, entries, I18n.textRef("CRAFT_EMPTY"));
   },
 
   // Craft panel — right: selected recipe's name, description, ingredients, Craft button.
