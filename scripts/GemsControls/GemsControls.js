@@ -491,3 +491,62 @@ globalThis.gemsTable = function gemsTable(columns, opts = {}) {
   );
   return gemsAttachTooltip(el, opts);
 };
+
+// Amount-picker modal — "how many?" stepper (defaults to the full `max`) + 1/Half/All quick
+// buttons over a gemsModal; confirm fires onConfirm(amount), Cancel/backdrop just close.
+// All labels are options (the kit stays content-agnostic — the RPG passes its STORAGE_*
+// strings); closeOnEscape defaults OFF because the RPG scene's handleEscape cancels the
+// picker before the window under it. Returns the UIModal (as gemsModal does).
+// opts: { title, max, prompt, half, all, cancelLabel, confirmLabel, onConfirm, onClose,
+//         closeOnEscape, width }
+globalThis.gemsAmountPicker = function gemsAmountPicker(opts = {}) {
+  const max = opts.max ?? 1;
+  let amount = max; // the confirm button reads it on confirm
+  const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+  body.insertChild(
+    gemsLabel((opts.prompt ?? "How many?") + " (" + max + ")", {
+      color: GemsTheme.textMuted,
+    }),
+  );
+  const stepEl = gemsStepper(amount, (v) => (amount = v), {
+    min: 1,
+    max,
+    step: 1,
+  });
+  const stepper = stepEl.getComponent(UIStepper);
+  body.insertChild(stepEl);
+
+  // equal-width quick-set row; each button snaps the stepper.
+  const quickBtn = (label, onClick) => {
+    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    cell.insertChild(gemsButton(label, onClick, { height: 30 }));
+    return cell;
+  };
+  const quick = new UIElement({
+    width: "100%",
+    flexDirection: "row",
+    gap: GemsTheme.gapSm,
+  });
+  quick.insertChild(quickBtn("1", () => stepper.setValue(1)));
+  quick.insertChild(
+    quickBtn(opts.half ?? "Half", () => stepper.setValue(Math.floor(max / 2))),
+  );
+  quick.insertChild(quickBtn(opts.all ?? "All", () => stepper.setValue(max)));
+  body.insertChild(quick);
+
+  return gemsModal({
+    title: opts.title,
+    width: opts.width ?? 360,
+    body,
+    closeOnEscape: opts.closeOnEscape ?? false,
+    buttons: [
+      { label: opts.cancelLabel ?? "Cancel" },
+      {
+        label: opts.confirmLabel ?? "OK",
+        primary: true,
+        onClick: () => opts.onConfirm(amount),
+      },
+    ],
+    onClose: opts.onClose ?? noop,
+  });
+};

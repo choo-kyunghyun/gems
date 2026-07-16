@@ -290,65 +290,23 @@ globalThis.TradeUI = {
     else TradeUI._doSell(scene, row, 1);
   },
 
-  // amount picker (StorageUI's shape): stepper (default = full amount) + 1/Half/All shortcuts.
+  // amount picker (gemsAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
+  // closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
   _promptAmount(scene, side, row, maxQty) {
-    let amount = maxQty;
-    const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-    body.insertChild(
-      gemsLabel(I18n.text("STORAGE_QTY_PROMPT") + " (" + maxQty + ")", {
-        color: GemsTheme.textMuted,
-      }),
-    );
-    const stepEl = gemsStepper(amount, (v) => (amount = v), {
-      min: 1,
-      max: maxQty,
-      step: 1,
-    });
-    const stepper = stepEl.getComponent(UIStepper);
-    body.insertChild(stepEl);
-
-    const quick = new UIElement({
-      width: "100%",
-      flexDirection: "row",
-      gap: GemsTheme.gapSm,
-    });
-    quick.insertChild(TradeUI._quickBtn("1", () => stepper.setValue(1)));
-    quick.insertChild(
-      TradeUI._quickBtn(I18n.text("STORAGE_QTY_HALF"), () =>
-        stepper.setValue(Math.floor(maxQty / 2)),
-      ),
-    );
-    quick.insertChild(
-      TradeUI._quickBtn(I18n.text("STORAGE_QTY_ALL"), () =>
-        stepper.setValue(maxQty),
-      ),
-    );
-    body.insertChild(quick);
-
-    scene._tradeQtyModal = gemsModal({
+    scene._tradeQtyModal = gemsAmountPicker({
       title: row.name,
-      width: 360,
-      body,
-      closeOnEscape: false, // handleEscape cancels the picker first, then the window
-      buttons: [
-        { label: I18n.text("STORAGE_CANCEL") },
-        {
-          label: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
-          primary: true,
-          onClick: () => {
-            if (side === "buy") TradeUI._doBuy(scene, row, amount);
-            else TradeUI._doSell(scene, row, amount);
-          },
-        },
-      ],
+      max: maxQty,
+      prompt: I18n.text("STORAGE_QTY_PROMPT"),
+      half: I18n.text("STORAGE_QTY_HALF"),
+      all: I18n.text("STORAGE_QTY_ALL"),
+      cancelLabel: I18n.text("STORAGE_CANCEL"),
+      confirmLabel: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
+      onConfirm: (amount) => {
+        if (side === "buy") TradeUI._doBuy(scene, row, amount);
+        else TradeUI._doSell(scene, row, amount);
+      },
       onClose: () => (scene._tradeQtyModal = null),
     });
-  },
-
-  _quickBtn(label, onClick) {
-    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    cell.insertChild(gemsButton(label, onClick, { height: 30 }));
-    return cell;
   },
 
   _doBuy(scene, row, amount) {

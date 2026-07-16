@@ -212,63 +212,21 @@ globalThis.StorageUI = {
     StorageUI._doMove(scene, side, row, s.qty);
   },
 
-  // amount picker: stepper (default = full stack) + 1/Half/All shortcuts. Esc is owned by the
-  // scene's handleEscape (closeOnEscape:false), so it cancels the picker before the window.
+  // amount picker (gemsAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
+  // Esc is owned by the scene's handleEscape (closeOnEscape:false in the factory), so it
+  // cancels the picker before the window.
   _promptAmount(scene, side, row, maxQty) {
-    let amount = maxQty; // the Transfer button reads it on confirm
-    const body = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-    body.insertChild(
-      gemsLabel(I18n.text("STORAGE_QTY_PROMPT") + " (" + maxQty + ")", {
-        color: GemsTheme.textMuted,
-      }),
-    );
-    const stepEl = gemsStepper(amount, (v) => (amount = v), {
-      min: 1,
-      max: maxQty,
-      step: 1,
-    });
-    const stepper = stepEl.getComponent(UIStepper);
-    body.insertChild(stepEl);
-
-    const quick = new UIElement({
-      width: "100%",
-      flexDirection: "row",
-      gap: GemsTheme.gapSm,
-    });
-    quick.insertChild(StorageUI._quickBtn("1", () => stepper.setValue(1)));
-    quick.insertChild(
-      StorageUI._quickBtn(I18n.text("STORAGE_QTY_HALF"), () =>
-        stepper.setValue(Math.floor(maxQty / 2)),
-      ),
-    );
-    quick.insertChild(
-      StorageUI._quickBtn(I18n.text("STORAGE_QTY_ALL"), () =>
-        stepper.setValue(maxQty),
-      ),
-    );
-    body.insertChild(quick);
-
-    scene._storeQtyModal = gemsModal({
+    scene._storeQtyModal = gemsAmountPicker({
       title: row.name,
-      width: 360,
-      body,
-      closeOnEscape: false, // handleEscape cancels the picker first
-      buttons: [
-        { label: I18n.text("STORAGE_CANCEL") },
-        {
-          label: I18n.text("STORAGE_TRANSFER"),
-          primary: true,
-          onClick: () => StorageUI._doMove(scene, side, row, amount),
-        },
-      ],
+      max: maxQty,
+      prompt: I18n.text("STORAGE_QTY_PROMPT"),
+      half: I18n.text("STORAGE_QTY_HALF"),
+      all: I18n.text("STORAGE_QTY_ALL"),
+      cancelLabel: I18n.text("STORAGE_CANCEL"),
+      confirmLabel: I18n.text("STORAGE_TRANSFER"),
+      onConfirm: (amount) => StorageUI._doMove(scene, side, row, amount),
       onClose: () => (scene._storeQtyModal = null),
     });
-  },
-
-  _quickBtn(label, onClick) {
-    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    cell.insertChild(gemsButton(label, onClick, { height: 30 }));
-    return cell;
   },
 
   // transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
