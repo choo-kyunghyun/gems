@@ -1,11 +1,22 @@
-// Uniform-grid broadphase for physics pair queries. Buckets entities by AABB center (one cell
-// each); pairs() sweeps within-cell + 4 right-side neighbors so each unordered pair fires once,
-// no dedup. Cell size MUST exceed entity full-width, else center bucketing misses overlapping pairs.
+/**
+ * Uniform-grid broadphase for O(n) physics pair queries: buckets each entity
+ * into ONE cell by its AABB center, and `pairs()` sweeps within-cell plus the
+ * forward half of the 8-neighborhood (right, below, below-right, below-left)
+ * so every unordered pair fires exactly once, no dedup. Correctness rests on
+ * `cellSize` exceeding the largest entity's full width or height: two
+ * overlapping AABBs then always share a cell or sit in adjacent cells, so the
+ * sweep can't miss the pair.
+ *
+ * Opt a symmetric-pair system in by assigning an instance to the store's
+ * `broadphase` field — `SeparationSystem`/`TriggerSystem` rebuild + sweep it
+ * per tick, else fall back to O(n²) (`RpgMap._buildPipeline` wires one).
+ * Body-vs-static queries are asymmetric and keep their own grid in
+ * `SolidSystem`.
+ */
 globalThis.Broadphase = class Broadphase {
   /**
-   * @param {number} worldWidth
-   * @param {number} worldHeight
-   * @param {number} cellSize - must be > max entity diameter for correctness
+   * @param {number} worldWidth @param {number} worldHeight
+   * @param {number} cellSize
    */
   constructor(worldWidth, worldHeight, cellSize) {
     this.cellSize = cellSize;
@@ -16,14 +27,17 @@ globalThis.Broadphase = class Broadphase {
     for (let i = 0; i < n; i++) this._buckets.push([]);
   }
 
-  /** Empty every bucket, keeping the grid allocation (once per frame before re-inserting). */
+  /** Empty every bucket, keeping the grid allocation. */
   clear() {
     for (let i = 0; i < this._buckets.length; i++) {
       this._buckets[i].length = 0;
     }
   }
 
-  /** Bucket entity `id` by center; out-of-bounds clamps to the edge cell. @param {number} id @param {number} cx @param {number} cy */
+  /**
+   * Bucket entity `id` by center; out-of-bounds clamps to the edge cell.
+   * @param {number} id @param {number} cx @param {number} cy
+   */
   insert(id, cx, cy) {
     const gx = Math.max(
       0,
@@ -37,18 +51,23 @@ globalThis.Broadphase = class Broadphase {
   }
 
   /**
-   * Clear + re-bucket every `ids` entity by center — the per-tick physics rebuild (centers move).
-   * @param {Entity} world @param {number[]} ids
+   * Clear + re-bucket every `ids` entity by center — the per-tick physics
+   * rebuild (centers move).
+   * @param {Entity} entities @param {number[]} ids
    */
-  rebuild(world, ids) {
+  rebuild(entities, ids) {
     this.clear();
     for (let i = 0; i < ids.length; i++) {
-      const aabb = AABB.of(world, ids[i]);
+      const aabb = AABB.of(entities, ids[i]);
       this.insert(ids[i], aabb.cx, aabb.cy);
     }
   }
 
-  /** Invoke `fn(a, b)` once per candidate pair (within-cell + 4 right-side neighbors). @param {(a:number, b:number) => void} fn */
+  /**
+   * Invoke `fn(a, b)` once per candidate pair (within-cell + forward-half
+   * neighbors).
+   * @param {(a:number, b:number) => void} fn
+   */
   pairs(fn) {
     const cols = this.cols;
     const rows = this.rows;
