@@ -1,6 +1,6 @@
 # G.E.M.S. Architecture — EntityPreset, Query & Utility Modules
 
-Area reference split out of the always-loaded core ([ARCHITECTURE.md](../ARCHITECTURE.md)). Loaded on demand: **Read this file before designing or modifying anything in this area.** Runtime quirks live in [GMRT.md](../GMRT.md).
+Area reference split out of the always-loaded core ([ARCHITECTURE.md](../ARCHITECTURE.md)). **FROZEN — a claim ledger migrating into owning-declaration JSDoc** ([ROADMAP.md](../ROADMAP.md) → JSDoc Contract Migration): verify claims against the code before relying on them, and add nothing here — new contracts go to the owning JSDoc. Runtime quirks live in [GMRT.md](../GMRT.md).
 
 ## `EntityPreset`
 

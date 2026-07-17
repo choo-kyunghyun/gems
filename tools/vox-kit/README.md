@@ -27,7 +27,7 @@ voxel extent) the runtime derives mesh-prop colliders from (`RpgSpawn.footprint`
 `max(8, content − 2)` per axis), replacing the old hand-measured FOOTPRINTS table.
 
 A NEW model's `.vbuf` must be registered once in `gems.yyp` under `IncludedFiles`
-(`filePath: "datafiles/meshes"`). ⚠️ Insert the entry in **alphabetical filePath order** —
+(`filePath: "datafiles/meshes"`). Insert the entry in **alphabetical filePath order** —
 GameMaker re-saves canonicalize the array and will DUPLICATE an out-of-place entry, after which
 the yyp fails to load. Re-bakes need no registration (churn-free; the manifest is one included
 file, registered once like a `.vbuf`).

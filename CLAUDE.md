@@ -17,11 +17,11 @@ Project guidelines for Claude Code.
 Quality over speed. Follow these principles:
 
 - **Think before acting.** State assumptions before writing code; when anything is uncertain or ambiguous, ask the user rather than guess silently.
-- **Verify after implementing.** Never assume a result — run the code and confirm the behavior yourself (there are no tests; run the game — see GameMaker CLI + Debugging & Verification).
+- **Verify after implementing.** Never assume a result — run the code and confirm the behavior yourself (there are no tests; run the game — see GameMaker CLI + Debugging & Verification). Verification results are reported in conversation, never recorded in the repo: this is a public library, not a lab notebook — no run output, probe narration, or "verified <date>" stamps in code or docs. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
 - **Simple is best.** Shorter and leaner is better, as long as readability doesn't suffer — add nothing unnecessary.
 - **Don't hide errors.** Write code so an error surfaces as early as possible; an object must never handle an error that is not its responsibility.
-- **Change only what's needed.** Touch only the code the task requires. Report pre-existing dead or broken code to the user instead of fixing it on the spot.
-- **Keep CLAUDE.md stable.** This file is the rarely-edited core; record new knowledge in its proper home instead — structural changes in the area's docs/architecture/ file (cross-cutting rules in docs/ARCHITECTURE.md), runtime quirks in docs/GMRT.md, tool details in the tool's README, plans in docs/ROADMAP.md. Edit this file only when a core rule itself changes.
+- **Change only what's needed.** Touch only the code the task requires, and report pre-existing dead or broken code to the user instead of fixing it on the spot — but this rule bounds scope, never quality. When the proper fix is improving an API, improve the API and update its callers: a call-site workaround that avoids touching the API is bloat, not restraint — it violates the Library rule above. Only a redesign far broader than the task needs proposing first; a right-layer fix is just doing the job.
+- **Keep CLAUDE.md stable.** This file is the rarely-edited core; record new knowledge in its proper home instead — module contracts in the owning declaration's JSDoc (Comments law 2), cross-cutting rules in docs/ARCHITECTURE.md, runtime quirks in docs/GMRT.md, tool details in the tool's README, plans in docs/ROADMAP.md. Edit this file only when a core rule itself changes.
 
 ## GameMaker CLI
 
@@ -50,7 +50,7 @@ gm-cli manual read "Flex Panel Struct Members"
 
 ### Resourcetool
 
-**Never create GameMaker assets (scripts, objects, rooms, sprites) by hand-writing files/folders or editing the `Resources` list in `gems.yyp`.** GameMaker manages asset metadata strictly — manual edits corrupt the project or are silently ignored. Creating, renaming, and deleting an asset all go through **`gm-cli resourcetool`** — also exposed as the **`gamemaker-resource-tool` MCP server** (`.mcp.json` runs `gm-cli resourcetool mcp`; same commands as structured tools — prefer it when connected).
+**Never create GameMaker assets (scripts, objects, rooms, sprites) by hand-writing files/folders or editing the `Resources` list in `gems.yyp`.** GameMaker manages asset metadata strictly — manual edits corrupt the project or are silently ignored. Creating, renaming, and deleting an asset all go through **`gm-cli resourcetool eval`** — CLI only. **Never wire resourcetool up as an MCP server**: a long-lived server process holds the project model in memory and can mutate asset files while bypassing the `gems.yyp` save (or write stale state over hand-edited `.yy`/yyp entries); each CLI `eval` is atomic — load, apply, save, exit.
 
 #### Script
 
@@ -68,9 +68,9 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 - **Filing under a project folder** (`folders/*.yy`): **edit the asset's own `.yy`** `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — safe local metadata. Do **not** `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root.
 - **New folders**: `gm-cli resourcetool eval "FOLDER CREATE FOLDER=Parent/Child"`. Its name validator rejects spaces/`&` (over-strict — existing folder names like `UI Sprites` legally contain them); for such names hand-add a `GMFolder` line to the `Folders` array in `gems.yyp` — that array (unlike `resources`) is safe to hand-edit, and editing it is also how empty folders are deleted (resourcetool has no FOLDER DELETE).
 - **Delete**: `gm-cli resourcetool eval "RESOURCE DELETE NAME=<name> TYPE=Script"` — removes the asset from `gems.yyp` and deletes its `scripts/<name>/` folder. Never delete by removing files manually.
-- **Rename**: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free (a script's `.js` source file + `scriptSource` are NOT renamed — `mv` the file, then `RESOURCE SET EXPR=<newname>.scriptSource`). ⚠️ **One CLI `eval` per rename, never via `SCRIPT PATH=` and never via the MCP server** — both rename the asset files without saving `gems.yyp`, leaving the project unloadable (SCRIPT verified 2026-07-12, MCP 2026-07-17; recover by reverting the fs renames, then redo via CLI evals).
+- **Rename**: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free (a script's `.js` source file + `scriptSource` are NOT renamed — `mv` the file, then `RESOURCE SET EXPR=<newname>.scriptSource`). **One CLI `eval` per rename, never via `SCRIPT PATH=`** — it renames the asset files without saving `gems.yyp`, leaving the project unloadable (verified; recover by reverting the fs renames, then redo via CLI evals).
 - **Two renames resourcetool can't do**: an **included file** (its dotted name defeats the EXPR parser — rename the file + hand-edit its one line in the yyp's `IncludedFiles` array, safe to hand-edit like `Folders`), and an **importer-owned sprite** (additionally needs the importer's name derivation updated + a re-run).
-- ⚠️ **Sprite churn**: a resourcetool CREATE/DELETE can leave mass churn under `sprites/` — after any mutation, revert it (`git checkout -- sprites/`) and confirm `git status` shows only your intended files before committing.
+- **Sprite churn**: a resourcetool CREATE/DELETE can leave mass churn under `sprites/` — after any mutation, revert it (`git checkout -- sprites/`) and confirm `git status` shows only your intended files before committing.
 - **Verify**: `gm-cli resourcetool eval "CHECK PROJECTPATH=gems.yyp"`, then `gm-cli compile`.
 
 ## Debugging & Verification
@@ -107,16 +107,21 @@ The repo bundles standalone tools under `tools/` — not part of the game itself
 - **Language**: JavaScript (GMRT JS runtime), not GML. All scripts in `scripts/` use `.js`.
 - **Global exposure**: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
 - **Formatter**: [Prettier](https://prettier.io/) with `{ "bracketSameLine": true }` (MDN config). Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
+- **Register**: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, bold for the defined term or the one load-bearing clause of an entry, tables for enumerable facts.
 
 ### Comments
 
-1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does.
-2. A prose comment is one line. Longer is documentation — move it to the area's docs/ file and leave a pointer.
+1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does — nor when or how a fact was established (no dates, no probe stories; pin to a version or ticket).
+2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its **owning declaration** and may be as long as the contract needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner (law 3), never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
 3. A known quirk or invariant is cited, never re-explained: `// #15549: no && reuse`, `// Time.raw: UI runs while paused`.
-4. A file header is at most 2 lines: what the file is + one docs pointer.
-5. JSDoc carries types, not essays: `@typedef`s and typed `@param`s stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`.
+4. A file header is at most 2 lines: what the file is + one pointer.
+5. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`.
 6. JSDoc tags cluster, they don't stack: bare typed tags share a line (`@param {number} r @param {number} g @returns {number}`), wrapping whenever a line would pass 80 chars (the Prettier print width — comments included); a tag takes its own line only when it carries a description (typedef `@property` lists, a param needing a why).
 7. Existing comments are grandfathered — tighten only code you are already touching (migration plan: docs/ROADMAP.md → Comment Refactor).
+
+### API Naming
+
+Members are short idiomatic verbs and nouns — `Entity.create`/`Entity.remove`, `Item.get`, `File.read`. The owner is the namespace: a member never restates it and never pads with filler (`createNew`, `getInfo`, `doUpdate`); a class is named for what it is (`Entity`), not its role pattern (`EntityManager`, `EntityStorage`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`add` vs `addSlot`, `read` vs `readBuffer`). Everything else a long name would carry belongs in JSDoc, not the identifier.
 
 ### Script Naming
 
@@ -143,4 +148,4 @@ See @docs/GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles
 
 ## Architecture
 
-See @docs/ARCHITECTURE.md — the always-loaded architecture **core** (the layer map, the cross-cutting invariants, and the reference index), kept in context alongside this file by the `@`-import. The per-area detail lives in `docs/architecture/*.md` — **Read the area's file before designing or modifying anything in it**; the core's index routes you to the right one.
+See @docs/ARCHITECTURE.md — the always-loaded architecture doc (the layer map, the cross-cutting invariants, and the area index), kept in context alongside this file by the `@`-import. **The code is the primary reference**: module contracts live in JSDoc at their owning declarations (Comments law 2) — read an area's owning files before designing or modifying it. The legacy `docs/architecture/*.md` ledgers are frozen mid-migration into JSDoc (docs/ROADMAP.md → JSDoc Contract Migration): treat their claims as leads to verify against the code, never as authority, and add nothing to them.

@@ -1,15 +1,15 @@
 # G.E.M.S. Architecture
 
-The always-loaded **core** of the architecture reference, imported into context by [CLAUDE.md](../CLAUDE.md) (via its `@docs/ARCHITECTURE.md` line) alongside [GMRT.md](GMRT.md) (the runtime quirks). This file carries the layer map, the cross-cutting invariants, and the index of the per-area reference files under [docs/architecture/](architecture/).
+The always-loaded architecture doc, imported into context by [CLAUDE.md](../CLAUDE.md) (via its `@docs/ARCHITECTURE.md` line) alongside [GMRT.md](GMRT.md) (the runtime quirks). This file carries the layer map, the cross-cutting invariants, and the area index — and nothing per-module: a module's contracts live in JSDoc at its owning declaration (CLAUDE.md → Comments law 2).
 
-**Routing rule: Read the area's reference file before designing or modifying anything in it.** The index summaries below exist to route you to the right file — they name what exists, not the contracts. Never implement against a summary alone.
+**Routing rule: the code is the primary reference.** Before designing or modifying an area, read its owning files' JSDoc contracts, the invariants here, and the quirks in GMRT.md. The per-area files under [docs/architecture/](architecture/) are **frozen claim ledgers mid-migration into JSDoc** ([ROADMAP.md](ROADMAP.md) → JSDoc Contract Migration): use the index summaries below to locate an area's pieces, verify every ledger claim against the code before relying on it, and add nothing to a ledger — a new contract goes to the owning JSDoc.
 
-**Doc laws** — what this file and the area files may contain:
+**Doc laws** — what this file may contain (the frozen area ledgers take nothing new):
 
-1. A doc records contracts: invariants, conventions, and cross-module coupling an agent must not break. Not what the code does — read the source.
-2. No history. What a design replaced, when, and why lives in git and the source header — never in docs.
-3. One owner per fact: GMRT quirks in GMRT.md, cross-cutting invariants here, an area fact once in its area file. Everyone else cites.
-4. No API inventories, content catalogs, or tutorials — signatures live in JSDoc, content in its registry, GameMaker in the manual.
+1. Only cross-cutting facts: the layer map, invariants binding every area, and the area index. A single-module contract lives in that module's JSDoc, never here.
+2. No history. What a design replaced, when, and why lives in git — never in docs.
+3. One owner per fact: GMRT quirks in GMRT.md, cross-cutting invariants here, a module contract at its owning declaration. Everyone else cites.
+4. No API inventories, content catalogs, or tutorials — signatures and contracts live in JSDoc, content in its registry, GameMaker in the manual.
 5. Dead or unwired code gets a clause, not a paragraph.
 
 ## Layers & Placement
@@ -36,7 +36,9 @@ Rules that apply in every area (the per-area files assume them; the GMRT quirks 
 - **Registry pattern**: content is data registered into flat registries keyed by string id (`Item`/`Rarity`/`Manufacturer`/`Status`/`Recipe`/`Prefab`/`InteractAction`/`EntityPreset`/`StateSystem`) — adding content is a data entry, not an engine edit. Registration runs from `create()`-time calls (`RpgContent.register()`), never at script top level (load order).
 - **Serialization-safe data**: component/def data stays flat scalars — no nested objects in persisted blobs, no `Set` in serialized fields (the `JSON.stringify` fault, see GMRT.md); `world.export`/`EntitySnapshot` ride on that.
 
-## Reference Index (docs/architecture/)
+## Area Index (docs/architecture/ — frozen ledgers, migrating into JSDoc)
+
+Each entry names what exists in an area, to locate its owning files; the linked ledger's claims need code verification (routing rule above). When an area's migration finishes, its ledger is deleted and its entry lists the owning files directly.
 
 - **[demo.md](architecture/demo.md)** — the app shell: `obj_game` event wiring (Create/Step/Draw/Draw GUI/Async), the duck-typed `Level` screen contract, `LevelManager` (flat level collection, keep-switch guest minigames, the resident-map registry), `SceneRegistry` + the lobby boot scene, `teardownScene`, and the **GemsUI factory kit** (containers `gemsRoot`/`gemsWindow`/`gemsCatBar`/…, widgets `gemsButton`/`gemsTable`/`gemsKeyHints`/…, tooltips).
 - **[ecs.md](architecture/ecs.md)** — the `Entity` store API (create/remove/add/get/query/export), `EntitySnapshot`, `EntityID`, the component/system patterns, fixed-rate simulation (`World.sim`/`SimClock` ticks + `alpha`, `Pipeline`, `Time`), the built-in system table (`Gravity`/`Movement`/`Solid`/`Separation`/`Trigger`/`State`/`Lifetime`/`Interpolation`/`Pathfinding`), and the pathfinding flow (`PathRequest`→`PathResponse`, `PathFollow`, `NavGrid`).

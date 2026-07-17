@@ -54,19 +54,29 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 
 ## Comment Refactor
 
-Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured 2026-07-17: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). **No standalone sweep** — fold into the Code Review batches below and into files already being touched. Per file:
+Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). **No standalone sweep** — fold into the Code Review batches below and into files already being touched. Per file:
 
-1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to the area's `docs/architecture/*.md` (or GMRT.md) first, then shrinks to a citation — never delete a fact that has no docs home.
+1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
 2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `UIElement`, `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
-3. **Invariants**: replace every re-explanation with the one-line citation form (law 3).
-4. **JSDoc**: keep `@typedef`s/typed `@param`s, cut identifier-restating prose; opts-struct factories to one prose block.
+3. **Invariants**: replace every re-explanation with the one-line citation form (law 3); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
+4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
 5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+
+## JSDoc Contract Migration
+
+Dissolve the frozen `docs/architecture/*.md` ledgers into JSDoc contract blocks at owning declarations (rules: CLAUDE.md → Comments law 2 + the ARCHITECTURE.md routing rule); ARCHITECTURE.md stays the single doc (layer map, cross-cutting invariants, area index). **No standalone sweep** — migrate an area's ledger in the Code Review batch covering its files (`levels.md` is the small dry-run candidate; `rpg.md` the stress test, spanning batches 10–14). Per ledger claim, in order:
+
+1. **Verify against the code first** — the ledgers are known to drift; the code is truth. A wrong claim is dropped and reported, never migrated.
+2. **Already evident in code/JSDoc** (restated API shape, naming, behavior) → delete.
+3. **Single-owner contract** → a JSDoc contract block at the owning declaration (a cross-file mechanism owns to its enforcing/orchestrating site); other sites cite.
+4. **Cross-cutting invariant** → ARCHITECTURE.md; **runtime quirk** → GMRT.md (most already live there — cite, don't copy).
+5. When a ledger empties, delete the file and replace its ARCHITECTURE.md index entry with the area's owning-file list.
 
 ## Code Review (file-by-file)
 
-Review batches from the 2026-07-13 coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
+Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
 
-Each batch also renames its files' legacy `world` store identifiers (system params, `this.world` bindings) to `entities` — the two-layer restructure's deferred rename (rule: CLAUDE.md → ECS Bootstrap). GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so run the game after a rename batch, not just compile.
+Each batch also renames its files' legacy `world` store identifiers (system params, `this.world` bindings) to `entities` — the two-layer restructure's deferred rename (rule: CLAUDE.md → ECS Bootstrap). GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so run the game after a rename batch, not just compile. Each batch additionally applies its files' slice of the Comment Refactor, the JSDoc Contract Migration (sections above), and the CLAUDE.md API Naming rule — an identifier rename follows the same run-after rule.
 
 | #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |

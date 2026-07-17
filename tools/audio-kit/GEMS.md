@@ -37,8 +37,8 @@ Audio pairs with the **DB32 16px pixel art** — keep it deliberately **chiptune
 
 ## Status
 
-⚠️ **The kit-generated set is RETIRED (2026-07-11)** — the committed `sounds/` are now hand-authored
-media (a 2026-07 asset overhaul), not this kit's output: **14 SFX** (`snd_coin` / `snd_jump` /
+**The kit-generated set is RETIRED** — the committed `sounds/` are now hand-authored media, not
+this kit's output: **14 SFX** (`snd_coin` / `snd_jump` /
 `snd_gun_fire` / `snd_gun_uncocked` / `snd_hitsound_flesh` / `snd_hitsound_armor` /
 `snd_hitsound_metal` / `snd_explosion_small` / `snd_explosion_large` / `snd_bandage` / `snd_drink` /
 `snd_magic` / `snd_button_click` / `snd_button_muted`) and **4 BGM ambient loops**

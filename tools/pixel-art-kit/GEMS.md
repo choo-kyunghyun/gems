@@ -85,13 +85,13 @@ no longer gets squished into the square cell; square icons are unaffected.
 ## Status / migration
 
 The entity generators emit **16×16** (`entity_sprites.py` draws at 16px, foot-anchored 8,16, and
-the `templates/` demos are 16×16 DB32); the **terrain pipeline emits 32×32** since the 2026-07-12
-regen (`terrain_materials.S = 32`, 1:1 with the world cell — the hand-shaped stamps scale by
+the `templates/` demos are 16×16 DB32); the **terrain pipeline emits 32×32**
+(`terrain_materials.S = 32`, 1:1 with the world cell — the hand-shaped stamps scale by
 `K = S // 16` so blades/blooms/pebbles keep their 16px-era world size, just crisper).
 
-⚠️ **The engine is not 16px-native** — since the 2026-07 migration the RPG runs a
-**32-world-px cell** (`RpgLevel` `RPG_CELL = 32` + `cell: 32` in the level JSONs; the 2026-07 media
-set — vox meshes, `spr_tex_*` wall/floor textures — authors 1:1 at 32 px/cell). The kit's remaining
+**The engine is not 16px-native** — the RPG runs a **32-world-px cell** (`RpgLevel`
+`RPG_CELL = 32` + `cell: 32` in the level JSONs; the current media set — vox meshes, `spr_tex_*`
+wall/floor textures — authors 1:1 at 32 px/cell). The kit's remaining
 16px sheets still work: tiles are UV-stretched over the cell, and 16px entity sprites draw at a
 ×2 scale (declare `SpriteMeta density: 0.5`, as the fence does). (The `Platformer` minigame is
 unchanged — separate world, debug-box art, not the 16px set.)
