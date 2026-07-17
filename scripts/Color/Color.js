@@ -1,16 +1,25 @@
-// Thin wrappers over GM color ints + the "#rrggbb" parser used by theme/zone/level data.
+// Thin wrappers over GM color ints + the "#rrggbb" parser used by
+// theme/zone/level data.
 globalThis.Color = class Color {
   /** @param {number} r @param {number} g @param {number} b @returns {number} */
   static rgb(r, g, b) {
     return make_color_rgb(r, g, b);
   }
 
-  /** @param {number} h @param {number} s @param {number} v @returns {number} HSV, each 0–255. */
+  /**
+   * Each of h/s/v is 0–255 (GM's range, not 360/100/100).
+   * @param {number} h @param {number} s @param {number} v @returns {number}
+   */
   static hsv(h, s, v) {
     return make_color_hsv(h, s, v);
   }
 
-  /** @param {number} col1 @param {number} col2 @param {number} amount 0→1 @returns {number} */
+  /**
+   * One-shot lerp; #15546: don't ease a packed int per frame (floors to
+   * black) — use float r/g/b + Tween.approachColor.
+   * @param {number} col1 @param {number} col2 @param {number} amount 0→1
+   * @returns {number}
+   */
   static merge(col1, col2, amount) {
     return merge_color(col1, col2, amount);
   }
@@ -24,7 +33,8 @@ globalThis.Color = class Color {
   }
 
   /**
-   * Alpha [0,1] from a 32-bit `$AABBGGRR` IDE color literal. Plain RGB ints have no alpha byte.
+   * Alpha [0,1] from a 32-bit `$AABBGGRR` IDE color literal. Plain RGB ints
+   * have no alpha byte.
    * @param {number} color @returns {number}
    */
   static alpha(color) {
