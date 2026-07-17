@@ -22,15 +22,15 @@ globalThis.Audio = class Audio {
   // Non-positional SFX (UI, global). opts: { gain, pitch, loop, priority }. Returns handle, or -1.
   static play(sound, opts) {
     if (!audio_exists(sound)) return -1; // audio_exists returns false (never errors) on -1/undefined
-    opts = opts === undefined ? {} : opts;
-    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio._sfxGain;
+    opts = opts ?? {};
+    const g = (opts.gain ?? 1.0) * Audio._sfxGain;
     return audio_play_sound(
       sound,
-      opts.priority === undefined ? 1 : opts.priority,
-      opts.loop === undefined ? false : opts.loop,
+      opts.priority ?? 1,
+      opts.loop ?? false,
       g,
       0,
-      opts.pitch === undefined ? 1 : opts.pitch,
+      opts.pitch ?? 1,
     );
   }
 
@@ -38,21 +38,21 @@ globalThis.Audio = class Audio {
   // to override the falloff window. Returns the handle.
   static playAt(sound, x, y, opts) {
     if (!audio_exists(sound)) return -1;
-    opts = opts === undefined ? {} : opts;
-    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio._sfxGain;
+    opts = opts ?? {};
+    const g = (opts.gain ?? 1.0) * Audio._sfxGain;
     return audio_play_sound_at(
       sound,
       x,
       y,
       0,
-      opts.ref === undefined ? Audio.REF : opts.ref,
-      opts.max === undefined ? Audio.MAX : opts.max,
-      opts.factor === undefined ? Audio.FACTOR : opts.factor,
-      opts.loop === undefined ? false : opts.loop,
-      opts.priority === undefined ? 1 : opts.priority,
+      opts.ref ?? Audio.REF,
+      opts.max ?? Audio.MAX,
+      opts.factor ?? Audio.FACTOR,
+      opts.loop ?? false,
+      opts.priority ?? 1,
       g,
       0,
-      opts.pitch === undefined ? 1 : opts.pitch,
+      opts.pitch ?? 1,
     );
   }
 

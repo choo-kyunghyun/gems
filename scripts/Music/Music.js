@@ -13,7 +13,7 @@ globalThis.Music = class Music {
   // Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
   // it. Re-requesting the playing track is a no-op (safe per frame). opts: { gain, pitch, fadeMs }.
   static play(sound, opts) {
-    opts = opts === undefined ? {} : opts;
+    opts = opts ?? {};
     if (!audio_exists(sound)) {
       Music.stop(opts.fadeMs);
       return -1;
@@ -24,9 +24,9 @@ globalThis.Music = class Music {
       audio_is_playing(Music._bgm)
     )
       return Music._bgm; // already playing this track
-    const fade = opts.fadeMs === undefined ? 600 : opts.fadeMs;
+    const fade = opts.fadeMs ?? 600;
     Music._fadeOut(fade);
-    Music._bgmGain = opts.gain === undefined ? 1.0 : opts.gain;
+    Music._bgmGain = opts.gain ?? 1.0;
     const g = Music._bgmGain * Music._gain; // fold music volume into the instance gain
     const h = audio_play_sound(
       sound,
@@ -34,7 +34,7 @@ globalThis.Music = class Music {
       true,
       fade > 0 ? 0 : g,
       0,
-      opts.pitch === undefined ? 1 : opts.pitch,
+      opts.pitch ?? 1,
     );
     if (fade > 0) audio_sound_gain(h, g, fade); // ramp in over `fade` ms (instant if unsupported)
     Music._bgm = h;
@@ -44,7 +44,7 @@ globalThis.Music = class Music {
 
   // Fade the BGM out and stop it. fadeMs default 400.
   static stop(fadeMs) {
-    Music._fadeOut(fadeMs === undefined ? 400 : fadeMs);
+    Music._fadeOut(fadeMs ?? 400);
     Music._bgm = -1;
     Music._bgmAsset = -1;
   }
