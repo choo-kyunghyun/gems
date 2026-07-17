@@ -108,7 +108,7 @@ class _SceneRpgClass {
       SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
       RpgMap.go(this, bootMap, "default");
     }
-    Audio.bgm(mus_ambient_tense); // carries across map changes (only _apply's reset stops it)
+    Music.play(mus_ambient_tense); // carries across map changes (only _apply's reset stops it)
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
@@ -441,7 +441,7 @@ class _SceneRpgClass {
     this._updateClimate(); // climate-zone enter/exit → Weather region override
     // free-cam updates in draw() (runs while paused — the point of the debug free-fly); follow updates here
     if (!this.camera.freeCam) this.camera.update();
-    Audio.listener(this.camera.toX, this.camera.toY); // ears follow the view → spatial SFX pan/attenuate
+    AudioListener.position(this.camera.toX, this.camera.toY); // ears follow view → spatial SFX pan/attenuate
 
     // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
     if (this.chunks !== undefined) {

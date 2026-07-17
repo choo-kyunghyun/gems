@@ -310,7 +310,7 @@ globalThis.SystemMenu = class SystemMenu {
     volSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_VOL_MUSIC"),
-        volSlider("volMusic", (v) => Audio.setMusicGain(v)),
+        volSlider("volMusic", (v) => Music.setGain(v)),
       ),
     );
     volSection.insertChild(

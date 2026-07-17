@@ -20,7 +20,7 @@ class _ScenePlatformerClass {
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.
     this.stomps = 0; // score reported back to host via result()
-    Audio.bgm(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
+    Music.play(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
 
     this.physics = new Pipeline()
       .add(GravitySystem)

@@ -11,6 +11,7 @@
   "defaultScriptType":1,
   "Folders":[
     {"$GMFolder":"","%Name":"Core","folderPath":"folders/Core.yy","name":"Core","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Audio","folderPath":"folders/Core/Audio.yy","name":"Audio","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Camera","folderPath":"folders/Core/Camera.yy","name":"Camera","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Component","folderPath":"folders/Core/Component.yy","name":"Component","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"ECS","folderPath":"folders/Core/ECS.yy","name":"ECS","resourceType":"GMFolder","resourceVersion":"2.0",},
@@ -145,6 +146,7 @@
     {"id":{"name":"AppearanceSystem","path":"scripts/AppearanceSystem/AppearanceSystem.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
+    {"id":{"name":"AudioListener","path":"scripts/AudioListener/AudioListener.yy",},},
     {"id":{"name":"AuthoredStamp","path":"scripts/AuthoredStamp/AuthoredStamp.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
     {"id":{"name":"Blueprint","path":"scripts/Blueprint/Blueprint.yy",},},
@@ -242,6 +244,7 @@
     {"id":{"name":"Mortal","path":"scripts/Mortal/Mortal.yy",},},
     {"id":{"name":"MotionPlanner","path":"scripts/MotionPlanner/MotionPlanner.yy",},},
     {"id":{"name":"MovementSystem","path":"scripts/MovementSystem/MovementSystem.yy",},},
+    {"id":{"name":"Music","path":"scripts/Music/Music.yy",},},
     {"id":{"name":"Name","path":"scripts/Name/Name.yy",},},
     {"id":{"name":"NavGrid","path":"scripts/NavGrid/NavGrid.yy",},},
     {"id":{"name":"NPC","path":"scripts/NPC/NPC.yy",},},

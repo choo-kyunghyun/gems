@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Audio",
+  "%Name":"Music",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Audio",
+  "name":"Music",
   "parent":{
     "name":"Audio",
     "path":"folders/Core/Audio.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Audio.js",
+  "scriptSource":"Music.js",
 }

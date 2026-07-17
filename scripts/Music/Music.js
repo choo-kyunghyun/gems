@@ -1,0 +1,90 @@
+/**
+ * Music — looping BGM with cross-fade (a state machine over audio_play_sound + audio_sound_gain).
+ * Wired in obj_game Step_0 (update) + Audio.reset; contracts: docs/architecture/utilities.md → Audio.
+ */
+globalThis.Music = class Music {
+  static _bgm = -1; // current looping BGM instance handle (-1 = none)
+  static _bgmAsset = -1; // its track asset (-1 = none); a re-request of the same track is a no-op
+  static _bgmGain = 1.0; // the track's base gain (opts.gain); music volume multiplies this
+  static _fadeStop = -1; // a faded-out BGM handle awaiting its stop
+  static _fadeAt = 0; // Time.raw (s) at which to stop _fadeStop
+  static _gain = 1.0; // music category volume (0..1), folded into the instance gain
+
+  // Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
+  // it. Re-requesting the playing track is a no-op (safe per frame). opts: { gain, pitch, fadeMs }.
+  static play(sound, opts) {
+    opts = opts === undefined ? {} : opts;
+    if (!audio_exists(sound)) {
+      Music.stop(opts.fadeMs);
+      return -1;
+    }
+    if (
+      sound === Music._bgmAsset &&
+      Music._bgm !== -1 &&
+      audio_is_playing(Music._bgm)
+    )
+      return Music._bgm; // already playing this track
+    const fade = opts.fadeMs === undefined ? 600 : opts.fadeMs;
+    Music._fadeOut(fade);
+    Music._bgmGain = opts.gain === undefined ? 1.0 : opts.gain;
+    const g = Music._bgmGain * Music._gain; // fold music volume into the instance gain
+    const h = audio_play_sound(
+      sound,
+      0,
+      true,
+      fade > 0 ? 0 : g,
+      0,
+      opts.pitch === undefined ? 1 : opts.pitch,
+    );
+    if (fade > 0) audio_sound_gain(h, g, fade); // ramp in over `fade` ms (instant if unsupported)
+    Music._bgm = h;
+    Music._bgmAsset = sound;
+    return h;
+  }
+
+  // Fade the BGM out and stop it. fadeMs default 400.
+  static stop(fadeMs) {
+    Music._fadeOut(fadeMs === undefined ? 400 : fadeMs);
+    Music._bgm = -1;
+    Music._bgmAsset = -1;
+  }
+
+  // Ramp the current BGM to silence and schedule its stop (update() reaps it); 0 = hard stop now.
+  static _fadeOut(fadeMs) {
+    if (Music._bgm === -1 || !audio_is_playing(Music._bgm)) return;
+    if (Music._fadeStop !== -1 && Music._fadeStop !== Music._bgm)
+      audio_stop_sound(Music._fadeStop); // a still-pending older fade — drop it now (already silent)
+    if (fadeMs > 0) {
+      audio_sound_gain(Music._bgm, 0, fadeMs);
+      Music._fadeStop = Music._bgm;
+      Music._fadeAt = Time.raw + fadeMs / 1000;
+    } else {
+      audio_stop_sound(Music._bgm);
+      Music._fadeStop = -1;
+    }
+  }
+
+  // Per-frame (obj_game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle.
+  static update() {
+    if (Music._fadeStop !== -1 && Time.raw >= Music._fadeAt) {
+      audio_stop_sound(Music._fadeStop);
+      Music._fadeStop = -1;
+    }
+  }
+
+  // Live music-volume setter (0..1): ramps the playing instance over 50ms (avoids a drag-click).
+  static setGain(g) {
+    Music._gain = g < 0 ? 0 : g > 1 ? 1 : g;
+    if (Music._bgm !== -1 && audio_is_playing(Music._bgm))
+      audio_sound_gain(Music._bgm, Music._bgmGain * Music._gain, 50);
+  }
+
+  // Hard stop + clear on a base scene swap (via Audio.reset). Graceful stop() is the per-scene path.
+  static reset() {
+    if (Music._bgm !== -1) audio_stop_sound(Music._bgm);
+    if (Music._fadeStop !== -1) audio_stop_sound(Music._fadeStop);
+    Music._bgm = -1;
+    Music._bgmAsset = -1;
+    Music._fadeStop = -1;
+  }
+};
