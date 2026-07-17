@@ -1,5 +1,5 @@
-// World-space AABB geometry — owns the non-uniform BBox anchor (walls at a
-// corner, players centered). See docs/architecture/utilities.md → AABB.
+// World-space AABB geometry — owns the non-uniform BBox anchor
+// (walls at a corner, players centered).
 /** @typedef {{x1:number,y1:number,x2:number,y2:number}} AABBRect */
 /** @typedef {AABBRect & {cx:number,cy:number}} AABBEdges */
 globalThis.AABB = class AABB {
@@ -17,11 +17,11 @@ globalThis.AABB = class AABB {
   }
 
   /**
-   * Edges of entity `id` from its Position + BBox.
+   * Edges of entity `id` from its Position + BBox, both required — callers
+   * pass component-queried ids, so the reads are unguarded.
    * @param {Entity} entities @param {number} id @returns {AABBEdges}
    */
   static of(entities, id) {
-    // contract: `id` has Position + BBox (callers pass queried ids)
     const pos = /** @type {Position} */ (entities.get(Position, id));
     const box = /** @type {BBox} */ (entities.get(BBox, id));
     return AABB.edges(pos, box);
