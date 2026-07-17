@@ -1,6 +1,6 @@
 /**
  * Music — looping BGM with cross-fade (a state machine over audio_play_sound + audio_sound_gain).
- * Wired in obj_game Step_0 (update) + Audio.reset; contracts: docs/architecture/utilities.md → Audio.
+ * Wired in obj_game Step_0 (update) + Audio.reset.
  */
 globalThis.Music = class Music {
   static _bgm = -1; // current looping BGM instance handle (-1 = none)
@@ -74,7 +74,7 @@ globalThis.Music = class Music {
 
   // Live music-volume setter (0..1): ramps the playing instance over 50ms (avoids a drag-click).
   static setGain(g) {
-    Music._gain = g < 0 ? 0 : g > 1 ? 1 : g;
+    Music._gain = clamp(g, 0, 1);
     if (Music._bgm !== -1 && audio_is_playing(Music._bgm))
       audio_sound_gain(Music._bgm, Music._bgmGain * Music._gain, 50);
   }

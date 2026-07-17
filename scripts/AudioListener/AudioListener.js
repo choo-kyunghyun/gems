@@ -1,6 +1,6 @@
 /**
  * AudioListener — the "ears" for spatial audio (GameMaker's listener subsystem).
- * Boot orchestrated by Audio.setup; contracts: docs/architecture/utilities.md → Audio.
+ * Boot orchestrated by Audio.setup.
  */
 globalThis.AudioListener = class AudioListener {
   // Once at boot: fix the 2D top-down orientation — face +z, up = -y (GM y grows down) so only x

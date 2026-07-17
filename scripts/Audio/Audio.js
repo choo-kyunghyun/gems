@@ -1,6 +1,16 @@
 /**
- * Audio — SFX playback + master mixing over GameMaker's audio_* API (one audio space).
- * Sibling modules: AudioListener (ears), Music (BGM). Contracts: utilities.md → Audio.
+ * Audio — SFX playback + master mixing over GameMaker's audio_* API (one audio
+ * space); family head over AudioListener (ears) + Music (BGM).
+ *
+ * Name a cue by its BARE asset id (`snd_x`/`mus_x`), never a name string —
+ * `audio_exists` guards it (returns false, never errors, on -1/undefined), so a
+ * typo is a compile error, not a silent no-op.
+ *
+ * No audio groups — a streamed BGM can't join one, so every cue sits in
+ * `audiogroup_default` and category volume is folded in by hand: master global
+ * (`audio_master_gain`), SFX into each cue at spawn, music on the live BGM
+ * instance. Cues are triggered at consumer sites, not here (the kit stays silent);
+ * the cue/track inventory is tools/audio-kit/GEMS.md.
  */
 globalThis.Audio = class Audio {
   static _sfxGain = 1.0; // SFX category volume (0..1), folded into each cue at spawn
@@ -21,6 +31,7 @@ globalThis.Audio = class Audio {
 
   // Play an SFX cue — a thin alias of audio_play_sound_ext (a JS object IS its GML params struct):
   // fold in the SFX category gain, fill the 32px-world falloff window for a positional cue, delegate.
+  // Mutates `params` in place (gain fold + falloff fields) — pass a throwaway literal, not a shared struct.
   // `params` is the native struct — { sound, gain?, pitch?, loop?, priority?, offset?, emitter?,
   // position?: { x, y, z?, falloff_ref?, falloff_max?, falloff_factor? } }. A `position` makes the cue
   // spatial (attenuated + panned by the listener); omit it for 2D (UI/global). Returns handle, or -1.
@@ -38,11 +49,11 @@ globalThis.Audio = class Audio {
   }
 
   static setSfxGain(g) {
-    Audio._sfxGain = g < 0 ? 0 : g > 1 ? 1 : g; // folded in at play (cues brief — not retro-adjusted)
+    Audio._sfxGain = clamp(g, 0, 1); // folded in at play (cues brief — not retro-adjusted)
   }
 
   static setMasterGain(g) {
-    audio_master_gain(g < 0 ? 0 : g > 1 ? 1 : g);
+    audio_master_gain(clamp(g, 0, 1));
   }
 
   // Stop everything on a base scene swap (SFX + BGM) — clean slate. NOT across a guest push / map
