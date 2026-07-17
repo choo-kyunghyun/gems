@@ -108,7 +108,7 @@ class _SceneRpgClass {
       SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
       RpgMap.go(this, bootMap, "default");
     }
-    Audio.bgm("mus_ambient_tense"); // carries across map changes (only _apply's reset stops it)
+    Audio.bgm(mus_ambient_tense); // carries across map changes (only _apply's reset stops it)
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
@@ -371,7 +371,7 @@ class _SceneRpgClass {
         spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
           const dp = this.world.get(Position, id);
-          if (dp !== undefined) Audio.playAt("snd_explosion_small", dp.x, dp.y); // death pop (spatial)
+          if (dp !== undefined) Audio.playAt(snd_explosion_small, dp.x, dp.y); // death pop (spatial)
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
           this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
@@ -543,7 +543,7 @@ class _SceneRpgClass {
   // "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
   _onCollect(itemId, got) {
     const pp = this.world.get(Position, this.playerId);
-    if (pp !== undefined) Audio.playAt("snd_coin", pp.x, pp.y); // pickup blip (spatial, ~centred)
+    if (pp !== undefined) Audio.playAt(snd_coin, pp.x, pp.y); // pickup blip (spatial, ~centred)
     Profile.add("itemsCollected", got);
     this._reportAchievements("itemsCollected");
     QuestLog.report("collect", itemId, got);

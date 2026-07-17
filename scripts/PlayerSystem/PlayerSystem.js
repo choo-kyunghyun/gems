@@ -260,7 +260,7 @@ globalThis.PlayerSystem = {
   // dry-click cue for a gun with no round to fire. Edge-gated: the fire key is held-polled
   // (.down()), so an un-gated cue would repeat every tick while the trigger is held.
   _dryClick() {
-    if (Input.get("fire").pressed()) Audio.play("snd_gun_uncocked");
+    if (Input.get("fire").pressed()) Audio.play(snd_gun_uncocked);
   },
 
   // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
@@ -304,7 +304,7 @@ globalThis.PlayerSystem = {
       pos.y + aim.ny * 18,
       ang,
     );
-    Audio.playAt("snd_gun_fire", pos.x, pos.y); // gunshot (spatial); the hit plays a hitsound later
+    Audio.playAt(snd_gun_fire, pos.x, pos.y); // gunshot (spatial); the hit plays a hitsound later
 
     pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
     pl.attackAnim = "attack"; // gun fire plays the punch thrust (reads as recoil), never the kick

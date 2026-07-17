@@ -20,7 +20,7 @@ class _ScenePlatformerClass {
     this.ctrl = PlatformerController.create(this.world, this.spawn);
     // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.
     this.stomps = 0; // score reported back to host via result()
-    Audio.bgm("mus_ambient_danger"); // crossfades the RPG's overworld track; restored on pop
+    Audio.bgm(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -76,7 +76,7 @@ class _ScenePlatformerClass {
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
         this.stomps++;
-        Audio.play("snd_hitsound_flesh"); // non-positional — platformer sets no audio listener
+        Audio.play(snd_hitsound_flesh); // non-positional — platformer sets no audio listener
       } else {
         let hurt = EnemySystem.resolveTouch(
           this.world,

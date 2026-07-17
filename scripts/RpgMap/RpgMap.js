@@ -157,9 +157,7 @@ globalThis.RpgMap = {
   // tense one. Called on every map arrival (build + resume); Audio.bgm cross-fades and treats
   // a same-track re-request as a no-op, so this is safe to call unconditionally.
   _applyBgm(scene) {
-    Audio.bgm(
-      scene._indoor === true ? "mus_ambient_cozy" : "mus_ambient_tense",
-    );
+    Audio.bgm(scene._indoor === true ? mus_ambient_cozy : mus_ambient_tense);
   },
 
   // Pointer-copy per-map fields scene↔bundle. Index loop (no Map/Set iteration — GMRT).
