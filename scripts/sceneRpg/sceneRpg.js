@@ -371,7 +371,12 @@ class _SceneRpgClass {
         spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
           const dp = this.world.get(Position, id);
-          if (dp !== undefined) Audio.playAt(snd_explosion_small, dp.x, dp.y); // death pop (spatial)
+          // death pop (spatial)
+          if (dp !== undefined)
+            Audio.playSfx({
+              sound: snd_explosion_small,
+              position: { x: dp.x, y: dp.y },
+            });
           Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
           this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
@@ -543,7 +548,9 @@ class _SceneRpgClass {
   // "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
   _onCollect(itemId, got) {
     const pp = this.world.get(Position, this.playerId);
-    if (pp !== undefined) Audio.playAt(snd_coin, pp.x, pp.y); // pickup blip (spatial, ~centred)
+    // pickup blip (spatial, ~centred)
+    if (pp !== undefined)
+      Audio.playSfx({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
     Profile.add("itemsCollected", got);
     this._reportAchievements("itemsCollected");
     QuestLog.report("collect", itemId, got);

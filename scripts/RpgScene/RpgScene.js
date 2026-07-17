@@ -57,10 +57,13 @@ globalThis.RpgScene = {
           // impact SFX; let the death pass own the killing blow (snd_explosion_small), so skip
           // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
           // armored (geared squad), enemies as flesh (raiders/rats).
+          const at = { x: pos.x, y: pos.y };
           if (world.get(Mesh, id) !== undefined)
-            Audio.playAt(snd_hitsound_metal, pos.x, pos.y);
-          else if (isAlly) Audio.playAt(snd_hitsound_armor, pos.x, pos.y);
-          else if (hp.hp > 0) Audio.playAt(snd_hitsound_flesh, pos.x, pos.y);
+            Audio.playSfx({ sound: snd_hitsound_metal, position: at });
+          else if (isAlly)
+            Audio.playSfx({ sound: snd_hitsound_armor, position: at });
+          else if (hp.hp > 0)
+            Audio.playSfx({ sound: snd_hitsound_flesh, position: at });
         } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
         }

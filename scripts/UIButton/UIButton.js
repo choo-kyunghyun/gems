@@ -41,7 +41,7 @@ globalThis.UIButton = class UIButton {
       onDown: () => this.onDown(),
       onUp: () => this.onUp(),
       onClick: () => {
-        Audio.play(snd_button_click); // click cue (before onClick, which may swap the scene)
+        Audio.playSfx({ sound: snd_button_click }); // click cue (before onClick, may swap scene)
         this.onClick();
       },
     });

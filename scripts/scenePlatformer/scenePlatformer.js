@@ -76,7 +76,7 @@ class _ScenePlatformerClass {
       if (EnemySystem.resolveStomp(this.world, id)) {
         this.world.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
         this.stomps++;
-        Audio.play(snd_hitsound_flesh); // non-positional — platformer sets no audio listener
+        Audio.playSfx({ sound: snd_hitsound_flesh }); // 2D — platformer sets no listener
       } else {
         let hurt = EnemySystem.resolveTouch(
           this.world,
