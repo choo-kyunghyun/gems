@@ -46,10 +46,11 @@ Deferred chunk-streaming work (moved from docs/architecture/rpg.md):
 
 ## Known Issues & Deferred Cleanups
 
-Found during the 2026-07-16 UI component overhaul (47508bd) — pre-existing, deliberately left untouched:
+Pre-existing issues noticed in passing and deliberately left untouched:
 
 - **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
+- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the _Audio group_ row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (`scripts/Audio`, architecture/utilities.md → Audio). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`.
 
 ## Comment Refactor
 
