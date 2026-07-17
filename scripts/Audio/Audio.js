@@ -15,8 +15,14 @@
 globalThis.Audio = class Audio {
   static _bgm = -1; // current looping BGM handle (-1 = none)
   static _bgmName = ""; // its asset name — re-requesting the same track is a no-op
+  static _bgmGain = 1.0; // the track's base gain (opts.gain); music volume multiplies this
   static _fadeStop = -1; // a faded-out BGM handle awaiting its stop
   static _fadeAt = 0; // Time.raw (s) at which to stop _fadeStop
+
+  // Category volumes (0..1), applied by hand since there are NO audio groups (streamed BGM can't
+  // join one — manual). Master is global; music rides the live BGM instance; sfx folds in at play.
+  static _musicGain = 1.0;
+  static _sfxGain = 1.0;
 
   // Linear-clamped falloff window (world px): full volume within REF, silent past MAX.
   static REF = 96; // 3 cells @ 32px
@@ -24,16 +30,14 @@ globalThis.Audio = class Audio {
   static FACTOR = 1.0; // 1 = reach silence exactly at MAX
 
   // Once at boot: distance model (GM default is "none" = no spatialisation), listener orientation,
-  // audio groups, saved volumes.
+  // saved volumes.
   static setup() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
     // 2D top-down: face +z, up = -y (GM y grows down) so +x emitters pan RIGHT — only x drives L/R
     // pan, y maps to front/back. Fixed once; position updates per frame.
     audio_listener_orientation(0, 0, 1, 0, -1, 0);
-    // snd_*/mus_* live in the non-default `sfx`/`bgm` audio GROUPS, which must be LOADED (async)
-    // before playback. Category volume is then the group gain (setMusicGain/SfxGain).
-    if (!audio_group_is_loaded(bgm)) audio_group_load(bgm);
-    if (!audio_group_is_loaded(sfx)) audio_group_load(sfx);
+    // No audio GROUPS: all snd_*/mus_* sit in audiogroup_default (always loaded, no load call), so
+    // category volume is folded in by hand below — don't reintroduce group gain.
     Audio.setMasterGain(Settings.get("volMaster"));
     Audio.setMusicGain(Settings.get("volMusic"));
     Audio.setSfxGain(Settings.get("volSfx"));
@@ -52,7 +56,7 @@ globalThis.Audio = class Audio {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
     opts = opts === undefined ? {} : opts;
-    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `sfx` group gain
+    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio._sfxGain;
     return audio_play_sound(
       a,
       opts.priority === undefined ? 1 : opts.priority,
@@ -69,7 +73,7 @@ globalThis.Audio = class Audio {
     const a = Audio._asset(sound);
     if (a === -1) return -1;
     opts = opts === undefined ? {} : opts;
-    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `sfx` group gain
+    const g = (opts.gain === undefined ? 1.0 : opts.gain) * Audio._sfxGain;
     return audio_play_sound_at(
       a,
       x,
@@ -110,7 +114,8 @@ globalThis.Audio = class Audio {
       return Audio._bgm; // already playing this track
     const fade = opts.fadeMs === undefined ? 600 : opts.fadeMs;
     Audio._fadeOutCurrent(fade);
-    const g = opts.gain === undefined ? 1.0 : opts.gain; // category volume = the `bgm` group gain
+    Audio._bgmGain = opts.gain === undefined ? 1.0 : opts.gain;
+    const g = Audio._bgmGain * Audio._musicGain; // fold music volume into the instance gain
     const h = audio_play_sound(
       a,
       0,
@@ -155,15 +160,17 @@ globalThis.Audio = class Audio {
     }
   }
 
-  // Live category-volume setters (0..1). Drive the AUDIO GROUP gain, which scales every sound in the
-  // group (incl. the playing BGM) with no per-sound bookkeeping. Music ramps 50ms to avoid a drag-
-  // click; SFX is instant (cues are brief).
+  // Live category-volume setters (0..1). No audio groups (streamed BGM can't join one), so each is
+  // applied by hand: music ramps the live BGM instance over 50ms (avoids a drag-click); sfx just
+  // stores the level, folded into every play/playAt at spawn (cues are brief — no retro-adjust).
   static setMusicGain(g) {
-    audio_group_set_gain(bgm, g < 0 ? 0 : g > 1 ? 1 : g, 50);
+    Audio._musicGain = g < 0 ? 0 : g > 1 ? 1 : g;
+    if (Audio._bgm !== -1 && audio_is_playing(Audio._bgm))
+      audio_sound_gain(Audio._bgm, Audio._bgmGain * Audio._musicGain, 50);
   }
 
   static setSfxGain(g) {
-    audio_group_set_gain(sfx, g < 0 ? 0 : g > 1 ? 1 : g, 0);
+    Audio._sfxGain = g < 0 ? 0 : g > 1 ? 1 : g;
   }
 
   static setMasterGain(g) {

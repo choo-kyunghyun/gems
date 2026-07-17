@@ -2,8 +2,8 @@
   "$GMSound":"v2",
   "%Name":"snd_gun_fire",
   "audioGroupId":{
-    "name":"sfx",
-    "path":"audiogroups/sfx",
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
   },
   "bitDepth":1,
   "channelFormat":0,
