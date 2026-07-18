@@ -11,6 +11,6 @@ if (DEV_MODE && keyboard_check_pressed(vk_f2))
   this.scenes.switchTo(SCENES.lobby);
 this.scenes.update(); // flush a queued scene swap through a fade + advance the fade timer
 this.scenes.step(); // sim tick, pause-gated while the SystemMenu overlay is open
-DebugImGui.update(); // F3: human-facing native ImGui overlay over the same registry
+Debug.update(); // F3: human-facing native ImGui overlay over the panel registry
 DebugInspector.update(this); // click-to-pick entity inspector (overlay open)
 Log.flush();

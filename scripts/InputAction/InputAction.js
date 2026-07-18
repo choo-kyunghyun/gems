@@ -85,7 +85,7 @@ globalThis.InputAction = class InputAction {
 
   // debug overlay: MOUSE always muted (pick-click can't fire weapon); KEYBOARD only while overlay owns it so WASD still roams.
   static _debugMuted(button) {
-    if (!DebugImGui._open) return false;
+    if (!Debug.isOpen()) return false;
     if (button.source === INPUT_SOURCE.MOUSE) return true;
     if (button.source === INPUT_SOURCE.KEYBOARD)
       return is_keyboard_used_debug_overlay();

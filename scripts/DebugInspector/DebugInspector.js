@@ -3,7 +3,7 @@
  * overlay is open, left-click a world entity to select it: registers a
  * live-bound "Entity" panel of each component's scalar fields (editing mutates
  * the real entity). Selection highlighted on the GUI layer.
- * Wired: update(game) in Step_0 (after DebugImGui), draw(game) in Draw_75.
+ * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
  * Picking uses the latched LMB edge (the UIPointer poll-once rule — see
  * docs/architecture/ui.md).
  */
@@ -44,30 +44,34 @@ globalThis.DebugInspector = class DebugInspector {
     DebugInspector._registered = true;
     const world = DebugInspector._world;
     const id = DebugInspector._id;
-    Debug.panel("Entity", (p) => {
-      if (world === null || id === -1) {
-        p.text("No entity selected — click one in the world.");
-        return;
-      }
-      p.watch("id", () => id);
-      p.button("Deselect", () => DebugInspector.select(null, -1));
-      // for...in over a plain object is GMRT-safe (componentsOf + data are
-      // plain).
-      const comps = world.componentsOf(id);
-      for (const token in comps) {
-        const data = comps[token];
-        p.text("— " + token + " —");
-        for (const key in data) {
-          const v = data[key];
-          const t = typeof v;
-          const label = token + "." + key;
-          if (t === "number") p.input(label, data, key, "f");
-          else if (t === "boolean") p.checkbox(label, data, key);
-          else if (t === "string") p.input(label, data, key, "s");
-          // objects / arrays / Sets have no scalar editor — skipped.
+    Debug.panel(
+      "Entity",
+      (p) => {
+        if (world === null || id === -1) {
+          p.text("No entity selected — click one in the world.");
+          return;
         }
-      }
-    });
+        p.watch("id", () => id);
+        p.button("Deselect", () => DebugInspector.select(null, -1));
+        // for...in over a plain object is GMRT-safe (componentsOf + data are
+        // plain).
+        const comps = world.componentsOf(id);
+        for (const token in comps) {
+          const data = comps[token];
+          p.text("— " + token + " —");
+          for (const key in data) {
+            const v = data[key];
+            const t = typeof v;
+            const label = token + "." + key;
+            if (t === "number") p.input(label, data, key, "f");
+            else if (t === "boolean") p.checkbox(label, data, key);
+            else if (t === "string") p.input(label, data, key, "s");
+            // objects / arrays / Sets have no scalar editor — skipped.
+          }
+        }
+      },
+      { window: "Inspector" },
+    );
   }
 
   static clear() {
@@ -98,7 +102,7 @@ globalThis.DebugInspector = class DebugInspector {
 
     // pick only while the overlay is open, the cursor isn't over it, and the
     // scene has a world + camera.
-    if (!DebugImGui._open || world === null) return;
+    if (!Debug.isOpen() || world === null) return;
     if (scene.camera === undefined) return;
     if (is_mouse_over_debug_overlay()) return;
     if (!UIPointer.pressed) return;
@@ -114,8 +118,7 @@ globalThis.DebugInspector = class DebugInspector {
   }
 
   static draw(game) {
-    if (!Debug.enabled || !DebugImGui._open || DebugInspector._id === -1)
-      return;
+    if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
     const world = DebugInspector._world;
     if (world === null || !world.isValid(DebugInspector._id)) return;
     const scene = game.scenes.current;

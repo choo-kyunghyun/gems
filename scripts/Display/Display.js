@@ -61,7 +61,7 @@ globalThis.Display = class Display {
   }
 
   // display_reset(aa, vsync) also RESETS resolution/window to startup, so re-impose window + fps via
-  // apply(). DebugImGui calls it with aa=0 to drop MSAA while the native ImGui overlay is open —
+  // apply(). Debug.toggle calls it with aa=0 to drop MSAA while the native ImGui overlay is open —
   // that overlay is single-sampled, so an AA>0 back buffer fails with a fatal WebGPU sampleCount mismatch.
   static applyVideoWith(aa, vsync) {
     display_reset(aa, vsync);

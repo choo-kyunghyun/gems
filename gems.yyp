@@ -171,7 +171,6 @@
     {"id":{"name":"CraftingUI","path":"scripts/CraftingUI/CraftingUI.yy",},},
     {"id":{"name":"CraftSystem","path":"scripts/CraftSystem/CraftSystem.yy",},},
     {"id":{"name":"Debug","path":"scripts/Debug/Debug.yy",},},
-    {"id":{"name":"DebugImGui","path":"scripts/DebugImGui/DebugImGui.yy",},},
     {"id":{"name":"DebugInspector","path":"scripts/DebugInspector/DebugInspector.yy",},},
     {"id":{"name":"DebugRender","path":"scripts/DebugRender/DebugRender.yy",},},
     {"id":{"name":"demo","path":"scripts/demo/demo.yy",},},
