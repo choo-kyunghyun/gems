@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Debug",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"Debug",
+    "path":"folders/Core/Debug.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
