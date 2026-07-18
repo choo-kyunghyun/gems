@@ -67,7 +67,7 @@ globalThis.Raycast = class Raycast {
       }
     }
     // sort by t. Return a SIGN, NOT `a.t - b.t`: t is in [0,1] so a fractional diff truncates to 0
-    // on GMRT's sort, leaving query order — pierce walk would hit bodies out of order. (GMRT-Safe Idiom)
+    // on GMRT's sort, leaving query order — pierce walk would hit bodies out of order. (#15593)
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
   }

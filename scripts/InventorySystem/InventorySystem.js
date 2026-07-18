@@ -144,7 +144,7 @@ globalThis.InventorySystem = {
       }
     }
 
-    // insertion sort — Array.prototype.sort is untrusted on GMRT (comparator quirk; see CLAUDE.md).
+    // insertion sort — Array.prototype.sort is untrusted on GMRT (#15593).
     for (let i = 1; i < ids.length; i++) {
       const v = ids[i];
       let j = i - 1;

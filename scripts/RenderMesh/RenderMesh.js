@@ -179,7 +179,7 @@ globalThis.RenderMesh = class RenderMesh {
         const dy = p.y - cy;
         scored.push({ id: ids[i], d: dx * dx + dy * dy });
       }
-      // sign comparator, never a raw difference (GMRT truncates the return — see CLAUDE.md)
+      // sign comparator, never a raw difference (#15593: GMRT truncates the return)
       scored.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
       order = [];
       for (let i = 0; i < scored.length; i++) order.push(scored[i].id);
