@@ -699,42 +699,53 @@ globalThis.RpgMap = {
   },
 
   // Register the Debug "Camera" panel bound to the LIVE scene camera (pitch + zoom) for runtime
-  // render inspection. Re-registered on each build/resume (Debug.panel replaces by name) so the
-  // sliders drive the ACTIVE map's camera; removed on scene destroy. RPG-owned (pitch is a Demo
-  // concern). Surfaces in both the ImGui overlay (F3) and debug.txt.
+  // render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
+  // drive the ACTIVE map's camera; removed on scene destroy. RPG-owned (pitch is a Demo concern).
   _registerCameraDebug(scene) {
     const cam = scene.camera;
     if (cam === undefined) return;
-    Debug.panel("Camera", (p) => {
-      // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
-      p.checkbox(
-        "Pitch by zoom",
-        () => cam.followPitchCurve !== undefined,
-        (v) => {
-          cam.followPitchCurve = v ? RpgMap._pitchCurve : undefined;
-        },
-      );
-      p.slider("Pitch (deg)", cam, "pitchDeg", 0, 85, 1);
-      p.slider("Zoom", cam, "followZoomTarget", 0.5, 4, 0.1);
-      // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
-      // from the player to inspect the render from any angle. Switches to perspective projection.
-      p.checkbox("Free cam (WASD/RMB)", cam, "freeCam");
-      p.slider("Fly speed", cam, "flySpeed", 60, 2400, 10);
-      p.button("Recenter on player", () => {
-        // same live resolution as CameraFollow: the CameraFocus carrier, else followTarget
-        if (cam.world === undefined) return;
-        const foci = cam.world.query(CameraFocus);
-        const pos = cam.world.get(
-          Position,
-          foci.length > 0 ? foci[0] : cam.followTarget,
-        );
-        if (pos !== undefined) {
-          cam.toX = pos.x;
-          cam.toY = pos.y;
-        }
-      });
-      p.watch("Zoom (live)", () => cam.followZoom);
-      p.watch("Pitch (rad)", () => cam.followPitch);
+    Debug.add({
+      name: "Camera",
+      // pitchCurve is a computed toggle — staged (contract: Debug); the plain
+      // cam fields below ref live, two-way
+      data: { pitchCurve: false, zoom: 0, pitch: 0 },
+      _last: false,
+      build() {
+        // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
+        this.data.pitchCurve = cam.followPitchCurve !== undefined;
+        this._last = this.data.pitchCurve;
+        dbg_checkbox(ref_create(this.data, "pitchCurve"), "Pitch by zoom");
+        dbg_slider(ref_create(cam, "pitchDeg"), 0, 85, "Pitch (deg)", 1);
+        dbg_slider(ref_create(cam, "followZoomTarget"), 0.5, 4, "Zoom", 0.1);
+        // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
+        // from the player to inspect the render from any angle. Switches to perspective projection.
+        dbg_checkbox(ref_create(cam, "freeCam"), "Free cam (WASD/RMB)");
+        dbg_slider(ref_create(cam, "flySpeed"), 60, 2400, "Fly speed", 10);
+        dbg_button("Recenter on player", () => {
+          // same live resolution as CameraFollow: the CameraFocus carrier, else followTarget
+          if (cam.world === undefined) return;
+          const foci = cam.world.query(CameraFocus);
+          const pos = cam.world.get(
+            Position,
+            foci.length > 0 ? foci[0] : cam.followTarget,
+          );
+          if (pos !== undefined) {
+            cam.toX = pos.x;
+            cam.toY = pos.y;
+          }
+        });
+        dbg_watch(ref_create(this.data, "zoom"), "Zoom (live)");
+        dbg_watch(ref_create(this.data, "pitch"), "Pitch (rad)");
+      },
+      update() {
+        const d = this.data;
+        if (d.pitchCurve !== this._last)
+          cam.followPitchCurve = d.pitchCurve ? RpgMap._pitchCurve : undefined;
+        else d.pitchCurve = cam.followPitchCurve !== undefined;
+        this._last = d.pitchCurve;
+        d.zoom = cam.followZoom;
+        d.pitch = cam.followPitch;
+      },
     });
   },
 

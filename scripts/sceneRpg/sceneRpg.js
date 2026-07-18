@@ -176,24 +176,29 @@ class _SceneRpgClass {
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
 
-    // dev controls for the Achievements tab (F3 overlay / debug.txt): unlock or relock the whole
-    // set. The tab's status labels read Achievement live, so no rebuild is needed.
-    Debug.panel("Achievements", (p) => {
-      p.watch("unlocked", () => {
+    // dev controls for the Achievements tab (F3 overlay): unlock or relock the whole set. The
+    // tab's status labels read Achievement live, so no rebuild is needed.
+    Debug.add({
+      name: "Achievements",
+      data: { unlocked: "" },
+      build() {
+        dbg_watch(ref_create(this.data, "unlocked"), "unlocked");
+        dbg_button("Unlock All", () => {
+          Achievement.unlockAll();
+          Log.info("debug: all achievements unlocked");
+        });
+        dbg_button("Clear All", () => {
+          Achievement.clear();
+          Log.info("debug: all achievements cleared");
+        });
+      },
+      update() {
         const all = Achievement.all();
         let n = 0;
         for (let i = 0; i < all.length; i++)
           if (Achievement.isUnlocked(all[i].id)) n++;
-        return `${n}/${all.length}`;
-      });
-      p.button("Unlock All", () => {
-        Achievement.unlockAll();
-        Log.info("debug: all achievements unlocked");
-      });
-      p.button("Clear All", () => {
-        Achievement.clear();
-        Log.info("debug: all achievements cleared");
-      });
+        this.data.unlocked = `${n}/${all.length}`;
+      },
     });
 
     Log.info(

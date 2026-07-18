@@ -1,8 +1,9 @@
 /**
  * DebugInspector — ECS entity inspector over the Debug system. While the
- * overlay is open, left-click a world entity to select it: registers a
- * live-bound "Entity" panel of each component's scalar fields (editing mutates
- * the real entity). Selection highlighted on the GUI layer.
+ * overlay is open, left-click a world entity to select it: registers an
+ * "Entity" Debug panel whose refs bind the picked entity's component structs
+ * directly (editing mutates the real entity). Selection highlighted on the
+ * GUI layer.
  * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
  * Picking uses the latched LMB edge (the UIPointer poll-once rule — see
  * docs/architecture/ui.md).
@@ -15,8 +16,8 @@ globalThis.DebugInspector = class DebugInspector {
   static markerR = 18; // highlight half-size (GUI px)
   static highlightColor = Color.parse("#ffd34d");
 
-  // select an entity, or (null, -1) to deselect. Deselect empties the panel
-  // to a placeholder rather than removing it, so its Inspector window persists.
+  // select an entity, or (null, -1) to deselect. Deselect swaps the panel to
+  // a placeholder rather than removing it, so its window stays available.
   static select(world, id) {
     const valid =
       world !== null &&
@@ -38,40 +39,48 @@ globalThis.DebugInspector = class DebugInspector {
     DebugInspector._register();
   }
 
-  // (re)register the Entity panel: a placeholder when nothing is selected,
-  // else the picked entity's live-bound scalar fields.
+  // (re)register the "Entity" panel: a placeholder when nothing is selected,
+  // else the picked entity's scalar fields — refs bind the REAL component
+  // structs, so edits mutate the entity live with no staging. Re-add()ing
+  // rebuilds the panel's window — its OWN ("Inspector"), so per-pick churn
+  // never moves the stable "General" window.
   static _register() {
     DebugInspector._registered = true;
     const world = DebugInspector._world;
     const id = DebugInspector._id;
-    Debug.panel(
-      "Entity",
-      (p) => {
+    Debug.add({
+      name: "Entity",
+      window: "Inspector",
+      build() {
         if (world === null || id === -1) {
-          p.text("No entity selected — click one in the world.");
+          dbg_text("No entity selected — click one in the world.");
           return;
         }
-        p.watch("id", () => id);
-        p.button("Deselect", () => DebugInspector.select(null, -1));
+        dbg_text("id " + id);
+        dbg_button("Deselect", () => DebugInspector.select(null, -1));
         // for...in over a plain object is GMRT-safe (componentsOf + data are
-        // plain).
+        // plain). Labels stay token-prefixed: components share field names
+        // (Position.x / Velocity.x), and a duplicate label is one control to
+        // ImGui.
         const comps = world.componentsOf(id);
         for (const token in comps) {
           const data = comps[token];
-          p.text("— " + token + " —");
+          dbg_section(token, true);
           for (const key in data) {
             const v = data[key];
             const t = typeof v;
             const label = token + "." + key;
-            if (t === "number") p.input(label, data, key, "f");
-            else if (t === "boolean") p.checkbox(label, data, key);
-            else if (t === "string") p.input(label, data, key, "s");
+            if (t === "number")
+              dbg_text_input(ref_create(data, key), label, "f");
+            else if (t === "boolean")
+              dbg_checkbox(ref_create(data, key), label);
+            else if (t === "string")
+              dbg_text_input(ref_create(data, key), label, "s");
             // objects / arrays / Sets have no scalar editor — skipped.
           }
         }
       },
-      { window: "Inspector" },
-    );
+    });
   }
 
   static clear() {

@@ -85,33 +85,72 @@ this.scenes = World.levels;
 this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades in from black
 
-// register built-in debug panels; live bindings track the current scene across swaps
+// register built-in debug panels (sections of the shared "General" window);
+// update() closures track the current scene across swaps
 const game = this;
-Debug.panel("Time", (p) => {
-  p.slider("Scale", Time, "scale", 0, 3, 0.1);
-  p.watch("Delta", () => Time.delta);
-  p.watch("Raw", () => Time.raw);
+Debug.add({
+  name: "Time",
+  data: { scale: 1, delta: 0, raw: 0 },
+  _last: 1,
+  build() {
+    const d = this.data;
+    d.scale = Time.scale;
+    this._last = d.scale;
+    dbg_slider(ref_create(d, "scale"), 0, 3, "Scale", 0.1);
+    dbg_watch(ref_create(d, "delta"), "Delta");
+    dbg_watch(ref_create(d, "raw"), "Raw");
+  },
+  update() {
+    // Time.* are class statics — staged through data (contract: Debug)
+    const d = this.data;
+    if (d.scale !== this._last) Time.scale = d.scale;
+    else d.scale = Time.scale;
+    this._last = d.scale;
+    d.delta = Time.delta;
+    d.raw = Time.raw;
+  },
 });
-Debug.panel("Perf", (p) => {
-  p.watch("FPS", () => fps);
-  p.watch("FPS Real", () => fps_real);
-  p.watch("Scene", () => game.scenes.label());
-  p.watch("Entities", () => {
+Debug.add({
+  name: "Perf",
+  data: { fps: 0, fpsReal: 0, scene: "", entities: 0 },
+  build() {
+    const d = this.data;
+    dbg_watch(ref_create(d, "fps"), "FPS");
+    dbg_watch(ref_create(d, "fpsReal"), "FPS Real");
+    dbg_watch(ref_create(d, "scene"), "Scene");
+    dbg_watch(ref_create(d, "entities"), "Entities");
+  },
+  update() {
+    const d = this.data;
+    d.fps = fps;
+    d.fpsReal = fps_real;
+    d.scene = game.scenes.label();
     const s = game.scenes.current;
     const w =
       s !== null && s !== undefined && s.world !== undefined ? s.world : null;
-    return w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
-  });
+    d.entities = w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
+  },
 });
-Debug.panel("Log", (p) => {
-  p.watch("Lines", () => Log._lines.length);
-  p.button("Clear", () => Log.clear());
+Debug.add({
+  name: "Log",
+  data: { lines: 0 },
+  build() {
+    dbg_watch(ref_create(this.data, "lines"), "Lines");
+    dbg_button("Clear", () => Log.clear());
+  },
+  update() {
+    this.data.lines = Log._lines.length;
+  },
 });
 // sim controls relocated from SystemMenu; Pause gates scene.step()
-Debug.panel("Sim", (p) => {
-  p.checkbox("Pause", game.scenes, "paused");
-  p.button("Step Frame", () => game.scenes.requestStep());
-  p.button("Restart Scene", () => game.scenes.restart());
+Debug.add({
+  name: "Sim",
+  build() {
+    // game.scenes is a plain object — the ref binds it live, two-way
+    dbg_checkbox(ref_create(game.scenes, "paused"), "Pause");
+    dbg_button("Step Frame", () => game.scenes.requestStep());
+    dbg_button("Restart Scene", () => game.scenes.restart());
+  },
 });
 DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 

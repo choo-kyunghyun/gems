@@ -87,7 +87,7 @@ The agent can't press F5, so add a temporary auto-capture: in `obj_game/Draw_75.
 
 To _read_ live entity state as data (not pixels), call **`entities.dump(idOrIds, file?)`** from a temp harness — `entities` is the level's `Entity` store (e.g. `game.scenes.current.world`). It writes the components of one id (or an id array; whole store via `dump(entities.query())`) to a `.json` file in the save dir (default `entity.json`) and returns the string — `Read` it after a `gm-cli run` like `game.log`. It serializes through the **`Json`** codec, so nested component data, sprite refs, and even cyclic runtime references are safe (native `JSON.stringify` faults on nested data — GMRT.md).
 
-The **`Debug`** back-end (F3 overlay) is a **human-only** tool for tuning: it renders **outside** the game surface via `show_debug_overlay` + `dbg_*`, so `screen_save` can't capture it. `Debug.panel(name, (p) => …)` registers live-bound panels; an agent can still `Debug.set(panel, label, value)` / `Debug.press(panel, label)` from a harness to tune a value or fire a button, then screenshot to verify.
+The **`Debug`** back-end (F3 overlay) is a **human-only** tool for tuning: it renders **outside** the game surface via `show_debug_overlay` + `dbg_*`, so `screen_save` can't capture it. `Debug.add(panel)` registers debug panels (duck-typed `{ name, window?, build, update? }`, grouped as sections into shared dbg_view windows — contract in `scripts/Debug/Debug.js`) whose controls bind live game state; an agent tunes by writing that same state (e.g. `Time.scale = 0.5`, `game.scenes.requestStep()`) or a panel's staged `data` field from a harness, then screenshots to verify.
 
 ### Stale-Cache Reset
 
