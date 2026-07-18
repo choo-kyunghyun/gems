@@ -83,9 +83,11 @@ The **`Log`** class (`Log.info/warn/error/debug`, see docs/architecture/utilitie
 
 The agent can't press F5, so add a temporary auto-capture: in `obj_game/Draw_75.js` add a frame counter on `this`, call `screen_save("<name>.png")` at the frame(s) you want, then `game_end()` a couple frames after the **last** capture so the run self-terminates. A single run can take **multiple** shots (distinct bare filenames at different frames, to compare states). Then `gm-cli run` (blocks until `game_end`), `Read` each PNG, and **revert the temp code**. Gotchas: `screen_save` does **not** create dirs (use a bare filename, not `screenshots/x.png`); a bare filename lands in `.gmcache/build-gmrt-windows-vm/build/<name>.png`, not the `%LOCALAPPDATA%\gems\` save dir (where `game.log`/`settings.json`/`save.json` live).
 
-### Live State Inspection (`debug.txt`)
+### Live State Inspection (`entities.dump`)
 
-To _read_ live runtime values (not pixels), use the **`Debug`** back-end (see docs/architecture/utilities.md → _Debug_): code registers live-bound panels (`Debug.panel(name, (p) => p.watch/slider/checkbox/...)`), and `Debug.update()` (wired in `Step_0`) periodically writes a flat snapshot to **`debug.txt`** in the save dir — `Read` it after a `gm-cli run` like `game.log`. An agent can `Debug.set(panel, label, value)` / `Debug.press(panel, label)` from a temp harness to tune a value or fire a button, then screenshot to verify. This text port exists because the native ImGui overlay (`show_debug_overlay` + `dbg_*`) renders **outside** the game surface, so `screen_save` can't capture it — that overlay (`DebugImGui`, toggle **F3**) is human-only.
+To _read_ live entity state as data (not pixels), call **`entities.dump(idOrIds, file?)`** from a temp harness — `entities` is the level's `Entity` store (e.g. `game.scenes.current.world`). It writes the components of one id (or an id array; whole store via `dump(entities.query())`) to a `.json` file in the save dir (default `entity.json`) and returns the string — `Read` it after a `gm-cli run` like `game.log`. It serializes through the **`Json`** codec, so nested component data, sprite refs, and even cyclic runtime references are safe (native `JSON.stringify` faults on nested data — GMRT.md).
+
+The **`Debug`** back-end (F3 overlay) is a **human-only** tool for tuning: it renders **outside** the game surface via `show_debug_overlay` + `dbg_*`, so `screen_save` can't capture it. `Debug.panel(name, (p) => …)` registers live-bound panels; an agent can still `Debug.set(panel, label, value)` / `Debug.press(panel, label)` from a harness to tune a value or fire a button, then screenshot to verify.
 
 ### Stale-Cache Reset
 

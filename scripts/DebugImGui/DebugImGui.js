@@ -1,16 +1,19 @@
 /**
- * DebugImGui — human front-end of the Debug registry via GameMaker's native ImGui overlay
- * (F3 to toggle). Renders OUTSIDE the game surface — screen_save misses it; agent uses debug.txt.
+ * DebugImGui — human front-end of the Debug registry via GameMaker's native
+ * ImGui overlay (F3 to toggle). Renders OUTSIDE the game surface — screen_save
+ * misses it; the agent uses debug.txt.
  *
- * Mirrors: ref_create needs (struct, "field") but entries are often getter fns or class statics.
- * Each entry gets a plain mirror `{ v }`; refresh() syncs mirror↔binding each frame —
- * read-only entries pull, editable entries change-detect and push so external writes
- * (e.g. Time.scale=0 on pause) aren't clobbered by a stale slider.
+ * Mirrors: ref_create needs (struct, "field") but entries are often getter fns
+ * or class statics. Each entry gets a plain mirror `{ v }`; refresh() syncs
+ * mirror↔binding each frame — read-only entries pull, editable entries
+ * change-detect and push so external writes (e.g. Time.scale=0 on pause)
+ * aren't clobbered by a stale slider.
  */
 globalThis.DebugImGui = class DebugImGui {
   static _open = false;
   static _builtVersion = -1; // Debug.version() at last build
-  // two windows rebuilt independently so entity picks don't move the stable Debug window
+  // two windows rebuilt independently so entity picks don't move the stable
+  // Debug window
   static _debugView = undefined;
   static _debugPanels = undefined; // panels the Debug view was built from
   static _debugMirrors = []; // [{ entry, mirror, last }]
@@ -19,12 +22,14 @@ globalThis.DebugImGui = class DebugImGui {
   static _inspectPanel = null; // Entity panel at last rebuild
   static _inspectMirrors = [];
 
-  // scale=-1 auto-derives DPI factor from GUI height; 1 is the default — larger scale
-  // starves the control column (fixed two-column grid, no API to adjust the split).
+  // scale=-1 auto-derives the DPI factor from GUI height; 1 is the default —
+  // a larger scale starves the control column (fixed two-column grid, no API
+  // to adjust the split).
   static scale = 1;
   static alpha = 0.95;
 
-  // explicit position + generous width so the control half of the label|control grid stays dragable.
+  // explicit position + generous width so the control half of the
+  // label|control grid stays dragable.
   static title = "Debug";
   static marginX = 24;
   static marginY = 72; // clear the menu bar + minimised built-in FPS header
@@ -34,7 +39,8 @@ globalThis.DebugImGui = class DebugImGui {
   static rowH = 30; // per-entry row
   static inspectorH = 460; // Inspector view height (fixed; content scrolls)
 
-  // Step_0: F3 toggle; while open, rebuild on a registry change then sync mirrors.
+  // Step_0: F3 toggle; while open, rebuild on a registry change then sync
+  // mirrors.
   static update() {
     if (!Debug.enabled) return;
     if (keyboard_check_pressed(vk_f3)) DebugImGui.toggle();
@@ -45,15 +51,17 @@ globalThis.DebugImGui = class DebugImGui {
 
   static toggle() {
     DebugImGui._open = !DebugImGui._open;
-    // drop fullscreen AA while open: native ImGui is single-sampled, so an AA>0 back buffer
-    // fails with a fatal WebGPU sampleCount mismatch. Guarded by AA>0 so the AA-off path doesn't reset.
+    // drop fullscreen AA while open: native ImGui is single-sampled, so an
+    // AA>0 back buffer fails with a fatal WebGPU sampleCount mismatch. Guarded
+    // by AA>0 so the AA-off path doesn't reset.
     if (Settings.get("antialias") > 0) {
       Display.applyVideoWith(
         DebugImGui._open ? 0 : Settings.get("antialias"),
         Settings.get("vsync"),
       );
     }
-    // minimised=true: collapse the built-in FPS window so it doesn't occlude our views (Perf panel already shows fps).
+    // minimised=true: collapse the built-in FPS window so it doesn't occlude
+    // our views (the Perf panel already shows fps).
     show_debug_overlay(
       DebugImGui._open,
       true,
@@ -67,8 +75,9 @@ globalThis.DebugImGui = class DebugImGui {
     return clamp(display_get_gui_height() / 900, 1.4, 3);
   }
 
-  // rebuild only the window that changed — Debug when its panel set shifts, Inspector
-  // when a new pick re-registers the Entity panel — so the Debug window stays put.
+  // rebuild only the window that changed — Debug when its panel set shifts,
+  // Inspector when a new pick re-registers the Entity panel — so the Debug
+  // window stays put.
   static build() {
     const panels = Debug.panels;
     let entity = null;
@@ -99,9 +108,10 @@ globalThis.DebugImGui = class DebugImGui {
     DebugImGui._builtVersion = Debug.version();
   }
 
-  // update the Inspector IN PLACE — keep the dbg_view alive, swap only the section. No
-  // dbg_set_view on GMRT, so this relies on the Inspector view staying the current one
-  // (nothing else creates a dbg_view after boot). Tear the view down on deselect.
+  // update the Inspector IN PLACE — keep the dbg_view alive, swap only the
+  // section. No dbg_set_view on GMRT, so this relies on the Inspector view
+  // staying the current one (nothing else creates a dbg_view after boot).
+  // Tear the view down on deselect.
   static _rebuildInspector(entity) {
     if (entity === null) {
       if (
@@ -143,8 +153,9 @@ globalThis.DebugImGui = class DebugImGui {
       DebugImGui._emit(es[j], DebugImGui._inspectMirrors);
   }
 
-  // (re)create one dbg_view with each panel as an explicit dbg_section — without one GM
-  // auto-makes a "Default" section and the first control bleeds onto its header. Deletes the prior handle.
+  // (re)create one dbg_view with each panel as an explicit dbg_section —
+  // without one GM auto-makes a "Default" section and the first control bleeds
+  // onto its header. Deletes the prior handle.
   static _buildView(oldView, title, x, y, panels) {
     if (oldView !== undefined && dbg_view_exists(oldView))
       dbg_view_delete(oldView);
@@ -184,8 +195,8 @@ globalThis.DebugImGui = class DebugImGui {
       return;
     }
 
-    // live value -> mirror -> ref; the mirror is never replaced so the ref stays valid
-    // (refresh() mutates mirror.v in place).
+    // live value -> mirror -> ref; the mirror is never replaced so the ref
+    // stays valid (refresh() mutates mirror.v in place).
     const v0 = Debug.read(entry);
     const mirror = { v: v0 };
     const ref = ref_create(mirror, "v");
@@ -202,7 +213,8 @@ globalThis.DebugImGui = class DebugImGui {
     else dbg_watch(ref, entry.label); // watch + any fallback
   }
 
-  // dbg_drop_down specifier: "Name:value,Name2:value2" from options [{value,name}].
+  // dbg_drop_down specifier: "Name:value,Name2:value2" from options
+  // [{value,name}].
   static _spec(entry) {
     let s = "";
     const opts = entry.options;

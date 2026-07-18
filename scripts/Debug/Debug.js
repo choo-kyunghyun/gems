@@ -1,16 +1,13 @@
 /**
- * Debug back-end: a registry of named panels with live-bound entries. Two front-ends
- * read the same registry — DebugImGui (human, F3 overlay, outside game surface so
- * screen_save misses it) and a text dump to debug.txt (agent-readable after a run).
- * Wired: Debug.update() in Step_0; built-in panels registered in Create_0.
+ * Debug back-end: a registry of named panels with live-bound entries. Read by
+ * the DebugImGui human overlay (F3, outside the game surface so screen_save
+ * misses it — human-only); agents can Debug.set/press a binding from a temp
+ * harness. Built-in panels registered in Create_0.
  */
 globalThis.Debug = class Debug {
   static enabled = true; // set false for a release build
   static panels = []; // [{ name, entries: [] }]
-  static dumpFile = "debug.txt"; // bare name -> save dir, next to game.log
-  static dumpInterval = 30; // frames between automatic text dumps
-  static _frame = 0;
-  static _version = 0; // bumped on registry change; front-ends rebuild when it shifts
+  static _version = 0; // bumped on registry change; front-ends rebuild on shift
 
   // register (or replace) a named panel; safe to re-call across scene reloads.
   static panel(name, builder) {
@@ -29,7 +26,8 @@ globalThis.Debug = class Debug {
         return p;
       },
       checkbox: (label, a, b) => {
-        // (label, obj, key) field binding, or (label, getFn, setFn) computed toggle.
+        // (label, obj, key) field binding, or (label, getFn, setFn) computed
+        // toggle.
         const e = { kind: "checkbox", label };
         if (typeof b === "function") {
           e.get = a;
@@ -43,7 +41,8 @@ globalThis.Debug = class Debug {
       },
       input: (label, obj, key, type) => {
         const e = Debug._mk("input", label, obj, key);
-        e.inputType = type === undefined ? "f" : type; // "f"=real "i"=int "s"=string
+        // "f"=real "i"=int "s"=string
+        e.inputType = type === undefined ? "f" : type;
         entries.push(e);
         return p;
       },
@@ -93,13 +92,14 @@ globalThis.Debug = class Debug {
     Debug._version++;
   }
 
-  // a method, not a static getter — house style; static getters are safe on 0.20 (2026-07 re-audit).
+  // a method by house style — static getters are themselves safe on 0.20.
   static version() {
     return Debug._version;
   }
 
-  // discriminate by whether `key` was passed, NOT typeof — a class like Time is a function,
-  // so typeof-routing mis-routes (Time, "scale") into the getter branch and calls Time() — crash.
+  // discriminate by whether `key` was passed, NOT typeof — a class like Time
+  // is a function, so typeof-routing mis-routes (Time, "scale") into the
+  // getter branch and calls Time() — crash.
   static _mk(kind, label, objOrFn, key) {
     const e = { kind, label };
     if (key === undefined) e.get = objOrFn;
@@ -154,62 +154,5 @@ globalThis.Debug = class Debug {
       }
     }
     return null;
-  }
-
-  // Text front-end (agent)
-  static snapshot() {
-    let out = "";
-    for (let i = 0; i < Debug.panels.length; i++) {
-      const p = Debug.panels[i];
-      out += "[" + p.name + "]\n";
-      for (let j = 0; j < p.entries.length; j++) {
-        out += "  " + Debug._line(p.entries[j]) + "\n";
-      }
-      out += "\n";
-    }
-    return out;
-  }
-
-  static _line(e) {
-    if (e.kind === "button") return e.label + " : <button>";
-    if (e.kind === "text" && e.get === undefined) return e.label; // static label, no value
-    const v = Debug.read(e);
-    if (e.kind === "dropdown") return e.label + " = " + Debug._optName(e, v);
-    return e.label + " = " + Debug._fmt(v);
-  }
-
-  static _optName(e, v) {
-    if (e.options !== undefined) {
-      for (let i = 0; i < e.options.length; i++) {
-        if (e.options[i].value === v)
-          return e.options[i].name + " (" + Debug._fmt(v) + ")";
-      }
-    }
-    return Debug._fmt(v);
-  }
-
-  static _fmt(v) {
-    if (v === undefined) return "undefined";
-    if (v === null) return "null";
-    if (typeof v === "number") return String(Math.round(v * 1000) / 1000);
-    if (typeof v === "boolean") return v ? "true" : "false";
-    return String(v);
-  }
-
-  // write live snapshot to debug.txt for the agent to Read.
-  static dump() {
-    const s = Debug.snapshot();
-    File.write(Debug.dumpFile, s);
-    return s;
-  }
-
-  // Step_0: periodic text dump so the agent's snapshot stays current.
-  static update() {
-    if (!Debug.enabled || Debug.panels.length === 0) return;
-    Debug._frame++;
-    if (Debug._frame >= Debug.dumpInterval) {
-      Debug._frame = 0;
-      Debug.dump();
-    }
   }
 };

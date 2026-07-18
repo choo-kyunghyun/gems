@@ -92,4 +92,30 @@ globalThis.Entity = class Entity {
     this.ids.import(snapshot.ids);
     this.storage.import(snapshot.components);
   }
+
+  /**
+   * Agent state dump: component data of `idOrIds` as JSON, written to `file`
+   * in the save dir AND returned. A single id → a `{id, components}` record;
+   * an id array → an array of records (whole store via `dump(this.query())`).
+   * On-demand — call from a temp harness when needed. Uses the Json codec:
+   * native JSON.stringify faults on nested data (GMRT.md #15565), and Json's
+   * cycle/ref guards make dumping raw runtime state safe.
+   * @param {number|number[]} idOrIds @param {string} [file="entity.json"]
+   * @returns {string}
+   */
+  dump(idOrIds, file = "entity.json") {
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    const records = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      records.push(
+        this.isValid(id)
+          ? { id, components: this.componentsOf(id) }
+          : { id, valid: false },
+      );
+    }
+    const json = Json.encode(Array.isArray(idOrIds) ? records : records[0]);
+    File.write(file, json);
+    return json;
+  }
 };
