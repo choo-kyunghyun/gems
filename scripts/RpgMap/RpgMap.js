@@ -336,7 +336,7 @@ globalThis.RpgMap = {
           name: s.name !== undefined ? I18n.text(s.name) : "",
           factionId: s.faction ?? "",
           color: s.color,
-          comp: s.comp, // comma-joined SettlementComponent ids
+          comp: s.comp, // SettlementComponent id array
         });
       }
 

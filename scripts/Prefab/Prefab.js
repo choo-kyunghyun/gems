@@ -26,7 +26,7 @@
  * @property {string} channel    ZoneMap channel key on the level grid
  * @property {string} [name]
  * @property {string[]} [tags]
- * @property {Object} [data]     flat scalar payload (Zone.data)
+ * @property {Object} [data]     JSON payload (Zone.data; nested OK, no Set)
  * @property {number[][]} rects  [[lx,ly,w,h]...]
  */
 /**

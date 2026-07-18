@@ -1,18 +1,15 @@
-// Lifetime counters. Persisted as flat "k=v;k=v" string (JSON.stringify faults on nested).
-// Feed to Achievement.evaluate. Requires SaveData.load() first.
+// Lifetime counters, persisted as a native object under SaveData's "profile" key (SaveData
+// serializes nested via json_stringify — see docs/GMRT.md). Feed to Achievement.evaluate.
+// Requires SaveData.load() first.
 globalThis.Profile = {
   _counters: {},
 
   load() {
     this._counters = {};
-    const s = SaveData.get("profile", "");
-    if (s.length > 0) {
-      const parts = s.split(";");
-      for (let i = 0; i < parts.length; i++) {
-        const kv = parts[i].split("=");
-        this._counters[kv[0]] = Number(kv[1]) || 0;
-      }
-    }
+    // accept only a plain object (a legacy string blob / missing value resets to empty)
+    const saved = SaveData.get("profile", null);
+    if (saved !== null && typeof saved === "object" && !Array.isArray(saved))
+      for (const k in saved) this._counters[k] = saved[k];
     return this;
   },
 
@@ -35,11 +32,9 @@ globalThis.Profile = {
     return this._counters;
   },
 
-  // flatten to "k=v;k=v" and write to SaveData
+  // persist the counter map to SaveData (nested-safe via json_stringify)
   save() {
-    const parts = [];
-    for (const k in this._counters) parts.push(k + "=" + this._counters[k]);
-    SaveData.set("profile", parts.join(";"));
+    SaveData.set("profile", this._counters);
     SaveData.save();
     return this;
   },

@@ -3,7 +3,8 @@
 // requests it via unlock(id); the engine checks the request (registered? still locked?), persists,
 // and reports whether it was newly unlocked (the caller toasts). The demo's trigger rules live in
 // RpgAchievements (content), fed by Profile counter changes.
-// Persisted as comma-joined ids (JSON.stringify faults on nested — flat scalar blob only).
+// Unlock set persisted as a native id array under SaveData's "achievements" key (SaveData
+// serializes nested via json_stringify — see docs/GMRT.md).
 globalThis.Achievement = {
   defs: new Map(),
   order: [], // stable registration order
@@ -18,14 +19,12 @@ globalThis.Achievement = {
     return this;
   },
 
-  // restore from SaveData (comma-joined ids under "achievements")
+  // restore from SaveData (an id array under "achievements"; legacy/missing → empty)
   load() {
     this._unlocked = {};
-    const saved = SaveData.get("achievements", "");
-    if (saved.length > 0) {
-      const ids = saved.split(",");
+    const ids = SaveData.get("achievements", null);
+    if (Array.isArray(ids))
       for (let i = 0; i < ids.length; i++) this._unlocked[ids[i]] = true;
-    }
     return this;
   },
 
@@ -72,7 +71,7 @@ globalThis.Achievement = {
     for (let i = 0; i < this.order.length; i++) {
       if (this._unlocked[this.order[i]]) ids.push(this.order[i]);
     }
-    SaveData.set("achievements", ids.join(","));
+    SaveData.set("achievements", ids);
     SaveData.save();
   },
 };

@@ -1,5 +1,5 @@
 // SettlementComponent — the registry of settlement CAPABILITY defs (market / depot / farm / …),
-// the "just like faction" layer: a settlement carries a flat comma-joined id list in its Zone data
+// the "just like faction" layer: a settlement carries a SettlementComponent id array in its Zone data
 // (Settlement.components/hasComponent/addComponent), and this registry describes each id. Pure data
 // like FactionSystem/Rarity/Status — behavior (a system acting on "settlements that have X") layers
 // on later. Content registers its set from create()-time (RpgContent.register), never top level.

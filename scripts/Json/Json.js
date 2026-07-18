@@ -6,7 +6,9 @@
 //      — see docs/GMRT.md). So encode() is a hand-rolled LINEAR walk that concatenates the
 //      output itself, calling native JSON.stringify only on SCALAR LEAVES (strings/numbers —
 //      safe, correct escaping). JSON.parse, by contrast, handles nesting fine, so decode()
-//      uses it directly and then revives.
+//      uses it directly and then revives. (GML json_stringify serializes nesting crash-free too
+//      — the interop workaround — but it can't tag asset refs (2) or guard cycles (below), so it
+//      is NOT a substitute for this walk; it backs the flat/ref-free stores instead: SaveData.)
 //   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports
 //      typeof "object" with an EMPTY key set, so a generic serializer would silently emit {}.
 //      encode() discriminates plain data by `v.constructor === Object` (true for object

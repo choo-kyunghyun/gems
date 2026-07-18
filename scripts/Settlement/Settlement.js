@@ -1,9 +1,10 @@
 // Settlement — a named, factioned TERRITORY that is at once a data container (Name + Faction +
 // capability components) and a level Zone (its lands). A settlement IS a Zone in the "settlement"
-// ZoneMap channel: its painted cells are its lands, and its flat `data` payload carries
+// ZoneMap channel: its painted cells are its lands, and its `data` payload carries
 // { sid, factionId, color, comp } — a stable id, the owner faction, the land tint, and a
-// comma-joined SettlementComponent id list (name on zone.name). All flat scalars, so it round-trips
-// ZoneMap.export. A cell belongs to at most one settlement (one zone per cell), so lookup is O(1).
+// SettlementComponent id array (name on zone.name). It round-trips ZoneMap.export (persisted
+// nested via json_stringify / the Json codec — see docs/GMRT.md). A cell belongs to at most one
+// settlement (one zone per cell), so lookup is O(1).
 //
 // Stateless namespace over a level's channel (like ZoneSystem/InventorySystem) — Core-only deps
 // (level/Zone/ZoneMap + uuid); it holds NO policy about which faction is "the player" (the consumer
@@ -29,10 +30,10 @@ globalThis.Settlement = {
    * Found a settlement over an inclusive cell rect: defines a Zone + paints its lands.
    * @param {Object} level  the LevelGrid hosting the channel
    * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2  inclusive cell rect
-   * @param {{ id?: string, name?: string, factionId?: string, color?: string, comp?: string, data?: Object }} [opt]
+   * @param {{ id?: string, name?: string, factionId?: string, color?: string, comp?: string[], data?: Object }} [opt]
    *        `id` is the stable sid (authored settlements pass one; player-founded default to a minted
-   *        uuid). `comp` is the initial comma-joined SettlementComponent id list. `data` merges extra
-   *        flat scalars onto the base (kept flat — GMRT JSON.stringify faults on nested values).
+   *        uuid). `comp` is the initial SettlementComponent id array. `data` merges extra fields
+   *        onto the base (nesting OK — persisted via json_stringify / the Json codec).
    * @returns {Zone} the founded settlement zone
    */
   found(level, x1, y1, x2, y2, opt = {}) {
@@ -41,7 +42,7 @@ globalThis.Settlement = {
       sid: opt.id ?? uuid(), // stable identity — Resident.settlementId matches this
       factionId: opt.factionId ?? "",
       color: opt.color ?? Settlement.DEFAULT_COLOR,
-      comp: opt.comp ?? "", // comma-joined SettlementComponent ids (JSON-safe)
+      comp: opt.comp ?? [], // SettlementComponent ids
     };
     if (opt.data !== undefined) for (const k in opt.data) data[k] = opt.data[k];
     const zone = m.define({
@@ -90,13 +91,12 @@ globalThis.Settlement = {
     return undefined;
   },
 
-  // ── capability components (faction-style: a flat comma-joined id list in zone.data.comp) ──
+  // ── capability components (a SettlementComponent id array in zone.data.comp) ──
 
   /** @returns {string[]} the settlement's SettlementComponent ids (empty list if none). */
   components(zone) {
     const c = zone.data.comp;
-    if (c === undefined || c === "") return [];
-    return c.split(",");
+    return Array.isArray(c) ? c : []; // the live array; legacy/undefined → empty
   },
 
   /** @returns {boolean} whether the settlement carries component `id`. */
@@ -106,20 +106,18 @@ globalThis.Settlement = {
 
   /** Add capability `id` to the settlement (no-op if already present). @returns {boolean} added */
   addComponent(zone, id) {
-    const list = Settlement.components(zone);
-    if (list.indexOf(id) >= 0) return false;
-    list.push(id);
-    zone.data.comp = list.join(",");
+    if (!Array.isArray(zone.data.comp)) zone.data.comp = [];
+    if (zone.data.comp.indexOf(id) >= 0) return false;
+    zone.data.comp.push(id);
     return true;
   },
 
   /** Remove capability `id` from the settlement (no-op if absent). @returns {boolean} removed */
   removeComponent(zone, id) {
-    const list = Settlement.components(zone);
-    const i = list.indexOf(id);
+    if (!Array.isArray(zone.data.comp)) return false;
+    const i = zone.data.comp.indexOf(id);
     if (i < 0) return false;
-    list.splice(i, 1);
-    zone.data.comp = list.join(",");
+    zone.data.comp.splice(i, 1);
     return true;
   },
 

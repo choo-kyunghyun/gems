@@ -1,6 +1,7 @@
-// Flat key→scalar JSON persistence — Settings without the defaults allowlist. Backs
-// Profile and Achievement. Values must be scalars: GMRT's JSON.stringify faults on nested
-// objects/arrays, so callers needing structure serialize it to a string themselves.
+// Keyed JSON persistence — Settings without the defaults allowlist. Backs Profile and
+// Achievement. Serializes with GML json_stringify (a JS object IS a GML struct — the interop
+// workaround for JS JSON.stringify's nested-value fault, see docs/GMRT.md), so a value may nest
+// (objects/arrays), not just scalars. No asset refs / cycles here — use the Json codec for those.
 globalThis.SaveData = class SaveData {
   static PATH = "save.json";
   static _data = {};
@@ -27,8 +28,8 @@ globalThis.SaveData = class SaveData {
   }
 
   static save() {
-    // _data is flat scalar (see header) so the 1-arg form is safe, as in Settings.
-    File.write(this.PATH, JSON.stringify(this._data));
+    // json_stringify serializes nested values crash-free (JS JSON.stringify faults on them).
+    File.write(this.PATH, json_stringify(this._data));
     return this;
   }
 };

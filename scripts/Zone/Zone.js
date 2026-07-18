@@ -4,7 +4,7 @@
  * @property {number} [id]      small positive int, unique within its ZoneMap
  * @property {string} [name]
  * @property {string[]} [tags]  category tokens, e.g. ["faction"], ["weather"]
- * @property {Object} [data]    flat scalar payload, e.g. { factionId, weather, color }
+ * @property {Object} [data]    JSON payload, e.g. { factionId, weather, color } (nested OK, no Set)
  */
 globalThis.Zone = class Zone {
   /** @param {ZoneOpt} opt */
@@ -13,7 +13,8 @@ globalThis.Zone = class Zone {
     this.name = opt.name ?? "";
     // tags must be string[], NOT a Set — Set iteration crashes GMRT (see CLAUDE.md)
     this.tags = opt.tags ?? [];
-    // data must be flat scalars — GMRT JSON.stringify faults on nested objects
+    // arbitrary JSON payload — nesting OK (persisted via json_stringify / the Json codec), but
+    // no Set: GMRT Set iteration crashes (see CLAUDE.md)
     this.data = opt.data ?? {};
   }
 

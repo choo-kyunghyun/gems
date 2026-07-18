@@ -1,7 +1,8 @@
 /**
- * Flat key→scalar settings persisted to settings.json. A `defaults` allowlist bounds what
- * load/save touch, so only declared keys round-trip and `get` falls back to the default.
- * Values must be scalars — GMRT's JSON.stringify faults on nested values.
+ * Keyed settings persisted to settings.json. A `defaults` allowlist bounds what load/save
+ * touch, so only declared keys round-trip and `get` falls back to the default. Serialized with
+ * GML json_stringify (JS JSON.stringify faults on nested values, see docs/GMRT.md), so a value
+ * may nest (objects/arrays), not just scalars.
  */
 globalThis.Settings = class Settings {
   static PATH = "settings.json";
@@ -59,7 +60,7 @@ globalThis.Settings = class Settings {
     for (const key of Object.keys(this.defaults)) {
       out[key] = this.get(key);
     }
-    File.write(this.PATH, JSON.stringify(out));
+    File.write(this.PATH, json_stringify(out));
     return this;
   }
 };

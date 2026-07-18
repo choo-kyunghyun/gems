@@ -26,8 +26,8 @@ globalThis.RpgContent = {
     ]);
     FactionSystem.setRelation("player", "monster", "hostile");
 
-    // Settlement capability defs (the faction-style component layer): a settlement carries a flat
-    // comma-joined id list; a system acting on "settlements that have X" layers on later.
+    // Settlement capability defs (the faction-style component layer): a settlement carries a
+    // SettlementComponent id array; a system acting on "settlements that have X" layers on later.
     SettlementComponent.register([
       { id: "market", name: "Market", color: "#d0b45a" },
       { id: "depot", name: "Depot", color: "#5a86d0" },
