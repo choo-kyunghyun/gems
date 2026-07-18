@@ -29,22 +29,7 @@ globalThis.Debug = class Debug {
   static _inspectPanel = null; // Inspector-docked panel at last rebuild
   static _inspectMirrors = [];
 
-  // scale=-1 auto-derives the DPI factor from GUI height; 1 is the default —
-  // a larger scale starves the control column (fixed two-column grid, no API
-  // to adjust the split).
-  static scale = 1;
-  static alpha = 0.95;
-
-  // explicit position + generous width so the control half of the
-  // label|control grid stays dragable.
   static title = "Debug";
-  static marginX = 24;
-  static marginY = 72; // clear the menu bar + minimised built-in FPS header
-  static viewW = 620;
-  static headerH = 44; // view title bar + padding
-  static sectionH = 34; // per-panel section header
-  static rowH = 30; // per-entry row
-  static inspectorH = 460; // Inspector view height (fixed; content scrolls)
 
   // register (or replace) a named panel; safe to re-call across scene reloads.
   // opts.window === "Inspector" docks the panel in the Inspector view — at
@@ -224,12 +209,7 @@ globalThis.Debug = class Debug {
     }
     // minimised=true: collapse the built-in FPS window so it doesn't occlude
     // our views (the Perf panel already shows fps).
-    show_debug_overlay(Debug._open, true, Debug._scale(), Debug.alpha);
-  }
-
-  static _scale() {
-    if (Debug.scale > 0) return Debug.scale;
-    return clamp(display_get_gui_height() / 900, 1.4, 3);
+    show_debug_overlay(Debug._open, true);
   }
 
   // rebuild only the window that changed — the main view when its panel set
@@ -245,13 +225,7 @@ globalThis.Debug = class Debug {
     }
 
     if (!Debug._sameRefs(stable, Debug._debugPanels)) {
-      const r = Debug._buildView(
-        Debug._debugView,
-        Debug.title,
-        Debug.marginX,
-        Debug.marginY,
-        stable,
-      );
+      const r = Debug._buildView(Debug._debugView, Debug.title, stable);
       Debug._debugView = r.view;
       Debug._debugMirrors = r.mirrors;
       Debug._debugPanels = stable;
@@ -286,14 +260,7 @@ globalThis.Debug = class Debug {
       Debug._inspectView === undefined ||
       !dbg_view_exists(Debug._inspectView)
     ) {
-      Debug._inspectView = dbg_view(
-        "Inspector",
-        true,
-        Debug.marginX + Debug.viewW + 20,
-        Debug.marginY,
-        Debug.viewW,
-        Debug.inspectorH,
-      );
+      Debug._inspectView = dbg_view("Inspector", true);
       Debug._inspectSection = undefined;
     }
 
@@ -310,20 +277,19 @@ globalThis.Debug = class Debug {
       Debug._emit(es[j], Debug._inspectMirrors);
   }
 
-  // (re)create one dbg_view with each panel as an explicit dbg_section —
-  // without one GM auto-makes a "Default" section and the first control bleeds
-  // onto its header. Deletes the prior handle.
-  static _buildView(oldView, title, x, y, panels) {
+  /**
+   * (re)create one dbg_view with each panel as an explicit dbg_section —
+   * without one GM auto-makes a "Default" section and the first control
+   * bleeds onto its header. Deletes the prior handle.
+   * @param {{name: string, entries: *[]}[]} panels
+   */
+  static _buildView(oldView, title, panels) {
     if (oldView !== undefined && dbg_view_exists(oldView))
       dbg_view_delete(oldView);
     const mirrors = [];
     if (panels.length === 0) return { view: undefined, mirrors };
 
-    let lines = 0; // one row per entry
-    for (let i = 0; i < panels.length; i++) lines += panels[i].entries.length;
-    const h =
-      Debug.headerH + panels.length * Debug.sectionH + lines * Debug.rowH;
-    const view = dbg_view(title, true, x, y, Debug.viewW, h);
+    const view = dbg_view(title, true);
 
     for (let i = 0; i < panels.length; i++) {
       dbg_section(panels[i].name, true);
