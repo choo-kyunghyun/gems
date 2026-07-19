@@ -1,7 +1,8 @@
 /**
  * DebugInspector — ECS entity inspector over the Debug system. While the
  * overlay is open, left-click a world entity to select it: registers an
- * "Entity" Debug panel whose refs bind the picked entity's component structs
+ * "Entity" Debug section whose refs bind the picked entity's component
+ * structs
  * directly (editing mutates the real entity). Selection highlighted on the
  * GUI layer.
  * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
@@ -11,13 +12,13 @@
 globalThis.DebugInspector = class DebugInspector {
   static _world = null;
   static _id = -1;
-  static _registered = false; // Entity panel registered at least once
+  static _registered = false; // Entity section registered at least once
   static pickRadius = 128; // max world px from cursor to accept a pick
   static markerR = 18; // highlight half-size (GUI px)
   static highlightColor = Color.parse("#ffd34d");
 
-  // select an entity, or (null, -1) to deselect. Deselect swaps the panel to
-  // a placeholder rather than removing it, so its window stays available.
+  // select an entity, or (null, -1) to deselect. Deselect swaps the section
+  // to a placeholder rather than removing it, so its window stays available.
   static select(world, id) {
     const valid =
       world !== null &&
@@ -39,11 +40,11 @@ globalThis.DebugInspector = class DebugInspector {
     DebugInspector._register();
   }
 
-  // (re)register the "Entity" panel: a placeholder when nothing is selected,
-  // else the picked entity's scalar fields — refs bind the REAL component
-  // structs, so edits mutate the entity live with no staging. Re-add()ing
-  // rebuilds the panel's window — its OWN ("Inspector"), so per-pick churn
-  // never moves the stable "General" window.
+  // (re)register the "Entity" section: a placeholder when nothing is
+  // selected, else the picked entity's scalar fields — refs bind the REAL
+  // component structs, so edits mutate the entity live with no staging.
+  // Re-add()ing rebuilds the section's window — its OWN ("Inspector"), so
+  // per-pick churn never moves the stable "General" window.
   static _register() {
     DebugInspector._registered = true;
     const world = DebugInspector._world;
@@ -89,7 +90,7 @@ globalThis.DebugInspector = class DebugInspector {
 
   static update(game) {
     if (!Debug.enabled) return;
-    // register the Entity panel up front so its window exists before the
+    // register the Entity section up front so its window exists before the
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
     const scene = game.scenes.current;

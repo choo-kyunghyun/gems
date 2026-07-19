@@ -24,7 +24,7 @@ globalThis.LevelManager = class LevelManager {
     this._returnTo = null; // the frozen entry back() thaws (set by a keep switch); null = none
     this._onResult = null; // the kept switch's result handler, fired by back()
     this._pending = null; // queued switch { factory, opts }, applied next update()
-    // Sim pause + frame-step, driven by the Debug overlay's "Sim" panel.
+    // Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
     // ── resident-map registry (was Universe) ──

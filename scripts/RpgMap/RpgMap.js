@@ -647,7 +647,7 @@ globalThis.RpgMap = {
     scene.renderer.insert(scene._lighting);
   },
 
-  // Follow camera on the new player + view culling + the live Debug camera panel.
+  // Follow camera on the new player + view culling + the live Debug camera section.
   // 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
   // old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
   _buildCamera(scene, data) {
@@ -698,7 +698,7 @@ globalThis.RpgMap = {
     RpgMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
   },
 
-  // Register the Debug "Camera" panel bound to the LIVE scene camera (pitch + zoom) for runtime
+  // Register the Debug "Camera" section bound to the LIVE scene camera (pitch + zoom) for runtime
   // render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
   // drive the ACTIVE map's camera; removed on scene destroy. RPG-owned (pitch is a Demo concern).
   _registerCameraDebug(scene) {
@@ -805,5 +805,5 @@ RpgMap.BB_PITCH = 42;
 // zoom-out floor (~1.25 on a 1920 surface) easing to 58° at max zoom-in (2.625) — "look
 // further = flatter". Thresholds are the 2026-07-05 spike values HALVED for the 32px-cell
 // world (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
-// Shared with the Debug Camera panel's "Pitch by zoom" toggle.
+// Shared with the Debug Camera section's "Pitch by zoom" toggle.
 RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);

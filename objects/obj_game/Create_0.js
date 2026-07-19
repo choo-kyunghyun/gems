@@ -85,7 +85,7 @@ this.scenes = World.levels;
 this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades in from black
 
-// register built-in debug panels; live bindings track the current scene across swaps
+// register built-in debug sections; live bindings track the current scene across swaps
 DebugGeneral.register(this);
 DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 

@@ -274,7 +274,7 @@ globalThis.SystemMenu = class SystemMenu {
         primary: true,
       }),
     );
-    // Step Frame + Restart Scene live in the Debug overlay's "Sim" panel
+    // Step Frame + Restart Scene live in the Debug overlay's "Sim" section
     bar.insertChild(
       gemsButton(
         I18n.textRef("SYS_QUIT"),

@@ -38,7 +38,7 @@ globalThis.RpgAchievements = {
         desc: "ACH_TIME_SKIP_DESC",
       },
       // Placeholder — def only, no trigger rule yet (stays Locked until a gameplay site reports
-      // it; the Debug panel's Unlock All covers testing). Planned trigger: building a room +
+      // it; the Debug section's Unlock All covers testing). Planned trigger: building a room +
       // placing a bed (needs room detection).
       {
         id: "td_home_builder",

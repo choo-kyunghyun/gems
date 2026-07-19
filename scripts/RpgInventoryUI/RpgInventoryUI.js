@@ -480,7 +480,7 @@ globalThis.RpgInventoryUI = {
 
   // Achievements: one card per registered def. Built ONCE (the set is static after registration,
   // which precedes the window build); the status label reads Achievement live, so unlocks — or the
-  // Debug panel's Unlock/Clear All — show with no rebuild.
+  // Debug section's Unlock/Clear All — show with no rebuild.
   _buildAchievementsTab(_scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const all = Achievement.all();

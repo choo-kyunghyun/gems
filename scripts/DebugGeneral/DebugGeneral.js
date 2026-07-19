@@ -1,9 +1,9 @@
 /**
- * DebugGeneral — the built-in "General"-window Debug panels (Time / Perf /
+ * DebugGeneral — the built-in "General"-window Debug sections (Time / Perf /
  * Log / Sim). Registered once from obj_game Create_0.
  */
 globalThis.DebugGeneral = class DebugGeneral {
-  // panels close over `game` (obj_game) so live bindings track the current
+  // sections close over `game` (obj_game) so live bindings track the current
   // scene across swaps.
   static register(game) {
     Debug.add({

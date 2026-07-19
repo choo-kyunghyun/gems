@@ -53,7 +53,7 @@ globalThis.Achievement = {
     return true;
   },
 
-  // debug: unlock everything (Debug overlay "Achievements" panel)
+  // debug: unlock everything (Debug overlay "Achievements" section)
   unlockAll() {
     for (let i = 0; i < this.order.length; i++)
       this._unlocked[this.order[i]] = true;

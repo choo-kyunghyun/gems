@@ -40,7 +40,7 @@ function _cameraFollowOnUpdate() {
   // curve is installed (clear followPitchCurve to hand-tune).
   if (this.followPitchCurve !== undefined)
     this.pitchDeg = this.followPitchCurve(this.followZoom);
-  // pitchDeg is live-tunable (Debug Camera panel); re-derive radians each frame so overlays track it
+  // pitchDeg is live-tunable (Debug Camera section); re-derive radians each frame so overlays track it
   this.followPitch = ((this.pitchDeg ?? 0) * Math.PI) / 180;
 
   if (this.freeCam) {
@@ -115,9 +115,9 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   camera.followLerp = cam.followLerp ?? 0.1;
   camera.followHeight = cam.followHeight ?? defaultHeight;
   camera.followSnap = snap;
-  camera.pitchDeg = cam.pitch ?? 0; // degrees — live-tunable via Debug Camera panel
+  camera.pitchDeg = cam.pitch ?? 0; // degrees — live-tunable via Debug Camera section
   camera.followPitch = (camera.pitchDeg * Math.PI) / 180; // derived radians, recomputed each onUpdate
-  // debug 6DOF fly mode (toggled via Debug Camera panel); delegates to CameraFly.update while on
+  // debug 6DOF fly mode (toggled via Debug Camera section); delegates to CameraFly.update while on
   CameraFly.install(camera, {
     flySpeed: cam.flySpeed,
     mouseSens: cam.mouseSens,

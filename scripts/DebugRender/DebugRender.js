@@ -1,36 +1,36 @@
 /**
- * DebugRender — registers a "Render" Debug panel of per-pass overlay toggles.
- * Core lists Core passes; a genre layer adds its own via DebugRender.add(cls,
- * label), so Core stays decoupled. Each toggle finds the live scene's passes
- * by instanceof (GMRT-safe on a flat class) and flips `enabled` — no
- * per-scene re-registration (a scene lacking the pass reads off and no-ops).
- * Registered once from obj_game Create_0.
+ * DebugRender — registers a "Render" Debug section of per-pass overlay
+ * toggles. Core lists Core passes; a genre layer adds its own via
+ * DebugRender.add(cls, label), so Core stays decoupled. Each toggle finds the
+ * live scene's passes by instanceof (GMRT-safe on a flat class) and flips
+ * `enabled` — no per-scene re-registration (a scene lacking the pass reads
+ * off and no-ops). Registered once from obj_game Create_0.
  */
 globalThis.DebugRender = class DebugRender {
   static _game = null;
   static _extra = []; // [pass class, label] from a genre layer's add()
 
   // append a pass toggle (deduped by class) — the seam a genre layer uses
-  // without Core referencing it. Re-adds the panel if register() ran (build()
-  // resolves the list fresh); else register() (Create_0) picks it up. The
-  // class is loaded by the time the scene calls this, so storing the ref here
-  // is load-order-safe.
+  // without Core referencing it. Re-adds the section if register() ran
+  // (build() resolves the list fresh); else register() (Create_0) picks it
+  // up. The class is loaded by the time the scene calls this, so storing the
+  // ref here is load-order-safe.
   static add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
       if (DebugRender._extra[i][0] === cls) return; // already added
     }
     DebugRender._extra.push([cls, label]);
-    if (DebugRender._game !== null) Debug.add(DebugRender._panel);
+    if (DebugRender._game !== null) Debug.add(DebugRender._section);
   }
 
   static register(game) {
     DebugRender._game = game;
-    Debug.add(DebugRender._panel);
+    Debug.add(DebugRender._section);
   }
 
-  // the "Render" panel: pass toggles are computed get/set over live pass
+  // the "Render" section: pass toggles are computed get/set over live pass
   // instances — unref'able, staged through data (contract: Debug)
-  static _panel = {
+  static _section = {
     name: "Render",
     data: {},
     _last: {},

@@ -4,7 +4,7 @@
 
 globalThis.CameraFly = {
   /**
-   * Add fly state to a freshly-built Camera; Debug panel toggles freeCam at runtime.
+   * Add fly state to a freshly-built Camera; the Debug Camera section toggles freeCam at runtime.
    * @param {any} camera @param {object} [opts] @param {number} [opts.flySpeed=300] @param {number} [opts.mouseSens=0.005]
    */
   install(camera, opts = {}) {

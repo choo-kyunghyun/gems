@@ -903,8 +903,8 @@ class _SceneRpgClass {
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
-    Debug.remove("Camera"); // the live 2.5D-camera tuning panel is RPG-only (RpgMap registers it)
-    Debug.remove("Achievements"); // RPG-only debug panel (registered in create)
+    Debug.remove("Camera"); // the live 2.5D-camera tuning section is RPG-only (RpgMap registers it)
+    Debug.remove("Achievements"); // RPG-only debug section (registered in create)
     PlayerSystem.unbind();
     RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
