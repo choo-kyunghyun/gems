@@ -37,7 +37,7 @@ Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 c
 
 1. **Relocate before deleting**: a comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
 2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
-3. **Invariants**: replace every re-explanation with the one-line citation form (law 3); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
+3. **Invariants**: replace every re-explanation with the one-line citation form (law 5); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
 4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
 5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
 
