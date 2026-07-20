@@ -1,8 +1,6 @@
 // The level's GRID DATA — tile layers + zone channels (`zoneMaps`) + cell dims and world<->grid
-// conversion. Pure spatial data, no entities/systems/presentation. Was the `Level` class, renamed
-// so `Level` is free for the per-instance coordinator (the Scene replacement), which composes one
-// of these (a level owns its grid). Callers still reach it as `.level` for now — that field rename
-// (to e.g. `.grid`) is deferred; only the class + `new` sites moved to LevelGrid.
+// conversion. Pure spatial data: no entities, systems, or presentation. A Level composes one and
+// holds it as the legacy handle `.level` (rename deferred — docs/ROADMAP.md → Code Review).
 // NOTE: live pathfinding does NOT read the tile layers — NavGrid (colliders + streamed-terrain
 // costs) is the one nav source. `costAt` below is on-demand layer cost, for debug/inspection.
 /**
