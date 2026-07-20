@@ -2,11 +2,13 @@
 // resolution + fps cap) to the OS window + the application_surface. Used at boot and on a
 // SystemMenu display change. The GUI layer is sized separately by UI.applyScale.
 globalThis.Display = class Display {
-  // frames to defer a resize after leaving fullscreen — GM manual warns window_set_size right
-  // after fullscreen→windowed "may not work correctly" unless ≥10 steps later (via call_later).
+  // frames to defer a resize after leaving fullscreen — the manual warns window_set_size right after
+  // fullscreen→windowed "may not work correctly" unless ≥10 steps later. The caveat does NOT reproduce
+  // on GMRT 0.20 (a same-frame resize takes effect); kept for manual compliance across platforms.
   static RESIZE_DELAY = 10;
 
   // game speed for "Unlimited" fpsLimit (0) — effectively uncapped (sim is fixed-rate, unaffected).
+  // NOT the manual's uncap TIP, display_set_timing_method(tm_systemtiming): inert on GMRT (GMRT.md).
   static UNCAPPED_FPS = 1000;
 
   // current render-target (back buffer) size in PHYSICAL px — windowed client area, or monitor in
@@ -55,16 +57,19 @@ globalThis.Display = class Display {
     return out;
   }
 
-  // apply the saved vsync + fullscreen-AA. See applyVideoWith.
-  static applyVideo() {
-    Display.applyVideoWith(Settings.get("antialias"), Settings.get("vsync"));
-  }
+  // forced AA level overriding the saved setting while a subsystem can't tolerate it (null = use
+  // Settings). Owned here, not by the requester, so EVERY applyVideo honors it: Debug pins 0 for the
+  // lifetime of the native ImGui overlay (single-sampled — an AA>0 back buffer is a fatal WebGPU
+  // sampleCount mismatch), which a later SystemMenu vsync/AA change would otherwise restore under it.
+  static aaOverride = null;
 
-  // display_reset(aa, vsync) also RESETS resolution/window to startup, so re-impose window + fps via
-  // apply(). Debug.toggle calls it with aa=0 to drop MSAA while the native ImGui overlay is open —
-  // that overlay is single-sampled, so an AA>0 back buffer fails with a fatal WebGPU sampleCount mismatch.
-  static applyVideoWith(aa, vsync) {
-    display_reset(aa, vsync);
+  // apply the saved vsync + the effective AA (aaOverride, else Settings). display_reset also RESETS
+  // resolution/window to startup, so re-impose window + fps via apply().
+  static applyVideo() {
+    display_reset(
+      Display.aaOverride ?? Settings.get("antialias"),
+      Settings.get("vsync"),
+    );
     Display.apply();
   }
 
@@ -74,9 +79,19 @@ globalThis.Display = class Display {
     game_set_speed(fps > 0 ? fps : Display.UNCAPPED_FPS, gamespeed_fps);
   }
 
+  // pending leave-fullscreen resize (call_later handle), cancelled by the next apply(). A GML handle:
+  // test it only for emptiness — a pointer is never ===-equal, not even to itself (see GMRT.md).
+  static _pendingResize = undefined;
+
   // apply Settings: fps cap, then fullscreen, else size to the saved windowed resolution
   // (0/unset → half the monitor). Leaving fullscreen defers the resize RESIZE_DELAY frames (manual caveat).
   static apply() {
+    // drop any deferred resize still in flight: it carries the size of the state it was queued for,
+    // so firing after a re-entered fullscreen (or a newer resolution) would impose a stale size.
+    if (Display._pendingResize !== undefined) {
+      call_cancel(Display._pendingResize);
+      Display._pendingResize = undefined;
+    }
     Display.applyFps();
     if (Settings.get("fullscreen")) {
       window_set_fullscreen(true);
@@ -90,8 +105,10 @@ globalThis.Display = class Display {
     let w = Settings.get("resolutionW");
     let h = Settings.get("resolutionH");
     if (w <= 0 || h <= 0) {
-      w = display_get_width() / 2;
-      h = display_get_height() / 2;
+      // floor: an odd-width monitor would otherwise hand a fractional size to window_set_size and,
+      // through renderW, to the GPU scissor extents.
+      w = Math.floor(display_get_width() / 2);
+      h = Math.floor(display_get_height() / 2);
     }
     if (window_get_fullscreen()) {
       // leaving fullscreen: defer the resize so the runtime doesn't drop it; record the intended
@@ -99,10 +116,13 @@ globalThis.Display = class Display {
       window_set_fullscreen(false);
       Display.renderW = w;
       Display.renderH = h;
-      call_later(
+      Display._pendingResize = call_later(
         Display.RESIZE_DELAY,
         time_source_units_frames,
-        () => Display._resize(w, h),
+        () => {
+          Display._pendingResize = undefined; // fired: nothing left to cancel
+          Display._resize(w, h);
+        },
         false,
       );
     } else {

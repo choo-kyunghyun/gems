@@ -113,15 +113,11 @@ globalThis.Debug = class Debug {
 
   static toggle() {
     Debug._open = !Debug._open;
-    // drop fullscreen AA while open: native ImGui is single-sampled, so an
-    // AA>0 back buffer fails with a fatal WebGPU sampleCount mismatch. Guarded
-    // by AA>0 so the AA-off path doesn't reset.
-    if (Settings.get("antialias") > 0) {
-      Display.applyVideoWith(
-        Debug._open ? 0 : Settings.get("antialias"),
-        Settings.get("vsync"),
-      );
-    }
+    // pin AA off for the overlay's whole lifetime (see Display.aaOverride): native ImGui is
+    // single-sampled, so an AA>0 back buffer is a fatal WebGPU sampleCount mismatch. The reset
+    // itself is guarded by AA>0 so the AA-off path doesn't reset.
+    Display.aaOverride = Debug._open ? 0 : null;
+    if (Settings.get("antialias") > 0) Display.applyVideo();
     // minimised=true: collapse the built-in FPS window so it doesn't occlude
     // our views (the Perf section already shows fps).
     show_debug_overlay(Debug._open, true);
