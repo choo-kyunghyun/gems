@@ -18,9 +18,22 @@
  * @property {boolean} [selected] live selected/toggled state (written by UIButton)
  */
 
-// flexpanel-backed tree node. Runtime scroll/drag/clip uses draw-time offset math through
-// getLayoutPosition — not live style mutation — so movement applies at both draw and hit-test
-// without a reflow. See CLAUDE.md for the flexpanel-mutation idiom.
+// flexpanel-backed tree node.
+//
+// HOW LAYOUT CHANGES REACH THE SCREEN — the rule every widget follows. Live style mutation does
+// work on GMRT (GMRT.md §4), and `UIText`/`UIRichText` use it to self-size in onUpdate so a label
+// reports a real width/height. Everything else deliberately does NOT:
+//   fixed layout props   set ONCE at construction (the `style` arg below)
+//   runtime movement     draw-time offset math through getLayoutPosition (scroll, drag, slider
+//                        fill) — applies at draw AND hit-test with no reflow
+//   show / hide          `child.enabled`, never `display`
+//   change of SIZE       structural insertChild/removeChild + markDirty, which reflows reliably
+//                        (UIAccordion); prefer `enabled` when the size is unchanged
+// The offset/clip drivers work and migrating them to style mutation would be churn, so they stay.
+// Related: this class's ~45 commented-out style setters stay commented — re-enabling them all
+// would pass the 50-method ceiling (#15065, lifted in 0.22); enable one on demand, minding the
+// count. Property reference: `gm-cli manual read "Flex Panel Struct Members"`; Yoga docs
+// (https://www.yogalayout.dev/docs/styling/) cover the semantics.
 globalThis.UIElement = class UIElement {
   /** @param {Object} [style] flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
