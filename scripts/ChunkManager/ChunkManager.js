@@ -1,8 +1,7 @@
 // Chunk-streaming engine: windows a large/infinite world around a moving center so the World
 // only holds entities near the player. Takes a `generator` (content provider — a ChunkGenerator,
 // or anything matching the contract below) plus an injected `opts.spawn` adapter for descriptors,
-// and drives EntitySnapshot capture/restore as chunks cross the rings. Plain instance class
-// (stateful singletons are instance classes — house convention).
+// and drives EntitySnapshot capture/restore as chunks cross the rings.
 //
 // two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
 //   d <= simRadius              → SIM:  entities live in the World, walls have colliders, sims + renders.

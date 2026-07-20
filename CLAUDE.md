@@ -4,26 +4,18 @@ Project guidelines for Claude Code.
 
 ## Project Overview
 
-UI and entity management library.
-
 - The name of this project is G.E.M.S. (GameMaker Entity & Map System).
-- This project is a public repository distributed under the MIT license. Please exercise caution with all code and actions.
+- This project is a public repository distributed under the MIT license. Do exercise caution with all code and actions.
 - This project uses GMRT, the new runtime for GameMaker, and JavaScript as the scripting language.
 - This project adopts the ECS design pattern. Entities are ids, and components are pure data. Logic is executed separately from the data.
-- Everything is built for reuse, hold every piece to library-grade code quality. To maintain code quality and reduce coupling, it consists of the following four layers (placement rule: docs/ARCHITECTURE.md):
-  - Core: pure engine.
-  - Gameplay: genre-agnostic gameplay kit.
-  - GemsUI: themed UI kit.
-  - Demo: the integrated showcase consuming the other three.
+- All code must be reusable. High-quality, library-level code must be maintained. To reduce coupling between code files, the project is organized into multiple layers. Layer information is specified in docs/ARCHITECTURE.md.
 
 ## Working Guidelines
 
 - Think before acting. State assumptions before writing code; when anything is uncertain or ambiguous, ask the user rather than guess silently.
-- Verify after implementing. Never assume a result — run the code and confirm the behavior yourself (there are no tests; run the game — see GameMaker CLI + Debugging & Verification). Verification results are reported in conversation, never recorded in the repo: this is a public library, not a lab notebook — no run output, probe narration, or "verified <date>" stamps in code or docs. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
-- Simple is best. Shorter and leaner is better, as long as readability doesn't suffer — add nothing unnecessary.
-- Don't hide errors. Write code so an error surfaces as early as possible; an object must never handle an error that is not its responsibility.
-- Change only what's needed. Touch only the code the task requires, and report pre-existing dead or broken code to the user instead of fixing it on the spot — but this rule bounds scope, never quality. When the proper fix is improving an API, improve the API and update its callers: a call-site workaround that avoids touching the API is bloat, not restraint — it violates the Library rule above. Only a redesign far broader than the task needs proposing first; a right-layer fix is just doing the job.
-- Keep CLAUDE.md stable. This file is the rarely-edited core; record new knowledge in its proper home instead — module contracts in the owning declaration's JSDoc (Comments law 2), cross-cutting rules in docs/ARCHITECTURE.md, runtime quirks in docs/GMRT.md, tool details in the tool's README, plans in docs/ROADMAP.md. Edit this file only when a core rule itself changes.
+- Verify after implementing. Never assume a result — run the code and confirm the behavior yourself (there are no tests; run the game — see GameMaker CLI + Debugging & Verification). The result is reported in conversation, never written into the repo (Conventions → Record).
+- Change only what's needed. Touch only the code the task requires, and report pre-existing dead or broken code to the user instead of fixing it on the spot — but this rule bounds scope, never quality, and it is not a ban on changing an API. When the proper fix is improving an API, improve the API and update its callers: a call-site workaround that avoids touching the API is bloat, not restraint. Only a redesign far broader than the task needs proposing first; a right-layer fix is just doing the job.
+- Keep CLAUDE.md stable. Unless explicitly requested by the user, record newly discovered knowledge in subdocuments located in the docs directory rather than CLAUDE.md.
 
 ## GameMaker CLI
 
@@ -69,10 +61,10 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 #### Cautions & Details
 
-- **Filing under a project folder** (`folders/*.yy`): **edit the asset's own `.yy`** `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — safe local metadata. Do not `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root.
+- Filing under a project folder (`folders/*.yy`): edit the asset's own `.yy` `parent` (`path: folders/<Folder>.yy`, `name: <Folder>`) to match a sibling — safe local metadata. Do not `RESOURCE SET` `.parent` (it mis-writes the path); left unset, the asset stays at the project root.
 - New folders: `gm-cli resourcetool eval "FOLDER CREATE FOLDER=Parent/Child"`. Its name validator rejects spaces/`&` (over-strict — existing folder names like `UI Sprites` legally contain them); for such names hand-add a `GMFolder` line to the `Folders` array in `gems.yyp` — that array (unlike `resources`) is safe to hand-edit, and editing it is also how empty folders are deleted (resourcetool has no FOLDER DELETE).
 - Delete: `gm-cli resourcetool eval "RESOURCE DELETE NAME=<name> TYPE=Script"` — removes the asset from `gems.yyp` and deletes its `scripts/<name>/` folder. Never delete by removing files manually.
-- Rename: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free (a script's `.js` source file + `scriptSource` are NOT renamed — `mv` the file, then `RESOURCE SET EXPR=<newname>.scriptSource`). **One CLI `eval` per rename, never via `SCRIPT PATH=`** — it renames the asset files without saving `gems.yyp`, leaving the project unloadable (verified; recover by reverting the fs renames, then redo via CLI evals).
+- Rename: `gm-cli resourcetool eval "RESOURCE SET EXPR=<name>.name VALUE=<newname>"` — renames the folder + `.yy` + `gems.yyp` entry, churn-free (a script's `.js` source file + `scriptSource` are NOT renamed — `mv` the file, then `RESOURCE SET EXPR=<newname>.scriptSource`). One CLI `eval` per rename, NEVER via `SCRIPT PATH=` — it renames the asset files without saving `gems.yyp`, leaving the project unloadable (verified; recover by reverting the fs renames, then redo via CLI evals).
 - Two renames resourcetool can't do: an included file (its dotted name defeats the EXPR parser — rename the file + hand-edit its one line in the yyp's `IncludedFiles` array, safe to hand-edit like `Folders`), and an importer-owned sprite (additionally needs the importer's name derivation updated + a re-run).
 - Verify: `gm-cli resourcetool eval "CHECK PROJECTPATH=gems.yyp"`, then `gm-cli compile`.
 
@@ -82,31 +74,29 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 - Visual Verification (Screenshot): In `obj_game/Draw_75.js` add a frame counter on `this`, call `screen_save("<name>.png")` at the frame(s) you want, then `game_end()` a couple frames after the last capture so the run self-terminates. A single run can take multiple shots (distinct bare filenames at different frames, to compare states). Then `gm-cli run` (blocks until `game_end`), `Read` each PNG, and revert the temp code. GMRT: a relative path lands in `.gmcache/build-gmrt-windows-vm/build/`, not the `%LOCALAPPDATA%\gems\`.
 - Live State Inspection (`entities.dump`): To read live entity state as data, call `entities.dump(idOrIds, file?)` from a temp harness — `entities` is the level's `Entity` store (e.g. `game.scenes.current.world`). It writes the components of one id (or an id array; whole store via `dump(entities.query())`) to a `.json` file in the save dir (default `entity.json`) and returns the string — `Read` it after a `gm-cli run` like `game.log`. It serializes through the `Json` codec, so nested component data, sprite refs, and even cyclic runtime references are safe.
 
-## Tools
+## Conventions
 
-The repo bundles standalone tools under `tools/` — not part of the game itself (never imported by it) — for fast prototyping. Each tool is self-contained with its own README (and `.gitignore`); consult that README before working with a tool.
+### Code
 
-- `tools/pixel-art-kit/` — a pure-Python (stdlib-only) pipeline with which AI agents author pixel-art sprites from data files and import them into the project as GameMaker sprites.
-- `tools/audio-kit/` — the audio sibling: synthesizes SFX and MIDI-based BGM from data files and imports them as GameMaker sounds. The committed `snd_*`/`mus_*` set is hand-authored — read its GEMS.md before re-running any importer.
-- `tools/gems-tree-ext/` — a VS Code extension that shows the GameMaker asset tree (read from `gems.yyp`) in the Activity Bar, for humans navigating the flat project layout.
-- `tools/vox-kit/` — MagicaVoxel `.vox` templates + the `vox2vbuf.py` baker emitting the `.vbuf` meshes (and `meshes.json` manifest) that `RenderMesh` and the prop colliders consume.
-
-## Code Style & Conventions
-
-### General
-
+- Simple is best: shorter and leaner is better, as long as readability doesn't suffer — add nothing unnecessary.
+- Don't hide errors: write code so an error surfaces as early as possible; an object must never handle an error that is not its responsibility.
 - Language: JavaScript, not GML. All scripts in `scripts/` use `.js`.
 - Global exposure: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
-- External references: everything committed here is published, so never add an external link, or any form that cross-references another project, without the user's explicit permission — the narrow exceptions are in Citations below.
 - Formatter: Prettier with `{ "bracketSameLine": true }`. Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
-- Register: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, bold for the defined term or the one load-bearing clause of an entry, tables for enumerable facts.
-- Citations: an upstream ticket is cited by tool + bare number (`gm-cli #000`, GMRT `#00000`) — **never** a GitHub issue/PR URL, and never the `owner/repo#n` form, in any file or commit message: both post a cross-reference into the other repository, and this project never links or pings one. Naming a repo in prose is fine and often necessary, as is a required license attribution URL (`README.md`'s font/model credits) or a plain URL to the doc that owns a fact; only the issue-reference forms are out.
-- Commits: a message is clear and concise — a subject line saying what changed, and a body only for the why the diff cannot show. Multiple changes are a **list**, one line each, not a run of prose paragraphs. Tickets follow the Citations rule above.
+
+### Prose & Commits
+
+- Register: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, tables for enumerable facts, headings and lists for hierarchy.
+- Emphasis: plain prose is the default — a page that emphasizes everything marks nothing, and weight is what a reader trusts to mean "this one is different". Bold has exactly one legal position: the term a list entry or lead-in paragraph defines, at its very start, once per entry, all-or-nothing across that list. Never bold mid-sentence to stress a word — order the sentence so the stress lands there — and never wrap a bare inline-code identifier, which the code marking already sets apart. Italics are not used. CAPS carries a contract word an implementer must not soften (`NEVER`, `the LEFT operand`) and stays rare. The standing exception is Resourcetool's opening ban, whose violation corrupts the project; a second full-line bold has to earn its place beside that one.
+- Record: verification is reported in conversation, never written into the repo — this is a public library, not a lab notebook: no run output, probe narration, or "verified <date>" stamps in code, docs, or commit messages. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
+- External references: everything committed here is published, so never add an external link, or any form that cross-references another project, without the user's explicit permission — the narrow exceptions are in Citations below.
+- Citations: an upstream ticket is cited by tool + bare number (`gm-cli #000`, GMRT `#00000`) — never a GitHub issue/PR URL, and never the `owner/repo#n` form, in any file or commit message: both post a cross-reference into the other repository, and this project never links or pings one. Naming a repo in prose is fine and often necessary, as is a required license attribution URL (`README.md`'s font/model credits) or a plain URL to the doc that owns a fact; only the issue-reference forms are out.
+- Commits: a message is short and abstract — the subject line is normally the whole message. Subject: `type(scope): what changed`, one line, imperative, ≤72 chars, pitched at the module or rule that changed, never at the file-by-file diff. A body is the exception, not the default: add one only when the change would be misread without it, and keep it to at most ~5 single-line list items — no prose paragraphs, no per-file walkthroughs, no rationale essays, no before/after or audit narration, nothing the diff already shows. A body that keeps growing means the commit is too big; split it. Tickets follow the Citations rule above.
 
 ### Comments
 
-1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does — nor when or how a fact was established (no dates, no probe stories; pin to a version or ticket).
-2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its **owning declaration** and may be as long as the contract needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner (law 3), never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
+1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does, nor when or how a fact was established (Prose & Commits → Record).
+2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its owning declaration and may be as long as the contract needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner (law 3), never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
 3. A known quirk or invariant is cited, never re-explained: `// BUG: #15549 no && reuse` (tag form: law 8), `// Time.raw: UI runs while paused`.
 4. A file header is at most 2 lines: what the file is + one pointer.
 5. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`.
@@ -122,27 +112,31 @@ Members are short idiomatic verbs and nouns — `Entity.create`/`Entity.remove`,
 
 ### Script Naming
 
-A script's directory + filename matches the identifier it exposes, cased to JS norms — **PascalCase** for a class or namespace object (classes `World`/`Camera`; namespace objects `CameraFollow`/`CameraFly`), **camelCase** for a plain function (`teardownScene`). A script exposing a _family_ of free functions (no single matching global) is a **PascalCase category bucket**: the GemsUI kit (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`), `Utils` (`noop`/`uuid`/`rem`), `UIDraw` (`drawUIArrow`/`drawUICheck`). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
+A script's directory + filename matches the identifier it exposes, cased to JS norms — PascalCase for a class or namespace object (classes `World`/`Camera`; namespace objects `CameraFollow`/`CameraFly`), camelCase for a plain function (`teardownScene`). A script exposing a family of free functions (no single matching global) is a PascalCase category bucket: the GemsUI kit (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`), `Utils` (`noop`/`uuid`/`rem`), `UIDraw` (`drawUIArrow`/`drawUICheck`). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
 
 ### Media Asset Naming
 
-`<prefix>_<family>_<subject>[_<variant>]`, all-lowercase **snake_case** after the GM type prefix (`spr_`/`snd_`/`mus_`/`sh_`/`ps_`/`obj_`/`rm_`).
+`<prefix>_<family>_<subject>[_<variant>]`, all-lowercase snake_case after the GM type prefix (`spr_`/`snd_`/`mus_`/`sh_`/`ps_`/`obj_`/`rm_`).
 
-- **`family`** names the CONSUMER that reads the asset — a closed set: `item` (bag icons, auto-wired — `spr_item_<item_id>`, the item id verbatim), `wear` (paper-doll overlay strips), `tex` (wall/floor face textures), `terrain` (dual-grid terrain sets), `tile` (autotile piece sets), `ui` (widget chrome/glyphs), `fx` (particle art). A **bare subject with no family tag is reserved for entity animation strips** (`spr_human`, `spr_rat`).
-- **`subject`** is what a stranger would call the thing (1–3 words), material leading when it distinguishes same-object variants (`wooden_table`, `military_crate`), size/style qualifier **last** (`_small`, `_round`).
-- **Game-data metadata never enters a name** — manufacturer/rarity/stats/tier live on the def (`maker`, `rarity`, ops) and reach the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol` encodes "which item", not "which company").
-- **Sounds**: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, `snd_button_click`, bare `snd_coin`), `mus_<track>` for music.
-- **Vox meshes** (plain files, not GM assets): the `.vox` template, `.vbuf` bake, and `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
-- **Legacy names**: the remaining pre-rule names are **grandfathered** — never rename as a sweep; migrate one only when already touching it (rename mechanics: see Resourcetool above). The set: the UI glyphs/lobby art (`spr_check`/`spr_play`/`spr_uibox`/…), unused spare icons (`spr_apple`), the `spr_fenceSquare`/`spr_fenceRound` sheets, and the `spr_tile16`/`spr_tilecornerRough` autotile sets.
+- `family` names the CONSUMER that reads the asset — a closed set: `item` (bag icons, auto-wired — `spr_item_<item_id>`, the item id verbatim), `wear` (paper-doll overlay strips), `tex` (wall/floor face textures), `terrain` (dual-grid terrain sets), `tile` (autotile piece sets), `ui` (widget chrome/glyphs), `fx` (particle art). A bare subject with no family tag is reserved for entity animation strips (`spr_human`, `spr_rat`).
+- `subject` is what a stranger would call the thing (1–3 words), material leading when it distinguishes same-object variants (`wooden_table`, `military_crate`), size/style qualifier last (`_small`, `_round`).
+- Game-data metadata never enters a name — manufacturer/rarity/stats/tier live on the def (`maker`, `rarity`, ops) and reach the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol` encodes "which item", not "which company").
+- Sounds: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, `snd_button_click`, bare `snd_coin`), `mus_<track>` for music.
+- Vox meshes (plain files, not GM assets): the `.vox` template, `.vbuf` bake, and `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
 
-### ECS Bootstrap
+## GMRT
 
-Each level owns its `Entity` store (canonically `this.entities = new Entity(maxEntities, opts)`); `World` is the world-manager singleton (`World.sim`, `World.levels`) and holds no entity data. The store's ubiquitous legacy name `world` (bindings + system params) is grandfathered — rename to `entities` only in files already being touched (plan: docs/ROADMAP.md → Code Review).
-
-## GMRT-Safe Idioms
-
-See @docs/GMRT.md for the full list — the GMRT JS runtime/compiler miscompiles or chokes on several standard JS forms, and that always-in-context reference catalogues the quirks still live on 0.20 by ownership/status (reported & tracked bugs with `[#00000]` tickets, unreported divergences, officially unsupported features, project idioms) plus the verified Capabilities to use freely. Avoid the quirks, don't "clean up" code back into them, and record new ones there as found.
+@docs/GMRT.md
 
 ## Architecture
 
-See @docs/ARCHITECTURE.md — the architecture doc (the layer map, the cross-cutting invariants, and the area index). The code is the primary reference: module contracts live in JSDoc at their owning declarations (Comments law 2) — read an area's owning files before designing or modifying it.
+@docs/ARCHITECTURE.md
+
+## Tools
+
+The repo bundles standalone tools under `tools/` — not part of the game itself (never imported by it) — for fast prototyping. Each tool is self-contained with its own README (and `.gitignore`); consult that README before working with a tool.
+
+- `tools/pixel-art-kit/` — a pure-Python (stdlib-only) pipeline with which AI agents author pixel-art sprites from data files and import them into the project as GameMaker sprites.
+- `tools/audio-kit/` — the audio sibling: synthesizes SFX and MIDI-based BGM from data files and imports them as GameMaker sounds. The committed `snd_*`/`mus_*` set is hand-authored — read its GEMS.md before re-running any importer.
+- `tools/gems-tree-ext/` — a VS Code extension that shows the GameMaker asset tree (read from `gems.yyp`) in the Activity Bar, for humans navigating the flat project layout.
+- `tools/vox-kit/` — MagicaVoxel `.vox` templates + the `vox2vbuf.py` baker emitting the `.vbuf` meshes (and `meshes.json` manifest) that `RenderMesh` and the prop colliders consume.

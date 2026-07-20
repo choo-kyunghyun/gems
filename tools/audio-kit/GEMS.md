@@ -13,7 +13,7 @@ kit stays style-agnostic; this file is G.E.M.S.'s filled-in style — the audio 
 | **SFX** | **Mono**, short, **uncompressed** (`compression: 0` — instant, low-latency). Retro/chiptune voice: square/pulse/saw/triangle + noise, ADSR-shaped, often a pitch sweep. |
 | **BGM** | **Stereo**, looping, **uncompressed** (sample-perfect loop seam). A sequenced chiptune score (lead + bass + drums), rendered to WAV **and** an editable `.mid` (the "MIDI base"). |
 | **Format** | **WAV** (the only stdlib-encodable format). GameMaker re-compresses at build per the asset's setting; switch a long track to Compressed/Streamed in the IDE if size matters. |
-| **GM naming** | SFX → `snd_<subject>[_<event>]` (`snd_coin` / `snd_gun_fire`), size/style qualifier **last** (`snd_explosion_small`, not `snd_small_explosion`); BGM → `mus_<track>` (`mus_overworld`). Full rule in CLAUDE.md → Code Style. |
+| **GM naming** | SFX → `snd_<subject>[_<event>]` (`snd_coin` / `snd_gun_fire`), size/style qualifier **last** (`snd_explosion_small`, not `snd_small_explosion`); BGM → `mus_<track>` (`mus_overworld`). Full rule in CLAUDE.md → Media Asset Naming. |
 | **IDE folder** | `Media/Audio/SFX` and `Media/Audio/BGM`. |
 | **Audio group** | SFX → the **`sfx`** GMAudioGroup, BGM → **`bgm`** (the importer assigns them). Category volume = the group gain (`audio_group_set_gain`), driven live by the SystemMenu sliders; non-default groups are `audio_group_load`'d at boot by `scripts/Audio`. |
 

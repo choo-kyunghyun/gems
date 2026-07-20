@@ -1,4 +1,4 @@
-// The world-manager singleton — the TOP coordinator layer. A thin static namespace (one world) that
+// The world-manager singleton — the TOP coordinator layer. A thin namespace object (one world) that
 // COMPOSES the world-scope sub-modules; it runs no simulation of its own, only delegates:
 //   • sim          — SimClock: the fixed-step engine TICK RATE (advance/alpha/tickDuration).
 //   • WorldClock   — in-game time-of-day / calendar (distinct from the sim tick above).
@@ -9,8 +9,8 @@
 // `sim`/`levels` are wired in obj_game Create_0 (where load order is safe).
 //
 // Was the per-instance entity store; that moved to `Entity` (a Level sub-module, `level.world`). This
-// name is now the manager. Static namespace, not a class (house convention for stateful singletons),
-// and the methods reference the sub-modules lazily so load order among the world scripts is irrelevant.
+// name is now the manager. The methods reference the sub-modules lazily, so load order among the
+// world scripts is irrelevant.
 //
 // Phases 2-3 landed: `levels` (LevelManager) + `sim` (SimClock) are live. update()/reset() below stay
 // inert for now — the existing direct WorldClock.* / WorldEvents.* call sites (sceneRpg) are UNCHANGED,

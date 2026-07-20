@@ -4,11 +4,11 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 ## Current Works
 
-One pass over `scripts/`, file by file, applying two rule sets at once: the **Code Review** batches below are the vehicle, and each file's slice of the **Comment Refactor** rides along with it. No standalone comment sweep — a file is touched once.
+One pass over `scripts/`, file by file, applying two rule sets at once: the Code Review batches below are the vehicle, and each file's slice of the Comment Refactor rides along with it. No standalone comment sweep — a file is touched once.
 
 ### Code Review (file-by-file)
 
-Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
+Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark Done as batches finish.
 
 | #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
@@ -29,17 +29,21 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
 
-**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` (rule: CLAUDE.md → ECS Bootstrap), and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Rename in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Quirks, the `.sort` crash), so **run the game after a rename batch, not just compile**; the same applies to any API Naming rename (CLAUDE.md → API Naming).
+**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store — and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Both legacy names are grandfathered: rename only in a file the batch is already touching, in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Quirks, the `.sort` crash), so run the game after a rename batch, never compile alone; the same applies to any API Naming rename (CLAUDE.md → API Naming).
 
 ### Comment Refactor
 
 Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). Per file:
 
-1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
+1. **Relocate before deleting**: a comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
 2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
 3. **Invariants**: replace every re-explanation with the one-line citation form (law 3); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
 4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
 5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+
+### Rename
+
+Media names predating CLAUDE.md → Media Asset Naming are grandfathered — never rename as a sweep; migrate one only when already touching it (mechanics: CLAUDE.md → Resourcetool). The set: the UI glyphs/lobby art (`spr_check`/`spr_play`/`spr_uibox`/…), unused spare icons (`spr_apple`), the `spr_fenceSquare`/`spr_fenceRound` sheets, and the `spr_tile16`/`spr_tilecornerRough` autotile sets.
 
 ## Known Issues
 
@@ -47,13 +51,13 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 
 - **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note). Manual-key path only, so the regex has never been exercised. The `screenshots/` subdir is NOT a defect (`screen_save` creates missing dirs), but the shot lands in the build tree rather than the save dir (GMRT.md → `working_directory`). Fix: assemble the timestamp without regex.
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
-- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the _Audio group_ row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
+- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the Audio group row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
 
 ### gm-cli issue #231
 
-**`manual read`/`manual open` die on every query** (gm-cli 2.2.0, open upstream — reported independently, so it is not machine-local). Both commands resolve queries through the hosted search service `https://gx.mcp.opr.gg/ask`, which answers HTTP 500 ("Error searching the manual."); the CLI `JSON.parse`s the body without checking `response.ok`, so it dies with `SyntaxError: Unexpected token 'E'` instead of a clean error. The manual sites themselves (`manual.gamemaker.io/monthly/` and `/lts/`) are up — only the search backend is down. The missing `response.ok` check is worth fixing upstream regardless of the outage.
+`manual read`/`manual open` die on every query. Both commands resolve queries through the hosted search service `https://gx.mcp.opr.gg/ask`, which answers HTTP 500 ("Error searching the manual."); the CLI `JSON.parse`s the body without checking `response.ok`, so it dies with `SyntaxError: Unexpected token 'E'` instead of a clean error. The manual sites themselves (`manual.gamemaker.io/monthly/` and `/lts/`) are up — only the search backend is down. The missing `response.ok` check is worth fixing upstream regardless of the outage.
 
-**Local patch** (npm global — machine state, not repo code; **wiped by any gm-cli reinstall or upgrade**, so re-check this entry then, and drop it once upstream ships a fix): `dist/chunk-YRXPR43G.js` (the bundled `searchManual`, shared by both commands, under `%APPDATA%\npm\node_modules\@gamemaker\gm-cli\`) is replaced with a version that tries the service first (self-healing if it returns), then falls back locally — page-name index from the `YoYoGames/GameMaker-Manual` tree (branch `2026.1.0-main`, cached beside the chunk as `manual-pages.json`; delete to refresh after a manual release), fuzzy name match, fetch from `manual.gamemaker.io/monthly/` (`/lts/` on 404), HTML-to-Markdown. The original chunk is kept beside it as `chunk-YRXPR43G.js.orig` — restore to revert. Limit: the fallback matches page names only (exact function names best; a section-title query lands on its owning page, e.g. "Flex Panel Struct Members" → `Flex_Panels.htm`) — no semantic search.
+**Local patch** (npm global — machine state, not repo code; wiped by any gm-cli reinstall or upgrade, so re-check this entry then, and drop it once upstream ships a fix): `dist/chunk-YRXPR43G.js` (the bundled `searchManual`, shared by both commands, under `%APPDATA%\npm\node_modules\@gamemaker\gm-cli\`) is replaced with a version that tries the service first (self-healing if it returns), then falls back locally — page-name index from the `YoYoGames/GameMaker-Manual` tree (branch `2026.1.0-main`, cached beside the chunk as `manual-pages.json`; delete to refresh after a manual release), fuzzy name match, fetch from `manual.gamemaker.io/monthly/` (`/lts/` on 404), HTML-to-Markdown. The original chunk is kept beside it as `chunk-YRXPR43G.js.orig` — restore to revert. Limit: the fallback matches page names only (exact function names best; a section-title query lands on its owning page, e.g. "Flex Panel Struct Members" → `Flex_Panels.htm`) — no semantic search.
 
 ## Planned Features
 
@@ -98,6 +102,6 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 
 Deferred chunk-streaming work (engine is `ChunkManager`):
 
-- Per-chunk _build_ persistence (player builds inside streamed chunks)
+- Per-chunk build persistence (player builds inside streamed chunks)
 - On-disk chunk saves (beyond the in-session cache + save-game delta)
 - Throttled distant ticks (LOAD-ring entities simulate at low rate)
