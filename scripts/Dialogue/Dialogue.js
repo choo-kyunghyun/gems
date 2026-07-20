@@ -75,7 +75,7 @@ globalThis.Dialogue = class Dialogue {
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
     // keyboard/gamepad advance anywhere; LMB only inside the box (so a click on background UI
-    // doesn't page too). UIPointer-latched edge, not re-queried — the poll-once rule (see docs/architecture/ui.md).
+    // doesn't page too). UIPointer-latched edge, not re-queried — the poll-once rule (UIPointer).
     let advance =
       keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space);
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face1))

@@ -60,6 +60,7 @@ globalThis.UITabs = class UITabs {
     if (inside) {
       const seg = clamp(floor(((mx - pos.left) / pos.width) * n), 0, n - 1);
       this._hover = seg;
+      // selects on PRESS — deliberately snappier than the FSM widgets' release-inside commit
       if (UIPointer.pressed) {
         this.select(seg);
         return true;

@@ -194,7 +194,12 @@ globalThis.Camera = class Camera {
   /**
    * The mouse cursor as a ground-plane world point under this camera: GUI mouse → surface px
    * (the GUI layer is scaled to the window/back buffer) → unproject(). Latch ONCE per frame
-   * and share (the poll-once rule — see docs/architecture/ui.md).
+   * and share (the poll-once rule — UIPointer).
+   * THE world cursor under a PITCHED camera: mouse_x/mouse_y are the flat-camera answer and are
+   * simply wrong once the view tilts, so aim/build/interact all read the latched value instead
+   * (sceneRpg.step → scene.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
+   * mouse_x/y remain valid (the editor's CameraPan uses them). The result is a GROUND-plane
+   * point — an entity's FEET — so pointing at a tall billboard's upper body lands behind it.
    * @returns {{x:number, y:number}}
    */
   cursorWorld() {

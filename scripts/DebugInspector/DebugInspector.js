@@ -6,8 +6,7 @@
  * directly (editing mutates the real entity). Selection highlighted on the
  * GUI layer.
  * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
- * Picking uses the latched LMB edge (the UIPointer poll-once rule — see
- * docs/architecture/ui.md).
+ * Picking uses the latched LMB edge (the UIPointer poll-once rule).
  */
 globalThis.DebugInspector = class DebugInspector {
   static _world = null;

@@ -3,7 +3,7 @@
 // 2D view-size API. Zoom shrinks/grows the ortho extent; followZoom eases toward followZoomTarget.
 /** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
 function _cameraFollowOnUpdate() {
-  // read each mouse query once per frame and share (the poll-once rule — see docs/architecture/ui.md)
+  // read each mouse query once per frame and share (the poll-once rule — UIPointer)
   if (mouse_wheel_up()) {
     this.followZoomTarget = Math.min(
       this.followMaxZoom,

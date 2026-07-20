@@ -7,7 +7,13 @@ globalThis.UI = class UI {
   static designW = 1920;
   static designH = 1080;
 
-  /** resize GUI layer to designRes/scale and reflow all roots. @param {number} scale */
+  /**
+   * Resize the GUI layer to designRes/scale and reflow all roots. Applies LIVE (the uiScale
+   * slider drags through it), which constrains how full-screen chrome is built: fill the space
+   * with flex (`grow: true`), never by snapshotting `display_get_gui_height()` at build time —
+   * a snapshot is stale the moment the scale moves. Fixed-size windows may size themselves.
+   * @param {number} scale
+   */
   static applyScale(scale) {
     display_set_gui_size(UI.designW / scale, UI.designH / scale);
     for (let i = 0; i < UI.roots.length; i++) UI.roots[i].markDirty();
@@ -22,11 +28,17 @@ globalThis.UI = class UI {
   static insert(root, index = UI.roots.length, enabled = true) {
     root.enabled = enabled;
     UI.roots.splice(index, 0, root);
-    // layout reads are NaN until the first flexpanel_calculate_layout (probe-verified on
-    // GMRT 0.20) — refresh at registration so a root inserted mid-frame (modal/dropdown
-    // opened from an onClick) never reaches UI.draw un-laid-out. Together with the
-    // end-of-update refresh (UIElement.update) and the pre-draw dirty refresh (UI.draw),
-    // components never observe NaN layout — they carry no per-widget guards.
+    // THE LAYOUT GUARANTEE: flexpanel layout reads are NaN until the first
+    // flexpanel_calculate_layout, so three refreshes close every path — this one at
+    // registration (a root inserted mid-frame from an onClick, e.g. a modal/dropdown, never
+    // reaches UI.draw un-laid-out), the end-of-update refresh (UIElement.update), and the
+    // pre-draw dirty refresh (UI.draw). Components therefore never observe NaN layout and
+    // carry NO per-widget NaN guards — do not add them back.
+    // One residual path: a subtree inserted mid-update-pass into a not-yet-traversed sibling
+    // branch can still see NaN in that frame's onUpdate. It is contained, not guarded —
+    // hit-tests are NaN-safe (point_in_rectangle with NaN is false) and the persistent-scalar
+    // sinks (UITable._top, UIScroll.scroll/_track) clamp with positive tests, so NaN can't
+    // stick. UIElement._drawClipped keeps its own zero-size check (it guards gpu_set_scissor).
     root.refresh();
     return UI;
   }

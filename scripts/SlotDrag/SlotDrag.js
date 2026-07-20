@@ -3,7 +3,7 @@
 // resolves on release. The target is PERSISTED, so a small drift off the slot at button-up
 // still drops.
 // Pointer edges come from UIPointer (frame-latched) — never mouse_check_button* directly
-// (the poll-once rule — see docs/architecture/ui.md).
+// (the poll-once rule — UIPointer).
 globalThis.SlotDrag = class SlotDrag {
   static active = false;
   static source = null; // the UISlots the item came from

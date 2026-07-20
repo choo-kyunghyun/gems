@@ -535,8 +535,7 @@ globalThis.BuildMode = {
     )
       return;
 
-    // reuse the LMB edge latched by UIPointer.poll (the poll-once rule — see
-    // docs/architecture/ui.md). RMB is unread elsewhere, single query safe.
+    // reuse the LMB edge latched by UIPointer.poll (the poll-once rule — UIPointer). RMB is unread elsewhere, single query safe.
     if (UIPointer.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
     else if (mouse_check_button_pressed(mb_right))
       BuildMode._tryRemove(scene, cell.x, cell.y);
