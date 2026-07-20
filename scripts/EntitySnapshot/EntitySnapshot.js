@@ -1,7 +1,10 @@
-// Capture/restore an entity's components as a plain record. Used for world-to-world migration
-// (party across portals) and chunk streaming (un/load is the same capture/restore over a region).
-// Data objects are REFERENCED, not deep-copied — safe for in-memory migration; for disk, serialize
-// yourself (mind the JSON nested-value fault + Set fields).
+// Capture/restore an entity's components as a plain record — the single-entity counterpart to the
+// store's export(). The substrate for whole-entity migration between level stores (LevelManager
+// .take/put/transfer wraps it — the squad crossing a portal) and for chunk streaming (un/load is
+// the same capture/restore over a region).
+// Data objects are REFERENCED, not deep-copied: a captured component re-attaches by reference and
+// the objects outlive the source store's destroy() (only the storage map is dropped). For disk,
+// serialize the record yourself (mind the JSON nested-value fault + Set fields).
 /** @typedef {Object} EntitySnapshotRecord @property {Object<string,Object>} components token -> data */
 globalThis.EntitySnapshot = {
   /** Snapshot an entity's components (subset if `components` given, else all). @param {Entity} world @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */

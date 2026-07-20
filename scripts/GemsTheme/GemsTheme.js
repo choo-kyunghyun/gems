@@ -3,6 +3,13 @@
 // Split across small files — GMRT stops hoisting bare top-level declarations past
 // a file-size threshold and faults at startup; use `globalThis.X = function X(…)`.
 // Colors stored as hex and parsed lazily (Color may not be loaded at module scope).
+// EVERY visual constant lives here — a factory composes these keys, never a literal color or
+// spacing number.
+//
+// KIT-WIDE OPT CONVENTIONS: `label`/`onText`/`offText` take a string OR a live `() => string`
+// (I18n.textRef); `gemsButton`'s `disabled`/`selected` take a live `() => bool` re-read each
+// frame; color opts take a theme key, hex string, or color int (gemsColor). Hover/press easing
+// runs on Time.raw (the clock split, ARCHITECTURE.md).
 //
 // THEME MODES: every COLOR key lives in two palettes (dark = the original look, light).
 // `GemsTheme.setMode(mode)` copies the active palette's colors onto the flat GemsTheme keys

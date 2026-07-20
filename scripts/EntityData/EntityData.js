@@ -1,5 +1,5 @@
 // SoA component store — one dense Array per component token, indexed by
-// EntityID.getIndex(id); one per entity store. Contracts: docs/architecture/ecs.md.
+// EntityID.getIndex(id); one per entity store. The store's API contracts live on `Entity`.
 globalThis.EntityData = class EntityData {
   /** @param {number} maxEntities slot capacity @param {EntityID} ids the owning store's allocator */
   constructor(maxEntities, ids) {

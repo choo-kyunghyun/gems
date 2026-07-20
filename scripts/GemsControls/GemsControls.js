@@ -401,8 +401,8 @@ globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
 // row scrolling, keyboard/gamepad browse. `columns` is the UITable column spec
 // ({ label, width?/flex?, align?, text(row), color?(row), sprite?(row), sortable?,
 // sortValue?(row) }). Sized to show `opts.rows` (8) whole rows. Reach the component via
-// `el.getComponent(UITable)`. `opts`: { data, rows, rowH, headerH, width, sortBy, sortDir,
-// onSelect, onActivate, emptyText, font, headerFont, tooltip }.
+// `el.getComponent(UITable)`. `opts`: { data, rows, grow, rowH, headerH, width, sortBy,
+// sortDir, onSelect, onActivate, emptyText, font, headerFont, tooltip }.
 globalThis.gemsTable = function gemsTable(columns, opts = {}) {
   const rowH = opts.rowH ?? GemsTheme.rowH;
   const headerH = opts.headerH ?? 30;

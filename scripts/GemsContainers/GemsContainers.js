@@ -297,7 +297,8 @@ globalThis.gemsOverlay = function gemsOverlay(title, opts = {}) {
 };
 
 // Draggable window: a grab-to-move card (UIDrag → offset, never flex mutation) + an
-// optional close button. Add content to the wrapper's `.body`; toggle visibility via
+// optional close button. Kit inventory — currently unwired (gemsOverlay is what the RPG
+// windows use). Add content to the wrapper's `.body`; toggle visibility via
 // `.enabled`. `opts`: { left, top, width, titleH, onClose, padding }.
 globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
   // out-of-flow host that centers the window and re-centers on a GUI resize (live
@@ -524,7 +525,7 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
 //
 // Returns the root (flyout host on top, bar below) — the caller anchors it (a bottom
 // anchor keeps the bar pinned and pops the list upward). Flyouts are prebuilt once and
-// driven by structural insert/remove (the reliable-reflow pattern).
+// driven by structural insert/remove, not flex mutation (the flexpanel idiom, GMRT.md §4).
 // `root.catbar` exposes { state, open(c), close(), select(c, k) }.
 globalThis.gemsCatBar = function gemsCatBar(categories, opts = {}) {
   const itemW = opts.itemWidth ?? 130;

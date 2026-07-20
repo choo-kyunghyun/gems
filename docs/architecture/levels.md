@@ -4,7 +4,7 @@ Area reference split out of the always-loaded core ([ARCHITECTURE.md](../ARCHITE
 
 ## Level & Map Layers
 
-`LevelGrid` manages the tile grid + zone channels, **separate from the ECS store** (scenes hold one as `.level`). It carries **no pathfinding grid** — live nav is `NavGrid` (colliders + streamed-terrain costs, ecs.md → Pathfinding); the layers' `costAt(x, y)` (topmost layer wins) exists for debug inspection only. `worldToGrid`/`gridToWorld` convert coords (`gridToWorld` returns the cell **center**).
+`LevelGrid` manages the tile grid + zone channels, **separate from the ECS store** (scenes hold one as `.level`). It carries **no pathfinding grid** — live nav is `NavGrid` (colliders + streamed-terrain costs — see its JSDoc); the layers' `costAt(x, y)` (topmost layer wins) exists for debug inspection only. `worldToGrid`/`gridToWorld` convert coords (`gridToWorld` returns the cell **center**).
 
 **`LevelLayer` interface**: `get`/`set`, `getNavData(x,y) → { cost }`, `export`/`import`/`destroy`. The one built-in is **`TileLayer`**, wrapping a `Grid` of **`TileType`** values (`{ id, name, pathCost }`; `pathCost: null` → `Infinity`, default `1`). Later-added layers have higher priority in `costAt`; an empty cell reports the layer's `emptyCost` — `undefined` (default) passes through to lower layers, `Infinity` makes a blocking base.
 

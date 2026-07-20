@@ -8,6 +8,7 @@
 //      result()               optional — a guest's return value, handed to back()'s onResult
 //      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
 //      label / gameplay       optional fields — display fallback / pause+nav opt-in
+//      manager                set BY LevelManager — the back-ref a host opens guests through
 //    Genre screens (sceneRpg / scenePlatformer / sceneEditor / sceneUIKit) are STANDALONE
 //    classes satisfying it — composition, never `extends Level`.
 //
@@ -29,8 +30,9 @@ globalThis.Level = class Level {
   destroy() {}
 
   // Freeze/thaw hooks: suspend when a guest keep-switches in front, resume when back() returns.
-  // These defaults fit one UI root + one camera; a screen with extra state defines its own (the
-  // RPG re-binds its keymap on resume).
+  // These defaults fit one UI root + one camera; a screen with extra state defines its own — the
+  // RPG re-binds its keymap on resume, because the guest controller's destroy() unbound the
+  // shared action names.
   /** Hide this level while a guest runs in front. */
   suspend() {
     if (this.ui) UI.setEnabled(this.ui, false);

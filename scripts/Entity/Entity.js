@@ -1,5 +1,5 @@
-// The per-level entity store — ids (EntityID) + component data (EntityData).
-// Contracts + naming (legacy `world` handles): docs/architecture/ecs.md.
+// The per-level entity store — ids (EntityID) + component data (EntityData, SoA).
+// One store per level (the ECS-shape invariant, ARCHITECTURE.md); `World` above it holds none.
 /** @typedef {Object} EntityOpts @property {number} [gravity] override GravitySystem.strength for this store */
 globalThis.Entity = class Entity {
   /** @param {number} maxEntities slot capacity @param {EntityOpts} [opts] */
@@ -35,7 +35,11 @@ globalThis.Entity = class Entity {
     this._pending.push(id);
   }
 
-  /** Commit all queued removals: clear each entity's component slots, then free its id. */
+  /**
+   * Commit all queued removals: clear each entity's component slots, then free its id.
+   * Removal is DEFERRED so a system can remove while iterating a query result — the caller
+   * flushes at a safe point, canonically as the last step of a sim tick, never mid-iteration.
+   */
   flush() {
     for (const id of this._pending) {
       this.storage.clear(EntityID.getIndex(id));
