@@ -15,6 +15,7 @@
 // samplers (materialAt/costAt/terrain/solidTerrain).
 //
 // GMRT-safe: index loops, namespace object on globalThis.
+
 globalThis.OverworldGen = {
   /**
    * Build the overworld generator. opts: { seed, chunkCols, chunkRows, authored, prefabChance,
@@ -91,7 +92,7 @@ globalThis.OverworldGen = {
           const gx = ctx.gx0 + 1 + Math.floor(rng() * (ctx.cols - 2));
           const gy = ctx.gy0 + 1 + Math.floor(rng() * (ctx.rows - 2));
           if (!ctx.field.spawnable(gx, gy)) continue; // no pines in water
-          const q = Rand.int2(gx, gy, ctx.gen.seed + 13);
+          const q = Math.floor(hash2(gx, gy, ctx.gen.seed + 13) * 2147483647);
           ctx.out.spawns.push({
             preset: "tree",
             gx: gx,
@@ -126,7 +127,7 @@ globalThis.OverworldGen = {
           // untouched). A stretched oblong cluster only takes 0/180: the per-cluster
           // scale is model-space before the yaw, so 90/270 would swing the long axis
           // out of the cell-rect BBox. Square clusters take any quarter turn.
-          const q = Rand.int2(gx, gy, ctx.gen.seed + 11);
+          const q = Math.floor(hash2(gx, gy, ctx.gen.seed + 11) * 2147483647);
           ctx.out.spawns.push({
             preset: "rock",
             gx: gx,

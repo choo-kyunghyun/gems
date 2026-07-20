@@ -16,6 +16,27 @@
 //     (wadeable water). sprite/name are consumer data (TerrainStream / debug) — not read here.
 //
 // GMRT-safe: index loops, while (no empty for-initializer), class on globalThis.
+
+// value noise in [0,1): smoothstep-interpolated over a hashed integer lattice; pure in
+// (x, y, seed, lattice). Fold a salt into `seed` to draw an independent channel.
+function _noise2(x, y, seed, lattice) {
+  const fx = x / lattice;
+  const fy = y / lattice;
+  const ix = Math.floor(fx);
+  const iy = Math.floor(fy);
+  let tx = fx - ix;
+  let ty = fy - iy;
+  tx = tx * tx * (3 - 2 * tx); // smoothstep for blobby, non-grid-aligned regions
+  ty = ty * ty * (3 - 2 * ty);
+  const v00 = hash2(ix, iy, seed);
+  const v10 = hash2(ix + 1, iy, seed);
+  const v01 = hash2(ix, iy + 1, seed);
+  const v11 = hash2(ix + 1, iy + 1, seed);
+  const a = v00 + (v10 - v00) * tx;
+  const b = v01 + (v11 - v01) * tx;
+  return a + (b - a) * ty;
+}
+
 globalThis.TerrainField = class TerrainField {
   // opts: { seed, chunkCols, chunkRows, lattice, groundLattice, groundSalt } — lattice = noise
   // blob spacing in cells (bigger = larger regions), groundSalt decorrelates the detail channel.
@@ -46,19 +67,14 @@ globalThis.TerrainField = class TerrainField {
   // single-cell material id (index into the palette) — TerrainStream's seam apron samples this
   materialAt(ax, ay) {
     const pal = this.palette;
-    const n = Rand.noise2(ax, ay, this.seed, this.lattice);
+    const n = _noise2(ax, ay, this.seed, this.lattice);
     let i = 0;
     // GMRT: while, not for (empty-initializer for crashes the compiler)
     while (pal[i].threshold !== undefined) {
       if (n < pal[i].threshold) return i;
       i++;
     }
-    const g = Rand.noise2(
-      ax,
-      ay,
-      this.seed + this.groundSalt,
-      this.groundLattice,
-    );
+    const g = _noise2(ax, ay, this.seed + this.groundSalt, this.groundLattice);
     while (i < pal.length - 1 && g >= pal[i].ground) i++;
     return i;
   }

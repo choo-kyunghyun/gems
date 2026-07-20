@@ -272,7 +272,6 @@
     {"id":{"name":"QuestLog","path":"scripts/QuestLog/QuestLog.yy",},},
     {"id":{"name":"RadarArrows","path":"scripts/RadarArrows/RadarArrows.yy",},},
     {"id":{"name":"Raider","path":"scripts/Raider/Raider.yy",},},
-    {"id":{"name":"Rand","path":"scripts/Rand/Rand.yy",},},
     {"id":{"name":"Rarity","path":"scripts/Rarity/Rarity.yy",},},
     {"id":{"name":"Rat","path":"scripts/Rat/Rat.yy",},},
     {"id":{"name":"Raycast","path":"scripts/Raycast/Raycast.yy",},},

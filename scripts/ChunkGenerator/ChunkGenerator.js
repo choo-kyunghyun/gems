@@ -20,6 +20,17 @@
 // pass INDEX, which re-couples streams to list order.
 //
 // GMRT-safe: index loops, class on globalThis.
+
+// seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
+// (cx, cy, seed) draws an independent sequence with no shared global-stream state.
+function _stream(cx, cy, seed) {
+  let i = 0;
+  return function () {
+    i++;
+    return hash2(cx + i, cy - i, seed);
+  };
+}
+
 /**
  * @typedef {Object} GenPass
  * @property {number} [salt]  per-pass stream salt — declare a unique int for order-stable streams
@@ -84,7 +95,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
       // independent per-pass stream: salt folded into the seed (prime-spread so seed+salt
       // combinations don't alias adjacent world seeds)
       const salt = p.salt ?? i + 1;
-      ctx.rng = Rand.lcg(Rand.seed2(cx, cy, this.seed + salt * 101159));
+      ctx.rng = _stream(cx, cy, this.seed + salt * 101159);
       p.apply(ctx);
     }
     return {

@@ -12,7 +12,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 
 | #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
-| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `Rand`, `AABB`, `File`) — everything sits on these |      |
+| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`) — everything sits on these |      |
 | 2   | ECS heart              | Core/Component, Core/Entity, Core/World                                                                |    24 |  1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo)             |      |
 | 3   | Systems + levels       | Core/System, Core/Level                                                                                |    25 |  2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones                                                            |      |
 | 4   | Camera + input         | Core/Camera, Core/Input                                                                                |    10 |  1,072 | Small, self-contained                                                                                     |      |
@@ -97,6 +97,10 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 ### Editor
 
 - Prefabs
+
+### Renderer
+
+- Rework `RenderCloudShadow` off per-frame blob stamping (a `draw_circle_color` lobe cluster per grid cell) to a scrolling tiling noise texture sampled as a ground-plane multiply, or a procedural-fbm shader — buys continuous organic coverage, O(1) cost regardless of view, and correct ground foreshortening under the pitched camera. The stamped pass works and is not a defect; this is a look/scalability upgrade. Texture route: bake one seamless tiling cloud-noise PNG (`spr_fx_cloud`) through a `tools/pixel-art-kit` generator (its `terrain_materials` tileable machinery already fits) and sample with wrapped UVs.
 
 ### Engine
 

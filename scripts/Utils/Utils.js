@@ -19,3 +19,14 @@ globalThis.rem = function rem(value) {
   if (info === undefined) return value * 16;
   return value * info.size;
 };
+
+/**
+ * Pure 2D position hash → float in [0, 1); deterministic in (x, y, seed) — the shared home for
+ * seeded worldgen/terrain hashing. Float math only (`sin`/`floor`): a chained xorshift
+ * miscompiles on GMRT (docs/GMRT.md), so never "simplify" this to bitwise.
+ * @param {number} x @param {number} y @param {number} seed @returns {number}
+ */
+globalThis.hash2 = function hash2(x, y, seed) {
+  const s = Math.sin(x * 12.9898 + y * 78.233 + seed * 43.123) * 43758.5453;
+  return s - Math.floor(s);
+};

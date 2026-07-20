@@ -6,7 +6,7 @@
 // Clouds live on a fixed world-aligned grid in CLOUD SPACE (world + wind*time, so the field drifts
 // over the world): at most one CLOUD per cell — a cumulus CLUSTER of 3–5 overlapping lobes strung
 // along a wind-ish axis (fat middle, tapered ends), everything hashed from the cell index with
-// Rand's MINSTD integer-float math (a chained xorshift collapses on GMRT — see CLAUDE.md).
+// a pure sine hash (float math only — a chained xorshift collapses on GMRT, see docs/GMRT.md).
 // Lobe overlap is deliberate: the multiplicative blend compounds where lobes cross, so each cloud
 // darkens toward its core (per-lobe darkness is halved in multiplier space to compensate — the
 // overlapped core hits `darkness`, a lone fringe about half). Coverage gates each cell against its
@@ -21,7 +21,7 @@
 // so clouds freeze on pause and race under Time.scale (bed fast-forward), like the rain.
 //
 // Inserted just BEFORE RenderWeather in RpgMap.build (outdoor maps only — meta.indoor skips it).
-//
+
 // @implements {RenderPass}
 globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
@@ -32,7 +32,9 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     this.windX = opt.windX ?? -22; // drift, world px/s — leftward like the rain's slant
     this.windY = opt.windY ?? 8;
     this.seed = opt.seed ?? 1337; // cloud-field layout seed (fixed — the DRIFT animates, not the field)
-    this._s = 1; // per-cell LCG scratch (see _rand)
+    this._cx = 0; // per-cell hash scratch (see _seedCell/_rand)
+    this._cy = 0;
+    this._i = 0;
   }
 
   destroy() {}
@@ -142,15 +144,17 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     draw_set_alpha(prevAlpha);
   }
 
-  // Reseed the inline stream for one cloud-grid cell (Rand's MINSTD — state kept in a field, not
-  // a Rand.lcg closure: this reseeds per cell per frame, and a closure each time would be churn).
+  // Reseed the inline stream for one cloud-grid cell (sine hash walked diagonally by a per-cell
+  // counter — state kept in fields, not a closure, since this reseeds per cell per frame).
   _seedCell(ix, iy) {
-    this._s = Rand.seed2(ix, iy, this.seed);
+    this._cx = ix;
+    this._cy = iy;
+    this._i = 0;
   }
 
   // next float in [0, 1) for the seeded cell
   _rand() {
-    this._s = Rand.step(this._s);
-    return Rand.norm(this._s);
+    this._i++;
+    return hash2(this._cx + this._i, this._cy - this._i, this.seed);
   }
 };

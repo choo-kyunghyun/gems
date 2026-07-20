@@ -13,7 +13,7 @@
 // world edge), so seams match the neighbor with no load-order dependency.
 //
 // GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
-//
+
 // @implements {RenderPass}
 globalThis.TerrainStream = class TerrainStream {
   // @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling).
@@ -211,10 +211,10 @@ globalThis.TerrainStream = class TerrainStream {
     return out;
   }
 
-  // deterministic per-cell WEIGHTED variant frame: Rand position hash walked down the material's
+  // deterministic per-cell WEIGHTED variant frame: sine position hash walked down the material's
   // cumulative [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
   _variant(gx, gy, s) {
-    let r = Rand.int2(gx, gy, 374761393) % s.total;
+    let r = Math.floor(hash2(gx, gy, 374761393) * s.total);
     let k = 0;
     while (k < s.table.length) {
       r -= s.table[k][1];

@@ -3,7 +3,9 @@ gml_release_mode(RELEASE_MODE);
 audio_throw_on_error(!RELEASE_MODE);
 globalThis.DEV_MODE = !RELEASE_MODE; // global mirror so other events (Step_0's dev lobby hotkey) can gate on it
 
-randomize();
+// release: clock-seed the global stream so uuid() mints run-unique ids; dev keeps the fixed
+// default seed so runs stay reproducible. randomize() takes NO seed arg (docs/GMRT.md).
+if (RELEASE_MODE) randomize();
 
 gpu_set_ztestenable(true);
 // GMRT quirk: fixed-function alpha test is INERT (see CLAUDE.md) — gpu_set_alphatestenable rounds-trips
