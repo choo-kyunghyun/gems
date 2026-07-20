@@ -196,7 +196,7 @@ globalThis.uiContainRect = function uiContainRect(
  * flexpanel self-size: apply a measured content size to the element's fixed width/height
  * styles, as a no-op when unchanged so re-running it never dirties the tree. THE
  * style-mutation self-size mechanism (measure callbacks are unsupported on GMRT —
- * docs/GMRT.md §3); setWidth/setHeight mark the root dirty themselves.
+ * docs/GMRT.md → Known Incompatibilities); setWidth/setHeight mark the root dirty themselves.
  * @param {UIElement} element @param {number} width @param {number} height
  */
 globalThis.uiResizeTo = function uiResizeTo(element, width, height) {

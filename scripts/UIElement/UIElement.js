@@ -21,8 +21,8 @@
 // flexpanel-backed tree node.
 //
 // HOW LAYOUT CHANGES REACH THE SCREEN — the rule every widget follows. Live style mutation does
-// work on GMRT (GMRT.md §4), and `UIText`/`UIRichText` use it to self-size in onUpdate so a label
-// reports a real width/height. Everything else deliberately does NOT:
+// work on GMRT (GMRT.md → Project idioms), and `UIText`/`UIRichText` use it to self-size in
+// onUpdate so a label reports a real width/height. Everything else deliberately does NOT:
 //   fixed layout props   set ONCE at construction (the `style` arg below)
 //   runtime movement     draw-time offset math through getLayoutPosition (scroll, drag, slider
 //                        fill) — applies at draw AND hit-test with no reflow

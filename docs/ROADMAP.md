@@ -29,7 +29,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
 
-**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` (rule: CLAUDE.md → ECS Bootstrap), and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Rename in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so **run the game after a rename batch, not just compile**; the same applies to any API Naming rename (CLAUDE.md → API Naming).
+**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` (rule: CLAUDE.md → ECS Bootstrap), and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Rename in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Quirks, the `.sort` crash), so **run the game after a rename batch, not just compile**; the same applies to any API Naming rename (CLAUDE.md → API Naming).
 
 ### Comment Refactor
 
@@ -45,7 +45,7 @@ Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 c
 
 Pre-existing issues noticed in passing and deliberately left untouched:
 
-- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
+- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note). Manual-key path only, so the regex has never been exercised. The `screenshots/` subdir is NOT a defect (`screen_save` creates missing dirs), but the shot lands in the build tree rather than the save dir (GMRT.md → `working_directory`). Fix: assemble the timestamp without regex.
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
 - **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the _Audio group_ row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
 

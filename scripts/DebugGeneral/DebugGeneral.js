@@ -43,7 +43,7 @@ globalThis.DebugGeneral = class DebugGeneral {
       },
       update() {
         const d = this.data;
-        // fps/fps_real read 0 in JS (GMRT.md §2) — measure frames per
+        // fps/fps_real read 0 in JS (GMRT.md → Quirks) — measure frames per
         // current_time second instead (runs while the overlay is open)
         this._frames++;
         const now = current_time;

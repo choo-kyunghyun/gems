@@ -38,7 +38,7 @@ globalThis.DebugRender = class DebugRender {
     build() {
       // list built here (not a static field) so the class refs resolve at
       // call time — a static field referencing a class that loads AFTER this
-      // script faults at load (GMRT.md §2: static-field init).
+      // script faults at load (GMRT.md → Quirks: static-field init).
       const list = [
         [RenderDebugEntity, "BBox"],
         [RenderDebugTileMap, "Tiles"],
