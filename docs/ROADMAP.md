@@ -1,83 +1,14 @@
 # Roadmap
 
-## Media
+Where the project is going: what is being worked on now, what is known broken, and what is planned. Contracts live in the code (CLAUDE.md → Comments law 2); this file holds only intent.
 
-- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
-- A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
+## Current Works
 
-## UI
+One pass over `scripts/`, file by file, applying two rule sets at once: the **Code Review** batches below are the vehicle, and each file's slice of the **Comment Refactor** rides along with it. No standalone comment sweep — a file is touched once.
 
-- Killfeed UI
-- Click cue on non-button widgets (only `UIButton`/`UINav` activation cues today — a mouse click on a slider/checkbox/list is silent)
-
-## Gameplay
-
-- Modular turret
-  - Auto turrets fire mounted weapons
-  - Mountable turrets
-- Explosive like grenade and mine (`snd_explosion_large` is its reserved SFX)
-- Minify furnitures
-- Settlement and outpost (foundation done — Gameplay `Settlement`: player-owned territory zone with Name/Faction, build mode gated to owned land; outpost variant + settlement-management UI remain)
-- Farming and fishing (Farming layers on a settlement's lands)
-- Gamepad reloading
-- More role-playing optional components
-  - Biological sex(Display as XX and XY)
-  - Entity age
-- Gacha capsule with new UI
-- Raid event: Defend the settlement (`mus_ambient_emergency` is its reserved BGM)
-- Radio
-- UI Concept: Smart HUD
-
-### Build Mode
-
-- Blueprint UI
-- Drag to select
-
-## Editor
-
-- Prefabs
-
-## Engine
-
-Deferred chunk-streaming work (moved from docs/architecture/rpg.md):
-
-- Per-chunk _build_ persistence (player builds inside streamed chunks)
-- On-disk chunk saves (beyond the in-session cache + save-game delta)
-- Throttled distant ticks (LOAD-ring entities simulate at low rate)
-
-## Known Issues & Deferred Cleanups
-
-Pre-existing issues noticed in passing and deliberately left untouched:
-
-- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
-- **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
-- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the _Audio group_ row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
-
-## Comment Refactor
-
-Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). **No standalone sweep** — fold into the Code Review batches below and into files already being touched. Per file:
-
-1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
-2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `UIElement`, `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
-3. **Invariants**: replace every re-explanation with the one-line citation form (law 3); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
-4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
-5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
-
-## JSDoc Contract Migration
-
-Dissolve the frozen `docs/architecture/*.md` ledgers into JSDoc contract blocks at owning declarations (rules: CLAUDE.md → Comments law 2 + the ARCHITECTURE.md routing rule); ARCHITECTURE.md stays the single doc (layer map, cross-cutting invariants, area index). **No standalone sweep** — migrate an area's ledger in the Code Review batch covering its files (`levels.md` is the small dry-run candidate; `rpg.md` the stress test, spanning batches 10–14). Per ledger claim, in order:
-
-1. **Verify against the code first** — the ledgers are known to drift; the code is truth. A wrong claim is dropped and reported, never migrated.
-2. **Already evident in code/JSDoc** (restated API shape, naming, behavior) → delete.
-3. **Single-owner contract** → a JSDoc contract block at the owning declaration (a cross-file mechanism owns to its enforcing/orchestrating site); other sites cite.
-4. **Cross-cutting invariant** → ARCHITECTURE.md; **runtime quirk** → GMRT.md (most already live there — cite, don't copy).
-5. When a ledger empties, delete the file and replace its ARCHITECTURE.md index entry with the area's owning-file list.
-
-## Code Review (file-by-file)
+### Code Review (file-by-file)
 
 Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark **Done** as batches finish.
-
-Each batch also renames its files' legacy `world` store identifiers (system params, `this.world` bindings) to `entities` — the two-layer restructure's deferred rename (rule: CLAUDE.md → ECS Bootstrap). GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so run the game after a rename batch, not just compile. Each batch additionally applies its files' slice of the Comment Refactor, the JSDoc Contract Migration (sections above), and the CLAUDE.md API Naming rule — an identifier rename follows the same run-after rule.
 
 | #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
@@ -97,3 +28,76 @@ Each batch also renames its files' legacy `world` store identifiers (system para
 | 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                                     |      |
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
+
+**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` (rule: CLAUDE.md → ECS Bootstrap), and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Rename in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md §2, the `.sort` crash), so **run the game after a rename batch, not just compile**; the same applies to any API Naming rename (CLAUDE.md → API Naming).
+
+### Comment Refactor
+
+Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). Per file:
+
+1. **Relocate before deleting.** A comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
+2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
+3. **Invariants**: replace every re-explanation with the one-line citation form (law 3); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
+4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
+5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+
+## Known Issues
+
+Pre-existing issues noticed in passing and deliberately left untouched:
+
+- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note) and saves into a `screenshots/` subdir that `screen_save` does not create. Manual-key path only. Fix: assemble the timestamp without regex and use a bare filename.
+- **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
+- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the _Audio group_ row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
+
+### gm-cli issue ([#231](https://github.com/YoYoGames/gm-cli/issues/231))
+
+**`manual read`/`manual open` die on every query** (gm-cli 2.2.0, open upstream — reported independently, so it is not machine-local). Both commands resolve queries through the hosted search service `https://gx.mcp.opr.gg/ask`, which answers HTTP 500 ("Error searching the manual."); the CLI `JSON.parse`s the body without checking `response.ok`, so it dies with `SyntaxError: Unexpected token 'E'` instead of a clean error. The manual sites themselves (`manual.gamemaker.io/monthly/` and `/lts/`) are up — only the search backend is down. The missing `response.ok` check is worth fixing upstream regardless of the outage.
+
+**Local patch** (npm global — machine state, not repo code; **wiped by any gm-cli reinstall or upgrade**, so re-check this entry then, and drop it once upstream ships a fix): `dist/chunk-YRXPR43G.js` (the bundled `searchManual`, shared by both commands, under `%APPDATA%\npm\node_modules\@gamemaker\gm-cli\`) is replaced with a version that tries the service first (self-healing if it returns), then falls back locally — page-name index from the `YoYoGames/GameMaker-Manual` tree (branch `2026.1.0-main`, cached beside the chunk as `manual-pages.json`; delete to refresh after a manual release), fuzzy name match, fetch from `manual.gamemaker.io/monthly/` (`/lts/` on 404), HTML-to-Markdown. The original chunk is kept beside it as `chunk-YRXPR43G.js.orig` — restore to revert. Limit: the fallback matches page names only (exact function names best; a section-title query lands on its owning page, e.g. "Flex Panel Struct Members" → `Flex_Panels.htm`) — no semantic search.
+
+## Planned Features
+
+### Media
+
+- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
+- A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
+
+### UI
+
+- Killfeed UI
+- Click cue on non-button widgets (only `UIButton`/`UINav` activation cues today — a mouse click on a slider/checkbox/list is silent)
+- UI concept: Smart HUD
+
+### Gameplay
+
+- Modular turret
+  - Auto turrets fire mounted weapons
+  - Mountable turrets
+- Explosive like grenade and mine (`snd_explosion_large` is its reserved SFX)
+- Minify furnitures
+- Settlement and outpost (foundation done — Gameplay `Settlement`: player-owned territory zone with Name/Faction, build mode gated to owned land; outpost variant + settlement-management UI remain)
+- Farming and fishing (Farming layers on a settlement's lands)
+- Gamepad reloading
+- More role-playing optional components
+  - Biological sex (display as XX and XY)
+  - Entity age
+- Gacha capsule with new UI
+- Raid event: Defend the settlement (`mus_ambient_emergency` is its reserved BGM)
+- Radio
+
+### Build Mode
+
+- Blueprint UI
+- Drag to select
+
+### Editor
+
+- Prefabs
+
+### Engine
+
+Deferred chunk-streaming work (engine is `ChunkManager`):
+
+- Per-chunk _build_ persistence (player builds inside streamed chunks)
+- On-disk chunk saves (beyond the in-session cache + save-game delta)
+- Throttled distant ticks (LOAD-ring entities simulate at low rate)
