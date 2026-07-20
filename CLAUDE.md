@@ -108,6 +108,7 @@ The repo bundles standalone tools under `tools/` — not part of the game itself
 - **Global exposure**: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
 - **Formatter**: [Prettier](https://prettier.io/) with `{ "bracketSameLine": true }` (MDN config). Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 - **Register**: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, bold for the defined term or the one load-bearing clause of an entry, tables for enumerable facts.
+- **Commits**: a message is clear and concise — a subject line saying what changed, and a body only for the why the diff cannot show. Multiple changes are a **list**, one line each, not a run of prose paragraphs. A message never names another repository (the `owner/repo#n` form posts a cross-reference into that repo): cite an upstream ticket by tool + bare number (`gm-cli #231`, GMRT `#15095`), and leave a full URL to the doc that owns the fact.
 
 ### Comments
 
