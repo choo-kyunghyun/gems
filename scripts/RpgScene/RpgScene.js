@@ -111,6 +111,9 @@ globalThis.RpgScene = {
 
   // incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
   // it), stop + dim it, start the recovery timer.
+  // Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
+  // its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
+  // so being knocked out can't silently shrink the player's bag.
   _goDown(scene, id, m, h) {
     const world = scene.world;
     world.detach(id, Health);

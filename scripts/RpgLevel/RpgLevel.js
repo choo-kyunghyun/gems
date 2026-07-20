@@ -13,6 +13,9 @@ const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px conve
 globalThis.RpgLevel = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
+  // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a scene owns
+  // exactly one entity store — so map size is bounded by both. The chunked overworld streams
+  // WITHIN one such map; the graph is how the world grows past it.
   MAPS: {
     overworld: "levels/overworld.json",
     interior_01: "levels/interior_01.json",
@@ -108,10 +111,34 @@ globalThis.RpgLevel = {
       // RenderWalls buckets cells by TileType id and submits per material (RpgMap wires it).
       // materials[0] is the default (file walls, the editor, streamed occupancy views).
       materials: [
-        { key: "brick", id: 1, name: "벽", sprite: "spr_tex_brick", color: "#707888" },
-        { key: "concrete", id: 2, name: "콘크리트 벽", sprite: "spr_tex_concrete", color: "#9aa0a4" },
-        { key: "metal", id: 3, name: "금속 벽", sprite: "spr_tex_metal", color: "#7d8a96" },
-        { key: "plank", id: 4, name: "판자 벽", sprite: "spr_tex_plank", color: "#a08050" },
+        {
+          key: "brick",
+          id: 1,
+          name: "벽",
+          sprite: "spr_tex_brick",
+          color: "#707888",
+        },
+        {
+          key: "concrete",
+          id: 2,
+          name: "콘크리트 벽",
+          sprite: "spr_tex_concrete",
+          color: "#9aa0a4",
+        },
+        {
+          key: "metal",
+          id: 3,
+          name: "금속 벽",
+          sprite: "spr_tex_metal",
+          color: "#7d8a96",
+        },
+        {
+          key: "plank",
+          id: 4,
+          name: "판자 벽",
+          sprite: "spr_tex_plank",
+          color: "#a08050",
+        },
       ],
     },
     {

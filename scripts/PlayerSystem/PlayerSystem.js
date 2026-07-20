@@ -247,7 +247,7 @@ globalThis.PlayerSystem = {
       AnimationSystem.set(anim, state);
     }
 
-    // facing: flip xscale ±1 toward the last horizontal move
+    // facing: flip the xscale SIGN toward the last horizontal move
     const vis = world.get(Visual, id);
     if (vis !== undefined) {
       // flip by SIGN only — |xscale| carries the baked size factor (RPG_PLAYER_SCALE), so a

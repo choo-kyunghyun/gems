@@ -430,6 +430,9 @@ globalThis.BuildMode = {
 
   // build the HUD + init per-scene state. call once from create().
   build(scene) {
+    // Player builds are SCENE-tracked, never chunk-managed (like the squad): a streamed chunk
+    // unloading must not take the player's wall with it. They persist across map changes by
+    // construction — a visited map is parked whole in the pool, not rebuilt from file.
     scene._built = {}; // "gx,gy" -> tile item id (wall/floor): deconstructable tiles
     scene._builtEnts = {}; // "gx,gy" -> { ent, itemId }: deconstructable built entities
     scene._buildActive = false;

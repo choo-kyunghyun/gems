@@ -9,7 +9,10 @@
 // turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
 const RPG_SHOT_RANGE_SECS = 1.5;
 
-// per-actor AI memory + tuning; `target` is the chased entity id (-1 = none)
+// per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
+// MUST survive chunk demote/restore, which re-creates the actor under a NEW id: so a Brain never
+// stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
+// callbacks, and state callbacks receive (world, id) instead of closing over either.
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain

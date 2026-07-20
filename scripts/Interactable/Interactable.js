@@ -6,6 +6,10 @@
 // the target). The world cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch — NOT
 // mouse_x/mouse_y, which are wrong under the pitched camera). Per-frame/open state on the scene (_inter*).
 // Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
+// THE STATION-WINDOW DRIVER: update() also owns the open windows' lifecycle — it range-closes the
+// one recorded in scene._interOpenId and sets its _*Dirty flag when the target's contents change.
+// The protocol every station window shares: the manager refreshes only when its flag is set, so
+// gameplay code that mutates an inventory elsewhere must set the flag (e.g. scene._storeDirty).
 globalThis.Interactable = {
   RADIUS: 72, // interact range (px); 32px-cell scale
 

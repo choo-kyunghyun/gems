@@ -4,7 +4,8 @@
 //
 // `caliber` gates which guns chamber it. The four base stats:
 //   • mass        — heavier hits harder (kinetic power ~ mass * velocity^2) but slower.
-//   • velocity    — muzzle speed; drives both travel speed and kinetic power.
+//   • velocity    — muzzle speed; drives kinetic power and hitscan REACH. Shots are instant
+//                   (Combat.hitscan) — nothing travels, so this is never a speed.
 //   • power       — flat base power before the kinetic term.
 //   • penetration — lowers target defense at the hit (Combat.mitigate) — AP rounds bite armor.
 //
@@ -14,7 +15,7 @@ globalThis.Ammo = class Ammo {
    * @param {Object} d
    * @param {string} [d.caliber]      gun-compatibility category (default "standard")
    * @param {number} [d.mass]         round mass — kinetic power factor (default 4)
-   * @param {number} [d.velocity]     muzzle velocity — travel speed + kinetic power (default 600)
+   * @param {number} [d.velocity]     muzzle velocity — kinetic power + hitscan reach (default 600)
    * @param {number} [d.power]        flat base power before the kinetic term (default 1)
    * @param {number} [d.penetration]  armor penetration — lowers target defense at the hit (default 0)
    */

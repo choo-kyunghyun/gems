@@ -8,11 +8,12 @@
 //                            scan can't see saves — the index is the source of truth).
 //   saves/<slot>/manifest.json   the JSON half of the hybrid bundle (metadata, world-sim, and each
 //                            map's component export — variable/structured data).
-//   saves/<slot>/<blob>.bin      the binary half (dense tile grids; chunk cache is the deep follow-up).
+//   saves/<slot>/<blob>.bin      the binary half, for dense data. NOTHING emits one today: the
+//                            resident tile grid replays from `built` instead of being serialized,
+//                            and the chunk cache is a delta small enough for the manifest.
 //
 // Passes run in insert order both ways; capture and restore live on the same pass object so they
-// can't drift. RESTORE is the follow-up step — the passes below capture fully; their restore()s are
-// stubs pending the create() load-branch.
+// can't drift.
 globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
@@ -293,8 +294,8 @@ globalThis.SaveGame = {
     // v1 (Full-session): rebuild the ACTIVE map fresh from file and re-arrive the SAVED squad
     // (player + companions) through the existing portal-transfer machinery, then drop the player
     // back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
-    // TODO(deep): per-map build state (grid unpack + built entities + zones), non-active maps,
-    // and the ChunkManager cache pass — see docs.
+    // Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
+    // parked map restores when first portaled to rather than up front.
     restore(ctx) {
       const scene = ctx.scene;
       const manifest = ctx.manifest;

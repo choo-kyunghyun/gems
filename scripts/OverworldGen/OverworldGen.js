@@ -8,8 +8,9 @@
 //
 // Contract: `create` returns a ChunkGenerator — the source ChunkManager holds directly:
 // generate(cx,cy) → { terrain, solid, walls, spawns } (absolute grid coords, deterministic from
-// (cx, cy, seed, pass salt) — the same seed MUST rebuild the same world, since a cold rebuild
-// after map eviction re-runs pregeneration; each pass draws from its OWN salted stream, so
+// (cx, cy, seed, pass salt) — the same seed MUST rebuild the same world, since a save stores only
+// the touched-chunk delta and the rest regenerates next session; each pass draws from its OWN
+// salted stream, so
 // adding/removing a pass never reshuffles the others' output), plus the `palette` field + the
 // samplers (materialAt/costAt/terrain/solidTerrain).
 //

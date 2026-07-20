@@ -1,5 +1,15 @@
 // Quest definitions + active progress. Scene drives progress via report(); caller applies rewards on turn-in.
 // Per-quest state: { progress: number[], ready: bool, done: bool } — ready = all objectives met, done = turned in.
+/**
+ * @typedef {Object} QuestDef
+ * @property {string} id
+ * @property {string} name i18n key @property {string} [desc] i18n key
+ * @property {Array<{kind:"kill"|"collect"|"reach", target:string, count:number}>} objectives
+ *   `target` is a component token for "kill", an item id for "collect", a marker for "reach";
+ *   `progress[i]` counts up to `objectives[i].count`.
+ * @property {Array<{itemId:string, qty:number}>} [rewards] item-only BY DESIGN — there is no XP,
+ *   so a reward can never be a power shortcut around gathering (see RpgProgression).
+ */
 globalThis.QuestLog = {
   defs: new Map(),
   defOrder: [],

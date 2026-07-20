@@ -8,7 +8,8 @@
  * @property {string} itemId
  * @property {number} qty
  * @property {string} [uid]      instance id (gear only) — what Equipment.slots reference
- * @property {string[]} [mods]   installed mod itemIds (instance only; flat, GMRT-safe)
+ * @property {Object<string,string>} [mods]  instance only: installed attachments as
+ *   { weapon slotId -> WeaponMod itemId } — a MAP, not a list, since a slot holds at most one
  *
  * @typedef {Object} Inventory
  * @property {InventorySlot[]} slots

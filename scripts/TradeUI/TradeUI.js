@@ -3,7 +3,9 @@
 // column layout: LEFT = stock (BUY), RIGHT = bag (SELL), each a sortable UITable with a Price column.
 // all logic is TradeSystem; this file is presentation + the double-click/amount gesture, plus the
 // sell-side worn/favorited guard (it reads the player's Equipment/Favorites). state on scene (_trade*).
-// opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant.
+// opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant. It closes itself past
+// RPG_TRADE_RANGE: Interactable's range-close covers only windows opened from an Interaction, and a
+// merchant NPC has none — so without this, walking away would leave the shop open.
 globalThis.TradeUI = {
   build(scene) {
     scene._tradeMerchantId = -1;

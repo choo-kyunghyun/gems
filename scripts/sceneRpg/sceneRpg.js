@@ -273,6 +273,13 @@ class _SceneRpgClass {
     this._buildUI();
   }
 
+  // THE reference orchestration for a genre scene — the shape, not just this game's order:
+  //   once per frame   window edge-toggles, input context, sleep check (all before the loop)
+  //   per tick         snapshot -> the physics Pipeline (headed by the player brain) -> damage,
+  //                    death, drops, quest/achievement checks -> flush
+  //   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
+  //   LAST             portals — a door swaps the world out from under everything above
+  // Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
   step() {
     // no pause gate — obj_game skips scene.step() while the SystemMenu is open
 
@@ -282,6 +289,9 @@ class _SceneRpgClass {
 
     // sleeping (bed): fast-forward Time.scale while Drowsiness drains; any input wakes. Checked
     // BEFORE the tick loop so the waking press wakes instead of moving this frame.
+    // WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per
+    // frame off Time.delta) consume the whole scaled delta, while the fixed-step sim behind them
+    // is capped at World.sim.maxTicks per frame. Hours pass; the tick loop does not run 50x.
     if (this._sleeping) {
       if (this._wakeInput()) {
         this._sleeping = false;

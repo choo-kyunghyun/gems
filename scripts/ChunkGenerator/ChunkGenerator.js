@@ -11,9 +11,10 @@
 // (PrefabStamp, scatters) respect the claim by early-outing.
 //
 // Determinism: each pass draws from its OWN stream, seeded from (cx, cy, seed, pass salt) — so
-// the same seed lays out the same world on every BUILD (visits are served from the manager's
-// pregenerated store — ChunkManager.pregenerate — but a cold rebuild after map eviction re-runs
-// generation and must reproduce it), AND inserting/removing a pass never reshuffles the other
+// the same seed lays out the same world on every BUILD — in-session visits are served from the
+// manager's pregenerated store (ChunkManager.pregenerate), but a SAVE keeps only the touched-chunk
+// delta, so every untouched chunk must regenerate identically in a later session, and adjacent
+// chunks must agree at their seam — AND inserting/removing a pass never reshuffles the other
 // passes' output (streams are independent, unlike one shared per-chunk stream). Declare `salt`
 // (any small int, unique per pass) for that stability — an undeclared salt falls back to the
 // pass INDEX, which re-couples streams to list order.

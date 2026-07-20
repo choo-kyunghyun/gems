@@ -81,7 +81,8 @@ globalThis.ChunkManager = class ChunkManager {
     // WHOLE records of unloaded chunks, keyed "cx,cy"; restored on revisit so a chunk never
     // re-runs generate() (its terrain/walls/spawns are kept) and modified entities persist.
     // pregenerate() fills it for every in-bounds chunk up front — the world STORE.
-    // in-session only; disk-backing is the follow-up.
+    // exportCache/importCache carry the touched-chunk delta into a save (SaveGame's maps pass);
+    // untouched chunks are omitted — they regenerate from the seed.
     this._cache = {};
     // last player chunk — fast-path skips the membership diff until a border is crossed
     this._pcx = undefined;

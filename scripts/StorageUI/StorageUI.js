@@ -2,6 +2,8 @@
 // shown/hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI) over a two-column
 // UITable layout. tables swap rows via setRows (not rebuilt) so column sort survives every transfer.
 // open/close/prompt owned by Interactable; all state on scene (_store* namespace).
+// Caller contract: set scene._storeDirty whenever the bag changes from outside this file (a
+// craft, a pickup, an equip) — refresh is flag-driven and will otherwise show stale rows.
 globalThis.StorageUI = {
   build(scene) {
     scene._storageId = -1;

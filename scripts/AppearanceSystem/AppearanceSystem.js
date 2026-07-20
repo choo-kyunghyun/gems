@@ -9,6 +9,7 @@
 globalThis.AppearanceSystem = {
   // slot -> draw-order policy: back layers render behind the body, front layers over it in order
   BACK_SLOTS: ["backpack"],
+  // weapon stays LAST so bespoke posed `worn` art draws over the armor it would be held in front of
   FRONT_SLOTS: ["armor", "trinket", "weapon"],
   HELD_SCALE: 0.5, // anchored held-icon size relative to the body's draw scale
 

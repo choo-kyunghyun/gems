@@ -324,7 +324,9 @@ globalThis.RpgMap = {
     // empty up front so the persistence import + RenderZone have a target before anything is founded.
     Settlement.channel(scene.level);
     // Authored non-player settlements (optional meta.settlements, mirroring meta.climate below):
-    // faction hubs / raider camps. A data-driven capability — none are authored in the demo maps yet.
+    // faction hubs / raider camps. The overworld authors one — the colony "hub", whose NPCs and
+    // stockpile chest are its Residents — so the player's own founded settlement and an authored
+    // faction's coexist on one map, which is the case the sid-keyed model exists to support.
     const settlements = data.meta.settlements;
     if (settlements !== undefined)
       for (let i = 0; i < settlements.length; i++) {

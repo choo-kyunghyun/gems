@@ -72,6 +72,8 @@ globalThis.FollowerSystem = {
 
   // The ONE home for the wait/follow transition — pairs the state flip with its carry-bonus
   // delta so the invariant can't be half-applied. No-op if already in `state`.
+  // The bonus is baked into the player's live Inventory, and the player migrates as a whole
+  // entity, so it rides a map change with no re-apply — never recompute it per map.
   setState(world, playerId, fid, state) {
     const f = world.get(Follower, fid);
     if (f === undefined || f.state === state) return;
