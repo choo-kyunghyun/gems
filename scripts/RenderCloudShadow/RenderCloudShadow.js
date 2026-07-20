@@ -57,8 +57,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const prevAlpha = draw_get_alpha();
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
-    // Screen-ortho orientation PROBED on GMRT 0.20 (see docs/architecture/renderer.md / RenderLighting): up +1 keeps
-    // X true, NEGATIVE ortho height cancels the overlay path's Y-flip vs the world camera.
+    // up +1, NEGATIVE ortho height — the screen-space overlay orientation contract (RenderLighting).
     matrix_set(
       matrix_view,
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),

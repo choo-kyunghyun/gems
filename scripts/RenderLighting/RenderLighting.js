@@ -111,9 +111,12 @@ globalThis.RenderLighting = class RenderLighting {
     //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
-    // Screen-ortho orientation PROBED on GMRT 0.20 (see docs/architecture/renderer.md): up +1 keeps X true (up -1
-    // X-mirrored the composite — the lantern flipped sides at a clamped map border), and the
-    // NEGATIVE ortho height cancels the overlay path's inherent Y-flip vs the world camera.
+    // SCREEN-SPACE OVERLAY ORIENTATION — the contract for any pass that resets view/projection to
+    // surface-pixel ortho (RenderWeather, RenderCloudShadow cite this): up +1 AND a NEGATIVE ortho
+    // height. The overlay path carries an inherent Y-flip vs the world camera, which the negative
+    // height cancels. Negating the UP vector instead is a 180° ROLL: it X-MIRRORS the content about
+    // screen center — invisible for symmetric content (ambient fill, vignette, a centered blob), so
+    // it reads as correct until something off-center flips sides (the lantern at a clamped border).
     matrix_set(
       matrix_view,
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),

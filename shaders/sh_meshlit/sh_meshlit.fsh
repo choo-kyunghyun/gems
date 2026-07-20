@@ -5,6 +5,15 @@
 // by direction (tops bright at noon, camera-side faces catch a low sun, torch-facing sides
 // pop at night), while the light map keeps owning absolute darkness + the visible glow
 // pools. Sun strength goes to 0 at night (WorldClock.sunDir), leaving ambient + points.
+//
+// THE one world shader: every world pass submits through it in vox or textured mode, so
+// day/night stays RenderLighting's light map and never becomes a second shader. Rules for
+// adding to it (general GameMaker behaviour, not GMRT quirks):
+//   * declare each uniform in exactly ONE stage. Declared in both, shader_get_uniform hands
+//     back the VERTEX location while this stage reads a default 0 — the symptom is a shader
+//     quietly ignoring its flag, not a compile error. Pass vsh->fsh through a varying.
+//   * a caller guards with shaders_are_supported() + shader_is_compiled() and keeps a
+//     non-shader fallback (RenderMesh/RenderBillboard `_litOk`).
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_texcoord;

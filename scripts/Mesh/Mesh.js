@@ -1,5 +1,5 @@
 /**
- * VOLUME category of the art projection contract (docs/ROADMAP.md — Art Rework): boxy
+ * VOLUME category of the art projection contract (RenderBillboard): boxy
  * furniture/machines (bench, table, bed, crate, terminal) drawn by RenderMesh as real
  * depth-writing 3D geometry, so bodies sort against deep furniture per-pixel — no manual
  * layering. The counterpart of Visual: Visual = sprite/billboard, Mesh = 3D geometry.

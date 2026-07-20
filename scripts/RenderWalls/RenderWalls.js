@@ -1,5 +1,5 @@
 /**
- * WALLS pass of the art projection contract (docs/architecture/renderer.md): draws a solid tile
+ * WALLS pass of the art projection contract (RenderBillboard): draws a solid tile
  * layer as lit boxes. Per wall cell it emits a plan-view TOP quad (at -height) plus a
  * vertical SOUTH face only where the south neighbor is empty — the two orientations the
  * fixed-yaw pitched camera can ever see (the vox-kit contract). Hidden-face removal happens
@@ -159,8 +159,12 @@ globalThis.RenderWalls = class RenderWalls {
     const B = [];
     for (let i = 0; i < n; i++) {
       const m = this._mats[i];
-      bufT.push(tops[i] > 0 ? buffer_create(tops[i] * 6 * 24, buffer_fixed, 1) : -1);
-      bufS.push(souths[i] > 0 ? buffer_create(souths[i] * 6 * 24, buffer_fixed, 1) : -1);
+      bufT.push(
+        tops[i] > 0 ? buffer_create(tops[i] * 6 * 24, buffer_fixed, 1) : -1,
+      );
+      bufS.push(
+        souths[i] > 0 ? buffer_create(souths[i] * 6 * 24, buffer_fixed, 1) : -1,
+      );
       const uv = m.texOk ? sprite_get_uvs(m.sprite, m.frame) : [0, 0, 0, 0];
       U0.push(uv[0]);
       V0.push(uv[1]);
@@ -219,12 +223,18 @@ globalThis.RenderWalls = class RenderWalls {
     }
     for (let i = 0; i < n; i++) {
       if (bufT[i] !== -1) {
-        this._vbTops[i] = vertex_create_buffer_from_buffer(bufT[i], this._format);
+        this._vbTops[i] = vertex_create_buffer_from_buffer(
+          bufT[i],
+          this._format,
+        );
         buffer_delete(bufT[i]);
         vertex_freeze(this._vbTops[i]);
       }
       if (bufS[i] !== -1) {
-        this._vbSouths[i] = vertex_create_buffer_from_buffer(bufS[i], this._format);
+        this._vbSouths[i] = vertex_create_buffer_from_buffer(
+          bufS[i],
+          this._format,
+        );
         buffer_delete(bufS[i]);
         vertex_freeze(this._vbSouths[i]);
       }

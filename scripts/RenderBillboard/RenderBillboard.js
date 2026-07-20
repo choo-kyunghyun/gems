@@ -16,13 +16,19 @@ const BB_NORMAL_Y = 0.5; // bent normal (0, 0.5, -0.866) — unit, up = -z
 const BB_NORMAL_Z = -0.866;
 
 /**
+ * THE ART PROJECTION CONTRACT, of which this is the STANDING pass — how each category of art
+ * reaches the pitched 2.5D screen, so everything shares one depth model:
+ *   STANDING  upright sprites (here) — pawns, props with no volume
+ *   VOLUME    baked vox meshes (RenderMesh over the `Mesh` component) — deep furniture
+ *   WALLS     tile-layer boxes (RenderWalls) — the built environment
+ * All three write depth and light through sh_meshlit; the ground stays painter-order.
+ *
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
  * Starve / Paper Mario) via a world matrix, under the pitch-by-zoom camera
  * (CameraFollow.create2d `pitchCurve`). Upright — NOT perpendicular-to-view: a
  * camera-facing billboard under a mostly-top-down pitch reclines ~cos(pitch) of its height
- * along the ground, so at wall contact the body crossed the wall mesh's depth and buried
- * (adopted 2026-07-05, replacing the tilt = -cameraPitch tracking); an upright sprite's top
- * is always camera-side of geometry it stands in front of. The camera pitch foreshortens
+ * along the ground, so at wall contact the body crosses the wall mesh's depth and buries
+ * itself; an upright sprite's top is always camera-side of geometry it stands in front of. The camera pitch foreshortens
  * upright sprites to sin(pitch) of their height — the accepted look of the art rework.
  * Only geometry that writes depth — z-write on for this loop only so overlapping bodies
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.

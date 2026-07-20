@@ -26,7 +26,9 @@ const _BLOB8 = [
  * @property {0|16|47|"dual"|"corner"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
  *   "dual": half-cell-offset grid; samples 4 cells per display corner (TL=1 TR=2 BR=4 BL=8 →
  *   frame); transparent corners let lower terrain show through — stack dual passes per terrain
- *   for RPG-Maker-style A-over-B transitions.
+ *   for RPG-Maker-style A-over-B transitions. This path draws `frame = mask` flat: the weighted
+ *   full-tile variant pick for mask 15 lives only in TerrainStream — add it here too if a
+ *   variant-bearing sheet ever gets a RenderTileMap consumer.
  *   "corner": sub-tile; each filled cell drawn as 4 half-cell quads from a 13-piece sprite picked
  *   by the 3 neighbors at that corner (0 fill, 1-4 outer TL/TR/BR/BL, 5-6 edge top/bottom,
  *   7-8 edge left/right, 9-12 inner TL/TR/BR/BL). covers all 256 masks without _BLOB8.
