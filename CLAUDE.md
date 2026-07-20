@@ -77,7 +77,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 ### Runtime Log (`game.log`)
 
-The **`Log`** class (`Log.info/warn/error/debug`, see docs/architecture/utilities.md → _Log_) buffers timestamped lines that `obj_game` flushes to **`game.log`** in the save dir (`%LOCALAPPDATA%\gems\`) once per frame — `Read` it after a `gm-cli run` to confirm runtime behavior without watching the window (add temporary `Log.debug` lines around the code under test, then revert). An uncaught runtime fault is also recorded there by `Log.exception` (the registered unhandled-exception handler) as `UNHANDLED EXCEPTION: <message>` — if a run dies with no such line, the crash was native and the log simply stops at its last flush.
+The **`Log`** class (`Log.info/warn/error/debug`, contract in its JSDoc) buffers timestamped lines that `obj_game` flushes to **`game.log`** in the save dir (`%LOCALAPPDATA%\gems\`) once per frame — `Read` it after a `gm-cli run` to confirm runtime behavior without watching the window (add temporary `Log.debug` lines around the code under test, then revert). An uncaught runtime fault is also recorded there by `Log.exception` (the registered unhandled-exception handler) as `UNHANDLED EXCEPTION: <message>` — if a run dies with no such line, the crash was native and the log simply stops at its last flush.
 
 ### Visual Verification (Screenshot)
 

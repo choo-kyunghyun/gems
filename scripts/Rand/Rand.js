@@ -1,6 +1,6 @@
 // Deterministic hashing + PRNG over Park–Miller MINSTD integer-float math — the ONE home for the
 // idiom (formerly hand-mirrored in OverworldGen / TerrainStream / RenderCloudShadow). NOT xorshift32:
-// GMRT miscompiles its shift chain to a constant (see CLAUDE.md GMRT-Safe Idioms → PRNG); every
+// GMRT miscompiles its shift chain (docs/GMRT.md §2 — the xorshift entry); every
 // product here stays < 2^53, so plain number math is exact.
 //
 // Two families:

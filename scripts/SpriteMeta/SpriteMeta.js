@@ -6,7 +6,8 @@
 // from the sheets; hand-authored sprites get hand entries. Supersedes ArtDensity (density
 // is now one field of the def).
 //
-// Def shape (JSON-manifest-safe): { sprite: "spr_name", kind, density?, cell?, anchors? }
+// Def shape (JSON-manifest-safe):
+//   { sprite: "spr_name", kind, density?, cell?, variants?, anchors? }
 //   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read
 //            specific FIELDS, never switch on kind (its value is tooling/validation).
 //   density  source px per world px, default 1 (today's baseline). DECLARED, never inferred:
@@ -15,6 +16,11 @@
 //            never touches the BBox. Bake sites: EntityPreset.spawn / RpgPlayer.spawn;
 //            AnimationSystem refits when a graph state swaps sheets.
 //   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
+//   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate
+//            frames for one neighbor mask, so a large field of one terrain doesn't tile
+//            visibly. Only the dual-grid full-cell mask "15" is emitted today, and only
+//            TerrainStream picks from it (position-hashed, so a reloaded chunk re-picks the
+//            same frame); an undeclared sheet falls back to uniform weights past frame 15.
 //   anchors  { name: [[dx, dy], ...] } — named per-frame attachment points as offsets from
 //            the sprite ORIGIN in source px (dy negative = up). Emitted by the humanoid
 //            importer from the segmented parts (handR/head/...); read via anchor() — the
