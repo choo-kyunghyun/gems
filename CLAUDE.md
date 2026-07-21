@@ -98,9 +98,9 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its owning declaration, as long as it needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner, never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
 3. A file header is at most 2 lines: what the file is + one pointer.
 4. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`. Bare typed tags share a line.
-5. A known quirk or invariant is cited, never re-explained (`// Time.raw: UI runs while paused`); a workaround or deferral is a tag, not a story — the set is closed, `// BUG:` and `// TODO:`, nothing else (no FIXME/HACK/XXX/NOTE):
-   - `// BUG: #15549 no && reuse` — code shaped by a defect not ours to fix; name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview). The tag replaces the explanation: say only what a reader must not "clean up".
-   - `// TODO: static exists(fname)` — a gap small and local enough that the fix lands at that line. Anything cross-cutting is a docs/ROADMAP.md entry instead, as is a defect in our own code (→ Known Issues), which is reported to the user, never silently tagged.
+5. A known quirk or invariant is cited, never re-explained, and a tag is a pointer, not a story. Any conventional tag (`TODO`, `BUG`, `NOTE`, …) is fine, for our own defects and gaps alike:
+   - `[Runtime #00000]` marks code shaped by an upstream runtime defect — name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview), and say only what a reader must not "clean up".
+   - A tag stays small and local; anything cross-cutting or multi-step is a docs/ROADMAP.md entry instead.
 
 ### API Naming
 
