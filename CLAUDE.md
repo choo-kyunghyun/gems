@@ -78,46 +78,46 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 ### Code
 
-- Simple is best: shorter and leaner is better, as long as readability doesn't suffer — add nothing unnecessary.
-- Don't hide errors: write code so an error surfaces as early as possible; an object must never handle an error that is not its responsibility.
-- Language: JavaScript, not GML. All scripts in `scripts/` use `.js`.
-- Global exposure: scripts expose globals via `globalThis.Name = ...`. Components are string tokens; systems and classes follow the patterns in docs/ARCHITECTURE.md.
-- Formatter: Prettier with `{ "bracketSameLine": true }`. Working tree is CRLF (`core.autocrlf=true`); run `prettier --end-of-line crlf`. `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
+- **Simple is best**: shorter and leaner wins as long as readability doesn't suffer — add nothing unnecessary.
+- **Don't hide errors**: surface an error as early as possible; an object never handles an error that is not its responsibility.
+- **Language**: JavaScript, not GML — all scripts in `scripts/` use `.js`.
+- **Globals**: scripts expose globals via `globalThis.Name = ...`; component/system/singleton shapes follow docs/ARCHITECTURE.md.
+- **Formatter**: Prettier with `{ "bracketSameLine": true }`, run with `--end-of-line crlf` (working tree is CRLF). `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 
 ### Prose & Commits
 
-- Register: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, tables for enumerable facts, headings and lists for hierarchy.
-- Emphasis: plain prose is the default. Bold has one legal position — the term a list entry defines, at its very start, all-or-nothing across that list; never mid-sentence (order the sentence so the stress lands there), never around inline code. Italics are not used. CAPS carries a contract word an implementer must not soften (`NEVER`, `the LEFT operand`) and stays rare.
-- Record: verification is reported in conversation, never written into the repo — this is a public library, not a lab notebook: no run output, probe narration, or "verified <date>" stamps in code, docs, or commit messages. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
-- Citations: everything committed here is published — never add an external link, or any form that cross-references another project, without the user's explicit permission. An upstream ticket is cited by tool + bare number (`gm-cli #000`, GMRT `#00000`), NEVER a GitHub issue/PR URL or the `owner/repo#n` form, in any file or commit message: both post a cross-reference into the other repository. Naming a repo in prose is fine, as is a required license attribution URL (`README.md`'s font/model credits) or a plain URL to the doc that owns a fact; only the issue-reference forms are out.
-- Commits: `type(scope): what changed` — one line, imperative, ≤72 chars, pitched at the module or rule that changed, never at the file-by-file diff. The subject is normally the whole message; add a body only when the change would be misread without it, at most ~5 single-line items, nothing the diff already shows. A body that keeps growing means the commit is too big — split it. Tickets follow Citations above.
+- **Register**: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, tables for enumerable facts, headings and lists for hierarchy.
+- **Emphasis**: plain prose is the default. Bold marks only the term a list entry defines, at its start, all-or-nothing across that list — never mid-sentence, never around inline code. No italics. CAPS carries a contract word an implementer must not soften (`NEVER`) and stays rare.
+- **Record**: verification is reported in conversation, never written into the repo — no run output, probe narration, or "verified <date>" stamps in code, docs, or commit messages. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
+- **Citations**: never add an external link, or anything that cross-references another project, without the user's explicit permission. An upstream ticket is tool + bare number (`gm-cli #000`, GMRT `#00000`) in any file or commit message, NEVER an issue/PR URL or `owner/repo#n` — both post a cross-reference into the other repository. Naming a repo in prose, a required license-attribution URL, and a plain URL to the doc that owns a fact are fine.
+- **Commits**: `type(scope): what changed` — one line, imperative, ≤72 chars, pitched at the module or rule that changed, never at the file-by-file diff. A body only when the change would be misread without it: at most ~5 single-line items, nothing the diff already shows; a growing body means the commit is too big — split it. Tickets per Citations.
 
 ### Comments
 
-1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why. Never narrate what the code does, nor when or how a fact was established (Prose & Commits → Record). Existing comments are grandfathered — tighten only code you are already touching (docs/ROADMAP.md → Comment Refactor).
-2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its owning declaration and may be as long as the contract needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner, never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
+1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why — never what the code does, nor when or how a fact was established (Prose & Commits → Record). Existing comments are grandfathered; tighten only code you are already touching (docs/ROADMAP.md → Comment Refactor).
+2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its owning declaration, as long as it needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner, never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
 3. A file header is at most 2 lines: what the file is + one pointer.
-4. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`. Bare typed tags share a line; a tag takes its own line only when it carries a description.
-5. A known quirk or invariant is cited, never re-explained (`// Time.raw: UI runs while paused`), and a workaround or deferral is a tag, not a story — the set is closed, `// BUG:` and `// TODO:`, nothing else (no FIXME/HACK/XXX/NOTE):
-   - `// BUG: #15549 no && reuse` — code shaped by a defect that is not ours to fix; name the ticket, or the quirk when it is unticketed (`// BUG: GMRT const has no TDZ`). The tag replaces the explanation: the ticket owns the repro, docs/GMRT.md owns the rule, and the comment says only what a reader must not "clean up". Never write the ticket's state — it rots (docs/GMRT.md → Overview).
-   - `// TODO: static exists(fname)` — a gap small and local enough that the fix lands at that line. Anything cross-cutting or multi-step is a docs/ROADMAP.md entry instead, as is a defect in our own code (→ Known Issues), which is reported to the user, never silently tagged.
+4. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`. Bare typed tags share a line.
+5. A known quirk or invariant is cited, never re-explained (`// Time.raw: UI runs while paused`); a workaround or deferral is a tag, not a story — the set is closed, `// BUG:` and `// TODO:`, nothing else (no FIXME/HACK/XXX/NOTE):
+   - `// BUG: #15549 no && reuse` — code shaped by a defect not ours to fix; name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview). The tag replaces the explanation: say only what a reader must not "clean up".
+   - `// TODO: static exists(fname)` — a gap small and local enough that the fix lands at that line. Anything cross-cutting is a docs/ROADMAP.md entry instead, as is a defect in our own code (→ Known Issues), which is reported to the user, never silently tagged.
 
 ### API Naming
 
-Members are short idiomatic verbs and nouns — `Entity.create`/`Entity.remove`, `Item.get`, `File.read`. The owner is the namespace: a member never restates it and never pads with filler (`createNew`, `getInfo`, `doUpdate`); a class is named for what it is (`Entity`), not its role pattern (`EntityManager`, `EntityStorage`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`add` vs `addSlot`, `read` vs `readBuffer`). Everything else a long name would carry belongs in JSDoc, not the identifier.
+Members are short idiomatic verbs and nouns (`Entity.create`, `Item.get`, `File.read`); the owner is the namespace, so a member never restates it or pads with filler (`createNew`, `getInfo`). A class is named for what it is (`Entity`), not its role pattern (`*Manager`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`read` vs `readBuffer`); everything else a long name would carry belongs in JSDoc.
 
 ### Script Naming
 
-A script's directory + filename matches the identifier it exposes, cased to JS norms — PascalCase for a class or namespace object (classes `World`/`Camera`; namespace objects `CameraFollow`/`CameraFly`), camelCase for a plain function (`teardownScene`). A script exposing a family of free functions (no single matching global) is a PascalCase category bucket: the GemsUI kit (`GemsTheme`/`GemsContainers`/`GemsWidgets`/`GemsControls`), `Utils` (`noop`/`uuid`/`rem`), `UIDraw` (`drawUIArrow`/`drawUICheck`). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
+A script's directory + filename matches the identifier it exposes, cased to JS norms: PascalCase for a class or namespace object (`World`, `CameraFollow`), camelCase for a plain function (`teardownScene`), and a PascalCase category bucket for a family of free functions with no single matching global (`Utils`, `UIDraw`, the GemsUI kit). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
 
 ### Media Asset Naming
 
 `<prefix>_<family>_<subject>[_<variant>]`, all-lowercase snake_case after the GM type prefix (`spr_`/`snd_`/`mus_`/`sh_`/`ps_`/`obj_`/`rm_`).
 
-- `family` names the CONSUMER that reads the asset — a closed set: `item` (bag icons, auto-wired — `spr_item_<item_id>`, the item id verbatim), `wear` (paper-doll overlay strips), `tex` (wall/floor face textures), `terrain` (dual-grid terrain sets), `tile` (autotile piece sets), `ui` (widget chrome/glyphs), `fx` (particle art). A bare subject with no family tag is reserved for entity animation strips (`spr_human`, `spr_rat`).
-- `subject` is what a stranger would call the thing (1–3 words), material leading when it distinguishes same-object variants (`wooden_table`, `military_crate`), size/style qualifier last (`_small`, `_round`).
-- Game-data metadata never enters a name — manufacturer/rarity/stats/tier live on the def and reach the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol` encodes "which item", not "which company").
-- Sounds: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, `snd_button_click`, bare `snd_coin`), `mus_<track>` for music.
+- `family` names the CONSUMER that reads the asset — a closed set: `item` (bag icons, auto-wired — `spr_item_<item_id>`, the item id verbatim), `wear` (paper-doll overlay strips), `tex` (wall/floor face textures), `terrain` (dual-grid terrain sets), `tile` (autotile piece sets), `ui` (widget chrome/glyphs), `fx` (particle art). A bare subject with no family tag is reserved for entity animation strips (`spr_human`).
+- `subject` is what a stranger would call the thing (1–3 words), material leading when it splits same-object variants (`wooden_table`), size/style qualifier last (`_small`).
+- Game-data metadata (manufacturer/rarity/stats/tier) never enters a name — it lives on the def and reaches the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol`).
+- Sounds: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, bare `snd_coin`), `mus_<track>` for music.
 - Vox meshes (plain files, not GM assets): the `.vox` template, `.vbuf` bake, and `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
 
 ## GMRT
