@@ -98,10 +98,6 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 
 - Prefabs
 
-### Renderer
-
-- Rework `RenderCloudShadow` off per-frame blob stamping (a `draw_circle_color` lobe cluster per grid cell) to a scrolling tiling noise texture sampled as a ground-plane multiply, or a procedural-fbm shader — buys continuous organic coverage, O(1) cost regardless of view, and correct ground foreshortening under the pitched camera. The stamped pass works and is not a defect; this is a look/scalability upgrade. Texture route: bake one seamless tiling cloud-noise PNG (`spr_fx_cloud`) through a `tools/pixel-art-kit` generator (its `terrain_materials` tileable machinery already fits) and sample with wrapped UVs.
-
 ### Engine
 
 Deferred chunk-streaming work (engine is `ChunkManager`):
