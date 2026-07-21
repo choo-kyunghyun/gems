@@ -2,7 +2,7 @@
 // integrates velocity itself (sub-stepped to prevent tunneling); resolves per axis (wall-slide is free).
 // bodies it moves must NOT also be in MovementSystem.
 // SOLE writer of `Grounded.isGrounded` (true when a downward sub-step pushed the body back up) —
-// jump/coyote logic reads it live off the component (the &&-clobber quirk, GMRT.md → Quirks).
+// jump/coyote logic reads it live off the component (the &&-clobber quirk, GMRT.md → Runtime and Build Issues).
 // statics are bucketed into a per-tick spatial grid (_gridRebuild) so each body tests only its
 // local cells, not every static — see _resolve.
 globalThis.SolidSystem = {

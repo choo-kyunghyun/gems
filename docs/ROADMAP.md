@@ -29,7 +29,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
 
-**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store — and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Both legacy names are grandfathered: rename only in a file the batch is already touching, in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Quirks, the `.sort` crash), so run the game after a rename batch, never compile alone; the same applies to any API Naming rename (CLAUDE.md → API Naming).
+**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store — and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Both legacy names are grandfathered: rename only in a file the batch is already touching, in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Differences from ES2020, the `var` built-in-name collision), so run the game after a rename batch, never compile alone; the same applies to any API Naming rename (CLAUDE.md → API Naming).
 
 ### Comment Refactor
 
