@@ -1,10 +1,6 @@
 // Pure static easing helpers — callers own their animated state and pass current/target each frame.
 // `approach` defaults to Time.raw (wall-clock) so UI easing ignores time dilation; pass Time.delta for sim-space motion.
 globalThis.Tween = class Tween {
-  static lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
-
   // Exponential smoothing. Clamp prevents overshoot on a hitched frame.
   static approach(current, target, speed, dt = Time.raw) {
     return current + (target - current) * clamp(dt * speed, 0, 1);
