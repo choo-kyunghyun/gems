@@ -53,12 +53,6 @@ Pre-existing issues noticed in passing and deliberately left untouched:
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
 - **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the Audio group row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
 
-### gm-cli issue #231
-
-`manual read`/`manual open` die on every query. Both commands resolve queries through the hosted search service `https://gx.mcp.opr.gg/ask`, which answers HTTP 500 ("Error searching the manual."); the CLI `JSON.parse`s the body without checking `response.ok`, so it dies with `SyntaxError: Unexpected token 'E'` instead of a clean error. The manual sites themselves (`manual.gamemaker.io/monthly/` and `/lts/`) are up — only the search backend is down. The missing `response.ok` check is worth fixing upstream regardless of the outage.
-
-**Local patch** (npm global — machine state, not repo code; wiped by any gm-cli reinstall or upgrade, so re-check this entry then, and drop it once upstream ships a fix): `dist/chunk-YRXPR43G.js` (the bundled `searchManual`, shared by both commands, under `%APPDATA%\npm\node_modules\@gamemaker\gm-cli\`) is replaced with a version that tries the service first (self-healing if it returns), then falls back locally — page-name index from the `YoYoGames/GameMaker-Manual` tree (branch `2026.1.0-main`, cached beside the chunk as `manual-pages.json`; delete to refresh after a manual release), fuzzy name match, fetch from `manual.gamemaker.io/monthly/` (`/lts/` on 404), HTML-to-Markdown. The original chunk is kept beside it as `chunk-YRXPR43G.js.orig` — restore to revert. Limit: the fallback matches page names only (exact function names best; a section-title query lands on its owning page, e.g. "Flex Panel Struct Members" → `Flex_Panels.htm`) — no semantic search.
-
 ## Planned Features
 
 ### Media
