@@ -1,46 +1,46 @@
-// UINav — keyboard/gamepad menu navigation. Static singleton, not a UIComponent.
+// UINav — keyboard/gamepad menu navigation. Singleton, not a UIComponent.
 // An element is focusable via navActivate(el) (confirm) and/or navAxis(el, dir) (adjust).
 // GMRT: edge queries read once per frame; ring pulse uses Time.raw; no Map/Set iteration,
 // no cached primitive bool.
-globalThis.UINav = class UINav {
+globalThis.UINav = {
   /** @type {UIElement|null} */
-  static focused = null;
-  static engaged = false; // ring visible; set on first nav input
-  static suspended = false; // genre scenes set this so gameplay keys don't drive the menu
-  static color = c_aqua; // focus-ring color (overridden by demo theme)
-  static debugKey = vk_tab; // hold to show traversal overlay (-1 disables)
+  focused: null,
+  engaged: false, // ring visible; set on first nav input
+  suspended: false, // genre scenes set this so gameplay keys don't drive the menu
+  color: c_aqua, // focus-ring color (overridden by demo theme)
+  debugKey: vk_tab, // hold to show traversal overlay (-1 disables)
 
-  static _mx = 0; // last mouse pos — movement disengages
-  static _my = 0;
-  static _stickX = 0; // left-stick re-arm latches (0 = armed)
-  static _stickY = 0;
+  _mx: 0, // last mouse pos — movement disengages
+  _my: 0,
+  _stickX: 0, // left-stick re-arm latches (0 = armed)
+  _stickY: 0,
 
   // browse-mode key claim: a widget that owns the arrows this frame (UITable/UISlots browse)
   // re-asserts claimKeys(this) EVERY frame; update() consumes it once per frame, so a stale
   // claim self-heals the moment the owner stops updating.
   /** @type {Object|null} */
-  static _claimed = null;
+  _claimed: null,
 
   /** claim the nav keys for this frame — call every frame browse mode stays latched. @param {Object} owner */
-  static claimKeys(owner) {
+  claimKeys(owner) {
     UINav._claimed = owner;
-  }
+  },
 
   /** release on owner teardown so a claim asserted earlier this frame can't outlive it. @param {Object} owner */
-  static releaseClaim(owner) {
+  releaseClaim(owner) {
     if (UINav._claimed === owner) UINav._claimed = null;
-  }
+  },
 
   /** Reset on every scene swap. */
-  static reset() {
+  reset() {
     UINav.focused = null;
     UINav.engaged = false;
     UINav.suspended = false;
     UINav._claimed = null;
-  }
+  },
 
   /** Per-frame nav tick (Step_0, after UI.update). */
-  static update() {
+  update() {
     // gameplay owns the keys while suspended — don't collect or act
     if (UINav.suspended) {
       UINav.engaged = false;
@@ -113,10 +113,10 @@ globalThis.UINav = class UINav {
     const prevFocus = UINav.focused;
     UINav._move(items, inp.dx, inp.dy);
     if (UINav.focused !== prevFocus) Audio.playSfx({ sound: snd_button_muted });
-  }
+  },
 
   /** Draw the focus ring (Draw_75); Tab debug overlay when held. */
-  static draw() {
+  draw() {
     if (UINav.debugKey !== -1 && keyboard_check(UINav.debugKey)) {
       UINav._drawDebug();
     }
@@ -137,10 +137,10 @@ globalThis.UINav = class UINav {
     // old outward-growing loop drew.
     drawUIOutline(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 8, UINav.color, 2);
     draw_set_alpha(a0);
-  }
+  },
 
   // debug overlay: numbered focusables + directional target lines matching real _pick behavior
-  static _drawDebug() {
+  _drawDebug() {
     const items = UINav._collect();
     if (items.length === 0) return;
 
@@ -201,14 +201,14 @@ globalThis.UINav = class UINav {
     }
 
     uiDrawRestore(st);
-  }
+  },
 
-  static _dirLine(x1, y1, x2, y2, col) {
+  _dirLine(x1, y1, x2, y2, col) {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
-  }
+  },
 
   // walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background
-  static _collect() {
+  _collect() {
     const out = [];
     for (let i = UI.roots.length - 1; i >= 0; i--) {
       const r = UI.roots[i];
@@ -217,17 +217,17 @@ globalThis.UINav = class UINav {
       if (UINav._exclusive(r)) break;
     }
     return out;
-  }
+  },
 
-  static _exclusive(el) {
+  _exclusive(el) {
     for (let i = 0; i < el.components.length; i++) {
       const c = el.components[i];
       if (typeof c.navExclusive === "function" && c.navExclusive()) return true;
     }
     return false;
-  }
+  },
 
-  static _walk(el, out) {
+  _walk(el, out) {
     if (el._destroyed) return;
     if (UINav._focusable(el) && UINav._visible(el)) {
       const pos = el.getLayoutPosition();
@@ -244,42 +244,42 @@ globalThis.UINav = class UINav {
     for (let i = 0; i < el.children.length; i++) {
       if (el.children[i].enabled) UINav._walk(el.children[i], out);
     }
-  }
+  },
 
-  static _focusable(el) {
+  _focusable(el) {
     return (
       UINav._comp(el, "navActivate") !== null ||
       UINav._comp(el, "navAxis") !== null
     );
-  }
+  },
 
-  static _comp(el, method) {
+  _comp(el, method) {
     for (let i = 0; i < el.components.length; i++) {
       if (typeof el.components[i][method] === "function") {
         return el.components[i];
       }
     }
     return null;
-  }
+  },
 
   // valid non-zero rect. scrolled-out UIScroll items stay focusable (nav scrolls them into
   // view via _scrollIntoView), else a list taller than its viewport is unreachable by pad.
-  static _visible(el) {
+  _visible(el) {
     const pos = el.getLayoutPosition();
     return pos.width > 0 && pos.height > 0;
-  }
+  },
 
   // nudge each UIScroll ancestor so it follows focus
-  static _scrollIntoView(el) {
+  _scrollIntoView(el) {
     let p = el.parent;
     while (p !== null) {
       const sc = p.getComponent(UIScroll);
       if (sc !== undefined) UINav._scrollOne(sc, p, el);
       p = p.parent;
     }
-  }
+  },
 
-  static _scrollOne(sc, viewport, el) {
+  _scrollOne(sc, viewport, el) {
     const vp = viewport.getLayoutPosition(); // window (own scrollY not applied to self)
     const fp = el.getLayoutPosition(); // already offset by the current scroll
     const margin = 8;
@@ -294,14 +294,14 @@ globalThis.UINav = class UINav {
     const max = Math.max(0, contentH - vp.height);
     sc.scroll = clamp(sc.scroll + delta, 0, max);
     viewport.scrollY = sc.scroll; // apply now so the ring + next layout reflect it
-  }
+  },
 
-  static _indexOf(items, el) {
+  _indexOf(items, el) {
     for (let i = 0; i < items.length; i++) if (items[i].el === el) return i;
     return -1;
-  }
+  },
 
-  static _move(items, dx, dy) {
+  _move(items, dx, dy) {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
       UINav.focused = items[0].el;
@@ -313,13 +313,13 @@ globalThis.UINav = class UINav {
       UINav.focused = items[best].el;
       UINav._scrollIntoView(UINav.focused);
     }
-  }
+  },
 
   // Nearest focusable from `i` along (dx, dy), or -1. Edge-aware: `primary` = center
   // distance along dir, `perp` = cross-axis GAP between rects (0 when overlapping). So a
   // full-width row overlaps everything below it and Down picks the leftmost (ties by
   // collection order = visual order), not whatever sits nearest mid-screen.
-  static _pick(items, i, dx, dy) {
+  _pick(items, i, dx, dy) {
     const s = items[i];
     let best = -1;
     let bestScore = Infinity;
@@ -339,7 +339,7 @@ globalThis.UINav = class UINav {
       }
     }
     return best;
-  }
+  },
 
   /**
    * discrete directional edge read (keyboard arrows + dpad + Enter/Space/face1 confirm +
@@ -348,7 +348,7 @@ globalThis.UINav = class UINav {
    * _readInput (it needs the per-frame re-arm latches).
    * @returns {{dx:number, dy:number, confirm:boolean, cancel:boolean}}
    */
-  static readEdge() {
+  readEdge() {
     let dx = 0;
     let dy = 0;
     let confirm = false;
@@ -372,9 +372,9 @@ globalThis.UINav = class UINav {
     }
 
     return { dx, dy, confirm, cancel };
-  }
+  },
 
-  static _readInput() {
+  _readInput() {
     const e = UINav.readEdge();
     if (gamepad_is_connected(0)) {
       // Left stick → debounced edges: re-arm under 0.4, fire over 0.6.
@@ -392,5 +392,5 @@ globalThis.UINav = class UINav {
       }
     }
     return e;
-  }
+  },
 };

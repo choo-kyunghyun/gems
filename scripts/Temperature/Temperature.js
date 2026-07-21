@@ -5,58 +5,58 @@
 //
 // The diurnal swing is a cosine of the hour (trig works on GMRT 0.20; 0.19's Math.cos/Math.PI were
 // undefined/garbage, which had forced a keyframe-lerp table here).
-globalThis.Temperature = class Temperature {
-  static ZERO_C = 273.15; // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
+globalThis.Temperature = {
+  ZERO_C: 273.15, // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
 
   // Season baseline in °C — authored human-readably; now() adds ZERO_C for Kelvin. Kelvin/Celsius
   // share an increment, so the diurnal/weather/region deltas are unit-agnostic (no offset).
-  static _BASE = { spring: 14, summer: 26, autumn: 12, winter: 0 };
+  _BASE: { spring: 14, summer: 26, autumn: 12, winter: 0 },
 
   // Time-of-day delta, a cosine of the hour: peak = MEAN + AMP at DIURNAL_PEAK, trough = MEAN − AMP.
-  static DIURNAL_PEAK = 15; // hour of the daily high
-  static DIURNAL_MEAN = -0.5; // °C offset at the daily mean
-  static DIURNAL_AMP = 5.5; // °C half-swing amplitude
+  DIURNAL_PEAK: 15, // hour of the daily high
+  DIURNAL_MEAN: -0.5, // °C offset at the daily mean
+  DIURNAL_AMP: 5.5, // °C half-swing amplitude
 
   // Kelvin: ZERO_C + season baseline + diurnal swing + live weather modifier (climate-zone region
   // offset folds in via Weather.tempMod)
-  static now() {
+  now() {
     return (
       Temperature.ZERO_C +
       Temperature.seasonBase() +
       Temperature.diurnal() +
       Weather.tempMod()
     );
-  }
+  },
 
   // season baseline in °C for the current day (now() offsets it to Kelvin)
-  static seasonBase() {
+  seasonBase() {
     return Temperature._BASE[WorldClock.season().id];
-  }
+  },
 
   // time-of-day delta: a cosine peaking at DIURNAL_PEAK
-  static diurnal() {
+  diurnal() {
     const h = WorldClock.hour;
     const phase = (2 * Math.PI * (h - Temperature.DIURNAL_PEAK)) / 24;
     return Temperature.DIURNAL_MEAN + Temperature.DIURNAL_AMP * Math.cos(phase);
-  }
+  },
 
   // Kelvin → Celsius
-  static toCelsius(k) {
+  toCelsius(k) {
     return k - Temperature.ZERO_C;
-  }
+  },
 
   // Kelvin → Fahrenheit
-  static toFahrenheit(k) {
+  toFahrenheit(k) {
     return ((k - Temperature.ZERO_C) * 9) / 5 + 32;
-  }
+  },
 
   // HUD string in the player's tempUnit Setting ("K"|"C"|"F", default "K"). Owns the unit suffix;
   // the locale fonts carry the ° glyph so °C/°F render.
-  static display() {
+  display() {
     const k = Temperature.now();
     const unit = Settings.get("tempUnit");
     if (unit === "C") return Math.round(Temperature.toCelsius(k)) + " °C";
     if (unit === "F") return Math.round(Temperature.toFahrenheit(k)) + " °F";
     return Math.round(k) + " K";
-  }
+  },
 };

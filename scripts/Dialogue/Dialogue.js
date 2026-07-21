@@ -1,48 +1,48 @@
-// RPG-style paged dialogue box with typewriter reveal. standalone static singleton (not UIComponent).
+// RPG-style paged dialogue box with typewriter reveal. standalone singleton (not UIComponent).
 // reveals at `speed` chars/sec on Time.raw; advance with Enter/Space/gamepad-A or click (first snaps
 // page to revealed, next pages on; past the last closes + fires onComplete). UINav suspends while open.
-// isOpen() is a METHOD not a static getter — house style (the old GMRT miscompile report was dismissed).
-globalThis.Dialogue = class Dialogue {
-  static speedDefault = 45; // chars/sec
-  static lines = 3; // visible text rows (fixed box height; design pages to fit)
+// isOpen() is a METHOD not a getter — house style (the old GMRT miscompile report was dismissed).
+globalThis.Dialogue = {
+  speedDefault: 45, // chars/sec
+  lines: 3, // visible text rows (fixed box height; design pages to fit)
 
-  static marginX = 24;
-  static marginBottom = 24;
-  static maxWidth = 760;
-  static padX = 22;
-  static padY = 18;
+  marginX: 24,
+  marginBottom: 24,
+  maxWidth: 760,
+  padX: 22,
+  padY: 18,
 
-  static panelColor = Color.parse("#1b1e25");
-  static panelAlpha = 0.97;
-  static borderColor = Color.parse("#3c4350");
-  static textColor = Color.parse("#f1f4fa");
-  static plateColor = Color.parse("#272b34");
-  static plateBorder = Color.parse("#4a9eff");
-  static speakerColor = Color.parse("#74b6ff");
-  static chevronColor = Color.parse("#74b6ff");
-  static rad = 10;
+  panelColor: Color.parse("#1b1e25"),
+  panelAlpha: 0.97,
+  borderColor: Color.parse("#3c4350"),
+  textColor: Color.parse("#f1f4fa"),
+  plateColor: Color.parse("#272b34"),
+  plateBorder: Color.parse("#4a9eff"),
+  speakerColor: Color.parse("#74b6ff"),
+  chevronColor: Color.parse("#74b6ff"),
+  rad: 10,
 
-  static _open = false;
-  static _pages = []; // { speaker, text }
-  static _page = 0;
-  static _chars = 0; // revealed char count (fractional; floored to draw)
-  static speed = 45; // literal, not Dialogue.speedDefault — a static initializer can't
-  // reference its own class name on GMRT. keep in sync with speedDefault.
-  static _onComplete = null;
+  _open: false,
+  _pages: [], // { speaker, text }
+  _page: 0,
+  _chars: 0, // revealed char count (fractional; floored to draw)
+  speed: 45, // literal, not Dialogue.speedDefault — an initializer can't
+  // self-reference (the global binds after the literal). keep in sync with speedDefault.
+  _onComplete: null,
 
   // wrap cache — recomputed only when page or inner width changes
-  static _lines = [];
-  static _total = 0;
-  static _wrapPage = -1;
-  static _wrapW = -1;
+  _lines: [],
+  _total: 0,
+  _wrapPage: -1,
+  _wrapW: -1,
 
-  // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
-  static isOpen() {
+  // METHOD not a getter — house style, not a runtime dodge.
+  isOpen() {
     return Dialogue._open;
-  }
+  },
 
   /** @param {(string|{speaker?:string,text:string})[]} pages @param {Object} [opts] { speed, onComplete } */
-  static start(pages, opts = {}) {
+  start(pages, opts = {}) {
     const list = [];
     for (let i = 0; i < pages.length; i++) {
       const p = pages[i];
@@ -56,16 +56,16 @@ globalThis.Dialogue = class Dialogue {
     Dialogue.speed = opts.speed ?? Dialogue.speedDefault;
     Dialogue._wrapPage = -1; // force a re-wrap on the first frame
     Dialogue._open = list.length > 0;
-  }
+  },
 
   /** force-close, no onComplete (scene swap / abort). */
-  static clear() {
+  clear() {
     Dialogue._open = false;
     Dialogue._pages = [];
-  }
+  },
 
   /** typewriter + advance input (Step_0). */
-  static update() {
+  update() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
     Dialogue._ensureWrap(g);
@@ -86,9 +86,9 @@ globalThis.Dialogue = class Dialogue {
       if (mx >= g.x1 && mx <= g.x2 && my >= g.y1 && my <= g.y2) advance = true;
     }
     if (advance) Dialogue._advance();
-  }
+  },
 
-  static _advance() {
+  _advance() {
     // first press reveals the rest of the page; the next moves on
     if (Dialogue._chars < Dialogue._total) {
       Dialogue._chars = Dialogue._total;
@@ -104,10 +104,10 @@ globalThis.Dialogue = class Dialogue {
       Dialogue._chars = 0;
       Dialogue._wrapPage = -1; // re-wrap the new page
     }
-  }
+  },
 
   /** draw the box (Draw_75, after Toast). */
-  static draw() {
+  draw() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
     Dialogue._ensureWrap(g);
@@ -222,10 +222,10 @@ globalThis.Dialogue = class Dialogue {
     draw_set_halign(halign0);
     draw_set_valign(valign0);
     draw_set_alpha(alpha0);
-  }
+  },
 
   // box rect (centered, bottom-anchored) + inner text metrics
-  static _geom() {
+  _geom() {
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
     const w = Math.min(gw - Dialogue.marginX * 2, Dialogue.maxWidth);
@@ -244,9 +244,9 @@ globalThis.Dialogue = class Dialogue {
       innerW: w - Dialogue.padX * 2,
       lineH,
     };
-  }
+  },
 
-  static _ensureWrap(g) {
+  _ensureWrap(g) {
     if (Dialogue._wrapPage === Dialogue._page && Dialogue._wrapW === g.innerW)
       return;
     Dialogue._lines = Dialogue._wrap(
@@ -259,10 +259,10 @@ globalThis.Dialogue = class Dialogue {
     Dialogue._total = total;
     Dialogue._wrapPage = Dialogue._page;
     Dialogue._wrapW = g.innerW;
-  }
+  },
 
   // greedy word-wrap to `maxW`, honoring "\n". fixed here so the typewriter has a stable layout.
-  static _wrap(text, maxW) {
+  _wrap(text, maxW) {
     const lines = [];
     const paras = text.split("\n");
     for (let p = 0; p < paras.length; p++) {
@@ -280,5 +280,5 @@ globalThis.Dialogue = class Dialogue {
       lines.push(cur);
     }
     return lines;
-  }
+  },
 };

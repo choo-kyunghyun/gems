@@ -1,37 +1,37 @@
-// full-screen fade between scenes. standalone static singleton (not UIComponent).
+// full-screen fade between scenes. standalone singleton (not UIComponent).
 // fade-out → swap scene at full cover → fade-in, so the UI rebuild is hidden under the cover.
 // timer uses Time.raw so the fade ignores Time.scale.
-globalThis.SceneTransition = class SceneTransition {
-  static duration = 0.12; // seconds per direction — short so swaps feel responsive
-  static color = c_black; // cover color
-  static alpha = 0; // current cover alpha [0,1]
+globalThis.SceneTransition = {
+  duration: 0.12, // seconds per direction — short so swaps feel responsive
+  color: c_black, // cover color
+  alpha: 0, // current cover alpha [0,1]
 
-  static _phase = 0; // 0 idle, 1 fading out, 2 fading in
-  static _t = 0; // seconds elapsed in current phase
-  static _apply = null; // scene-swap callback, fired once at full cover
+  _phase: 0, // 0 idle, 1 fading out, 2 fading in
+  _t: 0, // seconds elapsed in current phase
+  _apply: null, // scene-swap callback, fired once at full cover
 
   /** @returns {boolean} fade running — SceneManager holds the pending scene until this clears. */
-  static isBusy() {
+  isBusy() {
     return SceneTransition._phase !== 0;
-  }
+  },
 
   /** begin a fade-out; `applyFn` runs once at full cover. @param {() => void} applyFn */
-  static start(applyFn) {
+  start(applyFn) {
     SceneTransition._apply = applyFn;
     SceneTransition._phase = 1;
     SceneTransition._t = 0;
-  }
+  },
 
   /** fade in from cover with no preceding fade-out (boot: first scene from black). */
-  static reveal() {
+  reveal() {
     SceneTransition._apply = null;
     SceneTransition._phase = 2;
     SceneTransition._t = 0;
     SceneTransition.alpha = 1;
-  }
+  },
 
   /** advance the fade timer; fire the swap at full cover (Step_0). */
-  static update() {
+  update() {
     if (SceneTransition._phase === 0) return;
     SceneTransition._t += Time.raw;
     const p = clamp(SceneTransition._t / SceneTransition.duration, 0, 1);
@@ -56,10 +56,10 @@ globalThis.SceneTransition = class SceneTransition {
         SceneTransition.alpha = 0;
       }
     }
-  }
+  },
 
   /** draw the cover at current alpha (Draw_75, last — veils the UI rebuild). */
-  static draw() {
+  draw() {
     if (SceneTransition.alpha <= 0) return;
     const a = draw_get_alpha();
     const c = SceneTransition.color;
@@ -76,5 +76,5 @@ globalThis.SceneTransition = class SceneTransition {
       false,
     );
     draw_set_alpha(a);
-  }
+  },
 };

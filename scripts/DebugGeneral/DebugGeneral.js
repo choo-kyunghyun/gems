@@ -2,10 +2,10 @@
  * DebugGeneral — the built-in "General"-window Debug sections (Time / Perf /
  * Log / Sim). Registered once from obj_game Create_0.
  */
-globalThis.DebugGeneral = class DebugGeneral {
+globalThis.DebugGeneral = {
   // sections close over `game` (obj_game) so live bindings track the current
   // scene across swaps.
-  static register(game) {
+  register(game) {
     Debug.add({
       name: "Time",
       data: { scale: 1, delta: 0, raw: 0 },
@@ -19,7 +19,7 @@ globalThis.DebugGeneral = class DebugGeneral {
         dbg_watch(ref_create(d, "raw"), "Raw");
       },
       update() {
-        // Time.* are class statics — staged through data (contract: Debug)
+        // Time.* staged through data (contract: Debug)
         const d = this.data;
         if (d.scale !== this._last) Time.scale = d.scale;
         else d.scale = Time.scale;
@@ -82,5 +82,5 @@ globalThis.DebugGeneral = class DebugGeneral {
         dbg_button("Restart Scene", () => game.scenes.restart());
       },
     });
-  }
+  },
 };

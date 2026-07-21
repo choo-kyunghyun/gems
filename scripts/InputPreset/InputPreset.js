@@ -7,16 +7,16 @@
  * nesting (see docs/GMRT.md). load() reads it back with native JSON.parse (parse handles nesting;
  * only stringify faults).
  */
-globalThis.InputPreset = class InputPreset {
-  static PATH = "input.json";
+globalThis.InputPreset = {
+  PATH: "input.json",
 
   /** @returns {boolean} whether the file was written. */
-  static save() {
+  save() {
     return File.write(this.PATH, json_stringify(Input.export()));
-  }
+  },
 
   /** Load + apply the keymap; missing file or bad shape is a no-op. @returns {boolean} applied. */
-  static load() {
+  load() {
     const raw = File.read(this.PATH);
     if (raw === undefined) return false;
     try {
@@ -32,5 +32,5 @@ globalThis.InputPreset = class InputPreset {
     } catch (_) {
       return false;
     }
-  }
+  },
 };

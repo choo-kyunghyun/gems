@@ -14,13 +14,13 @@
  * @property {function} [post]   post(world, id, ctx) spawn hook for what data can't express
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  */
-globalThis.EntityPreset = class EntityPreset {
+globalThis.EntityPreset = {
   /** @type {Map<string, EntityPresetDef>} */
-  static presets = new Map(); // id → FLATTENED def (string keys — never key a Map by a ref)
+  presets: new Map(), // id → FLATTENED def (string keys — never key a Map by a ref)
 
   /** Register defs in order; `extends` flattens against the already-registered base, so a
    *  chain works top-down. Re-registering an id replaces it. @param {EntityPresetDef[]} presets */
-  static register(presets) {
+  register(presets) {
     for (const def of presets) {
       let flat = def;
       if (def.extends !== undefined) {
@@ -36,7 +36,7 @@ globalThis.EntityPreset = class EntityPreset {
       }
       this.presets.set(flat.id, flat);
     }
-  }
+  },
 
   /**
    * Spawn a preset at (x, y, z). Throws for unknown ids.
@@ -47,7 +47,7 @@ globalThis.EntityPreset = class EntityPreset {
    * @param {string} presetId @param {Entity} world @param {number} x @param {number} y
    * @param {number} [z=0] @param {Object} [opts] @returns {number} entity id
    */
-  static spawn(presetId, world, x, y, z = 0, opts = {}) {
+  spawn(presetId, world, x, y, z = 0, opts = {}) {
     const preset = this.presets.get(presetId);
     if (preset === undefined)
       throw new Error(`Unknown entity preset: ${presetId}`);
@@ -74,22 +74,22 @@ globalThis.EntityPreset = class EntityPreset {
     if (preset.post !== undefined)
       preset.post(world, id, { x, y, z, scale: k, opts });
     return id;
-  }
+  },
 
   /** @param {string} presetId @returns {boolean} */
-  static has(presetId) {
+  has(presetId) {
     return this.presets.has(presetId);
-  }
+  },
 
   /** @param {string} presetId @returns {EntityPresetDef|undefined} */
-  static get(presetId) {
+  get(presetId) {
     return this.presets.get(presetId);
-  }
+  },
 
   // Field-level component merge: `over`'s components merge INTO `base`'s per field (over wins),
   // unseen components add. Returns fresh per-component objects; nested values may still be
   // shared with the defs — fine, spawn deep-clones per instance.
-  static _merge(base, over) {
+  _merge(base, over) {
     const out = {};
     for (const token in base ?? {}) out[token] = base[token];
     for (const token in over ?? {}) {
@@ -99,13 +99,13 @@ globalThis.EntityPreset = class EntityPreset {
           : over[token];
     }
     return out;
-  }
+  },
 
   // GMRT-safe deep copy. Recurses arrays and PLAIN data objects only: a GM asset ref (sprite
   // handle) also reports typeof "object", but its constructor !== Object (probed on 0.20;
   // Object.keys(ref) is 0 without throwing, so recursing would silently turn it into {}) —
   // refs, scalars, and functions pass through BY REFERENCE.
-  static _clone(v) {
+  _clone(v) {
     if (Array.isArray(v)) {
       const out = [];
       for (let i = 0; i < v.length; i++) out.push(EntityPreset._clone(v[i]));
@@ -117,12 +117,12 @@ globalThis.EntityPreset = class EntityPreset {
       return out;
     }
     return v;
-  }
+  },
 
   // Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
   // shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
   // scale / density (see SpriteMeta — art resolution never touches the BBox).
-  static _bakeVisual(vis, k) {
+  _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
     vis.subimg = vis.subimg ?? 0;
     vis.rot = vis.rot ?? 0;
@@ -134,21 +134,21 @@ globalThis.EntityPreset = class EntityPreset {
     const f = SpriteMeta.fit(k, vis.sprite);
     vis.xscale = f;
     vis.yscale = f;
-  }
+  },
 
   // Design scale on the collision footprint (authored world units at scale 1).
-  static _bakeBox(box, k) {
+  _bakeBox(box, k) {
     box.x *= k;
     box.y *= k;
     box.width *= k;
     box.height *= k;
-  }
+  },
 
   // Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
   // model never diverges from its collider. The authored Mesh fields stay the archetype's
   // basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
   // over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
-  static _bakeMesh(mesh, k) {
+  _bakeMesh(mesh, k) {
     if (k === 1) return;
     mesh.scale = (mesh.scale ?? 1) * k;
     if (mesh.xscale !== undefined) mesh.xscale *= k;
@@ -157,5 +157,5 @@ globalThis.EntityPreset = class EntityPreset {
     if (mesh.width !== undefined) mesh.width *= k;
     if (mesh.depth !== undefined) mesh.depth *= k;
     if (mesh.height !== undefined) mesh.height *= k;
-  }
+  },
 };

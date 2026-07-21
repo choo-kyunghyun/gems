@@ -2,14 +2,14 @@
 // key→string, fonts/images/sounds by role key) into the Maps below. text()/textRef() resolve
 // strings (textRef is a live () => string for UI labels). obj_game loads the boot locale; a
 // language switch reloads.
-globalThis.I18n = class I18n {
-  /** @type {Map<string,string>} */ static texts = new Map();
-  /** @type {Map<string,number>} */ static fonts = new Map();
-  /** @type {Map<string,number>} */ static images = new Map();
-  /** @type {Map<string,number>} */ static sounds = new Map();
+globalThis.I18n = {
+  /** @type {Map<string,string>} */ texts: new Map(),
+  /** @type {Map<string,number>} */ fonts: new Map(),
+  /** @type {Map<string,number>} */ images: new Map(),
+  /** @type {Map<string,number>} */ sounds: new Map(),
 
   /** Free all loaded assets + clear every registry (runs before each load). */
-  static destroy() {
+  destroy() {
     I18n.texts = new Map();
 
     I18n.fonts.forEach((font) => font_delete(font));
@@ -20,10 +20,10 @@ globalThis.I18n = class I18n {
 
     I18n.sounds.forEach((stream) => audio_destroy_stream(stream));
     I18n.sounds = new Map();
-  }
+  },
 
   /** Load a locale from its manifest.json. @param {string} fname manifest path */
-  static load(fname) {
+  load(fname) {
     I18n.destroy();
 
     const path = filename_path(fname);
@@ -98,26 +98,26 @@ globalThis.I18n = class I18n {
         audio_sound_pitch(stream, value.pitch ?? 1);
       });
     }
-  }
+  },
 
   /**
    * Resolve a key now (falls back to the key). Extra args fill `{0}`/`{1}`… placeholders.
    * @param {string} key @param {...*} params @returns {string}
    */
-  static text(key, ...params) {
+  text(key, ...params) {
     if (params.length === 0) {
       return I18n.texts.get(key) ?? key;
     } else {
       return string_ext(I18n.texts.get(key) ?? key, params);
     }
-  }
+  },
 
   /**
    * Live `() => string` for UI labels that re-resolve (language swap / changing params).
    * `params` may be values or `() => value` getters. @param {string} key @param {...*} params
    * @returns {() => string}
    */
-  static textRef(key, ...params) {
+  textRef(key, ...params) {
     if (params.length === 0) {
       return () => {
         return I18n.texts.get(key) ?? key;
@@ -136,20 +136,20 @@ globalThis.I18n = class I18n {
         return string_ext(I18n.texts.get(key) ?? key, resolve());
       };
     }
-  }
+  },
 
   /** @param {string} key @returns {number} the font handle, or the current draw font if undeclared */
-  static font(key) {
+  font(key) {
     return I18n.fonts.get(key) ?? draw_get_font();
-  }
+  },
 
   /** @param {string} key @returns {number} the sprite handle, or -1 */
-  static image(key) {
+  image(key) {
     return I18n.images.get(key) ?? -1;
-  }
+  },
 
   /** @param {string} key @returns {number} the sound stream handle, or -1 */
-  static sound(key) {
+  sound(key) {
     return I18n.sounds.get(key) ?? -1;
-  }
+  },
 };

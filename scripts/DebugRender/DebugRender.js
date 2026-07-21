@@ -6,39 +6,39 @@
  * `enabled` — no per-scene re-registration (a scene lacking the pass reads
  * off and no-ops). Registered once from obj_game Create_0.
  */
-globalThis.DebugRender = class DebugRender {
-  static _game = null;
-  static _extra = []; // [pass class, label] from a genre layer's add()
+globalThis.DebugRender = {
+  _game: null,
+  _extra: [], // [pass class, label] from a genre layer's add()
 
   // append a pass toggle (deduped by class) — the seam a genre layer uses
   // without Core referencing it. Re-adds the section if register() ran
   // (build() resolves the list fresh); else register() (Create_0) picks it
   // up. The class is loaded by the time the scene calls this, so storing the
   // ref here is load-order-safe.
-  static add(cls, label) {
+  add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
       if (DebugRender._extra[i][0] === cls) return; // already added
     }
     DebugRender._extra.push([cls, label]);
     if (DebugRender._game !== null) Debug.add(DebugRender._section);
-  }
+  },
 
-  static register(game) {
+  register(game) {
     DebugRender._game = game;
     Debug.add(DebugRender._section);
-  }
+  },
 
   // the "Render" section: pass toggles are computed get/set over live pass
   // instances — unref'able, staged through data (contract: Debug)
-  static _section = {
+  _section: {
     name: "Render",
     data: {},
     _last: {},
     _list: [],
     build() {
-      // list built here (not a static field) so the class refs resolve at
-      // call time — a static field referencing a class that loads AFTER this
-      // script faults at load (GMRT.md → Quirks: static-field init).
+      // list built here (not a field initializer) so the class refs resolve at
+      // call time — an initializer referencing a class that loads AFTER this
+      // script faults at load (script load order).
       const list = [
         [RenderDebugEntity, "BBox"],
         [RenderDebugTileMap, "Tiles"],
@@ -69,23 +69,23 @@ globalThis.DebugRender = class DebugRender {
         this._last[label] = this.data[label];
       }
     },
-  };
+  },
 
-  static _enabled(cls) {
+  _enabled(cls) {
     const passes = DebugRender._passesOf(cls);
     return passes.length > 0 && passes[0].enabled;
-  }
+  },
 
   // flip EVERY instance — a class can appear twice in one renderer (the RPG's
   // resident + chunk RenderWalls), and toggling only the first would mislead
-  static _apply(cls, v) {
+  _apply(cls, v) {
     const passes = DebugRender._passesOf(cls);
     for (let i = 0; i < passes.length; i++) passes[i].enabled = v;
-  }
+  },
 
   // The live scene's renderer passes that are instances of `cls` ([] when
   // none).
-  static _passesOf(cls) {
+  _passesOf(cls) {
     const out = [];
     const g = DebugRender._game;
     const scene = g !== null ? g.scenes.current : null;
@@ -96,5 +96,5 @@ globalThis.DebugRender = class DebugRender {
       if (passes[i] instanceof cls) out.push(passes[i]);
     }
     return out;
-  }
+  },
 };

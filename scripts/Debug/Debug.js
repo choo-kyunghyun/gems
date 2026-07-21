@@ -33,21 +33,21 @@
  * (the open record admits the optional members — window, update(), data —
  * and any per-section staging state: `_last`, …)
  */
-globalThis.Debug = class Debug {
-  static enabled = true; // set false for a release build
+globalThis.Debug = {
+  enabled: true, // set false for a release build
   /** @type {DebugSection[]} registration order = stacking order in a window */
-  static sections = [];
+  sections: [],
 
-  static _open = false;
+  _open: false,
   /** @type {Object<string, *>} window name -> its dbg_view handle */
-  static _handles = {};
+  _handles: {},
 
   /**
    * register (or replace by name) a section; safe to re-call across scene
    * reloads — re-add()ing is also how a section refreshes its own content.
    * @param {DebugSection} section
    */
-  static add(section) {
+  add(section) {
     Debug._invalidate(Debug._windowOf(section));
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === section.name) {
@@ -59,9 +59,9 @@ globalThis.Debug = class Debug {
     }
     Debug.sections.push(section);
     return section;
-  }
+  },
 
-  static remove(name) {
+  remove(name) {
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === name) {
         Debug._invalidate(Debug._windowOf(Debug.sections[i]));
@@ -69,33 +69,33 @@ globalThis.Debug = class Debug {
         return;
       }
     }
-  }
+  },
 
   /** @param {DebugSection} section */
-  static _windowOf(section) {
+  _windowOf(section) {
     return section.window !== undefined ? section.window : "General";
-  }
+  },
 
   /**
    * drop a window's dbg_view so the lazy pass rebuilds it (or lets it die
    * with its last section).
    * @param {string} window
    */
-  static _invalidate(window) {
+  _invalidate(window) {
     const handle = Debug._handles[window];
     if (handle !== undefined && dbg_view_exists(handle))
       dbg_view_delete(handle);
     Debug._handles[window] = undefined;
-  }
+  },
 
-  // a method by house style — static getters are themselves safe on 0.20.
-  static isOpen() {
+  // a method by house style, not a runtime dodge.
+  isOpen() {
     return Debug._open;
-  }
+  },
 
   // Step_0: F3 toggle; while open, rebuild windows missing their dbg_view,
   // then run every section's update().
-  static update() {
+  update() {
     if (!Debug.enabled) return;
     if (keyboard_check_pressed(vk_f3)) Debug.toggle();
     if (!Debug._open) return;
@@ -109,9 +109,9 @@ globalThis.Debug = class Debug {
       const section = Debug.sections[i];
       if (section.update !== undefined) section.update();
     }
-  }
+  },
 
-  static toggle() {
+  toggle() {
     Debug._open = !Debug._open;
     // pin AA off for the overlay's whole lifetime (see Display.aaOverride): native ImGui is
     // single-sampled, so an AA>0 back buffer is a fatal WebGPU sampleCount mismatch. The reset
@@ -121,13 +121,13 @@ globalThis.Debug = class Debug {
     // minimised=true: collapse the built-in FPS window so it doesn't occlude
     // our views (the Perf section already shows fps).
     show_debug_overlay(Debug._open, true);
-  }
+  },
 
   /**
    * one dbg_view hosting every section of `window`.
    * @param {string} window
    */
-  static _build(window) {
+  _build(window) {
     Debug._handles[window] = dbg_view(window, true);
     for (let i = 0; i < Debug.sections.length; i++) {
       const section = Debug.sections[i];
@@ -136,5 +136,5 @@ globalThis.Debug = class Debug {
         section.build();
       }
     }
-  }
+  },
 };

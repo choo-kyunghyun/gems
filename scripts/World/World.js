@@ -16,7 +16,7 @@
 // inert for now — the existing direct WorldClock.* / WorldEvents.* call sites (sceneRpg) are UNCHANGED,
 // so nothing invokes World.update/reset yet; a later phase routes time-of-day through them.
 globalThis.World = {
-  sim: null, // SimClock (the class) — assigned once in obj_game Create_0
+  sim: null, // SimClock — assigned once in obj_game Create_0
   levels: null, // LevelManager instance — assigned once in obj_game Create_0
 
   // Advance world-scope time, then fire every event now due on that timeline. NOT yet wired: sceneRpg

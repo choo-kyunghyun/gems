@@ -1,28 +1,28 @@
-// world-space floating combat numbers (rise + fade). standalone static singleton.
+// world-space floating combat numbers (rise + fade). standalone singleton.
 // drawn in WORLD space, so draw() is called from a scene's draw() (in camera view), not Draw_75.
 // ages by Time.delta (sim time) not Time.raw — gameplay feedback should slow with time-dilation.
-globalThis.FloatingText = class FloatingText {
-  static _items = []; // { x, y, text, color, age, life, rise, scale }
+globalThis.FloatingText = {
+  _items: [], // { x, y, text, color, age, life, rise, scale }
 
-  static life = 0.9; // seconds on screen (incl. fades)
-  static rise = 60; // world px risen over life (32px-cell scale)
-  static fadeIn = 0.12; // pop / fade-in time (seconds)
+  life: 0.9, // seconds on screen (incl. fades)
+  rise: 60, // world px risen over life (32px-cell scale)
+  fadeIn: 0.12, // pop / fade-in time (seconds)
 
-  static font = -1;
-  static shadowColor = Color.parse("#0a0c10");
+  font: -1,
+  shadowColor: Color.parse("#0a0c10"),
 
   // type → color; `info` is the unknown-type fallback
-  static colors = {
+  colors: {
     damage: Color.parse("#f1f4fa"), // enemy hit — white
     hurt: Color.parse("#e0584f"), // player hit — red
     heal: Color.parse("#54c98a"), // restore — green
     crit: Color.parse("#ffd166"), // big/critical — gold
     mana: Color.parse("#4a9eff"), // resource — blue
     info: Color.parse("#cfd6e4"),
-  };
+  },
 
   /** @param {number} x @param {number} y @param {number|string} text @param {Object} [opts] { type, color, life, rise, scale } */
-  static push(x, y, text, opts = {}) {
+  push(x, y, text, opts = {}) {
     const type = opts.type ?? "damage";
     FloatingText._items.push({
       x: x,
@@ -35,12 +35,12 @@ globalThis.FloatingText = class FloatingText {
       rise: opts.rise ?? FloatingText.rise,
       scale: opts.scale ?? 2, // world-space text under a half-zoom camera — ×2 keeps screen size
     });
-  }
+  },
 
   /** called on every scene swap. */
-  static clear() {
+  clear() {
     FloatingText._items = [];
-  }
+  },
 
   /**
    * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
@@ -49,7 +49,7 @@ globalThis.FloatingText = class FloatingText {
    * top-down. sceneRpg passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
    * @param {number} [pitchDeg=0]
    */
-  static draw(pitchDeg = 0) {
+  draw(pitchDeg = 0) {
     const items = FloatingText._items;
     if (items.length === 0) return;
 
@@ -131,5 +131,5 @@ globalThis.FloatingText = class FloatingText {
     draw_set_halign(halign);
     draw_set_valign(valign);
     draw_set_alpha(alpha);
-  }
+  },
 };

@@ -4,40 +4,40 @@
  * live everywhere (so plain keymaps are unaffected). Generalizes captured() to gameplay
  * contexts ("play"/"build"/"window" — fire self-mutes while building); captured() still wins.
  */
-globalThis.InputContext = class InputContext {
+globalThis.InputContext = {
   // Plain array (index-looped, never a Set/iterator — see GMRT-Safe Idioms).
-  static _stack = ["default"];
+  _stack: ["default"],
 
-  static active() {
+  active() {
     return InputContext._stack[InputContext._stack.length - 1];
-  }
+  },
 
-  static is(name) {
+  is(name) {
     return InputContext.active() === name;
-  }
+  },
 
-  static push(name) {
+  push(name) {
     InputContext._stack.push(name);
-  }
+  },
 
   /** Pop the active context, never below the "default" base. */
-  static pop() {
+  pop() {
     if (InputContext._stack.length > 1) InputContext._stack.pop();
-  }
+  },
 
   // replace top in place; pushes instead when only the base remains, so a forgotten push() can't clobber "default".
-  static set(name) {
+  set(name) {
     if (InputContext._stack.length === 1) InputContext._stack.push(name);
     else InputContext._stack[InputContext._stack.length - 1] = name;
-  }
+  },
 
   /** Reset to just the base context (scene teardown). */
-  static reset() {
+  reset() {
     InputContext._stack = ["default"];
-  }
+  },
 
   /** @param {string[]} list - non-null live-context list (caller checks null = everywhere). */
-  static allows(list) {
+  allows(list) {
     return list.indexOf(InputContext.active()) !== -1;
-  }
+  },
 };

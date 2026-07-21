@@ -1,27 +1,27 @@
-// the app's one menu: a near-fullscreen multi-tabbed overlay (standalone static singleton, not
+// the app's one menu: a near-fullscreen multi-tabbed overlay (standalone singleton, not
 // UIComponent) that pauses ALL game + behind-UI logic while open. owns the gameplay pause + nav.
 // pause is global: obj_game skips scene.step() while isOpen(), and the menu forces Time.scale=0
 // each frame (menu itself runs on Time.raw). UIModal blocks the underlying UI.
 // open triggers: F1 anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware
 // (scene.handleEscape() gets first refusal). a scene opts into gameplay pause/nav via this.gameplay.
-globalThis.SystemMenu = class SystemMenu {
-  static _modal = null; // open UIModal handle, or null
-  static _root = null; // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  static _game = null; // the obj_game controller (scene lifecycle in game.scenes)
-  static _scale = 1; // Time.scale to restore on resume
+globalThis.SystemMenu = {
+  _modal: null, // open UIModal handle, or null
+  _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
+  _game: null, // the obj_game controller (scene lifecycle in game.scenes)
+  _scale: 1, // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this Core menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
-  static _extraTabs = [];
+  _extraTabs: [],
 
   /** Register an extra tab. @param {string|Function} label textRef or string @param {() => UIElement} build content builder, called each open (so it reads live state) */
-  static addTab(label, build) {
+  addTab(label, build) {
     SystemMenu._extraTabs.push({ label, build });
-  }
+  },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
   /** @param {Object} game the obj_game controller (holds game.scenes) */
-  static update(game) {
+  update(game) {
     SystemMenu._game = game;
     const scene = game !== null ? game.scenes.current : null;
 
@@ -78,25 +78,25 @@ globalThis.SystemMenu = class SystemMenu {
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
     // stick moves the player), un-suspend when a window is open so the controller can navigate it.
     UINav.suspended = !InputContext.is("window");
-  }
+  },
 
-  static _startPressed() {
+  _startPressed() {
     return gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_start);
-  }
+  },
 
   /** @returns {boolean} */
-  static isOpen() {
-    // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
+  isOpen() {
+    // METHOD not a getter — house style, not a runtime dodge.
     return SystemMenu._modal !== null;
-  }
+  },
 
   /** @returns {number} Time.scale to restore on resume. */
-  static scale() {
+  scale() {
     return SystemMenu._scale;
-  }
+  },
 
   /** open + pause (idempotent). @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
-  static open(tabIndex = 0) {
+  open(tabIndex = 0) {
     if (SystemMenu._modal !== null) return;
     SystemMenu._scale = Time.scale; // remember live speed to restore on resume
     Time.scale = 0;
@@ -207,27 +207,27 @@ globalThis.SystemMenu = class SystemMenu {
     SystemMenu._root = root;
     UINav.suspended = false;
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
-  }
+  },
 
   /** UIModal animates out, then restores Time.scale via onClose. */
-  static close() {
+  close() {
     if (SystemMenu._modal !== null) SystemMenu._modal.close();
-  }
+  },
 
   /** force-close + restore time scale on a scene swap. */
-  static reset() {
+  reset() {
     if (SystemMenu._modal !== null) {
       SystemMenu._modal.close();
       Time.scale = SystemMenu._scale;
     }
     SystemMenu._modal = null;
     SystemMenu._root = null;
-  }
+  },
 
   // Rebuild the overlay in place (after a live theme swap) so it bakes the new palette. Removes the
   // current root SYNCHRONOUSLY — not the animated close(), whose deferred onClose would null the
   // fresh modal + recapture the (frozen) time scale — then reopens on the same tab, staying paused.
-  static reopen(tabIndex = 0) {
+  reopen(tabIndex = 0) {
     if (SystemMenu._modal === null) {
       SystemMenu.open(tabIndex);
       return;
@@ -239,12 +239,12 @@ globalThis.SystemMenu = class SystemMenu {
     SystemMenu._root = null;
     SystemMenu.open(tabIndex); // re-captures _scale from the now-frozen live scale…
     SystemMenu._scale = resume; // …so restore the pre-open value
-  }
+  },
 
   // Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
   // re-seed the Core focus-ring + scene backdrop, rebuild the active scene's UI (colors bake at
   // build time) and this overlay, and fade back. No-op when the mode is unchanged.
-  static _applyTheme(mode) {
+  _applyTheme(mode) {
     if (mode === GemsTheme.mode) return;
     Settings.set("theme", mode);
     SceneTransition.start(() => {
@@ -258,12 +258,12 @@ globalThis.SystemMenu = class SystemMenu {
       UINav.reset(); // focus was on now-destroyed elements
       SystemMenu.reopen(1); // reopen on the Settings tab, recolored
     });
-  }
+  },
 
   // tabs
 
   // System controls: Resume + Quit to Lobby (sim readouts live in the Debug overlay instead)
-  static _systemTab() {
+  _systemTab() {
     const scroll = gemsScroll({ grow: true });
 
     const controls = gemsSection(I18n.textRef("SYS_CONTROLS"));
@@ -290,10 +290,10 @@ globalThis.SystemMenu = class SystemMenu {
     scroll.scrollBody.insertChild(controls);
 
     return scroll;
-  }
+  },
 
   // Settings form: audio / display / UI scale / language
-  static _settingsTab() {
+  _settingsTab() {
     const scroll = gemsScroll({ grow: true });
 
     const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
@@ -477,10 +477,10 @@ globalThis.SystemMenu = class SystemMenu {
     scroll.scrollBody.insertChild(saveRow);
 
     return scroll;
-  }
+  },
 
   // About — static project + engine info (reuses the credits strings)
-  static _aboutTab() {
+  _aboutTab() {
     const scroll = gemsScroll({ grow: true });
     const card = gemsCard({ gap: GemsTheme.gapSm });
     const lines = [
@@ -498,5 +498,5 @@ globalThis.SystemMenu = class SystemMenu {
     }
     scroll.scrollBody.insertChild(card);
     return scroll;
-  }
+  },
 };

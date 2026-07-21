@@ -1,33 +1,33 @@
-// standalone static singleton (not UIComponent). set() each frame to show; draw() renders + clears.
+// standalone singleton (not UIComponent). set() each frame to show; draw() renders + clears.
 // visible only while something re-sets it each frame (see UITooltip's dwell timer).
-globalThis.Tooltip = class Tooltip {
-  static text = "";
-  static textColor = Color.parse("#f1f4fa");
-  static textAlpha = 1;
-  static sep = -1;
-  static w = 640;
-  static font = -1;
-  static panelColor = Color.parse("#1b1e25");
-  static panelAlpha = 0.96;
-  static panelRad = 8;
-  static borderColor = Color.parse("#3c4350");
-  static borderAlpha = 1;
-  static paddingX = 12;
-  static paddingY = 8;
-  static offsetX = 22;
-  static offsetY = 24;
+globalThis.Tooltip = {
+  text: "",
+  textColor: Color.parse("#f1f4fa"),
+  textAlpha: 1,
+  sep: -1,
+  w: 640,
+  font: -1,
+  panelColor: Color.parse("#1b1e25"),
+  panelAlpha: 0.96,
+  panelRad: 8,
+  borderColor: Color.parse("#3c4350"),
+  borderAlpha: 1,
+  paddingX: 12,
+  paddingY: 8,
+  offsetX: 22,
+  offsetY: 24,
 
   /** @param {string} str */
-  static set(str) {
+  set(str) {
     Tooltip.text = str;
-  }
+  },
 
-  static clear() {
+  clear() {
     Tooltip.text = "";
-  }
+  },
 
   /** draw at cursor then clear (Draw_75). */
-  static draw() {
+  draw() {
     if (Tooltip.text === "") return;
 
     const font = draw_get_font();
@@ -98,5 +98,5 @@ globalThis.Tooltip = class Tooltip {
     draw_set_alpha(alpha);
     draw_set_halign(halign);
     draw_set_valign(valign);
-  }
+  },
 };

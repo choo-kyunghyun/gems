@@ -1,22 +1,22 @@
-// on-screen keyboard for gamepad/mouse text entry into a UIInput. standalone static singleton.
+// on-screen keyboard for gamepad/mouse text entry into a UIInput. standalone singleton.
 // keys are gemsButtons, so the whole grid is UINav-navigable for free. edits an in-memory buffer:
 // Done commits (setValue + onConfirm), Cancel/Esc/backdrop discard — the field is untouched until Done.
-globalThis.VirtualKeyboard = class VirtualKeyboard {
+globalThis.VirtualKeyboard = {
   /** @type {UIModal|null} */
-  static _modal = null;
+  _modal: null,
   /** @type {UIInput|null} */
-  static _input = null;
-  static _buffer = "";
-  static _shift = false;
+  _input: null,
+  _buffer: "",
+  _shift: false,
 
-  // METHOD not `static get` — house style; static getters are safe on 0.20 (2026-07 re-audit).
+  // METHOD not a getter — house style, not a runtime dodge.
   /** @returns {boolean} */
-  static isOpen() {
+  isOpen() {
     return VirtualKeyboard._input !== null;
-  }
+  },
 
   /** no-op if already open or input is null. @param {UIInput} input */
-  static open(input) {
+  open(input) {
     if (VirtualKeyboard.isOpen() || input == null) return;
     VirtualKeyboard._input = input;
     VirtualKeyboard._buffer = input.value;
@@ -36,43 +36,43 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
       ],
       onClose: () => VirtualKeyboard._reset(), // Done/Cancel/Esc/backdrop all land here
     });
-  }
+  },
 
   /** append a char, respecting the input's maxLength. @param {string} ch */
-  static type(ch) {
+  type(ch) {
     if (!VirtualKeyboard.isOpen()) return;
     const max = VirtualKeyboard._input.maxLength ?? Infinity;
     if (VirtualKeyboard._buffer.length >= max) return;
     VirtualKeyboard._buffer += ch;
-  }
+  },
 
-  static backspace() {
+  backspace() {
     const b = VirtualKeyboard._buffer;
     if (b.length > 0) VirtualKeyboard._buffer = b.substring(0, b.length - 1);
-  }
+  },
 
-  static toggleShift() {
+  toggleShift() {
     VirtualKeyboard._shift = !VirtualKeyboard._shift;
-  }
+  },
 
   // push buffer into the field + fire its confirm hook
-  static _commit() {
+  _commit() {
     const inp = VirtualKeyboard._input;
     if (inp === null) return;
     inp.setValue(VirtualKeyboard._buffer);
     inp.onConfirm(inp.value);
-  }
+  },
 
   // from the modal's onClose (Done/Cancel/Esc/backdrop) — never closes the modal itself (no re-entrancy)
-  static _reset() {
+  _reset() {
     VirtualKeyboard._modal = null;
     VirtualKeyboard._input = null;
     VirtualKeyboard._buffer = "";
     VirtualKeyboard._shift = false;
-  }
+  },
 
   // preview text: masked for password fields, placeholder when empty
-  static _displayText() {
+  _displayText() {
     const b = VirtualKeyboard._buffer;
     if (b === "") return I18n.text("VK_EMPTY");
     if (VirtualKeyboard._input !== null && VirtualKeyboard._input.mask) {
@@ -81,10 +81,10 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
       return s;
     }
     return b;
-  }
+  },
 
   // body layout
-  static _buildBody() {
+  _buildBody() {
     const body = gemsList({ gap: GemsTheme.gapSm });
 
     // preview line: buffer on a sunken panel
@@ -142,9 +142,9 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
     body.insertChild(special);
 
     return body;
-  }
+  },
 
-  static _charRow(chars) {
+  _charRow(chars) {
     const row = new UIElement({
       flexDirection: "row",
       justifyContent: "center",
@@ -154,16 +154,16 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
       row.insertChild(VirtualKeyboard._key(chars.charAt(i)));
     }
     return row;
-  }
+  },
 
   // a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
-  static _upper(ch) {
+  _upper(ch) {
     if (ch < "a" || ch > "z") return ch;
     return String.fromCharCode(ch.charCodeAt(0) - 32);
-  }
+  },
 
   // single char key; letters honor Shift (live label + typed value), digits don't
-  static _key(ch) {
+  _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
     return gemsButton(
       isLetter
@@ -175,5 +175,5 @@ globalThis.VirtualKeyboard = class VirtualKeyboard {
         ),
       { width: 46, height: 46, font: "header" },
     );
-  }
+  },
 };

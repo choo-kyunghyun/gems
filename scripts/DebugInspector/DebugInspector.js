@@ -8,17 +8,17 @@
  * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
  * Picking uses the latched LMB edge (the UIPointer poll-once rule).
  */
-globalThis.DebugInspector = class DebugInspector {
-  static _world = null;
-  static _id = -1;
-  static _registered = false; // Entity section registered at least once
-  static pickRadius = 128; // max world px from cursor to accept a pick
-  static markerR = 18; // highlight half-size (GUI px)
-  static highlightColor = Color.parse("#ffd34d");
+globalThis.DebugInspector = {
+  _world: null,
+  _id: -1,
+  _registered: false, // Entity section registered at least once
+  pickRadius: 128, // max world px from cursor to accept a pick
+  markerR: 18, // highlight half-size (GUI px)
+  highlightColor: Color.parse("#ffd34d"),
 
   // select an entity, or (null, -1) to deselect. Deselect swaps the section
   // to a placeholder rather than removing it, so its window stays available.
-  static select(world, id) {
+  select(world, id) {
     const valid =
       world !== null &&
       world !== undefined &&
@@ -37,14 +37,14 @@ globalThis.DebugInspector = class DebugInspector {
     DebugInspector._world = nextWorld;
     DebugInspector._id = nextId;
     DebugInspector._register();
-  }
+  },
 
   // (re)register the "Entity" section: a placeholder when nothing is
   // selected, else the picked entity's scalar fields — refs bind the REAL
   // component structs, so edits mutate the entity live with no staging.
   // Re-add()ing rebuilds the section's window — its OWN ("Inspector"), so
   // per-pick churn never moves the stable "General" window.
-  static _register() {
+  _register() {
     DebugInspector._registered = true;
     const world = DebugInspector._world;
     const id = DebugInspector._id;
@@ -81,13 +81,13 @@ globalThis.DebugInspector = class DebugInspector {
         }
       },
     });
-  }
+  },
 
-  static clear() {
+  clear() {
     DebugInspector.select(null, -1);
-  }
+  },
 
-  static update(game) {
+  update(game) {
     if (!Debug.enabled) return;
     // register the Entity section up front so its window exists before the
     // first pick.
@@ -124,9 +124,9 @@ globalThis.DebugInspector = class DebugInspector {
       maxDist: DebugInspector.pickRadius,
     });
     if (id !== -1) DebugInspector.select(world, id);
-  }
+  },
 
-  static draw(game) {
+  draw(game) {
     if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
     const world = DebugInspector._world;
     if (world === null || !world.isValid(DebugInspector._id)) return;
@@ -154,5 +154,5 @@ globalThis.DebugInspector = class DebugInspector {
     draw_line_color(sx - r, sy, sx + r, sy, c, c);
     draw_line_color(sx, sy - r, sx, sy + r, c, c);
     draw_set_alpha(a0);
-  }
+  },
 };
