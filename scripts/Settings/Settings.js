@@ -4,45 +4,45 @@
  * GML json_stringify (JS JSON.stringify faults on nested values, see docs/GMRT.md), so a value
  * may nest (objects/arrays), not just scalars.
  */
-globalThis.Settings = class Settings {
-  static PATH = "settings.json";
+globalThis.Settings = {
+  PATH: "settings.json",
 
   /** @type {Object<string, any>} declared keys + their default values. */
-  static defaults = {};
+  defaults: {},
 
   /** @type {Object<string, any>} keys set this session (override defaults). */
-  static _data = {};
+  _data: {},
 
   /** merge into the defaults allowlist (additive; call before load). */
-  static registerDefaults(obj) {
+  registerDefaults(obj) {
     Object.assign(this.defaults, obj);
     return this;
-  }
+  },
 
   /** the set value, else the default. */
-  static get(key) {
+  get(key) {
     return key in this._data ? this._data[key] : this.defaults[key];
-  }
+  },
 
   /** set in memory (persisted on save). */
-  static set(key, value) {
+  set(key, value) {
     this._data[key] = value;
     return this;
-  }
+  },
 
   /** whether `key` was set and differs from its default. */
-  static isModified(key) {
+  isModified(key) {
     return key in this._data && this._data[key] !== this.defaults[key];
-  }
+  },
 
   /** drop all set values (back to defaults). */
-  static reset() {
+  reset() {
     this._data = {};
     return this;
-  }
+  },
 
   /** load declared keys from disk (missing file / parse error is a no-op). */
-  static load() {
+  load() {
     const raw = File.read(this.PATH);
     if (raw === undefined) return this;
     try {
@@ -52,15 +52,15 @@ globalThis.Settings = class Settings {
       }
     } catch (_) {}
     return this;
-  }
+  },
 
   /** write every declared key (set value or default) to disk. */
-  static save() {
+  save() {
     const out = {};
     for (const key of Object.keys(this.defaults)) {
       out[key] = this.get(key);
     }
     File.write(this.PATH, json_stringify(out));
     return this;
-  }
+  },
 };

@@ -9,10 +9,10 @@ globalThis.MP_ALGORITHM = Object.freeze({
  * Static A* planner over a `MotionPlanningGrid` (cost Infinity = blocked). `setGrid` allocates
  * reusable scratch arrays once per grid; `plan` reuses them. Consumer: `PathfindingSystem`.
  */
-globalThis.MotionPlanner = class MotionPlanner {
-  static SQRT_2 = Math.sqrt(2);
-  static DIRS_CARDINAL = [1, 0, 1, -1, 0, 1, 0, 1, 1, 0, -1, 1];
-  static DIRS_OCTILE = [
+globalThis.MotionPlanner = {
+  SQRT_2: Math.sqrt(2),
+  DIRS_CARDINAL: [1, 0, 1, -1, 0, 1, 0, 1, 1, 0, -1, 1],
+  DIRS_OCTILE: [
     1,
     0,
     1,
@@ -37,23 +37,23 @@ globalThis.MotionPlanner = class MotionPlanner {
     -1,
     -1,
     Math.sqrt(2),
-  ];
+  ],
 
-  static grid = undefined;
-  static _g = undefined;
-  static _from = undefined;
-  static _closed = undefined;
-  static _scratch = undefined;
+  grid: undefined,
+  _g: undefined,
+  _from: undefined,
+  _closed: undefined,
+  _scratch: undefined,
 
   /** Bind the grid to plan over and (re)allocate scratch arrays sized to it. @param {MotionPlanningGrid} grid */
-  static setGrid(grid) {
+  setGrid(grid) {
     this.grid = grid;
     const count = grid.size();
     this._g = new Array(count);
     this._from = new Int32Array(count);
     this._closed = new Uint8Array(count);
     this._scratch = new Int32Array(count);
-  }
+  },
 
   /**
    * Plan a path between two cells.
@@ -62,7 +62,7 @@ globalThis.MotionPlanner = class MotionPlanner {
    * @param {{allowDiag?:boolean,cornerCutting?:boolean,heuristicWeight?:number,maxIter?:number}} [opt]
    * @returns {{x:number,y:number}[]} cell waypoints start→goal, or `[]` if unreachable / no grid.
    */
-  static plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
+  plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
     if (this.grid === undefined) return [];
     switch (algorithm) {
       case MP_ALGORITHM.ASTAR:
@@ -70,9 +70,9 @@ globalThis.MotionPlanner = class MotionPlanner {
       default:
         return [];
     }
-  }
+  },
 
-  static _reconstructPath(startIdx, goalIdx) {
+  _reconstructPath(startIdx, goalIdx) {
     let len = 0;
     let node = goalIdx;
     while (node !== -1) {
@@ -88,18 +88,18 @@ globalThis.MotionPlanner = class MotionPlanner {
       path.push(this.grid.toPosition(this._scratch[i]));
     }
     return path;
-  }
+  },
 
-  static _heuristic(x0, y0, x1, y1, allowDiag) {
+  _heuristic(x0, y0, x1, y1, allowDiag) {
     const dx = Math.abs(x1 - x0);
     const dy = Math.abs(y1 - y0);
     if (allowDiag) {
       return dx + dy + (MotionPlanner.SQRT_2 - 2) * Math.min(dx, dy);
     }
     return dx + dy;
-  }
+  },
 
-  static _astar(start, goal, opt) {
+  _astar(start, goal, opt) {
     const allowDiag = opt.allowDiag ?? false;
     const cornerCutting = opt.cornerCutting ?? false;
     const heuristicWeight = opt.heuristicWeight ?? 1;
@@ -198,5 +198,5 @@ globalThis.MotionPlanner = class MotionPlanner {
 
     ds_priority_destroy(pq);
     return [];
-  }
+  },
 };

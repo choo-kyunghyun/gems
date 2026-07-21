@@ -1,10 +1,10 @@
-// TODO: static exists(fname)
-globalThis.File = class File {
+// TODO: exists(fname)
+globalThis.File = {
   // pending async requests keyed by buffer_*_async id; obj_game's Async event (Other_72)
   // calls _resolve(id, status) to dispatch each completion to its callback.
-  static _pending = {};
+  _pending: {},
 
-  static find(mask) {
+  find(mask) {
     const files = [];
     let fname = file_find_first(mask, fa_none);
     while (fname !== "") {
@@ -13,9 +13,9 @@ globalThis.File = class File {
     }
     file_find_close();
     return files;
-  }
+  },
 
-  static read(fname) {
+  read(fname) {
     const buffer = buffer_load(fname);
     if (buffer === -1) return undefined;
     // buffer_text reads until a NUL, but buffer_load gives an exact-size buffer with no
@@ -28,9 +28,9 @@ globalThis.File = class File {
     const data = buffer_read(buffer, buffer_text);
     buffer_delete(buffer);
     return data;
-  }
+  },
 
-  static write(fname, data) {
+  write(fname, data) {
     const buffer = buffer_create(0, buffer_grow, 1);
     if (buffer_write(buffer, buffer_text, data) !== 0) {
       buffer_delete(buffer);
@@ -39,7 +39,7 @@ globalThis.File = class File {
     buffer_save(buffer, fname);
     buffer_delete(buffer);
     return true;
-  }
+  },
 
   // Binary I/O — for tile grids / dense layers / anything large or non-scalar. JSON text
   // on GMRT both faults on nested values and is O(n²) for big inline arrays; a binary buffer
@@ -49,20 +49,20 @@ globalThis.File = class File {
    * Load a file into a fresh buffer. Caller OWNS it and MUST buffer_delete() when done.
    * @returns {*} buffer handle, or undefined if the file does not exist
    */
-  static readBuffer(fname) {
+  readBuffer(fname) {
     const buffer = buffer_load(fname);
     if (buffer === -1) return undefined;
     return buffer;
-  }
+  },
 
   /**
    * Write a buffer to disk. Saves only the USED bytes via buffer_save_ext — a buffer_grow
    * buffer over-allocates, so a plain buffer_save would pad the file with trailing garbage.
    */
-  static writeBuffer(fname, buffer) {
+  writeBuffer(fname, buffer) {
     buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
     return true;
-  }
+  },
 
   // Async binary I/O — off-thread so a huge save can't freeze the frame; console vendors
   // (Xbox/PS/Switch) *require* it to pass cert. Completion arrives in obj_game's Async event,
@@ -80,26 +80,31 @@ globalThis.File = class File {
    * until `callback(ok)` fires (the save reads it off-thread).
    * @returns {*} the async request id
    */
-  static saveAsync(fname, buffer, callback) {
-    const id = buffer_save_async(buffer, fname, 0, buffer_get_used_size(buffer));
+  saveAsync(fname, buffer, callback) {
+    const id = buffer_save_async(
+      buffer,
+      fname,
+      0,
+      buffer_get_used_size(buffer),
+    );
     File._pending[id] = { load: false, buffer: -1, callback };
     return id;
-  }
+  },
 
   /**
    * Async load into a fresh buffer. On success `callback(buffer)` OWNS it (must buffer_delete);
    * on failure it gets undefined (internal buffer released first).
    * @returns {*} the async request id
    */
-  static loadAsync(fname, callback) {
+  loadAsync(fname, callback) {
     const buffer = buffer_create(1, buffer_grow, 1);
     const id = buffer_load_async(buffer, fname, 0, -1); // -1 = whole file
     File._pending[id] = { load: true, buffer, callback };
     return id;
-  }
+  },
 
   /** dispatch an async completion to its callback (called by obj_game's Async event); unknown ids ignored. */
-  static _resolve(id, status) {
+  _resolve(id, status) {
     const req = File._pending[id];
     if (req === undefined) return;
     delete File._pending[id];
@@ -113,5 +118,5 @@ globalThis.File = class File {
     } else if (req.callback !== undefined) {
       req.callback(status);
     }
-  }
+  },
 };

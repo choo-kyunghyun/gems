@@ -1,8 +1,8 @@
 // Segment-vs-AABB raycast over all collider entities. Returns nearest hit
 // { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS.
 //   opts: { ignore? (id to skip), solidOnly? (default true) }
-globalThis.Raycast = class Raycast {
-  static cast(world, x0, y0, x1, y1, opts = {}) {
+globalThis.Raycast = {
+  cast(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
     const dx = x1 - x0;
@@ -34,11 +34,11 @@ globalThis.Raycast = class Raycast {
       }
     }
     return best;
-  }
+  },
 
   // Every solid collider the segment crosses, ASCENDING by entry distance `t` — multi-hit
   // counterpart to cast(). Used by hitscan pierce walks (Combat.hitscan) needing every body, not just the nearest.
-  static castAll(world, x0, y0, x1, y1, opts = {}) {
+  castAll(world, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
     const dx = x1 - x0;
@@ -70,11 +70,11 @@ globalThis.Raycast = class Raycast {
     // on GMRT's sort, leaving query order — pierce walk would hit bodies out of order. (#15593)
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
-  }
+  },
 
   // Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
   // starting inside), or null. nx/ny is the surface normal pointing back along the ray.
-  static _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
+  _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;
 
     if (dx > 0) {
@@ -111,5 +111,5 @@ globalThis.Raycast = class Raycast {
       nx: txEntry > tyEntry ? (dx > 0 ? -1 : 1) : 0,
       ny: txEntry > tyEntry ? 0 : dy > 0 ? -1 : 1,
     };
-  }
+  },
 };

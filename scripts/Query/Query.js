@@ -1,8 +1,8 @@
 // Spatial lookup over entities with Position. Point tests only (no BBox — that's AABB's job).
 /** @typedef {Object} QueryOpts @property {string} [has] require this component (its token) @property {number} [maxDist] cap search radius (world px) @property {boolean} [hasCollision] require a Collision component */
-globalThis.Query = class Query {
+globalThis.Query = {
   /** Nearest match to (x, y), or -1. @param {Entity} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
-  static nearest(world, x, y, opts = {}) {
+  nearest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist =
       opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
@@ -16,10 +16,10 @@ globalThis.Query = class Query {
       }
     }
     return bestId;
-  }
+  },
 
   /** Farthest match within `maxDist`, or -1. @param {Entity} world @param {number} x @param {number} y @param {QueryOpts} [opts] @returns {number} */
-  static farthest(world, x, y, opts = {}) {
+  farthest(world, x, y, opts = {}) {
     let bestId = -1;
     let bestDist = -1;
     const maxDistSq =
@@ -34,10 +34,10 @@ globalThis.Query = class Query {
       }
     }
     return bestId;
-  }
+  },
 
   /** Matches within rect [x1,y1]-[x2,y2] (inclusive). @param {Entity} world @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 @param {QueryOpts} [opts] @returns {number[]} */
-  static inRect(world, x1, y1, x2, y2, opts = {}) {
+  inRect(world, x1, y1, x2, y2, opts = {}) {
     const result = [];
     for (const id of world.query(Position)) {
       const pos = world.get(Position, id);
@@ -46,10 +46,10 @@ globalThis.Query = class Query {
       result.push(id);
     }
     return result;
-  }
+  },
 
   /** Matches within `radius` of (x, y). @param {Entity} world @param {number} x @param {number} y @param {number} radius @param {QueryOpts} [opts] @returns {number[]} */
-  static inRadius(world, x, y, radius, opts = {}) {
+  inRadius(world, x, y, radius, opts = {}) {
     const result = [];
     const rSq = radius * radius;
     for (const id of world.query(Position)) {
@@ -59,10 +59,10 @@ globalThis.Query = class Query {
       result.push(id);
     }
     return result;
-  }
+  },
 
   /** @returns {boolean} passes the has / hasCollision filters in `opts` */
-  static _matchesOpts(world, id, opts) {
+  _matchesOpts(world, id, opts) {
     if (opts.has !== undefined) {
       if (world.get(opts.has, id) === undefined) return false;
     }
@@ -70,5 +70,5 @@ globalThis.Query = class Query {
       if (world.get(Collision, id) === undefined) return false;
     }
     return true;
-  }
+  },
 };
