@@ -49,7 +49,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Pre-existing issues noticed in passing and deliberately left untouched:
 
-- **`obj_game/Draw_75.js` F5 screenshot block is likely broken**: it builds the filename with regex `.replace()` (documented as faulting on GMRT — see the `UIInput._paste` note). Manual-key path only, so the regex has never been exercised. The `screenshots/` subdir is NOT a defect (`screen_save` creates missing dirs), but the shot lands in the build tree rather than the save dir (GMRT.md → `working_directory`). Fix: assemble the timestamp without regex.
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
 - **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the Audio group row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
 

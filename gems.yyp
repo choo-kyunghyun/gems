@@ -322,6 +322,7 @@
     {"id":{"name":"sceneRpg","path":"scripts/sceneRpg/sceneRpg.yy",},},
     {"id":{"name":"SceneTransition","path":"scripts/SceneTransition/SceneTransition.yy",},},
     {"id":{"name":"sceneUIKit","path":"scripts/sceneUIKit/sceneUIKit.yy",},},
+    {"id":{"name":"Screenshot","path":"scripts/Screenshot/Screenshot.yy",},},
     {"id":{"name":"SeparationSystem","path":"scripts/SeparationSystem/SeparationSystem.yy",},},
     {"id":{"name":"Settings","path":"scripts/Settings/Settings.yy",},},
     {"id":{"name":"Settlement","path":"scripts/Settlement/Settlement.yy",},},

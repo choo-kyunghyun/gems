@@ -7,10 +7,13 @@ globalThis.Time = {
   scale: 1,
   /** @type {number} `raw * scale` — sim time. */
   delta: 0,
+  /** @type {number} frames since boot (1 on the first stepped frame; never pauses or dilates). */
+  frame: 0,
 
   /** Advance the clock from `delta_time` (µs). */
   update() {
     Time.raw = delta_time / 1000000;
     Time.delta = Time.raw * Time.scale;
+    Time.frame += 1;
   },
 };
