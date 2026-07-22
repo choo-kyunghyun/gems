@@ -10,7 +10,7 @@ This file is the quirk reference for that target — GMRT is young: it miscompil
 
 Never record a ticket's state here — not open/closed, not "in QA", not "fixed in 0.21": state is owned by the tracker and rots the moment upstream moves, and a stale "fixed" reads as permission to use a built-in that still bites on the pinned runtime. Every entry is live on 0.20, so it needs no state to be actionable.
 
-Working rules: avoid the quirks, don't "clean up" code back into them, and leave a one-line comment where a quirk forces an unusual idiom so it isn't "fixed" back. Recording a new one: Recording a Quirk (below).
+Working rules: avoid the quirks, don't "clean up" code back into them, and leave a one-line comment where a quirk forces an unusual idiom so it isn't "fixed" back. Codegen is name-sensitive ([#15597]'s built-in collisions, the per-unit budgets), so verify any identifier rename by running the game, never by compiling alone. Recording a new one: Recording a Quirk (below).
 
 Recording a Quirk (the maintenance workflow) comes first, then the entries organised by failure phase: Runtime and Build Issues (what breaks a build, a built-in, or running JS) · Known Incompatibilities (the changelog's declared gaps) · Differences from ES2020 (JS spec features unimplemented or behaving like GameMaker built-ins). This file is a deny-list: it records what to avoid, never an allow-list of what works — a built-in absent from it is simply usable, and "it works now" is history, which git owns. Area-scoped rules (UI first-frame guards, camera/cursor conversion, shader conventions) live at their area's owner (its JSDoc — e.g. `UI.insert`, `Camera.cursorWorld`, `sh_meshlit`), not here — this file keeps only what can bite in any script.
 

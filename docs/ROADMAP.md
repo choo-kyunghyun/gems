@@ -4,27 +4,7 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 ## Current Works
 
-One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns. Order: Rename Passes first (everything after reads the final vocabulary), Comment Refactor second, Code Review last.
-
-### Rename Passes
-
-The three renames left by the two-layer ECS restructure, each a full-project sweep. GMRT codegen is name-sensitive (GMRT.md → Differences from ES2020, the `var` built-in-name collision): run the game after every rename pass, never compile alone — the same applies to any API Naming rename (CLAUDE.md → API Naming). Mark Done as passes land.
-
-| #   | Pass                 | Rule                                                                                                                                                               | Done |
-| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         | Yes  |
-| R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. | Yes  |
-| R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                | Yes  |
-
-R3 sub-passes:
-
-- **R3a** — the ubiquitous `scene` handle for a `Level` instance (locals, params, fields).
-- **R3b** — `openScene`/`teardownScene`/`SceneRegistry`/`SCENES` take their `level` forms.
-- **R3c** — `SceneTransition` becomes `LevelTransition` (a script asset — CLAUDE.md → Resourcetool).
-- **R3d** — the obj_game `scenes` alias drops for direct `World.levels` reads; CLAUDE.md's `game.scenes.current.entities` debugging example updates with it.
-- **R3e** — `RpgScene` gets a name for what it holds; `RpgLevel` is taken by the grid builder, itself misreading once `.level` is `.grid` — settle the pair in one session.
-
-The `scene*` script-asset prefix stays (CLAUDE.md → Script Naming).
+One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns. Order: Comment Refactor first, Code Review last.
 
 ### Comment Refactor
 
