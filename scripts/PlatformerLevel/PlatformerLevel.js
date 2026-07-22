@@ -24,23 +24,23 @@ const PLATFORMER_LEVEL = {
 };
 
 globalThis.PlatformerLevel = {
-  /** @param {object} world @returns {{ x: number, y: number }} */
-  build(world) {
+  /** @param {object} entities @returns {{ x: number, y: number }} */
+  build(entities) {
     const spawns = PLATFORMER_LEVEL.spawns;
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
       if (s.preset === "platform") {
-        const id = world.create();
-        world.add(id, Position, { x: s.x, y: s.y, z: 0 });
-        world.add(id, BBox, { x: 0, y: 0, width: s.w, height: s.h });
-        world.add(id, Collision, {
+        const id = entities.create();
+        entities.add(id, Position, { x: s.x, y: s.y, z: 0 });
+        entities.add(id, BBox, { x: 0, y: 0, width: s.w, height: s.h });
+        entities.add(id, Collision, {
           solid: true,
           kinematic: true,
           oneWay: s.oneWay ?? false,
           mask: null,
           hits: [],
         });
-        world.add(id, Visual, {
+        entities.add(id, Visual, {
           visible: true,
           sprite: spr_choo,
           subimg: 0,
@@ -52,20 +52,20 @@ globalThis.PlatformerLevel = {
           speed: 0,
           time: 0,
         });
-        world.add(id, Name, { name: "Platform" });
+        entities.add(id, Name, { name: "Platform" });
       } else if (s.preset === "enemy") {
-        const id = world.create();
-        world.add(id, Position, { x: s.x, y: s.y, z: 0 });
-        world.add(id, Velocity, { x: -PLATF_ENEMY_SPEED, y: 0, z: 0 });
-        world.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
-        world.add(id, Collision, {
+        const id = entities.create();
+        entities.add(id, Position, { x: s.x, y: s.y, z: 0 });
+        entities.add(id, Velocity, { x: -PLATF_ENEMY_SPEED, y: 0, z: 0 });
+        entities.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
+        entities.add(id, Collision, {
           solid: true,
           kinematic: false,
           mask: null,
           hits: [],
         });
-        world.add(id, Enemy, { dir: -1, speed: PLATF_ENEMY_SPEED });
-        world.add(id, Visual, {
+        entities.add(id, Enemy, { dir: -1, speed: PLATF_ENEMY_SPEED });
+        entities.add(id, Visual, {
           visible: true,
           sprite: spr_choo,
           subimg: 0,
@@ -77,19 +77,19 @@ globalThis.PlatformerLevel = {
           speed: 0,
           time: 0,
         });
-        world.add(id, Name, { name: "Enemy" });
+        entities.add(id, Name, { name: "Enemy" });
       } else if (s.preset === "spike") {
-        const id = world.create();
-        world.add(id, Position, { x: s.x, y: s.y, z: 0 });
-        world.add(id, BBox, { x: -8, y: -12, width: 16, height: 12 });
-        world.add(id, Collision, {
+        const id = entities.create();
+        entities.add(id, Position, { x: s.x, y: s.y, z: 0 });
+        entities.add(id, BBox, { x: -8, y: -12, width: 16, height: 12 });
+        entities.add(id, Collision, {
           solid: false,
           kinematic: false,
           mask: null,
           hits: [],
         });
-        world.add(id, Spike, {});
-        world.add(id, Visual, {
+        entities.add(id, Spike, {});
+        entities.add(id, Visual, {
           visible: true,
           sprite: spr_choo,
           subimg: 0,
@@ -101,7 +101,7 @@ globalThis.PlatformerLevel = {
           speed: 0,
           time: 0,
         });
-        world.add(id, Name, { name: "Spike" });
+        entities.add(id, Name, { name: "Spike" });
       }
     }
 

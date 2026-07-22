@@ -30,7 +30,7 @@ globalThis.RenderLighting = class RenderLighting {
     if (surface_exists(this._surf)) surface_free(this._surf);
   }
 
-  draw(world) {
+  draw(entities) {
     if (this.camera === undefined) return;
 
     // ambient → multiply model. k=0 → white (daylight): composite is a no-op, so skip all surface
@@ -63,15 +63,15 @@ globalThis.RenderLighting = class RenderLighting {
     surface_set_target(this._surf);
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
-    const lights = world.query(Light, Position);
+    const lights = entities.query(Light, Position);
     const alpha = World.sim.alpha; // render interpolation, like RenderEntity
     const zx = w / this.camera.width; // world→screen scale for the blob radius
     let i = 0;
     while (i < lights.length) {
       const id = lights[i];
-      const lt = world.get(Light, id);
-      const pos = world.get(Position, id);
-      const prev = world.get(PrevPosition, id);
+      const lt = entities.get(Light, id);
+      const pos = entities.get(Position, id);
+      const prev = entities.get(PrevPosition, id);
       const wx = prev ? prev.x + (pos.x - prev.x) * alpha : pos.x;
       const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
       const s = this.camera.project(wx, wy, 0);

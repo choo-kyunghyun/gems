@@ -39,7 +39,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     if (buffer_exists(this._buf)) buffer_delete(this._buf);
   }
 
-  draw(_world) {
+  draw(_entities) {
     if (this.camera === undefined) return;
 
     // strength: weather coverage (cross-faded) × daylight, folded into one grey the blend darkens

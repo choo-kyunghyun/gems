@@ -49,7 +49,7 @@ globalThis.EntityData = class EntityData {
     if (storage !== undefined) storage[EntityID.getIndex(id)] = undefined;
   }
 
-  /** Null every component slot at an entity index (World.flush, after removal). @param {number} index */
+  /** Null every component slot at an entity index (Entity.flush, after removal). @param {number} index */
   clear(index) {
     for (let s = 0; s < this._storages.length; s++)
       this._storages[s][index] = undefined;
@@ -109,7 +109,7 @@ globalThis.EntityData = class EntityData {
     }
   }
 
-  /** @returns {Object<string,Array>} sparse [index, data] entries per component (World.export wraps this with ids) */
+  /** @returns {Object<string,Array>} sparse [index, data] entries per component (Entity.export wraps this with ids) */
   export() {
     const components = {};
     for (let k = 0; k < this._keys.length; k++) {

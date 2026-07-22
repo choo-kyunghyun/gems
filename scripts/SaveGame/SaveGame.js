@@ -160,7 +160,7 @@ globalThis.SaveGame = {
   /**
    * Apply a saved map's build state onto a freshly-built map: the founded settlements, then the
    * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
-   * the world export, so a chest keeps its contents). Shared by the active-map restore and every
+   * the store export, so a chest keeps its contents). Shared by the active-map restore and every
    * parked map's first build. The deep chunk cache is applied earlier, inside build().
    * @param {Object} scene @param {Object} savedMap a manifest maps[] entry
    */
@@ -196,7 +196,7 @@ globalThis.SaveGame = {
     id: "meta",
     capture(ctx) {
       const scene = ctx.scene;
-      const w = scene.world;
+      const w = scene.entities;
       const pid = scene.playerId;
       const health = pid !== undefined ? w.get(Health, pid) : undefined;
       const stats = pid !== undefined ? w.get(Stats, pid) : undefined;
@@ -261,16 +261,16 @@ globalThis.SaveGame = {
         // suspend overwrites it); parked maps carry their full bundle in the registry.
         const src =
           mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
-        if (src === null || src.world === undefined) continue;
-        const world = src.world;
+        if (src === null || src.entities === undefined) continue;
+        const entities = src.entities;
         const grid = src.level;
         // component export → JSON, minus transient/rebuilt components (interpolation + pathfinding
         // are re-derived each tick; dropping them also shrinks the save and dodges any cyclic
         // reference a runtime component might carry — see Json's cycle guard).
-        const exp = world.export();
+        const exp = entities.export();
         for (let t = 0; t < SaveGame._TRANSIENT.length; t++)
           delete exp.components[SaveGame._TRANSIENT[t]];
-        // DEEP: chunk-owned wilderness/hub entities ride the chunk cache (exact state), NOT the world
+        // DEEP: chunk-owned wilderness/hub entities ride the chunk cache (exact state), NOT the store
         // export — exclude them here so they aren't saved twice, then capture the chunk delta.
         let chunkCache;
         if (src.chunks !== undefined) {
@@ -284,7 +284,7 @@ globalThis.SaveGame = {
           reachDone: src.reachDone === true,
           built: src._built !== undefined ? src._built : {},
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
-          world: exp,
+          world: exp, // on-disk manifest key — renaming it orphans existing saves
           chunkCache: chunkCache, // undefined on plain maps (Json drops it)
           zones: SaveGame._zonesOf(grid), // founded settlements (tiles come from `built` via Blueprint)
         });
@@ -324,7 +324,7 @@ globalThis.SaveGame = {
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
-        const pos = scene.world.get(Position, scene.playerId);
+        const pos = scene.entities.get(Position, scene.playerId);
         if (pos !== undefined) {
           pos.x = pinfo.x;
           pos.y = pinfo.y;
@@ -431,7 +431,7 @@ globalThis.SaveGame = {
     if (
       s === null ||
       s === undefined ||
-      s.world === undefined ||
+      s.entities === undefined ||
       s.playerId === undefined
     )
       return null;
@@ -463,9 +463,9 @@ globalThis.SaveGame = {
     g.scenes.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
   },
 
-  // ── restore helpers: pull entities back out of a world export ──
+  // ── restore helpers: pull entities back out of a store export ──
 
-  // Drop a chunk manager's live SIM entities from a world export (they're saved in the chunk cache
+  // Drop a chunk manager's live SIM entities from a store export (they're saved in the chunk cache
   // instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
   // as-is (restore reads specific entities out, never re-imports the whole export).
   _excludeChunkOwned(exp, chunks) {
@@ -527,7 +527,7 @@ globalThis.SaveGame = {
   },
 
   // Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
-  // entity carrying its EXACT snapshot pulled from the world export (so a built chest keeps its
+  // entity carrying its EXACT snapshot pulled from the store export (so a built chest keeps its
   // contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
   _buildPlan(active) {
     const built = active.built !== undefined ? active.built : {};

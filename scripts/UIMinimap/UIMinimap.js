@@ -1,11 +1,11 @@
-// Radar — top-down blip view of a World around a target, immediate-mode (reads World live).
+// Radar — top-down blip view of a store around a target, immediate-mode (reads it live).
 // Entities within `range` colored by the first matching rule in `rules`; target gets a facing notch.
 // A rule is { has, color }: `has` is a COMPONENT TOKEN — the entity blips when it has that component.
 /** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
-  /** @param {Object} [m] { world, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
+  /** @param {Object} [m] { entities, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
   constructor(m = {}) {
-    this.world = m.world ?? null;
+    this.entities = m.entities ?? null;
     this.target = m.target ?? -1; // center entity id (also the player marker)
     this.range = m.range ?? 960; // world units from center to the radar edge
     this.rules = m.rules ?? []; // [{ has, color }] — first entity-has-component match wins
@@ -20,9 +20,9 @@ globalThis.UIMinimap = class UIMinimap {
 
   /** @param {UIElement} element */
   onDraw(element) {
-    if (this.world === null) return;
+    if (this.entities === null) return;
     const pos = element.getLayoutPosition();
-    const tp = this.world.get(Position, this.target);
+    const tp = this.entities.get(Position, this.target);
     if (tp === undefined) return; // target gone — nothing to center on
 
     const color = draw_get_color();
@@ -47,13 +47,13 @@ globalThis.UIMinimap = class UIMinimap {
 
     // blips clipped to the rim (radial cull keeps dots inside the circle).
     const rSq = radius * radius;
-    const ids = Query.inRadius(this.world, tp.x, tp.y, this.range);
+    const ids = Query.inRadius(this.entities, tp.x, tp.y, this.range);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === this.target) continue;
       const c = this._color(id);
       if (c === null) continue;
-      const p = this.world.get(Position, id);
+      const p = this.entities.get(Position, id);
       const dx = (p.x - tp.x) * scale;
       const dy = (p.y - tp.y) * scale;
       if (dx * dx + dy * dy > rSq) continue;
@@ -64,7 +64,7 @@ globalThis.UIMinimap = class UIMinimap {
     // target marker + facing notch (dot in the heading direction).
     draw_set_color(this.playerColor);
     draw_circle(cx, cy, this.blipSize + 1, false);
-    const dir = this.world.get(Direction, this.target);
+    const dir = this.entities.get(Direction, this.target);
     if (dir !== undefined && (dir.x !== 0 || dir.y !== 0)) {
       draw_circle(
         cx + dir.x * (this.blipSize + 4),
@@ -81,7 +81,7 @@ globalThis.UIMinimap = class UIMinimap {
   /** @param {number} id @returns {number|null} the first matching rule color, or null if no rule matches */
   _color(id) {
     for (let r = 0; r < this.rules.length; r++) {
-      if (this.world.get(this.rules[r].has, id) !== undefined)
+      if (this.entities.get(this.rules[r].has, id) !== undefined)
         return this.rules[r].color;
     }
     return null;

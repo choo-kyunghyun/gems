@@ -13,13 +13,13 @@ globalThis.AppearanceSystem = {
   FRONT_SLOTS: ["armor", "trinket", "weapon"],
   HELD_SCALE: 0.5, // anchored held-icon size relative to the body's draw scale
 
-  rebuild(world, id) {
-    const ap = world.get(Appearance, id);
+  rebuild(entities, id) {
+    const ap = entities.get(Appearance, id);
     if (ap === undefined) return;
     // an Appearance WITHOUT Equipment is AUTHORED (e.g. the bandit outfit on a raider) — leave
     // it alone; only equipment-carrying dolls are derived (cleared + rebuilt) here
-    const eq = world.get(Equipment, id);
-    const inv = world.get(Inventory, id);
+    const eq = entities.get(Equipment, id);
+    const inv = entities.get(Inventory, id);
     if (eq === undefined || inv === undefined) return;
     ap.back.length = 0;
     ap.front.length = 0;

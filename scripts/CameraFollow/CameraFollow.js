@@ -51,15 +51,15 @@ function _cameraFollowOnUpdate() {
   this.projection = this._baseProjection;
   this._flyInit = false;
 
-  if (this.world === undefined) return;
+  if (this.entities === undefined) return;
   // Resolve the target LIVE each update: an entity carrying CameraFocus wins (so the camera
   // never dangles a stored id — a portal transfer re-mints the player's entity id, but the
   // marker rides the EntitySnapshot into the new world and the query just finds it);
   // followTarget is the raw-id fallback for worlds that don't use the marker.
   let target = this.followTarget;
-  const foci = this.world.query(CameraFocus);
+  const foci = this.entities.query(CameraFocus);
   if (foci.length > 0) target = foci[0];
-  const pos = this.world.get(Position, target);
+  const pos = this.entities.get(Position, target);
   if (pos === undefined) return;
 
   let x = lerp(this.toX, pos.x, this.followLerp);
@@ -110,7 +110,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   cam.projection = projection;
 
   const camera = /** @type {any} */ (new Camera(cam));
-  camera.world = cam.world;
+  camera.entities = cam.entities;
   camera.followTarget = cam.followTarget ?? -1;
   camera.followLerp = cam.followLerp ?? 0.1;
   camera.followHeight = cam.followHeight ?? defaultHeight;
@@ -141,7 +141,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
 globalThis.CameraFollow = {
   /**
    * 3D perspective-FOV follow camera. Currently unused (scenes use create2d); kept as library variant.
-   * @param {object} [cam] - world, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton
+   * @param {object} [cam] - entities, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton
    * @returns {Camera}
    */
   create(cam = {}) {
@@ -155,7 +155,7 @@ globalThis.CameraFollow = {
 
   /**
    * 2D pixel-snapped orthographic follow camera with wheel zoom. Middle-mouse resets zoom.
-   * @param {object} [cam] - world, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton,
+   * @param {object} [cam] - entities, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton,
    *   clamp { x1, y1, x2, y2 } world-px look-at bounds (pitch-aware; centers when world < view), viewCap
    * @returns {Camera}
    */

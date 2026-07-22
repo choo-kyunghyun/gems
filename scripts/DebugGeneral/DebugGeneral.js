@@ -55,8 +55,8 @@ globalThis.DebugGeneral = {
         d.scene = game.scenes.label();
         const s = game.scenes.current;
         const w =
-          s !== null && s !== undefined && s.world !== undefined
-            ? s.world
+          s !== null && s !== undefined && s.entities !== undefined
+            ? s.entities
             : null;
         d.entities = w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
       },

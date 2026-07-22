@@ -39,7 +39,7 @@ globalThis.StorageUI = {
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
         () => StorageUI._allFrom(scene, "bag"),
-        () => scene.world.get(Inventory, scene.playerId),
+        () => scene.entities.get(Inventory, scene.playerId),
       ),
     );
     cols.insertChild(
@@ -48,7 +48,7 @@ globalThis.StorageUI = {
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
         () => StorageUI._allFrom(scene, "box"),
-        () => scene.world.get(Inventory, scene._storageId),
+        () => scene.entities.get(Inventory, scene._storageId),
       ),
     );
     card.insertChild(cols);
@@ -136,7 +136,7 @@ globalThis.StorageUI = {
   // row models for one inventory. `idx` (slot index) is valid until the next refresh =
   // when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
   _rows(scene, inv) {
-    const fav = scene.world.get(Favorites, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -169,9 +169,9 @@ globalThis.StorageUI = {
   },
 
   refresh(scene) {
-    const world = scene.world;
-    const bagInv = world.get(Inventory, scene.playerId);
-    const boxInv = world.get(Inventory, scene._storageId);
+    const entities = scene.entities;
+    const bagInv = entities.get(Inventory, scene.playerId);
+    const boxInv = entities.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
     scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
     scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
@@ -196,8 +196,8 @@ globalThis.StorageUI = {
   // refused; taking from the chest is never protected.
   _move(scene, side, row) {
     if (row === null || row === undefined) return;
-    const world = scene.world;
-    const srcInv = world.get(
+    const entities = scene.entities;
+    const srcInv = entities.get(
       Inventory,
       side === "bag" ? scene.playerId : scene._storageId,
     );
@@ -234,14 +234,14 @@ globalThis.StorageUI = {
   // transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
   // its hotbar slot; a partial transfer keeps the binding usable.
   _doMove(scene, side, row, amount) {
-    const world = scene.world;
-    const bag = world.get(Inventory, scene.playerId);
-    const box = world.get(Inventory, scene._storageId);
+    const entities = scene.entities;
+    const bag = entities.get(Inventory, scene.playerId);
+    const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     if (side === "bag") {
       const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
       if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
-        const hb = world.get(Hotbar, scene.playerId);
+        const hb = entities.get(Hotbar, scene.playerId);
         if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
       }
     } else {
@@ -287,9 +287,9 @@ globalThis.StorageUI = {
   // bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
   // halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
   _allFrom(scene, side) {
-    const world = scene.world;
-    const bag = world.get(Inventory, scene.playerId);
-    const box = world.get(Inventory, scene._storageId);
+    const entities = scene.entities;
+    const bag = entities.get(Inventory, scene.playerId);
+    const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
     // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
@@ -310,11 +310,11 @@ globalThis.StorageUI = {
   // still store one (it unbinds the hotbar; see _move).
   _storeBlocked(scene, includeHotbar) {
     const blocked = {};
-    const fav = scene.world.get(Favorites, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     if (fav !== undefined)
       for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
     if (includeHotbar) {
-      const hb = scene.world.get(Hotbar, scene.playerId);
+      const hb = scene.entities.get(Hotbar, scene.playerId);
       if (hb !== undefined)
         for (let i = 0; i < hb.slots.length; i++)
           if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
@@ -326,7 +326,7 @@ globalThis.StorageUI = {
   // its Equipment slot doesn't dangle. exact { uid: true } set (Equipment keys by uid).
   _equipKeep(scene) {
     const keep = {};
-    const eq = scene.world.get(Equipment, scene.playerId);
+    const eq = scene.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return keep;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -385,8 +385,8 @@ globalThis.StorageUI = {
   // unequip any worn item no longer in the bag, else its Equipment slot (and stat mods) dangle.
   // no-op when srcInv isn't the player bag.
   _reconcileEquip(scene, srcInv) {
-    if (srcInv !== scene.world.get(Inventory, scene.playerId)) return;
-    const eq = scene.world.get(Equipment, scene.playerId);
+    if (srcInv !== scene.entities.get(Inventory, scene.playerId)) return;
+    const eq = scene.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -395,7 +395,7 @@ globalThis.StorageUI = {
         uid !== "" &&
         InventorySystem.findByUid(srcInv, uid) === undefined
       ) {
-        EquipmentSystem.unequip(scene.world, scene.playerId, slot);
+        EquipmentSystem.unequip(scene.entities, scene.playerId, slot);
       }
     }
   },

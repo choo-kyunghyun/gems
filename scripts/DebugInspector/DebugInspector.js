@@ -9,7 +9,7 @@
  * Picking uses the latched LMB edge (the UIPointer poll-once rule).
  */
 globalThis.DebugInspector = {
-  _world: null,
+  _entities: null,
   _id: -1,
   _registered: false, // Entity section registered at least once
   pickRadius: 128, // max world px from cursor to accept a pick
@@ -18,23 +18,23 @@ globalThis.DebugInspector = {
 
   // select an entity, or (null, -1) to deselect. Deselect swaps the section
   // to a placeholder rather than removing it, so its window stays available.
-  select(world, id) {
+  select(entities, id) {
     const valid =
-      world !== null &&
-      world !== undefined &&
+      entities !== null &&
+      entities !== undefined &&
       id !== undefined &&
       id !== -1 &&
-      world.isValid(id);
-    const nextWorld = valid ? world : null;
+      entities.isValid(id);
+    const nextEntities = valid ? entities : null;
     const nextId = valid ? id : -1;
     // no change and already registered → skip the rebuild.
     if (
-      nextWorld === DebugInspector._world &&
+      nextEntities === DebugInspector._entities &&
       nextId === DebugInspector._id &&
       DebugInspector._registered
     )
       return;
-    DebugInspector._world = nextWorld;
+    DebugInspector._entities = nextEntities;
     DebugInspector._id = nextId;
     DebugInspector._register();
   },
@@ -46,13 +46,13 @@ globalThis.DebugInspector = {
   // per-pick churn never moves the stable "General" window.
   _register() {
     DebugInspector._registered = true;
-    const world = DebugInspector._world;
+    const entities = DebugInspector._entities;
     const id = DebugInspector._id;
     Debug.add({
       name: "Entity",
       window: "Inspector",
       build() {
-        if (world === null || id === -1) {
+        if (entities === null || id === -1) {
           dbg_text("No entity selected — click one in the world.");
           return;
         }
@@ -62,7 +62,7 @@ globalThis.DebugInspector = {
         // plain). Labels stay token-prefixed: components share field names
         // (Position.x / Velocity.x), and a duplicate label is one control to
         // ImGui.
-        const comps = world.componentsOf(id);
+        const comps = entities.componentsOf(id);
         for (const token in comps) {
           const data = comps[token];
           dbg_section(token, true);
@@ -93,25 +93,25 @@ globalThis.DebugInspector = {
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
     const scene = game.scenes.current;
-    const world =
-      scene !== null && scene !== undefined && scene.world !== undefined
-        ? scene.world
+    const entities =
+      scene !== null && scene !== undefined && scene.entities !== undefined
+        ? scene.entities
         : null;
 
-    // drop a stale selection (entity removed, or scene/world swapped).
+    // drop a stale selection (entity removed, or scene/store swapped).
     if (DebugInspector._id !== -1) {
       if (
-        world !== DebugInspector._world ||
-        world === null ||
-        !world.isValid(DebugInspector._id)
+        entities !== DebugInspector._entities ||
+        entities === null ||
+        !entities.isValid(DebugInspector._id)
       ) {
         DebugInspector.select(null, -1);
       }
     }
 
     // pick only while the overlay is open, the cursor isn't over it, and the
-    // scene has a world + camera.
-    if (!Debug.isOpen() || world === null) return;
+    // scene has a store + camera.
+    if (!Debug.isOpen() || entities === null) return;
     if (scene.camera === undefined) return;
     if (is_mouse_over_debug_overlay()) return;
     if (!UIPointer.pressed) return;
@@ -120,20 +120,20 @@ globalThis.DebugInspector = {
     // pitch-aware ground-plane unprojection (GUI cursor → world) — the old
     // linear view-rect mapping ignored camera pitch (see Camera.unproject)
     const cur = cam.cursorWorld();
-    const id = Query.nearest(world, cur.x, cur.y, {
+    const id = Query.nearest(entities, cur.x, cur.y, {
       maxDist: DebugInspector.pickRadius,
     });
-    if (id !== -1) DebugInspector.select(world, id);
+    if (id !== -1) DebugInspector.select(entities, id);
   },
 
   draw(game) {
     if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
-    const world = DebugInspector._world;
-    if (world === null || !world.isValid(DebugInspector._id)) return;
+    const entities = DebugInspector._entities;
+    if (entities === null || !entities.isValid(DebugInspector._id)) return;
     const scene = game.scenes.current;
     if (scene === null || scene === undefined || scene.camera === undefined)
       return;
-    const pos = world.get(Position, DebugInspector._id);
+    const pos = entities.get(Position, DebugInspector._id);
     if (pos === undefined) return;
 
     const cam = scene.camera;

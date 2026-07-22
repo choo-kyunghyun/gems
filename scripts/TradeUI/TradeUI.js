@@ -19,7 +19,7 @@ globalThis.TradeUI = {
     // Title reads the ACTIVE merchant live; Esc / E also close.
     const host = gemsOverlay(
       () => {
-        const npc = scene.world.get(NPC, scene._tradeMerchantId);
+        const npc = scene.entities.get(NPC, scene._tradeMerchantId);
         return npc !== undefined
           ? I18n.text(npc.name)
           : I18n.text("TRADE_TITLE");
@@ -54,7 +54,7 @@ globalThis.TradeUI = {
     cols.insertChild(
       // BUY column sub-label = the finite merchant's till (empty for an infinite one).
       TradeUI._column(I18n.textRef("TRADE_BUY"), buyTable, () => {
-        const m = scene.world.get(Merchant, scene._tradeMerchantId);
+        const m = scene.entities.get(Merchant, scene._tradeMerchantId);
         return m === undefined || m.infinite
           ? ""
           : I18n.text("TRADE_MERCHANT_TILL", m.credits);
@@ -74,15 +74,15 @@ globalThis.TradeUI = {
 
   // player's balance in the active merchant's currencyId (else "coin").
   _coins(scene) {
-    const inv = scene.world.get(Inventory, scene.playerId);
-    const m = scene.world.get(Merchant, scene._tradeMerchantId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
+    const m = scene.entities.get(Merchant, scene._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
   },
 
   // "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
   _balanceText(scene) {
-    const m = scene.world.get(Merchant, scene._tradeMerchantId);
+    const m = scene.entities.get(Merchant, scene._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
     const it = Item.get(cur);
     const nm = it !== undefined ? I18n.text(it.name) : cur;
@@ -167,18 +167,18 @@ globalThis.TradeUI = {
   // row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
   // `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _act.
   _rows(scene, side) {
-    const world = scene.world;
-    const m = world.get(Merchant, scene._tradeMerchantId);
+    const entities = scene.entities;
+    const m = entities.get(Merchant, scene._tradeMerchantId);
     if (m === undefined) return [];
     const inv =
       side === "buy"
-        ? world.get(Inventory, scene._tradeMerchantId)
-        : world.get(Inventory, scene.playerId);
+        ? entities.get(Inventory, scene._tradeMerchantId)
+        : entities.get(Inventory, scene.playerId);
     if (inv === undefined) return [];
     const fav =
-      side === "sell" ? world.get(Favorites, scene.playerId) : undefined;
+      side === "sell" ? entities.get(Favorites, scene.playerId) : undefined;
     const eq =
-      side === "sell" ? world.get(Equipment, scene.playerId) : undefined;
+      side === "sell" ? entities.get(Equipment, scene.playerId) : undefined;
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -265,8 +265,8 @@ globalThis.TradeUI = {
         return;
       }
     }
-    const world = scene.world;
-    const m = world.get(Merchant, scene._tradeMerchantId);
+    const entities = scene.entities;
+    const m = entities.get(Merchant, scene._tradeMerchantId);
     if (m === undefined) return;
     const def = Item.get(row.itemId);
     const instanced = def !== undefined && def.isInstanced();
@@ -313,7 +313,7 @@ globalThis.TradeUI = {
 
   _doBuy(scene, row, amount) {
     const res = TradeSystem.buy(
-      scene.world,
+      scene.entities,
       scene.playerId,
       scene._tradeMerchantId,
       row.idx,
@@ -324,7 +324,7 @@ globalThis.TradeUI = {
 
   _doSell(scene, row, amount) {
     const res = TradeSystem.sell(
-      scene.world,
+      scene.entities,
       scene.playerId,
       scene._tradeMerchantId,
       row.idx,

@@ -52,14 +52,14 @@ globalThis.RpgInteractions = {
         id: "door",
         prompt: "DOOR_PROMPT",
         run(ctx) {
-          const col = ctx.world.get(Collision, ctx.id);
-          const mesh = ctx.world.get(Mesh, ctx.id);
+          const col = ctx.entities.get(Collision, ctx.id);
+          const mesh = ctx.entities.get(Mesh, ctx.id);
           if (col === undefined) return;
           if (ctx.comp.open === 1) {
             // refuse to close over a standing body — it would trap it inside the collider
-            const box = AABB.of(ctx.world, ctx.id);
+            const box = AABB.of(ctx.entities, ctx.id);
             const ids = Query.inRect(
-              ctx.world,
+              ctx.entities,
               box.x1 - 4,
               box.y1 - 4,
               box.x2 + 4,
@@ -68,7 +68,7 @@ globalThis.RpgInteractions = {
             );
             for (let i = 0; i < ids.length; i++) {
               if (ids[i] === ctx.id) continue;
-              const c = ctx.world.get(Collision, ids[i]);
+              const c = ctx.entities.get(Collision, ids[i]);
               if (
                 c !== undefined &&
                 c.solid === true &&
@@ -117,7 +117,7 @@ globalThis.RpgInteractions = {
         id: "rehire",
         prompt: "REHIRE_PROMPT",
         run(ctx) {
-          FollowerSystem.hire(ctx.world, ctx.playerId, ctx.id);
+          FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
           ctx.scene._invDirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
@@ -130,7 +130,7 @@ globalThis.RpgInteractions = {
         prompt: "HYDRATE_PROMPT",
         run(ctx) {
           const ok = ThirstSystem.restore(
-            ctx.world,
+            ctx.entities,
             ctx.playerId,
             ctx.comp.amount ?? 60,
           );
@@ -144,7 +144,7 @@ globalThis.RpgInteractions = {
         prompt: "FEED_PROMPT",
         run(ctx) {
           const ok = HungerSystem.restore(
-            ctx.world,
+            ctx.entities,
             ctx.playerId,
             ctx.comp.amount ?? 60,
           );
@@ -158,7 +158,7 @@ globalThis.RpgInteractions = {
         prompt: "BUFF_PROMPT",
         run(ctx) {
           StatusSystem.apply(
-            ctx.world,
+            ctx.entities,
             ctx.playerId,
             ctx.comp.status ?? "regen",
           );

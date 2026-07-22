@@ -116,14 +116,14 @@ globalThis.TerrainStream = class TerrainStream {
   }
 
   // submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
-  draw(world) {
+  draw(entities) {
     if (!this._ok) return;
     // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
     // host RenderMesh pass supplies the shared sun/point gather, normal straight up; z-write
     // stays off (painter order) so only the shading changes. Unset → fixed-function unlit.
     const lit = this.lights !== undefined && this.lights._litOk;
     if (lit) {
-      this.lights._setupLights(world);
+      this.lights._setupLights(entities);
       shader_set_uniform_f(this.lights._uUseTex, 1);
       shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
     }

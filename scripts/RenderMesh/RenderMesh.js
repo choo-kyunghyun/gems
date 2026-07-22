@@ -128,7 +128,7 @@ globalThis.RenderMesh = class RenderMesh {
   // ONE light gather every lit pass shares (walls/billboards/ground call it via opt.lights),
   // so the whole scene can't diverge — each caller then overrides u_useTex/u_normal/
   // u_alphaRef for its own submits.
-  _setupLights(world) {
+  _setupLights(entities) {
     shader_set(this._lit);
     shader_set_uniform_f(this._uUseTex, 0); // vox mode; textured callers flip it
     shader_set_uniform_f(this._uAlphaRef, 0); // no cutout; billboards/sprite faces raise it
@@ -141,7 +141,7 @@ globalThis.RenderMesh = class RenderMesh {
     shader_set_uniform_f(this._uSunColor, sun.r, sun.g, sun.b);
 
     const max = RenderMesh.MAX_LIGHTS;
-    let ids = world.query(Light, Position);
+    let ids = entities.query(Light, Position);
     // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
     // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
     // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
@@ -155,8 +155,8 @@ globalThis.RenderMesh = class RenderMesh {
         this.camera.height / 2 / Math.cos(this.camera.followPitch ?? 0);
       const vis = [];
       for (let i = 0; i < ids.length; i++) {
-        const p = world.get(Position, ids[i]);
-        const r = world.get(Light, ids[i]).radius;
+        const p = entities.get(Position, ids[i]);
+        const r = entities.get(Light, ids[i]).radius;
         if (
           p.x + r >= cx - halfW &&
           p.x - r <= cx + halfW &&
@@ -174,7 +174,7 @@ globalThis.RenderMesh = class RenderMesh {
       const cy = this.camera.toY;
       const scored = [];
       for (let i = 0; i < ids.length; i++) {
-        const p = world.get(Position, ids[i]);
+        const p = entities.get(Position, ids[i]);
         const dx = p.x - cx;
         const dy = p.y - cy;
         scored.push({ id: ids[i], d: dx * dx + dy * dy });
@@ -187,8 +187,8 @@ globalThis.RenderMesh = class RenderMesh {
     const n = Math.min(order.length, max);
     for (let i = 0; i < n; i++) {
       const id = order[i];
-      const p = world.get(Position, id);
-      const lt = world.get(Light, id);
+      const p = entities.get(Position, id);
+      const lt = entities.get(Light, id);
       let intensity = lt.intensity ?? 1;
       // flicker: same wall-clock sine as RenderLighting, id-offset so torches don't sync
       if (lt.flicker)
@@ -237,19 +237,19 @@ globalThis.RenderMesh = class RenderMesh {
     }
   }
 
-  draw(world) {
+  draw(entities) {
     const ident = matrix_build_identity();
     // depth-writing like RenderBillboard (global default is off — obj_game Create_0)
     gpu_set_zwriteenable(true);
     // PASS 1 — baked models, lit by sh_meshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
-    if (this._litOk) this._setupLights(world);
-    for (const entity of world.query(Mesh, Position)) {
-      const mesh = world.get(Mesh, entity);
+    if (this._litOk) this._setupLights(entities);
+    for (const entity of entities.query(Mesh, Position)) {
+      const mesh = entities.get(Mesh, entity);
       if (mesh.model === undefined || mesh.model === "") continue;
       const m = this._model(mesh.model);
       if (m.vb === -1) continue;
-      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
       // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
       // footprint center (vbufs bake all four side faces, so any facing is solid); the shader
@@ -273,10 +273,10 @@ globalThis.RenderMesh = class RenderMesh {
     }
     if (this._litOk) shader_reset();
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
-    for (const entity of world.query(Mesh, Position)) {
-      const mesh = world.get(Mesh, entity);
+    for (const entity of entities.query(Mesh, Position)) {
+      const mesh = entities.get(Mesh, entity);
       if (mesh.model !== undefined && mesh.model !== "") continue;
-      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       const alpha = mesh.alpha ?? 1;
       // Face matrices are CENTER-relative and composed with an entity world matrix, so the
       // optional rotation pivots on the footprint center (matrix_multiply applies the left

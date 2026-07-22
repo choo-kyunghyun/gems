@@ -94,11 +94,11 @@ globalThis.RpgInventoryUI = {
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
-      // read scene.world LIVE (not a captured const): RpgMap.go swaps scene.world on a map
-      // change while the window is open, so a captured ref would read the parked old world.
+      // read scene.entities LIVE (not a captured const): RpgMap.go swaps scene.entities on a map
+      // change while the window is open, so a captured ref would read the parked old store.
       gemsLabel(
         () => {
-          const v = scene.world.get(Inventory, scene.playerId);
+          const v = scene.entities.get(Inventory, scene.playerId);
           let s =
             I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
@@ -138,7 +138,7 @@ globalThis.RpgInventoryUI = {
       gemsButton(
         I18n.textRef("INV_SORT"),
         () => {
-          InventorySystem.sort(scene.world.get(Inventory, scene.playerId));
+          InventorySystem.sort(scene.entities.get(Inventory, scene.playerId));
           scene._invDirty = true;
         },
         { width: 90, height: 28 },
@@ -258,7 +258,7 @@ globalThis.RpgInventoryUI = {
   _hotbarBtn(scene, i) {
     return gemsButton(
       () => {
-        const hb = scene.world.get(Hotbar, scene.playerId);
+        const hb = scene.entities.get(Hotbar, scene.playerId);
         const itemId = hb !== undefined ? hb.slots[i] : "";
         if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
         const it = Item.get(itemId);
@@ -275,7 +275,7 @@ globalThis.RpgInventoryUI = {
   },
 
   _assignHotbar(scene, i) {
-    const hb = scene.world.get(Hotbar, scene.playerId);
+    const hb = scene.entities.get(Hotbar, scene.playerId);
     if (hb === undefined) return;
     if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
     else HotbarSystem.clear(hb, i);
@@ -285,7 +285,7 @@ globalThis.RpgInventoryUI = {
   // favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
   _favLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
-    const fav = scene.world.get(Favorites, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
@@ -293,7 +293,7 @@ globalThis.RpgInventoryUI = {
 
   _toggleFav(scene) {
     if (scene._invSel === null) return;
-    const fav = scene.world.get(Favorites, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     if (fav === undefined) return;
     FavoritesSystem.toggle(fav, scene._invSel.itemId);
     scene._invDirty = true;
@@ -346,10 +346,10 @@ globalThis.RpgInventoryUI = {
   // One card per squad companion, by live membership query (empty notice when none). Called from
   // rebuild(), not build() — the squad isn't seeded until after the window is built.
   _buildFollowerRows(scene, host) {
-    const squad = scene.world.get(Squad, scene.playerId);
+    const squad = scene.entities.get(Squad, scene.playerId);
     const ids =
       squad !== undefined
-        ? FollowerSystem.members(scene.world, squad.id, scene.playerId)
+        ? FollowerSystem.members(scene.entities, squad.id, scene.playerId)
         : [];
     if (ids.length <= 1) {
       // [0] is the player
@@ -363,7 +363,7 @@ globalThis.RpgInventoryUI = {
       return;
     }
     for (let i = 1; i < ids.length; i++) {
-      if (!scene.world.isValid(ids[i])) continue;
+      if (!scene.entities.isValid(ids[i])) continue;
       host.insertChild(RpgInventoryUI._followerRow(scene, ids[i]));
     }
   },
@@ -377,7 +377,7 @@ globalThis.RpgInventoryUI = {
     head.insertChild(
       gemsLabel(
         () => {
-          const nm = scene.world.get(Name, fid);
+          const nm = scene.entities.get(Name, fid);
           return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
         },
         { color: GemsTheme.text, font: "header" },
@@ -389,10 +389,10 @@ globalThis.RpgInventoryUI = {
     status.insertChild(
       gemsLabel(
         () => {
-          const f = scene.world.get(Follower, fid);
+          const f = scene.entities.get(Follower, fid);
           if (f === undefined) return "";
           let state;
-          if (scene.world.get(Downed, fid) !== undefined)
+          if (scene.entities.get(Downed, fid) !== undefined)
             state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
           else if (f.state === "follow")
             state = I18n.text("FOLLOWER_STATE_FOLLOW");
@@ -420,8 +420,8 @@ globalThis.RpgInventoryUI = {
           height: 30,
           disabled: () => {
             return (
-              scene.world.get(Squad, fid) === undefined || // already out
-              scene.world.get(Downed, fid) !== undefined // can't kick while down
+              scene.entities.get(Squad, fid) === undefined || // already out
+              scene.entities.get(Downed, fid) !== undefined // can't kick while down
             );
           },
         },
@@ -435,7 +435,7 @@ globalThis.RpgInventoryUI = {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const statRow = (labelKey, getter) =>
       gemsKeyValueRow(I18n.textRef(labelKey), () => {
-        const st = scene.world.get(Stats, scene.playerId);
+        const st = scene.entities.get(Stats, scene.playerId);
         return st === undefined ? "" : String(getter(st));
       });
     page.insertChild(statRow("STAT_ATK", (st) => st.attack));
@@ -450,7 +450,7 @@ globalThis.RpgInventoryUI = {
     );
     const attrRow = (def) =>
       gemsKeyValueRow(I18n.textRef(def.name), () => {
-        const at = scene.world.get(Attributes, scene.playerId);
+        const at = scene.entities.get(Attributes, scene.playerId);
         return at === undefined ? "" : String(at[def.id]);
       });
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
@@ -645,9 +645,9 @@ globalThis.RpgInventoryUI = {
   // Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
   // same equippable only the worn instance lights.
   _buildRows(scene) {
-    const inv = scene.world.get(Inventory, scene.playerId);
-    const eq = scene.world.get(Equipment, scene.playerId);
-    const fav = scene.world.get(Favorites, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
+    const eq = scene.entities.get(Equipment, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
@@ -697,7 +697,7 @@ globalThis.RpgInventoryUI = {
       });
     }
     if (cat === "") {
-      const inv = scene.world.get(Inventory, scene.playerId);
+      const inv = scene.entities.get(Inventory, scene.playerId);
       for (let i = view.length; i < inv.capacity; i++) items.push(null);
     }
 
@@ -771,7 +771,7 @@ globalThis.RpgInventoryUI = {
       return;
     }
     const it = Item.get(row.itemId);
-    const inv = scene.world.get(Inventory, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     const inst =
       row.uid !== undefined
         ? InventorySystem.findByUid(inv, row.uid)
@@ -951,10 +951,10 @@ globalThis.RpgInventoryUI = {
   // One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
   // the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
   _equipRow(scene, slot, labelKey) {
-    const eq = scene.world.get(Equipment, scene.playerId);
+    const eq = scene.entities.get(Equipment, scene.playerId);
     const uid = eq !== undefined ? eq.slots[slot] : "";
     if (uid !== undefined && uid !== "") {
-      const inv = scene.world.get(Inventory, scene.playerId);
+      const inv = scene.entities.get(Inventory, scene.playerId);
       const inst =
         inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
       const itemId = inst !== undefined ? inst.itemId : "";
@@ -968,7 +968,7 @@ globalThis.RpgInventoryUI = {
       return gemsButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
-          EquipmentSystem.unequip(scene.world, scene.playerId, slot);
+          EquipmentSystem.unequip(scene.entities, scene.playerId, slot);
           scene._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
@@ -997,17 +997,21 @@ globalThis.RpgInventoryUI = {
     if (item.hasComponent(Equippable)) {
       const eqp = item.getComponent(Equippable);
       if (wasWorn) {
-        EquipmentSystem.unequip(scene.world, scene.playerId, eqp.slot);
+        EquipmentSystem.unequip(scene.entities, scene.playerId, eqp.slot);
         Log.info(`unequipped ${itemId}`);
       } else {
         const ok =
           uid !== undefined
-            ? EquipmentSystem.equip(scene.world, scene.playerId, uid)
-            : EquipmentSystem.equipFirst(scene.world, scene.playerId, itemId);
+            ? EquipmentSystem.equip(scene.entities, scene.playerId, uid)
+            : EquipmentSystem.equipFirst(
+                scene.entities,
+                scene.playerId,
+                itemId,
+              );
         if (ok) Log.info(`equipped ${itemId}`);
       }
     } else if (item.hasComponent(Consumable)) {
-      if (ConsumableSystem.use(scene.world, scene.playerId, itemId)) {
+      if (ConsumableSystem.use(scene.entities, scene.playerId, itemId)) {
         // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
         const c = item.getComponent(Consumable);
         if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)

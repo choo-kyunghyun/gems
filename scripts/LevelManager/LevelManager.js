@@ -1,13 +1,13 @@
 // The level lifecycle manager — a `World` sub-module, held as `World.levels`. There is NO scene
 // stack: every live level sits in a FLAT collection with ONE active pointer, and `switchTo()` is
 // the single transition. Switching away from a level either DESTROYS it (plain navigation —
-// lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its world/state stay
+// lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its entities/state stay
 // untouched in the collection) to be thawed by `back()` — the guest-minigame path (the RPG's
 // arcade cabinet), which also hands the guest's result() to the switch's onResult. One kept
 // level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
 //
 // REGISTRY (was Universe): a flat mapId -> entry index of every RESIDENT map — THE map pool
-// (there is no scene-side pool anymore). An entry is opaque to Core except for { world, level }:
+// (there is no scene-side pool anymore). An entry is opaque to Core except for { entities, level }:
 // RpgMap registers a minimal pair at build and overwrites it with its full park bundle at each
 // suspend, so parked worlds live here. take/put/transfer move a WHOLE entity (all components,
 // via EntitySnapshot) between two resident maps' stores — the portal-squad + wandering-trader
@@ -25,7 +25,7 @@ globalThis.LevelManager = class LevelManager {
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
     // ── resident-map registry (was Universe) ──
-    this._levels = {}; // mapId -> entry (at least { world, level }; parked maps store their full bundle)
+    this._levels = {}; // mapId -> entry (at least { entities, level }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
   }
 
@@ -43,7 +43,7 @@ globalThis.LevelManager = class LevelManager {
    * THE transition: queue an active-level switch, applied next frame (after UI.update, so the UI
    * tree isn't torn down mid-traversal). Default DESTROYS every live level first (plain
    * navigation) and runs through the fade; `keep: true` instead FREEZES the current level
-   * (suspend(), world intact, instant — no fade) and records it as back()'s return target, with
+   * (suspend(), entities intact, instant — no fade) and records it as back()'s return target, with
    * `onResult` fired when the guest returns. Ignored mid-fade so a spammed button can't stack
    * swaps. This is the `openScene` callback handed to every create().
    * @param {() => Level} factory
@@ -226,16 +226,16 @@ globalThis.LevelManager = class LevelManager {
 
   // ── resident-map registry + whole-entity transfer (was Universe) ──
 
-  // Index a map under its id. `entry` must carry at least { world, level } — Core reads only
+  // Index a map under its id. `entry` must carry at least { entities, level } — Core reads only
   // those two fields; everything else is the owner's business (the RPG's park bundle).
-  // Overwrites: RpgMap.build stores a minimal { world, level }, each RpgMap.suspend replaces it
+  // Overwrites: RpgMap.build stores a minimal { entities, level }, each RpgMap.suspend replaces it
   // with the full park bundle. A resumed map's entry may retain stale bundle fields until its
-  // next suspend — harmless, nothing reads them (world/level are the same live objects throughout).
+  // next suspend — harmless, nothing reads them (entities/level are the same live objects throughout).
   register(mapId, entry) {
     this._levels[mapId] = entry;
   }
 
-  /** @returns {Object|null} the registered entry (a park bundle, or the minimal { world, level }) */
+  /** @returns {Object|null} the registered entry (a park bundle, or the minimal { entities, level }) */
   entryOf(mapId) {
     const e = this._levels[mapId];
     return e !== undefined ? e : null;
@@ -260,7 +260,7 @@ globalThis.LevelManager = class LevelManager {
 
   worldOf(mapId) {
     const e = this._levels[mapId];
-    return e !== undefined ? e.world : null;
+    return e !== undefined ? e.entities : null;
   }
 
   // Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the

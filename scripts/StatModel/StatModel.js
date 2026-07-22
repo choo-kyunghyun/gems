@@ -34,32 +34,32 @@ globalThis.StatModel = {
 
   // recompute-from-source: rebuild Stats each call so it can't drift. no-op without Attributes
   // (monsters author Stats directly). clamps Health/Stamina to new maxima.
-  recompute(world, id) {
-    const attrs = world.get(Attributes, id);
+  recompute(entities, id) {
+    const attrs = entities.get(Attributes, id);
     if (attrs === undefined) return; // monster with authored Stats — leave alone
-    const stats = world.get(Stats, id);
+    const stats = entities.get(Stats, id);
     if (stats === undefined) return;
     const d = StatModel.derive(attrs);
-    StatModel._foldEquipment(world, id, d);
-    StatModel._foldStatuses(world, id, d); // buff/debuff mods on top of gear
+    StatModel._foldEquipment(entities, id, d);
+    StatModel._foldStatuses(entities, id, d); // buff/debuff mods on top of gear
     stats.maxHp = d.maxHp;
     stats.attack = d.attack;
     stats.defense = d.defense;
     stats.speed = d.speed;
     stats.maxStamina = d.maxStamina;
     // clamp resources down if maxima shrank; a raise doesn't free-heal
-    const hp = world.get(Health, id);
+    const hp = entities.get(Health, id);
     if (hp !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;
-    const stam = world.get(Stamina, id);
+    const stam = entities.get(Stamina, id);
     if (stam !== undefined && stam.value > stats.maxStamina)
       stam.value = stats.maxStamina;
   },
 
   // fold Equippable.mods into the derived block. for...in over plain object is GMRT-safe (no Map iterator).
-  _foldEquipment(world, id, d) {
-    const eq = world.get(Equipment, id);
+  _foldEquipment(entities, id, d) {
+    const eq = entities.get(Equipment, id);
     if (eq === undefined) return;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     if (inv === undefined) return;
     const slots = eq.slots;
     for (const slot in slots) {
@@ -96,8 +96,8 @@ globalThis.StatModel = {
   // fold active status mods (e.g. fortify +attack/+defense) into d, same as _foldEquipment.
   // recompute-from-source: re-runs on apply/expire via StatusSystem.onStatsChanged hook.
   // live mult statuses (speed) are NOT folded — read at point of use via StatusSystem.scale.
-  _foldStatuses(world, id, d) {
-    const eff = world.get(StatusEffects, id);
+  _foldStatuses(entities, id, d) {
+    const eff = entities.get(StatusEffects, id);
     if (eff === undefined) return;
     const list = eff.list;
     for (let i = 0; i < list.length; i++) {

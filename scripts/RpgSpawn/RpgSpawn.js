@@ -130,8 +130,8 @@ globalThis.RpgSpawn = {
             ],
           },
         },
-        post(world, id, ctx) {
-          CombatAI.attach(world, id, ctx.opts.level); // Velocity + Brain + State (mobile melee)
+        post(entities, id, ctx) {
+          CombatAI.attach(entities, id, ctx.opts.level); // Velocity + Brain + State (mobile melee)
         },
       },
       {
@@ -151,8 +151,8 @@ globalThis.RpgSpawn = {
           Inventory: { slots: [], capacity: 4 },
           Visual: { sprite: spr_rat, speed: 6 }, // looping scuttle cycle
         },
-        post(world, id, ctx) {
-          CombatAI.attach(world, id, ctx.opts.level); // mobile melee, acquires target by faction
+        post(entities, id, ctx) {
+          CombatAI.attach(entities, id, ctx.opts.level); // mobile melee, acquires target by faction
         },
       },
       {
@@ -247,9 +247,9 @@ globalThis.RpgSpawn = {
           Name: { name: "Turret" },
           Mesh: { model: "military_turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
         },
-        post(world, id, ctx) {
+        post(entities, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
-          CombatAI.attach(world, id, ctx.opts.level, {
+          CombatAI.attach(entities, id, ctx.opts.level, {
             mobile: false,
             ranged: true,
             aggro: 220,
@@ -287,7 +287,7 @@ globalThis.RpgSpawn = {
       },
       {
         // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
-        // the entity (Portal component), so a streamed portal resolves via a live world.query(Portal).
+        // the entity (Portal component), so a streamed portal resolves via a live entities.query(Portal).
         id: "portal",
         components: {
           BBox: { x: -14, y: -14, width: 28, height: 28 }, // walk-onto sensor under the 32×32 gate mesh
@@ -345,7 +345,7 @@ globalThis.RpgSpawn = {
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
    */
-  spawn(world, level, data) {
+  spawn(entities, level, data) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
@@ -359,7 +359,7 @@ globalThis.RpgSpawn = {
         reach = RpgSpawn.reachZone(level, s); // a region, not an entity
         continue;
       }
-      const id = RpgSpawn.spawnEntity(world, level, s);
+      const id = RpgSpawn.spawnEntity(entities, level, s);
       if (id === -1) continue;
       // classify into the scene's typed handles by preset
       if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
@@ -384,11 +384,11 @@ globalThis.RpgSpawn = {
   // (field-merged onto the def) and passes `level` through opts for the post hooks (CombatAI).
   // `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
   // entities work too).
-  spawnEntity(world, level, s) {
+  spawnEntity(entities, level, s) {
     const w = level.gridToWorld(s.gx, s.gy);
 
     if (s.preset === "follower")
-      return RpgSpawn.spawnFollower(world, w.x, w.y, {
+      return RpgSpawn.spawnFollower(entities, w.x, w.y, {
         label: s.label,
         color: s.color,
         speed: s.speed,
@@ -512,7 +512,7 @@ globalThis.RpgSpawn = {
     if (s.settlement !== undefined)
       over.Resident = { settlementId: s.settlement };
 
-    const id = EntityPreset.spawn(s.preset, world, w.x, w.y, 0, {
+    const id = EntityPreset.spawn(s.preset, entities, w.x, w.y, 0, {
       size: s.size,
       components: over,
       level, // post hooks (CombatAI.attach) read ctx.opts.level
@@ -527,8 +527,8 @@ globalThis.RpgSpawn = {
       const stock = mc.stock ?? [];
       for (let i = 0; i < stock.length; i++)
         InventorySystem.add(mInv, stock[i].itemId, stock[i].qty);
-      world.add(id, Inventory, mInv);
-      world.add(id, Merchant, {
+      entities.add(id, Inventory, mInv);
+      entities.add(id, Merchant, {
         currencyId: mc.currencyId ?? "coin",
         buyMargin: mc.buyMargin ?? 1.25,
         sellMargin: mc.sellMargin ?? 0.5,
@@ -545,7 +545,7 @@ globalThis.RpgSpawn = {
 
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
   // descriptor + the scene's programmatic party seed.
-  spawnFollower(world, wx, wy, opt = {}) {
+  spawnFollower(entities, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
     // `opt.color` is the OUTFIT tint, not a whole-body wash.
     const over = {
@@ -572,7 +572,7 @@ globalThis.RpgSpawn = {
     if (opt.bonusCapacity !== undefined) fol.bonusCapacity = opt.bonusCapacity;
     if (opt.bonusWeight !== undefined) fol.bonusWeight = opt.bonusWeight;
     if (Object.keys(fol).length > 0) over.Follower = fol;
-    return EntityPreset.spawn("follower", world, wx, wy, 0, {
+    return EntityPreset.spawn("follower", entities, wx, wy, 0, {
       size: opt.size,
       components: over,
     });

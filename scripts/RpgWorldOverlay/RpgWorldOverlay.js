@@ -31,12 +31,12 @@ globalThis.RpgWorldOverlay = {
   },
 
   drawWorld(scene) {
-    const world = scene.world;
+    const entities = scene.entities;
 
-    const drops = world.query(ItemDrop, Position);
+    const drops = entities.query(ItemDrop, Position);
     for (const id of drops) {
-      const p = world.get(Position, id);
-      const d = world.get(ItemDrop, id);
+      const p = entities.get(Position, id);
+      const d = entities.get(ItemDrop, id);
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
       if (sprite_exists(spr)) {
@@ -63,9 +63,9 @@ globalThis.RpgWorldOverlay = {
     // Projectile entities (lobbed/grenade) as round dots — none while only hitscan guns fire, but
     // the path stays for the kept ProjectileSystem.
     draw_set_color(make_colour_rgb(255, 230, 90));
-    const bullets = world.query(Projectile, Position);
+    const bullets = entities.query(Projectile, Position);
     for (const id of bullets) {
-      const p = world.get(Position, id);
+      const p = entities.get(Position, id);
       draw_circle(p.x, p.y, 4, false);
     }
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw. Plain draw_line — the

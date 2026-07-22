@@ -62,7 +62,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     return undefined;
   }
 
-  draw(_world) {
+  draw(_entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
     const halign = draw_get_halign();

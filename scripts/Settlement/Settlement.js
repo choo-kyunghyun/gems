@@ -10,7 +10,7 @@
 // (level/Zone/ZoneMap + uuid); it holds NO policy about which faction is "the player" (the consumer
 // decides, e.g. BuildMode gates on ownerAt === "player"). Multiple settlements per map are supported:
 // a player Home founded at a Survey Post, plus authored faction hubs / raider camps (data-driven).
-// The LANDS + capability data live here; a settlement's INHABITANTS live in the World as entities
+// The LANDS + capability data live here; a settlement's INHABITANTS live in the store as entities
 // carrying Resident{ settlementId: sid } — resolved by SettlementSystem. The seed for ROADMAP
 // Farming + "Defend the settlement" raids, which layer on the settlement + its lands + residents.
 globalThis.Settlement = {

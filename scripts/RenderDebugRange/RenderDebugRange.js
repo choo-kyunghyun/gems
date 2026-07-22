@@ -19,7 +19,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
 
   destroy() {}
 
-  draw(world) {
+  draw(entities) {
     if (this.ranges.length === 0) return;
     const color = draw_get_color();
     const alpha = draw_get_alpha();
@@ -27,12 +27,12 @@ globalThis.RenderDebugRange = class RenderDebugRange {
       const spec = this.ranges[r];
       const a = spec.alpha ?? this.alpha;
       const col = spec.color;
-      const ids = world.query(spec.component, Position);
+      const ids = entities.query(spec.component, Position);
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
-        const radius = world.get(spec.component, id)[spec.field];
+        const radius = entities.get(spec.component, id)[spec.field];
         if (!(radius > 0)) continue; // skip 0/NaN radii
-        const rp = InterpolationSystem.lerp(world, id, this._rp);
+        const rp = InterpolationSystem.lerp(entities, id, this._rp);
         const x = rp.x;
         const y = rp.y;
         draw_set_alpha(a);

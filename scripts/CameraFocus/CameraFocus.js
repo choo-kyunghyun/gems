@@ -1,6 +1,6 @@
 globalThis.CameraFocus = "CameraFocus";
 /**
- * Marker: THE entity the follow camera tracks (one per world at a time). CameraFollow's
+ * Marker: THE entity the follow camera tracks (one per store at a time). CameraFollow's
  * onUpdate resolves its target by LIVE query — an entity carrying this wins over the raw
  * `followTarget` id fallback — so the camera can never dangle a stored entity id: a map
  * transfer that re-mints the player's id (World.levels.take/put across worlds) carries the

@@ -10,11 +10,11 @@ globalThis.RenderEntity = class RenderEntity {
 
   destroy() {}
 
-  draw(world) {
-    const entities = world.query(Visual, Position);
-    for (const entity of entities) {
-      const visual = world.get(Visual, entity);
-      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+  draw(entities) {
+    const ids = entities.query(Visual, Position);
+    for (const entity of ids) {
+      const visual = entities.get(Visual, entity);
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       const rx = rp.x;
       const ry = rp.y;
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws
@@ -24,7 +24,7 @@ globalThis.RenderEntity = class RenderEntity {
         !sprite_exists(visual.sprite) ||
         sprite_get_number(visual.sprite) < 1
       ) {
-        const box = world.get(BBox, entity);
+        const box = entities.get(BBox, entity);
         if (box !== undefined) {
           draw_sprite_stretched_ext(
             spr_missing,

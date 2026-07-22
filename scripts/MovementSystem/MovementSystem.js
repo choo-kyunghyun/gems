@@ -1,11 +1,11 @@
 // integrates velocity for free movers only — solids use SolidSystem, projectiles use ProjectileSystem.
 globalThis.MovementSystem = {
-  update(world) {
+  update(entities) {
     const dt = World.sim.tickDuration;
-    const ids = world.query(Position, Velocity);
+    const ids = entities.query(Position, Velocity);
     for (const id of ids) {
-      const pos = world.get(Position, id);
-      const vel = world.get(Velocity, id);
+      const pos = entities.get(Position, id);
+      const vel = entities.get(Velocity, id);
       pos.x += vel.x * dt;
       pos.y += vel.y * dt;
       pos.z += vel.z * dt;

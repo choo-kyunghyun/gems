@@ -17,20 +17,20 @@ globalThis.SolidSystem = {
   _rows: 0,
   _buckets: [], // _buckets[gy * _cols + gx] = [staticIndex, ...]
 
-  /** @param {Entity} world */
-  update(world) {
+  /** @param {Entity} entities */
+  update(entities) {
     const dt = World.sim.tickDuration;
 
     // Per-tick snapshot of the kinematic solids: edges + oneWay baked into flat records, so the
-    // body×static resolve loop below reads plain fields — no AABB.of / world.get per test. Those
+    // body×static resolve loop below reads plain fields — no AABB.of / entities.get per test. Those
     // per-test Map lookups + edge allocs were ~70% of the RPG's tick cost (profiled 2026-07-02:
     // ~20 bodies × ~90 statics × 2 axes ≈ 8ms/tick). Statics can't move mid-update, so a
     // once-per-tick capture is exact.
     const statics = [];
-    for (const id of world.query(Collision, Position, BBox)) {
-      const col = world.get(Collision, id);
+    for (const id of entities.query(Collision, Position, BBox)) {
+      const col = entities.get(Collision, id);
       if (!col.solid || !col.kinematic) continue;
-      const e = AABB.of(world, id);
+      const e = AABB.of(entities, id);
       statics.push({
         x1: e.x1,
         y1: e.y1,
@@ -43,13 +43,13 @@ globalThis.SolidSystem = {
     // bucket the snapshot spatially so each body tests only its local cells, not all ~90 statics
     this._gridRebuild(statics);
 
-    for (const id of world.query(Collision, Position, BBox, Velocity)) {
-      const col = world.get(Collision, id);
+    for (const id of entities.query(Collision, Position, BBox, Velocity)) {
+      const col = entities.get(Collision, id);
       if (!col.solid || col.kinematic) continue;
 
-      const pos = world.get(Position, id);
-      const vel = world.get(Velocity, id);
-      const box = world.get(BBox, id);
+      const pos = entities.get(Position, id);
+      const vel = entities.get(Velocity, id);
+      const box = entities.get(BBox, id);
 
       const dx = vel.x * dt;
       const dy = vel.y * dt;
@@ -78,14 +78,14 @@ globalThis.SolidSystem = {
         col.passThroughTicks--;
       }
 
-      const gr = world.get(Grounded, id);
+      const gr = entities.get(Grounded, id);
       if (gr !== undefined) gr.isGrounded = grounded;
     }
   },
 
   // push body out of overlapping statics along one axis (deepest correction wins).
   // `statics` is update()'s per-tick snapshot (precomputed edges + oneWay flag), so the loop is
-  // flat field reads — keep it free of world.get / AABB.of (the profiled hot spot). Scans only the
+  // flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
   // statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
   // maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
   // may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.

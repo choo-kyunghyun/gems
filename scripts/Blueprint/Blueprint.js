@@ -37,8 +37,8 @@ globalThis.Blueprint = {
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
       const e = scene._builtEnts[ek[i]];
       const ent = { dx: gx - x1, dy: gy - y1, item: e.itemId };
-      if (opts.withState === true && scene.world.isValid(e.ent))
-        ent.snapshot = EntitySnapshot.capture(scene.world, e.ent);
+      if (opts.withState === true && scene.entities.isValid(e.ent))
+        ent.snapshot = EntitySnapshot.capture(scene.entities, e.ent);
       ents.push(ent);
     }
     return { w: x2 - x1 + 1, h: y2 - y1 + 1, tiles, ents };
@@ -78,7 +78,12 @@ globalThis.Blueprint = {
     }
     // one remesh for the whole batch (the wall layer is the only solid one)
     if (remeshWall)
-      TileEdit.remesh(scene.world, scene.level, scene.wallLayer, scene.colliders);
+      TileEdit.remesh(
+        scene.entities,
+        scene.level,
+        scene.wallLayer,
+        scene.colliders,
+      );
     return n;
   },
 };

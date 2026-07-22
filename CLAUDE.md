@@ -72,7 +72,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 - **Runtime log**: `Log.info/warn/error/debug` lines land in `game.log` in the save dir (`%LOCALAPPDATA%\gems\`), flushed once per frame — add temporary `Log.debug` lines, `gm-cli run`, `Read` the log, revert. An uncaught fault is logged as `UNHANDLED EXCEPTION: <message>`; a dead run without one crashed natively (the log just stops).
 - **Screenshots**: add a temporary `Time.frame` timeline to `obj_game/Step_0.js` — `if (Time.frame === 40) Screenshot.take("<name>.png")` at the frames you want (several per run is fine; scene switches/teleports join the same timeline) and `game_end()` a couple frames after the last — `gm-cli run` blocks until then; `Read` the PNGs from `screenshots/` in the save dir, revert. Contract at `Screenshot`.
-- **Entity state**: `entities.dump(idOrIds, file?)` — `entities` is the level's `Entity` store (e.g. `game.scenes.current.world`) — writes the ids' components as `.json` to the save dir (default `entity.json`; whole store via `dump(entities.query())`), nesting/ref/cycle-safe. `Read` it after a run; contract at `Entity.dump`.
+- **Entity state**: `entities.dump(idOrIds, file?)` — `entities` is the level's `Entity` store (e.g. `game.scenes.current.entities`) — writes the ids' components as `.json` to the save dir (default `entity.json`; whole store via `dump(entities.query())`), nesting/ref/cycle-safe. `Read` it after a run; contract at `Entity.dump`.
 
 ## Conventions
 

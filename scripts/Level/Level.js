@@ -15,7 +15,7 @@
 // 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need
 //    (the lobby: `Object.assign(new Level(), { create, destroy })` — the no-op stubs below
 //    cover the rest). A screen COMPOSES its sub-modules, all optional:
-//      entities/world · grid/level (LevelGrid) · systems (Pipeline) · renderer · camera · ui
+//      entities · grid/level (LevelGrid) · systems (Pipeline) · renderer · camera · ui
 //    A menu is just a screen with only `ui` set.
 globalThis.Level = class Level {
   label = "";

@@ -4,7 +4,7 @@
 // (RpgScene.resolveHealth). Uses AABB for edge geometry (non-uniform BBox anchor) — never inline pos+box.
 globalThis.MeleeSystem = {
   /**
-   * @param {object} world
+   * @param {object} entities
    * @param {number} attackerId
    * @param {number} dirX        facing x (sign matters; magnitude vs dirY picks the axis)
    * @param {number} dirY        facing y
@@ -12,8 +12,8 @@ globalThis.MeleeSystem = {
    * @param {number} damage      hp subtracted from each overlapped body
    * @returns {number[]} ids hit this swing
    */
-  swing(world, attackerId, dirX, dirY, reach, damage) {
-    const a = AABB.of(world, attackerId);
+  swing(entities, attackerId, dirX, dirY, reach, damage) {
+    const a = AABB.of(entities, attackerId);
     // hitbox spans the cross-axis, extends `reach` from the front edge; overlaps back to center
     // to avoid a point-blank dead gap. snap to dominant axis → 4-way.
     let box;
@@ -26,13 +26,13 @@ globalThis.MeleeSystem = {
     }
 
     const hits = [];
-    for (const id of world.query(Health, Position, BBox)) {
+    for (const id of entities.query(Health, Position, BBox)) {
       if (id === attackerId) continue;
-      if (FactionSystem.allied(world, attackerId, id)) continue; // no friendly fire
-      const e = AABB.of(world, id);
+      if (FactionSystem.allied(entities, attackerId, id)) continue; // no friendly fire
+      const e = AABB.of(entities, id);
       if (!AABB.overlap(box, e)) continue;
       // shared applier mitigates + subtracts; death reaction is central
-      Combat.applyDamage(world, id, damage);
+      Combat.applyDamage(entities, id, damage);
       hits.push(id);
     }
     return hits;

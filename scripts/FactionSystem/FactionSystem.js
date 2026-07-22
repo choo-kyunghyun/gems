@@ -71,44 +71,44 @@ globalThis.FactionSystem = {
 
   // ── Entity level (reads the Faction component)
   /** faction id, or undefined with no Faction component. */
-  factionOf(world, id) {
-    const f = world.get(Faction, id);
+  factionOf(entities, id) {
+    const f = entities.get(Faction, id);
     return f === undefined ? undefined : f.id;
   },
 
   /** true only when both have factions and they're hostile. */
-  hostile(world, a, b) {
-    const fa = this.factionOf(world, a);
-    const fb = this.factionOf(world, b);
+  hostile(entities, a, b) {
+    const fa = this.factionOf(entities, a);
+    const fb = this.factionOf(entities, b);
     if (fa === undefined || fb === undefined) return false;
     return this.isHostile(fa, fb);
   },
 
   /** true only when both have factions and they're allied. combat skips these (no friendly fire);
    *  a factionless entity is NOT allied, so it's still hit. */
-  allied(world, a, b) {
-    const fa = this.factionOf(world, a);
-    const fb = this.factionOf(world, b);
+  allied(entities, a, b) {
+    const fa = this.factionOf(entities, a);
+    const fb = this.factionOf(entities, b);
     if (fa === undefined || fb === undefined) return false;
     return this.isAlly(fa, fb);
   },
 
   /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
    *  attackable bodies, so AI targets combatants not props/portals. CombatAI's aggro acquisition. */
-  nearestHostile(world, id, x, y, range, opt = {}) {
-    const fa = this.factionOf(world, id);
+  nearestHostile(entities, id, x, y, range, opt = {}) {
+    const fa = this.factionOf(entities, id);
     if (fa === undefined) return -1;
     const needsHealth = opt.needsHealth !== false;
     const ids = needsHealth
-      ? world.query(Health, Position)
-      : world.query(Position);
+      ? entities.query(Health, Position)
+      : entities.query(Position);
     let bestId = -1;
     let bestD = range * range;
     for (const oid of ids) {
       if (oid === id) continue;
-      const fb = this.factionOf(world, oid);
+      const fb = this.factionOf(entities, oid);
       if (fb === undefined || !this.isHostile(fa, fb)) continue;
-      const p = world.get(Position, oid);
+      const p = entities.get(Position, oid);
       const d = (p.x - x) ** 2 + (p.y - y) ** 2;
       if (d < bestD) {
         bestD = d;

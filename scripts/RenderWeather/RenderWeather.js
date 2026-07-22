@@ -38,7 +38,7 @@ globalThis.RenderWeather = class RenderWeather {
 
   destroy() {}
 
-  draw(_world) {
+  draw(_entities) {
     if (this.camera === undefined) return;
     // Screen-space: cover the application surface in pixel coords so the tint fills the screen
     // regardless of camera pitch (a world-rect draw would foreshorten under a 2.5D pitched camera).

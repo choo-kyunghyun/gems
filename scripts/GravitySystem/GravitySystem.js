@@ -1,21 +1,21 @@
 // constant acceleration applied to every non-kinematic entity each tick.
-// `world.gravity` overrides `strength`; set `direction` for non-downward gravity.
+// `entities.gravity` overrides `strength`; set `direction` for non-downward gravity.
 globalThis.GravitySystem = {
-  /** @type {number} px/s²; overridden per-world by `world.gravity`. */
+  /** @type {number} px/s²; overridden per-store by `entities.gravity`. */
   strength: 9.8,
   /** @type {{x:number,y:number,z:number}} unit direction (default down). */
   direction: { x: 0, y: 1, z: 0 },
 
-  /** @param {Entity} world */
-  update(world) {
-    const strength = world.gravity ?? this.strength;
+  /** @param {Entity} entities */
+  update(entities) {
+    const strength = entities.gravity ?? this.strength;
     const { direction } = this;
     const dt = World.sim.tickDuration;
-    const ids = world.query(Velocity);
+    const ids = entities.query(Velocity);
     for (const id of ids) {
-      const col = world.get(Collision, id);
+      const col = entities.get(Collision, id);
       if (col && col.kinematic) continue;
-      const vel = world.get(Velocity, id);
+      const vel = entities.get(Velocity, id);
       vel.x += direction.x * strength * dt;
       vel.y += direction.y * strength * dt;
       vel.z += direction.z * strength * dt;

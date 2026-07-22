@@ -23,7 +23,7 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
 
   destroy() {}
 
-  draw(_world) {
+  draw(_entities) {
     const map = this.level.zoneMap(this.key);
     if (map === undefined) return;
 

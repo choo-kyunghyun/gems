@@ -7,10 +7,10 @@ globalThis.StaminaSystem = {
 
   // `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
   // reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
-  sprint(world, id, wantSprint) {
-    const sta = world.get(Stamina, id);
+  sprint(entities, id, wantSprint) {
+    const sta = entities.get(Stamina, id);
     if (sta === undefined) return false;
-    const stats = world.get(Stats, id);
+    const stats = entities.get(Stats, id);
     const max = stats !== undefined ? stats.maxStamina : 100;
     const dt = World.sim.tickDuration;
 

@@ -12,7 +12,7 @@ The three renames left by the two-layer ECS restructure, each a full-project swe
 
 | #   | Pass                 | Rule                                                                                                                                                               | Done |
 | --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         |      |
+| R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         | Yes  |
 | R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. |      |
 | R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                |      |
 
@@ -21,7 +21,7 @@ R3 sub-passes:
 - **R3a** — the ubiquitous `scene` handle for a `Level` instance (locals, params, fields).
 - **R3b** — `openScene`/`teardownScene`/`SceneRegistry`/`SCENES` take their `level` forms.
 - **R3c** — `SceneTransition` becomes `LevelTransition` (a script asset — CLAUDE.md → Resourcetool).
-- **R3d** — the obj_game `scenes` alias drops for direct `World.levels` reads; CLAUDE.md's `game.scenes.current.world` debugging example updates with it.
+- **R3d** — the obj_game `scenes` alias drops for direct `World.levels` reads; CLAUDE.md's `game.scenes.current.entities` debugging example updates with it.
 - **R3e** — `RpgScene` gets a name for what it holds; `RpgLevel` is taken by the grid builder, itself misreading once `.level` is `.grid` — settle the pair in one session.
 
 The `scene*` script-asset prefix stays (CLAUDE.md → Script Naming).

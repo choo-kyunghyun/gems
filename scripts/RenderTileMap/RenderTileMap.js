@@ -337,7 +337,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     return m & 64 ? 0 : 12;
   }
 
-  draw(world) {
+  draw(entities) {
     if (this.dirty) this._rebuild();
     // GROUND under the one lit shader: `lights` (the host RenderMesh pass, assigned by the
     // scene on pitched maps) supplies the shared sun/point gather; the normal is straight up
@@ -345,7 +345,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     // (kit default / flat maps / editor) submits fixed-function unlit exactly as before.
     const lit = this.lights !== undefined && this.lights._litOk;
     if (lit) {
-      this.lights._setupLights(world);
+      this.lights._setupLights(entities);
       shader_set_uniform_f(this.lights._uUseTex, 1);
       shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
     }

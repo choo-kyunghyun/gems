@@ -77,8 +77,8 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Minimap / radar: a framed UINineSlice + a UIMinimap plotting a World's tagged entities
-// around a target. `opts`: { world, target, range, size, rules ([{ tag, color }]),
+// Minimap / radar: a framed UINineSlice + a UIMinimap plotting a store's tagged entities
+// around a target. `opts`: { entities, target, range, size, rules ([{ tag, color }]),
 // frameSprite, frameColor, blipSize, playerColor }.
 globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   const size = opts.size ?? 160;
@@ -98,7 +98,7 @@ globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   );
   el.addComponent(
     new UIMinimap({
-      world: opts.world,
+      entities: opts.entities,
       target: opts.target,
       range: opts.range,
       rules,

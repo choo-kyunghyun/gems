@@ -13,9 +13,9 @@ globalThis.CraftSystem = {
   },
 
   // dry-run output fit before consuming inputs — a full bag can't eat materials.
-  craft(world, crafterId, recipeId, module) {
+  craft(entities, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
-    const inv = world.get(Inventory, crafterId);
+    const inv = entities.get(Inventory, crafterId);
     if (recipe === undefined || inv === undefined) return false;
     if (!this.canCraft(inv, recipe, module)) return false;
 

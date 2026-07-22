@@ -6,13 +6,13 @@ globalThis.EncumbranceSystem = {
   // Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
   // live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the
   // mover reads scale.
-  update(world) {
-    const ids = world.query(Encumbrance, Inventory);
+  update(entities) {
+    const ids = entities.query(Encumbrance, Inventory);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const s = EncumbranceSystem.scale(world, id);
+      const s = EncumbranceSystem.scale(entities, id);
       StatusSystem.maintain(
-        world,
+        entities,
         id,
         "encumbered",
         s < 1 ? { speed: s } : null,
@@ -22,10 +22,10 @@ globalThis.EncumbranceSystem = {
 
   // Speed multiplier in [minScale, 1] from current load. Returns 1 (no penalty) without
   // Encumbrance/Inventory/maxWeight, or below `threshold`; linear from threshold to minScale at full.
-  scale(world, id) {
-    const enc = world.get(Encumbrance, id);
+  scale(entities, id) {
+    const enc = entities.get(Encumbrance, id);
     if (enc === undefined) return 1;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     if (
       inv === undefined ||
       inv.maxWeight === undefined ||

@@ -16,7 +16,7 @@
 //   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
 globalThis.Trader = {
   _recs: {}, // id -> record
-  _scene: null, // the active RPG scene — handlers reach the active World/map through it
+  _scene: null, // the active RPG scene — handlers reach the active store/map through it
   _installed: false, // WorldEvents handlers registered once
 
   // Register the arrive/depart handlers on WorldEvents (once; survives scene resets).
@@ -112,7 +112,7 @@ globalThis.Trader = {
       });
     } else {
       // first time: build the vendor fresh from the descriptor (single entity path, RpgSpawn)
-      rec.entId = RpgSpawn.spawnEntity(scene.world, scene.level, {
+      rec.entId = RpgSpawn.spawnEntity(scene.entities, scene.level, {
         preset: "npc",
         gx: gx,
         gy: gy,

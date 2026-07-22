@@ -57,16 +57,21 @@ globalThis.TileEdit = {
   },
 
   // one kinematic-solid collider per meshRects rectangle; ids pushed onto `out`
-  meshSolid(world, level, layer, out) {
+  meshSolid(entities, level, layer, out) {
     const cw = level.cellWidth;
     const ch = level.cellHeight;
     const rects = this.meshRects(level, layer);
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
-      const id = world.create();
-      world.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
-      world.add(id, BBox, { x: 0, y: 0, width: r[2] * cw, height: r[3] * ch });
-      world.add(id, Collision, {
+      const id = entities.create();
+      entities.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
+      entities.add(id, BBox, {
+        x: 0,
+        y: 0,
+        width: r[2] * cw,
+        height: r[3] * ch,
+      });
+      entities.add(id, Collision, {
         solid: true,
         kinematic: true,
         mask: null,
@@ -77,10 +82,10 @@ globalThis.TileEdit = {
   },
 
   // rebuild colliders after a solid-tile edit; flush first so old ids don't collide
-  remesh(world, level, layer, colliders) {
-    for (let i = 0; i < colliders.length; i++) world.remove(colliders[i]);
-    world.flush();
+  remesh(entities, level, layer, colliders) {
+    for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
+    entities.flush();
     colliders.length = 0;
-    this.meshSolid(world, level, layer, colliders);
+    this.meshSolid(entities, level, layer, colliders);
   },
 };

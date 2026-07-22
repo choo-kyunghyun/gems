@@ -24,7 +24,7 @@ globalThis.RenderGrid = class RenderGrid {
 
   destroy() {}
 
-  draw(_world) {
+  draw(_entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
 

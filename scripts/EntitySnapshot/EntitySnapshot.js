@@ -7,34 +7,34 @@
 // serialize the record yourself (mind the JSON nested-value fault + Set fields).
 /** @typedef {Object} EntitySnapshotRecord @property {Object<string,Object>} components token -> data */
 globalThis.EntitySnapshot = {
-  /** Snapshot an entity's components (subset if `components` given, else all). @param {Entity} world @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */
-  capture(world, id, components) {
+  /** Snapshot an entity's components (subset if `components` given, else all). @param {Entity} entities @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */
+  capture(entities, id, components) {
     let comps;
     if (components === undefined) {
-      comps = world.componentsOf(id);
+      comps = entities.componentsOf(id);
     } else {
       comps = {};
       for (let i = 0; i < components.length; i++) {
-        const data = world.get(components[i], id);
+        const data = entities.get(components[i], id);
         if (data !== undefined) comps[components[i]] = data;
       }
     }
     return { components: comps };
   },
 
-  /** Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore). @param {Entity} world @param {number} id @param {EntitySnapshotRecord} snapshot @returns {number} same id */
-  apply(world, id, snapshot) {
+  /** Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore). @param {Entity} entities @param {number} id @param {EntitySnapshotRecord} snapshot @returns {number} same id */
+  apply(entities, id, snapshot) {
     const comps = snapshot.components;
     // for...in over a plain object is GMRT-safe; Map/Set iteration is not.
-    for (const token in comps) world.add(id, token, comps[token]);
+    for (const token in comps) entities.add(id, token, comps[token]);
     return id;
   },
 
-  /** world.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords). @param {Entity} world @param {EntitySnapshotRecord} snapshot @param {Object<string,Object>} [overrides] @returns {number} new entity id */
-  restore(world, snapshot, overrides) {
-    const id = this.apply(world, world.create(), snapshot);
+  /** entities.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords). @param {Entity} entities @param {EntitySnapshotRecord} snapshot @param {Object<string,Object>} [overrides] @returns {number} new entity id */
+  restore(entities, snapshot, overrides) {
+    const id = this.apply(entities, entities.create(), snapshot);
     if (overrides !== undefined)
-      for (const token in overrides) world.add(id, token, overrides[token]);
+      for (const token in overrides) entities.add(id, token, overrides[token]);
     return id;
   },
 };

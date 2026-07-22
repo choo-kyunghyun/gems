@@ -11,15 +11,15 @@ globalThis.RenderDebugPath = class RenderDebugPath {
 
   destroy() {}
 
-  draw(world) {
+  draw(entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
     const level = this.level;
 
     draw_set_alpha(1);
 
-    for (const id of world.query(PathResponse)) {
-      const pr = world.get(PathResponse, id);
+    for (const id of entities.query(PathResponse)) {
+      const pr = entities.get(PathResponse, id);
       const { path } = pr;
       if (path.length === 0) continue;
 
@@ -30,7 +30,7 @@ globalThis.RenderDebugPath = class RenderDebugPath {
         draw_line(a.x, a.y, b.x, b.y);
       }
 
-      const pos = world.get(Position, id);
+      const pos = entities.get(Position, id);
       if (pos !== undefined) {
         const w0 = level.gridToWorld(path[0].x, path[0].y);
         draw_set_color(c_orange);
@@ -38,8 +38,8 @@ globalThis.RenderDebugPath = class RenderDebugPath {
       }
     }
 
-    for (const id of world.query(PathRequest)) {
-      const req = world.get(PathRequest, id);
+    for (const id of entities.query(PathRequest)) {
+      const req = entities.get(PathRequest, id);
       const wp = level.gridToWorld(req.goalX, req.goalY);
       draw_set_color(c_red);
       draw_line(wp.x - 4, wp.y - 4, wp.x + 4, wp.y + 4);

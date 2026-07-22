@@ -8,7 +8,7 @@
 //                    Universe + SceneManager).
 // `sim`/`levels` are wired in obj_game Create_0 (where load order is safe).
 //
-// Was the per-instance entity store; that moved to `Entity` (a Level sub-module, `level.world`). This
+// Was the per-instance entity store; that moved to `Entity` (a Level sub-module, `level.entities`). This
 // name is now the manager. The methods reference the sub-modules lazily, so load order among the
 // world scripts is irrelevant.
 //

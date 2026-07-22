@@ -11,7 +11,7 @@
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
  *   Visual.xscale/yscale are DERIVED (design scale / SpriteMeta density), never authored.
- * @property {function} [post]   post(world, id, ctx) spawn hook for what data can't express
+ * @property {function} [post]   post(entities, id, ctx) spawn hook for what data can't express
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  */
 globalThis.EntityPreset = {
@@ -44,17 +44,17 @@ globalThis.EntityPreset = {
    * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
    * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
    * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
-   * @param {string} presetId @param {Entity} world @param {number} x @param {number} y
+   * @param {string} presetId @param {Entity} entities @param {number} x @param {number} y
    * @param {number} [z=0] @param {Object} [opts] @returns {number} entity id
    */
-  spawn(presetId, world, x, y, z = 0, opts = {}) {
+  spawn(presetId, entities, x, y, z = 0, opts = {}) {
     const preset = this.presets.get(presetId);
     if (preset === undefined)
       throw new Error(`Unknown entity preset: ${presetId}`);
 
     const k = (preset.scale ?? 1) * (opts.size ?? 1);
-    const id = world.create();
-    world.add(id, Position, { x, y, z });
+    const id = entities.create();
+    entities.add(id, Position, { x, y, z });
 
     const components =
       opts.components !== undefined
@@ -68,11 +68,11 @@ globalThis.EntityPreset = {
       if (token === Visual) EntityPreset._bakeVisual(data, k);
       else if (token === BBox) EntityPreset._bakeBox(data, k);
       else if (token === Mesh) EntityPreset._bakeMesh(data, k);
-      world.add(id, token, data);
+      entities.add(id, token, data);
     }
 
     if (preset.post !== undefined)
-      preset.post(world, id, { x, y, z, scale: k, opts });
+      preset.post(entities, id, { x, y, z, scale: k, opts });
     return id;
   },
 

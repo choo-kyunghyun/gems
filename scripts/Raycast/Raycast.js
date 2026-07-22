@@ -2,7 +2,7 @@
 // { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS.
 //   opts: { ignore? (id to skip), solidOnly? (default true) }
 globalThis.Raycast = {
-  cast(world, x0, y0, x1, y1, opts = {}) {
+  cast(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
     const dx = x1 - x0;
@@ -11,15 +11,15 @@ globalThis.Raycast = {
     let best = null;
     let bestT = Infinity;
 
-    for (const id of world.query(Collision, Position, BBox)) {
+    for (const id of entities.query(Collision, Position, BBox)) {
       if (id === ignore) continue;
 
-      const col = world.get(Collision, id);
+      const col = entities.get(Collision, id);
       // read opts.solidOnly inline — caching it in a bool local gets clobbered mid-function on
       // GMRT (boolean-local quirk, CLAUDE.md); that dropped this skip → bullets stopped on item drops
       if (opts.solidOnly !== false && !col.solid) continue;
 
-      const e = AABB.of(world, id);
+      const e = AABB.of(entities, id);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r !== null && r.t < bestT) {
         bestT = r.t;
@@ -38,7 +38,7 @@ globalThis.Raycast = {
 
   // Every solid collider the segment crosses, ASCENDING by entry distance `t` — multi-hit
   // counterpart to cast(). Used by hitscan pierce walks (Combat.hitscan) needing every body, not just the nearest.
-  castAll(world, x0, y0, x1, y1, opts = {}) {
+  castAll(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
     const dx = x1 - x0;
@@ -46,14 +46,14 @@ globalThis.Raycast = {
 
     const hits = [];
 
-    for (const id of world.query(Collision, Position, BBox)) {
+    for (const id of entities.query(Collision, Position, BBox)) {
       if (id === ignore) continue;
 
-      const col = world.get(Collision, id);
+      const col = entities.get(Collision, id);
       // solidOnly read inline (default on) — see the boolean-local clobber note in cast().
       if (opts.solidOnly !== false && !col.solid) continue;
 
-      const e = AABB.of(world, id);
+      const e = AABB.of(entities, id);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r !== null) {
         hits.push({

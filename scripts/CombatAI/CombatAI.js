@@ -12,7 +12,7 @@ const RPG_SHOT_RANGE_SECS = 1.5;
 // per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
 // MUST survive chunk demote/restore, which re-creates the actor under a NEW id: so a Brain never
 // stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
-// callbacks, and state callbacks receive (world, id) instead of closing over either.
+// callbacks, and state callbacks receive (entities, id) instead of closing over either.
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
@@ -37,7 +37,7 @@ globalThis.Brain = "Brain";
  */
 
 globalThis.CombatAI = {
-  // State callbacks receive (world, id) from StateSystem, so no world static — only the Level
+  // State callbacks receive (entities, id) from StateSystem, so no store static — only the Level
   // (grid<->world conversion for pathfinding around walls) is per-map context, re-pointed by
   // bind() on each map activate (a resumed map keeps its actors' Brain/State without re-attach).
   _level: undefined,
@@ -47,25 +47,25 @@ globalThis.CombatAI = {
     StateSystem.register([
       {
         id: "combat.idle",
-        enter(world, id) {
-          CombatAI._tint(world, id, 255, 255, 255, 0); // no wash — back to the base/skin color
+        enter(entities, id) {
+          CombatAI._tint(entities, id, 255, 255, 255, 0); // no wash — back to the base/skin color
         },
-        update(world, id) {
-          const brain = world.get(Brain, id);
-          const pos = world.get(Position, id);
+        update(entities, id) {
+          const brain = entities.get(Brain, id);
+          const pos = entities.get(Position, id);
           // a mobile actor drifts back home if knocked away; a turret just watches
           if (brain.mobile) {
             const dx = brain.home.x - pos.x;
             const dy = brain.home.y - pos.y;
             if (dx * dx + dy * dy > 256)
               CombatAI._seek(
-                world,
+                entities,
                 id,
                 brain.home.x,
                 brain.home.y,
                 brain.speed * 0.5,
               );
-            else CombatAI._stop(world, id);
+            else CombatAI._stop(entities, id);
           }
 
           // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile scans
@@ -77,7 +77,7 @@ globalThis.CombatAI = {
           } else {
             brain.aggroCd = brain.aggroRate;
             const t = FactionSystem.nearestHostile(
-              world,
+              entities,
               id,
               pos.x,
               pos.y,
@@ -87,43 +87,43 @@ globalThis.CombatAI = {
               brain.target = t;
               // mobile actor closes the distance; turret attacks in place
               StateSystem.change(
-                world,
+                entities,
                 id,
                 brain.mobile ? "combat.chase" : "combat.attack",
               );
             }
           }
-          CombatAI._animate(world, id, false); // doll actors: idle/walk (drift-home) + facing
+          CombatAI._animate(entities, id, false); // doll actors: idle/walk (drift-home) + facing
         },
       },
 
       // entered only by mobile actors (a turret goes idle → attack directly)
       {
         id: "combat.chase",
-        enter(world, id) {
-          CombatAI._tint(world, id, 230, 170, 70, 0.35); // alert orange flush
-          world.get(Brain, id).losCd = 0; // raycast LOS immediately on entering the chase
+        enter(entities, id) {
+          CombatAI._tint(entities, id, 230, 170, 70, 0.35); // alert orange flush
+          entities.get(Brain, id).losCd = 0; // raycast LOS immediately on entering the chase
         },
-        update(world, id) {
-          const brain = world.get(Brain, id);
+        update(entities, id) {
+          const brain = entities.get(Brain, id);
           // target killed or streamed out — re-acquire from idle
-          if (!world.isValid(brain.target)) {
+          if (!entities.isValid(brain.target)) {
             brain.target = -1;
-            StateSystem.change(world, id, "combat.idle");
+            StateSystem.change(entities, id, "combat.idle");
             return;
           }
-          const dist = CombatAI._distTo(world, id);
+          const dist = CombatAI._distTo(entities, id);
           if (dist > brain.deAggro) {
             brain.target = -1;
-            StateSystem.change(world, id, "combat.idle");
+            StateSystem.change(entities, id, "combat.idle");
             return;
           }
           if (dist <= brain.attackRange) {
-            StateSystem.change(world, id, "combat.attack");
+            StateSystem.change(entities, id, "combat.attack");
             return;
           }
-          const sp = world.get(Position, id);
-          const tp = world.get(Position, brain.target);
+          const sp = entities.get(Position, id);
+          const tp = entities.get(Position, brain.target);
 
           // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
           // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
@@ -133,24 +133,24 @@ globalThis.CombatAI = {
             brain.losCd--;
           } else {
             brain.losCd = brain.losRate;
-            const hit = Raycast.cast(world, sp.x, sp.y, tp.x, tp.y, {
+            const hit = Raycast.cast(entities, sp.x, sp.y, tp.x, tp.y, {
               ignore: id,
             });
             brain.losBlocked =
-              hit !== null && world.get(Collision, hit.id).kinematic;
+              hit !== null && entities.get(Collision, hit.id).kinematic;
           }
           const blocked = brain.losBlocked;
           if (!blocked || CombatAI._level === undefined) {
-            PathFollow.clear(world, id);
+            PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
-            CombatAI._seek(world, id, tp.x, tp.y, brain.speed);
-            CombatAI._animate(world, id, false);
+            CombatAI._seek(entities, id, tp.x, tp.y, brain.speed);
+            CombatAI._animate(entities, id, false);
             return;
           }
           // wall in the way: steer at the path walker's movement point (waypoint, or straight
           // while the throttled replan is still resolving)
           const mp = PathFollow.target(
-            world,
+            entities,
             CombatAI._level,
             id,
             brain,
@@ -158,47 +158,47 @@ globalThis.CombatAI = {
             tp.x,
             tp.y,
           );
-          CombatAI._seek(world, id, mp.x, mp.y, brain.speed);
-          CombatAI._animate(world, id, false);
+          CombatAI._seek(entities, id, mp.x, mp.y, brain.speed);
+          CombatAI._animate(entities, id, false);
         },
-        finish(world, id) {
-          PathFollow.clear(world, id);
+        finish(entities, id) {
+          PathFollow.clear(entities, id);
         },
       },
 
       {
         id: "combat.attack",
-        enter(world, id) {
-          CombatAI._tint(world, id, 235, 90, 90, 0.35); // hostile red flush
-          CombatAI._stop(world, id);
+        enter(entities, id) {
+          CombatAI._tint(entities, id, 235, 90, 90, 0.35); // hostile red flush
+          CombatAI._stop(entities, id);
         },
-        update(world, id) {
-          const brain = world.get(Brain, id);
-          if (!world.isValid(brain.target)) {
+        update(entities, id) {
+          const brain = entities.get(Brain, id);
+          if (!entities.isValid(brain.target)) {
             brain.target = -1;
-            StateSystem.change(world, id, "combat.idle");
+            StateSystem.change(entities, id, "combat.idle");
             return;
           }
-          CombatAI._stop(world, id);
+          CombatAI._stop(entities, id);
 
           // cooldown read/written live off the component (no cached primitive — GMRT bool-local clobber)
           if (brain.cd > 0) brain.cd--;
           if (brain.cd <= 0) {
-            if (brain.ranged) CombatAI._fireAt(world, id, brain);
-            else CombatAI._hitTarget(world, id);
+            if (brain.ranged) CombatAI._fireAt(entities, id, brain);
+            else CombatAI._hitTarget(entities, id);
             brain.cd = brain.cdMax;
           }
 
           // out of range: a mobile actor resumes the chase; a turret can't pursue, so it idles to re-acquire
-          if (CombatAI._distTo(world, id) > brain.attackRange)
+          if (CombatAI._distTo(entities, id) > brain.attackRange)
             StateSystem.change(
-              world,
+              entities,
               id,
               brain.mobile ? "combat.chase" : "combat.idle",
             );
           // punch pose for a short window after each swing (cd counts DOWN from cdMax;
           // 18 ticks = the 3-frame punch @ 10fps plays out)
-          CombatAI._animate(world, id, brain.cd > brain.cdMax - 18);
+          CombatAI._animate(entities, id, brain.cd > brain.cdMax - 18);
         },
       },
     ]);
@@ -206,14 +206,14 @@ globalThis.CombatAI = {
 
   // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
-  attach(world, id, level, opt = {}) {
+  attach(entities, id, level, opt = {}) {
     this._level = level;
-    const pos = world.get(Position, id);
+    const pos = entities.get(Position, id);
     // authored/base Visual color captured for the aggro wash (a doll actor's color is its SKIN
     // tint, so the wash must blend FROM it, not from white). Flat int — snapshot-safe.
-    const vis = world.get(Visual, id);
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, Brain, {
+    const vis = entities.get(Visual, id);
+    entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    entities.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
       baseColor: vis !== undefined ? vis.color : c_white,
       target: -1,
@@ -237,23 +237,23 @@ globalThis.CombatAI = {
       losCd: 0,
       losBlocked: false,
     });
-    world.add(id, State, { current: "", next: "combat.idle" });
+    entities.add(id, State, { current: "", next: "combat.idle" });
   },
 
   // Re-point the Level static at the active map without re-attaching actors (a resumed map —
   // RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
-  // activate. Takes (world, level) for call-site symmetry with PathFollow.bind; only the level
-  // is stored — the world reaches states through the StateSystem callbacks.
-  bind(world, level) {
+  // activate. Takes (entities, level) for call-site symmetry with PathFollow.bind; only the level
+  // is stored — the store reaches states through the StateSystem callbacks.
+  bind(entities, level) {
     this._level = level;
   },
 
   // distance to Brain.target; Infinity if none / gone
-  _distTo(world, id) {
-    const t = world.get(Brain, id).target;
-    if (!world.isValid(t)) return Infinity;
-    const p = world.get(Position, id);
-    const tp = world.get(Position, t);
+  _distTo(entities, id) {
+    const t = entities.get(Brain, id).target;
+    if (!entities.isValid(t)) return Infinity;
+    const p = entities.get(Position, id);
+    const tp = entities.get(Position, t);
     const dx = tp.x - p.x;
     const dy = tp.y - p.y;
     return Math.sqrt(dx * dx + dy * dy);
@@ -261,9 +261,9 @@ globalThis.CombatAI = {
 
   // aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
   // (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
-  _seek(world, id, tx, ty, speed) {
-    const pos = world.get(Position, id);
-    const vel = world.get(Velocity, id);
+  _seek(entities, id, tx, ty, speed) {
+    const pos = entities.get(Position, id);
+    const vel = entities.get(Velocity, id);
     const dx = tx - pos.x;
     const dy = ty - pos.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -272,8 +272,8 @@ globalThis.CombatAI = {
     vel.y = (dy / d) * s;
   },
 
-  _stop(world, id) {
-    const vel = world.get(Velocity, id);
+  _stop(entities, id) {
+    const vel = entities.get(Velocity, id);
     vel.x = 0;
     vel.y = 0;
   },
@@ -282,10 +282,10 @@ globalThis.CombatAI = {
   // authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
   // restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
   // per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
-  _tint(world, id, r, g, b, k) {
-    const brain = world.get(Brain, id);
+  _tint(entities, id, r, g, b, k) {
+    const brain = entities.get(Brain, id);
     if (brain !== undefined && !brain.mobile) return;
-    const vis = world.get(Visual, id);
+    const vis = entities.get(Visual, id);
     if (vis === undefined) return;
     const base =
       brain !== undefined && brain.baseColor !== undefined
@@ -296,42 +296,42 @@ globalThis.CombatAI = {
 
   // Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
   // carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
-  _animate(world, id, attacking) {
-    const anim = world.get(Animator, id);
+  _animate(entities, id, attacking) {
+    const anim = entities.get(Animator, id);
     if (anim === undefined) return;
-    const vel = world.get(Velocity, id);
+    const vel = entities.get(Velocity, id);
     let st = "idle";
     if (attacking) st = "attack";
     else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
       st = "walk";
     AnimationSystem.set(anim, st);
-    const vis = world.get(Visual, id);
+    const vis = entities.get(Visual, id);
     if (vis === undefined || vel === undefined) return;
     if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
     else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
   },
 
   // outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
-  _attackPower(world, id) {
-    const stats = world.get(Stats, id);
+  _attackPower(entities, id) {
+    const stats = entities.get(Stats, id);
     return stats !== undefined ? stats.attack : 0;
   },
 
   // one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
-  _hitTarget(world, id) {
-    const t = world.get(Brain, id).target;
-    if (!world.isValid(t)) return;
-    Combat.applyDamage(world, t, CombatAI._attackPower(world, id));
+  _hitTarget(entities, id) {
+    const t = entities.get(Brain, id).target;
+    if (!entities.isValid(t)) return;
+    Combat.applyDamage(entities, t, CombatAI._attackPower(entities, id));
   },
 
   // Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
   // gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
   // tracer shows the shot.
-  _fireAt(world, id, brain) {
+  _fireAt(entities, id, brain) {
     const t = brain.target;
-    if (!world.isValid(t)) return;
-    const sp = world.get(Position, id);
-    const tp = world.get(Position, t);
+    if (!entities.isValid(t)) return;
+    const sp = entities.get(Position, id);
+    const tp = entities.get(Position, t);
     const dx = tp.x - sp.x;
     const dy = tp.y - sp.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -340,14 +340,14 @@ globalThis.CombatAI = {
     // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
     const range = brain.bulletSpeed * RPG_SHOT_RANGE_SECS;
     const shot = Combat.hitscan(
-      world,
+      entities,
       sp.x,
       sp.y,
       sp.x + nx * range,
       sp.y + ny * range,
       {
         owner: id,
-        damage: CombatAI._attackPower(world, id),
+        damage: CombatAI._attackPower(entities, id),
       },
     );
     RpgWorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);

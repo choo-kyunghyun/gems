@@ -1,5 +1,5 @@
 // Point-light component for RenderLighting. On any entity with Position, casts a soft radial light.
-// usage: world.add(id, Light, { radius: 170, color: make_colour_rgb(255,230,176), intensity: 0.85 })
+// usage: entities.add(id, Light, { radius: 170, color: make_colour_rgb(255,230,176), intensity: 0.85 })
 /**
  * @typedef {Object} Light
  * @property {number} radius        falloff radius in world px (center bright → 0 at the edge)

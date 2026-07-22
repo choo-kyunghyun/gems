@@ -7,19 +7,19 @@ globalThis.RpgPlayer = {
 
   // create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
   // factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
-  spawn(world, spawn, opts) {
+  spawn(entities, spawn, opts) {
     const k = opts.scale ?? 1;
-    const id = world.create();
-    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, {
+    const id = entities.create();
+    entities.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
+    entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    entities.add(id, BBox, {
       x: opts.bbox.x * k,
       y: opts.bbox.y * k,
       width: opts.bbox.width * k,
       height: opts.bbox.height * k,
     });
     // oneWay/passThroughTicks unused in the RPG; falsy defaults keep the Collision shape explicit
-    world.add(id, Collision, {
+    entities.add(id, Collision, {
       solid: true,
       kinematic: false,
       oneWay: false,
@@ -27,17 +27,17 @@ globalThis.RpgPlayer = {
       mask: null,
       hits: [],
     });
-    world.add(id, Direction, opts.dir);
-    world.add(id, Name, { name: "Player" });
-    world.add(id, Faction, { id: "player" }); // squad faction — enemies aggro this by relation
+    entities.add(id, Direction, opts.dir);
+    entities.add(id, Name, { name: "Player" });
+    entities.add(id, Faction, { id: "player" }); // squad faction — enemies aggro this by relation
     // squad identity — hired companions copy this id; a portal transfers every member with it
-    world.add(id, Squad, { id: uuid() });
-    world.add(id, Health, { hp: 10 });
-    world.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
-    world.add(id, Stamina, { value: 100, exhausted: false });
+    entities.add(id, Squad, { id: uuid() });
+    entities.add(id, Health, { hp: 10 });
+    entities.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
+    entities.add(id, Stamina, { value: 100, exhausted: false });
     // primary attributes (stat INPUTS); StatModel.recompute derives the combat fields from these
-    world.add(id, Attributes, StatModel.defaults());
-    world.add(id, Stats, {
+    entities.add(id, Attributes, StatModel.defaults());
+    entities.add(id, Stats, {
       // derived fields seeded here but OVERWRITTEN by StatModel.recompute below (no-Attributes fallback + doc)
       maxHp: 10,
       maxStamina: 100,
@@ -45,45 +45,45 @@ globalThis.RpgPlayer = {
       defense: 0,
       speed: opts.speed,
     });
-    world.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
-    world.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
+    entities.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
+    entities.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
     // survival needs — each a rising meter 0..max; at `critical` applies the named debuff Status.
     // OPT-IN like Stamina/Encumbrance. rate per second, tuned to deplete over minutes.
-    world.add(id, Thirst, {
+    entities.add(id, Thirst, {
       value: 0,
       max: 100,
       rate: 0.8,
       critical: 0.8,
       status: "dehydrated",
     });
-    world.add(id, Hunger, {
+    entities.add(id, Hunger, {
       value: 0,
       max: 100,
       rate: 0.5,
       critical: 0.8,
       status: "starving",
     });
-    world.add(id, Drowsiness, {
+    entities.add(id, Drowsiness, {
       value: 0,
       max: 100,
       rate: 0.4,
       critical: 0.85,
       status: "drowsy",
     });
-    world.add(id, Equipment, {
+    entities.add(id, Equipment, {
       slots: { weapon: "", armor: "", trinket: "", backpack: "" },
     });
     // hotbar + favorites — session player state, carried across maps; start empty, bound from the inventory
     const hotbarSlots = [];
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) hotbarSlots.push("");
-    world.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
-    world.add(id, Favorites, { ids: [] });
+    entities.add(id, Hotbar, { slots: hotbarSlots, size: RPG_HOTBAR_SIZE });
+    entities.add(id, Favorites, { ids: [] });
     // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
     // flip + baked size — the flip must preserve |xscale|, see PlayerSystem). spr_human is a
     // WHITE template — color IS the skin tint (layers keep their own color). `scale` is the
     // DESIGN size; the sheet's declared density (SpriteMeta) divides the draw scale only
     // (BBox stays design-scale).
-    world.add(id, Visual, {
+    entities.add(id, Visual, {
       visible: true,
       sprite: spr_human,
       subimg: 0,
@@ -98,10 +98,10 @@ globalThis.RpgPlayer = {
     });
     // paper-doll: worn-gear overlays drawn around the body (rebuilt from Equipment by
     // AppearanceSystem — the gear seed's equip fills it, a map-travel sheet apply re-derives it)
-    world.add(id, Appearance, { back: [], front: [] });
+    entities.add(id, Appearance, { back: [], front: [] });
     // the PlayerSystem brain state: presence marks the input-driven entity (found live by query);
     // flat scalars so fireCd/attackCd + the frame-latched world cursor ride the map transfer
-    world.add(id, Playable, {
+    entities.add(id, Playable, {
       fireCd: 0,
       attackCd: 0,
       attackAnim: "",
@@ -109,24 +109,24 @@ globalThis.RpgPlayer = {
       cursorY: spawn.y,
     });
     // canonical humanoid strip states; PlayerSystem picks idle/walk/attack per tick
-    world.add(id, Animator, {
+    entities.add(id, Animator, {
       graph: RpgPlayer.animGraph(),
       state: "idle",
       frame: 0,
       time: 0,
     });
     // the player's lantern — reference Light for RenderLighting (reveals night; no-op in daylight)
-    world.add(id, Light, {
+    entities.add(id, Light, {
       radius: 180,
       color: make_colour_rgb(255, 226, 168),
       intensity: 0.85,
     });
     // the follow camera's target marker — CameraFollow resolves it by LIVE query, and it
     // rides the whole-entity map transfer, so the camera re-finds the player in every
-    // resumed/built world with no stored id to dangle
-    world.add(id, CameraFocus, {});
+    // resumed/built store with no stored id to dangle
+    entities.add(id, CameraFocus, {});
     // derive combat Stats from Attributes (recompute-from-source — the single derivation path)
-    StatModel.recompute(world, id);
+    StatModel.recompute(entities, id);
     return id;
   },
 
@@ -150,8 +150,8 @@ globalThis.RpgPlayer = {
   // `opts`: { damage, penetration?, pierce?, range, muzzleY?, nx?, ny? } — pierce (default 1) =
   // hostiles passed through; penetration (default 0) lowers target defense; nx/ny is a caller-resolved
   // aim, else the mouse cursor. Returns the normalized aim { nx, ny } for the muzzle flash.
-  fireBullet(world, shooterId, opts) {
-    const pos = world.get(Position, shooterId);
+  fireBullet(entities, shooterId, opts) {
+    const pos = entities.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
     let nx;
     let ny;
@@ -171,7 +171,7 @@ globalThis.RpgPlayer = {
     }
     const range = opts.range ?? 920; // px (defensive default; callers pass a velocity-scaled reach)
     const shot = Combat.hitscan(
-      world,
+      entities,
       pos.x,
       muzzleY,
       pos.x + nx * range,

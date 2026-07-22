@@ -1,10 +1,10 @@
 // Advances the current Animator state into the entity's Visual. Run once per frame after state
 // selection; uses Time.delta (sim time, so animation pauses/dilates with the game).
 globalThis.AnimationSystem = {
-  update(world) {
-    for (const id of world.query(Animator, Visual)) {
-      const anim = world.get(Animator, id);
-      const vis = world.get(Visual, id);
+  update(entities) {
+    for (const id of entities.query(Animator, Visual)) {
+      const anim = entities.get(Animator, id);
+      const vis = entities.get(Visual, id);
       const st = anim.graph[anim.state];
       if (st === undefined) continue;
 

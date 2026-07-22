@@ -2,16 +2,16 @@
 // pointing at it, colored by the first matching rule, sized by distance (near big, far small).
 // A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
 // the entity has that component. world-space immediate-mode; draw() from a scene's draw() after
-// renderer.draw(). reads world live, so no rebuild across a map swap. rule colors must be GM colour ints.
+// renderer.draw(). reads entities live, so no rebuild across a map swap. rule colors must be GM colour ints.
 globalThis.RadarArrows = {
   /**
-   * @param {object} world
+   * @param {object} entities
    * @param {number} target  center entity id (the player) — skipped
    * @param {{has:string,color:number}[]} rules  first entity-has-component rule wins
    * @param {object} [opt]  { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat)
    */
-  draw(world, target, rules, opt = {}) {
-    const tp = world.get(Position, target);
+  draw(entities, target, rules, opt = {}) {
+    const tp = entities.get(Position, target);
     if (tp === undefined) return; // target gone — nothing to center on
     const range = opt.range ?? 460;
     const ring = opt.ring ?? 52; // world px from player to each arrow
@@ -31,13 +31,13 @@ globalThis.RadarArrows = {
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
     }
 
-    const ids = Query.inRadius(world, tp.x, tp.y, range);
+    const ids = Query.inRadius(entities, tp.x, tp.y, range);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === target) continue;
-      const col = RadarArrows._color(world, id, rules);
+      const col = RadarArrows._color(entities, id, rules);
       if (col === null) continue; // no matching rule — not tracked
-      const p = world.get(Position, id);
+      const p = entities.get(Position, id);
       const dx = p.x - tp.x;
       const dy = p.y - tp.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -81,9 +81,9 @@ globalThis.RadarArrows = {
     );
   },
 
-  _color(world, id, rules) {
+  _color(entities, id, rules) {
     for (let r = 0; r < rules.length; r++)
-      if (world.get(rules[r].has, id) !== undefined) return rules[r].color;
+      if (entities.get(rules[r].has, id) !== undefined) return rules[r].color;
     return null;
   },
 };

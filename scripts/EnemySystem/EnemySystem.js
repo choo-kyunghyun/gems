@@ -2,26 +2,26 @@
 // SolidSystem so they read final positions. enemies have no Health/loot.
 globalThis.EnemySystem = {
   // reverse on wall (vel.x zeroed by SolidSystem), then drive walk vel. no ledge probing.
-  update(world) {
-    for (const id of world.query(Enemy, Velocity)) {
-      const en = world.get(Enemy, id);
-      const vel = world.get(Velocity, id);
+  update(entities) {
+    for (const id of entities.query(Enemy, Velocity)) {
+      const en = entities.get(Enemy, id);
+      const vel = entities.get(Velocity, id);
       if (vel.x === 0) en.dir = -en.dir; // hit a wall on the last move
       vel.x = en.dir * en.speed;
     }
   },
 
-  // enemies are dynamic-vs-dynamic (overlap, not block); world.remove is deferred so
+  // enemies are dynamic-vs-dynamic (overlap, not block); entities.remove is deferred so
   // mid-iteration removal is safe. returns true if any enemy was defeated.
-  resolveStomp(world, playerId) {
-    const pvel = world.get(Velocity, playerId);
+  resolveStomp(entities, playerId) {
+    const pvel = entities.get(Velocity, playerId);
     if (pvel.y <= 0) return false; // only when descending
-    const p = AABB.of(world, playerId);
+    const p = AABB.of(entities, playerId);
     let stomped = false;
-    for (const id of world.query(Enemy, Position, BBox)) {
-      const e = AABB.of(world, id);
+    for (const id of entities.query(Enemy, Position, BBox)) {
+      const e = AABB.of(entities, id);
       if (AABB.overlap(p, e) && p.cy < e.cy) {
-        world.remove(id);
+        entities.remove(id);
         stomped = true;
       }
     }
@@ -29,11 +29,11 @@ globalThis.EnemySystem = {
   },
 
   // pure detection; caller handles respawn + i-frames
-  resolveTouch(world, playerId, invincible) {
+  resolveTouch(entities, playerId, invincible) {
     if (invincible) return false;
-    const p = AABB.of(world, playerId);
-    for (const id of world.query(Enemy, Position, BBox)) {
-      const e = AABB.of(world, id);
+    const p = AABB.of(entities, playerId);
+    for (const id of entities.query(Enemy, Position, BBox)) {
+      const e = AABB.of(entities, id);
       if (AABB.overlap(p, e)) return true;
     }
     return false;

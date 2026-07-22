@@ -1,14 +1,14 @@
-// Chunk-streaming engine: windows a large/infinite world around a moving center so the World
+// Chunk-streaming engine: windows a large/infinite world around a moving center so the store
 // only holds entities near the player. Takes a `generator` (content provider — a ChunkGenerator,
 // or anything matching the contract below) plus an injected `opts.spawn` adapter for descriptors,
 // and drives EntitySnapshot capture/restore as chunks cross the rings.
 //
 // two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
-//   d <= simRadius              → SIM:  entities live in the World, walls have colliders, sims + renders.
+//   d <= simRadius              → SIM:  entities live in the store, walls have colliders, sims + renders.
 //   simRadius < d <= loadRadius → LOAD: walls drawn (no colliders). entities are held as frozen
 //                                       EntitySnapshots ONCE they've been sim'd (drawn statically by
 //                                       RenderChunks); a chunk not yet reached keeps only dormant
-//                                       spawn DESCRIPTORS and does no World work until it promotes.
+//                                       spawn DESCRIPTORS and does no store work until it promotes.
 //   d > loadRadius              → UNLOADED: the WHOLE record (terrain/walls/spawns/snapshots) is
 //                                       parked in an in-session cache, restored on return — so a
 //                                       revisit never re-runs generate() and modified entities persist.
@@ -29,13 +29,13 @@
 //                                   terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
 //   generator.palette  (field, optional) — material table (pathCost per id; costAt + TerrainStream)
 //   generator.materialAt / costAt (optional) — pure samplers, the out-of-store fallback
-//   opts.spawn(world, level, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
+//   opts.spawn(entities, level, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
 //     RpgSpawn.spawnEntity); required only when chunks carry spawns
 //
 // GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {Entity} world @param {LevelGrid} level
+   * @param {Entity} entities @param {LevelGrid} level
    * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
    * @param {Object} [opts]
    * @param {function(Entity, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
@@ -44,8 +44,8 @@ globalThis.ChunkManager = class ChunkManager {
    * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);
    *   chunks outside never load. omit both for unbounded.
    */
-  constructor(world, level, generator, opts = {}) {
-    this.world = world;
+  constructor(entities, level, generator, opts = {}) {
+    this.entities = entities;
     this.level = level;
     this.generator = generator;
     this._spawn = opts.spawn ?? null;
@@ -90,7 +90,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats = { loaded: 0, unloaded: 0, promoted: 0, demoted: 0 };
   }
 
-  /** drop refs; the World owns the entities/colliders and frees them itself */
+  /** drop refs; the store owns the entities/colliders and frees them itself */
   destroy() {
     this._chunks = {};
     this._cache = {};
@@ -130,7 +130,7 @@ globalThis.ChunkManager = class ChunkManager {
       }
 
       // 2. membership diff — the whole ring loads NOW. With a pregenerated store a load is a
-      //    cache move (no generate()), and a LOAD-ring record does no World work anyway (its
+      //    cache move (no generate()), and a LOAD-ring record does no store work anyway (its
       //    descriptors stay dormant until it promotes to SIM), so nothing needs amortizing.
       for (let dy = -lr; dy <= lr; dy++) {
         for (let dx = -lr; dx <= lr; dx++) {
@@ -151,7 +151,7 @@ globalThis.ChunkManager = class ChunkManager {
       }
 
       // 3. commit removals so demoted/unloaded entities aren't double-drawn this frame
-      this.world.flush();
+      this.entities.flush();
     }
   }
 
@@ -223,7 +223,7 @@ globalThis.ChunkManager = class ChunkManager {
   // are skipped entirely — they come back from generate(). Import runs after pregenerate(), before
   // the first stream, so each restored chunk materializes its saved snapshots instead of fresh spawns.
 
-  /** Every live SIM-ring entity id the manager owns — the caller excludes these from its own world
+  /** Every live SIM-ring entity id the manager owns — the caller excludes these from its own store
    * export so they aren't saved twice (they ride the chunk cache instead). @returns {number[]} */
   entityIds() {
     const out = [];
@@ -258,9 +258,9 @@ globalThis.ChunkManager = class ChunkManager {
       const snaps = [];
       if (rec.ring === "sim") {
         for (let i = 0; i < rec.entities.length; i++)
-          if (this.world.isValid(rec.entities[i]))
+          if (this.entities.isValid(rec.entities[i]))
             snaps.push({
-              components: filtered(this.world.componentsOf(rec.entities[i])),
+              components: filtered(this.entities.componentsOf(rec.entities[i])),
             });
       } else {
         for (let i = 0; i < rec.snapshots.length; i++)
@@ -297,14 +297,14 @@ globalThis.ChunkManager = class ChunkManager {
   // internal lifecycle
 
   // A chunk's entity state has three forms: DESCRIPTORS (rec.spawns, not yet materialized —
-  // hydrated:false), LIVE (rec.entities in the World — SIM ring), or SNAPSHOTS (rec.snapshots,
+  // hydrated:false), LIVE (rec.entities in the store — SIM ring), or SNAPSHOTS (rec.snapshots,
   // frozen — LOAD ring after a demote). `hydrated` marks "descriptors have become live/snapshots
   // at least once", so we never spawn a chunk we don't sim, and never re-run generate() (whole
   // records are cached).
 
   // Fetch a chunk record: reuse the cached whole record (skips generate() — always the case
   // after pregenerate()), else generate fresh with its spawn DESCRIPTORS held dormant. Does not
-  // populate the World — see _activate.
+  // populate the store — see _activate.
   _recordFor(cx, cy, ring) {
     const key = this._key(cx, cy);
     const cached = this._cache[key];
@@ -402,14 +402,14 @@ globalThis.ChunkManager = class ChunkManager {
 
   // Populate a fresh record into its ring + register it. SIM meshes colliders + materializes
   // entities (from snapshots if seen before, else from descriptors); LOAD holds whatever it has
-  // (snapshots if hydrated, else dormant descriptors — no World work, so distant rings are cheap).
+  // (snapshots if hydrated, else dormant descriptors — no store work, so distant rings are cheap).
   _activate(rec) {
     if (rec.ring === "sim") this._materialize(rec);
     this._chunks[this._key(rec.cx, rec.cy)] = rec;
     this.stats.loaded++;
   }
 
-  // Bring a record's entities into the World + mesh its colliders (SIM ring). Restores snapshots if
+  // Bring a record's entities into the store + mesh its colliders (SIM ring). Restores snapshots if
   // the chunk has lived before, else spawns its descriptors for the first time.
   _materialize(rec) {
     this._meshColliders(rec);
@@ -429,7 +429,7 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.promoted++;
   }
 
-  // sim → load: snapshot live entities out of the World + drop colliders
+  // sim → load: snapshot live entities out of the store + drop colliders
   _demote(rec) {
     this._captureAll(rec);
     this._dropColliders(rec);
@@ -462,18 +462,18 @@ globalThis.ChunkManager = class ChunkManager {
     if (rects === undefined) return;
     const cw = this.cellW;
     const ch = this.cellH;
-    const world = this.world;
+    const entities = this.entities;
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
-      const id = world.create();
-      world.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
-      world.add(id, BBox, {
+      const id = entities.create();
+      entities.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
+      entities.add(id, BBox, {
         x: 0,
         y: 0,
         width: r[2] * cw,
         height: r[3] * ch,
       });
-      world.add(id, Collision, {
+      entities.add(id, Collision, {
         solid: true,
         kinematic: true,
         mask: null,
@@ -485,7 +485,7 @@ globalThis.ChunkManager = class ChunkManager {
 
   _dropColliders(rec) {
     for (let i = 0; i < rec.colliders.length; i++)
-      this.world.remove(rec.colliders[i]);
+      this.entities.remove(rec.colliders[i]);
     rec.colliders = [];
   }
 
@@ -496,24 +496,24 @@ globalThis.ChunkManager = class ChunkManager {
         "ChunkManager: chunk has spawns but no opts.spawn adapter",
       );
     for (let i = 0; i < spawns.length; i++) {
-      const id = this._spawn(this.world, this.level, spawns[i]);
+      const id = this._spawn(this.entities, this.level, spawns[i]);
       if (id !== undefined && id !== -1) rec.entities.push(id);
     }
   }
 
   _restoreAll(rec, snapshots) {
     for (let i = 0; i < snapshots.length; i++)
-      rec.entities.push(EntitySnapshot.restore(this.world, snapshots[i]));
+      rec.entities.push(EntitySnapshot.restore(this.entities, snapshots[i]));
   }
 
-  // entities → snapshots, removing each from the World. skips invalid ids (e.g. killed enemies) so the dead stay dead.
+  // entities → snapshots, removing each from the store. skips invalid ids (e.g. killed enemies) so the dead stay dead.
   _captureAll(rec) {
     const snaps = [];
     for (let i = 0; i < rec.entities.length; i++) {
       const id = rec.entities[i];
-      if (!this.world.isValid(id)) continue;
-      snaps.push(EntitySnapshot.capture(this.world, id));
-      this.world.remove(id);
+      if (!this.entities.isValid(id)) continue;
+      snaps.push(EntitySnapshot.capture(this.entities, id));
+      this.entities.remove(id);
     }
     rec.entities = [];
     rec.snapshots = snaps;

@@ -226,7 +226,7 @@ globalThis.RpgLevel = {
    * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
    * meta.playerSpawn.
    */
-  build(world, data, entryId = "default") {
+  build(entities, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
     const level = new LevelGrid({
       cellWidth: cell,
@@ -242,7 +242,7 @@ globalThis.RpgLevel = {
     RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
 
     const colliders = [];
-    TileEdit.meshSolid(world, level, h.wallLayer, colliders);
+    TileEdit.meshSolid(entities, level, h.wallLayer, colliders);
 
     const spawn = this._resolveSpawn(level, data, entryId);
     return { level, spawn, colliders, ...h };
@@ -254,7 +254,7 @@ globalThis.RpgLevel = {
    * (colliders: []). Grid size from meta.worldCols/worldRows. Same return shape + layer order as
    * build() so the scene code and Level.import round-trip unchanged.
    */
-  buildChunked(world, data, entryId = "default") {
+  buildChunked(entities, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
     const cols = data.meta.worldCols ?? data.cols ?? 128;
     const rows = data.meta.worldRows ?? data.rows ?? 128;
@@ -275,10 +275,10 @@ globalThis.RpgLevel = {
   /**
    * Wall border ringing a finite chunked world (anchored at cell 0) so the player + enemies can't
    * leave. The 4 colliders are ALWAYS present (not chunk-managed), kinematic-solid like any wall,
-   * so SolidSystem collides + NavGrid rasterizes them. Returns the ids (freed by world.destroy()).
+   * so SolidSystem collides + NavGrid rasterizes them. Returns the ids (freed by entities.destroy()).
    * Left/right span one cell past top/bottom to cover the outer corners (no diagonal slip-through).
    */
-  buildWorldBorder(world, level, worldCols, worldRows) {
+  buildWorldBorder(entities, level, worldCols, worldRows) {
     const cw = level.cellWidth;
     const ch = level.cellHeight;
     const W = worldCols * cw;
@@ -292,10 +292,10 @@ globalThis.RpgLevel = {
     const ids = [];
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
-      const id = world.create();
-      world.add(id, Position, { x: r[0], y: r[1], z: 0 });
-      world.add(id, BBox, { x: 0, y: 0, width: r[2], height: r[3] });
-      world.add(id, Collision, {
+      const id = entities.create();
+      entities.add(id, Position, { x: r[0], y: r[1], z: 0 });
+      entities.add(id, BBox, { x: 0, y: 0, width: r[2], height: r[3] });
+      entities.add(id, Collision, {
         solid: true,
         kinematic: true,
         mask: null,

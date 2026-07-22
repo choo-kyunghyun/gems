@@ -1,4 +1,4 @@
-// Windowed cost grid for pathfinding over the chunk-streamed overworld: adapts the LIVE World
+// Windowed cost grid for pathfinding over the chunk-streamed overworld: adapts the LIVE store
 // colliders (blocked) plus an injected terrain-cost sampler (weighted ground — see constructor)
 // into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell coords over a small
 // fixed window re-centered on the agent each frame.
@@ -10,7 +10,7 @@
 // layers' costs (LevelGrid.costAt) feed only the debug cost shading.
 //
 // coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
-// buffer, so paths come back in absolute cells. GMRT-safe: for-of over the world.query ARRAY is
+// buffer, so paths come back in absolute cells. GMRT-safe: for-of over the entities.query ARRAY is
 // fine (only Map/Set iterators break).
 globalThis.NavGrid = class NavGrid {
   // `costAt` (optional): (wx, wy) → terrain movement cost (1 = easy, >1 = rough, Infinity =
@@ -41,7 +41,7 @@ globalThis.NavGrid = class NavGrid {
   // re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
   // blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
   // planning. call once per frame OUTSIDE the tick loop.
-  rebuild(world, centerGx, centerGy) {
+  rebuild(entities, centerGx, centerGy) {
     const ox = centerGx - (this.cols >> 1);
     const oy = centerGy - (this.rows >> 1);
     const moved =
@@ -62,10 +62,10 @@ globalThis.NavGrid = class NavGrid {
 
     const cw = this.cellW;
     const ch = this.cellH;
-    for (const id of world.query(Collision, Position, BBox)) {
-      const col = world.get(Collision, id);
+    for (const id of entities.query(Collision, Position, BBox)) {
+      const col = entities.get(Collision, id);
       if (!col.solid || !col.kinematic) continue;
-      const e = AABB.of(world, id);
+      const e = AABB.of(entities, id);
       // inclusive cell range (x2/y2 are exclusive edges, so -1)
       let gx0 = Math.floor(e.x1 / cw);
       let gy0 = Math.floor(e.y1 / ch);

@@ -5,7 +5,7 @@
  * @property {function(): void} draw
  */
 
-/** ordered back-to-front pass list; scene owns one, calls draw(world) each frame. */
+/** ordered back-to-front pass list; scene owns one, calls draw(entities) each frame. */
 globalThis.Renderer = class Renderer {
   constructor() {
     /** @type {RenderPass[]} */
@@ -35,11 +35,11 @@ globalThis.Renderer = class Renderer {
     return this;
   }
 
-  /** run every enabled pass in order. @param {Entity} world */
-  draw(world) {
+  /** run every enabled pass in order. @param {Entity} entities */
+  draw(entities) {
     for (const pass of this.passes) {
       if (!pass.enabled) continue;
-      pass.draw(world);
+      pass.draw(entities);
     }
   }
 };

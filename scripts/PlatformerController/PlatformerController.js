@@ -22,7 +22,7 @@ const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after a respawn (1.5 s)
 
 globalThis.PlatformerController = {
   /** @param {{ x: number, y: number }} spawn */
-  create(world, spawn) {
+  create(entities, spawn) {
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D")],
@@ -32,11 +32,11 @@ globalThis.PlatformerController = {
     });
 
     // dynamic solid body; BBox feet at y+0, head at y-24
-    const id = world.create();
-    world.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
-    world.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    world.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
-    world.add(id, Collision, {
+    const id = entities.create();
+    entities.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
+    entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    entities.add(id, BBox, { x: -12, y: -24, width: 24, height: 24 });
+    entities.add(id, Collision, {
       solid: true,
       kinematic: false,
       oneWay: false,
@@ -44,10 +44,10 @@ globalThis.PlatformerController = {
       mask: null,
       hits: [],
     });
-    world.add(id, Direction, { x: 1, y: 0, z: 0 });
-    world.add(id, Name, { name: "Player" });
-    world.add(id, Grounded, { isGrounded: false });
-    world.add(id, Visual, {
+    entities.add(id, Direction, { x: 1, y: 0, z: 0 });
+    entities.add(id, Name, { name: "Player" });
+    entities.add(id, Grounded, { isGrounded: false });
+    entities.add(id, Visual, {
       visible: true,
       sprite: spr_play,
       subimg: 0,
@@ -78,12 +78,12 @@ globalThis.PlatformerController = {
   },
 
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
-  update(world, ctrl) {
+  update(entities, ctrl) {
     const dt = World.sim.tickDuration;
-    const vel = world.get(Velocity, ctrl.id);
+    const vel = entities.get(Velocity, ctrl.id);
     // read isGrounded live off the component — caching a boolean local is miscompiled by
     // GMRT (flips mid-function, broke coyote time/jump). caching the object is fine.
-    const groundedComp = world.get(Grounded, ctrl.id);
+    const groundedComp = entities.get(Grounded, ctrl.id);
 
     if (ctrl.iframes > 0) ctrl.iframes--;
 
@@ -109,16 +109,16 @@ globalThis.PlatformerController = {
 
     if (dx !== 0) {
       ctrl.facing = dx;
-      const dir = world.get(Direction, ctrl.id);
+      const dir = entities.get(Direction, ctrl.id);
       dir.x = dx;
       dir.y = 0;
-      const vis = world.get(Visual, ctrl.id);
+      const vis = entities.get(Visual, ctrl.id);
       if (vis !== undefined) vis.xscale = dx;
     }
 
     // SolidSystem skips one-way platforms while passThroughTicks counts down
     if (groundedComp.isGrounded && Input.get("drop").down())
-      world.get(Collision, ctrl.id).passThroughTicks = PLATF_DROP_TICKS;
+      entities.get(Collision, ctrl.id).passThroughTicks = PLATF_DROP_TICKS;
 
     // coyote time: extend jump window a few ticks after leaving a ledge
     if (groundedComp.isGrounded) ctrl.coyote = PLATF_COYOTE;
@@ -144,10 +144,10 @@ globalThis.PlatformerController = {
 
   // teleport to spawn, clear motion/jump state, grant i-frames to avoid instant re-hit
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
-  respawn(world, ctrl, spawn) {
+  respawn(entities, ctrl, spawn) {
     Audio.playSfx({ sound: snd_hitsound_armor });
-    const pos = world.get(Position, ctrl.id);
-    const vel = world.get(Velocity, ctrl.id);
+    const pos = entities.get(Position, ctrl.id);
+    const vel = entities.get(Velocity, ctrl.id);
     pos.x = spawn.x;
     pos.y = spawn.y;
     pos.z = 0;
@@ -159,10 +159,10 @@ globalThis.PlatformerController = {
     ctrl.coyote = 0;
     ctrl.facing = 1;
     ctrl.iframes = PLATF_IFRAMES_RESPAWN;
-    world.get(Collision, ctrl.id).passThroughTicks = 0; // prevent dropping through spawn ledge
+    entities.get(Collision, ctrl.id).passThroughTicks = 0; // prevent dropping through spawn ledge
 
     // snap PrevPosition too, or the player streaks across the screen for one frame
-    const prev = world.get(PrevPosition, ctrl.id);
+    const prev = entities.get(PrevPosition, ctrl.id);
     if (prev !== undefined) {
       prev.x = spawn.x;
       prev.y = spawn.y;

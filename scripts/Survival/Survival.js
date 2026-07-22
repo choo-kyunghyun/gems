@@ -3,15 +3,15 @@
 // survival debuffs carry dot/mult, not flat mods.
 globalThis.Survival = {
   // Per tick: raise every `token`-carrying entity's `value` by rate*dt (clamped), then refresh its debuff.
-  tick(world, token) {
+  tick(entities, token) {
     const dt = World.sim.tickDuration;
-    const ids = world.query(token);
+    const ids = entities.query(token);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const c = world.get(token, id);
+      const c = entities.get(token, id);
       c.value += c.rate * dt;
       if (c.value > c.max) c.value = c.max;
-      Survival.refresh(world, id, c);
+      Survival.refresh(entities, id, c);
     }
   },
 
@@ -26,11 +26,11 @@ globalThis.Survival = {
 
   // Apply/remove the critical debuff Status by value vs threshold. apply()/remove() are idempotent +
   // cheap, so calling each tick is fine; "" status = no debuff.
-  refresh(world, id, comp) {
+  refresh(entities, id, comp) {
     if (comp.status === "") return;
     if (comp.max > 0 && comp.value / comp.max >= comp.critical)
-      StatusSystem.apply(world, id, comp.status);
-    else StatusSystem.remove(world, id, comp.status);
+      StatusSystem.apply(entities, id, comp.status);
+    else StatusSystem.remove(entities, id, comp.status);
   },
 
   // fill fraction value/max (0 = fine, 1 = critical). The HUD shows the reserve (1 - this).

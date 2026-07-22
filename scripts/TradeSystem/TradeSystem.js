@@ -21,10 +21,10 @@ globalThis.TradeSystem = {
 
   // Buy `qty` (instance always 1) of stock slot `idx`, clamped to affordable / available / free room —
   // buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
-  buy(world, buyerId, merchantId, idx, qty) {
-    const m = world.get(Merchant, merchantId);
-    const mInv = world.get(Inventory, merchantId);
-    const bInv = world.get(Inventory, buyerId);
+  buy(entities, buyerId, merchantId, idx, qty) {
+    const m = entities.get(Merchant, merchantId);
+    const mInv = entities.get(Inventory, merchantId);
+    const bInv = entities.get(Inventory, buyerId);
     if (m === undefined || mInv === undefined || bInv === undefined)
       return { amount: 0, reason: "" };
     const slot = mInv.slots[idx];
@@ -72,10 +72,10 @@ globalThis.TradeSystem = {
   // Sell `qty` (instance always 1) of bag slot `idx`. Finite merchant must afford it (gated by `credits`)
   // + have room for the buyback; infinite always pays and discards. reason when 0 = MERCHANT_BROKE/FULL.
   // Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
-  sell(world, sellerId, merchantId, idx, qty) {
-    const m = world.get(Merchant, merchantId);
-    const mInv = world.get(Inventory, merchantId);
-    const sInv = world.get(Inventory, sellerId);
+  sell(entities, sellerId, merchantId, idx, qty) {
+    const m = entities.get(Merchant, merchantId);
+    const mInv = entities.get(Inventory, merchantId);
+    const sInv = entities.get(Inventory, sellerId);
     if (m === undefined || mInv === undefined || sInv === undefined)
       return { amount: 0, reason: "" };
     const slot = sInv.slots[idx];
@@ -95,7 +95,8 @@ globalThis.TradeSystem = {
 
     let sold = 0;
     if (instanced) {
-      if (!m.infinite && !InventorySystem.addSlot(mInv, slot)) // buyback into stock
+      if (!m.infinite && !InventorySystem.addSlot(mInv, slot))
+        // buyback into stock
         return { amount: 0, reason: "TRADE_MERCHANT_FULL" };
       sInv.slots.splice(idx, 1); // the instance left the bag (moved by ref / discarded)
       sold = 1;
@@ -118,16 +119,16 @@ globalThis.TradeSystem = {
 
   // Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
   // removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
-  update(world, dt) {
-    const ids = world.query(Merchant, Inventory);
+  update(entities, dt) {
+    const ids = entities.query(Merchant, Inventory);
     for (let i = 0; i < ids.length; i++) {
-      const m = world.get(Merchant, ids[i]);
+      const m = entities.get(Merchant, ids[i]);
       if (m === undefined || m.infinite) continue;
       if (m.restockSecs <= 0 || m.template === undefined) continue;
       m.restockTimer -= dt;
       if (m.restockTimer > 0) continue;
       m.restockTimer = m.restockSecs;
-      const inv = world.get(Inventory, ids[i]);
+      const inv = entities.get(Inventory, ids[i]);
       if (inv === undefined) continue;
       for (let k = 0; k < m.template.length; k++) {
         const t = m.template[k];

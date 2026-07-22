@@ -44,7 +44,7 @@
 /**
  * @typedef {Object} PrefabApplyOpts
  * @property {LevelGrid} level   the level grid (tile layers / zones / cell dims)
- * @property {Entity} [world]       the ECS entity store — required only when the def has walls
+ * @property {Entity} [entities]       the ECS entity store — required only when the def has walls
  * @property {number} ox         absolute cell offset of the prefab origin
  * @property {number} oy
  * @property {Object<string, TileLayer>} [layers] named TileLayer map the def's tiles refer to
@@ -166,22 +166,22 @@ globalThis.Prefab = class Prefab {
     /** @type {number[]} */
     const colliders = [];
     if (st.walls.length > 0) {
-      if (opts.world === undefined)
-        throw new Error(`Prefab '${this.id}': walls need opts.world`);
-      const world = /** @type {Entity} */ (opts.world);
+      if (opts.entities === undefined)
+        throw new Error(`Prefab '${this.id}': walls need opts.entities`);
+      const entities = /** @type {Entity} */ (opts.entities);
       const cw = level.cellWidth;
       const ch = level.cellHeight;
       for (let i = 0; i < st.walls.length; i++) {
         const r = st.walls[i];
-        const id = world.create();
-        world.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
-        world.add(id, BBox, {
+        const id = entities.create();
+        entities.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
+        entities.add(id, BBox, {
           x: 0,
           y: 0,
           width: r[2] * cw,
           height: r[3] * ch,
         });
-        world.add(id, Collision, {
+        entities.add(id, Collision, {
           solid: true,
           kinematic: true,
           mask: null,

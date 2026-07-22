@@ -1,11 +1,11 @@
 // despawn timer for transient entities (bullets, effects).
 globalThis.LifetimeSystem = {
-  update(world) {
-    const ids = world.query(Lifetime);
+  update(entities) {
+    const ids = entities.query(Lifetime);
     for (const id of ids) {
-      const lt = world.get(Lifetime, id);
+      const lt = entities.get(Lifetime, id);
       lt.ticks -= 1;
-      if (lt.ticks <= 0) world.remove(id);
+      if (lt.ticks <= 0) entities.remove(id);
     }
   },
 };

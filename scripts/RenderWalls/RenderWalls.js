@@ -255,7 +255,7 @@ globalThis.RenderWalls = class RenderWalls {
     }
   }
 
-  draw(world) {
+  draw(entities) {
     if (this._dirty) this._rebuild();
     let any = false;
     for (let i = 0; i < this._mats.length; i++)
@@ -264,7 +264,7 @@ globalThis.RenderWalls = class RenderWalls {
     // depth-writing like RenderMesh/RenderBillboard (global default is off)
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights._litOk;
-    if (lit) this.lights._setupLights(world); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
+    if (lit) this.lights._setupLights(entities); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
     // all tops under normal (0,0,-1), then all souths under (0,1,0) — one normal set per
     // orientation; flat buckets ignore u_normal (their normals ride the packed texcoord).
     if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);

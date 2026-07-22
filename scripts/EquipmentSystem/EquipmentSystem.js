@@ -9,9 +9,9 @@ globalThis.EquipmentSystem = {
   // Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
   // or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
   // — e.g. the hotbar — use equipFirst.)
-  equip(world, id, uid) {
-    const inv = world.get(Inventory, id);
-    const eq = world.get(Equipment, id);
+  equip(entities, id, uid) {
+    const inv = entities.get(Inventory, id);
+    const eq = entities.get(Equipment, id);
     if (inv === undefined || eq === undefined) return false;
     const slot = InventorySystem.findByUid(inv, uid);
     if (slot === undefined) return false; // must own this instance
@@ -21,42 +21,42 @@ globalThis.EquipmentSystem = {
     if (eqp === undefined) return false; // not equippable
     if (eq.slots[eqp.slot] === uid) return false; // already equipped
 
-    if (eq.slots[eqp.slot] !== "") this.unequip(world, id, eqp.slot);
+    if (eq.slots[eqp.slot] !== "") this.unequip(entities, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
-    StatModel.recompute(world, id); // re-derive with the equipped mods folded in
-    AppearanceSystem.rebuild(world, id); // worn gear shows on the paper-doll (no-op sans Appearance)
-    this._applyContainer(world, id, item, 1);
+    StatModel.recompute(entities, id); // re-derive with the equipped mods folded in
+    AppearanceSystem.rebuild(entities, id); // worn gear shows on the paper-doll (no-op sans Appearance)
+    this._applyContainer(entities, id, item, 1);
     return true;
   },
 
   // Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
   // hotbar, which only know an itemId). False if none owned / not equippable.
-  equipFirst(world, id, itemId) {
-    const inv = world.get(Inventory, id);
+  equipFirst(entities, id, itemId) {
+    const inv = entities.get(Inventory, id);
     if (inv === undefined) return false;
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].itemId === itemId && inv.slots[i].uid !== undefined)
-        return this.equip(world, id, inv.slots[i].uid);
+        return this.equip(entities, id, inv.slots[i].uid);
     }
     return false;
   },
 
   // Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
   // Returns the unequipped uid, or "" if empty.
-  unequip(world, id, slot) {
-    const eq = world.get(Equipment, id);
+  unequip(entities, id, slot) {
+    const eq = entities.get(Equipment, id);
     if (eq === undefined) return "";
     const uid = eq.slots[slot];
     if (uid === undefined || uid === "") return "";
 
     eq.slots[slot] = ""; // clear FIRST so the re-derive drops the removed item's mods
-    StatModel.recompute(world, id);
-    AppearanceSystem.rebuild(world, id); // drop the removed item's paper-doll layer
-    const inv = world.get(Inventory, id);
+    StatModel.recompute(entities, id);
+    AppearanceSystem.rebuild(entities, id); // drop the removed item's paper-doll layer
+    const inv = entities.get(Inventory, id);
     const s =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
-    if (item !== undefined) this._applyContainer(world, id, item, -1); // capacity stays a direct delta
+    if (item !== undefined) this._applyContainer(entities, id, item, -1); // capacity stays a direct delta
     return uid;
   },
 
@@ -67,12 +67,12 @@ globalThis.EquipmentSystem = {
 
   // The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
   // controller needs the real slot — not a copy — to decrement `rounds` on a shot.
-  weaponSlot(world, id) {
-    const eq = world.get(Equipment, id);
+  weaponSlot(entities, id) {
+    const eq = entities.get(Equipment, id);
     if (eq === undefined) return null;
     const uid = eq.slots.weapon;
     if (uid === undefined || uid === "") return null;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     const slot =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     return slot ?? null;
@@ -80,8 +80,8 @@ globalThis.EquipmentSystem = {
 
   // Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
   // unarmed defaults. Convenience over weaponSlot + composeWeapon.
-  weaponProfile(world, id) {
-    const slot = this.weaponSlot(world, id);
+  weaponProfile(entities, id) {
+    const slot = this.weaponSlot(entities, id);
     return slot !== null ? this.composeWeapon(slot) : null;
   },
 
@@ -99,10 +99,10 @@ globalThis.EquipmentSystem = {
   },
 
   // Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
-  reload(world, id) {
-    const slot = this.weaponSlot(world, id);
+  reload(entities, id) {
+    const slot = this.weaponSlot(entities, id);
     if (slot === null) return 0;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     if (inv === undefined) return 0;
     return this.reloadSlot(inv, slot);
   },
@@ -131,10 +131,10 @@ globalThis.EquipmentSystem = {
   },
 
   // Load an ammo type into the equipped gun (caliber-gated), then top up.
-  loadAmmo(world, id, ammoItemId) {
-    const slot = this.weaponSlot(world, id);
+  loadAmmo(entities, id, ammoItemId) {
+    const slot = this.weaponSlot(entities, id);
     if (slot === null) return false;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     if (inv === undefined) return false;
     return this.loadAmmoSlot(inv, slot, ammoItemId);
   },
@@ -282,10 +282,10 @@ globalThis.EquipmentSystem = {
 
   // Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
   // Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
-  _applyContainer(world, id, item, sign) {
+  _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;
-    const inv = world.get(Inventory, id);
+    const inv = entities.get(Inventory, id);
     if (inv === undefined) return;
     inv.capacity += con.capacity * sign;
     if (inv.capacity < 0) inv.capacity = 0;

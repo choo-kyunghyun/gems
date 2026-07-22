@@ -5,21 +5,21 @@
  */
 globalThis.ZoneSystem = {
   /**
-   * @param {Entity} world @param {LevelGrid} level @param {ZoneMap} map
+   * @param {Entity} entities @param {LevelGrid} level @param {ZoneMap} map
    * @param {{ has?: string, onEnter?: function, onExit?: function }} [opts]
    *   has (a component token) filters tracked entities; callbacks get (entityId, zone).
    */
-  update(world, level, map, opts = {}) {
+  update(entities, level, map, opts = {}) {
     const has = opts.has;
     const onEnter = opts.onEnter;
     const onExit = opts.onExit;
     const inside = map._inside;
     const seen = {};
 
-    world.forEach([Position], (id) => {
-      if (has !== undefined && world.get(has, id) === undefined) return;
+    entities.forEach([Position], (id) => {
+      if (has !== undefined && entities.get(has, id) === undefined) return;
       seen[id] = true;
-      const pos = world.get(Position, id);
+      const pos = entities.get(Position, id);
       const g = level.worldToGrid(pos.x, pos.y);
       const cur = map.idAt(g.x, g.y);
       const prev = inside[id] ?? 0;
@@ -44,8 +44,8 @@ globalThis.ZoneSystem = {
   },
 
   /** @returns {Zone | undefined} */
-  zoneOf(world, level, map, id) {
-    const pos = world.get(Position, id);
+  zoneOf(entities, level, map, id) {
+    const pos = entities.get(Position, id);
     if (pos === undefined) return undefined;
     const g = level.worldToGrid(pos.x, pos.y);
     return map.at(g.x, g.y);
@@ -55,12 +55,12 @@ globalThis.ZoneSystem = {
    * @returns {number[]} ids of entities currently inside zone `id`.
    * @param {{ has?: string }} [opts]  has = a component token filter
    */
-  entitiesIn(world, level, map, id, opts = {}) {
+  entitiesIn(entities, level, map, id, opts = {}) {
     const has = opts.has;
     const out = [];
-    world.forEach([Position], (eid) => {
-      if (has !== undefined && world.get(has, eid) === undefined) return;
-      const pos = world.get(Position, eid);
+    entities.forEach([Position], (eid) => {
+      if (has !== undefined && entities.get(has, eid) === undefined) return;
+      const pos = entities.get(Position, eid);
       const g = level.worldToGrid(pos.x, pos.y);
       if (map.idAt(g.x, g.y) === id) out.push(eid);
     });

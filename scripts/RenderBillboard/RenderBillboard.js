@@ -130,7 +130,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     );
   }
 
-  draw(world) {
+  draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
     // only pass that writes depth; global default is off (obj_game Create_0) to avoid z-fighting
@@ -138,7 +138,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     gpu_set_zwriteenable(true);
     if (this._litOk) {
       if (this.lights !== undefined && this.lights._litOk) {
-        this.lights._setupLights(world); // shader_set + the shared sun/point-light gather
+        this.lights._setupLights(entities); // shader_set + the shared sun/point-light gather
       } else {
         // neutral light: full-bright albedo — the cutout is the only shader effect
         shader_set(this._lit);
@@ -151,9 +151,9 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uNormal, 0, BB_NORMAL_Y, BB_NORMAL_Z);
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
-    for (const entity of world.query(Visual, Position)) {
-      const visual = world.get(Visual, entity);
-      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+    for (const entity of entities.query(Visual, Position)) {
+      const visual = entities.get(Visual, entity);
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
       // draws as the spr_missing placeholder; re-wrap subimg into the placeholder's frame
       // range. Appearance layers keep visual.subimg (their sheets mirror the body strip) and
@@ -177,7 +177,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       // away = -y — an upright quad is a constant-y plane, so only a Y offset separates depth;
       // a z offset slides within the plane), so stack order wins deterministically;
       // BB_LAYER_DY is far above fp error and far below a visible shift.
-      const ap = world.get(Appearance, entity);
+      const ap = entities.get(Appearance, entity);
       if (ap !== undefined) {
         for (let i = 0; i < ap.back.length; i++)
           this._drawLayer(

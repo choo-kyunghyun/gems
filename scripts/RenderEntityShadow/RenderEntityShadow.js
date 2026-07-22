@@ -16,17 +16,17 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
 
   destroy() {}
 
-  draw(world) {
+  draw(entities) {
     const prevA = draw_get_alpha();
     draw_set_alpha(this.alpha);
-    const entities = world.query(Visual, Position);
-    for (const entity of entities) {
-      const visual = world.get(Visual, entity);
+    const ids = entities.query(Visual, Position);
+    for (const entity of ids) {
+      const visual = entities.get(Visual, entity);
       if (!visual.visible) continue;
-      const rp = InterpolationSystem.lerp(world, entity, this._rp);
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       let rx = this.defaultRx;
-      if (world.get(BBox, entity) !== undefined) {
-        const b = AABB.of(world, entity);
+      if (entities.get(BBox, entity) !== undefined) {
+        const b = AABB.of(entities, entity);
         rx = (b.x2 - b.x1) * this.scaleX;
       }
       const ry = Math.max(3, rx * this.flatten);

@@ -2,7 +2,7 @@
 // GemsUI factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
- * Release the `camera`/`renderer`/`world`/`ui` a Level holds on `this`, in dependency order
+ * Release the `camera`/`renderer`/`entities`/`ui` a Level holds on `this`, in dependency order
  * (missing fields skipped). Call it from `destroy()` AFTER releasing the scene's own
  * resources (controllers, sub-levels) — those may still reference these.
  * @param {Level} scene
@@ -10,7 +10,7 @@
 globalThis.teardownScene = function teardownScene(scene) {
   if (scene.camera) scene.camera.destroy();
   if (scene.renderer) scene.renderer.destroy();
-  if (scene.world) scene.world.destroy();
+  if (scene.entities) scene.entities.destroy();
   if (scene.ui) {
     UI.remove(scene.ui);
     scene.ui.destroy();

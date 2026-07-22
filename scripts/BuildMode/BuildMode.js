@@ -7,7 +7,7 @@
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
 // state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
-// scene contract (create()/RpgMap.build): world, playerId, level, ui, a <key>Layer/<key>Type per
+// scene contract (create()/RpgMap.build): entities, playerId, level, ui, a <key>Layer/<key>Type per
 // RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
 // _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
@@ -492,7 +492,7 @@ globalThis.BuildMode = {
   },
 
   _statusText(scene) {
-    const inv = scene.world.get(Inventory, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
     const it = scene._buildItem;
@@ -574,7 +574,7 @@ globalThis.BuildMode = {
 
   // does the player currently stand on land of a settlement they OWN? gates opening build mode.
   _playerOwnsHere(scene) {
-    const pp = scene.world.get(Position, scene.playerId);
+    const pp = scene.entities.get(Position, scene.playerId);
     if (pp === undefined) return false;
     const c = scene.level.worldToGrid(pp.x, pp.y);
     return Settlement.ownerAt(scene.level, c.x, c.y) === BuildMode.OWNER;
@@ -591,7 +591,7 @@ globalThis.BuildMode = {
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
-    const inv = scene.world.get(Inventory, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     if (
       inv === undefined ||
       !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
@@ -601,7 +601,7 @@ globalThis.BuildMode = {
       item.kind === "tile" && RpgLevel.layerCfg(item.layer).solid !== true
     );
     if (solid) {
-      const pp = scene.world.get(Position, scene.playerId);
+      const pp = scene.entities.get(Position, scene.playerId);
       if (pp !== undefined) {
         const pc = level.worldToGrid(pp.x, pp.y);
         if (pc.x === gx && pc.y === gy) return false;
@@ -613,7 +613,7 @@ globalThis.BuildMode = {
   _tryPlace(scene, gx, gy) {
     if (!BuildMode._canBuild(scene, gx, gy)) return;
     const item = scene._buildItem;
-    const inv = scene.world.get(Inventory, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
     BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
     scene._invDirty = true;
@@ -642,7 +642,7 @@ globalThis.BuildMode = {
       TileEdit.set(layer, gx, gy, type);
       const solid = RpgLevel.layerCfg(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
-        TileEdit.remesh(scene.world, level, layer, scene.colliders);
+        TileEdit.remesh(scene.entities, level, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
       return solid;
@@ -653,11 +653,15 @@ globalThis.BuildMode = {
     let id;
     if (opts.snapshot !== undefined) {
       const wp = level.gridToWorld(gx, gy);
-      id = EntitySnapshot.restore(scene.world, opts.snapshot, {
+      id = EntitySnapshot.restore(scene.entities, opts.snapshot, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
-      id = RpgSpawn.spawnEntity(scene.world, level, item.make(gx, gy, scene));
+      id = RpgSpawn.spawnEntity(
+        scene.entities,
+        level,
+        item.make(gx, gy, scene),
+      );
     }
     scene._builtEnts[key] = { ent: id, itemId: item.id };
     return id;
@@ -670,16 +674,16 @@ globalThis.BuildMode = {
     const ent = scene._builtEnts[key];
     if (ent !== undefined) {
       // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
-      if (scene.world.isValid(ent.ent)) {
-        const st = scene.world.get(Interaction, ent.ent);
+      if (scene.entities.isValid(ent.ent)) {
+        const st = scene.entities.get(Interaction, ent.ent);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
-          const inv = scene.world.get(Inventory, scene.playerId);
+          const inv = scene.entities.get(Inventory, scene.playerId);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
-        // spill the entity's Inventory as drops first, else world.remove silently deletes the
+        // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
         RpgScene.spillLoot(scene, ent.ent);
-        scene.world.remove(ent.ent);
+        scene.entities.remove(ent.ent);
       }
       BuildMode._refund(scene, ent.itemId);
       delete scene._builtEnts[key];
@@ -694,7 +698,7 @@ globalThis.BuildMode = {
     TileEdit.clear(scene[lkey + "Layer"], gx, gy);
     if (RpgLevel.layerCfg(lkey).solid === true)
       TileEdit.remesh(
-        scene.world,
+        scene.entities,
         level,
         scene[lkey + "Layer"],
         scene.colliders,
@@ -715,7 +719,7 @@ globalThis.BuildMode = {
 
   _refund(scene, itemId) {
     const item = BuildMode.item(itemId);
-    const inv = scene.world.get(Inventory, scene.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
@@ -724,18 +728,18 @@ globalThis.BuildMode = {
   // tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
   // not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
   reapDestroyed(scene) {
-    const world = scene.world;
+    const entities = scene.entities;
     const keys = Object.keys(scene._builtEnts);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
       const e = scene._builtEnts[k];
-      if (!world.isValid(e.ent)) {
+      if (!entities.isValid(e.ent)) {
         delete scene._builtEnts[k]; // already gone (removed elsewhere)
         continue;
       }
-      const hp = world.get(Health, e.ent);
+      const hp = entities.get(Health, e.ent);
       if (hp !== undefined && hp.hp <= 0) {
-        world.remove(e.ent);
+        entities.remove(e.ent);
         delete scene._builtEnts[k];
         const item = BuildMode.item(e.itemId);
         const label = item !== undefined ? I18n.text(item.labelKey) : e.itemId;
@@ -751,7 +755,7 @@ globalThis.BuildMode = {
   // land is still spent — no re-founding.
   claim(scene, postId) {
     const level = scene.level;
-    const pos = scene.world.get(Position, postId);
+    const pos = scene.entities.get(Position, postId);
     if (pos === undefined) return;
     const c = level.worldToGrid(pos.x, pos.y);
     if (Settlement.at(level, c.x, c.y) === undefined) {
@@ -767,7 +771,7 @@ globalThis.BuildMode = {
       Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
       Log.info(`founded settlement (${x1},${y1})-(${x2},${y2})`);
     }
-    scene.world.detach(postId, Interaction); // spent — stop prompting / block re-founding
+    scene.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
   },
 
   // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.

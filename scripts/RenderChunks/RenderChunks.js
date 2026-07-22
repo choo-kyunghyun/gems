@@ -19,7 +19,7 @@ globalThis.RenderChunks = class RenderChunks {
 
   destroy() {}
 
-  draw(_world) {
+  draw(_entities) {
     if (this.chunks === undefined) return;
     const color = draw_get_color();
     const alpha = draw_get_alpha();
