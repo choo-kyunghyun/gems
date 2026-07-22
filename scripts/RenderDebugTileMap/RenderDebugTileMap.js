@@ -15,10 +15,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
-  /**
-   * @param {LevelGrid} grid
-   * @param {RenderDebugTileMapOptions} [opt]
-   */
+  /** @param {LevelGrid} grid @param {RenderDebugTileMapOptions} [opt] */
   constructor(grid, opt = {}) {
     this.enabled = true;
     this.grid = grid;

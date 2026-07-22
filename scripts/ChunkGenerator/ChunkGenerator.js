@@ -37,12 +37,10 @@ function _stream(cx, cy, seed) {
  */
 globalThis.ChunkGenerator = class ChunkGenerator {
   /**
+   * opts: field (required TerrainField-like sampler — terrain/solidTerrain/materialAt/costAt), seed?,
+   * chunkCols?/chunkRows?, palette? (material table TerrainStream renders by; default the field's),
+   * passes? (GenPass objects or bare functions).
    * @param {Object} opts
-   * @param {Object} opts.field   TerrainField-like sampler (terrain/solidTerrain/materialAt/costAt)
-   * @param {number} [opts.seed]
-   * @param {number} [opts.chunkCols] @param {number} [opts.chunkRows]
-   * @param {Array} [opts.palette]  material table for TerrainStream (default: the field's)
-   * @param {(GenPass | function(Object): void)[]} [opts.passes]
    */
   constructor(opts = {}) {
     if (opts.field === undefined)

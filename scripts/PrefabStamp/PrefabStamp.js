@@ -12,13 +12,11 @@
  */
 globalThis.PrefabStamp = class PrefabStamp {
   /**
+   * opts: tag (required prefab scope tag — only Prefab.byTag(tag) is eligible), salt? (per-pass stream
+   * salt, see ChunkGenerator), chance? (probability a chunk stamps a prefab, default 0.45), margin?
+   * (interior border kept clear in cells, default 1), spawnFilter?/defaultLoot? (the two policy hooks —
+   * see the header).
    * @param {Object} opts
-   * @param {string} opts.tag        prefab scope tag (only Prefab.byTag(tag) is eligible)
-   * @param {number} [opts.salt]     per-pass stream salt (see ChunkGenerator)
-   * @param {number} [opts.chance]   probability a chunk stamps a prefab (default 0.45)
-   * @param {number} [opts.margin]   interior border kept clear, in cells (default 1)
-   * @param {function(Object, Object): boolean} [opts.spawnFilter]
-   * @param {function(Object, function(): number): (Object[] | undefined)} [opts.defaultLoot]
    */
   constructor(opts = {}) {
     if (typeof opts.tag !== "string")

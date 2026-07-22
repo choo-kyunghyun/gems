@@ -63,36 +63,23 @@ globalThis.UIElement = class UIElement {
     this._destroyed = false;
   }
 
-  /**
-   * @param {UIComponent} component
-   * @param {number} index
-   * @returns {UIElement}
-   */
+  /** @param {UIComponent} component @param {number} index @returns {UIElement} */
   addComponent(component, index = this.components.length) {
     this.components.splice(index, 0, component);
     return this;
   }
 
-  /**
-   * @param {typeof UIComponent} ComponentClass
-   * @returns {UIComponent|undefined}
-   */
+  /** @param {typeof UIComponent} ComponentClass @returns {UIComponent|undefined} */
   getComponent(ComponentClass) {
     return this.components.find((c) => c instanceof ComponentClass);
   }
 
-  /**
-   * @param {typeof UIComponent} ComponentClass
-   * @returns {UIComponent[]}
-   */
+  /** @param {typeof UIComponent} ComponentClass @returns {UIComponent[]} */
   getComponents(ComponentClass) {
     return this.components.filter((c) => c instanceof ComponentClass);
   }
 
-  /**
-   * @param {UIComponent} component
-   * @returns {UIElement}
-   */
+  /** @param {UIComponent} component @returns {UIElement} */
   removeComponent(component) {
     const index = this.components.indexOf(component);
     if (index > -1) {
@@ -222,11 +209,7 @@ globalThis.UIElement = class UIElement {
     else gpu_set_scissor(0, 0, tw, th);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {number} index
-   * @returns {UIElement}
-   */
+  /** @param {UIElement} element @param {number} index @returns {UIElement} */
   insertChild(element, index = this.children.length) {
     if (element.parent !== null) element.parent.removeChild(element);
     element.parent = this;

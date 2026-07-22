@@ -10,11 +10,10 @@
  */
 globalThis.AuthoredStamp = class AuthoredStamp {
   /**
+   * opts: data? (level-file data — { walls: [[gx,gy,w,h]...], spawns: [{gx,gy,...}] }), chunkCols?/
+   * chunkRows? (cell size — must match the generator's), salt? (per-pass stream salt, unused — no rng
+   * drawn).
    * @param {Object} opts
-   * @param {Object} [opts.data]      level-file data: { walls: [[gx,gy,w,h]...], spawns: [{gx,gy,...}] }
-   * @param {number} [opts.chunkCols] chunk size in cells (must match the generator's)
-   * @param {number} [opts.chunkRows]
-   * @param {number} [opts.salt]      per-pass stream salt (unused — no rng drawn)
    */
   constructor(opts = {}) {
     this.salt = opts.salt;

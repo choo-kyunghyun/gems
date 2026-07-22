@@ -32,16 +32,9 @@ globalThis.VertexBuffer = class VertexBuffer {
   }
 
   /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} w
-   * @param {number} h
-   * @param {number} u0
-   * @param {number} v0
-   * @param {number} u1
-   * @param {number} v1
-   * @param {number} [color]
-   * @param {number} [alpha]
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {number} u0 @param {number} v0 @param {number} u1 @param {number} v1
+   * @param {number} [color] @param {number} [alpha]
    */
   addQuad(x, y, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
     const b = this._buf;
@@ -68,19 +61,9 @@ globalThis.VertexBuffer = class VertexBuffer {
 
   /**
    * per-vertex alpha quad. corner order: TL, TR, BL, BR.
-   * @param {number} x
-   * @param {number} y
-   * @param {number} w
-   * @param {number} h
-   * @param {number} u0
-   * @param {number} v0
-   * @param {number} u1
-   * @param {number} v1
-   * @param {number} color
-   * @param {number} aTL
-   * @param {number} aTR
-   * @param {number} aBL
-   * @param {number} aBR
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {number} u0 @param {number} v0 @param {number} u1 @param {number} v1
+   * @param {number} color @param {number} aTL @param {number} aTR @param {number} aBL @param {number} aBR
    */
   addQuadV(x, y, w, h, u0, v0, u1, v1, color, aTL, aTR, aBL, aBR) {
     const b = this._buf;

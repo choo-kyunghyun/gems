@@ -7,10 +7,9 @@
  */
 globalThis.RenderDebugRange = class RenderDebugRange {
   /**
+   * opt: ranges ({component,field,color,alpha?}[]), alpha (default ring alpha when a spec omits its
+   * own), enabled (start drawn — default false, a toggled overlay).
    * @param {Object} [opt]
-   * @param {{component:string,field:string,color:number,alpha?:number}[]} [opt.ranges]
-   * @param {number} [opt.alpha]    default ring alpha when a spec omits its own
-   * @param {boolean} [opt.enabled] start drawn (default false — a toggled overlay)
    */
   constructor(opt = {}) {
     this.enabled = opt.enabled ?? false;

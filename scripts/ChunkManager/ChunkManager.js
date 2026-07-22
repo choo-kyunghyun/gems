@@ -39,12 +39,9 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * @param {Entity} entities @param {LevelGrid} grid
    * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
-   * @param {Object} [opts]
-   * @param {function(Entity, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
-   * @param {number} [opts.chunkCols=16] @param {number} [opts.chunkRows=16] chunk size in cells.
-   * @param {number} [opts.simRadius=1] @param {number} [opts.loadRadius=2] ring distances.
-   * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);
-   *   chunks outside never load. omit both for unbounded.
+   * @param {Object} [opts] spawn (descriptor → entity adapter), chunkCols/chunkRows (cell size, default
+   *   16), simRadius/loadRadius (ring distances, default 1/2), worldCols/worldRows (finite bounds
+   *   anchored at 0 — chunks outside never load; omit both for unbounded).
    */
   constructor(entities, grid, generator, opts = {}) {
     this.entities = entities;

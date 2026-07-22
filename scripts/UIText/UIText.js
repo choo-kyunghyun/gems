@@ -32,11 +32,7 @@ globalThis.UIText = class UIText {
     return resolveUIFont(this.font);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean}
-   */
+  /** @param {UIElement} element @param {boolean} block @returns {boolean} */
   onUpdate(element, block) {
     const str = this.textRef();
     const fnt = this._font();
@@ -59,9 +55,7 @@ globalThis.UIText = class UIText {
     return block;
   }
 
-  /**
-   * @param {UIElement} element
-   */
+  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     let x = pos.left;

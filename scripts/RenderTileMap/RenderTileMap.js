@@ -40,9 +40,8 @@ const _BLOB8 = [
 /** @implements {RenderPass} */
 globalThis.RenderTileMap = class RenderTileMap {
   /**
-   * @param {import("../TileLayer/TileLayer").TileLayer} layer
-   * @param {LevelGrid} grid
-   * @param {number} sprite - tileset sprite; frame indices must match the autotile mode
+   * @param {import("../TileLayer/TileLayer").TileLayer} layer @param {LevelGrid} grid
+   * @param {number} sprite tileset sprite; frame indices must match the autotile mode
    * @param {RenderTileMapOptions} [opt]
    */
   constructor(layer, grid, sprite, opt = {}) {

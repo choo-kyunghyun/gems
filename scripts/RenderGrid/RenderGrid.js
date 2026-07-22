@@ -10,10 +10,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderGrid = class RenderGrid {
-  /**
-   * @param {LevelGrid} grid
-   * @param {RenderGridOptions} [opt]
-   */
+  /** @param {LevelGrid} grid @param {RenderGridOptions} [opt] */
   constructor(grid, opt = {}) {
     this.enabled = true;
     this.grid = grid;

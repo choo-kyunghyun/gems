@@ -38,8 +38,7 @@ globalThis.Json = {
    * Serialize a JSON-plus-sprite-ref value to a string. Linear, cycle-safe, and step-capped:
    * it dodges the native nested-value fault, the O(n²) big-array cost, AND any infinite
    * recursion from a cyclic reference in the input.
-   * @param {*} v
-   * @returns {string}
+   * @param {*} v @returns {string}
    */
   encode(v) {
     const ctx = { path: [], steps: 0, aborted: false };
@@ -144,8 +143,7 @@ globalThis.Json = {
   /**
    * Parse a string produced by encode() (or any compatible JSON) back to a value, reviving
    * {"$spr": name} tags to live sprite refs. Returns undefined if the text is not valid JSON.
-   * @param {string} s
-   * @returns {*}
+   * @param {string} s @returns {*}
    */
   decode(s) {
     let root;
