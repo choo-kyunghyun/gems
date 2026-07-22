@@ -1,14 +1,17 @@
-// Squad follow AI + membership. update() drives EVERY Follower entity by live query (no level
-// roster list): a "follow" member steers toward the player, easing to a stop near `range` so it
-// settles instead of jittering; "wait" (and any non-member) holds still. Only sets Velocity
-// (SolidSystem integrates/collides). Player id passed in, not stored — no re-link on transfer.
-//
-// Membership (the Squad component) is owned here too: hire() joins the player's squad (+carry
-// bonus, drops the "rehire" Interaction), kick() leaves it PERMANENTLY in place (the companion
-// becomes a map resident with a "rehire" Interaction — talk to re-hire; there is no dismiss-and-
-// recall). setState() is the ONE home for the wait/follow transition + its carry-bonus pairing.
+// Squad follow AI + membership — update() drives EVERY Follower entity by live query (no roster list),
+// steering "follow" members toward the player. Contract on the declaration below.
 const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ramps to full
 
+/**
+ * A "follow" member steers toward the player, easing to a stop near `range` so it settles instead of
+ * jittering; "wait" (and any non-member) holds still. Only sets Velocity (SolidSystem integrates/
+ * collides). Player id passed in, not stored — no re-link on transfer.
+ *
+ * Membership (the Squad component) is owned here too: hire() joins the player's squad (+carry bonus,
+ * drops the "rehire" Interaction), kick() leaves it PERMANENTLY in place (the companion becomes a map
+ * resident with a "rehire" Interaction — talk to re-hire; there is no dismiss-and-recall). setState()
+ * is the ONE home for the wait/follow transition + its carry-bonus pairing.
+ */
 globalThis.FollowerSystem = {
   update(entities, playerId) {
     const pp = entities.get(Position, playerId);

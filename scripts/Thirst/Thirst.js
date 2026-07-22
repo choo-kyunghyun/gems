@@ -1,6 +1,5 @@
-// Survival need: thirst. A rising meter — `value` climbs by `rate`/sec; drinking (Consumable with `thirst`)
-// lowers it. ThirstSystem ticks it and applies the `status` debuff (e.g. "dehydrated") at/above `critical`.
-// OPT-IN like Stamina/Encumbrance. Flat scalars → entities.export / EntitySnapshot safe.
+// Survival need: thirst — a rising meter (`value` climbs by `rate`/sec; drinking lowers it). ThirstSystem
+// applies the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
 //
 // @typedef {Object} Thirst
 // @property {number} value     current need, 0..max (rises over time)

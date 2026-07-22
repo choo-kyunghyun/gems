@@ -1,6 +1,5 @@
 // Shared "rising meter + critical debuff" core the three per-need systems (Thirst/Hunger/Drowsiness)
-// delegate to. Stat-model-agnostic: a critical need's consequence is a Status — no recompute, since
-// survival debuffs carry dot/mult, not flat mods.
+// delegate to. Stat-model-agnostic: a critical need's consequence is a Status (dot/mult, no recompute).
 globalThis.Survival = {
   // Per tick: raise every `token`-carrying entity's `value` by rate*dt (clamped), then refresh its debuff.
   tick(entities, token) {

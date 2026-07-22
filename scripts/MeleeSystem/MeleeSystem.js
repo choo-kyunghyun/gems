@@ -1,7 +1,5 @@
-// Instant melee swing (no projectile): an AABB hitbox extends `reach` in the facing direction
-// (snapped to dominant axis → 4-way) and damages every overlapping Health except the attacker
-// and its faction allies (no friendly fire). Only subtracts hp — death reaction is central
-// (RpgCombat.resolveHealth). Uses AABB for edge geometry (non-uniform BBox anchor) — never inline pos+box.
+// Instant melee swing (no projectile): an AABB hitbox extends `reach` in the facing direction (snapped
+// to 4-way) and damages every overlapping Health except the attacker + faction allies. Subtracts hp only.
 globalThis.MeleeSystem = {
   /**
    * @param {object} entities

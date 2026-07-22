@@ -1,7 +1,5 @@
-// SettlementSystem — the entity↔settlement glue: resolves a settlement's residents (entities
-// carrying Resident with a matching sid) by LIVE query, never a stored roster (mirrors
-// FollowerSystem.members). Stateless namespace like ZoneSystem — no World tick. The Settlement
-// module owns the LANDS (Zone) + capability data; this owns the INHABITANTS (store entities).
+// SettlementSystem — the entity↔settlement glue: resolves a settlement's residents (Resident with a
+// matching sid) by LIVE query, never a stored roster. Settlement owns the lands; this owns the inhabitants.
 globalThis.SettlementSystem = {
   /** Every entity that is a resident of settlement `sid`. @returns {number[]} */
   residents(entities, sid) {

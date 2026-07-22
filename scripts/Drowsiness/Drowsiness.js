@@ -1,6 +1,5 @@
-// Survival need: drowsiness. A rising meter — `value` climbs by `rate`/sec; SLEEPING (bed → level._sleep)
-// lowers it via DrowsinessSystem.restore. DrowsinessSystem ticks the rise and applies the `status` debuff
-// (e.g. "drowsy") at/above `critical`. OPT-IN like Stamina/Encumbrance. Flat scalars → entities.export safe.
+// Survival need: drowsiness — a rising meter (`value` climbs by `rate`/sec; SLEEPING lowers it via
+// DrowsinessSystem.restore). Applies the `status` debuff at/above `critical`. OPT-IN; flat scalars, export-safe.
 //
 // @typedef {Object} Drowsiness
 // @property {number} value     current need, 0..max (rises over time; sleep lowers it)

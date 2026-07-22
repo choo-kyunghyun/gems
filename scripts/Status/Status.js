@@ -1,9 +1,12 @@
-// Status/buff DEFINITION registry (parallel of Item/Rarity). A status carries up to three effect kinds:
-//   dot/hot — Health change per `interval` (StatusSystem.update)
-//   mult    — live multiplicative factors read at use via StatusSystem.scale; never folded into Stats
-//   mods    — flat Stats deltas folded by the GAME (StatModel._foldStatuses), re-derived via onStatsChanged
-// Kit stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
-// Registered at level create() (RpgStatuses.register), NOT at top level — GMRT load-order.
+// Status/buff DEFINITION registry (parallel of Item/Rarity). Registered at level create()
+// (RpgStatuses.register), NOT at top level — GMRT load-order. Effect kinds on the declaration below.
+/**
+ * A status carries up to three effect kinds:
+ *   dot/hot — Health change per `interval` (StatusSystem.update)
+ *   mult    — live multiplicative factors read at use via StatusSystem.scale; never folded into Stats
+ *   mods    — flat Stats deltas folded by the GAME (StatModel._foldStatuses), re-derived via onStatsChanged
+ * Kit stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
+ */
 globalThis.Status = {
   _defs: {}, // id -> def
   _order: [], // ids in registration order

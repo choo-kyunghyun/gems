@@ -1,6 +1,5 @@
-// Move-and-raycast for lobbed projectiles (guns now hitscan; this is retained for grenades etc).
-// each tick raycasts the bullet's motion, damages a hit Health, despawns on impact. range bounded
-// by Lifetime. bullets carry no Collision, so they're invisible to Raycast/SolidSystem.
+// Move-and-raycast for lobbed projectiles (guns now hitscan; retained for grenades). Each tick raycasts
+// the bullet's motion, damages a hit Health, despawns on impact (no Collision → invisible to Raycast/Solid).
 globalThis.ProjectileSystem = {
   /** @param {Entity} entities */
   update(entities) {

@@ -1,8 +1,10 @@
-// Buy/sell/price/restock for a Merchant. Pure ops over the Merchant + buyer's/merchant's Inventory; only
-// `update` is a per-frame tick (restock heartbeat). Currency-agnostic: money is `merchant.currencyId`.
-// Prices: marketValue = round(Rarity.modify(rarity, value)); buy = ceil(·buyMargin), sell = floor(·sellMargin).
-// buy/sell return { amount, reason } — reason is a ""/i18n key so the UI can toast why nothing happened.
-// An instance moves by reference (uid/mods preserved).
+// Buy/sell/price/restock for a Merchant — pure ops over the Merchant + buyer's/merchant's Inventory;
+// only `update` is a per-frame tick (restock heartbeat). Currency-agnostic (money = merchant.currencyId).
+/**
+ * Prices: marketValue = round(Rarity.modify(rarity, value)); buy = ceil(·buyMargin), sell =
+ * floor(·sellMargin). buy/sell return { amount, reason } — reason is a ""/i18n key so the UI can toast
+ * why nothing happened. An instance moves by reference (uid/mods preserved).
+ */
 globalThis.TradeSystem = {
   // rarity-scaled base value (same formula the inventory "Value" column shows).
   marketValue(itemId) {

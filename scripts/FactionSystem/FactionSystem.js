@@ -1,8 +1,10 @@
-// faction roster + relation matrix. two layers: id-level config (register/setRelation/isHostile/isAlly)
-// and entity-level glue (factionOf/hostile/allied/nearestHostile) that AI and combat actually call.
-// relations are symmetric, default "neutral"; same id → "ally" always.
-// GMRT: plain object (avoids 50-method class ceiling); registry iterates `_order` array — never
-// a Map-iterator for...of, which hard-crashes the runtime (see CLAUDE.md).
+// Faction roster + relation matrix — two layers: id-level config (register/setRelation/isHostile/isAlly)
+// and entity-level glue (factionOf/hostile/allied/nearestHostile) that AI and combat call.
+/**
+ * Relations are symmetric, default "neutral"; same id → "ally" always. GMRT: plain object (avoids the
+ * 50-method class ceiling); the registry iterates the `_order` array — never a Map-iterator for...of,
+ * which hard-crashes the runtime (see CLAUDE.md).
+ */
 globalThis.FactionSystem = {
   _defs: new Map(), // id → { id, name, color }
   _order: [], // insertion order of ids (for all())

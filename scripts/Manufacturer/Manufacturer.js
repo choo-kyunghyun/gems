@@ -1,7 +1,9 @@
 // Manufacturer registry — the in-world companies items are made by, mirroring Rarity (a parallel
-// metadata registry items reference by id via `Item.maker`). A def may carry a signature `ops`
-// layer (same operator shape as WeaponMod.ops); EquipmentSystem folds it into every weapon the
-// company makes, so brand identity is mechanical, not just cosmetic.
+// metadata registry items reference by id via `Item.maker`). Signature `ops` contract below.
+/**
+ * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); EquipmentSystem
+ * folds it into every weapon the company makes, so brand identity is mechanical, not just cosmetic.
+ */
 globalThis.Manufacturer = class Manufacturer {
   /**
    * @param {Object} def

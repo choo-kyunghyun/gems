@@ -1,9 +1,5 @@
-// Marks an entity as a TRADER; its own Inventory IS the stock. Logic is TradeSystem; demo opens TradeUI.
-// Two economy modes by `infinite`:
-//   true  → bottomless stock + wallet (credits/restock ignored; selling discards the item)
-//   false → real economy: buy depletes/credits the merchant, sell gated by `credits` + buyback into stock,
-//           TradeSystem.update restocks toward `template` every `restockSecs` (0 = none).
-// `currencyId` is the money item — kept on the component so the kit names no specific currency.
+// Marks an entity as a TRADER — its own Inventory IS the stock (logic in TradeSystem; demo opens
+// TradeUI). Two economy modes via `infinite`: bottomless stock+wallet, or a real depleting economy.
 //
 // @typedef {Object} Merchant
 // @property {string}  currencyId    item id used as money (demo: "coin")

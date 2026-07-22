@@ -1,7 +1,5 @@
-// In-game world clock: a global time-of-day + day counter that every time-aware feature reads.
-// A singleton like `Time` (one clock), advanced once per frame from step() by Time.delta (sim time —
-// pauses with the game, dilates with Time.scale). Persists across map changes — the level resets it
-// once in create(), not per map.
+// In-game world clock — a global time-of-day + day counter every time-aware feature reads. A singleton
+// (advanced once per frame by Time.delta, sim time); persists across map changes (reset once in create()).
 globalThis.WorldClock = {
   dayLength: 240, // real seconds for one full in-game day (at Time.scale 1)
   startHour: 8, // morning when a fresh level starts

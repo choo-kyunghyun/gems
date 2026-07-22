@@ -1,6 +1,5 @@
 // Item-component: while equipped, grows the wearer's Inventory.capacity (EquipmentSystem adds/removes
-// it on equip/unequip). Pairs with Equippable (e.g. a backpack). Flat class queried by `instanceof`
-// (composition over inheritance).
+// on equip/unequip). Pairs with Equippable (e.g. a backpack). Flat class queried by `instanceof`.
 globalThis.Container = class Container {
   /**
    * @param {Object} d

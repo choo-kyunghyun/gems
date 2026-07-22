@@ -1,8 +1,11 @@
-// Runs an entity's buffs/debuffs: dot/hot over time, duration countdown/expiry, live multiplier query.
+// Runs an entity's buffs/debuffs — dot/hot over time, duration countdown/expiry, live multiplier query.
 // update(entities) is the per-tick driver; apply/remove/maintain/has/list/scale are on-demand verbs.
-// Stat-model coupling is ONE injected hook (like Combat.mitigate): a `mods`-bearing status only affects
-// derived Stats once the game re-derives, so apply/remove calls onStatsChanged (default no-op; Demo wires
-// StatModel.recompute). dot/hot and live `mult` need no recompute — they act directly / are read live.
+/**
+ * Stat-model coupling is ONE injected hook (like Combat.mitigate): a `mods`-bearing status only affects
+ * derived Stats once the game re-derives, so apply/remove calls onStatsChanged (default no-op; Demo
+ * wires StatModel.recompute). dot/hot and live `mult` need no recompute — they act directly / are read
+ * live.
+ */
 globalThis.StatusSystem = {
   // Injected re-derive hook (mirrors Combat.mitigate / ConsumableSystem.grantAttr). Default no-op; read
   // off the global so the game's override is always seen.

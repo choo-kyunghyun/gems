@@ -1,18 +1,20 @@
-// Settlement — a named, factioned TERRITORY that is at once a data container (Name + Faction +
-// capability components) and a level Zone (its lands). A settlement IS a Zone in the "settlement"
-// ZoneMap channel: its painted cells are its lands, and its `data` payload carries
-// { sid, factionId, color, comp } — a stable id, the owner faction, the land tint, and a
-// SettlementComponent id array (name on zone.name). It round-trips ZoneMap.export (persisted
-// nested via json_stringify / the Json codec — see docs/GMRT.md). A cell belongs to at most one
-// settlement (one zone per cell), so lookup is O(1).
-//
-// Stateless namespace over a level's channel (like ZoneSystem/InventorySystem) — Core-only deps
-// (grid/Zone/ZoneMap + uuid); it holds NO policy about which faction is "the player" (the consumer
-// decides, e.g. BuildMode gates on ownerAt === "player"). Multiple settlements per map are supported:
-// a player Home founded at a Survey Post, plus authored faction hubs / raider camps (data-driven).
-// The LANDS + capability data live here; a settlement's INHABITANTS live in the store as entities
-// carrying Resident{ settlementId: sid } — resolved by SettlementSystem. The seed for ROADMAP
-// Farming + "Defend the settlement" raids, which layer on the settlement + its lands + residents.
+// Settlement — a named, factioned TERRITORY that is both a data container (Name + Faction + capability
+// components) and a level Zone (its lands). Contract on the declaration below.
+/**
+ * A settlement IS a Zone in the "settlement" ZoneMap channel: its painted cells are its lands, and its
+ * `data` payload carries { sid, factionId, color, comp } — a stable id, the owner faction, the land
+ * tint, and a SettlementComponent id array (name on zone.name). It round-trips ZoneMap.export
+ * (persisted nested via json_stringify / the Json codec — see docs/GMRT.md). A cell belongs to at most
+ * one settlement (one zone per cell), so lookup is O(1).
+ *
+ * Stateless namespace over a level's channel (like ZoneSystem/InventorySystem) — Core-only deps
+ * (grid/Zone/ZoneMap + uuid); it holds NO policy about which faction is "the player" (the consumer
+ * decides, e.g. BuildMode gates on ownerAt === "player"). Multiple settlements per map are supported: a
+ * player Home founded at a Survey Post, plus authored faction hubs / raider camps (data-driven). The
+ * LANDS + capability data live here; a settlement's INHABITANTS live in the store as entities carrying
+ * Resident{ settlementId: sid } — resolved by SettlementSystem. The seed for ROADMAP Farming + "Defend
+ * the settlement" raids.
+ */
 globalThis.Settlement = {
   CHANNEL: "settlement", // the ZoneMap channel every settlement lives in
   TAG: "settlement", // every settlement Zone carries this tag (byTag lookup)

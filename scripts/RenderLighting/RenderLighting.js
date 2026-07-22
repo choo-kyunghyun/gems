@@ -1,17 +1,18 @@
-// 2D light-map pass — RPG lighting + day/night in one. Builds a per-frame off-screen light map and
-// composites it over the world MULTIPLICATIVELY, so day/night is "ambient with no lights" and point
-// lights punch bright holes in the night.
-//   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → level * ambient
-//   2. light blobs  — each Light adds a soft radial glow with bm_add (overlaps sum)
-//   2b. vignette    — multiply corners down so night frames in at the edges (off in daylight)
-//   3. composite    — draw the light map over the world with multiply (final = level * light)
-//
-// Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
-// (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
-//
-// Inserted LAST in the RPG renderer; the level draws its bright cues AFTER so they stay above the tint.
-// View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
-// @implements {RenderPass}
+// 2D light-map pass — RPG lighting + day/night in one: builds a per-frame off-screen light map and
+// composites it over the world MULTIPLICATIVELY. Contract on the class below.
+/**
+ * Day/night is "ambient with no lights"; point lights punch bright holes in the night.
+ *   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → level * ambient
+ *   2. light blobs  — each Light adds a soft radial glow with bm_add (overlaps sum)
+ *   2b. vignette    — multiply corners down so night frames in at the edges (off in daylight)
+ *   3. composite    — draw the light map over the world with multiply (final = level * light)
+ * Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
+ * (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
+ *
+ * Inserted LAST in the RPG renderer; the level draws its bright cues AFTER so they stay above the tint.
+ * View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
+ * @implements {RenderPass}
+ */
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;

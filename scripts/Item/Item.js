@@ -1,6 +1,5 @@
-// Item-definition registry. Definitions are data; runtime quantities live in Inventory.
-// Capabilities (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` —
-// composition over inheritance.
+// Item-definition registry. Definitions are data; runtime quantities live in Inventory. Capabilities
+// (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` — composition over inheritance.
 globalThis.Item = class Item {
   /**
    * @param {Object} def

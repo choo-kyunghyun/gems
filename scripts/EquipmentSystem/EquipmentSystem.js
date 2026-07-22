@@ -1,10 +1,12 @@
-// Pure operations on an entity's Equipment + Stats + Inventory (no world tick). Equipped items STAY
-// in the Inventory (still counting toward capacity/maxWeight); the slot only references their uid.
-// On equip/unequip the derived Stats are REBUILT from source via StatModel.recompute (folds every
-// equipped item's mods onto the attribute base) — no +/- delta to keep balanced, so it can't drift.
-// Wearer must carry Attributes for mods to apply (today only the player). Note: a +maxHp item raises
-// the cap but does NOT auto-heal (recompute only clamps over-max down). A Container's capacity bonus
-// stays a direct Inventory.capacity delta.
+// Pure operations on an entity's Equipment + Stats + Inventory (no world tick). Equipped items STAY in
+// the Inventory (still counting toward capacity/maxWeight); the slot only references their uid.
+/**
+ * On equip/unequip the derived Stats are REBUILT from source via StatModel.recompute (folds every
+ * equipped item's mods onto the attribute base) — no +/- delta to keep balanced, so it can't drift.
+ * Wearer must carry Attributes for mods to apply (today only the player). A +maxHp item raises the cap
+ * but does NOT auto-heal (recompute only clamps over-max down). A Container's capacity bonus stays a
+ * direct Inventory.capacity delta.
+ */
 globalThis.EquipmentSystem = {
   // Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
   // or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"

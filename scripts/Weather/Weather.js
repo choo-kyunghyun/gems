@@ -1,10 +1,12 @@
-// Global weather — current sky condition + a season-biased transition, a singleton like
-// WorldClock (one sky). State AND the visual clock advance on SIM time (Time.delta, so everything —
-// transitions, rain/snow fall, cloud drift — freezes when the game pauses and dilates with
-// Time.scale; the bed fast-forward races the sky). Conditions are a fixed literal table
-// (clear/cloudy/rain/storm/snow), each with a render look + a Kelvin tempMod.
-// A change CROSS-FADES over _fadeTime (lerped by blend()). A CLIMATE ZONE can override the open sky
-// (enterRegion/exitRegion); the displayed condition is the effective one (override ?? ambient).
+// Global weather — current sky condition + a season-biased transition, a singleton like WorldClock
+// (one sky). State + visuals advance on SIM time (Time.delta). Contract on the declaration below.
+/**
+ * On Time.delta, everything — transitions, rain/snow fall, cloud drift — freezes when the game pauses
+ * and dilates with Time.scale (the bed fast-forward races the sky). Conditions are a fixed literal
+ * table (clear/cloudy/rain/storm/snow), each with a render look + a Kelvin tempMod. A change CROSS-
+ * FADES over _fadeTime (lerped by blend()). A CLIMATE ZONE can override the open sky (enterRegion/
+ * exitRegion); the displayed condition is the effective one (override ?? ambient).
+ */
 globalThis.Weather = {
   // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, cloud the
   // cloud-shadow coverage for RenderCloudShadow, temp a scale-agnostic Kelvin delta. A literal — no

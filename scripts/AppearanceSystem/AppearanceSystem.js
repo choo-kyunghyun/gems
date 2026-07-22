@@ -1,11 +1,13 @@
 // Rebuilds an entity's Appearance layer stack from its Equipment — derived-from-source like
-// StatModel.recompute (a full rebuild can't drift), run at the same chokepoints (equip/unequip,
-// plus after a carried sheet lands via EntitySnapshot.apply). No-op for entities without an
-// Appearance (opt-in: paper-doll humanoids only). An Equippable shows on the doll when its
-// `worn` names an existing sprite that mirrors the body's strip layout (see Appearance) — and
-// the WEAPON slot needs no worn sheet at all: an unset `worn` falls back to the item's own
-// icon drawn ANCHORED at the body's right-hand attachment point (SpriteMeta `anchors`), so
-// every weapon gets a held visual with zero dedicated art.
+// StatModel.recompute (a full rebuild can't drift), at equip/unequip chokepoints. Contract below.
+/**
+ * Also runs after a carried sheet lands via EntitySnapshot.apply. No-op for entities without an
+ * Appearance (opt-in: paper-doll humanoids only). An Equippable shows on the doll when its `worn` names
+ * an existing sprite that mirrors the body's strip layout (see Appearance) — and the WEAPON slot needs
+ * no worn sheet at all: an unset `worn` falls back to the item's own icon drawn ANCHORED at the body's
+ * right-hand attachment point (SpriteMeta `anchors`), so every weapon gets a held visual with zero
+ * dedicated art.
+ */
 globalThis.AppearanceSystem = {
   // slot -> draw-order policy: back layers render behind the body, front layers over it in order
   BACK_SLOTS: ["backpack"],

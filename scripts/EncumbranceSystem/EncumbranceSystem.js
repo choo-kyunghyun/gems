@@ -1,7 +1,5 @@
-// Maps carried weight → speed multiplier. The penalty is delivered via a maintained "encumbered"
-// status (not by the mover directly), so it composes with other speed statuses (slow/haste) and the
-// mover reads StatusSystem.scale(..., "speed"). This module owns the weight→penalty mechanic; the
-// status layer just delivers it.
+// Maps carried weight → speed multiplier, delivered via a maintained "encumbered" status (not by the
+// mover directly), so it composes with other speed statuses; the mover reads StatusSystem.scale(speed).
 globalThis.EncumbranceSystem = {
   // Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
   // live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the

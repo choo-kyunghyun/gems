@@ -1,11 +1,12 @@
-// SettlementComponent — the registry of settlement CAPABILITY defs (market / depot / farm / …),
-// the "just like faction" layer: a settlement carries a SettlementComponent id array in its Zone data
-// (Settlement.components/hasComponent/addComponent), and this registry describes each id. Pure data
-// like FactionSystem/Rarity/Status — behavior (a system acting on "settlements that have X") layers
-// on later. Content registers its set from create()-time (RpgContent.register), never top level.
-//
-// GMRT: a plain-object store keyed by string id + an insertion-order array — for...in / index-loop
-// safe (no Map-iterator for...of, which hard-crashes the runtime; see CLAUDE.md).
+// SettlementComponent — the registry of settlement CAPABILITY defs (market / depot / farm / …). Pure
+// data like FactionSystem/Rarity/Status; content registers its set from create()-time. Contract below.
+/**
+ * The "just like faction" layer: a settlement carries a SettlementComponent id array in its Zone data
+ * (Settlement.components/hasComponent/addComponent), and this registry describes each id. Behavior (a
+ * system acting on "settlements that have X") layers on later. GMRT: a plain-object store keyed by
+ * string id + an insertion-order array — for...in / index-loop safe (no Map-iterator for...of, which
+ * hard-crashes the runtime; see CLAUDE.md).
+ */
 globalThis.SettlementComponent = {
   _defs: {}, // id -> { id, name, color }
   _order: [], // insertion order (for all())

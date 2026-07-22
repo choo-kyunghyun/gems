@@ -1,9 +1,9 @@
 // Ambient world temperature in KELVIN (canonical unit — toCelsius/toFahrenheit to display). A pure
-// derivation, no stored state/tick: now() composes the season baseline with a time-of-day swing,
-// read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + region
-// modifiers fold into now() here.
-//
-// The diurnal swing is a cosine of the hour.
+// derivation, no stored state/tick: now() composes the season baseline with a time-of-day swing.
+/**
+ * Read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + region
+ * modifiers fold into now() here. The diurnal swing is a cosine of the hour.
+ */
 globalThis.Temperature = {
   ZERO_C: 273.15, // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
 

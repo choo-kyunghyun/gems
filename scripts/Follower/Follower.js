@@ -1,10 +1,5 @@
-// Companion marker + follow behavior. MEMBERSHIP is the separate Squad component (see Squad):
-// a companion WITH Squad travels through portals with the player (a portal forces "wait" back to
-// "follow" — waiting is map-local, never a way to stay behind); one WITHOUT Squad is a map
-// resident (unhired/kicked — re-hired by talking). "wait" holds still in place; player id is
-// passed to the system per tick, never stored here — a transferred follower needs no re-link.
-// Carry bonus: while a member is following, FollowerSystem grants bonusCapacity/bonusWeight to
-// the player's Inventory (balanced +/- delta at each state transition via setState/hire/kick).
+// Companion marker + follow behavior. MEMBERSHIP is the separate Squad component (see Squad): WITH
+// Squad it portals with the player, WITHOUT it is a map resident. Follow/carry-bonus rules: FollowerSystem.
 /**
  * @typedef {Object} Follower
  * @property {"follow"|"wait"} state
