@@ -3,7 +3,7 @@
  * overlay (F3). The overlay renders OUTSIDE the game surface, so screen_save
  * misses it — human-only at draw time; an agent tunes from a harness by
  * writing the same live state a control binds (e.g. Time.scale,
- * game.scenes.requestStep()) or a section's staged `data` field.
+ * World.levels.requestStep()) or a section's staged `data` field.
  *
  * A section is a duck-typed object { name, window?, build(), update()?,
  * data? } rendered as its own dbg_section; `window` names the dbg_view

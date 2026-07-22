@@ -1,2 +1,2 @@
 draw_clear(this.background);
-this.scenes.draw();
+World.levels.draw();

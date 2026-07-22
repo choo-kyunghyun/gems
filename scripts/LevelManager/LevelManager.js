@@ -149,7 +149,7 @@ globalThis.LevelManager = class LevelManager {
     this._onResult = null;
   }
 
-  /** Re-open the active level from scratch (Debug "Restart Scene") — a destroying re-switch. */
+  /** Re-open the active level from scratch (Debug "Restart Level") — a destroying re-switch. */
   restart() {
     if (this._current !== null) this.switchTo(this._current.factory);
   }

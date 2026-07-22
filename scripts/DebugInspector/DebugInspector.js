@@ -5,7 +5,7 @@
  * structs
  * directly (editing mutates the real entity). Selection highlighted on the
  * GUI layer.
- * Wired: update(game) in Step_0 (after Debug.update), draw(game) in Draw_75.
+ * Wired: update() in Step_0 (after Debug.update), draw() in Draw_75.
  * Picking uses the latched LMB edge (the UIPointer poll-once rule).
  */
 globalThis.DebugInspector = {
@@ -87,12 +87,12 @@ globalThis.DebugInspector = {
     DebugInspector.select(null, -1);
   },
 
-  update(game) {
+  update() {
     if (!Debug.enabled) return;
     // register the Entity section up front so its window exists before the
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
-    const level = game.scenes.current;
+    const level = World.levels.current;
     const entities =
       level !== null && level !== undefined && level.entities !== undefined
         ? level.entities
@@ -126,11 +126,11 @@ globalThis.DebugInspector = {
     if (id !== -1) DebugInspector.select(entities, id);
   },
 
-  draw(game) {
+  draw() {
     if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
     const entities = DebugInspector._entities;
     if (entities === null || !entities.isValid(DebugInspector._id)) return;
-    const level = game.scenes.current;
+    const level = World.levels.current;
     if (level === null || level === undefined || level.camera === undefined)
       return;
     const pos = entities.get(Position, DebugInspector._id);

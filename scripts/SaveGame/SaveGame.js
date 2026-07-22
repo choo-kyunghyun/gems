@@ -425,9 +425,7 @@ globalThis.SaveGame = {
 
   // the current level if it's saveable (has an entity store + player), else null — Save is gated on it.
   _saveable() {
-    const g = SystemMenu._game;
-    if (g === null) return null;
-    const s = g.scenes.current;
+    const s = World.levels.current;
     if (
       s === null ||
       s === undefined ||
@@ -453,14 +451,12 @@ globalThis.SaveGame = {
       Toast.push(I18n.text("SAVE_TOAST_EMPTY", n));
       return;
     }
-    const g = SystemMenu._game;
-    if (g === null) return;
     if (!SaveGame.load(slot)) {
       Toast.push(I18n.text("SAVE_TOAST_LOADFAIL"), { type: "warn" });
       return;
     }
     SystemMenu.close();
-    g.scenes.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
+    World.levels.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
   },
 
   // ── restore helpers: pull entities back out of a store export ──

@@ -80,16 +80,15 @@ UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 // Wire the World singleton's sub-modules (composition; assigned here where load order is safe).
 World.sim = SimClock; // fixed-step tick clock (World.sim.advance / .alpha / .tickDuration)
 // World.levels (LevelManager) owns the level lifecycle + the resident-level registry; obj_game
-// delegates update/step/draw/destroy each event via the `this.scenes` alias.
+// delegates update/step/draw/destroy each event directly.
 World.levels = new LevelManager();
-this.scenes = World.levels;
 // lobby is the boot level + dev launcher; F2 (Step_0) also returns here
-this.scenes.start(LEVELS.lobby);
+World.levels.start(LEVELS.lobby);
 LevelTransition.reveal(); // boot fades in from black
 
 // register built-in debug sections; live bindings track the current level across swaps
-DebugGeneral.register(this);
-DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
+DebugGeneral.register();
+DebugRender.register(); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
 // the Demo's SaveGame/SceneRpg). Save is gated on a saveable level; Load boots a fresh RPG.

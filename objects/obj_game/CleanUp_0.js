@@ -2,7 +2,7 @@
 // (Step_0's per-frame flush won't run again, so teardown logs need an explicit flush)
 Log.info("game end");
 
-this.scenes.destroy();
+World.levels.destroy();
 UI.destroy();
 Input.destroy();
 I18n.destroy();

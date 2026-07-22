@@ -7,7 +7,7 @@
  * off and no-ops). Registered once from obj_game Create_0.
  */
 globalThis.DebugRender = {
-  _game: null,
+  _registered: false, // register() (Create_0) has run
   _extra: [], // [pass class, label] from a genre layer's add()
 
   // append a pass toggle (deduped by class) — the seam a genre layer uses
@@ -20,11 +20,11 @@ globalThis.DebugRender = {
       if (DebugRender._extra[i][0] === cls) return; // already added
     }
     DebugRender._extra.push([cls, label]);
-    if (DebugRender._game !== null) Debug.add(DebugRender._section);
+    if (DebugRender._registered) Debug.add(DebugRender._section);
   },
 
-  register(game) {
-    DebugRender._game = game;
+  register() {
+    DebugRender._registered = true;
     Debug.add(DebugRender._section);
   },
 
@@ -87,8 +87,7 @@ globalThis.DebugRender = {
   // none).
   _passesOf(cls) {
     const out = [];
-    const g = DebugRender._game;
-    const level = g !== null ? g.scenes.current : null;
+    const level = World.levels !== null ? World.levels.current : null;
     if (level === null || level === undefined || level.renderer == null)
       return out;
     const passes = level.renderer.passes;

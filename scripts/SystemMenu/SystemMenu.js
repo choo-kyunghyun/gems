@@ -7,7 +7,7 @@
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the obj_game controller (level lifecycle in game.scenes)
+  _game: null, // the obj_game controller (its themed `background` — levels live on World.levels)
   _scale: 1, // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this Core menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
@@ -20,10 +20,10 @@ globalThis.SystemMenu = {
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a level opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
-  /** @param {Object} game the obj_game controller (holds game.scenes) */
+  /** @param {Object} game the obj_game controller (its `background` re-themes) */
   update(game) {
     SystemMenu._game = game;
-    const level = game !== null ? game.scenes.current : null;
+    const level = World.levels.current;
 
     if (SystemMenu._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
@@ -57,7 +57,7 @@ globalThis.SystemMenu = {
     if (keyboard_check_pressed(vk_escape)) {
       if (level.handleEscape !== undefined && level.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
-      } else if (game.scenes.back()) {
+      } else if (World.levels.back()) {
         // guest minigame was active — Esc returned to the frozen host, not open the menu
       } else {
         SystemMenu.open();
@@ -72,7 +72,7 @@ globalThis.SystemMenu = {
         UINav.suspended = true; // consumed
         return;
       }
-      if (game.scenes.back()) return; // B also exits a guest minigame back to the host
+      if (World.levels.back()) return; // B also exits a guest minigame back to the host
     }
 
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
@@ -251,10 +251,8 @@ globalThis.SystemMenu = {
       GemsTheme.setMode(mode);
       UINav.color = Color.parse(GemsTheme.accent);
       const game = SystemMenu._game;
-      if (game !== null) {
-        game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
-        if (game.scenes !== undefined) game.scenes.retheme(); // rebuild active level UI in place
-      }
+      if (game !== null) game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
+      World.levels.retheme(); // rebuild active level UI in place
       UINav.reset(); // focus was on now-destroyed elements
       SystemMenu.reopen(1); // reopen on the Settings tab, recolored
     });
@@ -279,8 +277,7 @@ globalThis.SystemMenu = {
       gemsButton(
         I18n.textRef("SYS_QUIT"),
         () => {
-          const g = SystemMenu._game;
-          if (g !== null) g.scenes.switchTo(LEVELS.lobby);
+          World.levels.switchTo(LEVELS.lobby);
           SystemMenu.close();
         },
         { width: 200 },
