@@ -1,4 +1,4 @@
-// HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgScene/
+// HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgCombat/
 // RpgMap). Panels read level.entities/level.playerId LIVE via gemsLabel callbacks, so they survive
 // the store swap on a map change (RpgMap.go).
 globalThis.RpgHud = {

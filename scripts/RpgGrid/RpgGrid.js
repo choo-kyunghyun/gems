@@ -10,7 +10,7 @@
 
 const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
 
-globalThis.RpgLevel = {
+globalThis.RpgGrid = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
   // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a level owns
@@ -22,7 +22,7 @@ globalThis.RpgLevel = {
   },
   START: "overworld",
   mapFile(id) {
-    return RpgLevel.MAPS[id];
+    return RpgGrid.MAPS[id];
   },
 
   // one-shot editor→play hand-off: the level editor's Test Play sets a save-dir level file;
@@ -155,8 +155,8 @@ globalThis.RpgLevel = {
 
   // LAYERS config by key (BuildMode reads `solid`/`materials` off it).
   layerCfg(key) {
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++)
-      if (RpgLevel.LAYERS[i].key === key) return RpgLevel.LAYERS[i];
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++)
+      if (RpgGrid.LAYERS[i].key === key) return RpgGrid.LAYERS[i];
     return undefined;
   },
 
@@ -166,8 +166,8 @@ globalThis.RpgLevel = {
   // default every existing consumer paints). Shared by build() + buildChunked().
   _makeLayers(grid) {
     const h = {};
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
-      const cfg = RpgLevel.LAYERS[i];
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
+      const cfg = RpgGrid.LAYERS[i];
       const layer = new TileLayer(grid.cols, grid.rows, {
         emptyCost: cfg.emptyCost,
       });
@@ -199,8 +199,8 @@ globalThis.RpgLevel = {
   // Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
   // chunked leaves the resident grid empty (ChunkManager owns terrain).
   _fillLayers(grid, h) {
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
-      const cfg = RpgLevel.LAYERS[i];
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
+      const cfg = RpgGrid.LAYERS[i];
       if (!cfg.fill) continue;
       const layer = h[cfg.key + "Layer"];
       const type = h[cfg.key + "Type"];
@@ -236,10 +236,10 @@ globalThis.RpgLevel = {
     });
     // Terrain auto-filled as the walkable base; walls + optional floors from the file's
     // cell-rects (fence has no file source yet).
-    const h = RpgLevel._makeLayers(grid);
-    RpgLevel._fillLayers(grid, h);
-    RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
-    RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
+    const h = RpgGrid._makeLayers(grid);
+    RpgGrid._fillLayers(grid, h);
+    RpgGrid._paintRects(h.wallLayer, data.walls, h.wallType);
+    RpgGrid._paintRects(h.floorLayer, data.floors, h.floorType);
 
     const colliders = [];
     TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
@@ -266,7 +266,7 @@ globalThis.RpgLevel = {
     });
     // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
     // ChunkManager's. Same layer set/order as build() so Level.import matches.
-    const h = RpgLevel._makeLayers(grid);
+    const h = RpgGrid._makeLayers(grid);
 
     const spawn = this._resolveSpawn(grid, data, entryId);
     return { grid, spawn, colliders: [], ...h };

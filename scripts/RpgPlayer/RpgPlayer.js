@@ -33,7 +33,7 @@ globalThis.RpgPlayer = {
     // squad identity — hired companions copy this id; a portal transfers every member with it
     entities.add(id, Squad, { id: uuid() });
     entities.add(id, Health, { hp: 10 });
-    entities.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgScene)
+    entities.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (RpgCombat)
     entities.add(id, Stamina, { value: 100, exhausted: false });
     // primary attributes (stat INPUTS); StatModel.recompute derives the combat fields from these
     entities.add(id, Attributes, StatModel.defaults());

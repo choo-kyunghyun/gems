@@ -279,15 +279,15 @@ globalThis.RpgMap = {
 
   // Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
   _loadData(mapId, entryId) {
-    const file = RpgLevel.mapFile(mapId);
+    const file = RpgGrid.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
     if (data === null) {
       Log.error(
-        `map "${mapId}" (${file}) failed — falling back to ${RpgLevel.START}`,
+        `map "${mapId}" (${file}) failed — falling back to ${RpgGrid.START}`,
       );
-      mapId = RpgLevel.START;
+      mapId = RpgGrid.START;
       entryId = "default";
-      data = LevelSerializer.load(RpgLevel.mapFile(mapId), {
+      data = LevelSerializer.load(RpgGrid.mapFile(mapId), {
         genre: "topdown",
       });
     }
@@ -301,15 +301,15 @@ globalThis.RpgMap = {
   _buildWorld(level, data, entryId, squad) {
     level.entities = new Entity(level._chunked ? 1024 : 256);
     const built = level._chunked
-      ? RpgLevel.buildChunked(level.entities, data, entryId)
-      : RpgLevel.build(level.entities, data, entryId);
+      ? RpgGrid.buildChunked(level.entities, data, entryId)
+      : RpgGrid.build(level.entities, data, entryId);
     level.grid = built.grid;
     level.spawn = built.spawn; // for player respawn on death
     level.entries = RpgMap._entryTable(level.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
     // plus <key>Types for a materials-bearing layer (wall). Mirrored in BUNDLE_KEYS.
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
-      const key = RpgLevel.LAYERS[i].key;
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
+      const key = RpgGrid.LAYERS[i].key;
       level[key + "Layer"] = built[key + "Layer"];
       level[key + "Type"] = built[key + "Type"];
       if (built[key + "Types"] !== undefined)
@@ -407,7 +407,7 @@ globalThis.RpgMap = {
             RpgSpawn.spawnEntity(entities, grid, desc),
         },
       );
-      RpgLevel.buildWorldBorder(level.entities, level.grid, wc, wr); // edge walls (always present)
+      RpgGrid.buildWorldBorder(level.entities, level.grid, wc, wr); // edge walls (always present)
       // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
       // level fade) — mid-game streaming is pure load/unload; generate() never runs in play.
       const t0 = current_time;
@@ -498,13 +498,13 @@ globalThis.RpgMap = {
       );
     }
     // Resident tile layers (terrain/floor/fence) as real tilemaps again — bottom→top per
-    // RpgLevel.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
+    // RpgGrid.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
     // (flat fallback keeps its "corner" RenderTileMap). VBO-cached + keyed by layer so a
     // BuildMode edit markDirty's the matching pass. Chunked maps hold these layers EMPTY
     // (streamed terrain is TerrainStream's) — an empty layer emits no quads, so free there.
     level._tilePasses = {};
-    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
-      const cfg = RpgLevel.LAYERS[i];
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
+      const cfg = RpgGrid.LAYERS[i];
       if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
       const spr = asset_get_index(cfg.sprite);
       if (!sprite_exists(spr)) {
@@ -565,7 +565,7 @@ globalThis.RpgMap = {
       // PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per material,
       // bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
       // default bucket for file/streamed walls.
-      const wallCfg = RpgLevel.layerCfg("wall");
+      const wallCfg = RpgGrid.layerCfg("wall");
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
         const m = wallCfg.materials[i];

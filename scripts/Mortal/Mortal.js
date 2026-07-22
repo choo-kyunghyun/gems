@@ -1,4 +1,4 @@
-// opt-in death behaviour. only entities carrying Mortal react in RpgScene.resolveHealth; no Mortal
+// opt-in death behaviour. only entities carrying Mortal react in RpgCombat.resolveHealth; no Mortal
 // = left alone (e.g. built turrets handled by BuildMode.reapDestroyed).
 //   "despawn"  spill inventory as drops, then remove (kit path — no live preset uses it)
 //   "corpse"   strip the combatant in place → lootable body over its Inventory

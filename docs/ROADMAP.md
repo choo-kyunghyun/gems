@@ -14,7 +14,7 @@ The three renames left by the two-layer ECS restructure, each a full-project swe
 | --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
 | R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         | Yes  |
 | R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. | Yes  |
-| R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                |      |
+| R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                | Yes  |
 
 R3 sub-passes:
 
@@ -58,7 +58,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 | 9   | GemsUI kit             | GemsUI                                                                                                 |     4 |  1,588 | Theme + the three factory buckets                                                                 |      |
 | 10  | Gameplay: economy      | Items, Inventory, Equipment, Crafting, Trade                                                           |   ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge      |      |
 | 11  | Gameplay: simulation   | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest |   ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly         |      |
-| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                            |      |
+| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                            |      |
 | 13  | Demo scenes            | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game`                                      |    19 |  6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish                               |      |
 | 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                             |      |
 

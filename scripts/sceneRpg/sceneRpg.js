@@ -91,10 +91,10 @@ class _SceneRpgClass {
     this._buildUI();
 
     // boot at the overworld hub; the editor's Test Play overrides with a portal-less playtest file
-    let bootMap = RpgLevel.START;
-    if (RpgLevel.playtestFile !== undefined) {
-      RpgLevel.MAPS._playtest = RpgLevel.playtestFile;
-      RpgLevel.playtestFile = undefined;
+    let bootMap = RpgGrid.START;
+    if (RpgGrid.playtestFile !== undefined) {
+      RpgGrid.MAPS._playtest = RpgGrid.playtestFile;
+      RpgGrid.playtestFile = undefined;
       bootMap = "_playtest";
     }
     WorldClock.reset(); // once — survives map changes below
@@ -380,9 +380,9 @@ class _SceneRpgClass {
       FollowerSystem.update(this.entities, this.playerId); // seek, by live Follower query (before physics)
       this.physics.update(this.entities); // PlayerSystem (input) heads the pipeline, then AI + collision
 
-      RpgScene.trackDamage(this, 14); // floating numbers for any hp change this tick
+      RpgCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
-      RpgScene.resolveHealth(this, {
+      RpgCombat.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
           const dp = this.entities.get(Position, id);
@@ -427,7 +427,7 @@ class _SceneRpgClass {
         },
       });
       // revive a downed companion at the recovery spot (player's settlement, else map spawn)
-      RpgScene.updateDowned(this, {
+      RpgCombat.updateDowned(this, {
         downSpot: () => this._recoverSpot(),
         onRecover: (id) => {
           Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
@@ -435,8 +435,8 @@ class _SceneRpgClass {
           });
         },
       });
-      RpgScene.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
-      RpgScene.collectDrops(this, (itemId, got) =>
+      RpgCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
+      RpgCombat.collectDrops(this, (itemId, got) =>
         this._onCollect(itemId, got),
       );
       this._checkReach(); // reach-quest zone

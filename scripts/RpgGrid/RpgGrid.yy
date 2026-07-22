@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"RpgScene",
+  "%Name":"RpgGrid",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"RpgScene",
+  "name":"RpgGrid",
   "parent":{
-    "name":"System",
-    "path":"folders/Demo/System.yy",
+    "name":"Scene",
+    "path":"folders/Demo/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"RpgScene.js",
+  "scriptSource":"RpgGrid.js",
 }

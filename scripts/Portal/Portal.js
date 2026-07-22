@@ -2,7 +2,7 @@
 // required when portals are chunk-streamed and the level can't hold a fixed portals[] list.
 /**
  * @typedef {Object} Portal
- * @property {string} toMap   destination map id (RpgLevel.MAPS key)
+ * @property {string} toMap   destination map id (RpgGrid.MAPS key)
  * @property {string} toEntry destination entry point (meta.entries key)
  */
 globalThis.Portal = "Portal";

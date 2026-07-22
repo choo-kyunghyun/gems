@@ -692,7 +692,7 @@ class _SceneEditorClass {
   // serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor
   _play(openLevel) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
-    RpgLevel.playtestFile = EDITOR_PLAYTEST_FILE;
+    RpgGrid.playtestFile = EDITOR_PLAYTEST_FILE;
     Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
     openLevel(SceneRpg);
   }

@@ -22,7 +22,7 @@ globalThis.RpgInteractions = {
         },
       },
       {
-        // lootable body left by a "corpse"-kind Mortal (RpgScene._toCorpse) — the standard
+        // lootable body left by a "corpse"-kind Mortal (RpgCombat._toCorpse) — the standard
         // storage window over the body's Inventory, with takes counted as pickups (the same
         // quest/achievement credit as ground drops; StorageUI.close clears the hook)
         id: "corpse",

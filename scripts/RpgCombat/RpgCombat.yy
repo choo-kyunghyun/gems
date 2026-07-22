@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"RpgLevel",
+  "%Name":"RpgCombat",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"RpgLevel",
+  "name":"RpgCombat",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Demo/Scene.yy",
+    "name":"System",
+    "path":"folders/Demo/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"RpgLevel.js",
+  "scriptSource":"RpgCombat.js",
 }

@@ -106,7 +106,7 @@ globalThis.RpgSpawn = {
           Health: { hp: 3 },
           // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
           Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 90 },
-          Mortal: { kind: "corpse" }, // hp 0 → lootable body, reaped when emptied (RpgScene)
+          Mortal: { kind: "corpse" }, // hp 0 → lootable body, reaped when emptied (RpgCombat)
           Raider: {}, // species marker (radar color + kill-quest type)
           Faction: { id: "monster" }, // hostile to "player" → CombatAI aggro target
           Name: { name: "Raider" },
@@ -300,7 +300,7 @@ globalThis.RpgSpawn = {
         // Companion (a dynamic solid body). Spawns UNHIRED — a map resident with a "rehire"
         // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + drops the
         // Interaction). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
-        // recovery spot (see RpgScene.resolveHealth/updateDowned). No AI attach — FollowerSystem
+        // recovery spot (see RpgCombat.resolveHealth/updateDowned). No AI attach — FollowerSystem
         // drives every Follower entity by query.
         id: "follower",
         scale: 1.5,

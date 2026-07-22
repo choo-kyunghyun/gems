@@ -8,7 +8,7 @@
 // state on level (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
 // level contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
-// RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
+// RpgGrid.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
 // _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
   active: false, // mirror of (level._buildActive && build context), read by drawWorld
@@ -20,7 +20,7 @@ globalThis.BuildMode = {
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
-      // tile items: `layer` names the RpgLevel.LAYERS key (level[layer+"Layer"]/[layer+"Type"]);
+      // tile items: `layer` names the RpgGrid.LAYERS key (level[layer+"Layer"]/[layer+"Type"]);
       // a wall item's `mat` picks the per-cell material TileType (level.wallTypes[mat]).
       labelKey: "BUILD_CAT_TILES",
       items: [
@@ -593,7 +593,7 @@ globalThis.BuildMode = {
     )
       return false;
     const solid = !(
-      item.kind === "tile" && RpgLevel.layerCfg(item.layer).solid !== true
+      item.kind === "tile" && RpgGrid.layerCfg(item.layer).solid !== true
     );
     if (solid) {
       const pp = level.entities.get(Position, level.playerId);
@@ -635,7 +635,7 @@ globalThis.BuildMode = {
           ? level[item.layer + "Types"][item.mat]
           : level[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      const solid = RpgLevel.layerCfg(item.layer).solid === true;
+      const solid = RpgGrid.layerCfg(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
         TileEdit.remesh(level.entities, grid, layer, level.colliders);
       BuildMode._markTileDirty(level, item.layer);
@@ -673,7 +673,7 @@ globalThis.BuildMode = {
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
-        RpgScene.spillLoot(level, ent.ent);
+        RpgCombat.spillLoot(level, ent.ent);
         level.entities.remove(ent.ent);
       }
       BuildMode._refund(level, ent.itemId);
@@ -687,7 +687,7 @@ globalThis.BuildMode = {
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(level[lkey + "Layer"], gx, gy);
-    if (RpgLevel.layerCfg(lkey).solid === true)
+    if (RpgGrid.layerCfg(lkey).solid === true)
       TileEdit.remesh(
         level.entities,
         grid,

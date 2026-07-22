@@ -9,7 +9,7 @@
 // Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
 // ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
 // authority that removes/respawns/incapacitates/leaves a body.
-globalThis.RpgScene = {
+globalThis.RpgCombat = {
   // live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
   // (followers/turrets, player faction) and neutral props (no Faction) are excluded.
   _enemies(entities, playerId) {
@@ -24,20 +24,20 @@ globalThis.RpgScene = {
   // floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
   // change. Run after physics, before deaths flush, so the killing blow still pops.
   trackDamage(level, yOffset) {
-    RpgScene._diffHp(level, level.playerId, true, yOffset);
-    const enemies = RpgScene._enemies(level.entities, level.playerId);
+    RpgCombat._diffHp(level, level.playerId, true, yOffset);
+    const enemies = RpgCombat._enemies(level.entities, level.playerId);
     for (let i = 0; i < enemies.length; i++)
-      RpgScene._diffHp(level, enemies[i], false, yOffset);
+      RpgCombat._diffHp(level, enemies[i], false, yOffset);
     // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
     // no-op). Live Follower query — squad members and residents alike are allies.
     const followers = level.entities.query(Follower);
     for (let i = 0; i < followers.length; i++)
-      RpgScene._diffHp(level, followers[i], true, yOffset);
+      RpgCombat._diffHp(level, followers[i], true, yOffset);
     // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
     // Follower); a double-diffed id is harmless (the first call settles _hpTrack).
     const meshBodies = level.entities.query(Health, Mesh);
     for (let i = 0; i < meshBodies.length; i++)
-      RpgScene._diffHp(level, meshBodies[i], true, yOffset);
+      RpgCombat._diffHp(level, meshBodies[i], true, yOffset);
   },
 
   _diffHp(level, id, isAlly, yOffset) {
@@ -92,19 +92,19 @@ globalThis.RpgScene = {
       if (hp === undefined || hp.hp > 0) continue;
       const m = entities.get(Mortal, id);
       if (m.kind === "despawn") {
-        RpgScene.spillLoot(level, id, h.spill);
+        RpgCombat.spillLoot(level, id, h.spill);
         if (h.onKill !== undefined) h.onKill(id);
         entities.remove(id);
       } else if (m.kind === "corpse") {
         if (h.onKill !== undefined) h.onKill(id); // before the transform strips components
-        RpgScene._toCorpse(level, id);
+        RpgCombat._toCorpse(level, id);
       } else if (m.kind === "respawn") {
         const st = entities.get(Stats, id);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
         if (h.onRespawn !== undefined) h.onRespawn(id);
         level._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
       } else if (m.kind === "down") {
-        RpgScene._goDown(level, id, m, h);
+        RpgCombat._goDown(level, id, m, h);
       }
     }
   },
@@ -222,7 +222,7 @@ globalThis.RpgScene = {
       const s = inv.slots[i];
       const ox = (i % 2 === 0 ? -1 : 1) * 32;
       const oy = (i < 2 ? -1 : 1) * ySpread;
-      RpgScene.spawnDrop(
+      RpgCombat.spawnDrop(
         level,
         s.itemId,
         s.qty,
