@@ -1,15 +1,15 @@
 // Map-graph engine for the RPG level — portal travel, map pool, and persistence.
 // Free functions over the level (composition; GMRT has no usable class inheritance).
-//
-// Visited worlds are kept ALIVE in the World.levels registry (the map pool — the registry
-// entry IS the park bundle; there is no level-side pool) — no destroy/rebuild on a door
-// trip. Only the SQUAD migrates: every entity sharing the player's Squad id (player
-// included) moves as a WHOLE entity through World.levels.take/put — a portal forces a "wait"
-// member back to "follow" first, so the squad always travels together. There is no per-map
-// player and no carried component subset; kicked/unhired companions are plain map residents.
-// EVERYTHING is persistent for the session: a map builds from file exactly ONCE (first visit),
-// then only freezes/thaws as-is — there is no eviction, no cold serialize, and no respawn-from-
-// file reconcile (the old Persistent/gone ledger). Disk saves are the follow-up seam.
+/**
+ * Visited worlds stay ALIVE in the World.levels registry (the map pool — the registry entry IS the
+ * park bundle; no level-side pool), so a door trip never destroys/rebuilds. Only the SQUAD migrates:
+ * every entity sharing the player's Squad id (player included) moves as a WHOLE entity through
+ * World.levels.take/put — a portal forces a "wait" member back to "follow" first, so the squad
+ * always travels together. There is no per-map player and no carried component subset; kicked/unhired
+ * companions are plain map residents. Everything is persistent for the session: a map builds from
+ * file exactly ONCE (first visit), then only freezes/thaws — no eviction, cold serialize, or
+ * respawn-from-file reconcile. Disk saves are the follow-up seam.
+ */
 globalThis.RpgMap = {
   // fields _stash/_restore copy between level and a parked bundle (excludes level-shell +
   // per-activate transients reset by _activateReset on each map open)

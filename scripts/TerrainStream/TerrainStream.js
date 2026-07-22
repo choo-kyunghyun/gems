@@ -1,20 +1,18 @@
-// Per-chunk dual-grid renderer for the streamed overworld terrain. Caches VertexBuffers per loaded
-// chunk (one per material), built once on load and freed on unload, so a border crossing only builds
-// newly-entered chunks (the earlier windowed version rebuilt one ~80x80 VBO every crossing → ~50ms
-// hitch). Painter order = the generator palette's index (deep water … rocky for the overworld):
-// upper terrains'
-// transparent dual-grid corners reveal the one below. Each material draws its own untinted
-// spr_terrain* sprite into its own VBO with its own texture, so the tilesets needn't share a
-// texture page.
-//
-// Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
-// top/left edge: interior from the chunk record, apron from the manager's STORE-backed sampler
-// (ChunkManager.materialAt — stored terrain, falling back to the source's pure sampler past the
-// world edge), so seams match the neighbor with no load-order dependency.
-//
-// GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
-
-// @implements {RenderPass}
+// Per-chunk dual-grid renderer for the streamed overworld terrain: caches a VertexBuffer per material
+// per loaded chunk, built on load and freed on unload. Contract on the declaration below.
+/**
+ * A border crossing only builds newly-entered chunks. Painter order = the generator palette's index
+ * (deep water … rocky for the overworld): upper terrains' transparent dual-grid corners reveal the
+ * one below. Each material draws its own untinted spr_terrain* sprite into its own VBO with its own
+ * texture, so the tilesets needn't share a texture page.
+ *
+ * Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
+ * top/left edge: interior from the chunk record, apron from the manager's STORE-backed sampler
+ * (ChunkManager.materialAt — stored terrain, falling back to the source's pure sampler past the world
+ * edge), so seams match the neighbor with no load-order dependency.
+ * GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
+ * @implements {RenderPass}
+ */
 globalThis.TerrainStream = class TerrainStream {
   // @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling).
   constructor(chunks) {

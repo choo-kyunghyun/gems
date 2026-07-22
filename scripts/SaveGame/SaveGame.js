@@ -1,19 +1,19 @@
 // SaveGame — the RPG's disk save/load driver (Demo). Composes a Snapshot (the Core pass frame)
 // with the RPG's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
-//
-// Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
-// default/ path, see docs/GMRT.md):
-//   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS (GMRT's
-//                            file_find_first scans the build dir, NOT the save area, so a directory
-//                            scan can't see saves — the index is the source of truth).
-//   saves/<slot>/manifest.json   the JSON half of the hybrid bundle (metadata, world-sim, and each
-//                            map's component export — variable/structured data).
-//   saves/<slot>/<blob>.bin      the binary half, for dense data. NOTHING emits one today: the
-//                            resident tile grid replays from `built` instead of being serialized,
-//                            and the chunk cache is a delta small enough for the manifest.
-//
-// Passes run in insert order both ways; capture and restore live on the same pass object so they
-// can't drift.
+/**
+ * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
+ * default/ path, see docs/GMRT.md):
+ *   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS
+ *                            (file_find_first scans the build dir, NOT the save area, so a directory
+ *                            scan can't see saves — the index is the source of truth).
+ *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle (metadata, world-sim, and each
+ *                            map's component export).
+ *   saves/<slot>/<blob>.bin      the binary half, for dense data. NOTHING emits one today: the
+ *                            resident tile grid replays from `built`, and the chunk cache is a delta
+ *                            small enough for the manifest.
+ * Passes run in insert order both ways; capture and restore live on the same pass object so they
+ * can't drift.
+ */
 globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",

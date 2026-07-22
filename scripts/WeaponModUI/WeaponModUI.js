@@ -1,15 +1,17 @@
-// Weapon-attachment PANEL — the install/remove view of the WORKBENCH (the Toolkit module). owns no
-// window: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh(). master-detail
-// over the player's WEAPON INSTANCES (each a unique slot with a uid + inline `mods` MAP
-// { slotId -> attachmentItemId }, plus, for a gun, a loaded `ammo` itemId + `rounds`):
-//   • LEFT  — owned weapon instances; click to select (by uid). "+N" = filled slots, "[E]" = equipped.
-//   • RIGHT — composed stats (composeWeapon), an AMMO section for a gun (loaded type + clip + Reload +
-//             a Load picker), the weapon's named attachment slots (installed + Remove, or "(empty)"),
-//             and compatible owned attachments to Install.
-// install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and mark the
-// workbench dirty. ammo Load/Reload act on the SELECTED instance's slot (may not be equipped), via *Slot.
-// state on level: _modSel, _modList / _modDetail. columns are PLAIN (no gpu_set_scissor clip —
-// unreliable in a master-detail row on GMRT 0.20; see CraftingUI's comment).
+// Weapon-attachment PANEL — the install/remove view of the WORKBENCH (the Toolkit module). Owns no
+// window: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh().
+/**
+ * Master-detail over the player's WEAPON INSTANCES (each a unique slot with a uid + inline `mods` MAP
+ * { slotId -> attachmentItemId }, plus, for a gun, a loaded `ammo` itemId + `rounds`):
+ *   • LEFT  — owned weapon instances; click to select (by uid). "+N" = filled slots, "[E]" = equipped.
+ *   • RIGHT — composed stats (composeWeapon), an AMMO section for a gun (loaded type + clip + Reload +
+ *             a Load picker), the weapon's named attachment slots (installed + Remove, or "(empty)"),
+ *             and compatible owned attachments to Install.
+ * Install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and mark the
+ * workbench dirty. Ammo Load/Reload act on the SELECTED instance's slot (may not be equipped), via
+ * *Slot. State on level: _modSel, _modList / _modDetail. Columns are PLAIN (no gpu_set_scissor clip —
+ * unreliable in a master-detail row on GMRT 0.20; see CraftingUI).
+ */
 globalThis.WeaponModUI = {
   // record the hosts CraftingUI built + init selection (the workbench owns open/close).
   buildPanel(level, listHost, detailHost) {

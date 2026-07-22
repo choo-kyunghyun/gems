@@ -1,9 +1,11 @@
-// Registers the RPG's concrete InteractAction defs — the data behind the generic Interactable
-// engine. Two families: WINDOW actions open a UI + set level._interOpenId (so the engine range-
-// closes / refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/
-// buff) act on the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction
-// that does something to the player, not just open a panel". Called once from RpgContent.register().
-// Adding a new interaction = one entry here + a prompt key; the entity just carries { kind: <id> }.
+// Registers the RPG's concrete InteractAction defs — the data behind the generic Interactable engine.
+// Called once from RpgContent.register(); adding an interaction = one entry here + a prompt key.
+/**
+ * Two families: WINDOW actions open a UI + set level._interOpenId (so the engine range-closes /
+ * refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/buff) act on
+ * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
+ * something to the player, not just open a panel". The entity just carries { kind: <id> }.
+ */
 globalThis.RpgInteractions = {
   registered: false,
 

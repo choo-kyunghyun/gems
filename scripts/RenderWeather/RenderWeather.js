@@ -1,18 +1,16 @@
-// World-space pass drawing the current Weather: a flat tint plus falling rain / drifting snow,
-// cross-faded by Weather.blend(). Inserted just BEFORE RenderLighting so the night tint also darkens
-// the rain.
-//
-// Particles are screen-space and scroll on Weather.time() — a cumulative SIM-second clock (advanced
-// by Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
-// Time.scale (bed fast-forward), matching the condition transitions. It must be a cumulative CLOCK:
-// multiplying a per-frame DELTA (Time.raw/Time.delta) by fall speed froze every particle near a
-// constant offset (the old "static" bug). Snow sways via Math.sin (trig works on GMRT 0.20);
-// streaks use draw_line, snow uses draw_rectangle.
-//
-// View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
-// Camera). The level assigns pass.camera after building the camera.
-//
-// @implements {RenderPass}
+// World-space pass drawing the current Weather — a flat tint plus falling rain / drifting snow,
+// cross-faded by Weather.blend(). Inserted before RenderLighting so the night tint darkens the rain.
+/**
+ * Particles are screen-space and scroll on Weather.time() — a cumulative SIM-second clock (advanced
+ * by Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
+ * Time.scale (bed fast-forward). It must be a cumulative CLOCK, not a per-frame delta × fall speed
+ * (which pins every particle near a constant offset). Snow sways via Math.sin; streaks use draw_line,
+ * snow uses draw_rectangle.
+ *
+ * View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
+ * Camera). The level assigns pass.camera after building the camera.
+ * @implements {RenderPass}
+ */
 globalThis.RenderWeather = class RenderWeather {
   constructor(opt = {}) {
     this.enabled = true;

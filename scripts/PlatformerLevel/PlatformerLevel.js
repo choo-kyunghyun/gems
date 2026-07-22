@@ -1,6 +1,5 @@
-// hard-coded level data for the platformer showcase (not shared with the editor pipeline).
-// build() spawns all entities and returns playerSpawn.
-// presets: platform(x,y,w,h,oneWay?), enemy(x,y), spike(x,y)
+// Hard-coded level data for the platformer showcase (not shared with the editor pipeline). build()
+// spawns all entities and returns playerSpawn; presets: platform(x,y,w,h,oneWay?), enemy(x,y), spike(x,y).
 
 const PLATF_ENEMY_SPEED = 60; // patrol walk speed, px/s
 

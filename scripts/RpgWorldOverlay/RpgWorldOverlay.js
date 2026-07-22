@@ -1,8 +1,10 @@
-// World-space gameplay overlay for the RPG level — item drops (rarity squares), projectile dots
-// (lobbed/grenade Projectile entities), fading hitscan tracers, and the reach-quest zone. Drawn
-// from sceneRpg.draw() AFTER renderer.draw() because RenderChunks paints an opaque ground fill that
-// would hide it. (HUD/inventory/dialogue are GUI-layer panels, not here.) `_rarityColor` shared
-// with the inventory rows.
+// World-space gameplay overlay for the RPG level — item drops (rarity squares), projectile dots,
+// fading hitscan tracers, and the reach-quest zone. Drawn from sceneRpg.draw() AFTER renderer.draw().
+/**
+ * Drawn after renderer.draw() because RenderChunks paints an opaque ground fill that would hide it.
+ * (HUD/inventory/dialogue are GUI-layer panels, not here.) `_rarityColor` is shared with the
+ * inventory rows.
+ */
 globalThis.RpgWorldOverlay = {
   // live hitscan shot streaks pushed by the firers (RpgPlayer + CombatAI), aged on Time.raw
   _tracers: [],

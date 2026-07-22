@@ -1,19 +1,20 @@
 // Wandering traders — merchants that cross the map graph off-focus, driven entirely by WorldEvents.
 // A static singleton (Demo); the reference consumer of WorldEvents + World.levels (LevelManager).
-//
-// Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
-// scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
-// its current map is the ACTIVE one, the record is HYDRATED into a real Merchant NPC entity (via
-// RpgSpawn — so TradeUI / TradeSystem / _npcActivate treat it like any vendor); when the player leaves
-// or the trader departs, it's DEHYDRATED back to the record (its living state captured as a whole-entity
-// snapshot through Universe). So a trader is an entity in exactly one place — the map you're standing in.
-//
-// A record: { id, name, route:[{map,dwellH}], travelH, merchant, idx, map, inTransit, entId, snap }
-//   route     ordered stops (map id + hours to dwell there); travelH = hours in transit between stops
-//   merchant  the descriptor RpgSpawn builds the vendor from on the FIRST hydrate (stock/margins/mode)
-//   map       current map when settled; inTransit true while travelling between stops
-//   entId     live entity id while embodied in the active map, else -1
-//   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
+/**
+ * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
+ * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
+ * its map is the ACTIVE one the record is HYDRATED into a real Merchant NPC entity (via RpgSpawn — so
+ * TradeUI / TradeSystem / _npcActivate treat it like any vendor); on leave/depart it DEHYDRATES back
+ * to the record (living state captured as a whole-entity snapshot through Universe). So a trader is an
+ * entity in exactly one place — the map you're standing in.
+ *
+ * A record: { id, name, route:[{map,dwellH}], travelH, merchant, idx, map, inTransit, entId, snap }
+ *   route     ordered stops (map id + hours to dwell there); travelH = hours in transit between stops
+ *   merchant  the descriptor RpgSpawn builds the vendor from on the FIRST hydrate (stock/margins/mode)
+ *   map       current map when settled; inTransit true while travelling between stops
+ *   entId     live entity id while embodied in the active map, else -1
+ *   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
+ */
 globalThis.Trader = {
   _recs: {}, // id -> record
   _level: null, // the active RPG level — handlers reach the active store/map through it

@@ -1,6 +1,5 @@
-// HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgCombat/
-// RpgMap). Panels read level.entities/level.playerId LIVE via gemsLabel callbacks, so they survive
-// the store swap on a map change (RpgMap.go).
+// HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgCombat/RpgMap).
+// Panels read level.entities/playerId LIVE via gemsLabel callbacks, surviving the map-change store swap.
 globalThis.RpgHud = {
   // build the persistent panels once (level create)
   build(level) {

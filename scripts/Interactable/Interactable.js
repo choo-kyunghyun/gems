@@ -1,15 +1,18 @@
-// Interaction engine for the RPG level: each frame picks one target entity carrying an `Interaction`
-// component — under the cursor if in range, else nearest in range — gives it a highlight + prompt;
-// E runs its action. The action itself is data (InteractAction registry, RPG set in RpgInteractions),
-// so this engine is generic dispatch, not a per-kind switch — from opening a window to feeding the
-// player. Activation is E, not left-click, because combat fires on left-click (the mouse only CHOOSES
-// the target). The world cursor is level.mouseWorld (the level's per-frame pitch-aware latch — NOT
-// mouse_x/mouse_y, which are wrong under the pitched camera). Per-frame/open state on the level (_inter*).
-// Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
-// THE STATION-WINDOW DRIVER: update() also owns the open windows' lifecycle — it range-closes the
-// one recorded in level._interOpenId and sets its _*Dirty flag when the target's contents change.
-// The protocol every station window shares: the manager refreshes only when its flag is set, so
-// gameplay code that mutates an inventory elsewhere must set the flag (e.g. level._storeDirty).
+// Interaction engine for the RPG level: each frame it picks one `Interaction`-carrying target
+// (under the cursor if in range, else nearest), prompts it, and runs its action on E.
+/**
+ * The action itself is data (InteractAction registry, RPG set in RpgInteractions), so this engine is
+ * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
+ * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
+ * cursor is level.mouseWorld (the level's per-frame pitch-aware latch, see Camera). Per-frame/open
+ * state on the level (_inter*). Build once in create() after player + ui; update() each step,
+ * drawTarget() in draw() (world).
+ *
+ * THE STATION-WINDOW DRIVER: update() also owns the open windows' lifecycle — it range-closes the one
+ * recorded in level._interOpenId and sets its _*Dirty flag when the target's contents change. The
+ * protocol every station window shares: the manager refreshes only when its flag is set, so gameplay
+ * code that mutates an inventory elsewhere must set the flag (e.g. level._storeDirty).
+ */
 globalThis.Interactable = {
   RADIUS: 72, // interact range (px); 32px-cell scale
 

@@ -1,14 +1,15 @@
 // Combat/loot plumbing for the RPG level — free functions taking the level (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
-//
-// Contract: the level owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`.
-// The enemy set is derived LIVE by Faction (hostile to the player) and companions LIVE by the
-// Follower component, so chunk streaming/squad transfer need no bookkeeping — allegiance and
-// membership are component queries, not stored lists.
-//
-// Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
-// ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
-// authority that removes/respawns/incapacitates/leaves a body.
+/**
+ * Contract: the level owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`. The enemy
+ * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower
+ * component, so chunk streaming/squad transfer need no bookkeeping — allegiance and membership are
+ * component queries, not stored lists.
+ *
+ * Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
+ * ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
+ * authority that removes/respawns/incapacitates/leaves a body.
+ */
 globalThis.RpgCombat = {
   // live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
   // (followers/turrets, player faction) and neutral props (no Faction) are excluded.

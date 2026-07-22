@@ -1,15 +1,17 @@
-// Level builder for the top-down demo (LevelSerializer genre "topdown").
-//
-// build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top)
-// and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the level owns the
-// grid's lifecycle. Wall colliders are greedy-meshed by TileEdit.
-//
-// Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are
-// cell rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so
-// a level can exceed the view and the follow camera scrolls across it.
+// Level builder for the top-down demo (LevelSerializer genre "topdown") — build() creates the
+// resident tile layers and returns the grid handle. Contract on the RpgGrid declaration below.
 
 const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
 
+/**
+ * build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top) and
+ * returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the level owns the grid's
+ * lifecycle. Wall colliders are greedy-meshed by TileEdit.
+ *
+ * Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are cell
+ * rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so a level
+ * can exceed the view and the follow camera scrolls across it.
+ */
 globalThis.RpgGrid = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.

@@ -1,6 +1,9 @@
-// RPG crafting recipes. `requires` = WorkbenchModule itemId that must be slotted (undefined = base, always available).
-// Registered once at level create() NOT top-level (GMRT load-order). Toolkit module isn't a recipe gate — it
-// switches to the weapon-mod panel (WeaponModUI).
+// RPG crafting recipes. `requires` = the WorkbenchModule itemId that must be slotted (undefined =
+// base, always available). Registered once at level create() (NOT top-level — GMRT load-order).
+/**
+ * The Toolkit module isn't a recipe gate — it switches the workbench to the weapon-mod panel
+ * (WeaponModUI).
+ */
 globalThis.RpgRecipes = {
   register() {
     Recipe.register([

@@ -1,6 +1,8 @@
-// RPG status defs. Registered once at level create() (NOT top-level — GMRT load-order). The kit
-// system is genre-agnostic; these are the content. Colors drive HUD chip tints.
-// A DoT poison is symmetric to regen — one def + an applier away if needed.
+// RPG status defs — the content for the genre-agnostic Status kit. Registered once at level create()
+// (NOT top-level — GMRT load-order). Colors drive HUD chip tints.
+/**
+ * A DoT poison is symmetric to regen — one def + an applier away if needed.
+ */
 globalThis.RpgStatuses = {
   register() {
     Status.register([

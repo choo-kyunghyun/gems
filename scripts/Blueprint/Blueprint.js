@@ -1,16 +1,15 @@
-// Blueprint — a serializable SET OF BUILDS (tiles + built entities) captured from a region, and
-// the stamp that re-lays it elsewhere. The Build Mode feature (copy a base layout and paste it)
-// and save-game build-state restore are the SAME operation over the same data, so both go through
-// here — capture once, stamp anywhere.
-//
-// A plan is plain, Json-safe data:
-//   { w, h, tiles: [{ dx, dy, item }], ents: [{ dx, dy, item, snapshot? }] }
-// `item` is a BuildMode CATALOG id (string); dx/dy are cell offsets from the plan origin. An ent's
-// optional `snapshot` is an EntitySnapshot record — WITH it, stamp restores the exact entity
-// (a chest keeps its contents, a turret its damage); WITHOUT it, stamp builds a fresh instance
-// (the right default when duplicating a layout as a template). All placement runs through
-// BuildMode.applyItem, so a stamped build is identical to a hand-placed one (colliders, _built /
-// _builtEnts tracking, render dirty).
+// Blueprint — a serializable SET OF BUILDS (tiles + built entities) captured from a region, and the
+// stamp that re-lays it. Build Mode copy/paste and save-game build-restore share this one path.
+/**
+ * A plan is plain, Json-safe data:
+ *   { w, h, tiles: [{ dx, dy, item }], ents: [{ dx, dy, item, snapshot? }] }
+ * `item` is a BuildMode CATALOG id (string); dx/dy are cell offsets from the plan origin. An ent's
+ * optional `snapshot` is an EntitySnapshot record — WITH it, stamp restores the exact entity (a
+ * chest keeps its contents, a turret its damage); WITHOUT it, stamp builds a fresh instance (the
+ * right default when duplicating a layout as a template). All placement runs through
+ * BuildMode.applyItem, so a stamped build is identical to a hand-placed one (colliders, _built /
+ * _builtEnts tracking, render dirty).
+ */
 globalThis.Blueprint = {
   /**
    * Capture the builds inside a cell rect into a plan (offsets relative to x1,y1).

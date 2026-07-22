@@ -1,6 +1,5 @@
-// Lifetime counters, persisted as a native object under SaveData's "profile" key (SaveData
-// serializes nested via json_stringify — see docs/GMRT.md). Feed to Achievement.evaluate.
-// Requires SaveData.load() first.
+// Lifetime counters, persisted as a native object under SaveData's "profile" key (nested via
+// json_stringify — see docs/GMRT.md). Feed to Achievement.evaluate; requires SaveData.load() first.
 globalThis.Profile = {
   _counters: {},
 

@@ -1,9 +1,10 @@
-// Bag↔Chest transfer window. near-fullscreen shell (absolute host + dim backdrop + centered card,
-// shown/hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI) over a two-column
-// UITable layout. tables swap rows via setRows (not rebuilt) so column sort survives every transfer.
-// open/close/prompt owned by Interactable; all state on level (_store* namespace).
-// Caller contract: set level._storeDirty whenever the bag changes from outside this file (a
-// craft, a pickup, an equip) — refresh is flag-driven and will otherwise show stale rows.
+// Bag↔Chest transfer window — near-fullscreen shell over a two-column UITable layout (like
+// TradeUI/RpgInventoryUI). Open/close/prompt owned by Interactable; all state on level (_store*).
+/**
+ * Tables swap rows via setRows (not rebuilt) so column sort survives every transfer. Caller contract:
+ * set level._storeDirty whenever the bag changes from outside this file (a craft, a pickup, an equip)
+ * — refresh is flag-driven and will otherwise show stale rows.
+ */
 globalThis.StorageUI = {
   build(level) {
     level._storageId = -1;

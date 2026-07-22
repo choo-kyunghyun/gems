@@ -1,15 +1,18 @@
-// WORKBENCH window. near-fullscreen shell (absolute host + dim backdrop + centered card, shown/
-// hidden via `.enabled`, built once — same as TradeUI/RpgInventoryUI). one bench upgraded by a
-// single MODULE slot (Interaction.module): slot a WorkbenchModule to change what it does. two parts:
-//   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.
-//   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
-//     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
-//     Toolkit, "weaponmod") = the WeaponModUI panel.
-// the two content rows are SAME-SIZE, swapped STRUCTURALLY (insert/removeChild) on a mode change —
-// `enabled` only gates update/draw, a disabled sibling still reserves its flex space (CLAUDE.md).
-// both rows are PLAIN columns (no gpu_set_scissor clip — unreliable in a master-detail row on
-// GMRT 0.20); the content body flex-grows to fill the card.
-// open/close owned by Interactable; state on level (`_craft*`, plus `_mod*` for the weapon-mod panel).
+// WORKBENCH window: near-fullscreen shell (absolute host + dim backdrop + centered card, built once,
+// shown via `.enabled` — like TradeUI/RpgInventoryUI). Open/close owned by Interactable.
+/**
+ * One bench upgraded by a single MODULE slot (Interaction.module): slot a WorkbenchModule to change
+ * what it does. Two parts:
+ *   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.
+ *   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
+ *     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
+ *     Toolkit, "weaponmod") = the WeaponModUI panel.
+ * The two content rows are SAME-SIZE, swapped STRUCTURALLY (insert/removeChild) on a mode change —
+ * `enabled` only gates update/draw, a disabled sibling still reserves its flex space (CLAUDE.md).
+ * Both rows are PLAIN columns (no gpu_set_scissor clip — unreliable in a master-detail row on
+ * GMRT 0.20); the content body flex-grows to fill the card. State on the level (`_craft*`, plus
+ * `_mod*` for the weapon-mod panel).
+ */
 globalThis.CraftingUI = {
   WRAP: 320, // description wrap width (px) — a stable narrow column within the detail pane
 

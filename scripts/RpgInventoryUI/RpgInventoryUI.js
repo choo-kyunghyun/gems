@@ -1,7 +1,9 @@
 // Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests / Settings).
 // Built ONCE; rebuild() only swaps data so filter/selection/active tab survive every equip or use.
-// The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the
-// pane carries the metadata the old table spread across columns (chest/trade keep their tables).
+/**
+ * The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the pane
+ * carries the metadata a table would spread across columns (chest/trade keep their tables).
+ */
 globalThis.RpgInventoryUI = {
   // Build the hidden overlay + persistent tabbed structure once. Fixed panel (not a UIModal):
   // absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live

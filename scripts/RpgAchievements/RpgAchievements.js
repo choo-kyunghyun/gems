@@ -1,9 +1,10 @@
-// RPG achievement CONTENT — the defs plus the trigger rules that map a gameplay counter onto
-// unlock requests. Separated from RpgQuests (quest data) so each content family has one home.
-// The Achievement engine holds no conditions and never sweeps: a gameplay chokepoint that bumps a
-// Profile counter reports it here (the trigger), and the matching threshold rules issue
-// Achievement.unlock(id) requests. Called once from sceneRpg.create() (not top-level — GMRT
-// load-order). Idempotent.
+// RPG achievement CONTENT — the defs plus the trigger rules mapping a gameplay counter onto unlock
+// requests. Called once from sceneRpg.create() (not top-level — GMRT load-order). Idempotent.
+/**
+ * Separated from RpgQuests (quest data) so each content family has one home. The Achievement engine
+ * holds no conditions and never sweeps: a gameplay chokepoint that bumps a Profile counter reports it
+ * here (the trigger), and the matching threshold rules issue Achievement.unlock(id) requests.
+ */
 globalThis.RpgAchievements = {
   registered: false,
 

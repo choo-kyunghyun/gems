@@ -1,20 +1,19 @@
-// The RPG overworld generator COMPOSITION — after the frame/pass split this file holds only
-// what is RPG policy/content: `create(opts)` wires a Core **ChunkGenerator** (the pass frame)
-// with the RPG's TerrainField (data in RpgBiomes) and four passes — the **AuthoredStamp**
-// overlay (the hand-built hub, procedural-free inside its box), a **PrefabStamp** carrying the
-// RPG spawn policy, and the two scatter passes (rocks + rats). A different world (cave/desert/…)
-// is a different composition of the same Core pieces, not a rewrite; a variant overworld
-// overrides the policy hooks via opts.
-//
-// Contract: `create` returns a ChunkGenerator — the source ChunkManager holds directly:
-// generate(cx,cy) → { terrain, solid, walls, spawns } (absolute grid coords, deterministic from
-// (cx, cy, seed, pass salt) — the same seed MUST rebuild the same world, since a save stores only
-// the touched-chunk delta and the rest regenerates next session; each pass draws from its OWN
-// salted stream, so
-// adding/removing a pass never reshuffles the others' output), plus the `palette` field + the
-// samplers (materialAt/costAt/terrain/solidTerrain).
-//
-// GMRT-safe: index loops, namespace object on globalThis.
+// The RPG overworld generator COMPOSITION (Demo): create(opts) wires a Core ChunkGenerator with the
+// RPG's TerrainField (data in RpgBiomes) and four passes. Contract on the declaration below.
+/**
+ * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its box), a
+ * PrefabStamp carrying the RPG spawn policy, and two scatter passes (rocks + rats). A different world
+ * (cave/desert/…) is a different composition of the same Core pieces, not a rewrite; a variant
+ * overworld overrides the policy hooks via opts.
+ *
+ * Contract: `create` returns a ChunkGenerator the source ChunkManager holds directly —
+ * generate(cx,cy) → { terrain, solid, walls, spawns } (absolute grid coords, deterministic from
+ * (cx, cy, seed, pass salt): the same seed MUST rebuild the same world, since a save stores only the
+ * touched-chunk delta and the rest regenerates next session; each pass draws from its OWN salted
+ * stream, so adding/removing a pass never reshuffles the others' output) — plus the `palette` field
+ * and the samplers (materialAt/costAt/terrain/solidTerrain).
+ * GMRT-safe: index loops, namespace object on globalThis.
+ */
 
 globalThis.OverworldGen = {
   /**

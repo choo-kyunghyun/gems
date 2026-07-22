@@ -1,31 +1,31 @@
-// Entity construction for the RPG levels. The archetypes are EntityPreset DEFS (register(),
-// called by RpgContent.register) — component data + design scale + a `post` hook for the wiring
-// data can't express (CombatAI.attach). spawnEntity is the DESCRIPTOR ADAPTER — the single place
-// a spawn descriptor becomes an entity: grid→world, per-spawn overrides (field-merged onto the
-// def like a variant). Up-front map spawns (RpgSpawn.spawn), the chunk
-// streamer (ChunkManager's spawn adapter), BuildMode, and the Trader all route through it. A variant preset
-// (e.g. `extends: "raider"`) spawns through the same path with zero adapter changes when its
-// descriptor fields match its base's.
-//
-// Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in the defs):
-//   raider   hp? loot[]   (hostile human — camp + quest enemy)
-//   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
-//   npc      label nameKey questId merchant?
-//   chest    capacity items[]
-//   prop     label color material? kind? furn?  (kind/furn picks a vox MESH where one exists, else a sprite; material → tint over color (sprites only); kind → Interaction, else furniture)
-//   torch    label? color?        (decorative light prop — small solid post; carries a Light)
-//   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
-//   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
-//   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
-//   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
-//   reach    half?                (quest zone marker — no entity)
-//   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
-//   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire
-//                                           Interaction, so talking to it recruits)
-// Every descriptor also takes `size?` — the per-spawn SCALAR for special entities (Alpha/boss
-// knob), multiplying the def's basic `scale` factor across BBox + Visual + Mesh (see
-// EntityPreset.spawn — SpriteMeta density divides the DRAW scale separately) — and, on
-// mesh-bearing spawns, `yaw?` — a visual turn in degrees (BBox stays axis-aligned).
+// Entity construction for the RPG levels — spawnEntity is the DESCRIPTOR ADAPTER, the one place a
+// spawn descriptor becomes an entity. Archetypes and their descriptor fields are on the JSDoc below.
+/**
+ * The archetypes are EntityPreset DEFS (register(), called by RpgContent.register) — component data
+ * + design scale + a `post` hook for wiring data can't express (CombatAI.attach). spawnEntity does
+ * grid→world and per-spawn overrides (field-merged onto the def like a variant). Up-front map spawns
+ * (RpgSpawn.spawn), the chunk streamer (ChunkManager's spawn adapter), BuildMode, and the Trader all
+ * route through it; a variant preset (`extends: "raider"`) uses the same path when its descriptor
+ * fields match its base's.
+ *
+ * Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in the defs):
+ *   raider   hp? loot[]   (hostile human — camp + quest enemy)
+ *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
+ *   npc      label nameKey questId merchant?
+ *   chest    capacity items[]
+ *   prop     label color material? kind? furn?  (kind/furn picks a vox MESH where one exists, else a sprite; material → tint over color (sprites only); kind → Interaction, else furniture)
+ *   torch    label? color?        (decorative light prop — small solid post; carries a Light)
+ *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
+ *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
+ *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
+ *   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
+ *   reach    half?                (quest zone marker — no entity)
+ *   portal   toMap toEntry? label? color?  (walk-onto door → RpgMap.go; non-solid sensor)
+ *   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
+ * Every descriptor also takes `size?` — the per-spawn SCALAR (Alpha/boss knob) multiplying the def's
+ * `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta density divides the DRAW
+ * scale separately) — and, on mesh spawns, `yaw?`, a visual turn in degrees (BBox stays axis-aligned).
+ */
 globalThis.RpgSpawn = {
   // Baked vox dimensions (meshes/meshes.json, emitted by vox2vbuf.py --all alongside the
   // .vbuf set) — loaded once by register(). Replaces the old hand-measured FOOTPRINTS table:

@@ -1,15 +1,6 @@
 // Placeable-entity catalog for the level editor, mirroring RpgSpawn.spawn's presets.
-//
-// Each entry has editor display (label + marker color), a `make(gx, gy)` factory returning a
-// FRESH spawn record (fresh per call, so placed entities never share a nested array/object
-// reference), and a `fields` schema for the property panel. Export writes the records into the
-// level file's `spawns`.
-//
-// Field schema (data only — the editor maps each kind to a widget):
-//   { key, kind: "int",   label, min?, max?, step? }        → numeric stepper
-//   { key, kind: "select", label, options: [{name,value}] } → value picker (static list)
-//   { key, kind: "quest", label }                           → picker over QuestLog ids
-//   { key, kind: "items", label }                           → add/remove list of {itemId,qty}
+// Entry shape + the field schema are on the RpgCatalog declaration below.
+
 // Interaction kinds authorable on a prop in the editor (each = an InteractAction id). bed/arcade are
 // build-mode-only so they're omitted here; add a kind = one entry (matches the InteractAction registry).
 const TD_INTERACTION_KINDS = [
@@ -22,6 +13,17 @@ const TD_INTERACTION_KINDS = [
   { name: "buff", value: "buff" },
 ];
 
+/**
+ * Each entry has editor display (label + marker color), a `make(gx, gy)` factory returning a FRESH
+ * spawn record (fresh per call, so placed entities never share a nested array/object reference), and
+ * a `fields` schema for the property panel. Export writes the records into the level file's `spawns`.
+ *
+ * Field schema (data only — the editor maps each kind to a widget):
+ *   { key, kind: "int",   label, min?, max?, step? }        → numeric stepper
+ *   { key, kind: "select", label, options: [{name,value}] } → value picker (static list)
+ *   { key, kind: "quest", label }                           → picker over QuestLog ids
+ *   { key, kind: "items", label }                           → add/remove list of {itemId,qty}
+ */
 globalThis.RpgCatalog = {
   entries: [
     {

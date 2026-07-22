@@ -1,11 +1,13 @@
-// Merchant trade window — the shop counterpart to StorageUI. near-fullscreen shell (absolute host
-// + dim backdrop + centered card, shown/hidden via `.enabled`, built once) over StorageUI's two-
-// column layout: LEFT = stock (BUY), RIGHT = bag (SELL), each a sortable UITable with a Price column.
-// all logic is TradeSystem; this file is presentation + the double-click/amount gesture, plus the
-// sell-side worn/favorited guard (it reads the player's Equipment/Favorites). state on level (_trade*).
-// opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant. It closes itself past
-// RPG_TRADE_RANGE: Interactable's range-close covers only windows opened from an Interaction, and a
-// merchant NPC has none — so without this, walking away would leave the shop open.
+// Merchant trade window — the shop counterpart to StorageUI (near-fullscreen shell over StorageUI's
+// two-column layout: LEFT = stock/BUY, RIGHT = bag/SELL). All logic is TradeSystem.
+/**
+ * This file is presentation + the double-click/amount gesture, plus the sell-side worn/favorited
+ * guard (it reads the player's Equipment/Favorites). Each column is a sortable UITable with a Price
+ * column. State on the level (_trade*). Opened by sceneRpg._npcActivate when the targeted NPC carries
+ * a Merchant; it closes itself past RPG_TRADE_RANGE (Interactable's range-close covers only windows
+ * opened from an Interaction, and a merchant NPC has none — so without this, walking away would leave
+ * the shop open).
+ */
 globalThis.TradeUI = {
   build(level) {
     level._tradeMerchantId = -1;

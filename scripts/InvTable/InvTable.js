@@ -1,8 +1,9 @@
-// Shared column set + row model for RPG inventory UITables: StorageUI takes both, RpgInventoryUI
-// only the row model (its bag is a slot grid, not a table). Centralized so column widths/Settings
-// gates and the row field set live in one place.
-// A table sort is VIEW-ONLY — it never reorders the underlying Inventory. The bag's own Sort
-// button (RpgInventoryUI) is the one thing that rewrites real slot order.
+// Shared column set + row model for RPG inventory UITables — centralized so column widths / Settings
+// gates and the row field set live in one place. StorageUI takes both; RpgInventoryUI only the rows.
+/**
+ * A table sort is VIEW-ONLY — it never reorders the underlying Inventory. The bag's own Sort button
+ * (RpgInventoryUI) is the one thing that rewrites real slot order.
+ */
 globalThis.InvTable = {
   // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
   columns(opts = {}) {

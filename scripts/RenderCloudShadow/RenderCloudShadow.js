@@ -1,23 +1,19 @@
-// Drifting cloud shadows (Demo) — soft dark patches sliding over the ground. Coverage follows the
-// current Weather condition (each _COND carries a `cloud` fraction, cross-faded by Weather.blend())
-// and is scaled by daylight (WorldClock.tint alpha — no sun, no shadows, so the pass is gone by
-// nightfall and the night tint never double-darkens).
-//
-// A seamless value-noise texture (baked ONCE into a surface from the shared Utils.hash2 on a
-// PERIODIC lattice, so it tiles) is drawn as ONE world-space quad on the ground plane (z=0) via a
-// VertexBuffer under the LIVE camera matrices — so the field foreshortens with the pitched 2.5D
-// camera (a screen-space overlay would not). UVs come from world position + wind*time drift,
-// wrapped (gpu_set_tex_repeat), so the field tiles across the whole world and scrolls; drift runs
-// on Weather.time() (cumulative SIM seconds), so clouds freeze on pause and race under Time.scale.
-//
-// Blend: gpu_set_blendmode_ext(bm_zero, bm_inv_src_colour) → dst*(1 - src), a fade-able multiply
-// darken with src = texel density × the grey strength colour. At density 0 (clear sky) or strength
-// 0 (night / no coverage) src is 0, so the ground is untouched — the field fades in/out smoothly.
-// Depth test off so the shadow lands on entities too; ground passes keep z-write off already.
-//
-// Inserted just BEFORE RenderWeather in RpgMap.build (outdoor maps only — meta.indoor skips it).
-
-// @implements {RenderPass}
+// Drifting cloud shadows (Demo) — soft dark patches sliding over the ground, their coverage from the
+// current Weather condition and daylight (gone by nightfall). Inserted before RenderWeather (outdoor only).
+/**
+ * Coverage follows the current Weather condition (each _COND carries a `cloud` fraction, cross-faded
+ * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
+ * value-noise texture (baked ONCE into a surface from Utils.hash2 on a PERIODIC lattice, so it tiles)
+ * is drawn as ONE world-space quad on the ground plane (z=0) via a VertexBuffer under the LIVE camera
+ * matrices — so the field foreshortens with the pitched 2.5D camera (a screen-space overlay would
+ * not). UVs come from world position + wind*time drift, wrapped (gpu_set_tex_repeat); drift runs on
+ * Weather.time() (cumulative SIM seconds), so clouds freeze on pause and race under Time.scale.
+ *
+ * Blend: gpu_set_blendmode_ext(bm_zero, bm_inv_src_colour) → dst*(1 - src), a fade-able multiply
+ * darken with src = texel density × the grey strength colour; at density 0 or strength 0 src is 0, so
+ * the ground is untouched. Depth test off so the shadow lands on entities too.
+ * @implements {RenderPass}
+ */
 globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
     this.enabled = true;

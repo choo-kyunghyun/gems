@@ -1,15 +1,18 @@
-// Grid build mode (stateless singleton like Interactable): toggleable, consumes/refunds wood to
-// place content from a categorized palette. gated to a PLAYER-OWNED Settlement (a Zone in the
-// "settlement" ZoneMap channel, owner faction "player") — founded by pressing E at a Survey Post
-// (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS while the
-// player stands in an owned settlement, and placement is gated cell-by-cell to owned land.
-// palette = a bottom-center gemsCatBar; an item is a TILE (TileLayer via TileEdit) or an ENTITY
-// (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
-// state on level (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
-// the cursor highlight to "build context owns input".
-// level contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
-// RpgGrid.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
-// _tilePasses (render pass per layer key).
+// Grid build mode (stateless singleton like Interactable): consumes/refunds wood to place palette
+// content, gated to a player-owned Settlement. Contract on the BuildMode declaration below.
+/**
+ * Gated to a PLAYER-OWNED Settlement (a Zone in the "settlement" ZoneMap channel, owner faction
+ * "player") — founded by pressing E at a Survey Post (Interactable routes to BuildMode.claim →
+ * Settlement.found). Build mode only OPENS while the player stands in an owned settlement, and
+ * placement is gated cell-by-cell to owned land. The palette (a bottom-center gemsCatBar) item is a
+ * TILE (TileLayer via TileEdit) or an ENTITY (via RpgSpawn.spawnEntity); LMB places at the hovered
+ * cell, RMB deconstructs. State on the level (`_build*`); the static `active` flag is mirrored each
+ * frame so drawWorld can gate the cursor highlight to "build context owns input".
+ *
+ * level contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
+ * RpgGrid.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
+ * _tilePasses (render pass per layer key).
+ */
 globalThis.BuildMode = {
   active: false, // mirror of (level._buildActive && build context), read by drawWorld
   RESOURCE: "wood",

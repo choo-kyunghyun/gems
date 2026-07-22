@@ -1,6 +1,9 @@
 // Swappable stat model: rewrite ATTRS + derive() to change the attribute set (D&D-6, SPECIAL, …)
 // without touching anything downstream — combat reads derived Stats only, via Combat's injected mitigate.
-// Demo-side (names the RPG sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed, END→maxStamina.
+/**
+ * Demo-side (names the RPG sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed,
+ * END→maxStamina.
+ */
 globalThis.StatModel = {
   // defaults tuned so derive() reproduces the legacy player sheet exactly
   ATTRS: [

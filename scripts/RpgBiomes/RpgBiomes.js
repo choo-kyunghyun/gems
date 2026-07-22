@@ -1,7 +1,9 @@
-// The RPG overworld's biome DATA — the material palette + noise tuning OverworldGen feeds
-// TerrainField (Core). Pure data, no registration step (a plain top-level literal, like the
-// design tables on GemsTheme); a sibling generator (cave/desert) authors its own table and the
-// machinery never changes. Split out of OverworldGen so the generator file is logic-only.
+// The RPG overworld's biome DATA — the material palette + noise tuning OverworldGen feeds TerrainField
+// (Core). Split out of OverworldGen so the generator file is logic-only.
+/**
+ * Pure data, no registration step (a plain top-level literal, like the design tables on GemsTheme); a
+ * sibling generator (cave/desert) authors its own table and the machinery never changes.
+ */
 globalThis.RpgBiomes = {
   // Biome palette (the TerrainField contract): material id = index = painter order (TerrainStream
   // stacks cumulatively, so each upper terrain's dual border reveals the one below). `threshold`

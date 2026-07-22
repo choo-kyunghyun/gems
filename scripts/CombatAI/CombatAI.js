@@ -1,10 +1,5 @@
-// Combat AI for all non-player combatants (enemies + turrets): registers the named states
-// "combat.idle" / "combat.chase" / "combat.attack" into the StateSystem pool (register(), called
-// by RpgContent.register) and attaches the Brain that tunes them. States are SEPARATE pool
-// entries transitioned by NAME, not a hardcoded bundle — an entity kind can compose a different
-// state set (the EntityPreset seam). Mobile melee and stationary ranged actors are the same
-// states, differing only by Brain data (`mobile`/`ranged`). Targeting is by faction, not a
-// hardcoded id — add a new hostile faction and actors fight it with no change here.
+// Combat AI for all non-player combatants (enemies + turrets) — defines the Brain component and
+// registers the "combat.*" StateSystem states. System contract on the CombatAI declaration below.
 
 // turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
 const RPG_SHOT_RANGE_SECS = 1.5;
@@ -36,6 +31,13 @@ globalThis.Brain = "Brain";
  * @property {boolean} losBlocked cached "a wall blocks the shot" decision between LOS raycasts
  */
 
+/**
+ * Registers "combat.idle" / "combat.chase" / "combat.attack" into the StateSystem pool by NAME (not a
+ * hardcoded bundle), so an entity kind can compose a different state set (the EntityPreset seam).
+ * Mobile melee and stationary ranged actors share the same states, differing only by Brain data
+ * (`mobile`/`ranged`). Targeting is by faction, not a hardcoded id — add a hostile faction and actors
+ * fight it with no change here.
+ */
 globalThis.CombatAI = {
   // State callbacks receive (entities, id) from StateSystem, so no store static — only the Level
   // (grid<->world conversion for pathfinding around walls) is per-map context, re-pointed by

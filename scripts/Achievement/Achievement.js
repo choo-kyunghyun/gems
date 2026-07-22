@@ -1,10 +1,11 @@
-// Achievement registry + unlock persistence. defs: { id, name, desc } — pure data, NO condition:
-// the engine never evaluates or sweeps. An outside trigger decides an achievement is earned and
-// requests it via unlock(id); the engine checks the request (registered? still locked?), persists,
-// and reports whether it was newly unlocked (the caller toasts). The demo's trigger rules live in
-// RpgAchievements (content), fed by Profile counter changes.
-// Unlock set persisted as a native id array under SaveData's "achievements" key (SaveData
-// serializes nested via json_stringify — see docs/GMRT.md).
+// Achievement registry + unlock persistence — defs are pure data ({ id, name, desc }), NO condition;
+// the engine never sweeps. An outside trigger calls unlock(id); the engine checks/persists/reports.
+/**
+ * unlock(id) checks the request (registered? still locked?), persists, and reports whether it was
+ * newly unlocked (the caller toasts). The demo's trigger rules live in RpgAchievements (content), fed
+ * by Profile counter changes. The unlock set persists as a native id array under SaveData's
+ * "achievements" key (SaveData serializes nested via json_stringify — see docs/GMRT.md).
+ */
 globalThis.Achievement = {
   defs: new Map(),
   order: [], // stable registration order
