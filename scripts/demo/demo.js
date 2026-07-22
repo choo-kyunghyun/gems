@@ -1,4 +1,4 @@
-// level catalogue (SceneRegistry) + teardown helper.
+// level catalogue (LevelRegistry) + teardown helper.
 // GemsUI factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
@@ -7,7 +7,7 @@
  * resources (controllers, sub-levels) — those may still reference these.
  * @param {Level} level
  */
-globalThis.teardownScene = function teardownScene(level) {
+globalThis.teardownLevel = function teardownLevel(level) {
   if (level.camera) level.camera.destroy();
   if (level.renderer) level.renderer.destroy();
   if (level.entities) level.entities.destroy();
@@ -24,7 +24,7 @@ globalThis.teardownScene = function teardownScene(level) {
  * order (the lobby's fixed display list). `LevelManager._make` also reads `_entries` to
  * resolve a level's localized display label by factory ref.
  */
-globalThis.SceneRegistry = {
+globalThis.LevelRegistry = {
   _entries: [],
   add(factory, opts) {
     this._entries.push({

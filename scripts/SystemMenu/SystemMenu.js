@@ -280,7 +280,7 @@ globalThis.SystemMenu = {
         I18n.textRef("SYS_QUIT"),
         () => {
           const g = SystemMenu._game;
-          if (g !== null) g.scenes.switchTo(SCENES.lobby);
+          if (g !== null) g.scenes.switchTo(LEVELS.lobby);
           SystemMenu.close();
         },
         { width: 200 },

@@ -11,7 +11,7 @@ const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety n
 
 // factory so the level editor's Test Play can open this level; same ref LevelManager labels use
 globalThis.SceneRpg = () => new _SceneRpgClass();
-SceneRegistry.add(SceneRpg, {
+LevelRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),
   category: "SCENE_CAT_RPG",
 });

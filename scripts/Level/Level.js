@@ -3,7 +3,7 @@
 // is broken (subclass field inits never run, `super` faults), so this class has exactly two jobs:
 //
 // 1. THE CONTRACT (duck-typed): LevelManager drives any object shaped like this class —
-//      create(openScene) / step() / draw() / destroy()   required (called unconditionally)
+//      create(openLevel) / step() / draw() / destroy()   required (called unconditionally)
 //      suspend() / resume()   optional — keep-switch freeze/thaw (a guest's host)
 //      result()               optional — a guest's return value, handed to back()'s onResult
 //      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
@@ -20,8 +20,8 @@
 globalThis.Level = class Level {
   label = "";
 
-  /** @param {(factory:Function) => void} openScene queue a navigation to another level */
-  create(openScene) {}
+  /** @param {(factory:Function) => void} openLevel queue a navigation to another level */
+  create(openLevel) {}
   /** Advance one frame. */
   step() {}
   /** Render the world view. */

@@ -45,7 +45,7 @@ globalThis.LevelManager = class LevelManager {
    * navigation) and runs through the fade; `keep: true` instead FREEZES the current level
    * (suspend(), entities intact, instant — no fade) and records it as back()'s return target, with
    * `onResult` fired when the guest returns. Ignored mid-fade so a spammed button can't stack
-   * swaps. This is the `openScene` callback handed to every create().
+   * swaps. This is the `openLevel` callback handed to every create().
    * @param {() => Level} factory
    * @param {{ keep?: boolean, fade?: boolean, onResult?: (result:any) => void }} [opts]
    */
@@ -124,7 +124,7 @@ globalThis.LevelManager = class LevelManager {
     // GMRT doesn't run subclass field initializers, so a class level's `label` field never sets —
     // the registry label (localized) is the reliable source; built-ins fall back to their instance
     // label. Lookup matches by factory ref, so a guest level must register with the same factory.
-    const entry = SceneRegistry._entries.find((e) => e.factory === factory);
+    const entry = LevelRegistry._entries.find((e) => e.factory === factory);
     const level = factory();
     level.manager = this;
     return { level, factory, label: entry != null ? entry.label : null };

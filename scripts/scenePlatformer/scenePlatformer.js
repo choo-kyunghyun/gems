@@ -4,7 +4,7 @@ const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void)
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
 // global factory so it can be pushed as a LevelManager guest (RPG arcade cabinet).
-// not SceneRegistry.add'd — reachable only in-world, not from the lobby.
+// not LevelRegistry.add'd — reachable only in-world, not from the lobby.
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
 // side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
@@ -112,6 +112,6 @@ class _ScenePlatformerClass {
 
   destroy() {
     PlatformerController.destroy();
-    teardownScene(this);
+    teardownLevel(this);
   }
 }

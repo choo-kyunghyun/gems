@@ -13,7 +13,7 @@ const EDITOR_SIZES = [
   [128, 96],
 ];
 
-SceneRegistry.add(() => new _SceneEditorClass(), {
+LevelRegistry.add(() => new _SceneEditorClass(), {
   label: I18n.textRef("EDITOR_NAME"),
   category: "SCENE_CAT_EDITOR",
 });
@@ -22,7 +22,7 @@ SceneRegistry.add(() => new _SceneEditorClass(), {
 class _SceneEditorClass {
   label = "Editor";
 
-  create(openScene) {
+  create(openLevel) {
     // item + quest registries for the property editor; idempotent if sceneRpg called it first
     RpgQuests.register();
 
@@ -40,7 +40,7 @@ class _SceneEditorClass {
       LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" }),
     );
 
-    this._buildPalette(openScene);
+    this._buildPalette(openLevel);
     this._buildPropPanel();
 
     Log.info(
@@ -163,12 +163,12 @@ class _SceneEditorClass {
   }
 
   // palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting
-  _buildPalette(openScene) {
+  _buildPalette(openLevel) {
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
     this._buildCatBar();
-    this._buildFileCard(openScene);
+    this._buildFileCard(openLevel);
   }
 
   // catbar: Tiles / Entities / Tools — sets _tool (and _placePreset for entities)
@@ -237,7 +237,7 @@ class _SceneEditorClass {
   }
 
   // top-left file card: hint, tool status, New/Open pickers, Test Play / Export / Back
-  _buildFileCard(openScene) {
+  _buildFileCard(openLevel) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 12,
@@ -302,7 +302,7 @@ class _SceneEditorClass {
     );
 
     card.insertChild(
-      gemsButton(I18n.textRef("EDITOR_PLAY"), () => this._play(openScene), {
+      gemsButton(I18n.textRef("EDITOR_PLAY"), () => this._play(openLevel), {
         primary: true,
       }),
     );
@@ -310,7 +310,7 @@ class _SceneEditorClass {
       gemsButton(I18n.textRef("EDITOR_EXPORT"), () => this._export()),
     );
     card.insertChild(
-      gemsButton(I18n.textRef("EDITOR_BACK"), () => openScene(SCENES.lobby)),
+      gemsButton(I18n.textRef("EDITOR_BACK"), () => openLevel(LEVELS.lobby)),
     );
     wrap.insertChild(card);
     this.ui.insertChild(wrap);
@@ -690,11 +690,11 @@ class _SceneEditorClass {
   }
 
   // serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor
-  _play(openScene) {
+  _play(openLevel) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
     RpgLevel.playtestFile = EDITOR_PLAYTEST_FILE;
     Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
-    openScene(SceneRpg);
+    openLevel(SceneRpg);
   }
 
   draw() {
@@ -778,6 +778,6 @@ class _SceneEditorClass {
 
   destroy() {
     this.grid.destroy(); // destroys inserted layers too
-    teardownScene(this);
+    teardownLevel(this);
   }
 }

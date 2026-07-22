@@ -1,7 +1,7 @@
 // GemsUI widget showcase. pure UI — no entities/renderer/step/draw.
 // tab host flex-grows; each page is a gemsScroll({ grow:true }) to reflow at any GUI size.
 
-SceneRegistry.add(() => new _SceneUIKitClass(), {
+LevelRegistry.add(() => new _SceneUIKitClass(), {
   label: I18n.textRef("UIKIT_NAME"),
   category: "SCENE_CAT_UI",
 });
@@ -10,7 +10,7 @@ SceneRegistry.add(() => new _SceneUIKitClass(), {
 class _SceneUIKitClass {
   label = "UIKit";
 
-  create(openScene) {
+  create(openLevel) {
     // widget state — echoed live via textRefs
     this.typed = "";
     this.clicks = 0;
@@ -86,7 +86,7 @@ class _SceneUIKitClass {
     );
 
     this.ui.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
+      gemsButton(I18n.textRef("UIKIT_BACK"), () => openLevel(LEVELS.lobby), {
         tooltip: I18n.textRef("UIKIT_TIP_BACK"),
       }),
     );
