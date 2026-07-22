@@ -1,6 +1,5 @@
-// ── GemsUI kit: interactive controls ─────────────────────────
-// Value widgets (checkbox/progress/slider/select/stepper/input). See GemsTheme.js for
-// the kit overview + the GMRT globalThis-assignment rule.
+// ── GemsUI kit: interactive controls — checkbox/progress/slider/select/stepper/input ──
+// See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 // Index of the item whose `value` matches Settings[key] (0 if none).
 globalThis.gemsSettingsIndex = function gemsSettingsIndex(key, items) {

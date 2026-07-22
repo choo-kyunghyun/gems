@@ -1,5 +1,5 @@
-// ── GemsUI kit: containers ───────────────────────────────────
-// Layout/structure factories. Keep new factories as `globalThis.X = function X` — GMRT globalThis rule.
+// ── GemsUI kit: containers — layout/structure factories ──────
+// See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 // Full-screen level root. With `opts.maxWidth`, content is centered in a capped column
 // (menu look); `insertChild` is redirected to the inner column so callers are unaffected.

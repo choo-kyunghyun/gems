@@ -13,7 +13,7 @@ Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 c
 | #   | Sweep     | Rule                                                                                                                                                                                             | Done |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
 | C1  | Citations | Replace every quirk/invariant re-explanation with the one-line citation form (law 5); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when". | Done |
-| C2  | Headers   | Collapse to ≤2 lines + pointer (law 3). Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.                              |      |
+| C2  | Headers   | Collapse to ≤2 lines + pointer (law 3). Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.                              | Done |
 | C3  | JSDoc     | Keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose (law 4); opts-struct factories to one prose block.                                                   |      |
 
 Two laws bind every sweep:
