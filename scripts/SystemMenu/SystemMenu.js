@@ -247,7 +247,7 @@ globalThis.SystemMenu = {
   _applyTheme(mode) {
     if (mode === GemsTheme.mode) return;
     Settings.set("theme", mode);
-    SceneTransition.start(() => {
+    LevelTransition.start(() => {
       GemsTheme.setMode(mode);
       UINav.color = Color.parse(GemsTheme.accent);
       const game = SystemMenu._game;

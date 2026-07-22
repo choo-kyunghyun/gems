@@ -1,7 +1,7 @@
 // full-screen fade between scenes. standalone singleton (not UIComponent).
 // fade-out → swap level at full cover → fade-in, so the UI rebuild is hidden under the cover.
 // timer uses Time.raw so the fade ignores Time.scale.
-globalThis.SceneTransition = {
+globalThis.LevelTransition = {
   duration: 0.12, // seconds per direction — short so swaps feel responsive
   color: c_black, // cover color
   alpha: 0, // current cover alpha [0,1]
@@ -12,58 +12,58 @@ globalThis.SceneTransition = {
 
   /** @returns {boolean} fade running — LevelManager holds the pending level until this clears. */
   isBusy() {
-    return SceneTransition._phase !== 0;
+    return LevelTransition._phase !== 0;
   },
 
   /** begin a fade-out; `applyFn` runs once at full cover. @param {() => void} applyFn */
   start(applyFn) {
-    SceneTransition._apply = applyFn;
-    SceneTransition._phase = 1;
-    SceneTransition._t = 0;
+    LevelTransition._apply = applyFn;
+    LevelTransition._phase = 1;
+    LevelTransition._t = 0;
   },
 
   /** fade in from cover with no preceding fade-out (boot: first level from black). */
   reveal() {
-    SceneTransition._apply = null;
-    SceneTransition._phase = 2;
-    SceneTransition._t = 0;
-    SceneTransition.alpha = 1;
+    LevelTransition._apply = null;
+    LevelTransition._phase = 2;
+    LevelTransition._t = 0;
+    LevelTransition.alpha = 1;
   },
 
   /** advance the fade timer; fire the swap at full cover (Step_0). */
   update() {
-    if (SceneTransition._phase === 0) return;
-    SceneTransition._t += Time.raw;
-    const p = clamp(SceneTransition._t / SceneTransition.duration, 0, 1);
+    if (LevelTransition._phase === 0) return;
+    LevelTransition._t += Time.raw;
+    const p = clamp(LevelTransition._t / LevelTransition.duration, 0, 1);
     const eased = Tween.easeInOutQuad(p);
 
-    if (SceneTransition._phase === 1) {
-      SceneTransition.alpha = eased; // 0 → 1
+    if (LevelTransition._phase === 1) {
+      LevelTransition.alpha = eased; // 0 → 1
       if (p >= 1) {
         // fully covered: swap hidden, then fade back in
-        if (SceneTransition._apply !== null) {
-          SceneTransition._apply();
-          SceneTransition._apply = null;
+        if (LevelTransition._apply !== null) {
+          LevelTransition._apply();
+          LevelTransition._apply = null;
         }
-        SceneTransition._phase = 2;
-        SceneTransition._t = 0;
-        SceneTransition.alpha = 1;
+        LevelTransition._phase = 2;
+        LevelTransition._t = 0;
+        LevelTransition.alpha = 1;
       }
     } else {
-      SceneTransition.alpha = 1 - eased; // 1 → 0
+      LevelTransition.alpha = 1 - eased; // 1 → 0
       if (p >= 1) {
-        SceneTransition._phase = 0;
-        SceneTransition.alpha = 0;
+        LevelTransition._phase = 0;
+        LevelTransition.alpha = 0;
       }
     }
   },
 
   /** draw the cover at current alpha (Draw_75, last — veils the UI rebuild). */
   draw() {
-    if (SceneTransition.alpha <= 0) return;
+    if (LevelTransition.alpha <= 0) return;
     const a = draw_get_alpha();
-    const c = SceneTransition.color;
-    draw_set_alpha(SceneTransition.alpha);
+    const c = LevelTransition.color;
+    draw_set_alpha(LevelTransition.alpha);
     draw_rectangle_color(
       0,
       0,

@@ -34,7 +34,7 @@ globalThis.LevelManager = class LevelManager {
     return this._current !== null ? this._current.level : null;
   }
 
-  /** Boot level: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). @param {() => Level} factory */
+  /** Boot level: apply immediately (nothing to fade out from; caller runs LevelTransition.reveal). @param {() => Level} factory */
   start(factory) {
     this._apply(factory, {});
   }
@@ -50,7 +50,7 @@ globalThis.LevelManager = class LevelManager {
    * @param {{ keep?: boolean, fade?: boolean, onResult?: (result:any) => void }} [opts]
    */
   switchTo(factory, opts = {}) {
-    if (SceneTransition.isBusy()) return;
+    if (LevelTransition.isBusy()) return;
     this._pending = { factory, opts };
   }
 
@@ -75,18 +75,18 @@ globalThis.LevelManager = class LevelManager {
     return true;
   }
 
-  // Per-frame: flush a queued switch — a destroying swap goes through the fade (SceneTransition
+  // Per-frame: flush a queued switch — a destroying swap goes through the fade (LevelTransition
   // .start runs _apply at full cover), a kept swap applies instantly (an in-world guest open) —
   // then advance the fade timer. Busy guard stops a second switchTo from stacking swaps.
   update() {
-    if (this._pending !== null && !SceneTransition.isBusy()) {
+    if (this._pending !== null && !LevelTransition.isBusy()) {
       const p = this._pending;
       this._pending = null;
       if (p.opts.keep === true || p.opts.fade === false)
         this._apply(p.factory, p.opts);
-      else SceneTransition.start(() => this._apply(p.factory, p.opts));
+      else LevelTransition.start(() => this._apply(p.factory, p.opts));
     }
-    SceneTransition.update();
+    LevelTransition.update();
   }
 
   // Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)

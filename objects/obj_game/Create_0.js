@@ -85,7 +85,7 @@ World.levels = new LevelManager();
 this.scenes = World.levels;
 // lobby is the boot level + dev launcher; F2 (Step_0) also returns here
 this.scenes.start(LEVELS.lobby);
-SceneTransition.reveal(); // boot fades in from black
+LevelTransition.reveal(); // boot fades in from black
 
 // register built-in debug sections; live bindings track the current level across swaps
 DebugGeneral.register(this);

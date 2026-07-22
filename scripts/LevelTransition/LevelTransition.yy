@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"SceneTransition",
+  "%Name":"LevelTransition",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"SceneTransition",
+  "name":"LevelTransition",
   "parent":{
     "name":"UI",
     "path":"folders/Core/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"SceneTransition.js",
+  "scriptSource":"LevelTransition.js",
 }
