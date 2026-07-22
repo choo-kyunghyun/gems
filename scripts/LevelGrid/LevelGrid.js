@@ -1,6 +1,6 @@
 // The level's GRID DATA — tile layers + zone channels (`zoneMaps`) + cell dims and world<->grid
 // conversion. Pure spatial data: no entities, systems, or presentation. A Level composes one and
-// holds it as the legacy handle `.level` (rename deferred — docs/ROADMAP.md → Rename Passes).
+// holds it as `.grid`.
 // NOTE: live pathfinding does NOT read the tile layers — NavGrid (colliders + streamed-terrain
 // costs) is the one nav source. `costAt` below is on-demand layer cost, for debug/inspection.
 /**

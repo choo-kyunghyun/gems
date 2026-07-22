@@ -11,7 +11,7 @@
 // through the pool each use — so a captured/parked actor (EntitySnapshot, chunk streaming,
 // entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
 // (entities, id): the store needs no module statics (a per-map context like the Level still
-// lives with the states' owner — see CombatAI._level/bind). `change` queues, `update`
+// lives with the states' owner — see CombatAI._grid/bind). `change` queues, `update`
 // applies (finish→enter) then ticks.
 globalThis.StateSystem = {
   _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)

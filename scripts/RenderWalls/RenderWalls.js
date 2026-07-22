@@ -35,7 +35,7 @@
  */
 globalThis.RenderWalls = class RenderWalls {
   /**
-   * @param {LevelGrid} level - grid geometry (cols/rows/cellWidth/cellHeight)
+   * @param {LevelGrid} grid - grid geometry (cols/rows/cellWidth/cellHeight)
    * @param {TileLayer} layer - the solid layer to draw (truthy cell = wall). Only `get(gx, gy)`
    *   is read, so any occupancy view satisfies it — ChunkManager.wallLayer() hands the streamed
    *   overworld's authored walls to a second instance of this pass.
@@ -45,10 +45,10 @@ globalThis.RenderWalls = class RenderWalls {
    *   compare >= 0 on GMRT); `frame` picks the subimage (default 0). `materials` buckets cells
    *   by TileType id (see the class doc); id-less/unmatched cells use the top-level defaults.
    */
-  constructor(level, layer, opt) {
+  constructor(grid, layer, opt) {
     opt = opt ?? {};
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
     this.layer = layer;
     this.height = opt.height ?? 32; // wall height in world px (visual only — colliders are TileEdit's)
     this.lights = opt.lights; // host RenderMesh pass (shares sh_meshlit + its light gather)
@@ -121,8 +121,8 @@ globalThis.RenderWalls = class RenderWalls {
   _rebuild() {
     this._dirty = false;
     this._free();
-    const cols = this.level.cols;
-    const rows = this.level.rows;
+    const cols = this.grid.cols;
+    const rows = this.grid.rows;
     const n = this._mats.length;
     const tops = [];
     const souths = [];
@@ -189,8 +189,8 @@ globalThis.RenderWalls = class RenderWalls {
       buffer_write(buf, buffer_f32, u);
       buffer_write(buf, buffer_f32, v);
     };
-    const cw = this.level.cellWidth;
-    const ch = this.level.cellHeight;
+    const cw = this.grid.cellWidth;
+    const ch = this.grid.cellHeight;
     const H = this.height;
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {

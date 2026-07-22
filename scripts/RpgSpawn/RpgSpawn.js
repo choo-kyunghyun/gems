@@ -131,7 +131,7 @@ globalThis.RpgSpawn = {
           },
         },
         post(entities, id, ctx) {
-          CombatAI.attach(entities, id, ctx.opts.level); // Velocity + Brain + State (mobile melee)
+          CombatAI.attach(entities, id, ctx.opts.grid); // Velocity + Brain + State (mobile melee)
         },
       },
       {
@@ -152,7 +152,7 @@ globalThis.RpgSpawn = {
           Visual: { sprite: spr_rat, speed: 6 }, // looping scuttle cycle
         },
         post(entities, id, ctx) {
-          CombatAI.attach(entities, id, ctx.opts.level); // mobile melee, acquires target by faction
+          CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction
         },
       },
       {
@@ -249,7 +249,7 @@ globalThis.RpgSpawn = {
         },
         post(entities, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
-          CombatAI.attach(entities, id, ctx.opts.level, {
+          CombatAI.attach(entities, id, ctx.opts.grid, {
             mobile: false,
             ranged: true,
             aggro: 220,
@@ -345,7 +345,7 @@ globalThis.RpgSpawn = {
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
    */
-  spawn(entities, level, data) {
+  spawn(entities, grid, data) {
     const spawns = data.spawns ?? [];
     const enemies = [];
     const portals = [];
@@ -356,10 +356,10 @@ globalThis.RpgSpawn = {
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
       if (s.preset === "reach") {
-        reach = RpgSpawn.reachZone(level, s); // a region, not an entity
+        reach = RpgSpawn.reachZone(grid, s); // a region, not an entity
         continue;
       }
-      const id = RpgSpawn.spawnEntity(entities, level, s);
+      const id = RpgSpawn.spawnEntity(entities, grid, s);
       if (id === -1) continue;
       // classify into the scene's typed handles by preset
       if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
@@ -373,19 +373,19 @@ globalThis.RpgSpawn = {
   },
 
   // Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
-  reachZone(level, s) {
-    const w = level.gridToWorld(s.gx, s.gy);
+  reachZone(grid, s) {
+    const w = grid.gridToWorld(s.gx, s.gy);
     const half = s.half ?? 44;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
   // Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
   // The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
-  // (field-merged onto the def) and passes `level` through opts for the post hooks (CombatAI).
+  // (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
   // `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
   // entities work too).
-  spawnEntity(entities, level, s) {
-    const w = level.gridToWorld(s.gx, s.gy);
+  spawnEntity(entities, grid, s) {
+    const w = grid.gridToWorld(s.gx, s.gy);
 
     if (s.preset === "follower")
       return RpgSpawn.spawnFollower(entities, w.x, w.y, {
@@ -473,13 +473,13 @@ globalThis.RpgSpawn = {
       // rect and stretch Mesh + BBox over it — the collider equals the old scatter wall rect
       const cw = s.w ?? 1;
       const ch = s.h ?? 1;
-      w.x += ((cw - 1) * level.cellWidth) / 2;
-      w.y += ((ch - 1) * level.cellHeight) / 2;
+      w.x += ((cw - 1) * grid.cellWidth) / 2;
+      w.y += ((ch - 1) * grid.cellHeight) / 2;
       over.BBox = {
-        x: (-cw * level.cellWidth) / 2,
-        y: (-ch * level.cellHeight) / 2,
-        width: cw * level.cellWidth,
-        height: ch * level.cellHeight,
+        x: (-cw * grid.cellWidth) / 2,
+        y: (-ch * grid.cellHeight) / 2,
+        width: cw * grid.cellWidth,
+        height: ch * grid.cellHeight,
       };
       over.Mesh = {
         model: "rock",
@@ -515,7 +515,7 @@ globalThis.RpgSpawn = {
     const id = EntityPreset.spawn(s.preset, entities, w.x, w.y, 0, {
       size: s.size,
       components: over,
-      level, // post hooks (CombatAI.attach) read ctx.opts.level
+      grid, // post hooks (CombatAI.attach) read ctx.opts.grid
     });
 
     // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock

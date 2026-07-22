@@ -43,7 +43,7 @@
  */
 /**
  * @typedef {Object} PrefabApplyOpts
- * @property {LevelGrid} level   the level grid (tile layers / zones / cell dims)
+ * @property {LevelGrid} grid    the level grid (tile layers / zones / cell dims)
  * @property {Entity} [entities]       the ECS entity store — required only when the def has walls
  * @property {number} ox         absolute cell offset of the prefab origin
  * @property {number} oy
@@ -129,7 +129,7 @@ globalThis.Prefab = class Prefab {
    */
   apply(opts) {
     const st = this.stamp(opts.ox, opts.oy);
-    const level = opts.level;
+    const grid = opts.grid;
     const layers = opts.layers ?? {};
 
     for (let i = 0; i < st.tiles.length; i++) {
@@ -153,7 +153,7 @@ globalThis.Prefab = class Prefab {
     const zones = [];
     for (let i = 0; i < st.zones.length; i++) {
       const z = st.zones[i];
-      const map = level.zoneMap(z.channel) ?? level.addZoneMap(z.channel);
+      const map = grid.zoneMap(z.channel) ?? grid.addZoneMap(z.channel);
       const zone = map.define({ name: z.name, tags: z.tags, data: z.data });
       for (let j = 0; j < z.rects.length; j++) {
         const r = z.rects[j];
@@ -169,8 +169,8 @@ globalThis.Prefab = class Prefab {
       if (opts.entities === undefined)
         throw new Error(`Prefab '${this.id}': walls need opts.entities`);
       const entities = /** @type {Entity} */ (opts.entities);
-      const cw = level.cellWidth;
-      const ch = level.cellHeight;
+      const cw = grid.cellWidth;
+      const ch = grid.cellHeight;
       for (let i = 0; i < st.walls.length; i++) {
         const r = st.walls[i];
         const id = entities.create();

@@ -101,18 +101,18 @@ globalThis.Trader = {
   },
   _hydrate(scene, rec) {
     // near the map's player spawn (each map's own "market point" — avoids per-map authored coords)
-    const sg = scene.level.worldToGrid(scene.spawn.x, scene.spawn.y);
+    const sg = scene.grid.worldToGrid(scene.spawn.x, scene.spawn.y);
     const gx = sg.x + 3;
     const gy = sg.y;
     if (rec.snap !== undefined) {
       // re-embody living state via the level manager (whole-entity restore into the active level)
-      const w = scene.level.gridToWorld(gx, gy);
+      const w = scene.grid.gridToWorld(gx, gy);
       rec.entId = World.levels.put(scene.mapId, rec.snap, {
         [Position]: { x: w.x, y: w.y, z: 0 },
       });
     } else {
       // first time: build the vendor fresh from the descriptor (single entity path, RpgSpawn)
-      rec.entId = RpgSpawn.spawnEntity(scene.entities, scene.level, {
+      rec.entId = RpgSpawn.spawnEntity(scene.entities, scene.grid, {
         preset: "npc",
         gx: gx,
         gy: gy,

@@ -29,13 +29,13 @@
 //                                   terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
 //   generator.palette  (field, optional) — material table (pathCost per id; costAt + TerrainStream)
 //   generator.materialAt / costAt (optional) — pure samplers, the out-of-store fallback
-//   opts.spawn(entities, level, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
+//   opts.spawn(entities, grid, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
 //     RpgSpawn.spawnEntity); required only when chunks carry spawns
 //
 // GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {Entity} entities @param {LevelGrid} level
+   * @param {Entity} entities @param {LevelGrid} grid
    * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
    * @param {Object} [opts]
    * @param {function(Entity, LevelGrid, Object): number} [opts.spawn] descriptor → entity adapter.
@@ -44,9 +44,9 @@ globalThis.ChunkManager = class ChunkManager {
    * @param {number} [opts.worldCols] @param {number} [opts.worldRows] finite bounds (anchored at 0);
    *   chunks outside never load. omit both for unbounded.
    */
-  constructor(entities, level, generator, opts = {}) {
+  constructor(entities, grid, generator, opts = {}) {
     this.entities = entities;
-    this.level = level;
+    this.grid = grid;
     this.generator = generator;
     this._spawn = opts.spawn ?? null;
     this.chunkCols = opts.chunkCols ?? 16;
@@ -65,8 +65,8 @@ globalThis.ChunkManager = class ChunkManager {
         ? Math.floor((opts.worldRows - 1) / this.chunkRows)
         : Infinity;
 
-    this.cellW = level.cellWidth;
-    this.cellH = level.cellHeight;
+    this.cellW = grid.cellWidth;
+    this.cellH = grid.cellHeight;
     this.pxW = this.chunkCols * this.cellW; // chunk pixel width
     this.pxH = this.chunkRows * this.cellH;
 
@@ -496,7 +496,7 @@ globalThis.ChunkManager = class ChunkManager {
         "ChunkManager: chunk has spawns but no opts.spawn adapter",
       );
     for (let i = 0; i < spawns.length; i++) {
-      const id = this._spawn(this.entities, this.level, spawns[i]);
+      const id = this._spawn(this.entities, this.grid, spawns[i]);
       if (id !== undefined && id !== -1) rec.entities.push(id);
     }
   }

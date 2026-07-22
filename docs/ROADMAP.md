@@ -13,7 +13,7 @@ The three renames left by the two-layer ECS restructure, each a full-project swe
 | #   | Pass                 | Rule                                                                                                                                                               | Done |
 | --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
 | R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         | Yes  |
-| R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. |      |
+| R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. | Yes  |
 | R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                |      |
 
 R3 sub-passes:

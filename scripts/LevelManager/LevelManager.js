@@ -7,7 +7,7 @@
 // level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
 //
 // REGISTRY (was Universe): a flat mapId -> entry index of every RESIDENT map — THE map pool
-// (there is no scene-side pool anymore). An entry is opaque to Core except for { entities, level }:
+// (there is no scene-side pool anymore). An entry is opaque to Core except for { entities, grid }:
 // RpgMap registers a minimal pair at build and overwrites it with its full park bundle at each
 // suspend, so parked worlds live here. take/put/transfer move a WHOLE entity (all components,
 // via EntitySnapshot) between two resident maps' stores — the portal-squad + wandering-trader
@@ -25,7 +25,7 @@ globalThis.LevelManager = class LevelManager {
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
     // ── resident-map registry (was Universe) ──
-    this._levels = {}; // mapId -> entry (at least { entities, level }; parked maps store their full bundle)
+    this._levels = {}; // mapId -> entry (at least { entities, grid }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
   }
 
@@ -226,16 +226,16 @@ globalThis.LevelManager = class LevelManager {
 
   // ── resident-map registry + whole-entity transfer (was Universe) ──
 
-  // Index a map under its id. `entry` must carry at least { entities, level } — Core reads only
+  // Index a map under its id. `entry` must carry at least { entities, grid } — Core reads only
   // those two fields; everything else is the owner's business (the RPG's park bundle).
-  // Overwrites: RpgMap.build stores a minimal { entities, level }, each RpgMap.suspend replaces it
+  // Overwrites: RpgMap.build stores a minimal { entities, grid }, each RpgMap.suspend replaces it
   // with the full park bundle. A resumed map's entry may retain stale bundle fields until its
-  // next suspend — harmless, nothing reads them (entities/level are the same live objects throughout).
+  // next suspend — harmless, nothing reads them (entities/grid are the same live objects throughout).
   register(mapId, entry) {
     this._levels[mapId] = entry;
   }
 
-  /** @returns {Object|null} the registered entry (a park bundle, or the minimal { entities, level }) */
+  /** @returns {Object|null} the registered entry (a park bundle, or the minimal { entities, grid }) */
   entryOf(mapId) {
     const e = this._levels[mapId];
     return e !== undefined ? e : null;

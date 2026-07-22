@@ -1,6 +1,6 @@
 // tile-layer editing service: write cells + keep solid COLLIDERS in sync (meshSolid/remesh).
 // one place for the "edit a solid tile → rebuild colliders" invariant. (There is no nav resync —
-// live pathfinding reads NavGrid, and the debug cost shading computes level.costAt on demand.)
+// live pathfinding reads NavGrid, and the debug cost shading computes grid.costAt on demand.)
 //
 // cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined),
 // so occupancy is a truthy test, never `!== undefined`.
@@ -21,9 +21,9 @@ globalThis.TileEdit = {
 
   // greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
   // resolver (see memory project_tile_collider_seams). returns [gx,gy,wCells,hCells] in grid coords.
-  meshRects(level, layer) {
-    const cols = level.cols;
-    const rows = level.rows;
+  meshRects(grid, layer) {
+    const cols = grid.cols;
+    const rows = grid.rows;
     const consumed = new Array(cols * rows).fill(false);
     // Grid.get returns 0 for empty (not undefined) — test truthiness, not !== undefined
     const solid = (x, y) =>
@@ -57,10 +57,10 @@ globalThis.TileEdit = {
   },
 
   // one kinematic-solid collider per meshRects rectangle; ids pushed onto `out`
-  meshSolid(entities, level, layer, out) {
-    const cw = level.cellWidth;
-    const ch = level.cellHeight;
-    const rects = this.meshRects(level, layer);
+  meshSolid(entities, grid, layer, out) {
+    const cw = grid.cellWidth;
+    const ch = grid.cellHeight;
+    const rects = this.meshRects(grid, layer);
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
       const id = entities.create();
@@ -82,10 +82,10 @@ globalThis.TileEdit = {
   },
 
   // rebuild colliders after a solid-tile edit; flush first so old ids don't collide
-  remesh(entities, level, layer, colliders) {
+  remesh(entities, grid, layer, colliders) {
     for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
     entities.flush();
     colliders.length = 0;
-    this.meshSolid(entities, level, layer, colliders);
+    this.meshSolid(entities, grid, layer, colliders);
   },
 };

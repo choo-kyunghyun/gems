@@ -38,11 +38,11 @@ globalThis.PathFollow = {
   // cursor on arrival — or (tx, ty) itself while no path exists (the request resolves later this
   // tick in PathfindingSystem, so the first path is followable next tick). `state` is any bag
   // carrying pathCd/pathRate (CombatAI's Brain); `sp` the mover's Position.
-  target(entities, level, id, state, sp, tx, ty) {
+  target(entities, grid, id, state, sp, tx, ty) {
     if (state.pathCd > 0) state.pathCd--;
     if (state.pathCd <= 0) {
-      const s = level.worldToGrid(sp.x, sp.y);
-      const g = level.worldToGrid(tx, ty);
+      const s = grid.worldToGrid(sp.x, sp.y);
+      const g = grid.worldToGrid(tx, ty);
       entities.add(id, PathRequest, {
         startX: s.x,
         startY: s.y,
@@ -54,13 +54,13 @@ globalThis.PathFollow = {
     let wp = PathfindingSystem.current(entities, id);
     if (wp === undefined) return { x: tx, y: ty }; // no path yet — head straight for now
     // skip a waypoint we've essentially reached (path's first cell is our own)
-    let ww = level.gridToWorld(wp.x, wp.y);
-    const near = level.cellWidth * 0.4;
+    let ww = grid.gridToWorld(wp.x, wp.y);
+    const near = grid.cellWidth * 0.4;
     if ((sp.x - ww.x) ** 2 + (sp.y - ww.y) ** 2 < near * near) {
       PathfindingSystem.advance(entities, id);
       wp = PathfindingSystem.current(entities, id);
       if (wp === undefined) return { x: tx, y: ty }; // path exhausted — close the last stretch
-      ww = level.gridToWorld(wp.x, wp.y);
+      ww = grid.gridToWorld(wp.x, wp.y);
     }
     return ww;
   },

@@ -5,11 +5,11 @@
  */
 globalThis.ZoneSystem = {
   /**
-   * @param {Entity} entities @param {LevelGrid} level @param {ZoneMap} map
+   * @param {Entity} entities @param {LevelGrid} grid @param {ZoneMap} map
    * @param {{ has?: string, onEnter?: function, onExit?: function }} [opts]
    *   has (a component token) filters tracked entities; callbacks get (entityId, zone).
    */
-  update(entities, level, map, opts = {}) {
+  update(entities, grid, map, opts = {}) {
     const has = opts.has;
     const onEnter = opts.onEnter;
     const onExit = opts.onExit;
@@ -20,7 +20,7 @@ globalThis.ZoneSystem = {
       if (has !== undefined && entities.get(has, id) === undefined) return;
       seen[id] = true;
       const pos = entities.get(Position, id);
-      const g = level.worldToGrid(pos.x, pos.y);
+      const g = grid.worldToGrid(pos.x, pos.y);
       const cur = map.idAt(g.x, g.y);
       const prev = inside[id] ?? 0;
       if (cur === prev) return;
@@ -44,10 +44,10 @@ globalThis.ZoneSystem = {
   },
 
   /** @returns {Zone | undefined} */
-  zoneOf(entities, level, map, id) {
+  zoneOf(entities, grid, map, id) {
     const pos = entities.get(Position, id);
     if (pos === undefined) return undefined;
-    const g = level.worldToGrid(pos.x, pos.y);
+    const g = grid.worldToGrid(pos.x, pos.y);
     return map.at(g.x, g.y);
   },
 
@@ -55,13 +55,13 @@ globalThis.ZoneSystem = {
    * @returns {number[]} ids of entities currently inside zone `id`.
    * @param {{ has?: string }} [opts]  has = a component token filter
    */
-  entitiesIn(entities, level, map, id, opts = {}) {
+  entitiesIn(entities, grid, map, id, opts = {}) {
     const has = opts.has;
     const out = [];
     entities.forEach([Position], (eid) => {
       if (has !== undefined && entities.get(has, eid) === undefined) return;
       const pos = entities.get(Position, eid);
-      const g = level.worldToGrid(pos.x, pos.y);
+      const g = grid.worldToGrid(pos.x, pos.y);
       if (map.idAt(g.x, g.y) === id) out.push(eid);
     });
     return out;

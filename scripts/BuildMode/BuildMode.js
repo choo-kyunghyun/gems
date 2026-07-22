@@ -7,7 +7,7 @@
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
 // state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
-// scene contract (create()/RpgMap.build): entities, playerId, level, ui, a <key>Layer/<key>Type per
+// scene contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
 // RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
 // _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
@@ -519,7 +519,7 @@ globalThis.BuildMode = {
       return;
     }
 
-    const level = scene.level;
+    const grid = scene.grid;
 
     // skip world edits while the cursor is over the build HUD (a bar click must not place behind it).
     if (BuildMode._overHud(scene)) {
@@ -528,14 +528,9 @@ globalThis.BuildMode = {
     }
 
     // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
-    const cell = level.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
+    const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     scene._buildCell = cell;
-    if (
-      cell.x < 0 ||
-      cell.y < 0 ||
-      cell.x >= level.cols ||
-      cell.y >= level.rows
-    )
+    if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 
     // reuse the LMB edge latched by UIPointer.poll (the poll-once rule — UIPointer). RMB is unread elsewhere, single query safe.
@@ -576,16 +571,16 @@ globalThis.BuildMode = {
   _playerOwnsHere(scene) {
     const pp = scene.entities.get(Position, scene.playerId);
     if (pp === undefined) return false;
-    const c = scene.level.worldToGrid(pp.x, pp.y);
-    return Settlement.ownerAt(scene.level, c.x, c.y) === BuildMode.OWNER;
+    const c = scene.grid.worldToGrid(pp.x, pp.y);
+    return Settlement.ownerAt(scene.grid, c.x, c.y) === BuildMode.OWNER;
   },
 
   // can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
   // (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
   // floor) isn't on the player's own cell. shared by place + cursor highlight.
   _canBuild(scene, gx, gy) {
-    const level = scene.level;
-    if (Settlement.ownerAt(level, gx, gy) !== BuildMode.OWNER) return false;
+    const grid = scene.grid;
+    if (Settlement.ownerAt(grid, gx, gy) !== BuildMode.OWNER) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
@@ -603,7 +598,7 @@ globalThis.BuildMode = {
     if (solid) {
       const pp = scene.entities.get(Position, scene.playerId);
       if (pp !== undefined) {
-        const pc = level.worldToGrid(pp.x, pp.y);
+        const pc = grid.worldToGrid(pp.x, pp.y);
         if (pc.x === gx && pc.y === gy) return false;
       }
     }
@@ -629,7 +624,7 @@ globalThis.BuildMode = {
   // Updates _built / _builtEnts. Returns the entity id (entity) or whether a solid tile was placed
   // (so a deferred caller knows a wall remesh is pending).
   applyItem(scene, gx, gy, item, opts = {}) {
-    const level = scene.level;
+    const grid = scene.grid;
     const key = gx + "," + gy;
     if (item.kind === "tile") {
       // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
@@ -642,7 +637,7 @@ globalThis.BuildMode = {
       TileEdit.set(layer, gx, gy, type);
       const solid = RpgLevel.layerCfg(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
-        TileEdit.remesh(scene.entities, level, layer, scene.colliders);
+        TileEdit.remesh(scene.entities, grid, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
       return solid;
@@ -652,16 +647,12 @@ globalThis.BuildMode = {
     // prop is identical to a file/streamed one and persists via EntitySnapshot (see RpgMap).
     let id;
     if (opts.snapshot !== undefined) {
-      const wp = level.gridToWorld(gx, gy);
+      const wp = grid.gridToWorld(gx, gy);
       id = EntitySnapshot.restore(scene.entities, opts.snapshot, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
-      id = RpgSpawn.spawnEntity(
-        scene.entities,
-        level,
-        item.make(gx, gy, scene),
-      );
+      id = RpgSpawn.spawnEntity(scene.entities, grid, item.make(gx, gy, scene));
     }
     scene._builtEnts[key] = { ent: id, itemId: item.id };
     return id;
@@ -669,7 +660,7 @@ globalThis.BuildMode = {
 
   _tryRemove(scene, gx, gy) {
     const key = gx + "," + gy;
-    const level = scene.level;
+    const grid = scene.grid;
     // built entities sit on top of tiles — remove one first if present.
     const ent = scene._builtEnts[key];
     if (ent !== undefined) {
@@ -699,7 +690,7 @@ globalThis.BuildMode = {
     if (RpgLevel.layerCfg(lkey).solid === true)
       TileEdit.remesh(
         scene.entities,
-        level,
+        grid,
         scene[lkey + "Layer"],
         scene.colliders,
       );
@@ -754,16 +745,16 @@ globalThis.BuildMode = {
   // (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
   // land is still spent — no re-founding.
   claim(scene, postId) {
-    const level = scene.level;
+    const grid = scene.grid;
     const pos = scene.entities.get(Position, postId);
     if (pos === undefined) return;
-    const c = level.worldToGrid(pos.x, pos.y);
-    if (Settlement.at(level, c.x, c.y) === undefined) {
+    const c = grid.worldToGrid(pos.x, pos.y);
+    if (Settlement.at(grid, c.x, c.y) === undefined) {
       const x1 = Math.max(0, c.x - BuildMode.CLAIM_HALF_W);
       const y1 = Math.max(0, c.y - BuildMode.CLAIM_HALF_H);
-      const x2 = Math.min(level.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
-      const y2 = Math.min(level.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
-      Settlement.found(level, x1, y1, x2, y2, {
+      const x2 = Math.min(grid.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
+      const y2 = Math.min(grid.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
+      Settlement.found(grid, x1, y1, x2, y2, {
         name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
         factionId: BuildMode.OWNER,
         color: "#55aa55",
@@ -780,18 +771,13 @@ globalThis.BuildMode = {
     if (!BuildMode.active) return;
     const cell = scene._buildCell;
     if (cell === undefined) return;
-    const level = scene.level;
-    if (
-      cell.x < 0 ||
-      cell.y < 0 ||
-      cell.x >= level.cols ||
-      cell.y >= level.rows
-    )
+    const grid = scene.grid;
+    if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 
     const key = cell.x + "," + cell.y;
-    const wx = cell.x * level.cellWidth;
-    const wy = cell.y * level.cellHeight;
+    const wx = cell.x * grid.cellWidth;
+    const wy = cell.y * grid.cellHeight;
     let col;
     if (scene._built[key] !== undefined || scene._builtEnts[key] !== undefined)
       col = c_yellow;
@@ -799,9 +785,9 @@ globalThis.BuildMode = {
 
     draw_set_color(col);
     draw_set_alpha(0.3);
-    draw_rectangle(wx, wy, wx + level.cellWidth, wy + level.cellHeight, false);
+    draw_rectangle(wx, wy, wx + grid.cellWidth, wy + grid.cellHeight, false);
     draw_set_alpha(1);
-    draw_rectangle(wx, wy, wx + level.cellWidth, wy + level.cellHeight, true);
+    draw_rectangle(wx, wy, wx + grid.cellWidth, wy + grid.cellHeight, true);
     draw_set_color(c_white);
   },
 };

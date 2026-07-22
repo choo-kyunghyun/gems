@@ -3,10 +3,10 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugPath = class RenderDebugPath {
-  /** @param {LevelGrid} level grid→world mapping source. */
-  constructor(level) {
+  /** @param {LevelGrid} grid grid→world mapping source. */
+  constructor(grid) {
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
   }
 
   destroy() {}
@@ -14,7 +14,7 @@ globalThis.RenderDebugPath = class RenderDebugPath {
   draw(entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
-    const level = this.level;
+    const grid = this.grid;
 
     draw_set_alpha(1);
 
@@ -25,14 +25,14 @@ globalThis.RenderDebugPath = class RenderDebugPath {
 
       draw_set_color(c_yellow);
       for (let i = 1; i < path.length; i++) {
-        const a = level.gridToWorld(path[i - 1].x, path[i - 1].y);
-        const b = level.gridToWorld(path[i].x, path[i].y);
+        const a = grid.gridToWorld(path[i - 1].x, path[i - 1].y);
+        const b = grid.gridToWorld(path[i].x, path[i].y);
         draw_line(a.x, a.y, b.x, b.y);
       }
 
       const pos = entities.get(Position, id);
       if (pos !== undefined) {
-        const w0 = level.gridToWorld(path[0].x, path[0].y);
+        const w0 = grid.gridToWorld(path[0].x, path[0].y);
         draw_set_color(c_orange);
         draw_line(pos.x, pos.y, w0.x, w0.y);
       }
@@ -40,7 +40,7 @@ globalThis.RenderDebugPath = class RenderDebugPath {
 
     for (const id of entities.query(PathRequest)) {
       const req = entities.get(PathRequest, id);
-      const wp = level.gridToWorld(req.goalX, req.goalY);
+      const wp = grid.gridToWorld(req.goalX, req.goalY);
       draw_set_color(c_red);
       draw_line(wp.x - 4, wp.y - 4, wp.x + 4, wp.y + 4);
       draw_line(wp.x + 4, wp.y - 4, wp.x - 4, wp.y + 4);

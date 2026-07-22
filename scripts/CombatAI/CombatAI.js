@@ -40,7 +40,7 @@ globalThis.CombatAI = {
   // State callbacks receive (entities, id) from StateSystem, so no store static — only the Level
   // (grid<->world conversion for pathfinding around walls) is per-map context, re-pointed by
   // bind() on each map activate (a resumed map keeps its actors' Brain/State without re-attach).
-  _level: undefined,
+  _grid: undefined,
 
   // Register the combat states into the StateSystem pool (idempotent; called by RpgContent).
   register() {
@@ -140,7 +140,7 @@ globalThis.CombatAI = {
               hit !== null && entities.get(Collision, hit.id).kinematic;
           }
           const blocked = brain.losBlocked;
-          if (!blocked || CombatAI._level === undefined) {
+          if (!blocked || CombatAI._grid === undefined) {
             PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
             CombatAI._seek(entities, id, tp.x, tp.y, brain.speed);
@@ -151,7 +151,7 @@ globalThis.CombatAI = {
           // while the throttled replan is still resolving)
           const mp = PathFollow.target(
             entities,
-            CombatAI._level,
+            CombatAI._grid,
             id,
             brain,
             sp,
@@ -206,8 +206,8 @@ globalThis.CombatAI = {
 
   // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
-  attach(entities, id, level, opt = {}) {
-    this._level = level;
+  attach(entities, id, grid, opt = {}) {
+    this._grid = grid;
     const pos = entities.get(Position, id);
     // authored/base Visual color captured for the aggro wash (a doll actor's color is its SKIN
     // tint, so the wash must blend FROM it, not from white). Flat int — snapshot-safe.
@@ -242,10 +242,10 @@ globalThis.CombatAI = {
 
   // Re-point the Level static at the active map without re-attaching actors (a resumed map —
   // RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
-  // activate. Takes (entities, level) for call-site symmetry with PathFollow.bind; only the level
+  // activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
   // is stored — the store reaches states through the StateSystem callbacks.
-  bind(entities, level) {
-    this._level = level;
+  bind(entities, grid) {
+    this._grid = grid;
   },
 
   // distance to Brain.target; Infinity if none / gone

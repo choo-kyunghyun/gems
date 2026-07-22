@@ -44,7 +44,7 @@ class _SceneEditorClass {
     this._buildPropPanel();
 
     Log.info(
-      `level editor ready — ${this.level.cols}x${this.level.rows}, ` +
+      `level editor ready — ${this.grid.cols}x${this.grid.rows}, ` +
         `spawns=${this._spawns.length}`,
     );
   }
@@ -65,7 +65,7 @@ class _SceneEditorClass {
     // restore saved buildable zone; import() replaces the map _initLevel just created,
     // so re-point _zoneId at the imported zone for the Zone tool
     if (data.zoneMaps !== undefined && data.zoneMaps.buildable !== undefined) {
-      const map = this.level.zoneMap("buildable");
+      const map = this.grid.zoneMap("buildable");
       map.import(data.zoneMaps.buildable);
       const z = map.byTag("buildable")[0];
       if (z !== undefined) this._zoneId = z.id;
@@ -85,15 +85,15 @@ class _SceneEditorClass {
     this._loadData(data);
     Toast.push(I18n.text("EDITOR_LOADED", path), { type: "success" });
     Log.info(
-      `editor open ${path} — ${this.level.cols}x${this.level.rows} ` +
+      `editor open ${path} — ${this.grid.cols}x${this.grid.rows} ` +
         `spawns=${this._spawns.length}`,
     );
   }
 
   // rebuild level grid + tile layers at the given size; destroy previous level first
   _initLevel(cols, rows, cell) {
-    if (this.level !== undefined) this.level.destroy(); // destroys inserted layers too
-    this.level = new LevelGrid({
+    if (this.grid !== undefined) this.grid.destroy(); // destroys inserted layers too
+    this.grid = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,
       cols,
@@ -103,33 +103,33 @@ class _SceneEditorClass {
     this.floorType = new TileType({ id: 2, name: "바닥" });
     this.floorLayer = new TileLayer(cols, rows, { emptyCost: 1 });
     this.wallLayer = new TileLayer(cols, rows);
-    this.level.insert(this.floorLayer);
-    this.level.insert(this.wallLayer);
+    this.grid.insert(this.floorLayer);
+    this.grid.insert(this.wallLayer);
 
     // rebind to new level; reads live (no VBO) so edits show immediately
     if (this._tilePass !== undefined) this.renderer.remove(this._tilePass);
-    this._tilePass = new RenderDebugTileMap(this.level, {
+    this._tilePass = new RenderDebugTileMap(this.grid, {
       names: true,
       font: I18n.font("default"),
     });
     this.renderer.insert(this._tilePass);
     if (this._gridPass !== undefined) this.renderer.remove(this._gridPass);
-    this._gridPass = new RenderGrid(this.level);
+    this._gridPass = new RenderGrid(this.grid);
     this.renderer.insert(this._gridPass);
 
     // buildable zone channel: the Zone tool drag-paints here; RenderZone tints it over the grid
-    const zmap = this.level.addZoneMap("buildable");
+    const zmap = this.grid.addZoneMap("buildable");
     this._zoneId = zmap.define({
       name: I18n.text("BUILD_ZONE"),
       tags: ["buildable"],
       data: { color: "#55aa55" },
     }).id;
     if (this._zonePass !== undefined) this.renderer.remove(this._zonePass);
-    this._zonePass = new RenderZone(this.level, "buildable", { alpha: 0.28 });
+    this._zonePass = new RenderZone(this.grid, "buildable", { alpha: 0.28 });
     this.renderer.insert(this._zonePass);
     if (this._zoneLabelPass !== undefined)
       this.renderer.remove(this._zoneLabelPass);
-    this._zoneLabelPass = new RenderZoneLabel(this.level, "buildable", {
+    this._zoneLabelPass = new RenderZoneLabel(this.grid, "buildable", {
       font: I18n.font("default"),
     });
     this.renderer.insert(this._zoneLabelPass);
@@ -256,7 +256,7 @@ class _SceneEditorClass {
 
     // current size + blank-level new at a chosen preset
     labelRow(
-      () => I18n.text("EDITOR_SIZE", this.level.cols, this.level.rows),
+      () => I18n.text("EDITOR_SIZE", this.grid.cols, this.grid.rows),
       { color: GemsTheme.textMuted, font: "header" },
       26,
     );
@@ -361,7 +361,7 @@ class _SceneEditorClass {
     )
       return;
 
-    const cell = this.level.worldToGrid(mouse_x, mouse_y);
+    const cell = this.grid.worldToGrid(mouse_x, mouse_y);
 
     // zone drag: start + live preview tracked here; release committed via the global check above
     if (this._tool === "zone") {
@@ -372,8 +372,8 @@ class _SceneEditorClass {
     if (
       cell.x < 0 ||
       cell.y < 0 ||
-      cell.x >= this.level.cols ||
-      cell.y >= this.level.rows
+      cell.x >= this.grid.cols ||
+      cell.y >= this.grid.rows
     )
       return;
 
@@ -411,8 +411,8 @@ class _SceneEditorClass {
 
   // track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)
   _zoneTrack(cell) {
-    const gx = clamp(cell.x, 0, this.level.cols - 1);
-    const gy = clamp(cell.y, 0, this.level.rows - 1);
+    const gx = clamp(cell.x, 0, this.grid.cols - 1);
+    const gy = clamp(cell.y, 0, this.grid.rows - 1);
     this._zoneCur = { x: gx, y: gy };
     if (this._zoneDrag === undefined) {
       if (mouse_check_button_pressed(mb_left))
@@ -430,7 +430,7 @@ class _SceneEditorClass {
     const y1 = d.sy < cur.y ? d.sy : cur.y;
     const x2 = d.sx > cur.x ? d.sx : cur.x;
     const y2 = d.sy > cur.y ? d.sy : cur.y;
-    const map = this.level.zoneMap("buildable");
+    const map = this.grid.zoneMap("buildable");
     if (d.erase) map.eraseRect(x1, y1, x2, y2);
     else map.paintRect(this._zoneId, x1, y1, x2, y2);
     this._zoneDrag = undefined;
@@ -657,18 +657,18 @@ class _SceneEditorClass {
     const data = {
       version: 1,
       genre: "topdown",
-      cell: this.level.cellWidth,
-      cols: this.level.cols,
-      rows: this.level.rows,
+      cell: this.grid.cellWidth,
+      cols: this.grid.cols,
+      rows: this.grid.rows,
       meta: {
         playerSpawn: { gx: this._spawnPoint.gx, gy: this._spawnPoint.gy },
       },
-      walls: TileEdit.meshRects(this.level, this.wallLayer),
-      floors: TileEdit.meshRects(this.level, this.floorLayer),
+      walls: TileEdit.meshRects(this.grid, this.wallLayer),
+      floors: TileEdit.meshRects(this.grid, this.floorLayer),
       layers: [], // LevelSerializer.load expects this key; editor uses walls/floors instead
       spawns: this._spawns,
     };
-    const zmap = this.level.zoneMap("buildable");
+    const zmap = this.grid.zoneMap("buildable");
     if (zmap !== undefined && zmap.cells(this._zoneId).length > 0)
       data.zoneMaps = { buildable: zmap.export() };
     return data;
@@ -708,8 +708,8 @@ class _SceneEditorClass {
   // preview the in-progress drag (green=paint, red=erase); committed zone drawn by RenderZone
   _drawZonePreview() {
     if (this._zoneDrag === undefined || this._zoneCur === undefined) return;
-    const cw = this.level.cellWidth;
-    const ch = this.level.cellHeight;
+    const cw = this.grid.cellWidth;
+    const ch = this.grid.cellHeight;
     const d = this._zoneDrag;
     const c = this._zoneCur;
     const x1 = (d.sx < c.x ? d.sx : c.x) * cw;
@@ -727,12 +727,12 @@ class _SceneEditorClass {
   }
 
   _drawFloors() {
-    const cw = this.level.cellWidth;
-    const ch = this.level.cellHeight;
+    const cw = this.grid.cellWidth;
+    const ch = this.grid.cellHeight;
     draw_set_color(make_colour_rgb(80, 150, 200));
     draw_set_alpha(0.2);
-    for (let y = 0; y < this.level.rows; y++)
-      for (let x = 0; x < this.level.cols; x++)
+    for (let y = 0; y < this.grid.rows; y++)
+      for (let x = 0; x < this.grid.cols; x++)
         if (TileEdit.occupied(this.floorLayer, x, y))
           draw_rectangle(x * cw, y * ch, x * cw + cw, y * ch + ch, false);
     draw_set_alpha(1);
@@ -740,8 +740,8 @@ class _SceneEditorClass {
   }
 
   _drawMarkers() {
-    const cw = this.level.cellWidth;
-    const ch = this.level.cellHeight;
+    const cw = this.grid.cellWidth;
+    const ch = this.grid.cellHeight;
     draw_set_halign(fa_center);
     for (let i = 0; i < this._spawns.length; i++) {
       const s = this._spawns[i];
@@ -760,8 +760,8 @@ class _SceneEditorClass {
   }
 
   _drawSpawn() {
-    const cw = this.level.cellWidth;
-    const ch = this.level.cellHeight;
+    const cw = this.grid.cellWidth;
+    const ch = this.grid.cellHeight;
     const cx = this._spawnPoint.gx * cw + cw * 0.5;
     const cy = this._spawnPoint.gy * ch + ch * 0.5;
     const rad = (cw < ch ? cw : ch) * 0.38;
@@ -777,7 +777,7 @@ class _SceneEditorClass {
   }
 
   destroy() {
-    this.level.destroy(); // destroys inserted layers too
+    this.grid.destroy(); // destroys inserted layers too
     teardownScene(this);
   }
 }

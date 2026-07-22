@@ -6,19 +6,19 @@
 
 /**
  * world-space debug overlay for one ZoneMap channel: tints cells + outlines region borders.
- * names are a separate RenderZoneLabel pass. reads level.zoneMap(key) live; no-op when absent,
+ * names are a separate RenderZoneLabel pass. reads grid.zoneMap(key) live; no-op when absent,
  * so safe to insert before zones are painted.
  * @implements {RenderPass}
  */
 globalThis.RenderZone = class RenderZone {
   /**
-   * @param {import("../Level/Level").Level} level
+   * @param {LevelGrid} grid
    * @param {string} key - zone channel, e.g. "faction"
    * @param {RenderZoneOptions} [opt]
    */
-  constructor(level, key, opt = {}) {
+  constructor(grid, key, opt = {}) {
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
     this.key = key;
     this.alpha = opt.alpha ?? 0.3;
     this.border = opt.border ?? true;
@@ -34,14 +34,14 @@ globalThis.RenderZone = class RenderZone {
   }
 
   draw(_entities) {
-    const map = this.level.zoneMap(this.key);
+    const map = this.grid.zoneMap(this.key);
     if (map === undefined) return;
 
     const color = draw_get_color();
     const alpha = draw_get_alpha();
 
-    const cellWidth = this.level.cellWidth;
-    const cellHeight = this.level.cellHeight;
+    const cellWidth = this.grid.cellWidth;
+    const cellHeight = this.grid.cellHeight;
     const grid = map.grid;
     const cols = grid.cols;
     const rows = grid.rows;

@@ -5,18 +5,18 @@
 
 /**
  * world-space zone-name labels at each zone centroid; insert after RenderZone.
- * reads level.zoneMap(key) live; no-op when absent.
+ * reads grid.zoneMap(key) live; no-op when absent.
  * @implements {RenderPass}
  */
 globalThis.RenderZoneLabel = class RenderZoneLabel {
   /**
-   * @param {import("../Level/Level").Level} level
+   * @param {LevelGrid} grid
    * @param {string} key - zone channel, e.g. "faction"
    * @param {RenderZoneLabelOptions} [opt]
    */
-  constructor(level, key, opt = {}) {
+  constructor(grid, key, opt = {}) {
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
     this.key = key;
     this.font = opt.font;
   }
@@ -24,7 +24,7 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
   destroy() {}
 
   draw(_entities) {
-    const map = this.level.zoneMap(this.key);
+    const map = this.grid.zoneMap(this.key);
     if (map === undefined) return;
 
     const color = draw_get_color();
@@ -34,8 +34,8 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
     const font = draw_get_font();
     if (this.font !== undefined) draw_set_font(this.font);
 
-    const cellWidth = this.level.cellWidth;
-    const cellHeight = this.level.cellHeight;
+    const cellWidth = this.grid.cellWidth;
+    const cellHeight = this.grid.cellHeight;
     const grid = map.grid;
     const cols = grid.cols;
     const rows = grid.rows;

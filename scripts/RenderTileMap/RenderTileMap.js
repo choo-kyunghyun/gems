@@ -41,14 +41,14 @@ const _BLOB8 = [
 globalThis.RenderTileMap = class RenderTileMap {
   /**
    * @param {import("../TileLayer/TileLayer").TileLayer} layer
-   * @param {import("../Level/Level").Level} level
+   * @param {LevelGrid} grid
    * @param {number} sprite - tileset sprite; frame indices must match the autotile mode
    * @param {RenderTileMapOptions} [opt]
    */
-  constructor(layer, level, sprite, opt = {}) {
+  constructor(layer, grid, sprite, opt = {}) {
     this.enabled = true;
     this.layer = layer;
-    this.level = level;
+    this.grid = grid;
     this.sprite = sprite;
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
@@ -81,14 +81,14 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _isSolid(x, y) {
-    const { cols, rows } = this.level;
+    const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
     return !!this.layer.get(x, y);
   }
 
   // OOB counts as solid so map edges don't produce soft-edge bleeds
   _isSolidOrOOB(x, y) {
-    const { cols, rows } = this.level;
+    const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
     return !!this.layer.get(x, y);
   }
@@ -153,8 +153,8 @@ globalThis.RenderTileMap = class RenderTileMap {
       this._rebuildCorner();
       return;
     }
-    const { layer, level, sprite } = this;
-    const { cols, rows, cellWidth, cellHeight } = level;
+    const { layer, grid, sprite } = this;
+    const { cols, rows, cellWidth, cellHeight } = grid;
 
     this._vbuf.destroy();
     this._vbuf = new VertexBuffer();
@@ -211,8 +211,8 @@ globalThis.RenderTileMap = class RenderTileMap {
   // dual-grid: display tile centered on each data-grid corner, sampling 4 touching cells.
   // TL=1 TR=2 BR=4 BL=8 → frame = mask. transparent corners let lower terrain show through.
   _rebuildDual() {
-    const { level, sprite } = this;
-    const { cols, rows, cellWidth, cellHeight } = level;
+    const { grid, sprite } = this;
+    const { cols, rows, cellWidth, cellHeight } = grid;
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
 
@@ -258,8 +258,8 @@ globalThis.RenderTileMap = class RenderTileMap {
   // corner sub-tile: each filled cell as 4 half-cell quads, each piece picked by 3 neighbors.
   // 13-piece set covers all 256 masks without _BLOB8. N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
   _rebuildCorner() {
-    const { layer, level, sprite } = this;
-    const { cols, rows, cellWidth, cellHeight } = level;
+    const { layer, grid, sprite } = this;
+    const { cols, rows, cellWidth, cellHeight } = grid;
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
 

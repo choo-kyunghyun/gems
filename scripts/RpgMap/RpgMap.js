@@ -17,7 +17,7 @@ globalThis.RpgMap = {
   // from the Playable query, so the bundle never carries a player handle)
   BUNDLE_KEYS: [
     "entities",
-    "level",
+    "grid",
     "spawn",
     "entries",
     "mapId",
@@ -117,7 +117,7 @@ globalThis.RpgMap = {
   },
 
   // Park the live map: its registry entry becomes the full bundle (was the minimal
-  // { entities, level } from build, or the previous park). Unassign (not destroy) the camera —
+  // { entities, grid } from build, or the previous park). Unassign (not destroy) the camera —
   // the parked map keeps it for resume; without the unassign its later destroy() would tear
   // down the live view. exitRegion so the next map re-detects its climate.
   suspend(scene) {
@@ -193,9 +193,9 @@ globalThis.RpgMap = {
     // has stepped clear of every portal once (checkPortals arms it). Prevents door ping-pong.
     scene._portalLock = true;
     if (scene.invOpen) scene._invDirty = true;
-    // Re-point CombatAI's shared store/level statics. A resume keeps actors without re-attaching,
+    // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
-    CombatAI.bind(scene.entities, scene.level);
+    CombatAI.bind(scene.entities, scene.grid);
     // Re-point the terrain movement pricing (mover speed × 1/cost) at the active map, same reason.
     PathFollow.bind(RpgMap._terrainCost(scene));
   },
@@ -207,20 +207,20 @@ globalThis.RpgMap = {
   _terrainCost(scene) {
     if (!scene._chunked || scene.chunks === undefined) return null;
     const chunks = scene.chunks;
-    const cw = scene.level.cellWidth;
-    const ch = scene.level.cellHeight;
+    const cw = scene.grid.cellWidth;
+    const ch = scene.grid.cellHeight;
     return (wx, wy) => chunks.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
   },
 
   // World-coord entry points by name, for repositioning the player on a resume (no file reload).
   // Mirrors _resolveSpawn's sources: meta.entries, plus legacy meta.playerSpawn as "default".
-  _entryTable(level, data) {
+  _entryTable(grid, data) {
     const out = {};
     const e = data.meta.entries;
     if (e !== undefined)
-      for (const k in e) out[k] = level.gridToWorld(e[k].gx, e[k].gy);
+      for (const k in e) out[k] = grid.gridToWorld(e[k].gx, e[k].gy);
     if (data.meta.playerSpawn !== undefined && out.default === undefined)
-      out.default = level.gridToWorld(
+      out.default = grid.gridToWorld(
         data.meta.playerSpawn.gx,
         data.meta.playerSpawn.gy,
       );
@@ -252,7 +252,7 @@ globalThis.RpgMap = {
     // suspend later overwrites it with the full park bundle.
     World.levels.register(scene.mapId, {
       entities: scene.entities,
-      level: scene.level,
+      grid: scene.grid,
     });
     RpgMap._arriveSquad(scene, squad, scene.spawn); // scene.spawn is already entry-resolved
     // build-mode tracking, fresh per first visit (parks with the bundle thereafter). _builtEnts
@@ -303,9 +303,9 @@ globalThis.RpgMap = {
     const built = scene._chunked
       ? RpgLevel.buildChunked(scene.entities, data, entryId)
       : RpgLevel.build(scene.entities, data, entryId);
-    scene.level = built.level;
+    scene.grid = built.grid;
     scene.spawn = built.spawn; // for player respawn on death
-    scene.entries = RpgMap._entryTable(scene.level, data); // named entries → world coords (resume)
+    scene.entries = RpgMap._entryTable(scene.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
     // plus <key>Types for a materials-bearing layer (wall). Mirrored in BUNDLE_KEYS.
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
@@ -326,7 +326,7 @@ globalThis.RpgMap = {
     // settlement channel (one per map) — Survey Posts found player-owned Settlements into it, build
     // mode gates placement to owned land, RenderZone visualizes every settlement's territory. Created
     // empty up front so the persistence import + RenderZone have a target before anything is founded.
-    Settlement.channel(scene.level);
+    Settlement.channel(scene.grid);
     // Authored non-player settlements (optional meta.settlements, mirroring meta.climate below):
     // faction hubs / raider camps. The overworld authors one — the colony "hub", whose NPCs and
     // stockpile chest are its Residents — so the player's own founded settlement and an authored
@@ -336,7 +336,7 @@ globalThis.RpgMap = {
       for (let i = 0; i < settlements.length; i++) {
         const s = settlements[i];
         const r = s.rect;
-        Settlement.found(scene.level, r[0], r[1], r[2], r[3], {
+        Settlement.found(scene.grid, r[0], r[1], r[2], r[3], {
           id: s.id, // stable authored sid (residents reference it)
           // name is an i18n key — the label renders in-world (RenderZoneLabel), so localize it
           name: s.name !== undefined ? I18n.text(s.name) : "",
@@ -351,7 +351,7 @@ globalThis.RpgMap = {
     // persistence import so it round-trips like the buildable zone.
     const climate = data.meta.climate;
     if (climate !== undefined) {
-      const cmap = scene.level.addZoneMap("climate");
+      const cmap = scene.grid.addZoneMap("climate");
       for (let i = 0; i < climate.length; i++) {
         const c = climate[i];
         const z = cmap.define({
@@ -393,7 +393,7 @@ globalThis.RpgMap = {
       // re-measure with the grid in place.
       scene.chunks = new ChunkManager(
         scene.entities,
-        scene.level,
+        scene.grid,
         scene.generator,
         {
           chunkCols: data.meta.chunkCols ?? 16,
@@ -403,11 +403,11 @@ globalThis.RpgMap = {
           worldCols: wc,
           worldRows: wr,
           // descriptor adapter — streamed spawns build through the same path as file spawns
-          spawn: (entities, level, desc) =>
-            RpgSpawn.spawnEntity(entities, level, desc),
+          spawn: (entities, grid, desc) =>
+            RpgSpawn.spawnEntity(entities, grid, desc),
         },
       );
-      RpgLevel.buildWorldBorder(scene.entities, scene.level, wc, wr); // edge walls (always present)
+      RpgLevel.buildWorldBorder(scene.entities, scene.grid, wc, wr); // edge walls (always present)
       // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
       // scene fade) — mid-game streaming is pure load/unload; generate() never runs in play.
       const t0 = current_time;
@@ -423,7 +423,7 @@ globalThis.RpgMap = {
       scene.chunks.update(sp.x, sp.y); // populate the rings around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (not streamed)
     } else {
-      const ents = RpgSpawn.spawn(scene.entities, scene.level, data);
+      const ents = RpgSpawn.spawn(scene.entities, scene.grid, data);
       scene.reachZone = ents.reach; // undefined when the map has no reach marker
     }
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
@@ -446,16 +446,16 @@ globalThis.RpgMap = {
     // allocs (~8.5→~1.2ms/tick at simRadius:1), then spatial bucketing of that snapshot (2026-07-13)
     // removed the linear-over-all-statics scan — lifting the wide-SIM blocker (pending re-measure).
     scene.entities.broadphase = new Broadphase(
-      scene.level.cols * scene.level.cellWidth,
-      scene.level.rows * scene.level.cellHeight,
+      scene.grid.cols * scene.grid.cellWidth,
+      scene.grid.rows * scene.grid.cellHeight,
       96,
     );
 
     scene.nav = new NavGrid(
       32,
       32,
-      scene.level.cellWidth,
-      scene.level.cellHeight,
+      scene.grid.cellWidth,
+      scene.grid.cellHeight,
       RpgMap._terrainCost(scene), // weight routes by terrain (wade only when it beats going around)
     );
     MotionPlanner.setGrid(scene.nav);
@@ -513,7 +513,7 @@ globalThis.RpgMap = {
       }
       const pass = new RenderTileMap(
         scene[cfg.key + "Layer"],
-        scene.level,
+        scene.grid,
         spr,
         {
           autotile: cfg.type,
@@ -524,19 +524,19 @@ globalThis.RpgMap = {
       scene.renderer.insert(pass);
     }
     // the sprite-free cost fill stays as a debug overlay — Debug → Render → Tiles
-    scene._tilePass = new RenderDebugTileMap(scene.level, {
+    scene._tilePass = new RenderDebugTileMap(scene.grid, {
       cost: true,
       tiles: false,
       alpha: 0.5,
     });
     scene._tilePass.enabled = false;
     scene.renderer.insert(scene._tilePass);
-    scene._gridPass = new RenderGrid(scene.level); // cell boundary lines
+    scene._gridPass = new RenderGrid(scene.grid); // cell boundary lines
     scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid
     scene.renderer.insert(scene._gridPass);
-    scene.renderer.insert(new RenderZone(scene.level, "settlement"));
+    scene.renderer.insert(new RenderZone(scene.grid, "settlement"));
     scene.renderer.insert(
-      new RenderZoneLabel(scene.level, "settlement", {
+      new RenderZoneLabel(scene.grid, "settlement", {
         font: I18n.font("default"),
       }),
     );
@@ -577,7 +577,7 @@ globalThis.RpgMap = {
           color: Color.parse(m.color),
         });
       }
-      scene._tilePasses.wall = new RenderWalls(scene.level, scene.wallLayer, {
+      scene._tilePasses.wall = new RenderWalls(scene.grid, scene.wallLayer, {
         color: wallMats[0].color,
         sprite: wallMats[0].sprite,
         frame: 0,
@@ -592,7 +592,7 @@ globalThis.RpgMap = {
       // keyed into _tilePasses). Same brick texture/tint as the resident walls.
       if (scene._chunked)
         scene.renderer.insert(
-          new RenderWalls(scene.level, scene.chunks.wallLayer(), {
+          new RenderWalls(scene.grid, scene.chunks.wallLayer(), {
             color: wallMats[0].color, // occupancy view has no TileTypes — all default brick
             sprite: wallMats[0].sprite,
             frame: 0,
@@ -612,7 +612,7 @@ globalThis.RpgMap = {
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
     scene.renderer.insert(bbox);
-    const paths = new RenderDebugPath(scene.level); // enemy A* paths, off until toggled
+    const paths = new RenderDebugPath(scene.grid); // enemy A* paths, off until toggled
     paths.enabled = false;
     scene.renderer.insert(paths);
     // entity "active range" rings (turret fire / enemy aggro/give-up/attack), off until toggled
@@ -665,8 +665,8 @@ globalThis.RpgMap = {
     const viewCap = scene._chunked
       ? // Worst case is a WORLD CORNER (hub spawn): the off-world side streams nothing, so only
         // (loadRadius + 1) chunks load. View any wider → dark void.
-        (2 + 1) * (data.meta.chunkCols ?? 16) * scene.level.cellWidth
-      : scene.level.cols * scene.level.cellWidth;
+        (2 + 1) * (data.meta.chunkCols ?? 16) * scene.grid.cellWidth
+      : scene.grid.cols * scene.grid.cellWidth;
     scene.camera = CameraFollow.create2d({
       entities: scene.entities,
       followTarget: scene.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
@@ -688,8 +688,8 @@ globalThis.RpgMap = {
       clamp: {
         x1: 0,
         y1: 0,
-        x2: scene.level.cols * scene.level.cellWidth,
-        y2: scene.level.rows * scene.level.cellHeight,
+        x2: scene.grid.cols * scene.grid.cellWidth,
+        y2: scene.grid.rows * scene.grid.cellHeight,
       },
     });
     scene.camera.assign(0);
@@ -762,7 +762,7 @@ globalThis.RpgMap = {
     if (b.camera) b.camera.destroy();
     if (b.renderer) b.renderer.destroy();
     if (b.entities) b.entities.destroy();
-    if (b.level) b.level.destroy();
+    if (b.grid) b.grid.destroy();
   },
 
   // Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
@@ -796,7 +796,7 @@ globalThis.RpgMap = {
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++)
       if (spawns[i].preset === "reach")
-        return RpgSpawn.reachZone(scene.level, spawns[i]);
+        return RpgSpawn.reachZone(scene.grid, spawns[i]);
     return undefined;
   },
 };

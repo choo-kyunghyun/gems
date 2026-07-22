@@ -80,7 +80,7 @@ globalThis.Blueprint = {
     if (remeshWall)
       TileEdit.remesh(
         scene.entities,
-        scene.level,
+        scene.grid,
         scene.wallLayer,
         scene.colliders,
       );

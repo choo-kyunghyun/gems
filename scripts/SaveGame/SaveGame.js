@@ -167,7 +167,7 @@ globalThis.SaveGame = {
   applyMapState(scene, savedMap) {
     const zones = savedMap.zones;
     if (zones !== undefined && zones.settlement !== undefined) {
-      const zm = scene.level.zoneMap("settlement");
+      const zm = scene.grid.zoneMap("settlement");
       if (zm !== undefined) zm.import(zones.settlement);
     }
     Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
@@ -263,7 +263,7 @@ globalThis.SaveGame = {
           mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
         if (src === null || src.entities === undefined) continue;
         const entities = src.entities;
-        const grid = src.level;
+        const grid = src.grid;
         // component export → JSON, minus transient/rebuilt components (interpolation + pathfinding
         // are re-derived each tick; dropping them also shrinks the save and dodges any cyclic
         // reference a runtime component might carry — see Json's cycle guard).

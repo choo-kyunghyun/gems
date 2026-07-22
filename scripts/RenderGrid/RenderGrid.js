@@ -11,12 +11,12 @@
  */
 globalThis.RenderGrid = class RenderGrid {
   /**
-   * @param {import("../Level/Level").Level} level
+   * @param {LevelGrid} grid
    * @param {RenderGridOptions} [opt]
    */
-  constructor(level, opt = {}) {
+  constructor(grid, opt = {}) {
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
     this.color = opt.color ?? c_gray;
     this.alpha = opt.alpha ?? 1;
     this.camera = opt.camera; // optional view-cull source (see draw)
@@ -28,7 +28,7 @@ globalThis.RenderGrid = class RenderGrid {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
 
-    const { cols, rows, cellWidth, cellHeight } = this.level;
+    const { cols, rows, cellWidth, cellHeight } = this.grid;
 
     // visible cell range — culled to the camera view rect when set, else full grid
     let x0 = 0;

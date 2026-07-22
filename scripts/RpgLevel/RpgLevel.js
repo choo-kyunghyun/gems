@@ -1,8 +1,8 @@
 // Level builder for the top-down demo (LevelSerializer genre "topdown").
 //
 // build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top)
-// and returns { level, spawn, colliders, <key>Layer/<key>Type per layer }; the scene owns the
-// level's lifecycle. Wall colliders are greedy-meshed by TileEdit.
+// and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the scene owns the
+// grid's lifecycle. Wall colliders are greedy-meshed by TileEdit.
 //
 // Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are
 // cell rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so
@@ -164,14 +164,14 @@ globalThis.RpgLevel = {
   // `<key>Layer`/`<key>Type` — plus, for a materials-bearing layer (wall), `<key>Types`:
   // one TileType per material keyed by material key (`<key>Type` stays materials[0], the
   // default every existing consumer paints). Shared by build() + buildChunked().
-  _makeLayers(level) {
+  _makeLayers(grid) {
     const h = {};
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
       const cfg = RpgLevel.LAYERS[i];
-      const layer = new TileLayer(level.cols, level.rows, {
+      const layer = new TileLayer(grid.cols, grid.rows, {
         emptyCost: cfg.emptyCost,
       });
-      level.insert(layer);
+      grid.insert(layer);
       h[cfg.key + "Layer"] = layer;
       if (cfg.materials !== undefined) {
         const types = {};
@@ -198,14 +198,14 @@ globalThis.RpgLevel = {
 
   // Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
   // chunked leaves the resident grid empty (ChunkManager owns terrain).
-  _fillLayers(level, h) {
+  _fillLayers(grid, h) {
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
       const cfg = RpgLevel.LAYERS[i];
       if (!cfg.fill) continue;
       const layer = h[cfg.key + "Layer"];
       const type = h[cfg.key + "Type"];
-      for (let y = 0; y < level.rows; y++)
-        for (let x = 0; x < level.cols; x++) layer.set(x, y, type);
+      for (let y = 0; y < grid.rows; y++)
+        for (let x = 0; x < grid.cols; x++) layer.set(x, y, type);
     }
   },
 
@@ -221,14 +221,14 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Build a Level: paint walls + mesh kinematic wall colliders. Returns the level handles; the
-   * caller owns level.destroy() and the colliders. `entryId` selects the player spawn from
+   * Build a Level: paint walls + mesh kinematic wall colliders. Returns the built handles; the
+   * caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
    * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
    * meta.playerSpawn.
    */
   build(entities, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
-    const level = new LevelGrid({
+    const grid = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,
       cols: data.cols,
@@ -236,16 +236,16 @@ globalThis.RpgLevel = {
     });
     // Terrain auto-filled as the walkable base; walls + optional floors from the file's
     // cell-rects (fence has no file source yet).
-    const h = RpgLevel._makeLayers(level);
-    RpgLevel._fillLayers(level, h);
+    const h = RpgLevel._makeLayers(grid);
+    RpgLevel._fillLayers(grid, h);
     RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
     RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
 
     const colliders = [];
-    TileEdit.meshSolid(entities, level, h.wallLayer, colliders);
+    TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
 
-    const spawn = this._resolveSpawn(level, data, entryId);
-    return { level, spawn, colliders, ...h };
+    const spawn = this._resolveSpawn(grid, data, entryId);
+    return { grid, spawn, colliders, ...h };
   },
 
   /**
@@ -258,7 +258,7 @@ globalThis.RpgLevel = {
     const cell = data.cell ?? RPG_CELL;
     const cols = data.meta.worldCols ?? data.cols ?? 128;
     const rows = data.meta.worldRows ?? data.rows ?? 128;
-    const level = new LevelGrid({
+    const grid = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,
       cols,
@@ -266,10 +266,10 @@ globalThis.RpgLevel = {
     });
     // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
     // ChunkManager's. Same layer set/order as build() so Level.import matches.
-    const h = RpgLevel._makeLayers(level);
+    const h = RpgLevel._makeLayers(grid);
 
-    const spawn = this._resolveSpawn(level, data, entryId);
-    return { level, spawn, colliders: [], ...h };
+    const spawn = this._resolveSpawn(grid, data, entryId);
+    return { grid, spawn, colliders: [], ...h };
   },
 
   /**
@@ -278,9 +278,9 @@ globalThis.RpgLevel = {
    * so SolidSystem collides + NavGrid rasterizes them. Returns the ids (freed by entities.destroy()).
    * Left/right span one cell past top/bottom to cover the outer corners (no diagonal slip-through).
    */
-  buildWorldBorder(entities, level, worldCols, worldRows) {
-    const cw = level.cellWidth;
-    const ch = level.cellHeight;
+  buildWorldBorder(entities, grid, worldCols, worldRows) {
+    const cw = grid.cellWidth;
+    const ch = grid.cellHeight;
     const W = worldCols * cw;
     const H = worldRows * ch;
     const rects = [
@@ -307,11 +307,11 @@ globalThis.RpgLevel = {
   },
 
   // Resolve the player spawn (world coords): named entry → entries.default → legacy meta.playerSpawn.
-  _resolveSpawn(level, data, entryId) {
+  _resolveSpawn(grid, data, entryId) {
     const entries = data.meta.entries;
     let entry = data.meta.playerSpawn;
     if (entries !== undefined)
       entry = entries[entryId] ?? entries.default ?? entry;
-    return level.gridToWorld(entry.gx, entry.gy);
+    return grid.gridToWorld(entry.gx, entry.gy);
   },
 };

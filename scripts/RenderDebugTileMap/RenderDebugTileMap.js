@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} RenderDebugTileMapOptions
- * @property {boolean} [cost] - shade cells by tile nav cost (level.costAt, default true)
+ * @property {boolean} [cost] - shade cells by tile nav cost (grid.costAt, default true)
  * @property {boolean} [tiles] - label occupied cells with the topmost TileType (default true)
  * @property {boolean} [coords] - label every cell with its grid (x, y) (default false)
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
@@ -11,17 +11,17 @@
 
 /**
  * overlay for inspecting Level tile costs + types (grid lines are a separate RenderGrid pass).
- * cost shading reads level.costAt(x, y) live — computed from the layers on demand, no sync step.
+ * cost shading reads grid.costAt(x, y) live — computed from the layers on demand, no sync step.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
   /**
-   * @param {import("../Level/Level").Level} level
+   * @param {LevelGrid} grid
    * @param {RenderDebugTileMapOptions} [opt]
    */
-  constructor(level, opt = {}) {
+  constructor(grid, opt = {}) {
     this.enabled = true;
-    this.level = level;
+    this.grid = grid;
     this.cost = opt.cost ?? true;
     this.tiles = opt.tiles ?? true;
     this.coords = opt.coords ?? false;
@@ -37,7 +37,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
   // not camera_get_view_* (returns 0 for the matrix-driven Camera). ORTHO camera
   // is centered on (toX,toY) spanning width × height.
   _range() {
-    const { cols, rows, cellWidth, cellHeight } = this.level;
+    const { cols, rows, cellWidth, cellHeight } = this.grid;
     if (this.camera === undefined || !(this.camera.width > 0))
       return { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
     const vw = this.camera.width;
@@ -54,7 +54,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
 
   // topmost tile across all layers (matches Level nav resolution)
   _topTile(x, y) {
-    const layers = this.level.layers;
+    const layers = this.grid.layers;
     for (let i = layers.length - 1; i >= 0; i--) {
       const t = layers[i].get(x, y);
       if (t) return t;
@@ -70,7 +70,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     const font = draw_get_font();
     if (this.font !== undefined) draw_set_font(this.font);
 
-    const { cellWidth, cellHeight } = this.level;
+    const { cellWidth, cellHeight } = this.grid;
     const r = this._range();
 
     // cost shading: blocking cells red, costlier-than-default orange
@@ -78,7 +78,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       draw_set_alpha(this.alpha);
       for (let y = r.y0; y <= r.y1; y++) {
         for (let x = r.x0; x <= r.x1; x++) {
-          const c = this.level.costAt(x, y);
+          const c = this.grid.costAt(x, y);
           if (c === 1) continue; // default walkable
           draw_set_color(c === Infinity ? c_red : c_orange);
           const wx = x * cellWidth;

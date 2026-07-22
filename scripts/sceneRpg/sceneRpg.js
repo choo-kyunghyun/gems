@@ -163,8 +163,8 @@ class _SceneRpgClass {
 
     // arcade cabinet: E launches the platformer as a guest minigame (Interaction kind
     // "arcade" → the "arcade" InteractAction → _openArcade). Lives directly in the store (not chunk-managed) so it persists.
-    const sg = this.level.worldToGrid(this.spawn.x, this.spawn.y);
-    RpgSpawn.spawnEntity(this.entities, this.level, {
+    const sg = this.grid.worldToGrid(this.spawn.x, this.spawn.y);
+    RpgSpawn.spawnEntity(this.entities, this.grid, {
       preset: "prop",
       gx: sg.x + 2,
       gy: sg.y - 2,
@@ -354,7 +354,7 @@ class _SceneRpgClass {
     // the player changed cell (window + occupancy are otherwise stable), with a periodic safety
     // rebuild to pick up in-place collider edits (build mode) that don't move the player a cell.
     const np = this.entities.get(Position, this.playerId);
-    const nc = this.level.worldToGrid(np.x, np.y);
+    const nc = this.grid.worldToGrid(np.x, np.y);
     this._navTick = (this._navTick + 1) % RPG_NAV_REBUILD_EVERY;
     if (nc.x !== this._navGx || nc.y !== this._navGy || this._navTick === 0) {
       this.nav.rebuild(this.entities, nc.x, nc.y);
@@ -524,7 +524,7 @@ class _SceneRpgClass {
       }
     }
 
-    // door check LAST — RpgMap.go() swaps entities/level/renderer/camera, so nothing below may touch the old map
+    // door check LAST — RpgMap.go() swaps entities/grid/renderer/camera, so nothing below may touch the old map
     RpgMap.checkPortals(this);
   }
 
@@ -623,10 +623,10 @@ class _SceneRpgClass {
   // world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
   // (rect settlement → centroid lands inside). The downed-companion recovery anchor.
   _settlementSpot() {
-    const owned = Settlement.all(this.level);
+    const owned = Settlement.all(this.grid);
     for (let i = 0; i < owned.length; i++)
       if (owned[i].data.factionId === BuildMode.OWNER)
-        return Settlement.centroidWorld(this.level, owned[i]);
+        return Settlement.centroidWorld(this.grid, owned[i]);
     return null;
   }
 
@@ -674,10 +674,10 @@ class _SceneRpgClass {
   // track the player's climate cell (direct lookup beats ZoneSystem's sweep) and push/clear the
   // Weather override on a border cross. No-op without a "climate" channel.
   _updateClimate() {
-    const cmap = this.level.zoneMap("climate");
+    const cmap = this.grid.zoneMap("climate");
     if (cmap === undefined) return;
     const pos = this.entities.get(Position, this.playerId);
-    const g = this.level.worldToGrid(pos.x, pos.y);
+    const g = this.grid.worldToGrid(pos.x, pos.y);
     const id = cmap.idAt(g.x, g.y);
     if (id === this._climateZone) return; // no border crossed this frame
     this._climateZone = id;
