@@ -4,44 +4,67 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 ## Current Works
 
-One pass over `scripts/`, file by file, applying two rule sets at once: the Code Review batches below are the vehicle, and each file's slice of the Comment Refactor rides along with it. No standalone comment sweep — a file is touched once.
+One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns. Order: Rename Passes first (everything after reads the final vocabulary), Comment Refactor second, Code Review last.
 
-### Code Review (file-by-file)
+### Rename Passes
 
-Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code. Mark Done as batches finish.
+The three renames left by the two-layer ECS restructure, each a full-project sweep. GMRT codegen is name-sensitive (GMRT.md → Differences from ES2020, the `var` built-in-name collision): run the game after every rename pass, never compile alone — the same applies to any API Naming rename (CLAUDE.md → API Naming). Mark Done as passes land.
 
-| #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                                 | Done |
-| --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | --------------------------------------------------------------------------------------------------------- | ---- |
-| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`) — everything sits on these |      |
-| 2   | ECS heart              | Core/Component, Core/Entity, Core/World                                                                |    24 |  1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo)             |      |
-| 3   | Systems + levels       | Core/System, Core/Level                                                                                |    25 |  2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones                                                            |      |
-| 4   | Camera + input         | Core/Camera, Core/Input                                                                                |    10 |  1,072 | Small, self-contained                                                                                     |      |
-| 5   | Renderer               | Core/Render                                                                                            |    16 |  2,009 | `RenderMesh` queries the `Light` token (Gameplay)                                                         |      |
-| 6   | UI infra               | Core/UI                                                                                                |    13 |  1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge             |      |
-| 7   | UI widgets             | Core/UI/Element (plain widgets)                                                                        |   ~14 | ~2,800 | Half of the biggest folder                                                                                |      |
-| 8   | UI singletons          | Core/UI/Element (heavy singletons)                                                                     |   ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges                                                         |      |
-| 9   | GemsUI kit             | GemsUI                                                                                                 |     4 |  1,588 | Theme + the three factory buckets                                                                         |      |
-| 10  | Gameplay: economy      | Items, Inventory, Equipment, Crafting, Trade                                                           |   ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge              |      |
-| 11  | Gameplay: simulation   | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest |   ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly                 |      |
-| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                                    |      |
-| 13  | Demo scenes            | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game`                                      |    19 |  6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish                                       |      |
-| 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                                     |      |
+| #   | Pass                 | Rule                                                                                                                                                               | Done |
+| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| R1  | `world` → `entities` | The legacy store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store.                         |      |
+| R2  | `.level` → `.grid`   | A scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Must land before R3: renaming `scene` first would read `level.level`. |      |
+| R3  | `scene` → `level`    | One word per concept — split into the sub-passes below, one session each, in order.                                                                                |      |
 
-`tools/` is self-contained (never imported by the game) — review separately if at all.
+R3 sub-passes:
 
-**Two deferred renames** ride these batches, both left by the two-layer ECS restructure: the legacy `world` store identifiers (system params, `this.world` bindings) become `entities` — the canonical handle for a level's `Entity` store — and a scene's `LevelGrid` handle `.level` — which now misreads as "the Level" — becomes `.grid`. Both legacy names are grandfathered: rename only in a file the batch is already touching, in whichever batch owns the call sites. GMRT codegen is name-sensitive (GMRT.md → Differences from ES2020, the `var` built-in-name collision), so run the game after a rename batch, never compile alone; the same applies to any API Naming rename (CLAUDE.md → API Naming).
+- **R3a** — the ubiquitous `scene` handle for a `Level` instance (locals, params, fields).
+- **R3b** — `openScene`/`teardownScene`/`SceneRegistry`/`SCENES` take their `level` forms.
+- **R3c** — `SceneTransition` becomes `LevelTransition` (a script asset — CLAUDE.md → Resourcetool).
+- **R3d** — the obj_game `scenes` alias drops for direct `World.levels` reads; CLAUDE.md's `game.scenes.current.world` debugging example updates with it.
+- **R3e** — `RpgScene` gets a name for what it holds; `RpgLevel` is taken by the grid builder, itself misreading once `.level` is `.grid` — settle the pair in one session.
+
+The `scene*` script-asset prefix stays (CLAUDE.md → Script Naming).
 
 ### Comment Refactor
 
-Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). Per file:
+Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). One sweep per rule — each is greppable and mechanical. Mark Done as sweeps land.
 
-1. **Relocate before deleting**: a comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
-2. **Headers**: collapse to ≤2 lines + pointer. Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.
-3. **Invariants**: replace every re-explanation with the one-line citation form (law 5); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when".
-4. **JSDoc**: keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose; opts-struct factories to one prose block.
-5. **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+| #   | Sweep     | Rule                                                                                                                                                                                             | Done |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| C1  | Citations | Replace every quirk/invariant re-explanation with the one-line citation form (law 5); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when". |      |
+| C2  | Headers   | Collapse to ≤2 lines + pointer (law 3). Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.                              |      |
+| C3  | JSDoc     | Keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose (law 4); opts-struct factories to one prose block.                                                   |      |
 
-### Rename
+Two laws bind every sweep:
+
+- **Relocate before deleting**: a comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
+- **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+
+### Code Review (file-by-file)
+
+Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code; each batch is review-only — the renames and comment sweeps land first. Mark Done as batches finish.
+
+| #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                         | Done |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | ------------------------------------------------------------------------------------------------- | ---- |
+| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`) — everything sits on these |      |
+| 2   | ECS heart              | Core/Component, Core/Entity, Core/World                                                                |    24 |  1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `SceneRegistry` (Demo)     |      |
+| 3   | Systems + levels       | Core/System, Core/Level                                                                                |    25 |  2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones                                                    |      |
+| 4   | Camera + input         | Core/Camera, Core/Input                                                                                |    10 |  1,072 | Small, self-contained                                                                             |      |
+| 5   | Renderer               | Core/Render                                                                                            |    16 |  2,009 | `RenderMesh` queries the `Light` token (Gameplay)                                                 |      |
+| 6   | UI infra               | Core/UI                                                                                                |    13 |  1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge     |      |
+| 7   | UI widgets             | Core/UI/Element (plain widgets)                                                                        |   ~14 | ~2,800 | Half of the biggest folder                                                                        |      |
+| 8   | UI singletons          | Core/UI/Element (heavy singletons)                                                                     |   ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges                                                 |      |
+| 9   | GemsUI kit             | GemsUI                                                                                                 |     4 |  1,588 | Theme + the three factory buckets                                                                 |      |
+| 10  | Gameplay: economy      | Items, Inventory, Equipment, Crafting, Trade                                                           |   ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge      |      |
+| 11  | Gameplay: simulation   | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest |   ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly         |      |
+| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgScene`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                            |      |
+| 13  | Demo scenes            | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game`                                      |    19 |  6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish                               |      |
+| 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                             |      |
+
+`tools/` is self-contained (never imported by the game) — review separately if at all.
+
+### Media Rename
 
 Media names predating CLAUDE.md → Media Asset Naming are grandfathered — never rename as a sweep; migrate one only when already touching it (mechanics: CLAUDE.md → Resourcetool). The set: the UI glyphs/lobby art (`spr_check`/`spr_play`/`spr_uibox`/…), unused spare icons (`spr_apple`), the `spr_fenceSquare`/`spr_fenceRound` sheets, and the `spr_tile16`/`spr_tilecornerRough` autotile sets.
 
