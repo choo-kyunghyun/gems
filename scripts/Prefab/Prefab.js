@@ -1,19 +1,5 @@
-// Reusable mini-layout a generator stamps into a world — Core/Level machinery, content-free
-// (the RPG's defs live in RpgPrefabs, Demo/Content; registration mirrors Item/Rarity).
-// A def is a cols×rows footprint + up to four LOCAL-coord channels (all optional):
-//   walls   [[lx,ly,w,h]...]                            bare collide-only rects (chunk output;
-//                                                       apply() makes kinematic colliders)
-//   tiles   [{ layer, type, rects: [[lx,ly,w,h]...] }]  tile writes into a NAMED TileLayer —
-//                                                       rendered walls/floors (type = the layer's
-//                                                       cell value, e.g. a TileType)
-//   zones   [{ channel, name?, tags?, data?, rects }]   a zone region painted into a named
-//                                                       ZoneMap channel (one zone per entry)
-//   spawns  [{ lx, ly, ...opaque }]                     entity descriptors — shape is consumer-
-//                                                       defined (e.g. RpgSpawn's), Core never reads it
-// register() fail-fast validates every channel against the footprint (an out-of-footprint rect
-// would silently break a generator's seam-margin guarantee). stamp() translates local→absolute;
-// apply() writes the Core-expressible channels into a level grid + entity store.
-// Registry uses index-loops (no Map-iterator for-of — crashes GMRT).
+// Reusable mini-layout a generator stamps into a world — Core/Level machinery, content-free (the
+// RPG's defs live in RpgPrefabs). Def shape is the PrefabDef typedef; the API is on the class below.
 
 /**
  * @typedef {Object} PrefabTiles
@@ -48,6 +34,15 @@
  * @property {number} ox         absolute cell offset of the prefab origin
  * @property {number} oy
  * @property {Object<string, TileLayer>} [layers] named TileLayer map the def's tiles refer to
+ */
+/**
+ * A def (PrefabDef) is a cols×rows footprint + up to four LOCAL-coord channels, all optional: `walls`
+ * bare collide-only rects (apply() makes kinematic colliders), `tiles` writes into a NAMED TileLayer,
+ * `zones` regions painted into a named ZoneMap channel, and `spawns` entity descriptors whose shape is
+ * consumer-defined (Core never reads them). register() fail-fast validates every channel against the
+ * footprint (an out-of-footprint rect would silently break a generator's seam-margin guarantee).
+ * stamp() translates local→absolute; apply() writes the Core-expressible channels into a level grid +
+ * entity store. Registry uses index-loops (no Map-iterator for-of — crashes GMRT).
  */
 globalThis.Prefab = class Prefab {
   /** @param {PrefabDef} def */

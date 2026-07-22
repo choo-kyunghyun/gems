@@ -1,6 +1,5 @@
-// Radar — top-down blip view of a store around a target, immediate-mode (reads it live).
-// Entities within `range` colored by the first matching rule in `rules`; target gets a facing notch.
-// A rule is { has, color }: `has` is a COMPONENT TOKEN — the entity blips when it has that component.
+// Radar — top-down blip view of a store around a target, immediate-mode (reads live). Entities within
+// `range` colored by the first matching rule (`{ has: component token, color }`); target gets a notch.
 /** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
   /** @param {Object} [m] { entities, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */

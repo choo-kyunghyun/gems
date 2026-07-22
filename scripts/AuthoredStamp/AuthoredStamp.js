@@ -1,13 +1,13 @@
-// Authored-overlay GEN PASS for a ChunkGenerator — chunks inside the authored bounding box take
-// their walls/spawns from hand-built level data (indexed per chunk at construction) instead of
-// procedural content: the pass pushes the chunk's authored content and sets `ctx.authored = true`,
-// which the procedural passes (PrefabStamp, scatters) respect by early-outing. Suppression is by
-// BBOX (chunk-coord extent of all authored content), not per-chunk presence, so the hub area
-// stays procedural-free even where sparse. Terrain is untouched — the biome field paints the
-// same continuous ground under authored and wild chunks alike.
-//
-// Run this FIRST in the pass list (draws no rng — its salt is unused). Replaces the old
-// ChunkSource routing layer: the overlay is now just another pass in the one generator.
+// Authored-overlay GEN PASS for a ChunkGenerator — chunks inside the authored bounding box take their
+// walls/spawns from hand-built level data instead of procedural content. Contract on the class below.
+/**
+ * The pass pushes the chunk's authored content (indexed per chunk at construction) and sets
+ * `ctx.authored = true`, which the procedural passes (PrefabStamp, scatters) respect by early-outing.
+ * Suppression is by BBOX (chunk-coord extent of all authored content), not per-chunk presence, so the
+ * hub area stays procedural-free even where sparse. Terrain is untouched — the biome field paints the
+ * same continuous ground under authored and wild chunks alike. Run this FIRST in the pass list (draws
+ * no rng — its salt is unused).
+ */
 globalThis.AuthoredStamp = class AuthoredStamp {
   /**
    * @param {Object} opts

@@ -1,7 +1,9 @@
-// render-interpolation bookkeeping.
-// snapshot: call at TOP of each tick before any system moves Position.
-// lerp: shared formula for all render passes — PrevPosition + (Position-PrevPosition)*alpha.
-// only movers get PrevPosition; static bodies fall back to raw Position.
+// Render-interpolation bookkeeping — snapshot() at the TOP of each tick (before any system moves
+// Position); lerp() is the shared render formula. Contract on the declaration below.
+/**
+ * lerp: PrevPosition + (Position - PrevPosition) * alpha, shared by all render passes. Only movers get
+ * PrevPosition; static bodies fall back to raw Position.
+ */
 globalThis.InterpolationSystem = {
   /** @param {Entity} entities */
   snapshot(entities) {

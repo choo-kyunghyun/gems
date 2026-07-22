@@ -1,6 +1,5 @@
-// 6DOF spectator "noclip" camera (debug). Layered onto an existing Camera — the follow camera
-// delegates here while freeCam is on, seeding from the live follow view (no second handle).
-// WASD+Space/Shift translate, Q/E roll, RMB+mouse yaw/pitch. Uses Time.raw (clock split) so the free-fly moves while the sim is paused.
+// 6DOF spectator "noclip" camera (debug) — layered onto an existing Camera (the follow camera delegates
+// here while freeCam is on). WASD/Space/Shift move, Q/E roll, RMB yaw/pitch; on Time.raw (clock split).
 
 globalThis.CameraFly = {
   /**

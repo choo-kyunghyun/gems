@@ -1,6 +1,5 @@
-// ECS glue over MotionPlanner. flow: add PathRequest → update resolves → current/advance walk
-// waypoints → invalidate on grid change. The grid is wired via MotionPlanner.setGrid (RpgMap
-// points it at the per-map NavGrid window once per map).
+// ECS glue over MotionPlanner — add PathRequest → update resolves → current/advance walk waypoints →
+// invalidate on grid change. Grid wired via MotionPlanner.setGrid (RpgMap points it at the per-map NavGrid).
 globalThis.PathfindingSystem = {
   /** drop all responses so stale paths re-plan after a grid change. @param {Entity} entities */
   invalidate(entities) {

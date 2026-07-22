@@ -1,6 +1,5 @@
-// on-screen keyboard for gamepad/mouse text entry into a UIInput. standalone singleton.
-// keys are gemsButtons, so the whole grid is UINav-navigable for free. edits an in-memory buffer:
-// Done commits (setValue + onConfirm), Cancel/Esc/backdrop discard — the field is untouched until Done.
+// On-screen keyboard for gamepad/mouse text entry into a UIInput — standalone singleton. Keys are
+// gemsButtons (UINav-navigable); edits an in-memory buffer — Done commits, Cancel/Esc/backdrop discard.
 globalThis.VirtualKeyboard = {
   /** @type {UIModal|null} */
   _modal: null,

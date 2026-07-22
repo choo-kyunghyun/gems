@@ -1,9 +1,11 @@
-// the app's one menu: a near-fullscreen multi-tabbed overlay (standalone singleton, not
-// UIComponent) that pauses ALL game + behind-UI logic while open. owns the gameplay pause + nav.
-// pause is global: obj_game skips level.step() while isOpen(), and the menu forces Time.scale=0
-// each frame (menu itself runs on Time.raw). UIModal blocks the underlying UI.
-// open triggers: F1 anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware
-// (level.handleEscape() gets first refusal). a level opts into gameplay pause/nav via this.gameplay.
+// The app's one menu — a near-fullscreen multi-tabbed overlay (standalone singleton) that pauses ALL
+// game + behind-UI logic while open. Owns the gameplay pause + nav. Contract on the declaration below.
+/**
+ * Pause is global: obj_game skips level.step() while isOpen(), and the menu forces Time.scale=0 each
+ * frame (the menu itself runs on Time.raw). UIModal blocks the underlying UI. Open triggers: F1
+ * anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware (level.handleEscape()
+ * gets first refusal). A level opts into gameplay pause/nav via this.gameplay.
+ */
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)

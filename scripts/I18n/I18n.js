@@ -1,7 +1,5 @@
-// Localization registry. load(manifest) reads a locale's manifest.json (text masks → flat
-// key→string, fonts/images/sounds by role key) into the Maps below. text()/textRef() resolve
-// strings (textRef is a live () => string for UI labels). obj_game loads the boot locale; a
-// language switch reloads.
+// Localization registry — load(manifest) reads a locale's manifest.json (text masks + fonts/images/
+// sounds by role) into the Maps below; text()/textRef() resolve strings (textRef is a live () => string).
 globalThis.I18n = {
   /** @type {Map<string,string>} */ texts: new Map(),
   /** @type {Map<string,number>} */ fonts: new Map(),

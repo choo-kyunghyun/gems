@@ -1,7 +1,5 @@
-// shared widget primitives — draw glyphs (arrow/check/outline/bar), draw-state save/restore,
-// and the small update-time idioms every widget repeats (font/text resolution, pointer-side
-// latch, contain fit, flexpanel self-size). One home so the affordances can't drift apart.
-// in Core (not Utils) since GemsUI's widgets depend on Core.
+// Shared widget primitives — glyph draws (arrow/check/outline/bar), draw-state save/restore, and the
+// update-time idioms every widget repeats (font/text, pointer latch, contain fit, self-size). One home.
 
 /**
  * filled triangle pointing `dir`, centered at (cx, cy), half-size `h`. draw_triangle_color

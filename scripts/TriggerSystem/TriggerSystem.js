@@ -1,6 +1,5 @@
-// detection only — fills Collision.hits for sensors/pickups/triggers. no resolution.
-// solid-vs-solid pairs skipped (handled by SolidSystem/SeparationSystem).
-// O(n) via entities.broadphase (cellSize > max entity diameter), else O(n²).
+// Detection only — fills Collision.hits for sensors/pickups/triggers (no resolution); solid-vs-solid
+// pairs skipped (SolidSystem/SeparationSystem handle those). O(n) via entities.broadphase, else O(n²).
 globalThis.TriggerSystem = {
   /** @param {Entity} entities */
   update(entities) {

@@ -1,7 +1,9 @@
-// streamed terrain pass: ground checker + wall rects per chunk, dimmed snapshots for LOAD-ring
-// frozen entities. insert BEFORE entity passes so ground sits under everything.
-// active set is bounded by loadRadius so no view culling is needed.
-// @implements {RenderPass}
+// Streamed terrain pass — ground checker + wall rects per chunk, plus dimmed snapshots for LOAD-ring
+// frozen entities. Insert BEFORE entity passes so ground sits under everything.
+/**
+ * The active set is bounded by loadRadius, so no view culling is needed.
+ * @implements {RenderPass}
+ */
 globalThis.RenderChunks = class RenderChunks {
   constructor(chunks, opt = {}) {
     this.enabled = true;

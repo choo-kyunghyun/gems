@@ -1,10 +1,13 @@
-// THE canonical pointer FSM (hover/press/release-inside-commit). Fires the callbacks and
-// mirrors its state into the host's `element.state` blackboard (hover/held/clicked — see the
-// UIState typedef in UIElement) so sibling components can react without knowing who computed it.
-// Used two ways: standalone as a component (a bare `new UITrigger({})` is a click swallower),
-// and as the internal delegate every clickable widget (UIButton/UICheckbox/UISelect/…) runs
-// instead of cloning this logic. UIButton is the themed variant (adds easing + disabled/selected).
-/** @implements {UIComponent} */
+// THE canonical pointer FSM (hover/press/release-inside-commit) — fires callbacks and mirrors its
+// state into the host's `element.state` blackboard. Contract on the class below.
+/**
+ * Mirrors hover/held/clicked into `element.state` (see the UIState typedef in UIElement) so sibling
+ * components can react without knowing who computed it. Used two ways: standalone as a component (a
+ * bare `new UITrigger({})` is a click swallower), and as the internal delegate every clickable widget
+ * (UIButton/UICheckbox/UISelect/…) runs instead of cloning this logic. UIButton is the themed variant
+ * (adds easing + disabled/selected).
+ * @implements {UIComponent}
+ */
 globalThis.UITrigger = class UITrigger {
   /** @param {Object} [trigger] { block, onEnter, onHover, onLeave, onDown, onUp, onClick } */
   constructor(trigger = {}) {

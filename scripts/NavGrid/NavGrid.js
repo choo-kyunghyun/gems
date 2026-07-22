@@ -1,17 +1,18 @@
-// Windowed cost grid for pathfinding over the chunk-streamed overworld: adapts the LIVE store
-// colliders (blocked) plus an injected terrain-cost sampler (weighted ground — see constructor)
-// into MotionPlanner's MotionPlanningGrid interface, in ABSOLUTE level-cell coords over a small
-// fixed window re-centered on the agent each frame.
-//
-// why a window: obstacles aren't tile data — terrain/walls/border exist only as kinematic-solid
-// collider ENTITIES (and on a chunked map only nearby chunks are loaded). one bounded grid
-// unifies every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE
-// while only occupancy/origin change per frame. This is the ONE live nav source — the tile
-// layers' costs (LevelGrid.costAt) feed only the debug cost shading.
-//
-// coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
-// buffer, so paths come back in absolute cells. GMRT-safe: for-of over the entities.query ARRAY is
-// fine (only Map/Set iterators break).
+// Windowed cost grid for pathfinding over the chunk-streamed overworld — adapts the LIVE store
+// colliders + an injected terrain-cost sampler into MotionPlanner's grid interface. Contract below.
+/**
+ * A small fixed window re-centered on the agent each frame, in ABSOLUTE level-cell coords.
+ *
+ * Why a window: obstacles aren't tile data — terrain/walls/border exist only as kinematic-solid
+ * collider ENTITIES (and on a chunked map only nearby chunks are loaded). One bounded grid unifies
+ * every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE while only
+ * occupancy/origin change per frame. This is the ONE live nav source — the tile layers' costs
+ * (LevelGrid.costAt) feed only the debug cost shading.
+ *
+ * Coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
+ * buffer, so paths come back in absolute cells. GMRT-safe: for-of over the entities.query ARRAY is
+ * fine (only Map/Set iterators break).
+ */
 globalThis.NavGrid = class NavGrid {
   // `costAt` (optional): (wx, wy) → terrain movement cost (1 = easy, >1 = rough, Infinity =
   // impassable) sampled per cell so MotionPlanner weights routes (it multiplies step distance by

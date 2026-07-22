@@ -1,6 +1,5 @@
-// Hover-to-show tooltip; feeds the global Tooltip renderer once dwell passes `delay`.
-// Add it as the FIRST component (gemsTooltip does, index 0) so a sibling UIButton's
-// `block` while hovered doesn't suppress the very tooltip describing it.
+// Hover-to-show tooltip — feeds the global Tooltip renderer once dwell passes `delay`. Add it as the
+// FIRST component (gemsTooltip does, index 0) so a sibling's `block` doesn't suppress its own tooltip.
 /** @implements {UIComponent} */
 globalThis.UITooltip = class UITooltip {
   /** @param {Object} [tooltip] { label: string | () => string, delay: seconds } */

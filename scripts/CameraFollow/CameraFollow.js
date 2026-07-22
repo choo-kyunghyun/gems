@@ -1,6 +1,5 @@
-// Shared follow onUpdate (assigned as Camera.onUpdate, `this` = camera). Tracks surface size
-// so resolution changes rebuild the view extent immediately — view is driven by matrix, not GM's
-// 2D view-size API. Zoom shrinks/grows the ortho extent; followZoom eases toward followZoomTarget.
+// Shared follow onUpdate (assigned as Camera.onUpdate, `this` = camera) — tracks surface size so a
+// resolution change rebuilds the view extent (view is matrix-driven, not GM's 2D view-size API).
 /** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
 function _cameraFollowOnUpdate() {
   // read each mouse query once per frame and share (the poll-once rule — UIPointer)

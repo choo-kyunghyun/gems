@@ -1,8 +1,10 @@
-// Combobox field — opens a popup list to pick (vs UISelect's in-place `< >` cycle), the
-// better fit for many options. Owns only the closed field + selection; the popup is built
-// by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic (gemsDropdown
-// supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
-/** @implements {UIComponent} */
+// Combobox field — opens a popup list to pick (vs UISelect's in-place `< >` cycle), the better fit
+// for many options. Owns only the closed field + selection. Contract on the class below.
+/**
+ * The popup is built by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic
+ * (gemsDropdown supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
+ * @implements {UIComponent}
+ */
 globalThis.UIDropdown = class UIDropdown {
   /** @param {Object} [dd] { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
   constructor(dd = {}) {

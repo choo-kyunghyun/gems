@@ -1,18 +1,20 @@
-// The level lifecycle manager — a `World` sub-module, held as `World.levels`. There is NO level
-// stack: every live level sits in a FLAT collection with ONE active pointer, and `switchTo()` is
-// the single transition. Switching away from a level either DESTROYS it (plain navigation —
-// lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its entities/state stay
-// untouched in the collection) to be thawed by `back()` — the guest-minigame path (the RPG's
-// arcade cabinet), which also hands the guest's result() to the switch's onResult. One kept
-// level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
-//
-// REGISTRY (was Universe): a flat mapId -> entry index of every RESIDENT map — THE map pool
-// (there is no level-side pool anymore). An entry is opaque to Core except for { entities, grid }:
-// RpgMap registers a minimal pair at build and overwrites it with its full park bundle at each
-// suspend, so parked worlds live here. take/put/transfer move a WHOLE entity (all components,
-// via EntitySnapshot) between two resident maps' stores — the portal-squad + wandering-trader
-// path. Registry `reset()` drops the index (map-pool teardown; the owner frees the stores
-// first); it is INDEPENDENT of the level collection (destroy() tears that down).
+// The level lifecycle manager — a `World` sub-module, held as `World.levels`. Flat level collection +
+// active pointer + the resident-map registry (the map pool). Contract on the class below.
+/**
+ * There is NO level stack: every live level sits in a FLAT collection with ONE active pointer, and
+ * `switchTo()` is the single transition. Switching away either DESTROYS the level (plain navigation —
+ * lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its entities/state stay
+ * untouched) to be thawed by `back()` — the guest-minigame path (the RPG's arcade cabinet), which
+ * also hands the guest's result() to the switch's onResult. One kept level at a time (no nesting —
+ * fail fast).
+ *
+ * REGISTRY: a flat mapId -> entry index of every RESIDENT map — THE map pool (no level-side pool). An
+ * entry is opaque to Core except for { entities, grid }: RpgMap registers a minimal pair at build and
+ * overwrites it with its full park bundle at each suspend, so parked worlds live here. take/put/transfer
+ * move a WHOLE entity (all components, via EntitySnapshot) between two resident maps' stores — the
+ * portal-squad + wandering-trader path. Registry `reset()` drops the index (map-pool teardown; the
+ * owner frees the stores first); it is INDEPENDENT of the level collection (destroy() tears that down).
+ */
 globalThis.LevelManager = class LevelManager {
   constructor() {
     // ── flat level collection ──

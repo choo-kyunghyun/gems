@@ -1,9 +1,10 @@
-// Themed button behavior over the shared UITrigger FSM (the internal `_fsm` delegate runs the
-// hover/press/commit logic and writes element.state) — this component adds the theming: eases
-// panel color/border/shadow on Time.raw (the clock split),
-// greys the label, and supports live disabled + selected predicates (written to
-// element.state.disabled/selected for any sibling reader).
-/** @implements {UIComponent} */
+// Themed button behavior over the shared UITrigger FSM (the `_fsm` delegate runs hover/press/commit
+// and writes element.state). This component adds the theming. Contract on the class below.
+/**
+ * Eases panel color/border/shadow on Time.raw (the clock split), greys the label, and supports live
+ * disabled + selected predicates (written to element.state.disabled/selected for any sibling reader).
+ * @implements {UIComponent}
+ */
 globalThis.UIButton = class UIButton {
   /** @param {Object} [btn] see field defaults below for the accepted options */
   constructor(btn = {}) {

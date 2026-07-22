@@ -1,6 +1,5 @@
-// Logging utility for verifying behavior from text. Buffers lines in memory; flush()
-// rewrites the whole file (File.write has no append) only when dirty, so an idle game
-// doesn't rewrite every step.
+// Logging utility for verifying behavior from text. Buffers lines in memory; flush() rewrites the whole
+// file (File.write has no append) only when dirty, so an idle game doesn't rewrite every step.
 globalThis.Log = {
   PATH: "game.log",
   max: 5000, // ring cap: oldest lines drop so a long run can't grow unbounded

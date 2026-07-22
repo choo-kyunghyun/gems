@@ -1,7 +1,9 @@
-// Shared vertical scrollbar model — the track/thumb geometry, drag latch, and two-roundrect
-// draw used by both UIScroll (pixel scrolling) and UITable (row scrolling). NOT a UIComponent:
-// the host widget owns when it runs; this owns only the bar. The host maps the normalized
-// t ∈ [0,1] returned by input() onto its own scroll unit (px or rows).
+// Shared vertical scrollbar model — the track/thumb geometry, drag latch, and two-roundrect draw used
+// by UIScroll (pixel) and UITable (rows). NOT a UIComponent. Contract on the class below.
+/**
+ * The host widget owns when it runs; this owns only the bar. The host maps the normalized t ∈ [0,1]
+ * returned by input() onto its own scroll unit (px or rows).
+ */
 globalThis.UIScrollbar = class UIScrollbar {
   /** @param {Object} [s] { barW, minThumb, trackColor, trackAlpha, thumbColor, thumbHover } */
   constructor(s = {}) {

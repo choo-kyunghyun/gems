@@ -1,8 +1,10 @@
-// Key-rebind row: click → "press a key…" capture mode → next press rebinds the action's
-// first button (Esc/click cancels). Mutates the InputAction in place so every consumer
-// picks up the new key. Keyboard only; mouse/gamepad bindings show read-only via label().
-// GMRT: capture state is an instance field read live (no cached bool — clobber, see CLAUDE.md).
-/** @implements {UIComponent} */
+// Key-rebind row: click → "press a key…" capture → next press rebinds the action's first button
+// (Esc/click cancels). Mutates the InputAction in place so every consumer picks up the new key.
+/**
+ * Keyboard only; mouse/gamepad bindings show read-only via label(). GMRT: capture state is an instance
+ * field read live (no cached bool — clobber, see CLAUDE.md).
+ * @implements {UIComponent}
+ */
 globalThis.UIRebind = class UIRebind {
   /** @param {Object} [s] { actionKey, prompt: string | () => string, onRebind, color, captureColor, font, rad } */
   constructor(s = {}) {

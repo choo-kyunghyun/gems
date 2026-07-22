@@ -1,9 +1,9 @@
-// SlotDrag — shared drag-and-drop state for UISlots grids. Singleton, not a UIComponent.
-// begin() picks up on the press edge, hover() records the drop target each frame, update()
-// resolves on release. The target is PERSISTED, so a small drift off the slot at button-up
-// still drops.
-// Pointer edges come from UIPointer (frame-latched) — never mouse_check_button* directly
-// (the poll-once rule — UIPointer).
+// SlotDrag — shared drag-and-drop state for UISlots grids (singleton, not a UIComponent): begin()
+// picks up on press, hover() records the target, update() resolves on release. Contract below.
+/**
+ * The target is PERSISTED, so a small drift off the slot at button-up still drops. Pointer edges come
+ * from UIPointer (frame-latched) — never mouse_check_button* directly (the poll-once rule — UIPointer).
+ */
 globalThis.SlotDrag = {
   active: false,
   source: null, // the UISlots the item came from

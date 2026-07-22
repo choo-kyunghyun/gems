@@ -1,25 +1,5 @@
-// The procedural-generation FRAME — Renderer:RenderPass :: ChunkGenerator:gen pass. An ordered
-// list of passes builds one chunk's output over a shared context; the terrain base comes from a
-// composed `field` (TerrainField-like sampler), so the frame satisfies the full generator contract
-// ChunkManager consumes (generate + palette + materialAt/costAt/terrain/solidTerrain). Content-
-// free: a game composes it with its field + passes (the RPG's composition is `OverworldGen.create`).
-//
-// A PASS is `{ salt?, apply(ctx) }` or a bare `function(ctx)` (wrapped on insert, like Pipeline).
-// ctx = { gen, field, cx, cy, gx0, gy0, cols, rows, rng, authored, out: { walls, spawns } } — a
-// pass reads the field and pushes ABSOLUTE-coord walls/spawns into `out`. `authored` starts false;
-// an overlay pass (AuthoredStamp) sets it to claim the chunk as hand-built, and procedural passes
-// (PrefabStamp, scatters) respect the claim by early-outing.
-//
-// Determinism: each pass draws from its OWN stream, seeded from (cx, cy, seed, pass salt) — so
-// the same seed lays out the same world on every BUILD — in-session visits are served from the
-// manager's pregenerated store (ChunkManager.pregenerate), but a SAVE keeps only the touched-chunk
-// delta, so every untouched chunk must regenerate identically in a later session, and adjacent
-// chunks must agree at their seam — AND inserting/removing a pass never reshuffles the other
-// passes' output (streams are independent, unlike one shared per-chunk stream). Declare `salt`
-// (any small int, unique per pass) for that stability — an undeclared salt falls back to the
-// pass INDEX, which re-couples streams to list order.
-//
-// GMRT-safe: index loops, class on globalThis.
+// The procedural-generation FRAME — Renderer:RenderPass :: ChunkGenerator:gen pass. Content-free: a
+// game composes it with a field + passes. Pass/ctx/determinism contract on the declaration below.
 
 // seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
 // (cx, cy, seed) draws an independent sequence with no shared global-stream state.
@@ -35,6 +15,25 @@ function _stream(cx, cy, seed) {
  * @typedef {Object} GenPass
  * @property {number} [salt]  per-pass stream salt — declare a unique int for order-stable streams
  * @property {function(Object): void} apply  builds into ctx.out
+ */
+/**
+ * A PASS is `{ salt?, apply(ctx) }` (a GenPass) or a bare `function(ctx)` (wrapped on insert, like
+ * Pipeline). An ordered list of passes builds one chunk's output over a shared context; the terrain
+ * base comes from a composed `field` (TerrainField-like sampler), so the frame satisfies the full
+ * generator contract ChunkManager consumes (generate + palette + materialAt/costAt/terrain/solidTerrain).
+ *
+ * ctx = { gen, field, cx, cy, gx0, gy0, cols, rows, rng, authored, out: { walls, spawns } } — a pass
+ * reads the field and pushes ABSOLUTE-coord walls/spawns into `out`. `authored` starts false; an
+ * overlay pass (AuthoredStamp) sets it to claim the chunk as hand-built, and procedural passes
+ * (PrefabStamp, scatters) respect the claim by early-outing.
+ *
+ * Determinism: each pass draws from its OWN stream, seeded from (cx, cy, seed, pass salt) — so the
+ * same seed lays out the same world on every BUILD (a SAVE keeps only the touched-chunk delta, so
+ * every untouched chunk must regenerate identically, and adjacent chunks must agree at their seam),
+ * AND inserting/removing a pass never reshuffles the other passes' output. Declare `salt` (any small
+ * int, unique per pass) for that stability — an undeclared salt falls back to the pass INDEX, which
+ * re-couples streams to list order.
+ * GMRT-safe: index loops, class on globalThis.
  */
 globalThis.ChunkGenerator = class ChunkGenerator {
   /**

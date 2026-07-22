@@ -1,7 +1,10 @@
-// Keyed JSON persistence — Settings without the defaults allowlist. Backs Profile and
-// Achievement. Serializes with GML json_stringify (a JS object IS a GML struct — the interop
-// workaround for JS JSON.stringify's nested-value fault, see docs/GMRT.md), so a value may nest
-// (objects/arrays), not just scalars. No asset refs / cycles here — use the Json codec for those.
+// Keyed JSON persistence — Settings without the defaults allowlist. Backs Profile and Achievement.
+// Contract on the declaration below.
+/**
+ * Serializes with GML json_stringify (a JS object IS a GML struct — the interop workaround for JS
+ * JSON.stringify's nested-value fault, see docs/GMRT.md), so a value may nest (objects/arrays), not
+ * just scalars. No asset refs / cycles here — use the Json codec for those.
+ */
 globalThis.SaveData = {
   PATH: "save.json",
   _data: {},

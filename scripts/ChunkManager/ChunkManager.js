@@ -1,38 +1,40 @@
-// Chunk-streaming engine: windows a large/infinite world around a moving center so the store
-// only holds entities near the player. Takes a `generator` (content provider — a ChunkGenerator,
-// or anything matching the contract below) plus an injected `opts.spawn` adapter for descriptors,
-// and drives EntitySnapshot capture/restore as chunks cross the rings.
-//
-// two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
-//   d <= simRadius              → SIM:  entities live in the store, walls have colliders, sims + renders.
-//   simRadius < d <= loadRadius → LOAD: walls drawn (no colliders). entities are held as frozen
-//                                       EntitySnapshots ONCE they've been sim'd (drawn statically by
-//                                       RenderChunks); a chunk not yet reached keeps only dormant
-//                                       spawn DESCRIPTORS and does no store work until it promotes.
-//   d > loadRadius              → UNLOADED: the WHOLE record (terrain/walls/spawns/snapshots) is
-//                                       parked in an in-session cache, restored on return — so a
-//                                       revisit never re-runs generate() and modified entities persist.
-//
-// pregenerate() (finite worlds) generates EVERY in-bounds chunk into that cache at map build,
-// making the cache the world STORE: mid-game streaming is then pure load/unload — generate()
-// never runs during play, and materialAt/costAt read stored terrain instead of re-sampling
-// noise (TerrainStream apron, NavGrid weights, PathFollow pricing). A non-pregenerated chunk
-// still generates lazily on first load (a fallback, unamortized — the old load queue existed to
-// spread noise-heavy generates over frames, which pregeneration made moot).
-//
-// the squad (player + hired companions) is never chunk-managed — only chunk-spawned content + terrain colliders.
-//
-// generator contract (ChunkGenerator satisfies it):
-//   generator.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
-//                                   solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects, e.g. water — not drawn),
-//                                   spawns: [descriptor...],            (deterministic per cx,cy)
-//                                   terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
-//   generator.palette  (field, optional) — material table (pathCost per id; costAt + TerrainStream)
-//   generator.materialAt / costAt (optional) — pure samplers, the out-of-store fallback
-//   opts.spawn(entities, grid, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
-//     RpgSpawn.spawnEntity); required only when chunks carry spawns
-//
-// GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
+// Chunk-streaming engine: windows a large/infinite world around a moving center so the store only
+// holds entities near the player. Model + generator contract on the ChunkManager declaration below.
+/**
+ * Takes a `generator` (content provider — a ChunkGenerator, or anything matching the contract below)
+ * plus an injected `opts.spawn` adapter for descriptors, and drives EntitySnapshot capture/restore as
+ * chunks cross the rings.
+ *
+ * two-ring sim-LOD (Chebyshev chunk distance from the player's chunk):
+ *   d <= simRadius              → SIM:  entities live in the store, walls have colliders, sims + renders.
+ *   simRadius < d <= loadRadius → LOAD: walls drawn (no colliders). entities are held as frozen
+ *                                       EntitySnapshots ONCE they've been sim'd (drawn statically by
+ *                                       RenderChunks); a chunk not yet reached keeps only dormant
+ *                                       spawn DESCRIPTORS and does no store work until it promotes.
+ *   d > loadRadius              → UNLOADED: the WHOLE record (terrain/walls/spawns/snapshots) is
+ *                                       parked in an in-session cache, restored on return — so a
+ *                                       revisit never re-runs generate() and modified entities persist.
+ *
+ * pregenerate() (finite worlds) generates EVERY in-bounds chunk into that cache at map build, making
+ * the cache the world STORE: mid-game streaming is then pure load/unload — generate() never runs
+ * during play, and materialAt/costAt read stored terrain instead of re-sampling noise (TerrainStream
+ * apron, NavGrid weights, PathFollow pricing). A non-pregenerated chunk still generates lazily on
+ * first load (a fallback, unamortized).
+ *
+ * The squad (player + hired companions) is never chunk-managed — only chunk-spawned content + terrain
+ * colliders.
+ *
+ * generator contract (ChunkGenerator satisfies it):
+ *   generator.generate(cx, cy) -> { walls: [[gx,gy,wCells,hCells]...]  (ABSOLUTE grid coords),
+ *                                   solid?: [[gx,gy,wCells,hCells]...]  (collide-only rects, e.g. water — not drawn),
+ *                                   spawns: [descriptor...],            (deterministic per cx,cy)
+ *                                   terrain?: Int[]  per-cell material grid (cosmetic; TerrainStream) }
+ *   generator.palette  (field, optional) — material table (pathCost per id; costAt + TerrainStream)
+ *   generator.materialAt / costAt (optional) — pure samplers, the out-of-store fallback
+ *   opts.spawn(entities, grid, descriptor) -> entityId  — the descriptor adapter (e.g. wraps
+ *     RpgSpawn.spawnEntity); required only when chunks carry spawns
+ * GMRT-safe: record maps walked via Object.keys + index loops (no Map/Set iteration).
+ */
 globalThis.ChunkManager = class ChunkManager {
   /**
    * @param {Entity} entities @param {LevelGrid} grid

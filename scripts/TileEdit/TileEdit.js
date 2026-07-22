@@ -1,9 +1,10 @@
-// tile-layer editing service: write cells + keep solid COLLIDERS in sync (meshSolid/remesh).
-// one place for the "edit a solid tile → rebuild colliders" invariant. (There is no nav resync —
-// live pathfinding reads NavGrid, and the debug cost shading computes grid.costAt on demand.)
-//
-// cells store TileType objects (or 0 for empty — Grid.get returns 0, not undefined),
-// so occupancy is a truthy test, never `!== undefined`.
+// Tile-layer editing service: write cells + keep solid COLLIDERS in sync (meshSolid/remesh) — the one
+// place for the "edit a solid tile → rebuild colliders" invariant. Contract on the declaration below.
+/**
+ * There is no nav resync — live pathfinding reads NavGrid, and the debug cost shading computes
+ * grid.costAt on demand. Cells store TileType objects (or 0 for empty — Grid.get returns 0, not
+ * undefined), so occupancy is a truthy test, never `!== undefined`.
+ */
 globalThis.TileEdit = {
   // 0 = empty, TileType = filled — truthy test
   occupied(layer, gx, gy) {

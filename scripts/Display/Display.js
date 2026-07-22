@@ -1,6 +1,5 @@
-// Display / window management: applies the saved display Settings (fullscreen + windowed
-// resolution + fps cap) to the OS window + the application_surface. Used at boot and on a
-// SystemMenu display change. The GUI layer is sized separately by UI.applyScale.
+// Display / window management — applies the saved display Settings (fullscreen + windowed resolution
+// + fps cap) to the OS window + application_surface. Used at boot and on a SystemMenu display change.
 globalThis.Display = {
   // frames to defer a resize after leaving fullscreen — the manual warns window_set_size right after
   // fullscreen→windowed "may not work correctly" unless ≥10 steps later. The caveat does NOT reproduce

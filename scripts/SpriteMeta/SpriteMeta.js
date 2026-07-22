@@ -1,35 +1,35 @@
-// Sprite METADATA registry — the semantic layer GameMaker doesn't store on a GMSprite.
-// A sprite asset carries frames/trim/origin and nothing else; the facts game code needs
-// (what KIND of sheet this is, its art density, its cell size) live here as DECLARED data,
-// keyed by sprite. Declarations are authored by the tool that GENERATED the art (the
-// pixel-art-kit importers emit datafiles/spritemeta/*.json manifests), so they cannot drift
-// from the sheets; hand-authored sprites get hand entries. Supersedes ArtDensity (density
-// is now one field of the def).
-//
-// Def shape (JSON-manifest-safe):
-//   { sprite: "spr_name", kind, density?, cell?, variants?, anchors? }
-//   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read
-//            specific FIELDS, never switch on kind (its value is tooling/validation).
-//   density  source px per world px, default 1 (today's baseline). DECLARED, never inferred:
-//            a 32px cell can mean a denser subject OR a taller one — only the art's author
-//            knows. Divides the DRAW scale only (xscale/yscale = design scale / density);
-//            never touches the BBox. Bake sites: EntityPreset.spawn / RpgPlayer.spawn;
-//            AnimationSystem refits when a graph state swaps sheets.
-//   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
-//   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate
-//            frames for one neighbor mask, so a large field of one terrain doesn't tile
-//            visibly. Only the dual-grid full-cell mask "15" is emitted today, and only
-//            TerrainStream picks from it (position-hashed, so a reloaded chunk re-picks the
-//            same frame); an undeclared sheet falls back to uniform weights past frame 15.
-//   anchors  { name: [[dx, dy], ...] } — named per-frame attachment points as offsets from
-//            the sprite ORIGIN in source px (dy negative = up). Emitted by the humanoid
-//            importer from the segmented parts (handR/head/...); read via anchor() — the
-//            substrate for anchored Appearance layers (a held item icon at the hand).
-//
-// Storage: defs are authored by sprite NAME (string-keyed Map — safe), resolved to asset
-// refs at registration; the draw-time ref lookup is PARALLEL ARRAYS via === identity — a
-// Map keyed by a sprite ref crashes GMRT 0.20 natively at .get ("Bad optional access").
-// A handful of sheets, so the linear scan is nothing.
+// Sprite METADATA registry — the semantic layer GameMaker doesn't store on a GMSprite (kind, art
+// density, cell size), DECLARED per sprite. Def shape + storage on the SpriteMeta declaration below.
+/**
+ * A sprite asset carries frames/trim/origin and nothing else; the facts game code needs live here as
+ * DECLARED data, keyed by sprite. Declarations are authored by the tool that GENERATED the art (the
+ * pixel-art-kit importers emit datafiles/spritemeta/*.json manifests), so they cannot drift from the
+ * sheets; hand-authored sprites get hand entries.
+ *
+ * Def shape (JSON-manifest-safe):
+ *   { sprite: "spr_name", kind, density?, cell?, variants?, anchors? }
+ *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
+ *            FIELDS, never switch on kind (its value is tooling/validation).
+ *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a
+ *            denser subject OR a taller one — only the art's author knows. Divides the DRAW scale only
+ *            (xscale/yscale = design scale / density); never touches the BBox. Bake sites:
+ *            EntityPreset.spawn / RpgPlayer.spawn; AnimationSystem refits when a graph state swaps sheets.
+ *   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
+ *   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate frames for
+ *            one neighbor mask, so a large field of one terrain doesn't tile visibly. Only the
+ *            dual-grid full-cell mask "15" is emitted today, and only TerrainStream picks from it
+ *            (position-hashed, so a reloaded chunk re-picks the same frame); an undeclared sheet falls
+ *            back to uniform weights past frame 15.
+ *   anchors  { name: [[dx, dy], ...] } — named per-frame attachment points as offsets from the sprite
+ *            ORIGIN in source px (dy negative = up). Emitted by the humanoid importer from the
+ *            segmented parts (handR/head/...); read via anchor() — the substrate for anchored
+ *            Appearance layers (a held item icon at the hand).
+ *
+ * Storage: defs are authored by sprite NAME (string-keyed Map — safe), resolved to asset refs at
+ * registration; the draw-time ref lookup is PARALLEL ARRAYS via === identity — a Map keyed by a sprite
+ * ref crashes GMRT 0.20 natively at .get ("Bad optional access"). A handful of sheets, so the linear
+ * scan is nothing.
+ */
 globalThis.SpriteMeta = {
   _byName: new Map(), // sprite name -> def
   _sprites: [], // resolved refs, parallel to _defs

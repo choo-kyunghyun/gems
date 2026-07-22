@@ -1,13 +1,15 @@
-// Generic prefab-stamp GEN PASS for a ChunkGenerator — rolls a chance, weighted-picks a Prefab
-// by scope tag, and stamps it (Prefab.stamp local→absolute) at a random interior offset (margin
-// cells off the chunk border so stamped walls can't merge across a seam). Policy enters via two
-// hooks (the pass itself is content-free — the RPG's policy lives in OverworldGen.create):
-//   spawnFilter(s, field) -> keep this stamped spawn? (default: keep all)
-//   defaultLoot(s, rng)   -> loot array for a spawn that authored none, or undefined to leave it.
-//     Drawn BEFORE the spawnFilter verdict so a filtered-out spawn consumes the same rng draws —
-//     the chunk's remaining placements must not shift.
-// Chunk output carries only walls + spawns, so a tiles/zones-bearing prefab warns once at
-// construction rather than silently dropping channels (apply()-based generators consume those).
+// Generic prefab-stamp GEN PASS for a ChunkGenerator — rolls a chance, weighted-picks a Prefab by
+// scope tag, and stamps it at a random interior offset. Content-free; policy via hooks (see below).
+/**
+ * The interior offset keeps margin cells off the chunk border so stamped walls can't merge across a
+ * seam. Policy enters via two hooks (the RPG's policy lives in OverworldGen.create):
+ *   spawnFilter(s, field) -> keep this stamped spawn? (default: keep all)
+ *   defaultLoot(s, rng)   -> loot array for a spawn that authored none, or undefined to leave it.
+ *     Drawn BEFORE the spawnFilter verdict so a filtered-out spawn consumes the same rng draws — the
+ *     chunk's remaining placements must not shift.
+ * Chunk output carries only walls + spawns, so a tiles/zones-bearing prefab warns once at construction
+ * rather than silently dropping channels (apply()-based generators consume those).
+ */
 globalThis.PrefabStamp = class PrefabStamp {
   /**
    * @param {Object} opts

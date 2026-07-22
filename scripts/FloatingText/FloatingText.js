@@ -1,6 +1,5 @@
-// world-space floating combat numbers (rise + fade). standalone singleton.
-// drawn in WORLD space, so draw() is called from a level's draw() (in camera view), not Draw_75.
-// ages by Time.delta (sim time) not Time.raw — gameplay feedback should slow with time-dilation.
+// World-space floating combat numbers (rise + fade) — standalone singleton, drawn in WORLD space from
+// a level's draw() (in camera view), not Draw_75. Ages by Time.delta (sim time) not Time.raw (clock split).
 globalThis.FloatingText = {
   _items: [], // { x, y, text, color, age, life, rise, scale }
 

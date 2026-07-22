@@ -1,6 +1,5 @@
-// full-screen fade between scenes. standalone singleton (not UIComponent).
-// fade-out → swap level at full cover → fade-in, so the UI rebuild is hidden under the cover.
-// timer uses Time.raw (the clock split).
+// Full-screen fade between scenes — standalone singleton (not UIComponent): fade-out → swap level at
+// full cover → fade-in, so the UI rebuild is hidden under the cover. Timer uses Time.raw (the clock split).
 globalThis.LevelTransition = {
   duration: 0.12, // seconds per direction — short so swaps feel responsive
   color: c_black, // cover color

@@ -1,21 +1,5 @@
 // Palette-driven procedural terrain sampler — the generic, content-free half of a chunk generator
-// (Core, like ChunkManager/NavGrid: the mechanism lives here, a game injects its material table).
-// Every query is a PURE function of absolute cell coords + the seed, so adjacent chunks agree at
-// seams and a chunk regenerates identically every visit (the streaming contract).
-//
-// The PALETTE is an ordered array of material entries — material id = index = painter order
-// (TerrainStream stacks per-material dual-grid layers cumulatively, lowest first):
-//   { id, name?, sprite?, threshold? | ground?, pathCost, spawnable? }
-//   threshold entries FIRST (ascending over the ELEVATION noise channel — e.g. deep water → water
-//     → sand; past the last threshold the cell is land),
-//   then ground entries (ascending over an independent GROUND-detail channel, last one Infinity)
-//     splitting the land — so surface patches vary freely instead of ringing every shoreline as
-//     fixed contour bands (what one shared gradient would do).
-//   pathCost is the weighted movement cost (TileType convention: null → impassable → solidTerrain
-//     meshes it into collide-only rects); spawnable:false bans placement without blocking travel
-//     (wadeable water). sprite/name are consumer data (TerrainStream / debug) — not read here.
-//
-// GMRT-safe: index loops, while (no empty for-initializer), class on globalThis.
+// (a game injects its material table). Palette schema on the TerrainField declaration below.
 
 // value noise in [0,1): smoothstep-interpolated over a hashed integer lattice; pure in
 // (x, y, seed, lattice). Fold a salt into `seed` to draw an independent channel.
@@ -37,6 +21,23 @@ function _noise2(x, y, seed, lattice) {
   return a + (b - a) * ty;
 }
 
+/**
+ * Every query is a PURE function of absolute cell coords + the seed, so adjacent chunks agree at seams
+ * and a chunk regenerates identically every visit (the streaming contract).
+ *
+ * The PALETTE is an ordered array of material entries — material id = index = painter order
+ * (TerrainStream stacks per-material dual-grid layers cumulatively, lowest first):
+ *   { id, name?, sprite?, threshold? | ground?, pathCost, spawnable? }
+ *   threshold entries FIRST (ascending over the ELEVATION noise channel — e.g. deep water → water →
+ *     sand; past the last threshold the cell is land),
+ *   then ground entries (ascending over an independent GROUND-detail channel, last one Infinity)
+ *     splitting the land — so surface patches vary freely instead of ringing every shoreline as fixed
+ *     contour bands (what one shared gradient would do).
+ *   pathCost is the weighted movement cost (TileType convention: null → impassable → solidTerrain
+ *     meshes it into collide-only rects); spawnable:false bans placement without blocking travel
+ *     (wadeable water). sprite/name are consumer data (TerrainStream / debug) — not read here.
+ * GMRT-safe: index loops, while (no empty for-initializer), class on globalThis.
+ */
 globalThis.TerrainField = class TerrainField {
   // opts: { seed, chunkCols, chunkRows, lattice, groundLattice, groundSalt } — lattice = noise
   // blob spacing in cells (bigger = larger regions), groundSalt decorrelates the detail channel.

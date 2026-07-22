@@ -1,6 +1,5 @@
-// timed-notification stack, standalone singleton (not UIComponent).
-// ages by Time.raw (the clock split). newest at bottom, older above.
-// opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent (color override) }
+// Timed-notification stack — standalone singleton (not UIComponent). Ages by Time.raw (the clock
+// split); newest at bottom. opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent }.
 globalThis.Toast = {
   _items: [], // { text, accent, life, age }; oldest first
 

@@ -1,11 +1,14 @@
-// The fixed-step SIMULATION clock — a World sub-module (World.sim). ONE global clock: only the active
-// level is stepped each frame, so a single accumulator is authoritative (a parked map isn't ticked, so
-// it needs no clock of its own). Converts this frame's sim time (Time.delta) into a whole number of
-// fixed ticks and exposes `alpha`, the [0,1) render-interpolation remainder renderers lerp by.
-//
-// Distinct from WorldClock (in-game time-of-day / calendar): SimClock is the engine TICK RATE — this
-// is "World rules tickrate". Was the inline clock on the old store class; moved out so the Entity
-// store is pure entity/component data. A singleton (one sim clock), like WorldClock / Time.
+// The fixed-step SIMULATION clock — a World sub-module (World.sim). ONE global clock (only the active
+// level is stepped), exposing whole ticks + `alpha`, the render-interpolation remainder. Contract below.
+/**
+ * Only the active level is stepped each frame, so a single accumulator is authoritative (a parked map
+ * isn't ticked, so it needs no clock of its own). Converts this frame's sim time (Time.delta) into a
+ * whole number of fixed ticks and exposes `alpha`, the [0,1) render-interpolation remainder renderers
+ * lerp by.
+ *
+ * Distinct from WorldClock (in-game time-of-day / calendar): SimClock is the engine TICK RATE — "World
+ * rules tickrate". A singleton (one sim clock), like WorldClock / Time.
+ */
 globalThis.SimClock = {
   tickDuration: 1 / 60, // seconds per fixed tick (60 Hz)
   accumulator: 0,

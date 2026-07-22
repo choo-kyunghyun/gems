@@ -1,39 +1,36 @@
 // Ref-safe, nesting-safe, CYCLE-safe JSON codec — the disk-serialization substrate for save
 // games (SaveGame) and any structured blob that outgrows SaveData's flat key→scalar model.
-//
-// It exists because native JSON on GMRT 0.20 can't round-trip live game data:
-//   1. JSON.stringify FAULTS NATIVELY on a nested object/array (process death, not a JS throw
-//      — see docs/GMRT.md). So encode() is a hand-rolled LINEAR walk that concatenates the
-//      output itself, calling native JSON.stringify only on SCALAR LEAVES (strings/numbers —
-//      safe, correct escaping). JSON.parse, by contrast, handles nesting fine, so decode()
-//      uses it directly and then revives. (GML json_stringify serializes nesting crash-free too
-//      — the interop workaround — but it can't tag asset refs (2) or guard cycles (below), so it
-//      is NOT a substitute for this walk; it backs the flat/ref-free stores instead: SaveData.)
-//   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports
-//      typeof "object" with an EMPTY key set, so a generic serializer would silently emit {}.
-//      encode() discriminates plain data by `v.constructor === Object` (true for object
-//      literals, false for asset refs) and tags a ref as {"$spr": name};
-//      decode() revives the tag back to a live ref via asset_get_index.
-//
-// CYCLE SAFETY: a cross-entity object reference in a component's data can form a CYCLE that a naive
-// recursive walk would follow until it OOMs, so the encoder
-// does DFS cycle detection — an object/array already on the current PATH (an ANCESTOR) is a
-// back-edge → emit null + warn, never recurse into it. Shared-but-acyclic refs (a diamond) still
-// encode fully in each place (they leave the path when their subtree finishes). A hard
-// STEP-COUNT cap backstops even that: pathological input aborts to a null-ish stream instead of
-// hanging. So encode() can never OOM regardless of what it's handed — but a SAVE should still
-// pass CLEAN data (durable components only, no live cross-references); the guards are a safety
-// net, not a license to serialize raw runtime state.
-//
-// The ancestor set is a plain ARRAY scanned by `===`, NOT a Set/Map: a Set/Map keyed by an
-// OBJECT crashes GMRT natively ("Bad optional access", the same family as the asset-ref-keyed
-// Map crash in docs/GMRT.md). The path only ever holds the current ancestor chain (pushed on
-// enter, popped on leave), so it's a handful of entries and the `===` scan is O(depth) — the
-// same parallel-array identity-scan idiom SpriteMeta uses for ref lookups.
-//
-// Contract: values are plain-JSON data (scalars / arrays / object literals) plus sprite refs.
-// Functions, Maps, Sets, and non-sprite asset refs are NOT supported. Encode drops undefined
-// object fields (like native JSON) and warns rather than corrupting the stream.
+/**
+ * It exists because native JSON on GMRT 0.20 can't round-trip live game data:
+ *   1. JSON.stringify FAULTS NATIVELY on a nested object/array (process death, not a JS throw — see
+ *      docs/GMRT.md). So encode() is a hand-rolled LINEAR walk that concatenates the output itself,
+ *      calling native JSON.stringify only on SCALAR LEAVES (strings/numbers — safe, correct
+ *      escaping). JSON.parse handles nesting fine, so decode() uses it directly and then revives.
+ *      (GML json_stringify serializes nesting crash-free too — the interop workaround — but it can't
+ *      tag asset refs (2) or guard cycles (below), so it backs the flat/ref-free stores instead:
+ *      SaveData.)
+ *   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports typeof
+ *      "object" with an EMPTY key set, so a generic serializer would silently emit {}. encode()
+ *      discriminates plain data by `v.constructor === Object` (true for object literals, false for
+ *      asset refs) and tags a ref as {"$spr": name}; decode() revives it via asset_get_index.
+ *
+ * CYCLE SAFETY: a cross-entity object reference in a component's data can form a CYCLE that a naive
+ * recursive walk would follow until it OOMs, so the encoder does DFS cycle detection — an object/array
+ * already on the current PATH (an ANCESTOR) is a back-edge → emit null + warn, never recurse into it.
+ * Shared-but-acyclic refs (a diamond) still encode fully in each place. A hard STEP-COUNT cap
+ * backstops even that. So encode() can never OOM regardless of input — but a SAVE should still pass
+ * CLEAN data (durable components only, no live cross-references); the guards are a safety net, not a
+ * license to serialize raw runtime state.
+ *
+ * The ancestor set is a plain ARRAY scanned by `===`, NOT a Set/Map (an object-keyed Set/Map crashes
+ * GMRT natively — see docs/GMRT.md). The path only holds the current ancestor chain (pushed on enter,
+ * popped on leave), so the `===` scan is O(depth) — the same parallel-array identity-scan idiom
+ * SpriteMeta uses.
+ *
+ * Contract: values are plain-JSON data (scalars / arrays / object literals) plus sprite refs.
+ * Functions, Maps, Sets, and non-sprite asset refs are NOT supported. Encode drops undefined object
+ * fields (like native JSON) and warns rather than corrupting the stream.
+ */
 globalThis.Json = {
   _MAX_STEPS: 4000000, // ~4M node visits — orders of magnitude above any real save, well under an OOM
 

@@ -1,6 +1,5 @@
-// rounded-rect background (base visual under most widgets): radial fill + optional shadow/border/
-// bevel, all faked with stacked draw_roundrect passes. colors are live fields so UIButton can swap
-// them per frame.
+// Rounded-rect background (base visual under most widgets) — radial fill + optional shadow/border/
+// bevel, faked with stacked draw_roundrect passes. Colors are live fields so UIButton can swap per frame.
 /**
  * @typedef {Object} UIPanelOpts
  * @property {number} [color] fill color @property {number} [color2] edge tint (center→edge radial)

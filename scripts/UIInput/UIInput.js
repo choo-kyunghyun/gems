@@ -1,14 +1,16 @@
-// single-line text field with caret+selection model, drag-select, key-repeat,
-// clipboard, and horizontal scroll-to-caret. draws immediate-mode in onDraw.
-// GMRT: modifier flags (shift/ctrl) read live via keyboard_check, never cached —
-// a cached primitive bool can be clobbered mid-call.
+// Single-line text field with caret+selection model, drag-select, key-repeat, clipboard, and
+// horizontal scroll-to-caret. Draws immediate-mode in onDraw.
 
 const _INPUT_REPEAT_DELAY = 0.4; // s before a held nav/delete key starts repeating
 const _INPUT_REPEAT_RATE = 0.04; // s between repeats once started
 const _INPUT_BLINK = 0.53; // s per caret blink half-cycle
 const _INPUT_DBLCLICK = 300; // ms window for double-click word-select
 
-/** @implements {UIComponent} */
+/**
+ * GMRT: modifier flags (shift/ctrl) read live via keyboard_check, never cached — a cached primitive
+ * bool can be clobbered mid-call.
+ * @implements {UIComponent}
+ */
 globalThis.UIInput = class UIInput {
   // UINav reads this to suspend menu nav while typing (arrows/Enter go to caret).
   /** @type {UIInput|null} */

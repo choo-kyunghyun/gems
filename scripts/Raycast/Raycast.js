@@ -1,6 +1,5 @@
-// Segment-vs-AABB raycast over all collider entities. Returns nearest hit
-// { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS.
-//   opts: { ignore? (id to skip), solidOnly? (default true) }
+// Segment-vs-AABB raycast over all collider entities. Returns nearest hit { id, x, y, nx, ny, t } along
+// (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS. opts: { ignore? (id), solidOnly? (true) }.
 globalThis.Raycast = {
   cast(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;

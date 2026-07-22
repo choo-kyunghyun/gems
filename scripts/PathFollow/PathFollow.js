@@ -1,11 +1,13 @@
-// Path-following + terrain movement-cost helper — the CONSUMER side of the pathfinding flow.
-// PathfindingSystem owns request→response; this walks a PathResponse (throttled replan, waypoint
-// cursor) and returns the proper movement point each tick, and prices the ground a mover stands on
-// so terrain path cost drains movement: speed × 1/cost (easy ground full speed, rough slower,
-// wading slowest; Infinity never reaches a mover — see speedScale's clamp). Extracted from
-// CombatAI so any steering system (AI, followers, the player controller) shares one path walker
-// and one cost rule. Core: the terrain pricing arrives via an injected provider (bind), so this
-// module knows no map/biome specifics.
+// Path-following + terrain movement-cost helper — the CONSUMER side of the pathfinding flow (walks a
+// PathResponse and prices the ground a mover stands on). Contract on the declaration below.
+/**
+ * PathfindingSystem owns request→response; this walks a PathResponse (throttled replan, waypoint
+ * cursor) and returns the proper movement point each tick, and prices the ground so terrain path cost
+ * drains movement: speed × 1/cost (easy ground full speed, rough slower, wading slowest; Infinity
+ * never reaches a mover — see speedScale's clamp). Shared by any steering system (AI, followers, the
+ * player controller) so there's one path walker and one cost rule. Core: the terrain pricing arrives
+ * via an injected provider (bind), so this module knows no map/biome specifics.
+ */
 globalThis.PathFollow = {
   // Injected per-map terrain-cost provider: (wx, wy) → cost (1 = easy, >1 = rough, Infinity =
   // impassable), or null when the map prices no terrain (interiors — every cell costs 1).
