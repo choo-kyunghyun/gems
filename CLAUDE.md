@@ -94,7 +94,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 ### Comments
 
-1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why — never what the code does, nor when or how a fact was established (Prose & Commits → Record). Existing comments are grandfathered; tighten only code you are already touching (docs/ROADMAP.md → Comment Refactor).
+1. A comment states what the code cannot: an invariant, a unit, a coordinate space, a why — never what the code does, nor when or how a fact was established (Prose & Commits → Record). Existing comments are grandfathered; tighten only code you are already touching.
 2. A contract — an invariant, cross-module coupling, a why — lives in JSDoc at its owning declaration, as long as it needs; a cross-file mechanism is owned by its enforcing/orchestrating site, and every other site cites the owner, never re-explains. Non-contract prose stays one line. Outside the code live only cross-cutting rules (docs/ARCHITECTURE.md) and runtime quirks (docs/GMRT.md).
 3. A file header is at most 2 lines: what the file is + one pointer.
 4. JSDoc carries types and contracts, not essays: `@typedef`s, typed `@param`s, and the owning contract blocks (law 2) stay; prose restating the identifier goes. An opts-struct factory gets one prose block, no per-field `@param`. Bare typed tags share a line.

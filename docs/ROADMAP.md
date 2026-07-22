@@ -4,22 +4,7 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 ## Current Works
 
-One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns. Order: Comment Refactor first, Code Review last.
-
-### Comment Refactor
-
-Bring pre-rule comments up to the CLAUDE.md → Comments laws (measured: 6,360 comment-only lines = 18% of `scripts/`; 192 GMRT re-explanations, `Time.raw` re-taught ×24, subclassing ×13). One sweep per rule — each is greppable and mechanical. Mark Done as sweeps land.
-
-| #   | Sweep     | Rule                                                                                                                                                                                             | Done |
-| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| C1  | Citations | Replace every quirk/invariant re-explanation with the one-line citation form (law 5); strip date/verification stamps on the way (law 1) — a fact keeps its version/ticket pin, loses its "when". | Done |
-| C2  | Headers   | Collapse to ≤2 lines + pointer (law 3). Priority (largest narratives): `RpgMap`, `ChunkManager`, `RpgSpawn`, `sceneRpg`, `SaveGame`, `RpgInventoryUI`, `BuildMode`.                              | Done |
-| C3  | JSDoc     | Keep `@typedef`s/typed `@param`s and owning contract blocks, cut identifier-restating prose (law 4); opts-struct factories to one prose block.                                                   | Done |
-
-Two laws bind every sweep:
-
-- **Relocate before deleting**: a comment that fails a law but states a real contract moves to its owning declaration's JSDoc first (law 2; GMRT.md for a quirk, ARCHITECTURE.md if cross-cutting), then shrinks to a citation elsewhere — never delete a fact that has no home.
-- **Keep**: quirk anchors (GMRT.md requires them), unit/why trailing comments, component `@typedef` files (they ARE the type system — tighten prose, never remove fields).
+One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns.
 
 ### Code Review (file-by-file)
 
