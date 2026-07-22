@@ -1,7 +1,7 @@
 // Item-component: the universal weapon profile that fully drives the action — the player brain runs
 // whatever it describes (no built-in attack). Unarmed falls back to PlayerSystem's fist profile so an
 // empty-handed player never fires a free bullet. Flat class queried by `instanceof` (composition over
-// inheritance — GMRT can't super/subclass).
+// inheritance).
 //
 // Melee vs gun is decided by a sibling Gun component (Item.hasComponent(Gun) → ammo-driven ranged),
 // NOT a flag here; melee uses damage/reach. fireCd (cadence) is shared by both.

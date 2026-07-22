@@ -23,8 +23,8 @@ globalThis.SolidSystem = {
 
     // Per-tick snapshot of the kinematic solids: edges + oneWay baked into flat records, so the
     // body×static resolve loop below reads plain fields — no AABB.of / entities.get per test. Those
-    // per-test Map lookups + edge allocs were ~70% of the RPG's tick cost (profiled 2026-07-02:
-    // ~20 bodies × ~90 statics × 2 axes ≈ 8ms/tick). Statics can't move mid-update, so a
+    // per-test Map lookups + edge allocs were ~70% of the RPG's tick cost (~20 bodies × ~90
+    // statics × 2 axes ≈ 8ms/tick). Statics can't move mid-update, so a
     // once-per-tick capture is exact.
     const statics = [];
     for (const id of entities.query(Collision, Position, BBox)) {

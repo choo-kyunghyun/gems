@@ -36,7 +36,6 @@ globalThis.RenderDebugRange = class RenderDebugRange {
         const x = rp.x;
         const y = rp.y;
         draw_set_alpha(a);
-        // draw_circle_color verified on GMRT 0.20
         draw_circle_color(x, y, radius, col, col, true);
       }
     }

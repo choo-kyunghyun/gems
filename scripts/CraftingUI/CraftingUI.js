@@ -8,7 +8,7 @@
 // the two content rows are SAME-SIZE, swapped STRUCTURALLY (insert/removeChild) on a mode change —
 // `enabled` only gates update/draw, a disabled sibling still reserves its flex space (CLAUDE.md).
 // both rows are PLAIN columns (no gpu_set_scissor clip — unreliable in a master-detail row on
-// GMRT 0.20; was a long whack-a-mole); the content body flex-grows to fill the card.
+// GMRT 0.20); the content body flex-grows to fill the card.
 // open/close owned by Interactable; state on level (`_craft*`, plus `_mod*` for the weapon-mod panel).
 globalThis.CraftingUI = {
   WRAP: 320, // description wrap width (px) — a stable narrow column within the detail pane

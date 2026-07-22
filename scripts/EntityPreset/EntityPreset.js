@@ -102,8 +102,8 @@ globalThis.EntityPreset = {
   },
 
   // GMRT-safe deep copy. Recurses arrays and PLAIN data objects only: a GM asset ref (sprite
-  // handle) also reports typeof "object", but its constructor !== Object (probed on 0.20;
-  // Object.keys(ref) is 0 without throwing, so recursing would silently turn it into {}) —
+  // handle) also reports typeof "object", but its constructor !== Object (Object.keys(ref) is 0
+  // without throwing, so recursing would silently turn it into {}) —
   // refs, scalars, and functions pass through BY REFERENCE.
   _clone(v) {
     if (Array.isArray(v)) {

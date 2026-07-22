@@ -6,7 +6,7 @@
  */
 
 /**
- * world-space cell boundary lines. plain draw_line (kept from 0.19; draw_line_width_color works on 0.20).
+ * world-space cell boundary lines. plain draw_line.
  * @implements {RenderPass}
  */
 globalThis.RenderGrid = class RenderGrid {

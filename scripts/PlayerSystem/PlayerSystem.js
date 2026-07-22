@@ -154,8 +154,8 @@ globalThis.PlayerSystem = {
       PathFollow.speedScale(pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
-    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below clobbers such a local
-    // on GMRT (boolean-local clobber quirk), which silently zeroed non-sprint movement. Recompute live.
+    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below clobbers it (the
+    // &&-clobber quirk, #15549). Recompute live.
     const sprinting = StaminaSystem.sprint(
       entities,
       id,

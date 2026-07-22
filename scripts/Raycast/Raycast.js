@@ -15,8 +15,7 @@ globalThis.Raycast = {
       if (id === ignore) continue;
 
       const col = entities.get(Collision, id);
-      // read opts.solidOnly inline — caching it in a bool local gets clobbered mid-function on
-      // GMRT (boolean-local quirk, CLAUDE.md); that dropped this skip → bullets stopped on item drops
+      // read opts.solidOnly inline — never cache it in a bool local (the &&-clobber quirk, #15549)
       if (opts.solidOnly !== false && !col.solid) continue;
 
       const e = AABB.of(entities, id);

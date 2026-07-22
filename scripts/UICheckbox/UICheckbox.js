@@ -1,5 +1,5 @@
 // Boolean toggle — checkbox (box + tick) or switch (pill + knob) per `style`.
-// Drawn immediate-mode in onDraw; eases on Time.raw so it animates while the sim is paused.
+// Drawn immediate-mode in onDraw; eases on Time.raw (the clock split).
 /** @implements {UIComponent} */
 globalThis.UICheckbox = class UICheckbox {
   constructor(box = {}) {
@@ -35,7 +35,7 @@ globalThis.UICheckbox = class UICheckbox {
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const on = !!this._get();
-    // Tween.approach runs on Time.raw — UI must animate even when sim is paused/dilated.
+    // Tween.approach runs on Time.raw (the clock split).
     const target = on ? 1 : 0;
     this._t =
       this._t === undefined

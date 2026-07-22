@@ -72,8 +72,8 @@ globalThis.File = {
   // GMRT 0.20 CAVEAT (runtime bug #15223, open): buffer_save/_ext (and these async variants) fail
   // to create the destination dir; the forced "default/" subfolder trips it, so the write never lands
   // yet buffer_save_async reports status:true (false positive). On desktop use the sync writeBuffer/
-  // readBuffer (root files need no new dir). The plumbing (event → _resolve → callback) is verified
-  // good, so async should work once #15223 is fixed and on console.
+  // readBuffer (root files need no new dir). The plumbing (event → _resolve → callback) is sound, so
+  // async should work once #15223 is fixed and on console.
 
   /**
    * Async save of a buffer's used bytes. Caller still owns the buffer and MUST keep it alive

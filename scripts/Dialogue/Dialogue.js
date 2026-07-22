@@ -1,7 +1,7 @@
 // RPG-style paged dialogue box with typewriter reveal. standalone singleton (not UIComponent).
 // reveals at `speed` chars/sec on Time.raw; advance with Enter/Space/gamepad-A or click (first snaps
 // page to revealed, next pages on; past the last closes + fires onComplete). UINav suspends while open.
-// isOpen() is a METHOD not a getter — house style (the old GMRT miscompile report was dismissed).
+// isOpen() is a METHOD not a getter — house style.
 globalThis.Dialogue = {
   speedDefault: 45, // chars/sec
   lines: 3, // visible text rows (fixed box height; design pages to fit)
@@ -70,7 +70,7 @@ globalThis.Dialogue = {
     const g = Dialogue._geom();
     Dialogue._ensureWrap(g);
 
-    // typewriter advance (Time.raw, ignores Time.scale)
+    // typewriter advance (Time.raw, the clock split)
     Dialogue._chars += Dialogue.speed * Time.raw;
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 

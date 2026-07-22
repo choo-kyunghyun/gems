@@ -1,14 +1,13 @@
 // Pure static easing helpers — callers own their animated state and pass current/target each frame.
-// `approach` defaults to Time.raw (wall-clock) so UI easing ignores time dilation; pass Time.delta for sim-space motion.
+// `approach` defaults to Time.raw (the clock split); pass Time.delta for sim-space motion.
 globalThis.Tween = {
   // Exponential smoothing. Clamp prevents overshoot on a hitched frame.
   approach(current, target, speed, dt = Time.raw) {
     return current + (target - current) * clamp(dt * speed, 0, 1);
   },
 
-  // No color helper: GMRT — merge_color floors each term (packed int drifts dark), and rounding a
-  // packed-int lerp loses sub-1 steps so the tween freezes at high FPS. Ease r/g/b as FLOATS via
-  // approach() per channel (see UIButton._easeColor) — float state accumulates correctly at any FPS.
+  // No color helper — merge_color is unsafe to ease per frame (#15546). Ease r/g/b as FLOATS via
+  // approach() per channel (see UIButton._easeColor).
 
   // easing curves: t∈[0,1] → eased [0,1]
   linear(t) {

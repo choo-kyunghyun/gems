@@ -9,7 +9,7 @@
 //   • power       — flat base power before the kinetic term.
 //   • penetration — lowers target defense at the hit (Combat.mitigate) — AP rounds bite armor.
 //
-// Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
+// Flat class queried by `instanceof` (composition over inheritance).
 globalThis.Ammo = class Ammo {
   /**
    * @param {Object} d

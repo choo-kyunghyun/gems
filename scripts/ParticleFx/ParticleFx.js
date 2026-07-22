@@ -2,8 +2,8 @@
  * ParticleFx — plays IDE Particle System ASSETS as one-shot, positioned, aimable world-space
  * effects. A singleton, like FloatingText. Each spawnAsset instances the asset + parks it in
  * an active list; update() reaps an instance once its particles die so concurrent systems stay
- * bounded (no leak — see CLAUDE.md). A baked BURST emitter fires on its first update (verified
- * 0.20), so position before that first update (spawnAsset does) and the burst lands right.
+ * bounded (no leak — see CLAUDE.md). A baked BURST emitter fires on its first update, so position
+ * before that first update (spawnAsset does) and the burst lands right.
  *
  * Wiring (mirrors FloatingText — world space, pause-aware): update() once per frame from step()
  * (so effects freeze when the level pauses), draw() from draw() AFTER the renderer; clear() on

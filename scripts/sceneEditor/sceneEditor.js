@@ -18,7 +18,7 @@ LevelRegistry.add(() => new _SceneEditorClass(), {
   category: "SCENE_CAT_EDITOR",
 });
 
-// standalone SCREEN class — no base (GMRT subclassing is broken); duck-typed contract, see Level.
+// standalone SCREEN class — duck-typed contract, see Level.
 class _SceneEditorClass {
   label = "Editor";
 

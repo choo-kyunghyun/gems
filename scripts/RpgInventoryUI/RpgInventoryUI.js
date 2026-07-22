@@ -148,7 +148,7 @@ globalThis.RpgInventoryUI = {
 
     // grid (left, sized to the bag) + detail pane (right, fills the rest & stretches).
     // No gemsScroll around the grid — a clipped scroll beside a non-clipped sibling is the
-    // GMRT batch-flush whack-a-mole (see CraftingUI); the grid fits the tall card instead.
+    // GMRT batch-flush trap (see CraftingUI); the grid fits the tall card instead.
     const content = new UIElement({
       width: "100%",
       flexGrow: 1,

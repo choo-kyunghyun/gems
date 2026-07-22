@@ -121,8 +121,8 @@ globalThis.LevelManager = class LevelManager {
 
   // Build an entry: create the level, resolve its display label, back-reference the manager.
   _make(factory) {
-    // GMRT doesn't run subclass field initializers, so a class level's `label` field never sets —
-    // the registry label (localized) is the reliable source; built-ins fall back to their instance
+    // A class level's `label` field never sets (GMRT skips subclass field inits — #15067), so the
+    // registry label (localized) is the reliable source; built-ins fall back to their instance
     // label. Lookup matches by factory ref, so a guest level must register with the same factory.
     const entry = LevelRegistry._entries.find((e) => e.factory === factory);
     const level = factory();

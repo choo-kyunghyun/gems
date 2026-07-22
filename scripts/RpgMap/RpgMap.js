@@ -386,7 +386,7 @@ globalThis.RpgMap = {
       const wc = data.meta.worldCols ?? data.cols ?? 128;
       const wr = data.meta.worldRows ?? data.rows ?? 128;
       // The freeze (LOAD) tier: simRadius 1 keeps only ~9 chunks fully simulated. Historically a
-      // wider window was unaffordable — measured 2026-07-02 that simRadius=loadRadius (25 SIM chunks)
+      // wider window was unaffordable — simRadius=loadRadius (25 SIM chunks)
       // tanked the sim to ~260-334ms/step (3fps), dominated by SolidSystem's move-and-collide. That
       // blocker is now lifted: SolidSystem is spatially indexed (its own static grid — see
       // SolidSystem._gridRebuild). simRadius:1 stays the shipped default pending a simRadius:2
@@ -434,7 +434,7 @@ globalThis.RpgMap = {
   // runs once here per map (sceneRpg.step rebuilds occupancy around the player each frame).
   _buildPipeline(level) {
     // O(n) broadphase for SeparationSystem + TriggerSystem (each rebuilds it per tick). It removes
-    // TriggerSystem's O(n²) sweep over every collider — measured 2026-07-02 to ~halve the step at
+    // TriggerSystem's O(n²) sweep over every collider — ~halving the step at
     // the shipping simRadius:1 (≈22-36ms → ≈10-20ms). cellSize (48px) exceeds max dynamic-body /
     // non-solid sensor diameter (~16-24px at 16px cells); huge SOLID colliders (world border, water
     // rects) are exempt — TriggerSystem skips solid-vs-solid and SeparationSystem buckets dynamic
@@ -442,8 +442,8 @@ globalThis.RpgMap = {
     // build. NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob, mob↔sensor).
     // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
     // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
-    // History: SolidSystem was O(bodies×statics); a per-tick static snapshot (2026-07-02) cut per-test
-    // allocs (~8.5→~1.2ms/tick at simRadius:1), then spatial bucketing of that snapshot (2026-07-13)
+    // History: SolidSystem was O(bodies×statics); a per-tick static snapshot cut per-test
+    // allocs (~8.5→~1.2ms/tick at simRadius:1), then spatial bucketing of that snapshot
     // removed the linear-over-all-statics scan — lifting the wide-SIM blocker (pending re-measure).
     level.entities.broadphase = new Broadphase(
       level.grid.cols * level.grid.cellWidth,
@@ -809,7 +809,7 @@ globalThis.RpgMap = {
 RpgMap.BB_PITCH = 42;
 // Pitch-by-zoom curve (upright-sprite camera, ROADMAP art rework): shallow 42° at the
 // zoom-out floor (~1.25 on a 1920 surface) easing to 58° at max zoom-in (2.625) — "look
-// further = flatter". Thresholds are the 2026-07-05 spike values HALVED for the 32px-cell
+// further = flatter". Thresholds are the spike values HALVED for the 32px-cell
 // world (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
 // Shared with the Debug Camera section's "Pitch by zoom" toggle.
 RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);

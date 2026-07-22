@@ -7,7 +7,7 @@
 //   • "weaponmod"          — the Toolkit: switches the window to the weapon-mod panel (WeaponModUI).
 //
 // Identity is its itemId (Recipe.requires references that). Flat class queried by `instanceof`
-// (composition over inheritance — GMRT can't super/subclass).
+// (composition over inheritance).
 globalThis.WorkbenchModule = class WorkbenchModule {
   /**
    * @param {Object} [d]

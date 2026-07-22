@@ -42,8 +42,8 @@ globalThis.SystemMenu = {
       return;
     }
 
-    // gameplay-only below. read level.gameplay LIVE — never cache into a local bool; GMRT clobbers a
-    // cached primitive bool mid-function, which broke Esc entirely. see the clobber GMRT idiom.
+    // gameplay-only below. read level.gameplay LIVE — never cache into a local bool (the &&-clobber
+    // quirk, #15549).
     if (level === null || level.gameplay !== true) return;
 
     // gamepad Start opens the pause menu directly

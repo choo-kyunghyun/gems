@@ -8,7 +8,7 @@
 //   • ops       — gun-base operators { field: { add?, mul? } } over velocity/mass/power/penetration/
 //                 fireCd/magazine. Default {} = inert.
 //
-// Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
+// Flat class queried by `instanceof` (composition over inheritance).
 globalThis.Gun = class Gun {
   /**
    * @param {Object} d

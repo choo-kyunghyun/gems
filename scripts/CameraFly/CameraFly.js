@@ -1,6 +1,6 @@
 // 6DOF spectator "noclip" camera (debug). Layered onto an existing Camera — the follow camera
 // delegates here while freeCam is on, seeding from the live follow view (no second handle).
-// WASD+Space/Shift translate, Q/E roll, RMB+mouse yaw/pitch. Uses Time.raw so it works while sim is paused.
+// WASD+Space/Shift translate, Q/E roll, RMB+mouse yaw/pitch. Uses Time.raw (clock split) so the free-fly moves while the sim is paused.
 
 globalThis.CameraFly = {
   /**
@@ -88,7 +88,7 @@ globalThis.CameraFly = {
     const upy = uy * cr + ry * sr;
     const upz = uz * cr;
 
-    // translate (Time.raw → works while paused): WASD in camera plane, Space/Shift on world Z
+    // translate (Time.raw, clock split): WASD in camera plane, Space/Shift on world Z
     // (eye sits at -Z above ground, so Space = up = decreasing Z)
     const spd = cam.flySpeed * Time.raw;
     if (keyboard_check(ord("W"))) {

@@ -1,6 +1,6 @@
 // Themed button behavior over the shared UITrigger FSM (the internal `_fsm` delegate runs the
 // hover/press/commit logic and writes element.state) — this component adds the theming: eases
-// panel color/border/shadow on Time.raw (not Time.delta — UI must ignore sim time dilation),
+// panel color/border/shadow on Time.raw (the clock split),
 // greys the label, and supports live disabled + selected predicates (written to
 // element.state.disabled/selected for any sibling reader).
 /** @implements {UIComponent} */

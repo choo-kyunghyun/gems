@@ -9,7 +9,7 @@ globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
 // side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
 // one-way drop-through, stomp enemies, spike/void respawn. no RPG layer.
-// standalone SCREEN class — no base (GMRT subclassing is broken); duck-typed contract, see Level.
+// standalone SCREEN class — duck-typed contract, see Level.
 class _ScenePlatformerClass {
   create() {
     // set here, not as a class field: I18n may not have this locale's text at class-def time.
@@ -18,7 +18,7 @@ class _ScenePlatformerClass {
     this.entities = new Entity(256, { gravity: PLATF_GRAVITY });
     this.spawn = PlatformerLevel.build(this.entities);
     this.ctrl = PlatformerController.create(this.entities, this.spawn);
-    // set on `this` in create(), not as a class field: subclass field initializers don't run on GMRT.
+    // set in create(), not a class field — GMRT skips subclass field inits (#15067).
     this.stomps = 0; // score reported back to host via result()
     Music.play(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
 
@@ -49,7 +49,7 @@ class _ScenePlatformerClass {
     this.camera.assign(0);
 
     // opts SystemMenu into gameplay pause + nav suspension.
-    // set here, not as a class field: subclass field initializers don't run on GMRT.
+    // set here, not a class field — GMRT skips subclass field inits (#15067).
     this.gameplay = true;
 
     this.ui = gemsRoot();

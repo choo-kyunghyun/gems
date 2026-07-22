@@ -1,5 +1,5 @@
 // Item-component: marks an Item usable from the bag (one unit consumed for an instant effect).
-// Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
+// Flat class queried by `instanceof` (composition over inheritance).
 globalThis.Consumable = class Consumable {
   /**
    * @param {Object} d

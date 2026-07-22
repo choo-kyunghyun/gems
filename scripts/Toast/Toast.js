@@ -1,5 +1,5 @@
 // timed-notification stack, standalone singleton (not UIComponent).
-// ages by Time.raw so toasts survive sim pause/dilation. newest at bottom, older above.
+// ages by Time.raw (the clock split). newest at bottom, older above.
 // opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent (color override) }
 globalThis.Toast = {
   _items: [], // { text, accent, life, age }; oldest first

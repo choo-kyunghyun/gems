@@ -42,8 +42,7 @@ globalThis.UIScroll = class UIScroll {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);
 
-    // positionMeeting read live each use, never cached in a local — a cached bool
-    // clobbers mid-function on GMRT (that bug gated the wheel to fire only over the thumb).
+    // positionMeeting read live each use, never cached in a local (the &&-clobber quirk, #15549).
     if (max > 0) {
       const wheel = UIPointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))

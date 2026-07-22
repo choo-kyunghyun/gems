@@ -176,7 +176,7 @@ globalThis.Camera = class Camera {
   /**
    * Surface-pixel → world on the GROUND PLANE (wz = 0) — the exact inverse of project().
    * Pitch-aware via the up vector (a flat camera's upY=1/upZ=0 reduces to the linear mapping).
-   * GMRT's own mouse_x/mouse_y are wrong under a pitched matrix-driven camera (probed on 0.20),
+   * GMRT's own mouse_x/mouse_y are wrong under a pitched matrix-driven camera,
    * so world-cursor consumers must convert through this instead.
    * @param {number} sx @param {number} sy @returns {{x:number, y:number}}
    */

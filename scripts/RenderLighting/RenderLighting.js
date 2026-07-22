@@ -7,7 +7,7 @@
 //   3. composite    — draw the light map over the world with multiply (final = level * light)
 //
 // Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
-// (zero surface work). Surfaces + bm_add + multiply probe-verified on GMRT 0.20. NO shadows — falloff only.
+// (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
 //
 // Inserted LAST in the RPG renderer; the level draws its bright cues AFTER so they stay above the tint.
 // View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).

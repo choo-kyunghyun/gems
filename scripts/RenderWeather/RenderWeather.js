@@ -7,7 +7,7 @@
 // Time.scale (bed fast-forward), matching the condition transitions. It must be a cumulative CLOCK:
 // multiplying a per-frame DELTA (Time.raw/Time.delta) by fall speed froze every particle near a
 // constant offset (the old "static" bug). Snow sways via Math.sin (trig works on GMRT 0.20);
-// streaks use draw_line (kept from 0.19; draw_line_width_color works on 0.20), snow uses draw_rectangle.
+// streaks use draw_line, snow uses draw_rectangle.
 //
 // View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
 // Camera). The level assigns pass.camera after building the camera.

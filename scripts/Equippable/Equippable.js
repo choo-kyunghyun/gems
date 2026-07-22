@@ -1,5 +1,5 @@
 // Item-component: marks an Item wearable in an Equipment slot, carrying flat stat deltas applied while
-// worn. Flat class queried by `instanceof` (composition over inheritance — GMRT can't super/subclass).
+// worn. Flat class queried by `instanceof` (composition over inheritance).
 globalThis.Equippable = class Equippable {
   /**
    * @param {Object} d

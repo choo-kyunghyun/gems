@@ -1,6 +1,6 @@
 // Item-definition registry. Definitions are data; runtime quantities live in Inventory.
 // Capabilities (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` —
-// composition over inheritance because GMRT can't do super/subclassing.
+// composition over inheritance.
 globalThis.Item = class Item {
   /**
    * @param {Object} def

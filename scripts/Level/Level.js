@@ -1,6 +1,6 @@
 // A LEVEL — the per-instance coordinator layer, one per screen the LevelManager runs. The bottom
 // of the two-layer model (World singleton on top). NOT a base class to extend — GMRT subclassing
-// is broken (subclass field inits never run, `super` faults), so this class has exactly two jobs:
+// is broken (#15067: subclass field inits never run, `super` faults), so this class has exactly two jobs:
 //
 // 1. THE CONTRACT (duck-typed): LevelManager drives any object shaped like this class —
 //      create(openLevel) / step() / draw() / destroy()   required (called unconditionally)

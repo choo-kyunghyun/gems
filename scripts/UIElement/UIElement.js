@@ -32,7 +32,7 @@
 //                        (UIAccordion); prefer `enabled` when the size is unchanged
 // The offset/clip drivers work and migrating them to style mutation would be churn, so they stay.
 // Related: this class's ~45 commented-out style setters stay commented — re-enabling them all
-// would pass the 50-method ceiling (#15065, lifted in 0.22); enable one on demand, minding the
+// would pass the 50-method ceiling (#15065); enable one on demand, minding the
 // count. Property reference: `gm-cli manual read "Flex Panel Struct Members"`; Yoga docs
 // (https://www.yogalayout.dev/docs/styling/) cover the semantics.
 globalThis.UIElement = class UIElement {
@@ -165,7 +165,7 @@ globalThis.UIElement = class UIElement {
   }
 
   // gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
-  // no off-screen surface. Verified on GMRT 0.20 (see gpu_set_scissor GMRT-Safe Idiom): save/restore
+  // no off-screen surface (see the gpu_set_scissor GMRT-Safe Idiom): save/restore
   // does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
   // Intersect with the current scissor so nested clips (gemsScroll within gemsScroll) both apply.
   _drawClipped() {
@@ -315,7 +315,7 @@ globalThis.UIElement = class UIElement {
   }
 
   // these setters stay commented: nothing calls them (kit uses draw-time offset math),
-  // and enabling all ~45 would breach the 50-method ceiling (#15065, still live on 0.20).
+  // and enabling all ~45 would breach the 50-method ceiling (#15065).
   // enable individual ones on demand, watching the count.
 
   // setMinWidth(value, unit) {

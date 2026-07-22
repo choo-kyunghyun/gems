@@ -3,8 +3,7 @@
 // read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + region
 // modifiers fold into now() here.
 //
-// The diurnal swing is a cosine of the hour (trig works on GMRT 0.20; 0.19's Math.cos/Math.PI were
-// undefined/garbage, which had forced a keyframe-lerp table here).
+// The diurnal swing is a cosine of the hour.
 globalThis.Temperature = {
   ZERO_C: 273.15, // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
 

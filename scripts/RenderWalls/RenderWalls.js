@@ -242,8 +242,7 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   // submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
-  // already set by the caller; flat: packed-normal vox mode). Per-submit uniform swaps are
-  // verified pixel-exact on 0.20 (probed 2026-07-06).
+  // already set by the caller; flat: packed-normal vox mode).
   _submit(vb, m, lit) {
     if (vb === -1) return;
     if (m.texOk) {

@@ -12,12 +12,11 @@
 //   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports
 //      typeof "object" with an EMPTY key set, so a generic serializer would silently emit {}.
 //      encode() discriminates plain data by `v.constructor === Object` (true for object
-//      literals, false for asset refs — verified on 0.20) and tags a ref as {"$spr": name};
+//      literals, false for asset refs) and tags a ref as {"$spr": name};
 //      decode() revives the tag back to a live ref via asset_get_index.
 //
-// CYCLE SAFETY (learned the hard way — an early version ran a live ecs.export() straight into
-// the encoder and a cross-entity object reference in one component's data formed a CYCLE, so the
-// recursive walk allocated until the runner hit ~39 GB and the OS OOM-killed it): the encoder
+// CYCLE SAFETY: a cross-entity object reference in a component's data can form a CYCLE that a naive
+// recursive walk would follow until it OOMs, so the encoder
 // does DFS cycle detection — an object/array already on the current PATH (an ANCESTOR) is a
 // back-edge → emit null + warn, never recurse into it. Shared-but-acyclic refs (a diamond) still
 // encode fully in each place (they leave the path when their subtree finishes). A hard

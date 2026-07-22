@@ -59,7 +59,7 @@ globalThis.UISlots = class UISlots {
     const my = device_mouse_y_to_gui(0);
 
     // hit-test into INSTANCE fields, not boolean local consts — on GMRT a local bool
-    // can flip true→false mid-function (see CLAUDE.md), gating the hover branch wrongly.
+    // can flip true→false mid-function (see CLAUDE.md).
     this._inside = !block && element.positionMeeting(mx, my);
     const moved = mx !== this._mx || my !== this._my;
     this._mx = mx;

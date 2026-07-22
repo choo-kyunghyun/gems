@@ -130,7 +130,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _blob8(x, y) {
-    // GMRT miscompiles cached primitive-bool locals — test _isSolid inline and read
+    // GMRT miscompiles cached bool locals (#15549) — test _isSolid inline and read
     // cardinals back off the mask bits for diagonal checks (N=1 E=2 S=4 W=8).
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
@@ -310,8 +310,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   // per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
-  // bits read INLINE each test (no `const N = m&1`) — GMRT miscompiles cached bool locals (flipped the
-  // inner-corner branch in-engine). See _blob8.
+  // bits read INLINE each test (no `const N = m&1`) — GMRT miscompiles cached bool locals (#15549). See _blob8.
   _cornerTL(m) {
     if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
     if (m & 1 && !(m & 8)) return 7; // N solid → left edge

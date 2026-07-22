@@ -9,7 +9,7 @@
 //
 // The consumed item IS the definition (no parallel registry) — resolved via
 // Item.get(modItemId).getComponent(WeaponMod). Flat class queried by `instanceof` (composition over
-// inheritance — GMRT can't super/subclass).
+// inheritance).
 globalThis.WeaponMod = class WeaponMod {
   /**
    * @param {Object} d

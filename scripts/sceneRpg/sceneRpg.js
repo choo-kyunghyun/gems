@@ -16,8 +16,7 @@ LevelRegistry.add(SceneRpg, {
   category: "SCENE_CAT_RPG",
 });
 
-// standalone SCREEN class — no base (GMRT subclassing is broken); satisfies the duck-typed
-// screen contract LevelManager drives (see Level).
+// standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Level).
 class _SceneRpgClass {
   label = "RPG";
 
@@ -315,9 +314,8 @@ class _SceneRpgClass {
     }
     this._sleepOverlay.enabled = this._sleeping;
 
-    // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-
-    // plane unprojection — GMRT's own mouse_x/mouse_y are wrong under the pitched matrix camera
-    // (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
+    // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
+    // unprojection (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
     this.mouseWorld = this.camera.cursorWorld();
     const pl = this.entities.get(Playable, this.playerId);
     pl.cursorX = this.mouseWorld.x;

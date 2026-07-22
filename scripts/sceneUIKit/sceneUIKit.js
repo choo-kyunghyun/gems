@@ -6,7 +6,7 @@ LevelRegistry.add(() => new _SceneUIKitClass(), {
   category: "SCENE_CAT_UI",
 });
 
-// standalone SCREEN class — no base (GMRT subclassing is broken); duck-typed contract, see Level.
+// standalone SCREEN class — duck-typed contract, see Level.
 class _SceneUIKitClass {
   label = "UIKit";
 
