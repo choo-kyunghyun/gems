@@ -339,7 +339,7 @@ globalThis.ChunkManager = class ChunkManager {
 
   /**
    * Generate EVERY in-bounds chunk into the whole-record cache NOW (map build time, behind the
-   * scene fade) — the "generate the level once, then only load/unload" model: after this,
+   * level fade) — the "generate the level once, then only load/unload" model: after this,
    * mid-game streaming never runs generate(), and the samplers below read stored terrain.
    * Idempotent — chunks already active or cached keep their (possibly modified) records, so a
    * resume/second call can't wipe live state. Requires finite world bounds.

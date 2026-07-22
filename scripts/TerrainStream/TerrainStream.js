@@ -26,7 +26,7 @@ globalThis.TerrainStream = class TerrainStream {
     this.chunks = chunks; // store-backed materialAt for the seam apron
     this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
     this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
-    this.lights = undefined; // host RenderMesh pass (scene-assigned) → lit ground; unset = unlit
+    this.lights = undefined; // host RenderMesh pass (level-assigned) → lit ground; unset = unlit
 
     // One untinted dual-grid sprite per material, painter-ordered. The palette rides the
     // GENERATOR instance (ChunkGenerator.palette), not a generator class static — a swapped-in

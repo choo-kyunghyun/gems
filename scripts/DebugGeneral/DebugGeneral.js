@@ -4,7 +4,7 @@
  */
 globalThis.DebugGeneral = {
   // sections close over `game` (obj_game) so live bindings track the current
-  // scene across swaps.
+  // level across swaps.
   register(game) {
     Debug.add({
       name: "Time",
@@ -30,7 +30,7 @@ globalThis.DebugGeneral = {
     });
     Debug.add({
       name: "Perf",
-      data: { fps: 0, scene: "", entities: 0 },
+      data: { fps: 0, level: "", entities: 0 },
       _frames: 0,
       _t0: 0,
       build() {
@@ -38,7 +38,7 @@ globalThis.DebugGeneral = {
         this._frames = 0;
         this._t0 = current_time;
         dbg_watch(ref_create(d, "fps"), "FPS");
-        dbg_watch(ref_create(d, "scene"), "Scene");
+        dbg_watch(ref_create(d, "level"), "Level");
         dbg_watch(ref_create(d, "entities"), "Entities");
       },
       update() {
@@ -52,7 +52,7 @@ globalThis.DebugGeneral = {
           this._frames = 0;
           this._t0 = now;
         }
-        d.scene = game.scenes.label();
+        d.level = game.scenes.label();
         const s = game.scenes.current;
         const w =
           s !== null && s !== undefined && s.entities !== undefined
@@ -72,7 +72,7 @@ globalThis.DebugGeneral = {
         this.data.lines = Log._lines.length;
       },
     });
-    // sim controls relocated from SystemMenu; Pause gates scene.step()
+    // sim controls relocated from SystemMenu; Pause gates level.step()
     Debug.add({
       name: "Sim",
       build() {

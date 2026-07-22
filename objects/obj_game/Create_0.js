@@ -70,29 +70,29 @@ draw_set_font(I18n.font("default"));
 UI.applyScale(Settings.get("uiScale"));
 
 // sprite metadata manifests (kind/density/cell per sheet, emitted by the pixel-art-kit
-// importers) — before any scene spawns entities, so the density bake reads declared values
+// importers) — before any level spawns entities, so the density bake reads declared values
 SpriteMeta.load();
 
-this.background = Color.parse(GemsTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
+this.background = Color.parse(GemsTheme.bg); // level backdrop; re-read on a theme swap (Draw_0)
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
 // Wire the World singleton's sub-modules (composition; assigned here where load order is safe).
 World.sim = SimClock; // fixed-step tick clock (World.sim.advance / .alpha / .tickDuration)
-// World.levels (LevelManager) owns scene/level lifecycle + the resident-level registry; obj_game
+// World.levels (LevelManager) owns the level lifecycle + the resident-level registry; obj_game
 // delegates update/step/draw/destroy each event via the `this.scenes` alias.
 World.levels = new LevelManager();
 this.scenes = World.levels;
-// lobby is the boot scene + dev launcher; F2 (Step_0) also returns here
+// lobby is the boot level + dev launcher; F2 (Step_0) also returns here
 this.scenes.start(SCENES.lobby);
 SceneTransition.reveal(); // boot fades in from black
 
-// register built-in debug sections; live bindings track the current scene across swaps
+// register built-in debug sections; live bindings track the current level across swaps
 DebugGeneral.register(this);
 DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
-// the Demo's SaveGame/SceneRpg). Save is gated on a saveable scene; Load boots a fresh RPG.
+// the Demo's SaveGame/SceneRpg). Save is gated on a saveable level; Load boots a fresh RPG.
 SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
   SaveGame.buildMenuTab(),
 );

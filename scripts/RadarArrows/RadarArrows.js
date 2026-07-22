@@ -1,7 +1,7 @@
 // player-centered directional radar: a ring of arrows around the player, one per nearby entity,
 // pointing at it, colored by the first matching rule, sized by distance (near big, far small).
 // A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
-// the entity has that component. world-space immediate-mode; draw() from a scene's draw() after
+// the entity has that component. world-space immediate-mode; draw() from a level's draw() after
 // renderer.draw(). reads entities live, so no rebuild across a map swap. rule colors must be GM colour ints.
 globalThis.RadarArrows = {
   /**

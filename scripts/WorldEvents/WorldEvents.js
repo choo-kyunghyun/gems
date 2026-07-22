@@ -9,12 +9,12 @@
 //
 // Time is an absolute in-game hour count (WorldClock.absHours() = (day-1)*24 + hour), so sleeping
 // (Time.scale) fast-forwards schedules for free and the queue freezes in the lobby (WorldClock only
-// advances while the RPG scene steps). Generic on `now` — it never reads WorldClock itself.
+// advances while the RPG level steps). Generic on `now` — it never reads WorldClock itself.
 globalThis.WorldEvents = {
   _q: [], // [{ at, kind, data }] — kept sorted ascending by `at` (soonest first)
   _handlers: {}, // kind -> fn(data) ; a kind with no handler is dropped when due
 
-  // Register the handler for an event kind (last registration wins). Do this once at scene setup.
+  // Register the handler for an event kind (last registration wins). Do this once at level setup.
   on(kind, fn) {
     WorldEvents._handlers[kind] = fn;
   },
@@ -55,7 +55,7 @@ globalThis.WorldEvents = {
     return n;
   },
 
-  // Drop all queued events (new game / scene teardown). Handlers are kept — re-register per scene.
+  // Drop all queued events (new game / level teardown). Handlers are kept — re-register per level.
   reset() {
     WorldEvents._q = [];
   },

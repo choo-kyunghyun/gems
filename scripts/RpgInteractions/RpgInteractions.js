@@ -1,5 +1,5 @@
 // Registers the RPG's concrete InteractAction defs — the data behind the generic Interactable
-// engine. Two families: WINDOW actions open a UI + set scene._interOpenId (so the engine range-
+// engine. Two families: WINDOW actions open a UI + set level._interOpenId (so the engine range-
 // closes / refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/
 // buff) act on the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction
 // that does something to the player, not just open a panel". Called once from RpgContent.register().
@@ -17,8 +17,8 @@ globalThis.RpgInteractions = {
         id: "storage",
         prompt: "STORAGE_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          StorageUI.open(ctx.scene, ctx.id);
+          ctx.level._interOpenId = ctx.id;
+          StorageUI.open(ctx.level, ctx.id);
         },
       },
       {
@@ -28,18 +28,18 @@ globalThis.RpgInteractions = {
         id: "corpse",
         prompt: "CORPSE_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          ctx.scene._storeOnTake = (itemId, qty) =>
-            ctx.scene._onCollect(itemId, qty);
-          StorageUI.open(ctx.scene, ctx.id);
+          ctx.level._interOpenId = ctx.id;
+          ctx.level._storeOnTake = (itemId, qty) =>
+            ctx.level._onCollect(itemId, qty);
+          StorageUI.open(ctx.level, ctx.id);
         },
       },
       {
         id: "workbench",
         prompt: "CRAFT_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          CraftingUI.open(ctx.scene, ctx.id);
+          ctx.level._interOpenId = ctx.id;
+          CraftingUI.open(ctx.level, ctx.id);
         },
       },
 
@@ -94,21 +94,21 @@ globalThis.RpgInteractions = {
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {
-          BuildMode.claim(ctx.scene, ctx.id);
+          BuildMode.claim(ctx.level, ctx.id);
         },
       },
       {
         id: "arcade",
         prompt: "ARCADE_PROMPT",
         run(ctx) {
-          ctx.scene._openArcade();
+          ctx.level._openArcade();
         },
       },
       {
         id: "bed",
         prompt: "BED_PROMPT",
         run(ctx) {
-          ctx.scene._sleep();
+          ctx.level._sleep();
         },
       },
       {
@@ -118,7 +118,7 @@ globalThis.RpgInteractions = {
         prompt: "REHIRE_PROMPT",
         run(ctx) {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
-          ctx.scene._invDirty = true; // squad roster changed
+          ctx.level._invDirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
       },

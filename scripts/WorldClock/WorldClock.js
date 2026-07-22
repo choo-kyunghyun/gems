@@ -1,10 +1,10 @@
 // In-game world clock: a global time-of-day + day counter that every time-aware feature reads.
 // A singleton like `Time` (one clock), advanced once per frame from step() by Time.delta (sim time —
-// pauses with the game, dilates with Time.scale). Persists across map changes — the scene resets it
+// pauses with the game, dilates with Time.scale). Persists across map changes — the level resets it
 // once in create(), not per map.
 globalThis.WorldClock = {
   dayLength: 240, // real seconds for one full in-game day (at Time.scale 1)
-  startHour: 8, // morning when a fresh scene starts
+  startHour: 8, // morning when a fresh level starts
   hour: 8, // current time of day in [0, 24)
   day: 1, // day counter, 1-based
   daysPerSeason: 7, // in-game days per season; the four-season "year" is 4× this
@@ -32,7 +32,7 @@ globalThis.WorldClock = {
     { h: 24, c: "#0b1133", a: 0.6 }, // wraps to midnight
   ],
 
-  // reset to the starting morning of day 1 (scene create())
+  // reset to the starting morning of day 1 (level create())
   reset() {
     WorldClock.hour = WorldClock.startHour;
     WorldClock.day = 1;

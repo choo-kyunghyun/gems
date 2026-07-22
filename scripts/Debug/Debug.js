@@ -43,7 +43,7 @@ globalThis.Debug = {
   _handles: {},
 
   /**
-   * register (or replace by name) a section; safe to re-call across scene
+   * register (or replace by name) a section; safe to re-call across level
    * reloads — re-add()ing is also how a section refreshes its own content.
    * @param {DebugSection} section
    */

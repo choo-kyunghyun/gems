@@ -1,5 +1,5 @@
 // world-space rings of each entity's range (turret fire radius, enemy aggro/attack distances)
-// for tuning. generic Core pass: scene supplies { component, field, color } specs, ring radius
+// for tuning. generic Core pass: level supplies { component, field, color } specs, ring radius
 // is entity[component][field]. RPG wires Brain ranges (see RpgMap). inserted disabled, toggled
 // via the Debug Render section.
 // @implements {RenderPass}

@@ -1,4 +1,4 @@
-// Squad follow AI + membership. update() drives EVERY Follower entity by live query (no scene
+// Squad follow AI + membership. update() drives EVERY Follower entity by live query (no level
 // roster list): a "follow" member steers toward the player, easing to a stop near `range` so it
 // settles instead of jittering; "wait" (and any non-member) holds still. Only sets Velocity
 // (SolidSystem integrates/collides). Player id passed in, not stored — no re-link on transfer.

@@ -18,7 +18,7 @@ globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
-  _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
+  _pending: null, // a loaded bundle awaiting the RPG level's create() load-branch
   // per-map saved state awaiting each map's first build after a load — the active map consumes its
   // entry immediately; a parked map consumes its entry when the player first portals to it (so a
   // visited map's builds/chunk-state don't rebuild fresh from file). mapId -> saved map entry.
@@ -41,13 +41,13 @@ globalThis.SaveGame = {
 
   /**
    * Capture the whole session into slot `slot` (a directory under saves/) + refresh the index.
-   * @param {Object} scene the live RPG scene
+   * @param {Object} level the live RPG level
    * @param {string} slot slot id (a bare name — becomes saves/<slot>/)
    * @returns {boolean}
    */
-  save(scene, slot) {
+  save(level, slot) {
     const t0 = current_time;
-    const bundle = SaveGame.frame().capture(scene);
+    const bundle = SaveGame.frame().capture(level);
     const dir = SaveGame.DIR + slot + "/";
     // binary blobs first — the bundle owns them; write, RECORD the name (so load is self-describing
     // for any pass's blobs, not hard-coded to one), then free. Currently no pass emits a blob (the
@@ -89,8 +89,8 @@ globalThis.SaveGame = {
   // ── load ──
 
   /**
-   * Read a slot's bundle off disk and PARK it for the RPG scene's create() load-branch (the
-   * actual reconstruction needs a fresh scene). The caller then boots/switches to SceneRpg.
+   * Read a slot's bundle off disk and PARK it for the RPG level's create() load-branch (the
+   * actual reconstruction needs a fresh level). The caller then boots/switches to SceneRpg.
    * @param {string} slot @returns {boolean} false if the slot can't be read
    */
   load(slot) {
@@ -122,16 +122,16 @@ globalThis.SaveGame = {
   },
 
   /**
-   * Reconstruct the session into a FRESH RPG scene — called from sceneRpg.create()'s load-branch
+   * Reconstruct the session into a FRESH RPG level — called from sceneRpg.create()'s load-branch
    * in place of the new-game map+player seeding. Runs the frame's restore passes, then frees the
    * loaded blobs. Clears the pending bundle.
-   * @param {Object} scene the fresh RPG scene
+   * @param {Object} level the fresh RPG level
    */
-  restore(scene) {
+  restore(level) {
     const p = SaveGame._pending;
     if (p === null) return;
     SaveGame._pending = null;
-    SaveGame.frame().restore(scene, p.manifest, p.blobs);
+    SaveGame.frame().restore(level, p.manifest, p.blobs);
     const names = Object.keys(p.blobs);
     for (let i = 0; i < names.length; i++) buffer_delete(p.blobs[names[i]]);
     Log.info("SaveGame: restored slot '" + p.slot + "'");
@@ -162,15 +162,15 @@ globalThis.SaveGame = {
    * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
    * the store export, so a chest keeps its contents). Shared by the active-map restore and every
    * parked map's first build. The deep chunk cache is applied earlier, inside build().
-   * @param {Object} scene @param {Object} savedMap a manifest maps[] entry
+   * @param {Object} level @param {Object} savedMap a manifest maps[] entry
    */
-  applyMapState(scene, savedMap) {
+  applyMapState(level, savedMap) {
     const zones = savedMap.zones;
     if (zones !== undefined && zones.settlement !== undefined) {
-      const zm = scene.grid.zoneMap("settlement");
+      const zm = level.grid.zoneMap("settlement");
       if (zm !== undefined) zm.import(zones.settlement);
     }
-    Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
+    Blueprint.stamp(level, 0, 0, SaveGame._buildPlan(savedMap));
   },
 
   // index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
@@ -195,9 +195,9 @@ globalThis.SaveGame = {
   _metaPass: {
     id: "meta",
     capture(ctx) {
-      const scene = ctx.scene;
-      const w = scene.entities;
-      const pid = scene.playerId;
+      const level = ctx.level;
+      const w = level.entities;
+      const pid = level.playerId;
       const health = pid !== undefined ? w.get(Health, pid) : undefined;
       const stats = pid !== undefined ? w.get(Stats, pid) : undefined;
       const inv = pid !== undefined ? w.get(Inventory, pid) : undefined;
@@ -257,10 +257,10 @@ globalThis.SaveGame = {
       const maps = [];
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
-        // the ACTIVE map's live truth is on the scene (its registry entry is minimal until a
+        // the ACTIVE map's live truth is on the level (its registry entry is minimal until a
         // suspend overwrites it); parked maps carry their full bundle in the registry.
         const src =
-          mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
+          mapId === activeId ? ctx.level : World.levels.entryOf(mapId);
         if (src === null || src.entities === undefined) continue;
         const entities = src.entities;
         const grid = src.grid;
@@ -297,7 +297,7 @@ globalThis.SaveGame = {
     // Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
     // parked map restores when first portaled to rather than up front.
     restore(ctx) {
-      const scene = ctx.scene;
+      const level = ctx.level;
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
@@ -320,21 +320,21 @@ globalThis.SaveGame = {
       PlayerSystem.bindKeys();
       // Build the active map, arriving the restored squad at its default entry. build() consumes the
       // active map's stashed state (deep chunk cache + builds + claimed zone).
-      RpgMap.build(scene, activeMap, "default", squad);
+      RpgMap.build(level, activeMap, "default", squad);
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
-      if (pinfo !== null && scene.playerId !== undefined) {
-        const pos = scene.entities.get(Position, scene.playerId);
+      if (pinfo !== null && level.playerId !== undefined) {
+        const pos = level.entities.get(Position, level.playerId);
         if (pos !== undefined) {
           pos.x = pinfo.x;
           pos.y = pinfo.y;
           pos.z = pinfo.z !== undefined ? pinfo.z : 0;
         }
-        if (scene.camera !== undefined) {
-          scene.camera.toX = pinfo.x;
-          scene.camera.toY = pinfo.y;
+        if (level.camera !== undefined) {
+          level.camera.toX = pinfo.x;
+          level.camera.toY = pinfo.y;
         }
-        if (scene.chunks !== undefined) scene.chunks.update(pinfo.x, pinfo.y);
+        if (level.chunks !== undefined) level.chunks.update(pinfo.x, pinfo.y);
       }
     },
   },
@@ -423,7 +423,7 @@ globalThis.SaveGame = {
     );
   },
 
-  // the current scene if it's saveable (has an entity store + player), else null — Save is gated on it.
+  // the current level if it's saveable (has an entity store + player), else null — Save is gated on it.
   _saveable() {
     const g = SystemMenu._game;
     if (g === null) return null;

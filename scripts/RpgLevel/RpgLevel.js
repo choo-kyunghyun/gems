@@ -1,7 +1,7 @@
 // Level builder for the top-down demo (LevelSerializer genre "topdown").
 //
 // build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top)
-// and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the scene owns the
+// and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the level owns the
 // grid's lifecycle. Wall colliders are greedy-meshed by TileEdit.
 //
 // Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are
@@ -13,7 +13,7 @@ const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px conve
 globalThis.RpgLevel = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
-  // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a scene owns
+  // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a level owns
   // exactly one entity store — so map size is bounded by both. The chunked overworld streams
   // WITHIN one such map; the graph is how the world grows past it.
   MAPS: {
@@ -252,7 +252,7 @@ globalThis.RpgLevel = {
    * Build a Level for a CHUNK-STREAMED map: a large resident grid left EMPTY (player builds only).
    * The streamed terrain is owned by the ChunkManager, so nothing is painted/meshed here
    * (colliders: []). Grid size from meta.worldCols/worldRows. Same return shape + layer order as
-   * build() so the scene code and Level.import round-trip unchanged.
+   * build() so the level code and Level.import round-trip unchanged.
    */
   buildChunked(entities, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;

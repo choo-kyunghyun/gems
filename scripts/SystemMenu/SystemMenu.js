@@ -1,13 +1,13 @@
 // the app's one menu: a near-fullscreen multi-tabbed overlay (standalone singleton, not
 // UIComponent) that pauses ALL game + behind-UI logic while open. owns the gameplay pause + nav.
-// pause is global: obj_game skips scene.step() while isOpen(), and the menu forces Time.scale=0
+// pause is global: obj_game skips level.step() while isOpen(), and the menu forces Time.scale=0
 // each frame (menu itself runs on Time.raw). UIModal blocks the underlying UI.
 // open triggers: F1 anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware
-// (scene.handleEscape() gets first refusal). a scene opts into gameplay pause/nav via this.gameplay.
+// (level.handleEscape() gets first refusal). a level opts into gameplay pause/nav via this.gameplay.
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the obj_game controller (scene lifecycle in game.scenes)
+  _game: null, // the obj_game controller (level lifecycle in game.scenes)
   _scale: 1, // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this Core menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
@@ -19,32 +19,32 @@ globalThis.SystemMenu = {
   },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
-  // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
+  // scenes. a level opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
   /** @param {Object} game the obj_game controller (holds game.scenes) */
   update(game) {
     SystemMenu._game = game;
-    const scene = game !== null ? game.scenes.current : null;
+    const level = game !== null ? game.scenes.current : null;
 
     if (SystemMenu._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
       if (keyboard_check_pressed(vk_f1) || SystemMenu._startPressed()) {
         SystemMenu.close();
       }
-      UINav.suspended = false; // overlay must stay nav-reachable over any scene
+      UINav.suspended = false; // overlay must stay nav-reachable over any level
       Time.scale = 0; // freeze Time.delta consumers behind the overlay
       Time.delta = 0;
       return;
     }
 
-    // closed. F1 opens anywhere (even a non-gameplay scene)
+    // closed. F1 opens anywhere (even a non-gameplay level)
     if (keyboard_check_pressed(vk_f1)) {
       SystemMenu.open();
       return;
     }
 
-    // gameplay-only below. read scene.gameplay LIVE — never cache into a local bool; GMRT clobbers a
+    // gameplay-only below. read level.gameplay LIVE — never cache into a local bool; GMRT clobbers a
     // cached primitive bool mid-function, which broke Esc entirely. see the clobber GMRT idiom.
-    if (scene === null || scene.gameplay !== true) return;
+    if (level === null || level.gameplay !== true) return;
 
     // gamepad Start opens the pause menu directly
     if (SystemMenu._startPressed()) {
@@ -52,10 +52,10 @@ globalThis.SystemMenu = {
       return;
     }
 
-    // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
+    // Esc during gameplay: level.handleEscape() gets first refusal (close window / exit build);
     // opens the menu only if unconsumed (so F1/Start stay the always-on pause)
     if (keyboard_check_pressed(vk_escape)) {
-      if (scene.handleEscape !== undefined && scene.handleEscape()) {
+      if (level.handleEscape !== undefined && level.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
       } else if (game.scenes.back()) {
         // guest minigame was active — Esc returned to the frozen host, not open the menu
@@ -68,7 +68,7 @@ globalThis.SystemMenu = {
     // gamepad B = back: same handleEscape hook as Esc but never opens the menu. B is also UINav's
     // cancel, so in a window it disengages focus AND closes it.
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
-      if (scene.handleEscape !== undefined && scene.handleEscape()) {
+      if (level.handleEscape !== undefined && level.handleEscape()) {
         UINav.suspended = true; // consumed
         return;
       }
@@ -135,7 +135,7 @@ globalThis.SystemMenu = {
       flexGrow: 1,
       padding: GemsTheme.pad,
       gap: GemsTheme.gapSm,
-      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused scene
+      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused level
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
@@ -214,7 +214,7 @@ globalThis.SystemMenu = {
     if (SystemMenu._modal !== null) SystemMenu._modal.close();
   },
 
-  /** force-close + restore time scale on a scene swap. */
+  /** force-close + restore time scale on a level swap. */
   reset() {
     if (SystemMenu._modal !== null) {
       SystemMenu._modal.close();
@@ -242,7 +242,7 @@ globalThis.SystemMenu = {
   },
 
   // Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
-  // re-seed the Core focus-ring + scene backdrop, rebuild the active scene's UI (colors bake at
+  // re-seed the Core focus-ring + level backdrop, rebuild the active level's UI (colors bake at
   // build time) and this overlay, and fade back. No-op when the mode is unchanged.
   _applyTheme(mode) {
     if (mode === GemsTheme.mode) return;
@@ -253,7 +253,7 @@ globalThis.SystemMenu = {
       const game = SystemMenu._game;
       if (game !== null) {
         game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
-        if (game.scenes !== undefined) game.scenes.retheme(); // rebuild active scene UI in place
+        if (game.scenes !== undefined) game.scenes.retheme(); // rebuild active level UI in place
       }
       UINav.reset(); // focus was on now-destroyed elements
       SystemMenu.reopen(1); // reopen on the Settings tab, recolored
@@ -419,7 +419,7 @@ globalThis.SystemMenu = {
     scroll.scrollBody.insertChild(uiSection);
 
     // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds
-    // the scene UI + this menu under cover (colors are baked at build, so a rebuild is required)
+    // the level UI + this menu under cover (colors are baked at build, so a rebuild is required)
     const themeSection = gemsSection(I18n.textRef("SETTINGS_THEME_TITLE"));
     const themeItems = [
       { name: I18n.text("SETTINGS_THEME_DARK"), value: "dark" },

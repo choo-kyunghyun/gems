@@ -6,6 +6,6 @@
 // @property {number} attackCd ticks the attack pose stays up (drives the Animator state)
 // @property {string} attackAnim melee anim latched at swing ("attack"|"kick"; "" = none yet) —
 //                    the unarmed fist fallback alternates punch/kick by flipping this
-// @property {number} cursorX  ground-plane world cursor, latched once per frame by the scene
+// @property {number} cursorX  ground-plane world cursor, latched once per frame by the level
 // @property {number} cursorY  (Camera.cursorWorld — mouse_x/y are wrong under the pitched camera)
 globalThis.Playable = "Playable";

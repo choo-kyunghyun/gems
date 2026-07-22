@@ -1,4 +1,4 @@
-// RPG status defs. Registered once at scene create() (NOT top-level — GMRT load-order). The kit
+// RPG status defs. Registered once at level create() (NOT top-level — GMRT load-order). The kit
 // system is genre-agnostic; these are the content. Colors drive HUD chip tints.
 // A DoT poison is symmetric to regen — one def + an applier away if needed.
 globalThis.RpgStatuses = {

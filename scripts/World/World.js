@@ -27,7 +27,7 @@ globalThis.World = {
     WorldEvents.update(WorldClock.absHours());
   },
 
-  // New game / scene teardown: reset the world-scope singletons.
+  // New game / level teardown: reset the world-scope singletons.
   reset() {
     WorldClock.reset();
     WorldEvents.reset();

@@ -7,9 +7,9 @@
 // A def: { id, prompt, run(ctx) }
 //   id      unique action key (matches Interaction.kind)
 //   prompt  proximity-pill label — an I18n key
-//   run     invoked on E. ctx = { scene, entities, id, comp, playerId } (id = the station entity,
+//   run     invoked on E. ctx = { level, entities, id, comp, playerId } (id = the station entity,
 //           comp = its Interaction data, playerId = the interacting player). An INSTANT action acts
-//           and returns; a WINDOW action opens its UI and sets scene._interOpenId = ctx.id so the
+//           and returns; a WINDOW action opens its UI and sets level._interOpenId = ctx.id so the
 //           engine range-closes / refreshes it.
 globalThis.InteractAction = {
   _defs: {},

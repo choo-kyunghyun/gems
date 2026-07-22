@@ -2,37 +2,37 @@
 // + dim backdrop + centered card, shown/hidden via `.enabled`, built once) over StorageUI's two-
 // column layout: LEFT = stock (BUY), RIGHT = bag (SELL), each a sortable UITable with a Price column.
 // all logic is TradeSystem; this file is presentation + the double-click/amount gesture, plus the
-// sell-side worn/favorited guard (it reads the player's Equipment/Favorites). state on scene (_trade*).
+// sell-side worn/favorited guard (it reads the player's Equipment/Favorites). state on level (_trade*).
 // opened by sceneRpg._npcActivate when the targeted NPC carries a Merchant. It closes itself past
 // RPG_TRADE_RANGE: Interactable's range-close covers only windows opened from an Interaction, and a
 // merchant NPC has none — so without this, walking away would leave the shop open.
 globalThis.TradeUI = {
-  build(scene) {
-    scene._tradeMerchantId = -1;
-    scene._tradeOpen = false;
-    scene._tradeDirty = false;
-    scene._tradeClickKey = ""; // last-clicked "side|id|idx" for double-click detection
-    scene._tradeClickTime = 0;
-    scene._tradeQtyModal = null; // open amount-picker modal, else null
+  build(level) {
+    level._tradeMerchantId = -1;
+    level._tradeOpen = false;
+    level._tradeDirty = false;
+    level._tradeClickKey = ""; // last-clicked "side|id|idx" for double-click detection
+    level._tradeClickTime = 0;
+    level._tradeQtyModal = null; // open amount-picker modal, else null
 
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
     // Title reads the ACTIVE merchant live; Esc / E also close.
     const host = gemsOverlay(
       () => {
-        const npc = scene.entities.get(NPC, scene._tradeMerchantId);
+        const npc = level.entities.get(NPC, level._tradeMerchantId);
         return npc !== undefined
           ? I18n.text(npc.name)
           : I18n.text("TRADE_TITLE");
       },
-      { onClose: () => TradeUI.close(scene) },
+      { onClose: () => TradeUI.close(level) },
     );
-    scene._tradeWin = host;
-    scene.ui.insertChild(host);
+    level._tradeWin = host;
+    level.ui.insertChild(host);
     const card = host.body;
 
     // player credits, live, right-aligned just before the close button.
     host.titleRow.insertChild(
-      gemsLabel(() => TradeUI._balanceText(scene), {
+      gemsLabel(() => TradeUI._balanceText(level), {
         font: "header",
         color: "#ffd166",
       }),
@@ -47,14 +47,14 @@ globalThis.TradeUI = {
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
-    const buyTable = TradeUI._table(scene, "buy");
-    const sellTable = TradeUI._table(scene, "sell");
-    scene._tradeBuyTable = buyTable.getComponent(UITable);
-    scene._tradeSellTable = sellTable.getComponent(UITable);
+    const buyTable = TradeUI._table(level, "buy");
+    const sellTable = TradeUI._table(level, "sell");
+    level._tradeBuyTable = buyTable.getComponent(UITable);
+    level._tradeSellTable = sellTable.getComponent(UITable);
     cols.insertChild(
       // BUY column sub-label = the finite merchant's till (empty for an infinite one).
       TradeUI._column(I18n.textRef("TRADE_BUY"), buyTable, () => {
-        const m = scene.entities.get(Merchant, scene._tradeMerchantId);
+        const m = level.entities.get(Merchant, level._tradeMerchantId);
         return m === undefined || m.infinite
           ? ""
           : I18n.text("TRADE_MERCHANT_TILL", m.credits);
@@ -73,20 +73,20 @@ globalThis.TradeUI = {
   },
 
   // player's balance in the active merchant's currencyId (else "coin").
-  _coins(scene) {
-    const inv = scene.entities.get(Inventory, scene.playerId);
-    const m = scene.entities.get(Merchant, scene._tradeMerchantId);
+  _coins(level) {
+    const inv = level.entities.get(Inventory, level.playerId);
+    const m = level.entities.get(Merchant, level._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
   },
 
   // "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
-  _balanceText(scene) {
-    const m = scene.entities.get(Merchant, scene._tradeMerchantId);
+  _balanceText(level) {
+    const m = level.entities.get(Merchant, level._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
     const it = Item.get(cur);
     const nm = it !== undefined ? I18n.text(it.name) : cur;
-    return nm + ": " + TradeUI._coins(scene);
+    return nm + ": " + TradeUI._coins(level);
   },
 
   // titled column: gold header (title + live sub-label) over the sortable table.
@@ -113,7 +113,7 @@ globalThis.TradeUI = {
   },
 
   // per-side table. `side` ("buy"/"sell") routes the transaction direction.
-  _table(scene, side) {
+  _table(level, side) {
     return gemsTable(TradeUI._columns(side), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
@@ -122,8 +122,8 @@ globalThis.TradeUI = {
       emptyText: I18n.text(
         side === "buy" ? "TRADE_BUY_EMPTY" : "TRADE_SELL_EMPTY",
       ),
-      onSelect: (row) => TradeUI._click(scene, side, row),
-      onActivate: (row) => TradeUI._act(scene, side, row),
+      onSelect: (row) => TradeUI._click(level, side, row),
+      onActivate: (row) => TradeUI._act(level, side, row),
     });
   },
 
@@ -166,19 +166,19 @@ globalThis.TradeUI = {
 
   // row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
   // `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _act.
-  _rows(scene, side) {
-    const entities = scene.entities;
-    const m = entities.get(Merchant, scene._tradeMerchantId);
+  _rows(level, side) {
+    const entities = level.entities;
+    const m = entities.get(Merchant, level._tradeMerchantId);
     if (m === undefined) return [];
     const inv =
       side === "buy"
-        ? entities.get(Inventory, scene._tradeMerchantId)
-        : entities.get(Inventory, scene.playerId);
+        ? entities.get(Inventory, level._tradeMerchantId)
+        : entities.get(Inventory, level.playerId);
     if (inv === undefined) return [];
     const fav =
-      side === "sell" ? entities.get(Favorites, scene.playerId) : undefined;
+      side === "sell" ? entities.get(Favorites, level.playerId) : undefined;
     const eq =
-      side === "sell" ? entities.get(Equipment, scene.playerId) : undefined;
+      side === "sell" ? entities.get(Equipment, level.playerId) : undefined;
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -210,31 +210,31 @@ globalThis.TradeUI = {
     return rows;
   },
 
-  open(scene, merchantId) {
-    scene._tradeMerchantId = merchantId;
-    scene._tradeOpen = true;
-    scene._tradeWin.enabled = true;
-    scene._tradeDirty = true;
+  open(level, merchantId) {
+    level._tradeMerchantId = merchantId;
+    level._tradeOpen = true;
+    level._tradeWin.enabled = true;
+    level._tradeDirty = true;
   },
 
-  close(scene) {
-    scene._tradeOpen = false;
-    scene._tradeWin.enabled = false;
-    scene._tradeMerchantId = -1;
-    if (scene._tradeQtyModal !== null && scene._tradeQtyModal !== undefined)
-      scene._tradeQtyModal.close();
+  close(level) {
+    level._tradeOpen = false;
+    level._tradeWin.enabled = false;
+    level._tradeMerchantId = -1;
+    if (level._tradeQtyModal !== null && level._tradeQtyModal !== undefined)
+      level._tradeQtyModal.close();
   },
 
-  refresh(scene) {
-    if (scene._tradeBuyTable !== undefined)
-      scene._tradeBuyTable.setRows(TradeUI._rows(scene, "buy"));
-    if (scene._tradeSellTable !== undefined)
-      scene._tradeSellTable.setRows(TradeUI._rows(scene, "sell"));
+  refresh(level) {
+    if (level._tradeBuyTable !== undefined)
+      level._tradeBuyTable.setRows(TradeUI._rows(level, "buy"));
+    if (level._tradeSellTable !== undefined)
+      level._tradeSellTable.setRows(TradeUI._rows(level, "sell"));
   },
 
   // single click selects; a same-row click within 350ms transacts. identity = instance uid (so a
   // re-click hits the same modded gun, not its twin) else itemId, plus side + slot index.
-  _click(scene, side, row) {
+  _click(level, side, row) {
     if (row === null || row === undefined) return;
     const now = current_time;
     const key =
@@ -243,17 +243,17 @@ globalThis.TradeUI = {
       (row.uid !== undefined ? row.uid : row.itemId) +
       "|" +
       row.idx;
-    if (scene._tradeClickKey === key && now - scene._tradeClickTime < 350) {
-      TradeUI._act(scene, side, row);
+    if (level._tradeClickKey === key && now - level._tradeClickTime < 350) {
+      TradeUI._act(level, side, row);
       return;
     }
-    scene._tradeClickKey = key;
-    scene._tradeClickTime = now;
+    level._tradeClickKey = key;
+    level._tradeClickTime = now;
   },
 
   // transact (double-click / confirm). sell-side worn/favorited refused with a toast. a fungible
   // stack > 1 opens the amount picker; an instance or single unit transacts immediately.
-  _act(scene, side, row) {
+  _act(level, side, row) {
     if (row === null || row === undefined) return;
     if (side === "sell") {
       if (row.worn) {
@@ -265,8 +265,8 @@ globalThis.TradeUI = {
         return;
       }
     }
-    const entities = scene.entities;
-    const m = entities.get(Merchant, scene._tradeMerchantId);
+    const entities = level.entities;
+    const m = entities.get(Merchant, level._tradeMerchantId);
     if (m === undefined) return;
     const def = Item.get(row.itemId);
     const instanced = def !== undefined && def.isInstanced();
@@ -275,7 +275,7 @@ globalThis.TradeUI = {
     if (!instanced) {
       if (side === "buy") {
         // picker max = what the player can afford, bounded by finite stock.
-        const coins = TradeUI._coins(scene);
+        const coins = TradeUI._coins(level);
         const price = TradeSystem.buyPrice(m, row.itemId);
         const byCoins = price > 0 ? Math.floor(coins / price) : row.qty;
         maxQty = m.infinite ? byCoins : Math.min(row.qty, byCoins);
@@ -285,17 +285,17 @@ globalThis.TradeUI = {
       }
     }
     if (!instanced && maxQty > 1) {
-      TradeUI._promptAmount(scene, side, row, maxQty);
+      TradeUI._promptAmount(level, side, row, maxQty);
       return;
     }
-    if (side === "buy") TradeUI._doBuy(scene, row, 1);
-    else TradeUI._doSell(scene, row, 1);
+    if (side === "buy") TradeUI._doBuy(level, row, 1);
+    else TradeUI._doSell(level, row, 1);
   },
 
   // amount picker (gemsAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
   // closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
-  _promptAmount(scene, side, row, maxQty) {
-    scene._tradeQtyModal = gemsAmountPicker({
+  _promptAmount(level, side, row, maxQty) {
+    level._tradeQtyModal = gemsAmountPicker({
       title: row.name,
       max: maxQty,
       prompt: I18n.text("STORAGE_QTY_PROMPT"),
@@ -304,41 +304,41 @@ globalThis.TradeUI = {
       cancelLabel: I18n.text("STORAGE_CANCEL"),
       confirmLabel: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
       onConfirm: (amount) => {
-        if (side === "buy") TradeUI._doBuy(scene, row, amount);
-        else TradeUI._doSell(scene, row, amount);
+        if (side === "buy") TradeUI._doBuy(level, row, amount);
+        else TradeUI._doSell(level, row, amount);
       },
-      onClose: () => (scene._tradeQtyModal = null),
+      onClose: () => (level._tradeQtyModal = null),
     });
   },
 
-  _doBuy(scene, row, amount) {
+  _doBuy(level, row, amount) {
     const res = TradeSystem.buy(
-      scene.entities,
-      scene.playerId,
-      scene._tradeMerchantId,
+      level.entities,
+      level.playerId,
+      level._tradeMerchantId,
       row.idx,
       amount,
     );
-    TradeUI._after(scene, res, "bought", row.itemId);
+    TradeUI._after(level, res, "bought", row.itemId);
   },
 
-  _doSell(scene, row, amount) {
+  _doSell(level, row, amount) {
     const res = TradeSystem.sell(
-      scene.entities,
-      scene.playerId,
-      scene._tradeMerchantId,
+      level.entities,
+      level.playerId,
+      level._tradeMerchantId,
       row.idx,
       amount,
     );
-    TradeUI._after(scene, res, "sold", row.itemId);
+    TradeUI._after(level, res, "sold", row.itemId);
   },
 
   // post-transaction: coin cue + refresh on success, else a toast of the refusal reason.
-  _after(scene, res, verb, itemId) {
+  _after(level, res, verb, itemId) {
     if (res.amount > 0) {
       Audio.playSfx({ sound: snd_coin });
-      scene._tradeDirty = true;
-      scene._invDirty = true; // keep the inventory window in sync
+      level._tradeDirty = true;
+      level._invDirty = true; // keep the inventory window in sync
       Log.info(`${verb} ${res.amount}x ${itemId}`);
     } else if (res.reason !== "") {
       Toast.push(I18n.text(res.reason), { type: "warn" });

@@ -1,24 +1,24 @@
-// scene catalogue (SceneRegistry) + teardown helper.
+// level catalogue (SceneRegistry) + teardown helper.
 // GemsUI factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
  * Release the `camera`/`renderer`/`entities`/`ui` a Level holds on `this`, in dependency order
- * (missing fields skipped). Call it from `destroy()` AFTER releasing the scene's own
+ * (missing fields skipped). Call it from `destroy()` AFTER releasing the level's own
  * resources (controllers, sub-levels) — those may still reference these.
- * @param {Level} scene
+ * @param {Level} level
  */
-globalThis.teardownScene = function teardownScene(scene) {
-  if (scene.camera) scene.camera.destroy();
-  if (scene.renderer) scene.renderer.destroy();
-  if (scene.entities) scene.entities.destroy();
-  if (scene.ui) {
-    UI.remove(scene.ui);
-    scene.ui.destroy();
+globalThis.teardownScene = function teardownScene(level) {
+  if (level.camera) level.camera.destroy();
+  if (level.renderer) level.renderer.destroy();
+  if (level.entities) level.entities.destroy();
+  if (level.ui) {
+    UI.remove(level.ui);
+    level.ui.destroy();
   }
 };
 
 /**
- * The lobby's scene catalogue. A scene registers at the TOP LEVEL of its script — unlike the
+ * The lobby's level catalogue. A level registers from its script's top-level code — unlike the
  * content registries, which register from `create()` — so the catalogue is complete by boot.
  * `byCategory()` groups entries in registration order; a consumer imposes its own category
  * order (the lobby's fixed display list). `LevelManager._make` also reads `_entries` to

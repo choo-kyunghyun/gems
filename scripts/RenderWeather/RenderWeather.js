@@ -10,7 +10,7 @@
 // streaks use draw_line (kept from 0.19; draw_line_width_color works on 0.20), snow uses draw_rectangle.
 //
 // View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
-// Camera). The scene assigns pass.camera after building the camera.
+// Camera). The level assigns pass.camera after building the camera.
 //
 // @implements {RenderPass}
 globalThis.RenderWeather = class RenderWeather {

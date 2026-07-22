@@ -3,7 +3,7 @@
 globalThis.RpgQuests = {
   registered: false,
 
-  // quest ids shared between content, scene, and NPC data
+  // quest ids shared between content, level, and NPC data
   QUEST_HUMANS: "td_humans",
   QUEST_GATHER: "td_gather",
   QUEST_REACH: "td_reach",

@@ -33,7 +33,7 @@ class _SceneUIKitClass {
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
     );
 
-    // reset QuestLog first to clear any state a gameplay scene left; must run before
+    // reset QuestLog first to clear any state a gameplay level left; must run before
     // the tracker widget, which reads QuestLog at construction
     this._setupQuests();
 

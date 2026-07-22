@@ -463,7 +463,7 @@ globalThis.gemsTable = function gemsTable(columns, opts = {}) {
 // Amount-picker modal — "how many?" stepper (defaults to the full `max`) + 1/Half/All quick
 // buttons over a gemsModal; confirm fires onConfirm(amount), Cancel/backdrop just close.
 // All labels are options (the kit stays content-agnostic — the RPG passes its STORAGE_*
-// strings); closeOnEscape defaults OFF because the RPG scene's handleEscape cancels the
+// strings); closeOnEscape defaults OFF because the RPG level's handleEscape cancels the
 // picker before the window under it. Returns the UIModal (as gemsModal does).
 // opts: { title, max, prompt, half, all, cancelLabel, confirmLabel, onConfirm, onClose,
 //         closeOnEscape, width }

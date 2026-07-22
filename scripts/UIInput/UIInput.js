@@ -449,7 +449,7 @@ globalThis.UIInput = class UIInput {
       const winL = this._scroll; // left edge of the visible window, text-pixel space
 
       // clip by substring/offset rather than gpu_set_scissor — scissor leaked onto all
-      // later UI draws on GMRT 0.19 (whole scene invisible). no global render state touched.
+      // later UI draws on GMRT 0.19 (whole level invisible). no global render state touched.
       let start = 0;
       while (start < disp.length && string_width(disp.slice(0, start)) < winL)
         start++;
@@ -516,7 +516,7 @@ globalThis.UIInput = class UIInput {
       keyboard_string = "";
     }
     // must clear UIInput.active on destroy — a focused field torn down mid-typing
-    // (scene change / portal) would strand the capture and keep gameplay + UINav muted forever.
+    // (level change / portal) would strand the capture and keep gameplay + UINav muted forever.
     if (UIInput.active === this) UIInput.active = null;
   }
 };

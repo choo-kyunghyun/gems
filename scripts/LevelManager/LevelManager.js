@@ -1,4 +1,4 @@
-// The level lifecycle manager — a `World` sub-module, held as `World.levels`. There is NO scene
+// The level lifecycle manager — a `World` sub-module, held as `World.levels`. There is NO level
 // stack: every live level sits in a FLAT collection with ONE active pointer, and `switchTo()` is
 // the single transition. Switching away from a level either DESTROYS it (plain navigation —
 // lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its entities/state stay
@@ -7,7 +7,7 @@
 // level at a time (no nesting — fail fast), which is all the demo ever needed from the stack.
 //
 // REGISTRY (was Universe): a flat mapId -> entry index of every RESIDENT map — THE map pool
-// (there is no scene-side pool anymore). An entry is opaque to Core except for { entities, grid }:
+// (there is no level-side pool anymore). An entry is opaque to Core except for { entities, grid }:
 // RpgMap registers a minimal pair at build and overwrites it with its full park bundle at each
 // suspend, so parked worlds live here. take/put/transfer move a WHOLE entity (all components,
 // via EntitySnapshot) between two resident maps' stores — the portal-squad + wandering-trader

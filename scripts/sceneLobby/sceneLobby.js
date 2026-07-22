@@ -1,5 +1,5 @@
-// boot scene + dev launcher (F2). flat button list of all registered scenes, then
-// global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits scene.
+// boot level + dev launcher (F2). flat button list of all registered scenes, then
+// global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits level.
 
 globalThis.SCENES = {
   lobby: () =>

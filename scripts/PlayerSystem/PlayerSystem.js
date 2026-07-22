@@ -15,9 +15,9 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 
 // The player brain as an ECS system (the input counterpart of CombatAI): update(entities) drives
 // every Playable entity once per tick — it runs at the HEAD of the physics Pipeline, before
-// SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
+// SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the level-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
-// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the scene calls them from
+// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the level calls them from
 // create()/resume()/destroy() (see sceneRpg).
 
 globalThis.PlayerSystem = {
@@ -110,7 +110,7 @@ globalThis.PlayerSystem = {
   },
 
   // resolve THE player entity live by query (never a stored id — a map transfer can't dangle
-  // it); -1 when no Playable entity exists. sceneRpg latches it per frame as scene.playerId.
+  // it); -1 when no Playable entity exists. sceneRpg latches it per frame as level.playerId.
   id(entities) {
     const ids = entities.query(Playable);
     return ids.length > 0 ? ids[0] : -1;
@@ -208,7 +208,7 @@ globalThis.PlayerSystem = {
         Math.abs(rx) <= RPG_STICK_DEADZONE &&
         Math.abs(ry) <= RPG_STICK_DEADZONE
       ) {
-        // scene-latched ground-plane cursor — NOT mouse_x/mouse_y, which are wrong under the
+        // level-latched ground-plane cursor — NOT mouse_x/mouse_y, which are wrong under the
         // pitched matrix camera (see Camera.unproject; sceneRpg.step latches Playable.cursorX/Y)
         const adx = pl.cursorX - pos.x;
         const ady = pl.cursorY - pos.y;
@@ -312,7 +312,7 @@ globalThis.PlayerSystem = {
     pl.attackCd = RPG_ATTACK_ANIM;
   },
 
-  // drop the keymap (scene destroy; a guest's own unbind is why resume() re-runs bindKeys)
+  // drop the keymap (level destroy; a guest's own unbind is why resume() re-runs bindKeys)
   unbind() {
     const keys = [
       "moveLeft",

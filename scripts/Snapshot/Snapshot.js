@@ -2,7 +2,7 @@
 // ChunkGenerator:gen-pass. A save is built by an ordered list of PASSES, each owning one aspect of
 // the world (metadata, world-sim, per-map entities, tile grids, chunk cache, …); the same pass
 // captures AND restores its slice, so the two directions can never drift. Composition, not a
-// monolith — a scene inserts exactly the passes its content needs (a chunked overworld adds a chunk
+// monolith — a level inserts exactly the passes its content needs (a chunked overworld adds a chunk
 // pass a plain interior doesn't), which is why different levels can carry different component/system
 // sets in one save.
 //
@@ -15,7 +15,7 @@
 // side (manifest.json + <name>.bin under saves/<slot>/); Snapshot only builds/consumes the bundle
 // in memory, so it stays engine-generic and testable. The ctx handed to each pass:
 //   ctx.mode      "capture" | "restore"
-//   ctx.scene     the live scene (read live state on capture; write it on restore)
+//   ctx.level     the live level (read live state on capture; write it on restore)
 //   ctx.manifest  the JSON tree — write on capture, read on restore
 //   ctx.putBlob(name, buffer)  capture: hand a binary blob to the bundle (buffer ownership moves to the bundle)
 //   ctx.getBlob(name)          restore: the loaded buffer for `name`, or undefined
@@ -29,7 +29,8 @@ globalThis.Snapshot = class Snapshot {
 
   // Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
   _wrap(pass) {
-    if (typeof pass === "function") return { id: "", capture: pass, restore: () => {} };
+    if (typeof pass === "function")
+      return { id: "", capture: pass, restore: () => {} };
     return pass;
   }
 
@@ -50,15 +51,15 @@ globalThis.Snapshot = class Snapshot {
    * CAPTURE: run each pass in order, accumulating the hybrid bundle. Returns
    * `{ manifest, blobs }` — manifest a JSON-encodable tree, blobs an array of { name, buffer }
    * the caller owns (SaveGame writes them, then buffer_deletes).
-   * @param {Object} scene
+   * @param {Object} level
    * @returns {{manifest:Object, blobs:{name:string,buffer:*}[]}}
    */
-  capture(scene) {
+  capture(level) {
     const manifest = { version: Snapshot.VERSION };
     const blobs = [];
     const ctx = {
       mode: "capture",
-      scene,
+      level,
       manifest,
       putBlob: (name, buffer) => {
         blobs.push({ name, buffer });
@@ -71,15 +72,15 @@ globalThis.Snapshot = class Snapshot {
 
   /**
    * RESTORE: run each pass in order against a loaded bundle. `blobs` maps name -> buffer (owned by
-   * the caller; passes read but must not delete). Passes reconstruct scene state in place.
-   * @param {Object} scene
+   * the caller; passes read but must not delete). Passes reconstruct level state in place.
+   * @param {Object} level
    * @param {Object} manifest  the parsed JSON manifest (already ref-revived by Json.decode)
    * @param {Object<string,*>} blobs  name -> loaded buffer
    */
-  restore(scene, manifest, blobs) {
+  restore(level, manifest, blobs) {
     const ctx = {
       mode: "restore",
-      scene,
+      level,
       manifest,
       putBlob: (_name, _buffer) => {},
       getBlob: (name) => blobs[name],

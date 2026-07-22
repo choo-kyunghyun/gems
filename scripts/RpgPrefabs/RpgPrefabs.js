@@ -1,4 +1,4 @@
-// RPG overworld prefabs stamped by the overworld generator. Registered at scene create() (NOT
+// RPG overworld prefabs stamped by the overworld generator. Registered at level create() (NOT
 // top-level — GMRT load-order), before the generator is built (PrefabStamp resolves Prefab.byTag
 // in its constructor).
 globalThis.RpgPrefabs = {

@@ -1,5 +1,5 @@
 // world-space floating combat numbers (rise + fade). standalone singleton.
-// drawn in WORLD space, so draw() is called from a scene's draw() (in camera view), not Draw_75.
+// drawn in WORLD space, so draw() is called from a level's draw() (in camera view), not Draw_75.
 // ages by Time.delta (sim time) not Time.raw — gameplay feedback should slow with time-dilation.
 globalThis.FloatingText = {
   _items: [], // { x, y, text, color, age, life, rise, scale }
@@ -37,13 +37,13 @@ globalThis.FloatingText = {
     });
   },
 
-  /** called on every scene swap. */
+  /** called on every level swap. */
   clear() {
     FloatingText._items = [];
   },
 
   /**
-   * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
+   * age + cull + draw in WORLD space (from a level's draw(), after entities). Under a 2.5D pitched
    * camera, pitchDeg tilts each number to face the camera head-on (text readability — unlike the
    * entity sprites, which draw UPRIGHT via RenderBillboard) instead of splayed flat; 0 = flat
    * top-down. sceneRpg passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.

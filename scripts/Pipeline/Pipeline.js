@@ -1,7 +1,7 @@
 // Ordered list of per-tick steps, each a `{ update(entities) }` object or a bare `function(entities)`
 // (wrapped on add), so a genre composes its physics order declaratively — platformer
 // `Gravity → clampFall → Solid`, top-down `Solid → Separation → Projectile`. Runs inside the
-// scene's tick loop (the ordering contract that brackets it: SimClock.advance).
+// level's tick loop (the ordering contract that brackets it: SimClock.advance).
 globalThis.Pipeline = class Pipeline {
   constructor() {
     /** @type {{update: function(any): void}[]} */

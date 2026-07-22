@@ -31,7 +31,7 @@ globalThis.UINav = {
     if (UINav._claimed === owner) UINav._claimed = null;
   },
 
-  /** Reset on every scene swap. */
+  /** Reset on every level swap. */
   reset() {
     UINav.focused = null;
     UINav.engaged = false;
@@ -54,7 +54,7 @@ globalThis.UINav = {
       return;
     }
 
-    // drop stale focus (scene/tab change)
+    // drop stale focus (level/tab change)
     if (UINav.focused !== null && UINav._indexOf(items, UINav.focused) === -1) {
       UINav.focused = null;
     }
@@ -95,7 +95,7 @@ globalThis.UINav = {
     if (inp.confirm) {
       const comp = UINav._comp(UINav.focused, "navActivate");
       if (comp !== null) {
-        Audio.playSfx({ sound: snd_button_click }); // cue before activate (may swap scene)
+        Audio.playSfx({ sound: snd_button_click }); // cue before activate (may swap level)
         comp.navActivate(UINav.focused);
       }
       return;

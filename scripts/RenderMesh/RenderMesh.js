@@ -126,7 +126,7 @@ globalThis.RenderMesh = class RenderMesh {
   // MAX_LIGHTS `Light` entities as point lights (same flicker formula as RenderLighting so
   // the mesh response tracks the visible glow pools). Arrays are reused scratch. This is the
   // ONE light gather every lit pass shares (walls/billboards/ground call it via opt.lights),
-  // so the whole scene can't diverge — each caller then overrides u_useTex/u_normal/
+  // so the whole level can't diverge — each caller then overrides u_useTex/u_normal/
   // u_alphaRef for its own submits.
   _setupLights(entities) {
     shader_set(this._lit);

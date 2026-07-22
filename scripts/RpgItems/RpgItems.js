@@ -1,5 +1,5 @@
 // RPG item content — rarities + manufacturers + full item set. Registered once via
-// RpgContent.register() at scene create(), NOT top-level (avoids GMRT load-order issues).
+// RpgContent.register() at level create(), NOT top-level (avoids GMRT load-order issues).
 const RPG_RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
   { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },

@@ -1,5 +1,5 @@
 // full-screen fade between scenes. standalone singleton (not UIComponent).
-// fade-out → swap scene at full cover → fade-in, so the UI rebuild is hidden under the cover.
+// fade-out → swap level at full cover → fade-in, so the UI rebuild is hidden under the cover.
 // timer uses Time.raw so the fade ignores Time.scale.
 globalThis.SceneTransition = {
   duration: 0.12, // seconds per direction — short so swaps feel responsive
@@ -8,9 +8,9 @@ globalThis.SceneTransition = {
 
   _phase: 0, // 0 idle, 1 fading out, 2 fading in
   _t: 0, // seconds elapsed in current phase
-  _apply: null, // scene-swap callback, fired once at full cover
+  _apply: null, // level-swap callback, fired once at full cover
 
-  /** @returns {boolean} fade running — SceneManager holds the pending scene until this clears. */
+  /** @returns {boolean} fade running — LevelManager holds the pending level until this clears. */
   isBusy() {
     return SceneTransition._phase !== 0;
   },
@@ -22,7 +22,7 @@ globalThis.SceneTransition = {
     SceneTransition._t = 0;
   },
 
-  /** fade in from cover with no preceding fade-out (boot: first scene from black). */
+  /** fade in from cover with no preceding fade-out (boot: first level from black). */
   reveal() {
     SceneTransition._apply = null;
     SceneTransition._phase = 2;

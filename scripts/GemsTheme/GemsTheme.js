@@ -15,7 +15,7 @@
 // `GemsTheme.setMode(mode)` copies the active palette's colors onto the flat GemsTheme keys
 // the factories read — so each `GemsTheme.<colorKey>` read resolves to the current mode. The
 // factories bake those colors into UI components at BUILD time, so a LIVE swap must rebuild the
-// UI afterwards (LevelManager.retheme → each scene's retheme()); it is NOT read live per frame.
+// UI afterwards (LevelManager.retheme → each level's retheme()); it is NOT read live per frame.
 // Geometry/motion below are theme-independent and stay flat on the object.
 
 globalThis.GemsTheme = {
@@ -41,7 +41,7 @@ globalThis.GemsTheme = {
       // Surfaces
       panel: "#272b34", // section / card fill (roundrect center)
       panelLo: "#1f222a", // card edge — darker, reads as depth
-      bg: "#222222", // scene backdrop (draw_clear)
+      bg: "#222222", // level backdrop (draw_clear)
       // Buttons
       btn: "#323845",
       btnHover: "#3e4658",

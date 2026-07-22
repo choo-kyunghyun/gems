@@ -5,13 +5,13 @@
 // player stands in an owned settlement, and placement is gated cell-by-cell to owned land.
 // palette = a bottom-center gemsCatBar; an item is a TILE (TileLayer via TileEdit) or an ENTITY
 // (via RpgSpawn.spawnEntity). LMB places at the hovered cell, RMB deconstructs.
-// state on scene (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
+// state on level (`_build*`); the static `active` flag is mirrored each frame so drawWorld can gate
 // the cursor highlight to "build context owns input".
-// scene contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
+// level contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
 // RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
 // _tilePasses (render pass per layer key).
 globalThis.BuildMode = {
-  active: false, // mirror of (scene._buildActive && build context), read by drawWorld
+  active: false, // mirror of (level._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
   OWNER: "player", // the Settlement owner faction id that gates building (Demo policy)
 
@@ -20,8 +20,8 @@ globalThis.BuildMode = {
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
-      // tile items: `layer` names the RpgLevel.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
-      // a wall item's `mat` picks the per-cell material TileType (scene.wallTypes[mat]).
+      // tile items: `layer` names the RpgLevel.LAYERS key (level[layer+"Layer"]/[layer+"Type"]);
+      // a wall item's `mat` picks the per-cell material TileType (level.wallTypes[mat]).
       labelKey: "BUILD_CAT_TILES",
       items: [
         {
@@ -132,25 +132,25 @@ globalThis.BuildMode = {
         {
           // openable door (wooden_door slab; the "door" InteractAction toggles Collision.solid).
           // auto-oriented at placement: walls above+below → a vertical door in a N-S wall run
-          // (make's optional 3rd arg is the scene — only this item reads it).
+          // (make's optional 3rd arg is the level — only this item reads it).
           id: "door",
           labelKey: "BUILD_DOOR",
           cost: 4,
           kind: "entity",
-          make: (gx, gy, scene) => ({
+          make: (gx, gy, level) => ({
             preset: "prop",
             gx,
             gy,
             label: I18n.text("BUILD_DOOR"),
             kind: "door",
             vertical:
-              scene !== undefined &&
-              TileEdit.occupied(scene.wallLayer, gx, gy - 1) &&
-              TileEdit.occupied(scene.wallLayer, gx, gy + 1),
+              level !== undefined &&
+              TileEdit.occupied(level.wallLayer, gx, gy - 1) &&
+              TileEdit.occupied(level.wallLayer, gx, gy + 1),
           }),
         },
         {
-          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene._sleep (fast-forward + drain Drowsiness).
+          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to level._sleep (fast-forward + drain Drowsiness).
           id: "bed",
           labelKey: "BUILD_BED",
           cost: 6,
@@ -428,16 +428,16 @@ globalThis.BuildMode = {
     return undefined;
   },
 
-  // build the HUD + init per-scene state. call once from create().
-  build(scene) {
+  // build the HUD + init per-level state. call once from create().
+  build(level) {
     // Player builds are SCENE-tracked, never chunk-managed (like the squad): a streamed chunk
     // unloading must not take the player's wall with it. They persist across map changes by
     // construction — a visited map is parked whole in the pool, not rebuilt from file.
-    scene._built = {}; // "gx,gy" -> tile item id (wall/floor): deconstructable tiles
-    scene._builtEnts = {}; // "gx,gy" -> { ent, itemId }: deconstructable built entities
-    scene._buildActive = false;
-    scene._buildItem = BuildMode.CATALOG[0].items[0]; // selected catalog item (default Wall)
-    scene._buildCell = undefined; // last hovered cell, for drawWorld
+    level._built = {}; // "gx,gy" -> tile item id (wall/floor): deconstructable tiles
+    level._builtEnts = {}; // "gx,gy" -> { ent, itemId }: deconstructable built entities
+    level._buildActive = false;
+    level._buildItem = BuildMode.CATALOG[0].items[0]; // selected catalog item (default Wall)
+    level._buildCell = undefined; // last hovered cell, for drawWorld
     BuildMode.active = false;
 
     // bottom-center HUD: status line over the build bar. placement (LMB/RMB) is on the world
@@ -457,7 +457,7 @@ globalThis.BuildMode = {
 
     const statusRow = new UIElement({ width: "100%", height: 22 });
     statusRow.insertChild(
-      gemsLabel(() => BuildMode._statusText(scene), {
+      gemsLabel(() => BuildMode._statusText(level), {
         halign: fa_center,
         color: GemsTheme.text,
       }),
@@ -474,7 +474,7 @@ globalThis.BuildMode = {
         items.push({
           label: () => I18n.text(it.labelKey) + "  (" + it.cost + ")",
           onSelect: () => {
-            scene._buildItem = it;
+            level._buildItem = it;
           },
         });
       }
@@ -482,67 +482,67 @@ globalThis.BuildMode = {
     }
     const bar = gemsCatBar(cats, { width: 760, selCat: 0, selItem: 0 });
     col.insertChild(bar);
-    scene._buildBar = bar;
+    level._buildBar = bar;
 
     wrap.insertChild(col);
     wrap.enabled = false;
-    scene._buildHud = wrap;
-    scene._buildHudBox = col; // rect for the placement guard
-    scene.ui.insertChild(wrap);
+    level._buildHud = wrap;
+    level._buildHudBox = col; // rect for the placement guard
+    level.ui.insertChild(wrap);
   },
 
-  _statusText(scene) {
-    const inv = scene.entities.get(Inventory, scene.playerId);
+  _statusText(level) {
+    const inv = level.entities.get(Inventory, level.playerId);
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
-    const it = scene._buildItem;
+    const it = level._buildItem;
     return I18n.text("BUILD_STATUS", wood, I18n.text(it.labelKey), it.cost);
   },
 
   // per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
   // RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
-  update(scene) {
+  update(level) {
     // B toggles build mode, but it only OPENS while the player stands on land they OWN (a
     // player-owned Settlement) — "you can only build in your own settlement". Closing is free.
     if (Input.get("build").pressed()) {
-      if (scene._buildActive) scene._buildActive = false;
-      else if (BuildMode._playerOwnsHere(scene)) scene._buildActive = true;
+      if (level._buildActive) level._buildActive = false;
+      else if (BuildMode._playerOwnsHere(level)) level._buildActive = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
     // active only when toggled on AND the build context owns input — an open window makes the
     // context "window" (priority over build), so building pauses and window clicks can't place/remove.
-    const on = scene._buildActive === true && InputContext.is("build");
+    const on = level._buildActive === true && InputContext.is("build");
     BuildMode.active = on;
-    scene._buildHud.enabled = on;
+    level._buildHud.enabled = on;
     if (!on) {
-      scene._buildBar.catbar.close(); // collapse any open flyout when leaving build mode
+      level._buildBar.catbar.close(); // collapse any open flyout when leaving build mode
       return;
     }
 
-    const grid = scene.grid;
+    const grid = level.grid;
 
     // skip world edits while the cursor is over the build HUD (a bar click must not place behind it).
-    if (BuildMode._overHud(scene)) {
-      scene._buildCell = undefined;
+    if (BuildMode._overHud(level)) {
+      level._buildCell = undefined;
       return;
     }
 
-    // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
-    const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
-    scene._buildCell = cell;
+    // level-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
+    const cell = grid.worldToGrid(level.mouseWorld.x, level.mouseWorld.y);
+    level._buildCell = cell;
     if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 
     // reuse the LMB edge latched by UIPointer.poll (the poll-once rule — UIPointer). RMB is unread elsewhere, single query safe.
-    if (UIPointer.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
+    if (UIPointer.pressed) BuildMode._tryPlace(level, cell.x, cell.y);
     else if (mouse_check_button_pressed(mb_right))
-      BuildMode._tryRemove(scene, cell.x, cell.y);
+      BuildMode._tryRemove(level, cell.x, cell.y);
   },
 
   // cursor over the HUD column's rect (`width > 0` dodges the first-frame NaN rect; the column
   // grows to include an open flyout, so this covers it).
-  _overHud(scene) {
-    const p = scene._buildHudBox.getLayoutPosition();
+  _overHud(level) {
+    const p = level._buildHudBox.getLayoutPosition();
     if (!(p.width > 0)) return false;
     const gmx = device_mouse_x_to_gui(0);
     const gmy = device_mouse_y_to_gui(0);
@@ -568,25 +568,25 @@ globalThis.BuildMode = {
   },
 
   // does the player currently stand on land of a settlement they OWN? gates opening build mode.
-  _playerOwnsHere(scene) {
-    const pp = scene.entities.get(Position, scene.playerId);
+  _playerOwnsHere(level) {
+    const pp = level.entities.get(Position, level.playerId);
     if (pp === undefined) return false;
-    const c = scene.grid.worldToGrid(pp.x, pp.y);
-    return Settlement.ownerAt(scene.grid, c.x, c.y) === BuildMode.OWNER;
+    const c = level.grid.worldToGrid(pp.x, pp.y);
+    return Settlement.ownerAt(level.grid, c.x, c.y) === BuildMode.OWNER;
   },
 
   // can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
   // (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
   // floor) isn't on the player's own cell. shared by place + cursor highlight.
-  _canBuild(scene, gx, gy) {
-    const grid = scene.grid;
+  _canBuild(level, gx, gy) {
+    const grid = level.grid;
     if (Settlement.ownerAt(grid, gx, gy) !== BuildMode.OWNER) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
-    const item = scene._buildItem;
-    const inv = scene.entities.get(Inventory, scene.playerId);
+      if (TileEdit.occupied(level[lkeys[i] + "Layer"], gx, gy)) return false;
+    if (level._builtEnts[gx + "," + gy] !== undefined) return false;
+    const item = level._buildItem;
+    const inv = level.entities.get(Inventory, level.playerId);
     if (
       inv === undefined ||
       !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
@@ -596,7 +596,7 @@ globalThis.BuildMode = {
       item.kind === "tile" && RpgLevel.layerCfg(item.layer).solid !== true
     );
     if (solid) {
-      const pp = scene.entities.get(Position, scene.playerId);
+      const pp = level.entities.get(Position, level.playerId);
       if (pp !== undefined) {
         const pc = grid.worldToGrid(pp.x, pp.y);
         if (pc.x === gx && pc.y === gy) return false;
@@ -605,13 +605,13 @@ globalThis.BuildMode = {
     return true;
   },
 
-  _tryPlace(scene, gx, gy) {
-    if (!BuildMode._canBuild(scene, gx, gy)) return;
-    const item = scene._buildItem;
-    const inv = scene.entities.get(Inventory, scene.playerId);
+  _tryPlace(level, gx, gy) {
+    if (!BuildMode._canBuild(level, gx, gy)) return;
+    const item = level._buildItem;
+    const inv = level.entities.get(Inventory, level.playerId);
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
-    BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
-    scene._invDirty = true;
+    BuildMode.applyItem(level, gx, gy, item); // immediate remesh (deferRemesh unset)
+    level._invDirty = true;
     Log.info(`built ${item.id} at ${gx},${gy}`);
   },
 
@@ -623,94 +623,94 @@ globalThis.BuildMode = {
   //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
   // Updates _built / _builtEnts. Returns the entity id (entity) or whether a solid tile was placed
   // (so a deferred caller knows a wall remesh is pending).
-  applyItem(scene, gx, gy, item, opts = {}) {
-    const grid = scene.grid;
+  applyItem(level, gx, gy, item, opts = {}) {
+    const grid = level.grid;
     const key = gx + "," + gy;
     if (item.kind === "tile") {
       // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
-      // wall materials). Only the solid layer (wall) has colliders to remesh (scene.colliders).
-      const layer = scene[item.layer + "Layer"];
+      // wall materials). Only the solid layer (wall) has colliders to remesh (level.colliders).
+      const layer = level[item.layer + "Layer"];
       const type =
         item.mat !== undefined
-          ? scene[item.layer + "Types"][item.mat]
-          : scene[item.layer + "Type"];
+          ? level[item.layer + "Types"][item.mat]
+          : level[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
       const solid = RpgLevel.layerCfg(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
-        TileEdit.remesh(scene.entities, grid, layer, scene.colliders);
-      BuildMode._markTileDirty(scene, item.layer);
-      scene._built[key] = item.id;
+        TileEdit.remesh(level.entities, grid, layer, level.colliders);
+      BuildMode._markTileDirty(level, item.layer);
+      level._built[key] = item.id;
       return solid;
     }
     // entity: an exact snapshot restore (state preserved) or a fresh make() (a new instance).
-    // make's optional 3rd arg is the scene (the door auto-orients off the wall layer); a built
+    // make's optional 3rd arg is the level (the door auto-orients off the wall layer); a built
     // prop is identical to a file/streamed one and persists via EntitySnapshot (see RpgMap).
     let id;
     if (opts.snapshot !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
-      id = EntitySnapshot.restore(scene.entities, opts.snapshot, {
+      id = EntitySnapshot.restore(level.entities, opts.snapshot, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
-      id = RpgSpawn.spawnEntity(scene.entities, grid, item.make(gx, gy, scene));
+      id = RpgSpawn.spawnEntity(level.entities, grid, item.make(gx, gy, level));
     }
-    scene._builtEnts[key] = { ent: id, itemId: item.id };
+    level._builtEnts[key] = { ent: id, itemId: item.id };
     return id;
   },
 
-  _tryRemove(scene, gx, gy) {
+  _tryRemove(level, gx, gy) {
     const key = gx + "," + gy;
-    const grid = scene.grid;
+    const grid = level.grid;
     // built entities sit on top of tiles — remove one first if present.
-    const ent = scene._builtEnts[key];
+    const ent = level._builtEnts[key];
     if (ent !== undefined) {
       // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
-      if (scene.entities.isValid(ent.ent)) {
-        const st = scene.entities.get(Interaction, ent.ent);
+      if (level.entities.isValid(ent.ent)) {
+        const st = level.entities.get(Interaction, ent.ent);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
-          const inv = scene.entities.get(Inventory, scene.playerId);
+          const inv = level.entities.get(Inventory, level.playerId);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
-        RpgScene.spillLoot(scene, ent.ent);
-        scene.entities.remove(ent.ent);
+        RpgScene.spillLoot(level, ent.ent);
+        level.entities.remove(ent.ent);
       }
-      BuildMode._refund(scene, ent.itemId);
-      delete scene._builtEnts[key];
-      scene._invDirty = true;
+      BuildMode._refund(level, ent.itemId);
+      delete level._builtEnts[key];
+      level._invDirty = true;
       Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
       return;
     }
-    const tileId = scene._built[key];
+    const tileId = level._built[key];
     if (tileId === undefined) return; // only player-built cells are deconstructable
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
-    TileEdit.clear(scene[lkey + "Layer"], gx, gy);
+    TileEdit.clear(level[lkey + "Layer"], gx, gy);
     if (RpgLevel.layerCfg(lkey).solid === true)
       TileEdit.remesh(
-        scene.entities,
+        level.entities,
         grid,
-        scene[lkey + "Layer"],
-        scene.colliders,
+        level[lkey + "Layer"],
+        level.colliders,
       );
-    BuildMode._markTileDirty(scene, lkey);
-    BuildMode._refund(scene, tileId);
-    delete scene._built[key];
-    scene._invDirty = true;
+    BuildMode._markTileDirty(level, lkey);
+    BuildMode._refund(level, tileId);
+    delete level._built[key];
+    level._invDirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
   },
 
   // RenderTileMap passes are VBO-cached, so a tile edit must markDirty the layer's pass to render
   // (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
-  _markTileDirty(scene, layerKey) {
-    const pass = scene._tilePasses[layerKey];
+  _markTileDirty(level, layerKey) {
+    const pass = level._tilePasses[layerKey];
     if (pass !== undefined) pass.markDirty();
   },
 
-  _refund(scene, itemId) {
+  _refund(level, itemId) {
     const item = BuildMode.item(itemId);
-    const inv = scene.entities.get(Inventory, scene.playerId);
+    const inv = level.entities.get(Inventory, level.playerId);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
@@ -718,20 +718,20 @@ globalThis.BuildMode = {
   // sweep built entities destroyed in combat (a turret brought to 0 HP) out of the deconstruct
   // tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
   // not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
-  reapDestroyed(scene) {
-    const entities = scene.entities;
-    const keys = Object.keys(scene._builtEnts);
+  reapDestroyed(level) {
+    const entities = level.entities;
+    const keys = Object.keys(level._builtEnts);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
-      const e = scene._builtEnts[k];
+      const e = level._builtEnts[k];
       if (!entities.isValid(e.ent)) {
-        delete scene._builtEnts[k]; // already gone (removed elsewhere)
+        delete level._builtEnts[k]; // already gone (removed elsewhere)
         continue;
       }
       const hp = entities.get(Health, e.ent);
       if (hp !== undefined && hp.hp <= 0) {
         entities.remove(e.ent);
-        delete scene._builtEnts[k];
+        delete level._builtEnts[k];
         const item = BuildMode.item(e.itemId);
         const label = item !== undefined ? I18n.text(item.labelKey) : e.itemId;
         Toast.push(I18n.text("BUILT_DESTROYED", label), { type: "warn" });
@@ -744,9 +744,9 @@ globalThis.BuildMode = {
   // then *spend* the post (detach its Interaction). The founded settlement is the stored state
   // (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
   // land is still spent — no re-founding.
-  claim(scene, postId) {
-    const grid = scene.grid;
-    const pos = scene.entities.get(Position, postId);
+  claim(level, postId) {
+    const grid = level.grid;
+    const pos = level.entities.get(Position, postId);
     if (pos === undefined) return;
     const c = grid.worldToGrid(pos.x, pos.y);
     if (Settlement.at(grid, c.x, c.y) === undefined) {
@@ -762,16 +762,16 @@ globalThis.BuildMode = {
       Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
       Log.info(`founded settlement (${x1},${y1})-(${x2},${y2})`);
     }
-    scene.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
+    level.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
   },
 
   // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.
-  // call from scene.draw().
-  drawWorld(scene) {
+  // call from level.draw().
+  drawWorld(level) {
     if (!BuildMode.active) return;
-    const cell = scene._buildCell;
+    const cell = level._buildCell;
     if (cell === undefined) return;
-    const grid = scene.grid;
+    const grid = level.grid;
     if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 
@@ -779,9 +779,9 @@ globalThis.BuildMode = {
     const wx = cell.x * grid.cellWidth;
     const wy = cell.y * grid.cellHeight;
     let col;
-    if (scene._built[key] !== undefined || scene._builtEnts[key] !== undefined)
+    if (level._built[key] !== undefined || level._builtEnts[key] !== undefined)
       col = c_yellow;
-    else col = BuildMode._canBuild(scene, cell.x, cell.y) ? c_lime : c_red;
+    else col = BuildMode._canBuild(level, cell.x, cell.y) ? c_lime : c_red;
 
     draw_set_color(col);
     draw_set_alpha(0.3);

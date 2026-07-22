@@ -1,15 +1,15 @@
 // 2D light-map pass — RPG lighting + day/night in one. Builds a per-frame off-screen light map and
 // composites it over the world MULTIPLICATIVELY, so day/night is "ambient with no lights" and point
 // lights punch bright holes in the night.
-//   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → scene * ambient
+//   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → level * ambient
 //   2. light blobs  — each Light adds a soft radial glow with bm_add (overlaps sum)
 //   2b. vignette    — multiply corners down so night frames in at the edges (off in daylight)
-//   3. composite    — draw the light map over the world with multiply (final = scene * light)
+//   3. composite    — draw the light map over the world with multiply (final = level * light)
 //
 // Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
 // (zero surface work). Surfaces + bm_add + multiply probe-verified on GMRT 0.20. NO shadows — falloff only.
 //
-// Inserted LAST in the RPG renderer; the scene draws its bright cues AFTER so they stay above the tint.
+// Inserted LAST in the RPG renderer; the level draws its bright cues AFTER so they stay above the tint.
 // View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
 // @implements {RenderPass}
 globalThis.RenderLighting = class RenderLighting {
@@ -88,7 +88,7 @@ globalThis.RenderLighting = class RenderLighting {
     gpu_set_blendmode(bm_normal);
 
     // 2b. Vignette — multiplicative (bm_dest_colour, bm_zero), like the composite, so it DEEPENS
-    // scene colors rather than alpha-blending a flat-black wash. white-center → dark-edge radial.
+    // level colors rather than alpha-blending a flat-black wash. white-center → dark-edge radial.
     if (this.vignette > 0) {
       const cx = w / 2;
       const cy = h / 2;
@@ -107,7 +107,7 @@ globalThis.RenderLighting = class RenderLighting {
 
     surface_reset_target();
 
-    // 3. Composite multiplicatively (final = scene * light). NO bm_multiply constant — src×dest via
+    // 3. Composite multiplicatively (final = level * light). NO bm_multiply constant — src×dest via
     //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);

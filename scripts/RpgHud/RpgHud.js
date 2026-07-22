@@ -1,19 +1,19 @@
-// HUD + overlay panels for the RPG scene — free functions taking the scene (mirrors RpgScene/
-// RpgMap). Panels read scene.entities/scene.playerId LIVE via gemsLabel callbacks, so they survive
+// HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgScene/
+// RpgMap). Panels read level.entities/level.playerId LIVE via gemsLabel callbacks, so they survive
 // the store swap on a map change (RpgMap.go).
 globalThis.RpgHud = {
-  // build the persistent panels once (scene create)
-  build(scene) {
-    RpgHud._hud(scene);
-    RpgHud._hotbar(scene);
-    RpgHud._dialogue(scene);
-    RpgHud._sleepOverlay(scene);
+  // build the persistent panels once (level create)
+  build(level) {
+    RpgHud._hud(level);
+    RpgHud._hotbar(level);
+    RpgHud._dialogue(level);
+    RpgHud._sleepOverlay(level);
   },
 
   // Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
   // the player each frame. Display-only (binding is in RpgInventoryUI, using is sceneRpg._useHotbar).
   // sceneRpg hides the whole bar while build mode owns the bottom-center HUD.
-  _hotbar(scene) {
+  _hotbar(level) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -24,12 +24,12 @@ globalThis.RpgHud = {
       gap: GemsTheme.gapSm,
     });
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++)
-      wrap.insertChild(RpgHud._hotbarSlot(scene, i));
-    scene._hotbarBar = wrap;
-    scene.ui.insertChild(wrap);
+      wrap.insertChild(RpgHud._hotbarSlot(level, i));
+    level._hotbarBar = wrap;
+    level.ui.insertChild(wrap);
   },
 
-  _hotbarSlot(scene, i) {
+  _hotbarSlot(level, i) {
     const card = gemsCard({ width: 140, padding: GemsTheme.padSm });
     const row = new UIElement({
       width: "100%",
@@ -40,8 +40,8 @@ globalThis.RpgHud = {
     row.insertChild(
       gemsRichText(
         () => {
-          if (scene.playerId === undefined) return "";
-          const hb = scene.entities.get(Hotbar, scene.playerId);
+          if (level.playerId === undefined) return "";
+          const hb = level.entities.get(Hotbar, level.playerId);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           return itemId ? RpgWorldOverlay.iconTag(itemId) : "";
         },
@@ -52,13 +52,13 @@ globalThis.RpgHud = {
       gemsLabel(
         () => {
           const key = i + 1;
-          if (scene.playerId === undefined) return "[" + key + "]";
-          const hb = scene.entities.get(Hotbar, scene.playerId);
+          if (level.playerId === undefined) return "[" + key + "]";
+          const hb = level.entities.get(Hotbar, level.playerId);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
           const it = Item.get(itemId);
           const name = it !== undefined ? I18n.text(it.name) : itemId;
-          const inv = scene.entities.get(Inventory, scene.playerId);
+          const inv = level.entities.get(Inventory, level.playerId);
           const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
           return "[" + key + "]  " + name + " (" + n + ")";
         },
@@ -70,11 +70,11 @@ globalThis.RpgHud = {
   },
 
   // one survival-need RESERVE bar: gemsProgress of (1 - value/max), so full = satiated, read live
-  _needBar(scene, token, labelKey, fillColor) {
+  _needBar(level, token, labelKey, fillColor) {
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
       gemsProgress(
-        () => 1 - Survival.fraction(scene.entities.get(token, scene.playerId)),
+        () => 1 - Survival.fraction(level.entities.get(token, level.playerId)),
         {
           label: I18n.textRef(labelKey),
           fillColor: fillColor,
@@ -86,8 +86,8 @@ globalThis.RpgHud = {
     return row;
   },
 
-  // centered "Sleeping…" overlay, toggled by scene._sleeping while a bed fast-forwards time
-  _sleepOverlay(scene) {
+  // centered "Sleeping…" overlay, toggled by level._sleeping while a bed fast-forwards time
+  _sleepOverlay(level) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -107,12 +107,12 @@ globalThis.RpgHud = {
     );
     wrap.insertChild(card);
     wrap.enabled = false;
-    scene._sleepOverlay = wrap;
-    scene.ui.insertChild(wrap);
+    level._sleepOverlay = wrap;
+    level.ui.insertChild(wrap);
   },
 
   // Top-right HUD card: HP / ammo / stamina / needs / clock / weather / status + quest tracker.
-  _hud(scene) {
+  _hud(level) {
     const hud = new UIElement({
       positionType: "absolute",
       top: 16,
@@ -124,8 +124,8 @@ globalThis.RpgHud = {
     hpRow.insertChild(
       gemsLabel(
         () => {
-          const st = scene.entities.get(Stats, scene.playerId);
-          const hpC = scene.entities.get(Health, scene.playerId);
+          const st = level.entities.get(Stats, level.playerId);
+          const hpC = level.entities.get(Health, level.playerId);
           const hp = hpC !== undefined ? hpC.hp : 0;
           return I18n.text("RPG_HUD", hp, st.maxHp);
         },
@@ -139,10 +139,10 @@ globalThis.RpgHud = {
     ammoRow.insertChild(
       gemsLabel(
         () => {
-          if (scene.playerId === undefined) return "";
+          if (level.playerId === undefined) return "";
           const prof = EquipmentSystem.weaponProfile(
-            scene.entities,
-            scene.playerId,
+            level.entities,
+            level.playerId,
           );
           if (prof === null || prof.kind !== "gun") return ""; // melee/unarmed → hide
           if (prof.noAmmo) return I18n.text("MOD_UNLOADED");
@@ -160,8 +160,8 @@ globalThis.RpgHud = {
     staRow.insertChild(
       gemsProgress(
         () => {
-          const sta = scene.entities.get(Stamina, scene.playerId);
-          const st = scene.entities.get(Stats, scene.playerId);
+          const sta = level.entities.get(Stamina, level.playerId);
+          const st = level.entities.get(Stats, level.playerId);
           if (sta === undefined || st === undefined || st.maxStamina <= 0)
             return 0;
           return sta.value / st.maxStamina;
@@ -177,10 +177,10 @@ globalThis.RpgHud = {
     card.insertChild(staRow);
     // survival needs — Thirst / Hunger / Drowsiness as reserve bars; the critical debuff
     // (dehydrated/starving/drowsy) shows in the status row below
-    card.insertChild(RpgHud._needBar(scene, Thirst, "RPG_THIRST", "#4aa3d6"));
-    card.insertChild(RpgHud._needBar(scene, Hunger, "RPG_HUNGER", "#c98a3a"));
+    card.insertChild(RpgHud._needBar(level, Thirst, "RPG_THIRST", "#4aa3d6"));
+    card.insertChild(RpgHud._needBar(level, Hunger, "RPG_HUNGER", "#c98a3a"));
     card.insertChild(
-      RpgHud._needBar(scene, Drowsiness, "RPG_DROWSY", "#8a7ec0"),
+      RpgHud._needBar(level, Drowsiness, "RPG_DROWSY", "#8a7ec0"),
     );
     // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
@@ -217,7 +217,7 @@ globalThis.RpgHud = {
     statusRow.insertChild(
       gemsRichText(
         () => {
-          const list = StatusSystem.list(scene.entities, scene.playerId);
+          const list = StatusSystem.list(level.entities, level.playerId);
           let s = "";
           for (let i = 0; i < list.length; i++) {
             const def = Status.get(list[i].id);
@@ -239,11 +239,11 @@ globalThis.RpgHud = {
       }),
     );
     hud.insertChild(card);
-    scene.ui.insertChild(hud);
+    level.ui.insertChild(hud);
   },
 
-  // Bottom-center dialogue card, toggled via scene._dlg.enabled from step().
-  _dialogue(scene) {
+  // Bottom-center dialogue card, toggled via level._dlg.enabled from step().
+  _dialogue(level) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -254,21 +254,21 @@ globalThis.RpgHud = {
     const card = gemsCard({ width: 640, padding: GemsTheme.pad });
     const name = new UIElement({ width: "100%", height: 26 });
     name.insertChild(
-      gemsLabel(() => I18n.text(scene.dialogueName), {
+      gemsLabel(() => I18n.text(level.dialogueName), {
         color: GemsTheme.warn,
         font: "header",
       }),
     );
     const line = new UIElement({ width: "100%", height: 26 });
     line.insertChild(
-      gemsLabel(() => I18n.text(scene.dialogueLine), { color: GemsTheme.text }),
+      gemsLabel(() => I18n.text(level.dialogueLine), { color: GemsTheme.text }),
     );
     const action = new UIElement({ width: "100%", height: 22 });
     action.insertChild(
       gemsLabel(
         () =>
-          scene.dialogueAction !== ""
-            ? "[E] " + I18n.text(scene.dialogueAction)
+          level.dialogueAction !== ""
+            ? "[E] " + I18n.text(level.dialogueAction)
             : "",
         { color: GemsTheme.good },
       ),
@@ -278,7 +278,7 @@ globalThis.RpgHud = {
     card.insertChild(action);
     wrap.insertChild(card);
     wrap.enabled = false;
-    scene._dlg = wrap;
-    scene.ui.insertChild(wrap);
+    level._dlg = wrap;
+    level.ui.insertChild(wrap);
   },
 };

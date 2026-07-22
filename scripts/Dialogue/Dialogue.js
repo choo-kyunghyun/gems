@@ -58,7 +58,7 @@ globalThis.Dialogue = {
     Dialogue._open = list.length > 0;
   },
 
-  /** force-close, no onComplete (scene swap / abort). */
+  /** force-close, no onComplete (level swap / abort). */
   clear() {
     Dialogue._open = false;
     Dialogue._pages = [];

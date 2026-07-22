@@ -1,7 +1,7 @@
 // ── GemsUI kit: containers ───────────────────────────────────
 // Layout/structure factories. Keep new factories as `globalThis.X = function X` — GMRT globalThis rule.
 
-// Full-screen scene root. With `opts.maxWidth`, content is centered in a capped column
+// Full-screen level root. With `opts.maxWidth`, content is centered in a capped column
 // (menu look); `insertChild` is redirected to the inner column so callers are unaffected.
 // Without `maxWidth`, plain full-bleed — for HUDs that must anchor to the whole screen.
 globalThis.gemsRoot = function gemsRoot(opts = {}) {
@@ -231,12 +231,12 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
 // windows (bag / workbench / chest / trade). Absolute dim host that veils the HUD, a
 // centered full-height card capped for ultra-wide, and a title row (title + close "x")
 // over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
-// content keeps sort/filter/selection; the caller inserts it into its scene root itself.
+// content keeps sort/filter/selection; the caller inserts it into its level root itself.
 // Content goes into the returned host's `.body` (the card, under the divider); callers
 // needing extra title-row items (TradeUI's credits) insert into `.titleRow` before its
 // close button. `opts`: { onClose, maxWidth }.
 globalThis.gemsOverlay = function gemsOverlay(title, opts = {}) {
-  // absolute → fills the screen ignoring the scene root's padding; 28px margin around the card.
+  // absolute → fills the screen ignoring the level root's padding; 28px margin around the card.
   const host = new UIElement({
     positionType: "absolute",
     left: 0,

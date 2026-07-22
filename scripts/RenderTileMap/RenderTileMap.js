@@ -340,7 +340,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   draw(entities) {
     if (this.dirty) this._rebuild();
     // GROUND under the one lit shader: `lights` (the host RenderMesh pass, assigned by the
-    // scene on pitched maps) supplies the shared sun/point gather; the normal is straight up
+    // level on pitched maps) supplies the shared sun/point gather; the normal is straight up
     // — flat ground. z-write stays off (painter order), so only the shading changes; unset
     // (kit default / flat maps / editor) submits fixed-function unlit exactly as before.
     const lit = this.lights !== undefined && this.lights._litOk;

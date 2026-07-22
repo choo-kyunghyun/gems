@@ -1,4 +1,4 @@
-/** registry of named InputActions; controllers bind their keymap per-scene via bindAll. */
+/** registry of named InputActions; controllers bind their keymap per-level via bindAll. */
 globalThis.Input = {
   // analog tuning + export/import scaffolded for InputPreset; unused today.
   sensitivity: 2.5,

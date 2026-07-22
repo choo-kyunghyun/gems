@@ -1,7 +1,7 @@
-// Combat/loot plumbing for the RPG scene — free functions taking the scene (composition; GMRT has
+// Combat/loot plumbing for the RPG level — free functions taking the level (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 //
-// Contract: the scene owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`.
+// Contract: the level owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`.
 // The enemy set is derived LIVE by Faction (hostile to the player) and companions LIVE by the
 // Follower component, so chunk streaming/squad transfer need no bookkeeping — allegiance and
 // membership are component queries, not stored lists.
@@ -23,29 +23,29 @@ globalThis.RpgScene = {
 
   // floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
   // change. Run after physics, before deaths flush, so the killing blow still pops.
-  trackDamage(scene, yOffset) {
-    RpgScene._diffHp(scene, scene.playerId, true, yOffset);
-    const enemies = RpgScene._enemies(scene.entities, scene.playerId);
+  trackDamage(level, yOffset) {
+    RpgScene._diffHp(level, level.playerId, true, yOffset);
+    const enemies = RpgScene._enemies(level.entities, level.playerId);
     for (let i = 0; i < enemies.length; i++)
-      RpgScene._diffHp(scene, enemies[i], false, yOffset);
+      RpgScene._diffHp(level, enemies[i], false, yOffset);
     // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
     // no-op). Live Follower query — squad members and residents alike are allies.
-    const followers = scene.entities.query(Follower);
+    const followers = level.entities.query(Follower);
     for (let i = 0; i < followers.length; i++)
-      RpgScene._diffHp(scene, followers[i], true, yOffset);
+      RpgScene._diffHp(level, followers[i], true, yOffset);
     // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
     // Follower); a double-diffed id is harmless (the first call settles _hpTrack).
-    const meshBodies = scene.entities.query(Health, Mesh);
+    const meshBodies = level.entities.query(Health, Mesh);
     for (let i = 0; i < meshBodies.length; i++)
-      RpgScene._diffHp(scene, meshBodies[i], true, yOffset);
+      RpgScene._diffHp(level, meshBodies[i], true, yOffset);
   },
 
-  _diffHp(scene, id, isAlly, yOffset) {
-    const entities = scene.entities;
+  _diffHp(level, id, isAlly, yOffset) {
+    const entities = level.entities;
     if (!entities.isValid(id)) return;
     const hp = entities.get(Health, id);
     if (hp === undefined) return;
-    const prev = scene._hpTrack[id];
+    const prev = level._hpTrack[id];
     if (prev !== undefined && hp.hp !== prev) {
       const pos = entities.get(Position, id);
       if (pos !== undefined) {
@@ -69,7 +69,7 @@ globalThis.RpgScene = {
         }
       }
     }
-    scene._hpTrack[id] = hp.hp;
+    level._hpTrack[id] = hp.hp;
   },
 
   // configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
@@ -81,9 +81,9 @@ globalThis.RpgScene = {
   //   downSpot(id) → {x,y}     — recovery spot for a "down" entity
   //   onDown(id)               — fired when an entity enters Down
   // Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
-  resolveHealth(scene, h) {
+  resolveHealth(level, h) {
     h = h ?? {};
-    const entities = scene.entities;
+    const entities = level.entities;
     // snapshot ids this tick (remove/detach are deferred / array is materialized)
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
@@ -92,19 +92,19 @@ globalThis.RpgScene = {
       if (hp === undefined || hp.hp > 0) continue;
       const m = entities.get(Mortal, id);
       if (m.kind === "despawn") {
-        RpgScene.spillLoot(scene, id, h.spill);
+        RpgScene.spillLoot(level, id, h.spill);
         if (h.onKill !== undefined) h.onKill(id);
         entities.remove(id);
       } else if (m.kind === "corpse") {
         if (h.onKill !== undefined) h.onKill(id); // before the transform strips components
-        RpgScene._toCorpse(scene, id);
+        RpgScene._toCorpse(level, id);
       } else if (m.kind === "respawn") {
         const st = entities.get(Stats, id);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
         if (h.onRespawn !== undefined) h.onRespawn(id);
-        scene._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
+        level._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
       } else if (m.kind === "down") {
-        RpgScene._goDown(scene, id, m, h);
+        RpgScene._goDown(level, id, m, h);
       }
     }
   },
@@ -114,8 +114,8 @@ globalThis.RpgScene = {
   // Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
   // its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
   // so being knocked out can't silently shrink the player's bag.
-  _goDown(scene, id, m, h) {
-    const entities = scene.entities;
+  _goDown(level, id, m, h) {
+    const entities = level.entities;
     entities.detach(id, Health);
     const vel = entities.get(Velocity, id);
     if (vel !== undefined) {
@@ -125,14 +125,14 @@ globalThis.RpgScene = {
     const vis = entities.get(Visual, id);
     if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
-    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+    delete level._hpTrack[id]; // no Health now — clear the stale diff baseline
     if (h.onDown !== undefined) h.onDown(id);
   },
 
   // down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
-  updateDowned(scene, h) {
+  updateDowned(level, h) {
     h = h ?? {};
-    const entities = scene.entities;
+    const entities = level.entities;
     const ids = entities.query(Downed);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
@@ -158,7 +158,7 @@ globalThis.RpgScene = {
         }
       }
       entities.detach(id, Downed);
-      scene._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
+      level._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
       if (h.onRecover !== undefined) h.onRecover(id);
     }
   },
@@ -168,9 +168,9 @@ globalThis.RpgScene = {
   // make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
   // so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
   // the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
-  // Species markers (Raider/Rat — radar blips) are the scene's to drop in onKill, not ours.
-  _toCorpse(scene, id) {
-    const entities = scene.entities;
+  // Species markers (Raider/Rat — radar blips) are the level's to drop in onKill, not ours.
+  _toCorpse(level, id) {
+    const entities = level.entities;
     entities.detach(id, Health);
     entities.detach(id, Mortal); // dead once — this pass is done with it
     entities.detach(id, Stats);
@@ -190,15 +190,15 @@ globalThis.RpgScene = {
       vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
     }
     entities.add(id, Interaction, { kind: "corpse" });
-    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+    delete level._hpTrack[id]; // no Health now — clear the stale diff baseline
   },
 
   // remove looted-empty corpses (deferred remove; the tick's flush commits). Emptying one with
   // its window open is safe: Interactable range-closes when the entity's Position vanishes and
   // StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
   // corpses — behaviorally the old despawn.
-  reapCorpses(scene) {
-    const entities = scene.entities;
+  reapCorpses(level) {
+    const entities = level.entities;
     const ids = entities.query(Interaction);
     for (let i = 0; i < ids.length; i++) {
       const it = entities.get(Interaction, ids[i]);
@@ -209,8 +209,8 @@ globalThis.RpgScene = {
   },
 
   // scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
-  spillLoot(scene, enemyId, opts) {
-    const entities = scene.entities;
+  spillLoot(level, enemyId, opts) {
+    const entities = level.entities;
     const inv = entities.get(Inventory, enemyId);
     const pos = entities.get(Position, enemyId);
     if (inv === undefined || pos === undefined) return;
@@ -223,7 +223,7 @@ globalThis.RpgScene = {
       const ox = (i % 2 === 0 ? -1 : 1) * 32;
       const oy = (i < 2 ? -1 : 1) * ySpread;
       RpgScene.spawnDrop(
-        scene,
+        level,
         s.itemId,
         s.qty,
         pos.x + ox,
@@ -234,8 +234,8 @@ globalThis.RpgScene = {
   },
 
   // `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
-  spawnDrop(scene, itemId, qty, x, y, src) {
-    const entities = scene.entities;
+  spawnDrop(level, itemId, qty, x, y, src) {
+    const entities = level.entities;
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y, z: 0 });
     // match the ×2-drawn 16px icon sprite RpgWorldOverlay draws so the trigger box lines up with the drop
@@ -255,10 +255,10 @@ globalThis.RpgScene = {
   },
 
   // pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
-  collectDrops(scene, onCollect) {
-    const entities = scene.entities;
-    const hits = entities.get(Collision, scene.playerId).hits;
-    const inv = entities.get(Inventory, scene.playerId);
+  collectDrops(level, onCollect) {
+    const entities = level.entities;
+    const hits = entities.get(Collision, level.playerId).hits;
+    const inv = entities.get(Inventory, level.playerId);
     for (let i = 0; i < hits.length; i++) {
       const id = hits[i];
       const d = entities.get(ItemDrop, id);
@@ -272,7 +272,7 @@ globalThis.RpgScene = {
           mods: d.mods ?? [],
         });
         if (ok) {
-          scene._invDirty = true;
+          level._invDirty = true;
           if (onCollect !== undefined) onCollect(d.itemId, 1);
           entities.remove(id);
         }
@@ -281,7 +281,7 @@ globalThis.RpgScene = {
       const left = InventorySystem.add(inv, d.itemId, d.qty);
       const got = d.qty - left;
       if (got > 0) {
-        scene._invDirty = true; // bag changed — refresh the window if open
+        level._invDirty = true; // bag changed — refresh the window if open
         if (onCollect !== undefined) onCollect(d.itemId, got);
       }
       if (left <= 0) entities.remove(id);

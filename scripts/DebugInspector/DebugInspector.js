@@ -92,13 +92,13 @@ globalThis.DebugInspector = {
     // register the Entity section up front so its window exists before the
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
-    const scene = game.scenes.current;
+    const level = game.scenes.current;
     const entities =
-      scene !== null && scene !== undefined && scene.entities !== undefined
-        ? scene.entities
+      level !== null && level !== undefined && level.entities !== undefined
+        ? level.entities
         : null;
 
-    // drop a stale selection (entity removed, or scene/store swapped).
+    // drop a stale selection (entity removed, or level/store swapped).
     if (DebugInspector._id !== -1) {
       if (
         entities !== DebugInspector._entities ||
@@ -110,13 +110,13 @@ globalThis.DebugInspector = {
     }
 
     // pick only while the overlay is open, the cursor isn't over it, and the
-    // scene has a store + camera.
+    // level has a store + camera.
     if (!Debug.isOpen() || entities === null) return;
-    if (scene.camera === undefined) return;
+    if (level.camera === undefined) return;
     if (is_mouse_over_debug_overlay()) return;
     if (!UIPointer.pressed) return;
 
-    const cam = scene.camera;
+    const cam = level.camera;
     // pitch-aware ground-plane unprojection (GUI cursor → world) — the old
     // linear view-rect mapping ignored camera pitch (see Camera.unproject)
     const cur = cam.cursorWorld();
@@ -130,13 +130,13 @@ globalThis.DebugInspector = {
     if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
     const entities = DebugInspector._entities;
     if (entities === null || !entities.isValid(DebugInspector._id)) return;
-    const scene = game.scenes.current;
-    if (scene === null || scene === undefined || scene.camera === undefined)
+    const level = game.scenes.current;
+    if (level === null || level === undefined || level.camera === undefined)
       return;
     const pos = entities.get(Position, DebugInspector._id);
     if (pos === undefined) return;
 
-    const cam = scene.camera;
+    const cam = level.camera;
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
     // world → surface px via the pitch-aware projection, then surface → GUI

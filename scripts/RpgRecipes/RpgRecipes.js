@@ -1,5 +1,5 @@
 // RPG crafting recipes. `requires` = WorkbenchModule itemId that must be slotted (undefined = base, always available).
-// Registered once at scene create() NOT top-level (GMRT load-order). Toolkit module isn't a recipe gate — it
+// Registered once at level create() NOT top-level (GMRT load-order). Toolkit module isn't a recipe gate — it
 // switches to the weapon-mod panel (WeaponModUI).
 globalThis.RpgRecipes = {
   register() {

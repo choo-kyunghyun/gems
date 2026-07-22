@@ -1,5 +1,5 @@
 // Drowsiness need driver — thin wrapper over the shared Survival core. update() (awake) raises it in the
-// tick loop; while the player SLEEPS the scene calls restore() each tick instead (see sceneRpg._sleep).
+// tick loop; while the player SLEEPS the level calls restore() each tick instead (see sceneRpg._sleep).
 globalThis.DrowsinessSystem = {
   update(entities) {
     Survival.tick(entities, Drowsiness);
