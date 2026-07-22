@@ -2,18 +2,13 @@
 // Flat class queried by `instanceof` (composition over inheritance).
 globalThis.Consumable = class Consumable {
   /**
+   * d fields: heal (HP restored, clamped to max-HP), attr (permanent attribute key to raise, e.g.
+   * "pow" — generic, applied via the injected ConsumableSystem.grantAttr hook in Demo), amount (how
+   * much `attr` grows per use), status (Status def id to apply, e.g. "regen"; def + effects are Demo
+   * content; "" = none), statusDuration (override seconds; 0 = the def's duration), thirst/hunger
+   * (survival: lowers Thirst/Hunger — a drink/food), yields (item id left behind after use, e.g. an
+   * empty can; "" = none).
    * @param {Object} d
-   * @param {number} [d.heal] HP restored (clamped to max-HP)
-   * @param {string} [d.attr] permanent attribute grant — attribute key to raise (e.g. "pow"). Generic
-   *   (no stat-model opinion); applied via the injected ConsumableSystem.grantAttr hook (Demo). How
-   *   attributes grow now that there's no leveling.
-   * @param {number} [d.amount] how much `attr` increases per use (default 1)
-   * @param {string} [d.status] Status def id to apply (e.g. "regen"). Generic like `attr`; def +
-   *   effects are content (Demo). "" = none.
-   * @param {number} [d.statusDuration] override seconds; 0 = use the def's duration
-   * @param {number} [d.thirst] survival: lowers Thirst (a drink)
-   * @param {number} [d.hunger] survival: lowers Hunger (a food)
-   * @param {string} [d.yields] item id left behind after use (e.g. an empty can). "" = none.
    */
   constructor(d) {
     this.heal = d.heal ?? 0;

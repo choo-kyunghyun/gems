@@ -2,17 +2,10 @@
 // (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` — composition over inheritance.
 globalThis.Item = class Item {
   /**
+   * Item def, keyed by `id`: name/description (i18n keys), sprite (icon, -1 = none), stack, weight,
+   * value (base — scaled by rarity), rarity (Rarity id), maker (Manufacturer id, "" = unbranded),
+   * components (capability/marker instances — queried via getComponent). Defaults in the body.
    * @param {Object} def
-   * @param {string} def.id
-   * @param {string} [def.name]            i18n key
-   * @param {string} [def.description]     i18n key (default "")
-   * @param {Asset.GMSprite} [def.sprite]  icon sprite (-1 = none)
-   * @param {number} [def.stack]           max stack size (default 99)
-   * @param {number} [def.weight]          per-unit weight (default 1)
-   * @param {number} [def.value]           base value (scaled by rarity)
-   * @param {string} [def.rarity]          Rarity id (default "common")
-   * @param {string} [def.maker]           Manufacturer id (default "" = unbranded)
-   * @param {Object[]} [def.components]    capability/marker instances — queried via getComponent
    */
   constructor(def) {
     this.id = def.id;

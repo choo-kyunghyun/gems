@@ -10,12 +10,7 @@
  * Flat class queried by `instanceof` (composition over inheritance).
  */
 globalThis.Gun = class Gun {
-  /**
-   * @param {Object} d
-   * @param {string} [d.caliber]   accepted Ammo caliber (default "standard")
-   * @param {number} [d.magazine]  base clip size (default 6)
-   * @param {Object} [d.ops]       gun-base operators over the composed fields (default {} = inert)
-   */
+  /** @param {Object} d caliber, magazine, ops (documented on the class contract above) */
   constructor(d = {}) {
     this.caliber = d.caliber ?? "standard";
     this.magazine = d.magazine ?? 6;

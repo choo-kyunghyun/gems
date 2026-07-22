@@ -1,10 +1,8 @@
 globalThis.Rarity = class Rarity {
   /**
+   * Rarity def, keyed by `id`: name (i18n key), color (colour int or "#rrggbb" hex), valueMod
+   * (item-value multiplier).
    * @param {Object} def
-   * @param {string} def.id
-   * @param {string} [def.name]      i18n key
-   * @param {number|string} [def.color]  colour int, or "#rrggbb" hex
-   * @param {number} [def.valueMod]  item-value multiplier (default 1)
    */
   constructor(def) {
     this.id = def.id;

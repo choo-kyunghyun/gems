@@ -12,12 +12,7 @@
  * Item.get(modItemId).getComponent(WeaponMod).
  */
 globalThis.WeaponMod = class WeaponMod {
-  /**
-   * @param {Object} d
-   * @param {string} [d.slot]  slot category this fits (matched vs a weapon slot's `accepts`; default "*")
-   * @param {Object} [d.ops]   per-field operators { field: { add?, mul? } } over the composed profile
-   * @param {Object} [d.stat]  derived-Stats deltas, e.g. { attack, defense, maxHp, speed } (additive)
-   */
+  /** @param {Object} d slot, ops, stat (documented on the class contract above) */
   constructor(d = {}) {
     this.slot = d.slot ?? "*";
     this.ops = d.ops ?? {};

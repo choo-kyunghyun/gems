@@ -6,13 +6,9 @@
  */
 globalThis.Manufacturer = class Manufacturer {
   /**
+   * Manufacturer def, keyed by `id`: name/lore (i18n keys), color (colour int or "#rrggbb" hex), ops
+   * (signature weapon ops layer — see the class contract above).
    * @param {Object} def
-   * @param {string} def.id
-   * @param {string} [def.name]      i18n key
-   * @param {string} [def.lore]      i18n key (default "")
-   * @param {number|string} [def.color]  colour int, or "#rrggbb" hex
-   * @param {Object} [def.ops]       weapon ops layer { field: { add?, mul? } } — folded by
-   *                                 EquipmentSystem.composeWeapon for this maker's weapons
    */
   constructor(def) {
     this.id = def.id;

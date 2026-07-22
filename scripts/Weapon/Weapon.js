@@ -10,11 +10,9 @@
  */
 globalThis.Weapon = class Weapon {
   /**
+   * d: slots ({id,accepts}[]), fireCd (ticks between shots/swings; default the controller's), damage
+   * (base melee swing, + wielder's Stats.attack), reach (melee hitbox length px; melee only).
    * @param {Object} d
-   * @param {{id:string,accepts:string}[]} [d.slots]  named typed attachment slots (default [])
-   * @param {number} [d.fireCd]   ticks between shots/swings (default: controller's)
-   * @param {number} [d.damage]   base melee swing damage (+ wielder's Stats.attack; default 1)
-   * @param {number} [d.reach]    melee hitbox length px (melee only; default: controller's)
    */
   constructor(d = {}) {
     this.slots = d.slots ?? [];
