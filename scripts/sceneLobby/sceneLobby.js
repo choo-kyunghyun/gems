@@ -46,9 +46,18 @@ globalThis.LEVELS = {
           const i = CAT_ORDER.indexOf(cat);
           return i < 0 ? CAT_ORDER.length : i;
         };
-        entries.sort((a, b) => rank(a.category) - rank(b.category));
-        for (let i = 0; i < entries.length; i++) {
-          const entry = entries[i];
+        // sort indices, tie-breaking same-category entries on registration order — GMRT's sort
+        // actively reorders ties (#15593), which would shuffle the list between visits.
+        const order = [];
+        for (let i = 0; i < entries.length; i++) order.push(i);
+        order.sort((a, b) => {
+          const ra = rank(entries[a].category);
+          const rb = rank(entries[b].category);
+          if (ra !== rb) return ra < rb ? -1 : 1;
+          return a < b ? -1 : 1;
+        });
+        for (let i = 0; i < order.length; i++) {
+          const entry = entries[order[i]];
           col.insertChild(
             gemsButton(entry.label, () => openLevel(entry.factory)),
           );

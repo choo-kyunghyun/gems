@@ -190,8 +190,21 @@ globalThis.UITable = class UITable {
     for (let i = 0; i < src.length; i++) {
       if (this._filter === null || this._filter(src[i])) v.push(src[i]);
     }
-    if (this._sort.length > 0) v.sort((a, b) => this._compareRows(a, b));
-    this._view = v;
+    if (this._sort.length > 0) {
+      // sort indices, tie-breaking on source order — GMRT's sort actively reorders ties (#15593),
+      // so equal-keyed rows would shuffle on every re-sort/filter without it.
+      const order = [];
+      for (let i = 0; i < v.length; i++) order.push(i);
+      order.sort((a, b) => {
+        const c = this._compareRows(v[a], v[b]);
+        return c !== 0 ? c : a < b ? -1 : 1;
+      });
+      const sorted = [];
+      for (let i = 0; i < order.length; i++) sorted.push(v[order[i]]);
+      this._view = sorted;
+    } else {
+      this._view = v;
+    }
   }
 
   // ── geometry ────────────────────────────────────────────────
