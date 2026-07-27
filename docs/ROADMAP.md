@@ -6,27 +6,9 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns.
 
-### Code Review (file-by-file)
+### Tools Review
 
-Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code; each batch is review-only — the renames and comment sweeps land first. Check batches off as they finish.
-
-1. [x] Core utilities: Core/Util — highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`); everything sits on these
-2. [x] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
-3. [x] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
-4. [x] Camera + input: Core/Camera, Core/Input — small, self-contained
-5. [x] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
-6. [x] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
-7. [x] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
-8. [x] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
-9. [x] GemsUI kit: GemsUI — theme + the three factory buckets
-10. [x] Gameplay economy: Items, Inventory, Equipment, Crafting, Trade — `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge
-11. [x] Gameplay simulation: Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest — `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly
-12. [x] Demo systems + content: Demo/System, Demo/Content, Demo/Component — `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries
-13. [x] Demo scenes: Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` — highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62); review last-ish
-14. [x] Demo UI: Demo/UI — `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs
-15. [x] Debug + audio: Core/Debug, Core/Audio — absent from the original coupling-analysis split
-
-`tools/` is self-contained (never imported by the game) — review separately if at all.
+`tools/` is self-contained (never imported by the game; each tool owns a README). Pending, per tool: fix the docs, then overhaul as needed.
 
 ### Media Rename
 
