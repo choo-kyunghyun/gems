@@ -23,7 +23,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 11. [x] Gameplay simulation: Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest — `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly
 12. [x] Demo systems + content: Demo/System, Demo/Content, Demo/Component — `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries
 13. [x] Demo scenes: Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` — highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62); review last-ish
-14. [ ] Demo UI: Demo/UI — `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs
+14. [x] Demo UI: Demo/UI — `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs
 15. [ ] Debug + audio: Core/Debug, Core/Audio — absent from the original coupling-analysis split
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
@@ -101,6 +101,10 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **Raw Korean literals bypass I18n**: `LevelRegistry.add`'s default category (`"기타"`), the `RpgGrid.LAYERS`/wall-material display names, and `sceneEditor`'s TileType names are hardcoded Korean where every other display string routes through I18n keys. These surface in the editor and debug tile views; route them through keys.
 - **`RpgMap.BUNDLE_KEYS` hand-mirrors the layer set**: `_buildWorld` derives the `<key>Layer`/`<key>Type` level fields from `RpgGrid.LAYERS` dynamically, but the park/resume bundle list spells them out statically — a new LAYERS entry that misses BUNDLE_KEYS silently drops its handles on the first park, leaving resumed maps editing stale layers. Derive the layer section of the list from `RpgGrid.LAYERS`.
 - **The quest turn-in ceremony is duplicated in `sceneRpg`**: `_tryTurnIn` and `_npcActivate` each run the same complete → applyReward → counter-bump → achievement-report sequence. Fold into one `_completeQuest(qid)` so the two paths can't drift.
+- **`RpgWorldOverlay.iconTag` drops aliased icons**: it guards the RESOLVED sprite ref, then emits `[spr=spr_item_<itemId>]` by naming convention — but `RpgItems.ICONS` aliases ~15 ids to shared art (`power_serum` → `spr_item_serum`), so the emitted name doesn't exist and `UIRichText` silently draws nothing. Aliased items lose their inline icon in the hotbar HUD and workbench rows while tables (which use the ref) show it. Emit the resolved sprite's real name (probe `sprite_get_name` on GMRT) or teach the `[spr=]` tag to take a ref.
+- **`RpgWorldOverlay._rarityColor` is an underscored public seam**: `InvTable`, `CraftingUI`, `WeaponModUI`, and `RpgInventoryUI` all call it, and the file's own header admits it's shared. Promote it to a public name on a neutral owner (`InvTable` — nothing about it is world-overlay).
+- **The double-click gesture is triplicated in Demo UI**: `StorageUI._click`, `TradeUI._click`, and `RpgInventoryUI._onGridSelect` each hand-roll the same 350ms same-target re-click detector with its own identity-key scheme. One shared helper would own the threshold and the uid-over-itemId identity rule.
+- **Demo UI hardcodes the theme's gold**: `"#ffd166"` appears 17 times across `InvTable`/`TradeUI`/`StorageUI`/`RpgInventoryUI`/`sceneRpg`/`sceneUIKit`/`FloatingText` — duplicating the palette's `warn` key, so the light palette's darkened warn never reaches these labels. Read `GemsTheme.warn` (or add a dedicated gold key).
 
 ## Planned Features
 
