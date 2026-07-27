@@ -24,7 +24,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 12. [x] Demo systems + content: Demo/System, Demo/Content, Demo/Component — `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries
 13. [x] Demo scenes: Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` — highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62); review last-ish
 14. [x] Demo UI: Demo/UI — `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs
-15. [ ] Debug + audio: Core/Debug, Core/Audio — absent from the original coupling-analysis split
+15. [x] Debug + audio: Core/Debug, Core/Audio — absent from the original coupling-analysis split
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
 
@@ -105,6 +105,9 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`RpgWorldOverlay._rarityColor` is an underscored public seam**: `InvTable`, `CraftingUI`, `WeaponModUI`, and `RpgInventoryUI` all call it, and the file's own header admits it's shared. Promote it to a public name on a neutral owner (`InvTable` — nothing about it is world-overlay).
 - **The double-click gesture is triplicated in Demo UI**: `StorageUI._click`, `TradeUI._click`, and `RpgInventoryUI._onGridSelect` each hand-roll the same 350ms same-target re-click detector with its own identity-key scheme. One shared helper would own the threshold and the uid-over-itemId identity rule.
 - **Demo UI hardcodes the theme's gold**: `"#ffd166"` appears 17 times across `InvTable`/`TradeUI`/`StorageUI`/`RpgInventoryUI`/`sceneRpg`/`sceneUIKit`/`FloatingText` — duplicating the palette's `warn` key, so the light palette's darkened warn never reaches these labels. Read `GemsTheme.warn` (or add a dedicated gold key).
+- **`Music`'s fade reap never fires**: `_fadeOut` schedules `_fadeAt = Time.raw + fadeMs/1000`, but `Time.raw` is the per-frame DELTA (~0.016s), not a clock — `update()`'s `Time.raw >= _fadeAt` is never true, so every faded-out BGM instance keeps looping silently until the next crossfade's defensive stop or a reset. Time both sides on `current_time` (ms), or accumulate a clock.
+- **`DebugInspector.draw` uses the line variants documented as inert**: the pick highlight draws with `draw_line_color`/`draw_rectangle_color`, while `RpgWorldOverlay`/`RenderGrid`/`RenderWeather` record that the `*_color` line variants render nothing on GMRT — the crosshair (at least) never shows. Probe once, then switch to `draw_set_color` + plain `draw_line`/`draw_rectangle` (and if the probe clears it, correct the quirk note at its owner).
+- **Debug sections reach into module internals**: the Perf entity count computes `ids.next - ids.freeIndices.length` off the id pool and the Log section reads `Log._lines` — give `Entity` a `count()` and `Log` a `count()` (or bless the fields) so Core/Debug stops depending on privates.
 
 ## Planned Features
 
