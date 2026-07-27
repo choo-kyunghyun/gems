@@ -11,7 +11,7 @@ One concern per pass: each pass applies a single mechanical rule across all of `
 Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code; each batch is review-only — the renames and comment sweeps land first. Check batches off as they finish.
 
 1. [x] Core utilities: Core/Util — highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`); everything sits on these
-2. [ ] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
+2. [x] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
 3. [ ] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
 4. [ ] Camera + input: Core/Camera, Core/Input — small, self-contained
 5. [ ] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
@@ -45,6 +45,14 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **Comments cite nonexistent APIs**: `Color.merge` points at `Tween.approachColor` (never written — the idiom is per-channel `Tween.approach`); GMRT.md and `RenderCloudShadow` cite `Utils.hash2` where the global is bare `hash2`.
 - **`LevelSerializer.load` contradicts GMRT.md on `JSON.parse`**: its comment claims parse drops fields / faults on large nested input; `Json` and GMRT.md hold that only stringify faults. Probe and settle — if real it belongs in GMRT.md and threatens `SaveGame.load`. A `pretty` option on `Json.encode` would also fold `LevelSerializer._enc`, the second hand-rolled encoder, into the codec.
 - **Persistence failures are silent**: `Json.encode` still returns its truncated output after a step-cap abort (`SaveGame` writes it as a manifest); `SaveData.load`/`Settings.load` swallow parse errors with no log.
+- **`World.update`/`World.reset` are unwired scaffolding**: zero callers — `sceneRpg` still drives `WorldClock`/`WorldEvents` directly — and `World.update` carries the Core → Gameplay edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the methods until it lands.
+- **`LevelManager._make` reaches into Demo's `LevelRegistry`**: Core scans `LevelRegistry._entries` (a private field, cross-pillar) for a display label. Invert the seam: registrants hand the label to the manager (entry field or a resolver hook wired at boot).
+- **`Collision.mask` is dead**: typed `Set|null`, authored `null` at every spawn site, read by no system — and a live `Set` would be silently nulled by the Json save path (the no-`Set` serialization invariant). Drop the field, or retype it serializable (bit flags) when masks become real.
+- **`Entity.import` and `Entity.register` have no callers**: saves store `entities.export()` but restore by reading entities out, and `add` auto-registers. `EntityData.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard, else drop it.
+- **`Entity.flush` trusts stale ids**: `storage.clear` runs before any liveness check, so a stale queued `remove` wipes the recycled slot's new owner (`ids.free` then no-ops). Guard with `ids.isValid` plus a warn.
+- **`Entity` argument order is split**: `get(Component, id)` reads one way, `add(id, Component, data)`/`detach(id, Component)` write the other. Normalizing the hottest API in the codebase is a full mechanical pass — decide the order first.
+- **`entities.broadphase` is an undeclared field**: assigned by `RpgMap`, read by `SeparationSystem`/`TriggerSystem`, declared nowhere; its sibling store-level config `gravity` goes through `EntityOpts`. Declare it on the constructor with its contract.
+- **`LevelManager`'s registry half predates the rename sweeps**: `worldOf(mapId)` returns an `Entity` store (`entitiesOf`), `_levels` holds map entries beside `_all`'s level entries, and `take`/`put`/`transfer` return null / -1 / id-or-snapshot across one family.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
