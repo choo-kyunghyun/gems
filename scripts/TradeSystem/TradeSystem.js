@@ -51,7 +51,7 @@ globalThis.TradeSystem = {
           return { amount: 0, reason: "TRADE_NO_ROOM" };
       } else {
         // move the stock slot by reference so its uid + mods survive.
-        if (!InventorySystem.addSlot(bInv, slot))
+        if (InventorySystem.addSlot(bInv, slot) !== 0)
           return { amount: 0, reason: "TRADE_NO_ROOM" };
         mInv.slots.splice(idx, 1);
       }
@@ -97,7 +97,7 @@ globalThis.TradeSystem = {
 
     let sold = 0;
     if (instanced) {
-      if (!m.infinite && !InventorySystem.addSlot(mInv, slot))
+      if (!m.infinite && InventorySystem.addSlot(mInv, slot) !== 0)
         // buyback into stock
         return { amount: 0, reason: "TRADE_MERCHANT_FULL" };
       sInv.slots.splice(idx, 1); // the instance left the bag (moved by ref / discarded)
@@ -114,8 +114,22 @@ globalThis.TradeSystem = {
       if (slot.qty <= 0) sInv.slots.splice(idx, 1);
     }
 
-    InventorySystem.add(sInv, m.currencyId, sold * price); // pay the seller
-    if (!m.infinite) m.credits -= sold * price; // merchant's till
+    // pay the seller — all-or-nothing: an unfit payout reverts the whole sale instead of
+    // silently discarding the coins (a slot-starved bag must never lose value to a sale).
+    const payout = sold * price;
+    const unpaid = InventorySystem.add(sInv, m.currencyId, payout);
+    if (unpaid > 0) {
+      InventorySystem.remove(sInv, m.currencyId, payout - unpaid); // take back the partial payment
+      if (instanced) {
+        sInv.slots.splice(idx, 0, slot); // the instance returns to its bag position
+        if (!m.infinite) mInv.slots.pop(); // undo the buyback (addSlot pushes to the end)
+      } else {
+        if (!m.infinite) InventorySystem.remove(mInv, itemId, sold);
+        InventorySystem.add(sInv, itemId, sold); // always fits — the bag held these units at entry
+      }
+      return { amount: 0, reason: "TRADE_NO_ROOM" };
+    }
+    if (!m.infinite) m.credits -= payout; // merchant's till
     return { amount: sold, reason: "" };
   },
 

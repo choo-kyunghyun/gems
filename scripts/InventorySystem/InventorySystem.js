@@ -59,21 +59,23 @@ globalThis.InventorySystem = {
 
   // Insert a pre-existing slot preserving uid/mods (an instance moved by transfer/drop). Gated by
   // weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
+  // Returns the qty that did NOT fit, like add() (0 = fully inserted) — a boolean would misreport
+  // a partial fungible add as total failure while units were already moved (transfer duplication).
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
     const instanced = def !== undefined && def.isInstanced();
-    if (!instanced) return this.add(inv, slot.itemId, slot.qty) === 0;
+    if (!instanced) return this.add(inv, slot.itemId, slot.qty);
 
     // weight gate (one unit — instances are qty 1).
     const unitW = def !== undefined ? def.weight : 1;
     if (inv.maxWeight !== undefined && unitW > 0) {
-      if (this.weight(inv) + unitW > inv.maxWeight) return false;
+      if (this.weight(inv) + unitW > inv.maxWeight) return slot.qty;
     }
-    if (inv.slots.length >= inv.capacity) return false;
+    if (inv.slots.length >= inv.capacity) return slot.qty;
     if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid} (mods = slot map)
     if (slot.uid === undefined) slot.uid = uuid();
     inv.slots.push(slot);
-    return true;
+    return 0;
   },
 
   findByUid(inv, uid) {

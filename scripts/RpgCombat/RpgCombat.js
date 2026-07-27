@@ -250,7 +250,10 @@ globalThis.RpgCombat = {
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
       drop.uid = src.uid;
-      drop.mods = src.mods ?? [];
+      drop.mods = src.mods ?? {};
+      // a loaded gun keeps its magazine through the ground round-trip
+      if (src.ammo !== undefined) drop.ammo = src.ammo;
+      if (src.rounds !== undefined) drop.rounds = src.rounds;
     }
     entities.add(id, ItemDrop, drop);
   },
@@ -266,12 +269,15 @@ globalThis.RpgCombat = {
       if (d === undefined) continue;
       // An instance drop re-inserts whole (uid + mods preserved); a fungible drop adds by qty.
       if (d.uid !== undefined) {
-        const ok = InventorySystem.addSlot(inv, {
+        const slot = {
           itemId: d.itemId,
           qty: 1,
           uid: d.uid,
-          mods: d.mods ?? [],
-        });
+          mods: d.mods ?? {},
+        };
+        if (d.ammo !== undefined) slot.ammo = d.ammo;
+        if (d.rounds !== undefined) slot.rounds = d.rounds;
+        const ok = InventorySystem.addSlot(inv, slot) === 0;
         if (ok) {
           level._invDirty = true;
           if (onCollect !== undefined) onCollect(d.itemId, 1);

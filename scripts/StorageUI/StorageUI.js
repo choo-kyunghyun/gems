@@ -265,7 +265,7 @@ globalThis.StorageUI = {
     let moved;
     if (def !== undefined && def.isInstanced()) {
       // move the whole instance slot by reference — add() would mint a fresh uid and drop the mods.
-      if (!InventorySystem.addSlot(dstInv, s)) return 0; // dst full / weight-gated
+      if (InventorySystem.addSlot(dstInv, s) !== 0) return 0; // dst full / weight-gated
       srcInv.slots.splice(idx, 1);
       moved = 1;
     } else {
@@ -355,7 +355,7 @@ globalThis.StorageUI = {
           i++;
           continue;
         }
-        if (InventorySystem.addSlot(dstInv, s)) {
+        if (InventorySystem.addSlot(dstInv, s) === 0) {
           srcInv.slots.splice(i, 1); // moved by reference — next slot shifts into i, don't advance
           total += 1;
           if (onMoved !== undefined) onMoved(s.itemId, 1);

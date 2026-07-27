@@ -153,8 +153,15 @@ globalThis.EquipmentSystem = {
     if (ammo === undefined || ammo.caliber !== gun.caliber) return false;
     if (slot.rounds === undefined) slot.rounds = 0;
     if (slot.ammo !== ammoItemId) {
-      if (slot.ammo !== undefined && slot.ammo !== "" && slot.rounds > 0)
-        InventorySystem.add(inv, slot.ammo, slot.rounds); // refund the old chambered rounds
+      if (slot.ammo !== undefined && slot.ammo !== "" && slot.rounds > 0) {
+        // refund the old chambered rounds — all-or-nothing: an unfit refund refuses the swap
+        // rather than silently destroying the rounds (make room, then switch).
+        const unfit = InventorySystem.add(inv, slot.ammo, slot.rounds);
+        if (unfit > 0) {
+          InventorySystem.remove(inv, slot.ammo, slot.rounds - unfit); // take back the partial refund
+          return false;
+        }
+      }
       slot.ammo = ammoItemId;
       slot.rounds = 0;
     }
