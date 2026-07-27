@@ -39,9 +39,15 @@ globalThis.Entity = class Entity {
    * Commit all queued removals: clear each entity's component slots, then free its id.
    * Removal is DEFERRED so a system can remove while iterating a query result — the caller
    * flushes at a safe point, canonically as the last step of a sim tick, never mid-iteration.
+   * A stale queued id (double-removed, or freed+recycled since queuing) is skipped with a warn —
+   * clearing by raw index would wipe the recycled slot's new owner.
    */
   flush() {
     for (const id of this._pending) {
+      if (!this.ids.isValid(id)) {
+        Log.warn("Entity.flush: stale remove for id " + id + " — skipped");
+        continue;
+      }
       this.storage.clear(EntityID.getIndex(id));
       this.ids.free(id);
     }
