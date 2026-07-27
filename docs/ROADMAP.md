@@ -18,10 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Bugs
-
-- **`RpgMap.BUNDLE_KEYS` hand-mirrors the layer set**: `_buildWorld` derives the `<key>Layer`/`<key>Type` level fields from `RpgGrid.LAYERS` dynamically, but the park/resume bundle list spells them out statically — a new LAYERS entry that misses BUNDLE_KEYS silently drops its handles on the first park, leaving resumed maps editing stale layers. Derive the layer section of the list from `RpgGrid.LAYERS`.
-
 ### Probe & Settle
 
 - **`LevelSerializer.load` contradicts GMRT.md on `JSON.parse`**: its comment claims parse drops fields / faults on large nested input; `Json` and GMRT.md hold that only stringify faults. Probe and settle — if real it belongs in GMRT.md and threatens `SaveGame.load`. A `pretty` option on `Json.encode` would also fold `LevelSerializer._enc`, the second hand-rolled encoder, into the codec.

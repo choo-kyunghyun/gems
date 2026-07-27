@@ -12,7 +12,9 @@
  */
 globalThis.RpgMap = {
   // fields _stash/_restore copy between level and a parked bundle (excludes level-shell +
-  // per-activate transients reset by _activateReset on each map open)
+  // per-activate transients reset by _activateReset on each map open). The per-layer tilemap
+  // handles (<key>Layer/<key>Type/<key>Types) are NOT listed — _bundleKeys derives them from
+  // RpgGrid.LAYERS, so a new LAYERS entry can't silently miss the bundle.
   // (playerId is NOT bundled — it's DERIVED: set on boot spawn/arrival and re-latched per frame
   // from the Playable query, so the bundle never carries a player handle)
   BUNDLE_KEYS: [
@@ -23,21 +25,6 @@ globalThis.RpgMap = {
     "mapId",
     "_chunked",
     "_indoor",
-    "terrainLayer",
-    "floorLayer",
-    "floorTileLayer",
-    "floorCarpetLayer",
-    "floorMosaicLayer",
-    "wallLayer",
-    "fenceLayer",
-    "terrainType",
-    "floorType",
-    "floorTileType",
-    "floorCarpetType",
-    "floorMosaicType",
-    "wallType",
-    "wallTypes",
-    "fenceType",
     "colliders",
     "_built",
     "_builtEnts",
@@ -164,15 +151,29 @@ globalThis.RpgMap = {
     Music.play(level._indoor === true ? mus_ambient_cozy : mus_ambient_tense);
   },
 
+  // Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgGrid.LAYERS
+  // (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
+  // (portal-rate, tiny).
+  _bundleKeys() {
+    const keys = RpgMap.BUNDLE_KEYS.slice();
+    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
+      const cfg = RpgGrid.LAYERS[i];
+      keys.push(cfg.key + "Layer");
+      keys.push(cfg.key + "Type");
+      if (cfg.materials !== undefined) keys.push(cfg.key + "Types");
+    }
+    return keys;
+  },
+
   // Pointer-copy per-map fields level↔bundle. Index loop (no Map/Set iteration — GMRT).
   _stash(level) {
     const b = {};
-    const keys = RpgMap.BUNDLE_KEYS;
+    const keys = RpgMap._bundleKeys();
     for (let i = 0; i < keys.length; i++) b[keys[i]] = level[keys[i]];
     return b;
   },
   _restore(level, b) {
-    const keys = RpgMap.BUNDLE_KEYS;
+    const keys = RpgMap._bundleKeys();
     for (let i = 0; i < keys.length; i++) level[keys[i]] = b[keys[i]];
   },
 
@@ -307,7 +308,7 @@ globalThis.RpgMap = {
     level.spawn = built.spawn; // for player respawn on death
     level.entries = RpgMap._entryTable(level.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
-    // plus <key>Types for a materials-bearing layer (wall). Mirrored in BUNDLE_KEYS.
+    // plus <key>Types for a materials-bearing layer (wall). Bundled via _bundleKeys.
     for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
       const key = RpgGrid.LAYERS[i].key;
       level[key + "Layer"] = built[key + "Layer"];
