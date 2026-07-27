@@ -1,5 +1,5 @@
 Time.update();
-Music.update(); // reap a finished BGM cross-fade (Time.raw — runs even while the sim is paused)
+Music.update(); // reap a finished BGM cross-fade (wall clock — runs even while the sim is paused)
 UIPointer.poll(); // latch this frame's pointer edges before any widget reads them
 UI.update();
 SlotDrag.update();

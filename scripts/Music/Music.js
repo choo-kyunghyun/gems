@@ -7,7 +7,7 @@ globalThis.Music = {
   _bgmAsset: -1, // its track asset (-1 = none); a re-request of the same track is a no-op
   _bgmGain: 1.0, // the track's base gain (opts.gain); music volume multiplies this
   _fadeStop: -1, // a faded-out BGM handle awaiting its stop
-  _fadeAt: 0, // Time.raw (s) at which to stop _fadeStop
+  _fadeAt: 0, // current_time (ms) at which to stop _fadeStop (Time.raw is a per-frame DELTA, not a clock)
   _gain: 1.0, // music category volume (0..1), folded into the instance gain
 
   // Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
@@ -57,7 +57,7 @@ globalThis.Music = {
     if (fadeMs > 0) {
       audio_sound_gain(Music._bgm, 0, fadeMs);
       Music._fadeStop = Music._bgm;
-      Music._fadeAt = Time.raw + fadeMs / 1000;
+      Music._fadeAt = current_time + fadeMs;
     } else {
       audio_stop_sound(Music._bgm);
       Music._fadeStop = -1;
@@ -66,7 +66,7 @@ globalThis.Music = {
 
   // Per-frame (obj_game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle.
   update() {
-    if (Music._fadeStop !== -1 && Time.raw >= Music._fadeAt) {
+    if (Music._fadeStop !== -1 && current_time >= Music._fadeAt) {
       audio_stop_sound(Music._fadeStop);
       Music._fadeStop = -1;
     }
