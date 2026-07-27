@@ -13,7 +13,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 1. [x] Core utilities: Core/Util — highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`); everything sits on these
 2. [x] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
 3. [x] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
-4. [ ] Camera + input: Core/Camera, Core/Input — small, self-contained
+4. [x] Camera + input: Core/Camera, Core/Input — small, self-contained
 5. [ ] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
 6. [ ] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
 7. [ ] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
@@ -58,6 +58,10 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`TileType` is defined twice**: `LevelGrid`'s `@typedef` shadows the `TileType` class for the checker and omits the `null` → `Infinity` cost rule. Drop the typedef, cite the class.
 - **Prefab-stamped zones share one `data` object**: `stamp`/`apply` pass the def's `data` by reference into every `Zone` they define, so mutating one zone's payload (a settlement rename/owner change) aliases its siblings and the registry def — until a save round-trip mints fresh objects and the aliasing silently disappears. Deep-copy `data` at define time.
 - **Caller-less Core/Level members**: `TileLayer.from`, `ChunkManager.centerChunk`, and `ChunkManager.activeCount` have no consumers.
+- **Camera wheel-zoom ignores the UI**: `_cameraFollowOnUpdate` reads `mouse_wheel_up/down` raw with no over-UI gate (the UI consumes the same wheel via `UIPointer.wheel`), so scrolling a hovered list also zooms the world behind it. Gate the zoom on the pointer being over UI, or route the camera through `UIPointer.wheel`.
+- **`Input.sensitivity`/`deadzone` are dead config**: exported to `input.json` and imported back, but nothing reads them — `InputAxis.value()` returns the raw stick with no deadzone applied. Apply the deadzone in `value()` or drop both fields.
+- **Stale analog comments in Core/Input**: `InputAxis` claims no action binds an axis and `Input` calls its export/import scaffolding unused — `PlayerSystem` binds four stick axes and reads `value()`, and `InputPreset` round-trips the export. Fix both headers.
+- **`InputAction.unbindButton`/`unbindAxis` are dead**: `UIRebind` remaps by assigning `action.buttons[0]` directly, so the unbind pair has no callers.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
