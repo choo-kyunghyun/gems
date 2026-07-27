@@ -30,7 +30,7 @@ globalThis.LevelRegistry = {
     this._entries.push({
       factory,
       label: opts.label,
-      category: opts.category ?? "기타",
+      category: opts.category ?? "SCENE_CAT_MISC",
     });
   },
   byCategory() {

@@ -99,8 +99,12 @@ class _SceneEditorClass {
       cols,
       rows,
     });
-    this.wallType = new TileType({ id: 1, name: "벽", pathCost: null });
-    this.floorType = new TileType({ id: 2, name: "바닥" });
+    this.wallType = new TileType({
+      id: 1,
+      name: I18n.text("EDITOR_WALL"),
+      pathCost: null,
+    });
+    this.floorType = new TileType({ id: 2, name: I18n.text("EDITOR_FLOOR") });
     this.floorLayer = new TileLayer(cols, rows, { emptyCost: 1 });
     this.wallLayer = new TileLayer(cols, rows);
     this.grid.insert(this.floorLayer);

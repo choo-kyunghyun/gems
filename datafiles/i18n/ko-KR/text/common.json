@@ -67,6 +67,7 @@
   "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_EDITOR": "에디터",
   "SCENE_CAT_UI": "인터페이스",
+  "SCENE_CAT_MISC": "기타",
 
   "UIKIT_NAME": "UI 키트",
   "UIKIT_HINT": "입력칸: 끌어서 선택, 더블클릭으로 단어 선택, Ctrl+A/C/X/V, 방향키 / Home / End. 버튼에 올려놓으면 툴팁이 나타납니다.",

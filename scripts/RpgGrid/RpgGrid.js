@@ -38,11 +38,12 @@ globalThis.RpgGrid = {
   // type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
   // frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed. `fill` auto-fills the
   // grid (walkable base) on plain maps; chunked builds these EMPTY. Order = nav priority (top wins).
+  // `name` is an I18n key (resolved at build in _makeLayers — top level runs before the locale loads).
   LAYERS: [
     {
       key: "terrain",
       id: 1,
-      name: "지형",
+      name: "TILE_TERRAIN",
       type: "dual",
       sprite: "spr_tiledual",
       // desaturated olive matching the streamed grass base (style-spec GROUND band)
@@ -58,7 +59,7 @@ globalThis.RpgGrid = {
       // RpgMap._buildRenderer); wood-tan tint -> parquet flooring. For a type-0 layer the
       // id IS the frame index (and must be non-zero: 0 reads as empty occupancy).
       id: 1,
-      name: "바닥",
+      name: "BUILD_FLOOR",
       type: 0,
       sprite: "spr_tex_plaid",
       color: "#aa9472",
@@ -71,7 +72,7 @@ globalThis.RpgGrid = {
     {
       key: "floorTile",
       id: 1,
-      name: "타일 바닥",
+      name: "BUILD_FLOOR_TILE",
       type: 0,
       sprite: "spr_tex_tile",
       color: "#9dadb2",
@@ -81,7 +82,7 @@ globalThis.RpgGrid = {
     {
       key: "floorCarpet",
       id: 1,
-      name: "카펫 바닥",
+      name: "BUILD_FLOOR_CARPET",
       type: 0,
       sprite: "spr_tex_carpet",
       color: "#a05a50",
@@ -91,7 +92,7 @@ globalThis.RpgGrid = {
     {
       key: "floorMosaic",
       id: 1,
-      name: "모자이크 바닥",
+      name: "BUILD_FLOOR_MOSAIC",
       type: 0,
       sprite: "spr_tex_mosaic",
       color: "#7096a8",
@@ -101,7 +102,7 @@ globalThis.RpgGrid = {
     {
       key: "wall",
       id: 1,
-      name: "벽",
+      name: "EDITOR_WALL",
       type: "corner",
       sprite: "spr_tilecorner",
       color: "#707888",
@@ -116,28 +117,28 @@ globalThis.RpgGrid = {
         {
           key: "brick",
           id: 1,
-          name: "벽",
+          name: "BUILD_WALL",
           sprite: "spr_tex_brick",
           color: "#707888",
         },
         {
           key: "concrete",
           id: 2,
-          name: "콘크리트 벽",
+          name: "BUILD_WALL_CONCRETE",
           sprite: "spr_tex_concrete",
           color: "#9aa0a4",
         },
         {
           key: "metal",
           id: 3,
-          name: "금속 벽",
+          name: "BUILD_WALL_METAL",
           sprite: "spr_tex_metal",
           color: "#7d8a96",
         },
         {
           key: "plank",
           id: 4,
-          name: "판자 벽",
+          name: "BUILD_WALL_PLANK",
           sprite: "spr_tex_plank",
           color: "#a08050",
         },
@@ -146,7 +147,7 @@ globalThis.RpgGrid = {
     {
       key: "fence",
       id: 1,
-      name: "울타리",
+      name: "BUILD_FENCE",
       type: 16,
       sprite: "spr_tile16",
       color: "#8a6d3b",
@@ -181,7 +182,7 @@ globalThis.RpgGrid = {
           const mat = cfg.materials[m];
           types[mat.key] = new TileType({
             id: mat.id,
-            name: mat.name,
+            name: I18n.text(mat.name),
             pathCost: cfg.pathCost,
           });
         }
@@ -190,7 +191,7 @@ globalThis.RpgGrid = {
       } else {
         h[cfg.key + "Type"] = new TileType({
           id: cfg.id,
-          name: cfg.name,
+          name: I18n.text(cfg.name),
           pathCost: cfg.pathCost,
         });
       }

@@ -37,6 +37,8 @@
   "EDITOR_SAVED": "Exported to {0}",
   "EDITOR_BACK": "Back",
 
+  "TILE_TERRAIN": "Terrain",
+
   "BUILD_MODE": "Build Mode",
   "BUILD_STATUS": "Wood {0}   ·   {1} ({2})   ·   LMB place / RMB remove",
   "BUILD_CAT_TILES": "Tiles",

@@ -67,6 +67,7 @@
   "SCENE_CAT_RPG": "RPG",
   "SCENE_CAT_EDITOR": "Editor",
   "SCENE_CAT_UI": "Interface",
+  "SCENE_CAT_MISC": "Misc",
 
   "UIKIT_NAME": "UI Kit",
   "UIKIT_HINT": "Fields: click+drag selects, double-click a word, Ctrl+A/C/X/V, arrows / Home / End. Hover a button for its tooltip.",

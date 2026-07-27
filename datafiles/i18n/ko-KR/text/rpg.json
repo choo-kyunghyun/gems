@@ -37,6 +37,8 @@
   "EDITOR_SAVED": "{0}에 내보냄",
   "EDITOR_BACK": "뒤로",
 
+  "TILE_TERRAIN": "지형",
+
   "BUILD_MODE": "건설 모드",
   "BUILD_STATUS": "목재 {0}   ·   {1} ({2})   ·   좌클릭 설치 / 우클릭 철거",
   "BUILD_CAT_TILES": "타일",
