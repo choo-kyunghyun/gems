@@ -20,7 +20,6 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 ### Bugs
 
-- **`pierce` is a phantom in the firing path**: `PlayerSystem._fireGun` forwards `wpn.pierce` to `RpgPlayer.fireBullet`, but `composeWeapon` never emits `pierce` and no op layer composes it — always undefined, so hitscan falls back to 1. Compose it as a real field or drop the forward.
 - **Raw Korean literals bypass I18n**: `LevelRegistry.add`'s default category (`"기타"`), the `RpgGrid.LAYERS`/wall-material display names, and `sceneEditor`'s TileType names are hardcoded Korean where every other display string routes through I18n keys. These surface in the editor and debug tile views; route them through keys.
 - **`RpgMap.BUNDLE_KEYS` hand-mirrors the layer set**: `_buildWorld` derives the `<key>Layer`/`<key>Type` level fields from `RpgGrid.LAYERS` dynamically, but the park/resume bundle list spells them out statically — a new LAYERS entry that misses BUNDLE_KEYS silently drops its handles on the first park, leaving resumed maps editing stale layers. Derive the layer section of the list from `RpgGrid.LAYERS`.
 

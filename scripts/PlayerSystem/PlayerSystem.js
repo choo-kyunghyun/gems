@@ -282,13 +282,12 @@ globalThis.PlayerSystem = {
     if (slot.rounds <= 0) return PlayerSystem._dryClick(); // still empty after the reload attempt
 
     const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
-    // damage = round's kinetic power + attack. penetration lowers target defense; pierce = hostiles
-    // passed through. velocity scales reach (the shot is instant, not travel-based).
+    // damage = round's kinetic power + attack. penetration lowers target defense; velocity
+    // scales reach (the shot is instant, not travel-based).
     const damage = Math.round(wpn.power) + attack;
     const aim = RpgPlayer.fireBullet(entities, id, {
       damage,
       penetration: wpn.penetration,
-      pierce: wpn.pierce,
       range: speed * RPG_SHOT_RANGE_SECS,
       nx: dir.x,
       ny: dir.y,
