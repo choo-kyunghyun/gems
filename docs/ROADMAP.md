@@ -14,7 +14,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 2. [x] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
 3. [x] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
 4. [x] Camera + input: Core/Camera, Core/Input — small, self-contained
-5. [ ] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
+5. [x] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
 6. [ ] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
 7. [ ] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
 8. [ ] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
@@ -62,6 +62,10 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`Input.sensitivity`/`deadzone` are dead config**: exported to `input.json` and imported back, but nothing reads them — `InputAxis.value()` returns the raw stick with no deadzone applied. Apply the deadzone in `value()` or drop both fields.
 - **Stale analog comments in Core/Input**: `InputAxis` claims no action binds an axis and `Input` calls its export/import scaffolding unused — `PlayerSystem` binds four stick axes and reads `value()`, and `InputPreset` round-trips the export. Fix both headers.
 - **`InputAction.unbindButton`/`unbindAxis` are dead**: `UIRebind` remaps by assigning `action.buttons[0]` directly, so the unbind pair has no callers.
+- **`RenderMesh` queries the Gameplay `Light` token from Core**: the pass already injects `sun` and `camera` — inject the point-light gather the same way (a provider returning position/color/radius records) so the `Light` query moves to the wiring that owns the token.
+- **`RenderMesh`'s underscore members are the shared-light seam**: `RenderBillboard`/`RenderWalls`/`RenderTileMap` call `opt.lights._setupLights` and read `_litOk`/`_uUseTex`/`_uNormal` — three sibling passes depend on "private" members. Promote the seam to public names so the underscore rule stays honest.
+- **Free-run sprite animation is duplicated in two draw passes**: `RenderEntity` and `RenderBillboard` both advance `Visual.time`/`subimg` in draw, on `Time.raw` — one advance site would do, and the clock choice deserves a decision (today a paused sim keeps world sprites animating).
+- **The pitched view-rect rule is implemented three ways**: `CameraFollow`'s clamp and `RenderMesh`'s light cull stretch the N-S reach by `1/cos(pitch)`; `RenderGrid`/`RenderDebugTileMap` cull without it and under-cover under pitch. Give `Camera` a ground-rect helper owning the rule and point all four at it.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
