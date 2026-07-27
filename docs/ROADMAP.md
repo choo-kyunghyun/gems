@@ -8,24 +8,23 @@ One concern per pass: each pass applies a single mechanical rule across all of `
 
 ### Code Review (file-by-file)
 
-Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code; each batch is review-only — the renames and comment sweeps land first. Mark Done as batches finish.
+Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference graph of `globalThis` exports vs. usages). Ordered bottom-up so each batch depends only on already-reviewed code; each batch is review-only — the renames and comment sweeps land first. Check batches off as they finish.
 
-| #   | Batch                  | Folders                                                                                                | Files |    LOC | Watch for                                                                                         | Done |
-| --- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ----: | -----: | ------------------------------------------------------------------------------------------------- | ---- |
-| 1   | Core utilities         | Core/Util                                                                                              |    28 |  2,807 | Highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`) — everything sits on these |      |
-| 2   | ECS heart              | Core/Component, Core/Entity, Core/World                                                                |    24 |  1,083 | `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)     |      |
-| 3   | Systems + levels       | Core/System, Core/Level                                                                                |    25 |  2,398 | Built-in systems, `LevelGrid`/`TileEdit`/zones                                                    |      |
-| 4   | Camera + input         | Core/Camera, Core/Input                                                                                |    10 |  1,072 | Small, self-contained                                                                             |      |
-| 5   | Renderer               | Core/Render                                                                                            |    16 |  2,009 | `RenderMesh` queries the `Light` token (Gameplay)                                                 |      |
-| 6   | UI infra               | Core/UI                                                                                                |    13 |  1,549 | `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge     |      |
-| 7   | UI widgets             | Core/UI/Element (plain widgets)                                                                        |   ~14 | ~2,800 | Half of the biggest folder                                                                        |      |
-| 8   | UI singletons          | Core/UI/Element (heavy singletons)                                                                     |   ~14 | ~2,850 | `SystemMenu` → GemsUI + `sceneLobby` upward edges                                                 |      |
-| 9   | GemsUI kit             | GemsUI                                                                                                 |     4 |  1,588 | Theme + the three factory buckets                                                                 |      |
-| 10  | Gameplay: economy      | Items, Inventory, Equipment, Crafting, Trade                                                           |   ~26 | ~1,390 | `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge      |      |
-| 11  | Gameplay: simulation   | Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest |   ~39 | ~1,870 | `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly         |      |
-| 12  | Demo systems + content | Demo/System, Demo/Content, Demo/Component                                                              |    29 |  4,285 | `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries                            |      |
-| 13  | Demo scenes            | Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game`                                      |    19 |  6,073 | Highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62) — review last-ish                               |      |
-| 14  | Demo UI                | Demo/UI                                                                                                |     9 |  3,822 | `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs                             |      |
+1. [x] Core utilities: Core/Util — highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`); everything sits on these
+2. [ ] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
+3. [ ] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
+4. [ ] Camera + input: Core/Camera, Core/Input — small, self-contained
+5. [ ] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
+6. [ ] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
+7. [ ] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
+8. [ ] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
+9. [ ] GemsUI kit: GemsUI — theme + the three factory buckets
+10. [ ] Gameplay economy: Items, Inventory, Equipment, Crafting, Trade — `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge
+11. [ ] Gameplay simulation: Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest — `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly
+12. [ ] Demo systems + content: Demo/System, Demo/Content, Demo/Component — `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries
+13. [ ] Demo scenes: Demo/Scene, Demo/Editor, Demo/Platformer, Demo/Lobby + `obj_game` — highest fan-out (`sceneRpg` 88 deps, `RpgMap` 62); review last-ish
+14. [ ] Demo UI: Demo/UI — `RpgInventoryUI` (41 deps), HUD, Trade/Storage/Crafting/WeaponMod UIs
+15. [ ] Debug + audio: Core/Debug, Core/Audio — absent from the original coupling-analysis split
 
 `tools/` is self-contained (never imported by the game) — review separately if at all.
 
@@ -35,9 +34,20 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 ## Known Issues
 
-Pre-existing issues noticed in passing and deliberately left untouched:
+Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled:
 
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
+- **`WorldEvents.update` lacks the due-count snapshot its comment claims**: a handler that schedules a follow-up at `<= now` re-enters the drain loop the same frame, so a repeat scheduler hangs the game. Latent — `Trader` (the only consumer) only schedules future hours. Implement the snapshot or restate the comment as a handler constraint.
+- **`File`'s async members break the verb family**: `saveAsync`/`loadAsync` belong as `writeBufferAsync`/`readBufferAsync` beside `read`/`readBuffer`; both are caller-free (parked on GMRT #15223), so the rename is free. `writeBuffer` also returns an unconditional `true` it never verifies.
+- **`Query.hasCollision` duplicates `has: Collision`**: drop the opt and migrate its one caller (`RpgInteractions`).
+- **Caller-less Core/Util members**: `Query.farthest`, `Color.alpha`, `rem`, and `Settings.isModified` have no consumers; `isModified` also compares nested values by reference, so a set nested value always reads modified.
+- **`MotionPlanner.plan`'s algorithm selector is speculative**: `MP_ALGORITHM` holds one value and the sole caller passes none — fold to `plan(start, goal, opt)` until a second algorithm exists. Planning with no grid bound should `Log.error`, not return the `[]` that also means unreachable.
+- **Comments cite nonexistent APIs**: `Color.merge` points at `Tween.approachColor` (never written — the idiom is per-channel `Tween.approach`); GMRT.md and `RenderCloudShadow` cite `Utils.hash2` where the global is bare `hash2`.
+- **`LevelSerializer.load` contradicts GMRT.md on `JSON.parse`**: its comment claims parse drops fields / faults on large nested input; `Json` and GMRT.md hold that only stringify faults. Probe and settle — if real it belongs in GMRT.md and threatens `SaveGame.load`. A `pretty` option on `Json.encode` would also fold `LevelSerializer._enc`, the second hand-rolled encoder, into the codec.
+- **Persistence failures are silent**: `Json.encode` still returns its truncated output after a step-cap abort (`SaveGame` writes it as a manifest); `SaveData.load`/`Settings.load` swallow parse errors with no log.
+- **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
+- **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
+- **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
 
 ## Planned Features
 
