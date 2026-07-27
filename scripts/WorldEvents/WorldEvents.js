@@ -36,11 +36,16 @@ globalThis.WorldEvents = {
 
   // Fire every event whose time has come (at <= now), in time order, dispatching to its handler.
   // Handlers may schedule follow-ups; a follow-up dated in the past (or == now) fires next frame,
-  // not this one — we snapshot the due count first so a handler can't loop the queue forever.
+  // not this one — the due events are spliced out BEFORE dispatch (a shift-per-dispatch loop would
+  // re-enter a same-frame follow-up and a repeat scheduler could hang the game).
   update(now) {
     const q = WorldEvents._q;
-    while (q.length > 0 && q[0].at <= now) {
-      const e = q.shift();
+    let due = 0;
+    while (due < q.length && q[due].at <= now) due++;
+    if (due === 0) return;
+    const fire = q.splice(0, due);
+    for (let i = 0; i < fire.length; i++) {
+      const e = fire[i];
       const h = WorldEvents._handlers[e.kind];
       if (h !== undefined) h(e.data);
     }
