@@ -45,7 +45,7 @@ globalThis.Audio = {
   },
 
   setMasterGain(g) {
-    audio_master_gain(clamp(g, 0, 1));
+    audio_set_master_gain(0, clamp(g, 0, 1)); // listener 0 — the default, the only one AudioListener drives
   },
 
   // Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
