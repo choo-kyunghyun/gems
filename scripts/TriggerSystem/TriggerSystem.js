@@ -3,10 +3,20 @@
 globalThis.TriggerSystem = {
   /** @param {Entity} entities */
   update(entities) {
-    const ids = entities.query(Collision, Position, BBox);
+    const all = entities.query(Collision, Position, BBox);
 
-    for (let i = 0; i < ids.length; i++)
-      entities.get(Collision, ids[i]).hits.length = 0;
+    for (let i = 0; i < all.length; i++)
+      entities.get(Collision, all[i]).hits.length = 0;
+
+    // Kinematic solids (merged wall/terrain rects) are excluded from the sweep entirely: they span
+    // many broadphase cells, breaking the center-bucket contract (cell size > largest entity), so
+    // their pairs were missed inconsistently and matched ones were noise no consumer reads.
+    const ids = [];
+    for (let i = 0; i < all.length; i++) {
+      const c = entities.get(Collision, all[i]);
+      if (c.solid && c.kinematic) continue;
+      ids.push(all[i]);
+    }
 
     const bp = entities.broadphase;
     if (bp !== undefined) {
