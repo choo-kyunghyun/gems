@@ -12,7 +12,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 
 1. [x] Core utilities: Core/Util — highest fan-in in the project (`Log`, `Color`, `Time`, `AABB`, `File`); everything sits on these
 2. [x] ECS heart: Core/Component, Core/Entity, Core/World — `World.update` → `WorldClock` (Gameplay) upward edge; `LevelManager` → `LevelRegistry` (Demo)
-3. [ ] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
+3. [x] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
 4. [ ] Camera + input: Core/Camera, Core/Input — small, self-contained
 5. [ ] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
 6. [ ] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
@@ -53,6 +53,11 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`Entity` argument order is split**: `get(Component, id)` reads one way, `add(id, Component, data)`/`detach(id, Component)` write the other. Normalizing the hottest API in the codebase is a full mechanical pass — decide the order first.
 - **`entities.broadphase` is an undeclared field**: assigned by `RpgMap`, read by `SeparationSystem`/`TriggerSystem`, declared nowhere; its sibling store-level config `gravity` goes through `EntityOpts`. Declare it on the constructor with its contract.
 - **`LevelManager`'s registry half predates the rename sweeps**: `worldOf(mapId)` returns an `Entity` store (`entitiesOf`), `_levels` holds map entries beside `_all`'s level entries, and `take`/`put`/`transfer` return null / -1 / id-or-snapshot across one family.
+- **`ZoneSystem` is dead machinery**: nothing calls `update`/`zoneOf`/`entitiesIn` — `sceneRpg` deliberately bypasses the sweep ("direct lookup beats it"), `ZoneMap._inside` exists only to serve it, and ARCHITECTURE.md still names it the zone driver. Wire it in or drop the module (plus `_inside` and the index line).
+- **`TriggerSystem` sweeps statics the broadphase can't hold**: it rebuilds `entities.broadphase` (cell 96) with every collider, but merged wall/terrain rects span many cells — the center-bucket contract (cell size > largest entity) breaks, so sensor-vs-wall pairs are missed inconsistently and matched ones only push noise ids into `hits`. Exclude kinematic solids from the trigger sweep.
+- **`TileType` is defined twice**: `LevelGrid`'s `@typedef` shadows the `TileType` class for the checker and omits the `null` → `Infinity` cost rule. Drop the typedef, cite the class.
+- **Prefab-stamped zones share one `data` object**: `stamp`/`apply` pass the def's `data` by reference into every `Zone` they define, so mutating one zone's payload (a settlement rename/owner change) aliases its siblings and the registry def — until a save round-trip mints fresh objects and the aliasing silently disappears. Deep-copy `data` at define time.
+- **Caller-less Core/Level members**: `TileLayer.from`, `ChunkManager.centerChunk`, and `ChunkManager.activeCount` have no consumers.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
