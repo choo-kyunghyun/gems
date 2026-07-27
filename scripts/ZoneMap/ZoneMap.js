@@ -15,7 +15,18 @@ globalThis.ZoneMap = class ZoneMap {
   /** @param {ZoneOpt} opt @returns {Zone} */
   define(opt = {}) {
     const id = opt.id ?? this._nextId;
-    const zone = new Zone({ id: id, name: opt.name, tags: opt.tags, data: opt.data });
+    // data is deep-copied: a def stamped repeatedly (Prefab.apply) passes ONE payload object for
+    // every zone it defines — stored by reference, mutating one zone's data would alias its
+    // siblings and the registry def. Round-trip is safe: Zone.data is a JSON payload (no Set/refs),
+    // and only native stringify faults on nesting (GMRT.md #15565).
+    const data =
+      opt.data !== undefined ? JSON.parse(json_stringify(opt.data)) : opt.data;
+    const zone = new Zone({
+      id: id,
+      name: opt.name,
+      tags: opt.tags,
+      data: data,
+    });
     this.zones[id] = zone;
     if (id >= this._nextId) this._nextId = id + 1;
     return zone;
@@ -94,7 +105,12 @@ globalThis.ZoneMap = class ZoneMap {
     const zones = [];
     for (const id in this.zones) {
       const zone = this.zones[id];
-      zones.push({ id: zone.id, name: zone.name, tags: zone.tags.slice(), data: zone.data });
+      zones.push({
+        id: zone.id,
+        name: zone.name,
+        tags: zone.tags.slice(),
+        data: zone.data,
+      });
     }
     return { grid: this.grid.export(), zones: zones, nextId: this._nextId };
   }
