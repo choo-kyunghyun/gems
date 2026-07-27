@@ -18,10 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Performance
-
-- **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
-
 ### Layering Violations
 
 - **`LevelManager._make` reaches into Demo's `LevelRegistry`**: Core scans `LevelRegistry._entries` (a private field, cross-pillar) for a display label. Invert the seam: registrants hand the label to the manager (entry field or a resolver hook wired at boot).

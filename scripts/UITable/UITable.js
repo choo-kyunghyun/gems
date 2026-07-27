@@ -591,12 +591,18 @@ globalThis.UITable = class UITable {
 
   _fit(str, maxW) {
     if (maxW <= 0) return "";
-    let s = string(str);
+    const s = string(str);
     if (string_width(s) <= maxW) return s;
-    while (string_length(s) > 1 && string_width(s) > maxW) {
-      s = string_copy(s, 1, string_length(s) - 1);
+    // binary-search the longest fitting prefix (string_width is monotonic in
+    // prefix length); floor of 1 char even when that still overflows.
+    let lo = 1;
+    let hi = string_length(s) - 1;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2);
+      if (string_width(string_copy(s, 1, mid)) <= maxW) lo = mid;
+      else hi = mid - 1;
     }
-    return s;
+    return string_copy(s, 1, lo);
   }
 
   // ── nav ─────────────────────────────────────────────────────
