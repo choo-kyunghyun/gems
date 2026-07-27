@@ -15,7 +15,7 @@ kit stays style-agnostic; this file is G.E.M.S.'s filled-in style — the audio 
 | **Format** | **WAV** (the only stdlib-encodable format). GameMaker re-compresses at build per the asset's setting; switch a long track to Compressed/Streamed in the IDE if size matters. |
 | **GM naming** | SFX → `snd_<subject>[_<event>]` (`snd_coin` / `snd_gun_fire`), size/style qualifier **last** (`snd_explosion_small`, not `snd_small_explosion`); BGM → `mus_<track>` (`mus_overworld`). Full rule in CLAUDE.md → Media Asset Naming. |
 | **IDE folder** | `Media/Audio/SFX` and `Media/Audio/BGM`. |
-| **Audio group** | SFX → the **`sfx`** GMAudioGroup, BGM → **`bgm`** (the importer assigns them). Category volume = the group gain (`audio_group_set_gain`), driven live by the SystemMenu sliders; non-default groups are `audio_group_load`'d at boot by `scripts/Audio`. |
+| **Mixing** | Category volume is folded by hand at playback, never baked into the asset — render at full level. `scripts/Audio` owns the mixing contract (every sound sits in `audiogroup_default`). |
 
 Audio pairs with the **DB32 16px pixel art** — keep it deliberately **chiptune**, not sampled.
 
@@ -42,19 +42,19 @@ this kit's output: **14 SFX** (`snd_coin` / `snd_jump` /
 `snd_gun_fire` / `snd_gun_uncocked` / `snd_hitsound_flesh` / `snd_hitsound_armor` /
 `snd_hitsound_metal` / `snd_explosion_small` / `snd_explosion_large` / `snd_bandage` / `snd_drink` /
 `snd_magic` / `snd_button_click` / `snd_button_muted`) and **4 BGM ambient loops**
-(`mus_ambient_cozy` / `mus_ambient_tense` / `mus_ambient_danger` / `mus_ambient_emergency` — the
-`bgm` audio group). The old kit templates in `templates/` still describe the
-retired chiptune set — **do NOT re-run the importers over the live names** (`sfx_sounds.py` would
-overwrite the hand-made `snd_coin`/`snd_jump` and recreate deregistered assets). The kit remains valid
-machinery for FUTURE generated sounds (author a template under a fresh name, register, import).
+(`mus_ambient_cozy` / `mus_ambient_tense` / `mus_ambient_danger` / `mus_ambient_emergency`). The old
+kit templates in `templates/` still describe the retired chiptune set — **do NOT re-run the importers
+over the live names** (`sfx_sounds.py` would overwrite the hand-made `snd_coin`/`snd_jump` and
+recreate deregistered assets). The kit remains valid machinery for FUTURE generated sounds (author a
+template under a fresh name, register, import).
 
-Playback goes through the **`Audio`** Core wrapper (`scripts/Audio/`): `Audio.play` (2D),
-`Audio.playAt` (spatial, via `audio_play_sound_at` + a player-following listener set each frame from
-the RPG camera), `Audio.bgm` (cross-faded loop). **Wired into the Demo**: the RPG plays
-`mus_ambient_tense` with spatial `snd_gun_fire`/`snd_hitsound_flesh` (enemy hit)/`snd_hitsound_armor`
-(ally hit)/`snd_explosion_small` (kill)/`snd_coin`, plus `snd_gun_uncocked` (dry-fire) and the
-per-consumable `snd_drink`/`snd_bandage`/`snd_magic`; the Platformer plays `mus_ambient_danger` with
-`snd_jump`/`snd_hitsound_flesh` (stomp)/`snd_hitsound_armor` (respawn); the `snd_button_*` cues are
-wired into the Core UI (`UIButton`/`UINav` — click on activate, muted on focus change). Unwired spares:
-`snd_hitsound_metal`, `snd_explosion_large`, `mus_ambient_cozy`/`mus_ambient_emergency`
-(see ARCHITECTURE → _Utility Modules → Audio_).
+Playback goes through the **`Audio`** Core family (`scripts/Audio/`): SFX is the single
+`Audio.play(params)` — spatial when `params.position` is set (a player-following listener set each
+frame from the RPG camera), 2D otherwise — and BGM is `Music.play` (cross-faded loop). **Wired into
+the Demo**: the RPG plays `mus_ambient_tense` with spatial `snd_gun_fire`/`snd_hitsound_flesh`
+(enemy hit)/`snd_hitsound_armor` (ally hit)/`snd_explosion_small` (kill)/`snd_coin`, plus
+`snd_gun_uncocked` (dry-fire) and the per-consumable `snd_drink`/`snd_bandage`/`snd_magic`; the
+Platformer plays `mus_ambient_danger` with `snd_jump`/`snd_hitsound_flesh` (stomp)/`snd_hitsound_armor`
+(respawn); the `snd_button_*` cues are wired into the Core UI (`UIButton`/`UINav` — click on activate,
+muted on focus change). Unwired spares: `snd_hitsound_metal`, `snd_explosion_large`,
+`mus_ambient_cozy`/`mus_ambient_emergency`.
