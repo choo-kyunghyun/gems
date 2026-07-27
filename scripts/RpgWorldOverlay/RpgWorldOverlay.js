@@ -72,8 +72,7 @@ globalThis.RpgWorldOverlay = {
       const p = entities.get(Position, id);
       draw_circle(p.x, p.y, 4, false);
     }
-    // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw. Plain draw_line — the
-    // bare-width and *_color line variants render nothing on GMRT (see RenderGrid/RenderWeather).
+    // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw.
     const tracers = this._tracers;
     for (let i = tracers.length - 1; i >= 0; i--) {
       const tr = tracers[i];

@@ -18,12 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Probe & Settle
-
-- **`LevelSerializer.load` contradicts GMRT.md on `JSON.parse`**: its comment claims parse drops fields / faults on large nested input; `Json` and GMRT.md hold that only stringify faults. Probe and settle — if real it belongs in GMRT.md and threatens `SaveGame.load`. A `pretty` option on `Json.encode` would also fold `LevelSerializer._enc`, the second hand-rolled encoder, into the codec.
-- **`I18n` iterates Maps under the #15095 ban**: `destroy()` runs `Map.forEach` over populated registries on every language switch (`SystemMenu` → `load`). Working today implies `forEach` avoids the broken iterator — probe it, then either record "`Map.forEach` safe" in GMRT.md or convert `I18n` to the parallel-array idiom like everyone else.
-- **`DebugInspector.draw` uses the line variants documented as inert**: the pick highlight draws with `draw_line_color`/`draw_rectangle_color`, while `RpgWorldOverlay`/`RenderGrid`/`RenderWeather` record that the `*_color` line variants render nothing on GMRT — the crosshair (at least) never shows. Probe once, then switch to `draw_set_color` + plain `draw_line`/`draw_rectangle` (and if the probe clears it, correct the quirk note at its owner).
-
 ### Performance
 
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
@@ -96,6 +90,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **Singleton panel chrome is triplicated**: `Dialogue`/`Toast`/`Tooltip` each hand-roll the same rounded panel + border draw and hard-code the same palette hexes, invisible to `GemsTheme` — a shared `UIDraw` panel helper with theme-sourced defaults would let a palette swap reach the singletons.
 - **The `readOnly` capture rule is duplicated**: `UICheckbox` and `UISlider` each hand-roll the same "hover captures, press must not latch" return; a `readOnly` mode on `UITrigger` would own it.
 - **Ten hand-rolled registries across the kit and Demo**: `Item`/`Manufacturer`/`Rarity`/`Recipe`/`FactionSystem`/`Status`/`QuestLog`/`SettlementComponent`/`InteractAction`/`Achievement` each re-implement the string-keyed registry + insertion-order array (the #15095 index-loop idiom) with drifting member sets and split storage (Map vs plain object) — `Recipe` lacks `has`/`all`, `Rarity` alone carries a caller-less `import`/`export` pair and no file header. With inheritance off the table, consolidate via a composed registry helper or at least align the family and drop the dead pair.
+- **`LevelSerializer._enc` is a second hand-rolled encoder**: a `pretty` option on `Json.encode` (2-space indent, scalar arrays inline) would fold the level-file encoder into the codec.
 - **The quest turn-in ceremony is duplicated in `sceneRpg`**: `_tryTurnIn` and `_npcActivate` each run the same complete → applyReward → counter-bump → achievement-report sequence. Fold into one `_completeQuest(qid)` so the two paths can't drift.
 - **The double-click gesture is triplicated in Demo UI**: `StorageUI._click`, `TradeUI._click`, and `RpgInventoryUI._onGridSelect` each hand-roll the same 350ms same-target re-click detector with its own identity-key scheme. One shared helper would own the threshold and the uid-over-itemId identity rule.
 - **Demo UI hardcodes the theme's gold**: `"#ffd166"` appears 17 times across `InvTable`/`TradeUI`/`StorageUI`/`RpgInventoryUI`/`sceneRpg`/`sceneUIKit`/`FloatingText` — duplicating the palette's `warn` key, so the light palette's darkened warn never reaches these labels. Read `GemsTheme.warn` (or add a dedicated gold key).

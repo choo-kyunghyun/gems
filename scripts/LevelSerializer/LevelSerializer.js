@@ -12,9 +12,6 @@ globalThis.LevelSerializer = {
       Log.error(`LevelSerializer: file not found: ${path}`);
       return null;
     }
-    // native JSON.parse is unreliable on large/nested level JSON (drops fields / faults
-    // non-deterministically — parse-side sibling of the JSON.stringify nested fault). works
-    // on current hand-authored levels but blocks bigger levels / editor exports.
     const data = JSON.parse(raw);
     if (opts.genre !== undefined && data.genre !== opts.genre) {
       Log.error(
@@ -38,8 +35,8 @@ globalThis.LevelSerializer = {
   },
 
   /**
-   * Serialize to indented JSON. Native JSON.stringify faults on nested objects/arrays (see
-   * SaveData), so hand-roll the encoding, calling native stringify only on scalar leaves.
+   * Serialize to indented JSON. Native JSON.stringify faults on nested objects/arrays
+   * (#15565), so hand-roll the encoding, calling native stringify only on scalar leaves.
    * 2-space indent (scalar arrays inline) keeps level files diff-friendly + hand-editable.
    * @param {object} data @returns {string}
    */
