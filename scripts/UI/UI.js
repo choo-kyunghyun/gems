@@ -63,12 +63,20 @@ globalThis.UI = {
     return false;
   },
 
+  /**
+   * True while a widget under the cursor captures the pointer, latched by update() each frame.
+   * The gate for world input that must yield to the UI (CameraFollow's wheel zoom); world
+   * consumers run after UI.update in obj_game Step_0, so the read is same-frame fresh.
+   */
+  captured: false,
+
   /** later roots block earlier from the pointer. */
   update() {
     let block = false;
     [...UI.roots].reverse().forEach((root) => {
       if (root.enabled) block = root.update(block) || block;
     });
+    UI.captured = block;
   },
 
   draw() {

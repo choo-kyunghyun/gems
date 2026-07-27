@@ -3,20 +3,23 @@
 /** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
 function _cameraFollowOnUpdate() {
   // read each mouse query once per frame and share (the poll-once rule — UIPointer)
-  if (mouse_wheel_up()) {
-    this.followZoomTarget = Math.min(
-      this.followMaxZoom,
-      this.followZoomTarget * (1 + this.followZoomStep),
-    );
-  }
-  if (mouse_wheel_down()) {
-    this.followZoomTarget = Math.max(
-      this.followMinZoom,
-      this.followZoomTarget * (1 - this.followZoomStep),
-    );
-  }
-  if (mouse_check_button_pressed(this.followZoomButton)) {
-    this.followZoomTarget = this.followZoomDefault;
+  // zoom input yields to the UI: a wheel over a hovered list scrolls it, never the world (UI.captured)
+  if (!UI.captured) {
+    if (mouse_wheel_up()) {
+      this.followZoomTarget = Math.min(
+        this.followMaxZoom,
+        this.followZoomTarget * (1 + this.followZoomStep),
+      );
+    }
+    if (mouse_wheel_down()) {
+      this.followZoomTarget = Math.max(
+        this.followMinZoom,
+        this.followZoomTarget * (1 - this.followZoomStep),
+      );
+    }
+    if (mouse_check_button_pressed(this.followZoomButton)) {
+      this.followZoomTarget = this.followZoomDefault;
+    }
   }
   // cap zoom-out to the renderable world width — derived live from the current surface so a
   // stale build-time size can't let the view zoom past the streamed region into dark unloaded area
