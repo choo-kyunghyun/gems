@@ -15,7 +15,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 3. [x] Systems + levels: Core/System, Core/Level — built-in systems, `LevelGrid`/`TileEdit`/zones
 4. [x] Camera + input: Core/Camera, Core/Input — small, self-contained
 5. [x] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
-6. [ ] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
+6. [x] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
 7. [ ] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
 8. [ ] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
 9. [ ] GemsUI kit: GemsUI — theme + the three factory buckets
@@ -66,6 +66,10 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`RenderMesh`'s underscore members are the shared-light seam**: `RenderBillboard`/`RenderWalls`/`RenderTileMap` call `opt.lights._setupLights` and read `_litOk`/`_uUseTex`/`_uNormal` — three sibling passes depend on "private" members. Promote the seam to public names so the underscore rule stays honest.
 - **Free-run sprite animation is duplicated in two draw passes**: `RenderEntity` and `RenderBillboard` both advance `Visual.time`/`subimg` in draw, on `Time.raw` — one advance site would do, and the clock choice deserves a decision (today a paused sim keeps world sprites animating).
 - **The pitched view-rect rule is implemented three ways**: `CameraFollow`'s clamp and `RenderMesh`'s light cull stretch the N-S reach by `1/cos(pitch)`; `RenderGrid`/`RenderDebugTileMap` cull without it and under-cover under pitch. Give `Camera` a ground-rect helper owning the rule and point all four at it.
+- **`VirtualKeyboard` builds from GemsUI**: a Core/UI singleton composed of `gemsModal`/`gemsButton`/`gemsLabel` + `GemsTheme` — Core must build without the GemsUI pillar. Refile it into GemsUI (it is a themed composite), or rebuild its body from bare Core widgets.
+- **`I18n` iterates Maps under the #15095 ban**: `destroy()` runs `Map.forEach` over populated registries on every language switch (`SystemMenu` → `load`). Working today implies `forEach` avoids the broken iterator — probe it, then either record "`Map.forEach` safe" in GMRT.md or convert `I18n` to the parallel-array idiom like everyone else.
+- **`UIMinimap`/`gemsMinimap` are dead**: the factory has no callers and is `UIMinimap`'s only constructor site — `RadarArrows` is the shipped radar. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
+- **Singleton panel chrome is triplicated**: `Dialogue`/`Toast`/`Tooltip` each hand-roll the same rounded panel + border draw and hard-code the same palette hexes, invisible to `GemsTheme` — a shared `UIDraw` panel helper with theme-sourced defaults would let a palette swap reach the singletons.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
