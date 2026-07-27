@@ -25,6 +25,9 @@ globalThis.RenderLighting = class RenderLighting {
     // corner-darkening fraction at full night, scaled by the cycle. 0 disables.
     this.vignette = opt.vignette ?? 0.25;
     this._surf = -1; // light-map surface, (re)created lazily (surface_exists(-1) is false)
+    // cumulative SIM seconds the flicker phase rides on (the Weather.time() pattern): freezes on
+    // pause and dilates with Time.scale — the clock-split invariant for world-space effects.
+    this._flickerT = 0;
   }
 
   destroy() {
@@ -33,6 +36,7 @@ globalThis.RenderLighting = class RenderLighting {
 
   draw(entities) {
     if (this.camera === undefined) return;
+    this._flickerT += Time.delta;
 
     // ambient → multiply model. k=0 → white (daylight): composite is a no-op, so skip all surface
     // work (lights stay invisible, correct for an outdoor cycle vs a dungeon torch).
@@ -77,10 +81,12 @@ globalThis.RenderLighting = class RenderLighting {
       const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
       const s = this.camera.project(wx, wy, 0);
       let intensity = lt.intensity ?? 1;
-      // flicker: wall-clock sine per light (trig works on GMRT 0.20), id-offset so torches don't sync.
+      // flicker: sim-time sine per light (see _flickerT), id-offset so torches don't sync.
       if (lt.flicker)
         intensity *=
-          1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
+          1 -
+          lt.flicker *
+            (0.5 + 0.5 * Math.sin((this._flickerT * 1000) / 90 + id));
       draw_set_alpha(intensity);
       // hue center → black at radius; bm_add sums overlaps
       draw_circle_color(s.x, s.y, lt.radius * zx, lt.color, c_black, false);
