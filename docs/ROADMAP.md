@@ -18,7 +18,7 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 6. [x] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
 7. [x] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
 8. [x] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
-9. [ ] GemsUI kit: GemsUI — theme + the three factory buckets
+9. [x] GemsUI kit: GemsUI — theme + the three factory buckets
 10. [ ] Gameplay economy: Items, Inventory, Equipment, Crafting, Trade — `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge
 11. [ ] Gameplay simulation: Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest — `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly
 12. [ ] Demo systems + content: Demo/System, Demo/Content, Demo/Component — `RpgCombat`, `SaveGame`, `PlayerSystem`, `CombatAI`, content registries
@@ -77,6 +77,11 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
+- **`gemsWindow` is unwired and carries `UIDrag`/`UIResize` with it**: the draggable-window factory is self-declared kit inventory (`gemsOverlay` is what the RPG windows use) and is the sole constructor site of Core's `UIDrag` and `UIResize` — a three-module spare chain like `UIMinimap`/`gemsMinimap`. Wire a consumer or keep all three as deliberate spares.
+- **`gemsDropdown` drops the `onChange` its sibling honors**: the Settings-bound pair split — `gemsSelect` fires `opts.onChange` after `Settings.set`, `gemsDropdown` ignores it — and `gemsDropdown` has zero callers; `SystemMenu`'s resolution row hand-rolls the same Settings binding over `gemsDropdownCustom` because it needs the apply hook. Pass `onChange` through and the hand-roll folds into the factory.
+- **`gemsSlider` is the kit's only positional signature**: `(key, min, max, step, opts)` forces live callers to pass a placeholder (`SystemMenu`'s `gemsSlider(key, 0, 1, undefined, {…})`) where every sibling control takes `min`/`max`/`step` in the opts bag (`gemsStepper`). Fold them into opts.
+- **`gemsRoot` redirects `insertChild` instead of exposing the host**: the kit idiom is a named content property (`gemsScroll.scrollBody`, `gemsOverlay.body`); `gemsRoot`'s capped mode instead monkey-patches the wrapper's `insertChild` to the inner column, leaves `removeChild` un-redirected (a remove targets the wrapper and silently misses), and assigns a `.content` nothing reads. Expose the column like the siblings do.
+- **`gemsSelectCustom` lost its doc line and its sizing**: its header ("Panel-backed cycling select…") sits stranded above `gemsFieldPanel`, and it builds `gemsFieldPanel({})` where every sibling field control forwards `height`/`width` — a select can't be sized (latent; callers pass only `tooltip`). Re-home the comment and forward the opts.
 
 ## Planned Features
 
