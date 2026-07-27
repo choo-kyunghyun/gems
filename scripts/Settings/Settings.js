@@ -41,7 +41,7 @@ globalThis.Settings = {
     return this;
   },
 
-  /** load declared keys from disk (missing file / parse error is a no-op). */
+  /** load declared keys from disk (missing file is a no-op; a parse error warns + keeps defaults). */
   load() {
     const raw = File.read(this.PATH);
     if (raw === undefined) return this;
@@ -50,7 +50,9 @@ globalThis.Settings = {
       for (const key of Object.keys(this.defaults)) {
         if (key in parsed) this._data[key] = parsed[key];
       }
-    } catch (_) {}
+    } catch (_) {
+      Log.warn("Settings: parse error in " + this.PATH + " — keeping defaults");
+    }
     return this;
   },
 

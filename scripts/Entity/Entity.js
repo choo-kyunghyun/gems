@@ -111,7 +111,7 @@ globalThis.Entity = class Entity {
    * native JSON.stringify faults on nested data (GMRT.md #15565), and Json's
    * cycle/ref guards make dumping raw runtime state safe.
    * @param {number|number[]} idOrIds @param {string} [file="entity.json"]
-   * @returns {string}
+   * @returns {string|undefined} undefined when the encode aborted (nothing written)
    */
   dump(idOrIds, file = "entity.json") {
     const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
@@ -125,6 +125,7 @@ globalThis.Entity = class Entity {
       );
     }
     const json = Json.encode(Array.isArray(idOrIds) ? records : records[0]);
+    if (json === undefined) return undefined; // encode aborted (already Log.error'd)
     File.write(file, json);
     return json;
   }

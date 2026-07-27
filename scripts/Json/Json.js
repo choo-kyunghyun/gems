@@ -38,14 +38,17 @@ globalThis.Json = {
    * Serialize a JSON-plus-sprite-ref value to a string. Linear, cycle-safe, and step-capped:
    * it dodges the native nested-value fault, the O(n²) big-array cost, AND any infinite
    * recursion from a cyclic reference in the input.
-   * @param {*} v @returns {string}
+   * @param {*} v @returns {string|undefined} undefined after a step-cap abort (Log.error'd) —
+   *   truncated output is never handed back for a caller to persist as if complete.
    */
   encode(v) {
     const ctx = { path: [], steps: 0, aborted: false };
     const out = [];
     Json._enc(v, out, ctx);
-    if (ctx.aborted)
+    if (ctx.aborted) {
       Log.error("Json.encode: aborted at step cap — cyclic/oversized input");
+      return undefined;
+    }
     return out.join("");
   },
 

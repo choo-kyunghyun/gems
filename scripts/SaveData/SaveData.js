@@ -15,6 +15,9 @@ globalThis.SaveData = {
       try {
         this._data = JSON.parse(raw);
       } catch (_) {
+        Log.error(
+          "SaveData: parse error in " + this.PATH + " — starting empty",
+        );
         this._data = {};
       }
     }

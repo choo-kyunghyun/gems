@@ -60,7 +60,12 @@ globalThis.SaveGame = {
       bundle.manifest._blobs.push(b.name);
       buffer_delete(b.buffer);
     }
-    File.write(dir + "manifest.json", Json.encode(bundle.manifest));
+    const manifest = Json.encode(bundle.manifest);
+    if (manifest === undefined) {
+      Log.error("SaveGame: manifest encode aborted — '" + slot + "' not saved");
+      return false;
+    }
+    File.write(dir + "manifest.json", manifest);
     SaveGame._writeIndex(slot, bundle.manifest.meta);
     Log.info(
       "SaveGame: saved '" +
@@ -177,7 +182,9 @@ globalThis.SaveGame = {
   _writeIndex(slot, meta) {
     const idx = SaveGame._readIndex();
     idx.slots[slot] = meta;
-    File.write(SaveGame.INDEX, Json.encode(idx));
+    const json = Json.encode(idx);
+    if (json === undefined) return; // encode aborted (already Log.error'd) — keep the old index
+    File.write(SaveGame.INDEX, json);
   },
   _readIndex() {
     const raw = File.read(SaveGame.INDEX);
