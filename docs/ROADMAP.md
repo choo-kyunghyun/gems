@@ -85,3 +85,9 @@ Deferred chunk-streaming work (engine is `ChunkManager`):
 - Per-chunk build persistence (player builds inside streamed chunks)
 - On-disk chunk saves (beyond the in-session cache + save-game delta)
 - Throttled distant ticks (LOAD-ring entities simulate at low rate)
+
+### Verification
+
+- A dev-only test level satisfying the `Level` contract: builds a real `Entity` store, steps the actual systems, `Log.error`s failed assertions, then ends the run — so `gm-cli run` plus reading `game.log` is the whole loop. Registered in `LevelRegistry`, launched from `sceneLobby`'s dev launcher.
+- Assertions stay in that one level, never as per-module `test()` methods: a single deletable compilation unit costs each module nothing, keeps the shipped API surface clean, and stays clear of the per-unit budget defects (GMRT.md → Build).
+- Cover what only a running frame can catch (system ordering, `Pipeline` composition, grid/collider sync); leave one-off probes on the existing `Log`/`Screenshot`/`entities.dump` harness.
