@@ -16,8 +16,8 @@ Review batches from the coupling analysis (270 scripts, ~35.4k LOC; reference gr
 4. [x] Camera + input: Core/Camera, Core/Input — small, self-contained
 5. [x] Renderer: Core/Render — `RenderMesh` queries the `Light` token (Gameplay)
 6. [x] UI infra: Core/UI — `UIElement` base, `I18n` (28 dependents), `UIPointer`; `VirtualKeyboard` → GemsUI upward edge
-7. [ ] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
-8. [ ] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
+7. [x] UI widgets: Core/UI/Element (plain widgets) — half of the biggest folder
+8. [x] UI singletons: Core/UI/Element (heavy singletons) — `SystemMenu` → GemsUI + `sceneLobby` upward edges
 9. [ ] GemsUI kit: GemsUI — theme + the three factory buckets
 10. [ ] Gameplay economy: Items, Inventory, Equipment, Crafting, Trade — `Item`/`Inventory` are 18–21-fan-in hubs; `EquipmentSystem` → `StatModel` (Demo) upward edge
 11. [ ] Gameplay simulation: Combat, Status, Survival, Environment, Settlement, Squad, Animation, Lighting, Interaction, NPC, Quest — `ConsumableSystem`/`StaminaSystem`/`StatusSystem` reference Demo's `Stats` token directly
@@ -70,6 +70,10 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`I18n` iterates Maps under the #15095 ban**: `destroy()` runs `Map.forEach` over populated registries on every language switch (`SystemMenu` → `load`). Working today implies `forEach` avoids the broken iterator — probe it, then either record "`Map.forEach` safe" in GMRT.md or convert `I18n` to the parallel-array idiom like everyone else.
 - **`UIMinimap`/`gemsMinimap` are dead**: the factory has no callers and is `UIMinimap`'s only constructor site — `RadarArrows` is the shipped radar. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - **Singleton panel chrome is triplicated**: `Dialogue`/`Toast`/`Tooltip` each hand-roll the same rounded panel + border draw and hard-code the same palette hexes, invisible to `GemsTheme` — a shared `UIDraw` panel helper with theme-sourced defaults would let a palette swap reach the singletons.
+- **`SystemMenu`'s quit button hardcodes Demo's `LEVELS.lobby`**: the `addTab` seam already keeps Demo tabs injected — inject the quit target the same way (wired at boot). Both `SystemMenu` and `VirtualKeyboard` are gems-composed Core singletons; refiling the pair into GemsUI would close the pillar edge in one move.
+- **`UITable` sorts without tie-breaks under an unstable sort**: `_compareRows` returns 0 for equal keys and GMRT's sort actively reorders ties (#15593's rule: break ties explicitly) — rows with equal sort values shuffle on every re-sort/filter. Tie-break on a stable key (source index).
+- **One accessor against the house style**: `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.
+- **The `readOnly` capture rule is duplicated**: `UICheckbox` and `UISlider` each hand-roll the same "hover captures, press must not latch" return; a `readOnly` mode on `UITrigger` would own it.
 - **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
