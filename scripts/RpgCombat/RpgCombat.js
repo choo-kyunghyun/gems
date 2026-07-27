@@ -60,11 +60,11 @@ globalThis.RpgCombat = {
           // armored (geared squad), enemies as flesh (raiders/rats).
           const at = { x: pos.x, y: pos.y };
           if (entities.get(Mesh, id) !== undefined)
-            Audio.playSfx({ sound: snd_hitsound_metal, position: at });
+            Audio.play({ sound: snd_hitsound_metal, position: at });
           else if (isAlly)
-            Audio.playSfx({ sound: snd_hitsound_armor, position: at });
+            Audio.play({ sound: snd_hitsound_armor, position: at });
           else if (hp.hp > 0)
-            Audio.playSfx({ sound: snd_hitsound_flesh, position: at });
+            Audio.play({ sound: snd_hitsound_flesh, position: at });
         } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
         }

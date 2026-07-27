@@ -1017,9 +1017,9 @@ globalThis.RpgInventoryUI = {
         // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
         const c = item.getComponent(Consumable);
         if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
-          Audio.playSfx({ sound: snd_drink });
-        else if ((c.heal ?? 0) > 0) Audio.playSfx({ sound: snd_bandage });
-        else Audio.playSfx({ sound: snd_magic });
+          Audio.play({ sound: snd_drink });
+        else if ((c.heal ?? 0) > 0) Audio.play({ sound: snd_bandage });
+        else Audio.play({ sound: snd_magic });
         Log.info(`used ${itemId}`);
       }
     }

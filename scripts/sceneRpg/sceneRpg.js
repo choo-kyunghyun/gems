@@ -386,7 +386,7 @@ class _SceneRpgClass {
           const dp = this.entities.get(Position, id);
           // death pop (spatial)
           if (dp !== undefined)
-            Audio.playSfx({
+            Audio.play({
               sound: snd_explosion_small,
               position: { x: dp.x, y: dp.y },
             });
@@ -564,7 +564,7 @@ class _SceneRpgClass {
     const pp = this.entities.get(Position, this.playerId);
     // pickup blip (spatial, ~centred)
     if (pp !== undefined)
-      Audio.playSfx({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
+      Audio.play({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
     Profile.add("itemsCollected", got);
     this._reportAchievements("itemsCollected");
     QuestLog.report("collect", itemId, got);

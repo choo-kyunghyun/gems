@@ -315,7 +315,7 @@ globalThis.SystemMenu = {
     volSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_VOL_SFX"),
-        volSlider("volSfx", (v) => Audio.setSfxGain(v)),
+        volSlider("volSfx", (v) => Audio.setDefaultGain(v)),
       ),
     );
     scroll.scrollBody.insertChild(volSection);

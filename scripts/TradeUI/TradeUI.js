@@ -338,7 +338,7 @@ globalThis.TradeUI = {
   // post-transaction: coin cue + refresh on success, else a toast of the refusal reason.
   _after(level, res, verb, itemId) {
     if (res.amount > 0) {
-      Audio.playSfx({ sound: snd_coin });
+      Audio.play({ sound: snd_coin });
       level._tradeDirty = true;
       level._invDirty = true; // keep the inventory window in sync
       Log.info(`${verb} ${res.amount}x ${itemId}`);

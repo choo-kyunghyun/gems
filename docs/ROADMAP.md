@@ -38,7 +38,7 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 Pre-existing issues noticed in passing and deliberately left untouched:
 
 - **`UITable._fit` truncation is O(n²)**: it re-measures the whole string per removed character (`string_width` in a shrink loop). Harmless at current cell lengths; switch to a binary search / incremental measure if long text cells ever land in a table.
-- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the Audio group row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.playSfx(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
+- **`tools/audio-kit` docs still describe the removed audio groups**: `gm-import/gm_sound.py` (the `group` arg comment) and `GEMS.md` (the Audio group row) say the importer assigns `bgm`/`sfx` GMAudioGroups with live volume via `audio_group_set_gain`. Groups are gone — volume is hand-folded now (see `scripts/Audio` JSDoc). Update both docs, and check the importer isn't still stamping dead group metadata onto `snd_*`/`mus_*`. Same pass: `GEMS.md`'s playback line names gone methods — SFX is now a single `Audio.play(params)` (a thin alias of `audio_play_sound_ext`; `play`/`playAt` merged), and BGM is `Music.play`, not `Audio.bgm`.
 
 ## Planned Features
 
