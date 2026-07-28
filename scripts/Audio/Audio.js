@@ -21,18 +21,14 @@
  * @property {number} [falloff_factor]
  */
 
-/**
- * Audio. Sound playback + master mixing over built-in audio_* API
- */
 globalThis.Audio = {
   _defaultGain: 1.0,
+  /** @type {{em: *, h: *}[]} live spatial-cue emitter/instance pairs — reaped by update() */
+  _emitters: [],
   falloff_ref: 96,
   falloff_max: 800,
   falloff_factor: 1.0,
 
-  // Once at boot: falloff model (GM default "none" = no attenuation), the listener, saved volumes.
-  // Category volume is folded by hand (master global, default gain per cue at spawn, music on the
-  // live BGM instance) — no audio groups: a streamed BGM can't join one.
   init() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
     AudioListener.init();
@@ -41,32 +37,65 @@ globalThis.Audio = {
     Audio.setDefaultGain(Settings.get("volSfx"));
   },
 
-  // Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
-  // change (Music carries over); LevelManager._apply's destroying path only.
+  /**
+   * Reap spatial-cue emitters whose voice has ended. Called once per frame (obj_game Step_0):
+   * audio_emitter_free STOPS a still-playing voice at once, so play() parks each throwaway
+   * emitter here until its cue finishes instead of freeing at fire time.
+   */
+  update() {
+    const list = Audio._emitters;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (audio_is_playing(list[i].h)) continue;
+      audio_emitter_free(list[i].em);
+      list.splice(i, 1);
+    }
+  },
+
+  /**
+   * Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
+   * change (Music carries over); LevelManager._apply's destroying path only.
+   */
   restart() {
     audio_stop_all();
+    // every spatial-cue voice just died with the stop — free their emitters now
+    for (let i = 0; i < Audio._emitters.length; i++)
+      audio_emitter_free(Audio._emitters[i].em);
+    Audio._emitters = [];
     Music.reset();
   },
 
   /**
-   * Play a cue — a thin alias of audio_play_sound_ext: fold in the default gain, fill the
-   * 32px-world falloff window for a positional cue, delegate. Mutates `params` in place
-   * (gain fold + falloff fields) — pass a throwaway literal, not a shared struct. A `position`
-   * makes the cue spatial (attenuated + panned by the listener); omit it for 2D (UI/global).
+   * Play a cue. A `position` makes the cue spatial (attenuated + panned by the listener,
+   * defaulting to the 32px-world falloff window above); omit it for 2D (UI/global). Spatial
+   * cues route through a THROWAWAY EMITTER — audio_play_sound_ext's `position` sub-struct is
+   * inert on GMRT (docs/GMRT.md) — honoring sound/loop/priority/gain/pitch; `offset` and
+   * `listener_mask` are 2D-only. Mutates `params` in place (gain fold) — pass a throwaway
+   * literal, not a shared struct.
    * @param {SoundStruct} params @returns {*} sound instance handle, or -1
    */
   play(params) {
-    if (!audio_exists(params.sound)) return -1; // false (never errors) on -1/undefined
+    if (!audio_exists(params.sound)) return -1;
     params.gain = (params.gain ?? 1.0) * Audio._defaultGain;
-    // cast: lib.gml.d.js shadows `undefined`, so checkJs can't narrow the guard below
     const p = /** @type {SoundPosition} */ (params.position);
-    if (p !== undefined) {
-      p.z = p.z ?? 0;
-      p.falloff_ref = p.falloff_ref ?? Audio.falloff_ref;
-      p.falloff_max = p.falloff_max ?? Audio.falloff_max;
-      p.falloff_factor = p.falloff_factor ?? Audio.falloff_factor;
-    }
-    return audio_play_sound_ext(params);
+    if (p === undefined) return audio_play_sound_ext(params);
+    const em = audio_emitter_create();
+    audio_emitter_position(em, p.x, p.y, p.z ?? 0);
+    audio_emitter_falloff(
+      em,
+      p.falloff_ref ?? Audio.falloff_ref,
+      p.falloff_max ?? Audio.falloff_max,
+      p.falloff_factor ?? Audio.falloff_factor,
+    );
+    audio_emitter_gain(em, params.gain);
+    if (params.pitch !== undefined) audio_emitter_pitch(em, params.pitch);
+    const h = audio_play_sound_on(
+      em,
+      params.sound,
+      params.loop ?? false,
+      params.priority ?? 0,
+    );
+    Audio._emitters.push({ em: em, h: h }); // freed by update() once the cue ends
+    return h;
   },
 
   setDefaultGain(gain) {
@@ -74,6 +103,6 @@ globalThis.Audio = {
   },
 
   setMasterGain(gain) {
-    audio_set_master_gain(0, clamp(gain, 0, 1)); // listener 0 — the default, the only one AudioListener drives
+    audio_set_master_gain(0, clamp(gain, 0, 1));
   },
 };
