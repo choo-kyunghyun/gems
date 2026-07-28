@@ -23,9 +23,11 @@ globalThis.Display = {
   _prevW: 0,
   _prevH: 0,
 
-  // crash-safe clip-target size: min of renderW and its 1-frame-lagged _prevW. The live back buffer
-  // always equals one of the two mid-transition, so min() can never exceed the target (a grow just
-  // under-clips one invisible frame). Used by UIElement._drawClipped + UI.draw's frame-start reset.
+  /**
+   * crash-safe clip-target size: min of renderW and its 1-frame-lagged _prevW. The live back buffer
+   * always equals one of the two mid-transition, so min() can never exceed the target (a grow just
+   * under-clips one invisible frame). Used by UIElement._drawClipped + UI.draw's frame-start reset.
+   */
   clipW() {
     if (Display.renderW <= 0) return window_get_width();
     return Display._prevW > 0
@@ -39,15 +41,19 @@ globalThis.Display = {
       : Display.renderH;
   },
 
-  // age renderW/H into the 1-frame-lagged _prevW/H (end of UI.draw) — so a GROW only takes clip
-  // effect next frame, after the back buffer catches up.
+  /**
+   * age renderW/H into the 1-frame-lagged _prevW/H (end of UI.draw) — so a GROW only takes clip
+   * effect next frame, after the back buffer catches up.
+   */
   advanceFrame() {
     Display._prevW = Display.renderW;
     Display._prevH = Display.renderH;
   },
 
-  // supported fullscreen AA levels as valid display_reset `aa` args: 0 plus each 2/4/8 bit
-  // display_aa reports (bit value == level, so `display_aa & lvl` is lvl when supported). Single `&` is GMRT-safe.
+  /**
+   * supported fullscreen AA levels as valid display_reset `aa` args: 0 plus each 2/4/8 bit
+   * display_aa reports (bit value == level, so `display_aa & lvl` is lvl when supported). Single `&` is GMRT-safe.
+   */
   aaLevels() {
     const out = [0];
     if (display_aa & 2) out.push(2);
@@ -62,8 +68,10 @@ globalThis.Display = {
   // sampleCount mismatch), which a later SystemMenu vsync/AA change would otherwise restore under it.
   aaOverride: null,
 
-  // apply the saved vsync + the effective AA (aaOverride, else Settings). display_reset also RESETS
-  // resolution/window to startup, so re-impose window + fps via apply().
+  /**
+   * apply the saved vsync + the effective AA (aaOverride, else Settings). display_reset also RESETS
+   * resolution/window to startup, so re-impose window + fps via apply().
+   */
   applyVideo() {
     display_reset(
       Display.aaOverride ?? Settings.get("antialias"),
@@ -72,7 +80,7 @@ globalThis.Display = {
     Display.apply();
   },
 
-  // apply the saved fps cap (fpsLimit 30/60/120, or 0 = Unlimited).
+  /** apply the saved fps cap (fpsLimit 30/60/120, or 0 = Unlimited). */
   applyFps() {
     const fps = Settings.get("fpsLimit");
     game_set_speed(fps > 0 ? fps : Display.UNCAPPED_FPS, gamespeed_fps);
@@ -82,8 +90,10 @@ globalThis.Display = {
   // test it only for emptiness — a pointer is never ===-equal, not even to itself (see GMRT.md).
   _pendingResize: undefined,
 
-  // apply Settings: fps cap, then fullscreen, else size to the saved windowed resolution
-  // (0/unset → half the monitor). Leaving fullscreen defers the resize RESIZE_DELAY frames (manual caveat).
+  /**
+   * apply Settings: fps cap, then fullscreen, else size to the saved windowed resolution
+   * (0/unset → half the monitor). Leaving fullscreen defers the resize RESIZE_DELAY frames (manual caveat).
+   */
   apply() {
     // drop any deferred resize still in flight: it carries the size of the state it was queued for,
     // so firing after a re-entered fullscreen (or a newer resolution) would impose a stale size.
@@ -129,8 +139,10 @@ globalThis.Display = {
     }
   },
 
-  // size the window + app surface, recenter, and record the requested size in renderW/H
-  // (the synchronous render-target size for the GUI clip scale).
+  /**
+   * size the window + app surface, recenter, and record the requested size in renderW/H
+   * (the synchronous render-target size for the GUI clip scale).
+   */
   _resize(w, h) {
     Display.renderW = w;
     Display.renderH = h;

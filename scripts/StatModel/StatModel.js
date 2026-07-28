@@ -13,7 +13,7 @@ globalThis.StatModel = {
     { id: "end", name: "ATTR_END", default: 6 },
   ],
 
-  // fresh attribute bag from defaults; RpgPlayer.spawn uses this
+  /** fresh attribute bag from defaults; RpgPlayer.spawn uses this */
   defaults() {
     const a = {};
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
@@ -23,8 +23,10 @@ globalThis.StatModel = {
     return a;
   },
 
-  // derive combat stats from attrs. default values → maxHp 10, attack 1, defense 0, speed 440, maxStamina 100
-  // (the pre-attribute sheet at 32px-cell scale). swap formulas + ATTRS to re-model.
+  /**
+   * derive combat stats from attrs. default values → maxHp 10, attack 1, defense 0, speed 440, maxStamina 100
+   * (the pre-attribute sheet at 32px-cell scale). swap formulas + ATTRS to re-model.
+   */
   derive(a) {
     return {
       maxHp: 4 + a.vit * 2,
@@ -35,8 +37,10 @@ globalThis.StatModel = {
     };
   },
 
-  // recompute-from-source: rebuild Stats each call so it can't drift. no-op without Attributes
-  // (monsters author Stats directly). clamps Health/Stamina to new maxima.
+  /**
+   * recompute-from-source: rebuild Stats each call so it can't drift. no-op without Attributes
+   * (monsters author Stats directly). clamps Health/Stamina to new maxima.
+   */
   recompute(entities, id) {
     const attrs = entities.get(Attributes, id);
     if (attrs === undefined) return; // monster with authored Stats — leave alone
@@ -58,7 +62,9 @@ globalThis.StatModel = {
       stam.value = stats.maxStamina;
   },
 
-  // fold Equippable.mods into the derived block. for...in over plain object is GMRT-safe (no Map iterator).
+  /**
+   * fold Equippable.mods into the derived block. for...in over plain object is GMRT-safe (no Map iterator).
+   */
   _foldEquipment(entities, id, d) {
     const eq = entities.get(Equipment, id);
     if (eq === undefined) return;
@@ -83,7 +89,9 @@ globalThis.StatModel = {
     }
   },
 
-  // fold WeaponMod.stat deltas from installed attachments. for...in over plain object is GMRT-safe.
+  /**
+   * fold WeaponMod.stat deltas from installed attachments. for...in over plain object is GMRT-safe.
+   */
   _foldInstanceMods(mods, d) {
     if (mods === undefined) return;
     for (const slotId in mods) {
@@ -96,9 +104,11 @@ globalThis.StatModel = {
     }
   },
 
-  // fold active status mods (e.g. fortify +attack/+defense) into d, same as _foldEquipment.
-  // recompute-from-source: re-runs on apply/expire via StatusSystem.onStatsChanged hook.
-  // live mult statuses (speed) are NOT folded — read at point of use via StatusSystem.scale.
+  /**
+   * fold active status mods (e.g. fortify +attack/+defense) into d, same as _foldEquipment.
+   * recompute-from-source: re-runs on apply/expire via StatusSystem.onStatsChanged hook.
+   * live mult statuses (speed) are NOT folded — read at point of use via StatusSystem.scale.
+   */
   _foldStatuses(entities, id, d) {
     const eff = entities.get(StatusEffects, id);
     if (eff === undefined) return;

@@ -37,7 +37,9 @@ globalThis.SlotDrag = {
 
   /**
    * Place the carried item into `grid` slot `j`. Back onto the source slot reads as a click
-   * (restore + select); otherwise swap the occupant back to source. @param {UISlots} grid @param {number} j
+   * (restore + select); otherwise swap the occupant back to source.
+   * @param {UISlots} grid
+   * @param {number} j
    */
   drop(grid, j) {
     if (!SlotDrag.active) return;

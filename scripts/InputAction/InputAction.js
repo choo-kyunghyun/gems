@@ -9,7 +9,8 @@ globalThis.InputAction = class InputAction {
 
   /**
    * Restrict to given context names (indexOf-tested array, never a Set — GMRT Set iteration crashes).
-   * @param {string[]} list @returns {InputAction}
+   * @param {string[]} list
+   * @returns {InputAction}
    */
   inContext(list) {
     this.contexts = list;
@@ -77,13 +78,17 @@ globalThis.InputAction = class InputAction {
     return false;
   }
 
-  // mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
-  // UIInput.active is a plain static field, read live each call.
+  /**
+   * mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
+   * UIInput.active is a plain static field, read live each call.
+   */
   static captured() {
     return UIInput.active !== null;
   }
 
-  // debug overlay: MOUSE always muted (pick-click can't fire weapon); KEYBOARD only while overlay owns it so WASD still roams.
+  /**
+   * debug overlay: MOUSE always muted (pick-click can't fire weapon); KEYBOARD only while overlay owns it so WASD still roams.
+   */
   static _debugMuted(button) {
     if (!Debug.isOpen()) return false;
     if (button.source === INPUT_SOURCE.MOUSE) return true;
@@ -92,12 +97,16 @@ globalThis.InputAction = class InputAction {
     return false;
   }
 
-  // mutes gamepad gameplay when UINav owns the controller (window open); during free-roam SystemMenu keeps UINav.suspended=true.
+  /**
+   * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam SystemMenu keeps UINav.suspended=true.
+   */
   static _gamepadMuted() {
     return !UINav.suspended;
   }
 
-  // avoids caching the bool across .some() callbacks — GMRT can clobber primitive bools in closures.
+  /**
+   * avoids caching the bool across .some() callbacks — GMRT can clobber primitive bools in closures.
+   */
   static _buttonMuted(button) {
     if (InputAction._debugMuted(button)) return true;
     return (

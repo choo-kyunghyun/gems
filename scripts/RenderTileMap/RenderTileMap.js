@@ -40,7 +40,8 @@ const _BLOB8 = [
 /** @implements {RenderPass} */
 globalThis.RenderTileMap = class RenderTileMap {
   /**
-   * @param {import("../TileLayer/TileLayer").TileLayer} layer @param {LevelGrid} grid
+   * @param {import("../TileLayer/TileLayer").TileLayer} layer
+   * @param {LevelGrid} grid
    * @param {number} sprite tileset sprite; frame indices must match the autotile mode
    * @param {RenderTileMapOptions} [opt]
    */
@@ -85,7 +86,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     return !!this.layer.get(x, y);
   }
 
-  // OOB counts as solid so map edges don't produce soft-edge bleeds
+  /** OOB counts as solid so map edges don't produce soft-edge bleeds */
   _isSolidOrOOB(x, y) {
     const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
@@ -100,9 +101,11 @@ globalThis.RenderTileMap = class RenderTileMap {
       : 0;
   }
 
-  // honour sprite_get_uvs trim data [4..7] so texture-packer-cropped frames don't stretch to fill
-  // the cell. untrimmed frames have offsets=0 ratios=1, reducing to a full-cell quad.
-  // returns [x, y, w, h, u0, v0, u1, v1].
+  /**
+   * honour sprite_get_uvs trim data [4..7] so texture-packer-cropped frames don't stretch to fill
+   * the cell. untrimmed frames have offsets=0 ratios=1, reducing to a full-cell quad.
+   * returns [x, y, w, h, u0, v0, u1, v1].
+   */
   _quad(frame, wx, wy, cw, ch) {
     const uvs = sprite_get_uvs(this.sprite, frame);
     const sw = sprite_get_width(this.sprite);
@@ -129,7 +132,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _blob8(x, y) {
-    // GMRT miscompiles cached bool locals (#15549) — test _isSolid inline and read
+    // BUG: [#15549] test _isSolid inline (no cached bool locals) and read
     // cardinals back off the mask bits for diagonal checks (N=1 E=2 S=4 W=8).
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
@@ -207,8 +210,10 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
-  // dual-grid: display tile centered on each data-grid corner, sampling 4 touching cells.
-  // TL=1 TR=2 BR=4 BL=8 → frame = mask. transparent corners let lower terrain show through.
+  /**
+   * dual-grid: display tile centered on each data-grid corner, sampling 4 touching cells.
+   * TL=1 TR=2 BR=4 BL=8 → frame = mask. transparent corners let lower terrain show through.
+   */
   _rebuildDual() {
     const { grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
@@ -254,8 +259,10 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
-  // corner sub-tile: each filled cell as 4 half-cell quads, each piece picked by 3 neighbors.
-  // 13-piece set covers all 256 masks without _BLOB8. N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
+  /**
+   * corner sub-tile: each filled cell as 4 half-cell quads, each piece picked by 3 neighbors.
+   * 13-piece set covers all 256 masks without _BLOB8. N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
+   */
   _rebuildCorner() {
     const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
@@ -308,8 +315,10 @@ globalThis.RenderTileMap = class RenderTileMap {
     );
   }
 
-  // per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
-  // bits read INLINE each test (no `const N = m&1`) — GMRT miscompiles cached bool locals (#15549). See _blob8.
+  /**
+   * per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
+   * BUG: [#15549] bits read INLINE each test (no `const N = m&1`). See _blob8.
+   */
   _cornerTL(m) {
     if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
     if (m & 1 && !(m & 8)) return 7; // N solid → left edge

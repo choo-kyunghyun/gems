@@ -16,8 +16,10 @@ globalThis.Temperature = {
   DIURNAL_MEAN: -0.5, // °C offset at the daily mean
   DIURNAL_AMP: 5.5, // °C half-swing amplitude
 
-  // Kelvin: ZERO_C + season baseline + diurnal swing + live weather modifier (climate-zone region
-  // offset folds in via Weather.tempMod)
+  /**
+   * Kelvin: ZERO_C + season baseline + diurnal swing + live weather modifier (climate-zone region
+   * offset folds in via Weather.tempMod)
+   */
   now() {
     return (
       Temperature.ZERO_C +
@@ -27,30 +29,32 @@ globalThis.Temperature = {
     );
   },
 
-  // season baseline in °C for the current day (now() offsets it to Kelvin)
+  /** season baseline in °C for the current day (now() offsets it to Kelvin) */
   seasonBase() {
     return Temperature._BASE[WorldClock.season().id];
   },
 
-  // time-of-day delta: a cosine peaking at DIURNAL_PEAK
+  /** time-of-day delta: a cosine peaking at DIURNAL_PEAK */
   diurnal() {
     const h = WorldClock.hour;
     const phase = (2 * Math.PI * (h - Temperature.DIURNAL_PEAK)) / 24;
     return Temperature.DIURNAL_MEAN + Temperature.DIURNAL_AMP * Math.cos(phase);
   },
 
-  // Kelvin → Celsius
+  /** Kelvin → Celsius */
   toCelsius(k) {
     return k - Temperature.ZERO_C;
   },
 
-  // Kelvin → Fahrenheit
+  /** Kelvin → Fahrenheit */
   toFahrenheit(k) {
     return ((k - Temperature.ZERO_C) * 9) / 5 + 32;
   },
 
-  // HUD string in the player's tempUnit Setting ("K"|"C"|"F", default "K"). Owns the unit suffix;
-  // the locale fonts carry the ° glyph so °C/°F render.
+  /**
+   * HUD string in the player's tempUnit Setting ("K"|"C"|"F", default "K"). Owns the unit suffix;
+   * the locale fonts carry the ° glyph so °C/°F render.
+   */
   display() {
     const k = Temperature.now();
     const unit = Settings.get("tempUnit");

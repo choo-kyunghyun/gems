@@ -1,8 +1,10 @@
 // The procedural-generation FRAME — Renderer:RenderPass :: ChunkGenerator:gen pass. Content-free: a
 // game composes it with a field + passes. Pass/ctx/determinism contract on the declaration below.
 
-// seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
-// (cx, cy, seed) draws an independent sequence with no shared global-stream state.
+/**
+ * seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
+ * (cx, cy, seed) draws an independent sequence with no shared global-stream state.
+ */
 function _stream(cx, cy, seed) {
   let i = 0;
   return function () {
@@ -71,7 +73,7 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     return this;
   }
 
-  // deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkManager contract
+  /** deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkManager contract */
   generate(cx, cy) {
     const out = { walls: [], spawns: [] };
     const ctx = {
@@ -103,8 +105,10 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     };
   }
 
-  // thin delegates to the terrain sampler — the duck-typed surface ChunkManager consumes
-  // (TerrainStream's seam apron, NavGrid weights + PathFollow speed pricing)
+  /**
+   * thin delegates to the terrain sampler — the duck-typed surface ChunkManager consumes
+   * (TerrainStream's seam apron, NavGrid weights + PathFollow speed pricing)
+   */
   materialAt(ax, ay) {
     return this.field.materialAt(ax, ay);
   }

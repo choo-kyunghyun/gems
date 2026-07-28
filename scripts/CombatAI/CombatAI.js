@@ -4,10 +4,12 @@
 // turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
 const RPG_SHOT_RANGE_SECS = 1.5;
 
-// per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
-// MUST survive chunk demote/restore, which re-creates the actor under a NEW id: so a Brain never
-// stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
-// callbacks, and state callbacks receive (entities, id) instead of closing over either.
+/**
+ * per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
+ * MUST survive chunk demote/restore, which re-creates the actor under a NEW id: so a Brain never
+ * stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
+ * callbacks, and state callbacks receive (entities, id) instead of closing over either.
+ */
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
@@ -45,7 +47,7 @@ globalThis.CombatAI = {
   // bind() on each map activate (a resumed map keeps its actors' Brain/State without re-attach).
   _grid: undefined,
 
-  // Register the combat states into the StateSystem pool (idempotent; called by RpgContent).
+  /** Register the combat states into the StateSystem pool (idempotent; called by RpgContent). */
   register() {
     StateSystem.register([
       {
@@ -243,15 +245,17 @@ globalThis.CombatAI = {
     entities.add(id, State, { current: "", next: "combat.idle" });
   },
 
-  // Re-point the Level static at the active map without re-attaching actors (a resumed map —
-  // RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
-  // activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
-  // is stored — the store reaches states through the StateSystem callbacks.
+  /**
+   * Re-point the Level static at the active map without re-attaching actors (a resumed map —
+   * RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
+   * activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
+   * is stored — the store reaches states through the StateSystem callbacks.
+   */
   bind(entities, grid) {
     this._grid = grid;
   },
 
-  // distance to Brain.target; Infinity if none / gone
+  /** distance to Brain.target; Infinity if none / gone */
   _distTo(entities, id) {
     const t = entities.get(Brain, id).target;
     if (!entities.isValid(t)) return Infinity;
@@ -262,8 +266,10 @@ globalThis.CombatAI = {
     return Math.sqrt(dx * dx + dy * dy);
   },
 
-  // aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
-  // (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
+  /**
+   * aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
+   * (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
+   */
   _seek(entities, id, tx, ty, speed) {
     const pos = entities.get(Position, id);
     const vel = entities.get(Velocity, id);
@@ -281,10 +287,12 @@ globalThis.CombatAI = {
     vel.y = 0;
   },
 
-  // Per-state aggro cue: a light wash from the actor's BASE color (its skin tint on a doll,
-  // authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
-  // restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
-  // per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
+  /**
+   * Per-state aggro cue: a light wash from the actor's BASE color (its skin tint on a doll,
+   * authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
+   * restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
+   * per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
+   */
   _tint(entities, id, r, g, b, k) {
     const brain = entities.get(Brain, id);
     if (brain !== undefined && !brain.mobile) return;
@@ -297,8 +305,10 @@ globalThis.CombatAI = {
     vis.color = k > 0 ? Color.merge(base, make_colour_rgb(r, g, b), k) : base;
   },
 
-  // Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
-  // carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
+  /**
+   * Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
+   * carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
+   */
   _animate(entities, id, attacking) {
     const anim = entities.get(Animator, id);
     if (anim === undefined) return;
@@ -314,22 +324,28 @@ globalThis.CombatAI = {
     else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
   },
 
-  // outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
+  /**
+   * outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
+   */
   _attackPower(entities, id) {
     const stats = entities.get(Stats, id);
     return stats !== undefined ? stats.attack : 0;
   },
 
-  // one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
+  /**
+   * one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
+   */
   _hitTarget(entities, id) {
     const t = entities.get(Brain, id).target;
     if (!entities.isValid(t)) return;
     Combat.applyDamage(entities, t, CombatAI._attackPower(entities, id));
   },
 
-  // Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
-  // gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
-  // tracer shows the shot.
+  /**
+   * Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
+   * gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
+   * tracer shows the shot.
+   */
   _fireAt(entities, id, brain) {
     const t = brain.target;
     if (!entities.isValid(t)) return;

@@ -2,7 +2,8 @@
 // to 4-way) and damages every overlapping Health except the attacker + faction allies. Subtracts hp only.
 globalThis.MeleeSystem = {
   /**
-   * @param {object} entities @param {number} attackerId
+   * @param {object} entities
+   * @param {number} attackerId
    * @param {number} dirX facing x (sign matters; magnitude vs dirY picks the axis)
    * @param {number} dirY facing y
    * @param {number} reach hitbox length in px, in front of the attacker

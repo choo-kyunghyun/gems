@@ -8,7 +8,10 @@ globalThis.Color = {
 
   /**
    * Each of h/s/v is 0–255 (GM's range, not 360/100/100).
-   * @param {number} h @param {number} s @param {number} v @returns {number}
+   * @param {number} h
+   * @param {number} s
+   * @param {number} v
+   * @returns {number}
    */
   hsv(h, s, v) {
     return make_color_hsv(h, s, v);
@@ -17,7 +20,9 @@ globalThis.Color = {
   /**
    * One-shot lerp; #15546: don't ease a packed int per frame (floors to
    * black) — ease r/g/b as floats, Tween.approach per channel.
-   * @param {number} col1 @param {number} col2 @param {number} amount 0→1
+   * @param {number} col1
+   * @param {number} col2
+   * @param {number} amount 0→1
    * @returns {number}
    */
   merge(col1, col2, amount) {
@@ -35,7 +40,8 @@ globalThis.Color = {
   /**
    * Alpha [0,1] from a 32-bit `$AABBGGRR` IDE color literal. Plain RGB ints
    * have no alpha byte.
-   * @param {number} color @returns {number}
+   * @param {number} color
+   * @returns {number}
    */
   alpha(color) {
     return (color >> 24) / 0xff;

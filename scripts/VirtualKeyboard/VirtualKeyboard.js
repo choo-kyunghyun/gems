@@ -54,7 +54,7 @@ globalThis.VirtualKeyboard = {
     VirtualKeyboard._shift = !VirtualKeyboard._shift;
   },
 
-  // push buffer into the field + fire its confirm hook
+  /** push buffer into the field + fire its confirm hook */
   _commit() {
     const inp = VirtualKeyboard._input;
     if (inp === null) return;
@@ -62,7 +62,9 @@ globalThis.VirtualKeyboard = {
     inp.onConfirm(inp.value);
   },
 
-  // from the modal's onClose (Done/Cancel/Esc/backdrop) — never closes the modal itself (no re-entrancy)
+  /**
+   * from the modal's onClose (Done/Cancel/Esc/backdrop) — never closes the modal itself (no re-entrancy)
+   */
   _reset() {
     VirtualKeyboard._modal = null;
     VirtualKeyboard._input = null;
@@ -70,7 +72,7 @@ globalThis.VirtualKeyboard = {
     VirtualKeyboard._shift = false;
   },
 
-  // preview text: masked for password fields, placeholder when empty
+  /** preview text: masked for password fields, placeholder when empty */
   _displayText() {
     const b = VirtualKeyboard._buffer;
     if (b === "") return I18n.text("VK_EMPTY");
@@ -82,7 +84,7 @@ globalThis.VirtualKeyboard = {
     return b;
   },
 
-  // body layout
+  /** body layout */
   _buildBody() {
     const body = gemsList({ gap: GemsTheme.gapSm });
 
@@ -155,13 +157,15 @@ globalThis.VirtualKeyboard = {
     return row;
   },
 
-  // a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
+  /**
+   * a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
+   */
   _upper(ch) {
     if (ch < "a" || ch > "z") return ch;
     return String.fromCharCode(ch.charCodeAt(0) - 32);
   },
 
-  // single char key; letters honor Shift (live label + typed value), digits don't
+  /** single char key; letters honor Shift (live label + typed value), digits don't */
   _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
     return gemsButton(

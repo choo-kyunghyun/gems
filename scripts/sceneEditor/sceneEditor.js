@@ -18,7 +18,7 @@ LevelRegistry.add(() => new _SceneEditorClass(), {
   category: "SCENE_CAT_EDITOR",
 });
 
-// standalone SCREEN class — duck-typed contract, see Level.
+/** standalone SCREEN class — duck-typed contract, see Level. */
 class _SceneEditorClass {
   label = "Editor";
 
@@ -49,7 +49,7 @@ class _SceneEditorClass {
     );
   }
 
-  // (re)build editor state from a level-data object — shared by create() and Open
+  /** (re)build editor state from a level-data object — shared by create() and Open */
   _loadData(data) {
     this._cell = data.cell ?? 32; // 32px-cell convention; loaded file wins
     this._initLevel(data.cols, data.rows, this._cell);
@@ -75,7 +75,7 @@ class _SceneEditorClass {
     this._select(undefined); // also sets _propDirty so the panel rebuilds next step
   }
 
-  // reload a level file (bundled source or save-dir export) into the editor
+  /** reload a level file (bundled source or save-dir export) into the editor */
   _openFile(path) {
     const data = LevelSerializer.load(path, { genre: "topdown" });
     if (data === null) {
@@ -90,7 +90,7 @@ class _SceneEditorClass {
     );
   }
 
-  // rebuild level grid + tile layers at the given size; destroy previous level first
+  /** rebuild level grid + tile layers at the given size; destroy previous level first */
   _initLevel(cols, rows, cell) {
     if (this.grid !== undefined) this.grid.destroy(); // destroys inserted layers too
     this.grid = new LevelGrid({
@@ -139,7 +139,7 @@ class _SceneEditorClass {
     this.renderer.insert(this._zoneLabelPass);
   }
 
-  // blank level at chosen size: border wall ring, no entities, spawn at (2,2)
+  /** blank level at chosen size: border wall ring, no entities, spawn at (2,2) */
   _newBlank(cols, rows) {
     this._initLevel(cols, rows, this._cell);
     for (let x = 0; x < cols; x++) {
@@ -166,7 +166,7 @@ class _SceneEditorClass {
     }
   }
 
-  // palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting
+  /** palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting */
   _buildPalette(openLevel) {
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -175,7 +175,7 @@ class _SceneEditorClass {
     this._buildFileCard(openLevel);
   }
 
-  // catbar: Tiles / Entities / Tools — sets _tool (and _placePreset for entities)
+  /** catbar: Tiles / Entities / Tools — sets _tool (and _placePreset for entities) */
   _buildCatBar() {
     const tiles = [
       {
@@ -240,7 +240,7 @@ class _SceneEditorClass {
     this._catbarBox = col; // paint-guard rect (grows with the open flyout)
   }
 
-  // top-left file card: hint, tool status, New/Open pickers, Test Play / Export / Back
+  /** top-left file card: hint, tool status, New/Open pickers, Test Play / Export / Back */
   _buildFileCard(openLevel) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -413,7 +413,9 @@ class _SceneEditorClass {
     TileEdit.clear(this.floorLayer, gx, gy);
   }
 
-  // track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)
+  /**
+   * track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)
+   */
   _zoneTrack(cell) {
     const gx = clamp(cell.x, 0, this.grid.cols - 1);
     const gy = clamp(cell.y, 0, this.grid.rows - 1);
@@ -426,7 +428,7 @@ class _SceneEditorClass {
     }
   }
 
-  // apply the drag rectangle to the zone map (paint or erase) and clear drag state
+  /** apply the drag rectangle to the zone map (paint or erase) and clear drag state */
   _commitZone() {
     const d = this._zoneDrag;
     const cur = this._zoneCur ?? { x: d.sx, y: d.sy };
@@ -441,7 +443,7 @@ class _SceneEditorClass {
     this._zoneCur = undefined;
   }
 
-  // true if GUI cursor overlaps the panel's rect (width > 0 guards the first-frame NaN rect)
+  /** true if GUI cursor overlaps the panel's rect (width > 0 guards the first-frame NaN rect) */
   _overPanel(gmx, gmy, panel) {
     const p = panel.getLayoutPosition();
     return (
@@ -453,7 +455,7 @@ class _SceneEditorClass {
     );
   }
 
-  // remove last spawn at cell; clears selection if it was the deleted one
+  /** remove last spawn at cell; clears selection if it was the deleted one */
   _deleteSpawnAt(gx, gy) {
     for (let i = this._spawns.length - 1; i >= 0; i--) {
       if (this._spawns[i].gx === gx && this._spawns[i].gy === gy) {
@@ -469,7 +471,7 @@ class _SceneEditorClass {
     this._propDirty = true;
   }
 
-  // select topmost spawn at cell (deselects when empty)
+  /** select topmost spawn at cell (deselects when empty) */
   _selectAt(gx, gy) {
     let found;
     for (let i = this._spawns.length - 1; i >= 0; i--)
@@ -480,7 +482,7 @@ class _SceneEditorClass {
     this._select(found);
   }
 
-  // property panel (right): header + body rebuilt from selected spawn's catalog fields
+  /** property panel (right): header + body rebuilt from selected spawn's catalog fields */
   _buildPropPanel() {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -505,7 +507,9 @@ class _SceneEditorClass {
     this._propBody = body;
   }
 
-  // repopulate the prop body from the selected spawn; scalar edits are in-place, list changes set _propDirty
+  /**
+   * repopulate the prop body from the selected spawn; scalar edits are in-place, list changes set _propDirty
+   */
   _rebuildProps() {
     const body = this._propBody;
     const kids = [...body.children];
@@ -546,7 +550,7 @@ class _SceneEditorClass {
     }
   }
 
-  // one field row: stepper for int, picker for select/quest — edits record in place
+  /** one field row: stepper for int, picker for select/quest — edits record in place */
   _fieldRow(rec, f) {
     if (f.kind === "int") {
       return gemsRow(
@@ -581,7 +585,7 @@ class _SceneEditorClass {
     );
   }
 
-  // inventory/loot list field: add/remove rows rebuild the panel; per-row edits mutate in place
+  /** inventory/loot list field: add/remove rows rebuild the panel; per-row edits mutate in place */
   _itemListField(rec, f, body) {
     const arr = rec[f.key];
     const title = new UIElement({ width: "100%", height: 22 });
@@ -611,7 +615,7 @@ class _SceneEditorClass {
     );
   }
 
-  // { itemId, qty } row: item picker + qty stepper + remove button
+  /** { itemId, qty } row: item picker + qty stepper + remove button */
   _itemEntryRow(arr, i, itemOpts) {
     const e = arr[i];
     const row = new UIElement({
@@ -657,7 +661,7 @@ class _SceneEditorClass {
     return row;
   }
 
-  // assemble level-data object (walls/floors greedy-meshed; zone only if non-empty)
+  /** assemble level-data object (walls/floors greedy-meshed; zone only if non-empty) */
   _buildData() {
     const data = {
       version: 1,
@@ -679,7 +683,7 @@ class _SceneEditorClass {
     return data;
   }
 
-  // write to save dir; copy into datafiles/levels/ to ship
+  /** write to save dir; copy into datafiles/levels/ to ship */
   _export() {
     const data = this._buildData();
     const ok = LevelSerializer.save(EDITOR_EXPORT_FILE, data);
@@ -694,7 +698,7 @@ class _SceneEditorClass {
     );
   }
 
-  // serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor
+  /** serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor */
   _play(openLevel) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
     RpgGrid.playtestFile = EDITOR_PLAYTEST_FILE;
@@ -710,7 +714,7 @@ class _SceneEditorClass {
     this._drawZonePreview(); // in-progress zone drag
   }
 
-  // preview the in-progress drag (green=paint, red=erase); committed zone drawn by RenderZone
+  /** preview the in-progress drag (green=paint, red=erase); committed zone drawn by RenderZone */
   _drawZonePreview() {
     if (this._zoneDrag === undefined || this._zoneCur === undefined) return;
     const cw = this.grid.cellWidth;

@@ -31,7 +31,7 @@ globalThis.AuthoredStamp = class AuthoredStamp {
     if (opts.data !== undefined) this._index(opts.data);
   }
 
-  // stamp the chunk's authored content + claim the chunk (procedural passes check ctx.authored)
+  /** stamp the chunk's authored content + claim the chunk (procedural passes check ctx.authored) */
   apply(ctx) {
     if (!this._inBox(ctx.cx, ctx.cy)) return;
     ctx.authored = true;
@@ -55,8 +55,10 @@ globalThis.AuthoredStamp = class AuthoredStamp {
     };
   }
 
-  // Index the file's walls + spawns into per-chunk buckets. "reach" spawns stay in — the spawn
-  // adapter skips them; the level resolves the reach zone separately.
+  /**
+   * Index the file's walls + spawns into per-chunk buckets. "reach" spawns stay in — the spawn
+   * adapter skips them; the level resolves the reach zone separately.
+   */
   _index(data) {
     const walls = data.walls ?? [];
     for (let i = 0; i < walls.length; i++) {

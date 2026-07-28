@@ -93,8 +93,10 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     gpu_set_ztestenable(true);
   }
 
-  // The density texture, baked once; recreate the surface (not the buffer) if the volatile surface
-  // was lost. Returns the texture handle for the quad submit.
+  /**
+   * The density texture, baked once; recreate the surface (not the buffer) if the volatile surface
+   * was lost. Returns the texture handle for the quad submit.
+   */
   _texture() {
     if (this._buf === -1) this._buf = this._bake();
     if (!surface_exists(this._surf)) {
@@ -104,9 +106,11 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     return surface_get_texture(this._surf);
   }
 
-  // Bake the seamless cloud-density field into an RGBA buffer (grey = density, alpha = 255). fbm of
-  // periodic value noise (each octave wraps at its own frequency → the tile is seamless), then a
-  // smooth threshold so the field is soft PATCHES with clear gaps, not uniform dapple.
+  /**
+   * Bake the seamless cloud-density field into an RGBA buffer (grey = density, alpha = 255). fbm of
+   * periodic value noise (each octave wraps at its own frequency → the tile is seamless), then a
+   * smooth threshold so the field is soft PATCHES with clear gaps, not uniform dapple.
+   */
   _bake() {
     const n = this._n;
     const buf = buffer_create(n * n * 4, buffer_fixed, 1);
@@ -143,8 +147,10 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     return buf;
   }
 
-  // periodic value noise in [0,1): smoothstep-interpolated over a hashed lattice whose corners WRAP
-  // at `period` (= this octave's frequency), so the tile is seamless. Pure in (fx, fy, seed).
+  /**
+   * periodic value noise in [0,1): smoothstep-interpolated over a hashed lattice whose corners WRAP
+   * at `period` (= this octave's frequency), so the tile is seamless. Pure in (fx, fy, seed).
+   */
   _pnoise(fx, fy, period, seed) {
     const ix = Math.floor(fx);
     const iy = Math.floor(fy);

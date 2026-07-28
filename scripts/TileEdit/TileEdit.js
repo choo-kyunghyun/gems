@@ -6,12 +6,12 @@
  * undefined), so occupancy is a truthy test, never `!== undefined`.
  */
 globalThis.TileEdit = {
-  // 0 = empty, TileType = filled — truthy test
+  /** 0 = empty, TileType = filled — truthy test */
   occupied(layer, gx, gy) {
     return !!layer.get(gx, gy);
   },
 
-  // caller must remesh after editing a solid layer
+  /** caller must remesh after editing a solid layer */
   set(layer, gx, gy, type) {
     layer.set(gx, gy, type);
   },
@@ -20,8 +20,10 @@ globalThis.TileEdit = {
     layer.set(gx, gy, undefined);
   },
 
-  // greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
-  // resolver (see memory project_tile_collider_seams). returns [gx,gy,wCells,hCells] in grid coords.
+  /**
+   * greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
+   * resolver (see memory project_tile_collider_seams). returns [gx,gy,wCells,hCells] in grid coords.
+   */
   meshRects(grid, layer) {
     const cols = grid.cols;
     const rows = grid.rows;
@@ -57,7 +59,7 @@ globalThis.TileEdit = {
     return rects;
   },
 
-  // one kinematic-solid collider per meshRects rectangle; ids pushed onto `out`
+  /** one kinematic-solid collider per meshRects rectangle; ids pushed onto `out` */
   meshSolid(entities, grid, layer, out) {
     const cw = grid.cellWidth;
     const ch = grid.cellHeight;
@@ -82,7 +84,7 @@ globalThis.TileEdit = {
     }
   },
 
-  // rebuild colliders after a solid-tile edit; flush first so old ids don't collide
+  /** rebuild colliders after a solid-tile edit; flush first so old ids don't collide */
   remesh(entities, grid, layer, colliders) {
     for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
     entities.flush();

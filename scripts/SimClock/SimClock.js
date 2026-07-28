@@ -15,16 +15,18 @@ globalThis.SimClock = {
   alpha: 0, // [0,1) render-interpolation factor = drained accumulator / tickDuration
   maxTicks: 5, // spiral-of-death guard: drop backlog instead of freezing the frame
 
-  // Advance the accumulator by this frame's sim time; return the whole ticks to run this frame, capped
-  // by maxTicks (under overload the sim slows instead of freezing). Sets `alpha` from the remainder.
-  //
-  // THE TICK LOOP a level's step() builds around this call — two ordering contracts:
-  //   for (t < advance()) { InterpolationSystem.snapshot(entities)  FIRST — records pre-move
-  //                         <the genre's system sequence, a Pipeline>       positions
-  //                         entities.flush() }                        LAST — commits the tick's
-  //                                                                          queued removals
-  // Once-per-FRAME work (edge-triggered input latching, NavGrid.rebuild) sits outside the loop:
-  // a frame can run 0 ticks (dropping a press) or several (double-counting one).
+  /**
+   * Advance the accumulator by this frame's sim time; return the whole ticks to run this frame, capped
+   * by maxTicks (under overload the sim slows instead of freezing). Sets `alpha` from the remainder.
+   *
+   * THE TICK LOOP a level's step() builds around this call — two ordering contracts:
+   *   for (t < advance()) { InterpolationSystem.snapshot(entities)  FIRST — records pre-move
+   *                         <the genre's system sequence, a Pipeline>       positions
+   *                         entities.flush() }                        LAST — commits the tick's
+   *                                                                          queued removals
+   * Once-per-FRAME work (edge-triggered input latching, NavGrid.rebuild) sits outside the loop:
+   * a frame can run 0 ticks (dropping a press) or several (double-counting one).
+   */
   advance() {
     SimClock.accumulator += Time.delta;
     let ticks = Math.floor(SimClock.accumulator / SimClock.tickDuration);
@@ -34,8 +36,10 @@ globalThis.SimClock = {
     return ticks;
   },
 
-  // Drop accumulated sub-tick phase (new base level). alpha resets too; harmless mid-play since
-  // freshly-spawned entities have PrevPosition == Position (alpha then interpolates to a no-op).
+  /**
+   * Drop accumulated sub-tick phase (new base level). alpha resets too; harmless mid-play since
+   * freshly-spawned entities have PrevPosition == Position (alpha then interpolates to a no-op).
+   */
   reset() {
     SimClock.accumulator = 0;
     SimClock.alpha = 0;

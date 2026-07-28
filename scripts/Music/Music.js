@@ -10,8 +10,10 @@ globalThis.Music = {
   _fadeAt: 0, // current_time (ms) at which to stop _fadeStop (Time.raw is a per-frame DELTA, not a clock)
   _gain: 1.0, // music category volume (0..1), folded into the instance gain
 
-  // Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
-  // it. Re-requesting the playing track is a no-op (safe per frame). opts: { gain, pitch, fadeMs }.
+  /**
+   * Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
+   * it. Re-requesting the playing track is a no-op (safe per frame). opts: { gain, pitch, fadeMs }.
+   */
   play(sound, opts) {
     opts = opts ?? {};
     if (!audio_exists(sound)) {
@@ -42,14 +44,16 @@ globalThis.Music = {
     return h;
   },
 
-  // Fade the BGM out and stop it. fadeMs default 400.
+  /** Fade the BGM out and stop it. fadeMs default 400. */
   stop(fadeMs) {
     Music._fadeOut(fadeMs ?? 400);
     Music._bgm = -1;
     Music._bgmAsset = -1;
   },
 
-  // Ramp the current BGM to silence and schedule its stop (update() reaps it); 0 = hard stop now.
+  /**
+   * Ramp the current BGM to silence and schedule its stop (update() reaps it); 0 = hard stop now.
+   */
   _fadeOut(fadeMs) {
     if (Music._bgm === -1 || !audio_is_playing(Music._bgm)) return;
     if (Music._fadeStop !== -1 && Music._fadeStop !== Music._bgm)
@@ -64,7 +68,7 @@ globalThis.Music = {
     }
   },
 
-  // Per-frame (obj_game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle.
+  /** Per-frame (obj_game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle. */
   update() {
     if (Music._fadeStop !== -1 && current_time >= Music._fadeAt) {
       audio_stop_sound(Music._fadeStop);
@@ -72,14 +76,18 @@ globalThis.Music = {
     }
   },
 
-  // Live music-volume setter (0..1): ramps the playing instance over 50ms (avoids a drag-click).
+  /**
+   * Live music-volume setter (0..1): ramps the playing instance over 50ms (avoids a drag-click).
+   */
   setGain(g) {
     Music._gain = clamp(g, 0, 1);
     if (Music._bgm !== -1 && audio_is_playing(Music._bgm))
       audio_sound_gain(Music._bgm, Music._bgmGain * Music._gain, 50);
   },
 
-  // Hard stop + clear on a base level swap (via Audio.restart). Graceful stop() is the per-level path.
+  /**
+   * Hard stop + clear on a base level swap (via Audio.restart). Graceful stop() is the per-level path.
+   */
   reset() {
     if (Music._bgm !== -1) audio_stop_sound(Music._bgm);
     if (Music._fadeStop !== -1) audio_stop_sound(Music._fadeStop);

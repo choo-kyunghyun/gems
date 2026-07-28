@@ -62,9 +62,11 @@ globalThis.RpgAchievements = {
     sleepFastForwards: [{ at: 1, id: "td_time_skip" }],
   },
 
-  // The trigger: a gameplay site reports a counter it just changed (key + new value); every met
-  // rule becomes an unlock REQUEST (Achievement.unlock dedups). Returns newly-unlocked ids so the
-  // caller can toast them.
+  /**
+   * The trigger: a gameplay site reports a counter it just changed (key + new value); every met
+   * rule becomes an unlock REQUEST (Achievement.unlock dedups). Returns newly-unlocked ids so the
+   * caller can toast them.
+   */
   report(key, value) {
     const newly = [];
     const rules = this.RULES[key];

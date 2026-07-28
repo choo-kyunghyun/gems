@@ -30,7 +30,7 @@ globalThis.UIStepper = class UIStepper {
     });
   }
 
-  // snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004).
+  /** snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004). */
   _snap(v) {
     const snapped =
       this.min + Math.round((v - this.min) / this.step) * this.step;

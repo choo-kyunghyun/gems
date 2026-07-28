@@ -37,7 +37,7 @@ globalThis.PrefabStamp = class PrefabStamp {
     }
   }
 
-  // one optional stamped prefab per chunk (never on an authored chunk — see AuthoredStamp)
+  /** one optional stamped prefab per chunk (never on an authored chunk — see AuthoredStamp) */
   apply(ctx) {
     if (ctx.authored === true) return;
     if (this.prefabs.length === 0) return;
@@ -66,7 +66,7 @@ globalThis.PrefabStamp = class PrefabStamp {
     }
   }
 
-  // weighted pick from the eligible prefab set
+  /** weighted pick from the eligible prefab set */
   _pick(rng) {
     const all = this.prefabs;
     let total = 0;

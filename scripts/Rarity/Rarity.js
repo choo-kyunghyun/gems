@@ -42,7 +42,7 @@ globalThis.Rarity = class Rarity {
     return Registry.rank(Rarity, id);
   }
 
-  // scale a value by a rarity's modifier; unknown id returns value as-is.
+  /** scale a value by a rarity's modifier; unknown id returns value as-is. */
   static modify(id, value) {
     const r = Rarity.get(id);
     return r === undefined ? value : value * r.valueMod;

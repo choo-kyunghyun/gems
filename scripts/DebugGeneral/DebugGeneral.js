@@ -3,8 +3,10 @@
  * Log / Sim). Registered once from obj_game Create_0.
  */
 globalThis.DebugGeneral = {
-  // sections read World.levels live, so bindings track the current level
-  // across swaps.
+  /**
+   * sections read World.levels live, so bindings track the current level
+   * across swaps.
+   */
   register() {
     Debug.add({
       name: "Time",

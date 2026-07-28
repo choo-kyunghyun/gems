@@ -104,8 +104,10 @@ globalThis.RenderMesh = class RenderMesh {
     vertex_format_delete(this._format);
   }
 
-  // baked model lookup: meshes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
-  // a missing file caches vb -1 so the warning fires once, not per frame
+  /**
+   * baked model lookup: meshes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
+   * a missing file caches vb -1 so the warning fires once, not per frame
+   */
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
@@ -180,7 +182,7 @@ globalThis.RenderMesh = class RenderMesh {
         const dy = recs[i].y - cy;
         scored.push({ rec: recs[i], d: dx * dx + dy * dy });
       }
-      // sign comparator, never a raw difference (#15593: GMRT truncates the return)
+      // BUG: [#15593] sign comparator, never a raw difference.
       scored.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
       recs = [];
       for (let i = 0; i < scored.length; i++) recs.push(scored[i].rec);
@@ -211,13 +213,15 @@ globalThis.RenderMesh = class RenderMesh {
     }
   }
 
-  // one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
-  // over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
-  // sprite_exists, never >= 0), else a flat color fill. A sprite face runs under sh_meshlit
-  // in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
-  // stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
-  // depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
-  // black on an untextured primitive and would blacken it).
+  /**
+   * one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
+   * over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
+   * sprite_exists, never >= 0), else a flat color fill. A sprite face runs under sh_meshlit
+   * in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
+   * stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
+   * depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
+   * black on an untextured primitive and would blacken it).
+   */
   _face(name, color, alpha, w, h) {
     const spr = name ? asset_get_index(name) : -1;
     if (name && sprite_exists(spr)) {

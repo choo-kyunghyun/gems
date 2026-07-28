@@ -44,8 +44,13 @@ globalThis.EntityPreset = {
    * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
    * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
    * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
-   * @param {string} presetId @param {Entity} entities @param {number} x @param {number} y
-   * @param {number} [z=0] @param {Object} [opts] @returns {number} entity id
+   * @param {string} presetId
+   * @param {Entity} entities
+   * @param {number} x
+   * @param {number} y
+   * @param {number} [z=0]
+   * @param {Object} [opts]
+   * @returns {number} entity id
    */
   spawn(presetId, entities, x, y, z = 0, opts = {}) {
     const preset = this.presets.get(presetId);
@@ -86,9 +91,11 @@ globalThis.EntityPreset = {
     return this.presets.get(presetId);
   },
 
-  // Field-level component merge: `over`'s components merge INTO `base`'s per field (over wins),
-  // unseen components add. Returns fresh per-component objects; nested values may still be
-  // shared with the defs — fine, spawn deep-clones per instance.
+  /**
+   * Field-level component merge: `over`'s components merge INTO `base`'s per field (over wins),
+   * unseen components add. Returns fresh per-component objects; nested values may still be
+   * shared with the defs — fine, spawn deep-clones per instance.
+   */
   _merge(base, over) {
     const out = {};
     for (const token in base ?? {}) out[token] = base[token];
@@ -101,10 +108,12 @@ globalThis.EntityPreset = {
     return out;
   },
 
-  // GMRT-safe deep copy. Recurses arrays and PLAIN data objects only: a GM asset ref (sprite
-  // handle) also reports typeof "object", but its constructor !== Object (Object.keys(ref) is 0
-  // without throwing, so recursing would silently turn it into {}) —
-  // refs, scalars, and functions pass through BY REFERENCE.
+  /**
+   * GMRT-safe deep copy. Recurses arrays and PLAIN data objects only: a GM asset ref (sprite
+   * handle) also reports typeof "object", but its constructor !== Object (Object.keys(ref) is 0
+   * without throwing, so recursing would silently turn it into {}) —
+   * refs, scalars, and functions pass through BY REFERENCE.
+   */
   _clone(v) {
     if (Array.isArray(v)) {
       const out = [];
@@ -119,9 +128,11 @@ globalThis.EntityPreset = {
     return v;
   },
 
-  // Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
-  // shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
-  // scale / density (see SpriteMeta — art resolution never touches the BBox).
+  /**
+   * Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
+   * shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
+   * scale / density (see SpriteMeta — art resolution never touches the BBox).
+   */
   _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
     vis.subimg = vis.subimg ?? 0;
@@ -136,7 +147,7 @@ globalThis.EntityPreset = {
     vis.yscale = f;
   },
 
-  // Design scale on the collision footprint (authored world units at scale 1).
+  /** Design scale on the collision footprint (authored world units at scale 1). */
   _bakeBox(box, k) {
     box.x *= k;
     box.y *= k;
@@ -144,10 +155,12 @@ globalThis.EntityPreset = {
     box.height *= k;
   },
 
-  // Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
-  // model never diverges from its collider. The authored Mesh fields stay the archetype's
-  // basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
-  // over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
+  /**
+   * Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
+   * model never diverges from its collider. The authored Mesh fields stay the archetype's
+   * basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
+   * over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
+   */
   _bakeMesh(mesh, k) {
     if (k === 1) return;
     mesh.scale = (mesh.scale ?? 1) * k;

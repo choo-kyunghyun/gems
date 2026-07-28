@@ -25,28 +25,30 @@ globalThis.Log = {
     this.write(msg, "DEBUG");
   },
 
-  // buffered lines, capped at max (the oldest have already dropped).
+  /** buffered lines, capped at max (the oldest have already dropped). */
   count() {
     return this._lines.length;
   },
 
-  // rewrite the file only if dirty since last flush.
+  /** rewrite the file only if dirty since last flush. */
   flush() {
     if (!this._dirty) return;
     File.write(this.PATH, this._lines.join("\n"));
     this._dirty = false;
   },
 
-  // reset buffer + truncate file — call at startup so each run starts fresh.
+  /** reset buffer + truncate file — call at startup so each run starts fresh. */
   clear() {
     this._lines = [];
     this._dirty = false;
     File.write(this.PATH, "");
   },
 
-  // unhandled-exception handler (wired via exception_unhandled_handler). Runs OUTSIDE any
-  // event when the game is about to die, so record the crash to game.log before it does.
-  // Returns the runner's exit code (non-zero = crashed).
+  /**
+   * unhandled-exception handler (wired via exception_unhandled_handler). Runs OUTSIDE any
+   * event when the game is about to die, so record the crash to game.log before it does.
+   * Returns the runner's exit code (non-zero = crashed).
+   */
   exception(ex) {
     this.error("UNHANDLED EXCEPTION: " + ex.message);
     // GMRT 0.19 leaves longMessage/script/line/stacktrace empty for JS faults — only emit when populated.

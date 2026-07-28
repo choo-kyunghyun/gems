@@ -118,13 +118,13 @@ globalThis.CraftingUI = {
     level._craftWin.enabled = false;
   },
 
-  // slotted module itemId of the open workbench ("" = empty).
+  /** slotted module itemId of the open workbench ("" = empty). */
   _module(level) {
     const st = level.entities.get(Interaction, level._craftStationId);
     return st !== undefined && st.module !== undefined ? st.module : "";
   },
 
-  // content mode the module drives: "mod" for a weaponmod module, else "craft".
+  /** content mode the module drives: "mod" for a weaponmod module, else "craft". */
   _modeFor(module) {
     if (module === "") return "craft";
     const it = Item.get(module);
@@ -132,7 +132,7 @@ globalThis.CraftingUI = {
     return m !== undefined && m.kind === "weaponmod" ? "mod" : "craft";
   },
 
-  // rebuild the module bar + active content panel; swaps the mounted row on a mode change.
+  /** rebuild the module bar + active content panel; swaps the mounted row on a mode change. */
   refresh(level) {
     const module = CraftingUI._module(level);
     const mode = CraftingUI._modeFor(module);
@@ -160,7 +160,9 @@ globalThis.CraftingUI = {
     CraftingUI._fillDetail(level, inv, recipes, module);
   },
 
-  // recipes whose module gate `module` meets: base recipes (no `requires`) + the slotted module's.
+  /**
+   * recipes whose module gate `module` meets: base recipes (no `requires`) + the slotted module's.
+   */
   _visibleRecipes(module) {
     const all = Recipe.forStation("workbench");
     const out = [];
@@ -177,7 +179,9 @@ globalThis.CraftingUI = {
     return false;
   },
 
-  // Module bar: slotted module + Remove, then an Install button per owned module. rebuilt each refresh.
+  /**
+   * Module bar: slotted module + Remove, then an Install button per owned module. rebuilt each refresh.
+   */
   _fillModuleBar(level, module) {
     const bar = level._craftModuleBar;
     const kids = [...bar.children];
@@ -248,7 +252,7 @@ globalThis.CraftingUI = {
     bar.insertChild(line2);
   },
 
-  // distinct itemIds of owned WorkbenchModule items (in slot order).
+  /** distinct itemIds of owned WorkbenchModule items (in slot order). */
   _ownedModules(level) {
     const inv = level.entities.get(Inventory, level.playerId);
     const out = [];
@@ -266,8 +270,10 @@ globalThis.CraftingUI = {
     return out;
   },
 
-  // slot module `id`, returning the previously slotted one. order matters: free the incoming module's
-  // bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
+  /**
+   * slot module `id`, returning the previously slotted one. order matters: free the incoming module's
+   * bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
+   */
   _installModule(level, id) {
     const st = level.entities.get(Interaction, level._craftStationId);
     const inv = level.entities.get(Inventory, level.playerId);
@@ -287,7 +293,7 @@ globalThis.CraftingUI = {
     Log.info(`installed module ${id}`);
   },
 
-  // pop the slotted module back into the bag (refused if the bag is full).
+  /** pop the slotted module back into the bag (refused if the bag is full). */
   _removeModule(level) {
     const st = level.entities.get(Interaction, level._craftStationId);
     const inv = level.entities.get(Inventory, level.playerId);
@@ -303,8 +309,10 @@ globalThis.CraftingUI = {
     level._invDirty = true;
   },
 
-  // Craft panel — left: one selectable button per recipe (dimmed when uncraftable),
-  // refilled via the shared gemsFillList.
+  /**
+   * Craft panel — left: one selectable button per recipe (dimmed when uncraftable),
+   * refilled via the shared gemsFillList.
+   */
   _fillList(level, inv, recipes) {
     const entries = [];
     if (inv !== undefined) {
@@ -330,7 +338,7 @@ globalThis.CraftingUI = {
     gemsFillList(level._craftList, entries, I18n.textRef("CRAFT_EMPTY"));
   },
 
-  // Craft panel — right: selected recipe's name, description, ingredients, Craft button.
+  /** Craft panel — right: selected recipe's name, description, ingredients, Craft button. */
   _fillDetail(level, inv, recipes, module) {
     const host = level._craftDetail;
     const kids = [...host.children];
@@ -393,14 +401,14 @@ globalThis.CraftingUI = {
         },
         {
           primary: true,
-          // live gate: disabled while ingredients aren't met (re-evaluated each frame).
+          /** live gate: disabled while ingredients aren't met (re-evaluated each frame). */
           disabled: () => !CraftSystem.canCraft(inv, recipe, module),
         },
       ),
     );
   },
 
-  // ingredient line: "Name   have/need", reddened when short.
+  /** ingredient line: "Name   have/need", reddened when short. */
   _ingredientRow(inv, inp) {
     const have = InventorySystem.count(inv, inp.itemId);
     const def = Item.get(inp.itemId);

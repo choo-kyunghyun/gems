@@ -2,10 +2,16 @@
 // draws from pos.left/top so no pos.width NaN guard needed.
 /**
  * @typedef {Object} UITextOpts
- * @property {() => string} [textRef] @property {number} [halign] fa_* @property {number} [color] @property {number} [alpha]
+ * @property {() => string} [textRef]
+ * @property {number} [halign] fa_*
+ * @property {number} [color]
+ * @property {number} [alpha]
  * @property {number|string} [font] font handle (-1 = current), or an I18n font KEY ("header"/…)
- * @property {number} [sep] line separation @property {number} [w] wrap width
- * @property {number} [xscale] @property {number} [yscale] @property {number} [angle]
+ * @property {number} [sep] line separation
+ * @property {number} [w] wrap width
+ * @property {number} [xscale]
+ * @property {number} [yscale]
+ * @property {number} [angle]
  * @implements {UIComponent}
  */
 globalThis.UIText = class UIText {

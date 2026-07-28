@@ -100,7 +100,9 @@ globalThis.I18n = {
 
   /**
    * Resolve a key now (falls back to the key). Extra args fill `{0}`/`{1}`… placeholders.
-   * @param {string} key @param {...*} params @returns {string}
+   * @param {string} key
+   * @param {...*} params
+   * @returns {string}
    */
   text(key, ...params) {
     if (params.length === 0) {
@@ -112,7 +114,9 @@ globalThis.I18n = {
 
   /**
    * Live `() => string` for UI labels that re-resolve (language swap / changing params).
-   * `params` may be values or `() => value` getters. @param {string} key @param {...*} params
+   * `params` may be values or `() => value` getters.
+   * @param {string} key
+   * @param {...*} params
    * @returns {() => string}
    */
   textRef(key, ...params) {

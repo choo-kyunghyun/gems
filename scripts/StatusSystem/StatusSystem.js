@@ -11,8 +11,10 @@ globalThis.StatusSystem = {
   // off the global so the game's override is always seen.
   onStatsChanged(entities, id) {},
 
-  // Add or refresh a timed status (opts.duration overrides the def; 0/undefined = non-expiring). Refresh
-  // keeps the LONGER remaining (no magnitude stacking yet). Re-derives if the def carries `mods`.
+  /**
+   * Add or refresh a timed status (opts.duration overrides the def; 0/undefined = non-expiring). Refresh
+   * keeps the LONGER remaining (no magnitude stacking yet). Re-derives if the def carries `mods`.
+   */
   apply(entities, id, statusId, opts) {
     const def = Status.get(statusId);
     if (def === undefined) return false;
@@ -36,7 +38,7 @@ globalThis.StatusSystem = {
     return true;
   },
 
-  // Remove by id; re-derives if the def carried `mods`. Returns whether it was present.
+  /** Remove by id; re-derives if the def carried `mods`. Returns whether it was present. */
   remove(entities, id, statusId) {
     const eff = entities.get(StatusEffects, id);
     if (eff === undefined) return false;
@@ -49,9 +51,11 @@ globalThis.StatusSystem = {
     return true;
   },
 
-  // Maintain a LIVE-driven status: `mult` ensures a permanent instance with that dynamic magnitude (lives
-  // on the INSTANCE so the driver can refresh it each tick — the encumbrance path); null/undefined removes
-  // it. Never re-derives — a maintained status carries no `mods`, it's read live by scale().
+  /**
+   * Maintain a LIVE-driven status: `mult` ensures a permanent instance with that dynamic magnitude (lives
+   * on the INSTANCE so the driver can refresh it each tick — the encumbrance path); null/undefined removes
+   * it. Never re-derives — a maintained status carries no `mods`, it's read live by scale().
+   */
   maintain(entities, id, statusId, mult) {
     if (mult === null || mult === undefined) {
       const eff = entities.get(StatusEffects, id);
@@ -75,14 +79,16 @@ globalThis.StatusSystem = {
     return eff !== undefined && StatusSystem._find(eff, statusId) >= 0;
   },
 
-  // Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id).
+  /** Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id). */
   list(entities, id) {
     const eff = entities.get(StatusEffects, id);
     return eff !== undefined ? eff.list : [];
   },
 
-  // Combined multiplicative factor for one stat `key` (instance `mult` wins over the def's), default 1.
-  // The mover reads this for "speed" so speed statuses compose by multiplication. Read live each use.
+  /**
+   * Combined multiplicative factor for one stat `key` (instance `mult` wins over the def's), default 1.
+   * The mover reads this for "speed" so speed statuses compose by multiplication. Read live each use.
+   */
   scale(entities, id, key) {
     const eff = entities.get(StatusEffects, id);
     if (eff === undefined) return 1;
@@ -99,8 +105,10 @@ globalThis.StatusSystem = {
     return m;
   },
 
-  // Per-tick: advance dot/hot + durations, expire finished. Iterate BACKWARDS — in-place splice on expiry.
-  // Re-derive once per entity if any expiring status carried `mods`.
+  /**
+   * Per-tick: advance dot/hot + durations, expire finished. Iterate BACKWARDS — in-place splice on expiry.
+   * Re-derive once per entity if any expiring status carried `mods`.
+   */
   update(entities) {
     const ids = entities.query(StatusEffects);
     for (let i = 0; i < ids.length; i++) {
@@ -134,8 +142,10 @@ globalThis.StatusSystem = {
     }
   },
 
-  // One interval's dot/hot on Health. DoT subtracts directly (bypasses Combat.mitigate — poison ignores
-  // armor); HoT clamps to Stats.maxHp. Only changes hp — the <=0 reaction is the Mortal death pass.
+  /**
+   * One interval's dot/hot on Health. DoT subtracts directly (bypasses Combat.mitigate — poison ignores
+   * armor); HoT clamps to Stats.maxHp. Only changes hp — the <=0 reaction is the Mortal death pass.
+   */
   _applyTick(entities, id, def) {
     const hp = entities.get(Health, id);
     if (hp === undefined) return;

@@ -22,7 +22,9 @@ globalThis.InterpolationSystem = {
 
   /**
    * interpolated render position; writes into `out` (reused scratch, no alloc per entity).
-   * @param {Entity} entities @param {number} id @param {{x:number,y:number}} out
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {{x:number,y:number}} out
    * @returns {{x:number,y:number}} out
    */
   lerp(entities, id, out) {

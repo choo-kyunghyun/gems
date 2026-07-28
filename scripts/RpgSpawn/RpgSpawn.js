@@ -46,12 +46,14 @@ globalThis.RpgSpawn = {
     RpgSpawn._meshMeta = JSON.parse(text);
   },
 
-  // Collider footprint for a vox model, derived from the manifest's content dims:
-  // max(8, content − 2) per axis — BBox ≤ voxel content, erring small for walkability
-  // (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
-  // 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
-  // (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
-  // the one-size prop preset box. Returns undefined for an unknown model.
+  /**
+   * Collider footprint for a vox model, derived from the manifest's content dims:
+   * max(8, content − 2) per axis — BBox ≤ voxel content, erring small for walkability
+   * (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
+   * 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
+   * (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
+   * the one-size prop preset box. Returns undefined for an unknown model.
+   */
   footprint(model) {
     const m =
       RpgSpawn._meshMeta === null ? undefined : RpgSpawn._meshMeta[model];
@@ -78,10 +80,12 @@ globalThis.RpgSpawn = {
     nightstand: "wooden_night_stand",
   },
 
-  // Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
-  // Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
-  // level's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
-  // through by reference — see EntityPreset._clone).
+  /**
+   * Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
+   * Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
+   * level's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
+   * through by reference — see EntityPreset._clone).
+   */
   register() {
     RpgSpawn._loadMeshMeta(); // mesh-prop footprints (vox2vbuf manifest)
     // the fence keeps 16px sprite art in the 32px world: density 0.5 → draw scale ×2, BBox
@@ -385,18 +389,20 @@ globalThis.RpgSpawn = {
     return { enemies, npc, reach, portals, followers };
   },
 
-  // Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
+  /** Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity. */
   reachZone(grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
     const half = s.half ?? 44;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
-  // Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
-  // The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
-  // (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
-  // `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
-  // entities work too).
+  /**
+   * Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
+   * The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
+   * (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
+   * `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
+   * entities work too).
+   */
   spawnEntity(entities, grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
 
@@ -598,8 +604,10 @@ globalThis.RpgSpawn = {
     });
   },
 
-  // Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
-  // source of truth), else `color` (#hex), else `fallback`, else white. Returns a colour int.
+  /**
+   * Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
+   * source of truth), else `color` (#hex), else `fallback`, else white. Returns a colour int.
+   */
   _tint(s, fallback) {
     if (s.material !== undefined) {
       const item = Item.get(s.material);
@@ -613,8 +621,10 @@ globalThis.RpgSpawn = {
   // Skin tones for doll humanoids (Visual.color over the white spr_human template).
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
-  // deterministic skin pick — hashed from the spawn CELL so a regenerated chunk's humanoid
-  // keeps the same face (OverworldGen chunks must regenerate identically)
+  /**
+   * deterministic skin pick — hashed from the spawn CELL so a regenerated chunk's humanoid
+   * keeps the same face (OverworldGen chunks must regenerate identically)
+   */
   _skin(s) {
     const gx = s.gx ?? 0;
     const gy = s.gy ?? 0;
@@ -622,8 +632,10 @@ globalThis.RpgSpawn = {
     return Color.parse(RpgSpawn.SKINS[i]);
   },
 
-  // Authored civilian outfit: the WHITE tintable garments colored per entity via the layer
-  // color (one sheet, any outfit). Shoes stay a fixed dark neutral so any shirt color reads.
+  /**
+   * Authored civilian outfit: the WHITE tintable garments colored per entity via the layer
+   * color (one sheet, any outfit). Shoes stay a fixed dark neutral so any shirt color reads.
+   */
   _outfit(shirtColor) {
     return {
       back: [],

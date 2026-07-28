@@ -97,7 +97,7 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          // furn sub-type picks the vox mesh (RpgSpawn prop branch, wooden_crate).
+          /** furn sub-type picks the vox mesh (RpgSpawn prop branch, wooden_crate). */
           make: (gx, gy) => ({
             preset: "prop",
             gx,
@@ -421,7 +421,9 @@ globalThis.BuildMode = {
   CLAIM_HALF_W: 3, // claimed rect half-extent in cells (so 7×5 around the post)
   CLAIM_HALF_H: 2,
 
-  // resolve a catalog item by id (turns a persisted _built / _builtEnts entry back into its layer/cost).
+  /**
+   * resolve a catalog item by id (turns a persisted _built / _builtEnts entry back into its layer/cost).
+   */
   item(id) {
     for (let c = 0; c < BuildMode.CATALOG.length; c++) {
       const items = BuildMode.CATALOG[c].items;
@@ -431,7 +433,7 @@ globalThis.BuildMode = {
     return undefined;
   },
 
-  // build the HUD + init per-level state. call once from create().
+  /** build the HUD + init per-level state. call once from create(). */
   build(level) {
     // Player builds are SCENE-tracked, never chunk-managed (like the squad): a streamed chunk
     // unloading must not take the player's wall with it. They persist across map changes by
@@ -502,8 +504,10 @@ globalThis.BuildMode = {
     return I18n.text("BUILD_STATUS", wood, I18n.text(it.labelKey), it.cost);
   },
 
-  // per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
-  // RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
+  /**
+   * per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
+   * RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
+   */
   update(level) {
     // B toggles build mode, but it only OPENS while the player stands on land they OWN (a
     // player-owned Settlement) — "you can only build in your own settlement". Closing is free.
@@ -542,8 +546,10 @@ globalThis.BuildMode = {
       BuildMode._tryRemove(level, cell.x, cell.y);
   },
 
-  // cursor over the HUD column's rect (`width > 0` dodges the first-frame NaN rect; the column
-  // grows to include an open flyout, so this covers it).
+  /**
+   * cursor over the HUD column's rect (`width > 0` dodges the first-frame NaN rect; the column
+   * grows to include an open flyout, so this covers it).
+   */
   _overHud(level) {
     const p = level._buildHudBox.getLayoutPosition();
     if (!(p.width > 0)) return false;
@@ -570,7 +576,7 @@ globalThis.BuildMode = {
     return keys;
   },
 
-  // does the player currently stand on land of a settlement they OWN? gates opening build mode.
+  /** does the player currently stand on land of a settlement they OWN? gates opening build mode. */
   _playerOwnsHere(level) {
     const pp = level.entities.get(Position, level.playerId);
     if (pp === undefined) return false;
@@ -578,9 +584,11 @@ globalThis.BuildMode = {
     return Settlement.ownerAt(level.grid, c.x, c.y) === BuildMode.OWNER;
   },
 
-  // can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
-  // (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
-  // floor) isn't on the player's own cell. shared by place + cursor highlight.
+  /**
+   * can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
+   * (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
+   * floor) isn't on the player's own cell. shared by place + cursor highlight.
+   */
   _canBuild(level, gx, gy) {
     const grid = level.grid;
     if (Settlement.ownerAt(grid, gx, gy) !== BuildMode.OWNER) return false;
@@ -704,8 +712,10 @@ globalThis.BuildMode = {
     Log.info(`removed ${tileId} at ${gx},${gy}`);
   },
 
-  // RenderTileMap passes are VBO-cached, so a tile edit must markDirty the layer's pass to render
-  // (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
+  /**
+   * RenderTileMap passes are VBO-cached, so a tile edit must markDirty the layer's pass to render
+   * (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
+   */
   _markTileDirty(level, layerKey) {
     const pass = level._tilePasses[layerKey];
     if (pass !== undefined) pass.markDirty();
@@ -718,9 +728,11 @@ globalThis.BuildMode = {
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
 
-  // sweep built entities destroyed in combat (a turret brought to 0 HP) out of the deconstruct
-  // tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
-  // not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
+  /**
+   * sweep built entities destroyed in combat (a turret brought to 0 HP) out of the deconstruct
+   * tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
+   * not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
+   */
   reapDestroyed(level) {
     const entities = level.entities;
     const keys = Object.keys(level._builtEnts);
@@ -743,10 +755,12 @@ globalThis.BuildMode = {
     }
   },
 
-  // Found the player's settlement around a Survey Post: a player-owned Settlement zone over a rect,
-  // then *spend* the post (detach its Interaction). The founded settlement is the stored state
-  // (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
-  // land is still spent — no re-founding.
+  /**
+   * Found the player's settlement around a Survey Post: a player-owned Settlement zone over a rect,
+   * then *spend* the post (detach its Interaction). The founded settlement is the stored state
+   * (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
+   * land is still spent — no re-founding.
+   */
   claim(level, postId) {
     const grid = level.grid;
     const pos = level.entities.get(Position, postId);
@@ -768,8 +782,10 @@ globalThis.BuildMode = {
     level.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
   },
 
-  // world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.
-  // call from level.draw().
+  /**
+   * world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.
+   * call from level.draw().
+   */
   drawWorld(level) {
     if (!BuildMode.active) return;
     const cell = level._buildCell;

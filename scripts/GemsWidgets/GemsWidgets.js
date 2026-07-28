@@ -1,10 +1,12 @@
 // ── GemsUI kit: text / tooltip / buttons ─────────────────────
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
-// Standalone text node, auto-fitting to the string (UIText). Pass `opts.font` as an I18n
-// font KEY (string), NOT a pre-resolved handle — the widget re-resolves it each draw so it
-// survives a language switch (resolve-at-draw GMRT-Safe Idiom); a raw handle also works.
-// `opts.wrap` (px) wraps to that width; omit for a single auto-fit line.
+/**
+ * Standalone text node, auto-fitting to the string (UIText). Pass `opts.font` as an I18n
+ * font KEY (string), NOT a pre-resolved handle — the widget re-resolves it each draw so it
+ * survives a language switch (resolve-at-draw GMRT-Safe Idiom); a raw handle also works.
+ * `opts.wrap` (px) wraps to that width; omit for a single auto-fit line.
+ */
 globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   const el = new UIElement();
   el.addComponent(
@@ -19,9 +21,11 @@ globalThis.gemsLabel = function gemsLabel(label, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Rich text node: markup with colored spans + inline icons (UIRichText), auto-fitting
-// like gemsLabel. `opts.palette` maps `[c=name]` tags to colors; the kit's semantic
-// names (accent/muted/dim) are merged in. `opts.iconSize` overrides the icon size.
+/**
+ * Rich text node: markup with colored spans + inline icons (UIRichText), auto-fitting
+ * like gemsLabel. `opts.palette` maps `[c=name]` tags to colors; the kit's semantic
+ * names (accent/muted/dim) are merged in. `opts.iconSize` overrides the icon size.
+ */
 globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   const palette = {};
   const src = opts.palette ?? {};
@@ -44,10 +48,12 @@ globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Quest tracker: a live HUD list bound to opts.source (a quest log; the RPG passes its
-// QuestLog) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
-// active quests by default (build it AFTER quests are registered/accepted — it measures
-// at construction); pass opts.height to fix it. opts.emptyText shows when empty.
+/**
+ * Quest tracker: a live HUD list bound to opts.source (a quest log; the RPG passes its
+ * QuestLog) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
+ * active quests by default (build it AFTER quests are registered/accepted — it measures
+ * at construction); pass opts.height to fix it. opts.emptyText shows when empty.
+ */
 globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   const tracker = new UIQuestTracker({
     source: opts.source ?? null,
@@ -77,9 +83,11 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Minimap / radar: a framed UINineSlice + a UIMinimap plotting a store's tagged entities
-// around a target. `opts`: { entities, target, range, size, rules ([{ tag, color }]),
-// frameSprite, frameColor, blipSize, playerColor }.
+/**
+ * Minimap / radar: a framed UINineSlice + a UIMinimap plotting a store's tagged entities
+ * around a target. `opts`: { entities, target, range, size, rules ([{ tag, color }]),
+ * frameSprite, frameColor, blipSize, playerColor }.
+ */
 globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   const size = opts.size ?? 160;
   const rules = [];
@@ -111,8 +119,10 @@ globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// One-line hint text on a card backdrop — for overlays where a bare gemsLabel would
-// float as low-contrast text over a level's render.
+/**
+ * One-line hint text on a card backdrop — for overlays where a bare gemsLabel would
+ * float as low-contrast text over a level's render.
+ */
 globalThis.gemsHint = function gemsHint(label, opts = {}) {
   const card = gemsCard({ padding: GemsTheme.padSm });
   card.insertChild(
@@ -125,11 +135,13 @@ globalThis.gemsHint = function gemsHint(label, opts = {}) {
   return card;
 };
 
-// label:value row — label in a growing left cell, value pushed to the right edge by flex.
-// `label`/`value` are strings or live () => string (gemsLabel normalizes). `opts`:
-//   { height (26), gap (0), labelColor (textMuted), valueColor (text),
-//     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
-//     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
+/**
+ * label:value row — label in a growing left cell, value pushed to the right edge by flex.
+ * `label`/`value` are strings or live () => string (gemsLabel normalizes). `opts`:
+ *   { height (26), gap (0), labelColor (textMuted), valueColor (text),
+ *     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
+ *     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
+ */
 globalThis.gemsKeyValueRow = function gemsKeyValueRow(label, value, opts = {}) {
   const row = new UIElement(
     opts.grow
@@ -159,9 +171,11 @@ globalThis.gemsKeyValueRow = function gemsKeyValueRow(label, value, opts = {}) {
   return row;
 };
 
-// Clear + refill a list host with one selectable gemsButton per entry, or a dim empty
-// notice. The refill shape shared by the workbench master lists (recipes / weapons):
-// `entries` is [{ label, onPick, selected: () => bool, textColor?, icon? }].
+/**
+ * Clear + refill a list host with one selectable gemsButton per entry, or a dim empty
+ * notice. The refill shape shared by the workbench master lists (recipes / weapons):
+ * `entries` is [{ label, onPick, selected: () => bool, textColor?, icon? }].
+ */
 globalThis.gemsFillList = function gemsFillList(host, entries, emptyLabel) {
   const kids = [...host.children];
   for (let i = 0; i < kids.length; i++) kids[i].destroy();
@@ -182,14 +196,16 @@ globalThis.gemsFillList = function gemsFillList(host, entries, emptyLabel) {
   }
 };
 
-// Live, context-aware key-bind hint bar. `entries` is { label, contexts?, actions? | text? }:
-//   • label    i18n key or () => string — the action's human name.
-//   • actions  action keys whose CURRENT bindings are read LIVE each frame (a remap updates
-//              the hint with zero wiring). Joined "" if every key is one glyph (→ "WASD") else "/".
-//   • text     a literal label for a non-rebindable key (e.g. "LMB"/"Esc"), not an InputAction.
-//   • contexts InputContext names this entry shows in (omit = always); re-filtered each frame,
-//              so the bar tracks the active context (play / build / window).
-// Built on gemsLabel with a live composer, so it self-sizes and survives a language switch.
+/**
+ * Live, context-aware key-bind hint bar. `entries` is { label, contexts?, actions? | text? }:
+ *   • label    i18n key or () => string — the action's human name.
+ *   • actions  action keys whose CURRENT bindings are read LIVE each frame (a remap updates
+ *              the hint with zero wiring). Joined "" if every key is one glyph (→ "WASD") else "/".
+ *   • text     a literal label for a non-rebindable key (e.g. "LMB"/"Esc"), not an InputAction.
+ *   • contexts InputContext names this entry shows in (omit = always); re-filtered each frame,
+ *              so the bar tracks the active context (play / build / window).
+ * Built on gemsLabel with a live composer, so it self-sizes and survives a language switch.
+ */
 globalThis.gemsKeyHints = function gemsKeyHints(entries, opts = {}) {
   const sep = opts.separator ?? "   ·   ";
   const compose = () => {
@@ -223,9 +239,11 @@ globalThis.gemsKeyHints = function gemsKeyHints(entries, opts = {}) {
   });
 };
 
-// Attach a hover tooltip to any element (chainable). Added at index 0 so a sibling
-// interactive component setting `block` while hovered doesn't suppress its own tooltip.
-// Most factories also accept `opts.tooltip` (+ `opts.tooltipDelay`) and call this for you.
+/**
+ * Attach a hover tooltip to any element (chainable). Added at index 0 so a sibling
+ * interactive component setting `block` while hovered doesn't suppress its own tooltip.
+ * Most factories also accept `opts.tooltip` (+ `opts.tooltipDelay`) and call this for you.
+ */
 globalThis.gemsTooltip = function gemsTooltip(element, label, opts = {}) {
   element.addComponent(
     new UITooltip({ label: gemsTextRef(label), delay: opts.delay }),
@@ -234,7 +252,7 @@ globalThis.gemsTooltip = function gemsTooltip(element, label, opts = {}) {
   return element;
 };
 
-// Internal: honor `opts.tooltip` on a factory's element. No-op when unset.
+/** Internal: honor `opts.tooltip` on a factory's element. No-op when unset. */
 globalThis.gemsAttachTooltip = function gemsAttachTooltip(element, opts) {
   if (opts.tooltip != null) {
     gemsTooltip(element, opts.tooltip, { delay: opts.tooltipDelay });
@@ -242,8 +260,10 @@ globalThis.gemsAttachTooltip = function gemsAttachTooltip(element, opts) {
   return element;
 };
 
-// `opts.primary: true` paints the button accent (highlighted CTA). Centered label;
-// hover eases fill + border glow + shadow lift, press sinks it (see UIButton).
+/**
+ * `opts.primary: true` paints the button accent (highlighted CTA). Centered label;
+ * hover eases fill + border glow + shadow lift, press sinks it (see UIButton).
+ */
 globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
   const primary = opts.primary ?? false;
   const base = opts.color ?? (primary ? GemsTheme.accent : GemsTheme.btn);
@@ -331,7 +351,7 @@ globalThis.gemsButton = function gemsButton(label, onClick, opts = {}) {
   return gemsAttachTooltip(btn, opts);
 };
 
-// Square button holding a sprite (OBJECT_FIT.CONTAIN inside padding).
+/** Square button holding a sprite (OBJECT_FIT.CONTAIN inside padding). */
 globalThis.gemsIconButton = function gemsIconButton(
   sprite,
   onClick,
@@ -378,8 +398,10 @@ globalThis.gemsIconButton = function gemsIconButton(
   return gemsAttachTooltip(btn, opts);
 };
 
-// Boolean button: renders `label: ON/OFF`, live from getValue(); click → onToggle.
-// onText/offText may be strings or () => string (for live i18n).
+/**
+ * Boolean button: renders `label: ON/OFF`, live from getValue(); click → onToggle.
+ * onText/offText may be strings or () => string (for live i18n).
+ */
 globalThis.gemsToggle = function gemsToggle(
   label,
   getValue,

@@ -26,12 +26,12 @@ globalThis.Profile = {
     return this;
   },
 
-  // raw counter map — the save bundle's profile blob (SaveGame)
+  /** raw counter map — the save bundle's profile blob (SaveGame) */
   counters() {
     return this._counters;
   },
 
-  // persist the counter map to SaveData (nested-safe via json_stringify)
+  /** persist the counter map to SaveData (nested-safe via json_stringify) */
   save() {
     SaveData.set("profile", this._counters);
     SaveData.save();

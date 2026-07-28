@@ -17,7 +17,7 @@ globalThis.Achievement = {
     return this;
   },
 
-  // restore from SaveData (an id array under "achievements"; legacy/missing → empty)
+  /** restore from SaveData (an id array under "achievements"; legacy/missing → empty) */
   load() {
     this._unlocked = {};
     const ids = SaveData.get("achievements", null);
@@ -38,8 +38,10 @@ globalThis.Achievement = {
     return Registry.all(Achievement);
   },
 
-  // the unlock REQUEST: honor it if the id is registered and still locked; persists.
-  // Returns true only when newly unlocked (dedup — safe to request repeatedly).
+  /**
+   * the unlock REQUEST: honor it if the id is registered and still locked; persists.
+   * Returns true only when newly unlocked (dedup — safe to request repeatedly).
+   */
   unlock(id) {
     if (!Registry.has(Achievement, id) || this._unlocked[id] === true)
       return false;
@@ -48,14 +50,14 @@ globalThis.Achievement = {
     return true;
   },
 
-  // debug: unlock everything (Debug overlay "Achievements" section)
+  /** debug: unlock everything (Debug overlay "Achievements" section) */
   unlockAll() {
     for (let i = 0; i < this._order.length; i++)
       this._unlocked[this._order[i]] = true;
     this._persist();
   },
 
-  // debug: relock everything (persists the empty set)
+  /** debug: relock everything (persists the empty set) */
   clear() {
     this._unlocked = {};
     this._persist();

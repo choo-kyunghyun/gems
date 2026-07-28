@@ -181,7 +181,10 @@ globalThis.Camera = class Camera {
    * World → surface-pixel projection under the current ortho view. Uses the up vector so a
    * pitched (2.5D) camera foreshortens world-y correctly. Used by screen-space overlays (e.g.
    * RenderLighting) to land in the right place in both flat and pitched views.
-   * @param {number} wx @param {number} wy @param {number} [wz=0] @returns {{x:number, y:number}}
+   * @param {number} wx
+   * @param {number} wy
+   * @param {number} [wz=0]
+   * @returns {{x:number, y:number}}
    */
   project(wx, wy, wz = 0) {
     const sw = surface_get_width(application_surface);
@@ -198,7 +201,9 @@ globalThis.Camera = class Camera {
    * Pitch-aware via the up vector (a flat camera's upY=1/upZ=0 reduces to the linear mapping).
    * GMRT's own mouse_x/mouse_y are wrong under a pitched matrix-driven camera,
    * so world-cursor consumers must convert through this instead.
-   * @param {number} sx @param {number} sy @returns {{x:number, y:number}}
+   * @param {number} sx
+   * @param {number} sy
+   * @returns {{x:number, y:number}}
    */
   unproject(sx, sy) {
     const sw = surface_get_width(application_surface);

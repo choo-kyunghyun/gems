@@ -71,7 +71,8 @@ globalThis.Audio = {
    * inert on GMRT (docs/GMRT.md) — honoring sound/loop/priority/gain/pitch; `offset` and
    * `listener_mask` are 2D-only. Mutates `params` in place (gain fold) — pass a throwaway
    * literal, not a shared struct.
-   * @param {SoundStruct} params @returns {*} sound instance handle, or -1
+   * @param {SoundStruct} params
+   * @returns {*} sound instance handle, or -1
    */
   play(params) {
     if (!audio_exists(params.sound)) return -1;

@@ -20,8 +20,10 @@ globalThis.Settlement = {
   TAG: "settlement", // every settlement Zone carries this tag (byTag lookup)
   DEFAULT_COLOR: "#55aa55", // fallback land tint (matches the legacy build-zone green)
 
-  // Ensure the settlement channel exists on a level and return it (idempotent). A map creates the
-  // empty channel up front so RenderZone + persistence import have a target before anything is founded.
+  /**
+   * Ensure the settlement channel exists on a level and return it (idempotent). A map creates the
+   * empty channel up front so RenderZone + persistence import have a target before anything is founded.
+   */
   channel(grid) {
     let m = grid.zoneMap(Settlement.CHANNEL);
     if (m === undefined) m = grid.addZoneMap(Settlement.CHANNEL);
@@ -31,7 +33,10 @@ globalThis.Settlement = {
   /**
    * Found a settlement over an inclusive cell rect: defines a Zone + paints its lands.
    * @param {Object} grid  the LevelGrid hosting the channel
-   * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2  inclusive cell rect
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2  inclusive cell rect
    * @param {{ id?: string, name?: string, factionId?: string, color?: string, comp?: string[], data?: Object }} [opt]
    *        `id` is the stable sid (authored settlements pass one; player-founded default to a minted
    *        uuid). `comp` is the initial SettlementComponent id array. `data` merges extra fields

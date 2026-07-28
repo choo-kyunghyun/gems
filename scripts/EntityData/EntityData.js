@@ -68,7 +68,9 @@ globalThis.EntityData = class EntityData {
 
   /**
    * Ids of every entity with ALL listed components. Closure-free: `c === n` stands in for
-   * `.every()` to avoid GMRT boolean-local clobber. @param {string[]} ComponentClasses @returns {number[]}
+   * `.every()` to avoid GMRT boolean-local clobber.
+   * @param {string[]} ComponentClasses
+   * @returns {number[]}
    */
   query(ComponentClasses) {
     const n = ComponentClasses.length;

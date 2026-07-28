@@ -141,7 +141,7 @@ globalThis.UINav = {
     draw_set_alpha(a0);
   },
 
-  // debug overlay: numbered focusables + directional target lines matching real _pick behavior
+  /** debug overlay: numbered focusables + directional target lines matching real _pick behavior */
   _drawDebug() {
     const items = UINav._collect();
     if (items.length === 0) return;
@@ -209,7 +209,7 @@ globalThis.UINav = {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   },
 
-  // walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background
+  /** walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background */
   _collect() {
     const out = [];
     for (let i = UI.roots.length - 1; i >= 0; i--) {
@@ -264,14 +264,16 @@ globalThis.UINav = {
     return null;
   },
 
-  // valid non-zero rect. scrolled-out UIScroll items stay focusable (nav scrolls them into
-  // view via _scrollIntoView), else a list taller than its viewport is unreachable by pad.
+  /**
+   * valid non-zero rect. scrolled-out UIScroll items stay focusable (nav scrolls them into
+   * view via _scrollIntoView), else a list taller than its viewport is unreachable by pad.
+   */
   _visible(el) {
     const pos = el.getLayoutPosition();
     return pos.width > 0 && pos.height > 0;
   },
 
-  // nudge each UIScroll ancestor so it follows focus
+  /** nudge each UIScroll ancestor so it follows focus */
   _scrollIntoView(el) {
     let p = el.parent;
     while (p !== null) {
@@ -317,10 +319,12 @@ globalThis.UINav = {
     }
   },
 
-  // Nearest focusable from `i` along (dx, dy), or -1. Edge-aware: `primary` = center
-  // distance along dir, `perp` = cross-axis GAP between rects (0 when overlapping). So a
-  // full-width row overlaps everything below it and Down picks the leftmost (ties by
-  // collection order = visual order), not whatever sits nearest mid-screen.
+  /**
+   * Nearest focusable from `i` along (dx, dy), or -1. Edge-aware: `primary` = center
+   * distance along dir, `perp` = cross-axis GAP between rects (0 when overlapping). So a
+   * full-width row overlaps everything below it and Down picks the leftmost (ties by
+   * collection order = visual order), not whatever sits nearest mid-screen.
+   */
   _pick(items, i, dx, dy) {
     const s = items[i];
     let best = -1;

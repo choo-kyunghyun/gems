@@ -6,13 +6,15 @@
  * @property {function(Entity, number): void} [finish]  called once on transition out
  */
 
-// Per-entity state machine over a NAMED state pool. States register once by id (like
-// Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
-// through the pool each use — so a captured/parked actor (EntitySnapshot, chunk streaming,
-// entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
-// (entities, id): the store needs no module statics (a per-map context like the Level still
-// lives with the states' owner — see CombatAI._grid/bind). `change` queues, `update`
-// applies (finish→enter) then ticks.
+/**
+ * Per-entity state machine over a NAMED state pool. States register once by id (like
+ * Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
+ * through the pool each use — so a captured/parked actor (EntitySnapshot, chunk streaming,
+ * entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
+ * (entities, id): the store needs no module statics (a per-map context like the Level still
+ * lives with the states' owner — see CombatAI._grid/bind). `change` queues, `update`
+ * applies (finish→enter) then ticks.
+ */
 globalThis.StateSystem = {
   _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)
 
@@ -30,7 +32,10 @@ globalThis.StateSystem = {
 
   /**
    * queue a transition to a registered state id; no-op if already in it unless `force`.
-   * @param {Entity} entities @param {number} id @param {string} name @param {boolean} [force]
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} name
+   * @param {boolean} [force]
    */
   change(entities, id, name, force = false) {
     const state = entities.get(State, id);

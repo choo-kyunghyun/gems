@@ -47,11 +47,13 @@ globalThis.RpgMap = {
     "_lighting",
   ],
 
-  // Take the SQUAD through a portal: every member (player FIRST) leaves the current world as a
-  // whole entity via World.levels.take, the map parks, and the members land in the target via
-  // World.levels.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
-  // portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
-  // together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
+  /**
+   * Take the SQUAD through a portal: every member (player FIRST) leaves the current world as a
+   * whole entity via World.levels.take, the map parks, and the members land in the target via
+   * World.levels.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
+   * portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
+   * together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
+   */
   go(level, mapId, entryId) {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
     // ── PHASE A: pull the squad out, then park the current map (its store stays alive) ──
@@ -87,9 +89,11 @@ globalThis.RpgMap = {
     Trader.onActivate(level); // embody any trader currently in this map
   },
 
-  // Land the traveling squad at the entry: the player (squad[0]) first — level.playerId
-  // re-latches to its new id — then companions staggered beside it. Whole-entity restore
-  // (World.levels.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
+  /**
+   * Land the traveling squad at the entry: the player (squad[0]) first — level.playerId
+   * re-latches to its new id — then companions staggered beside it. Whole-entity restore
+   * (World.levels.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
+   */
   _arriveSquad(level, squad, sp) {
     if (squad === null || squad.length === 0) return;
     level.playerId = World.levels.put(level.mapId, squad[0], {
@@ -103,18 +107,22 @@ globalThis.RpgMap = {
       });
   },
 
-  // Park the live map: its registry entry becomes the full bundle (was the minimal
-  // { entities, grid } from build, or the previous park). Unassign (not destroy) the camera —
-  // the parked map keeps it for resume; without the unassign its later destroy() would tear
-  // down the live view. exitRegion so the next map re-detects its climate.
+  /**
+   * Park the live map: its registry entry becomes the full bundle (was the minimal
+   * { entities, grid } from build, or the previous park). Unassign (not destroy) the camera —
+   * the parked map keeps it for resume; without the unassign its later destroy() would tear
+   * down the live view. exitRegion so the next map re-detects its climate.
+   */
   suspend(level) {
     if (level.camera) level.camera.unassign();
     Weather.exitRegion();
     World.levels.register(level.mapId, RpgMap._stash(level));
   },
 
-  // Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
-  // at the entry (the parked store has no player — the squad left through the portal).
+  /**
+   * Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
+   * at the entry (the parked store has no player — the squad left through the portal).
+   */
   resume(level, bundle, entryId, squad) {
     RpgMap._restore(level, bundle);
     // the registry entry stays (the map is resident either way); the next suspend overwrites it
@@ -144,16 +152,20 @@ globalThis.RpgMap = {
     ParticleFx.clear();
   },
 
-  // Map-appropriate ambient: interiors (meta.indoor) get the cozy loop, the open world the
-  // tense one. Called on every map arrival (build + resume); Music.play cross-fades and treats
-  // a same-track re-request as a no-op, so this is safe to call unconditionally.
+  /**
+   * Map-appropriate ambient: interiors (meta.indoor) get the cozy loop, the open world the
+   * tense one. Called on every map arrival (build + resume); Music.play cross-fades and treats
+   * a same-track re-request as a no-op, so this is safe to call unconditionally.
+   */
   _applyBgm(level) {
     Music.play(level._indoor === true ? mus_ambient_cozy : mus_ambient_tense);
   },
 
-  // Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgGrid.LAYERS
-  // (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
-  // (portal-rate, tiny).
+  /**
+   * Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgGrid.LAYERS
+   * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
+   * (portal-rate, tiny).
+   */
   _bundleKeys() {
     const keys = RpgMap.BUNDLE_KEYS.slice();
     for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
@@ -165,7 +177,7 @@ globalThis.RpgMap = {
     return keys;
   },
 
-  // Pointer-copy per-map fields level↔bundle. Index loop (no Map/Set iteration — GMRT).
+  /** Pointer-copy per-map fields level↔bundle. Index loop (no Map/Set iteration — GMRT). */
   _stash(level) {
     const b = {};
     const keys = RpgMap._bundleKeys();
@@ -177,8 +189,10 @@ globalThis.RpgMap = {
     for (let i = 0; i < keys.length; i++) level[keys[i]] = b[keys[i]];
   },
 
-  // Per-activate transient reset (build + resume). Kept off the bundle so a resume can't restore
-  // a stale transient.
+  /**
+   * Per-activate transient reset (build + resume). Kept off the bundle so a resume can't restore
+   * a stale transient.
+   */
   _activateReset(level) {
     level._hpTrack = {};
     level._buildActive = false;
@@ -201,10 +215,12 @@ globalThis.RpgMap = {
     PathFollow.bind(RpgMap._terrainCost(level));
   },
 
-  // Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
-  // NavGrid's route weights and PathFollow's speed pricing. Chunked maps price the biome via the
-  // manager's STORE-backed costAt (stored terrain — the world is pregenerated, so this is a
-  // lookup, not a noise resample); plain maps (interiors) price no terrain → null (cost 1).
+  /**
+   * Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
+   * NavGrid's route weights and PathFollow's speed pricing. Chunked maps price the biome via the
+   * manager's STORE-backed costAt (stored terrain — the world is pregenerated, so this is a
+   * lookup, not a noise resample); plain maps (interiors) price no terrain → null (cost 1).
+   */
   _terrainCost(level) {
     if (!level._chunked || level.chunks === undefined) return null;
     const chunks = level.chunks;
@@ -213,8 +229,10 @@ globalThis.RpgMap = {
     return (wx, wy) => chunks.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
   },
 
-  // World-coord entry points by name, for repositioning the player on a resume (no file reload).
-  // Mirrors _resolveSpawn's sources: meta.entries, plus legacy meta.playerSpawn as "default".
+  /**
+   * World-coord entry points by name, for repositioning the player on a resume (no file reload).
+   * Mirrors _resolveSpawn's sources: meta.entries, plus legacy meta.playerSpawn as "default".
+   */
   _entryTable(grid, data) {
     const out = {};
     const e = data.meta.entries;
@@ -278,7 +296,9 @@ globalThis.RpgMap = {
     if (mapState !== null) SaveGame.applyMapState(level, mapState);
   },
 
-  // Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
+  /**
+   * Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
+   */
   _loadData(mapId, entryId) {
     const file = RpgGrid.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
@@ -295,10 +315,12 @@ globalThis.RpgMap = {
     return { data, mapId, entryId };
   },
 
-  // Entity store + LevelGrid + the buildable/climate zone channels. The player spawns here ONLY on boot
-  // (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad,
-  // which re-latches level.playerId. Chunked gets a bigger entity cap (a window of chunks' worth
-  // of entities + colliders + drops) and an empty resident grid (player builds only).
+  /**
+   * Entity store + LevelGrid + the buildable/climate zone channels. The player spawns here ONLY on boot
+   * (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad,
+   * which re-latches level.playerId. Chunked gets a bigger entity cap (a window of chunks' worth
+   * of entities + colliders + drops) and an empty resident grid (player builds only).
+   */
   _buildWorld(level, data, entryId, squad) {
     level.entities = new Entity(level._chunked ? 1024 : 256);
     const built = level._chunked
@@ -403,7 +425,7 @@ globalThis.RpgMap = {
           loadRadius: 2,
           worldCols: wc,
           worldRows: wr,
-          // descriptor adapter — streamed spawns build through the same path as file spawns
+          /** descriptor adapter — streamed spawns build through the same path as file spawns */
           spawn: (entities, grid, desc) =>
             RpgSpawn.spawnEntity(entities, grid, desc),
         },
@@ -431,8 +453,10 @@ globalThis.RpgMap = {
     level._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
   },
 
-  // Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid
-  // runs once here per map (sceneRpg.step rebuilds occupancy around the player each frame).
+  /**
+   * Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid
+   * runs once here per map (sceneRpg.step rebuilds occupancy around the player each frame).
+   */
   _buildPipeline(level) {
     // O(n) broadphase for SeparationSystem + TriggerSystem (each rebuilds it per tick). It removes
     // TriggerSystem's O(n²) sweep over every collider — ~halving the step at
@@ -474,11 +498,13 @@ globalThis.RpgMap = {
       .add(LifetimeSystem);
   },
 
-  // Assemble the renderer pass stack (ground → tiles → zones → shadows → entities → debug →
-  // weather → lighting). Tiles are
-  // still placeholder: the resident layers render as a sprite-free debug fill (RenderDebugTileMap)
-  // rather than the per-layer RenderTileMap loop (restore that loop when tile art lands). Chunked
-  // terrain uses its real dual-grid tilesets (TerrainStream).
+  /**
+   * Assemble the renderer pass stack (ground → tiles → zones → shadows → entities → debug →
+   * weather → lighting). Tiles are
+   * still placeholder: the resident layers render as a sprite-free debug fill (RenderDebugTileMap)
+   * rather than the per-layer RenderTileMap loop (restore that loop when tile art lands). Chunked
+   * terrain uses its real dual-grid tilesets (TerrainStream).
+   */
   _buildRenderer(level, data) {
     const pitch = RpgMap.BB_PITCH;
     level.renderer = new Renderer();
@@ -675,9 +701,11 @@ globalThis.RpgMap = {
     level.renderer.insert(level._lighting);
   },
 
-  // Follow camera on the new player + view culling + the live Debug camera section.
-  // 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
-  // old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
+  /**
+   * Follow camera on the new player + view culling + the live Debug camera section.
+   * 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
+   * old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
+   */
   _buildCamera(level, data) {
     const pitch = RpgMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 1.75 : 1;
@@ -726,9 +754,11 @@ globalThis.RpgMap = {
     RpgMap._registerCameraDebug(level); // Debug/ImGui live camera controls (pitch/zoom)
   },
 
-  // Register the Debug "Camera" section bound to the LIVE level camera (pitch + zoom) for runtime
-  // render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
-  // drive the ACTIVE map's camera; removed on level destroy. RPG-owned (pitch is a Demo concern).
+  /**
+   * Register the Debug "Camera" section bound to the LIVE level camera (pitch + zoom) for runtime
+   * render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
+   * drive the ACTIVE map's camera; removed on level destroy. RPG-owned (pitch is a Demo concern).
+   */
   _registerCameraDebug(level) {
     const cam = level.camera;
     if (cam === undefined) return;
@@ -777,8 +807,10 @@ globalThis.RpgMap = {
     });
   },
 
-  // Reclaim ONE map bundle's owned resources. No global input/weather teardown — those are
-  // level-scoped. Used by level teardown. renderer.destroy() frees the terrain VBOs.
+  /**
+   * Reclaim ONE map bundle's owned resources. No global input/weather teardown — those are
+   * level-scoped. Used by level teardown. renderer.destroy() frees the terrain VBOs.
+   */
   _free(b) {
     if (b.chunks) b.chunks.destroy();
     if (b.camera) b.camera.destroy();
@@ -787,8 +819,10 @@ globalThis.RpgMap = {
     if (b.grid) b.grid.destroy();
   },
 
-  // Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
-  // go() swaps the store out so we return immediately.
+  /**
+   * Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
+   * go() swaps the store out so we return immediately.
+   */
   checkPortals(level) {
     const p = AABB.of(level.entities, level.playerId);
     // live query every doorway (Portal component) — no stored list to dangle as chunks stream
@@ -812,8 +846,10 @@ globalThis.RpgMap = {
     RpgMap.go(level, portal.toMap, portal.toEntry);
   },
 
-  // Reach-quest zone from a chunked map's authored "reach" spawn. A region, not an entity, so
-  // it's resolved once here rather than chunk-streamed.
+  /**
+   * Reach-quest zone from a chunked map's authored "reach" spawn. A region, not an entity, so
+   * it's resolved once here rather than chunk-streamed.
+   */
   _authoredReach(level, data) {
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++)

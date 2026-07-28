@@ -121,7 +121,7 @@ globalThis.UIButton = class UIButton {
     if (panel) {
       panel.alpha = this.alpha;
 
-      // ternaries only — `selected` must not be reused as a `&&`/`||` left operand (#15549).
+      // BUG: [#15549] ternaries only — `selected` must not be reused as a `&&`/`||` left operand.
       const targetColor = held
         ? this.colorPress
         : hover

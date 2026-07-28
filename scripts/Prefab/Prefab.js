@@ -68,7 +68,8 @@ globalThis.Prefab = class Prefab {
    * Spawns are shallow copies with lx/ly replaced by gx/gy — nested arrays are still SHARED with
    * the def, so a consumer deep-copies what it mutates (OverworldGen clones loot/items). Tiles/
    * zones entries share the def's type/data and carry fresh translated `rects`.
-   * @param {number} ox @param {number} oy
+   * @param {number} ox
+   * @param {number} oy
    * @returns {{ walls: number[][], tiles: PrefabTiles[], zones: PrefabZones[], spawns: Object<string, *>[] }}
    */
   stamp(ox, oy) {
@@ -195,7 +196,8 @@ globalThis.Prefab = class Prefab {
 
   /**
    * register defs (validated — throws on out-of-footprint content)
-   * @param {PrefabDef[]} defs @returns {typeof Prefab}
+   * @param {PrefabDef[]} defs
+   * @returns {typeof Prefab}
    */
   static register(defs) {
     Registry.register(Prefab, defs, (def) => {

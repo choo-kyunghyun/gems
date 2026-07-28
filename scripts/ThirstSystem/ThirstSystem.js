@@ -5,8 +5,10 @@ globalThis.ThirstSystem = {
     Survival.tick(entities, Thirst);
   },
 
-  // Drink: lower thirst by `amount`. Returns true if it changed (a full-up drink is refused); refreshes
-  // the debuff so dropping below critical clears it at once.
+  /**
+   * Drink: lower thirst by `amount`. Returns true if it changed (a full-up drink is refused); refreshes
+   * the debuff so dropping below critical clears it at once.
+   */
   restore(entities, id, amount) {
     const c = entities.get(Thirst, id);
     const changed = Survival.restore(c, amount);

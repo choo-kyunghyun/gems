@@ -73,7 +73,7 @@ globalThis.TradeUI = {
     card.insertChild(hint);
   },
 
-  // player's balance in the active merchant's currencyId (else "coin").
+  /** player's balance in the active merchant's currencyId (else "coin"). */
   _coins(level) {
     const inv = level.entities.get(Inventory, level.playerId);
     const m = level.entities.get(Merchant, level._tradeMerchantId);
@@ -81,7 +81,9 @@ globalThis.TradeUI = {
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
   },
 
-  // "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
+  /**
+   * "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
+   */
   _balanceText(level) {
     const m = level.entities.get(Merchant, level._tradeMerchantId);
     const cur = m !== undefined ? m.currencyId : "coin";
@@ -90,7 +92,7 @@ globalThis.TradeUI = {
     return nm + ": " + TradeUI._coins(level);
   },
 
-  // titled column: gold header (title + live sub-label) over the sortable table.
+  /** titled column: gold header (title + live sub-label) over the sortable table. */
   _column(titleRef, tableEl, subFn) {
     const col = new UIElement({
       flexGrow: 1,
@@ -113,7 +115,7 @@ globalThis.TradeUI = {
     return col;
   },
 
-  // per-side table. `side` ("buy"/"sell") routes the transaction direction.
+  /** per-side table. `side` ("buy"/"sell") routes the transaction direction. */
   _table(level, side) {
     return gemsTable(TradeUI._columns(side), {
       grow: true, // fill the column; reflows row count on resize
@@ -128,7 +130,7 @@ globalThis.TradeUI = {
     });
   },
 
-  // Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
+  /** Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price. */
   _columns(side) {
     const gold = gemsColor("warn");
     return [
@@ -165,8 +167,10 @@ globalThis.TradeUI = {
     ];
   },
 
-  // row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
-  // `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _act.
+  /**
+   * row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
+   * `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _act.
+   */
   _rows(level, side) {
     const entities = level.entities;
     const m = entities.get(Merchant, level._tradeMerchantId);
@@ -233,15 +237,17 @@ globalThis.TradeUI = {
       level._tradeSellTable.setRows(TradeUI._rows(level, "sell"));
   },
 
-  // single click selects; a re-click transacts (InvTable.reclick owns the gesture).
+  /** single click selects; a re-click transacts (InvTable.reclick owns the gesture). */
   _click(level, side, row) {
     if (row === null || row === undefined) return;
     if (InvTable.reclick(level._tradeClick, row, side))
       TradeUI._act(level, side, row);
   },
 
-  // transact (double-click / confirm). sell-side worn/favorited refused with a toast. a fungible
-  // stack > 1 opens the amount picker; an instance or single unit transacts immediately.
+  /**
+   * transact (double-click / confirm). sell-side worn/favorited refused with a toast. a fungible
+   * stack > 1 opens the amount picker; an instance or single unit transacts immediately.
+   */
   _act(level, side, row) {
     if (row === null || row === undefined) return;
     if (side === "sell") {
@@ -281,8 +287,10 @@ globalThis.TradeUI = {
     else TradeUI._doSell(level, row, 1);
   },
 
-  // amount picker (gemsAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
-  // closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
+  /**
+   * amount picker (gemsAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
+   * closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
+   */
   _promptAmount(level, side, row, maxQty) {
     level._tradeQtyModal = gemsAmountPicker({
       title: row.name,
@@ -322,7 +330,7 @@ globalThis.TradeUI = {
     TradeUI._after(level, res, "sold", row.itemId);
   },
 
-  // post-transaction: coin cue + refresh on success, else a toast of the refusal reason.
+  /** post-transaction: coin cue + refresh on success, else a toast of the refusal reason. */
   _after(level, res, verb, itemId) {
     if (res.amount > 0) {
       Audio.play({ sound: snd_coin });

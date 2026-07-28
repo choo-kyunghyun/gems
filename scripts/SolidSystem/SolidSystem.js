@@ -84,14 +84,16 @@ globalThis.SolidSystem = {
     }
   },
 
-  // push body out of overlapping statics along one axis (deepest correction wins).
-  // `statics` is update()'s per-tick snapshot (precomputed edges + oneWay flag), so the loop is
-  // flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
-  // statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
-  // maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
-  // may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.
-  // returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
-  // for Y, +1 means grounded.
+  /**
+   * push body out of overlapping statics along one axis (deepest correction wins).
+   * `statics` is update()'s per-tick snapshot (precomputed edges + oneWay flag), so the loop is
+   * flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
+   * statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
+   * maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
+   * may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.
+   * returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
+   * for Y, +1 means grounded.
+   */
   _resolve(pos, box, colMover, statics, v, isX) {
     const a = AABB.edges(pos, box);
 
@@ -141,7 +143,7 @@ globalThis.SolidSystem = {
     return correction < 0 ? 1 : -1;
   },
 
-  // clamp a raw cell index into the grid (column / row variants). Used by both insert + query.
+  /** clamp a raw cell index into the grid (column / row variants). Used by both insert + query. */
   _clampCol(g) {
     return g < 0 ? 0 : g >= this._cols ? this._cols - 1 : g;
   },
@@ -149,10 +151,12 @@ globalThis.SolidSystem = {
     return g < 0 ? 0 : g >= this._rows ? this._rows - 1 : g;
   },
 
-  // Bucket the per-tick static snapshot by AABB span (each static into every cell it overlaps), so
-  // _resolve scans only a body's local cells. Sized to the statics' extent (origin 0 — the world is
-  // anchored at cell 0 by the always-present border); buckets are reused across ticks, reallocated
-  // only when the SIM window resizes the grid.
+  /**
+   * Bucket the per-tick static snapshot by AABB span (each static into every cell it overlaps), so
+   * _resolve scans only a body's local cells. Sized to the statics' extent (origin 0 — the world is
+   * anchored at cell 0 by the always-present border); buckets are reused across ticks, reallocated
+   * only when the SIM window resizes the grid.
+   */
   _gridRebuild(statics) {
     let maxX = 0;
     let maxY = 0;

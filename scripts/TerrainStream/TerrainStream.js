@@ -14,7 +14,7 @@
  * @implements {RenderPass}
  */
 globalThis.TerrainStream = class TerrainStream {
-  // @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling).
+  /** @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling). */
   constructor(chunks) {
     this.enabled = true; // RenderPass
     this.chunkCols = chunks.chunkCols;
@@ -113,7 +113,9 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  // submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
+  /**
+   * submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
+   */
   draw(entities) {
     if (!this._ok) return;
     // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
@@ -133,8 +135,10 @@ globalThis.TerrainStream = class TerrainStream {
     if (lit) shader_reset();
   }
 
-  // Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with
-  // its own sprite/texture. Apron is sampled live; a material with no tiles in this chunk is skipped.
+  /**
+   * Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with
+   * its own sprite/texture. Apron is sampled live; a material with no tiles in this chunk is skipped.
+   */
   _buildChunk(rec) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -209,8 +213,10 @@ globalThis.TerrainStream = class TerrainStream {
     return out;
   }
 
-  // deterministic per-cell WEIGHTED variant frame: sine position hash walked down the material's
-  // cumulative [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
+  /**
+   * deterministic per-cell WEIGHTED variant frame: sine position hash walked down the material's
+   * cumulative [[frame, weight]] table. Pure in (gx, gy), so reloads stay stable.
+   */
   _variant(gx, gy, s) {
     let r = Math.floor(hash2(gx, gy, 374761393) * s.total);
     let k = 0;
@@ -222,12 +228,12 @@ globalThis.TerrainStream = class TerrainStream {
     return s.table[0][0];
   }
 
-  // free one chunk's per-material VBOs
+  /** free one chunk's per-material VBOs */
   _destroyChunk(list) {
     for (let i = 0; i < list.length; i++) list[i].vb.destroy();
   }
 
-  // Free every cached chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy).
+  /** Free every cached chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy). */
   destroy() {
     const keys = Object.keys(this._cache);
     for (let i = 0; i < keys.length; i++)

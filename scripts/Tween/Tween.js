@@ -6,10 +6,10 @@ globalThis.Tween = {
     return current + (target - current) * clamp(dt * speed, 0, 1);
   },
 
-  // No color helper — merge_color is unsafe to ease per frame (#15546). Ease r/g/b as FLOATS via
-  // approach() per channel (see UIButton._easeColor).
+  // BUG: [#15546] no color helper — ease r/g/b as FLOATS via approach() per channel
+  // (see UIButton._easeColor).
 
-  // easing curves: t∈[0,1] → eased [0,1]
+  /** easing curves: t∈[0,1] → eased [0,1] */
   linear(t) {
     return t;
   },
@@ -25,7 +25,7 @@ globalThis.Tween = {
   easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   },
-  // overshoots then settles — a subtle "pop" on enter.
+  /** overshoots then settles — a subtle "pop" on enter. */
   easeOutBack(t) {
     const c = 1.70158;
     const p = t - 1;

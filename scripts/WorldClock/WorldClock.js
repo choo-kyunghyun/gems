@@ -30,14 +30,16 @@ globalThis.WorldClock = {
     { h: 24, c: "#0b1133", a: 0.6 }, // wraps to midnight
   ],
 
-  // reset to the starting morning of day 1 (level create())
+  /** reset to the starting morning of day 1 (level create()) */
   reset() {
     WorldClock.hour = WorldClock.startHour;
     WorldClock.day = 1;
   },
 
-  // advance by `dt` (Time.delta), rolling the day at each midnight. `while` not an empty-for — an
-  // empty for-init crashes the GMRT compiler, and a big hitch could cross more than one midnight.
+  /**
+   * advance by `dt` (Time.delta), rolling the day at each midnight. `while` not an empty-for — an
+   * empty for-init crashes the GMRT compiler, and a big hitch could cross more than one midnight.
+   */
   update(dt) {
     WorldClock.hour += (24 / WorldClock.dayLength) * dt;
     while (WorldClock.hour >= 24) {
@@ -46,19 +48,21 @@ globalThis.WorldClock = {
     }
   },
 
-  // absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling (WorldEvents).
+  /**
+   * absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling (WorldEvents).
+   */
   absHours() {
     return (WorldClock.day - 1) * 24 + WorldClock.hour;
   },
 
-  // "HH:MM" on a 24-hour clock
+  /** "HH:MM" on a 24-hour clock */
   clockText() {
     const h = Math.floor(WorldClock.hour);
     const m = Math.floor((WorldClock.hour - h) * 60);
     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   },
 
-  // coarse phase token (night/dawn/day/dusk) for HUD glyphs / AI hooks
+  /** coarse phase token (night/dawn/day/dusk) for HUD glyphs / AI hooks */
   phase() {
     const h = WorldClock.hour;
     if (h < 5 || h >= 20) return "night";
@@ -67,22 +71,26 @@ globalThis.WorldClock = {
     return "dusk";
   },
 
-  // current season def, derived purely from `day` (each spans daysPerSeason days, cycling forever)
+  /**
+   * current season def, derived purely from `day` (each spans daysPerSeason days, cycling forever)
+   */
   season() {
     const i = Math.floor((WorldClock.day - 1) / WorldClock.daysPerSeason) % 4;
     return WorldClock._SEASONS[i];
   },
 
-  // day within the current season, 1-based (the HUD's "Day 3")
+  /** day within the current season, 1-based (the HUD's "Day 3") */
   seasonDay() {
     return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
   },
 
-  // Directional sun for mesh lighting (RenderMesh's injected `sun` provider): a flat
-  // { x, y, z, strength, r, g, b } — unit vector TOWARD the sun (up = -z), strength 0 at
-  // night (meshes fall to ambient + point lights), color warmed toward dawn/dusk. The sun
-  // rises east (+x), sets west (-x), with a constant southward lean so the camera-side
-  // faces still catch light at midday.
+  /**
+   * Directional sun for mesh lighting (RenderMesh's injected `sun` provider): a flat
+   * { x, y, z, strength, r, g, b } — unit vector TOWARD the sun (up = -z), strength 0 at
+   * night (meshes fall to ambient + point lights), color warmed toward dawn/dusk. The sun
+   * rises east (+x), sets west (-x), with a constant southward lean so the camera-side
+   * faces still catch light at midday.
+   */
   sunDir() {
     const h = WorldClock.hour;
     if (h < 6 || h > 18)
@@ -107,8 +115,10 @@ globalThis.WorldClock = {
     };
   },
 
-  // day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
-  // Color.parse/merge from a method is fine — a field initializer would be load-order-sensitive.
+  /**
+   * day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
+   * Color.parse/merge from a method is fine — a field initializer would be load-order-sensitive.
+   */
   tint() {
     const kf = WorldClock._KF;
     const h = WorldClock.hour;

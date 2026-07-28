@@ -21,12 +21,14 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 // create()/resume()/destroy() (see sceneRpg).
 
 globalThis.PlayerSystem = {
-  // register the RPG keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
-  // guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
-  //
-  // tags (set by sceneRpg each frame): movement live everywhere; fire "play"-only so it self-mutes
-  // while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
-  // build/follow inert with a window open. See InputContext / inContext.
+  /**
+   * register the RPG keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
+   * guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
+   *
+   * tags (set by sceneRpg each frame): movement live everywhere; fire "play"-only so it self-mutes
+   * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
+   * build/follow inert with a window open. See InputContext / inContext.
+   */
   bindKeys() {
     const ANYWHERE = ["play", "build", "window"];
     Input.bindAll({
@@ -109,20 +111,22 @@ globalThis.PlayerSystem = {
     });
   },
 
-  // resolve THE player entity live by query (never a stored id — a map transfer can't dangle
-  // it); -1 when no Playable entity exists. sceneRpg latches it per frame as level.playerId.
+  /**
+   * resolve THE player entity live by query (never a stored id — a map transfer can't dangle
+   * it); -1 when no Playable entity exists. sceneRpg latches it per frame as level.playerId.
+   */
   id(entities) {
     const ids = entities.query(Playable);
     return ids.length > 0 ? ids[0] : -1;
   },
 
-  // once per tick, from the physics Pipeline: drive every Playable entity
+  /** once per tick, from the physics Pipeline: drive every Playable entity */
   update(entities) {
     const ids = entities.query(Playable);
     for (let i = 0; i < ids.length; i++) PlayerSystem._drive(entities, ids[i]);
   },
 
-  // the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state
+  /** the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state */
   _drive(entities, id) {
     const pl = entities.get(Playable, id);
     let dx =
@@ -154,8 +158,7 @@ globalThis.PlayerSystem = {
       PathFollow.speedScale(pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
-    // NOTE: do NOT cache `len > 0` in a `moving` boolean local — the `&&` below clobbers it (the
-    // &&-clobber quirk, #15549). Recompute live.
+    // BUG: [#15549] do NOT cache `len > 0` in a `moving` boolean local — recompute live.
     const sprinting = StaminaSystem.sprint(
       entities,
       id,
@@ -257,15 +260,19 @@ globalThis.PlayerSystem = {
     }
   },
 
-  // dry-click cue for a gun with no round to fire. Edge-gated: the fire key is held-polled
-  // (.down()), so an un-gated cue would repeat every tick while the trigger is held.
+  /**
+   * dry-click cue for a gun with no round to fire. Edge-gated: the fire key is held-polled
+   * (.down()), so an un-gated cue would repeat every tick while the trigger is held.
+   */
   _dryClick() {
     if (Input.get("fire").pressed()) Audio.play({ sound: snd_gun_uncocked });
   },
 
-  // fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
-  // gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
-  // chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
+  /**
+   * fire the equipped gun: spend a round, hitscan along the aim, set cooldown. `wpn` is the composed
+   * gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
+   * chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
+   */
   _fireGun(entities, id, pl, slot, wpn, dir, attack) {
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
@@ -311,7 +318,7 @@ globalThis.PlayerSystem = {
     pl.attackCd = RPG_ATTACK_ANIM;
   },
 
-  // drop the keymap (level destroy; a guest's own unbind is why resume() re-runs bindKeys)
+  /** drop the keymap (level destroy; a guest's own unbind is why resume() re-runs bindKeys) */
   unbind() {
     const keys = [
       "moveLeft",

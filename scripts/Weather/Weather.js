@@ -88,8 +88,10 @@ globalThis.Weather = {
   _timer: 0, // real seconds until the next re-roll
   _time: 0, // cumulative SIM seconds — the clock the weather VISUALS scroll on (see time())
 
-  // Flat save state: the whole sky is these eight scalars (see fields above). No _sync() on import —
-  // the fields fully define the sky, and the next update() re-syncs from them.
+  /**
+   * Flat save state: the whole sky is these eight scalars (see fields above). No _sync() on import —
+   * the fields fully define the sky, and the next update() re-syncs from them.
+   */
   export() {
     return {
       ambient: Weather._ambient,
@@ -115,7 +117,7 @@ globalThis.Weather = {
     Weather._time = d.time;
   },
 
-  // reset to a settled clear sky, no region override (level create() once)
+  /** reset to a settled clear sky, no region override (level create() once) */
   reset() {
     Weather._ambient = "clear";
     Weather._override = null;
@@ -127,7 +129,9 @@ globalThis.Weather = {
     Weather._time = 0;
   },
 
-  // advance by `dt` (Time.delta): re-roll ambient on hold expiry, recompute effective, ease the cross-fade
+  /**
+   * advance by `dt` (Time.delta): re-roll ambient on hold expiry, recompute effective, ease the cross-fade
+   */
   update(dt) {
     Weather._time += dt;
     Weather._timer -= dt;
@@ -142,7 +146,7 @@ globalThis.Weather = {
     }
   },
 
-  // climate-zone enter: force a condition + temperature offset while inside
+  /** climate-zone enter: force a condition + temperature offset while inside */
   enterRegion(zone) {
     const d = zone.data;
     Weather._override =
@@ -151,14 +155,14 @@ globalThis.Weather = {
     Weather._sync();
   },
 
-  // climate-zone exit: back to the open-sky ambient
+  /** climate-zone exit: back to the open-sky ambient */
   exitRegion() {
     Weather._override = null;
     Weather._regionTemp = 0;
     Weather._sync();
   },
 
-  // recompute effective (override ?? ambient); begin a cross-fade if it changed
+  /** recompute effective (override ?? ambient); begin a cross-fade if it changed */
   _sync() {
     const eff =
       Weather._override !== null ? Weather._override : Weather._ambient;
@@ -175,8 +179,10 @@ globalThis.Weather = {
     );
   },
 
-  // season-weighted pick excluding the current ambient (so it changes); for...in over a plain
-  // object is GMRT-safe (Map/Set iteration is not)
+  /**
+   * season-weighted pick excluding the current ambient (so it changes); for...in over a plain
+   * object is GMRT-safe (Map/Set iteration is not)
+   */
   _rollAmbient() {
     const w = Weather._WEIGHTS[WorldClock.season().id];
     let total = 0;
@@ -198,15 +204,17 @@ globalThis.Weather = {
     return ids[ids.length - 1];
   },
 
-  // cumulative sim-time clock (seconds) the weather visuals scroll on: RenderWeather's particle
-  // fall and RenderCloudShadow's drift both multiply speeds by this, so they FREEZE on pause and
-  // dilate with Time.scale, matching the condition transitions. A plain method, not a getter —
-  // house style, not a runtime dodge.
+  /**
+   * cumulative sim-time clock (seconds) the weather visuals scroll on: RenderWeather's particle
+   * fall and RenderCloudShadow's drift both multiply speeds by this, so they FREEZE on pause and
+   * dilate with Time.scale, matching the condition transitions. A plain method, not a getter —
+   * house style, not a runtime dodge.
+   */
   time() {
     return Weather._time;
   },
 
-  // reads for HUD / Temperature / RenderWeather
+  /** reads for HUD / Temperature / RenderWeather */
   current() {
     return Weather._COND[Weather._cur];
   }, // target condition (HUD name)
@@ -217,7 +225,9 @@ globalThis.Weather = {
     return Weather._blend;
   }, // 0..1 incoming weight
 
-  // blended Kelvin temp delta (outgoing → incoming) + the climate-zone offset; folded into Temperature.now()
+  /**
+   * blended Kelvin temp delta (outgoing → incoming) + the climate-zone offset; folded into Temperature.now()
+   */
   tempMod() {
     const p = Weather._COND[Weather._prev].temp;
     const c = Weather._COND[Weather._cur].temp;

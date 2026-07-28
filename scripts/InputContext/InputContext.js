@@ -25,7 +25,9 @@ globalThis.InputContext = {
     if (InputContext._stack.length > 1) InputContext._stack.pop();
   },
 
-  // replace top in place; pushes instead when only the base remains, so a forgotten push() can't clobber "default".
+  /**
+   * replace top in place; pushes instead when only the base remains, so a forgotten push() can't clobber "default".
+   */
   set(name) {
     if (InputContext._stack.length === 1) InputContext._stack.push(name);
     else InputContext._stack[InputContext._stack.length - 1] = name;

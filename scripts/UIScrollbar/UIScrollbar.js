@@ -21,8 +21,11 @@ globalThis.UIScrollbar = class UIScrollbar {
   /**
    * track/thumb geometry for a bar at (x, y, h) showing `view` of `total` units with the
    * current scroll at t ∈ [0,1]. Same shape consumed by input() and draw().
-   * @param {number} x @param {number} y @param {number} h track height (px)
-   * @param {number} view visible extent @param {number} total content extent (same unit)
+   * @param {number} x
+   * @param {number} y
+   * @param {number} h track height (px)
+   * @param {number} view visible extent
+   * @param {number} total content extent (same unit)
    * @param {number} t current scroll position, normalized
    * @returns {{x:number, y:number, h:number, thumbH:number, thumbY:number}}
    */
@@ -38,7 +41,9 @@ globalThis.UIScrollbar = class UIScrollbar {
    * UIPointer edges (poll-once rule). `hoverGate` = extra hit-test condition the host
    * imposes (UIScroll also requires the pointer inside its viewport; pass true otherwise).
    * @param {{x:number, y:number, h:number, thumbH:number, thumbY:number}} m
-   * @param {number} mx @param {number} my @param {boolean} hoverGate
+   * @param {number} mx
+   * @param {number} my
+   * @param {boolean} hoverGate
    * @returns {number} the dragged position t ∈ [0,1], or -1 when not dragging
    */
   input(m, mx, my, hoverGate) {

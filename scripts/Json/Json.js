@@ -41,7 +41,8 @@ globalThis.Json = {
    * `opt.pretty` switches to the hand-editable form for files a human reads and diffs
    * (LevelSerializer's level files): 2-space indent, one object key per line, and pure-scalar
    * arrays kept INLINE so a `[x, y, w, h]` rect stays one line. Save games stay compact.
-   * @param {*} v @param {{pretty?: boolean}} [opt]
+   * @param {*} v
+   * @param {{pretty?: boolean}} [opt]
    * @returns {string|undefined} undefined after a step-cap abort (Log.error'd) —
    *   truncated output is never handed back for a caller to persist as if complete.
    */
@@ -62,7 +63,7 @@ globalThis.Json = {
     return out.join("");
   },
 
-  // pretty form keeps an all-scalar array inline; a null element counts as scalar.
+  /** pretty form keeps an all-scalar array inline; a null element counts as scalar. */
   _inlineArray(v) {
     for (let i = 0; i < v.length; i++) {
       const e = v[i];
@@ -71,15 +72,17 @@ globalThis.Json = {
     return true;
   },
 
-  // Is `v` an ancestor on the current DFS path? (=== identity scan — no object-keyed Set/Map).
+  /** Is `v` an ancestor on the current DFS path? (=== identity scan — no object-keyed Set/Map). */
   _onPath(v, ctx) {
     const p = ctx.path;
     for (let i = 0; i < p.length; i++) if (p[i] === v) return true;
     return false;
   },
 
-  // append the encoding of v onto the `out` chunk array (join once at the top — O(n)).
-  // `ctx.path` is the ancestor chain on the CURRENT path (DFS cycle detection).
+  /**
+   * append the encoding of v onto the `out` chunk array (join once at the top — O(n)).
+   * `ctx.path` is the ancestor chain on the CURRENT path (DFS cycle detection).
+   */
   _enc(v, out, ctx) {
     if (ctx.aborted) return;
     if (++ctx.steps > Json._MAX_STEPS) {
@@ -180,7 +183,8 @@ globalThis.Json = {
   /**
    * Parse a string produced by encode() (or any compatible JSON) back to a value, reviving
    * {"$spr": name} tags to live sprite refs. Returns undefined if the text is not valid JSON.
-   * @param {string} s @returns {*}
+   * @param {string} s
+   * @returns {*}
    */
   decode(s) {
     let root;
@@ -192,10 +196,12 @@ globalThis.Json = {
     return Json._revive(root);
   },
 
-  // Walk a freshly-parsed tree, replacing {"$spr": name} sentinels with the resolved ref.
-  // A missing sprite resolves to asset_get_index's -1 sentinel — existing draw code already
-  // sprite_exists-guards, so a save from a build whose art was since removed degrades
-  // gracefully rather than faulting here. Parsed JSON is always a tree (no cycles), so no guard.
+  /**
+   * Walk a freshly-parsed tree, replacing {"$spr": name} sentinels with the resolved ref.
+   * A missing sprite resolves to asset_get_index's -1 sentinel — existing draw code already
+   * sprite_exists-guards, so a save from a build whose art was since removed degrades
+   * gracefully rather than faulting here. Parsed JSON is always a tree (no cycles), so no guard.
+   */
   _revive(v) {
     if (v === null || typeof v !== "object") return v;
     if (Array.isArray(v)) {

@@ -1,7 +1,7 @@
 // platformer enemy patrol + hit resolution. run update/resolveStomp/resolveTouch AFTER
 // SolidSystem so they read final positions. enemies have no Health/loot.
 globalThis.EnemySystem = {
-  // reverse on wall (vel.x zeroed by SolidSystem), then drive walk vel. no ledge probing.
+  /** reverse on wall (vel.x zeroed by SolidSystem), then drive walk vel. no ledge probing. */
   update(entities) {
     for (const id of entities.query(Enemy, Velocity)) {
       const en = entities.get(Enemy, id);
@@ -11,8 +11,10 @@ globalThis.EnemySystem = {
     }
   },
 
-  // enemies are dynamic-vs-dynamic (overlap, not block); entities.remove is deferred so
-  // mid-iteration removal is safe. returns true if any enemy was defeated.
+  /**
+   * enemies are dynamic-vs-dynamic (overlap, not block); entities.remove is deferred so
+   * mid-iteration removal is safe. returns true if any enemy was defeated.
+   */
   resolveStomp(entities, playerId) {
     const pvel = entities.get(Velocity, playerId);
     if (pvel.y <= 0) return false; // only when descending
@@ -28,7 +30,7 @@ globalThis.EnemySystem = {
     return stomped;
   },
 
-  // pure detection; caller handles respawn + i-frames
+  /** pure detection; caller handles respawn + i-frames */
   resolveTouch(entities, playerId, invincible) {
     if (invincible) return false;
     const p = AABB.of(entities, playerId);

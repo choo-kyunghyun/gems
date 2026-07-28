@@ -13,7 +13,11 @@
 globalThis.Blueprint = {
   /**
    * Capture the builds inside a cell rect into a plan (offsets relative to x1,y1).
-   * @param {Object} level @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+   * @param {Object} level
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
    * @param {{ withState?: boolean }} [opts] withState → include each entity's exact snapshot
    * @returns {Object} the plan
    */
@@ -47,7 +51,10 @@ globalThis.Blueprint = {
    * Stamp a plan with its origin at cell (ox, oy). Tiles go down first (so a door reads its
    * finished neighboring walls), then entities; the single solid (wall) layer is remeshed once at
    * the end rather than per tile. Ungated — the caller decides validity/cost.
-   * @param {Object} level @param {number} ox @param {number} oy @param {Object} plan
+   * @param {Object} level
+   * @param {number} ox
+   * @param {number} oy
+   * @param {Object} plan
    * @returns {number} pieces placed
    */
   stamp(level, ox, oy, plan) {

@@ -1,9 +1,11 @@
 // Maps carried weight → speed multiplier, delivered via a maintained "encumbered" status (not by the
 // mover directly), so it composes with other speed statuses; the mover reads StatusSystem.scale(speed).
 globalThis.EncumbranceSystem = {
-  // Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
-  // live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the
-  // mover reads scale.
+  /**
+   * Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
+   * live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the
+   * mover reads scale.
+   */
   update(entities) {
     const ids = entities.query(Encumbrance, Inventory);
     for (let i = 0; i < ids.length; i++) {
@@ -18,8 +20,10 @@ globalThis.EncumbranceSystem = {
     }
   },
 
-  // Speed multiplier in [minScale, 1] from current load. Returns 1 (no penalty) without
-  // Encumbrance/Inventory/maxWeight, or below `threshold`; linear from threshold to minScale at full.
+  /**
+   * Speed multiplier in [minScale, 1] from current load. Returns 1 (no penalty) without
+   * Encumbrance/Inventory/maxWeight, or below `threshold`; linear from threshold to minScale at full.
+   */
   scale(entities, id) {
     const enc = entities.get(Encumbrance, id);
     if (enc === undefined) return 1;

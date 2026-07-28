@@ -20,9 +20,11 @@ globalThis.Combat = {
     return dealt;
   },
 
-  // instant hitscan along (x0,y0)→(x1,y1). walks hits in order; ally/wall blocks, hostile takes
-  // damage. `pierce` = max targets hit (default 1). returns { x, y, hits } (endpoint + struck ids).
-  //   opts: { owner, damage, penetration? (default 0), pierce? (default 1) }
+  /**
+   * instant hitscan along (x0,y0)→(x1,y1). walks hits in order; ally/wall blocks, hostile takes
+   * damage. `pierce` = max targets hit (default 1). returns { x, y, hits } (endpoint + struck ids).
+   *   opts: { owner, damage, penetration? (default 0), pierce? (default 1) }
+   */
   hitscan(entities, x0, y0, x1, y1, opts) {
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;

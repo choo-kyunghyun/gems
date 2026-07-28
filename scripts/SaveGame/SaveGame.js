@@ -27,8 +27,10 @@ globalThis.SaveGame = {
   // are re-derived each tick; dropping them shrinks the save and avoids a cyclic runtime ref).
   _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse"],
 
-  // Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
-  // the active map, etc. (locked in when restore lands).
+  /**
+   * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
+   * the active map, etc. (locked in when restore lands).
+   */
   frame() {
     if (SaveGame._frame === null) {
       SaveGame._frame = new Snapshot();
@@ -96,7 +98,8 @@ globalThis.SaveGame = {
   /**
    * Read a slot's bundle off disk and PARK it for the RPG level's create() load-branch (the
    * actual reconstruction needs a fresh level). The caller then boots/switches to SceneRpg.
-   * @param {string} slot @returns {boolean} false if the slot can't be read
+   * @param {string} slot
+   * @returns {boolean} false if the slot can't be read
    */
   load(slot) {
     const dir = SaveGame.DIR + slot + "/";
@@ -142,7 +145,9 @@ globalThis.SaveGame = {
     Log.info("SaveGame: restored slot '" + p.slot + "'");
   },
 
-  // stash every saved map so each map's build consumes its own state (active now, others on portal).
+  /**
+   * stash every saved map so each map's build consumes its own state (active now, others on portal).
+   */
   _stashPending(maps) {
     SaveGame._pendingMaps = {};
     for (let i = 0; i < maps.length; i++)
@@ -167,7 +172,8 @@ globalThis.SaveGame = {
    * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
    * the store export, so a chest keeps its contents). Shared by the active-map restore and every
    * parked map's first build. The deep chunk cache is applied earlier, inside build().
-   * @param {Object} level @param {Object} savedMap a manifest maps[] entry
+   * @param {Object} level
+   * @param {Object} savedMap a manifest maps[] entry
    */
   applyMapState(level, savedMap) {
     const zones = savedMap.zones;
@@ -178,7 +184,9 @@ globalThis.SaveGame = {
     Blueprint.stamp(level, 0, 0, SaveGame._buildPlan(savedMap));
   },
 
-  // index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
+  /**
+   * index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
+   */
   _writeIndex(slot, meta) {
     const idx = SaveGame._readIndex();
     idx.slots[slot] = meta;
@@ -298,11 +306,13 @@ globalThis.SaveGame = {
       }
       ctx.manifest.maps = maps;
     },
-    // v1 (Full-session): rebuild the ACTIVE map fresh from file and re-arrive the SAVED squad
-    // (player + companions) through the existing portal-transfer machinery, then drop the player
-    // back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
-    // Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
-    // parked map restores when first portaled to rather than up front.
+    /**
+     * v1 (Full-session): rebuild the ACTIVE map fresh from file and re-arrive the SAVED squad
+     * (player + companions) through the existing portal-transfer machinery, then drop the player
+     * back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
+     * Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
+     * parked map restores when first portaled to rather than up front.
+     */
     restore(ctx) {
       const level = ctx.level;
       const manifest = ctx.manifest;
@@ -348,10 +358,12 @@ globalThis.SaveGame = {
 
   // ── helpers ──
 
-  // Zone channels (JSON — zones are sparse regions, and zoneMap.export() is the disk-safe form the
-  // level editor already writes). The resident TILE grid is NOT captured: it holds player builds
-  // only, and those replay exactly from `built` via Blueprint.stamp on restore (file tiles come back
-  // from the file), so a raw grid blob would be dead weight.
+  /**
+   * Zone channels (JSON — zones are sparse regions, and zoneMap.export() is the disk-safe form the
+   * level editor already writes). The resident TILE grid is NOT captured: it holds player builds
+   * only, and those replay exactly from `built` via Blueprint.stamp on restore (file tiles come back
+   * from the file), so a raw grid blob would be dead weight.
+   */
   _zonesOf(grid) {
     const zones = {};
     const keys = Object.keys(grid.zoneMaps);
@@ -363,8 +375,10 @@ globalThis.SaveGame = {
   // ── menu UI (injected into SystemMenu as an extra tab; see obj_game Create_0) ──
   SLOTS: 3, // fixed named save slots shown in the menu
 
-  // Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
-  // Called fresh on each menu open, so the rows reflect the current index.
+  /**
+   * Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
+   * Called fresh on each menu open, so the rows reflect the current index.
+   */
   buildMenuTab() {
     const scroll = gemsScroll({ grow: true });
     const sec = gemsSection(I18n.textRef("SAVE_TITLE"));
@@ -430,7 +444,9 @@ globalThis.SaveGame = {
     );
   },
 
-  // the current level if it's saveable (has an entity store + player), else null — Save is gated on it.
+  /**
+   * the current level if it's saveable (has an entity store + player), else null — Save is gated on it.
+   */
   _saveable() {
     const s = World.levels.current;
     if (
@@ -468,9 +484,11 @@ globalThis.SaveGame = {
 
   // ── restore helpers: pull entities back out of a store export ──
 
-  // Drop a chunk manager's live SIM entities from a store export (they're saved in the chunk cache
-  // instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
-  // as-is (restore reads specific entities out, never re-imports the whole export).
+  /**
+   * Drop a chunk manager's live SIM entities from a store export (they're saved in the chunk cache
+   * instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
+   * as-is (restore reads specific entities out, never re-imports the whole export).
+   */
   _excludeChunkOwned(exp, chunks) {
     const ids = chunks.entityIds();
     if (ids.length === 0) return;
@@ -486,7 +504,9 @@ globalThis.SaveGame = {
     }
   },
 
-  // the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
+  /**
+   * the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
+   */
   _entryAt(entries, idx) {
     if (entries === undefined) return undefined;
     for (let i = 0; i < entries.length; i++)
@@ -494,8 +514,10 @@ globalThis.SaveGame = {
     return undefined;
   },
 
-  // rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
-  // EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.levels.put) consume.
+  /**
+   * rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
+   * EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.levels.put) consume.
+   */
   _recordAt(exp, idx) {
     const comps = {};
     const toks = Object.keys(exp.components);
@@ -506,8 +528,10 @@ globalThis.SaveGame = {
     return { components: comps };
   },
 
-  // the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
-  // RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+  /**
+   * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
+   * RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   */
   _extractSquad(exp) {
     const players = exp.components["Playable"];
     if (players === undefined || players.length === 0) return null;
@@ -529,9 +553,11 @@ globalThis.SaveGame = {
     return out;
   },
 
-  // Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
-  // entity carrying its EXACT snapshot pulled from the store export (so a built chest keeps its
-  // contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
+  /**
+   * Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
+   * entity carrying its EXACT snapshot pulled from the store export (so a built chest keeps its
+   * contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
+   */
   _buildPlan(active) {
     const built = active.built !== undefined ? active.built : {};
     const be = active.builtEnts !== undefined ? active.builtEnts : {};
@@ -554,14 +580,14 @@ globalThis.SaveGame = {
     return { w: 0, h: 0, tiles, ents };
   },
 
-  // the player's saved Position, for repositioning after the entry arrival.
+  /** the player's saved Position, for repositioning after the entry arrival. */
   _playerPos(exp) {
     const players = exp.components["Playable"];
     if (players === undefined || players.length === 0) return null;
     return SaveGame._entryAt(exp.components["Position"], players[0][0]) ?? null;
   },
 
-  // sum of the currency item in a bag (for the metadata card).
+  /** sum of the currency item in a bag (for the metadata card). */
   _credits(inv) {
     let n = 0;
     const slots = inv.slots;

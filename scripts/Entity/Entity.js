@@ -120,7 +120,8 @@ globalThis.Entity = class Entity {
    * On-demand — call from a temp harness when needed. Uses the Json codec:
    * native JSON.stringify faults on nested data (GMRT.md #15565), and Json's
    * cycle/ref guards make dumping raw runtime state safe.
-   * @param {number|number[]} idOrIds @param {string} [file="entity.json"]
+   * @param {number|number[]} idOrIds
+   * @param {string} [file="entity.json"]
    * @returns {string|undefined} undefined when the encode aborted (nothing written)
    */
   dump(idOrIds, file = "entity.json") {

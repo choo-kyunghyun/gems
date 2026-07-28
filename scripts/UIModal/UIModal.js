@@ -31,7 +31,7 @@ globalThis.UIModal = class UIModal {
     this._apply(0); // start hidden before the first draw
   }
 
-  // visibility factor f∈[0,1]: 0 = hidden, 1 = shown.
+  /** visibility factor f∈[0,1]: 0 = hidden, 1 = shown. */
   _apply(f) {
     if (this._backdrop !== undefined && this._backdrop !== null) {
       this._backdrop.alpha = this._dim * f;

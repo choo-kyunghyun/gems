@@ -71,7 +71,7 @@ globalThis.RenderWeather = class RenderWeather {
     draw_set_alpha(alpha);
   }
 
-  // draw one condition at `intensity` over the view rect: tint, then particles
+  /** draw one condition at `intensity` over the view rect: tint, then particles */
   _layer(cond, intensity, x1, y1, w, h) {
     if (intensity <= 0) return;
     if (cond.a > 0) {
@@ -85,7 +85,7 @@ globalThis.RenderWeather = class RenderWeather {
       this._snow(cond, intensity, x1, y1, w, h);
   }
 
-  // Falling rain streaks: fast vertical fall + a mild leftward wind.
+  /** Falling rain streaks: fast vertical fall + a mild leftward wind. */
   _rain(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
@@ -107,7 +107,7 @@ globalThis.RenderWeather = class RenderWeather {
     }
   }
 
-  // Drifting snow flakes: gentle fall + a uniform sideways wind.
+  /** Drifting snow flakes: gentle fall + a uniform sideways wind. */
   _snow(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;

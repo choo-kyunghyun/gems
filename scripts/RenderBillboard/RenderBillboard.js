@@ -84,11 +84,13 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
-  // one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
-  // (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
-  // OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
-  // it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
-  // which layers share — the shader lights every layer identically (same uniforms).
+  /**
+   * one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
+   * (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
+   * OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
+   * it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
+   * which layers share — the shader lights every layer identically (same uniforms).
+   */
   _drawLayer(layer, visual, rp, tiltDeg, dy) {
     matrix_set(
       matrix_world,

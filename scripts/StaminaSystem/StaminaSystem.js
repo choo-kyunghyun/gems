@@ -5,8 +5,10 @@ globalThis.StaminaSystem = {
   REGEN: 22, // stamina/sec recovered while not sprinting (~4.5s to full)
   RECOVER: 0.3, // when emptied, sprint unlocks once stamina refills to this fraction of max
 
-  // `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
-  // reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
+  /**
+   * `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
+   * reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
+   */
   sprint(entities, id, wantSprint) {
     const sta = entities.get(Stamina, id);
     if (sta === undefined) return false;

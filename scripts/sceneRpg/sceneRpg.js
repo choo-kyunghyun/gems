@@ -9,14 +9,16 @@ const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bott
 const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
 const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
-// factory so the level editor's Test Play can open this level; same ref LevelManager labels use
+/** factory so the level editor's Test Play can open this level; same ref LevelManager labels use */
 globalThis.SceneRpg = () => new _SceneRpgClass();
 LevelRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),
   category: "SCENE_CAT_RPG",
 });
 
-// standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Level).
+/**
+ * standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Level).
+ */
 class _SceneRpgClass {
   label = "RPG";
 
@@ -206,8 +208,10 @@ class _SceneRpgClass {
     );
   }
 
-  // Build the persistent UI tree. Reads entities/playerId LIVE (survives RpgMap.go's store swap) and
-  // holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
+  /**
+   * Build the persistent UI tree. Reads entities/playerId LIVE (survives RpgMap.go's store swap) and
+   * holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
+   */
   _buildUI() {
     this.ui = gemsRoot();
     UI.insert(this.ui);
@@ -257,9 +261,11 @@ class _SceneRpgClass {
     BuildMode.build(this); // grid build mode (HUD + per-level state)
   }
 
-  // Live theme swap (LevelManager.retheme): close any open transient window/build/sleep via the
-  // existing Esc chain — cheaper + safer than re-applying each window's state onto fresh elements —
-  // then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
+  /**
+   * Live theme swap (LevelManager.retheme): close any open transient window/build/sleep via the
+   * existing Esc chain — cheaper + safer than re-applying each window's state onto fresh elements —
+   * then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
+   */
   retheme() {
     // BOUNDED: a qty-picker modal's close() doesn't null its field synchronously, so an unbounded
     // loop could spin (GMRT hangs, no crash). 8 covers every stacked window type; close() is idempotent.
@@ -272,13 +278,15 @@ class _SceneRpgClass {
     this._buildUI();
   }
 
-  // THE reference orchestration for a genre level — the shape, not just this game's order:
-  //   once per frame   window edge-toggles, input context, sleep check (all before the loop)
-  //   per tick         snapshot -> the physics Pipeline (headed by the player brain) -> damage,
-  //                    death, drops, quest/achievement checks -> flush
-  //   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
-  //   LAST             portals — a door swaps the store out from under everything above
-  // Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
+  /**
+   * THE reference orchestration for a genre level — the shape, not just this game's order:
+   *   once per frame   window edge-toggles, input context, sleep check (all before the loop)
+   *   per tick         snapshot -> the physics Pipeline (headed by the player brain) -> damage,
+   *                    death, drops, quest/achievement checks -> flush
+   *   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
+   *   LAST             portals — a door swaps the store out from under everything above
+   * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
+   */
   step() {
     // no pause gate — obj_game skips level.step() while the SystemMenu is open
 
@@ -485,7 +493,7 @@ class _SceneRpgClass {
           { slot: "trinket", labelKey: "SLOT_TRINKET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
         ],
-        // genre extraRows hook: a kills/items/quests records line below the stats
+        /** genre extraRows hook: a kills/items/quests records line below the stats */
         extraRows: (level, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
@@ -532,7 +540,9 @@ class _SceneRpgClass {
     RpgMap.checkPortals(this);
   }
 
-  // number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
+  /**
+   * number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
+   */
   _useHotbar() {
     const hb = this.entities.get(Hotbar, this.playerId);
     if (hb === undefined) return;
@@ -545,12 +555,14 @@ class _SceneRpgClass {
     }
   }
 
-  // reveal the hotbar HUD and refresh its auto-hide countdown
+  /** reveal the hotbar HUD and refresh its auto-hide countdown */
   _showHotbar() {
     this._hotbarTimer = RPG_HOTBAR_HUD_SECS;
   }
 
-  // is an instance of itemId equipped? (drives useItem's equip/unequip toggle; resolves the worn uid back to itemId)
+  /**
+   * is an instance of itemId equipped? (drives useItem's equip/unequip toggle; resolves the worn uid back to itemId)
+   */
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
@@ -564,8 +576,10 @@ class _SceneRpgClass {
     return inst !== undefined && inst.itemId === itemId;
   }
 
-  // pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
-  // "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
+  /**
+   * pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
+   * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
+   */
   _onCollect(itemId, got) {
     const pp = this.entities.get(Position, this.playerId);
     // pickup blip (spatial, ~centred)
@@ -579,8 +593,10 @@ class _SceneRpgClass {
     );
   }
 
-  // F: toggle the nearest in-reach SQUAD companion between follow and wait. Waiting is map-local
-  // ("hold here for now") — a portal forces every member back to follow (see RpgMap.go).
+  /**
+   * F: toggle the nearest in-reach SQUAD companion between follow and wait. Waiting is map-local
+   * ("hold here for now") — a portal forces every member back to follow (see RpgMap.go).
+   */
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
     const p = this.entities.get(Position, this.playerId);
@@ -614,8 +630,10 @@ class _SceneRpgClass {
     }
   }
 
-  // Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
-  // with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
+  /**
+   * Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
+   * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
+   */
   _kickFollower(fid) {
     if (this.entities.get(Squad, fid) === undefined) return; // not a member
     if (this.entities.get(Downed, fid) !== undefined) return; // recovering — can't kick mid-revive
@@ -624,8 +642,10 @@ class _SceneRpgClass {
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
-  // world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
-  // (rect settlement → centroid lands inside). The downed-companion recovery anchor.
+  /**
+   * world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
+   * (rect settlement → centroid lands inside). The downed-companion recovery anchor.
+   */
   _settlementSpot() {
     const owned = Settlement.all(this.grid);
     for (let i = 0; i < owned.length; i++)
@@ -634,15 +654,19 @@ class _SceneRpgClass {
     return null;
   }
 
-  // start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
-  // _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
+  /**
+   * start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
+   * _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
+   */
   _sleep() {
     this._sleeping = true;
     this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
   }
 
-  // any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;
-  // UIPointer.pressed is the latched LMB edge for the frame.
+  /**
+   * any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;
+   * UIPointer.pressed is the latched LMB edge for the frame.
+   */
   _wakeInput() {
     return (
       keyboard_check_pressed(vk_anykey) ||
@@ -653,12 +677,12 @@ class _SceneRpgClass {
     );
   }
 
-  // where a downed companion revives: the player's settlement, else map spawn
+  /** where a downed companion revives: the player's settlement, else map spawn */
   _recoverSpot() {
     return this._settlementSpot() ?? { x: this.spawn.x, y: this.spawn.y };
   }
 
-  // Display name of a companion (for the down/recover toasts).
+  /** Display name of a companion (for the down/recover toasts). */
   _followerName(id) {
     const nm = this.entities.get(Name, id);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
@@ -675,8 +699,10 @@ class _SceneRpgClass {
     }
   }
 
-  // track the player's climate cell (direct lookup beats ZoneSystem's sweep) and push/clear the
-  // Weather override on a border cross. No-op without a "climate" channel.
+  /**
+   * track the player's climate cell (direct lookup beats ZoneSystem's sweep) and push/clear the
+   * Weather override on a border cross. No-op without a "climate" channel.
+   */
   _updateClimate() {
     const cmap = this.grid.zoneMap("climate");
     if (cmap === undefined) return;
@@ -689,9 +715,11 @@ class _SceneRpgClass {
     else Weather.enterRegion(cmap.zone(id));
   }
 
-  // THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
-  // close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
-  // Caller checks isReady first; complete() is what marks it done.
+  /**
+   * THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
+   * close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
+   * Caller checks isReady first; complete() is what marks it done.
+   */
   _completeQuest(qid) {
     RpgProgression.applyReward(this, QuestLog.complete(qid));
     Profile.add("questsCompleted", 1);
@@ -701,14 +729,16 @@ class _SceneRpgClass {
     );
   }
 
-  // Auto turn-in for the passive (non-NPC) quests once their objectives are met.
+  /** Auto turn-in for the passive (non-NPC) quests once their objectives are met. */
   _tryTurnIn(qid) {
     if (QuestLog.isReady(qid)) this._completeQuest(qid);
   }
 
-  // The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
-  // content rules (RpgAchievements), which turn met thresholds into Achievement.unlock requests.
-  // The engine never sweeps conditions; this push replaces the old per-tick evaluate().
+  /**
+   * The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
+   * content rules (RpgAchievements), which turn met thresholds into Achievement.unlock requests.
+   * The engine never sweeps conditions; this push replaces the old per-tick evaluate().
+   */
   _reportAchievements(counterKey) {
     const newly = RpgAchievements.report(counterKey, Profile.get(counterKey));
     for (let i = 0; i < newly.length; i++) {
@@ -720,7 +750,9 @@ class _SceneRpgClass {
     }
   }
 
-  // proximity to an NPC + dialogue text for accept/turn-in; target resolved live each frame (this._npcId)
+  /**
+   * proximity to an NPC + dialogue text for accept/turn-in; target resolved live each frame (this._npcId)
+   */
   _updateNpc() {
     this._npcId = -1;
     this.nearNpc = false;
@@ -759,7 +791,7 @@ class _SceneRpgClass {
     }
   }
 
-  // derive this frame's input context: window > build > play (a window pauses build)
+  /** derive this frame's input context: window > build > play (a window pauses build) */
   _resolveContext() {
     let ctx = "play";
     if (this.invOpen || this._storeOpen || this._craftOpen || this._tradeOpen)
@@ -768,8 +800,10 @@ class _SceneRpgClass {
     InputContext.set(ctx);
   }
 
-  // single E dispatch: an open station window → E closes it; else pick station-vs-NPC by
-  // cursor-then-distance and activate. interact is muted in "build", so this runs only in play/window.
+  /**
+   * single E dispatch: an open station window → E closes it; else pick station-vs-NPC by
+   * cursor-then-distance and activate. interact is muted in "build", so this runs only in play/window.
+   */
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
@@ -807,7 +841,9 @@ class _SceneRpgClass {
     else this._npcActivate();
   }
 
-  // NPC side of the interact dispatch: accept/turn-in the quest (called by _dispatchInteract only)
+  /**
+   * NPC side of the interact dispatch: accept/turn-in the quest (called by _dispatchInteract only)
+   */
   _npcActivate() {
     if (this._npcId === -1 || !this.nearNpc) return;
     // a merchant NPC opens its shop instead of the quest flow
@@ -825,8 +861,10 @@ class _SceneRpgClass {
     }
   }
 
-  // Esc back-out (SystemMenu calls this before pausing): close the active context — window, then
-  // build. Returns true if consumed; false falls through to the pause menu. window > build priority.
+  /**
+   * Esc back-out (SystemMenu calls this before pausing): close the active context — window, then
+   * build. Returns true if consumed; false falls through to the pause menu. window > build priority.
+   */
   handleEscape() {
     if (this._sleeping) {
       this._sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
@@ -861,15 +899,19 @@ class _SceneRpgClass {
     return false;
   }
 
-  // LevelManager keep-switch host pause/resume while a guest runs in front.
-  // suspend: hide the UI root. obj_game won't step a non-top level, so step() naturally pauses
-  // BuildMode/Interactable/WorldClock/Weather — nothing else to do.
+  /**
+   * LevelManager keep-switch host pause/resume while a guest runs in front.
+   * suspend: hide the UI root. obj_game won't step a non-top level, so step() naturally pauses
+   * BuildMode/Interactable/WorldClock/Weather — nothing else to do.
+   */
   suspend() {
     UI.setEnabled(this.ui, false);
   }
 
-  // resume: re-show UI, re-claim viewport 0, RE-BIND the keymap — a guest's destroy unbinds shared
-  // action names (PlatformerController drops moveLeft/moveRight) so the RPG must re-register. Idempotent.
+  /**
+   * resume: re-show UI, re-claim viewport 0, RE-BIND the keymap — a guest's destroy unbinds shared
+   * action names (PlatformerController drops moveLeft/moveRight) so the RPG must re-register. Idempotent.
+   */
   resume() {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
@@ -877,8 +919,10 @@ class _SceneRpgClass {
     RpgMap._applyBgm(this); // restore the map's ambient after a guest crossfaded its own
   }
 
-  // launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()
-  // thaws it); on return its result() score becomes a coin reward
+  /**
+   * launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()
+   * thaws it); on return its result() score becomes a coin reward
+   */
   _openArcade() {
     this.manager.switchTo(ScenePlatformer, {
       keep: true,

@@ -70,7 +70,9 @@ globalThis.LevelGrid = class LevelGrid {
    * On-demand tile nav cost of a cell: topmost layer with a defined cost wins (higher index =
    * higher priority); no layer reporting → Infinity. Debug/inspection only (RenderDebugTileMap
    * shading) — live pathfinding reads NavGrid, never the tile layers.
-   * @param {number} x @param {number} y @returns {number}
+   * @param {number} x
+   * @param {number} y
+   * @returns {number}
    */
   costAt(x, y) {
     for (let i = this.layers.length - 1; i >= 0; i--) {

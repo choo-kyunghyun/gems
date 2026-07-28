@@ -29,7 +29,7 @@ globalThis.QuestLog = {
     return Registry.all(QuestLog);
   },
 
-  // quests are session-scoped; call on level create.
+  /** quests are session-scoped; call on level create. */
   reset() {
     this.active = {};
     return this;
@@ -103,7 +103,7 @@ globalThis.QuestLog = {
     return Registry.get(QuestLog, id);
   },
 
-  // Mark done and return rewards for the caller to apply; undefined if not ready.
+  /** Mark done and return rewards for the caller to apply; undefined if not ready. */
   complete(id) {
     const st = this.active[id];
     if (st === undefined || !st.ready || st.done) return undefined;
@@ -112,7 +112,7 @@ globalThis.QuestLog = {
     return def.rewards ?? {};
   },
 
-  // in registration order — for UI.
+  /** in registration order — for UI. */
   activeIds() {
     const out = [];
     for (let i = 0; i < this._order.length; i++) {

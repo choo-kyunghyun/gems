@@ -18,23 +18,25 @@
  * @property {boolean} [selected] live selected/toggled state (written by UIButton)
  */
 
-// flexpanel-backed tree node.
-//
-// HOW LAYOUT CHANGES REACH THE SCREEN — the rule every widget follows. Live style mutation does
-// work on GMRT (measure-callback self-sizing does not — GMRT.md → Known Incompatibilities), and
-// `UIText`/`UIRichText` use it to self-size in onUpdate so a label reports a real width/height.
-// Everything else deliberately does NOT:
-//   fixed layout props   set ONCE at construction (the `style` arg below)
-//   runtime movement     draw-time offset math through getLayoutPosition (scroll, drag, slider
-//                        fill) — applies at draw AND hit-test with no reflow
-//   show / hide          `child.enabled`, never `display`
-//   change of SIZE       structural insertChild/removeChild + markDirty, which reflows reliably
-//                        (UIAccordion); prefer `enabled` when the size is unchanged
-// The offset/clip drivers work and migrating them to style mutation would be churn, so they stay.
-// Related: this class's ~45 commented-out style setters stay commented — re-enabling them all
-// would pass the 50-method ceiling (#15065); enable one on demand, minding the
-// count. Property reference: `gm-cli manual read "Flex Panel Struct Members"`; Yoga docs
-// (https://www.yogalayout.dev/docs/styling/) cover the semantics.
+/**
+ * flexpanel-backed tree node.
+ *
+ * HOW LAYOUT CHANGES REACH THE SCREEN — the rule every widget follows. Live style mutation does
+ * work on GMRT (measure-callback self-sizing does not — GMRT.md → Known Incompatibilities), and
+ * `UIText`/`UIRichText` use it to self-size in onUpdate so a label reports a real width/height.
+ * Everything else deliberately does NOT:
+ *   fixed layout props   set ONCE at construction (the `style` arg below)
+ *   runtime movement     draw-time offset math through getLayoutPosition (scroll, drag, slider
+ *                        fill) — applies at draw AND hit-test with no reflow
+ *   show / hide          `child.enabled`, never `display`
+ *   change of SIZE       structural insertChild/removeChild + markDirty, which reflows reliably
+ *                        (UIAccordion); prefer `enabled` when the size is unchanged
+ * The offset/clip drivers work and migrating them to style mutation would be churn, so they stay.
+ * Related: this class's ~45 commented-out style setters stay commented — re-enabling them all
+ * would pass the 50-method ceiling (#15065); enable one on demand, minding the
+ * count. Property reference: `gm-cli manual read "Flex Panel Struct Members"`; Yoga docs
+ * (https://www.yogalayout.dev/docs/styling/) cover the semantics.
+ */
 globalThis.UIElement = class UIElement {
   /** @param {Object} [style] flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
@@ -105,7 +107,8 @@ globalThis.UIElement = class UIElement {
 
   /**
    * update subtree then own components. `block` = pointer already captured upstream.
-   * @param {boolean} block @returns {boolean} whether the pointer is now captured
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is now captured
    */
   update(block) {
     if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
@@ -151,10 +154,12 @@ globalThis.UIElement = class UIElement {
     }
   }
 
-  // gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
-  // no off-screen surface (see the gpu_set_scissor GMRT-Safe Idiom): save/restore
-  // does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
-  // Intersect with the current scissor so nested clips (gemsScroll within gemsScroll) both apply.
+  /**
+   * gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
+   * no off-screen surface (see the gpu_set_scissor GMRT-Safe Idiom): save/restore
+   * does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
+   * Intersect with the current scissor so nested clips (gemsScroll within gemsScroll) both apply.
+   */
   _drawClipped() {
     const pos = this.getLayoutPosition();
     const w = Math.ceil(pos.width - this.clipInsetRight);
@@ -297,8 +302,8 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  // these setters stay commented: nothing calls them (kit uses draw-time offset math),
-  // and enabling all ~45 would breach the 50-method ceiling (#15065).
+  // BUG: [#15065] these setters stay commented: nothing calls them (kit uses draw-time
+  // offset math), and enabling all ~45 would breach the 50-method ceiling.
   // enable individual ones on demand, watching the count.
 
   // setMinWidth(value, unit) {

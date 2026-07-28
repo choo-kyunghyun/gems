@@ -60,7 +60,7 @@ globalThis.RadarArrows = {
     draw_set_alpha(alpha);
   },
 
-  // filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long
+  /** filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long */
   _arrow(ax, ay, nx, ny, size, col) {
     const px = -ny; // unit perpendicular
     const py = nx;

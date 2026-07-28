@@ -96,14 +96,14 @@ globalThis.UIRichText = class UIRichText {
     uiDrawRestore(st);
   }
 
-  // left edge of `line` for halign against the widest line — independent of the element rect.
+  /** left edge of `line` for halign against the widest line — independent of the element rect. */
   _lineOffset(line) {
     if (this.halign === fa_left) return 0;
     const slack = this._width - this._lineWidths[line];
     return this.halign === fa_center ? slack * 0.5 : slack;
   }
 
-  // Parse
+  /** Parse */
   _parse(str) {
     const items = [];
     const stack = [this.color]; // color stack; top is the active span color
@@ -133,7 +133,7 @@ globalThis.UIRichText = class UIRichText {
     this._items = items;
   }
 
-  // split a literal run on newlines into text segments + break markers.
+  /** split a literal run on newlines into text segments + break markers. */
   _pushText(items, text, color) {
     let start = 0;
     for (let k = 0; k < text.length; k++) {
@@ -184,7 +184,7 @@ globalThis.UIRichText = class UIRichText {
     return { kind: "icon", spr: asset_get_index(name), sub, c: color };
   }
 
-  // Measure (font already set by the caller)
+  /** Measure (font already set by the caller) */
   _measure() {
     this._lineHeight = string_height("Mg");
     this._iconPx = this.iconSize > 0 ? this.iconSize : this._lineHeight;

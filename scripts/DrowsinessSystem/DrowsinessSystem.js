@@ -5,8 +5,10 @@ globalThis.DrowsinessSystem = {
     Survival.tick(entities, Drowsiness);
   },
 
-  // Rest: lower drowsiness by `amount`. Returns true if it changed; refreshes the debuff so resting below
-  // critical clears "drowsy" even while update() is bypassed during sleep.
+  /**
+   * Rest: lower drowsiness by `amount`. Returns true if it changed; refreshes the debuff so resting below
+   * critical clears "drowsy" even while update() is bypassed during sleep.
+   */
   restore(entities, id, amount) {
     const c = entities.get(Drowsiness, id);
     const changed = Survival.restore(c, amount);

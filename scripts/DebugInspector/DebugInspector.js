@@ -16,8 +16,10 @@ globalThis.DebugInspector = {
   markerR: 18, // highlight half-size (GUI px)
   highlightColor: Color.parse("#ffd34d"),
 
-  // select an entity, or (null, -1) to deselect. Deselect swaps the section
-  // to a placeholder rather than removing it, so its window stays available.
+  /**
+   * select an entity, or (null, -1) to deselect. Deselect swaps the section
+   * to a placeholder rather than removing it, so its window stays available.
+   */
   select(entities, id) {
     const valid =
       entities !== null &&
@@ -39,11 +41,13 @@ globalThis.DebugInspector = {
     DebugInspector._register();
   },
 
-  // (re)register the "Entity" section: a placeholder when nothing is
-  // selected, else the picked entity's scalar fields — refs bind the REAL
-  // component structs, so edits mutate the entity live with no staging.
-  // Re-add()ing rebuilds the section's window — its OWN ("Inspector"), so
-  // per-pick churn never moves the stable "General" window.
+  /**
+   * (re)register the "Entity" section: a placeholder when nothing is
+   * selected, else the picked entity's scalar fields — refs bind the REAL
+   * component structs, so edits mutate the entity live with no staging.
+   * Re-add()ing rebuilds the section's window — its OWN ("Inspector"), so
+   * per-pick churn never moves the stable "General" window.
+   */
   _register() {
     DebugInspector._registered = true;
     const entities = DebugInspector._entities;

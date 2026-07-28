@@ -29,7 +29,9 @@ globalThis.Snapshot = class Snapshot {
     this.passes = [];
   }
 
-  // Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
+  /**
+   * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
+   */
   _wrap(pass) {
     if (typeof pass === "function")
       return { id: "", capture: pass, restore: () => {} };

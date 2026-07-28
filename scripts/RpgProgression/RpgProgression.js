@@ -1,7 +1,7 @@
 // Applies quest/event rewards (items only — no XP; power comes from equipment and consumables).
 // Free function over the level; the level owns entities/playerId and _invDirty.
 globalThis.RpgProgression = {
-  // add reward items to the player's bag; no-op if reward is undefined
+  /** add reward items to the player's bag; no-op if reward is undefined */
   applyReward(level, reward) {
     if (reward === undefined || reward.items === undefined) return;
     const inv = level.entities.get(Inventory, level.playerId);

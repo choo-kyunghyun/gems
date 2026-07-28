@@ -37,8 +37,10 @@ globalThis.Item = class Item {
     return this.getComponent(Class) !== undefined;
   }
 
-  // unique gear (uid + mods inline on slot) vs fungible stacks — equippable = always instanced.
-  // Equipment keys by uid, not itemId, because two of one itemId can differ by mods.
+  /**
+   * unique gear (uid + mods inline on slot) vs fungible stacks — equippable = always instanced.
+   * Equipment keys by uid, not itemId, because two of one itemId can differ by mods.
+   */
   isInstanced() {
     return this.hasComponent(Equippable);
   }

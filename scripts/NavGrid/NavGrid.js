@@ -34,14 +34,16 @@ globalThis.NavGrid = class NavGrid {
     this.grid = undefined;
   }
 
-  // CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds
+  /** CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds */
   size() {
     return this.cols * this.rows;
   }
 
-  // re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
-  // blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
-  // planning. call once per frame OUTSIDE the tick loop.
+  /**
+   * re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
+   * blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
+   * planning. call once per frame OUTSIDE the tick loop.
+   */
   rebuild(entities, centerGx, centerGy) {
     const ox = centerGx - (this.cols >> 1);
     const oy = centerGy - (this.rows >> 1);
@@ -87,7 +89,7 @@ globalThis.NavGrid = class NavGrid {
     }
   }
 
-  // sample the injected terrain cost at each window cell's center (world coords)
+  /** sample the injected terrain cost at each window cell's center (world coords) */
   _sampleTerrain() {
     if (this._terrain === null)
       this._terrain = new Array(this.cols * this.rows);
@@ -102,7 +104,7 @@ globalThis.NavGrid = class NavGrid {
         );
   }
 
-  // absolute-cell MotionPlanningGrid view
+  /** absolute-cell MotionPlanningGrid view */
   inBounds(ax, ay) {
     const lx = ax - this.originX;
     const ly = ay - this.originY;

@@ -11,8 +11,10 @@
  * authority that removes/respawns/incapacitates/leaves a body.
  */
 globalThis.RpgCombat = {
-  // live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
-  // (followers/turrets, player faction) and neutral props (no Faction) are excluded.
+  /**
+   * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
+   * (followers/turrets, player faction) and neutral props (no Faction) are excluded.
+   */
   _enemies(entities, playerId) {
     const out = [];
     const ids = entities.query(Health);
@@ -22,8 +24,10 @@ globalThis.RpgCombat = {
     return out;
   },
 
-  // floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
-  // change. Run after physics, before deaths flush, so the killing blow still pops.
+  /**
+   * floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
+   * change. Run after physics, before deaths flush, so the killing blow still pops.
+   */
   trackDamage(level, yOffset) {
     RpgCombat._diffHp(level, level.playerId, true, yOffset);
     const enemies = RpgCombat._enemies(level.entities, level.playerId);
@@ -73,15 +77,17 @@ globalThis.RpgCombat = {
     level._hpTrack[id] = hp.hp;
   },
 
-  // configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
-  // flush, so a despawning entity is still readable for its loot. Handlers `h` (all optional):
-  //   spill { yBase, ySpread } — loot scatter for "despawn"
-  //   onKill(id)               — per-kill genre effects ("despawn" + "corpse", before the body
-  //                              is transformed — the entity's components are still readable)
-  //   onRespawn(id)            — reposition a "respawn" entity after refill
-  //   downSpot(id) → {x,y}     — recovery spot for a "down" entity
-  //   onDown(id)               — fired when an entity enters Down
-  // Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
+  /**
+   * configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
+   * flush, so a despawning entity is still readable for its loot. Handlers `h` (all optional):
+   *   spill { yBase, ySpread } — loot scatter for "despawn"
+   *   onKill(id)               — per-kill genre effects ("despawn" + "corpse", before the body
+   *                              is transformed — the entity's components are still readable)
+   *   onRespawn(id)            — reposition a "respawn" entity after refill
+   *   downSpot(id) → {x,y}     — recovery spot for a "down" entity
+   *   onDown(id)               — fired when an entity enters Down
+   * Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
+   */
   resolveHealth(level, h) {
     h = h ?? {};
     const entities = level.entities;
@@ -110,11 +116,13 @@ globalThis.RpgCombat = {
     }
   },
 
-  // incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
-  // it), stop + dim it, start the recovery timer.
-  // Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
-  // its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
-  // so being knocked out can't silently shrink the player's bag.
+  /**
+   * incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
+   * it), stop + dim it, start the recovery timer.
+   * Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
+   * its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
+   * so being knocked out can't silently shrink the player's bag.
+   */
   _goDown(level, id, m, h) {
     const entities = level.entities;
     entities.detach(id, Health);
@@ -130,7 +138,9 @@ globalThis.RpgCombat = {
     if (h.onDown !== undefined) h.onDown(id);
   },
 
-  // down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
+  /**
+   * down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
+   */
   updateDowned(level, h) {
     h = h ?? {};
     const entities = level.entities;
@@ -164,12 +174,14 @@ globalThis.RpgCombat = {
     }
   },
 
-  // transform a "corpse"-kind entity IN PLACE into a lootable body: strip the combatant —
-  // Health/Stats/AI/Faction (targeting, the death scan and CombatAI aggro all key on those) —
-  // make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
-  // so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
-  // the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
-  // Species markers (Raider/Rat — radar blips) are the level's to drop in onKill, not ours.
+  /**
+   * transform a "corpse"-kind entity IN PLACE into a lootable body: strip the combatant —
+   * Health/Stats/AI/Faction (targeting, the death scan and CombatAI aggro all key on those) —
+   * make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
+   * so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
+   * the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
+   * Species markers (Raider/Rat — radar blips) are the level's to drop in onKill, not ours.
+   */
   _toCorpse(level, id) {
     const entities = level.entities;
     entities.detach(id, Health);
@@ -194,10 +206,12 @@ globalThis.RpgCombat = {
     delete level._hpTrack[id]; // no Health now — clear the stale diff baseline
   },
 
-  // remove looted-empty corpses (deferred remove; the tick's flush commits). Emptying one with
-  // its window open is safe: Interactable range-closes when the entity's Position vanishes and
-  // StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
-  // corpses — behaviorally the old despawn.
+  /**
+   * remove looted-empty corpses (deferred remove; the tick's flush commits). Emptying one with
+   * its window open is safe: Interactable range-closes when the entity's Position vanishes and
+   * StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
+   * corpses — behaviorally the old despawn.
+   */
   reapCorpses(level) {
     const entities = level.entities;
     const ids = entities.query(Interaction);
@@ -209,7 +223,9 @@ globalThis.RpgCombat = {
     }
   },
 
-  // scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
+  /**
+   * scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
+   */
   spillLoot(level, enemyId, opts) {
     const entities = level.entities;
     const inv = entities.get(Inventory, enemyId);
@@ -234,7 +250,9 @@ globalThis.RpgCombat = {
     }
   },
 
-  // `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
+  /**
+   * `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
+   */
   spawnDrop(level, itemId, qty, x, y, src) {
     const entities = level.entities;
     const id = entities.create();
@@ -258,7 +276,9 @@ globalThis.RpgCombat = {
     entities.add(id, ItemDrop, drop);
   },
 
-  // pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
+  /**
+   * pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
+   */
   collectDrops(level, onCollect) {
     const entities = level.entities;
     const hits = entities.get(Collision, level.playerId).hits;

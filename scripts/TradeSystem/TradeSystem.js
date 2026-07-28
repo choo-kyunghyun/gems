@@ -6,14 +6,14 @@
  * why nothing happened. An instance moves by reference (uid/mods preserved).
  */
 globalThis.TradeSystem = {
-  // rarity-scaled base value (same formula the inventory "Value" column shows).
+  /** rarity-scaled base value (same formula the inventory "Value" column shows). */
   marketValue(itemId) {
     const it = Item.get(itemId);
     if (it === undefined) return 0;
     return Math.round(Rarity.modify(it.rarity, it.value));
   },
 
-  // per-unit price after the merchant's margins.
+  /** per-unit price after the merchant's margins. */
   buyPrice(m, itemId) {
     return Math.ceil(TradeSystem.marketValue(itemId) * m.buyMargin);
   },
@@ -21,8 +21,10 @@ globalThis.TradeSystem = {
     return Math.floor(TradeSystem.marketValue(itemId) * m.sellMargin);
   },
 
-  // Buy `qty` (instance always 1) of stock slot `idx`, clamped to affordable / available / free room —
-  // buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
+  /**
+   * Buy `qty` (instance always 1) of stock slot `idx`, clamped to affordable / available / free room —
+   * buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
+   */
   buy(entities, buyerId, merchantId, idx, qty) {
     const m = entities.get(Merchant, merchantId);
     const mInv = entities.get(Inventory, merchantId);
@@ -71,9 +73,11 @@ globalThis.TradeSystem = {
     return { amount: bought, reason: "" };
   },
 
-  // Sell `qty` (instance always 1) of bag slot `idx`. Finite merchant must afford it (gated by `credits`)
-  // + have room for the buyback; infinite always pays and discards. reason when 0 = MERCHANT_BROKE/FULL.
-  // Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
+  /**
+   * Sell `qty` (instance always 1) of bag slot `idx`. Finite merchant must afford it (gated by `credits`)
+   * + have room for the buyback; infinite always pays and discards. reason when 0 = MERCHANT_BROKE/FULL.
+   * Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
+   */
   sell(entities, sellerId, merchantId, idx, qty) {
     const m = entities.get(Merchant, merchantId);
     const mInv = entities.get(Inventory, merchantId);
@@ -133,8 +137,10 @@ globalThis.TradeSystem = {
     return { amount: sold, reason: "" };
   },
 
-  // Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
-  // removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
+  /**
+   * Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
+   * removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
+   */
   update(entities, dt) {
     const ids = entities.query(Merchant, Inventory);
     for (let i = 0; i < ids.length; i++) {

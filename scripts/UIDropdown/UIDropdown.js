@@ -55,7 +55,7 @@ globalThis.UIDropdown = class UIDropdown {
     return this;
   }
 
-  // opener calls this on dismiss — flips the chevron back and re-allows opening.
+  /** opener calls this on dismiss — flips the chevron back and re-allows opening. */
   notifyClosed() {
     this._open = false;
   }

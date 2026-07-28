@@ -32,7 +32,9 @@ globalThis.PathfindingSystem = {
 
   /**
    * advance cursor; returns false and detaches PathResponse when complete.
-   * @param {Entity} entities @param {number} id @returns {boolean}
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {boolean}
    */
   advance(entities, id) {
     const response = entities.get(PathResponse, id);

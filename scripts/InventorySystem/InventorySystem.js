@@ -57,10 +57,12 @@ globalThis.InventorySystem = {
     return left + (qty - accept); // unfit-by-slots + weight-gate refused
   },
 
-  // Insert a pre-existing slot preserving uid/mods (an instance moved by transfer/drop). Gated by
-  // weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
-  // Returns the qty that did NOT fit, like add() (0 = fully inserted) — a boolean would misreport
-  // a partial fungible add as total failure while units were already moved (transfer duplication).
+  /**
+   * Insert a pre-existing slot preserving uid/mods (an instance moved by transfer/drop). Gated by
+   * weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
+   * Returns the qty that did NOT fit, like add() (0 = fully inserted) — a boolean would misreport
+   * a partial fungible add as total failure while units were already moved (transfer duplication).
+   */
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
     const instanced = def !== undefined && def.isInstanced();
@@ -124,9 +126,11 @@ globalThis.InventorySystem = {
     return inv.slots.length === 0;
   },
 
-  // Tidy + sort in place: merge fungible stacks, order by category then rarer-first then itemId.
-  // Reordering is safe — Equipment references by uid, not slot index. Instance slots kept individual
-  // (uid/mods preserved); only fungibles merge.
+  /**
+   * Tidy + sort in place: merge fungible stacks, order by category then rarer-first then itemId.
+   * Reordering is safe — Equipment references by uid, not slot index. Instance slots kept individual
+   * (uid/mods preserved); only fungibles merge.
+   */
   sort(inv) {
     // tally fungible totals; keep instance slots whole, grouped by itemId.
     const counts = {}; // fungible itemId -> total qty
@@ -146,7 +150,7 @@ globalThis.InventorySystem = {
       }
     }
 
-    // insertion sort — Array.prototype.sort is untrusted on GMRT (#15593).
+    // BUG: [#15593] insertion sort, not Array.prototype.sort.
     for (let i = 1; i < ids.length; i++) {
       const v = ids[i];
       let j = i - 1;
@@ -178,7 +182,7 @@ globalThis.InventorySystem = {
     inv.slots = slots;
   },
 
-  // Compare two itemIds for sort(): category, then rarity (rarer first), then id.
+  /** Compare two itemIds for sort(): category, then rarity (rarer first), then id. */
   _cmp(a, b) {
     const ca = this._category(a);
     const cb = this._category(b);

@@ -5,8 +5,10 @@ globalThis.RpgPlayer = {
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT)
   SKIN: 0x90b8e8,
 
-  // create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
-  // factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
+  /**
+   * create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
+   * factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
+   */
   spawn(entities, spawn, opts) {
     const k = opts.scale ?? 1;
     const id = entities.create();
@@ -130,13 +132,15 @@ globalThis.RpgPlayer = {
     return id;
   },
 
-  // Canonical humanoid animation over the unified spr_human strip (the white tintable Rayman-
-  // style figure, hand-drawn in Aseprite — source tools/pixel-art-kit/templates/human/, whose
-  // frame tags this graph mirrors): 0 = idle, 1-2 = walk, 3-5 = fist punch, 6-10 = kick (the
-  // unarmed swing alternates attack/kick — see PlayerSystem). EVERY paper-doll layer sheet
-  // (Appearance / Equippable.worn) mirrors this exact strip layout — cell size, frame order,
-  // foot anchor — so a layer draws at the body's subimg with zero animation knowledge (they are
-  // derived from the same sheet by human_sprites.py). Fresh object per call.
+  /**
+   * Canonical humanoid animation over the unified spr_human strip (the white tintable Rayman-
+   * style figure, hand-drawn in Aseprite — source tools/pixel-art-kit/templates/human/, whose
+   * frame tags this graph mirrors): 0 = idle, 1-2 = walk, 3-5 = fist punch, 6-10 = kick (the
+   * unarmed swing alternates attack/kick — see PlayerSystem). EVERY paper-doll layer sheet
+   * (Appearance / Equippable.worn) mirrors this exact strip layout — cell size, frame order,
+   * foot anchor — so a layer draws at the body's subimg with zero animation knowledge (they are
+   * derived from the same sheet by human_sprites.py). Fresh object per call.
+   */
   animGraph() {
     return {
       idle: { sprite: spr_human, start: 0, frames: 1, fps: 1, loop: true },
@@ -146,10 +150,12 @@ globalThis.RpgPlayer = {
     };
   },
 
-  // INSTANT hitscan shot along the resolved aim (no bullet entity; visual is a fading tracer).
-  // `opts`: { damage, penetration?, pierce?, range, muzzleY?, nx?, ny? } — pierce (default 1) =
-  // hostiles passed through; penetration (default 0) lowers target defense; nx/ny is a caller-resolved
-  // aim, else the mouse cursor. Returns the normalized aim { nx, ny } for the muzzle flash.
+  /**
+   * INSTANT hitscan shot along the resolved aim (no bullet entity; visual is a fading tracer).
+   * `opts`: { damage, penetration?, pierce?, range, muzzleY?, nx?, ny? } — pierce (default 1) =
+   * hostiles passed through; penetration (default 0) lowers target defense; nx/ny is a caller-resolved
+   * aim, else the mouse cursor. Returns the normalized aim { nx, ny } for the muzzle flash.
+   */
   fireBullet(entities, shooterId, opts) {
     const pos = entities.get(Position, shooterId);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);

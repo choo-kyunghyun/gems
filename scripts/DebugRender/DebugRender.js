@@ -10,11 +10,13 @@ globalThis.DebugRender = {
   _registered: false, // register() (Create_0) has run
   _extra: [], // [pass class, label] from a genre layer's add()
 
-  // append a pass toggle (deduped by class) — the seam a genre layer uses
-  // without Core referencing it. Re-adds the section if register() ran
-  // (build() resolves the list fresh); else register() (Create_0) picks it
-  // up. The class is loaded by the time the level calls this, so storing the
-  // ref here is load-order-safe.
+  /**
+   * append a pass toggle (deduped by class) — the seam a genre layer uses
+   * without Core referencing it. Re-adds the section if register() ran
+   * (build() resolves the list fresh); else register() (Create_0) picks it
+   * up. The class is loaded by the time the level calls this, so storing the
+   * ref here is load-order-safe.
+   */
   add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
       if (DebugRender._extra[i][0] === cls) return; // already added
@@ -76,15 +78,19 @@ globalThis.DebugRender = {
     return passes.length > 0 && passes[0].enabled;
   },
 
-  // flip EVERY instance — a class can appear twice in one renderer (the RPG's
-  // resident + chunk RenderWalls), and toggling only the first would mislead
+  /**
+   * flip EVERY instance — a class can appear twice in one renderer (the RPG's
+   * resident + chunk RenderWalls), and toggling only the first would mislead
+   */
   _apply(cls, v) {
     const passes = DebugRender._passesOf(cls);
     for (let i = 0; i < passes.length; i++) passes[i].enabled = v;
   },
 
-  // The live level's renderer passes that are instances of `cls` ([] when
-  // none).
+  /**
+   * The live level's renderer passes that are instances of `cls` ([] when
+   * none).
+   */
   _passesOf(cls) {
     const out = [];
     const level = World.levels !== null ? World.levels.current : null;

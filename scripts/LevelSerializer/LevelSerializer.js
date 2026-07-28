@@ -3,7 +3,8 @@ globalThis.LevelSerializer = {
 
   /**
    * Load and validate a level file.
-   * @param {string} path @param {{ genre?: string }} [opts]
+   * @param {string} path
+   * @param {{ genre?: string }} [opts]
    * @returns {object|null} parsed data, or null on error
    */
   load(path, opts = {}) {
@@ -37,7 +38,8 @@ globalThis.LevelSerializer = {
   /**
    * Serialize to the hand-editable, diff-friendly form — Json.encode's `pretty` mode owns the
    * layout (and the native nested-stringify workaround behind it).
-   * @param {object} data @returns {string|undefined} undefined if the codec aborted
+   * @param {object} data
+   * @returns {string|undefined} undefined if the codec aborted
    */
   serialize(data) {
     return Json.encode(data, { pretty: true });

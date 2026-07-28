@@ -2,11 +2,18 @@
 // bevel, faked with stacked draw_roundrect passes. Colors are live fields so UIButton can swap per frame.
 /**
  * @typedef {Object} UIPanelOpts
- * @property {number} [color] fill color @property {number} [color2] edge tint (center→edge radial)
- * @property {number} [alpha] @property {number} [rad] corner radius
- * @property {number} [border] outline thickness px @property {number} [borderColor]
- * @property {number} [shadow] blur spread px @property {number} [shadowColor] @property {number} [shadowAlpha]
- * @property {number} [highlight] top-bevel strip thickness px @property {number} [highlightColor] @property {number} [highlightAlpha]
+ * @property {number} [color] fill color
+ * @property {number} [color2] edge tint (center→edge radial)
+ * @property {number} [alpha]
+ * @property {number} [rad] corner radius
+ * @property {number} [border] outline thickness px
+ * @property {number} [borderColor]
+ * @property {number} [shadow] blur spread px
+ * @property {number} [shadowColor]
+ * @property {number} [shadowAlpha]
+ * @property {number} [highlight] top-bevel strip thickness px
+ * @property {number} [highlightColor]
+ * @property {number} [highlightAlpha]
  * @implements {UIComponent}
  */
 globalThis.UIPanel = class UIPanel {

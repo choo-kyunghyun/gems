@@ -11,8 +11,10 @@ globalThis.LEVELS = {
         this._buildUI();
       },
 
-      // Live theme swap (LevelManager.retheme): tear down + rebuild the UI so it bakes the new
-      // palette. The lobby holds no world/gameplay state, so a plain UI rebuild is enough.
+      /**
+       * Live theme swap (LevelManager.retheme): tear down + rebuild the UI so it bakes the new
+       * palette. The lobby holds no world/gameplay state, so a plain UI rebuild is enough.
+       */
       retheme() {
         UI.remove(this.ui);
         this.ui.destroy();
@@ -46,8 +48,7 @@ globalThis.LEVELS = {
           const i = CAT_ORDER.indexOf(cat);
           return i < 0 ? CAT_ORDER.length : i;
         };
-        // sort indices, tie-breaking same-category entries on registration order — GMRT's sort
-        // actively reorders ties (#15593), which would shuffle the list between visits.
+        // BUG: [#15593] sort indices, tie-breaking same-category entries on registration order.
         const order = [];
         for (let i = 0; i < entries.length; i++) order.push(i);
         order.sort((a, b) => {

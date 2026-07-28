@@ -74,7 +74,7 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
-  // UINav: confirm focuses the field; UINav suspends while active so caret keeps the keys.
+  /** UINav: confirm focuses the field; UINav suspends while active so caret keeps the keys. */
   navActivate(element) {
     if (!this.readOnly) this.focus();
   }
@@ -197,7 +197,7 @@ globalThis.UIInput = class UIInput {
 
   // input
 
-  // edge-then-interval repeat for one key at a time; true on press and each interval.
+  /** edge-then-interval repeat for one key at a time; true on press and each interval. */
   _repeat(key) {
     if (keyboard_check_pressed(key)) {
       this._repKey = key;
@@ -226,7 +226,7 @@ globalThis.UIInput = class UIInput {
     };
   }
 
-  // nearest caret index to gui x; assumes field font is active draw font.
+  /** nearest caret index to gui x; assumes field font is active draw font. */
   _indexAtX(pos, mx) {
     const tr = this._textRegion(pos);
     const disp = this._display();
@@ -418,7 +418,7 @@ globalThis.UIInput = class UIInput {
 
   // draw
 
-  // shift _scroll so caret stays visible.
+  /** shift _scroll so caret stays visible. */
   _clampScroll(tr, disp) {
     const caret = string_width(disp.slice(0, this._cursor));
     if (caret - this._scroll < 0) this._scroll = caret;

@@ -48,7 +48,7 @@ function _cameraPanOnUpdate() {
   this.setSize(sw / this._panZoom, sh / this._panZoom);
 }
 
-// namespace over the pan/zoom build — `create` returns the configured Camera
+/** namespace over the pan/zoom build — `create` returns the configured Camera */
 globalThis.CameraPan = {
   /**
    * 2D pan + zoom inspector camera. Drag `button` to pan, wheel zooms toward the cursor.

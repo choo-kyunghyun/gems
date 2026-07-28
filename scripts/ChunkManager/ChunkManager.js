@@ -37,7 +37,8 @@
  */
 globalThis.ChunkManager = class ChunkManager {
   /**
-   * @param {Entity} entities @param {LevelGrid} grid
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
    * @param {Object} generator generate(cx,cy) → {terrain, solid, walls, spawns} (see contract above).
    * @param {Object} [opts] spawn (descriptor → entity adapter), chunkCols/chunkRows (cell size, default
    *   16), simRadius/loadRadius (ring distances, default 1/2), worldCols/worldRows (finite bounds
@@ -108,7 +109,8 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * Stream around a center — call once per frame, OUTSIDE the tick loop. Returns early until
    * the center crosses into a new chunk (membership only changes then).
-   * @param {number} centerX @param {number} centerY usually the player.
+   * @param {number} centerX
+   * @param {number} centerY usually the player.
    */
   update(centerX, centerY) {
     const pcx = this.chunkX(centerX);
@@ -177,8 +179,10 @@ globalThis.ChunkManager = class ChunkManager {
     };
   }
 
-  // every record's wall rects (active + cached — the whole world after pregenerate())
-  // rasterized into a cell-occupancy map "gx,gy" → true
+  /**
+   * every record's wall rects (active + cached — the whole world after pregenerate())
+   * rasterized into a cell-occupancy map "gx,gy" → true
+   */
   _rasterizeWalls() {
     const cells = {};
     const put = (rec) => {
@@ -301,9 +305,11 @@ globalThis.ChunkManager = class ChunkManager {
   // at least once", so we never spawn a chunk we don't sim, and never re-run generate() (whole
   // records are cached).
 
-  // Fetch a chunk record: reuse the cached whole record (skips generate() — always the case
-  // after pregenerate()), else generate fresh with its spawn DESCRIPTORS held dormant. Does not
-  // populate the store — see _activate.
+  /**
+   * Fetch a chunk record: reuse the cached whole record (skips generate() — always the case
+   * after pregenerate()), else generate fresh with its spawn DESCRIPTORS held dormant. Does not
+   * populate the store — see _activate.
+   */
   _recordFor(cx, cy, ring) {
     const key = this._key(cx, cy);
     const cached = this._cache[key];
@@ -318,7 +324,7 @@ globalThis.ChunkManager = class ChunkManager {
     return rec;
   }
 
-  // run generate() and wrap its output in a dormant record (ring set by the caller)
+  /** run generate() and wrap its output in a dormant record (ring set by the caller) */
   _freshRecord(cx, cy) {
     const gen = this.generator.generate(cx, cy);
     return {
@@ -387,7 +393,9 @@ globalThis.ChunkManager = class ChunkManager {
       : 1;
   }
 
-  // stored material id at an absolute cell, or undefined when the chunk (or its terrain) isn't held
+  /**
+   * stored material id at an absolute cell, or undefined when the chunk (or its terrain) isn't held
+   */
   _storedMaterial(ax, ay) {
     const cx = Math.floor(ax / this.chunkCols);
     const cy = Math.floor(ay / this.chunkRows);
@@ -399,17 +407,21 @@ globalThis.ChunkManager = class ChunkManager {
     return rec.terrain[ly * this.chunkCols + lx];
   }
 
-  // Populate a fresh record into its ring + register it. SIM meshes colliders + materializes
-  // entities (from snapshots if seen before, else from descriptors); LOAD holds whatever it has
-  // (snapshots if hydrated, else dormant descriptors — no store work, so distant rings are cheap).
+  /**
+   * Populate a fresh record into its ring + register it. SIM meshes colliders + materializes
+   * entities (from snapshots if seen before, else from descriptors); LOAD holds whatever it has
+   * (snapshots if hydrated, else dormant descriptors — no store work, so distant rings are cheap).
+   */
   _activate(rec) {
     if (rec.ring === "sim") this._materialize(rec);
     this._chunks[this._key(rec.cx, rec.cy)] = rec;
     this.stats.loaded++;
   }
 
-  // Bring a record's entities into the store + mesh its colliders (SIM ring). Restores snapshots if
-  // the chunk has lived before, else spawns its descriptors for the first time.
+  /**
+   * Bring a record's entities into the store + mesh its colliders (SIM ring). Restores snapshots if
+   * the chunk has lived before, else spawns its descriptors for the first time.
+   */
   _materialize(rec) {
     this._meshColliders(rec);
     if (rec.hydrated) {
@@ -421,14 +433,14 @@ globalThis.ChunkManager = class ChunkManager {
     }
   }
 
-  // load → sim
+  /** load → sim */
   _promote(rec) {
     this._materialize(rec);
     rec.ring = "sim";
     this.stats.promoted++;
   }
 
-  // sim → load: snapshot live entities out of the store + drop colliders
+  /** sim → load: snapshot live entities out of the store + drop colliders */
   _demote(rec) {
     this._captureAll(rec);
     this._dropColliders(rec);
@@ -436,8 +448,10 @@ globalThis.ChunkManager = class ChunkManager {
     this.stats.demoted++;
   }
 
-  // beyond load radius: snapshot live entities, drop colliders, park the WHOLE record in cache
-  // (so a revisit skips generate() and keeps modified entity state)
+  /**
+   * beyond load radius: snapshot live entities, drop colliders, park the WHOLE record in cache
+   * (so a revisit skips generate() and keeps modified entity state)
+   */
   _unload(key, rec) {
     if (rec.ring === "sim") {
       this._captureAll(rec);
@@ -450,8 +464,10 @@ globalThis.ChunkManager = class ChunkManager {
 
   // entity/collider helpers
 
-  // one kinematic-solid collider per wall + solid rect (source already groups cells into rects).
-  // matches TileEdit.meshSolid: Position at rect top-left, BBox (0,0) spanning it.
+  /**
+   * one kinematic-solid collider per wall + solid rect (source already groups cells into rects).
+   * matches TileEdit.meshSolid: Position at rect top-left, BBox (0,0) spanning it.
+   */
   _meshColliders(rec) {
     this._meshRects(rec, rec.walls);
     this._meshRects(rec, rec.solid);
@@ -505,7 +521,9 @@ globalThis.ChunkManager = class ChunkManager {
       rec.entities.push(EntitySnapshot.restore(this.entities, snapshots[i]));
   }
 
-  // entities → snapshots, removing each from the store. skips invalid ids (e.g. killed enemies) so the dead stay dead.
+  /**
+   * entities → snapshots, removing each from the store. skips invalid ids (e.g. killed enemies) so the dead stay dead.
+   */
   _captureAll(rec) {
     const snaps = [];
     for (let i = 0; i < rec.entities.length; i++) {

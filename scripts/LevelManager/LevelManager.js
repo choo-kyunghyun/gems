@@ -84,9 +84,11 @@ globalThis.LevelManager = class LevelManager {
     return true;
   }
 
-  // Per-frame: flush a queued switch — a destroying swap goes through the fade (LevelTransition
-  // .start runs _apply at full cover), a kept swap applies instantly (an in-world guest open) —
-  // then advance the fade timer. Busy guard stops a second switchTo from stacking swaps.
+  /**
+   * Per-frame: flush a queued switch — a destroying swap goes through the fade (LevelTransition
+   * .start runs _apply at full cover), a kept swap applies instantly (an in-world guest open) —
+   * then advance the fade timer. Busy guard stops a second switchTo from stacking swaps.
+   */
   update() {
     if (this._pending !== null && !LevelTransition.isBusy()) {
       const p = this._pending;
@@ -98,9 +100,11 @@ globalThis.LevelManager = class LevelManager {
     LevelTransition.update();
   }
 
-  // Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)
-  // and activate the new one in front. Otherwise: destroy every live level (a quit from a guest
-  // must also drop its frozen host), reset the cross-level singletons, build the target fresh.
+  /**
+   * Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)
+   * and activate the new one in front. Otherwise: destroy every live level (a quit from a guest
+   * must also drop its frozen host), reset the cross-level singletons, build the target fresh.
+   */
   _apply(factory, opts) {
     if (opts.keep === true && this._current !== null) {
       if (this._returnTo !== null) {
@@ -128,7 +132,7 @@ globalThis.LevelManager = class LevelManager {
     entry.level.create((s) => this.switchTo(s));
   }
 
-  // Build an entry: create the level, resolve its display label, back-reference the manager.
+  /** Build an entry: create the level, resolve its display label, back-reference the manager. */
   _make(factory) {
     // A class level's `label` field never sets (GMRT skips subclass field inits — #15067), so the
     // resolved label (localized) is the reliable source; built-ins fall back to their instance label.
@@ -139,8 +143,10 @@ globalThis.LevelManager = class LevelManager {
     return { level, factory, label };
   }
 
-  // Lighter reset than _apply for a keep/back boundary: clears world-space singletons + drops nav
-  // focus (so it can't point at a hidden host widget), but leaves the frozen host's menu state.
+  /**
+   * Lighter reset than _apply for a keep/back boundary: clears world-space singletons + drops nav
+   * focus (so it can't point at a hidden host widget), but leaves the frozen host's menu state.
+   */
   _clearOverlays() {
     UINav.reset();
     Dialogue.clear();
@@ -148,7 +154,7 @@ globalThis.LevelManager = class LevelManager {
     ParticleFx.clear();
   }
 
-  // Tear down every live level, newest first (a guest before its frozen host).
+  /** Tear down every live level, newest first (a guest before its frozen host). */
   _destroyAll() {
     for (let i = this._all.length - 1; i >= 0; i--)
       this._all[i].level.destroy();
@@ -183,8 +189,10 @@ globalThis.LevelManager = class LevelManager {
     return level.label != null && level.label !== "" ? level.label : "-";
   }
 
-  // Per-frame sim tick, pause-gated two ways: the boot-wired menu overlay and the Debug "Pause"
-  // toggle. While paused, level.step() is skipped except for a one-frame advance via requestStep().
+  /**
+   * Per-frame sim tick, pause-gated two ways: the boot-wired menu overlay and the Debug "Pause"
+   * toggle. While paused, level.step() is skipped except for a one-frame advance via requestStep().
+   */
   step() {
     const level = this.current;
     if (level === null) return;
@@ -215,7 +223,7 @@ globalThis.LevelManager = class LevelManager {
     this._stepRequested = true;
   }
 
-  // Consume the one-shot step flag (true at most once per requestStep).
+  /** Consume the one-shot step flag (true at most once per requestStep). */
   _takeStep() {
     if (!this._stepRequested) return false;
     this._stepRequested = false;
@@ -235,11 +243,13 @@ globalThis.LevelManager = class LevelManager {
 
   // ── resident-map registry + whole-entity transfer (was Universe) ──
 
-  // Index a map under its id. `entry` must carry at least { entities, grid } — Core reads only
-  // those two fields; everything else is the owner's business (the RPG's park bundle).
-  // Overwrites: RpgMap.build stores a minimal { entities, grid }, each RpgMap.suspend replaces it
-  // with the full park bundle. A resumed map's entry may retain stale bundle fields until its
-  // next suspend — harmless, nothing reads them (entities/grid are the same live objects throughout).
+  /**
+   * Index a map under its id. `entry` must carry at least { entities, grid } — Core reads only
+   * those two fields; everything else is the owner's business (the RPG's park bundle).
+   * Overwrites: RpgMap.build stores a minimal { entities, grid }, each RpgMap.suspend replaces it
+   * with the full park bundle. A resumed map's entry may retain stale bundle fields until its
+   * next suspend — harmless, nothing reads them (entities/grid are the same live objects throughout).
+   */
   register(mapId, entry) {
     this._levels[mapId] = entry;
   }
@@ -272,9 +282,11 @@ globalThis.LevelManager = class LevelManager {
     return e !== undefined ? e.entities : null;
   }
 
-  // Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the
-  // snapshot (the caller now owns it), or null if the map isn't resident. EntitySnapshot references
-  // the component data objects, so they survive the remove/flush (see EntitySnapshot).
+  /**
+   * Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the
+   * snapshot (the caller now owns it), or null if the map isn't resident. EntitySnapshot references
+   * the component data objects, so they survive the remove/flush (see EntitySnapshot).
+   */
   take(mapId, id) {
     const w = this.worldOf(mapId);
     if (w === null) return null;
@@ -283,16 +295,20 @@ globalThis.LevelManager = class LevelManager {
     return snap;
   }
 
-  // Restore a whole-entity snapshot into a resident map's store; `overrides` apply after (e.g. a
-  // fresh Position for the destination). Returns the new id, or -1 if the map isn't resident.
+  /**
+   * Restore a whole-entity snapshot into a resident map's store; `overrides` apply after (e.g. a
+   * fresh Position for the destination). Returns the new id, or -1 if the map isn't resident.
+   */
   put(mapId, snap, overrides) {
     const w = this.worldOf(mapId);
     if (w === null) return -1;
     return EntitySnapshot.restore(w, snap, overrides);
   }
 
-  // Move a whole entity from one map to another. Destination resident → it lands there (new id); not
-  // resident → the snapshot is returned for the caller to hold until it loads.
+  /**
+   * Move a whole entity from one map to another. Destination resident → it lands there (new id); not
+   * resident → the snapshot is returned for the caller to hold until it loads.
+   */
   transfer(fromMapId, toMapId, id, overrides) {
     const snap = this.take(fromMapId, id);
     if (snap === null) return null;
@@ -300,8 +316,10 @@ globalThis.LevelManager = class LevelManager {
     return snap;
   }
 
-  // New game / map-pool teardown — the pooled stores are freed by RpgMap, so just drop the index.
-  // INDEPENDENT of the level collection (destroy() tears that down).
+  /**
+   * New game / map-pool teardown — the pooled stores are freed by RpgMap, so just drop the index.
+   * INDEPENDENT of the level collection (destroy() tears that down).
+   */
   reset() {
     this._levels = {};
     this._active = null;

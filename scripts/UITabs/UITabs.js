@@ -31,7 +31,7 @@ globalThis.UITabs = class UITabs {
     return typeof l === "function" ? l() : l;
   }
 
-  // sync overlay visibility to active index via `enabled` flag — never reflows.
+  /** sync overlay visibility to active index via `enabled` flag — never reflows. */
   _apply() {
     for (let i = 0; i < this.tabs.length; i++) {
       this.tabs[i].content.enabled = i === this.index;

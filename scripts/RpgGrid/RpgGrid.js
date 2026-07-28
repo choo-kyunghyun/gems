@@ -156,17 +156,19 @@ globalThis.RpgGrid = {
     },
   ],
 
-  // LAYERS config by key (BuildMode reads `solid`/`materials` off it).
+  /** LAYERS config by key (BuildMode reads `solid`/`materials` off it). */
   layerCfg(key) {
     for (let i = 0; i < RpgGrid.LAYERS.length; i++)
       if (RpgGrid.LAYERS[i].key === key) return RpgGrid.LAYERS[i];
     return undefined;
   },
 
-  // Make the LAYERS TileLayers + TileTypes (bottom→top) and return a handles bag keyed
-  // `<key>Layer`/`<key>Type` — plus, for a materials-bearing layer (wall), `<key>Types`:
-  // one TileType per material keyed by material key (`<key>Type` stays materials[0], the
-  // default every existing consumer paints). Shared by build() + buildChunked().
+  /**
+   * Make the LAYERS TileLayers + TileTypes (bottom→top) and return a handles bag keyed
+   * `<key>Layer`/`<key>Type` — plus, for a materials-bearing layer (wall), `<key>Types`:
+   * one TileType per material keyed by material key (`<key>Type` stays materials[0], the
+   * default every existing consumer paints). Shared by build() + buildChunked().
+   */
   _makeLayers(grid) {
     const h = {};
     for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
@@ -199,8 +201,10 @@ globalThis.RpgGrid = {
     return h;
   },
 
-  // Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
-  // chunked leaves the resident grid empty (ChunkManager owns terrain).
+  /**
+   * Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
+   * chunked leaves the resident grid empty (ChunkManager owns terrain).
+   */
   _fillLayers(grid, h) {
     for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
       const cfg = RpgGrid.LAYERS[i];
@@ -212,8 +216,10 @@ globalThis.RpgGrid = {
     }
   },
 
-  // Paint cell-rectangles ([x,y,w,h]) of `type` into a layer. An absent array is a no-op, so
-  // older level files are unaffected.
+  /**
+   * Paint cell-rectangles ([x,y,w,h]) of `type` into a layer. An absent array is a no-op, so
+   * older level files are unaffected.
+   */
   _paintRects(layer, rects, type) {
     if (rects === undefined) return;
     for (let i = 0; i < rects.length; i++) {
@@ -309,7 +315,9 @@ globalThis.RpgGrid = {
     return ids;
   },
 
-  // Resolve the player spawn (world coords): named entry → entries.default → legacy meta.playerSpawn.
+  /**
+   * Resolve the player spawn (world coords): named entry → entries.default → legacy meta.playerSpawn.
+   */
   _resolveSpawn(grid, data, entryId) {
     const entries = data.meta.entries;
     let entry = data.meta.playerSpawn;

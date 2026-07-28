@@ -8,9 +8,11 @@
  * direct Inventory.capacity delta.
  */
 globalThis.EquipmentSystem = {
-  // Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
-  // or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
-  // — e.g. the hotbar — use equipFirst.)
+  /**
+   * Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
+   * or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
+   * — e.g. the hotbar — use equipFirst.)
+   */
   equip(entities, id, uid) {
     const inv = entities.get(Inventory, id);
     const eq = entities.get(Equipment, id);
@@ -31,8 +33,10 @@ globalThis.EquipmentSystem = {
     return true;
   },
 
-  // Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
-  // hotbar, which only know an itemId). False if none owned / not equippable.
+  /**
+   * Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
+   * hotbar, which only know an itemId). False if none owned / not equippable.
+   */
   equipFirst(entities, id, itemId) {
     const inv = entities.get(Inventory, id);
     if (inv === undefined) return false;
@@ -43,8 +47,10 @@ globalThis.EquipmentSystem = {
     return false;
   },
 
-  // Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
-  // Returns the unequipped uid, or "" if empty.
+  /**
+   * Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
+   * Returns the unequipped uid, or "" if empty.
+   */
   unequip(entities, id, slot) {
     const eq = entities.get(Equipment, id);
     if (eq === undefined) return "";
@@ -67,8 +73,10 @@ globalThis.EquipmentSystem = {
   KIN_K: 0.75,
   KIN_REF: 1200, // doubled with the 32px-cell ammo velocities so (v/KIN_REF)² — and damage — is unchanged
 
-  // The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
-  // controller needs the real slot — not a copy — to decrement `rounds` on a shot.
+  /**
+   * The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
+   * controller needs the real slot — not a copy — to decrement `rounds` on a shot.
+   */
   weaponSlot(entities, id) {
     const eq = entities.get(Equipment, id);
     if (eq === undefined) return null;
@@ -80,16 +88,20 @@ globalThis.EquipmentSystem = {
     return slot ?? null;
   },
 
-  // Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
-  // unarmed defaults. Convenience over weaponSlot + composeWeapon.
+  /**
+   * Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
+   * unarmed defaults. Convenience over weaponSlot + composeWeapon.
+   */
   weaponProfile(entities, id) {
     const slot = this.weaponSlot(entities, id);
     return slot !== null ? this.composeWeapon(slot) : null;
   },
 
-  // Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
-  // ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
-  // damage/reach/fireCd → attachment ops → { kind:"melee", ... }.
+  /**
+   * Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
+   * ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
+   * damage/reach/fireCd → attachment ops → { kind:"melee", ... }.
+   */
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);
     if (item === undefined) return null;
@@ -100,7 +112,7 @@ globalThis.EquipmentSystem = {
     return this._composeMelee(slot, wpn);
   },
 
-  // Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
+  /** Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded. */
   reload(entities, id) {
     const slot = this.weaponSlot(entities, id);
     if (slot === null) return 0;
@@ -109,8 +121,10 @@ globalThis.EquipmentSystem = {
     return this.reloadSlot(inv, slot);
   },
 
-  // Top up a specific gun instance's magazine from `inv`'s ammo reserve (min(need, owned)). The slot
-  // variant so the workbench panel can reload a SELECTED weapon that isn't equipped.
+  /**
+   * Top up a specific gun instance's magazine from `inv`'s ammo reserve (min(need, owned)). The slot
+   * variant so the workbench panel can reload a SELECTED weapon that isn't equipped.
+   */
   reloadSlot(inv, slot) {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
@@ -132,7 +146,7 @@ globalThis.EquipmentSystem = {
     return take;
   },
 
-  // Load an ammo type into the equipped gun (caliber-gated), then top up.
+  /** Load an ammo type into the equipped gun (caliber-gated), then top up. */
   loadAmmo(entities, id, ammoItemId) {
     const slot = this.weaponSlot(entities, id);
     if (slot === null) return false;
@@ -141,8 +155,10 @@ globalThis.EquipmentSystem = {
     return this.loadAmmoSlot(inv, slot, ammoItemId);
   },
 
-  // Load an ammo type into a specific gun instance (caliber-gated), then top up. Switching type
-  // refunds the chambered rounds to `inv` first so a swap doesn't lose them. The slot variant.
+  /**
+   * Load an ammo type into a specific gun instance (caliber-gated), then top up. Switching type
+   * refunds the chambered rounds to `inv` first so a swap doesn't lose them. The slot variant.
+   */
   loadAmmoSlot(inv, slot, ammoItemId) {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
@@ -169,7 +185,7 @@ globalThis.EquipmentSystem = {
     return true;
   },
 
-  // First caliber-compatible Ammo itemId in `inv` (slot order), or "" when none owned.
+  /** First caliber-compatible Ammo itemId in `inv` (slot order), or "" when none owned. */
   _firstAmmo(inv, caliber) {
     for (let i = 0; i < inv.slots.length; i++) {
       const it = Item.get(inv.slots[i].itemId);
@@ -180,8 +196,10 @@ globalThis.EquipmentSystem = {
     return "";
   },
 
-  // Installed-attachment ops layers for an instance slot (order-independent), plus the item
-  // maker's signature ops layer (Manufacturer.ops) — brand identity composes like an attachment.
+  /**
+   * Installed-attachment ops layers for an instance slot (order-independent), plus the item
+   * maker's signature ops layer (Manufacturer.ops) — brand identity composes like an attachment.
+   */
   _modLayers(slot) {
     const layers = [];
     const item = Item.get(slot.itemId);
@@ -264,9 +282,11 @@ globalThis.EquipmentSystem = {
     };
   },
 
-  // Apply operator layers over a base map: per field, (base + Σadd) · Πmul (order-independent). A
-  // field whose base is undefined stays undefined — ops can't fabricate a value the base never
-  // declared (the controller defaults it). Index loops only — GMRT-safe.
+  /**
+   * Apply operator layers over a base map: per field, (base + Σadd) · Πmul (order-independent). A
+   * field whose base is undefined stays undefined — ops can't fabricate a value the base never
+   * declared (the controller defaults it). Index loops only — GMRT-safe.
+   */
   _applyOps(base, layers, fields) {
     const out = {};
     for (let f = 0; f < fields.length; f++) {
@@ -289,8 +309,10 @@ globalThis.EquipmentSystem = {
     return out;
   },
 
-  // Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
-  // Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
+  /**
+   * Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
+   * Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
+   */
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;

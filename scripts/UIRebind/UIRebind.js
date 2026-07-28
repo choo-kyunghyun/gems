@@ -83,15 +83,19 @@ globalThis.UIRebind = class UIRebind {
     uiDrawRestore(st);
   }
 
-  // current binding as text, read live so a rebind updates the label with no wiring.
-  // binding → text mapping lives on InputAction/InputButton (shared with the key-hint bar).
+  /**
+   * current binding as text, read live so a rebind updates the label with no wiring.
+   * binding → text mapping lives on InputAction/InputButton (shared with the key-hint bar).
+   */
   _label() {
     const action = Input.get(this.actionKey);
     return action ? action.label() : "—";
   }
 
-  // first keycode with a live pressed-edge this frame (0 = none). Only runs while capturing,
-  // so scanning the whole range is negligible.
+  /**
+   * first keycode with a live pressed-edge this frame (0 = none). Only runs while capturing,
+   * so scanning the whole range is negligible.
+   */
   _scanKey() {
     let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases
     while (code <= 255) {

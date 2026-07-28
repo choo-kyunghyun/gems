@@ -29,7 +29,7 @@ globalThis.ParticleFx = {
     return s;
   },
 
-  // Advance every live instance one frame, reaping spent ones. Once per frame from step().
+  /** Advance every live instance one frame, reaping spent ones. Once per frame from step(). */
   update() {
     const a = ParticleFx._active;
     const live = [];
@@ -41,20 +41,20 @@ globalThis.ParticleFx = {
     ParticleFx._active = live;
   },
 
-  // Draw every live instance — from a level's draw() in world space, after the renderer.
+  /** Draw every live instance — from a level's draw() in world space, after the renderer. */
   draw() {
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) part_system_drawit(a[i]);
   },
 
-  // Destroy all live instances. Call on level/map swap (their world coords are level-local).
+  /** Destroy all live instances. Call on level/map swap (their world coords are level-local). */
   clear() {
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) part_system_destroy(a[i]);
     ParticleFx._active = [];
   },
 
-  // Total live particles across all instances (diagnostic).
+  /** Total live particles across all instances (diagnostic). */
   count() {
     const a = ParticleFx._active;
     let n = 0;

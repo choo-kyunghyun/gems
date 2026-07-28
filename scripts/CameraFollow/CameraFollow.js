@@ -105,7 +105,10 @@ function _cameraFollowOnUpdate() {
 
 /**
  * Shared follow-camera builder; create/create2d differ only in projection, snap, and default height.
- * @param {any} cam @param {number} projection @param {boolean} snap @param {number} defaultHeight
+ * @param {any} cam
+ * @param {number} projection
+ * @param {boolean} snap
+ * @param {number} defaultHeight
  * @returns {Camera}
  */
 function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
@@ -140,7 +143,7 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   return camera;
 }
 
-// namespace over the shared follow builder: `create` = 3D perspective, `create2d` = 2D ortho
+/** namespace over the shared follow builder: `create` = 3D perspective, `create2d` = 2D ortho */
 globalThis.CameraFollow = {
   /**
    * 3D perspective-FOV follow camera. Currently unused (scenes use create2d); kept as library variant.

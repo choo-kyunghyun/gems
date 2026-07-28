@@ -67,9 +67,11 @@ globalThis.Interactable = {
     return def === undefined ? "" : I18n.text(def.prompt);
   },
 
-  // Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
-  // here — the level's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
-  // activate()/closeAll(), so one E press can't fire two handlers.
+  /**
+   * Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
+   * here — the level's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
+   * activate()/closeAll(), so one E press can't fire two handlers.
+   */
   update(level) {
     Interactable._pick(level);
 
@@ -100,12 +102,12 @@ globalThis.Interactable = {
     Interactable._open(level);
   },
 
-  // close any open station window
+  /** close any open station window */
   closeAll(level) {
     Interactable._closeAll(level);
   },
 
-  // true when the cursor is over entity `id`'s BBox — lets the level break a station-vs-NPC tie
+  /** true when the cursor is over entity `id`'s BBox — lets the level break a station-vs-NPC tie */
   isCursorOver(level, id) {
     if (id === -1) return false;
     const pos = level.entities.get(Position, id);
@@ -117,7 +119,7 @@ globalThis.Interactable = {
     );
   },
 
-  // pick target = station under the mouse (if in range), else nearest in range
+  /** pick target = station under the mouse (if in range), else nearest in range */
   _pick(level) {
     const entities = level.entities;
     const p = entities.get(Position, level.playerId);
@@ -165,8 +167,10 @@ globalThis.Interactable = {
     }
   },
 
-  // true when the world cursor `m` ({x,y} — the level's per-frame pitch-aware latch) is inside
-  // the entity's world BBox (offset from Position)
+  /**
+   * true when the world cursor `m` ({x,y} — the level's per-frame pitch-aware latch) is inside
+   * the entity's world BBox (offset from Position)
+   */
   _mouseInside(pos, bbox, m) {
     if (bbox === undefined) return false;
     const w = bbox.width;
@@ -187,9 +191,11 @@ globalThis.Interactable = {
     return (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2 < rSq;
   },
 
-  // dispatch the target's Interaction via the registry: look up its `kind` and run the def. A window
-  // action's run() sets level._interOpenId itself (so this stays generic — instant vs window is the
-  // def's concern, not the engine's). New interactions are a data entry in InteractAction, not here.
+  /**
+   * dispatch the target's Interaction via the registry: look up its `kind` and run the def. A window
+   * action's run() sets level._interOpenId itself (so this stays generic — instant vs window is the
+   * def's concern, not the engine's). New interactions are a data entry in InteractAction, not here.
+   */
   _open(level) {
     const id = level._interTarget;
     const comp = level.entities.get(Interaction, id);
@@ -211,7 +217,9 @@ globalThis.Interactable = {
     level._interOpenId = -1;
   },
 
-  // world-space highlight outline around the target's BBox; called from level.draw() after the world
+  /**
+   * world-space highlight outline around the target's BBox; called from level.draw() after the world
+   */
   drawTarget(level) {
     const id = level._interTarget;
     if (id === -1) return;

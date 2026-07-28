@@ -1,8 +1,10 @@
 // Palette-driven procedural terrain sampler — the generic, content-free half of a chunk generator
 // (a game injects its material table). Palette schema on the TerrainField declaration below.
 
-// value noise in [0,1): smoothstep-interpolated over a hashed integer lattice; pure in
-// (x, y, seed, lattice). Fold a salt into `seed` to draw an independent channel.
+/**
+ * value noise in [0,1): smoothstep-interpolated over a hashed integer lattice; pure in
+ * (x, y, seed, lattice). Fold a salt into `seed` to draw an independent channel.
+ */
 function _noise2(x, y, seed, lattice) {
   const fx = x / lattice;
   const fy = y / lattice;
@@ -51,8 +53,10 @@ globalThis.TerrainField = class TerrainField {
     this.groundSalt = opts.groundSalt ?? 1013904223;
   }
 
-  // Per-cell material grid for one chunk, row-major (a pure coord fn per cell — never per-chunk
-  // RNG, which would tear at seams).
+  /**
+   * Per-cell material grid for one chunk, row-major (a pure coord fn per cell — never per-chunk
+   * RNG, which would tear at seams).
+   */
   terrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
@@ -65,7 +69,7 @@ globalThis.TerrainField = class TerrainField {
     return out;
   }
 
-  // single-cell material id (index into the palette) — TerrainStream's seam apron samples this
+  /** single-cell material id (index into the palette) — TerrainStream's seam apron samples this */
   materialAt(ax, ay) {
     const pal = this.palette;
     const n = _noise2(ax, ay, this.seed, this.lattice);
@@ -80,28 +84,34 @@ globalThis.TerrainField = class TerrainField {
     return i;
   }
 
-  // true if walkable (pathCost !== null); feeds the solid mesh
+  /** true if walkable (pathCost !== null); feeds the solid mesh */
   passable(ax, ay) {
     return this.palette[this.materialAt(ax, ay)].pathCost !== null;
   }
 
-  // per-cell movement cost (1 = easy … Infinity = impassable) — NavGrid's weight sampler +
-  // PathFollow's speed pricing
+  /**
+   * per-cell movement cost (1 = easy … Infinity = impassable) — NavGrid's weight sampler +
+   * PathFollow's speed pricing
+   */
   costAt(ax, ay) {
     const c = this.palette[this.materialAt(ax, ay)].pathCost;
     return c === null ? Infinity : c;
   }
 
-  // true if entities may be PLACED here: walkable and not flagged spawnable:false (wadeable water —
-  // travel yes, homes no; impassable cells also carry colliders a dynamic body would snag in)
+  /**
+   * true if entities may be PLACED here: walkable and not flagged spawnable:false (wadeable water —
+   * travel yes, homes no; impassable cells also carry colliders a dynamic body would snag in)
+   */
   spawnable(ax, ay) {
     const e = this.palette[this.materialAt(ax, ay)];
     return e.pathCost !== null && e.spawnable !== false;
   }
 
-  // Greedy-mesh a chunk's impassable cells into the fewest [gx,gy,w,h] rects, so the streamer makes
-  // one collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
-  // project_tile_collider_seams). Pure in (cx, cy, seed); returns [] when nothing is impassable.
+  /**
+   * Greedy-mesh a chunk's impassable cells into the fewest [gx,gy,w,h] rects, so the streamer makes
+   * one collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
+   * project_tile_collider_seams). Pure in (cx, cy, seed); returns [] when nothing is impassable.
+   */
   solidTerrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;

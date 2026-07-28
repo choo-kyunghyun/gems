@@ -47,7 +47,9 @@ globalThis.Registry = {
   /**
    * Registration index of `id`, -1 when unregistered — the tier/sort rank of an ordered registry
    * (Rarity's tiers run low → high).
-   * @param {Object} store @param {string} id @returns {number}
+   * @param {Object} store
+   * @param {string} id
+   * @returns {number}
    */
   rank(store, id) {
     return store._order.indexOf(id);

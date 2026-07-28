@@ -156,7 +156,7 @@ globalThis.UITable = class UITable {
     this._sort = next.slice(0, this.sortDepth);
   }
 
-  // Rank of column ci in the sort stack: 0 = primary, 1 = secondary, -1 = unsorted.
+  /** Rank of column ci in the sort stack: 0 = primary, 1 = secondary, -1 = unsorted. */
   _sortRank(ci) {
     for (let i = 0; i < this._sort.length; i++) {
       if (this._sort[i].ci === ci) return i;
@@ -191,8 +191,7 @@ globalThis.UITable = class UITable {
       if (this._filter === null || this._filter(src[i])) v.push(src[i]);
     }
     if (this._sort.length > 0) {
-      // sort indices, tie-breaking on source order — GMRT's sort actively reorders ties (#15593),
-      // so equal-keyed rows would shuffle on every re-sort/filter without it.
+      // BUG: [#15593] sort indices, tie-breaking on source order.
       const order = [];
       for (let i = 0; i < v.length; i++) order.push(i);
       order.sort((a, b) => {
@@ -218,8 +217,10 @@ globalThis.UITable = class UITable {
     return Math.max(0, this._view.length - this._bodyRows(pos));
   }
 
-  // Recomputed fresh each onUpdate AND onDraw (not cached between): a dragged window's
-  // dragX/dragY changes mid-frame, so a cached geometry would draw a frame behind the panel.
+  /**
+   * Recomputed fresh each onUpdate AND onDraw (not cached between): a dragged window's
+   * dragX/dragY changes mid-frame, so a cached geometry would draw a frame behind the panel.
+   */
   _geometry(pos) {
     const bodyRows = this._bodyRows(pos);
     const barOn = this._view.length > bodyRows;
@@ -233,9 +234,11 @@ globalThis.UITable = class UITable {
     };
   }
 
-  // Column pixel layout. `width` is each column's base/min px; `flex` shares the surplus so
-  // columns grow as the table widens (default flex 0 with `width`, else 1 = fill column).
-  // `barOn` reserves the scrollbar gutter.
+  /**
+   * Column pixel layout. `width` is each column's base/min px; `flex` shares the surplus so
+   * columns grow as the table widens (default flex 0 with `width`, else 1 = fill column).
+   * `barOn` reserves the scrollbar gutter.
+   */
   _columns(pos, barOn) {
     const innerW =
       pos.width - this.pad * 2 - (barOn ? this._bar.barW + this.cellPad : 0);
@@ -379,7 +382,7 @@ globalThis.UITable = class UITable {
     if (e.dx !== 0) this._cycleSort(e.dx);
   }
 
-  // Move the primary sort to the next sortable column in direction dir.
+  /** Move the primary sort to the next sortable column in direction dir. */
   _cycleSort(dir) {
     const n = this.columns.length;
     if (n === 0) return;
@@ -580,7 +583,7 @@ globalThis.UITable = class UITable {
     this._bar.draw(this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop));
   }
 
-  // cell text fit to `maxW` (hard-truncate — the default font has no ellipsis glyph)
+  /** cell text fit to `maxW` (hard-truncate — the default font has no ellipsis glyph) */
   _cellText(str, c, cy, align, maxW) {
     draw_set_halign(align);
     let x = c.x + this.cellPad;

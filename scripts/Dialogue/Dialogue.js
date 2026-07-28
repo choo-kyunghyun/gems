@@ -38,7 +38,7 @@ globalThis.Dialogue = {
   _wrapPage: -1,
   _wrapW: -1,
 
-  // METHOD not a getter — house style, not a runtime dodge.
+  /** METHOD not a getter — house style, not a runtime dodge. */
   isOpen() {
     return Dialogue._open;
   },
@@ -202,7 +202,7 @@ globalThis.Dialogue = {
     draw_set_alpha(alpha0);
   },
 
-  // box rect (centered, bottom-anchored) + inner text metrics
+  /** box rect (centered, bottom-anchored) + inner text metrics */
   _geom() {
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
@@ -239,7 +239,9 @@ globalThis.Dialogue = {
     Dialogue._wrapW = g.innerW;
   },
 
-  // greedy word-wrap to `maxW`, honoring "\n". fixed here so the typewriter has a stable layout.
+  /**
+   * greedy word-wrap to `maxW`, honoring "\n". fixed here so the typewriter has a stable layout.
+   */
   _wrap(text, maxW) {
     const lines = [];
     const paras = text.split("\n");

@@ -57,7 +57,9 @@ globalThis.UISlider = class UISlider {
     return this;
   }
 
-  // shared geometry so the hit-test matches the draw; thumb inset by its radius so it never clips the track.
+  /**
+   * shared geometry so the hit-test matches the draw; thumb inset by its radius so it never clips the track.
+   */
   _metrics(pos) {
     const r = Math.max(7, pos.height * 0.45);
     const trackH = Math.max(4, pos.height * 0.3);
@@ -75,7 +77,7 @@ globalThis.UISlider = class UISlider {
     return { r, trackH, cy, inner, thumbX, trackW };
   }
 
-  // decimal places for the default readout, from `step` (continuous → 2).
+  /** decimal places for the default readout, from `step` (continuous → 2). */
   _decimals() {
     if (typeof this.step !== "number" || this.step <= 0) return 2;
     let dec = 0;

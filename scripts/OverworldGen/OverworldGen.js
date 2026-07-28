@@ -77,9 +77,11 @@ globalThis.OverworldGen = {
     });
   },
 
-  // scattered pines — one solid `tree` preset entity each (trunk collider, overhanging canopy
-  // mesh); off water like the wildlife, with a position-hashed quarter-turn + size so the one
-  // model doesn't visibly repeat (hashes draw nothing from the pass stream)
+  /**
+   * scattered pines — one solid `tree` preset entity each (trunk collider, overhanging canopy
+   * mesh); off water like the wildlife, with a position-hashed quarter-turn + size so the one
+   * model doesn't visibly repeat (hashes draw nothing from the pass stream)
+   */
   trees() {
     return {
       salt: 5,
@@ -104,9 +106,11 @@ globalThis.OverworldGen = {
     };
   },
 
-  // rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over
-  // the w×h cells; the adapter gives it the same solid footprint the old wall rect had); kept
-  // off the 1-cell border so a cluster never merges across a seam or blocks an entrance
+  /**
+   * rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over
+   * the w×h cells; the adapter gives it the same solid footprint the old wall rect had); kept
+   * off the 1-cell border so a cluster never merges across a seam or blocks an entrance
+   */
   rocks() {
     return {
       salt: 2,
@@ -140,7 +144,9 @@ globalThis.OverworldGen = {
     };
   },
 
-  // wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (raider_camp prefab)
+  /**
+   * wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (raider_camp prefab)
+   */
   rats() {
     return {
       salt: 3,
@@ -165,7 +171,7 @@ globalThis.OverworldGen = {
     };
   },
 
-  // wilderness raider loot table (the PrefabStamp defaultLoot policy)
+  /** wilderness raider loot table (the PrefabStamp defaultLoot policy) */
   rollLoot(rng) {
     const loot = [{ itemId: "rags", qty: 1 + Math.floor(rng() * 2) }];
     const roll = rng();

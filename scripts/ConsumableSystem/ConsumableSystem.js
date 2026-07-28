@@ -1,14 +1,18 @@
 // Use one unit of a Consumable from an entity's Inventory, applying its instant effect.
 globalThis.ConsumableSystem = {
-  // Injected attribute-grant policy (a *_shard). Kit can't reach the Demo stat model, so — like
-  // Combat.mitigate — the Demo wires this in sceneRpg.create. Default no-op returns false (a shard
-  // does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
+  /**
+   * Injected attribute-grant policy (a *_shard). Kit can't reach the Demo stat model, so — like
+   * Combat.mitigate — the Demo wires this in sceneRpg.create. Default no-op returns false (a shard
+   * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
+   */
   grantAttr(entities, id, attr, amount) {
     return false;
   },
 
-  // Use one unit of itemId from entity `id`. Fails if not consumable, not owned, or the effect would
-  // do nothing now (e.g. healing at full HP — no waste).
+  /**
+   * Use one unit of itemId from entity `id`. Fails if not consumable, not owned, or the effect would
+   * do nothing now (e.g. healing at full HP — no waste).
+   */
   use(entities, id, itemId) {
     const item = Item.get(itemId);
     if (item === undefined) return false;
@@ -25,8 +29,10 @@ globalThis.ConsumableSystem = {
     return true;
   },
 
-  // Apply the consumable's effects. Returns true if anything changed (so use() can refuse a no-op:
-  // a potion at full HP does nothing and IS refused; a shard always changes the attribute).
+  /**
+   * Apply the consumable's effects. Returns true if anything changed (so use() can refuse a no-op:
+   * a potion at full HP does nothing and IS refused; a shard always changes the attribute).
+   */
   _apply(entities, id, con) {
     let did = false;
     if (con.heal > 0) {

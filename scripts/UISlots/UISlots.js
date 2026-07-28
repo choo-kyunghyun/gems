@@ -43,7 +43,7 @@ globalThis.UISlots = class UISlots {
     this._my = -1;
   }
 
-  // top-left of slot i in gui space, relative to the laid-out rect.
+  /** top-left of slot i in gui space, relative to the laid-out rect. */
   _slotXY(pos, i) {
     const step = this.cellSize + this.gap;
     return {

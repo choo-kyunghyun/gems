@@ -88,13 +88,15 @@ globalThis.Debug = {
     Debug._handles[window] = undefined;
   },
 
-  // a method by house style, not a runtime dodge.
+  /** a method by house style, not a runtime dodge. */
   isOpen() {
     return Debug._open;
   },
 
-  // Step_0: F3 toggle; while open, rebuild windows missing their dbg_view,
-  // then run every section's update().
+  /**
+   * Step_0: F3 toggle; while open, rebuild windows missing their dbg_view,
+   * then run every section's update().
+   */
   update() {
     if (!Debug.enabled) return;
     if (keyboard_check_pressed(vk_f3)) Debug.toggle();

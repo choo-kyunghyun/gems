@@ -1,7 +1,7 @@
 // ── GemsUI kit: interactive controls — checkbox/progress/slider/select/stepper/input ──
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
-// Index of the item whose `value` matches Settings[key] (0 if none).
+/** Index of the item whose `value` matches Settings[key] (0 if none). */
 globalThis.gemsSettingsIndex = function gemsSettingsIndex(key, items) {
   const cur = Settings.get(key);
   return Math.max(
@@ -10,9 +10,11 @@ globalThis.gemsSettingsIndex = function gemsSettingsIndex(key, items) {
   );
 };
 
-// Checkbox/switch row: label left, toggle graphic right; the whole row is the click
-// target. `opts.style` "check" (box+tick, default) or "switch" (pill+knob). For a
-// `label: ON/OFF` button instead, use gemsToggle.
+/**
+ * Checkbox/switch row: label left, toggle graphic right; the whole row is the click
+ * target. `opts.style` "check" (box+tick, default) or "switch" (pill+knob). For a
+ * `label: ON/OFF` button instead, use gemsToggle.
+ */
 globalThis.gemsCheckbox = function gemsCheckbox(
   label,
   getValue,
@@ -45,9 +47,11 @@ globalThis.gemsCheckbox = function gemsCheckbox(
   return gemsAttachTooltip(el, opts);
 };
 
-// Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
-// `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
-// accept a theme key/hex/int; `opts.fillColor2` is an optional radial edge tint.
+/**
+ * Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
+ * `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
+ * accept a theme key/hex/int; `opts.fillColor2` is an optional radial edge tint.
+ */
 globalThis.gemsProgress = function gemsProgress(getValue, opts = {}) {
   const el = new UIElement({
     height: opts.height ?? 16,
@@ -75,7 +79,7 @@ globalThis.gemsProgress = function gemsProgress(getValue, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Settings-bound slider. For a non-Settings slider, build UISlider directly.
+/** Settings-bound slider. For a non-Settings slider, build UISlider directly. */
 globalThis.gemsSlider = function gemsSlider(
   key,
   min = 0,
@@ -114,10 +118,12 @@ globalThis.gemsSlider = function gemsSlider(
   return gemsAttachTooltip(el, opts);
 };
 
-// Panel-backed cycling select with an explicit index/onChange.
-// Framed field chassis shared by the boxed controls (select/dropdown/stepper/rebind/input):
-// a fixed-size element carrying the themed field UIPanel; the caller adds its control
-// component on top. `opts`: { width, height, color, rad, highlightAlpha }.
+/**
+ * Panel-backed cycling select with an explicit index/onChange.
+ * Framed field chassis shared by the boxed controls (select/dropdown/stepper/rebind/input):
+ * a fixed-size element carrying the themed field UIPanel; the caller adds its control
+ * component on top. `opts`: { width, height, color, rad, highlightAlpha }.
+ */
 globalThis.gemsFieldPanel = function gemsFieldPanel(opts = {}) {
   const el = new UIElement({
     height: opts.height ?? 36,
@@ -157,11 +163,13 @@ globalThis.gemsSelectCustom = function gemsSelectCustom(
   return gemsAttachTooltip(el, opts);
 };
 
-// Dropdown / combobox with an explicit index/onChange. Clicking the panel-backed
-// UIDropdown drops a navigable popup list — the fit for many options (resolutions,
-// locales), unlike gemsSelectCustom's in-place `< >` cycle. Lists past `opts.maxVisible`
-// (6) scroll. `items` are { name, value }. `opts`: { width, height, rowH, maxVisible,
-// dim, placeholder, tooltip }.
+/**
+ * Dropdown / combobox with an explicit index/onChange. Clicking the panel-backed
+ * UIDropdown drops a navigable popup list — the fit for many options (resolutions,
+ * locales), unlike gemsSelectCustom's in-place `< >` cycle. Lists past `opts.maxVisible`
+ * (6) scroll. `items` are { name, value }. `opts`: { width, height, rowH, maxVisible,
+ * dim, placeholder, tooltip }.
+ */
 globalThis.gemsDropdownCustom = function gemsDropdownCustom(
   items,
   index,
@@ -184,8 +192,10 @@ globalThis.gemsDropdownCustom = function gemsDropdownCustom(
   return gemsAttachTooltip(el, opts);
 };
 
-// Builds + shows the popup list for an open UIDropdown (its `onOpen`). Assigned global,
-// not a bare function — GMRT large-file hoisting rule.
+/**
+ * Builds + shows the popup list for an open UIDropdown (its `onOpen`). Assigned global,
+ * not a bare function — GMRT large-file hoisting rule.
+ */
 globalThis.gemsDropdownPopup = function gemsDropdownPopup(
   dropdown,
   field,
@@ -259,8 +269,10 @@ globalThis.gemsDropdownPopup = function gemsDropdownPopup(
   UI.insert(root); // top of the stack → blocks lower roots, draws last
 };
 
-// Settings-bound dropdown. `items` are { name, value }; the current Settings value
-// picks the starting index (mirrors gemsSelect, but as a popup list).
+/**
+ * Settings-bound dropdown. `items` are { name, value }; the current Settings value
+ * picks the starting index (mirrors gemsSelect, but as a popup list).
+ */
 globalThis.gemsDropdown = function gemsDropdown(key, items, opts = {}) {
   return gemsDropdownCustom(
     items,
@@ -270,9 +282,11 @@ globalThis.gemsDropdown = function gemsDropdown(key, items, opts = {}) {
   );
 };
 
-// Panel-backed numeric stepper (`< n >`). Holds its own value; `onChange(value)`
-// fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
-// the centered display string (default `${v}`).
+/**
+ * Panel-backed numeric stepper (`< n >`). Holds its own value; `onChange(value)`
+ * fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
+ * the centered display string (default `${v}`).
+ */
 globalThis.gemsStepper = function gemsStepper(value, onChange, opts = {}) {
   const el = gemsFieldPanel({ height: opts.height, width: opts.width });
   el.addComponent(
@@ -294,9 +308,11 @@ globalThis.gemsStepper = function gemsStepper(value, onChange, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Panel-backed single-line text field (UIInput). Reach the component via
-// `field.getComponent(UIInput)`. `placeholder` is resolved once (a plain string, not a
-// textRef), so it won't re-translate on a live language switch.
+/**
+ * Panel-backed single-line text field (UIInput). Reach the component via
+ * `field.getComponent(UIInput)`. `placeholder` is resolved once (a plain string, not a
+ * textRef), so it won't re-translate on a live language switch.
+ */
 globalThis.gemsInput = function gemsInput(opts = {}) {
   const el = gemsFieldPanel({
     height: opts.height ?? GemsTheme.rowH,
@@ -326,9 +342,11 @@ globalThis.gemsInput = function gemsInput(opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Slot grid with hover + single selection (inventory foundation). `items` is slot data
-// ({ sprite, subimg, count, color }) or null; `sprite` must be raster (SVG faults on
-// GMRT). Sized exactly to the grid so it drops into a gemsScroll. `onSelect(index, item)`.
+/**
+ * Slot grid with hover + single selection (inventory foundation). `items` is slot data
+ * ({ sprite, subimg, count, color }) or null; `sprite` must be raster (SVG faults on
+ * GMRT). Sized exactly to the grid so it drops into a gemsScroll. `onSelect(index, item)`.
+ */
 globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
   const cols = opts.cols ?? 4;
   const cellSize = opts.cellSize ?? 64;
@@ -360,9 +378,11 @@ globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Key-rebinding row (UIRebind): shows an action's current binding; click to arm capture,
-// next key rebinds its first button (Esc / mouse-click cancels). `actionKey` must already
-// be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on rebind.
+/**
+ * Key-rebinding row (UIRebind): shows an action's current binding; click to arm capture,
+ * next key rebinds its first button (Esc / mouse-click cancels). `actionKey` must already
+ * be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on rebind.
+ */
 globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
   const el = gemsFieldPanel({
     height: opts.height ?? GemsTheme.rowH,
@@ -382,8 +402,10 @@ globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Settings-bound select. `items` are { name, value }; the current Settings value
-// picks the starting index.
+/**
+ * Settings-bound select. `items` are { name, value }; the current Settings value
+ * picks the starting index.
+ */
 globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
   return gemsSelectCustom(
     items,
@@ -396,12 +418,14 @@ globalThis.gemsSelect = function gemsSelect(key, items, opts = {}) {
   );
 };
 
-// Data table (UITable): sortable columns, filtering, single selection, sticky header,
-// row scrolling, keyboard/gamepad browse. `columns` is the UITable column spec
-// ({ label, width?/flex?, align?, text(row), color?(row), sprite?(row), sortable?,
-// sortValue?(row) }). Sized to show `opts.rows` (8) whole rows. Reach the component via
-// `el.getComponent(UITable)`. `opts`: { data, rows, grow, rowH, headerH, width, sortBy,
-// sortDir, onSelect, onActivate, emptyText, font, headerFont, tooltip }.
+/**
+ * Data table (UITable): sortable columns, filtering, single selection, sticky header,
+ * row scrolling, keyboard/gamepad browse. `columns` is the UITable column spec
+ * ({ label, width?/flex?, align?, text(row), color?(row), sprite?(row), sortable?,
+ * sortValue?(row) }). Sized to show `opts.rows` (8) whole rows. Reach the component via
+ * `el.getComponent(UITable)`. `opts`: { data, rows, grow, rowH, headerH, width, sortBy,
+ * sortDir, onSelect, onActivate, emptyText, font, headerFont, tooltip }.
+ */
 globalThis.gemsTable = function gemsTable(columns, opts = {}) {
   const rowH = opts.rowH ?? GemsTheme.rowH;
   const headerH = opts.headerH ?? 30;
@@ -459,13 +483,15 @@ globalThis.gemsTable = function gemsTable(columns, opts = {}) {
   return gemsAttachTooltip(el, opts);
 };
 
-// Amount-picker modal — "how many?" stepper (defaults to the full `max`) + 1/Half/All quick
-// buttons over a gemsModal; confirm fires onConfirm(amount), Cancel/backdrop just close.
-// All labels are options (the kit stays content-agnostic — the RPG passes its STORAGE_*
-// strings); closeOnEscape defaults OFF because the RPG level's handleEscape cancels the
-// picker before the window under it. Returns the UIModal (as gemsModal does).
-// opts: { title, max, prompt, half, all, cancelLabel, confirmLabel, onConfirm, onClose,
-//         closeOnEscape, width }
+/**
+ * Amount-picker modal — "how many?" stepper (defaults to the full `max`) + 1/Half/All quick
+ * buttons over a gemsModal; confirm fires onConfirm(amount), Cancel/backdrop just close.
+ * All labels are options (the kit stays content-agnostic — the RPG passes its STORAGE_*
+ * strings); closeOnEscape defaults OFF because the RPG level's handleEscape cancels the
+ * picker before the window under it. Returns the UIModal (as gemsModal does).
+ * opts: { title, max, prompt, half, all, cancelLabel, confirmLabel, onConfirm, onClose,
+ *         closeOnEscape, width }
+ */
 globalThis.gemsAmountPicker = function gemsAmountPicker(opts = {}) {
   const max = opts.max ?? 1;
   let amount = max; // the confirm button reads it on confirm

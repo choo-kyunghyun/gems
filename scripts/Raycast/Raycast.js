@@ -64,14 +64,15 @@ globalThis.Raycast = {
         });
       }
     }
-    // sort by t. Return a SIGN, NOT `a.t - b.t`: t is in [0,1] so a fractional diff truncates to 0
-    // on GMRT's sort, leaving query order — pierce walk would hit bodies out of order. (#15593)
+    // BUG: [#15593] sort by t with a SIGN comparator, NOT `a.t - b.t`.
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
   },
 
-  // Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
-  // starting inside), or null. nx/ny is the surface normal pointing back along the ray.
+  /**
+   * Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
+   * starting inside), or null. nx/ny is the surface normal pointing back along the ray.
+   */
   _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;
 

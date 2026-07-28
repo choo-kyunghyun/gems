@@ -73,10 +73,12 @@ globalThis.FollowerSystem = {
     return out;
   },
 
-  // The ONE home for the wait/follow transition — pairs the state flip with its carry-bonus
-  // delta so the invariant can't be half-applied. No-op if already in `state`.
-  // The bonus is baked into the player's live Inventory, and the player migrates as a whole
-  // entity, so it rides a map change with no re-apply — never recompute it per map.
+  /**
+   * The ONE home for the wait/follow transition — pairs the state flip with its carry-bonus
+   * delta so the invariant can't be half-applied. No-op if already in `state`.
+   * The bonus is baked into the player's live Inventory, and the player migrates as a whole
+   * entity, so it rides a map change with no re-apply — never recompute it per map.
+   */
   setState(entities, playerId, fid, state) {
     const f = entities.get(Follower, fid);
     if (f === undefined || f.state === state) return;
@@ -89,8 +91,10 @@ globalThis.FollowerSystem = {
     }
   },
 
-  // Join the player's squad: membership + follow (+bonus via setState) + drop the "rehire"
-  // Interaction (it's a squad member now, not a talk-to-hire resident).
+  /**
+   * Join the player's squad: membership + follow (+bonus via setState) + drop the "rehire"
+   * Interaction (it's a squad member now, not a talk-to-hire resident).
+   */
   hire(entities, playerId, fid) {
     const squad = entities.get(Squad, playerId);
     if (squad === undefined || entities.get(Follower, fid) === undefined)
@@ -100,16 +104,20 @@ globalThis.FollowerSystem = {
     entities.detach(fid, Interaction);
   },
 
-  // Kick from the squad PERMANENTLY, in place: bonus off (via setState), membership detached,
-  // and a "rehire" Interaction attached so walking up + talking (E) re-hires it.
+  /**
+   * Kick from the squad PERMANENTLY, in place: bonus off (via setState), membership detached,
+   * and a "rehire" Interaction attached so walking up + talking (E) re-hires it.
+   */
   kick(entities, playerId, fid) {
     FollowerSystem.setState(entities, playerId, fid, "wait");
     entities.detach(fid, Squad);
     entities.add(fid, Interaction, { kind: "rehire" });
   },
 
-  // Add (sign +1) / remove (-1) a companion's carry bonus (slots + weight cap) on the player's Inventory.
-  // balanced delta (like EquipmentSystem._applyContainer) so it never needs a recompute-from-base pass.
+  /**
+   * Add (sign +1) / remove (-1) a companion's carry bonus (slots + weight cap) on the player's Inventory.
+   * balanced delta (like EquipmentSystem._applyContainer) so it never needs a recompute-from-base pass.
+   */
   applyBenefit(entities, playerId, f, sign) {
     if (f === undefined) return;
     const inv = entities.get(Inventory, playerId);

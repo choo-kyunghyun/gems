@@ -98,7 +98,7 @@ globalThis.RpgCatalog = {
     },
   ],
 
-  // Catalog entry for a spawn's preset id, or undefined (e.g. an unknown legacy preset).
+  /** Catalog entry for a spawn's preset id, or undefined (e.g. an unknown legacy preset). */
   get(id) {
     for (let i = 0; i < this.entries.length; i++)
       if (this.entries[i].id === id) return this.entries[i];

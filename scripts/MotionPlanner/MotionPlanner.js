@@ -57,7 +57,8 @@ globalThis.MotionPlanner = {
 
   /**
    * Plan a path between two cells.
-   * @param {{x:number,y:number}} start @param {{x:number,y:number}} goal
+   * @param {{x:number,y:number}} start
+   * @param {{x:number,y:number}} goal
    * @param {number} [algorithm] an `MP_ALGORITHM` value (default ASTAR)
    * @param {{allowDiag?:boolean,cornerCutting?:boolean,heuristicWeight?:number,maxIter?:number}} [opt]
    * @returns {{x:number,y:number}[]} cell waypoints start→goal, or `[]` if unreachable / no grid.

@@ -250,9 +250,11 @@ globalThis.SystemMenu = {
     SystemMenu._scale = resume; // …so restore the pre-open value
   },
 
-  // Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
-  // re-seed the Core focus-ring + level backdrop, rebuild the active level's UI (colors bake at
-  // build time) and this overlay, and fade back. No-op when the mode is unchanged.
+  /**
+   * Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
+   * re-seed the Core focus-ring + level backdrop, rebuild the active level's UI (colors bake at
+   * build time) and this overlay, and fade back. No-op when the mode is unchanged.
+   */
   _applyTheme(mode) {
     if (mode === GemsTheme.mode) return;
     Settings.set("theme", mode);
@@ -269,7 +271,7 @@ globalThis.SystemMenu = {
 
   // tabs
 
-  // System controls: Resume + Quit to Lobby (sim readouts live in the Debug overlay instead)
+  /** System controls: Resume + Quit to Lobby (sim readouts live in the Debug overlay instead) */
   _systemTab() {
     const scroll = gemsScroll({ grow: true });
 
@@ -299,7 +301,7 @@ globalThis.SystemMenu = {
     return scroll;
   },
 
-  // Settings form: audio / display / UI scale / language
+  /** Settings form: audio / display / UI scale / language */
   _settingsTab() {
     const scroll = gemsScroll({ grow: true });
 
@@ -490,7 +492,7 @@ globalThis.SystemMenu = {
     return scroll;
   },
 
-  // About — static project + engine info (reuses the credits strings)
+  /** About — static project + engine info (reuses the credits strings) */
   _aboutTab() {
     const scroll = gemsScroll({ grow: true });
     const card = gemsCard({ gap: GemsTheme.gapSm });

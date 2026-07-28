@@ -7,13 +7,13 @@
  */
 globalThis.Favorites = "Favorites";
 
-// stateless operations on a Favorites component
+/** stateless operations on a Favorites component */
 globalThis.FavoritesSystem = {
   has(fav, itemId) {
     return fav.ids.indexOf(itemId) >= 0;
   },
 
-  // toggle star; returns new state (true = now favorited)
+  /** toggle star; returns new state (true = now favorited) */
   toggle(fav, itemId) {
     const i = fav.ids.indexOf(itemId);
     if (i >= 0) {

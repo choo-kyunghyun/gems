@@ -20,7 +20,7 @@ globalThis.Trader = {
   _level: null, // the active RPG level — handlers reach the active store/map through it
   _installed: false, // WorldEvents handlers registered once
 
-  // Register the arrive/depart handlers on WorldEvents (once; survives level resets).
+  /** Register the arrive/depart handlers on WorldEvents (once; survives level resets). */
   _install() {
     if (Trader._installed) return;
     WorldEvents.on("trader_arrive", (d) => Trader._arrive(d));
@@ -28,8 +28,10 @@ globalThis.Trader = {
     Trader._installed = true;
   },
 
-  // Define a wandering trader + start its schedule. `level` is the active level (hydrate now if its
-  // first stop is the map you're in). def: { id, name, route:[{map,dwellH}], travelH, merchant }.
+  /**
+   * Define a wandering trader + start its schedule. `level` is the active level (hydrate now if its
+   * first stop is the map you're in). def: { id, name, route:[{map,dwellH}], travelH, merchant }.
+   */
   register(level, def) {
     const rec = {
       id: def.id,
@@ -53,12 +55,14 @@ globalThis.Trader = {
     Log.info(`trader ${rec.id}: home ${rec.map}, ${rec.route.length} stops`);
   },
 
-  // Map (re)activated: remember the live level + embody every settled trader whose current map is this one.
+  /**
+   * Map (re)activated: remember the live level + embody every settled trader whose current map is this one.
+   */
   onActivate(level) {
     Trader._level = level;
     for (const id in Trader._recs) Trader._tryHydrate(level, Trader._recs[id]);
   },
-  // Map about to suspend: dehydrate every trader embodied in it (living state → its record).
+  /** Map about to suspend: dehydrate every trader embodied in it (living state → its record). */
   onSuspend(level) {
     for (const id in Trader._recs) {
       const rec = Trader._recs[id];
@@ -132,7 +136,7 @@ globalThis.Trader = {
     Log.info(`trader ${rec.id} dehydrated from ${level.mapId}`);
   },
 
-  // New game / level teardown: drop records + queued trader events; keep the handlers.
+  /** New game / level teardown: drop records + queued trader events; keep the handlers. */
   reset() {
     Trader._recs = {};
     Trader._level = null;

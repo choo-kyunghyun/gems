@@ -11,7 +11,8 @@ globalThis.InvTable = {
    * THE identity of a row model across the inventory family: the instance uid when present (so a
    * re-click, or a re-map after a refresh, hits the same modded gun and not its twin), else the
    * item id. "#" keeps a uid from ever colliding with an item id.
-   * @param {Object} row @returns {string}
+   * @param {Object} row
+   * @returns {string}
    */
   rowId(row) {
     return row.uid !== undefined ? "#" + row.uid : row.itemId;
@@ -24,7 +25,9 @@ globalThis.InvTable = {
    * can't cross-trigger; `scope` separates panes within one (bag vs chest), and the row's slot
    * index keeps two stacks of the same item apart. Arrowing a list fires with a different row
    * each step, so browse mode can never trip it.
-   * @param {{key:string, time:number}} state @param {Object} row @param {string} scope
+   * @param {{key:string, time:number}} state
+   * @param {Object} row
+   * @param {string} scope
    * @returns {boolean}
    */
   reclick(state, row, scope) {
@@ -47,7 +50,9 @@ globalThis.InvTable = {
         label: "",
         width: 18,
         sortable: false,
-        // "*" not a star glyph: the bundled SDF fonts are Latin-1 only (no U+2605). Gold = favorited.
+        /**
+         * "*" not a star glyph: the bundled SDF fonts are Latin-1 only (no U+2605). Gold = favorited.
+         */
         text: (r) => (r.fav ? "*" : ""),
         color: () => gold,
       });
@@ -66,7 +71,7 @@ globalThis.InvTable = {
       label: I18n.text("INV_COL_NAME"),
       width: 100,
       flex: 3,
-      // item icon; missing/-1 draws nothing (UITable shifts text past it by rowH)
+      /** item icon; missing/-1 draws nothing (UITable shifts text past it by rowH) */
       sprite: (r) => {
         const it = Item.get(r.itemId);
         return it !== undefined ? it.sprite : -1;
@@ -134,7 +139,9 @@ globalThis.InvTable = {
     return cols;
   },
 
-  // row model from an inventory slot. callers extend with their own fields (bag adds `worn`, chest adds `idx`).
+  /**
+   * row model from an inventory slot. callers extend with their own fields (bag adds `worn`, chest adds `idx`).
+   */
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
     const cat = InvTable.category(it);
@@ -167,15 +174,17 @@ globalThis.InvTable = {
     };
   },
 
-  // Item-id tint by rarity, c_white when the id or its rarity is unknown. THE shared item
-  // color: every inventory-family panel and the world drop squares read it from here.
+  /**
+   * Item-id tint by rarity, c_white when the id or its rarity is unknown. THE shared item
+   * color: every inventory-family panel and the world drop squares read it from here.
+   */
   rarityColor(itemId) {
     const it = Item.get(itemId);
     const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
     return r !== undefined ? r.color : c_white;
   },
 
-  // filter/display category from capability components
+  /** filter/display category from capability components */
   category(it) {
     if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
     if (it.hasComponent(Weapon))
@@ -187,7 +196,9 @@ globalThis.InvTable = {
     return { code: "misc", key: "INV_CAT_MISC" };
   },
 
-  // ASCII lowercase via char codes — toLowerCase() returns garbage Unicode on GMRT (see CLAUDE.md)
+  /**
+   * ASCII lowercase via char codes — toLowerCase() returns garbage Unicode on GMRT (see CLAUDE.md)
+   */
   lower(s) {
     let out = "";
     for (let i = 0; i < s.length; i++) {

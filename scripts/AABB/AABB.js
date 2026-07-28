@@ -6,7 +6,9 @@ globalThis.AABB = {
   /**
    * Edges + center of `box` at `pos`. `pos` is any {x, y}
    * (e.g. an interpolated render pos).
-   * @param {{x:number,y:number}} pos @param {BBox} box @returns {AABBEdges}
+   * @param {{x:number,y:number}} pos
+   * @param {BBox} box
+   * @returns {AABBEdges}
    */
   edges(pos, box) {
     const x1 = pos.x + box.x;
@@ -19,7 +21,9 @@ globalThis.AABB = {
   /**
    * Edges of entity `id` from its Position + BBox, both required — callers
    * pass component-queried ids, so the reads are unguarded.
-   * @param {Entity} entities @param {number} id @returns {AABBEdges}
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {AABBEdges}
    */
   of(entities, id) {
     const pos = /** @type {Position} */ (entities.get(Position, id));
@@ -28,7 +32,8 @@ globalThis.AABB = {
   },
 
   /**
-   * @param {AABBRect} a @param {AABBRect} b
+   * @param {AABBRect} a
+   * @param {AABBRect} b
    * @returns {boolean} whether `a`/`b` overlap — strict, touching edges
    * don't count (matches physics separation).
    */

@@ -8,7 +8,7 @@ globalThis.RpgWorldOverlay = {
   // live hitscan shot streaks pushed by the firers (RpgPlayer + CombatAI), aged on Time.raw
   _tracers: [],
 
-  // record a fading muzzle->impact gunshot tracer (see Combat.hitscan)
+  /** record a fading muzzle->impact gunshot tracer (see Combat.hitscan) */
   pushTracer(x0, y0, x1, y1) {
     this._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
   },
@@ -17,10 +17,12 @@ globalThis.RpgWorldOverlay = {
     this._tracers = [];
   },
 
-  // item-icon markup prefix for a UIRichText row — "[spr=<name>] " when the item has an icon
-  // sprite, else "" (no gap). Emits the RESOLVED ref's name, never the spr_item_<id> convention:
-  // aliased ids (RpgItems.ICONS) share art whose name doesn't match, and UIRichText would
-  // silently draw nothing for the nonexistent name.
+  /**
+   * item-icon markup prefix for a UIRichText row — "[spr=<name>] " when the item has an icon
+   * sprite, else "" (no gap). Emits the RESOLVED ref's name, never the spr_item_<id> convention:
+   * aliased ids (RpgItems.ICONS) share art whose name doesn't match, and UIRichText would
+   * silently draw nothing for the nonexistent name.
+   */
   iconTag(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !sprite_exists(it.sprite)) return "";

@@ -107,17 +107,21 @@ globalThis.RenderWalls = class RenderWalls {
     }
   }
 
-  // material bucket for a cell value: a TileType keys by id, a bare-occupancy truthy (1/true)
-  // has none — both fall to bucket 0 (the default) on a miss.
+  /**
+   * material bucket for a cell value: a TileType keys by id, a bare-occupancy truthy (1/true)
+   * has none — both fall to bucket 0 (the default) on a miss.
+   */
   _bucketOf(t) {
     const tid = typeof t === "object" ? t.id : t;
     const mi = this._matIndex["" + tid];
     return mi === undefined ? 0 : mi;
   }
 
-  // rebuild the per-bucket whole-layer VBOs: count quads per bucket for exact fixed buffers,
-  // then write vertices (byte order per vox2vbuf: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
-  // An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
+  /**
+   * rebuild the per-bucket whole-layer VBOs: count quads per bucket for exact fixed buffers,
+   * then write vertices (byte order per vox2vbuf: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
+   * An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
+   */
   _rebuild() {
     this._dirty = false;
     this._free();
@@ -241,8 +245,10 @@ globalThis.RenderWalls = class RenderWalls {
     }
   }
 
-  // submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
-  // already set by the caller; flat: packed-normal vox mode).
+  /**
+   * submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
+   * already set by the caller; flat: packed-normal vox mode).
+   */
   _submit(vb, m, lit) {
     if (vb === -1) return;
     if (m.texOk) {

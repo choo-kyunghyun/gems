@@ -101,7 +101,7 @@ globalThis.UIAccordion = class UIAccordion {
     uiDrawRestore(st);
   }
 
-  // UINav: confirm expands/collapses the section.
+  /** UINav: confirm expands/collapses the section. */
   navActivate(element) {
     this.toggle(element);
   }

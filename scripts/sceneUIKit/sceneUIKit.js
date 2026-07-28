@@ -6,7 +6,7 @@ LevelRegistry.add(() => new _SceneUIKitClass(), {
   category: "SCENE_CAT_UI",
 });
 
-// standalone SCREEN class — duck-typed contract, see Level.
+/** standalone SCREEN class — duck-typed contract, see Level. */
 class _SceneUIKitClass {
   label = "UIKit";
 
@@ -92,7 +92,7 @@ class _SceneUIKitClass {
     );
   }
 
-  // flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host
+  /** flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host */
   _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
@@ -227,8 +227,10 @@ class _SceneUIKitClass {
     return toggles;
   }
 
-  // UIRichText: colored spans + inline icons. markup is i18n so it localizes.
-  // fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
+  /**
+   * UIRichText: colored spans + inline icons. markup is i18n so it localizes.
+   * fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
+   */
   _richTextSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
     sec.insertChild(
@@ -250,7 +252,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  // same ping-pong clock through different easing curves to show Tween curve differences
+  /** same ping-pong clock through different easing curves to show Tween curve differences */
   _motionSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
     // wall-clock ping-pong [0,1] over ~3.6 s
@@ -279,7 +281,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  // fixed progress for a representative mix: one ready, one partial, two untouched
+  /** fixed progress for a representative mix: one ready, one partial, two untouched */
   _setupQuests() {
     QuestLog.reset().register([
       {
@@ -315,8 +317,10 @@ class _SceneUIKitClass {
     QuestLog.report("collect", "moonherb", 2); // q2 → 2/3
   }
 
-  // placed directly in the section — widgets tab already scrolls; a second clip surface
-  // would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
+  /**
+   * placed directly in the section — widgets tab already scrolls; a second clip surface
+   * would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
+   */
   _questSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
     sec.insertChild(
@@ -379,7 +383,7 @@ class _SceneUIKitClass {
     return fields;
   }
 
-  // VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field
+  /** VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field */
   _vkSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_VK"));
     const field = gemsInput({
@@ -398,7 +402,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  // UIRebind: click to arm, next key rebinds. readout shows live held state.
+  /** UIRebind: click to arm, next key rebinds. readout shows live held state. */
   _rebindSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_REBIND"));
     const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
@@ -522,7 +526,7 @@ class _SceneUIKitClass {
     return controls;
   }
 
-  // nine-sliced border stays crisp while the body stretches
+  /** nine-sliced border stays crisp while the body stretches */
   _skinSection() {
     const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
     const box = gemsNineSlice();
@@ -533,7 +537,7 @@ class _SceneUIKitClass {
     return skin;
   }
 
-  // sortable+filterable table; Type select drives setFilter; confirm enters browse mode
+  /** sortable+filterable table; Type select drives setFilter; confirm enters browse mode */
   _tableTab() {
     const gold = gemsColor("warn");
     const cols = [
@@ -623,7 +627,7 @@ class _SceneUIKitClass {
     return tab;
   }
 
-  // demo data spread across types/rarities to exercise sort + filter
+  /** demo data spread across types/rarities to exercise sort + filter */
   _items() {
     const spr = asset_get_index("spr_tile16");
     const R = {
@@ -660,7 +664,7 @@ class _SceneUIKitClass {
     ];
   }
 
-  // two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
+  /** two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source */
   _inventorySection() {
     const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
     const grids = new UIElement({
@@ -697,7 +701,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  // alternating filled/empty; offset per bag so the two grids differ
+  /** alternating filled/empty; offset per bag so the two grids differ */
   _bag(which) {
     const icon = asset_get_index("spr_tile16");
     const items = [];
@@ -729,7 +733,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  // A fresh body element per section (the same element can't live in two places).
+  /** A fresh body element per section (the same element can't live in two places). */
   _accBody() {
     const body = gemsList();
     body.insertChild(
@@ -740,8 +744,10 @@ class _SceneUIKitClass {
     return body;
   }
 
-  // A list taller than its 160px window — the scroll keystone, here nested under a
-  // tab page.
+  /**
+   * A list taller than its 160px window — the scroll keystone, here nested under a
+   * tab page.
+   */
   _scrollSection() {
     const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));
     const sc = gemsScroll({ height: 160 });

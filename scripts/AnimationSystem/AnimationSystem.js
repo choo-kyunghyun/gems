@@ -41,7 +41,8 @@ globalThis.AnimationSystem = {
    * of each stepping the component themselves, so a sprite can never animate at two rates
    * depending on which pass a scene installed. On Time.delta like update() above: free-run
    * sprites are world motion, so they pause and dilate with the sim.
-   * @param {Visual} visual @param {Asset.GMSprite} sprite the sheet actually being drawn
+   * @param {Visual} visual
+   * @param {Asset.GMSprite} sprite the sheet actually being drawn
    *   (the placeholder substitute, when the authored one is missing)
    * @returns {number} the subimage to draw
    */
@@ -53,7 +54,9 @@ globalThis.AnimationSystem = {
     return visual.subimg;
   },
 
-  // switch state, resetting playback only on an actual change (so holding a key doesn't restart it)
+  /**
+   * switch state, resetting playback only on an actual change (so holding a key doesn't restart it)
+   */
   set(anim, state) {
     if (anim.state === state) return;
     anim.state = state;
