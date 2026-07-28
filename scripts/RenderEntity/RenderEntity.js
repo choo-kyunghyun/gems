@@ -51,14 +51,9 @@ globalThis.RenderEntity = class RenderEntity {
         }
         continue;
       }
-      if (visual.speed !== 0) {
-        visual.time += visual.speed * Time.raw;
-        visual.subimg =
-          Math.floor(visual.time) % sprite_get_number(visual.sprite);
-      }
       draw_sprite_ext(
         visual.sprite,
-        visual.subimg,
+        AnimationSystem.advance(visual, visual.sprite),
         rx,
         ry,
         visual.xscale,

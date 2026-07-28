@@ -164,11 +164,7 @@ globalThis.RenderBillboard = class RenderBillboard {
         sprite = spr_missing;
         subimg = subimg % sprite_get_number(sprite);
       }
-      if (visual.speed !== 0) {
-        visual.time += visual.speed * Time.raw;
-        visual.subimg = Math.floor(visual.time) % sprite_get_number(sprite);
-        subimg = visual.subimg;
-      }
+      if (visual.speed !== 0) subimg = AnimationSystem.advance(visual, sprite);
       // Paper-doll layers (Appearance) draw at the body's subimg/transform but CANNOT rely on
       // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
       // quad has different vertices and the interpolated depth diverges by float rounding — a

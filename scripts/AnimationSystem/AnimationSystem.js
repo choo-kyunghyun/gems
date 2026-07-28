@@ -35,6 +35,24 @@ globalThis.AnimationSystem = {
     }
   },
 
+  /**
+   * THE advance for a FREE-RUNNING Visual — one with no Animator, looping its own sheet at
+   * `Visual.speed` frames/sec. The draw passes (RenderEntity/RenderBillboard) call this instead
+   * of each stepping the component themselves, so a sprite can never animate at two rates
+   * depending on which pass a scene installed. On Time.delta like update() above: free-run
+   * sprites are world motion, so they pause and dilate with the sim.
+   * @param {Visual} visual @param {Asset.GMSprite} sprite the sheet actually being drawn
+   *   (the placeholder substitute, when the authored one is missing)
+   * @returns {number} the subimage to draw
+   */
+  advance(visual, sprite) {
+    if (visual.speed !== 0) {
+      visual.time += visual.speed * Time.delta;
+      visual.subimg = Math.floor(visual.time) % sprite_get_number(sprite);
+    }
+    return visual.subimg;
+  },
+
   // switch state, resetting playback only on an actual change (so holding a key doesn't restart it)
   set(anim, state) {
     if (anim.state === state) return;
