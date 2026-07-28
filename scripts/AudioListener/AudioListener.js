@@ -9,7 +9,8 @@ globalThis.AudioListener = {
     audio_listener_orientation(0, 0, 1, 0, -1, 0);
   },
 
-  // Move the ears to world (x, y); z fixed at 0. Called each frame from the active camera.
+  // Move the ears to world (x, y); z fixed at 0. Called each frame by the active level, which
+  // owns the policy of WHOSE position the ears track.
   position(x, y) {
     audio_listener_position(x, y, 0);
   },

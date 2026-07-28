@@ -460,7 +460,12 @@ class _SceneRpgClass {
     this._updateClimate(); // climate-zone enter/exit → Weather region override
     // free-cam updates in draw() (runs while paused — the point of the debug free-fly); follow updates here
     if (!this.camera.freeCam) this.camera.update();
-    AudioListener.position(this.camera.toX, this.camera.toY); // ears follow view → spatial SFX pan/attenuate
+    // ears on the PLAYER's body, not the view: CameraFollow clamps its look-at at map edges
+    // (and debug free-cam flies away entirely), parking the view center off the player — spatial
+    // SFX pan/attenuate from where the player stands; camera center is the no-player fallback
+    const ep = this.entities.get(Position, this.playerId);
+    if (ep !== undefined) AudioListener.position(ep.x, ep.y);
+    else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.entities); // timed world cues (the radio prop) re-fire their spatial SFX
 
     // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
