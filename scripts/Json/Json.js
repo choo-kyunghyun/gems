@@ -38,11 +38,21 @@ globalThis.Json = {
    * Serialize a JSON-plus-sprite-ref value to a string. Linear, cycle-safe, and step-capped:
    * it dodges the native nested-value fault, the O(n²) big-array cost, AND any infinite
    * recursion from a cyclic reference in the input.
-   * @param {*} v @returns {string|undefined} undefined after a step-cap abort (Log.error'd) —
+   * `opt.pretty` switches to the hand-editable form for files a human reads and diffs
+   * (LevelSerializer's level files): 2-space indent, one object key per line, and pure-scalar
+   * arrays kept INLINE so a `[x, y, w, h]` rect stays one line. Save games stay compact.
+   * @param {*} v @param {{pretty?: boolean}} [opt]
+   * @returns {string|undefined} undefined after a step-cap abort (Log.error'd) —
    *   truncated output is never handed back for a caller to persist as if complete.
    */
-  encode(v) {
-    const ctx = { path: [], steps: 0, aborted: false };
+  encode(v, opt = {}) {
+    const ctx = {
+      path: [],
+      steps: 0,
+      aborted: false,
+      pretty: opt.pretty === true,
+      pad: "", // current indent (pretty only) — each container restores it on the way out
+    };
     const out = [];
     Json._enc(v, out, ctx);
     if (ctx.aborted) {
@@ -50,6 +60,15 @@ globalThis.Json = {
       return undefined;
     }
     return out.join("");
+  },
+
+  // pretty form keeps an all-scalar array inline; a null element counts as scalar.
+  _inlineArray(v) {
+    for (let i = 0; i < v.length; i++) {
+      const e = v[i];
+      if (e !== null && typeof e === "object") return false;
+    }
+    return true;
   },
 
   // Is `v` an ancestor on the current DFS path? (=== identity scan — no object-keyed Set/Map).
@@ -94,10 +113,19 @@ globalThis.Json = {
           return;
         }
         ctx.path.push(v);
+        const block = ctx.pretty && v.length > 0 && !Json._inlineArray(v);
+        const outer = ctx.pad;
+        if (block) ctx.pad = outer + "  ";
         out.push("[");
         for (let i = 0; i < v.length; i++) {
-          if (i > 0) out.push(",");
+          if (i > 0) out.push(ctx.pretty ? (block ? ",\n" : ", ") : ",");
+          else if (block) out.push("\n");
+          if (block) out.push(ctx.pad);
           Json._enc(v[i], out, ctx);
+        }
+        if (block) {
+          ctx.pad = outer;
+          out.push("\n" + outer);
         }
         out.push("]");
         ctx.path.pop(); // leaves the current path — a later sibling ref is not a cycle
@@ -110,17 +138,23 @@ globalThis.Json = {
           return;
         }
         ctx.path.push(v);
+        const outer = ctx.pad;
+        if (ctx.pretty) ctx.pad = outer + "  ";
         out.push("{");
         let first = true;
         for (const k in v) {
           const val = v[k];
           if (val === undefined) continue; // drop undefined fields, like native JSON
-          if (!first) out.push(",");
+          if (!first) out.push(ctx.pretty ? ",\n" : ",");
+          else if (ctx.pretty) out.push("\n");
           first = false;
+          if (ctx.pretty) out.push(ctx.pad);
           out.push(JSON.stringify(k)); // key escaping — scalar string, safe
-          out.push(":");
+          out.push(ctx.pretty ? ": " : ":");
           Json._enc(val, out, ctx);
         }
+        ctx.pad = outer;
+        if (ctx.pretty && !first) out.push("\n" + outer); // all-undefined keys stay "{}"
         out.push("}");
         ctx.path.pop();
         return;
