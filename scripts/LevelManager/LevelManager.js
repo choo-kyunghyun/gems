@@ -120,7 +120,7 @@ globalThis.LevelManager = class LevelManager {
       Dialogue.clear();
       FloatingText.clear(); // world coords are level-local
       ParticleFx.clear(); // world coords are level-local
-      Audio.reset(); // one level's BGM/SFX must not bleed into the next
+      Audio.restart(); // one level's BGM/SFX must not bleed into the next
     }
     const entry = this._make(factory);
     this._all.push(entry);

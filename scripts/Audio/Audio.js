@@ -36,9 +36,9 @@ globalThis.Audio = {
   // Once at boot: falloff model (GM default "none" = no attenuation), the listener, saved volumes.
   // Category volume is folded by hand (master global, default gain per cue at spawn, music on the
   // live BGM instance) — no audio groups: a streamed BGM can't join one.
-  setup() {
+  init() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
-    AudioListener.setup();
+    AudioListener.init();
     Audio.setMasterGain(Settings.get("volMaster"));
     Music.setGain(Settings.get("volMusic"));
     Audio.setDefaultGain(Settings.get("volSfx"));
@@ -75,7 +75,7 @@ globalThis.Audio = {
 
   // Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
   // change (Music carries over); LevelManager._apply's destroying path only.
-  reset() {
+  restart() {
     audio_stop_all();
     Music.reset();
   },

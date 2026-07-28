@@ -1,6 +1,6 @@
 /**
  * Music — looping BGM with cross-fade (a state machine over audio_play_sound + audio_sound_gain).
- * Wired in obj_game Step_0 (update) + Audio.reset.
+ * Wired in obj_game Step_0 (update) + Audio.restart.
  */
 globalThis.Music = {
   _bgm: -1, // current looping BGM instance handle (-1 = none)
@@ -79,7 +79,7 @@ globalThis.Music = {
       audio_sound_gain(Music._bgm, Music._bgmGain * Music._gain, 50);
   },
 
-  // Hard stop + clear on a base level swap (via Audio.reset). Graceful stop() is the per-level path.
+  // Hard stop + clear on a base level swap (via Audio.restart). Graceful stop() is the per-level path.
   reset() {
     if (Music._bgm !== -1) audio_stop_sound(Music._bgm);
     if (Music._fadeStop !== -1) audio_stop_sound(Music._fadeStop);

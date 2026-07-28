@@ -61,7 +61,7 @@ GemsTheme.setMode(Settings.get("theme"));
 Display.applyVideo();
 
 // spatial falloff model + 2D listener orientation + saved volumes; after Settings.load
-Audio.setup();
+Audio.init();
 
 // seed the gamepad slots with the configured stick deadzone; no pad is connected this early, so
 // Other_75's "gamepad discovered" is what reaches a real one (contract at Input.applyDeadzone)
