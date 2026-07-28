@@ -65,7 +65,7 @@ class _ScenePlatformerClass {
 
   step() {
     PlatformerController.pollInput(this.ctrl); // edge-triggered input latched once per frame
-    const ticks = World.sim.advance();
+    const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.entities);
       PlatformerController.update(this.entities, this.ctrl);

@@ -1,5 +1,5 @@
-// The fixed-step SIMULATION clock — a World sub-module (World.sim). ONE global clock (only the active
-// level is stepped), exposing whole ticks + `alpha`, the render-interpolation remainder. Contract below.
+// The fixed-step SIMULATION clock — ONE global clock (only the active level is stepped), exposing
+// whole ticks + `alpha`, the render-interpolation remainder. Contract below.
 /**
  * Only the active level is stepped each frame, so a single accumulator is authoritative (a parked map
  * isn't ticked, so it needs no clock of its own). Converts this frame's sim time (Time.delta) into a

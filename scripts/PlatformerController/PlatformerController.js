@@ -70,7 +70,7 @@ globalThis.PlatformerController = {
     };
   },
 
-  // must run before World.sim.advance() — presses on 0-tick frames would otherwise be lost
+  // must run before SimClock.advance() — presses on 0-tick frames would otherwise be lost
   /** @param {{ jumpBuffer: number, jumpReleased: boolean }} ctrl */
   pollInput(ctrl) {
     if (Input.get("jump").pressed()) ctrl.jumpBuffer = PLATF_JUMP_BUFFER;
@@ -79,7 +79,7 @@ globalThis.PlatformerController = {
 
   /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   update(entities, ctrl) {
-    const dt = World.sim.tickDuration;
+    const dt = SimClock.tickDuration;
     const vel = entities.get(Velocity, ctrl.id);
     // read isGrounded live off the component — caching a boolean local is miscompiled by
     // GMRT (flips mid-function, broke coyote time/jump). caching the object is fine.

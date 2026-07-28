@@ -20,7 +20,7 @@ globalThis.SolidSystem = {
 
   /** @param {Entity} entities */
   update(entities) {
-    const dt = World.sim.tickDuration;
+    const dt = SimClock.tickDuration;
 
     // Per-tick snapshot of the kinematic solids: edges + oneWay baked into flat records, so the
     // body×static resolve loop below reads plain fields — no AABB.of / entities.get per test. Those

@@ -3,7 +3,7 @@
 globalThis.ProjectileSystem = {
   /** @param {Entity} entities */
   update(entities) {
-    const dt = World.sim.tickDuration;
+    const dt = SimClock.tickDuration;
     for (const id of entities.query(Projectile, Position, Velocity)) {
       const proj = entities.get(Projectile, id);
       const pos = entities.get(Position, id);

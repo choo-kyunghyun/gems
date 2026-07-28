@@ -29,9 +29,9 @@ globalThis.InterpolationSystem = {
     const pos = entities.get(Position, id);
     const prev = entities.get(PrevPosition, id);
     out.x =
-      prev !== undefined ? prev.x + (pos.x - prev.x) * World.sim.alpha : pos.x;
+      prev !== undefined ? prev.x + (pos.x - prev.x) * SimClock.alpha : pos.x;
     out.y =
-      prev !== undefined ? prev.y + (pos.y - prev.y) * World.sim.alpha : pos.y;
+      prev !== undefined ? prev.y + (pos.y - prev.y) * SimClock.alpha : pos.y;
     return out;
   },
 };

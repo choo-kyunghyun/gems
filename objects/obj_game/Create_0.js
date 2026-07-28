@@ -81,10 +81,8 @@ this.background = Color.parse(GemsTheme.bg); // level backdrop; re-read on a the
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
-// Wire the World singleton's sub-modules (composition; assigned here where load order is safe).
-World.sim = SimClock; // fixed-step tick clock (World.sim.advance / .alpha / .tickDuration)
 // World.levels (LevelManager) owns the level lifecycle + the resident-level registry; obj_game
-// delegates update/step/draw/destroy each event directly.
+// delegates update/step/draw/destroy each event directly. Instantiated here, where load order is safe.
 World.levels = new LevelManager();
 // Boot-wire the Core seams to their kit/Demo owners: the pause menu, its quit target, and the
 // localized level labels — before start(), so the boot level's label resolves.

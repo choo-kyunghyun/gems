@@ -290,7 +290,7 @@ class _SceneRpgClass {
     // BEFORE the tick loop so the waking press wakes instead of moving this frame.
     // WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per
     // frame off Time.delta) consume the whole scaled delta, while the fixed-step sim behind them
-    // is capped at World.sim.maxTicks per frame. Hours pass; the tick loop does not run 50x.
+    // is capped at SimClock.maxTicks per frame. Hours pass; the tick loop does not run 50x.
     if (this._sleeping) {
       if (this._wakeInput()) {
         this._sleeping = false;
@@ -360,7 +360,7 @@ class _SceneRpgClass {
       this._navGy = nc.y;
     }
 
-    const ticks = World.sim.advance();
+    const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.entities); // pre-move positions for render lerp
       StatusSystem.update(this.entities); // tick buffs/debuffs (dot/hot + duration), then ↓
@@ -372,7 +372,7 @@ class _SceneRpgClass {
         DrowsinessSystem.restore(
           this.entities,
           this.playerId,
-          RPG_SLEEP_RECOVER * World.sim.tickDuration,
+          RPG_SLEEP_RECOVER * SimClock.tickDuration,
         );
       else DrowsinessSystem.update(this.entities);
       FollowerSystem.update(this.entities, this.playerId); // seek, by live Follower query (before physics)

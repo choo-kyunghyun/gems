@@ -106,7 +106,7 @@ globalThis.StatusSystem = {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       const eff = entities.get(StatusEffects, id);
-      const dt = World.sim.tickDuration;
+      const dt = SimClock.tickDuration;
       let modsExpired = false;
       for (let j = eff.list.length - 1; j >= 0; j--) {
         const inst = eff.list[j];

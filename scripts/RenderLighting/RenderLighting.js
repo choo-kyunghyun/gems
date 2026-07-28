@@ -69,7 +69,7 @@ globalThis.RenderLighting = class RenderLighting {
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
     const lights = entities.query(Light, Position);
-    const alpha = World.sim.alpha; // render interpolation, like RenderEntity
+    const alpha = SimClock.alpha; // render interpolation, like RenderEntity
     const zx = w / this.camera.width; // world→screen scale for the blob radius
     let i = 0;
     while (i < lights.length) {

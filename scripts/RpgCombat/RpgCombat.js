@@ -138,7 +138,7 @@ globalThis.RpgCombat = {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       const d = entities.get(Downed, id);
-      d.timer -= World.sim.tickDuration;
+      d.timer -= SimClock.tickDuration;
       if (d.timer > 0) continue;
       const m = entities.get(Mortal, id);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
