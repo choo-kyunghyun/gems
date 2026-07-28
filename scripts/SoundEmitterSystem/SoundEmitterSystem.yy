@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SoundEmitterSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SoundEmitterSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SoundEmitterSystem.js",
+}

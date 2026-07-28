@@ -333,6 +333,8 @@
     {"id":{"name":"SlotDrag","path":"scripts/SlotDrag/SlotDrag.yy",},},
     {"id":{"name":"Snapshot","path":"scripts/Snapshot/Snapshot.yy",},},
     {"id":{"name":"SolidSystem","path":"scripts/SolidSystem/SolidSystem.yy",},},
+    {"id":{"name":"SoundEmitter","path":"scripts/SoundEmitter/SoundEmitter.yy",},},
+    {"id":{"name":"SoundEmitterSystem","path":"scripts/SoundEmitterSystem/SoundEmitterSystem.yy",},},
     {"id":{"name":"Spike","path":"scripts/Spike/Spike.yy",},},
     {"id":{"name":"SpriteMeta","path":"scripts/SpriteMeta/SpriteMeta.yy",},},
     {"id":{"name":"Squad","path":"scripts/Squad/Squad.yy",},},
