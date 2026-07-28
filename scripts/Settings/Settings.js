@@ -1,9 +1,6 @@
 /**
- * Keyed settings persisted to a caller-named JSON file — the filename is passed to load/save,
- * never stored or validated here (the app shell owns it). A `defaults` allowlist bounds what
+ * Keyed settings persisted to a caller-named JSON file. A `defaults` allowlist bounds what
  * load/save touch, so only declared keys round-trip and `get` falls back to the default.
- * Serialized with GML json_stringify (JS JSON.stringify faults on nested values, see
- * docs/GMRT.md), so a value may nest (objects/arrays), not just scalars.
  */
 globalThis.Settings = {
   /** @type {Object<string, any>} declared keys + their default values. */
@@ -61,12 +58,12 @@ globalThis.Settings = {
   },
 
   /**
-   * load declared keys from disk (missing file is a no-op; a parse error warns + keeps defaults).
-   * @param {string} filename
+   * Load declared keys from disk. Logs a warning on parse failure.
+   * @param {string} fname
    * @returns {typeof Settings}
    */
-  load(filename) {
-    const raw = File.read(filename);
+  load(fname) {
+    const raw = File.read(fname);
     if (raw === undefined) return this;
     try {
       const parsed = JSON.parse(raw);
@@ -74,22 +71,24 @@ globalThis.Settings = {
         if (key in parsed) this.local[key] = parsed[key];
       }
     } catch (_) {
-      Log.warn("Settings: parse error in " + filename + " — keeping defaults");
+      Log.warn("Settings: parse error in " + fname);
     }
     return this;
   },
 
   /**
-   * write every declared key (set value or default) to disk.
-   * @param {string} filename
+   * write the declared keys set this session to disk; unset keys stay on defaults.
+   * @param {string} fname
    * @returns {typeof Settings}
    */
-  save(filename) {
+  save(fname) {
+    /** @type {Object<string, any>} */
     const out = {};
     for (const key of Object.keys(this.defaults)) {
-      out[key] = this.get(key);
+      if (key in this.local) out[key] = this.local[key];
     }
-    File.write(filename, json_stringify(out));
+    // json_stringify, not JSON.stringify — native faults on nested values (#15565)
+    File.write(fname, json_stringify(out));
     return this;
   },
 };
