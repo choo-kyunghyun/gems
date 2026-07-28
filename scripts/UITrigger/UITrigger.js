@@ -6,12 +6,18 @@
  * bare `new UITrigger({})` is a click swallower), and as the internal delegate every clickable widget
  * (UIButton/UICheckbox/UISelect/…) runs instead of cloning this logic. UIButton is the themed variant
  * (adds easing + disabled/selected).
+ *
+ * READ-ONLY MODE (`readOnly`) — a widget that shows its state but must not act on a press
+ * (UICheckbox/UISlider). Hover still fires and still CAPTURES (so the display swallows clicks meant
+ * for whatever sits under it), but a press never latches `hold`: no onDown/onUp/onClick, and no
+ * capture that would survive dragging off the element.
  * @implements {UIComponent}
  */
 globalThis.UITrigger = class UITrigger {
-  /** @param {Object} [trigger] { block, onEnter, onHover, onLeave, onDown, onUp, onClick } */
+  /** @param {Object} [trigger] { block, readOnly, onEnter, onHover, onLeave, onDown, onUp, onClick } */
   constructor(trigger = {}) {
     this.block = trigger.block ?? true;
+    this.readOnly = trigger.readOnly ?? false;
     this.onEnter = trigger.onEnter ?? noop;
     this.onHover = trigger.onHover ?? noop;
     this.onLeave = trigger.onLeave ?? noop;
@@ -33,7 +39,7 @@ globalThis.UITrigger = class UITrigger {
     if (this.enter) {
       if (!enterPrev) this.onEnter();
       this.onHover();
-      if (UIPointer.pressed) {
+      if (UIPointer.pressed && !this.readOnly) {
         this.hold = true;
         this.onDown();
       }
@@ -54,6 +60,7 @@ globalThis.UITrigger = class UITrigger {
 
     element.state.hover = this.enter;
     element.state.held = this.hold;
+    if (this.readOnly) return this.enter || block;
     return (this.block && (this.hold || this.enter)) || block;
   }
 

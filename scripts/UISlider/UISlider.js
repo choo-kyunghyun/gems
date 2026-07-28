@@ -24,8 +24,9 @@ globalThis.UISlider = class UISlider {
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
 
-    // internal FSM delegate (UITrigger) — no callbacks; the drag below reads its hold flag.
-    this._fsm = new UITrigger({});
+    // internal FSM delegate (UITrigger) — no callbacks; the drag below reads its hold flag. It
+    // owns readOnly (which never latches hold), so this field only gates the nav path below.
+    this._fsm = new UITrigger({ readOnly: this.readOnly });
   }
 
   _snap(value) {
@@ -98,15 +99,14 @@ globalThis.UISlider = class UISlider {
 
     // drag: the FSM latches hold on the press frame (value jumps immediately) and clears it
     // during the release-frame update (no set on release) — same order as before delegation.
-    if (!this.readOnly && this._fsm.hold) {
+    if (this._fsm.hold) {
       const mx = device_mouse_x_to_gui(0);
       const m = this._metrics(pos);
       const t = clamp((mx - pos.left - m.r) / m.inner, 0, 1);
       this.setValue(this.min + t * (this.max - this.min));
     }
 
-    // readOnly: hover still captures but a press must not latch capture on drag-off.
-    return this.readOnly ? this._fsm.enter || block : result;
+    return result;
   }
 
   /** @param {UIElement} element */

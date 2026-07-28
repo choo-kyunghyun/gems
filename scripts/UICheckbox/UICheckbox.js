@@ -14,21 +14,18 @@ globalThis.UICheckbox = class UICheckbox {
     this.colorKnob = box.colorKnob ?? c_white; // knob / tick
     this.colorBorder = box.colorBorder ?? c_black;
 
-    // internal FSM delegate (UITrigger) — runs hover/press/commit and writes element.state.
+    // internal FSM delegate (UITrigger) — runs hover/press/commit and writes element.state; it
+    // owns readOnly (no press latch, no onClick), so this field only gates the nav path below.
     this._fsm = new UITrigger({
-      onClick: () => {
-        if (!this.readOnly) this.onToggle();
-      },
+      readOnly: this.readOnly,
+      onClick: () => this.onToggle(),
     });
     this._t = undefined; // eased 0..1 toward the current on/off state
   }
 
   /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
   onUpdate(element, block) {
-    const result = this._fsm.onUpdate(element, block);
-    // readOnly: hover still captures (blocks below) but a press must not latch capture on
-    // drag-off — matches the pre-delegation behavior where readOnly never set _hold.
-    return this.readOnly ? this._fsm.enter || block : result;
+    return this._fsm.onUpdate(element, block);
   }
 
   /** @param {UIElement} element */
