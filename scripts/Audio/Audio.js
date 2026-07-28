@@ -26,9 +26,9 @@
  */
 globalThis.Audio = {
   _defaultGain: 1.0,
-  FALLOFF_REF: 96,
-  FALLOFF_MAX: 800,
-  FALLOFF_FACTOR: 1.0,
+  falloff_ref: 96,
+  falloff_max: 800,
+  falloff_factor: 1.0,
 
   // Once at boot: falloff model (GM default "none" = no attenuation), the listener, saved volumes.
   // Category volume is folded by hand (master global, default gain per cue at spawn, music on the
@@ -62,9 +62,9 @@ globalThis.Audio = {
     const p = /** @type {SoundPosition} */ (params.position);
     if (p !== undefined) {
       p.z = p.z ?? 0;
-      p.falloff_ref = p.falloff_ref ?? Audio.FALLOFF_REF;
-      p.falloff_max = p.falloff_max ?? Audio.FALLOFF_MAX;
-      p.falloff_factor = p.falloff_factor ?? Audio.FALLOFF_FACTOR;
+      p.falloff_ref = p.falloff_ref ?? Audio.falloff_ref;
+      p.falloff_max = p.falloff_max ?? Audio.falloff_max;
+      p.falloff_factor = p.falloff_factor ?? Audio.falloff_factor;
     }
     return audio_play_sound_ext(params);
   },
