@@ -30,22 +30,19 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
 
   destroy() {}
 
-  // visible cell range, culled to the camera view rect when set. read the Camera's OWN fields,
-  // not camera_get_view_* (returns 0 for the matrix-driven Camera). ORTHO camera
-  // is centered on (toX,toY) spanning width × height.
+  // visible cell range, culled to Camera.groundRect when a camera is set — never
+  // camera_get_view_* (returns 0 for the matrix-driven Camera); groundRect also owns the pitch
+  // stretch, so the labelled band still covers a tilted view.
   _range() {
     const { cols, rows, cellWidth, cellHeight } = this.grid;
     if (this.camera === undefined || !(this.camera.width > 0))
       return { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
-    const vw = this.camera.width;
-    const vh = this.camera.height;
-    const vx = this.camera.toX - vw / 2;
-    const vy = this.camera.toY - vh / 2;
+    const view = this.camera.groundRect();
     return {
-      x0: Math.max(0, Math.floor(vx / cellWidth)),
-      y0: Math.max(0, Math.floor(vy / cellHeight)),
-      x1: Math.min(cols - 1, Math.floor((vx + vw) / cellWidth)),
-      y1: Math.min(rows - 1, Math.floor((vy + vh) / cellHeight)),
+      x0: Math.max(0, Math.floor(view.x1 / cellWidth)),
+      y0: Math.max(0, Math.floor(view.y1 / cellHeight)),
+      x1: Math.min(cols - 1, Math.floor(view.x2 / cellWidth)),
+      y1: Math.min(rows - 1, Math.floor(view.y2 / cellHeight)),
     };
   }
 

@@ -153,22 +153,18 @@ globalThis.RenderMesh = class RenderMesh {
     // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
     // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
     // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
-    // no cap — only the per-face mesh term is budgeted). View rect from the camera fields:
-    // centered on (toX, toY), N-S ground reach stretched by 1/cos(pitch) like the follow clamp.
+    // no cap — only the per-face mesh term is budgeted). The view rect is Camera.groundRect,
+    // which owns the pitch stretch.
     if (this.camera !== undefined) {
-      const cx = this.camera.toX;
-      const cy = this.camera.toY;
-      const halfW = this.camera.width / 2;
-      const halfH =
-        this.camera.height / 2 / Math.cos(this.camera.followPitch ?? 0);
+      const view = this.camera.groundRect();
       const vis = [];
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i];
         if (
-          rec.x + rec.radius >= cx - halfW &&
-          rec.x - rec.radius <= cx + halfW &&
-          rec.y + rec.radius >= cy - halfH &&
-          rec.y - rec.radius <= cy + halfH
+          rec.x + rec.radius >= view.x1 &&
+          rec.x - rec.radius <= view.x2 &&
+          rec.y + rec.radius >= view.y1 &&
+          rec.y - rec.radius <= view.y2
         )
           vis.push(rec);
       }

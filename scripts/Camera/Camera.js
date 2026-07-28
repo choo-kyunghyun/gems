@@ -158,6 +158,26 @@ globalThis.Camera = class Camera {
   }
 
   /**
+   * THE ground-plane view rect (world px): the ORTHO view centered on (toX, toY), with the N-S
+   * half-extent stretched by 1/cos(pitch) — a tilted ortho camera reaches further north/south
+   * across the ground than its `height` alone says. One owner for that rule, so the follow
+   * clamp, the mesh light cull, and the grid/tile-map culls can't disagree about what is
+   * on-screen. Pitch comes from the follow camera's live `followPitch` radians (CameraFollow);
+   * a flat or non-follow camera reads 0 and the rect is plain width × height.
+   * @returns {{x1:number, y1:number, x2:number, y2:number}}
+   */
+  groundRect() {
+    const halfW = this.width / 2;
+    const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
+    return {
+      x1: this.toX - halfW,
+      y1: this.toY - halfH,
+      x2: this.toX + halfW,
+      y2: this.toY + halfH,
+    };
+  }
+
+  /**
    * World → surface-pixel projection under the current ortho view. Uses the up vector so a
    * pitched (2.5D) camera foreshortens world-y correctly. Used by screen-space overlays (e.g.
    * RenderLighting) to land in the right place in both flat and pitched views.

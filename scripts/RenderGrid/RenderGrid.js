@@ -33,16 +33,13 @@ globalThis.RenderGrid = class RenderGrid {
     let x1 = cols;
     let y1 = rows;
     if (this.camera !== undefined && this.camera.width > 0) {
-      // read the Camera's OWN fields, not camera_get_view_* (returns 0 for the matrix-driven
-      // Camera). ORTHO camera is centered on (toX,toY) spanning width × height.
-      const vw = this.camera.width;
-      const vh = this.camera.height;
-      const vx = this.camera.toX - vw / 2;
-      const vy = this.camera.toY - vh / 2;
-      x0 = Math.max(0, Math.floor(vx / cellWidth));
-      y0 = Math.max(0, Math.floor(vy / cellHeight));
-      x1 = Math.min(cols, Math.ceil((vx + vw) / cellWidth));
-      y1 = Math.min(rows, Math.ceil((vy + vh) / cellHeight));
+      // Camera.groundRect, never camera_get_view_* (returns 0 for the matrix-driven Camera);
+      // it also owns the pitch stretch, so lines still reach the top/bottom of a tilted view.
+      const view = this.camera.groundRect();
+      x0 = Math.max(0, Math.floor(view.x1 / cellWidth));
+      y0 = Math.max(0, Math.floor(view.y1 / cellHeight));
+      x1 = Math.min(cols, Math.ceil(view.x2 / cellWidth));
+      y1 = Math.min(rows, Math.ceil(view.y2 / cellHeight));
     }
 
     draw_set_alpha(this.alpha);

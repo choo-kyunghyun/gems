@@ -67,13 +67,14 @@ function _cameraFollowOnUpdate() {
   let x = lerp(this.toX, pos.x, this.followLerp);
   let y = lerp(this.toY, pos.y, this.followLerp);
 
-  // clamp look-at to world bounds so the view never shows past a map edge; vertical half-extent
-  // is divided by cos(pitch) because a tilted ortho stretches the N-S ground reach; center if
-  // the world is smaller than the view
+  // clamp look-at to world bounds so the view never shows past a map edge; half-extents come from
+  // Camera.groundRect (which owns the pitch stretch), and the view centers when the world is
+  // smaller than it
   const cb = this.followClamp;
   if (cb !== undefined) {
-    const halfW = this.width / 2;
-    const halfH = this.height / 2 / Math.cos(this.followPitch ?? 0);
+    const view = this.groundRect();
+    const halfW = (view.x2 - view.x1) / 2;
+    const halfH = (view.y2 - view.y1) / 2;
     x =
       cb.x2 - cb.x1 > this.width
         ? clamp(x, cb.x1 + halfW, cb.x2 - halfW)
