@@ -18,6 +18,9 @@ globalThis.SystemMenu = {
   // Boot-wired quit-target level factory (the demo's lobby) — null hides the Quit button, so the
   // kit menu names no Demo level.
   quitTo: null,
+  // Boot-wired filename the Settings tab's Save passes to Settings.save — null hides the button,
+  // so the kit names no app file.
+  settingsFile: null,
 
   /** Register an extra tab. @param {string|Function} label textRef or string @param {() => UIElement} build content builder, called each open (so it reads live state) */
   addTab(label, build) {
@@ -466,19 +469,23 @@ globalThis.SystemMenu = {
     scroll.scrollBody.insertChild(langSection);
 
     // settings persist only on explicit Save (Settings.set updates live in memory)
-    const saveRow = new UIElement({
-      width: "100%",
-      height: 44,
-      flexShrink: 0,
-      flexDirection: "row",
-      justifyContent: "flex-end",
-    });
-    saveRow.insertChild(
-      gemsButton(I18n.textRef("SETTINGS_SAVE"), () => Settings.save(), {
-        width: 160,
-      }),
-    );
-    scroll.scrollBody.insertChild(saveRow);
+    if (SystemMenu.settingsFile !== null) {
+      const saveRow = new UIElement({
+        width: "100%",
+        height: 44,
+        flexShrink: 0,
+        flexDirection: "row",
+        justifyContent: "flex-end",
+      });
+      saveRow.insertChild(
+        gemsButton(
+          I18n.textRef("SETTINGS_SAVE"),
+          () => Settings.save(SystemMenu.settingsFile),
+          { width: 160 },
+        ),
+      );
+      scroll.scrollBody.insertChild(saveRow);
+    }
 
     return scroll;
   },

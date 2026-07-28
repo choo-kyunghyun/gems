@@ -25,7 +25,7 @@ Log.info("game start");
 // last chance to record why it crashed — runner exits right after the handler
 exception_unhandled_handler((ex) => Log.exception(ex));
 
-Settings.registerDefaults({
+Settings.register({
   language: "en-US",
   fullscreen: false,
   resolutionW: 0,
@@ -52,7 +52,8 @@ Settings.registerDefaults({
   // GemsUI color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",
 });
-Settings.load();
+globalThis.SETTINGS_FILE = "settings.json"; // the app-owned settings filename — Settings stores none; every load/save passes it
+Settings.load(SETTINGS_FILE);
 
 // apply the saved GemsUI color theme before any UI (or the backdrop) reads GemsTheme colors
 GemsTheme.setMode(Settings.get("theme"));
@@ -89,6 +90,7 @@ World.levels = new LevelManager();
 World.levels.menu = SystemMenu;
 World.levels.resolveLabel = (factory) => LevelRegistry.labelOf(factory);
 SystemMenu.quitTo = LEVELS.lobby;
+SystemMenu.settingsFile = SETTINGS_FILE;
 // lobby is the boot level + dev launcher; F2 (Step_0) also returns here
 World.levels.start(LEVELS.lobby);
 LevelTransition.reveal(); // boot fades in from black

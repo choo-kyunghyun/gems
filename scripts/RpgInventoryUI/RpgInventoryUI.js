@@ -543,7 +543,7 @@ globalThis.RpgInventoryUI = {
         () => Settings.get(settingKey),
         () => {
           Settings.set(settingKey, !Settings.get(settingKey));
-          Settings.save();
+          Settings.save(SETTINGS_FILE);
           RpgInventoryUI._applyColumns(level);
         },
         { style: "switch" },
@@ -575,7 +575,7 @@ globalThis.RpgInventoryUI = {
         I18n.textRef("INV_SET_TEMP"),
         gemsSelectCustom(units, unitIdx, (_i, code) => {
           Settings.set("tempUnit", code);
-          Settings.save();
+          Settings.save(SETTINGS_FILE);
         }),
       ),
     );
@@ -594,7 +594,7 @@ globalThis.RpgInventoryUI = {
         () => Settings.get("rpgRadar"),
         () => {
           Settings.set("rpgRadar", !Settings.get("rpgRadar"));
-          Settings.save();
+          Settings.save(SETTINGS_FILE);
         },
         { style: "switch" },
       ),
