@@ -16,6 +16,7 @@
  *   prop     label color material? kind? furn?  (kind/furn picks a vox MESH where one exists, else a sprite; material → tint over color (sprites only); kind → Interaction, else furniture)
  *   torch    label? color?        (decorative light prop — small solid post; carries a Light)
  *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
+ *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
  *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
  *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
  *   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
@@ -230,6 +231,18 @@ globalThis.RpgSpawn = {
             intensity: 0.95,
             flicker: 0.04,
           },
+        },
+      },
+      {
+        // Spatial-audio test source (Audio + AudioListener): SoundEmitterSystem re-fires the
+        // cue at its Position — walk around it to hear the falloff window + L/R pan.
+        id: "radio",
+        components: {
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // stand content 18×18
+          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Name: { name: "Radio" },
+          Mesh: { model: "stand" },
+          SoundEmitter: { sound: "snd_gun_fire", every: 1.2 },
         },
       },
       {
@@ -468,6 +481,13 @@ globalThis.RpgSpawn = {
             : { kind: s.kind };
     } else if (s.preset === "torch" || s.preset === "lantern") {
       if (s.label !== undefined) over.Name = { name: s.label };
+    } else if (s.preset === "radio") {
+      if (s.label !== undefined) over.Name = { name: s.label };
+      const se = {};
+      if (s.sound !== undefined) se.sound = s.sound;
+      if (s.every !== undefined) se.every = s.every;
+      if (s.gain !== undefined) se.gain = s.gain;
+      if (Object.keys(se).length > 0) over.SoundEmitter = se;
     } else if (s.preset === "rock") {
       // cluster footprint (w×h cells, from the overworld scatter): center the entity on the
       // rect and stretch Mesh + BBox over it — the collider equals the old scatter wall rect

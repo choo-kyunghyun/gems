@@ -70,6 +70,8 @@
 
     { "preset": "reach", "gx": 17, "gy": 2, "half": 88 },
 
+    { "preset": "radio", "gx": 2, "gy": 5 },
+
     {
       "preset": "portal",
       "gx": 24,

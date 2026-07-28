@@ -461,6 +461,7 @@ class _SceneRpgClass {
     // free-cam updates in draw() (runs while paused — the point of the debug free-fly); follow updates here
     if (!this.camera.freeCam) this.camera.update();
     AudioListener.position(this.camera.toX, this.camera.toY); // ears follow view → spatial SFX pan/attenuate
+    SoundEmitterSystem.update(this.entities); // timed world cues (the radio prop) re-fire their spatial SFX
 
     // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
     if (this.chunks !== undefined) {
