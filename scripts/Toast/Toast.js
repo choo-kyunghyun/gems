@@ -88,31 +88,7 @@ globalThis.Toast = {
       const top = baseline - h + slide;
       const bot = baseline + slide;
 
-      draw_set_alpha(Toast.panelAlpha * a);
-      draw_roundrect_color_ext(
-        x,
-        top,
-        x + Toast.width,
-        bot,
-        Toast.rad,
-        Toast.rad,
-        Toast.panelColor,
-        Toast.panelColor,
-        false,
-      );
-
-      draw_set_alpha(a);
-      draw_roundrect_color_ext(
-        x,
-        top,
-        x + Toast.width,
-        bot,
-        Toast.rad,
-        Toast.rad,
-        Toast.borderColor,
-        Toast.borderColor,
-        true,
-      );
+      drawUIPanel(x, top, x + Toast.width, bot, Toast.rad, Toast, a);
 
       draw_rectangle_color(
         x,

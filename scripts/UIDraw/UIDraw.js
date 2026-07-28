@@ -128,6 +128,50 @@ globalThis.drawUIOutline = function drawUIOutline(
 };
 
 /**
+ * rounded panel + 1px border — the chrome the GUI singletons (Tooltip/Toast/Dialogue) draw
+ * around themselves, outside the UIElement tree where a gems* factory can't reach. `style`
+ * supplies the four fields the singletons already hold ({ panelColor, panelAlpha, borderColor,
+ * borderAlpha? }), so each can pass itself; `a` scales BOTH alphas (Toast's fade). Leaves the
+ * draw alpha at the border's — every caller restores its own draw state.
+ * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+ * @param {number} rad corner radius @param {Object} style @param {number} [a] 0..1 multiplier
+ */
+globalThis.drawUIPanel = function drawUIPanel(
+  x1,
+  y1,
+  x2,
+  y2,
+  rad,
+  style,
+  a = 1,
+) {
+  draw_set_alpha((style.panelAlpha ?? 1) * a);
+  draw_roundrect_color_ext(
+    x1,
+    y1,
+    x2,
+    y2,
+    rad,
+    rad,
+    style.panelColor,
+    style.panelColor,
+    false,
+  );
+  draw_set_alpha((style.borderAlpha ?? 1) * a);
+  draw_roundrect_color_ext(
+    x1,
+    y1,
+    x2,
+    y2,
+    rad,
+    rad,
+    style.borderColor,
+    style.borderColor,
+    true,
+  );
+};
+
+/**
  * capsule track + fill bar — the shared body of UISlider and UIProgress. Draws the track
  * roundrect, the fill from x1 to `fillTo` (skipped when fillTo <= x1 — pass x1 for an
  * empty bar; the CALLER clamps fillTo so the rounded caps can't invert), and the 1px

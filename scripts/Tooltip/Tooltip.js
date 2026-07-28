@@ -48,32 +48,7 @@ globalThis.Tooltip = {
     x = clamp(x, 0, display_get_gui_width() - width);
     y = clamp(y, 0, display_get_gui_height() - height);
 
-    draw_set_alpha(Tooltip.panelAlpha);
-
-    draw_roundrect_color_ext(
-      x,
-      y,
-      x + width,
-      y + height,
-      Tooltip.panelRad,
-      Tooltip.panelRad,
-      Tooltip.panelColor,
-      Tooltip.panelColor,
-      false,
-    );
-
-    draw_set_alpha(Tooltip.borderAlpha);
-    draw_roundrect_color_ext(
-      x,
-      y,
-      x + width,
-      y + height,
-      Tooltip.panelRad,
-      Tooltip.panelRad,
-      Tooltip.borderColor,
-      Tooltip.borderColor,
-      true,
-    );
+    drawUIPanel(x, y, x + width, y + height, Tooltip.panelRad, Tooltip);
 
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
