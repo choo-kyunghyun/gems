@@ -81,7 +81,7 @@ class _SceneRpgClass {
     this._radarRules = [
       { has: Raider, color: Color.parse("#e0584f") },
       { has: Rat, color: Color.parse("#e0584f") },
-      { has: NPC, color: Color.parse("#ffd166") },
+      { has: NPC, color: gemsColor("warn") },
       { has: Portal, color: Color.parse("#9b8cff") },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];

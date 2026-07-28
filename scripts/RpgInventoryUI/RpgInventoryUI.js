@@ -237,7 +237,7 @@ globalThis.RpgInventoryUI = {
     // sceneRpg._useHotbar). Labels read the live Hotbar.
     const hbTitle = new UIElement({ width: "100%", height: 20 });
     hbTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
     );
     page.insertChild(hbTitle);
     const hbRow = new UIElement({
@@ -306,7 +306,7 @@ globalThis.RpgInventoryUI = {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
     );
     page.insertChild(title);
     level._invEquipHost = new UIElement({
@@ -323,7 +323,7 @@ globalThis.RpgInventoryUI = {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("INV_FOLLOWERS"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_FOLLOWERS"), { color: "warn" }),
     );
     page.insertChild(title);
     level._invFollowerHost = new UIElement({
@@ -448,7 +448,7 @@ globalThis.RpgInventoryUI = {
     // StatModel.ATTRS, reading the live Attributes bag, so a *_shard grant shows on next rebuild.
     page.insertChild(gemsDivider());
     page.insertChild(
-      gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
     );
     const attrRow = (def) =>
       gemsKeyValueRow(I18n.textRef(def.name), () => {
@@ -532,7 +532,7 @@ globalThis.RpgInventoryUI = {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
     );
     page.insertChild(title);
     // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
@@ -559,7 +559,7 @@ globalThis.RpgInventoryUI = {
     page.insertChild(gemsDivider());
     const unitsTitle = new UIElement({ width: "100%", height: 22 });
     unitsTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_UNITS"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_SET_UNITS"), { color: "warn" }),
     );
     page.insertChild(unitsTitle);
     const units = [
@@ -585,7 +585,7 @@ globalThis.RpgInventoryUI = {
     page.insertChild(gemsDivider());
     const hudTitle = new UIElement({ width: "100%", height: 22 });
     hudTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_HUD"), { color: "#ffd166" }),
+      gemsLabel(I18n.textRef("INV_SET_HUD"), { color: "warn" }),
     );
     page.insertChild(hudTitle);
     page.insertChild(
@@ -684,7 +684,7 @@ globalThis.RpgInventoryUI = {
     }
     level._invView = view;
 
-    const gold = gemsColor("#ffd166");
+    const gold = gemsColor("warn");
     const accent = gemsColor(GemsTheme.accent);
     const items = [];
     for (let i = 0; i < view.length; i++) {
@@ -914,7 +914,7 @@ globalThis.RpgInventoryUI = {
           I18n.text("INV_COL_VAL") +
           " " +
           row.value,
-        { color: "#ffd166" },
+        { color: "warn" },
       ),
     );
   },

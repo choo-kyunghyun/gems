@@ -35,7 +35,7 @@ globalThis.TradeUI = {
     host.titleRow.insertChild(
       gemsLabel(() => TradeUI._balanceText(level), {
         font: "header",
-        color: "#ffd166",
+        color: "warn",
       }),
       1,
     );
@@ -105,7 +105,7 @@ globalThis.TradeUI = {
       gap: GemsTheme.gapSm,
     });
     const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    titleCell.insertChild(gemsLabel(titleRef, { color: "warn" }));
     header.insertChild(titleCell);
     header.insertChild(gemsLabel(subFn, { color: GemsTheme.textMuted }));
     col.insertChild(header);
@@ -130,7 +130,7 @@ globalThis.TradeUI = {
 
   // Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
   _columns(side) {
-    const gold = gemsColor("#ffd166");
+    const gold = gemsColor("warn");
     return [
       {
         key: "name",

@@ -38,7 +38,7 @@ globalThis.InvTable = {
 
   // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
   columns(opts = {}) {
-    const gold = gemsColor("#ffd166");
+    const gold = gemsColor("warn");
     const accent = gemsColor(GemsTheme.accent);
     const cols = [];
     if (opts.fav)

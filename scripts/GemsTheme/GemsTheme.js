@@ -63,7 +63,8 @@ globalThis.GemsTheme = {
       highlight: "#ffffff", // inner top sheen (drawn at low alpha)
       // Semantic status (readouts/quest states/dialogue prompts)
       good: "#54c98a", // positive / met / confirm
-      warn: "#ffd166", // caution / ready / attention
+      warn: "#ffd166", // caution / ready / attention — the kit's gold
+      bad: "#e0584f", // failure / damage taken / refused
     },
     light: {
       // Surfaces
@@ -90,6 +91,7 @@ globalThis.GemsTheme = {
       // Semantic status — darkened so they read on light surfaces
       good: "#2f9e6a",
       warn: "#b8790a",
+      bad: "#c0392f",
     },
   },
   mode: "dark",
@@ -100,6 +102,57 @@ globalThis.GemsTheme = {
     if (p === undefined) return;
     GemsTheme.mode = mode;
     for (const k in p) GemsTheme[k] = p[k]; // for..in over a plain object is GMRT-safe
+    GemsTheme._applyCore();
+  },
+
+  /**
+   * THE seam that carries a palette swap to the Core singletons that draw themselves outside the
+   * UIElement tree — Tooltip/Toast/Dialogue (GUI chrome) and FloatingText (world-space numbers).
+   * No gems* factory can reach them, so the kit pushes instead (the injection idiom,
+   * ARCHITECTURE.md); their own field defaults are only what shows before the first setMode.
+   * No-op while the globals are still loading: the seeding setMode below runs at script load,
+   * where neither Color nor the singletons exist yet (GMRT load order) — the boot call in
+   * obj_game Create_0 is the one that lands.
+   */
+  _applyCore: function _applyCore() {
+    if (
+      globalThis.Color === undefined ||
+      globalThis.Tooltip === undefined ||
+      globalThis.Toast === undefined ||
+      globalThis.Dialogue === undefined ||
+      globalThis.FloatingText === undefined
+    )
+      return;
+    const panel = gemsColor("panelLo"); // the darkest surface — an overlay sits above the cards
+    const border = gemsColor("border");
+    const text = gemsColor("text");
+    const accent = gemsColor("accent");
+
+    Tooltip.panelColor = panel;
+    Tooltip.borderColor = border;
+    Tooltip.textColor = text;
+
+    Toast.panelColor = panel;
+    Toast.borderColor = border;
+    Toast.textColor = text;
+    Toast.accents.info = accent;
+    Toast.accents.success = gemsColor("good");
+    Toast.accents.warn = gemsColor("warn");
+    Toast.accents.error = gemsColor("bad");
+
+    Dialogue.panelColor = panel;
+    Dialogue.borderColor = border;
+    Dialogue.textColor = text;
+    Dialogue.plateColor = gemsColor("panel");
+    Dialogue.plateBorder = accent;
+    Dialogue.speakerColor = gemsColor("accentHi");
+    Dialogue.chevronColor = gemsColor("accentHi");
+
+    FloatingText.colors.damage = text;
+    FloatingText.colors.hurt = gemsColor("bad");
+    FloatingText.colors.heal = gemsColor("good");
+    FloatingText.colors.crit = gemsColor("warn");
+    FloatingText.colors.mana = accent;
   },
 };
 GemsTheme.setMode("dark"); // seed the flat color keys with the default palette

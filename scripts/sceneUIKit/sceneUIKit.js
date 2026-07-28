@@ -535,7 +535,7 @@ class _SceneUIKitClass {
 
   // sortable+filterable table; Type select drives setFilter; confirm enters browse mode
   _tableTab() {
-    const gold = gemsColor("#ffd166");
+    const gold = gemsColor("warn");
     const cols = [
       { label: "", width: 34, sortable: false, sprite: (r) => r.icon },
       {

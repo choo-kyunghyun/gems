@@ -76,7 +76,7 @@ globalThis.StorageUI = {
       gap: GemsTheme.gapSm,
     });
     const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(gemsLabel(titleRef, { color: "#ffd166" }));
+    titleCell.insertChild(gemsLabel(titleRef, { color: "warn" }));
     header.insertChild(titleCell);
     header.insertChild(
       gemsButton(allLabelRef, onAll, {
