@@ -38,6 +38,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 - **Comments cite nonexistent APIs**: `Color.merge` points at `Tween.approachColor` (never written — the idiom is per-channel `Tween.approach`); GMRT.md and `RenderCloudShadow` cite `Utils.hash2` where the global is bare `hash2`; `Profile` twice points at `Achievement.evaluate` (the engine deliberately has no evaluator — `RpgAchievements.report` is the trigger).
 - **Stale analog comments in Core/Input**: `InputAxis` claims no action binds an axis and `Input` calls its export/import scaffolding unused — `PlayerSystem` binds four stick axes and reads `value()`, and `InputPreset` round-trips the export. Fix both headers.
+- **`RpgMap` points at ROADMAP for the projection contract**: its mesh-pass comment says "VOLUME category of the projection contract — see docs/ROADMAP.md", but the contract's owner is `RenderBillboard`'s JSDoc (this file carries nothing of it) — cite the owner. The neighboring "ROADMAP art rework" provenance tags (`RpgMap` ×2, `RenderBillboard`) cite a retired entry; provenance is git's, drop them. (`Settlement`'s Farming/raid pointer names live Planned Features entries — fine.)
 
 ### Dead & Caller-less Code
 
