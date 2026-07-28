@@ -10,6 +10,11 @@ globalThis.Entity = class Entity {
     this.storage = new EntityData(maxEntities, this.ids); // component data (SoA)
     this._pending = []; // deferred-removal queue (committed by flush)
     this.gravity = opts.gravity ?? null;
+    /**
+     * @type {Broadphase|undefined} opt-in O(n) pair grid, assigned post-construction once world
+     * dims are known (contract at Broadphase). NEVER null: consumers gate on `!== undefined`.
+     */
+    this.broadphase = undefined;
   }
 
   /** Level teardown: drop all storage + ids. */

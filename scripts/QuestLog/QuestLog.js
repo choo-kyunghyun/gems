@@ -3,12 +3,15 @@
 /**
  * @typedef {Object} QuestDef
  * @property {string} id
- * @property {string} name i18n key @property {string} [desc] i18n key
- * @property {Array<{kind:"kill"|"collect"|"reach", target:string, count:number}>} objectives
- *   `target` is a component token for "kill", an item id for "collect", a marker for "reach";
- *   `progress[i]` counts up to `objectives[i].count`.
- * @property {Array<{itemId:string, qty:number}>} [rewards] item-only BY DESIGN — there is no XP,
- *   so a reward can never be a power shortcut around gathering (see RpgProgression).
+ * @property {string} name i18n key
+ * @property {string} objLabel i18n key of the objective line, formatted with (progress, count) —
+ *   one label per def, reused by every objective (UIQuestTracker).
+ * @property {Array<{kind:"kill"|"collect"|"reach"|"talk", target:string, count:number}>} objectives
+ *   `target` is a component token for "kill", an item id for "collect", a marker for "reach", an
+ *   NPC id for "talk"; `progress[i]` counts up to `objectives[i].count`.
+ * @property {{items: Array<{itemId:string, qty:number}>}} [rewards] item-only BY DESIGN — there is
+ *   no XP, so a reward can never be a power shortcut around gathering (see RpgProgression). The
+ *   wrapper object is what `complete`'s `?? {}` fallback stands in for.
  */
 globalThis.QuestLog = {
   defs: new Map(),

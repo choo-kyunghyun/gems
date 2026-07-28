@@ -10,6 +10,9 @@
  * @property {string} [uid]      instance id (gear only) — what Equipment.slots reference
  * @property {Object<string,string>} [mods]  instance only: installed attachments as
  *   { weapon slotId -> WeaponMod itemId } — a MAP, not a list, since a slot holds at most one
+ * @property {string} [ammo]     gun instance only: loaded ammo itemId; "" = none chosen (a fresh
+ *   gun carries neither field — EquipmentSystem's reload/compose path fills both on first use)
+ * @property {number} [rounds]   gun instance only: rounds currently in the magazine
  *
  * @typedef {Object} Inventory
  * @property {InventorySlot[]} slots

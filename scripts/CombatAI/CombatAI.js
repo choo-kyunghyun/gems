@@ -12,6 +12,7 @@ globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
  * @property {{x:number,y:number}} home  spawn point a MOBILE actor drifts back to when idle
+ * @property {number} baseColor   authored/skin Visual color the aggro wash blends FROM (packed int)
  * @property {number} target      entity id this actor is chasing/attacking (-1 = none)
  * @property {boolean} mobile     true = chase the target (enemy); false = stationary (turret)
  * @property {boolean} ranged     true = fire a hitscan shot (turret); false = melee contact (enemy)

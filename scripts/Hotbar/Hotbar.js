@@ -1,8 +1,11 @@
-// Quick-use bar: flat string[] of bound itemIds (or "" empty), carried in the player-sheet snapshot.
-// A slot need not hold an owned item — useItem/ConsumableSystem no-ops if the item isn't in the bag.
-// @typedef {Object} Hotbar
-// @property {string[]} slots  itemId per slot, "" = empty
-// @property {number}   size   slot count
+/**
+ * Quick-use bar: flat string[] of bound itemIds (or "" empty), carried in the player-sheet snapshot.
+ * A slot need not hold an owned item — useItem/ConsumableSystem no-ops if the item isn't in the bag.
+ *
+ * @typedef {Object} Hotbar
+ * @property {string[]} slots  itemId per slot, "" = empty
+ * @property {number}   size   slot count
+ */
 globalThis.Hotbar = "Hotbar";
 
 // single source of truth for slot count (RpgPlayer.spawn / PlayerSystem bindings / RpgHud / RpgInventoryUI)

@@ -1,17 +1,11 @@
 // The level's GRID DATA — tile layers + zone channels (`zoneMaps`) + cell dims and world<->grid
 // conversion. Pure spatial data (no entities/systems/presentation); a Level holds it as `.grid`.
 /**
- * @typedef {Object} TileType
- * @property {number} id
- * @property {string} name
- * @property {number} pathCost
- */
-
-/**
  * @typedef {{ cost: number | undefined }} NavData
  */
 
 /**
+ * A layer's cell value is a `TileType` instance — id/name and the nav-cost rules live on the class.
  * @typedef {Object} LevelLayer
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set

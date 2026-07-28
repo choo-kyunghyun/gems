@@ -18,15 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Typedef Gaps
-
-- **`entities.broadphase` is an undeclared field**: assigned by `RpgMap`, read by `SeparationSystem`/`TriggerSystem`, declared nowhere; its sibling store-level config `gravity` goes through `EntityOpts`. Declare it on the constructor with its contract.
-- **`TileType` is defined twice**: `LevelGrid`'s `@typedef` shadows the `TileType` class for the checker and omits the `null` → `Infinity` cost rule. Drop the typedef, cite the class.
-- **`InventorySlot` hides its gun fields**: `EquipmentSystem`'s reload/compose path and `PlayerSystem`/`WeaponModUI` read-write `slot.ammo`/`slot.rounds` on weapon-instance slots, but the `Inventory` typedef — the shape's one definition — declares neither. Declare them as optional gun-instance fields beside `uid`/`mods`.
-- **Kit typedefs written as line comments are invisible**: `Favorites`, `Merchant`, `StatusEffects`, `Hunger`, `Thirst`, `Drowsiness`, `Playable`, and `Hotbar` carry their `@typedef` in `//` comments, so the checker never sees shapes the ECS invariant calls the type system. Convert to `/** */` blocks.
-- **`QuestLog`'s rewards typedef contradicts every live site**: it declares `rewards` as `Array<{itemId,qty}>`, but the content (`RpgQuests`) authors `{ items: [...] }` and the consumer (`RpgProgression.applyReward`) reads `reward.items` — the object shape is the real contract (which also makes `complete`'s `?? {}` fallback correct). Fix the `@property`. The typedef also declares a `desc` no content authors while omitting `objLabel` — the field every def carries and `UIQuestTracker` reads.
-- **`Brain.baseColor` is undeclared**: `CombatAI.attach` writes it and `_tint` blends the aggro wash from it, but the otherwise-exhaustive `Brain` typedef omits it. Declare it.
-
 ### Stale Comments
 
 - **Comments cite nonexistent APIs**: `Color.merge` points at `Tween.approachColor` (never written — the idiom is per-channel `Tween.approach`); GMRT.md and `RenderCloudShadow` cite `Utils.hash2` where the global is bare `hash2`; `Profile` twice points at `Achievement.evaluate` (the engine deliberately has no evaluator — `RpgAchievements.report` is the trigger).
