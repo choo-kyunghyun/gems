@@ -25,8 +25,8 @@ globalThis.Audio = {
   _defaultGain: 1.0,
   /** @type {{em: *, h: *}[]} live spatial-cue emitter/instance pairs — reaped by update() */
   _emitters: [],
-  falloff_ref: 96,
-  falloff_max: 800,
+  falloff_ref: 128,
+  falloff_max: 960,
   falloff_factor: 1.0,
 
   init() {
