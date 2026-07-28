@@ -1,3 +1,4 @@
+// Rarity-tier registry — the item quality ladder, in ascending tier order (see `rank`).
 globalThis.Rarity = class Rarity {
   /**
    * Rarity def, keyed by `id`: name (i18n key), color (colour int or "#rrggbb" hex), valueMod
@@ -14,52 +15,36 @@ globalThis.Rarity = class Rarity {
     this.valueMod = def.valueMod ?? 1;
   }
 
-  // each genre registers its own tiers (the RPG's via RpgContent.register).
-  static registry = new Map();
-  static order = []; // insertion order of ids (low → high tier)
+  // ── Registry facade (Registry owns the store's contract) ──
+  // each genre registers its own tiers (the RPG's via RpgContent.register), low tier first.
+  static _defs = new Map();
+  static _order = [];
 
   static register(defs) {
-    for (const def of defs) {
-      const r = new Rarity(def);
-      if (!this.registry.has(r.id)) this.order.push(r.id);
-      this.registry.set(r.id, r);
-    }
-    return this;
+    Registry.register(Rarity, defs, (def) => new Rarity(def));
+    return Rarity;
   }
 
   static get(id) {
-    return this.registry.get(id);
+    return Registry.get(Rarity, id);
   }
 
   static has(id) {
-    return this.registry.has(id);
+    return Registry.has(Rarity, id);
   }
 
-  // index-loops `order` — no Map-iterator for-of (GMRT crashes on Map/Set iterators).
   static all() {
-    const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      out.push(this.registry.get(this.order[i]));
-    }
-    return out;
+    return Registry.all(Rarity);
+  }
+
+  /** tier index (registration order), -1 when unknown — the inventory sort key. */
+  static rank(id) {
+    return Registry.rank(Rarity, id);
   }
 
   // scale a value by a rarity's modifier; unknown id returns value as-is.
   static modify(id, value) {
-    const r = this.get(id);
+    const r = Rarity.get(id);
     return r === undefined ? value : value * r.valueMod;
-  }
-
-  static import(data) {
-    return new Rarity(data);
-  }
-
-  export() {
-    return {
-      id: this.id,
-      name: this.name,
-      color: this.color,
-      valueMod: this.valueMod,
-    };
   }
 };

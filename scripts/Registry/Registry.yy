@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Registry",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Registry",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Registry.js",
+}

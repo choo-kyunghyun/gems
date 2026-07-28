@@ -206,6 +206,6 @@ globalThis.InventorySystem = {
   _rarityRank(itemId) {
     const def = Item.get(itemId);
     if (def === undefined) return -1;
-    return Rarity.order.indexOf(def.rarity); // -1 if unknown
+    return Rarity.rank(def.rarity); // -1 if unknown
   },
 };

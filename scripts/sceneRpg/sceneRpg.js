@@ -201,7 +201,7 @@ class _SceneRpgClass {
     });
 
     Log.info(
-      `RPG ready — items=${Item.all().length} quests=${QuestLog.defOrder.length} ` +
+      `RPG ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
         `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
     );
   }

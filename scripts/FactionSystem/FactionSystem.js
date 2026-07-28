@@ -1,47 +1,38 @@
 // Faction roster + relation matrix — two layers: id-level config (register/setRelation/isHostile/isAlly)
 // and entity-level glue (factionOf/hostile/allied/nearestHostile) that AI and combat call.
 /**
- * Relations are symmetric, default "neutral"; same id → "ally" always. GMRT: plain object (avoids the
- * 50-method class ceiling); the registry iterates the `_order` array — never a Map-iterator for...of,
- * which hard-crashes the runtime (see CLAUDE.md).
+ * Relations are symmetric, default "neutral"; same id → "ally" always. GMRT: a plain object, which
+ * also avoids the 50-method class ceiling (see CLAUDE.md).
  */
 globalThis.FactionSystem = {
+  // ── Roster — a Registry facade (Registry owns the store's contract) ──
   _defs: new Map(), // id → { id, name, color }
-  _order: [], // insertion order of ids (for all())
+  _order: [], // insertion order of ids
   _rel: new Map(), // canonical pair key → "ally" | "neutral" | "hostile"
 
-  // ── Roster ────────────────────────────────────────────────────────────────
   /** @param {{id:string,name?:string,color?:number|string}[]} defs */
   register(defs) {
-    for (const def of defs) {
-      const f = {
-        id: def.id,
-        name: def.name ?? "",
-        color:
-          typeof def.color === "string"
-            ? Color.parse(def.color)
-            : (def.color ?? c_white),
-      };
-      if (!this._defs.has(f.id)) this._order.push(f.id);
-      this._defs.set(f.id, f);
-    }
+    Registry.register(FactionSystem, defs, (def) => ({
+      id: def.id,
+      name: def.name ?? "",
+      color:
+        typeof def.color === "string"
+          ? Color.parse(def.color)
+          : (def.color ?? c_white),
+    }));
     return this;
   },
 
   get(id) {
-    return this._defs.get(id);
+    return Registry.get(FactionSystem, id);
   },
 
   has(id) {
-    return this._defs.has(id);
+    return Registry.has(FactionSystem, id);
   },
 
-  /** all defs in registration order. index-loops `_order` — no Map-iterator for...of (GMRT crash). */
   all() {
-    const out = [];
-    for (let i = 0; i < this._order.length; i++)
-      out.push(this._defs.get(this._order[i]));
-    return out;
+    return Registry.all(FactionSystem);
   },
 
   // ── Relations (faction-id level)

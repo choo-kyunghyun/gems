@@ -43,32 +43,24 @@ globalThis.Item = class Item {
     return this.hasComponent(Equippable);
   }
 
-  static registry = new Map();
-  static order = []; // registration order of ids
+  // ── Registry facade (Registry owns the store's contract) ──
+  static _defs = new Map();
+  static _order = [];
 
   static register(defs) {
-    for (let i = 0; i < defs.length; i++) {
-      const it = new Item(defs[i]);
-      if (!this.registry.has(it.id)) this.order.push(it.id);
-      this.registry.set(it.id, it);
-    }
-    return this;
+    Registry.register(Item, defs, (def) => new Item(def));
+    return Item;
   }
 
   static get(id) {
-    return this.registry.get(id);
+    return Registry.get(Item, id);
   }
 
   static has(id) {
-    return this.registry.has(id);
+    return Registry.has(Item, id);
   }
 
-  // index-loops `order` — no Map-iterator for-of (GMRT crashes on Map/Set iterators).
   static all() {
-    const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      out.push(this.registry.get(this.order[i]));
-    }
-    return out;
+    return Registry.all(Item);
   }
 };

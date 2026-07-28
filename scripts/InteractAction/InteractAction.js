@@ -14,17 +14,19 @@
  *           range-closes / refreshes it.
  */
 globalThis.InteractAction = {
-  _defs: {},
+  // ── Registry facade (Registry owns the store's contract) ──
+  _defs: new Map(),
+  _order: [],
 
   register(list) {
-    for (let i = 0; i < list.length; i++) this._defs[list[i].id] = list[i];
+    Registry.register(InteractAction, list);
   },
 
   get(id) {
-    return this._defs[id];
+    return Registry.get(InteractAction, id);
   },
 
   has(id) {
-    return this._defs[id] !== undefined;
+    return Registry.has(InteractAction, id);
   },
 };

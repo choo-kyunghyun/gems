@@ -8,46 +8,39 @@
  * Kit stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
  */
 globalThis.Status = {
-  _defs: {}, // id -> def
-  _order: [], // ids in registration order
+  // ── Registry facade (Registry owns the store's contract) ──
+  _defs: new Map(),
+  _order: [],
 
   /**
-   * Register status defs (later def with same id overwrites). Each:
+   * Register status defs. Each:
    * { id, name, color?, beneficial? (default buff), duration? (0 = no auto-expire), dot?, hot?,
    *   interval? (default 1, seconds between dot/hot), mods?, mult? }
    */
   register(defs) {
-    for (let i = 0; i < defs.length; i++) {
-      const d = defs[i];
-      if (Status._defs[d.id] === undefined) Status._order.push(d.id);
-      Status._defs[d.id] = {
-        id: d.id,
-        name: d.name,
-        color: d.color ?? "#cccccc",
-        beneficial: d.beneficial !== false, // default true
-        duration: d.duration ?? 0,
-        dot: d.dot ?? 0,
-        hot: d.hot ?? 0,
-        interval: d.interval ?? 1,
-        mods: d.mods, // may be undefined
-        mult: d.mult, // may be undefined
-      };
-    }
+    Registry.register(Status, defs, (d) => ({
+      id: d.id,
+      name: d.name,
+      color: d.color ?? "#cccccc",
+      beneficial: d.beneficial !== false, // default true
+      duration: d.duration ?? 0,
+      dot: d.dot ?? 0,
+      hot: d.hot ?? 0,
+      interval: d.interval ?? 1,
+      mods: d.mods, // may be undefined
+      mult: d.mult, // may be undefined
+    }));
   },
 
   get(id) {
-    return Status._defs[id];
+    return Registry.get(Status, id);
   },
 
   has(id) {
-    return Status._defs[id] !== undefined;
+    return Registry.has(Status, id);
   },
 
-  // fresh array each call.
   all() {
-    const out = [];
-    for (let i = 0; i < Status._order.length; i++)
-      out.push(Status._defs[Status._order[i]]);
-    return out;
+    return Registry.all(Status);
   },
 };

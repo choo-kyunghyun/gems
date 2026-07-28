@@ -14,17 +14,19 @@
  *   wrapper object is what `complete`'s `?? {}` fallback stands in for.
  */
 globalThis.QuestLog = {
-  defs: new Map(),
-  defOrder: [],
+  // ── Definitions — a Registry facade (Registry owns the store's contract) ──
+  _defs: new Map(),
+  _order: [],
   active: {}, // id -> state
 
   register(defs) {
-    for (let i = 0; i < defs.length; i++) {
-      const d = defs[i];
-      if (!this.defs.has(d.id)) this.defOrder.push(d.id);
-      this.defs.set(d.id, d);
-    }
+    Registry.register(QuestLog, defs);
     return this;
+  },
+
+  /** every quest def in registration order — the editor's quest picker. @returns {QuestDef[]} */
+  all() {
+    return Registry.all(QuestLog);
   },
 
   // quests are session-scoped; call on level create.
@@ -34,7 +36,7 @@ globalThis.QuestLog = {
   },
 
   accept(id) {
-    const def = this.defs.get(id);
+    const def = Registry.get(QuestLog, id);
     if (def === undefined || this.active[id] !== undefined) return false;
     const progress = [];
     for (let i = 0; i < def.objectives.length; i++) progress.push(0);
@@ -45,11 +47,11 @@ globalThis.QuestLog = {
   // Advance matching objectives; returns ids of quests that became ready this call.
   report(kind, target, n = 1) {
     const became = [];
-    for (let i = 0; i < this.defOrder.length; i++) {
-      const id = this.defOrder[i];
+    for (let i = 0; i < this._order.length; i++) {
+      const id = this._order[i];
       const st = this.active[id];
       if (st === undefined || st.ready || st.done) continue;
-      const def = this.defs.get(id);
+      const def = Registry.get(QuestLog, id);
       let advanced = false;
       for (let o = 0; o < def.objectives.length; o++) {
         const obj = def.objectives[o];
@@ -98,7 +100,7 @@ globalThis.QuestLog = {
   },
 
   def(id) {
-    return this.defs.get(id);
+    return Registry.get(QuestLog, id);
   },
 
   // Mark done and return rewards for the caller to apply; undefined if not ready.
@@ -106,15 +108,15 @@ globalThis.QuestLog = {
     const st = this.active[id];
     if (st === undefined || !st.ready || st.done) return undefined;
     st.done = true;
-    const def = this.defs.get(id);
+    const def = Registry.get(QuestLog, id);
     return def.rewards ?? {};
   },
 
   // in registration order — for UI.
   activeIds() {
     const out = [];
-    for (let i = 0; i < this.defOrder.length; i++) {
-      const id = this.defOrder[i];
+    for (let i = 0; i < this._order.length; i++) {
+      const id = this._order[i];
       const st = this.active[id];
       if (st !== undefined && !st.done) out.push(id);
     }

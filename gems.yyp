@@ -277,6 +277,7 @@
     {"id":{"name":"Rat","path":"scripts/Rat/Rat.yy",},},
     {"id":{"name":"Raycast","path":"scripts/Raycast/Raycast.yy",},},
     {"id":{"name":"Recipe","path":"scripts/Recipe/Recipe.yy",},},
+    {"id":{"name":"Registry","path":"scripts/Registry/Registry.yy",},},
     {"id":{"name":"RenderBillboard","path":"scripts/RenderBillboard/RenderBillboard.yy",},},
     {"id":{"name":"RenderChunks","path":"scripts/RenderChunks/RenderChunks.yy",},},
     {"id":{"name":"RenderCloudShadow","path":"scripts/RenderCloudShadow/RenderCloudShadow.yy",},},

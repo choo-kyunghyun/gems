@@ -9,29 +9,33 @@ globalThis.Recipe = class Recipe {
     this.output = def.output;
   }
 
-  static registry = new Map();
-  static order = []; // registration order of ids
+  // ── Registry facade (Registry owns the store's contract) ──
+  static _defs = new Map();
+  static _order = [];
 
-  /** later defs with the same id overwrite. */
   static register(defs) {
-    for (let i = 0; i < defs.length; i++) {
-      const r = new Recipe(defs[i]);
-      if (!this.registry.has(r.id)) this.order.push(r.id);
-      this.registry.set(r.id, r);
-    }
-    return this;
+    Registry.register(Recipe, defs, (def) => new Recipe(def));
+    return Recipe;
   }
 
   static get(id) {
-    return this.registry.get(id);
+    return Registry.get(Recipe, id);
   }
 
-  /** recipes for a station kind, registration order. index-loop `order` (no Map-iterator for-of on GMRT). */
+  static has(id) {
+    return Registry.has(Recipe, id);
+  }
+
+  static all() {
+    return Registry.all(Recipe);
+  }
+
+  /** recipes for a station kind, registration order. */
   static forStation(kind) {
+    const all = Recipe.all();
     const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      const r = this.registry.get(this.order[i]);
-      if (r.station === kind) out.push(r);
+    for (let i = 0; i < all.length; i++) {
+      if (all[i].station === kind) out.push(all[i]);
     }
     return out;
   }

@@ -42,7 +42,7 @@
  * consumer-defined (Core never reads them). register() fail-fast validates every channel against the
  * footprint (an out-of-footprint rect would silently break a generator's seam-margin guarantee).
  * stamp() translates local→absolute; apply() writes the Core-expressible channels into a level grid +
- * entity store. Registry uses index-loops (no Map-iterator for-of — crashes GMRT).
+ * entity store. The def store is a `Registry` facade.
  */
 globalThis.Prefab = class Prefab {
   /** @param {PrefabDef} def */
@@ -189,21 +189,21 @@ globalThis.Prefab = class Prefab {
     return { colliders: colliders, zones: zones, spawns: st.spawns };
   }
 
-  static registry = new Map();
-  static order = []; // stable registration order
+  // ── Registry facade (Registry owns the store's contract) ──
+  static _defs = new Map();
+  static _order = [];
 
   /**
-   * register defs (validated — throws on out-of-footprint content); later same-id defs overwrite
+   * register defs (validated — throws on out-of-footprint content)
    * @param {PrefabDef[]} defs @returns {typeof Prefab}
    */
   static register(defs) {
-    for (const def of defs) {
+    Registry.register(Prefab, defs, (def) => {
       const p = new Prefab(def);
       Prefab._validate(p);
-      if (!this.registry.has(p.id)) this.order.push(p.id);
-      this.registry.set(p.id, p);
-    }
-    return this;
+      return p;
+    });
+    return Prefab;
   }
 
   // fail fast at register time — an overflowing rect/spawn would silently break the seam
@@ -266,29 +266,25 @@ globalThis.Prefab = class Prefab {
 
   /** @param {string} id @returns {Prefab | undefined} */
   static get(id) {
-    return this.registry.get(id);
+    return Registry.get(Prefab, id);
   }
 
   /** @param {string} id @returns {boolean} */
   static has(id) {
-    return this.registry.has(id);
+    return Registry.has(Prefab, id);
   }
 
-  /** all prefabs in registration order. index-loops `order` — no Map-iterator for-of (crashes GMRT) */
+  /** @returns {Prefab[]} all prefabs in registration order */
   static all() {
-    const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      out.push(this.registry.get(this.order[i]));
-    }
-    return out;
+    return Registry.all(Prefab);
   }
 
   /** prefabs with this scope tag, in registration order @param {string} tag */
   static byTag(tag) {
+    const all = Prefab.all();
     const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      const p = this.registry.get(this.order[i]);
-      if (p.hasTag(tag)) out.push(p);
+    for (let i = 0; i < all.length; i++) {
+      if (all[i].hasTag(tag)) out.push(all[i]);
     }
     return out;
   }

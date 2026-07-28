@@ -21,33 +21,30 @@ globalThis.Manufacturer = class Manufacturer {
     this.ops = def.ops;
   }
 
+  // ── Registry facade (Registry owns the store's contract) ──
   // each genre registers its own companies (the RPG's via RpgContent.register).
-  static registry = new Map();
-  static order = []; // insertion order of ids
+  static _defs = new Map();
+  static _order = [];
 
   static register(defs) {
-    for (const def of defs) {
-      const m = new Manufacturer(def);
-      if (!this.registry.has(m.id)) this.order.push(m.id);
-      this.registry.set(m.id, m);
-    }
-    return this;
+    Registry.register(Manufacturer, defs, (def) => new Manufacturer(def));
+    return Manufacturer;
   }
 
   static get(id) {
-    return this.registry.get(id);
+    return Registry.get(Manufacturer, id);
   }
 
   static has(id) {
-    return this.registry.has(id);
+    return Registry.has(Manufacturer, id);
   }
 
-  // index-loops `order` — no Map-iterator for-of (GMRT crashes on Map/Set iterators).
   static all() {
-    const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      out.push(this.registry.get(this.order[i]));
-    }
-    return out;
+    return Registry.all(Manufacturer);
+  }
+
+  /** registration index, -1 when unknown — the inventory sort key. */
+  static rank(id) {
+    return Registry.rank(Manufacturer, id);
   }
 };

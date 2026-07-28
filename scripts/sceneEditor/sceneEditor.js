@@ -564,8 +564,9 @@ class _SceneEditorClass {
     let opts;
     if (f.kind === "quest") {
       opts = [{ name: "(none)", value: undefined }];
-      for (let i = 0; i < QuestLog.defOrder.length; i++)
-        opts.push({ name: QuestLog.defOrder[i], value: QuestLog.defOrder[i] });
+      const quests = QuestLog.all();
+      for (let i = 0; i < quests.length; i++)
+        opts.push({ name: quests[i].id, value: quests[i].id });
     } else {
       opts = f.options;
     }

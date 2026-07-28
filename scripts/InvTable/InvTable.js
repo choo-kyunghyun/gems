@@ -125,10 +125,10 @@ globalThis.InvTable = {
       cat: cat.code,
       catKey: cat.key,
       rarityName: rar !== undefined ? I18n.text(rar.name) : "",
-      rarityRank: rarId !== undefined ? Rarity.order.indexOf(rarId) : -1,
+      rarityRank: rarId !== undefined ? Rarity.rank(rarId) : -1,
       makerName: mk !== undefined ? I18n.text(mk.name) : "",
       makerColor: mk !== undefined ? mk.color : c_white,
-      makerRank: mk !== undefined ? Manufacturer.order.indexOf(mk.id) : -1,
+      makerRank: mk !== undefined ? Manufacturer.rank(mk.id) : -1,
       weight: it !== undefined ? it.weight * qty : 0,
       value:
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,

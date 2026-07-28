@@ -7,16 +7,13 @@
  * "achievements" key (SaveData serializes nested via json_stringify — see docs/GMRT.md).
  */
 globalThis.Achievement = {
-  defs: new Map(),
-  order: [], // stable registration order
+  // ── Registry facade (Registry owns the store's contract) ──
+  _defs: new Map(),
+  _order: [],
   _unlocked: {}, // id -> true
 
   register(defs) {
-    for (let i = 0; i < defs.length; i++) {
-      const d = defs[i];
-      if (!this.defs.has(d.id)) this.order.push(d.id);
-      this.defs.set(d.id, d);
-    }
+    Registry.register(Achievement, defs);
     return this;
   },
 
@@ -30,7 +27,7 @@ globalThis.Achievement = {
   },
 
   get(id) {
-    return this.defs.get(id);
+    return Registry.get(Achievement, id);
   },
 
   isUnlocked(id) {
@@ -38,17 +35,14 @@ globalThis.Achievement = {
   },
 
   all() {
-    const out = [];
-    for (let i = 0; i < this.order.length; i++) {
-      out.push(this.defs.get(this.order[i]));
-    }
-    return out;
+    return Registry.all(Achievement);
   },
 
   // the unlock REQUEST: honor it if the id is registered and still locked; persists.
   // Returns true only when newly unlocked (dedup — safe to request repeatedly).
   unlock(id) {
-    if (!this.defs.has(id) || this._unlocked[id] === true) return false;
+    if (!Registry.has(Achievement, id) || this._unlocked[id] === true)
+      return false;
     this._unlocked[id] = true;
     this._persist();
     return true;
@@ -56,8 +50,8 @@ globalThis.Achievement = {
 
   // debug: unlock everything (Debug overlay "Achievements" section)
   unlockAll() {
-    for (let i = 0; i < this.order.length; i++)
-      this._unlocked[this.order[i]] = true;
+    for (let i = 0; i < this._order.length; i++)
+      this._unlocked[this._order[i]] = true;
     this._persist();
   },
 
@@ -69,8 +63,8 @@ globalThis.Achievement = {
 
   _persist() {
     const ids = [];
-    for (let i = 0; i < this.order.length; i++) {
-      if (this._unlocked[this.order[i]]) ids.push(this.order[i]);
+    for (let i = 0; i < this._order.length; i++) {
+      if (this._unlocked[this._order[i]]) ids.push(this._order[i]);
     }
     SaveData.set("achievements", ids);
     SaveData.save();
