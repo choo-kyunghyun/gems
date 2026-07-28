@@ -99,7 +99,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 3. A file header is at most 2 lines: what the file is + one pointer.
 4. JSDoc carries types and contracts, not essays. The typed signature is mandatory: every function and method carries one typed `@param` per parameter and a typed `@returns` whenever it returns a value — the checker consumes these, so omitting one is a defect, not a style choice. `@typedef`s and the owning contract blocks (law 2) stay; prose restating the identifier goes. The one exemption: an opts-struct factory gets one prose block, no per-field `@param`. One tag per line, even when bare.
 5. A known quirk or invariant is cited, never re-explained, and a tag is a pointer, not a story. Any conventional tag (`TODO`, `BUG`, `NOTE`, …) is fine, for our own defects and gaps alike:
-   - `[Runtime #00000]` marks code shaped by an upstream runtime defect — name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview), and say only what a reader must not "clean up".
+   - `[Runtime #00000]` marks code shaped by an upstream runtime defect — name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview), and say only what a reader must not "clean up". The tag is the whole citation: no `see docs/GMRT.md` beside a ticket (the number is the key into it; a doc pointer is the citation only when unticketed), and no clause teaching the bug's mechanics — `// json_stringify, not JSON.stringify (#15565)` is complete; appending `— native faults on nested values` re-explains the entry.
    - A tag stays small and local; anything cross-cutting or multi-step is a docs/ROADMAP.md entry instead.
 
 ### API Naming
