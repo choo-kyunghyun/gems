@@ -4,7 +4,10 @@ if (ds_map_exists(async_load, "event_type")) {
   const eventType = ds_map_find_value(async_load, "event_type");
   if (eventType === "gamepad discovered" || eventType === "gamepad lost") {
     const pad = ds_map_find_value(async_load, "pad_index");
-    const verb = eventType === "gamepad discovered" ? "connected" : "disconnected";
+    const verb =
+      eventType === "gamepad discovered" ? "connected" : "disconnected";
     Log.info("gamepad " + verb + " — slot " + pad);
+    // the deadzone is a per-slot setting a fresh pad does not inherit — re-push it on connect
+    if (eventType === "gamepad discovered") Input.applyDeadzone(pad);
   }
 }

@@ -63,6 +63,10 @@ Display.applyVideo();
 // spatial falloff model + 2D listener orientation + saved volumes; after Settings.load
 Audio.setup();
 
+// seed the gamepad slots with the configured stick deadzone; no pad is connected this early, so
+// Other_75's "gamepad discovered" is what reaches a real one (contract at Input.applyDeadzone)
+Input.applyDeadzone();
+
 // load locale, adopt its base font; fixed 1080p design resolution (÷ uiScale),
 // not display_set_gui_maximise — SDF fonts scale crisply at any window size
 I18n.load("i18n/" + Settings.get("language") + "/manifest.json");

@@ -18,7 +18,9 @@ globalThis.CameraFly = {
     camera.flyPitch = 0;
     camera.flyRoll = 0;
     camera.flySpeed = opts.flySpeed ?? 600;
-    camera.mouseSens = opts.mouseSens ?? 0.005;
+    // BASE radians per mouse pixel, which Input.sensitivity scales live in update() (the FPS split:
+    // engine base × user multiplier). Calibrated so the shipped sensitivity 2.5 lands on 0.005.
+    camera.mouseSens = opts.mouseSens ?? 0.002;
   },
 
   /**
@@ -49,8 +51,12 @@ globalThis.CameraFly = {
       const cx = Math.floor(window_get_width() / 2);
       const cy = Math.floor(window_get_height() / 2);
       if (cam._lookActive) {
-        cam.flyYaw += (window_mouse_get_x() - cx) * cam.mouseSens;
-        cam.flyPitch += (window_mouse_get_y() - cy) * cam.mouseSens;
+        // radians = pixels × base × user multiplier, read live so a sensitivity change lands the
+        // same frame. NOT Time-scaled (unlike move/roll below): a mouse delta is already a distance
+        // moved, so scaling it by frame time would make look speed depend on framerate.
+        const sens = cam.mouseSens * Input.sensitivity;
+        cam.flyYaw += (window_mouse_get_x() - cx) * sens;
+        cam.flyPitch += (window_mouse_get_y() - cy) * sens;
       }
       cam._lookActive = true; // first held frame just recenters (no delta jump)
       window_mouse_set(cx, cy);
