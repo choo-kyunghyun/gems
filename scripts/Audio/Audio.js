@@ -1,24 +1,18 @@
 /**
- * Audio — sound playback + master mixing over GameMaker's audio_* API (one
- * audio space); family head over AudioListener (ears) + Music (BGM).
- */
-
-/**
- * The audio_play_sound_ext params struct (a JS object IS its GML struct).
  * @typedef {Object} SoundStruct
  * @property {GMSound} sound
  * @property {number} [priority=0]
  * @property {boolean} [loop=false]
  * @property {number} [gain=1.0]
- * @property {number} [offset] seconds; defaults to the asset-level offset
+ * @property {number} [offset]
  * @property {number} [pitch=1.0]
- * @property {number} [listener_mask] bitmask; defaults to the emitter-level/global listener mask
- * @property {*} [emitter] audio emitter handle
+ * @property {number} [listener_mask]
+ * @property {*} [emitter]
  * @property {SoundPosition} [position]
  */
 
 /**
- * @typedef {Object} SoundPosition World-px 3D position + falloff window of a spatial cue.
+ * @typedef {Object} SoundPosition
  * @property {number} x
  * @property {number} y
  * @property {number} [z=0]
@@ -27,6 +21,9 @@
  * @property {number} [falloff_factor]
  */
 
+/**
+ * Audio. Sound playback + master mixing over built-in audio_* API
+ */
 globalThis.Audio = {
   _defaultGain: 1.0,
   FALLOFF_REF: 96,
@@ -42,6 +39,13 @@ globalThis.Audio = {
     Audio.setMasterGain(Settings.get("volMaster"));
     Music.setGain(Settings.get("volMusic"));
     Audio.setDefaultGain(Settings.get("volSfx"));
+  },
+
+  // Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
+  // change (Music carries over); LevelManager._apply's destroying path only.
+  restart() {
+    audio_stop_all();
+    Music.reset();
   },
 
   /**
@@ -71,12 +75,5 @@ globalThis.Audio = {
 
   setMasterGain(gain) {
     audio_set_master_gain(0, clamp(gain, 0, 1)); // listener 0 — the default, the only one AudioListener drives
-  },
-
-  // Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
-  // change (Music carries over); LevelManager._apply's destroying path only.
-  restart() {
-    audio_stop_all();
-    Music.reset();
   },
 };
