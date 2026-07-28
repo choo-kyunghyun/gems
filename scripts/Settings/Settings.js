@@ -87,7 +87,7 @@ globalThis.Settings = {
     for (const key of Object.keys(this.defaults)) {
       if (key in this.local) out[key] = this.local[key];
     }
-    // json_stringify, not JSON.stringify (#15565)
+    // BUG: [#15565] json_stringify, not JSON.stringify
     File.write(fname, json_stringify(out));
     return this;
   },
