@@ -1,6 +1,6 @@
 /** registry of named InputActions; controllers bind their keymap per-level via bindAll. */
 globalThis.Input = {
-  // analog tuning + export/import scaffolded for InputPreset; unused today.
+  // analog tuning, round-tripped by export/import (InputPreset) but read by nobody yet.
   sensitivity: 2.5,
   deadzone: 0,
   /** @type {Object<string, InputAction>} */

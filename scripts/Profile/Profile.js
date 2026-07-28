@@ -1,5 +1,5 @@
-// Lifetime counters, persisted as a native object under SaveData's "profile" key (nested via
-// json_stringify — see docs/GMRT.md). Feed to Achievement.evaluate; requires SaveData.load() first.
+// Lifetime counters under SaveData's "profile" key (native object — nested via json_stringify, see
+// docs/GMRT.md); load() needs SaveData.load() first, unlocks trigger via RpgAchievements.report.
 globalThis.Profile = {
   _counters: {},
 
@@ -26,7 +26,7 @@ globalThis.Profile = {
     return this;
   },
 
-  // raw counter map for Achievement.evaluate and UI records
+  // raw counter map — the save bundle's profile blob (SaveGame)
   counters() {
     return this._counters;
   },

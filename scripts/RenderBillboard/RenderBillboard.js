@@ -6,11 +6,11 @@
 // z-fight returned); ±y moves the plane itself toward/away from the south-side camera.
 const BB_LAYER_DY = 0.05;
 
-// Sprite sun response (ROADMAP art rework): STANDING sprites draw under sh_meshlit's textured
-// mode with a fixed BENT normal riding the u_normal uniform — 30° south of straight-up, so a
-// sprite nearly faces the noon sun (daylight = the authored colors, clamped), dims + warms
-// toward dawn/dusk, and a point light prefers the camera-side face (a flame south of the
-// sprite lights the face you see; behind it falls to the shader's wrap fill). Lighting is
+// Sprite sun response: STANDING sprites draw under sh_meshlit's textured mode with a fixed
+// BENT normal riding the u_normal uniform — 30° south of straight-up, so a sprite nearly
+// faces the noon sun (daylight = the authored colors, clamped), dims + warms toward
+// dawn/dusk, and a point light prefers the camera-side face (a flame south of the sprite
+// lights the face you see; behind it falls to the shader's wrap fill). Lighting is
 // per-PIXEL: a tall sprite half inside a torch pool lights half-and-half.
 const BB_NORMAL_Y = 0.5; // bent normal (0, 0.5, -0.866) — unit, up = -z
 const BB_NORMAL_Z = -0.866;

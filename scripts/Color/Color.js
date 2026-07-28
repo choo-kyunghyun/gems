@@ -16,7 +16,7 @@ globalThis.Color = {
 
   /**
    * One-shot lerp; #15546: don't ease a packed int per frame (floors to
-   * black) — use float r/g/b + Tween.approachColor.
+   * black) — ease r/g/b as floats, Tween.approach per channel.
    * @param {number} col1 @param {number} col2 @param {number} amount 0→1
    * @returns {number}
    */

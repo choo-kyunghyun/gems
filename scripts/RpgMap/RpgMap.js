@@ -543,7 +543,7 @@ globalThis.RpgMap = {
     );
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     level.renderer.insert(new RenderEntityShadow());
-    // Deep-furniture meshes (VOLUME category of the projection contract — see docs/ROADMAP.md):
+    // Deep-furniture meshes (VOLUME category of the projection contract — see RenderBillboard):
     // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
     // a flat map has no depth-writing entity pass to sort against. Sun + point lights injected
     // like RenderLighting's ambient (the pass is Core; WorldClock and the Light token are not);
@@ -694,7 +694,7 @@ globalThis.RpgMap = {
       followTarget: level.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
       followLerp: 0.15,
       pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
-      // pitch-by-zoom (upright-sprite camera, ROADMAP art rework) — see RpgMap._pitchCurve
+      // pitch-by-zoom (upright-sprite camera) — see RpgMap._pitchCurve
       pitchCurve: RpgMap._pitchCurve,
       // ortho eye distance: the -100 default near-clips close ground at steep pitch
       // (a black band along the screen bottom); image-identical otherwise under ortho
@@ -829,9 +829,9 @@ globalThis.RpgMap = {
 // With the upright-sprite camera this is the frame-0 seed + the pitched-map GATE only —
 // the LIVE pitch is _pitchCurve below (42° zoomed out → 58° zoomed in).
 RpgMap.BB_PITCH = 42;
-// Pitch-by-zoom curve (upright-sprite camera, ROADMAP art rework): shallow 42° at the
-// zoom-out floor (~1.25 on a 1920 surface) easing to 58° at max zoom-in (2.625) — "look
-// further = flatter". Thresholds are the spike values HALVED for the 32px-cell
-// world (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
+// Pitch-by-zoom curve (upright-sprite camera): shallow 42° at the zoom-out floor (~1.25 on
+// a 1920 surface) easing to 58° at max zoom-in (2.625) — "look further = flatter".
+// Thresholds are the spike values HALVED for the 32px-cell world (zoom seeds halved, same
+// screen framing); the 42–58° outputs are angles, unchanged.
 // Shared with the Debug Camera section's "Pitch by zoom" toggle.
 RpgMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);

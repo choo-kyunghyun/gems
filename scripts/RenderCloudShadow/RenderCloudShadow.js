@@ -3,7 +3,7 @@
 /**
  * Coverage follows the current Weather condition (each _COND carries a `cloud` fraction, cross-faded
  * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
- * value-noise texture (baked ONCE into a surface from Utils.hash2 on a PERIODIC lattice, so it tiles)
+ * value-noise texture (baked ONCE into a surface from hash2 on a PERIODIC lattice, so it tiles)
  * is drawn as ONE world-space quad on the ground plane (z=0) via a VertexBuffer under the LIVE camera
  * matrices — so the field foreshortens with the pitched 2.5D camera (a screen-space overlay would
  * not). UVs come from world position + wind*time drift, wrapped (gpu_set_tex_repeat); drift runs on
