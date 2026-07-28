@@ -901,7 +901,7 @@ globalThis.RpgInventoryUI = {
           host.insertChild(
             gemsLabel("+ " + I18n.text(m.name), {
               font: "description",
-              color: RpgWorldOverlay._rarityColor(m.id),
+              color: InvTable.rarityColor(m.id),
             }),
           );
       }
@@ -976,7 +976,7 @@ globalThis.RpgInventoryUI = {
         },
         {
           height: 30,
-          textColor: RpgWorldOverlay._rarityColor(itemId),
+          textColor: InvTable.rarityColor(itemId),
           icon: it !== undefined ? it.sprite : -1,
         },
       );

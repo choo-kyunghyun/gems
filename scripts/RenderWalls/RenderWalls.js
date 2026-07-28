@@ -8,7 +8,7 @@
  *
  * Vertices are the vox-kit 24 B/vertex format (position_3d + colour + texcoord), in one of
  * two sh_meshlit modes (both share the sun + view-culled point lights supplied by the host
- * RenderMesh pass, `opt.lights`, whose _setupLights runs before the submits — walls join the
+ * RenderMesh pass, `opt.lights`, whose setupLights runs before the submits — walls join the
  * same depth pool as furniture and billboards, z-write on for the submit):
  * - TEXTURED (sprite set): texcoord = real frame UVs, colour = the material tint
  *   (texture × tint × light — grayscale-ish pattern textures let one texture serve every
@@ -246,10 +246,10 @@ globalThis.RenderWalls = class RenderWalls {
   _submit(vb, m, lit) {
     if (vb === -1) return;
     if (m.texOk) {
-      if (lit) shader_set_uniform_f(this.lights._uUseTex, 1);
+      if (lit) shader_set_uniform_f(this.lights.uUseTex, 1);
       vertex_submit(vb, pr_trianglelist, sprite_get_texture(m.sprite, m.frame));
     } else {
-      if (lit) shader_set_uniform_f(this.lights._uUseTex, 0);
+      if (lit) shader_set_uniform_f(this.lights.uUseTex, 0);
       vertex_submit(vb, pr_trianglelist, -1);
     }
   }
@@ -262,14 +262,14 @@ globalThis.RenderWalls = class RenderWalls {
     if (!any) return;
     // depth-writing like RenderMesh/RenderBillboard (global default is off)
     gpu_set_zwriteenable(true);
-    const lit = this.lights !== undefined && this.lights._litOk;
-    if (lit) this.lights._setupLights(entities); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
+    const lit = this.lights !== undefined && this.lights.litOk;
+    if (lit) this.lights.setupLights(entities); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
     // all tops under normal (0,0,-1), then all souths under (0,1,0) — one normal set per
     // orientation; flat buckets ignore u_normal (their normals ride the packed texcoord).
-    if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+    if (lit) shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
     for (let i = 0; i < this._mats.length; i++)
       this._submit(this._vbTops[i], this._mats[i], lit);
-    if (lit) shader_set_uniform_f(this.lights._uNormal, 0, 1, 0);
+    if (lit) shader_set_uniform_f(this.lights.uNormal, 0, 1, 0);
     for (let i = 0; i < this._mats.length; i++)
       this._submit(this._vbSouths[i], this._mats[i], lit);
     if (lit) shader_reset();

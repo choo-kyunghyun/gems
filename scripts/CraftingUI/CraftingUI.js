@@ -200,9 +200,7 @@ globalThis.CraftingUI = {
     nameCell.insertChild(
       gemsLabel(I18n.text("WB_MODULE") + " " + modName, {
         color:
-          module !== ""
-            ? RpgWorldOverlay._rarityColor(module)
-            : GemsTheme.textMuted,
+          module !== "" ? InvTable.rarityColor(module) : GemsTheme.textMuted,
       }),
     );
     line1.insertChild(nameCell);
@@ -243,7 +241,7 @@ globalThis.CraftingUI = {
         gemsButton(
           I18n.text("WB_INSTALL") + " " + nm,
           () => CraftingUI._installModule(level, id),
-          { height: 24, textColor: RpgWorldOverlay._rarityColor(id) },
+          { height: 24, textColor: InvTable.rarityColor(id) },
         ),
       );
     }
@@ -325,9 +323,7 @@ globalThis.CraftingUI = {
             level._craftDirty = true; // repopulate the detail
           },
           selected: () => level._craftSel === id,
-          textColor: can
-            ? RpgWorldOverlay._rarityColor(out.itemId)
-            : GemsTheme.textDim,
+          textColor: can ? InvTable.rarityColor(out.itemId) : GemsTheme.textDim,
         });
       }
     }
@@ -358,7 +354,7 @@ globalThis.CraftingUI = {
     host.insertChild(
       gemsLabel(name + " x" + out.qty, {
         font: "header",
-        color: RpgWorldOverlay._rarityColor(out.itemId),
+        color: InvTable.rarityColor(out.itemId),
       }),
     );
     host.insertChild(gemsDivider());

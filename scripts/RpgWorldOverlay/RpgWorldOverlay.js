@@ -2,8 +2,7 @@
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneRpg.draw() AFTER renderer.draw().
 /**
  * Drawn after renderer.draw() because RenderChunks paints an opaque ground fill that would hide it.
- * (HUD/inventory/dialogue are GUI-layer panels, not here.) `_rarityColor` is shared with the
- * inventory rows.
+ * (HUD/inventory/dialogue are GUI-layer panels, not here.)
  */
 globalThis.RpgWorldOverlay = {
   // live hitscan shot streaks pushed by the firers (RpgPlayer + CombatAI), aged on Time.raw
@@ -16,12 +15,6 @@ globalThis.RpgWorldOverlay = {
 
   clearTracers() {
     this._tracers = [];
-  },
-
-  _rarityColor(itemId) {
-    const it = Item.get(itemId);
-    const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
-    return r !== undefined ? r.color : c_white;
   },
 
   // item-icon markup prefix for a UIRichText row — "[spr=<name>] " when the item has an icon
@@ -48,7 +41,7 @@ globalThis.RpgWorldOverlay = {
         draw_sprite_ext(spr, 0, p.x, p.y, 2, 2, 0, c_white, 1);
       } else {
         // no icon — fall back to the rarity-colored square
-        draw_set_color(this._rarityColor(d.itemId));
+        draw_set_color(InvTable.rarityColor(d.itemId));
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, false);
         draw_set_color(c_black);
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);

@@ -55,38 +55,32 @@ globalThis.RenderMesh = class RenderMesh {
     this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
     // THE world shader (guarded — without it models draw flat unlit albedo)
     this._lit = asset_get_index("sh_meshlit");
-    this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
-    this._uAmbient = this._litOk
+    this.litOk = shaders_are_supported() && shader_is_compiled(this._lit);
+    this._uAmbient = this.litOk
       ? shader_get_uniform(this._lit, "u_ambient")
       : -1;
-    this._uSunDir = this._litOk
-      ? shader_get_uniform(this._lit, "u_sunDir")
-      : -1;
-    this._uSunColor = this._litOk
+    this._uSunDir = this.litOk ? shader_get_uniform(this._lit, "u_sunDir") : -1;
+    this._uSunColor = this.litOk
       ? shader_get_uniform(this._lit, "u_sunColor")
       : -1;
-    this._uLightCount = this._litOk
+    this._uLightCount = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCount")
       : -1;
-    this._uLightPos = this._litOk
+    this._uLightPos = this.litOk
       ? shader_get_uniform(this._lit, "u_lightPos")
       : -1;
-    this._uLightCol = this._litOk
+    this._uLightCol = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCol")
       : -1;
     // textured mode (RenderWalls/RenderBillboard/ground passes): texcoord = real UVs, normal
-    // via u_normal per submit. _setupLights resets u_useTex to 0 so the vox models always
+    // via u_normal per submit. setupLights resets u_useTex to 0 so the vox models always
     // draw in packed-normal mode, and u_alphaRef to 0 (no cutout) so they never discard.
-    this._uUseTex = this._litOk
-      ? shader_get_uniform(this._lit, "u_useTex")
-      : -1;
-    this._uNormal = this._litOk
-      ? shader_get_uniform(this._lit, "u_normal")
-      : -1;
-    this._uAlphaRef = this._litOk
+    this.uUseTex = this.litOk ? shader_get_uniform(this._lit, "u_useTex") : -1;
+    this.uNormal = this.litOk ? shader_get_uniform(this._lit, "u_normal") : -1;
+    this._uAlphaRef = this.litOk
       ? shader_get_uniform(this._lit, "u_alphaRef")
       : -1;
-    // (no ambient field: ambient is derived per frame as the sun's complement — see _setupLights)
+    // (no ambient field: ambient is derived per frame as the sun's complement — see setupLights)
     // sun provider: () => flat { x, y, z (toward the sun, up = -z), strength, r, g, b }.
     // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a kit
     // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
@@ -129,15 +123,22 @@ globalThis.RenderMesh = class RenderMesh {
     return m;
   }
 
-  // set sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
-  // MAX_LIGHTS injected point-light records (same flicker formula as RenderLighting so
-  // the mesh response tracks the visible glow pools). Arrays are reused scratch. This is the
-  // ONE light gather every lit pass shares (walls/billboards/ground call it via opt.lights),
-  // so the whole level can't diverge — each caller then overrides u_useTex/u_normal/
-  // u_alphaRef for its own submits.
-  _setupLights(entities) {
+  /**
+   * THE SHARED-LIGHT SEAM — the public surface a sibling pass gets by taking this pass as
+   * `opt.lights` (RenderBillboard / RenderWalls / RenderTileMap / TerrainStream): `litOk`
+   * (is the shader usable at all), this method, and the `uUseTex` / `uNormal` uniform handles
+   * each caller overrides for its own submits. Everything else here is private.
+   *
+   * Sets sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
+   * MAX_LIGHTS injected point-light records (same flicker formula as RenderLighting so the
+   * mesh response tracks the visible glow pools). Arrays are reused scratch. This is the ONE
+   * light gather every lit pass shares, so the whole level can't diverge; it leaves u_useTex
+   * at 0 (vox mode) and u_alphaRef at 0 (no cutout). A caller ends its own submits with
+   * shader_reset().
+   */
+  setupLights(entities) {
     shader_set(this._lit);
-    shader_set_uniform_f(this._uUseTex, 0); // vox mode; textured callers flip it
+    shader_set_uniform_f(this.uUseTex, 0); // vox mode; textured callers flip it
     shader_set_uniform_f(this._uAlphaRef, 0); // no cutout; billboards/sprite faces raise it
     const sun = this.sun !== undefined ? this.sun() : RenderMesh.SUN_DEFAULT;
     // ambient = the sun's complement: 0.55 in full daylight (sun fills the rest), 1.0 at
@@ -224,18 +225,18 @@ globalThis.RenderMesh = class RenderMesh {
   _face(name, color, alpha, w, h) {
     const spr = name ? asset_get_index(name) : -1;
     if (name && sprite_exists(spr)) {
-      if (this._litOk) {
+      if (this.litOk) {
         shader_set(this._lit);
         shader_set_uniform_f(this._uAmbient, 1);
         shader_set_uniform_f(this._uSunDir, 0, 0, -1, 0);
         shader_set_uniform_f(this._uSunColor, 1, 1, 1);
         shader_set_uniform_f(this._uLightCount, 0);
-        shader_set_uniform_f(this._uUseTex, 1);
-        shader_set_uniform_f(this._uNormal, 0, 0, -1);
+        shader_set_uniform_f(this.uUseTex, 1);
+        shader_set_uniform_f(this.uNormal, 0, 0, -1);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
       }
       draw_sprite_stretched_ext(spr, 0, 0, 0, w, h, color, alpha);
-      if (this._litOk) shader_reset();
+      if (this.litOk) shader_reset();
     } else {
       draw_rectangle_color(0, 0, w, h, color, color, color, color, false);
     }
@@ -247,7 +248,7 @@ globalThis.RenderMesh = class RenderMesh {
     gpu_set_zwriteenable(true);
     // PASS 1 — baked models, lit by sh_meshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
-    if (this._litOk) this._setupLights(entities);
+    if (this.litOk) this.setupLights(entities);
     for (const entity of entities.query(Mesh, Position)) {
       const mesh = entities.get(Mesh, entity);
       if (mesh.model === undefined || mesh.model === "") continue;
@@ -275,7 +276,7 @@ globalThis.RenderMesh = class RenderMesh {
       );
       vertex_submit(m.vb, pr_trianglelist, -1);
     }
-    if (this._litOk) shader_reset();
+    if (this.litOk) shader_reset();
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
     for (const entity of entities.query(Mesh, Position)) {
       const mesh = entities.get(Mesh, entity);

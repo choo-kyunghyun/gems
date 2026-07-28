@@ -341,11 +341,11 @@ globalThis.RenderTileMap = class RenderTileMap {
     // level on pitched maps) supplies the shared sun/point gather; the normal is straight up
     // — flat ground. z-write stays off (painter order), so only the shading changes; unset
     // (kit default / flat maps / editor) submits fixed-function unlit exactly as before.
-    const lit = this.lights !== undefined && this.lights._litOk;
+    const lit = this.lights !== undefined && this.lights.litOk;
     if (lit) {
-      this.lights._setupLights(entities);
-      shader_set_uniform_f(this.lights._uUseTex, 1);
-      shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+      this.lights.setupLights(entities);
+      shader_set_uniform_f(this.lights.uUseTex, 1);
+      shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
     }
     this._vbuf.submit(this._tex);
     if (lit) shader_reset();

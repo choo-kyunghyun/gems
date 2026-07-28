@@ -54,6 +54,11 @@ globalThis.EntityID = class EntityID {
     return true;
   }
 
+  /** @returns {number} live slots — allocated minus freed (the pool arithmetic lives here) */
+  count() {
+    return this.next - this.freeIndices.length;
+  }
+
   /** @param {number} id @returns {boolean} generation matches slot (id is live) */
   isValid(id) {
     const index = EntityID.getIndex(id);

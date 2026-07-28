@@ -132,8 +132,16 @@ globalThis.InvTable = {
       weight: it !== undefined ? it.weight * qty : 0,
       value:
         it !== undefined ? Math.round(Rarity.modify(it.rarity, it.value)) : 0,
-      color: RpgWorldOverlay._rarityColor(itemId),
+      color: InvTable.rarityColor(itemId),
     };
+  },
+
+  // Item-id tint by rarity, c_white when the id or its rarity is unknown. THE shared item
+  // color: every inventory-family panel and the world drop squares read it from here.
+  rarityColor(itemId) {
+    const it = Item.get(itemId);
+    const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
+    return r !== undefined ? r.color : c_white;
   },
 
   // filter/display category from capability components

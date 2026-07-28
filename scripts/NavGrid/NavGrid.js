@@ -50,9 +50,11 @@ globalThis.NavGrid = class NavGrid {
     this.originX = ox;
     this.originY = oy;
 
+    // whole-window refill over Grid's public `data` buffer (its contract blesses bulk direct
+    // access); clear() fills in place, so the cached reference survives it
     const d = this.grid.data;
     if (this.costAt === null) {
-      for (let i = 0; i < d.length; i++) d[i] = 1; // fill in place (no realloc)
+      this.grid.clear(1);
     } else {
       // terrain is static per cell — resample only when the window moves; colliders re-stamp
       // every rebuild on top of a copy of the cached base

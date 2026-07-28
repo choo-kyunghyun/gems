@@ -58,7 +58,7 @@ globalThis.DebugGeneral = {
           s !== null && s !== undefined && s.entities !== undefined
             ? s.entities
             : null;
-        d.entities = w !== null ? w.ids.next - w.ids.freeIndices.length : "-";
+        d.entities = w !== null ? w.count() : "-";
       },
     });
     Debug.add({
@@ -69,7 +69,7 @@ globalThis.DebugGeneral = {
         dbg_button("Clear", () => Log.clear());
       },
       update() {
-        this.data.lines = Log._lines.length;
+        this.data.lines = Log.count();
       },
     });
     // sim controls relocated from SystemMenu; Pause gates level.step()

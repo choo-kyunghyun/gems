@@ -18,13 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Encapsulation Breaches
-
-- **`RenderMesh`'s underscore members are the shared-light seam**: `RenderBillboard`/`RenderWalls`/`RenderTileMap`/`TerrainStream` call `opt.lights._setupLights` and read `_litOk`/`_uUseTex`/`_uNormal` — four passes depend on "private" members. Promote the seam to public names so the underscore rule stays honest.
-- **`Grid` consumers bypass its API**: `NavGrid` writes `grid.data` directly because `clear(value)` reallocates — bless `.data` in the JSDoc or add an in-place fill.
-- **`RpgWorldOverlay._rarityColor` is an underscored public seam**: `InvTable`, `CraftingUI`, `WeaponModUI`, and `RpgInventoryUI` all call it, and the file's own header admits it's shared. Promote it to a public name on a neutral owner (`InvTable` — nothing about it is world-overlay).
-- **Debug sections reach into module internals**: the Perf entity count computes `ids.next - ids.freeIndices.length` off the id pool and the Log section reads `Log._lines` — give `Entity` a `count()` and `Log` a `count()` (or bless the fields) so Core/Debug stops depending on privates.
-
 ### Typedef Gaps
 
 - **`entities.broadphase` is an undeclared field**: assigned by `RpgMap`, read by `SeparationSystem`/`TriggerSystem`, declared nowhere; its sibling store-level config `gravity` goes through `EntityOpts`. Declare it on the constructor with its contract.

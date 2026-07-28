@@ -1,4 +1,10 @@
-/** flat row-major 2D array; used by TileLayer, ZoneMap, NavGrid */
+// Flat row-major 2D array; used by TileLayer, ZoneMap, NavGrid.
+/**
+ * `data` is PUBLIC: a bulk consumer walks the row-major buffer directly (NavGrid refills its
+ * whole window every frame — a per-cell set() there would be a call per cell); single-cell
+ * access still goes through get/set. clear() fills IN PLACE, so a held `data` reference stays
+ * valid across it.
+ */
 globalThis.Grid = class Grid {
   /** @param {number} width @param {number} height */
   constructor(width, height) {
@@ -45,9 +51,9 @@ globalThis.Grid = class Grid {
     return { x: index % this.cols, y: Math.floor(index / this.cols) };
   }
 
-  /** @returns {Grid} this */
+  /** Fill every cell with `value`, in place. @returns {Grid} this */
   clear(value) {
-    this.data = Array(this.size()).fill(value);
+    this.data.fill(value);
     return this;
   }
 

@@ -30,6 +30,11 @@ globalThis.Entity = class Entity {
     return this.ids.isValid(id);
   }
 
+  /** Live entities in this store; queued removals still count until flush(). @returns {number} */
+  count() {
+    return this.ids.count();
+  }
+
   /** Queue removal; committed by flush(). @param {number} id */
   remove(id) {
     this._pending.push(id);

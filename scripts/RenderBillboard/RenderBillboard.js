@@ -75,7 +75,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       ? shader_get_uniform(this._lit, "u_alphaRef")
       : -1;
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, dim-safe)
-    // opt.lights = the host RenderMesh pass: its _setupLights supplies this frame's sun +
+    // opt.lights = the host RenderMesh pass: its setupLights supplies this frame's sun +
     // view-culled point lights (ONE shared gather — a sprite and the mesh beside it can't
     // diverge). Unset (flat maps, kit default) → neutral uniforms: full-bright albedo with
     // the cutout only.
@@ -137,8 +137,8 @@ globalThis.RenderBillboard = class RenderBillboard {
     // in coplanar ground passes — restore after
     gpu_set_zwriteenable(true);
     if (this._litOk) {
-      if (this.lights !== undefined && this.lights._litOk) {
-        this.lights._setupLights(entities); // shader_set + the shared sun/point-light gather
+      if (this.lights !== undefined && this.lights.litOk) {
+        this.lights.setupLights(entities); // shader_set + the shared sun/point-light gather
       } else {
         // neutral light: full-bright albedo — the cutout is the only shader effect
         shader_set(this._lit);

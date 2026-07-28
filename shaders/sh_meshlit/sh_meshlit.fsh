@@ -13,7 +13,7 @@
 //     back the VERTEX location while this stage reads a default 0 — the symptom is a shader
 //     quietly ignoring its flag, not a compile error. Pass vsh->fsh through a varying.
 //   * a caller guards with shaders_are_supported() + shader_is_compiled() and keeps a
-//     non-shader fallback (RenderMesh/RenderBillboard `_litOk`).
+//     non-shader fallback (the passes' litOk guard).
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_texcoord;
@@ -29,7 +29,7 @@ varying vec4 v_vColour;
 // discards. u_useTex is only ever exactly 0 or 1, so each mix returns an endpoint exactly.
 uniform float u_useTex;
 uniform vec3 u_normal;
-// texel-alpha cutout (billboards / sprite faces; 0 = off — RenderMesh._setupLights pins 0 so
+// texel-alpha cutout (billboards / sprite faces; 0 = off — RenderMesh.setupLights pins 0 so
 // vox/wall submits never discard). Tested on the TEXEL alpha (the sprite SHAPE), never the
 // final v_vColour*tex alpha, so a dimmed/tinted entity stays fully visible — only the shape
 // is cut. A discarded fragment writes no depth (GMRT's fixed-function alpha test is inert;

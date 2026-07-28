@@ -119,11 +119,11 @@ globalThis.TerrainStream = class TerrainStream {
     // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
     // host RenderMesh pass supplies the shared sun/point gather, normal straight up; z-write
     // stays off (painter order) so only the shading changes. Unset → fixed-function unlit.
-    const lit = this.lights !== undefined && this.lights._litOk;
+    const lit = this.lights !== undefined && this.lights.litOk;
     if (lit) {
-      this.lights._setupLights(entities);
-      shader_set_uniform_f(this.lights._uUseTex, 1);
-      shader_set_uniform_f(this.lights._uNormal, 0, 0, -1);
+      this.lights.setupLights(entities);
+      shader_set_uniform_f(this.lights.uUseTex, 1);
+      shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
     }
     const keys = Object.keys(this._cache);
     for (let i = 0; i < keys.length; i++) {

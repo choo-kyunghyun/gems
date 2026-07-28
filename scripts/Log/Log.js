@@ -25,6 +25,11 @@ globalThis.Log = {
     this.write(msg, "DEBUG");
   },
 
+  // buffered lines, capped at max (the oldest have already dropped).
+  count() {
+    return this._lines.length;
+  },
+
   // rewrite the file only if dirty since last flush.
   flush() {
     if (!this._dirty) return;
