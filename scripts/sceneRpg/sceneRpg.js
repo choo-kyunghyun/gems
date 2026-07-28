@@ -683,16 +683,21 @@ class _SceneRpgClass {
     else Weather.enterRegion(cmap.zone(id));
   }
 
-  // Auto turn-in for the passive (non-NPC) quests once their objectives are met.
-  _tryTurnIn(qid) {
-    if (!QuestLog.isReady(qid)) return;
-    const reward = QuestLog.complete(qid);
-    RpgProgression.applyReward(this, reward);
+  // THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
+  // close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
+  // Caller checks isReady first; complete() is what marks it done.
+  _completeQuest(qid) {
+    RpgProgression.applyReward(this, QuestLog.complete(qid));
     Profile.add("questsCompleted", 1);
     this._reportAchievements("questsCompleted");
     Log.info(
       `quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
     );
+  }
+
+  // Auto turn-in for the passive (non-NPC) quests once their objectives are met.
+  _tryTurnIn(qid) {
+    if (QuestLog.isReady(qid)) this._completeQuest(qid);
   }
 
   // The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
@@ -807,12 +812,7 @@ class _SceneRpgClass {
     const npc = this.entities.get(NPC, this._npcId);
     const qid = npc.questId;
     if (QuestLog.isReady(qid)) {
-      RpgProgression.applyReward(this, QuestLog.complete(qid));
-      Profile.add("questsCompleted", 1);
-      this._reportAchievements("questsCompleted");
-      Log.info(
-        `turned in ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
-      );
+      this._completeQuest(qid);
     } else if (!QuestLog.isActive(qid) && !QuestLog.isDone(qid)) {
       QuestLog.accept(qid);
       Log.info(`accepted ${qid}`);
