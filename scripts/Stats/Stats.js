@@ -1,6 +1,7 @@
 /**
- * Derived combat stats (from Attributes via StatModel). Session-scoped.
- * No level/xp — growth comes from equipment and consumables only.
+ * Derived combat stats — the caps/factors kit systems read (StaminaSystem, StatusSystem,
+ * ConsumableSystem, movers), with per-reader defaults when absent. Deriving it is the GAME's
+ * business: the demo rebuilds it from Attributes via StatModel. Session-scoped.
  *
  * @typedef {Object} Stats
  * @property {number} maxHp

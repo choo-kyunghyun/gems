@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"VirtualKeyboard",
   "parent":{
-    "name":"UI",
-    "path":"folders/Core/UI.yy",
+    "name":"GemsUI",
+    "path":"folders/GemsUI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

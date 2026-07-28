@@ -1,10 +1,11 @@
 // The app's one menu — a near-fullscreen multi-tabbed overlay (standalone singleton) that pauses ALL
 // game + behind-UI logic while open. Owns the gameplay pause + nav. Contract on the declaration below.
 /**
- * Pause is global: obj_game skips level.step() while isOpen(), and the menu forces Time.scale=0 each
- * frame (the menu itself runs on Time.raw). UIModal blocks the underlying UI. Open triggers: F1
- * anywhere, gamepad Start during gameplay; Esc during gameplay is context-aware (level.handleEscape()
- * gets first refusal). A level opts into gameplay pause/nav via this.gameplay.
+ * Pause is global: LevelManager skips level.step() while isOpen() (this menu is its boot-wired
+ * `menu` seam), and the menu forces Time.scale=0 each frame (the menu itself runs on Time.raw).
+ * UIModal blocks the underlying UI. Open triggers: F1 anywhere, gamepad Start during gameplay; Esc
+ * during gameplay is context-aware (level.handleEscape() gets first refusal). A level opts into
+ * gameplay pause/nav via this.gameplay.
  */
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
@@ -12,8 +13,11 @@ globalThis.SystemMenu = {
   _game: null, // the obj_game controller (its themed `background` — levels live on World.levels)
   _scale: 1, // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
-  // this Core menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
+  // this kit menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
   _extraTabs: [],
+  // Boot-wired quit-target level factory (the demo's lobby) — null hides the Quit button, so the
+  // kit menu names no Demo level.
+  quitTo: null,
 
   /** Register an extra tab. @param {string|Function} label textRef or string @param {() => UIElement} build content builder, called each open (so it reads live state) */
   addTab(label, build) {
@@ -275,16 +279,17 @@ globalThis.SystemMenu = {
       }),
     );
     // Step Frame + Restart Scene live in the Debug overlay's "Sim" section
-    bar.insertChild(
-      gemsButton(
-        I18n.textRef("SYS_QUIT"),
-        () => {
-          World.levels.switchTo(LEVELS.lobby);
-          SystemMenu.close();
-        },
-        { width: 200 },
-      ),
-    );
+    if (SystemMenu.quitTo !== null)
+      bar.insertChild(
+        gemsButton(
+          I18n.textRef("SYS_QUIT"),
+          () => {
+            World.levels.switchTo(SystemMenu.quitTo);
+            SystemMenu.close();
+          },
+          { width: 200 },
+        ),
+      );
     controls.insertChild(bar);
     scroll.scrollBody.insertChild(controls);
 

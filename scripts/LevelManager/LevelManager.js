@@ -26,6 +26,13 @@ globalThis.LevelManager = class LevelManager {
     // Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
+    // ── boot-wired seams (Core names no kit/Demo module) ──
+    // pause menu, duck-typed { isOpen(), scale(), reset() } — obj_game wires the GemsUI
+    // SystemMenu; null = no menu pause gating
+    this.menu = null;
+    // display-label resolver, (factory) => string | () => string | null — obj_game wires
+    // LevelRegistry.labelOf; null = instance labels only
+    this.resolveLabel = null;
     // ── resident-map registry (was Universe) ──
     this._levels = {}; // mapId -> entry (at least { entities, grid }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
@@ -109,7 +116,7 @@ globalThis.LevelManager = class LevelManager {
     } else {
       this._destroyAll();
       UINav.reset(); // drop focus held on the outgoing level's UI
-      SystemMenu.reset(); // close the overlay (+ its pause) + restore time scale
+      if (this.menu !== null) this.menu.reset(); // close the pause overlay + restore time scale
       Dialogue.clear();
       FloatingText.clear(); // world coords are level-local
       ParticleFx.clear(); // world coords are level-local
@@ -124,12 +131,12 @@ globalThis.LevelManager = class LevelManager {
   // Build an entry: create the level, resolve its display label, back-reference the manager.
   _make(factory) {
     // A class level's `label` field never sets (GMRT skips subclass field inits — #15067), so the
-    // registry label (localized) is the reliable source; built-ins fall back to their instance
-    // label. Lookup matches by factory ref, so a guest level must register with the same factory.
-    const entry = LevelRegistry._entries.find((e) => e.factory === factory);
+    // resolved label (localized) is the reliable source; built-ins fall back to their instance label.
     const level = factory();
     level.manager = this;
-    return { level, factory, label: entry != null ? entry.label : null };
+    const label =
+      this.resolveLabel !== null ? this.resolveLabel(factory) : null;
+    return { level, factory, label };
   }
 
   // Lighter reset than _apply for a keep/back boundary: clears world-space singletons + drops nav
@@ -176,16 +183,16 @@ globalThis.LevelManager = class LevelManager {
     return level.label != null && level.label !== "" ? level.label : "-";
   }
 
-  // Per-frame sim tick, pause-gated two ways: the SystemMenu overlay and the Debug "Pause" toggle.
-  // While paused, level.step() is skipped except for a one-frame advance via requestStep().
+  // Per-frame sim tick, pause-gated two ways: the boot-wired menu overlay and the Debug "Pause"
+  // toggle. While paused, level.step() is skipped except for a one-frame advance via requestStep().
   step() {
     const level = this.current;
     if (level === null) return;
-    if (SystemMenu.isOpen()) {
+    if (this.menu !== null && this.menu.isOpen()) {
       // Menu forces Time.scale = 0; a step must restore a non-zero delta (store.update advances off
       // Time.delta) then re-freeze.
       if (this._takeStep()) {
-        Time.scale = SystemMenu.scale();
+        Time.scale = this.menu.scale();
         Time.delta = Time.raw * Time.scale;
         level.step();
         Time.delta = 0;

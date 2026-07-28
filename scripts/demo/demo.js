@@ -21,8 +21,9 @@ globalThis.teardownLevel = function teardownLevel(level) {
  * The lobby's level catalogue. A level registers from its script's top-level code — unlike the
  * content registries, which register from `create()` — so the catalogue is complete by boot.
  * `byCategory()` groups entries in registration order; a consumer imposes its own category
- * order (the lobby's fixed display list). `LevelManager._make` also reads `_entries` to
- * resolve a level's localized display label by factory ref.
+ * order (the lobby's fixed display list). `labelOf` serves LevelManager's boot-wired
+ * `resolveLabel` seam (obj_game wires it): the match is by factory ref, so a guest level must
+ * be opened with the factory it registered.
  */
 globalThis.LevelRegistry = {
   _entries: [],
@@ -32,6 +33,11 @@ globalThis.LevelRegistry = {
       label: opts.label,
       category: opts.category ?? "SCENE_CAT_MISC",
     });
+  },
+  /** Localized display label of a registered factory (matched by ref), or null. @param {() => Level} factory */
+  labelOf(factory) {
+    const e = this._entries.find((x) => x.factory === factory);
+    return e !== undefined ? e.label : null;
   },
   byCategory() {
     const result = [];

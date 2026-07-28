@@ -9,8 +9,9 @@
  *   with the face normal PACKED in the texcoord — sh_meshlit lights them live: one
  *   directional sun (`opt.sun` provider, injected like RenderLighting's ambient — the demo
  *   wires WorldClock.sunDir; the default is a fixed neutral sun reproducing the old baked
- *   top/south look) + the nearest `Light` entities as point lights (torch/lantern — faces
- *   toward a torch brighten, tops of tall meshes stay dark to a ground-level flame). This
+ *   top/south look) + the nearest injected point lights (`opt.pointLights` provider — the
+ *   demo gathers the Gameplay `Light` entities; torch/lantern — faces toward a torch
+ *   brighten, tops of tall meshes stay dark to a ground-level flame). This
  *   composes UNDER RenderLighting's screen-space multiply: the shader differentiates faces
  *   by direction, the light map owns absolute night darkness + the visible glow pools.
  *   No-shader fallback submits flat albedo.
@@ -91,6 +92,12 @@ globalThis.RenderMesh = class RenderMesh {
     // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
     this.sun = opt.sun;
     this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
+    // point-light provider, injected like `sun` (the `Light` token is Gameplay — this Core pass
+    // takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
+    // flicker?, seed? }] — color a GM color int, seed the flicker phase offset (the demo passes
+    // the entity id so the mesh term stays in phase with RenderLighting's glow pools).
+    // Unset = sun-only.
+    this.pointLights = opt.pointLights;
     this._lp = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0); // reused uniform scratch
     this._lc = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0);
   }
@@ -123,7 +130,7 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   // set sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
-  // MAX_LIGHTS `Light` entities as point lights (same flicker formula as RenderLighting so
+  // MAX_LIGHTS injected point-light records (same flicker formula as RenderLighting so
   // the mesh response tracks the visible glow pools). Arrays are reused scratch. This is the
   // ONE light gather every lit pass shares (walls/billboards/ground call it via opt.lights),
   // so the whole level can't diverge — each caller then overrides u_useTex/u_normal/
@@ -141,7 +148,7 @@ globalThis.RenderMesh = class RenderMesh {
     shader_set_uniform_f(this._uSunColor, sun.r, sun.g, sun.b);
 
     const max = RenderMesh.MAX_LIGHTS;
-    let ids = entities.query(Light, Position);
+    let recs = this.pointLights !== undefined ? this.pointLights(entities) : [];
     // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
     // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
     // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
@@ -154,53 +161,50 @@ globalThis.RenderMesh = class RenderMesh {
       const halfH =
         this.camera.height / 2 / Math.cos(this.camera.followPitch ?? 0);
       const vis = [];
-      for (let i = 0; i < ids.length; i++) {
-        const p = entities.get(Position, ids[i]);
-        const r = entities.get(Light, ids[i]).radius;
+      for (let i = 0; i < recs.length; i++) {
+        const rec = recs[i];
         if (
-          p.x + r >= cx - halfW &&
-          p.x - r <= cx + halfW &&
-          p.y + r >= cy - halfH &&
-          p.y - r <= cy + halfH
+          rec.x + rec.radius >= cx - halfW &&
+          rec.x - rec.radius <= cx + halfW &&
+          rec.y + rec.radius >= cy - halfH &&
+          rec.y - rec.radius <= cy + halfH
         )
-          vis.push(ids[i]);
+          vis.push(rec);
       }
-      ids = vis;
+      recs = vis;
     }
     // nearest-first when still over budget (view center from the assigned camera)
-    let order = ids;
-    if (ids.length > max && this.camera !== undefined) {
+    if (recs.length > max && this.camera !== undefined) {
       const cx = this.camera.toX;
       const cy = this.camera.toY;
       const scored = [];
-      for (let i = 0; i < ids.length; i++) {
-        const p = entities.get(Position, ids[i]);
-        const dx = p.x - cx;
-        const dy = p.y - cy;
-        scored.push({ id: ids[i], d: dx * dx + dy * dy });
+      for (let i = 0; i < recs.length; i++) {
+        const dx = recs[i].x - cx;
+        const dy = recs[i].y - cy;
+        scored.push({ rec: recs[i], d: dx * dx + dy * dy });
       }
       // sign comparator, never a raw difference (#15593: GMRT truncates the return)
       scored.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
-      order = [];
-      for (let i = 0; i < scored.length; i++) order.push(scored[i].id);
+      recs = [];
+      for (let i = 0; i < scored.length; i++) recs.push(scored[i].rec);
     }
-    const n = Math.min(order.length, max);
+    const n = Math.min(recs.length, max);
     for (let i = 0; i < n; i++) {
-      const id = order[i];
-      const p = entities.get(Position, id);
-      const lt = entities.get(Light, id);
-      let intensity = lt.intensity ?? 1;
-      // flicker: same wall-clock sine as RenderLighting, id-offset so torches don't sync
-      if (lt.flicker)
+      const rec = recs[i];
+      let intensity = rec.intensity ?? 1;
+      // flicker: same wall-clock sine as RenderLighting, seed-offset so torches don't sync
+      if (rec.flicker)
         intensity *=
-          1 - lt.flicker * (0.5 + 0.5 * Math.sin(current_time / 90 + id));
-      this._lp[i * 4] = p.x;
-      this._lp[i * 4 + 1] = p.y;
+          1 -
+          rec.flicker *
+            (0.5 + 0.5 * Math.sin(current_time / 90 + (rec.seed ?? i)));
+      this._lp[i * 4] = rec.x;
+      this._lp[i * 4 + 1] = rec.y;
       this._lp[i * 4 + 2] = RenderMesh.LIGHT_Z;
-      this._lp[i * 4 + 3] = lt.radius;
-      this._lc[i * 4] = color_get_red(lt.color) / 255;
-      this._lc[i * 4 + 1] = color_get_green(lt.color) / 255;
-      this._lc[i * 4 + 2] = color_get_blue(lt.color) / 255;
+      this._lp[i * 4 + 3] = rec.radius;
+      this._lc[i * 4] = color_get_red(rec.color) / 255;
+      this._lc[i * 4 + 1] = color_get_green(rec.color) / 255;
+      this._lc[i * 4 + 2] = color_get_blue(rec.color) / 255;
       this._lc[i * 4 + 3] = intensity;
     }
     shader_set_uniform_f(this._uLightCount, n);

@@ -545,11 +545,32 @@ globalThis.RpgMap = {
     level.renderer.insert(new RenderEntityShadow());
     // Deep-furniture meshes (VOLUME category of the projection contract — see docs/ROADMAP.md):
     // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
-    // a flat map has no depth-writing entity pass to sort against. Sun injected like
-    // RenderLighting's ambient (the pass is Core, WorldClock is Demo); camera assigned in
-    // _buildCamera (the nearest-point-light selection center).
+    // a flat map has no depth-writing entity pass to sort against. Sun + point lights injected
+    // like RenderLighting's ambient (the pass is Core; WorldClock and the Light token are not);
+    // camera assigned in _buildCamera (the nearest-point-light selection center). seed = entity
+    // id keeps the mesh flicker in phase with RenderLighting's glow pools.
     if (pitch > 0) {
-      level._meshPass = new RenderMesh({ sun: () => WorldClock.sunDir() });
+      level._meshPass = new RenderMesh({
+        sun: () => WorldClock.sunDir(),
+        pointLights: (entities) => {
+          const out = [];
+          const ids = entities.query(Light, Position);
+          for (let i = 0; i < ids.length; i++) {
+            const p = entities.get(Position, ids[i]);
+            const lt = entities.get(Light, ids[i]);
+            out.push({
+              x: p.x,
+              y: p.y,
+              radius: lt.radius,
+              color: lt.color,
+              intensity: lt.intensity,
+              flicker: lt.flicker,
+              seed: ids[i],
+            });
+          }
+          return out;
+        },
+      });
       level.renderer.insert(level._meshPass);
       // GROUND joins the one lit shader: the streamed terrain + every resident tile pass
       // read this pass's light gather (up normal — flat ground). Assigned post-construction

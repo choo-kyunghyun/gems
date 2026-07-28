@@ -18,14 +18,6 @@ Media names predating CLAUDE.md → Media Asset Naming are grandfathered — nev
 
 Issues noticed in passing or by a review batch, recorded here and deliberately left unfixed until scheduled, grouped by kind (an entry straddling kinds files under its primary defect):
 
-### Layering Violations
-
-- **`LevelManager._make` reaches into Demo's `LevelRegistry`**: Core scans `LevelRegistry._entries` (a private field, cross-pillar) for a display label. Invert the seam: registrants hand the label to the manager (entry field or a resolver hook wired at boot).
-- **`RenderMesh` queries the Gameplay `Light` token from Core**: the pass already injects `sun` and `camera` — inject the point-light gather the same way (a provider returning position/color/radius records) so the `Light` query moves to the wiring that owns the token.
-- **`VirtualKeyboard` builds from GemsUI**: a Core/UI singleton composed of `gemsModal`/`gemsButton`/`gemsLabel` + `GemsTheme` — Core must build without the GemsUI pillar. Refile it into GemsUI (it is a themed composite), or rebuild its body from bare Core widgets.
-- **`SystemMenu`'s quit button hardcodes Demo's `LEVELS.lobby`**: the `addTab` seam already keeps Demo tabs injected — inject the quit target the same way (wired at boot). Both `SystemMenu` and `VirtualKeyboard` are gems-composed Core singletons; refiling the pair into GemsUI would close the pillar edge in one move.
-- **Kit systems read Demo's `Stats` token**: `ConsumableSystem._apply`, `StatusSystem._applyTick`, and `StaminaSystem.sprint` read `Stats.maxHp`/`maxStamina` directly — a Gameplay → Demo upward edge (`Stats` is filed Demo/Component and derived by Demo's `StatModel`). Inject a cap-resolver hook (the `Combat.mitigate` idiom) or refile the `Stats` token into the kit; the model stays Demo either way.
-
 ### Encapsulation Breaches
 
 - **`RenderMesh`'s underscore members are the shared-light seam**: `RenderBillboard`/`RenderWalls`/`RenderTileMap`/`TerrainStream` call `opt.lights._setupLights` and read `_litOk`/`_uUseTex`/`_uNormal` — four passes depend on "private" members. Promote the seam to public names so the underscore rule stays honest.

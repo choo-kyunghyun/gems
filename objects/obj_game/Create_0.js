@@ -82,6 +82,11 @@ World.sim = SimClock; // fixed-step tick clock (World.sim.advance / .alpha / .ti
 // World.levels (LevelManager) owns the level lifecycle + the resident-level registry; obj_game
 // delegates update/step/draw/destroy each event directly.
 World.levels = new LevelManager();
+// Boot-wire the Core seams to their kit/Demo owners: the pause menu, its quit target, and the
+// localized level labels — before start(), so the boot level's label resolves.
+World.levels.menu = SystemMenu;
+World.levels.resolveLabel = (factory) => LevelRegistry.labelOf(factory);
+SystemMenu.quitTo = LEVELS.lobby;
 // lobby is the boot level + dev launcher; F2 (Step_0) also returns here
 World.levels.start(LEVELS.lobby);
 LevelTransition.reveal(); // boot fades in from black
