@@ -22,7 +22,7 @@ globalThis.RpgInventoryUI = {
     level.ui.insertChild(host);
 
     level._invSel = null; // selected row model
-    level._invSelTime = 0; // last select time (ms) for double-click-to-use
+    level._invClick = { key: "", time: 0 }; // InvTable.reclick latch (double-click-to-use)
     level._invCat = ""; // active category filter code ("" = all)
 
     const tabs = gemsTabs(
@@ -728,9 +728,8 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  // Grid click → select the backing row model; a second click on the SAME item within 350ms
-  // acts on it (double-click). Identity is the instance uid when present (so a re-click hits
-  // the same instance, not its twin). Clicking an empty/padding cell clears the selection.
+  // Grid click → select the backing row model; a re-click acts on it (InvTable.reclick owns the
+  // gesture). Clicking an empty/padding cell clears the selection.
   _onGridSelect(level, i) {
     const row = i >= 0 && i < level._invView.length ? level._invView[i] : null;
     if (row === null) {
@@ -739,17 +738,11 @@ globalThis.RpgInventoryUI = {
       RpgInventoryUI._refreshDetail(level);
       return;
     }
-    const now = current_time;
-    if (
-      level._invSel !== null &&
-      RpgInventoryUI._sameRow(level._invSel, row) &&
-      now - level._invSelTime < 350
-    ) {
+    if (InvTable.reclick(level._invClick, row, "bag")) {
       RpgInventoryUI._activate(level, row); // sets _invDirty → rebuild refreshes grid+detail
       return;
     }
     level._invSel = row;
-    level._invSelTime = now;
     RpgInventoryUI._refreshDetail(level);
   },
 
@@ -926,10 +919,9 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  // same item: by instance uid when present, else by itemId
+  // same item — InvTable.rowId owns the uid-over-itemId rule
   _sameRow(a, b) {
-    if (a.uid !== undefined || b.uid !== undefined) return a.uid === b.uid;
-    return a.itemId === b.itemId;
+    return InvTable.rowId(a) === InvTable.rowId(b);
   },
 
   _activate(level, row) {

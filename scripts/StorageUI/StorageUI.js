@@ -10,8 +10,7 @@ globalThis.StorageUI = {
     level._storageId = -1;
     level._storeOpen = false;
     level._storeDirty = false;
-    level._storeClickKey = ""; // last-clicked "side|idx" for double-click detection
-    level._storeClickTime = 0;
+    level._storeClick = { key: "", time: 0 }; // InvTable.reclick latch
     level._storeQtyModal = null; // open amount-picker modal, else null
 
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
@@ -178,18 +177,11 @@ globalThis.StorageUI = {
     level._storeBoxTable.setRows(StorageUI._rows(level, boxInv));
   },
 
-  // single click selects; a same-row click within 350ms transfers. browse-mode arrowing
-  // fires onSelect with a different row each step, so it can't accidentally transfer.
+  // single click selects; a re-click transfers (InvTable.reclick owns the gesture).
   _click(level, side, row) {
     if (row === null || row === undefined) return;
-    const now = current_time;
-    const key = side + "|" + row.idx;
-    if (level._storeClickKey === key && now - level._storeClickTime < 350) {
+    if (InvTable.reclick(level._storeClick, row, side))
       StorageUI._move(level, side, row);
-      return;
-    }
-    level._storeClickKey = key;
-    level._storeClickTime = now;
   },
 
   // activate (double-click / confirm) on a row. a fungible stack > 1 opens the amount picker;

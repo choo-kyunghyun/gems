@@ -13,8 +13,7 @@ globalThis.TradeUI = {
     level._tradeMerchantId = -1;
     level._tradeOpen = false;
     level._tradeDirty = false;
-    level._tradeClickKey = ""; // last-clicked "side|id|idx" for double-click detection
-    level._tradeClickTime = 0;
+    level._tradeClick = { key: "", time: 0 }; // InvTable.reclick latch
     level._tradeQtyModal = null; // open amount-picker modal, else null
 
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
@@ -234,23 +233,11 @@ globalThis.TradeUI = {
       level._tradeSellTable.setRows(TradeUI._rows(level, "sell"));
   },
 
-  // single click selects; a same-row click within 350ms transacts. identity = instance uid (so a
-  // re-click hits the same modded gun, not its twin) else itemId, plus side + slot index.
+  // single click selects; a re-click transacts (InvTable.reclick owns the gesture).
   _click(level, side, row) {
     if (row === null || row === undefined) return;
-    const now = current_time;
-    const key =
-      side +
-      "|" +
-      (row.uid !== undefined ? row.uid : row.itemId) +
-      "|" +
-      row.idx;
-    if (level._tradeClickKey === key && now - level._tradeClickTime < 350) {
+    if (InvTable.reclick(level._tradeClick, row, side))
       TradeUI._act(level, side, row);
-      return;
-    }
-    level._tradeClickKey = key;
-    level._tradeClickTime = now;
   },
 
   // transact (double-click / confirm). sell-side worn/favorited refused with a toast. a fungible

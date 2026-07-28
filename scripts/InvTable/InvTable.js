@@ -5,6 +5,37 @@
  * (RpgInventoryUI) is the one thing that rewrites real slot order.
  */
 globalThis.InvTable = {
+  DOUBLE_MS: 350, // re-click window of the double-click gesture below
+
+  /**
+   * THE identity of a row model across the inventory family: the instance uid when present (so a
+   * re-click, or a re-map after a refresh, hits the same modded gun and not its twin), else the
+   * item id. "#" keeps a uid from ever colliding with an item id.
+   * @param {Object} row @returns {string}
+   */
+  rowId(row) {
+    return row.uid !== undefined ? "#" + row.uid : row.itemId;
+  },
+
+  /**
+   * THE double-click gesture of the inventory panels: true when `row` repeats the last row
+   * latched in `state` within DOUBLE_MS — the caller then acts on it — else it latches and
+   * returns false (a plain select). `state` is the panel's own { key, time } bag, so two panels
+   * can't cross-trigger; `scope` separates panes within one (bag vs chest), and the row's slot
+   * index keeps two stacks of the same item apart. Arrowing a list fires with a different row
+   * each step, so browse mode can never trip it.
+   * @param {{key:string, time:number}} state @param {Object} row @param {string} scope
+   * @returns {boolean}
+   */
+  reclick(state, row, scope) {
+    const key = scope + "|" + InvTable.rowId(row) + "|" + (row.idx ?? "");
+    const now = current_time;
+    if (state.key === key && now - state.time < InvTable.DOUBLE_MS) return true;
+    state.key = key;
+    state.time = now;
+    return false;
+  },
+
   // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
   columns(opts = {}) {
     const gold = gemsColor("#ffd166");
