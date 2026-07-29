@@ -20,7 +20,11 @@ globalThis.UIScroll = class UIScroll {
     this._max = 0; // px of overflow at the last update
   }
 
-  /** @param {UIElement} element the clip viewport @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element the clip viewport
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;

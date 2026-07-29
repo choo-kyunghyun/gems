@@ -8,14 +8,24 @@ globalThis.InputContext = {
   // Plain array (index-looped, never a Set/iterator — see GMRT-Safe Idioms).
   _stack: ["default"],
 
+  /**
+   * @returns {string}
+   */
   active() {
     return InputContext._stack[InputContext._stack.length - 1];
   },
 
+  /**
+   * @param {string} name
+   * @returns {boolean}
+   */
   is(name) {
     return InputContext.active() === name;
   },
 
+  /**
+   * @param {string} name
+   */
   push(name) {
     InputContext._stack.push(name);
   },
@@ -27,6 +37,7 @@ globalThis.InputContext = {
 
   /**
    * replace top in place; pushes instead when only the base remains, so a forgotten push() can't clobber "default".
+   * @param {string} name
    */
   set(name) {
     if (InputContext._stack.length === 1) InputContext._stack.push(name);
@@ -38,7 +49,10 @@ globalThis.InputContext = {
     InputContext._stack = ["default"];
   },
 
-  /** @param {string[]} list - non-null live-context list (caller checks null = everywhere). */
+  /**
+   * @param {string[]} list - non-null live-context list (caller checks null = everywhere).
+   * @returns {boolean}
+   */
   allows(list) {
     return list.indexOf(InputContext.active()) !== -1;
   },

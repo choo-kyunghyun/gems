@@ -6,6 +6,9 @@
  * — refresh is flag-driven and will otherwise show stale rows.
  */
 globalThis.StorageUI = {
+  /**
+   * @param {Object} level
+   */
   build(level) {
     level._storageId = -1;
     level._storeOpen = false;
@@ -63,6 +66,12 @@ globalThis.StorageUI = {
   /**
    * titled column: header (title + bulk "All" button) + live usage line + the table.
    * invFn is a live () => Inventory feeding the usage readout and the All empty-gate.
+   * @param {() => string} titleRef
+   * @param {UIElement} tableEl
+   * @param {() => string} allLabelRef
+   * @param {() => void} onAll
+   * @param {() => Inventory} invFn
+   * @returns {UIElement}
    */
   _column(titleRef, tableEl, allLabelRef, onAll, invFn) {
     const col = new UIElement({
@@ -101,12 +110,20 @@ globalThis.StorageUI = {
     return col;
   },
 
-  /** True when an inventory is missing or holds no stacks (drives the All-button gate). */
+  /**
+   * True when an inventory is missing or holds no stacks (drives the All-button gate).
+   * @param {Inventory|undefined} inv
+   * @returns {boolean}
+   */
   _empty(inv) {
     return inv === undefined || inv.slots.length === 0;
   },
 
-  /** "Slots used/cap   Weight cur[/max]" — the "/max" tail only when weight-capped (the bag). */
+  /**
+   * "Slots used/cap   Weight cur[/max]" — the "/max" tail only when weight-capped (the bag).
+   * @param {Inventory|undefined} inv
+   * @returns {string}
+   */
   _usageText(inv) {
     if (inv === undefined) return "";
     let s =
@@ -116,7 +133,12 @@ globalThis.StorageUI = {
     return s;
   },
 
-  /** per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction. */
+  /**
+   * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
+   * @param {Object} level
+   * @param {string} side
+   * @returns {UIElement}
+   */
   _table(level, side) {
     return gemsTable(InvTable.columns({ fav: true }), {
       grow: true, // fill the column; reflows row count on resize
@@ -129,7 +151,10 @@ globalThis.StorageUI = {
     });
   },
 
-  /** re-apply the Settings-driven column set to both tables (toggle changed / chest opened). */
+  /**
+   * re-apply the Settings-driven column set to both tables (toggle changed / chest opened).
+   * @param {Object} level
+   */
   _applyColumns(level) {
     level._storeBagTable.setColumns(InvTable.columns({ fav: true }));
     level._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
@@ -138,6 +163,9 @@ globalThis.StorageUI = {
   /**
    * row models for one inventory. `idx` (slot index) is valid until the next refresh =
    * when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
+   * @param {Object} level
+   * @param {Inventory} inv
+   * @returns {Object[]}
    */
   _rows(level, inv) {
     const fav = level.entities.get(Favorites, level.playerId);
@@ -154,6 +182,10 @@ globalThis.StorageUI = {
     return rows;
   },
 
+  /**
+   * @param {Object} level
+   * @param {number} id
+   */
   open(level, id) {
     level._storageId = id;
     level._storeOpen = true;
@@ -162,6 +194,9 @@ globalThis.StorageUI = {
     level._storeDirty = true;
   },
 
+  /**
+   * @param {Object} level
+   */
   close(level) {
     level._storeOpen = false;
     level._storeWin.enabled = false;
@@ -172,6 +207,9 @@ globalThis.StorageUI = {
       level._storeQtyModal.close();
   },
 
+  /**
+   * @param {Object} level
+   */
   refresh(level) {
     const entities = level.entities;
     const bagInv = entities.get(Inventory, level.playerId);
@@ -181,7 +219,12 @@ globalThis.StorageUI = {
     level._storeBoxTable.setRows(StorageUI._rows(level, boxInv));
   },
 
-  /** single click selects; a re-click transfers (InvTable.reclick owns the gesture). */
+  /**
+   * single click selects; a re-click transfers (InvTable.reclick owns the gesture).
+   * @param {Object} level
+   * @param {string} side
+   * @param {Object|null} row
+   */
   _click(level, side, row) {
     if (row === null || row === undefined) return;
     if (InvTable.reclick(level._storeClick, row, side))
@@ -192,6 +235,9 @@ globalThis.StorageUI = {
    * activate (double-click / confirm) on a row. a fungible stack > 1 opens the amount picker;
    * a single unit or an instance transfers whole. storing a favorited item from the bag is
    * refused; taking from the chest is never protected.
+   * @param {Object} level
+   * @param {string} side
+   * @param {Object|null} row
    */
   _move(level, side, row) {
     if (row === null || row === undefined) return;
@@ -217,6 +263,10 @@ globalThis.StorageUI = {
    * amount picker (gemsAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
    * Esc is owned by the level's handleEscape (closeOnEscape:false in the factory), so it
    * cancels the picker before the window.
+   * @param {Object} level
+   * @param {string} side
+   * @param {Object} row
+   * @param {number} maxQty
    */
   _promptAmount(level, side, row, maxQty) {
     level._storeQtyModal = gemsAmountPicker({
@@ -235,6 +285,10 @@ globalThis.StorageUI = {
   /**
    * transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
    * its hotbar slot; a partial transfer keeps the binding usable.
+   * @param {Object} level
+   * @param {string} side
+   * @param {Object} row
+   * @param {number} amount
    */
   _doMove(level, side, row, amount) {
     const entities = level.entities;
@@ -260,6 +314,12 @@ globalThis.StorageUI = {
    * move up to `amount` of slot `idx` src→dst (capped at what fits). `amount` only bounds a
    * fungible stack; an INSTANCE always moves whole by reference (preserving uid + mods).
    * returns the amount moved (0 if nothing fit) so the caller can react (e.g. unbind hotbar).
+   * @param {Object} level
+   * @param {Inventory} srcInv
+   * @param {Inventory} dstInv
+   * @param {number} idx
+   * @param {number} [amount]
+   * @returns {number}
    */
   _transfer(level, srcInv, dstInv, idx, amount) {
     if (idx < 0 || idx >= srcInv.slots.length) return 0;
@@ -292,6 +352,8 @@ globalThis.StorageUI = {
   /**
    * bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
    * halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
+   * @param {Object} level
+   * @param {string} side
    */
   _allFrom(level, side) {
     const entities = level.entities;
@@ -316,6 +378,9 @@ globalThis.StorageUI = {
    * items excluded from storing out of the bag, flat { itemId: true }. favorited always blocked;
    * hotbar-bound blocked only for BULK Store All (`includeHotbar`) — a single double-click can
    * still store one (it unbinds the hotbar; see _move).
+   * @param {Object} level
+   * @param {boolean} includeHotbar
+   * @returns {Object<string, boolean>}
    */
   _storeBlocked(level, includeHotbar) {
     const blocked = {};
@@ -334,6 +399,8 @@ globalThis.StorageUI = {
   /**
    * equipped instance uids to keep in the bag during a Store All — a worn instance must stay so
    * its Equipment slot doesn't dangle. exact { uid: true } set (Equipment keys by uid).
+   * @param {Object} level
+   * @returns {Object<string, boolean>}
    */
   _equipKeep(level) {
     const keep = {};
@@ -350,6 +417,12 @@ globalThis.StorageUI = {
    * `keep` ({ uid: true } or null) = equipped instances to leave behind; `blocked` ({ itemId: true }
    * or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as
    * fits. `onMoved(itemId, qty)` (optional) fires per stack moved — the take-direction hook.
+   * @param {Object} level
+   * @param {Inventory} srcInv
+   * @param {Inventory} dstInv
+   * @param {Object<string, boolean>|null} keep
+   * @param {Object<string, boolean>|null} blocked
+   * @param {(itemId: string, qty: number) => void} [onMoved]
    */
   _transferAll(level, srcInv, dstInv, keep, blocked, onMoved) {
     let total = 0;
@@ -398,6 +471,8 @@ globalThis.StorageUI = {
   /**
    * unequip any worn item no longer in the bag, else its Equipment slot (and stat mods) dangle.
    * no-op when srcInv isn't the player bag.
+   * @param {Object} level
+   * @param {Inventory} srcInv
    */
   _reconcileEquip(level, srcInv) {
     if (srcInv !== level.entities.get(Inventory, level.playerId)) return;

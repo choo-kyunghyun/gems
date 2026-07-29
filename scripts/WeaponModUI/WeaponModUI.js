@@ -13,7 +13,12 @@
  * unreliable in a master-detail row on GMRT 0.20; see CraftingUI).
  */
 globalThis.WeaponModUI = {
-  /** record the hosts CraftingUI built + init selection (the workbench owns open/close). */
+  /**
+   * record the hosts CraftingUI built + init selection (the workbench owns open/close).
+   * @param {Object} level
+   * @param {UIElement} listHost
+   * @param {UIElement} detailHost
+   */
   buildPanel(level, listHost, detailHost) {
     level._modSel = ""; // selected weapon instance uid (defaulted to the first on refresh)
     level._modList = listHost;
@@ -23,6 +28,7 @@ globalThis.WeaponModUI = {
   /**
    * rebuild both panels, ensuring a valid selection (default to the first weapon; reset if the
    * selected uid is no longer owned).
+   * @param {Object} level
    */
   refresh(level) {
     const inv = level.entities.get(Inventory, level.playerId);
@@ -33,7 +39,11 @@ globalThis.WeaponModUI = {
     WeaponModUI._fillDetail(level, inv, weapons);
   },
 
-  /** Owned weapon instances (slots with a uid whose item has a Weapon component). */
+  /**
+   * Owned weapon instances (slots with a uid whose item has a Weapon component).
+   * @param {Inventory} [inv]
+   * @returns {InventorySlot[]}
+   */
   _weaponInstances(inv) {
     const out = [];
     if (inv === undefined) return out;
@@ -46,20 +56,32 @@ globalThis.WeaponModUI = {
     return out;
   },
 
+  /**
+   * @param {InventorySlot[]} weapons
+   * @param {string} uid
+   * @returns {boolean}
+   */
   _hasUid(weapons, uid) {
     for (let i = 0; i < weapons.length; i++)
       if (weapons[i].uid === uid) return true;
     return false;
   },
 
-  /** filled attachment slots on an instance (its `mods` MAP). for...in is GMRT-safe. */
+  /**
+   * filled attachment slots on an instance (its `mods` MAP). for...in is GMRT-safe.
+   * @param {InventorySlot} slot
+   * @returns {number}
+   */
   _modCount(slot) {
     let n = 0;
     if (slot.mods !== undefined) for (const slotId in slot.mods) n++;
     return n;
   },
 
-  /** ensure a slot's `mods` is a MAP (tolerate a {} or a stale pre-overhaul array). */
+  /**
+   * ensure a slot's `mods` is a MAP (tolerate a {} or a stale pre-overhaul array).
+   * @param {InventorySlot} slot
+   */
   _ensureMap(slot) {
     if (slot.mods === undefined) slot.mods = {};
     else if (slot.mods.length !== undefined) slot.mods = {}; // old array → reset to a map
@@ -68,6 +90,9 @@ globalThis.WeaponModUI = {
   /**
    * Left: one selectable button per weapon instance (name "+N", "[E]" when equipped),
    * refilled via the shared gemsFillList.
+   * @param {Object} level
+   * @param {Inventory} [inv]
+   * @param {InventorySlot[]} weapons
    */
   _fillList(level, inv, weapons) {
     const eq = level.entities.get(Equipment, level.playerId);
@@ -98,6 +123,9 @@ globalThis.WeaponModUI = {
   /**
    * Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
    * the panel stacks within the near-fullscreen workbench card (ample room for a fully-stuffed gun).
+   * @param {Object} level
+   * @param {Inventory} [inv]
+   * @param {InventorySlot[]} weapons
    */
   _fillDetail(level, inv, weapons) {
     const host = level._modDetail;
@@ -210,7 +238,14 @@ globalThis.WeaponModUI = {
     }
   },
 
-  /** gun ammo block: loaded type + clip, a Reload button, a Load picker of compatible ammo. */
+  /**
+   * gun ammo block: loaded type + clip, a Reload button, a Load picker of compatible ammo.
+   * @param {Object} level
+   * @param {Inventory} inv
+   * @param {InventorySlot} slot
+   * @param {Gun} gun
+   * @param {Object} prof
+   */
   _fillAmmo(level, inv, slot, gun, prof) {
     const host = level._modDetail;
     host.insertChild(
@@ -261,7 +296,14 @@ globalThis.WeaponModUI = {
     host.insertChild(gemsDivider());
   },
 
-  /** owned-ammo row: name x count + Load (loads/tops up the selected gun's magazine). */
+  /**
+   * owned-ammo row: name x count + Load (loads/tops up the selected gun's magazine).
+   * @param {Object} level
+   * @param {Inventory} inv
+   * @param {InventorySlot} slot
+   * @param {string} ammoId
+   * @returns {UIElement}
+   */
   _ammoRow(level, inv, slot, ammoId) {
     const it = Item.get(ammoId);
     const nm = it !== undefined ? I18n.text(it.name) : ammoId;
@@ -298,7 +340,13 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  /** named-slot row: "[Category]: AttachmentName" + Remove, or "[Category]: (empty)". */
+  /**
+   * named-slot row: "[Category]: AttachmentName" + Remove, or "[Category]: (empty)".
+   * @param {Object} level
+   * @param {InventorySlot} slot
+   * @param {Object} slotDef
+   * @returns {UIElement}
+   */
   _slotRow(level, slot, slotDef) {
     const installed = slot.mods[slotDef.id]; // attachment itemId, or undefined when empty
     const catLabel = I18n.text(WeaponModUI._slotLabelKey(slotDef.accepts));
@@ -334,7 +382,15 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  /** available-attachment row: name x count + Install (into the first matching empty slot). */
+  /**
+   * available-attachment row: name x count + Install (into the first matching empty slot).
+   * @param {Object} level
+   * @param {Inventory} inv
+   * @param {InventorySlot} slot
+   * @param {Weapon} wpn
+   * @param {string} modId
+   * @returns {UIElement}
+   */
   _availableRow(level, inv, slot, wpn, modId) {
     const it = Item.get(modId);
     const nm = it !== undefined ? I18n.text(it.name) : modId;
@@ -365,7 +421,13 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  /** first empty slot id that accepts this attachment's category, or undefined. */
+  /**
+   * first empty slot id that accepts this attachment's category, or undefined.
+   * @param {Weapon} wpn
+   * @param {InventorySlot} slot
+   * @param {string} modId
+   * @returns {string|undefined}
+   */
   _targetSlot(wpn, slot, modId) {
     const it = Item.get(modId);
     const wm = it !== undefined ? it.getComponent(WeaponMod) : undefined;
@@ -378,7 +440,13 @@ globalThis.WeaponModUI = {
     return undefined;
   },
 
-  /** install modId into the first matching empty slot: consume one, record it, re-derive Stats. */
+  /**
+   * install modId into the first matching empty slot: consume one, record it, re-derive Stats.
+   * @param {Object} level
+   * @param {InventorySlot} slot
+   * @param {Weapon} wpn
+   * @param {string} modId
+   */
   _installFirst(level, slot, wpn, modId) {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
     if (slotId === undefined) return; // no matching empty slot
@@ -391,7 +459,12 @@ globalThis.WeaponModUI = {
     Log.info(`installed ${modId} into ${slotId} on ${slot.itemId}`);
   },
 
-  /** remove the attachment in slot id: refund it, re-derive Stats. */
+  /**
+   * remove the attachment in slot id: refund it, re-derive Stats.
+   * @param {Object} level
+   * @param {InventorySlot} slot
+   * @param {string} slotId
+   */
   _removeFrom(level, slot, slotId) {
     const modId = slot.mods[slotId];
     if (modId === undefined) return;
@@ -404,7 +477,12 @@ globalThis.WeaponModUI = {
     Log.info(`removed ${modId} from ${slotId} on ${slot.itemId}`);
   },
 
-  /** distinct itemIds of owned Ammo items of `caliber` (in slot order). */
+  /**
+   * distinct itemIds of owned Ammo items of `caliber` (in slot order).
+   * @param {Inventory} [inv]
+   * @param {string} caliber
+   * @returns {string[]}
+   */
   _ownedAmmo(inv, caliber) {
     const out = [];
     const seen = {};
@@ -422,7 +500,12 @@ globalThis.WeaponModUI = {
     return out;
   },
 
-  /** distinct itemIds of owned WeaponMod items whose category fits one of this weapon's slots. */
+  /**
+   * distinct itemIds of owned WeaponMod items whose category fits one of this weapon's slots.
+   * @param {Inventory} [inv]
+   * @param {Weapon} wpn
+   * @returns {string[]}
+   */
   _compatibleMods(inv, wpn) {
     const out = [];
     const seen = {};
@@ -440,6 +523,11 @@ globalThis.WeaponModUI = {
     return out;
   },
 
+  /**
+   * @param {Weapon} wpn
+   * @param {string} category
+   * @returns {boolean}
+   */
   _weaponAccepts(wpn, category) {
     for (let i = 0; i < wpn.slots.length; i++)
       if (wpn.slots[i].accepts === category || wpn.slots[i].accepts === "*")
@@ -447,6 +535,10 @@ globalThis.WeaponModUI = {
     return false;
   },
 
+  /**
+   * @param {string} cat
+   * @returns {string}
+   */
   _slotLabelKey(cat) {
     if (cat === "scope") return "MOD_SLOT_SCOPE";
     if (cat === "barrel") return "MOD_SLOT_BARREL";
@@ -458,7 +550,11 @@ globalThis.WeaponModUI = {
     return "MOD_SLOT_GENERIC";
   },
 
-  /** small layout helpers */
+  /**
+   * small layout helpers
+   * @param {number} h
+   * @returns {UIElement}
+   */
   _row(h) {
     return new UIElement({
       width: "100%",
@@ -469,7 +565,14 @@ globalThis.WeaponModUI = {
     });
   },
 
-  /** row of two label:value stat cells (rk null → only the left cell). */
+  /**
+   * row of two label:value stat cells (rk null → only the left cell).
+   * @param {string} lk
+   * @param {number} lv
+   * @param {string|null} rk
+   * @param {number} rv
+   * @returns {UIElement}
+   */
   _statRow2(lk, lv, rk, rv) {
     const row = new UIElement({
       width: "100%",
@@ -487,7 +590,12 @@ globalThis.WeaponModUI = {
     return row;
   },
 
-  /** one label:value CELL (two pack side-by-side per _statRow2) — gemsKeyValueRow grow mode. */
+  /**
+   * one label:value CELL (two pack side-by-side per _statRow2) — gemsKeyValueRow grow mode.
+   * @param {string} labelKey
+   * @param {number} [value]
+   * @returns {UIElement}
+   */
   _statCell(labelKey, value) {
     return gemsKeyValueRow(
       I18n.textRef(labelKey),
@@ -496,7 +604,13 @@ globalThis.WeaponModUI = {
     );
   },
 
-  /** label:value row with a literal left string (e.g. a loaded-ammo name) + its color. */
+  /**
+   * label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
+   * @param {string} left
+   * @param {string|number} right
+   * @param {number} [leftColor]
+   * @returns {UIElement}
+   */
   _kvRow(left, right, leftColor) {
     return gemsKeyValueRow(left, string(right), {
       height: 20,

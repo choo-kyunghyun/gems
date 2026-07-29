@@ -1,7 +1,10 @@
 // SoA component store — one dense Array per component token, indexed by
 // EntityID.getIndex(id); one per entity store. The store's API contracts live on `Entity`.
 globalThis.EntityData = class EntityData {
-  /** @param {number} maxEntities slot capacity @param {EntityID} ids the owning store's allocator */
+  /**
+   * @param {number} maxEntities slot capacity
+   * @param {EntityID} ids the owning store's allocator
+   */
   constructor(maxEntities, ids) {
     this.maxEntities = maxEntities;
     this.ids = ids; // for query bounds (ids.next) + generations, to rebuild ids from indices
@@ -19,7 +22,11 @@ globalThis.EntityData = class EntityData {
     this._storages = [];
   }
 
-  /** Allocate a dense storage array for a component token (auto-called by add). @returns {this} */
+  /**
+   * Allocate a dense storage array for a component token (auto-called by add).
+   * @param {string} ComponentClass
+   * @returns {this}
+   */
   register(ComponentClass) {
     if (!this.components.has(ComponentClass)) {
       const storage = new Array(this.maxEntities).fill(undefined);
@@ -30,20 +37,32 @@ globalThis.EntityData = class EntityData {
     return this;
   }
 
-  /** Set component data at an entity's slot; auto-registers the token. @param {number} id @param {string} ComponentClass @param {Object} data */
+  /**
+   * Set component data at an entity's slot; auto-registers the token.
+   * @param {number} id
+   * @param {string} ComponentClass
+   * @param {Object} data
+   */
   add(id, ComponentClass, data) {
     if (!this.components.has(ComponentClass)) this.register(ComponentClass);
     this.components.get(ComponentClass)[EntityID.getIndex(id)] = data;
   }
 
-  /** @param {string} ComponentClass @param {number} id @returns {Object|undefined} */
+  /**
+   * @param {string} ComponentClass
+   * @param {number} id
+   * @returns {Object|undefined}
+   */
   get(ComponentClass, id) {
     const storage = this.components.get(ComponentClass);
     if (storage === undefined) return undefined;
     return storage[EntityID.getIndex(id)];
   }
 
-  /** @param {number} id @param {string} ComponentClass */
+  /**
+   * @param {number} id
+   * @param {string} ComponentClass
+   */
   detach(id, ComponentClass) {
     const storage = this.components.get(ComponentClass);
     if (storage !== undefined) storage[EntityID.getIndex(id)] = undefined;
@@ -55,7 +74,11 @@ globalThis.EntityData = class EntityData {
       this._storages[s][index] = undefined;
   }
 
-  /** All components this entity has, keyed by token. Used by EntitySnapshot. @param {number} id @returns {Object<string,Object>} */
+  /**
+   * All components this entity has, keyed by token. Used by EntitySnapshot.
+   * @param {number} id
+   * @returns {Object<string,Object>}
+   */
   componentsOf(id) {
     const out = {};
     const i = EntityID.getIndex(id);
@@ -92,7 +115,11 @@ globalThis.EntityData = class EntityData {
     return result;
   }
 
-  /** Allocation-free query(): calls fn(id) per matching entity without materializing an array. @param {string[]} ComponentClasses @param {(id:number) => void} fn */
+  /**
+   * Allocation-free query(): calls fn(id) per matching entity without materializing an array.
+   * @param {string[]} ComponentClasses
+   * @param {(id:number) => void} fn
+   */
   forEach(ComponentClasses, fn) {
     const n = ComponentClasses.length;
     const storages = new Array(n);

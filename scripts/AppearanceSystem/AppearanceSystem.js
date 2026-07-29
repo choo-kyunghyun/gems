@@ -15,6 +15,10 @@ globalThis.AppearanceSystem = {
   FRONT_SLOTS: ["armor", "trinket", "weapon"],
   HELD_SCALE: 0.5, // anchored held-icon size relative to the body's draw scale
 
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   */
   rebuild(entities, id) {
     const ap = entities.get(Appearance, id);
     if (ap === undefined) return;
@@ -29,6 +33,12 @@ globalThis.AppearanceSystem = {
     this._collect(eq, inv, this.FRONT_SLOTS, ap.front);
   },
 
+  /**
+   * @param {Equipment} eq
+   * @param {Inventory} inv
+   * @param {string[]} slotNames
+   * @param {AppearanceLayer[]} out
+   */
   _collect(eq, inv, slotNames, out) {
     for (const slotName of slotNames) {
       const uid = eq.slots[slotName];

@@ -9,6 +9,9 @@
  * the shop open).
  */
 globalThis.TradeUI = {
+  /**
+   * @param {Object} level
+   */
   build(level) {
     level._tradeMerchantId = -1;
     level._tradeOpen = false;
@@ -73,7 +76,11 @@ globalThis.TradeUI = {
     card.insertChild(hint);
   },
 
-  /** player's balance in the active merchant's currencyId (else "coin"). */
+  /**
+   * player's balance in the active merchant's currencyId (else "coin").
+   * @param {Object} level
+   * @returns {number}
+   */
   _coins(level) {
     const inv = level.entities.get(Inventory, level.playerId);
     const m = level.entities.get(Merchant, level._tradeMerchantId);
@@ -83,6 +90,8 @@ globalThis.TradeUI = {
 
   /**
    * "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
+   * @param {Object} level
+   * @returns {string}
    */
   _balanceText(level) {
     const m = level.entities.get(Merchant, level._tradeMerchantId);
@@ -92,7 +101,13 @@ globalThis.TradeUI = {
     return nm + ": " + TradeUI._coins(level);
   },
 
-  /** titled column: gold header (title + live sub-label) over the sortable table. */
+  /**
+   * titled column: gold header (title + live sub-label) over the sortable table.
+   * @param {() => string} titleRef
+   * @param {UIElement} tableEl
+   * @param {() => string} subFn
+   * @returns {UIElement}
+   */
   _column(titleRef, tableEl, subFn) {
     const col = new UIElement({
       flexGrow: 1,
@@ -115,7 +130,12 @@ globalThis.TradeUI = {
     return col;
   },
 
-  /** per-side table. `side` ("buy"/"sell") routes the transaction direction. */
+  /**
+   * per-side table. `side` ("buy"/"sell") routes the transaction direction.
+   * @param {Object} level
+   * @param {string} side
+   * @returns {UIElement}
+   */
   _table(level, side) {
     return gemsTable(TradeUI._columns(side), {
       grow: true, // fill the column; reflows row count on resize
@@ -130,7 +150,11 @@ globalThis.TradeUI = {
     });
   },
 
-  /** Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price. */
+  /**
+   * Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
+   * @param {string} side
+   * @returns {Object[]}
+   */
   _columns(side) {
     const gold = gemsColor("warn");
     return [

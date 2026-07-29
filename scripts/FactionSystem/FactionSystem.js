@@ -10,7 +10,10 @@ globalThis.FactionSystem = {
   _order: [], // insertion order of ids
   _rel: new Map(), // canonical pair key → "ally" | "neutral" | "hostile"
 
-  /** @param {{id:string,name?:string,color?:number|string}[]} defs */
+  /**
+   * @param {{id:string,name?:string,color?:number|string}[]} defs
+   * @returns {typeof FactionSystem}
+   */
   register(defs) {
     Registry.register(FactionSystem, defs, (def) => ({
       id: def.id,
@@ -23,53 +26,101 @@ globalThis.FactionSystem = {
     return this;
   },
 
+  /**
+   * @param {string} id
+   * @returns {Object|undefined}
+   */
   get(id) {
     return Registry.get(FactionSystem, id);
   },
 
+  /**
+   * @param {string} id
+   * @returns {boolean}
+   */
   has(id) {
     return Registry.has(FactionSystem, id);
   },
 
+  /**
+   * @returns {Object[]}
+   */
   all() {
     return Registry.all(FactionSystem);
   },
 
   // ── Relations (faction-id level)
   // order-independent pair key so relations are symmetric; "|" is safe since ids are simple tokens
+  /**
+   * @param {string} a
+   * @param {string} b
+   * @returns {string}
+   */
   _key(a, b) {
     return a < b ? a + "|" + b : b + "|" + a;
   },
 
-  /** Set the (symmetric) relation between two factions. rel: "ally" | "neutral" | "hostile". */
+  /**
+   * Set the (symmetric) relation between two factions. rel: "ally" | "neutral" | "hostile".
+   * @param {string} a
+   * @param {string} b
+   * @param {string} rel
+   * @returns {typeof FactionSystem}
+   */
   setRelation(a, b, rel) {
     this._rel.set(this._key(a, b), rel);
     return this;
   },
 
-  /** Relation between two faction ids. Same id → "ally"; otherwise stored value or "neutral". */
+  /**
+   * Relation between two faction ids. Same id → "ally"; otherwise stored value or "neutral".
+   * @param {string} a
+   * @param {string} b
+   * @returns {string}
+   */
   relation(a, b) {
     if (a === b) return "ally";
     const r = this._rel.get(this._key(a, b));
     return r === undefined ? "neutral" : r;
   },
 
+  /**
+   * @param {string} a
+   * @param {string} b
+   * @returns {boolean}
+   */
   isHostile(a, b) {
     return this.relation(a, b) === "hostile";
   },
 
+  /**
+   * @param {string} a
+   * @param {string} b
+   * @returns {boolean}
+   */
   isAlly(a, b) {
     return this.relation(a, b) === "ally";
   },
 
   // ── Entity level (reads the Faction component)
-  /** faction id, or undefined with no Faction component. */
+  /**
+   * faction id, or undefined with no Faction component.
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {string|undefined}
+   */
   factionOf(entities, id) {
     const f = entities.get(Faction, id);
     return f === undefined ? undefined : f.id;
   },
 
-  /** true only when both have factions and they're hostile. */
+  /**
+   * true only when both have factions and they're hostile.
+   * @param {Entity} entities
+   * @param {number} a
+   * @param {number} b
+   * @returns {boolean}
+   */
   hostile(entities, a, b) {
     const fa = this.factionOf(entities, a);
     const fb = this.factionOf(entities, b);
@@ -78,7 +129,12 @@ globalThis.FactionSystem = {
   },
 
   /** true only when both have factions and they're allied. combat skips these (no friendly fire);
-   *  a factionless entity is NOT allied, so it's still hit. */
+   *  a factionless entity is NOT allied, so it's still hit.
+   * @param {Entity} entities
+   * @param {number} a
+   * @param {number} b
+   * @returns {boolean}
+   */
   allied(entities, a, b) {
     const fa = this.factionOf(entities, a);
     const fb = this.factionOf(entities, b);
@@ -87,7 +143,15 @@ globalThis.FactionSystem = {
   },
 
   /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
-   *  attackable bodies, so AI targets combatants not props/portals. CombatAI's aggro acquisition. */
+   *  attackable bodies, so AI targets combatants not props/portals. CombatAI's aggro acquisition.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {number} x
+   * @param {number} y
+   * @param {number} range
+   * @param {{needsHealth?: boolean}} [opt={}]
+   * @returns {number}
+   */
   nearestHostile(entities, id, x, y, range, opt = {}) {
     const fa = this.factionOf(entities, id);
     if (fa === undefined) return -1;

@@ -35,7 +35,10 @@ globalThis.SpriteMeta = {
   _sprites: [], // resolved refs, parallel to _defs
   _defs: [],
 
-  /** Register defs (an array — from a manifest or code). Re-registering a name replaces. */
+  /**
+   * Register defs (an array — from a manifest or code). Re-registering a name replaces.
+   * @param {Object[]} defs
+   */
   register(defs) {
     for (const def of defs) {
       const ref = asset_get_index(def.sprite);
@@ -76,7 +79,11 @@ globalThis.SpriteMeta = {
     Log.info(`SpriteMeta: ${n} defs from ${files.length} manifest(s)`);
   },
 
-  /** Def for a sprite ref or name — or undefined (an undeclared sprite is legal). */
+  /**
+   * Def for a sprite ref or name — or undefined (an undeclared sprite is legal).
+   * @param {GMSprite|string} sprite
+   * @returns {Object|undefined}
+   */
   of(sprite) {
     if (typeof sprite === "string") return SpriteMeta._byName.get(sprite);
     let i = 0;
@@ -87,21 +94,35 @@ globalThis.SpriteMeta = {
     return undefined;
   },
 
-  /** Density of a sheet — declared value, else 1 (the art-native baseline). */
+  /**
+   * Density of a sheet — declared value, else 1 (the art-native baseline).
+   * @param {GMSprite|string} sprite
+   * @returns {number}
+   */
   density(sprite) {
     const def = SpriteMeta.of(sprite);
     if (def === undefined) return 1;
     return def.density > 0 ? def.density : 1;
   },
 
-  /** Final draw scale for a design scale on a sheet: scale / density. */
+  /**
+   * Final draw scale for a design scale on a sheet: scale / density.
+   * @param {number} scale
+   * @param {GMSprite|string} sprite
+   * @returns {number}
+   */
   fit(scale, sprite) {
     return scale / SpriteMeta.density(sprite);
   },
 
   /** Named per-frame attachment point: [dx, dy] offset from the sprite origin (source px,
    *  dy negative = up), frame clamped into the table — or undefined (sheet has no anchors
-   *  or no such name; an anchored consumer skips drawing). */
+   *  or no such name; an anchored consumer skips drawing).
+   * @param {GMSprite|string} sprite
+   * @param {string} name
+   * @param {number} frame
+   * @returns {number[]|undefined}
+   */
   anchor(sprite, name, frame) {
     const def = SpriteMeta.of(sprite);
     if (def === undefined || def.anchors === undefined) return undefined;

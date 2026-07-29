@@ -23,12 +23,18 @@ globalThis.UINav = {
   /** @type {Object|null} */
   _claimed: null,
 
-  /** claim the nav keys for this frame — call every frame browse mode stays latched. @param {Object} owner */
+  /**
+   * claim the nav keys for this frame — call every frame browse mode stays latched.
+   * @param {Object} owner
+   */
   claimKeys(owner) {
     UINav._claimed = owner;
   },
 
-  /** release on owner teardown so a claim asserted earlier this frame can't outlive it. @param {Object} owner */
+  /**
+   * release on owner teardown so a claim asserted earlier this frame can't outlive it.
+   * @param {Object} owner
+   */
   releaseClaim(owner) {
     if (UINav._claimed === owner) UINav._claimed = null;
   },
@@ -205,11 +211,21 @@ globalThis.UINav = {
     uiDrawRestore(st);
   },
 
+  /**
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   * @param {number} col
+   */
   _dirLine(x1, y1, x2, y2, col) {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   },
 
-  /** walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background */
+  /**
+   * walk roots top-down; stop at an exclusive (modal) root so nav can't reach the background
+   * @returns {{el:UIElement, left:number, top:number, right:number, bottom:number, cx:number, cy:number}[]}
+   */
   _collect() {
     const out = [];
     for (let i = UI.roots.length - 1; i >= 0; i--) {
@@ -221,6 +237,10 @@ globalThis.UINav = {
     return out;
   },
 
+  /**
+   * @param {UIElement} el
+   * @returns {boolean}
+   */
   _exclusive(el) {
     for (let i = 0; i < el.components.length; i++) {
       const c = el.components[i];
@@ -229,6 +249,10 @@ globalThis.UINav = {
     return false;
   },
 
+  /**
+   * @param {UIElement} el
+   * @param {Object[]} out
+   */
   _walk(el, out) {
     if (el._destroyed) return;
     if (UINav._focusable(el) && UINav._visible(el)) {
@@ -248,6 +272,10 @@ globalThis.UINav = {
     }
   },
 
+  /**
+   * @param {UIElement} el
+   * @returns {boolean}
+   */
   _focusable(el) {
     return (
       UINav._comp(el, "navActivate") !== null ||
@@ -255,6 +283,11 @@ globalThis.UINav = {
     );
   },
 
+  /**
+   * @param {UIElement} el
+   * @param {string} method
+   * @returns {UIComponent|null}
+   */
   _comp(el, method) {
     for (let i = 0; i < el.components.length; i++) {
       if (typeof el.components[i][method] === "function") {
@@ -267,13 +300,18 @@ globalThis.UINav = {
   /**
    * valid non-zero rect. scrolled-out UIScroll items stay focusable (nav scrolls them into
    * view via _scrollIntoView), else a list taller than its viewport is unreachable by pad.
+   * @param {UIElement} el
+   * @returns {boolean}
    */
   _visible(el) {
     const pos = el.getLayoutPosition();
     return pos.width > 0 && pos.height > 0;
   },
 
-  /** nudge each UIScroll ancestor so it follows focus */
+  /**
+   * nudge each UIScroll ancestor so it follows focus
+   * @param {UIElement} el
+   */
   _scrollIntoView(el) {
     let p = el.parent;
     while (p !== null) {
@@ -283,6 +321,11 @@ globalThis.UINav = {
     }
   },
 
+  /**
+   * @param {UIScroll} sc
+   * @param {UIElement} viewport
+   * @param {UIElement} el
+   */
   _scrollOne(sc, viewport, el) {
     const vp = viewport.getLayoutPosition(); // window (own scrollY not applied to self)
     const fp = el.getLayoutPosition(); // already offset by the current scroll
@@ -300,11 +343,21 @@ globalThis.UINav = {
     viewport.scrollY = sc.scroll; // apply now so the ring + next layout reflect it
   },
 
+  /**
+   * @param {Object[]} items
+   * @param {UIElement} el
+   * @returns {number}
+   */
   _indexOf(items, el) {
     for (let i = 0; i < items.length; i++) if (items[i].el === el) return i;
     return -1;
   },
 
+  /**
+   * @param {Object[]} items
+   * @param {number} dx
+   * @param {number} dy
+   */
   _move(items, dx, dy) {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
@@ -324,6 +377,11 @@ globalThis.UINav = {
    * distance along dir, `perp` = cross-axis GAP between rects (0 when overlapping). So a
    * full-width row overlaps everything below it and Down picks the leftmost (ties by
    * collection order = visual order), not whatever sits nearest mid-screen.
+   * @param {Object[]} items
+   * @param {number} i
+   * @param {number} dx
+   * @param {number} dy
+   * @returns {number}
    */
   _pick(items, i, dx, dy) {
     const s = items[i];
@@ -380,6 +438,7 @@ globalThis.UINav = {
     return { dx, dy, confirm, cancel };
   },
 
+  /** @returns {{dx:number, dy:number, confirm:boolean, cancel:boolean}} */
   _readInput() {
     const e = UINav.readEdge();
     if (gamepad_is_connected(0)) {

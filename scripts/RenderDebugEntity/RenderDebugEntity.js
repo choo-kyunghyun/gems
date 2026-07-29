@@ -13,6 +13,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
   destroy() {}
 
+  /** @param {Entity} entities */
   draw(entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();

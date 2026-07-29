@@ -110,6 +110,8 @@ globalThis.RenderWalls = class RenderWalls {
   /**
    * material bucket for a cell value: a TileType keys by id, a bare-occupancy truthy (1/true)
    * has none — both fall to bucket 0 (the default) on a miss.
+   * @param {TileType|number|boolean} t
+   * @returns {number}
    */
   _bucketOf(t) {
     const tid = typeof t === "object" ? t.id : t;
@@ -182,6 +184,15 @@ globalThis.RenderWalls = class RenderWalls {
       G.push(color_get_green(m.color));
       B.push(color_get_blue(m.color));
     }
+    /**
+     * @param {GMBuffer} buf
+     * @param {number} mi
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     * @param {number} u
+     * @param {number} v
+     */
     const vert = (buf, mi, x, y, z, u, v) => {
       buffer_write(buf, buffer_f32, x);
       buffer_write(buf, buffer_f32, y);
@@ -248,6 +259,9 @@ globalThis.RenderWalls = class RenderWalls {
   /**
    * submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
    * already set by the caller; flat: packed-normal vox mode).
+   * @param {*} vb
+   * @param {Object} m
+   * @param {boolean} lit
    */
   _submit(vb, m, lit) {
     if (vb === -1) return;
@@ -260,6 +274,7 @@ globalThis.RenderWalls = class RenderWalls {
     }
   }
 
+  /** @param {Entity} entities */
   draw(entities) {
     if (this._dirty) this._rebuild();
     let any = false;

@@ -99,10 +99,16 @@ globalThis.Audio = {
     return h;
   },
 
+  /**
+   * @param {number} gain
+   */
   setDefaultGain(gain) {
     Audio._defaultGain = clamp(gain, 0, 1);
   },
 
+  /**
+   * @param {number} gain
+   */
   setMasterGain(gain) {
     audio_set_master_gain(0, clamp(gain, 0, 1));
   },

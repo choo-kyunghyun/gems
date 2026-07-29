@@ -26,6 +26,10 @@ globalThis.UITabs = class UITabs {
     this._apply(); // show only the active tab from the start
   }
 
+  /**
+   * @param {number} i
+   * @returns {string}
+   */
   _label(i) {
     const l = this.tabs[i].label;
     return typeof l === "function" ? l() : l;
@@ -46,7 +50,11 @@ globalThis.UITabs = class UITabs {
     this.onChange(i);
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const n = this.tabs.length;
@@ -160,7 +168,10 @@ globalThis.UITabs = class UITabs {
   }
 
   // UINav: left/right switches tabs (one focus stop); confirm advances, wrapping.
-  /** @param {UIElement} element @param {number} dir -1 / +1 */
+  /**
+   * @param {UIElement} element
+   * @param {number} dir -1 / +1
+   */
   navAxis(element, dir) {
     this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
   }

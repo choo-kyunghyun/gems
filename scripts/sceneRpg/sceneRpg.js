@@ -9,7 +9,10 @@ const RPG_HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bott
 const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
 const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
-/** factory so the level editor's Test Play can open this level; same ref LevelManager labels use */
+/**
+ * factory so the level editor's Test Play can open this level; same ref LevelManager labels use
+ * @returns {_SceneRpgClass}
+ */
 globalThis.SceneRpg = () => new _SceneRpgClass();
 LevelRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),
@@ -493,7 +496,11 @@ class _SceneRpgClass {
           { slot: "trinket", labelKey: "SLOT_TRINKET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
         ],
-        /** genre extraRows hook: a kills/items/quests records line below the stats */
+        /**
+         * genre extraRows hook: a kills/items/quests records line below the stats
+         * @param {Object} level
+         * @param {UIElement} body
+         */
         extraRows: (level, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
@@ -562,6 +569,8 @@ class _SceneRpgClass {
 
   /**
    * is an instance of itemId equipped? (drives useItem's equip/unequip toggle; resolves the worn uid back to itemId)
+   * @param {string} itemId
+   * @returns {boolean}
    */
   _itemWorn(itemId) {
     const it = Item.get(itemId);
@@ -579,6 +588,8 @@ class _SceneRpgClass {
   /**
    * pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
    * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
+   * @param {string} itemId
+   * @param {number} got
    */
   _onCollect(itemId, got) {
     const pp = this.entities.get(Position, this.playerId);
@@ -633,6 +644,7 @@ class _SceneRpgClass {
   /**
    * Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
    * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
+   * @param {number} fid
    */
   _kickFollower(fid) {
     if (this.entities.get(Squad, fid) === undefined) return; // not a member
@@ -645,6 +657,7 @@ class _SceneRpgClass {
   /**
    * world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
    * (rect settlement → centroid lands inside). The downed-companion recovery anchor.
+   * @returns {{x: number, y: number}|null}
    */
   _settlementSpot() {
     const owned = Settlement.all(this.grid);
@@ -666,6 +679,7 @@ class _SceneRpgClass {
   /**
    * any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;
    * UIPointer.pressed is the latched LMB edge for the frame.
+   * @returns {boolean}
    */
   _wakeInput() {
     return (
@@ -677,12 +691,19 @@ class _SceneRpgClass {
     );
   }
 
-  /** where a downed companion revives: the player's settlement, else map spawn */
+  /**
+   * where a downed companion revives: the player's settlement, else map spawn
+   * @returns {{x: number, y: number}}
+   */
   _recoverSpot() {
     return this._settlementSpot() ?? { x: this.spawn.x, y: this.spawn.y };
   }
 
-  /** Display name of a companion (for the down/recover toasts). */
+  /**
+   * Display name of a companion (for the down/recover toasts).
+   * @param {number} id
+   * @returns {string}
+   */
   _followerName(id) {
     const nm = this.entities.get(Name, id);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
@@ -719,6 +740,7 @@ class _SceneRpgClass {
    * THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
    * close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
    * Caller checks isReady first; complete() is what marks it done.
+   * @param {string} qid
    */
   _completeQuest(qid) {
     RpgProgression.applyReward(this, QuestLog.complete(qid));
@@ -729,7 +751,10 @@ class _SceneRpgClass {
     );
   }
 
-  /** Auto turn-in for the passive (non-NPC) quests once their objectives are met. */
+  /**
+   * Auto turn-in for the passive (non-NPC) quests once their objectives are met.
+   * @param {string} qid
+   */
   _tryTurnIn(qid) {
     if (QuestLog.isReady(qid)) this._completeQuest(qid);
   }
@@ -738,6 +763,7 @@ class _SceneRpgClass {
    * The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
    * content rules (RpgAchievements), which turn met thresholds into Achievement.unlock requests.
    * The engine never sweeps conditions; this push replaces the old per-tick evaluate().
+   * @param {string} counterKey
    */
   _reportAchievements(counterKey) {
     const newly = RpgAchievements.report(counterKey, Profile.get(counterKey));
@@ -864,6 +890,7 @@ class _SceneRpgClass {
   /**
    * Esc back-out (SystemMenu calls this before pausing): close the active context — window, then
    * build. Returns true if consumed; false falls through to the pause menu. window > build priority.
+   * @returns {boolean}
    */
   handleEscape() {
     if (this._sleeping) {

@@ -1,5 +1,12 @@
 // zoom to `next` keeping the world point under the cursor fixed (world delta = screen delta / zoom)
-/** @param {any} cam @param {number} next @param {number} mx @param {number} my @param {number} sw @param {number} sh */
+/**
+ * @param {any} cam
+ * @param {number} next
+ * @param {number} mx
+ * @param {number} my
+ * @param {number} sw
+ * @param {number} sh
+ */
 function _cameraPanZoom(cam, next, mx, my, sw, sh) {
   cam._panX += (mx - sw * 0.5) * (1 / cam._panZoom - 1 / next);
   cam._panY += (my - sh * 0.5) * (1 / cam._panZoom - 1 / next);

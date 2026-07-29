@@ -13,6 +13,9 @@ globalThis.Music = {
   /**
    * Start/switch the looping BGM, cross-faded over opts.fadeMs (default 600); a missing asset stops
    * it. Re-requesting the playing track is a no-op (safe per frame). opts: { gain, pitch, fadeMs }.
+   * @param {GMSound} sound
+   * @param {{gain?: number, pitch?: number, fadeMs?: number}} [opts]
+   * @returns {*} BGM instance handle, or -1
    */
   play(sound, opts) {
     opts = opts ?? {};
@@ -44,7 +47,10 @@ globalThis.Music = {
     return h;
   },
 
-  /** Fade the BGM out and stop it. fadeMs default 400. */
+  /**
+   * Fade the BGM out and stop it. fadeMs default 400.
+   * @param {number} [fadeMs]
+   */
   stop(fadeMs) {
     Music._fadeOut(fadeMs ?? 400);
     Music._bgm = -1;
@@ -53,6 +59,7 @@ globalThis.Music = {
 
   /**
    * Ramp the current BGM to silence and schedule its stop (update() reaps it); 0 = hard stop now.
+   * @param {number} fadeMs
    */
   _fadeOut(fadeMs) {
     if (Music._bgm === -1 || !audio_is_playing(Music._bgm)) return;
@@ -78,6 +85,7 @@ globalThis.Music = {
 
   /**
    * Live music-volume setter (0..1): ramps the playing instance over 50ms (avoids a drag-click).
+   * @param {number} g
    */
   setGain(g) {
     Music._gain = clamp(g, 0, 1);

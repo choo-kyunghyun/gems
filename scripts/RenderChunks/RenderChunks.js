@@ -5,6 +5,10 @@
  * @implements {RenderPass}
  */
 globalThis.RenderChunks = class RenderChunks {
+  /**
+   * @param {ChunkManager} chunks
+   * @param {Object} [opt={}]
+   */
   constructor(chunks, opt = {}) {
     this.enabled = true;
     this.chunks = chunks; // a ChunkManager instance
@@ -21,6 +25,7 @@ globalThis.RenderChunks = class RenderChunks {
 
   destroy() {}
 
+  /** @param {Entity} _entities */
   draw(_entities) {
     if (this.chunks === undefined) return;
     const color = draw_get_color();

@@ -16,7 +16,10 @@ globalThis.Screenshot = {
   /** @type {(string|null)[]} filenames to save this frame; null = autoname */
   _pending: [],
 
-  /** save a shot this frame; name is a filename ("shot.png"), default timestamped */
+  /**
+   * save a shot this frame; name is a filename ("shot.png"), default timestamped
+   * @param {string} [name]
+   */
   take(name) {
     Screenshot._pending.push(name ?? null);
   },
@@ -34,8 +37,15 @@ globalThis.Screenshot = {
     Screenshot._pending.length = 0;
   },
 
+  /**
+   * @returns {string}
+   */
   _autoname() {
     const dt = date_current_datetime();
+    /**
+     * @param {number} n
+     * @returns {string}
+     */
     const pad2 = (n) => String(n).padStart(2, "0");
     return (
       "gems-" +

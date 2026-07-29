@@ -29,11 +29,15 @@ globalThis.UIAccordion = class UIAccordion {
     });
   }
 
+  /** @returns {string} */
   _title() {
     return typeof this.title === "function" ? this.title() : this.title;
   }
 
-  /** Flip expanded, inserting/removing the body from the parent. @param {UIElement} element the header element */
+  /**
+   * Flip expanded, inserting/removing the body from the parent.
+   * @param {UIElement} element the header element
+   */
   toggle(element) {
     this.expanded = !this.expanded;
     const c = element.parent;
@@ -48,7 +52,11 @@ globalThis.UIAccordion = class UIAccordion {
     this.onToggle(this.expanded);
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     this._el = element;
     return this._fsm.onUpdate(element, block);
@@ -101,7 +109,10 @@ globalThis.UIAccordion = class UIAccordion {
     uiDrawRestore(st);
   }
 
-  /** UINav: confirm expands/collapses the section. */
+  /**
+   * UINav: confirm expands/collapses the section.
+   * @param {UIElement} element
+   */
   navActivate(element) {
     this.toggle(element);
   }

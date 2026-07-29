@@ -31,6 +31,8 @@ globalThis.Snapshot = class Snapshot {
 
   /**
    * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
+   * @param {Function|{id:string, capture:Function, restore:Function}} pass
+   * @returns {{id:string, capture:Function, restore:Function}}
    */
   _wrap(pass) {
     if (typeof pass === "function")
@@ -38,13 +40,22 @@ globalThis.Snapshot = class Snapshot {
     return pass;
   }
 
-  /** Insert a pass (append by default; order IS the capture/restore order). @returns {Snapshot} this */
+  /**
+   * Insert a pass (append by default; order IS the capture/restore order).
+   * @param {Function|{id:string, capture:Function, restore:Function}} pass
+   * @param {number} [index=this.passes.length]
+   * @returns {Snapshot} this
+   */
   insert(pass, index = this.passes.length) {
     this.passes.splice(index, 0, this._wrap(pass));
     return this;
   }
 
-  /** Remove a pass by reference. @returns {Snapshot} this */
+  /**
+   * Remove a pass by reference.
+   * @param {{id:string, capture:Function, restore:Function}} pass
+   * @returns {Snapshot} this
+   */
   remove(pass) {
     const i = this.passes.indexOf(pass);
     if (i >= 0) this.passes.splice(i, 1);
@@ -65,9 +76,17 @@ globalThis.Snapshot = class Snapshot {
       mode: "capture",
       level,
       manifest,
+      /**
+       * @param {string} name
+       * @param {*} buffer
+       */
       putBlob: (name, buffer) => {
         blobs.push({ name, buffer });
       },
+      /**
+       * @param {string} _name
+       * @returns {*}
+       */
       getBlob: (_name) => undefined,
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].capture(ctx);
@@ -86,7 +105,15 @@ globalThis.Snapshot = class Snapshot {
       mode: "restore",
       level,
       manifest,
+      /**
+       * @param {string} _name
+       * @param {*} _buffer
+       */
       putBlob: (_name, _buffer) => {},
+      /**
+       * @param {string} name
+       * @returns {*}
+       */
       getBlob: (name) => blobs[name],
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].restore(ctx);

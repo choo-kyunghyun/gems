@@ -33,12 +33,19 @@ globalThis.UIText = class UIText {
     this.cacheFont = -1; // resolved handle used for cached measure; re-measure if it changes
   }
 
-  /** re-resolve each call so it survives a locale reload. @returns {number} */
+  /**
+   * re-resolve each call so it survives a locale reload.
+   * @returns {number}
+   */
   _font() {
     return resolveUIFont(this.font);
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean}
+   */
   onUpdate(element, block) {
     const str = this.textRef();
     const fnt = this._font();

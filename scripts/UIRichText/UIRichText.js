@@ -31,7 +31,12 @@ globalThis.UIRichText = class UIRichText {
     this._height = 0;
   }
 
-  /** re-parse + self-size on a source-string change. @param {UIElement} element @param {boolean} block @returns {boolean} */
+  /**
+   * re-parse + self-size on a source-string change.
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean}
+   */
   onUpdate(element, block) {
     const str = this.textRef();
     if (this.cache !== str) {
@@ -96,14 +101,21 @@ globalThis.UIRichText = class UIRichText {
     uiDrawRestore(st);
   }
 
-  /** left edge of `line` for halign against the widest line — independent of the element rect. */
+  /**
+   * left edge of `line` for halign against the widest line — independent of the element rect.
+   * @param {number} line
+   * @returns {number}
+   */
   _lineOffset(line) {
     if (this.halign === fa_left) return 0;
     const slack = this._width - this._lineWidths[line];
     return this.halign === fa_center ? slack * 0.5 : slack;
   }
 
-  /** Parse */
+  /**
+   * Parse
+   * @param {string} str
+   */
   _parse(str) {
     const items = [];
     const stack = [this.color]; // color stack; top is the active span color
@@ -133,7 +145,12 @@ globalThis.UIRichText = class UIRichText {
     this._items = items;
   }
 
-  /** split a literal run on newlines into text segments + break markers. */
+  /**
+   * split a literal run on newlines into text segments + break markers.
+   * @param {Object[]} items
+   * @param {string} text
+   * @param {number} color
+   */
   _pushText(items, text, color) {
     let start = 0;
     for (let k = 0; k < text.length; k++) {
@@ -148,6 +165,11 @@ globalThis.UIRichText = class UIRichText {
       items.push({ kind: "text", s: text.substring(start), c: color });
   }
 
+  /**
+   * @param {string} tag
+   * @param {number[]} stack
+   * @param {Object[]} items
+   */
   _tag(tag, stack, items) {
     if (tag === "/" || tag === "/c") {
       if (stack.length > 1) stack.pop();
@@ -164,12 +186,21 @@ globalThis.UIRichText = class UIRichText {
     // Unknown tag — drop it.
   }
 
+  /**
+   * @param {string} v
+   * @returns {number}
+   */
   _color(v) {
     if (this.palette[v] != null) return this.palette[v];
     if (v.charAt(0) === "#") return Color.parse(v);
     return this.color; // unrecognized name → keep the current color
   }
 
+  /**
+   * @param {string} v
+   * @param {number} color
+   * @returns {{kind:string, spr:GMSprite, sub:number, c:number}}
+   */
   _icon(v, color) {
     let name = v;
     let sub = 0;

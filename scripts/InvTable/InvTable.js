@@ -40,6 +40,10 @@ globalThis.InvTable = {
   },
 
   // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
+  /**
+   * @param {Object} [opts={}]
+   * @returns {Object[]}
+   */
   columns(opts = {}) {
     const gold = gemsColor("warn");
     const accent = gemsColor(GemsTheme.accent);
@@ -141,6 +145,11 @@ globalThis.InvTable = {
 
   /**
    * row model from an inventory slot. callers extend with their own fields (bag adds `worn`, chest adds `idx`).
+   * @param {string} itemId
+   * @param {number} qty
+   * @param {string} [uid]
+   * @param {Object<string, string>} [mods]
+   * @returns {Object}
    */
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
@@ -177,6 +186,8 @@ globalThis.InvTable = {
   /**
    * Item-id tint by rarity, c_white when the id or its rarity is unknown. THE shared item
    * color: every inventory-family panel and the world drop squares read it from here.
+   * @param {string} itemId
+   * @returns {number}
    */
   rarityColor(itemId) {
     const it = Item.get(itemId);
@@ -184,7 +195,11 @@ globalThis.InvTable = {
     return r !== undefined ? r.color : c_white;
   },
 
-  /** filter/display category from capability components */
+  /**
+   * filter/display category from capability components
+   * @param {Item} [it]
+   * @returns {{code:string, key:string}}
+   */
   category(it) {
     if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
     if (it.hasComponent(Weapon))
@@ -198,6 +213,8 @@ globalThis.InvTable = {
 
   /**
    * ASCII lowercase via char codes — toLowerCase() returns garbage Unicode on GMRT (see CLAUDE.md)
+   * @param {string} s
+   * @returns {string}
    */
   lower(s) {
     let out = "";

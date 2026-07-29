@@ -17,11 +17,19 @@ globalThis.PathFollow = {
   // land on a blocked/Infinity sliver (deep-water edge cell) crawls out instead of stranding.
   maxCost: 4,
 
+  /**
+   * @param {((wx: number, wy: number) => number)|null} [provider]
+   */
   bind(provider) {
     this.costProvider = provider ?? null;
   },
 
-  /** terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it) */
+  /**
+   * terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it)
+   * @param {number} wx
+   * @param {number} wy
+   * @returns {number}
+   */
   costAt(wx, wy) {
     if (this.costProvider === null) return 1;
     const c = this.costProvider(wx, wy);
@@ -31,6 +39,9 @@ globalThis.PathFollow = {
   /**
    * Movement-point consumption as a speed factor: crossing a cost-c cell takes c× longer, so a
    * mover multiplies its speed by 1/c — full speed on easy ground, slower on rough, slowest wading.
+   * @param {number} wx
+   * @param {number} wy
+   * @returns {number}
    */
   speedScale(wx, wy) {
     const c = this.costAt(wx, wy);
@@ -43,6 +54,14 @@ globalThis.PathFollow = {
    * cursor on arrival — or (tx, ty) itself while no path exists (the request resolves later this
    * tick in PathfindingSystem, so the first path is followable next tick). `state` is any bag
    * carrying pathCd/pathRate (CombatAI's Brain); `sp` the mover's Position.
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
+   * @param {number} id
+   * @param {Object} state
+   * @param {Position} sp
+   * @param {number} tx
+   * @param {number} ty
+   * @returns {{x:number,y:number}}
    */
   target(entities, grid, id, state, sp, tx, ty) {
     if (state.pathCd > 0) state.pathCd--;
@@ -71,7 +90,11 @@ globalThis.PathFollow = {
     return ww;
   },
 
-  /** drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior) */
+  /**
+   * drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior)
+   * @param {Entity} entities
+   * @param {number} id
+   */
   clear(entities, id) {
     if (entities.get(PathResponse, id) !== undefined)
       entities.detach(id, PathResponse);

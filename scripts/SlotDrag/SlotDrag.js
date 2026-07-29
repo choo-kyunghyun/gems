@@ -15,7 +15,11 @@ globalThis.SlotDrag = {
   hoverGrid: null,
   hoverSlot: -1,
 
-  /** Pick up the item in `grid` slot `i` (source slot empties). @param {UISlots} grid @param {number} i */
+  /**
+   * Pick up the item in `grid` slot `i` (source slot empties).
+   * @param {UISlots} grid
+   * @param {number} i
+   */
   begin(grid, i) {
     if (SlotDrag.active) return;
     const it = grid.items[i];
@@ -29,7 +33,11 @@ globalThis.SlotDrag = {
     grid.items[i] = null; // source slot shows empty while dragging
   },
 
-  /** Record the drop target (the grid reports the slot under the cursor each frame). @param {UISlots} grid @param {number} j */
+  /**
+   * Record the drop target (the grid reports the slot under the cursor each frame).
+   * @param {UISlots} grid
+   * @param {number} j
+   */
   hover(grid, j) {
     SlotDrag.hoverGrid = grid;
     SlotDrag.hoverSlot = j;

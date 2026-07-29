@@ -7,17 +7,27 @@ globalThis.EntityID = class EntityID {
   static INDEX_MASK = (1 << 20) - 1;
   static GENERATION_MASK = 0xfff;
 
-  /** @param {number} index @param {number} generation @returns {number} packed id */
+  /**
+   * @param {number} index
+   * @param {number} generation
+   * @returns {number} packed id
+   */
   static makeId(index, generation) {
     return (generation << this.INDEX_BITS) | index;
   }
 
-  /** @param {number} id @returns {number} slot index */
+  /**
+   * @param {number} id
+   * @returns {number} slot index
+   */
   static getIndex(id) {
     return id & this.INDEX_MASK;
   }
 
-  /** @param {number} id @returns {number} generation */
+  /**
+   * @param {number} id
+   * @returns {number} generation
+   */
   static getGeneration(id) {
     return id >>> this.INDEX_BITS;
   }
@@ -43,7 +53,11 @@ globalThis.EntityID = class EntityID {
     return EntityID.makeId(index, generation);
   }
 
-  /** Free a slot, bumping its generation. No-op for a stale id. @param {number} id @returns {boolean} was live */
+  /**
+   * Free a slot, bumping its generation. No-op for a stale id.
+   * @param {number} id
+   * @returns {boolean} was live
+   */
   free(id) {
     const index = EntityID.getIndex(id);
     const generation = EntityID.getGeneration(id);
@@ -59,7 +73,10 @@ globalThis.EntityID = class EntityID {
     return this.next - this.freeIndices.length;
   }
 
-  /** @param {number} id @returns {boolean} generation matches slot (id is live) */
+  /**
+   * @param {number} id
+   * @returns {boolean} generation matches slot (id is live)
+   */
   isValid(id) {
     const index = EntityID.getIndex(id);
     const generation = EntityID.getGeneration(id);

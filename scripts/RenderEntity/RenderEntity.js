@@ -10,6 +10,7 @@ globalThis.RenderEntity = class RenderEntity {
 
   destroy() {}
 
+  /** @param {Entity} entities */
   draw(entities) {
     const ids = entities.query(Visual, Position);
     for (const entity of ids) {

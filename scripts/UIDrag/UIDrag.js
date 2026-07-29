@@ -15,7 +15,11 @@ globalThis.UIDrag = class UIDrag {
     this._lastY = 0;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const target = this.target ?? element;
     const mx = device_mouse_x_to_gui(0);

@@ -14,6 +14,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderLighting = class RenderLighting {
+  /** @param {Object} [opt={}] */
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
@@ -34,6 +35,7 @@ globalThis.RenderLighting = class RenderLighting {
     if (surface_exists(this._surf)) surface_free(this._surf);
   }
 
+  /** @param {Entity} entities */
   draw(entities) {
     if (this.camera === undefined) return;
     this._flickerT += Time.delta;

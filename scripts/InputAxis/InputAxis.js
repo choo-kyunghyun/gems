@@ -9,16 +9,28 @@ globalThis.INPUT_AXIS_MODE = Object.freeze({
  * axis — a caller thresholds it itself (PlayerSystem's RPG_STICK_DEADZONE).
  */
 globalThis.InputAxis = class InputAxis {
+  /**
+   * @param {number} mode
+   * @param {number} axis
+   * @param {number} [device=0]
+   */
   constructor(mode, axis, device = 0) {
     this.mode = mode;
     this.axis = axis;
     this.device = device;
   }
 
+  /**
+   * @param {Object} data
+   * @returns {InputAxis}
+   */
   static import(data) {
     return new InputAxis(data.mode, data.axis, data.device);
   }
 
+  /**
+   * @returns {{mode: number, axis: number, device: number}}
+   */
   export() {
     return {
       mode: this.mode,
@@ -27,6 +39,9 @@ globalThis.InputAxis = class InputAxis {
     };
   }
 
+  /**
+   * @returns {number}
+   */
   value() {
     switch (this.mode) {
       case INPUT_AXIS_MODE.STICK:

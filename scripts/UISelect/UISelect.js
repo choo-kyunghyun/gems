@@ -40,7 +40,10 @@ globalThis.UISelect = class UISelect {
     return uiItemName(this.items, this._index);
   }
 
-  /** Step forward one item (wraps). @returns {UISelect} */
+  /**
+   * Step forward one item (wraps).
+   * @returns {UISelect}
+   */
   advance() {
     if (this.items.length === 0) return this;
     this._index = (this._index + 1) % this.items.length;
@@ -48,7 +51,10 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
-  /** Step back one item (wraps). @returns {UISelect} */
+  /**
+   * Step back one item (wraps).
+   * @returns {UISelect}
+   */
   retreat() {
     if (this.items.length === 0) return this;
     this._index = (this._index - 1 + this.items.length) % this.items.length;
@@ -56,20 +62,33 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
-  /** Select index `i` (clamped). @param {number} i @returns {UISelect} */
+  /**
+   * Select index `i` (clamped).
+   * @param {number} i
+   * @returns {UISelect}
+   */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.getValue());
     return this;
   }
 
-  /** @param {string} name @param {*} value @param {number} [i] @returns {UISelect} */
+  /**
+   * @param {string} name
+   * @param {*} value
+   * @param {number} [i]
+   * @returns {UISelect}
+   */
   insertItem(name, value, i = this.items.length) {
     this.items.splice(i, 0, { name, value });
     return this;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     // latch the arrow side BEFORE the FSM runs — its onClick (fired inside onUpdate on the
     // release edge) commits by reading this frame's _side.
@@ -102,7 +121,10 @@ globalThis.UISelect = class UISelect {
   }
 
   // UINav: horizontal nav adjusts value instead of moving focus; confirm advances.
-  /** @param {UIElement} element @param {number} dir -1 / +1 */
+  /**
+   * @param {UIElement} element
+   * @param {number} dir -1 / +1
+   */
   navAxis(element, dir) {
     if (dir < 0) this.retreat();
     else this.advance();

@@ -20,6 +20,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
 
   destroy() {}
 
+  /** @param {Entity} entities */
   draw(entities) {
     if (this.ranges.length === 0) return;
     const color = draw_get_color();

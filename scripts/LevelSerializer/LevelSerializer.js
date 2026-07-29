@@ -45,7 +45,11 @@ globalThis.LevelSerializer = {
     return Json.encode(data, { pretty: true });
   },
 
-  /** @param {string} path @param {object} data @returns {boolean} */
+  /**
+   * @param {string} path
+   * @param {object} data
+   * @returns {boolean}
+   */
   save(path, data) {
     const text = LevelSerializer.serialize(data);
     if (text === undefined) return false; // codec already Log.error'd — never write a truncated level

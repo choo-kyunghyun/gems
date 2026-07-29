@@ -34,12 +34,20 @@ globalThis.Registry = {
     }
   },
 
-  /** @param {Object} store @param {string} id @returns {Object|undefined} */
+  /**
+   * @param {Object} store
+   * @param {string} id
+   * @returns {Object|undefined}
+   */
   get(store, id) {
     return store._defs.get(id);
   },
 
-  /** @param {Object} store @param {string} id @returns {boolean} */
+  /**
+   * @param {Object} store
+   * @param {string} id
+   * @returns {boolean}
+   */
   has(store, id) {
     return store._defs.has(id);
   },
@@ -55,7 +63,11 @@ globalThis.Registry = {
     return store._order.indexOf(id);
   },
 
-  /** Every def in registration order; a fresh array each call. @param {Object} store @returns {Object[]} */
+  /**
+   * Every def in registration order; a fresh array each call.
+   * @param {Object} store
+   * @returns {Object[]}
+   */
   all(store) {
     const out = [];
     for (let i = 0; i < store._order.length; i++)

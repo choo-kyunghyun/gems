@@ -41,6 +41,7 @@ const BB_NORMAL_Z = -0.866;
  * @implements {RenderPass}
  */
 globalThis.RenderBillboard = class RenderBillboard {
+  /** @param {Object} [opt] */
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
@@ -90,6 +91,11 @@ globalThis.RenderBillboard = class RenderBillboard {
    * OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
    * it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
    * which layers share — the shader lights every layer identically (same uniforms).
+   * @param {AppearanceLayer} layer
+   * @param {Visual} visual
+   * @param {{x: number, y: number}} rp
+   * @param {number} tiltDeg
+   * @param {number} dy
    */
   _drawLayer(layer, visual, rp, tiltDeg, dy) {
     matrix_set(
@@ -132,6 +138,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     );
   }
 
+  /** @param {Entity} entities */
   draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking

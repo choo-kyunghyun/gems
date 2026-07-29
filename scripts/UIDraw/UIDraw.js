@@ -304,7 +304,11 @@ globalThis.uiItemValue = function uiItemValue(items, i) {
   return item ? item.value : undefined;
 };
 
-/** @param {{name:string, value:*}[]} items @param {number} i @returns {string} */
+/**
+ * @param {{name:string, value:*}[]} items
+ * @param {number} i
+ * @returns {string}
+ */
 globalThis.uiItemName = function uiItemName(items, i) {
   const item = items[i];
   return item ? item.name : "";

@@ -1,6 +1,10 @@
 // Pure operations on an Inventory component (no world tick). Methods take the component directly so
 // any entity's inventory works. Stacking respects Item.stack; adds capped by maxWeight.
 globalThis.InventorySystem = {
+  /**
+   * @param {Inventory} inv
+   * @returns {number}
+   */
   weight(inv) {
     let total = 0;
     for (let i = 0; i < inv.slots.length; i++) {
@@ -13,6 +17,12 @@ globalThis.InventorySystem = {
   // Add qty of itemId: weight gate → top up stacks → fill new slots. Returns the amount that did NOT
   // fit (0 = all added). Instances never stack — one fresh-uid slot per unit. MINTS new instances;
   // to insert a pre-existing instance preserving uid/mods (transfer/drop), use addSlot.
+  /**
+   * @param {Inventory} inv
+   * @param {string} itemId
+   * @param {number} [qty=1]
+   * @returns {number}
+   */
   add(inv, itemId, qty = 1) {
     const def = Item.get(itemId);
     const max = def !== undefined ? def.stack : 99;
@@ -62,6 +72,9 @@ globalThis.InventorySystem = {
    * weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
    * Returns the qty that did NOT fit, like add() (0 = fully inserted) — a boolean would misreport
    * a partial fungible add as total failure while units were already moved (transfer duplication).
+   * @param {Inventory} inv
+   * @param {InventorySlot} slot
+   * @returns {number}
    */
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
@@ -80,12 +93,22 @@ globalThis.InventorySystem = {
     return 0;
   },
 
+  /**
+   * @param {Inventory} inv
+   * @param {string} uid
+   * @returns {InventorySlot|undefined}
+   */
   findByUid(inv, uid) {
     for (let i = 0; i < inv.slots.length; i++)
       if (inv.slots[i].uid === uid) return inv.slots[i];
     return undefined;
   },
 
+  /**
+   * @param {Inventory} inv
+   * @param {string} uid
+   * @returns {boolean}
+   */
   removeByUid(inv, uid) {
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].uid === uid) {
@@ -97,6 +120,12 @@ globalThis.InventorySystem = {
   },
 
   // Remove qty of itemId across slots (back to front). Returns amount removed.
+  /**
+   * @param {Inventory} inv
+   * @param {string} itemId
+   * @param {number} [qty=1]
+   * @returns {number}
+   */
   remove(inv, itemId, qty = 1) {
     let left = qty;
     for (let i = inv.slots.length - 1; i >= 0 && left > 0; i--) {
@@ -110,6 +139,11 @@ globalThis.InventorySystem = {
     return qty - left;
   },
 
+  /**
+   * @param {Inventory} inv
+   * @param {string} itemId
+   * @returns {number}
+   */
   count(inv, itemId) {
     let n = 0;
     for (let i = 0; i < inv.slots.length; i++) {
@@ -118,10 +152,20 @@ globalThis.InventorySystem = {
     return n;
   },
 
+  /**
+   * @param {Inventory} inv
+   * @param {string} itemId
+   * @param {number} [qty=1]
+   * @returns {boolean}
+   */
   has(inv, itemId, qty = 1) {
     return this.count(inv, itemId) >= qty;
   },
 
+  /**
+   * @param {Inventory} inv
+   * @returns {boolean}
+   */
   isEmpty(inv) {
     return inv.slots.length === 0;
   },
@@ -130,6 +174,7 @@ globalThis.InventorySystem = {
    * Tidy + sort in place: merge fungible stacks, order by category then rarer-first then itemId.
    * Reordering is safe — Equipment references by uid, not slot index. Instance slots kept individual
    * (uid/mods preserved); only fungibles merge.
+   * @param {Inventory} inv
    */
   sort(inv) {
     // tally fungible totals; keep instance slots whole, grouped by itemId.
@@ -182,7 +227,12 @@ globalThis.InventorySystem = {
     inv.slots = slots;
   },
 
-  /** Compare two itemIds for sort(): category, then rarity (rarer first), then id. */
+  /**
+   * Compare two itemIds for sort(): category, then rarity (rarer first), then id.
+   * @param {string} a
+   * @param {string} b
+   * @returns {number}
+   */
   _cmp(a, b) {
     const ca = this._category(a);
     const cb = this._category(b);
@@ -193,6 +243,10 @@ globalThis.InventorySystem = {
     return a < b ? -1 : a > b ? 1 : 0;
   },
 
+  /**
+   * @param {string} itemId
+   * @returns {number}
+   */
   _category(itemId) {
     const def = Item.get(itemId);
     if (def === undefined) return 5;
@@ -207,6 +261,10 @@ globalThis.InventorySystem = {
     return 5; // misc
   },
 
+  /**
+   * @param {string} itemId
+   * @returns {number}
+   */
   _rarityRank(itemId) {
     const def = Item.get(itemId);
     if (def === undefined) return -1;

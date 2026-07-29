@@ -6,7 +6,10 @@
  * valid across it.
  */
 globalThis.Grid = class Grid {
-  /** @param {number} width @param {number} height */
+  /**
+   * @param {number} width
+   * @param {number} height
+   */
   constructor(width, height) {
     this.rows = height;
     this.cols = width;
@@ -26,43 +29,74 @@ globalThis.Grid = class Grid {
     };
   }
 
-  /** @param {{width:number,height:number,data:any[]}} data @returns {Grid} */
+  /**
+   * @param {{width:number,height:number,data:any[]}} data
+   * @returns {Grid}
+   */
   static import(data) {
     const grid = new Grid(data.width, data.height);
     grid.data = data.data;
     return grid;
   }
 
+  /** @returns {number} */
   size() {
     return this.rows * this.cols;
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
   inBounds(x, y) {
     return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
   }
 
-  /** @param {number} x @param {number} y @returns {number} */
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {number}
+   */
   toIndex(x, y) {
     return y * this.cols + x;
   }
 
-  /** @param {number} index @returns {{x:number,y:number}} */
+  /**
+   * @param {number} index
+   * @returns {{x:number,y:number}}
+   */
   toPosition(index) {
     return { x: index % this.cols, y: Math.floor(index / this.cols) };
   }
 
-  /** Fill every cell with `value`, in place. @returns {Grid} this */
+  /**
+   * Fill every cell with `value`, in place.
+   * @param {*} value
+   * @returns {Grid} this
+   */
   clear(value) {
     this.data.fill(value);
     return this;
   }
 
-  /** no bounds check — guard with inBounds. @returns {Grid} this */
+  /**
+   * no bounds check — guard with inBounds.
+   * @param {number} x
+   * @param {number} y
+   * @param {*} value
+   * @returns {Grid} this
+   */
   set(x, y, value) {
     this.data[this.toIndex(x, y)] = value;
     return this;
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {*}
+   */
   get(x, y) {
     return this.data[this.toIndex(x, y)];
   }

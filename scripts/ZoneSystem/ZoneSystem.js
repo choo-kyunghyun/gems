@@ -45,7 +45,13 @@ globalThis.ZoneSystem = {
     }
   },
 
-  /** @returns {Zone | undefined} */
+  /**
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
+   * @param {ZoneMap} map
+   * @param {number} id
+   * @returns {Zone | undefined}
+   */
   zoneOf(entities, grid, map, id) {
     const pos = entities.get(Position, id);
     if (pos === undefined) return undefined;
@@ -55,6 +61,10 @@ globalThis.ZoneSystem = {
 
   /**
    * @returns {number[]} ids of entities currently inside zone `id`.
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
+   * @param {ZoneMap} map
+   * @param {number} id
    * @param {{ has?: string }} [opts]  has = a component token filter
    */
   entitiesIn(entities, grid, map, id, opts = {}) {

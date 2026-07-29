@@ -1,7 +1,12 @@
 // Thin wrappers over GM color ints + the "#rrggbb" parser used by
 // theme/zone/level data.
 globalThis.Color = {
-  /** @param {number} r @param {number} g @param {number} b @returns {number} */
+  /**
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   * @returns {number}
+   */
   rgb(r, g, b) {
     return make_color_rgb(r, g, b);
   },
@@ -29,7 +34,10 @@ globalThis.Color = {
     return merge_color(col1, col2, amount);
   },
 
-  /** @param {string} hex `"#rrggbb"` @returns {number} */
+  /**
+   * @param {string} hex `"#rrggbb"`
+   * @returns {number}
+   */
   parse(hex) {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);

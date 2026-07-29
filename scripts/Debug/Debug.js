@@ -46,6 +46,7 @@ globalThis.Debug = {
    * register (or replace by name) a section; safe to re-call across level
    * reloads — re-add()ing is also how a section refreshes its own content.
    * @param {DebugSection} section
+   * @returns {DebugSection}
    */
   add(section) {
     Debug._invalidate(Debug._windowOf(section));
@@ -61,6 +62,9 @@ globalThis.Debug = {
     return section;
   },
 
+  /**
+   * @param {string} name
+   */
   remove(name) {
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === name) {
@@ -71,7 +75,10 @@ globalThis.Debug = {
     }
   },
 
-  /** @param {DebugSection} section */
+  /**
+   * @param {DebugSection} section
+   * @returns {string}
+   */
   _windowOf(section) {
     return section.window !== undefined ? section.window : "General";
   },
@@ -88,7 +95,10 @@ globalThis.Debug = {
     Debug._handles[window] = undefined;
   },
 
-  /** a method by house style, not a runtime dodge. */
+  /**
+   * a method by house style, not a runtime dodge.
+   * @returns {boolean}
+   */
   isOpen() {
     return Debug._open;
   },

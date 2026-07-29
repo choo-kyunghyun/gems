@@ -17,6 +17,13 @@ globalThis.NavGrid = class NavGrid {
   // `costAt` (optional): (wx, wy) → terrain movement cost (1 = easy, >1 = rough, Infinity =
   // impassable) sampled per cell so MotionPlanner weights routes (it multiplies step distance by
   // cell cost — a wade is chosen only when shorter than walking around). null → every cell costs 1.
+  /**
+   * @param {number} cols
+   * @param {number} rows
+   * @param {number} cellW
+   * @param {number} cellH
+   * @param {((wx: number, wy: number) => number)|null} [costAt=null]
+   */
   constructor(cols, rows, cellW, cellH, costAt = null) {
     this.cols = cols;
     this.rows = rows;
@@ -34,7 +41,10 @@ globalThis.NavGrid = class NavGrid {
     this.grid = undefined;
   }
 
-  /** CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds */
+  /**
+   * CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds
+   * @returns {number}
+   */
   size() {
     return this.cols * this.rows;
   }
@@ -43,6 +53,9 @@ globalThis.NavGrid = class NavGrid {
    * re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
    * blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
    * planning. call once per frame OUTSIDE the tick loop.
+   * @param {Entity} entities
+   * @param {number} centerGx
+   * @param {number} centerGy
    */
   rebuild(entities, centerGx, centerGy) {
     const ox = centerGx - (this.cols >> 1);
@@ -104,17 +117,31 @@ globalThis.NavGrid = class NavGrid {
         );
   }
 
-  /** absolute-cell MotionPlanningGrid view */
+  /**
+   * absolute-cell MotionPlanningGrid view
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {boolean}
+   */
   inBounds(ax, ay) {
     const lx = ax - this.originX;
     const ly = ay - this.originY;
     return lx >= 0 && lx < this.cols && ly >= 0 && ly < this.rows;
   }
 
+  /**
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number}
+   */
   toIndex(ax, ay) {
     return (ay - this.originY) * this.cols + (ax - this.originX);
   }
 
+  /**
+   * @param {number} index
+   * @returns {{x:number,y:number}}
+   */
   toPosition(index) {
     return {
       x: this.originX + (index % this.cols),
@@ -122,6 +149,11 @@ globalThis.NavGrid = class NavGrid {
     };
   }
 
+  /**
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number}
+   */
   get(ax, ay) {
     if (!this.inBounds(ax, ay)) return Infinity;
     return this.grid.data[this.toIndex(ax, ay)];

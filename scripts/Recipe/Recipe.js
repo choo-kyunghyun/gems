@@ -1,6 +1,9 @@
 // Crafting-recipe registry. `requires` = WorkbenchModule itemId that must be slotted; omit for a base recipe.
 // { id, station, requires?, inputs: [{itemId,qty}], output: {itemId,qty} }
 globalThis.Recipe = class Recipe {
+  /**
+   * @param {Object} def
+   */
   constructor(def) {
     this.id = def.id;
     this.station = def.station;
@@ -13,24 +16,43 @@ globalThis.Recipe = class Recipe {
   static _defs = new Map();
   static _order = [];
 
+  /**
+   * @param {Object[]} defs
+   * @returns {typeof Recipe}
+   */
   static register(defs) {
     Registry.register(Recipe, defs, (def) => new Recipe(def));
     return Recipe;
   }
 
+  /**
+   * @param {string} id
+   * @returns {Recipe|undefined}
+   */
   static get(id) {
     return Registry.get(Recipe, id);
   }
 
+  /**
+   * @param {string} id
+   * @returns {boolean}
+   */
   static has(id) {
     return Registry.has(Recipe, id);
   }
 
+  /**
+   * @returns {Recipe[]}
+   */
   static all() {
     return Registry.all(Recipe);
   }
 
-  /** recipes for a station kind, registration order. */
+  /**
+   * recipes for a station kind, registration order.
+   * @param {string} kind
+   * @returns {Recipe[]}
+   */
   static forStation(kind) {
     const all = Recipe.all();
     const out = [];

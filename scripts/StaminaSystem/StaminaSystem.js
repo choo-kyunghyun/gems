@@ -8,6 +8,10 @@ globalThis.StaminaSystem = {
   /**
    * `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
    * reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {boolean} wantSprint
+   * @returns {boolean}
    */
   sprint(entities, id, wantSprint) {
     const sta = entities.get(Stamina, id);

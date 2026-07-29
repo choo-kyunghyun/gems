@@ -14,7 +14,10 @@ globalThis.VirtualKeyboard = {
     return VirtualKeyboard._input !== null;
   },
 
-  /** no-op if already open or input is null. @param {UIInput} input */
+  /**
+   * no-op if already open or input is null.
+   * @param {UIInput} input
+   */
   open(input) {
     if (VirtualKeyboard.isOpen() || input == null) return;
     VirtualKeyboard._input = input;
@@ -37,7 +40,10 @@ globalThis.VirtualKeyboard = {
     });
   },
 
-  /** append a char, respecting the input's maxLength. @param {string} ch */
+  /**
+   * append a char, respecting the input's maxLength.
+   * @param {string} ch
+   */
   type(ch) {
     if (!VirtualKeyboard.isOpen()) return;
     const max = VirtualKeyboard._input.maxLength ?? Infinity;
@@ -72,7 +78,10 @@ globalThis.VirtualKeyboard = {
     VirtualKeyboard._shift = false;
   },
 
-  /** preview text: masked for password fields, placeholder when empty */
+  /**
+   * preview text: masked for password fields, placeholder when empty
+   * @returns {string}
+   */
   _displayText() {
     const b = VirtualKeyboard._buffer;
     if (b === "") return I18n.text("VK_EMPTY");
@@ -84,7 +93,10 @@ globalThis.VirtualKeyboard = {
     return b;
   },
 
-  /** body layout */
+  /**
+   * body layout
+   * @returns {UIElement}
+   */
   _buildBody() {
     const body = gemsList({ gap: GemsTheme.gapSm });
 
@@ -145,6 +157,10 @@ globalThis.VirtualKeyboard = {
     return body;
   },
 
+  /**
+   * @param {string} chars
+   * @returns {UIElement}
+   */
   _charRow(chars) {
     const row = new UIElement({
       flexDirection: "row",
@@ -159,13 +175,19 @@ globalThis.VirtualKeyboard = {
 
   /**
    * a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
+   * @param {string} ch
+   * @returns {string}
    */
   _upper(ch) {
     if (ch < "a" || ch > "z") return ch;
     return String.fromCharCode(ch.charCodeAt(0) - 32);
   },
 
-  /** single char key; letters honor Shift (live label + typed value), digits don't */
+  /**
+   * single char key; letters honor Shift (live label + typed value), digits don't
+   * @param {string} ch
+   * @returns {UIElement}
+   */
   _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
     return gemsButton(

@@ -19,6 +19,8 @@ globalThis.DebugInspector = {
   /**
    * select an entity, or (null, -1) to deselect. Deselect swaps the section
    * to a placeholder rather than removing it, so its window stays available.
+   * @param {Entity|null} entities
+   * @param {number} id
    */
   select(entities, id) {
     const valid =

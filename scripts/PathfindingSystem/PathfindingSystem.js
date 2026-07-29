@@ -23,7 +23,11 @@ globalThis.PathfindingSystem = {
     }
   },
 
-  /** @param {Entity} entities @param {number} id @returns {{x:number,y:number}|undefined} */
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {{x:number,y:number}|undefined}
+   */
   current(entities, id) {
     const response = entities.get(PathResponse, id);
     if (response === undefined) return undefined;

@@ -48,7 +48,11 @@ globalThis.UIDropdown = class UIDropdown {
     return uiItemName(this.items, this._index);
   }
 
-  /** Select index `i` (clamped). @param {number} i @returns {UIDropdown} */
+  /**
+   * Select index `i` (clamped).
+   * @param {number} i
+   * @returns {UIDropdown}
+   */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.getValue());
@@ -60,13 +64,18 @@ globalThis.UIDropdown = class UIDropdown {
     this._open = false;
   }
 
+  /** @param {UIElement} element */
   _toggle(element) {
     if (this._open || this.items.length === 0) return;
     this._open = true;
     this.onOpen(this, element);
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     this._el = element;
     return this._fsm.onUpdate(element, block);

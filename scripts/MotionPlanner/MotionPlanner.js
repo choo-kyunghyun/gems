@@ -73,6 +73,11 @@ globalThis.MotionPlanner = {
     }
   },
 
+  /**
+   * @param {number} startIdx
+   * @param {number} goalIdx
+   * @returns {{x:number,y:number}[]}
+   */
   _reconstructPath(startIdx, goalIdx) {
     let len = 0;
     let node = goalIdx;
@@ -91,6 +96,14 @@ globalThis.MotionPlanner = {
     return path;
   },
 
+  /**
+   * @param {number} x0
+   * @param {number} y0
+   * @param {number} x1
+   * @param {number} y1
+   * @param {boolean} allowDiag
+   * @returns {number}
+   */
   _heuristic(x0, y0, x1, y1, allowDiag) {
     const dx = Math.abs(x1 - x0);
     const dy = Math.abs(y1 - y0);
@@ -100,6 +113,12 @@ globalThis.MotionPlanner = {
     return dx + dy;
   },
 
+  /**
+   * @param {{x:number,y:number}} start
+   * @param {{x:number,y:number}} goal
+   * @param {{allowDiag?:boolean,cornerCutting?:boolean,heuristicWeight?:number,maxIter?:number}} opt
+   * @returns {{x:number,y:number}[]}
+   */
   _astar(start, goal, opt) {
     const allowDiag = opt.allowDiag ?? false;
     const cornerCutting = opt.cornerCutting ?? false;

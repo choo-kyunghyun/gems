@@ -63,7 +63,11 @@ globalThis.Json = {
     return out.join("");
   },
 
-  /** pretty form keeps an all-scalar array inline; a null element counts as scalar. */
+  /**
+   * pretty form keeps an all-scalar array inline; a null element counts as scalar.
+   * @param {*[]} v
+   * @returns {boolean}
+   */
   _inlineArray(v) {
     for (let i = 0; i < v.length; i++) {
       const e = v[i];
@@ -72,7 +76,12 @@ globalThis.Json = {
     return true;
   },
 
-  /** Is `v` an ancestor on the current DFS path? (=== identity scan — no object-keyed Set/Map). */
+  /**
+   * Is `v` an ancestor on the current DFS path? (=== identity scan — no object-keyed Set/Map).
+   * @param {*} v
+   * @param {Object} ctx
+   * @returns {boolean}
+   */
   _onPath(v, ctx) {
     const p = ctx.path;
     for (let i = 0; i < p.length; i++) if (p[i] === v) return true;
@@ -82,6 +91,9 @@ globalThis.Json = {
   /**
    * append the encoding of v onto the `out` chunk array (join once at the top — O(n)).
    * `ctx.path` is the ancestor chain on the CURRENT path (DFS cycle detection).
+   * @param {*} v
+   * @param {string[]} out
+   * @param {Object} ctx
    */
   _enc(v, out, ctx) {
     if (ctx.aborted) return;
@@ -201,6 +213,8 @@ globalThis.Json = {
    * A missing sprite resolves to asset_get_index's -1 sentinel — existing draw code already
    * sprite_exists-guards, so a save from a build whose art was since removed degrades
    * gracefully rather than faulting here. Parsed JSON is always a tree (no cycles), so no guard.
+   * @param {*} v
+   * @returns {*}
    */
   _revive(v) {
     if (v === null || typeof v !== "object") return v;

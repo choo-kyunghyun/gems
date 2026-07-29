@@ -98,7 +98,10 @@ globalThis.Camera = class Camera {
     return this.viewport !== -1;
   }
 
-  /** @param {number} [viewport=0] @returns {Camera} this */
+  /**
+   * @param {number} [viewport=0]
+   * @returns {Camera} this
+   */
   assign(viewport = 0) {
     if (this.isAssigned()) this.unassign();
     this.viewport = viewport;
@@ -108,7 +111,10 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /** Detach from its viewport and restore default room rendering. @returns {Camera} this */
+  /**
+   * Detach from its viewport and restore default room rendering.
+   * @returns {Camera} this
+   */
   unassign() {
     if (this.isAssigned()) {
       view_set_camera(this.viewport, -1);
@@ -120,7 +126,12 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @returns {Camera} this
+   */
   setFrom(x, y, z) {
     this.fromX = x;
     this.fromY = y;
@@ -128,7 +139,12 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @returns {Camera} this
+   */
   setTo(x, y, z) {
     this.toX = x;
     this.toY = y;
@@ -136,7 +152,12 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /** @param {number} x @param {number} y @param {number} z @returns {Camera} this */
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} z
+   * @returns {Camera} this
+   */
   setUp(x, y, z) {
     this.upX = x;
     this.upY = y;
@@ -144,14 +165,21 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /** @param {number} width @param {number} height @returns {Camera} this */
+  /**
+   * @param {number} width
+   * @param {number} height
+   * @returns {Camera} this
+   */
   setSize(width, height) {
     this.width = width;
     this.height = height;
     return this;
   }
 
-  /** @param {number} projection - A CAMERA_PROJECTION value. @returns {Camera} this */
+  /**
+   * @param {number} projection - A CAMERA_PROJECTION value.
+   * @returns {Camera} this
+   */
   setProjection(projection) {
     this.projection = projection;
     return this;

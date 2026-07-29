@@ -75,24 +75,42 @@ globalThis.RenderTileMap = class RenderTileMap {
     }
   }
 
+  /** @returns {RenderTileMap} */
   markDirty() {
     this.dirty = true;
     return this;
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
   _isSolid(x, y) {
     const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
     return !!this.layer.get(x, y);
   }
 
-  /** OOB counts as solid so map edges don't produce soft-edge bleeds */
+  /**
+   * OOB counts as solid so map edges don't produce soft-edge bleeds
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
   _isSolidOrOOB(x, y) {
     const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
     return !!this.layer.get(x, y);
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} dx
+   * @param {number} dy
+   * @returns {number}
+   */
   _cornerAlpha(x, y, dx, dy) {
     return this._isSolidOrOOB(x + dx, y) &&
       this._isSolidOrOOB(x, y + dy) &&
@@ -105,6 +123,12 @@ globalThis.RenderTileMap = class RenderTileMap {
    * honour sprite_get_uvs trim data [4..7] so texture-packer-cropped frames don't stretch to fill
    * the cell. untrimmed frames have offsets=0 ratios=1, reducing to a full-cell quad.
    * returns [x, y, w, h, u0, v0, u1, v1].
+   * @param {number} frame
+   * @param {number} wx
+   * @param {number} wy
+   * @param {number} cw
+   * @param {number} ch
+   * @returns {number[]}
    */
   _quad(frame, wx, wy, cw, ch) {
     const uvs = sprite_get_uvs(this.sprite, frame);
@@ -122,6 +146,11 @@ globalThis.RenderTileMap = class RenderTileMap {
     ];
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {number}
+   */
   _blob4(x, y) {
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
@@ -131,6 +160,11 @@ globalThis.RenderTileMap = class RenderTileMap {
     return mask;
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {number}
+   */
   _blob8(x, y) {
     // BUG: [#15549] test _isSolid inline (no cached bool locals) and read
     // cardinals back off the mask bits for diagonal checks (N=1 E=2 S=4 W=8).
@@ -299,6 +333,13 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
+  /**
+   * @param {number} frame
+   * @param {number} qx
+   * @param {number} qy
+   * @param {number} qw
+   * @param {number} qh
+   */
   _addCorner(frame, qx, qy, qw, qh) {
     const q = this._quad(frame, qx, qy, qw, qh);
     this._vbuf.addQuad(
@@ -318,6 +359,8 @@ globalThis.RenderTileMap = class RenderTileMap {
   /**
    * per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
    * BUG: [#15549] bits read INLINE each test (no `const N = m&1`). See _blob8.
+   * @param {number} m
+   * @returns {number}
    */
   _cornerTL(m) {
     if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
@@ -325,18 +368,30 @@ globalThis.RenderTileMap = class RenderTileMap {
     if (!(m & 1) && m & 8) return 5; // W solid → top edge
     return m & 128 ? 0 : 9; // NW solid → fill, else inner
   }
+  /**
+   * @param {number} m
+   * @returns {number}
+   */
   _cornerTR(m) {
     if (!(m & 1) && !(m & 2)) return 2;
     if (m & 1 && !(m & 2)) return 8;
     if (!(m & 1) && m & 2) return 5;
     return m & 16 ? 0 : 10;
   }
+  /**
+   * @param {number} m
+   * @returns {number}
+   */
   _cornerBR(m) {
     if (!(m & 4) && !(m & 2)) return 3;
     if (m & 4 && !(m & 2)) return 8;
     if (!(m & 4) && m & 2) return 6;
     return m & 32 ? 0 : 11;
   }
+  /**
+   * @param {number} m
+   * @returns {number}
+   */
   _cornerBL(m) {
     if (!(m & 4) && !(m & 8)) return 4;
     if (m & 4 && !(m & 8)) return 7;
@@ -344,6 +399,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     return m & 64 ? 0 : 12;
   }
 
+  /** @param {Entity} entities */
   draw(entities) {
     if (this.dirty) this._rebuild();
     // GROUND under the one lit shader: `lights` (the host RenderMesh pass, assigned by the

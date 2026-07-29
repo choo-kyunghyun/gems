@@ -2,10 +2,16 @@
 // global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits level.
 
 globalThis.LEVELS = {
+  /**
+   * @returns {Level}
+   */
   lobby: () =>
     Object.assign(new Level(), {
       label: "Lobby",
 
+      /**
+       * @param {(factory: () => Level) => void} openLevel
+       */
       create(openLevel) {
         this._openLevel = openLevel; // stashed so retheme() can rebuild the button callbacks
         this._buildUI();
@@ -44,6 +50,10 @@ globalThis.LEVELS = {
         for (let g = 0; g < groups.length; g++)
           for (let e = 0; e < groups[g].entries.length; e++)
             entries.push(groups[g].entries[e]);
+        /**
+         * @param {string} cat
+         * @returns {number}
+         */
         const rank = (cat) => {
           const i = CAT_ORDER.indexOf(cat);
           return i < 0 ? CAT_ORDER.length : i;

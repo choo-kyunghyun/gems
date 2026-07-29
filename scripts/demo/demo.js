@@ -27,6 +27,10 @@ globalThis.teardownLevel = function teardownLevel(level) {
  */
 globalThis.LevelRegistry = {
   _entries: [],
+  /**
+   * @param {() => Level} factory
+   * @param {{label: *, category?: string}} opts
+   */
   add(factory, opts) {
     this._entries.push({
       factory,
@@ -34,11 +38,18 @@ globalThis.LevelRegistry = {
       category: opts.category ?? "SCENE_CAT_MISC",
     });
   },
-  /** Localized display label of a registered factory (matched by ref), or null. @param {() => Level} factory */
+  /**
+   * Localized display label of a registered factory (matched by ref), or null.
+   * @param {() => Level} factory
+   * @returns {*}
+   */
   labelOf(factory) {
     const e = this._entries.find((x) => x.factory === factory);
     return e !== undefined ? e.label : null;
   },
+  /**
+   * @returns {{category: string, entries: Object[]}[]}
+   */
   byCategory() {
     const result = [];
     const index = {};

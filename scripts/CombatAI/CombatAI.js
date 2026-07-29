@@ -52,9 +52,17 @@ globalThis.CombatAI = {
     StateSystem.register([
       {
         id: "combat.idle",
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         enter(entities, id) {
           CombatAI._tint(entities, id, 255, 255, 255, 0); // no wash — back to the base/skin color
         },
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         update(entities, id) {
           const brain = entities.get(Brain, id);
           const pos = entities.get(Position, id);
@@ -105,10 +113,18 @@ globalThis.CombatAI = {
       // entered only by mobile actors (a turret goes idle → attack directly)
       {
         id: "combat.chase",
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         enter(entities, id) {
           CombatAI._tint(entities, id, 230, 170, 70, 0.35); // alert orange flush
           entities.get(Brain, id).losCd = 0; // raycast LOS immediately on entering the chase
         },
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         update(entities, id) {
           const brain = entities.get(Brain, id);
           // target killed or streamed out — re-acquire from idle
@@ -166,6 +182,10 @@ globalThis.CombatAI = {
           CombatAI._seek(entities, id, mp.x, mp.y, brain.speed);
           CombatAI._animate(entities, id, false);
         },
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         finish(entities, id) {
           PathFollow.clear(entities, id);
         },
@@ -173,10 +193,18 @@ globalThis.CombatAI = {
 
       {
         id: "combat.attack",
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         enter(entities, id) {
           CombatAI._tint(entities, id, 235, 90, 90, 0.35); // hostile red flush
           CombatAI._stop(entities, id);
         },
+        /**
+         * @param {Entity} entities
+         * @param {number} id
+         */
         update(entities, id) {
           const brain = entities.get(Brain, id);
           if (!entities.isValid(brain.target)) {
@@ -211,6 +239,12 @@ globalThis.CombatAI = {
 
   // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {LevelGrid} grid
+   * @param {Object} [opt={}]
+   */
   attach(entities, id, grid, opt = {}) {
     this._grid = grid;
     const pos = entities.get(Position, id);
@@ -250,12 +284,19 @@ globalThis.CombatAI = {
    * RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
    * activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
    * is stored — the store reaches states through the StateSystem callbacks.
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
    */
   bind(entities, grid) {
     this._grid = grid;
   },
 
-  /** distance to Brain.target; Infinity if none / gone */
+  /**
+   * distance to Brain.target; Infinity if none / gone
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {number}
+   */
   _distTo(entities, id) {
     const t = entities.get(Brain, id).target;
     if (!entities.isValid(t)) return Infinity;
@@ -269,6 +310,11 @@ globalThis.CombatAI = {
   /**
    * aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
    * (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {number} tx
+   * @param {number} ty
+   * @param {number} speed
    */
   _seek(entities, id, tx, ty, speed) {
     const pos = entities.get(Position, id);
@@ -281,6 +327,10 @@ globalThis.CombatAI = {
     vel.y = (dy / d) * s;
   },
 
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   */
   _stop(entities, id) {
     const vel = entities.get(Velocity, id);
     vel.x = 0;
@@ -292,6 +342,12 @@ globalThis.CombatAI = {
    * authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
    * restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
    * per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   * @param {number} k
    */
   _tint(entities, id, r, g, b, k) {
     const brain = entities.get(Brain, id);
@@ -308,6 +364,9 @@ globalThis.CombatAI = {
   /**
    * Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
    * carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {boolean} attacking
    */
   _animate(entities, id, attacking) {
     const anim = entities.get(Animator, id);
@@ -326,6 +385,9 @@ globalThis.CombatAI = {
 
   /**
    * outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {number}
    */
   _attackPower(entities, id) {
     const stats = entities.get(Stats, id);
@@ -334,6 +396,8 @@ globalThis.CombatAI = {
 
   /**
    * one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
+   * @param {Entity} entities
+   * @param {number} id
    */
   _hitTarget(entities, id) {
     const t = entities.get(Brain, id).target;
@@ -345,6 +409,9 @@ globalThis.CombatAI = {
    * Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
    * gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
    * tracer shows the shot.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {Brain} brain
    */
   _fireAt(entities, id, brain) {
     const t = brain.target;

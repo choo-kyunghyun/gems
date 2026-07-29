@@ -9,11 +9,20 @@
 globalThis.StatusSystem = {
   // Injected re-derive hook (mirrors Combat.mitigate / ConsumableSystem.grantAttr). Default no-op; read
   // off the global so the game's override is always seen.
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   */
   onStatsChanged(entities, id) {},
 
   /**
    * Add or refresh a timed status (opts.duration overrides the def; 0/undefined = non-expiring). Refresh
    * keeps the LONGER remaining (no magnitude stacking yet). Re-derives if the def carries `mods`.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} statusId
+   * @param {{duration?: number}} [opts]
+   * @returns {boolean}
    */
   apply(entities, id, statusId, opts) {
     const def = Status.get(statusId);
@@ -38,7 +47,13 @@ globalThis.StatusSystem = {
     return true;
   },
 
-  /** Remove by id; re-derives if the def carried `mods`. Returns whether it was present. */
+  /**
+   * Remove by id; re-derives if the def carried `mods`. Returns whether it was present.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} statusId
+   * @returns {boolean}
+   */
   remove(entities, id, statusId) {
     const eff = entities.get(StatusEffects, id);
     if (eff === undefined) return false;
@@ -55,6 +70,10 @@ globalThis.StatusSystem = {
    * Maintain a LIVE-driven status: `mult` ensures a permanent instance with that dynamic magnitude (lives
    * on the INSTANCE so the driver can refresh it each tick — the encumbrance path); null/undefined removes
    * it. Never re-derives — a maintained status carries no `mods`, it's read live by scale().
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} statusId
+   * @param {Object<string, number>|null} [mult]
    */
   maintain(entities, id, statusId, mult) {
     if (mult === null || mult === undefined) {
@@ -74,12 +93,23 @@ globalThis.StatusSystem = {
     }
   },
 
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} statusId
+   * @returns {boolean}
+   */
   has(entities, id, statusId) {
     const eff = entities.get(StatusEffects, id);
     return eff !== undefined && StatusSystem._find(eff, statusId) >= 0;
   },
 
-  /** Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id). */
+  /**
+   * Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id).
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {ActiveStatus[]}
+   */
   list(entities, id) {
     const eff = entities.get(StatusEffects, id);
     return eff !== undefined ? eff.list : [];
@@ -88,6 +118,10 @@ globalThis.StatusSystem = {
   /**
    * Combined multiplicative factor for one stat `key` (instance `mult` wins over the def's), default 1.
    * The mover reads this for "speed" so speed statuses compose by multiplication. Read live each use.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string} key
+   * @returns {number}
    */
   scale(entities, id, key) {
     const eff = entities.get(StatusEffects, id);
@@ -108,6 +142,7 @@ globalThis.StatusSystem = {
   /**
    * Per-tick: advance dot/hot + durations, expire finished. Iterate BACKWARDS — in-place splice on expiry.
    * Re-derive once per entity if any expiring status carried `mods`.
+   * @param {Entity} entities
    */
   update(entities) {
     const ids = entities.query(StatusEffects);
@@ -145,6 +180,9 @@ globalThis.StatusSystem = {
   /**
    * One interval's dot/hot on Health. DoT subtracts directly (bypasses Combat.mitigate — poison ignores
    * armor); HoT clamps to Stats.maxHp. Only changes hp — the <=0 reaction is the Mortal death pass.
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {Object} def
    */
   _applyTick(entities, id, def) {
     const hp = entities.get(Health, id);
@@ -159,6 +197,11 @@ globalThis.StatusSystem = {
     }
   },
 
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   * @returns {StatusEffects}
+   */
   _ensure(entities, id) {
     let eff = entities.get(StatusEffects, id);
     if (eff === undefined) {
@@ -168,6 +211,11 @@ globalThis.StatusSystem = {
     return eff;
   },
 
+  /**
+   * @param {StatusEffects} eff
+   * @param {string} statusId
+   * @returns {number}
+   */
   _find(eff, statusId) {
     for (let i = 0; i < eff.list.length; i++)
       if (eff.list[i].id === statusId) return i;

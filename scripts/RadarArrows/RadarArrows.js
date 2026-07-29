@@ -60,7 +60,15 @@ globalThis.RadarArrows = {
     draw_set_alpha(alpha);
   },
 
-  /** filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long */
+  /**
+   * filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long
+   * @param {number} ax
+   * @param {number} ay
+   * @param {number} nx
+   * @param {number} ny
+   * @param {number} size
+   * @param {number} col
+   */
   _arrow(ax, ay, nx, ny, size, col) {
     const px = -ny; // unit perpendicular
     const py = nx;
@@ -83,6 +91,12 @@ globalThis.RadarArrows = {
     );
   },
 
+  /**
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {{has:string,color:number}[]} rules
+   * @returns {number|null}
+   */
   _color(entities, id, rules) {
     for (let r = 0; r < rules.length; r++)
       if (entities.get(rules[r].has, id) !== undefined) return rules[r].color;

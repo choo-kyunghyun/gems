@@ -4,6 +4,10 @@
 /**
  * seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
  * (cx, cy, seed) draws an independent sequence with no shared global-stream state.
+ * @param {number} cx
+ * @param {number} cy
+ * @param {number} seed
+ * @returns {function(): number}
  */
 function _stream(cx, cy, seed) {
   let i = 0;
@@ -59,21 +63,35 @@ globalThis.ChunkGenerator = class ChunkGenerator {
     for (let i = 0; i < passes.length; i++) this.insert(passes[i]);
   }
 
-  /** Insert a pass at `index` (append by default), wrapping a bare function. @returns {ChunkGenerator} this */
+  /**
+   * Insert a pass at `index` (append by default), wrapping a bare function.
+   * @param {GenPass|function(Object): void} pass
+   * @param {number} [index=this.passes.length]
+   * @returns {ChunkGenerator} this
+   */
   insert(pass, index = this.passes.length) {
     const p = typeof pass === "function" ? { apply: pass } : pass;
     this.passes.splice(index, 0, p);
     return this;
   }
 
-  /** Remove a pass (the wrapped object `insert` stored, i.e. an element of `passes`). @returns {ChunkGenerator} this */
+  /**
+   * Remove a pass (the wrapped object `insert` stored, i.e. an element of `passes`).
+   * @param {GenPass} pass
+   * @returns {ChunkGenerator} this
+   */
   remove(pass) {
     const i = this.passes.indexOf(pass);
     if (i >= 0) this.passes.splice(i, 1);
     return this;
   }
 
-  /** deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkManager contract */
+  /**
+   * deterministic { terrain, solid, walls, spawns } for one chunk — the ChunkManager contract
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {{terrain: number[], solid: number[][], walls: number[][], spawns: Object[]}}
+   */
   generate(cx, cy) {
     const out = { walls: [], spawns: [] };
     const ctx = {
@@ -108,16 +126,34 @@ globalThis.ChunkGenerator = class ChunkGenerator {
   /**
    * thin delegates to the terrain sampler — the duck-typed surface ChunkManager consumes
    * (TerrainStream's seam apron, NavGrid weights + PathFollow speed pricing)
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number}
    */
   materialAt(ax, ay) {
     return this.field.materialAt(ax, ay);
   }
+  /**
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number}
+   */
   costAt(ax, ay) {
     return this.field.costAt(ax, ay);
   }
+  /**
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {number[]}
+   */
   terrain(cx, cy) {
     return this.field.terrain(cx, cy);
   }
+  /**
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {number[][]}
+   */
   solidTerrain(cx, cy) {
     return this.field.solidTerrain(cx, cy);
   }

@@ -25,7 +25,11 @@ globalThis.UIRebind = class UIRebind {
     });
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     if (this._capturing) {
       // Esc checked first — the scan below would otherwise pick it up.
@@ -86,6 +90,7 @@ globalThis.UIRebind = class UIRebind {
   /**
    * current binding as text, read live so a rebind updates the label with no wiring.
    * binding → text mapping lives on InputAction/InputButton (shared with the key-hint bar).
+   * @returns {string}
    */
   _label() {
     const action = Input.get(this.actionKey);
@@ -95,6 +100,7 @@ globalThis.UIRebind = class UIRebind {
   /**
    * first keycode with a live pressed-edge this frame (0 = none). Only runs while capturing,
    * so scanning the whole range is negligible.
+   * @returns {number}
    */
   _scanKey() {
     let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases
@@ -105,6 +111,7 @@ globalThis.UIRebind = class UIRebind {
     return 0;
   }
 
+  /** @param {number} code */
   _rebind(code) {
     const action = Input.get(this.actionKey);
     if (!action) return;

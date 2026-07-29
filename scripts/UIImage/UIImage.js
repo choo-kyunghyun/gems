@@ -26,7 +26,12 @@ globalThis.UIImage = class UIImage {
     this.fit = image.fit ?? OBJECT_FIT.FILL;
   }
 
-  /** advance the subimage if `speed` is set. @param {UIElement} element @param {boolean} block @returns {boolean} */
+  /**
+   * advance the subimage if `speed` is set.
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean}
+   */
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;
     if (this.speed != 0) {

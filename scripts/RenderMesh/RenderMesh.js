@@ -38,6 +38,7 @@ globalThis.RenderMesh = class RenderMesh {
     b: 1,
   };
 
+  /** @param {Object} [opt] */
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
@@ -107,6 +108,8 @@ globalThis.RenderMesh = class RenderMesh {
   /**
    * baked model lookup: meshes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
    * a missing file caches vb -1 so the warning fires once, not per frame
+   * @param {string} name
+   * @returns {{vb: *}}
    */
   _model(name) {
     let m = this._models.get(name);
@@ -137,6 +140,7 @@ globalThis.RenderMesh = class RenderMesh {
    * light gather every lit pass shares, so the whole level can't diverge; it leaves u_useTex
    * at 0 (vox mode) and u_alphaRef at 0 (no cutout). A caller ends its own submits with
    * shader_reset().
+   * @param {Entity} entities
    */
   setupLights(entities) {
     shader_set(this._lit);
@@ -221,6 +225,11 @@ globalThis.RenderMesh = class RenderMesh {
    * stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
    * depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
    * black on an untextured primitive and would blacken it).
+   * @param {string|undefined} name
+   * @param {number} color
+   * @param {number} alpha
+   * @param {number} w
+   * @param {number} h
    */
   _face(name, color, alpha, w, h) {
     const spr = name ? asset_get_index(name) : -1;
@@ -242,6 +251,7 @@ globalThis.RenderMesh = class RenderMesh {
     }
   }
 
+  /** @param {Entity} entities */
   draw(entities) {
     const ident = matrix_build_identity();
     // depth-writing like RenderBillboard (global default is off — obj_game Create_0)

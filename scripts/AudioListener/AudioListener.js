@@ -14,6 +14,8 @@ globalThis.AudioListener = {
   /**
    * Move the ears to world (x, y); z fixed at 0. Called each frame by the active level, which
    * owns the policy of WHOSE position the ears track.
+   * @param {number} x
+   * @param {number} y
    */
   position(x, y) {
     audio_listener_position(x, y, 0);

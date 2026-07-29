@@ -16,6 +16,7 @@ globalThis.Status = {
    * Register status defs. Each:
    * { id, name, color?, beneficial? (default buff), duration? (0 = no auto-expire), dot?, hot?,
    *   interval? (default 1, seconds between dot/hot), mods?, mult? }
+   * @param {Object[]} defs
    */
   register(defs) {
     Registry.register(Status, defs, (d) => ({
@@ -32,14 +33,25 @@ globalThis.Status = {
     }));
   },
 
+  /**
+   * @param {string} id
+   * @returns {Object|undefined}
+   */
   get(id) {
     return Registry.get(Status, id);
   },
 
+  /**
+   * @param {string} id
+   * @returns {boolean}
+   */
   has(id) {
     return Registry.has(Status, id);
   },
 
+  /**
+   * @returns {Object[]}
+   */
   all() {
     return Registry.all(Status);
   },

@@ -16,6 +16,7 @@ globalThis.UIInput = class UIInput {
   /** @type {UIInput|null} */
   static active = null;
 
+  /** @param {Object} [input={}] */
   constructor(input = {}) {
     this.value = input.value ?? "";
     this.placeholder = input.placeholder ?? "";
@@ -55,7 +56,10 @@ globalThis.UIInput = class UIInput {
     return this._focused;
   }
 
-  /** Claim UIInput.active — mutes gameplay input + UINav. @returns {UIInput} */
+  /**
+   * Claim UIInput.active — mutes gameplay input + UINav.
+   * @returns {UIInput}
+   */
   focus() {
     if (this._focused) return this;
     this._focused = true;
@@ -65,7 +69,10 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
-  /** Release global keyboard capture. @returns {UIInput} */
+  /**
+   * Release global keyboard capture.
+   * @returns {UIInput}
+   */
   blur() {
     if (!this._focused) return this;
     this._focused = false;
@@ -74,12 +81,18 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
-  /** UINav: confirm focuses the field; UINav suspends while active so caret keeps the keys. */
+  /**
+   * UINav: confirm focuses the field; UINav suspends while active so caret keeps the keys.
+   * @param {UIElement} element
+   */
   navActivate(element) {
     if (!this.readOnly) this.focus();
   }
 
-  /** @param {*} value coerced to string @returns {UIInput} */
+  /**
+   * @param {*} value coerced to string
+   * @returns {UIInput}
+   */
   setValue(value) {
     this.value = String(value).slice(0, this.maxLength);
     this._setCursor(this.value.length, false);
@@ -94,18 +107,25 @@ globalThis.UIInput = class UIInput {
 
   // selection helpers
 
+  /** @returns {number} */
   _selLow() {
     return Math.min(this._anchor, this._cursor);
   }
 
+  /** @returns {number} */
   _selHigh() {
     return Math.max(this._anchor, this._cursor);
   }
 
+  /** @returns {boolean} */
   _hasSel() {
     return this._anchor !== this._cursor;
   }
 
+  /**
+   * @param {number} index
+   * @param {boolean} extend
+   */
   _setCursor(index, extend) {
     this._cursor = clamp(index, 0, this.value.length);
     if (!extend) this._anchor = this._cursor;
@@ -113,16 +133,28 @@ globalThis.UIInput = class UIInput {
     this._cursorVis = true;
   }
 
+  /**
+   * @param {string} ch
+   * @returns {boolean}
+   */
   _isSpace(ch) {
     return ch === " " || ch === "\t";
   }
 
+  /**
+   * @param {number} i
+   * @returns {number}
+   */
   _wordLeft(i) {
     while (i > 0 && this._isSpace(this.value[i - 1])) i--;
     while (i > 0 && !this._isSpace(this.value[i - 1])) i--;
     return i;
   }
 
+  /**
+   * @param {number} i
+   * @returns {number}
+   */
   _wordRight(i) {
     const n = this.value.length;
     while (i < n && this._isSpace(this.value[i])) i++;
@@ -130,11 +162,19 @@ globalThis.UIInput = class UIInput {
     return i;
   }
 
+  /**
+   * @param {number} i
+   * @returns {number}
+   */
   _wordStart(i) {
     while (i > 0 && !this._isSpace(this.value[i - 1])) i--;
     return i;
   }
 
+  /**
+   * @param {number} i
+   * @returns {number}
+   */
   _wordEnd(i) {
     const n = this.value.length;
     while (i < n && !this._isSpace(this.value[i])) i++;
@@ -143,6 +183,10 @@ globalThis.UIInput = class UIInput {
 
   // edits
 
+  /**
+   * @param {string} ch
+   * @returns {boolean}
+   */
   _accept(ch) {
     if (ch.charCodeAt(0) < 32) return false; // reject control chars
     if (this.filter === null) return true;
@@ -151,6 +195,7 @@ globalThis.UIInput = class UIInput {
     return true;
   }
 
+  /** @returns {boolean} */
   _deleteSelection() {
     const lo = this._selLow();
     const hi = this._selHigh();
@@ -160,6 +205,7 @@ globalThis.UIInput = class UIInput {
     return true;
   }
 
+  /** @param {string} text */
   _insert(text) {
     if (this.readOnly) return;
     this._deleteSelection();
@@ -197,7 +243,11 @@ globalThis.UIInput = class UIInput {
 
   // input
 
-  /** edge-then-interval repeat for one key at a time; true on press and each interval. */
+  /**
+   * edge-then-interval repeat for one key at a time; true on press and each interval.
+   * @param {number} key
+   * @returns {boolean}
+   */
   _repeat(key) {
     if (keyboard_check_pressed(key)) {
       this._repKey = key;
@@ -214,10 +264,15 @@ globalThis.UIInput = class UIInput {
     return false;
   }
 
+  /** @returns {string} */
   _display() {
     return this.mask ? string_repeat("*", this.value.length) : this.value;
   }
 
+  /**
+   * @param {{left:number, top:number, width:number, height:number}} pos
+   * @returns {{x:number, w:number, cy:number}}
+   */
   _textRegion(pos) {
     return {
       x: pos.left + this.padX,
@@ -226,7 +281,12 @@ globalThis.UIInput = class UIInput {
     };
   }
 
-  /** nearest caret index to gui x; assumes field font is active draw font. */
+  /**
+   * nearest caret index to gui x; assumes field font is active draw font.
+   * @param {{left:number, top:number, width:number, height:number}} pos
+   * @param {number} mx
+   * @returns {number}
+   */
   _indexAtX(pos, mx) {
     const tr = this._textRegion(pos);
     const disp = this._display();
@@ -246,7 +306,11 @@ globalThis.UIInput = class UIInput {
     return best;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const mx = device_mouse_x_to_gui(0);
@@ -418,7 +482,11 @@ globalThis.UIInput = class UIInput {
 
   // draw
 
-  /** shift _scroll so caret stays visible. */
+  /**
+   * shift _scroll so caret stays visible.
+   * @param {{x:number, w:number, cy:number}} tr
+   * @param {string} disp
+   */
   _clampScroll(tr, disp) {
     const caret = string_width(disp.slice(0, this._cursor));
     if (caret - this._scroll < 0) this._scroll = caret;

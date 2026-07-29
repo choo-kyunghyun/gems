@@ -1,6 +1,7 @@
 // Advances the current Animator state into the entity's Visual. Run once per frame after state
 // selection; uses Time.delta (sim time, so animation pauses/dilates with the game).
 globalThis.AnimationSystem = {
+  /** @param {Entity} entities */
   update(entities) {
     for (const id of entities.query(Animator, Visual)) {
       const anim = entities.get(Animator, id);
@@ -56,6 +57,8 @@ globalThis.AnimationSystem = {
 
   /**
    * switch state, resetting playback only on an actual change (so holding a key doesn't restart it)
+   * @param {Animator} anim
+   * @param {string} state
    */
   set(anim, state) {
     if (anim.state === state) return;

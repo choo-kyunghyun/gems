@@ -18,6 +18,9 @@ globalThis.RpgInteractions = {
       {
         id: "storage",
         prompt: "STORAGE_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           ctx.level._interOpenId = ctx.id;
           StorageUI.open(ctx.level, ctx.id);
@@ -29,6 +32,9 @@ globalThis.RpgInteractions = {
         // quest/achievement credit as ground drops; StorageUI.close clears the hook)
         id: "corpse",
         prompt: "CORPSE_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           ctx.level._interOpenId = ctx.id;
           ctx.level._storeOnTake = (itemId, qty) =>
@@ -39,6 +45,9 @@ globalThis.RpgInteractions = {
       {
         id: "workbench",
         prompt: "CRAFT_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           ctx.level._interOpenId = ctx.id;
           CraftingUI.open(ctx.level, ctx.id);
@@ -53,6 +62,9 @@ globalThis.RpgInteractions = {
         // door round-trips map parking/EntitySnapshot as-is.
         id: "door",
         prompt: "DOOR_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           const col = ctx.entities.get(Collision, ctx.id);
           const mesh = ctx.entities.get(Mesh, ctx.id);
@@ -95,6 +107,9 @@ globalThis.RpgInteractions = {
         // id so existing level JSON (kind:"claim") is unchanged; the prompt reads as founding.
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           BuildMode.claim(ctx.level, ctx.id);
         },
@@ -102,6 +117,9 @@ globalThis.RpgInteractions = {
       {
         id: "arcade",
         prompt: "ARCADE_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           ctx.level._openArcade();
         },
@@ -109,6 +127,9 @@ globalThis.RpgInteractions = {
       {
         id: "bed",
         prompt: "BED_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           ctx.level._sleep();
         },
@@ -118,6 +139,9 @@ globalThis.RpgInteractions = {
         // (FollowerSystem.hire adds Squad + follow + carry bonus and drops this Interaction)
         id: "rehire",
         prompt: "REHIRE_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
           ctx.level._invDirty = true; // squad roster changed
@@ -130,6 +154,9 @@ globalThis.RpgInteractions = {
       {
         id: "hydrate",
         prompt: "HYDRATE_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           const ok = ThirstSystem.restore(
             ctx.entities,
@@ -144,6 +171,9 @@ globalThis.RpgInteractions = {
       {
         id: "feed",
         prompt: "FEED_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           const ok = HungerSystem.restore(
             ctx.entities,
@@ -158,6 +188,9 @@ globalThis.RpgInteractions = {
       {
         id: "buff",
         prompt: "BUFF_PROMPT",
+        /**
+         * @param {Object} ctx
+         */
         run(ctx) {
           StatusSystem.apply(
             ctx.entities,

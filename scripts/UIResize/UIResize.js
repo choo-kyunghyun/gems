@@ -32,7 +32,11 @@ globalThis.UIResize = class UIResize {
     this._baseDragX = 0; // target.dragX at grab (anchorCenterX shift is relative to it)
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const target = this.target ?? element;
     const mx = device_mouse_x_to_gui(0);

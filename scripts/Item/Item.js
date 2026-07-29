@@ -20,19 +20,35 @@ globalThis.Item = class Item {
     this.components = def.components ?? [];
   }
 
+  /**
+   * @param {Object} component
+   * @returns {Item}
+   */
   addComponent(component) {
     this.components.push(component);
     return this;
   }
 
+  /**
+   * @param {Function} Class
+   * @returns {Object|undefined}
+   */
   getComponent(Class) {
     return this.components.find((c) => c instanceof Class);
   }
 
+  /**
+   * @param {Function} Class
+   * @returns {Object[]}
+   */
   getComponents(Class) {
     return this.components.filter((c) => c instanceof Class);
   }
 
+  /**
+   * @param {Function} Class
+   * @returns {boolean}
+   */
   hasComponent(Class) {
     return this.getComponent(Class) !== undefined;
   }
@@ -40,6 +56,7 @@ globalThis.Item = class Item {
   /**
    * unique gear (uid + mods inline on slot) vs fungible stacks — equippable = always instanced.
    * Equipment keys by uid, not itemId, because two of one itemId can differ by mods.
+   * @returns {boolean}
    */
   isInstanced() {
     return this.hasComponent(Equippable);
@@ -49,19 +66,34 @@ globalThis.Item = class Item {
   static _defs = new Map();
   static _order = [];
 
+  /**
+   * @param {Object[]} defs
+   * @returns {typeof Item}
+   */
   static register(defs) {
     Registry.register(Item, defs, (def) => new Item(def));
     return Item;
   }
 
+  /**
+   * @param {string} id
+   * @returns {Item|undefined}
+   */
   static get(id) {
     return Registry.get(Item, id);
   }
 
+  /**
+   * @param {string} id
+   * @returns {boolean}
+   */
   static has(id) {
     return Registry.has(Item, id);
   }
 
+  /**
+   * @returns {Item[]}
+   */
   static all() {
     return Registry.all(Item);
   }

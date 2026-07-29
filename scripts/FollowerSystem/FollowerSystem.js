@@ -13,6 +13,10 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
  * is the ONE home for the wait/follow transition + its carry-bonus pairing.
  */
 globalThis.FollowerSystem = {
+  /**
+   * @param {Entity} entities
+   * @param {number} playerId
+   */
   update(entities, playerId) {
     const pp = entities.get(Position, playerId);
     if (pp === undefined) return;
@@ -61,7 +65,13 @@ globalThis.FollowerSystem = {
     }
   },
 
-  /** Every entity carrying the squad id, PLAYER FIRST when present. @returns {number[]} */
+  /**
+   * Every entity carrying the squad id, PLAYER FIRST when present.
+   * @param {Entity} entities
+   * @param {string} squadId
+   * @param {number} playerId
+   * @returns {number[]}
+   */
   members(entities, squadId, playerId) {
     const out = [];
     const ids = entities.query(Squad);
@@ -78,6 +88,10 @@ globalThis.FollowerSystem = {
    * delta so the invariant can't be half-applied. No-op if already in `state`.
    * The bonus is baked into the player's live Inventory, and the player migrates as a whole
    * entity, so it rides a map change with no re-apply — never recompute it per map.
+   * @param {Entity} entities
+   * @param {number} playerId
+   * @param {number} fid
+   * @param {string} state
    */
   setState(entities, playerId, fid, state) {
     const f = entities.get(Follower, fid);
@@ -94,6 +108,9 @@ globalThis.FollowerSystem = {
   /**
    * Join the player's squad: membership + follow (+bonus via setState) + drop the "rehire"
    * Interaction (it's a squad member now, not a talk-to-hire resident).
+   * @param {Entity} entities
+   * @param {number} playerId
+   * @param {number} fid
    */
   hire(entities, playerId, fid) {
     const squad = entities.get(Squad, playerId);
@@ -107,6 +124,9 @@ globalThis.FollowerSystem = {
   /**
    * Kick from the squad PERMANENTLY, in place: bonus off (via setState), membership detached,
    * and a "rehire" Interaction attached so walking up + talking (E) re-hires it.
+   * @param {Entity} entities
+   * @param {number} playerId
+   * @param {number} fid
    */
   kick(entities, playerId, fid) {
     FollowerSystem.setState(entities, playerId, fid, "wait");
@@ -117,6 +137,10 @@ globalThis.FollowerSystem = {
   /**
    * Add (sign +1) / remove (-1) a companion's carry bonus (slots + weight cap) on the player's Inventory.
    * balanced delta (like EquipmentSystem._applyContainer) so it never needs a recompute-from-base pass.
+   * @param {Entity} entities
+   * @param {number} playerId
+   * @param {Follower} f
+   * @param {number} sign
    */
   applyBenefit(entities, playerId, f, sign) {
     if (f === undefined) return;

@@ -93,6 +93,13 @@ globalThis.SolidSystem = {
    * may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.
    * returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
    * for Y, +1 means grounded.
+   * @param {Position} pos
+   * @param {BBox} box
+   * @param {Collision} colMover
+   * @param {{x1:number,y1:number,x2:number,y2:number,oneWay:boolean}[]} statics
+   * @param {number} v
+   * @param {boolean} isX
+   * @returns {number}
    */
   _resolve(pos, box, colMover, statics, v, isX) {
     const a = AABB.edges(pos, box);
@@ -143,10 +150,18 @@ globalThis.SolidSystem = {
     return correction < 0 ? 1 : -1;
   },
 
-  /** clamp a raw cell index into the grid (column / row variants). Used by both insert + query. */
+  /**
+   * clamp a raw cell index into the grid (column / row variants). Used by both insert + query.
+   * @param {number} g
+   * @returns {number}
+   */
   _clampCol(g) {
     return g < 0 ? 0 : g >= this._cols ? this._cols - 1 : g;
   },
+  /**
+   * @param {number} g
+   * @returns {number}
+   */
   _clampRow(g) {
     return g < 0 ? 0 : g >= this._rows ? this._rows - 1 : g;
   },
@@ -156,6 +171,7 @@ globalThis.SolidSystem = {
    * _resolve scans only a body's local cells. Sized to the statics' extent (origin 0 — the world is
    * anchored at cell 0 by the always-present border); buckets are reused across ticks, reallocated
    * only when the SIM window resizes the grid.
+   * @param {{x1:number,y1:number,x2:number,y2:number,oneWay:boolean}[]} statics
    */
   _gridRebuild(statics) {
     let maxX = 0;

@@ -28,7 +28,11 @@ globalThis.UITrigger = class UITrigger {
     this.hold = false;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     element.state.clicked = false;
     const mx = device_mouse_x_to_gui(0);
@@ -73,7 +77,10 @@ globalThis.UITrigger = class UITrigger {
     this.enter = false;
   }
 
-  /** fire onUp/onLeave on teardown so held/hovered state isn't stranded. @param {UIElement} element */
+  /**
+   * fire onUp/onLeave on teardown so held/hovered state isn't stranded.
+   * @param {UIElement} element
+   */
   onDestroy(element) {
     this.release();
   }

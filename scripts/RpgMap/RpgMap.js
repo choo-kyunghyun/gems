@@ -53,6 +53,9 @@ globalThis.RpgMap = {
    * World.levels.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
    * portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
    * together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
+   * @param {Object} level
+   * @param {string} mapId
+   * @param {string} entryId
    */
   go(level, mapId, entryId) {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
@@ -93,6 +96,9 @@ globalThis.RpgMap = {
    * Land the traveling squad at the entry: the player (squad[0]) first — level.playerId
    * re-latches to its new id — then companions staggered beside it. Whole-entity restore
    * (World.levels.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
+   * @param {Object} level
+   * @param {Object[]|null} squad
+   * @param {{x: number, y: number}} sp
    */
   _arriveSquad(level, squad, sp) {
     if (squad === null || squad.length === 0) return;
@@ -112,6 +118,7 @@ globalThis.RpgMap = {
    * { entities, grid } from build, or the previous park). Unassign (not destroy) the camera —
    * the parked map keeps it for resume; without the unassign its later destroy() would tear
    * down the live view. exitRegion so the next map re-detects its climate.
+   * @param {Object} level
    */
   suspend(level) {
     if (level.camera) level.camera.unassign();
@@ -122,6 +129,10 @@ globalThis.RpgMap = {
   /**
    * Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
    * at the entry (the parked store has no player — the squad left through the portal).
+   * @param {Object} level
+   * @param {Object} bundle
+   * @param {string} entryId
+   * @param {Object[]|null} squad
    */
   resume(level, bundle, entryId, squad) {
     RpgMap._restore(level, bundle);
@@ -156,6 +167,7 @@ globalThis.RpgMap = {
    * Map-appropriate ambient: interiors (meta.indoor) get the cozy loop, the open world the
    * tense one. Called on every map arrival (build + resume); Music.play cross-fades and treats
    * a same-track re-request as a no-op, so this is safe to call unconditionally.
+   * @param {Object} level
    */
   _applyBgm(level) {
     Music.play(level._indoor === true ? mus_ambient_cozy : mus_ambient_tense);
@@ -165,6 +177,7 @@ globalThis.RpgMap = {
    * Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgGrid.LAYERS
    * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
    * (portal-rate, tiny).
+   * @returns {string[]}
    */
   _bundleKeys() {
     const keys = RpgMap.BUNDLE_KEYS.slice();
@@ -177,13 +190,21 @@ globalThis.RpgMap = {
     return keys;
   },
 
-  /** Pointer-copy per-map fields level↔bundle. Index loop (no Map/Set iteration — GMRT). */
+  /**
+   * Pointer-copy per-map fields level↔bundle. Index loop (no Map/Set iteration — GMRT).
+   * @param {Object} level
+   * @returns {Object}
+   */
   _stash(level) {
     const b = {};
     const keys = RpgMap._bundleKeys();
     for (let i = 0; i < keys.length; i++) b[keys[i]] = level[keys[i]];
     return b;
   },
+  /**
+   * @param {Object} level
+   * @param {Object} b
+   */
   _restore(level, b) {
     const keys = RpgMap._bundleKeys();
     for (let i = 0; i < keys.length; i++) level[keys[i]] = b[keys[i]];

@@ -65,23 +65,36 @@ globalThis.UIElement = class UIElement {
     this._destroyed = false;
   }
 
-  /** @param {UIComponent} component @param {number} index @returns {UIElement} */
+  /**
+   * @param {UIComponent} component
+   * @param {number} index
+   * @returns {UIElement}
+   */
   addComponent(component, index = this.components.length) {
     this.components.splice(index, 0, component);
     return this;
   }
 
-  /** @param {typeof UIComponent} ComponentClass @returns {UIComponent|undefined} */
+  /**
+   * @param {typeof UIComponent} ComponentClass
+   * @returns {UIComponent|undefined}
+   */
   getComponent(ComponentClass) {
     return this.components.find((c) => c instanceof ComponentClass);
   }
 
-  /** @param {typeof UIComponent} ComponentClass @returns {UIComponent[]} */
+  /**
+   * @param {typeof UIComponent} ComponentClass
+   * @returns {UIComponent[]}
+   */
   getComponents(ComponentClass) {
     return this.components.filter((c) => c instanceof ComponentClass);
   }
 
-  /** @param {UIComponent} component @returns {UIElement} */
+  /**
+   * @param {UIComponent} component
+   * @returns {UIElement}
+   */
   removeComponent(component) {
     const index = this.components.indexOf(component);
     if (index > -1) {
@@ -214,7 +227,11 @@ globalThis.UIElement = class UIElement {
     else gpu_set_scissor(0, 0, tw, th);
   }
 
-  /** @param {UIElement} element @param {number} index @returns {UIElement} */
+  /**
+   * @param {UIElement} element
+   * @param {number} index
+   * @returns {UIElement}
+   */
   insertChild(element, index = this.children.length) {
     if (element.parent !== null) element.parent.removeChild(element);
     element.parent = this;
@@ -224,7 +241,10 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  /** @param {UIElement} element @returns {UIElement} the removed element */
+  /**
+   * @param {UIElement} element
+   * @returns {UIElement} the removed element
+   */
   removeChild(element) {
     const index = this.children.indexOf(element);
     if (index > -1) {
@@ -275,7 +295,11 @@ globalThis.UIElement = class UIElement {
     return pos;
   }
 
-  /** @param {number} x @param {number} y @returns {boolean} */
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
   positionMeeting(x, y) {
     const pos = this.getLayoutPosition();
     return point_in_rectangle(
@@ -288,14 +312,22 @@ globalThis.UIElement = class UIElement {
     );
   }
 
-  /** @param {number} width @param {number} unit flexpanel_unit @returns {UIElement} */
+  /**
+   * @param {number} width
+   * @param {number} unit flexpanel_unit
+   * @returns {UIElement}
+   */
   setWidth(width, unit) {
     flexpanel_node_style_set_width(this.flexpanel, width, unit);
     this.markDirty();
     return this;
   }
 
-  /** @param {number} height @param {number} unit flexpanel_unit @returns {UIElement} */
+  /**
+   * @param {number} height
+   * @param {number} unit flexpanel_unit
+   * @returns {UIElement}
+   */
   setHeight(height, unit) {
     flexpanel_node_style_set_height(this.flexpanel, height, unit);
     this.markDirty();
@@ -336,7 +368,12 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  /** @param {number} edge flexpanel_edge @param {number} value @param {number} unit flexpanel_unit @returns {UIElement} */
+  /**
+   * @param {number} edge flexpanel_edge
+   * @param {number} value
+   * @param {number} unit flexpanel_unit
+   * @returns {UIElement}
+   */
   setPosition(edge, value, unit) {
     flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
     this.markDirty();

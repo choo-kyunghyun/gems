@@ -4,6 +4,10 @@ globalThis.File = {
   // calls _resolve(id, status) to dispatch each completion to its callback.
   _pending: {},
 
+  /**
+   * @param {string} mask
+   * @returns {string[]}
+   */
   find(mask) {
     const files = [];
     let fname = file_find_first(mask, fa_none);
@@ -15,6 +19,10 @@ globalThis.File = {
     return files;
   },
 
+  /**
+   * @param {string} fname
+   * @returns {string|undefined}
+   */
   read(fname) {
     const buffer = buffer_load(fname);
     if (buffer === -1) return undefined;
@@ -30,6 +38,11 @@ globalThis.File = {
     return data;
   },
 
+  /**
+   * @param {string} fname
+   * @param {string} data
+   * @returns {boolean}
+   */
   write(fname, data) {
     const buffer = buffer_create(0, buffer_grow, 1);
     if (buffer_write(buffer, buffer_text, data) !== 0) {
@@ -47,6 +60,7 @@ globalThis.File = {
 
   /**
    * Load a file into a fresh buffer. Caller OWNS it and MUST buffer_delete() when done.
+   * @param {string} fname
    * @returns {*} buffer handle, or undefined if the file does not exist
    */
   readBuffer(fname) {
@@ -58,6 +72,9 @@ globalThis.File = {
   /**
    * Write a buffer to disk. Saves only the USED bytes via buffer_save_ext — a buffer_grow
    * buffer over-allocates, so a plain buffer_save would pad the file with trailing garbage.
+   * @param {string} fname
+   * @param {GMBuffer} buffer
+   * @returns {boolean}
    */
   writeBuffer(fname, buffer) {
     buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
@@ -78,6 +95,9 @@ globalThis.File = {
   /**
    * Async save of a buffer's used bytes. Caller still owns the buffer and MUST keep it alive
    * until `callback(ok)` fires (the save reads it off-thread).
+   * @param {string} fname
+   * @param {GMBuffer} buffer
+   * @param {function(boolean): void} callback
    * @returns {*} the async request id
    */
   saveAsync(fname, buffer, callback) {
@@ -94,6 +114,8 @@ globalThis.File = {
   /**
    * Async load into a fresh buffer. On success `callback(buffer)` OWNS it (must buffer_delete);
    * on failure it gets undefined (internal buffer released first).
+   * @param {string} fname
+   * @param {function(GMBuffer|undefined): void} callback
    * @returns {*} the async request id
    */
   loadAsync(fname, callback) {
@@ -103,7 +125,11 @@ globalThis.File = {
     return id;
   },
 
-  /** dispatch an async completion to its callback (called by obj_game's Async event); unknown ids ignored. */
+  /**
+   * dispatch an async completion to its callback (called by obj_game's Async event); unknown ids ignored.
+   * @param {number} id
+   * @param {boolean} status
+   */
   _resolve(id, status) {
     const req = File._pending[id];
     if (req === undefined) return;

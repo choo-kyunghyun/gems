@@ -18,12 +18,19 @@
 globalThis.StateSystem = {
   _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)
 
-  /** Register named states; re-registering an id replaces it (content registration is idempotent). */
+  /**
+   * Register named states; re-registering an id replaces it (content registration is idempotent).
+   * @param {StateSchema[]} defs
+   */
   register(defs) {
     for (const def of defs) StateSystem._defs.set(def.id, def);
   },
 
-  /** Resolve a state id — throws on an unknown name (fail fast: a typo'd transition/preset). */
+  /**
+   * Resolve a state id — throws on an unknown name (fail fast: a typo'd transition/preset).
+   * @param {string} id
+   * @returns {StateSchema}
+   */
   get(id) {
     const def = StateSystem._defs.get(id);
     if (def === undefined) throw new Error(`Unknown state: ${id}`);

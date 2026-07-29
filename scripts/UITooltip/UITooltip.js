@@ -10,7 +10,11 @@ globalThis.UITooltip = class UITooltip {
     this._elapsed = 0;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean}
+   */
   onUpdate(element, block) {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);

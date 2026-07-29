@@ -30,6 +30,7 @@ globalThis.SaveGame = {
   /**
    * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
    * the active map, etc. (locked in when restore lands).
+   * @returns {Snapshot}
    */
   frame() {
     if (SaveGame._frame === null) {
@@ -88,7 +89,10 @@ globalThis.SaveGame = {
     return SaveGame._readIndex().slots;
   },
 
-  /** @returns {boolean} whether a slot exists in the index. */
+  /**
+   * @param {string} slot
+   * @returns {boolean} whether a slot exists in the index.
+   */
   has(slot) {
     return SaveGame._readIndex().slots[slot] !== undefined;
   },
@@ -147,6 +151,7 @@ globalThis.SaveGame = {
 
   /**
    * stash every saved map so each map's build consumes its own state (active now, others on portal).
+   * @param {Object[]} maps
    */
   _stashPending(maps) {
     SaveGame._pendingMaps = {};
@@ -159,7 +164,11 @@ globalThis.SaveGame = {
     SaveGame._pendingMaps = {};
   },
 
-  /** Consume a map's stashed state (applied once, at its first build after a load). @returns {Object|null} */
+  /**
+   * Consume a map's stashed state (applied once, at its first build after a load).
+   * @param {string} mapId
+   * @returns {Object|null}
+   */
   takePendingMap(mapId) {
     const m = SaveGame._pendingMaps[mapId];
     if (m === undefined) return null;
@@ -186,6 +195,8 @@ globalThis.SaveGame = {
 
   /**
    * index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
+   * @param {string} slot
+   * @param {Object} meta
    */
   _writeIndex(slot, meta) {
     const idx = SaveGame._readIndex();
@@ -194,6 +205,7 @@ globalThis.SaveGame = {
     if (json === undefined) return; // encode aborted (already Log.error'd) — keep the old index
     File.write(SaveGame.INDEX, json);
   },
+  /** @returns {{slots: Object<string,Object>}} */
   _readIndex() {
     const raw = File.read(SaveGame.INDEX);
     if (raw !== undefined) {
@@ -209,6 +221,7 @@ globalThis.SaveGame = {
   // metadata header: the at-a-glance card the load menu shows (never applied on restore).
   _metaPass: {
     id: "meta",
+    /** @param {Object} ctx */
     capture(ctx) {
       const level = ctx.level;
       const w = level.entities;
@@ -229,12 +242,14 @@ globalThis.SaveGame = {
         credits: inv !== undefined ? SaveGame._credits(inv) : 0,
       };
     },
+    /** @param {Object} _ctx */
     restore(_ctx) {}, // header is informational — nothing to apply
   },
 
   // world-scope singletons: clock, weather, lifetime counters, achievement unlocks.
   _simPass: {
     id: "sim",
+    /** @param {Object} ctx */
     capture(ctx) {
       const ach = [];
       const all = Achievement.all();
@@ -247,6 +262,7 @@ globalThis.SaveGame = {
         achievements: ach,
       };
     },
+    /** @param {Object} ctx */
     restore(ctx) {
       const sim = ctx.manifest.sim;
       if (sim === undefined) return;
@@ -266,6 +282,7 @@ globalThis.SaveGame = {
   // per-map state: entities (JSON component export) + tile grids (binary blob) + build state + zones.
   _mapsPass: {
     id: "maps",
+    /** @param {Object} ctx */
     capture(ctx) {
       const activeId = World.levels.activeId();
       const ids = World.levels.ids();
@@ -312,6 +329,7 @@ globalThis.SaveGame = {
      * back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
      * Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
      * parked map restores when first portaled to rather than up front.
+     * @param {Object} ctx
      */
     restore(ctx) {
       const level = ctx.level;
@@ -363,6 +381,8 @@ globalThis.SaveGame = {
    * level editor already writes). The resident TILE grid is NOT captured: it holds player builds
    * only, and those replay exactly from `built` via Blueprint.stamp on restore (file tiles come back
    * from the file), so a raw grid blob would be dead weight.
+   * @param {LevelGrid} grid
+   * @returns {Object<string, Object>}
    */
   _zonesOf(grid) {
     const zones = {};
@@ -378,6 +398,7 @@ globalThis.SaveGame = {
   /**
    * Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
    * Called fresh on each menu open, so the rows reflect the current index.
+   * @returns {UIElement}
    */
   buildMenuTab() {
     const scroll = gemsScroll({ grow: true });
@@ -388,6 +409,11 @@ globalThis.SaveGame = {
     return scroll;
   },
 
+  /**
+   * @param {string} slot
+   * @param {number} n
+   * @returns {UIElement}
+   */
   _slotRow(slot, n) {
     const row = new UIElement({
       width: "100%",
@@ -431,6 +457,11 @@ globalThis.SaveGame = {
     return row;
   },
 
+  /**
+   * @param {string} slot
+   * @param {number} n
+   * @returns {string}
+   */
   _slotText(slot, n) {
     const meta = SaveGame.list()[slot];
     if (meta === undefined) return I18n.text("SAVE_SLOT_EMPTY", n);
@@ -446,6 +477,7 @@ globalThis.SaveGame = {
 
   /**
    * the current level if it's saveable (has an entity store + player), else null — Save is gated on it.
+   * @returns {Object|null}
    */
   _saveable() {
     const s = World.levels.current;
@@ -459,6 +491,10 @@ globalThis.SaveGame = {
     return s;
   },
 
+  /**
+   * @param {string} slot
+   * @param {number} n
+   */
   _menuSave(slot, n) {
     const s = SaveGame._saveable();
     if (s === null) {
@@ -469,6 +505,10 @@ globalThis.SaveGame = {
     Toast.push(I18n.text("SAVE_TOAST_SAVED", n), { type: "success" });
   },
 
+  /**
+   * @param {string} slot
+   * @param {number} n
+   */
   _menuLoad(slot, n) {
     if (!SaveGame.has(slot)) {
       Toast.push(I18n.text("SAVE_TOAST_EMPTY", n));
@@ -488,6 +528,8 @@ globalThis.SaveGame = {
    * Drop a chunk manager's live SIM entities from a store export (they're saved in the chunk cache
    * instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
    * as-is (restore reads specific entities out, never re-imports the whole export).
+   * @param {Object} exp
+   * @param {ChunkManager} chunks
    */
   _excludeChunkOwned(exp, chunks) {
     const ids = chunks.entityIds();
@@ -506,6 +548,9 @@ globalThis.SaveGame = {
 
   /**
    * the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
+   * @param {Array[]} [entries]
+   * @param {number} idx
+   * @returns {*}
    */
   _entryAt(entries, idx) {
     if (entries === undefined) return undefined;
@@ -517,6 +562,9 @@ globalThis.SaveGame = {
   /**
    * rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
    * EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.levels.put) consume.
+   * @param {Object} exp
+   * @param {number} idx
+   * @returns {EntitySnapshotRecord}
    */
   _recordAt(exp, idx) {
     const comps = {};
@@ -531,6 +579,8 @@ globalThis.SaveGame = {
   /**
    * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
    * RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   * @param {Object} exp
+   * @returns {EntitySnapshotRecord[]|null}
    */
   _extractSquad(exp) {
     const players = exp.components["Playable"];
@@ -557,6 +607,8 @@ globalThis.SaveGame = {
    * Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
    * entity carrying its EXACT snapshot pulled from the store export (so a built chest keeps its
    * contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
+   * @param {Object} active
+   * @returns {Object}
    */
   _buildPlan(active) {
     const built = active.built !== undefined ? active.built : {};
@@ -580,14 +632,22 @@ globalThis.SaveGame = {
     return { w: 0, h: 0, tiles, ents };
   },
 
-  /** the player's saved Position, for repositioning after the entry arrival. */
+  /**
+   * the player's saved Position, for repositioning after the entry arrival.
+   * @param {Object} exp
+   * @returns {Position|null}
+   */
   _playerPos(exp) {
     const players = exp.components["Playable"];
     if (players === undefined || players.length === 0) return null;
     return SaveGame._entryAt(exp.components["Position"], players[0][0]) ?? null;
   },
 
-  /** sum of the currency item in a bag (for the metadata card). */
+  /**
+   * sum of the currency item in a bag (for the metadata card).
+   * @param {Inventory} inv
+   * @returns {number}
+   */
   _credits(inv) {
     let n = 0;
     const slots = inv.slots;

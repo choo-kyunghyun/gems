@@ -16,6 +16,8 @@ globalThis.DebugRender = {
    * (build() resolves the list fresh); else register() (Create_0) picks it
    * up. The class is loaded by the time the level calls this, so storing the
    * ref here is load-order-safe.
+   * @param {Function} cls
+   * @param {string} label
    */
   add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
@@ -73,6 +75,10 @@ globalThis.DebugRender = {
     },
   },
 
+  /**
+   * @param {Function} cls
+   * @returns {boolean}
+   */
   _enabled(cls) {
     const passes = DebugRender._passesOf(cls);
     return passes.length > 0 && passes[0].enabled;
@@ -81,6 +87,8 @@ globalThis.DebugRender = {
   /**
    * flip EVERY instance — a class can appear twice in one renderer (the RPG's
    * resident + chunk RenderWalls), and toggling only the first would mislead
+   * @param {Function} cls
+   * @param {boolean} v
    */
   _apply(cls, v) {
     const passes = DebugRender._passesOf(cls);
@@ -90,6 +98,8 @@ globalThis.DebugRender = {
   /**
    * The live level's renderer passes that are instances of `cls` ([] when
    * none).
+   * @param {Function} cls
+   * @returns {Object[]}
    */
   _passesOf(cls) {
     const out = [];

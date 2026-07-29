@@ -12,6 +12,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderWeather = class RenderWeather {
+  /** @param {Object} [opt={}] */
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
@@ -36,6 +37,7 @@ globalThis.RenderWeather = class RenderWeather {
 
   destroy() {}
 
+  /** @param {Entity} _entities */
   draw(_entities) {
     if (this.camera === undefined) return;
     // Screen-space: cover the application surface in pixel coords so the tint fills the screen
@@ -71,7 +73,15 @@ globalThis.RenderWeather = class RenderWeather {
     draw_set_alpha(alpha);
   }
 
-  /** draw one condition at `intensity` over the view rect: tint, then particles */
+  /**
+   * draw one condition at `intensity` over the view rect: tint, then particles
+   * @param {Object} cond
+   * @param {number} intensity
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} w
+   * @param {number} h
+   */
   _layer(cond, intensity, x1, y1, w, h) {
     if (intensity <= 0) return;
     if (cond.a > 0) {
@@ -85,7 +95,15 @@ globalThis.RenderWeather = class RenderWeather {
       this._snow(cond, intensity, x1, y1, w, h);
   }
 
-  /** Falling rain streaks: fast vertical fall + a mild leftward wind. */
+  /**
+   * Falling rain streaks: fast vertical fall + a mild leftward wind.
+   * @param {Object} cond
+   * @param {number} intensity
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} w
+   * @param {number} h
+   */
   _rain(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
@@ -107,7 +125,15 @@ globalThis.RenderWeather = class RenderWeather {
     }
   }
 
-  /** Drifting snow flakes: gentle fall + a uniform sideways wind. */
+  /**
+   * Drifting snow flakes: gentle fall + a uniform sideways wind.
+   * @param {Object} cond
+   * @param {number} intensity
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} w
+   * @param {number} h
+   */
   _snow(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;

@@ -96,12 +96,25 @@ globalThis.ChunkManager = class ChunkManager {
     this._cache = {};
   }
 
+  /**
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {string}
+   */
   _key(cx, cy) {
     return cx + "," + cy;
   }
+  /**
+   * @param {number} wx
+   * @returns {number}
+   */
   chunkX(wx) {
     return Math.floor(wx / this.pxW);
   }
+  /**
+   * @param {number} wy
+   * @returns {number}
+   */
   chunkY(wy) {
     return Math.floor(wy / this.pxH);
   }
@@ -163,6 +176,7 @@ globalThis.ChunkManager = class ChunkManager {
    * after pregenerate() the records ARE the whole world and walls never change in-session, so
    * the cell set is rasterized ONCE on first get() and cached for the manager's lifetime.
    * (`solid` rects — water — are collide-only and stay excluded, exactly like RenderChunks.)
+   * @returns {{_cells: Object<string, boolean>|null, get: function(number, number): boolean}}
    */
   wallLayer() {
     if (this.maxCx === Infinity || this.maxCy === Infinity)
@@ -172,6 +186,11 @@ globalThis.ChunkManager = class ChunkManager {
     const mgr = this;
     return {
       _cells: null,
+      /**
+       * @param {number} gx
+       * @param {number} gy
+       * @returns {boolean}
+       */
       get(gx, gy) {
         if (this._cells === null) this._cells = mgr._rasterizeWalls();
         return this._cells[gx + "," + gy] === true;
@@ -182,6 +201,7 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * every record's wall rects (active + cached — the whole world after pregenerate())
    * rasterized into a cell-occupancy map "gx,gy" → true
+   * @returns {Object<string, boolean>}
    */
   _rasterizeWalls() {
     const cells = {};
@@ -226,8 +246,11 @@ globalThis.ChunkManager = class ChunkManager {
   // are skipped entirely — they come back from generate(). Import runs after pregenerate(), before
   // the first stream, so each restored chunk materializes its saved snapshots instead of fresh spawns.
 
-  /** Every live SIM-ring entity id the manager owns — the caller excludes these from its own store
-   * export so they aren't saved twice (they ride the chunk cache instead). @returns {number[]} */
+  /**
+   * Every live SIM-ring entity id the manager owns — the caller excludes these from its own store
+   * export so they aren't saved twice (they ride the chunk cache instead).
+   * @returns {number[]}
+   */
   entityIds() {
     const out = [];
     const keys = Object.keys(this._chunks);
@@ -309,6 +332,10 @@ globalThis.ChunkManager = class ChunkManager {
    * Fetch a chunk record: reuse the cached whole record (skips generate() — always the case
    * after pregenerate()), else generate fresh with its spawn DESCRIPTORS held dormant. Does not
    * populate the store — see _activate.
+   * @param {number} cx
+   * @param {number} cy
+   * @param {string} ring
+   * @returns {Object}
    */
   _recordFor(cx, cy, ring) {
     const key = this._key(cx, cy);
@@ -324,7 +351,12 @@ globalThis.ChunkManager = class ChunkManager {
     return rec;
   }
 
-  /** run generate() and wrap its output in a dormant record (ring set by the caller) */
+  /**
+   * run generate() and wrap its output in a dormant record (ring set by the caller)
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {Object}
+   */
   _freshRecord(cx, cy) {
     const gen = this.generator.generate(cx, cy);
     return {
@@ -372,7 +404,11 @@ globalThis.ChunkManager = class ChunkManager {
   // cached record) instead of re-sampling the generator's noise; out-of-store coords (e.g. the
   // render apron past the world edge) fall back to the generator's pure sampler.
 
-  /** @returns {number} material id at an absolute cell */
+  /**
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number} material id at an absolute cell
+   */
   materialAt(ax, ay) {
     const m = this._storedMaterial(ax, ay);
     if (m !== undefined) return m;
@@ -381,7 +417,11 @@ globalThis.ChunkManager = class ChunkManager {
       : 0;
   }
 
-  /** @returns {number} movement cost at an absolute cell (1 = easy … Infinity = impassable) */
+  /**
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number} movement cost at an absolute cell (1 = easy … Infinity = impassable)
+   */
   costAt(ax, ay) {
     const m = this._storedMaterial(ax, ay);
     if (m !== undefined && this._palette !== undefined) {
@@ -395,6 +435,9 @@ globalThis.ChunkManager = class ChunkManager {
 
   /**
    * stored material id at an absolute cell, or undefined when the chunk (or its terrain) isn't held
+   * @param {number} ax
+   * @param {number} ay
+   * @returns {number|undefined}
    */
   _storedMaterial(ax, ay) {
     const cx = Math.floor(ax / this.chunkCols);
@@ -411,6 +454,7 @@ globalThis.ChunkManager = class ChunkManager {
    * Populate a fresh record into its ring + register it. SIM meshes colliders + materializes
    * entities (from snapshots if seen before, else from descriptors); LOAD holds whatever it has
    * (snapshots if hydrated, else dormant descriptors — no store work, so distant rings are cheap).
+   * @param {Object} rec
    */
   _activate(rec) {
     if (rec.ring === "sim") this._materialize(rec);
@@ -421,6 +465,7 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * Bring a record's entities into the store + mesh its colliders (SIM ring). Restores snapshots if
    * the chunk has lived before, else spawns its descriptors for the first time.
+   * @param {Object} rec
    */
   _materialize(rec) {
     this._meshColliders(rec);
@@ -433,14 +478,20 @@ globalThis.ChunkManager = class ChunkManager {
     }
   }
 
-  /** load → sim */
+  /**
+   * load → sim
+   * @param {Object} rec
+   */
   _promote(rec) {
     this._materialize(rec);
     rec.ring = "sim";
     this.stats.promoted++;
   }
 
-  /** sim → load: snapshot live entities out of the store + drop colliders */
+  /**
+   * sim → load: snapshot live entities out of the store + drop colliders
+   * @param {Object} rec
+   */
   _demote(rec) {
     this._captureAll(rec);
     this._dropColliders(rec);
@@ -451,6 +502,8 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * beyond load radius: snapshot live entities, drop colliders, park the WHOLE record in cache
    * (so a revisit skips generate() and keeps modified entity state)
+   * @param {string} key
+   * @param {Object} rec
    */
   _unload(key, rec) {
     if (rec.ring === "sim") {
@@ -467,12 +520,17 @@ globalThis.ChunkManager = class ChunkManager {
   /**
    * one kinematic-solid collider per wall + solid rect (source already groups cells into rects).
    * matches TileEdit.meshSolid: Position at rect top-left, BBox (0,0) spanning it.
+   * @param {Object} rec
    */
   _meshColliders(rec) {
     this._meshRects(rec, rec.walls);
     this._meshRects(rec, rec.solid);
   }
 
+  /**
+   * @param {Object} rec
+   * @param {number[][]} [rects]
+   */
   _meshRects(rec, rects) {
     if (rects === undefined) return;
     const cw = this.cellW;
@@ -498,12 +556,17 @@ globalThis.ChunkManager = class ChunkManager {
     }
   }
 
+  /** @param {Object} rec */
   _dropColliders(rec) {
     for (let i = 0; i < rec.colliders.length; i++)
       this.entities.remove(rec.colliders[i]);
     rec.colliders = [];
   }
 
+  /**
+   * @param {Object} rec
+   * @param {Object[]} spawns
+   */
   _spawnAll(rec, spawns) {
     if (spawns.length === 0) return;
     if (this._spawn === null)
@@ -516,6 +579,10 @@ globalThis.ChunkManager = class ChunkManager {
     }
   }
 
+  /**
+   * @param {Object} rec
+   * @param {EntitySnapshotRecord[]} snapshots
+   */
   _restoreAll(rec, snapshots) {
     for (let i = 0; i < snapshots.length; i++)
       rec.entities.push(EntitySnapshot.restore(this.entities, snapshots[i]));
@@ -523,6 +590,7 @@ globalThis.ChunkManager = class ChunkManager {
 
   /**
    * entities → snapshots, removing each from the store. skips invalid ids (e.g. killed enemies) so the dead stay dead.
+   * @param {Object} rec
    */
   _captureAll(rec) {
     const snaps = [];

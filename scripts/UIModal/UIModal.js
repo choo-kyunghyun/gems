@@ -31,7 +31,10 @@ globalThis.UIModal = class UIModal {
     this._apply(0); // start hidden before the first draw
   }
 
-  /** visibility factor f∈[0,1]: 0 = hidden, 1 = shown. */
+  /**
+   * visibility factor f∈[0,1]: 0 = hidden, 1 = shown.
+   * @param {number} f
+   */
   _apply(f) {
     if (this._backdrop !== undefined && this._backdrop !== null) {
       this._backdrop.alpha = this._dim * f;
@@ -46,7 +49,11 @@ globalThis.UIModal = class UIModal {
     this._t = 0;
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} always true (exclusive) until removed */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} always true (exclusive) until removed
+   */
   onUpdate(element, block) {
     if (this._phase === 3) return block;
 

@@ -62,7 +62,11 @@ globalThis.UIButton = class UIButton {
   }
 
   // float channel ease — see constructor note on why not a packed-int lerp.
-  /** @param {number[]} ch @param {number} target @returns {number} */
+  /**
+   * @param {number[]} ch
+   * @param {number} target
+   * @returns {number}
+   */
   _easeColor(ch, target) {
     const tr = color_get_red(target);
     const tg = color_get_green(target);
@@ -79,7 +83,11 @@ globalThis.UIButton = class UIButton {
     return make_colour_rgb(round(ch[0]), round(ch[1]), round(ch[2]));
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
     const disabled = this._disabled();

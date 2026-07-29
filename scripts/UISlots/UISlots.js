@@ -43,7 +43,12 @@ globalThis.UISlots = class UISlots {
     this._my = -1;
   }
 
-  /** top-left of slot i in gui space, relative to the laid-out rect. */
+  /**
+   * top-left of slot i in gui space, relative to the laid-out rect.
+   * @param {{left:number, top:number, width:number, height:number}} pos
+   * @param {number} i
+   * @returns {{x:number, y:number}}
+   */
   _slotXY(pos, i) {
     const step = this.cellSize + this.gap;
     return {
@@ -52,7 +57,11 @@ globalThis.UISlots = class UISlots {
     };
   }
 
-  /** @param {UIElement} element @param {boolean} block @returns {boolean} whether the pointer is captured */
+  /**
+   * @param {UIElement} element
+   * @param {boolean} block
+   * @returns {boolean} whether the pointer is captured
+   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const mx = device_mouse_x_to_gui(0);
@@ -158,7 +167,10 @@ globalThis.UISlots = class UISlots {
     if (e.confirm) this.onActivate(this._cursor, this.items[this._cursor]);
   }
 
-  /** Release the browse-mode key claim on teardown. @param {UIElement} element */
+  /**
+   * Release the browse-mode key claim on teardown.
+   * @param {UIElement} element
+   */
   onDestroy(element) {
     UINav.releaseClaim(this);
   }

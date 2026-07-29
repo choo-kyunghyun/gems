@@ -9,7 +9,13 @@
  * For disk, serialize the record yourself (mind the JSON nested-value fault + Set fields).
  */
 globalThis.EntitySnapshot = {
-  /** Snapshot an entity's components (subset if `components` given, else all). @param {Entity} entities @param {number} id @param {string[]} [components] @returns {EntitySnapshotRecord} */
+  /**
+   * Snapshot an entity's components (subset if `components` given, else all).
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {string[]} [components]
+   * @returns {EntitySnapshotRecord}
+   */
   capture(entities, id, components) {
     let comps;
     if (components === undefined) {
@@ -24,7 +30,13 @@ globalThis.EntitySnapshot = {
     return { components: comps };
   },
 
-  /** Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore). @param {Entity} entities @param {number} id @param {EntitySnapshotRecord} snapshot @returns {number} same id */
+  /**
+   * Apply a snapshot onto an EXISTING entity (player controller already created it, can't go through restore).
+   * @param {Entity} entities
+   * @param {number} id
+   * @param {EntitySnapshotRecord} snapshot
+   * @returns {number} same id
+   */
   apply(entities, id, snapshot) {
     const comps = snapshot.components;
     // for...in over a plain object is GMRT-safe; Map/Set iteration is not.
@@ -32,7 +44,13 @@ globalThis.EntitySnapshot = {
     return id;
   },
 
-  /** entities.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords). @param {Entity} entities @param {EntitySnapshotRecord} snapshot @param {Object<string,Object>} [overrides] @returns {number} new entity id */
+  /**
+   * entities.create + apply. `overrides` applied after (e.g. fresh Position so migrated entity drops old-map coords).
+   * @param {Entity} entities
+   * @param {EntitySnapshotRecord} snapshot
+   * @param {Object<string,Object>} [overrides]
+   * @returns {number} new entity id
+   */
   restore(entities, snapshot, overrides) {
     const id = this.apply(entities, entities.create(), snapshot);
     if (overrides !== undefined)

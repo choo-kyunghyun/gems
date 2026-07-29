@@ -23,6 +23,7 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
 
   destroy() {}
 
+  /** @param {Entity} _entities */
   draw(_entities) {
     const map = this.grid.zoneMap(this.key);
     if (map === undefined) return;

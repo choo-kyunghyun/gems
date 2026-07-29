@@ -1,5 +1,6 @@
 // integrates velocity for free movers only — solids use SolidSystem, projectiles use ProjectileSystem.
 globalThis.MovementSystem = {
+  /** @param {Entity} entities */
   update(entities) {
     const dt = SimClock.tickDuration;
     const ids = entities.query(Position, Velocity);

@@ -81,12 +81,18 @@ globalThis.EntityPreset = {
     return id;
   },
 
-  /** @param {string} presetId @returns {boolean} */
+  /**
+   * @param {string} presetId
+   * @returns {boolean}
+   */
   has(presetId) {
     return this.presets.has(presetId);
   },
 
-  /** @param {string} presetId @returns {EntityPresetDef|undefined} */
+  /**
+   * @param {string} presetId
+   * @returns {EntityPresetDef|undefined}
+   */
   get(presetId) {
     return this.presets.get(presetId);
   },
@@ -95,6 +101,9 @@ globalThis.EntityPreset = {
    * Field-level component merge: `over`'s components merge INTO `base`'s per field (over wins),
    * unseen components add. Returns fresh per-component objects; nested values may still be
    * shared with the defs — fine, spawn deep-clones per instance.
+   * @param {Object<string,Object>} [base]
+   * @param {Object<string,Object>} [over]
+   * @returns {Object<string,Object>}
    */
   _merge(base, over) {
     const out = {};
@@ -113,6 +122,8 @@ globalThis.EntityPreset = {
    * handle) also reports typeof "object", but its constructor !== Object (Object.keys(ref) is 0
    * without throwing, so recursing would silently turn it into {}) —
    * refs, scalars, and functions pass through BY REFERENCE.
+   * @param {*} v
+   * @returns {*}
    */
   _clone(v) {
     if (Array.isArray(v)) {
@@ -132,6 +143,8 @@ globalThis.EntityPreset = {
    * Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
    * shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
    * scale / density (see SpriteMeta — art resolution never touches the BBox).
+   * @param {Visual} vis
+   * @param {number} k
    */
   _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
@@ -147,7 +160,11 @@ globalThis.EntityPreset = {
     vis.yscale = f;
   },
 
-  /** Design scale on the collision footprint (authored world units at scale 1). */
+  /**
+   * Design scale on the collision footprint (authored world units at scale 1).
+   * @param {BBox} box
+   * @param {number} k
+   */
   _bakeBox(box, k) {
     box.x *= k;
     box.y *= k;
@@ -160,6 +177,8 @@ globalThis.EntityPreset = {
    * model never diverges from its collider. The authored Mesh fields stay the archetype's
    * basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
    * over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
+   * @param {Mesh} mesh
+   * @param {number} k
    */
   _bakeMesh(mesh, k) {
     if (k === 1) return;

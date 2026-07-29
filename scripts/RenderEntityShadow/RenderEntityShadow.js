@@ -4,6 +4,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderEntityShadow = class RenderEntityShadow {
+  /** @param {Object} [opt] */
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
@@ -16,6 +17,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
 
   destroy() {}
 
+  /** @param {Entity} entities */
   draw(entities) {
     const prevA = draw_get_alpha();
     draw_set_alpha(this.alpha);

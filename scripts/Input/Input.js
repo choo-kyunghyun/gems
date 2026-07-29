@@ -68,15 +68,27 @@ globalThis.Input = {
       gamepad_set_axis_deadzone(i, Input.deadzone);
   },
 
+  /**
+   * @param {string} key
+   * @returns {InputAction|undefined}
+   */
   get(key) {
     return Input.actions[key];
   },
 
+  /**
+   * @param {string} key
+   * @param {InputAction} action
+   * @returns {typeof Input}
+   */
   register(key, action) {
     Input.actions[key] = action;
     return Input;
   },
 
+  /**
+   * @param {string} key
+   */
   unregister(key) {
     delete Input.actions[key];
   },
@@ -85,6 +97,7 @@ globalThis.Input = {
    * Register many single-button actions at once.
    * @param {Object<string, any[]>} spec - key → [source, button, contexts?].
    *   3rd element is the InputContext list (see InputAction.inContext); omit for everywhere.
+   * @returns {typeof Input}
    */
   bindAll(spec) {
     for (const key in spec) {

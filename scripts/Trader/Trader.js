@@ -31,6 +31,8 @@ globalThis.Trader = {
   /**
    * Define a wandering trader + start its schedule. `level` is the active level (hydrate now if its
    * first stop is the map you're in). def: { id, name, route:[{map,dwellH}], travelH, merchant }.
+   * @param {Object} level
+   * @param {Object} def
    */
   register(level, def) {
     const rec = {
@@ -57,12 +59,16 @@ globalThis.Trader = {
 
   /**
    * Map (re)activated: remember the live level + embody every settled trader whose current map is this one.
+   * @param {Object} level
    */
   onActivate(level) {
     Trader._level = level;
     for (const id in Trader._recs) Trader._tryHydrate(level, Trader._recs[id]);
   },
-  /** Map about to suspend: dehydrate every trader embodied in it (living state → its record). */
+  /**
+   * Map about to suspend: dehydrate every trader embodied in it (living state → its record).
+   * @param {Object} level
+   */
   onSuspend(level) {
     for (const id in Trader._recs) {
       const rec = Trader._recs[id];
@@ -71,6 +77,9 @@ globalThis.Trader = {
   },
 
   // ── event handlers (fire from WorldEvents.update, whatever map is active) ──
+  /**
+   * @param {Object} d
+   */
   _depart(d) {
     const rec = Trader._recs[d.id];
     if (rec === undefined) return;
@@ -83,6 +92,9 @@ globalThis.Trader = {
     });
     Log.info(`trader ${rec.id} departed → ${rec.route[rec.idx].map} (transit)`);
   },
+  /**
+   * @param {Object} d
+   */
   _arrive(d) {
     const rec = Trader._recs[d.id];
     if (rec === undefined) return;
@@ -99,11 +111,19 @@ globalThis.Trader = {
 
   // ── hydrate / dehydrate at the active-map boundary ──
   // Embody a settled trader IF its map is the active one and it isn't already embodied.
+  /**
+   * @param {Object} level
+   * @param {Object} rec
+   */
   _tryHydrate(level, rec) {
     if (rec.inTransit || rec.entId !== -1) return;
     if (level === null || level.mapId !== rec.map) return;
     Trader._hydrate(level, rec);
   },
+  /**
+   * @param {Object} level
+   * @param {Object} rec
+   */
   _hydrate(level, rec) {
     // near the map's player spawn (each map's own "market point" — avoids per-map authored coords)
     const sg = level.grid.worldToGrid(level.spawn.x, level.spawn.y);
@@ -128,6 +148,10 @@ globalThis.Trader = {
     }
     Log.info(`trader ${rec.id} hydrated in ${level.mapId} as ent ${rec.entId}`);
   },
+  /**
+   * @param {Object} level
+   * @param {Object} rec
+   */
   _dehydrate(level, rec) {
     if (level._tradeOpen && level._tradeMerchantId === rec.entId)
       TradeUI.close(level); // its entity is leaving — close the shop if it's open on it

@@ -23,6 +23,8 @@ globalThis.Settlement = {
   /**
    * Ensure the settlement channel exists on a level and return it (idempotent). A map creates the
    * empty channel up front so RenderZone + persistence import have a target before anything is founded.
+   * @param {LevelGrid} grid
+   * @returns {ZoneMap}
    */
   channel(grid) {
     let m = grid.zoneMap(Settlement.CHANNEL);
@@ -61,19 +63,34 @@ globalThis.Settlement = {
     return zone;
   },
 
-  /** @returns {Zone|undefined} the settlement whose lands include cell (gx,gy). */
+  /**
+   * @param {LevelGrid} grid
+   * @param {number} gx
+   * @param {number} gy
+   * @returns {Zone|undefined} the settlement whose lands include cell (gx,gy).
+   */
   at(grid, gx, gy) {
     const m = grid.zoneMap(Settlement.CHANNEL);
     return m === undefined ? undefined : m.at(gx, gy);
   },
 
-  /** @returns {Zone|undefined} the settlement at a WORLD point. */
+  /**
+   * @param {LevelGrid} grid
+   * @param {number} wx
+   * @param {number} wy
+   * @returns {Zone|undefined} the settlement at a WORLD point.
+   */
   atWorld(grid, wx, wy) {
     const c = grid.worldToGrid(wx, wy);
     return Settlement.at(grid, c.x, c.y);
   },
 
-  /** @returns {string|undefined} owner faction id at a cell ("" = unfactioned; undefined = no settlement). */
+  /**
+   * @param {LevelGrid} grid
+   * @param {number} gx
+   * @param {number} gy
+   * @returns {string|undefined} owner faction id at a cell ("" = unfactioned; undefined = no settlement).
+   */
   ownerAt(grid, gx, gy) {
     const z = Settlement.at(grid, gx, gy);
     return z === undefined ? undefined : z.data.factionId;

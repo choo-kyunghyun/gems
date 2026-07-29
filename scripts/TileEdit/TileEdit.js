@@ -6,16 +6,33 @@
  * undefined), so occupancy is a truthy test, never `!== undefined`.
  */
 globalThis.TileEdit = {
-  /** 0 = empty, TileType = filled — truthy test */
+  /**
+   * 0 = empty, TileType = filled — truthy test
+   * @param {LevelLayer} layer
+   * @param {number} gx
+   * @param {number} gy
+   * @returns {boolean}
+   */
   occupied(layer, gx, gy) {
     return !!layer.get(gx, gy);
   },
 
-  /** caller must remesh after editing a solid layer */
+  /**
+   * caller must remesh after editing a solid layer
+   * @param {LevelLayer} layer
+   * @param {number} gx
+   * @param {number} gy
+   * @param {TileType|undefined} type
+   */
   set(layer, gx, gy, type) {
     layer.set(gx, gy, type);
   },
 
+  /**
+   * @param {LevelLayer} layer
+   * @param {number} gx
+   * @param {number} gy
+   */
   clear(layer, gx, gy) {
     layer.set(gx, gy, undefined);
   },
@@ -23,6 +40,9 @@ globalThis.TileEdit = {
   /**
    * greedy-mesh solid cells into fewest rects; per-cell boxes leave seams that snag the AABB
    * resolver (see memory project_tile_collider_seams). returns [gx,gy,wCells,hCells] in grid coords.
+   * @param {LevelGrid} grid
+   * @param {LevelLayer} layer
+   * @returns {number[][]}
    */
   meshRects(grid, layer) {
     const cols = grid.cols;
@@ -59,7 +79,13 @@ globalThis.TileEdit = {
     return rects;
   },
 
-  /** one kinematic-solid collider per meshRects rectangle; ids pushed onto `out` */
+  /**
+   * one kinematic-solid collider per meshRects rectangle; ids pushed onto `out`
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
+   * @param {LevelLayer} layer
+   * @param {number[]} out
+   */
   meshSolid(entities, grid, layer, out) {
     const cw = grid.cellWidth;
     const ch = grid.cellHeight;
@@ -84,7 +110,13 @@ globalThis.TileEdit = {
     }
   },
 
-  /** rebuild colliders after a solid-tile edit; flush first so old ids don't collide */
+  /**
+   * rebuild colliders after a solid-tile edit; flush first so old ids don't collide
+   * @param {Entity} entities
+   * @param {LevelGrid} grid
+   * @param {LevelLayer} layer
+   * @param {number[]} colliders
+   */
   remesh(entities, grid, layer, colliders) {
     for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
     entities.flush();

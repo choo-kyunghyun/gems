@@ -1,5 +1,6 @@
 // despawn timer for transient entities (bullets, effects).
 globalThis.LifetimeSystem = {
+  /** @param {Entity} entities */
   update(entities) {
     const ids = entities.query(Lifetime);
     for (const id of ids) {

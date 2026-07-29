@@ -2,7 +2,10 @@
 // One store per level (the ECS-shape invariant, ARCHITECTURE.md); `World` above it holds none.
 /** @typedef {Object} EntityOpts @property {number} [gravity] override GravitySystem.strength for this store */
 globalThis.Entity = class Entity {
-  /** @param {number} maxEntities slot capacity @param {EntityOpts} [opts] */
+  /**
+   * @param {number} maxEntities slot capacity
+   * @param {EntityOpts} [opts]
+   */
   constructor(maxEntities, opts = {}) {
     this.maxEntities = maxEntities;
     // subsystems
@@ -30,7 +33,10 @@ globalThis.Entity = class Entity {
     return this.ids.alloc();
   }
 
-  /** @param {number} id @returns {boolean} */
+  /**
+   * @param {number} id
+   * @returns {boolean}
+   */
   isValid(id) {
     return this.ids.isValid(id);
   }
@@ -66,38 +72,66 @@ globalThis.Entity = class Entity {
 
   // ── component data (delegated to the storage subsystem; API kept identical) ──
 
-  /** Allocate storage for a component token (auto-called by add). @returns {this} */
+  /**
+   * Allocate storage for a component token (auto-called by add).
+   * @param {string} ComponentClass
+   * @returns {this}
+   */
   register(ComponentClass) {
     this.storage.register(ComponentClass);
     return this;
   }
 
-  /** Set component data; auto-registers the token. @param {number} id @param {string} ComponentClass @param {Object} data */
+  /**
+   * Set component data; auto-registers the token.
+   * @param {number} id
+   * @param {string} ComponentClass
+   * @param {Object} data
+   */
   add(id, ComponentClass, data) {
     this.storage.add(id, ComponentClass, data);
   }
 
-  /** @param {string} ComponentClass @param {number} id @returns {Object|undefined} */
+  /**
+   * @param {string} ComponentClass
+   * @param {number} id
+   * @returns {Object|undefined}
+   */
   get(ComponentClass, id) {
     return this.storage.get(ComponentClass, id);
   }
 
-  /** @param {number} id @param {string} ComponentClass */
+  /**
+   * @param {number} id
+   * @param {string} ComponentClass
+   */
   detach(id, ComponentClass) {
     this.storage.detach(id, ComponentClass);
   }
 
-  /** All components this entity has, keyed by token. Used by EntitySnapshot. @param {number} id @returns {Object<string,Object>} */
+  /**
+   * All components this entity has, keyed by token. Used by EntitySnapshot.
+   * @param {number} id
+   * @returns {Object<string,Object>}
+   */
   componentsOf(id) {
     return this.storage.componentsOf(id);
   }
 
-  /** Ids of every entity with ALL listed components. @param {...string} ComponentClasses @returns {number[]} */
+  /**
+   * Ids of every entity with ALL listed components.
+   * @param {...string} ComponentClasses
+   * @returns {number[]}
+   */
   query(...ComponentClasses) {
     return this.storage.query(ComponentClasses);
   }
 
-  /** Allocation-free query(): calls fn(id) per matching entity without materializing an array. @param {string[]} ComponentClasses @param {(id:number) => void} fn */
+  /**
+   * Allocation-free query(): calls fn(id) per matching entity without materializing an array.
+   * @param {string[]} ComponentClasses
+   * @param {(id:number) => void} fn
+   */
   forEach(ComponentClasses, fn) {
     this.storage.forEach(ComponentClasses, fn);
   }

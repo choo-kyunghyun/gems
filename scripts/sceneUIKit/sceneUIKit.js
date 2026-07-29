@@ -10,6 +10,7 @@ LevelRegistry.add(() => new _SceneUIKitClass(), {
 class _SceneUIKitClass {
   label = "UIKit";
 
+  /** @param {(factory:Function) => void} openLevel */
   create(openLevel) {
     // widget state — echoed live via textRefs
     this.typed = "";
@@ -92,7 +93,12 @@ class _SceneUIKitClass {
     );
   }
 
-  /** flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host */
+  /**
+   * flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host
+   * @param {UIElement} leftChild
+   * @param {UIElement} rightChild
+   * @returns {UIElement}
+   */
   _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
@@ -118,6 +124,7 @@ class _SceneUIKitClass {
     return cols;
   }
 
+  /** @returns {UIElement} */
   _buttonsSection() {
     const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
     const bar = gemsGrid();
@@ -194,6 +201,7 @@ class _SceneUIKitClass {
     return buttons;
   }
 
+  /** @returns {UIElement} */
   _togglesSection() {
     const toggles = gemsSection(I18n.textRef("UIKIT_TOGGLES"));
     toggles.insertChild(
@@ -230,6 +238,7 @@ class _SceneUIKitClass {
   /**
    * UIRichText: colored spans + inline icons. markup is i18n so it localizes.
    * fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
+   * @returns {UIElement}
    */
   _richTextSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
@@ -252,7 +261,10 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  /** same ping-pong clock through different easing curves to show Tween curve differences */
+  /**
+   * same ping-pong clock through different easing curves to show Tween curve differences
+   * @returns {UIElement}
+   */
   _motionSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
     // wall-clock ping-pong [0,1] over ~3.6 s
@@ -320,6 +332,7 @@ class _SceneUIKitClass {
   /**
    * placed directly in the section — widgets tab already scrolls; a second clip surface
    * would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
+   * @returns {UIElement}
    */
   _questSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
@@ -333,12 +346,19 @@ class _SceneUIKitClass {
     return sec;
   }
 
+  /**
+   * @param {number} height
+   * @param {string|Function} markup
+   * @param {Object} opts
+   * @returns {UIElement}
+   */
   _richRow(height, markup, opts) {
     const row = new UIElement({ width: "100%", height });
     row.insertChild(gemsRichText(markup, opts));
     return row;
   }
 
+  /** @returns {UIElement} */
   _fieldsSection() {
     const fields = gemsSection(I18n.textRef("UIKIT_FIELDS"));
     fields.insertChild(
@@ -383,7 +403,10 @@ class _SceneUIKitClass {
     return fields;
   }
 
-  /** VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field */
+  /**
+   * VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field
+   * @returns {UIElement}
+   */
   _vkSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_VK"));
     const field = gemsInput({
@@ -402,7 +425,10 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  /** UIRebind: click to arm, next key rebinds. readout shows live held state. */
+  /**
+   * UIRebind: click to arm, next key rebinds. readout shows live held state.
+   * @returns {UIElement}
+   */
   _rebindSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_REBIND"));
     const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
@@ -441,6 +467,7 @@ class _SceneUIKitClass {
     return sec;
   }
 
+  /** @returns {UIElement} */
   _controlsSection() {
     const controls = gemsSection(I18n.textRef("UIKIT_CONTROLS"));
 
@@ -526,7 +553,10 @@ class _SceneUIKitClass {
     return controls;
   }
 
-  /** nine-sliced border stays crisp while the body stretches */
+  /**
+   * nine-sliced border stays crisp while the body stretches
+   * @returns {UIElement}
+   */
   _skinSection() {
     const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
     const box = gemsNineSlice();
@@ -537,7 +567,10 @@ class _SceneUIKitClass {
     return skin;
   }
 
-  /** sortable+filterable table; Type select drives setFilter; confirm enters browse mode */
+  /**
+   * sortable+filterable table; Type select drives setFilter; confirm enters browse mode
+   * @returns {UIElement}
+   */
   _tableTab() {
     const gold = gemsColor("warn");
     const cols = [
@@ -627,7 +660,10 @@ class _SceneUIKitClass {
     return tab;
   }
 
-  /** demo data spread across types/rarities to exercise sort + filter */
+  /**
+   * demo data spread across types/rarities to exercise sort + filter
+   * @returns {Object[]}
+   */
   _items() {
     const spr = asset_get_index("spr_tile16");
     const R = {
@@ -664,7 +700,10 @@ class _SceneUIKitClass {
     ];
   }
 
-  /** two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source */
+  /**
+   * two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
+   * @returns {UIElement}
+   */
   _inventorySection() {
     const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
     const grids = new UIElement({
@@ -701,7 +740,11 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  /** alternating filled/empty; offset per bag so the two grids differ */
+  /**
+   * alternating filled/empty; offset per bag so the two grids differ
+   * @param {number} which
+   * @returns {(Object|null)[]}
+   */
   _bag(which) {
     const icon = asset_get_index("spr_tile16");
     const items = [];
@@ -717,6 +760,7 @@ class _SceneUIKitClass {
     return items;
   }
 
+  /** @returns {UIElement} */
   _accordionSection() {
     const sec = gemsSection(I18n.textRef("UIKIT_ACCORDION"));
     sec.insertChild(
@@ -733,7 +777,10 @@ class _SceneUIKitClass {
     return sec;
   }
 
-  /** A fresh body element per section (the same element can't live in two places). */
+  /**
+   * A fresh body element per section (the same element can't live in two places).
+   * @returns {UIElement}
+   */
   _accBody() {
     const body = gemsList();
     body.insertChild(
@@ -747,6 +794,7 @@ class _SceneUIKitClass {
   /**
    * A list taller than its 160px window — the scroll keystone, here nested under a
    * tab page.
+   * @returns {UIElement}
    */
   _scrollSection() {
     const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));

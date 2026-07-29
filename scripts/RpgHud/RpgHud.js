@@ -1,7 +1,10 @@
 // HUD + overlay panels for the RPG level — free functions taking the level (mirrors RpgCombat/RpgMap).
 // Panels read level.entities/playerId LIVE via gemsLabel callbacks, surviving the map-change store swap.
 globalThis.RpgHud = {
-  /** build the persistent panels once (level create) */
+  /**
+   * build the persistent panels once (level create)
+   * @param {Object} level
+   */
   build(level) {
     RpgHud._hud(level);
     RpgHud._hotbar(level);
@@ -13,6 +16,7 @@ globalThis.RpgHud = {
    * Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
    * the player each frame. Display-only (binding is in RpgInventoryUI, using is sceneRpg._useHotbar).
    * sceneRpg hides the whole bar while build mode owns the bottom-center HUD.
+   * @param {Object} level
    */
   _hotbar(level) {
     const wrap = new UIElement({
@@ -30,6 +34,11 @@ globalThis.RpgHud = {
     level.ui.insertChild(wrap);
   },
 
+  /**
+   * @param {Object} level
+   * @param {number} i
+   * @returns {UIElement}
+   */
   _hotbarSlot(level, i) {
     const card = gemsCard({ width: 140, padding: GemsTheme.padSm });
     const row = new UIElement({
@@ -72,6 +81,11 @@ globalThis.RpgHud = {
 
   /**
    * one survival-need RESERVE bar: gemsProgress of (1 - value/max), so full = satiated, read live
+   * @param {Object} level
+   * @param {string} token
+   * @param {string} labelKey
+   * @param {string} fillColor
+   * @returns {UIElement}
    */
   _needBar(level, token, labelKey, fillColor) {
     const row = new UIElement({ width: "100%", height: 20 });
@@ -89,7 +103,10 @@ globalThis.RpgHud = {
     return row;
   },
 
-  /** centered "Sleeping…" overlay, toggled by level._sleeping while a bed fast-forwards time */
+  /**
+   * centered "Sleeping…" overlay, toggled by level._sleeping while a bed fast-forwards time
+   * @param {Object} level
+   */
   _sleepOverlay(level) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -114,7 +131,10 @@ globalThis.RpgHud = {
     level.ui.insertChild(wrap);
   },
 
-  /** Top-right HUD card: HP / ammo / stamina / needs / clock / weather / status + quest tracker. */
+  /**
+   * Top-right HUD card: HP / ammo / stamina / needs / clock / weather / status + quest tracker.
+   * @param {Object} level
+   */
   _hud(level) {
     const hud = new UIElement({
       positionType: "absolute",
@@ -245,7 +265,10 @@ globalThis.RpgHud = {
     level.ui.insertChild(hud);
   },
 
-  /** Bottom-center dialogue card, toggled via level._dlg.enabled from step(). */
+  /**
+   * Bottom-center dialogue card, toggled via level._dlg.enabled from step().
+   * @param {Object} level
+   */
   _dialogue(level) {
     const wrap = new UIElement({
       positionType: "absolute",

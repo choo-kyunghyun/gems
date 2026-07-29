@@ -28,7 +28,12 @@ globalThis.SeparationSystem = {
     }
   },
 
-  /** MTV split along shallower axis, half-step each body (equal mass). */
+  /**
+   * MTV split along shallower axis, half-step each body (equal mass).
+   * @param {Entity} entities
+   * @param {number} ida
+   * @param {number} idb
+   */
   _separate(entities, ida, idb) {
     const a = AABB.of(entities, ida);
     const b = AABB.of(entities, idb);
