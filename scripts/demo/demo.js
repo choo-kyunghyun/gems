@@ -5,7 +5,6 @@
  * Release the `camera`/`renderer`/`entities`/`ui` a Level holds on `this`, in dependency order
  * (missing fields skipped). Call it from `destroy()` AFTER releasing the level's own
  * resources (controllers, sub-levels) — those may still reference these.
- * @param {Level} level
  */
 globalThis.teardownLevel = function teardownLevel(level) {
   if (level.camera) level.camera.destroy();
@@ -27,10 +26,6 @@ globalThis.teardownLevel = function teardownLevel(level) {
  */
 globalThis.LevelRegistry = {
   _entries: [],
-  /**
-   * @param {() => Level} factory
-   * @param {{label: *, category?: string}} opts
-   */
   add(factory, opts) {
     this._entries.push({
       factory,
@@ -40,16 +35,11 @@ globalThis.LevelRegistry = {
   },
   /**
    * Localized display label of a registered factory (matched by ref), or null.
-   * @param {() => Level} factory
-   * @returns {*}
    */
   labelOf(factory) {
     const e = this._entries.find((x) => x.factory === factory);
     return e !== undefined ? e.label : null;
   },
-  /**
-   * @returns {{category: string, entries: Object[]}[]}
-   */
   byCategory() {
     const result = [];
     const index = {};

@@ -14,9 +14,6 @@ globalThis.RpgCombat = {
   /**
    * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
    * (followers/turrets, player faction) and neutral props (no Faction) are excluded.
-   * @param {Entity} entities
-   * @param {number} playerId
-   * @returns {number[]}
    */
   _enemies(entities, playerId) {
     const out = [];
@@ -30,8 +27,6 @@ globalThis.RpgCombat = {
   /**
    * floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
    * change. Run after physics, before deaths flush, so the killing blow still pops.
-   * @param {Object} level
-   * @param {number} yOffset
    */
   trackDamage(level, yOffset) {
     RpgCombat._diffHp(level, level.playerId, true, yOffset);
@@ -50,12 +45,6 @@ globalThis.RpgCombat = {
       RpgCombat._diffHp(level, meshBodies[i], true, yOffset);
   },
 
-  /**
-   * @param {Object} level
-   * @param {number} id
-   * @param {boolean} isAlly
-   * @param {number} yOffset
-   */
   _diffHp(level, id, isAlly, yOffset) {
     const entities = level.entities;
     if (!entities.isValid(id)) return;
@@ -98,8 +87,6 @@ globalThis.RpgCombat = {
    *   downSpot(id) → {x,y}     — recovery spot for a "down" entity
    *   onDown(id)               — fired when an entity enters Down
    * Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
-   * @param {Object} level
-   * @param {Object} [h]
    */
   resolveHealth(level, h) {
     h = h ?? {};
@@ -135,10 +122,6 @@ globalThis.RpgCombat = {
    * Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
    * its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
    * so being knocked out can't silently shrink the player's bag.
-   * @param {Object} level
-   * @param {number} id
-   * @param {Mortal} m
-   * @param {Object} h
    */
   _goDown(level, id, m, h) {
     const entities = level.entities;
@@ -157,8 +140,6 @@ globalThis.RpgCombat = {
 
   /**
    * down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
-   * @param {Object} level
-   * @param {Object} [h]
    */
   updateDowned(level, h) {
     h = h ?? {};
@@ -200,8 +181,6 @@ globalThis.RpgCombat = {
    * so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
    * the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
    * Species markers (Raider/Rat — radar blips) are the level's to drop in onKill, not ours.
-   * @param {Object} level
-   * @param {number} id
    */
   _toCorpse(level, id) {
     const entities = level.entities;
@@ -232,7 +211,6 @@ globalThis.RpgCombat = {
    * its window open is safe: Interactable range-closes when the entity's Position vanishes and
    * StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
    * corpses — behaviorally the old despawn.
-   * @param {Object} level
    */
   reapCorpses(level) {
     const entities = level.entities;
@@ -247,9 +225,6 @@ globalThis.RpgCombat = {
 
   /**
    * scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
-   * @param {Object} level
-   * @param {number} enemyId
-   * @param {Object} [opts]
    */
   spillLoot(level, enemyId, opts) {
     const entities = level.entities;
@@ -277,12 +252,6 @@ globalThis.RpgCombat = {
 
   /**
    * `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
-   * @param {Object} level
-   * @param {string} itemId
-   * @param {number} qty
-   * @param {number} x
-   * @param {number} y
-   * @param {InventorySlot} [src]
    */
   spawnDrop(level, itemId, qty, x, y, src) {
     const entities = level.entities;
@@ -309,8 +278,6 @@ globalThis.RpgCombat = {
 
   /**
    * pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
-   * @param {Object} level
-   * @param {(itemId: string, got: number) => void} [onCollect]
    */
   collectDrops(level, onCollect) {
     const entities = level.entities;

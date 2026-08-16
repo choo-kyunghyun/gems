@@ -7,9 +7,6 @@ globalThis.SaveData = {
   PATH: "save.json",
   _data: {},
 
-  /**
-   * @returns {typeof SaveData}
-   */
   load() {
     const raw = File.read(this.PATH);
     if (raw !== undefined) {
@@ -25,28 +22,15 @@ globalThis.SaveData = {
     return this;
   },
 
-  /**
-   * @param {string} key
-   * @param {*} [fallback]
-   * @returns {*}
-   */
   get(key, fallback) {
     return key in this._data ? this._data[key] : fallback;
   },
 
-  /**
-   * @param {string} key
-   * @param {*} value
-   * @returns {typeof SaveData}
-   */
   set(key, value) {
     this._data[key] = value;
     return this;
   },
 
-  /**
-   * @returns {typeof SaveData}
-   */
   save() {
     // json_stringify serializes nested values crash-free (JS JSON.stringify faults on them).
     File.write(this.PATH, json_stringify(this._data));

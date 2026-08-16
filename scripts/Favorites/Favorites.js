@@ -9,20 +9,12 @@ globalThis.Favorites = "Favorites";
 
 /** stateless operations on a Favorites component */
 globalThis.FavoritesSystem = {
-  /**
-   * @param {Favorites} fav
-   * @param {string} itemId
-   * @returns {boolean}
-   */
   has(fav, itemId) {
     return fav.ids.indexOf(itemId) >= 0;
   },
 
   /**
    * toggle star; returns new state (true = now favorited)
-   * @param {Favorites} fav
-   * @param {string} itemId
-   * @returns {boolean}
    */
   toggle(fav, itemId) {
     const i = fav.ids.indexOf(itemId);

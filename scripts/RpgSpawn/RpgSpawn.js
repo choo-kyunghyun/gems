@@ -35,8 +35,6 @@ globalThis.RpgSpawn = {
    * 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
    * (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
    * the one-size prop preset box. Returns undefined for an unknown model.
-   * @param {string} model
-   * @returns {{w: number, h: number}|undefined}
    */
   footprint(model) {
     const m = Vox.load(model);
@@ -117,11 +115,6 @@ globalThis.RpgSpawn = {
             ],
           },
         },
-        /**
-         * @param {Entity} entities
-         * @param {number} id
-         * @param {Object} ctx
-         */
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // Velocity + Brain + State (mobile melee)
         },
@@ -143,11 +136,6 @@ globalThis.RpgSpawn = {
           Inventory: { slots: [], capacity: 4 },
           Visual: { sprite: spr_rat, speed: 6 }, // looping scuttle cycle
         },
-        /**
-         * @param {Entity} entities
-         * @param {number} id
-         * @param {Object} ctx
-         */
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction
         },
@@ -256,11 +244,6 @@ globalThis.RpgSpawn = {
           Name: { name: "Turret" },
           Mesh: { model: "military_turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
         },
-        /**
-         * @param {Entity} entities
-         * @param {number} id
-         * @param {Object} ctx
-         */
         post(entities, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
           CombatAI.attach(entities, id, ctx.opts.grid, {
@@ -358,10 +341,6 @@ globalThis.RpgSpawn = {
    * are returned:
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {Object} data
-   * @returns {Object}
    */
   spawn(entities, grid, data) {
     const spawns = data.spawns ?? [];
@@ -392,9 +371,6 @@ globalThis.RpgSpawn = {
 
   /**
    * Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
-   * @param {LevelGrid} grid
-   * @param {Object} s
-   * @returns {{x1: number, y1: number, x2: number, y2: number}}
    */
   reachZone(grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
@@ -408,10 +384,6 @@ globalThis.RpgSpawn = {
    * (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
    * `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
    * entities work too).
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {Object} s
-   * @returns {number}
    */
   spawnEntity(entities, grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
@@ -581,13 +553,6 @@ globalThis.RpgSpawn = {
 
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
   // descriptor + the level's programmatic party seed.
-  /**
-   * @param {Entity} entities
-   * @param {number} wx
-   * @param {number} wy
-   * @param {Object} [opt={}]
-   * @returns {number}
-   */
   spawnFollower(entities, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
     // `opt.color` is the OUTFIT tint, not a whole-body wash.
@@ -624,9 +589,6 @@ globalThis.RpgSpawn = {
   /**
    * Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
    * source of truth), else `color` (#hex), else `fallback`, else white. Returns a colour int.
-   * @param {Object} s
-   * @param {string} [fallback]
-   * @returns {number}
    */
   _tint(s, fallback) {
     if (s.material !== undefined) {
@@ -644,8 +606,6 @@ globalThis.RpgSpawn = {
   /**
    * deterministic skin pick — hashed from the spawn CELL so a regenerated chunk's humanoid
    * keeps the same face (OverworldGen chunks must regenerate identically)
-   * @param {Object} s
-   * @returns {number}
    */
   _skin(s) {
     const gx = s.gx ?? 0;
@@ -657,8 +617,6 @@ globalThis.RpgSpawn = {
   /**
    * Authored civilian outfit: the WHITE tintable garments colored per entity via the layer
    * color (one sheet, any outfit). Shoes stay a fixed dark neutral so any shirt color reads.
-   * @param {string} shirtColor
-   * @returns {Appearance}
    */
   _outfit(shirtColor) {
     return {

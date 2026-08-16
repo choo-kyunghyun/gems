@@ -12,10 +12,6 @@ globalThis.Achievement = {
   _order: [],
   _unlocked: {}, // id -> true
 
-  /**
-   * @param {Object[]} defs
-   * @returns {typeof Achievement}
-   */
   register(defs) {
     Registry.register(Achievement, defs);
     return this;
@@ -23,7 +19,6 @@ globalThis.Achievement = {
 
   /**
    * restore from SaveData (an id array under "achievements"; legacy/missing → empty)
-   * @returns {typeof Achievement}
    */
   load() {
     this._unlocked = {};
@@ -33,25 +28,14 @@ globalThis.Achievement = {
     return this;
   },
 
-  /**
-   * @param {string} id
-   * @returns {Object|undefined}
-   */
   get(id) {
     return Registry.get(Achievement, id);
   },
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   isUnlocked(id) {
     return this._unlocked[id] === true;
   },
 
-  /**
-   * @returns {Object[]}
-   */
   all() {
     return Registry.all(Achievement);
   },
@@ -59,8 +43,6 @@ globalThis.Achievement = {
   /**
    * the unlock REQUEST: honor it if the id is registered and still locked; persists.
    * Returns true only when newly unlocked (dedup — safe to request repeatedly).
-   * @param {string} id
-   * @returns {boolean}
    */
   unlock(id) {
     if (!Registry.has(Achievement, id) || this._unlocked[id] === true)

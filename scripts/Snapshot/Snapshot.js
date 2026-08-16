@@ -23,14 +23,11 @@ globalThis.Snapshot = class Snapshot {
   static VERSION = 1; // bump when the manifest/blob layout changes incompatibly
 
   constructor() {
-    /** @type {{id:string, capture:Function, restore:Function}[]} */
     this.passes = [];
   }
 
   /**
    * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
-   * @param {Function|{id:string, capture:Function, restore:Function}} pass
-   * @returns {{id:string, capture:Function, restore:Function}}
    */
   _wrap(pass) {
     if (typeof pass === "function")
@@ -38,22 +35,12 @@ globalThis.Snapshot = class Snapshot {
     return pass;
   }
 
-  /**
-   * Insert a pass (append by default; order IS the capture/restore order).
-   * @param {Function|{id:string, capture:Function, restore:Function}} pass
-   * @param {number} [index=this.passes.length]
-   * @returns {Snapshot} this
-   */
+  /** Insert a pass (append by default; order IS the capture/restore order). */
   insert(pass, index = this.passes.length) {
     this.passes.splice(index, 0, this._wrap(pass));
     return this;
   }
 
-  /**
-   * Remove a pass by reference.
-   * @param {{id:string, capture:Function, restore:Function}} pass
-   * @returns {Snapshot} this
-   */
   remove(pass) {
     const i = this.passes.indexOf(pass);
     if (i >= 0) this.passes.splice(i, 1);
@@ -64,8 +51,6 @@ globalThis.Snapshot = class Snapshot {
    * CAPTURE: run each pass in order, accumulating the hybrid bundle. Returns
    * `{ manifest, blobs }` — manifest a JSON-encodable tree, blobs an array of { name, buffer }
    * the caller owns (SaveGame writes them, then buffer_deletes).
-   * @param {Object} level
-   * @returns {{manifest:Object, blobs:{name:string,buffer:*}[]}}
    */
   capture(level) {
     const manifest = { version: Snapshot.VERSION };
@@ -74,17 +59,9 @@ globalThis.Snapshot = class Snapshot {
       mode: "capture",
       level,
       manifest,
-      /**
-       * @param {string} name
-       * @param {*} buffer
-       */
       putBlob: (name, buffer) => {
         blobs.push({ name, buffer });
       },
-      /**
-       * @param {string} _name
-       * @returns {*}
-       */
       getBlob: (_name) => undefined,
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].capture(ctx);
@@ -92,26 +69,16 @@ globalThis.Snapshot = class Snapshot {
   }
 
   /**
-   * RESTORE: run each pass in order against a loaded bundle. `blobs` maps name -> buffer (owned by
-   * the caller; passes read but must not delete). Passes reconstruct level state in place.
-   * @param {Object} level
-   * @param {Object} manifest  the parsed JSON manifest (already ref-revived by Json.decode)
-   * @param {Object<string,*>} blobs  name -> loaded buffer
+   * RESTORE: run each pass in order against a loaded bundle. `manifest` is the parsed JSON
+   * manifest (already ref-revived by Json.decode); `blobs` maps name -> buffer (owned by the
+   * caller; passes read but must not delete). Passes reconstruct level state in place.
    */
   restore(level, manifest, blobs) {
     const ctx = {
       mode: "restore",
       level,
       manifest,
-      /**
-       * @param {string} _name
-       * @param {*} _buffer
-       */
       putBlob: (_name, _buffer) => {},
-      /**
-       * @param {string} name
-       * @returns {*}
-       */
       getBlob: (name) => blobs[name],
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].restore(ctx);
