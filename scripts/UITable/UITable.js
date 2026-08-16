@@ -25,7 +25,6 @@
  * re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
-  /** @param {Object} [t={}] */
   constructor(t = {}) {
     this.columns = t.columns ?? [];
     this._rows = t.rows ?? [];
@@ -79,8 +78,6 @@ globalThis.UITable = class UITable {
   // ── public API ──────────────────────────────────────────────
   /**
    * Replace the source rows (re-applies filter + sort).
-   * @param {Object[]} rows
-   * @returns {UITable}
    */
   setRows(rows) {
     this._rows = rows ?? [];
@@ -89,32 +86,24 @@ globalThis.UITable = class UITable {
   }
   // Methods, NOT instance getters — house style; the old "getter shadowing a GML name
   // faults" report was dismissed (2026-07 re-audit).
-  /** @returns {Object[]} the source rows */
   getRows() {
     return this._rows;
   }
-  /** @returns {Object[]} the filtered + sorted view rows */
+  /** The filtered + sorted view rows. */
   getView() {
     return this._view;
   }
-  /** @returns {Object|null} the selected row object */
   getSelected() {
     return this._selRow;
   }
   /**
    * Set the row-filter predicate (or null for all).
-   * @param {((row:Object)=>boolean)|null} fn
-   * @returns {UITable}
    */
   setFilter(fn) {
     this._filter = fn ?? null;
     this._recompute();
     return this;
   }
-  /**
-   * @param {Object|null} row
-   * @returns {UITable}
-   */
   selectRow(row) {
     this._selRow = row;
     return this;
@@ -123,8 +112,6 @@ globalThis.UITable = class UITable {
   // sorted column's `key`, dropping any whose column is gone (or has no `key`).
   /**
    * Swap the column set, remapping the active sort by each column's stable `key`.
-   * @param {Object[]} columns
-   * @returns {UITable}
    */
   setColumns(columns) {
     const keys = [];
@@ -143,10 +130,6 @@ globalThis.UITable = class UITable {
     this._recompute();
     return this;
   }
-  /**
-   * @param {*} key
-   * @returns {number}
-   */
   _colIndex(key) {
     for (let i = 0; i < this.columns.length; i++) {
       if (this.columns[i].key === key) return i;
@@ -157,8 +140,6 @@ globalThis.UITable = class UITable {
   // ── sorting ─────────────────────────────────────────────────
   /**
    * Make column `ci` the primary sort key (re-click flips direction).
-   * @param {number} ci
-   * @returns {UITable}
    */
   sortBy(ci) {
     const col = this.columns[ci];
@@ -172,10 +153,6 @@ globalThis.UITable = class UITable {
     return this;
   }
 
-  /**
-   * @param {number} ci
-   * @param {number} dir
-   */
   _pushSort(ci, dir) {
     const next = [{ ci, dir }];
     for (let i = 0; i < this._sort.length; i++) {
@@ -186,8 +163,6 @@ globalThis.UITable = class UITable {
 
   /**
    * Rank of column ci in the sort stack: 0 = primary, 1 = secondary, -1 = unsorted.
-   * @param {number} ci
-   * @returns {number}
    */
   _sortRank(ci) {
     for (let i = 0; i < this._sort.length; i++) {
@@ -196,22 +171,12 @@ globalThis.UITable = class UITable {
     return -1;
   }
 
-  /**
-   * @param {Object} col
-   * @param {Object} row
-   * @returns {number|string}
-   */
   _sortVal(col, row) {
     if (col.sortValue) return col.sortValue(row);
     if (col.text) return col.text(row);
     return "";
   }
 
-  /**
-   * @param {Object} a
-   * @param {Object} b
-   * @returns {number}
-   */
   _compareRows(a, b) {
     for (let s = 0; s < this._sort.length; s++) {
       const key = this._sort[s];
@@ -249,20 +214,12 @@ globalThis.UITable = class UITable {
   }
 
   // ── geometry ────────────────────────────────────────────────
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @returns {number}
-   */
   _bodyRows(pos) {
     return Math.max(
       0,
       Math.floor((pos.height - this.headerH - this.pad * 2) / this.rowH),
     );
   }
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @returns {number}
-   */
   _maxTop(pos) {
     return Math.max(0, this._view.length - this._bodyRows(pos));
   }
@@ -270,8 +227,6 @@ globalThis.UITable = class UITable {
   /**
    * Recomputed fresh each onUpdate AND onDraw (not cached between): a dragged window's
    * dragX/dragY changes mid-frame, so a cached geometry would draw a frame behind the panel.
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @returns {{cols:{x:number, w:number}[], headerTop:number, bodyTop:number, bodyRows:number, maxTop:number, barOn:boolean}}
    */
   _geometry(pos) {
     const bodyRows = this._bodyRows(pos);
@@ -290,9 +245,6 @@ globalThis.UITable = class UITable {
    * Column pixel layout. `width` is each column's base/min px; `flex` shares the surplus so
    * columns grow as the table widens (default flex 0 with `width`, else 1 = fill column).
    * `barOn` reserves the scrollbar gutter.
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {boolean} barOn
-   * @returns {{x:number, w:number}[]}
    */
   _columns(pos, barOn) {
     const innerW =
@@ -319,11 +271,6 @@ globalThis.UITable = class UITable {
   }
 
   // ── update ──────────────────────────────────────────────────
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const g = this._geometry(pos);
@@ -397,27 +344,12 @@ globalThis.UITable = class UITable {
     return this._inside || this._bar.dragging || block;
   }
 
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {number} mx
-   * @param {number} my
-   * @param {number} bodyTop
-   * @param {number} bodyH
-   * @param {number} maxTop
-   */
   _barInput(pos, mx, my, bodyTop, bodyH, maxTop) {
     const m = this._barMetrics(pos, bodyTop, bodyH, maxTop);
     const t = this._bar.input(m, mx, my, true);
     if (t >= 0) this._top = Math.round(t * maxTop); // row-quantized (UIScroll maps to px)
   }
 
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {number} bodyTop
-   * @param {number} bodyH
-   * @param {number} maxTop
-   * @returns {{x:number, y:number, h:number, thumbH:number, thumbY:number}}
-   */
   _barMetrics(pos, bodyTop, bodyH, maxTop) {
     const x = pos.left + pos.width - this.pad - this._bar.barW;
     const rowsVis = this._bodyRows(pos);
@@ -432,7 +364,6 @@ globalThis.UITable = class UITable {
     );
   }
 
-  /** @param {{left:number, top:number, width:number, height:number}} pos */
   _browseKeys(pos) {
     const e = UINav.readEdge();
     if (e.cancel) {
@@ -459,7 +390,6 @@ globalThis.UITable = class UITable {
 
   /**
    * Move the primary sort to the next sortable column in direction dir.
-   * @param {number} dir
    */
   _cycleSort(dir) {
     const n = this.columns.length;
@@ -475,7 +405,6 @@ globalThis.UITable = class UITable {
   }
 
   // ── draw ────────────────────────────────────────────────────
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const g = this._geometry(pos); // live geometry — stays glued to a dragged window
@@ -490,10 +419,6 @@ globalThis.UITable = class UITable {
     uiDrawRestore(st);
   }
 
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {Object} g
-   */
   _drawHeader(pos, g) {
     const cols = g.cols;
     const x0 = pos.left + this.pad;
@@ -549,10 +474,6 @@ globalThis.UITable = class UITable {
     }
   }
 
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {Object} g
-   */
   _drawBody(pos, g) {
     const cols = g.cols;
     const x0 = pos.left + this.pad;
@@ -664,10 +585,6 @@ globalThis.UITable = class UITable {
     }
   }
 
-  /**
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {Object} g
-   */
   _drawBar(pos, g) {
     const bodyH = g.bodyRows * this.rowH;
     this._bar.draw(this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop));
@@ -675,11 +592,6 @@ globalThis.UITable = class UITable {
 
   /**
    * cell text fit to `maxW` (hard-truncate — the default font has no ellipsis glyph)
-   * @param {string} str
-   * @param {{x:number, w:number}} c
-   * @param {number} cy
-   * @param {number} align
-   * @param {number} maxW
    */
   _cellText(str, c, cy, align, maxW) {
     draw_set_halign(align);
@@ -689,11 +601,6 @@ globalThis.UITable = class UITable {
     draw_text(x, cy, this._fit(str, maxW));
   }
 
-  /**
-   * @param {string} str
-   * @param {number} maxW
-   * @returns {string}
-   */
   _fit(str, maxW) {
     if (maxW <= 0) return "";
     const s = string(str);
@@ -712,7 +619,6 @@ globalThis.UITable = class UITable {
 
   // ── nav ─────────────────────────────────────────────────────
   // confirm enters browse mode; its presence marks the element focusable
-  /** @param {UIElement} element */
   navActivate(element) {
     this._browsing = true;
     // seed cursor on the selected row, else top of window
@@ -722,7 +628,6 @@ globalThis.UITable = class UITable {
 
   /**
    * Release the browse-mode key claim on teardown.
-   * @param {UIElement} element
    */
   onDestroy(element) {
     UINav.releaseClaim(this);

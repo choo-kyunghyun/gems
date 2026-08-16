@@ -1,5 +1,3 @@
-// The app's one menu — a near-fullscreen multi-tabbed overlay (standalone singleton) that pauses ALL
-// game + behind-UI logic while open. Owns the gameplay pause + nav. Contract on the declaration below.
 /**
  * Pause is global: LevelManager skips level.step() while isOpen() (this menu is its boot-wired
  * `menu` seam), and the menu forces Time.scale=0 each frame (the menu itself runs on Time.raw).

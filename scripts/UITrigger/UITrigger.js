@@ -1,5 +1,3 @@
-// THE canonical pointer FSM (hover/press/release-inside-commit) — fires callbacks and mirrors its
-// state into the host's `element.state` blackboard. Contract on the class below.
 /**
  * Mirrors hover/held/clicked into `element.state` (see the UIState typedef in UIElement) so sibling
  * components can react without knowing who computed it. Used two ways: standalone as a component (a
@@ -14,7 +12,7 @@
  * @implements {UIComponent}
  */
 globalThis.UITrigger = class UITrigger {
-  /** @param {Object} [trigger] { block, readOnly, onEnter, onHover, onLeave, onDown, onUp, onClick } */
+  /** trigger: { block, readOnly, onEnter, onHover, onLeave, onDown, onUp, onClick } */
   constructor(trigger = {}) {
     this.block = trigger.block ?? true;
     this.readOnly = trigger.readOnly ?? false;
@@ -28,11 +26,6 @@ globalThis.UITrigger = class UITrigger {
     this.hold = false;
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     element.state.clicked = false;
     const mx = device_mouse_x_to_gui(0);
@@ -79,7 +72,6 @@ globalThis.UITrigger = class UITrigger {
 
   /**
    * fire onUp/onLeave on teardown so held/hovered state isn't stranded.
-   * @param {UIElement} element
    */
   onDestroy(element) {
     this.release();

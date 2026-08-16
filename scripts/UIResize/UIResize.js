@@ -16,7 +16,7 @@
  * mouse_check_button* (the poll-once rule — UIPointer).
  */
 globalThis.UIResize = class UIResize {
-  /** @param {Object} [opts] { target, minWidth, minHeight, color, anchorCenterX } */
+  /** opts: { target, minWidth, minHeight, color, anchorCenterX } */
   constructor(opts = {}) {
     this.target = opts.target ?? null; // window root; falls back to host element
     this.minWidth = opts.minWidth ?? 240;
@@ -32,11 +32,6 @@ globalThis.UIResize = class UIResize {
     this._baseDragX = 0; // target.dragX at grab (anchorCenterX shift is relative to it)
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const target = this.target ?? element;
     const mx = device_mouse_x_to_gui(0);
@@ -77,7 +72,7 @@ globalThis.UIResize = class UIResize {
     return this._dragging || over || block;
   }
 
-  /** @param {UIElement} element draws the corner grip glyph (diagonal hatch). */
+  /** Draws the corner grip glyph (diagonal hatch). */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const a0 = draw_get_alpha();

@@ -8,7 +8,7 @@
  * safe to call mid-update (destroy happens later, UIElement `_destroyed` guards the unwind).
  */
 globalThis.UIModal = class UIModal {
-  /** @param {Object} [modal] { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide } */
+  /** modal: { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide } */
   constructor(modal = {}) {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
@@ -33,7 +33,6 @@ globalThis.UIModal = class UIModal {
 
   /**
    * visibility factor f∈[0,1]: 0 = hidden, 1 = shown.
-   * @param {number} f
    */
   _apply(f) {
     if (this._backdrop !== undefined && this._backdrop !== null) {
@@ -49,11 +48,7 @@ globalThis.UIModal = class UIModal {
     this._t = 0;
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} always true (exclusive) until removed
-   */
+  /** Always returns true (exclusive) until removed. */
   onUpdate(element, block) {
     if (this._phase === 3) return block;
 
@@ -90,7 +85,6 @@ globalThis.UIModal = class UIModal {
 
   // UINav reads this to stop collecting focusables beneath the modal (mirrors the
   // pointer block) until it's fully removed.
-  /** @returns {boolean} whether nav is blocked from roots beneath this modal */
   navExclusive() {
     return this._phase !== 3;
   }

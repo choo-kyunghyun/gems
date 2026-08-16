@@ -1,5 +1,3 @@
-// Settlement — a named, factioned TERRITORY that is both a data container (Name + Faction + capability
-// components) and a level Zone (its lands). Contract on the declaration below.
 /**
  * A settlement IS a Zone in the "settlement" ZoneMap channel: its painted cells are its lands, and its
  * `data` payload carries { sid, factionId, color, comp } — a stable id, the owner faction, the land

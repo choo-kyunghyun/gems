@@ -1,5 +1,3 @@
-// UIPointer — frame-latched pointer state for the whole UI. Singleton, not a UIComponent. Owns the
-// poll-once rule (contract below).
 /**
  * GMRT: mouse_check_button* are sampled REALTIME, not latched per frame, so re-querying the same edge
  * in a frame can diverge (broke SlotDrag's drop/cancel on the release edge — see CLAUDE.md). poll()

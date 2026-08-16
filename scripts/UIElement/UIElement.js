@@ -38,18 +38,15 @@
  * (https://www.yogalayout.dev/docs/styling/) cover the semantics.
  */
 globalThis.UIElement = class UIElement {
-  /** @param {Object} [style] flexpanel node style struct (fixed layout props, set once at construction) */
+  /** style: flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
     this.enabled = true;
     this.flexpanel = flexpanel_create_node(style);
     this.direction = flexpanel_direction.LTR;
-    /** @type {UIElement|null} */
     this.parent = null;
-    /** @type {UIElement[]} */
     this.children = [];
-    /** @type {UIComponent[]} */
     this.components = [];
-    /** @type {UIState} shared component blackboard — see the UIState typedef */
+    /** Shared component blackboard — see the UIState typedef. */
     this.state = {};
     this.dirty = true;
     // clip: children scissored to this rect. scrollY shifts descendants (not self) at draw+hit-test.
@@ -65,36 +62,19 @@ globalThis.UIElement = class UIElement {
     this._destroyed = false;
   }
 
-  /**
-   * @param {UIComponent} component
-   * @param {number} index
-   * @returns {UIElement}
-   */
   addComponent(component, index = this.components.length) {
     this.components.splice(index, 0, component);
     return this;
   }
 
-  /**
-   * @param {typeof UIComponent} ComponentClass
-   * @returns {UIComponent|undefined}
-   */
   getComponent(ComponentClass) {
     return this.components.find((c) => c instanceof ComponentClass);
   }
 
-  /**
-   * @param {typeof UIComponent} ComponentClass
-   * @returns {UIComponent[]}
-   */
   getComponents(ComponentClass) {
     return this.components.filter((c) => c instanceof ComponentClass);
   }
 
-  /**
-   * @param {UIComponent} component
-   * @returns {UIElement}
-   */
   removeComponent(component) {
     const index = this.components.indexOf(component);
     if (index > -1) {
@@ -120,8 +100,6 @@ globalThis.UIElement = class UIElement {
 
   /**
    * update subtree then own components. `block` = pointer already captured upstream.
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is now captured
    */
   update(block) {
     if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
@@ -227,11 +205,6 @@ globalThis.UIElement = class UIElement {
     else gpu_set_scissor(0, 0, tw, th);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {number} index
-   * @returns {UIElement}
-   */
   insertChild(element, index = this.children.length) {
     if (element.parent !== null) element.parent.removeChild(element);
     element.parent = this;
@@ -241,10 +214,6 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  /**
-   * @param {UIElement} element
-   * @returns {UIElement} the removed element
-   */
   removeChild(element) {
     const index = this.children.indexOf(element);
     if (index > -1) {
@@ -277,7 +246,6 @@ globalThis.UIElement = class UIElement {
 
   /**
    * flex-computed rect + own drag + all ancestor scroll/drag — single chokepoint for draw+hit-test.
-   * @returns {{left:number, top:number, width:number, height:number}}
    */
   getLayoutPosition() {
     const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
@@ -295,11 +263,6 @@ globalThis.UIElement = class UIElement {
     return pos;
   }
 
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {boolean}
-   */
   positionMeeting(x, y) {
     const pos = this.getLayoutPosition();
     return point_in_rectangle(
@@ -312,22 +275,12 @@ globalThis.UIElement = class UIElement {
     );
   }
 
-  /**
-   * @param {number} width
-   * @param {number} unit flexpanel_unit
-   * @returns {UIElement}
-   */
   setWidth(width, unit) {
     flexpanel_node_style_set_width(this.flexpanel, width, unit);
     this.markDirty();
     return this;
   }
 
-  /**
-   * @param {number} height
-   * @param {number} unit flexpanel_unit
-   * @returns {UIElement}
-   */
   setHeight(height, unit) {
     flexpanel_node_style_set_height(this.flexpanel, height, unit);
     this.markDirty();
@@ -368,12 +321,6 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  /**
-   * @param {number} edge flexpanel_edge
-   * @param {number} value
-   * @param {number} unit flexpanel_unit
-   * @returns {UIElement}
-   */
   setPosition(edge, value, unit) {
     flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
     this.markDirty();
@@ -482,12 +429,12 @@ globalThis.UIElement = class UIElement {
   //   return this;
   // }
 
-  /** @returns {{value:number, unit:number}} style width (not computed layout width) */
+  /** Style width (not computed layout width). */
   getWidth() {
     return flexpanel_node_style_get_width(this.flexpanel);
   }
 
-  /** @returns {{value:number, unit:number}} style height (not computed layout height) */
+  /** Style height (not computed layout height). */
   getHeight() {
     return flexpanel_node_style_get_height(this.flexpanel);
   }

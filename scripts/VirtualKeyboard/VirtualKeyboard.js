@@ -1,22 +1,18 @@
 // On-screen keyboard for gamepad/mouse text entry into a UIInput — standalone singleton. Keys are
 // gemsButtons (UINav-navigable); edits an in-memory buffer — Done commits, Cancel/Esc/backdrop discard.
 globalThis.VirtualKeyboard = {
-  /** @type {UIModal|null} */
   _modal: null,
-  /** @type {UIInput|null} */
   _input: null,
   _buffer: "",
   _shift: false,
 
   // METHOD not a getter — house style, not a runtime dodge.
-  /** @returns {boolean} */
   isOpen() {
     return VirtualKeyboard._input !== null;
   },
 
   /**
    * no-op if already open or input is null.
-   * @param {UIInput} input
    */
   open(input) {
     if (VirtualKeyboard.isOpen() || input == null) return;
@@ -42,7 +38,6 @@ globalThis.VirtualKeyboard = {
 
   /**
    * append a char, respecting the input's maxLength.
-   * @param {string} ch
    */
   type(ch) {
     if (!VirtualKeyboard.isOpen()) return;
@@ -80,7 +75,6 @@ globalThis.VirtualKeyboard = {
 
   /**
    * preview text: masked for password fields, placeholder when empty
-   * @returns {string}
    */
   _displayText() {
     const b = VirtualKeyboard._buffer;
@@ -95,7 +89,6 @@ globalThis.VirtualKeyboard = {
 
   /**
    * body layout
-   * @returns {UIElement}
    */
   _buildBody() {
     const body = gemsList({ gap: GemsTheme.gapSm });
@@ -157,10 +150,6 @@ globalThis.VirtualKeyboard = {
     return body;
   },
 
-  /**
-   * @param {string} chars
-   * @returns {UIElement}
-   */
   _charRow(chars) {
     const row = new UIElement({
       flexDirection: "row",
@@ -175,8 +164,6 @@ globalThis.VirtualKeyboard = {
 
   /**
    * a-z → A-Z by char code. NOT toUpperCase() — returns garbage Unicode on GMRT (see CLAUDE.md).
-   * @param {string} ch
-   * @returns {string}
    */
   _upper(ch) {
     if (ch < "a" || ch > "z") return ch;
@@ -185,8 +172,6 @@ globalThis.VirtualKeyboard = {
 
   /**
    * single char key; letters honor Shift (live label + typed value), digits don't
-   * @param {string} ch
-   * @returns {UIElement}
    */
   _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";

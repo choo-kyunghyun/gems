@@ -1,6 +1,3 @@
-// Level builder for the top-down demo (LevelSerializer genre "topdown") — build() creates the
-// resident tile layers and returns the grid handle. Contract on the RpgGrid declaration below.
-
 const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
 
 /**

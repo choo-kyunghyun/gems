@@ -1,12 +1,10 @@
-// Combobox field — opens a popup list to pick (vs UISelect's in-place `< >` cycle), the better fit
-// for many options. Owns only the closed field + selection. Contract on the class below.
 /**
  * The popup is built by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic
  * (gemsDropdown supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
  * @implements {UIComponent}
  */
 globalThis.UIDropdown = class UIDropdown {
-  /** @param {Object} [dd] { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
+  /** dd: { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
   constructor(dd = {}) {
     this.items = dd.items ?? [];
     this._index = dd.index ?? 0;
@@ -32,26 +30,23 @@ globalThis.UIDropdown = class UIDropdown {
 
   // METHOD not `get index()` — house style; the old "getter shadowing a GM name faults"
   // report was dismissed (2026-07 re-audit). Pairs with setIndex().
-  /** @returns {number} the selected index */
   getIndex() {
     return this._index;
   }
 
   // getValue/getName are methods for symmetry with getIndex (same house style).
-  /** @returns {*} the selected item's value (undefined if empty) */
+  /** Undefined if empty. */
   getValue() {
     return uiItemValue(this.items, this._index);
   }
 
-  /** @returns {string} the selected item's display name ("" if empty) */
+  /** "" if empty. */
   getName() {
     return uiItemName(this.items, this._index);
   }
 
   /**
    * Select index `i` (clamped).
-   * @param {number} i
-   * @returns {UIDropdown}
    */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
@@ -64,24 +59,17 @@ globalThis.UIDropdown = class UIDropdown {
     this._open = false;
   }
 
-  /** @param {UIElement} element */
   _toggle(element) {
     if (this._open || this.items.length === 0) return;
     this._open = true;
     this.onOpen(this, element);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     this._el = element;
     return this._fsm.onUpdate(element, block);
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const st = uiDrawSave();
@@ -119,7 +107,6 @@ globalThis.UIDropdown = class UIDropdown {
 
   // UINav: confirm opens the list; presence marks the field focusable. No navAxis — use
   // UISelect for a left/right cycler.
-  /** @param {UIElement} element */
   navActivate(element) {
     this._toggle(element);
   }

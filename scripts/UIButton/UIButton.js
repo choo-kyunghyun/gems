@@ -1,12 +1,10 @@
-// Themed button behavior over the shared UITrigger FSM (the `_fsm` delegate runs hover/press/commit
-// and writes element.state). This component adds the theming. Contract on the class below.
 /**
  * Eases panel color/border/shadow on Time.raw (the clock split), greys the label, and supports live
  * disabled + selected predicates (written to element.state.disabled/selected for any sibling reader).
  * @implements {UIComponent}
  */
 globalThis.UIButton = class UIButton {
-  /** @param {Object} [btn] see field defaults below for the accepted options */
+  /** btn: see field defaults below for the accepted options */
   constructor(btn = {}) {
     this.colorNormal = btn.colorNormal ?? c_white;
     this.colorHover = btn.colorHover ?? c_ltgray;
@@ -56,17 +54,11 @@ globalThis.UIButton = class UIButton {
   }
 
   // live predicate wins over static flag — callers can gate on changing state without polling.
-  /** @returns {boolean} */
   _disabled() {
     return this.getDisabled !== null ? this.getDisabled() : this.disabled;
   }
 
   // float channel ease — see constructor note on why not a packed-int lerp.
-  /**
-   * @param {number[]} ch
-   * @param {number} target
-   * @returns {number}
-   */
   _easeColor(ch, target) {
     const tr = color_get_red(target);
     const tg = color_get_green(target);
@@ -83,11 +75,6 @@ globalThis.UIButton = class UIButton {
     return make_colour_rgb(round(ch[0]), round(ch[1]), round(ch[2]));
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const panel = element.getComponent(UIPanel);
     const disabled = this._disabled();
@@ -175,13 +162,11 @@ globalThis.UIButton = class UIButton {
     return result;
   }
 
-  /** @param {UIElement} element */
   onDestroy(element) {
     this._fsm.onDestroy(element);
   }
 
   // UINav: confirm fires the click; presence marks element focusable.
-  /** @param {UIElement} element */
   navActivate(element) {
     if (!this._disabled()) this.onClick();
   }

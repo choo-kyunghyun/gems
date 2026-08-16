@@ -29,7 +29,7 @@ globalThis.Toast = {
     error: Color.parse("#e0584f"),
   },
 
-  /** @param {string} str @param {Object} [opts] { duration, type, accent } */
+  /** opts: { duration, type, accent }. */
   push(str, opts = {}) {
     const accent =
       opts.accent ?? Toast.accents[opts.type ?? "info"] ?? Toast.accents.info;

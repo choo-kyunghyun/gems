@@ -1,5 +1,3 @@
-// SettlementComponent — the registry of settlement CAPABILITY defs (market / depot / farm / …). Pure
-// data like FactionSystem/Rarity/Status; content registers its set from create()-time. Contract below.
 /**
  * The "just like faction" layer: a settlement carries a SettlementComponent id array in its Zone data
  * (Settlement.components/hasComponent/addComponent), and this registry describes each id. Behavior (a

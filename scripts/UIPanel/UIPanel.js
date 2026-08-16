@@ -17,7 +17,6 @@
  * @implements {UIComponent}
  */
 globalThis.UIPanel = class UIPanel {
-  /** @param {UIPanelOpts} [panel] */
   constructor(panel = {}) {
     this.color = panel.color ?? c_white;
     // edge color: draw_roundrect's two colors run center→edge (radial), reading as a rim/vignette.
@@ -37,7 +36,6 @@ globalThis.UIPanel = class UIPanel {
     this.highlightAlpha = panel.highlightAlpha ?? 0.06;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const x1 = pos.left;

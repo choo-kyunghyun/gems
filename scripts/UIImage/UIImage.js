@@ -11,7 +11,7 @@ globalThis.OBJECT_FIT = Object.freeze({
 // guards sprite_exists throughout (GMRT returns 0 frames for SVG sprites — see CLAUDE.md).
 /** @implements {UIComponent} */
 globalThis.UIImage = class UIImage {
-  /** @param {Object} [image] { sprite, subimg, xscale, yscale, rot, color, alpha, speed, fit } */
+  /** image: { sprite, subimg, xscale, yscale, rot, color, alpha, speed, fit } */
   constructor(image = {}) {
     this.sprite = image.sprite;
     this.subimg = image.subimg ?? 0;
@@ -28,9 +28,6 @@ globalThis.UIImage = class UIImage {
 
   /**
    * advance the subimage if `speed` is set.
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean}
    */
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;
@@ -41,7 +38,6 @@ globalThis.UIImage = class UIImage {
     return block;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
     // getLayoutPosition so the image inherits ancestor scroll offset.

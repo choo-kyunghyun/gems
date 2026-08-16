@@ -21,7 +21,7 @@ globalThis.FloatingText = {
     info: Color.parse("#cfd6e4"),
   },
 
-  /** @param {number} x @param {number} y @param {number|string} text @param {Object} [opts] { type, color, life, rise, scale } */
+  /** opts: { type, color, life, rise, scale }. */
   push(x, y, text, opts = {}) {
     const type = opts.type ?? "damage";
     FloatingText._items.push({
@@ -47,7 +47,6 @@ globalThis.FloatingText = {
    * camera, pitchDeg tilts each number to face the camera head-on (text readability — unlike the
    * entity sprites, which draw UPRIGHT via RenderBillboard) instead of splayed flat; 0 = flat
    * top-down. sceneRpg passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
-   * @param {number} [pitchDeg=0]
    */
   draw(pitchDeg = 0) {
     const items = FloatingText._items;

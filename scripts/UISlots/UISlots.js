@@ -15,7 +15,7 @@
  * GMRT: hover/selection read live each frame (no cached primitive bool to clobber).
  */
 globalThis.UISlots = class UISlots {
-  /** @param {Object} [s] { items, cols, cellSize, gap, pad, selected, onSelect, onActivate, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
+  /** s: { items, cols, cellSize, gap, pad, selected, onSelect, onActivate, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
   constructor(s = {}) {
     this.items = s.items ?? []; // flat array; entry is item-or-null
     this.cols = s.cols ?? 4;
@@ -45,9 +45,6 @@ globalThis.UISlots = class UISlots {
 
   /**
    * top-left of slot i in gui space, relative to the laid-out rect.
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @param {number} i
-   * @returns {{x:number, y:number}}
    */
   _slotXY(pos, i) {
     const step = this.cellSize + this.gap;
@@ -57,11 +54,6 @@ globalThis.UISlots = class UISlots {
     };
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const mx = device_mouse_x_to_gui(0);
@@ -131,7 +123,6 @@ globalThis.UISlots = class UISlots {
     return this._inside || block;
   }
 
-  /** @param {number} i */
   _select(i) {
     this.selected = i;
     this.onSelect(i, this.items[i]);
@@ -139,7 +130,6 @@ globalThis.UISlots = class UISlots {
 
   // ── nav ─────────────────────────────────────────────────────
   // confirm enters browse mode; its presence marks the element focusable (UINav duck-typing)
-  /** @param {UIElement} element */
   navActivate(element) {
     this._browsing = true;
     // seed the cursor on the current selection, else the first slot
@@ -169,13 +159,11 @@ globalThis.UISlots = class UISlots {
 
   /**
    * Release the browse-mode key claim on teardown.
-   * @param {UIElement} element
    */
   onDestroy(element) {
     UINav.releaseClaim(this);
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const st = uiDrawSave();

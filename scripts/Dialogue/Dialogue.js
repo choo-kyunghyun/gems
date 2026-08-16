@@ -1,5 +1,3 @@
-// RPG-style paged dialogue box with typewriter reveal — standalone singleton (not UIComponent).
-// Reveals at `speed` chars/sec on Time.raw; UINav suspends while open. Contract on the declaration below.
 /**
  * Advance with Enter/Space/gamepad-A or click (first snaps the page to revealed, next pages on; past
  * the last closes + fires onComplete). isOpen() is a METHOD not a getter — house style.
@@ -43,7 +41,7 @@ globalThis.Dialogue = {
     return Dialogue._open;
   },
 
-  /** @param {(string|{speaker?:string,text:string})[]} pages @param {Object} [opts] { speed, onComplete } */
+  /** pages: (string | {speaker?, text})[]; opts: { speed, onComplete }. */
   start(pages, opts = {}) {
     const list = [];
     for (let i = 0; i < pages.length; i++) {

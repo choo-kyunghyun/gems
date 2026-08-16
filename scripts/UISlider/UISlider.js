@@ -3,7 +3,7 @@
 globalThis.UISlider = class UISlider {
   static VALUE_W = 58; // right-side width reserved for the value readout (showValue); wide enough that "100%" at the 16px body font clears the thumb
 
-  /** @param {Object} [slider] { min, max, value, step, values, readOnly, onChange, showValue, format, valueColor, font, track, fill, thumb } */
+  /** slider: { min, max, value, step, values, readOnly, onChange, showValue, format, valueColor, font, track, fill, thumb } */
   constructor(slider = {}) {
     this.min = slider.min ?? 0;
     this.max = slider.max ?? 1;
@@ -29,10 +29,6 @@ globalThis.UISlider = class UISlider {
     this._fsm = new UITrigger({ readOnly: this.readOnly });
   }
 
-  /**
-   * @param {number} value
-   * @returns {number}
-   */
   _snap(value) {
     if (Array.isArray(this.values) && this.values.length > 0) {
       let best = 0;
@@ -54,8 +50,6 @@ globalThis.UISlider = class UISlider {
 
   /**
    * Snap + clamp `value` into range and fire onChange if it changed.
-   * @param {number} value
-   * @returns {UISlider}
    */
   setValue(value) {
     const next = clamp(this._snap(value), this.min, this.max);
@@ -67,8 +61,6 @@ globalThis.UISlider = class UISlider {
 
   /**
    * shared geometry so the hit-test matches the draw; thumb inset by its radius so it never clips the track.
-   * @param {{left:number, top:number, width:number, height:number}} pos
-   * @returns {{r:number, trackH:number, cy:number, inner:number, thumbX:number, trackW:number}}
    */
   _metrics(pos) {
     const r = Math.max(7, pos.height * 0.45);
@@ -89,7 +81,6 @@ globalThis.UISlider = class UISlider {
 
   /**
    * decimal places for the default readout, from `step` (continuous → 2).
-   * @returns {number}
    */
   _decimals() {
     if (typeof this.step !== "number" || this.step <= 0) return 2;
@@ -102,17 +93,11 @@ globalThis.UISlider = class UISlider {
     return dec;
   }
 
-  /** @returns {string} */
   _valueText() {
     if (this.format !== null) return this.format(this.value);
     return string_format(this.value, 0, this._decimals());
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const result = this._fsm.onUpdate(element, block);
@@ -129,7 +114,6 @@ globalThis.UISlider = class UISlider {
     return result;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const m = this._metrics(pos);
@@ -221,10 +205,7 @@ globalThis.UISlider = class UISlider {
   }
 
   // UINav: left/right nudges value by `step` (or 1/20 range when continuous).
-  /**
-   * @param {UIElement} element
-   * @param {number} dir -1 / +1
-   */
+  /**   */
   navAxis(element, dir) {
     if (this.readOnly) return;
     const inc =

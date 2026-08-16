@@ -17,7 +17,6 @@ globalThis.Tooltip = {
   offsetX: 22,
   offsetY: 24,
 
-  /** @param {string} str */
   set(str) {
     Tooltip.text = str;
   },

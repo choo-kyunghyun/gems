@@ -7,7 +7,7 @@
  * guarantee — see UI.insert/UI.draw), so no NaN guard is needed here.
  */
 globalThis.UINineSlice = class UINineSlice {
-  /** @param {Object} [slice] { sprite, subimg, color, alpha } — sprite must have IDE nine-slice enabled */
+  /** slice: { sprite, subimg, color, alpha } — sprite must have IDE nine-slice enabled */
   constructor(slice = {}) {
     this.sprite = slice.sprite;
     this.subimg = slice.subimg ?? 0;
@@ -15,7 +15,6 @@ globalThis.UINineSlice = class UINineSlice {
     this.alpha = slice.alpha ?? 1;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
     const pos = element.getLayoutPosition();

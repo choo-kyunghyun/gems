@@ -2,7 +2,7 @@
 // FIRST component (gemsTooltip does, index 0) so a sibling's `block` doesn't suppress its own tooltip.
 /** @implements {UIComponent} */
 globalThis.UITooltip = class UITooltip {
-  /** @param {Object} [tooltip] { label: string | () => string, delay: seconds } */
+  /** tooltip: { label: string | () => string, delay: seconds } */
   constructor(tooltip = {}) {
     // string or () => string (I18n.textRef-friendly), resolved live.
     this.label = uiTextRef(tooltip.label ?? "");
@@ -10,11 +10,6 @@ globalThis.UITooltip = class UITooltip {
     this._elapsed = 0;
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean}
-   */
   onUpdate(element, block) {
     const mx = device_mouse_x_to_gui(0);
     const my = device_mouse_y_to_gui(0);

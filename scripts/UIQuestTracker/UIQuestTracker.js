@@ -31,7 +31,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.emptyText = t.emptyText ?? ""; // string or () => string
   }
 
-  /** Total pixel height of all active quests — the factory sizes the element to this for UIScroll overflow. @returns {number} */
+  /** Total pixel height of all active quests — the factory sizes the element to this for UIScroll overflow. */
   contentHeight() {
     const ids = this.source ? this.source.activeIds() : [];
     if (ids.length === 0) return this.padY * 2 + this.objH;
@@ -44,7 +44,6 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     return h;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const st = uiDrawSave();

@@ -7,7 +7,7 @@
  * Pointer edges from UIPointer (frame-latched), not mouse_check_button* (realtime on GMRT).
  */
 globalThis.UIDrag = class UIDrag {
-  /** @param {Object} [opts] { target: UIElement } the window root to move (defaults to the host element) */
+  /** opts: { target: UIElement } the window root to move (defaults to the host element) */
   constructor(opts = {}) {
     this.target = opts.target ?? null; // window root; falls back to host element
     this._dragging = false;
@@ -15,11 +15,6 @@ globalThis.UIDrag = class UIDrag {
     this._lastY = 0;
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     const target = this.target ?? element;
     const mx = device_mouse_x_to_gui(0);

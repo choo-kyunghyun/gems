@@ -2,7 +2,7 @@
 // `range` colored by the first matching rule (`{ has: component token, color }`); target gets a notch.
 /** @implements {UIComponent} */
 globalThis.UIMinimap = class UIMinimap {
-  /** @param {Object} [m] { entities, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
+  /** m: { entities, target, range, rules: {has,color}[], inset, blipSize, bgColor, bgAlpha, ringColor, playerColor } */
   constructor(m = {}) {
     this.entities = m.entities ?? null;
     this.target = m.target ?? -1; // center entity id (also the player marker)
@@ -17,7 +17,6 @@ globalThis.UIMinimap = class UIMinimap {
     this.playerColor = m.playerColor ?? c_white;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     if (this.entities === null) return;
     const pos = element.getLayoutPosition();
@@ -77,7 +76,7 @@ globalThis.UIMinimap = class UIMinimap {
     draw_set_alpha(a0);
   }
 
-  /** @param {number} id @returns {number|null} the first matching rule color, or null if no rule matches */
+  /** The first matching rule color, or null if no rule matches. */
   _color(id) {
     for (let r = 0; r < this.rules.length; r++) {
       if (this.entities.get(this.rules[r].has, id) !== undefined)

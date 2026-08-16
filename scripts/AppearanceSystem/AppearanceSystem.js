@@ -1,5 +1,3 @@
-// Rebuilds an entity's Appearance layer stack from its Equipment — derived-from-source like
-// StatModel.recompute (a full rebuild can't drift), at equip/unequip chokepoints. Contract below.
 /**
  * Also runs after a carried sheet lands via EntitySnapshot.apply. No-op for entities without an
  * Appearance (opt-in: paper-doll humanoids only). An Equippable shows on the doll when its `worn` names

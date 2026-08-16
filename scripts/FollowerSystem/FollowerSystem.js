@@ -1,5 +1,3 @@
-// Squad follow AI + membership — update() drives EVERY Follower entity by live query (no roster list),
-// steering "follow" members toward the player. Contract on the declaration below.
 const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ramps to full
 
 /**

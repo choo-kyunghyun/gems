@@ -2,7 +2,7 @@
 // Style structs mirror UISlider: { color, rad?, border?, borderColor? }.
 /** @implements {UIComponent} */
 globalThis.UIProgress = class UIProgress {
-  /** @param {Object} [progress] { getValue|value, label, track, fill, color, font } */
+  /** progress: { getValue|value, label, track, fill, color, font } */
   constructor(progress = {}) {
     this._get = progress.getValue ?? (() => progress.value ?? 0); // static or live, 0..1
     this.label = progress.label != null ? uiTextRef(progress.label) : null;
@@ -13,7 +13,6 @@ globalThis.UIProgress = class UIProgress {
     this.font = progress.font ?? -1;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const a0 = draw_get_alpha();

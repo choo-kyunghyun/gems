@@ -1,5 +1,3 @@
-// SlotDrag — shared drag-and-drop state for UISlots grids (singleton, not a UIComponent): begin()
-// picks up on press, hover() records the target, update() resolves on release. Contract below.
 /**
  * The target is PERSISTED, so a small drift off the slot at button-up still drops. Pointer edges come
  * from UIPointer (frame-latched) — never mouse_check_button* directly (the poll-once rule — UIPointer).
@@ -17,8 +15,6 @@ globalThis.SlotDrag = {
 
   /**
    * Pick up the item in `grid` slot `i` (source slot empties).
-   * @param {UISlots} grid
-   * @param {number} i
    */
   begin(grid, i) {
     if (SlotDrag.active) return;
@@ -35,8 +31,6 @@ globalThis.SlotDrag = {
 
   /**
    * Record the drop target (the grid reports the slot under the cursor each frame).
-   * @param {UISlots} grid
-   * @param {number} j
    */
   hover(grid, j) {
     SlotDrag.hoverGrid = grid;
@@ -46,8 +40,6 @@ globalThis.SlotDrag = {
   /**
    * Place the carried item into `grid` slot `j`. Back onto the source slot reads as a click
    * (restore + select); otherwise swap the occupant back to source.
-   * @param {UISlots} grid
-   * @param {number} j
    */
   drop(grid, j) {
     if (!SlotDrag.active) return;

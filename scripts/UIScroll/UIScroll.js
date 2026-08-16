@@ -8,7 +8,7 @@
  * GMRT: pointer read live each frame (no cached primitive to clobber).
  */
 globalThis.UIScroll = class UIScroll {
-  /** @param {Object} [scroll] { content: UIElement, barW, barPad, minThumb, wheelStep, trackColor, trackAlpha, thumbColor, thumbHover } */
+  /** scroll: { content: UIElement, barW, barPad, minThumb, wheelStep, trackColor, trackAlpha, thumbColor, thumbHover } */
   constructor(scroll = {}) {
     this.content = scroll.content; // body element to measure + scroll
     this.scroll = 0; // scrollY in px
@@ -20,11 +20,7 @@ globalThis.UIScroll = class UIScroll {
     this._max = 0; // px of overflow at the last update
   }
 
-  /**
-   * @param {UIElement} element the clip viewport
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
+  /**   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;
@@ -73,7 +69,6 @@ globalThis.UIScroll = class UIScroll {
     return this._bar.dragging || element.positionMeeting(mx, my) || block;
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     if (this._track === null || !(this._max > 0)) return; // nothing overflowing → no scrollbar
     this._bar.draw(this._track);

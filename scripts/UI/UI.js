@@ -1,6 +1,5 @@
 // root registry. update() reverse (later overlay blocks earlier); draw() forward.
 globalThis.UI = {
-  /** @type {UIElement[]} */
   roots: [],
 
   // fixed design resolution; GUI is sized to this ÷ uiScale so layout is monitor-independent.
@@ -12,7 +11,6 @@ globalThis.UI = {
    * slider drags through it), which constrains how full-screen chrome is built: fill the space
    * with flex (`grow: true`), never by snapshotting `display_get_gui_height()` at build time —
    * a snapshot is stale the moment the scale moves. Fixed-size windows may size themselves.
-   * @param {number} scale
    */
   applyScale(scale) {
     display_set_gui_size(UI.designW / scale, UI.designH / scale);
@@ -24,12 +22,6 @@ globalThis.UI = {
     UI.roots = [];
   },
 
-  /**
-   * @param {UIElement} root
-   * @param {number} [index]
-   * @param {boolean} [enabled]
-   * @returns {typeof UI}
-   */
   insert(root, index = UI.roots.length, enabled = true) {
     root.enabled = enabled;
     UI.roots.splice(index, 0, root);
@@ -48,10 +40,6 @@ globalThis.UI = {
     return UI;
   },
 
-  /**
-   * @param {UIElement} root
-   * @returns {boolean} true if found and removed
-   */
   remove(root) {
     const index = UI.roots.indexOf(root);
     if (index > -1) {
@@ -61,11 +49,6 @@ globalThis.UI = {
     return false;
   },
 
-  /**
-   * @param {UIElement} root
-   * @param {boolean} enabled
-   * @returns {boolean} true if found
-   */
   setEnabled(root, enabled) {
     const index = UI.roots.indexOf(root);
     if (index > -1) {

@@ -1,5 +1,3 @@
-// Player-centered directional radar — a ring of arrows around the player, one per nearby entity,
-// pointing at it, colored by the first matching rule, sized by distance. Contract on the declaration below.
 /**
  * A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
  * the entity has that component. World-space immediate-mode; draw() from a level's draw() after

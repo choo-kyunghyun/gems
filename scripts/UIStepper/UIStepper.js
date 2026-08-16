@@ -2,7 +2,7 @@
 // `wrap`, the arrow at a reached limit is dimmed and inert.
 /** @implements {UIComponent} */
 globalThis.UIStepper = class UIStepper {
-  /** @param {Object} [stepper] { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
+  /** stepper: { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
   constructor(stepper = {}) {
     this.min = stepper.min ?? 0;
     this.max = stepper.max ?? 10;
@@ -32,8 +32,6 @@ globalThis.UIStepper = class UIStepper {
 
   /**
    * snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004).
-   * @param {number} v
-   * @returns {number}
    */
   _snap(v) {
     const snapped =
@@ -43,8 +41,6 @@ globalThis.UIStepper = class UIStepper {
 
   /**
    * Snap + clamp `v` and fire onChange if it changed.
-   * @param {number} v
-   * @returns {UIStepper}
    */
   setValue(v) {
     const next = this._snap(v);
@@ -56,7 +52,6 @@ globalThis.UIStepper = class UIStepper {
 
   /**
    * Step down by `step` (wraps to max if `wrap`).
-   * @returns {UIStepper}
    */
   decrement() {
     if (this.value <= this.min) {
@@ -68,7 +63,6 @@ globalThis.UIStepper = class UIStepper {
 
   /**
    * Step up by `step` (wraps to min if `wrap`).
-   * @returns {UIStepper}
    */
   increment() {
     if (this.value >= this.max) {
@@ -78,18 +72,12 @@ globalThis.UIStepper = class UIStepper {
     return this.setValue(this.value + this.step);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     // latch the arrow side BEFORE the FSM runs — its onClick commits from this frame's _side.
     this._side = uiPointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const st = uiDrawSave();
@@ -124,10 +112,7 @@ globalThis.UIStepper = class UIStepper {
   }
 
   // UINav: left/right steps value (horizontal nav adjusts instead of moving focus).
-  /**
-   * @param {UIElement} element
-   * @param {number} dir -1 / +1
-   */
+  /**   */
   navAxis(element, dir) {
     if (dir < 0) this.decrement();
     else this.increment();

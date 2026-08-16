@@ -7,7 +7,7 @@
  * one widget deliberately moved off press-commit in the FSM consolidation.
  */
 globalThis.UIAccordion = class UIAccordion {
-  /** @param {Object} [acc] { title, expanded, body, onToggle, font, rad, titleColor, headerColor, headerHover, chevronColor, chevronHover } */
+  /** acc: { title, expanded, body, onToggle, font, rad, titleColor, headerColor, headerHover, chevronColor, chevronHover } */
   constructor(acc = {}) {
     this.title = acc.title ?? ""; // string or () => string
     this.expanded = acc.expanded ?? false;
@@ -29,15 +29,12 @@ globalThis.UIAccordion = class UIAccordion {
     });
   }
 
-  /** @returns {string} */
   _title() {
     return typeof this.title === "function" ? this.title() : this.title;
   }
 
   /**
-   * Flip expanded, inserting/removing the body from the parent.
-   * @param {UIElement} element the header element
-   */
+   * Flip expanded, inserting/removing the body from the parent.   */
   toggle(element) {
     this.expanded = !this.expanded;
     const c = element.parent;
@@ -52,17 +49,11 @@ globalThis.UIAccordion = class UIAccordion {
     this.onToggle(this.expanded);
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     this._el = element;
     return this._fsm.onUpdate(element, block);
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const st = uiDrawSave();
@@ -111,7 +102,6 @@ globalThis.UIAccordion = class UIAccordion {
 
   /**
    * UINav: confirm expands/collapses the section.
-   * @param {UIElement} element
    */
   navActivate(element) {
     this.toggle(element);

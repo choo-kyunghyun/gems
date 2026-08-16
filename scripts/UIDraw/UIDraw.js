@@ -4,11 +4,6 @@
 /**
  * filled triangle pointing `dir`, centered at (cx, cy), half-size `h`. draw_triangle_color
  * (renders on GMRT 0.20).
- * @param {number} cx
- * @param {number} cy
- * @param {"left"|"right"|"up"|"down"} dir
- * @param {number} h half-size
- * @param {number} col
  */
 globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
   const b = h * 0.85; // base half-extent, perpendicular to the point
@@ -71,10 +66,6 @@ globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
  * the ◀ ▶ pair chrome shared by UISelect/UIStepper: arrows inset a fixed pad from each
  * end, at the row's vertical center. The caller supplies per-arrow colors (hover vs
  * disabled dimming differs) and draws its own centered label at the returned cy.
- * @param {{left:number, top:number, width:number, height:number}} pos the laid-out rect
- * @param {number} leftCol
- * @param {number} rightCol
- * @returns {number} cy — the row's vertical center
  */
 globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
   const cy = pos.top + pos.height * 0.5;
@@ -89,9 +80,6 @@ globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
  * which half of `element` the pointer is over: -1 left / +1 right / 0 not hovering (or
  * blocked). The ◀/▶ side latch UISelect/UIStepper stash BEFORE running their FSM, so the
  * release-edge onClick commits from the same frame's side.
- * @param {UIElement} element
- * @param {boolean} block
- * @returns {number}
  */
 globalThis.uiPointerSide = function uiPointerSide(element, block) {
   if (block) return 0;
@@ -106,13 +94,7 @@ globalThis.uiPointerSide = function uiPointerSide(element, block) {
  * roundrect outlines are always 1px). Shared by UIPanel's border, the UISlider thumb ring,
  * UISlots' selection, UIRebind's armed ring, and UINav's focus ring (which passes its
  * outer rect so the inward insets land on the same pixels as its old outward growth).
- * @param {number} x1
- * @param {number} y1
- * @param {number} x2
- * @param {number} y2
- * @param {number} rad corner radius (constant across insets)
- * @param {number} col
- * @param {number} thick
+ * `rad` is constant across insets.
  */
 globalThis.drawUIOutline = function drawUIOutline(
   x1,
@@ -144,13 +126,6 @@ globalThis.drawUIOutline = function drawUIOutline(
  * supplies the four fields the singletons already hold ({ panelColor, panelAlpha, borderColor,
  * borderAlpha? }), so each can pass itself; `a` scales BOTH alphas (Toast's fade). Leaves the
  * draw alpha at the border's — every caller restores its own draw state.
- * @param {number} x1
- * @param {number} y1
- * @param {number} x2
- * @param {number} y2
- * @param {number} rad corner radius
- * @param {Object} style
- * @param {number} [a] 0..1 multiplier
  */
 globalThis.drawUIPanel = function drawUIPanel(
   x1,
@@ -195,15 +170,6 @@ globalThis.drawUIPanel = function drawUIPanel(
  * the border OVER the fill (frames the whole track); UISlider strokes it under (the fill
  * covers its left span). Styles: track { color, border?, borderColor? },
  * fill { color, color2? } (color2 = roundrect's center→edge tint, not a gradient).
- * @param {number} x1
- * @param {number} y1
- * @param {number} x2
- * @param {number} y2
- * @param {number} rad
- * @param {number} fillTo fill's right edge (px)
- * @param {Object} track
- * @param {Object} fill
- * @param {boolean} borderOver
  */
 globalThis.drawUIBar = function drawUIBar(
   x1,
@@ -235,14 +201,6 @@ globalThis.drawUIBar = function drawUIBar(
  * center it — the draw rect for draw_sprite_stretched_ext. Shared by UIImage
  * (CONTAIN/SCALE_DOWN) and UISlots' cell icons. `maxScale` > 0 additionally caps the
  * scale (SCALE_DOWN); 0 = no cap.
- * @param {number} sw
- * @param {number} sh sprite size
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h the box
- * @param {number} [maxScale]
- * @returns {{x:number, y:number, w:number, h:number}}
  */
 globalThis.uiContainRect = function uiContainRect(
   sw,
@@ -265,9 +223,6 @@ globalThis.uiContainRect = function uiContainRect(
  * styles, as a no-op when unchanged so re-running it never dirties the tree. THE
  * style-mutation self-size mechanism (measure callbacks are unsupported on GMRT —
  * docs/GMRT.md → Known Incompatibilities); setWidth/setHeight mark the root dirty themselves.
- * @param {UIElement} element
- * @param {number} width
- * @param {number} height
  */
 globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
   if (
@@ -283,8 +238,6 @@ globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
  * normalize a `string | () => string` label into a live textRef fn — the Core twin of
  * gemsTextRef (which delegates here), reachable by Core widgets (UITooltip/UIProgress/
  * UIRebind). Normalize once at construction; don't call per frame (it allocates).
- * @param {string|(() => string)} label
- * @returns {() => string}
  */
 globalThis.uiTextRef = function uiTextRef(label) {
   return typeof label === "function" ? label : () => label;
@@ -295,33 +248,20 @@ globalThis.uiTextRef = function uiTextRef(label) {
  * the out-of-range fallbacks (value → undefined, name → ""), so the two widgets' selection
  * contracts can't drift. The list/index stay plain fields on the widgets (consumers read
  * `dropdown.items` directly).
- * @param {{name:string, value:*}[]} items
- * @param {number} i
- * @returns {*}
  */
 globalThis.uiItemValue = function uiItemValue(items, i) {
   const item = items[i];
   return item ? item.value : undefined;
 };
 
-/**
- * @param {{name:string, value:*}[]} items
- * @param {number} i
- * @returns {string}
- */
 globalThis.uiItemName = function uiItemName(items, i) {
   const item = items[i];
   return item ? item.name : "";
 };
 
 /**
- * checkmark (two width-lines) centered at (cx, cy), scaled by `s`. draw_line_width_color
- * (renders on GMRT 0.20).
- * @param {number} cx
- * @param {number} cy
- * @param {number} s scale
- * @param {number} col
- * @param {number} [w] stroke width override
+ * checkmark (two width-lines) centered at (cx, cy), scaled by `s`; `w` overrides the stroke
+ * width. draw_line_width_color (renders on GMRT 0.20).
  */
 globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
   const lw = w ?? Math.max(2, s * 0.12);
@@ -354,8 +294,6 @@ globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
  * undeclared key, so a construction-time resolve can freeze whatever font happened to be set.
  * (World-space render passes are the deliberate exception — they take a handle and rebuild on
  * map reload, not on a locale switch.)
- * @param {number|string} f
- * @returns {number}
  */
 globalThis.resolveUIFont = function resolveUIFont(f) {
   return typeof f === "string" ? I18n.font(f) : f;
@@ -365,7 +303,6 @@ globalThis.resolveUIFont = function resolveUIFont(f) {
  * capture the draw-state quintet a widget onDraw mutates; pair with uiDrawRestore.
  * Stateless — returns a plain snapshot object — so sequential/nested use can't corrupt
  * a shared slot.
- * @returns {{font:number, halign:number, valign:number, color:number, alpha:number}}
  */
 globalThis.uiDrawSave = function uiDrawSave() {
   return {
@@ -379,7 +316,6 @@ globalThis.uiDrawSave = function uiDrawSave() {
 
 /**
  * restore a uiDrawSave snapshot (unconditional — restoring an untouched field is a no-op).
- * @param {{font:number, halign:number, valign:number, color:number, alpha:number}} st
  */
 globalThis.uiDrawRestore = function uiDrawRestore(st) {
   draw_set_font(st.font);

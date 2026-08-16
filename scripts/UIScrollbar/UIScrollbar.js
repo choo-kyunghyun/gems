@@ -1,11 +1,9 @@
-// Shared vertical scrollbar model — the track/thumb geometry, drag latch, and two-roundrect draw used
-// by UIScroll (pixel) and UITable (rows). NOT a UIComponent. Contract on the class below.
 /**
  * The host widget owns when it runs; this owns only the bar. The host maps the normalized t ∈ [0,1]
  * returned by input() onto its own scroll unit (px or rows).
  */
 globalThis.UIScrollbar = class UIScrollbar {
-  /** @param {Object} [s] { barW, minThumb, trackColor, trackAlpha, thumbColor, thumbHover } */
+  /** s: { barW, minThumb, trackColor, trackAlpha, thumbColor, thumbHover } */
   constructor(s = {}) {
     this.barW = s.barW ?? 8;
     this.minThumb = s.minThumb ?? 24;
@@ -19,15 +17,8 @@ globalThis.UIScrollbar = class UIScrollbar {
   }
 
   /**
-   * track/thumb geometry for a bar at (x, y, h) showing `view` of `total` units with the
-   * current scroll at t ∈ [0,1]. Same shape consumed by input() and draw().
-   * @param {number} x
-   * @param {number} y
-   * @param {number} h track height (px)
-   * @param {number} view visible extent
-   * @param {number} total content extent (same unit)
-   * @param {number} t current scroll position, normalized
-   * @returns {{x:number, y:number, h:number, thumbH:number, thumbY:number}}
+   * track/thumb geometry for a bar at (x, y, h) showing `view` of `total` units (any shared
+   * unit) with the current scroll at t ∈ [0,1]. Same shape consumed by input() and draw().
    */
   metrics(x, y, h, view, total, t) {
     const ratio = total > 0 ? view / total : 1;
@@ -40,11 +31,7 @@ globalThis.UIScrollbar = class UIScrollbar {
    * pointer step: thumb hover + press latch + drag tracking. Reads the frame-latched
    * UIPointer edges (poll-once rule). `hoverGate` = extra hit-test condition the host
    * imposes (UIScroll also requires the pointer inside its viewport; pass true otherwise).
-   * @param {{x:number, y:number, h:number, thumbH:number, thumbY:number}} m
-   * @param {number} mx
-   * @param {number} my
-   * @param {boolean} hoverGate
-   * @returns {number} the dragged position t ∈ [0,1], or -1 when not dragging
+   * Returns the dragged position t ∈ [0,1], or -1 when not dragging.
    */
   input(m, mx, my, hoverGate) {
     this.over =
@@ -69,7 +56,6 @@ globalThis.UIScrollbar = class UIScrollbar {
     return -1;
   }
 
-  /** track + thumb (hover-tinted). @param {{x:number, y:number, h:number, thumbH:number, thumbY:number}} m */
   draw(m) {
     const a0 = draw_get_alpha();
     const rad = this.barW * 0.5;

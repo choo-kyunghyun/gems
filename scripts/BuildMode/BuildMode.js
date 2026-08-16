@@ -1,5 +1,3 @@
-// Grid build mode (stateless singleton like Interactable): consumes/refunds wood to place palette
-// content, gated to a player-owned Settlement. Contract on the BuildMode declaration below.
 /**
  * Gated to a PLAYER-OWNED Settlement (a Zone in the "settlement" ZoneMap channel, owner faction
  * "player") — founded by pressing E at a Survey Post (Interactable routes to BuildMode.claim →

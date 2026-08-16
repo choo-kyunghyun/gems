@@ -1,5 +1,3 @@
-// Snapshot — the multi-stage save/load FRAME (persistence analogue of Renderer:RenderPass): an
-// ordered list of PASSES, each capturing AND restoring one slice of the world. Contract below.
 /**
  * A save is built by an ordered list of PASSES, each owning one aspect of the world (metadata,
  * world-sim, per-map entities, tile grids, chunk cache, …); the same pass captures AND restores its

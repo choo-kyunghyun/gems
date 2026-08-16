@@ -2,7 +2,6 @@
 // Drawn immediate-mode in onDraw; eases on Time.raw (the clock split).
 /** @implements {UIComponent} */
 globalThis.UICheckbox = class UICheckbox {
-  /** @param {Object} [box={}] */
   constructor(box = {}) {
     this._get = box.getValue ?? (() => box.value ?? false); // static or live source
     this.onToggle = box.onToggle ?? noop;
@@ -24,16 +23,10 @@ globalThis.UICheckbox = class UICheckbox {
     this._t = undefined; // eased 0..1 toward the current on/off state
   }
 
-  /**
-   * @param {UIElement} element
-   * @param {boolean} block
-   * @returns {boolean} whether the pointer is captured
-   */
   onUpdate(element, block) {
     return this._fsm.onUpdate(element, block);
   }
 
-  /** @param {UIElement} element */
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const on = !!this._get();
@@ -111,7 +104,6 @@ globalThis.UICheckbox = class UICheckbox {
   }
 
   // UINav: confirm toggles; presence marks element focusable.
-  /** @param {UIElement} element */
   navActivate(element) {
     if (!this.readOnly) this.onToggle();
   }
