@@ -1,15 +1,6 @@
-// Segment-vs-AABB raycast over all collider entities. Returns nearest hit { id, x, y, nx, ny, t } along
-// (x0,y0)->(x1,y1), or null. Shared by ProjectileSystem + LOS. opts: { ignore? (id), solidOnly? (true) }.
+// Returns nearest hit { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null.
+// opts: { ignore? (id), solidOnly? (true) }.
 globalThis.Raycast = {
-  /**
-   * @param {Entity} entities
-   * @param {number} x0
-   * @param {number} y0
-   * @param {number} x1
-   * @param {number} y1
-   * @param {Object} [opts={}]
-   * @returns {{id:number,x:number,y:number,nx:number,ny:number,t:number}|null}
-   */
   cast(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
@@ -44,16 +35,7 @@ globalThis.Raycast = {
   },
 
   // Every solid collider the segment crosses, ASCENDING by entry distance `t` — multi-hit
-  // counterpart to cast(). Used by hitscan pierce walks (Combat.hitscan) needing every body, not just the nearest.
-  /**
-   * @param {Entity} entities
-   * @param {number} x0
-   * @param {number} y0
-   * @param {number} x1
-   * @param {number} y1
-   * @param {Object} [opts={}]
-   * @returns {{id:number,x:number,y:number,nx:number,ny:number,t:number}[]}
-   */
+  // counterpart to cast().
   castAll(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
@@ -90,15 +72,6 @@ globalThis.Raycast = {
   /**
    * Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
    * starting inside), or null. nx/ny is the surface normal pointing back along the ray.
-   * @param {number} x0
-   * @param {number} y0
-   * @param {number} dx
-   * @param {number} dy
-   * @param {number} bx1
-   * @param {number} by1
-   * @param {number} bx2
-   * @param {number} by2
-   * @returns {{t:number,nx:number,ny:number}|null}
    */
   _segmentAABB(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;

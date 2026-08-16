@@ -18,32 +18,18 @@
 globalThis.StateSystem = {
   _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)
 
-  /**
-   * Register named states; re-registering an id replaces it (content registration is idempotent).
-   * @param {StateSchema[]} defs
-   */
+  /** Re-registering an id replaces it (content registration is idempotent). */
   register(defs) {
     for (const def of defs) StateSystem._defs.set(def.id, def);
   },
 
-  /**
-   * Resolve a state id — throws on an unknown name (fail fast: a typo'd transition/preset).
-   * @param {string} id
-   * @returns {StateSchema}
-   */
+  /** Throws on an unknown name (fail fast: a typo'd transition/preset). */
   get(id) {
     const def = StateSystem._defs.get(id);
     if (def === undefined) throw new Error(`Unknown state: ${id}`);
     return def;
   },
 
-  /**
-   * queue a transition to a registered state id; no-op if already in it unless `force`.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} name
-   * @param {boolean} [force]
-   */
   change(entities, id, name, force = false) {
     const state = entities.get(State, id);
     if (state === undefined) return;
@@ -51,7 +37,6 @@ globalThis.StateSystem = {
     state.next = name;
   },
 
-  /** @param {Entity} entities */
   update(entities) {
     const ids = entities.query(State);
     for (const id of ids) {

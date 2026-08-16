@@ -1,7 +1,6 @@
 // Detection only — fills Collision.hits for sensors/pickups/triggers (no resolution); solid-vs-solid
 // pairs skipped (SolidSystem/SeparationSystem handle those). O(n) via entities.broadphase, else O(n²).
 globalThis.TriggerSystem = {
-  /** @param {Entity} entities */
   update(entities) {
     const all = entities.query(Collision, Position, BBox);
 

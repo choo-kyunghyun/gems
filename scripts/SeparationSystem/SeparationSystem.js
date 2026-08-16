@@ -3,7 +3,6 @@
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
-  /** @param {Entity} entities */
   update(entities) {
     // collect once; positions shift per pass but the body list is stable
     const bodies = [];
@@ -28,12 +27,6 @@ globalThis.SeparationSystem = {
     }
   },
 
-  /**
-   * MTV split along shallower axis, half-step each body (equal mass).
-   * @param {Entity} entities
-   * @param {number} ida
-   * @param {number} idb
-   */
   _separate(entities, ida, idb) {
     const a = AABB.of(entities, ida);
     const b = AABB.of(entities, idb);

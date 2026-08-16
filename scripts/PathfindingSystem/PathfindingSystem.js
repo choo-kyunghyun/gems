@@ -1,14 +1,12 @@
-// ECS glue over MotionPlanner — add PathRequest → update resolves → current/advance walk waypoints →
-// invalidate on grid change. Grid wired via MotionPlanner.setGrid (RpgMap points it at the per-map NavGrid).
+// Grid wired via MotionPlanner.setGrid (RpgMap points it at the per-map NavGrid).
 globalThis.PathfindingSystem = {
-  /** drop all responses so stale paths re-plan after a grid change. @param {Entity} entities */
+  /** Drop all responses so stale paths re-plan after a grid change. */
   invalidate(entities) {
     for (const id of entities.query(PathResponse)) {
       entities.detach(id, PathResponse);
     }
   },
 
-  /** @param {Entity} entities */
   update(entities) {
     for (const id of entities.query(PathRequest)) {
       const req = entities.get(PathRequest, id);
@@ -23,23 +21,12 @@ globalThis.PathfindingSystem = {
     }
   },
 
-  /**
-   * @param {Entity} entities
-   * @param {number} id
-   * @returns {{x:number,y:number}|undefined}
-   */
   current(entities, id) {
     const response = entities.get(PathResponse, id);
     if (response === undefined) return undefined;
     return response.path[response.index];
   },
 
-  /**
-   * advance cursor; returns false and detaches PathResponse when complete.
-   * @param {Entity} entities
-   * @param {number} id
-   * @returns {boolean}
-   */
   advance(entities, id) {
     const response = entities.get(PathResponse, id);
     if (response === undefined) return false;

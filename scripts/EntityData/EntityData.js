@@ -1,13 +1,7 @@
-// SoA component store — one dense Array per component token, indexed by
-// EntityID.getIndex(id); one per entity store. The store's API contracts live on `Entity`.
 globalThis.EntityData = class EntityData {
-  /**
-   * @param {number} maxEntities slot capacity
-   * @param {EntityID} ids the owning store's allocator
-   */
   constructor(maxEntities, ids) {
     this.maxEntities = maxEntities;
-    this.ids = ids; // for query bounds (ids.next) + generations, to rebuild ids from indices
+    this.ids = ids;
     this.components = new Map();
     // #15095: iterate _keys/_storages (Map mirror, registration order), never a Map iterator;
     // the Map is only O(1) token lookup.
@@ -15,18 +9,12 @@ globalThis.EntityData = class EntityData {
     this._storages = [];
   }
 
-  /** Drop all storage (Entity.destroy). Ids are the store's concern. */
   destroy() {
     this.components.clear();
     this._keys = [];
     this._storages = [];
   }
 
-  /**
-   * Allocate a dense storage array for a component token (auto-called by add).
-   * @param {string} ComponentClass
-   * @returns {this}
-   */
   register(ComponentClass) {
     if (!this.components.has(ComponentClass)) {
       const storage = new Array(this.maxEntities).fill(undefined);
@@ -37,48 +25,27 @@ globalThis.EntityData = class EntityData {
     return this;
   }
 
-  /**
-   * Set component data at an entity's slot; auto-registers the token.
-   * @param {number} id
-   * @param {string} ComponentClass
-   * @param {Object} data
-   */
   add(id, ComponentClass, data) {
     if (!this.components.has(ComponentClass)) this.register(ComponentClass);
     this.components.get(ComponentClass)[EntityID.getIndex(id)] = data;
   }
 
-  /**
-   * @param {string} ComponentClass
-   * @param {number} id
-   * @returns {Object|undefined}
-   */
   get(ComponentClass, id) {
     const storage = this.components.get(ComponentClass);
     if (storage === undefined) return undefined;
     return storage[EntityID.getIndex(id)];
   }
 
-  /**
-   * @param {number} id
-   * @param {string} ComponentClass
-   */
   detach(id, ComponentClass) {
     const storage = this.components.get(ComponentClass);
     if (storage !== undefined) storage[EntityID.getIndex(id)] = undefined;
   }
 
-  /** Null every component slot at an entity index (Entity.flush, after removal). @param {number} index */
   clear(index) {
     for (let s = 0; s < this._storages.length; s++)
       this._storages[s][index] = undefined;
   }
 
-  /**
-   * All components this entity has, keyed by token. Used by EntitySnapshot.
-   * @param {number} id
-   * @returns {Object<string,Object>}
-   */
   componentsOf(id) {
     const out = {};
     const i = EntityID.getIndex(id);
@@ -89,12 +56,7 @@ globalThis.EntityData = class EntityData {
     return out;
   }
 
-  /**
-   * Ids of every entity with ALL listed components. Closure-free: `c === n` stands in for
-   * `.every()` to avoid GMRT boolean-local clobber.
-   * @param {string[]} ComponentClasses
-   * @returns {number[]}
-   */
+  /** Closure-free: `c === n` stands in for `.every()` to avoid the GMRT boolean-local clobber. */
   query(ComponentClasses) {
     const n = ComponentClasses.length;
     const storages = new Array(n);
@@ -115,11 +77,6 @@ globalThis.EntityData = class EntityData {
     return result;
   }
 
-  /**
-   * Allocation-free query(): calls fn(id) per matching entity without materializing an array.
-   * @param {string[]} ComponentClasses
-   * @param {(id:number) => void} fn
-   */
   forEach(ComponentClasses, fn) {
     const n = ComponentClasses.length;
     const storages = new Array(n);
@@ -138,7 +95,6 @@ globalThis.EntityData = class EntityData {
     }
   }
 
-  /** @returns {Object<string,Array>} sparse [index, data] entries per component (Entity.export wraps this with ids) */
   export() {
     const components = {};
     for (let k = 0; k < this._keys.length; k++) {
@@ -152,7 +108,7 @@ globalThis.EntityData = class EntityData {
     return components;
   }
 
-  /** Restore from export(); unknown component keys are ignored. @param {Object<string,Array>} components */
+  /** Unknown component keys are ignored. */
   import(components) {
     for (let k = 0; k < this._keys.length; k++) {
       const storage = this._storages[k];

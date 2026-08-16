@@ -1,4 +1,3 @@
-// THE shared body of every content registry — stateless ops over a store. Contract below.
 /**
  * A content registry is a def table keyed by string id plus the ids in registration order, and
  * the members over them (`register`/`get`/`has`/`rank`/`all`). Every registry in the project is
@@ -21,10 +20,8 @@
  */
 globalThis.Registry = {
   /**
-   * @param {Object} store the facade holding `_defs`/`_order`
-   * @param {Object[]} list raw defs
-   * @param {(def: Object) => Object} [make] normalizes a raw def before storage — construct a
-   *   class, apply field defaults. Omit to store the def as authored; the result must carry `id`.
+   * `make` normalizes a raw def before storage (construct a class, apply field defaults);
+   * omit to store the def as authored. The result must carry `id`.
    */
   register(store, list, make) {
     for (let i = 0; i < list.length; i++) {
@@ -34,40 +31,19 @@ globalThis.Registry = {
     }
   },
 
-  /**
-   * @param {Object} store
-   * @param {string} id
-   * @returns {Object|undefined}
-   */
   get(store, id) {
     return store._defs.get(id);
   },
 
-  /**
-   * @param {Object} store
-   * @param {string} id
-   * @returns {boolean}
-   */
   has(store, id) {
     return store._defs.has(id);
   },
 
-  /**
-   * Registration index of `id`, -1 when unregistered — the tier/sort rank of an ordered registry
-   * (Rarity's tiers run low → high).
-   * @param {Object} store
-   * @param {string} id
-   * @returns {number}
-   */
+  /** The tier/sort rank of an ordered registry (Rarity's tiers run low → high); -1 when unregistered. */
   rank(store, id) {
     return store._order.indexOf(id);
   },
 
-  /**
-   * Every def in registration order; a fresh array each call.
-   * @param {Object} store
-   * @returns {Object[]}
-   */
   all(store) {
     const out = [];
     for (let i = 0; i < store._order.length; i++)

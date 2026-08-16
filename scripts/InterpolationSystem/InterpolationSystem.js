@@ -1,11 +1,8 @@
-// Render-interpolation bookkeeping — snapshot() at the TOP of each tick (before any system moves
-// Position); lerp() is the shared render formula. Contract on the declaration below.
 /**
  * lerp: PrevPosition + (Position - PrevPosition) * alpha, shared by all render passes. Only movers get
  * PrevPosition; static bodies fall back to raw Position.
  */
 globalThis.InterpolationSystem = {
-  /** @param {Entity} entities */
   snapshot(entities) {
     for (const id of entities.query(Position, Velocity)) {
       const pos = entities.get(Position, id);
@@ -20,13 +17,7 @@ globalThis.InterpolationSystem = {
     }
   },
 
-  /**
-   * interpolated render position; writes into `out` (reused scratch, no alloc per entity).
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {{x:number,y:number}} out
-   * @returns {{x:number,y:number}} out
-   */
+  /** Writes into `out` (reused scratch — no alloc per entity). */
   lerp(entities, id, out) {
     const pos = entities.get(Position, id);
     const prev = entities.get(PrevPosition, id);

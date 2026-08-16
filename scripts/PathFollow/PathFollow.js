@@ -1,5 +1,3 @@
-// Path-following + terrain movement-cost helper — the CONSUMER side of the pathfinding flow (walks a
-// PathResponse and prices the ground a mover stands on). Contract on the declaration below.
 /**
  * PathfindingSystem owns request→response; this walks a PathResponse (throttled replan, waypoint
  * cursor) and returns the proper movement point each tick, and prices the ground so terrain path cost
@@ -17,32 +15,18 @@ globalThis.PathFollow = {
   // land on a blocked/Infinity sliver (deep-water edge cell) crawls out instead of stranding.
   maxCost: 4,
 
-  /**
-   * @param {((wx: number, wy: number) => number)|null} [provider]
-   */
   bind(provider) {
     this.costProvider = provider ?? null;
   },
 
-  /**
-   * terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it)
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {number}
-   */
+  /** Terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it). */
   costAt(wx, wy) {
     if (this.costProvider === null) return 1;
     const c = this.costProvider(wx, wy);
     return c >= 1 ? c : 1;
   },
 
-  /**
-   * Movement-point consumption as a speed factor: crossing a cost-c cell takes c× longer, so a
-   * mover multiplies its speed by 1/c — full speed on easy ground, slower on rough, slowest wading.
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {number}
-   */
+  /** Crossing a cost-c cell takes c× longer, so a mover multiplies its speed by 1/c. */
   speedScale(wx, wy) {
     const c = this.costAt(wx, wy);
     return 1 / (c < this.maxCost ? c : this.maxCost);
@@ -54,14 +38,6 @@ globalThis.PathFollow = {
    * cursor on arrival — or (tx, ty) itself while no path exists (the request resolves later this
    * tick in PathfindingSystem, so the first path is followable next tick). `state` is any bag
    * carrying pathCd/pathRate (CombatAI's Brain); `sp` the mover's Position.
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {number} id
-   * @param {Object} state
-   * @param {Position} sp
-   * @param {number} tx
-   * @param {number} ty
-   * @returns {{x:number,y:number}}
    */
   target(entities, grid, id, state, sp, tx, ty) {
     if (state.pathCd > 0) state.pathCd--;
@@ -90,11 +66,7 @@ globalThis.PathFollow = {
     return ww;
   },
 
-  /**
-   * drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior)
-   * @param {Entity} entities
-   * @param {number} id
-   */
+  /** Drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior). */
   clear(entities, id) {
     if (entities.get(PathResponse, id) !== undefined)
       entities.detach(id, PathResponse);
