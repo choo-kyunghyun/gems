@@ -1,4 +1,3 @@
-// ── GemsUI kit: containers — layout/structure factories ──────
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 /**

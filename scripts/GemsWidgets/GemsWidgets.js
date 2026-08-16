@@ -1,4 +1,3 @@
-// ── GemsUI kit: text / tooltip / buttons ─────────────────────
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 /**

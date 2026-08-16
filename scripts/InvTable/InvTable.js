@@ -11,8 +11,6 @@ globalThis.InvTable = {
    * THE identity of a row model across the inventory family: the instance uid when present (so a
    * re-click, or a re-map after a refresh, hits the same modded gun and not its twin), else the
    * item id. "#" keeps a uid from ever colliding with an item id.
-   * @param {Object} row
-   * @returns {string}
    */
   rowId(row) {
     return row.uid !== undefined ? "#" + row.uid : row.itemId;
@@ -25,10 +23,6 @@ globalThis.InvTable = {
    * can't cross-trigger; `scope` separates panes within one (bag vs chest), and the row's slot
    * index keeps two stacks of the same item apart. Arrowing a list fires with a different row
    * each step, so browse mode can never trip it.
-   * @param {{key:string, time:number}} state
-   * @param {Object} row
-   * @param {string} scope
-   * @returns {boolean}
    */
   reclick(state, row, scope) {
     const key = scope + "|" + InvTable.rowId(row) + "|" + (row.idx ?? "");
@@ -40,10 +34,6 @@ globalThis.InvTable = {
   },
 
   // Settings-gated column set. stable `key` lets UITable.setColumns remap the sort on toggle.
-  /**
-   * @param {Object} [opts={}]
-   * @returns {Object[]}
-   */
   columns(opts = {}) {
     const gold = gemsColor("warn");
     const accent = gemsColor(GemsTheme.accent);
@@ -145,11 +135,6 @@ globalThis.InvTable = {
 
   /**
    * row model from an inventory slot. callers extend with their own fields (bag adds `worn`, chest adds `idx`).
-   * @param {string} itemId
-   * @param {number} qty
-   * @param {string} [uid]
-   * @param {Object<string, string>} [mods]
-   * @returns {Object}
    */
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
@@ -186,8 +171,6 @@ globalThis.InvTable = {
   /**
    * Item-id tint by rarity, c_white when the id or its rarity is unknown. THE shared item
    * color: every inventory-family panel and the world drop squares read it from here.
-   * @param {string} itemId
-   * @returns {number}
    */
   rarityColor(itemId) {
     const it = Item.get(itemId);
@@ -197,8 +180,6 @@ globalThis.InvTable = {
 
   /**
    * filter/display category from capability components
-   * @param {Item} [it]
-   * @returns {{code:string, key:string}}
    */
   category(it) {
     if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
@@ -213,8 +194,6 @@ globalThis.InvTable = {
 
   /**
    * ASCII lowercase via char codes — toLowerCase() returns garbage Unicode on GMRT (see CLAUDE.md)
-   * @param {string} s
-   * @returns {string}
    */
   lower(s) {
     let out = "";

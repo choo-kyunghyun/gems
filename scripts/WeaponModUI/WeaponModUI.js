@@ -15,9 +15,6 @@
 globalThis.WeaponModUI = {
   /**
    * record the hosts CraftingUI built + init selection (the workbench owns open/close).
-   * @param {Object} level
-   * @param {UIElement} listHost
-   * @param {UIElement} detailHost
    */
   buildPanel(level, listHost, detailHost) {
     level._modSel = ""; // selected weapon instance uid (defaulted to the first on refresh)
@@ -28,7 +25,6 @@ globalThis.WeaponModUI = {
   /**
    * rebuild both panels, ensuring a valid selection (default to the first weapon; reset if the
    * selected uid is no longer owned).
-   * @param {Object} level
    */
   refresh(level) {
     const inv = level.entities.get(Inventory, level.playerId);
@@ -41,8 +37,6 @@ globalThis.WeaponModUI = {
 
   /**
    * Owned weapon instances (slots with a uid whose item has a Weapon component).
-   * @param {Inventory} [inv]
-   * @returns {InventorySlot[]}
    */
   _weaponInstances(inv) {
     const out = [];
@@ -56,11 +50,6 @@ globalThis.WeaponModUI = {
     return out;
   },
 
-  /**
-   * @param {InventorySlot[]} weapons
-   * @param {string} uid
-   * @returns {boolean}
-   */
   _hasUid(weapons, uid) {
     for (let i = 0; i < weapons.length; i++)
       if (weapons[i].uid === uid) return true;
@@ -69,8 +58,6 @@ globalThis.WeaponModUI = {
 
   /**
    * filled attachment slots on an instance (its `mods` MAP). for...in is GMRT-safe.
-   * @param {InventorySlot} slot
-   * @returns {number}
    */
   _modCount(slot) {
     let n = 0;
@@ -80,7 +67,6 @@ globalThis.WeaponModUI = {
 
   /**
    * ensure a slot's `mods` is a MAP (tolerate a {} or a stale pre-overhaul array).
-   * @param {InventorySlot} slot
    */
   _ensureMap(slot) {
     if (slot.mods === undefined) slot.mods = {};
@@ -90,9 +76,6 @@ globalThis.WeaponModUI = {
   /**
    * Left: one selectable button per weapon instance (name "+N", "[E]" when equipped),
    * refilled via the shared gemsFillList.
-   * @param {Object} level
-   * @param {Inventory} [inv]
-   * @param {InventorySlot[]} weapons
    */
   _fillList(level, inv, weapons) {
     const eq = level.entities.get(Equipment, level.playerId);
@@ -123,9 +106,6 @@ globalThis.WeaponModUI = {
   /**
    * Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
    * the panel stacks within the near-fullscreen workbench card (ample room for a fully-stuffed gun).
-   * @param {Object} level
-   * @param {Inventory} [inv]
-   * @param {InventorySlot[]} weapons
    */
   _fillDetail(level, inv, weapons) {
     const host = level._modDetail;
@@ -240,11 +220,6 @@ globalThis.WeaponModUI = {
 
   /**
    * gun ammo block: loaded type + clip, a Reload button, a Load picker of compatible ammo.
-   * @param {Object} level
-   * @param {Inventory} inv
-   * @param {InventorySlot} slot
-   * @param {Gun} gun
-   * @param {Object} prof
    */
   _fillAmmo(level, inv, slot, gun, prof) {
     const host = level._modDetail;
@@ -298,11 +273,6 @@ globalThis.WeaponModUI = {
 
   /**
    * owned-ammo row: name x count + Load (loads/tops up the selected gun's magazine).
-   * @param {Object} level
-   * @param {Inventory} inv
-   * @param {InventorySlot} slot
-   * @param {string} ammoId
-   * @returns {UIElement}
    */
   _ammoRow(level, inv, slot, ammoId) {
     const it = Item.get(ammoId);
@@ -342,10 +312,6 @@ globalThis.WeaponModUI = {
 
   /**
    * named-slot row: "[Category]: AttachmentName" + Remove, or "[Category]: (empty)".
-   * @param {Object} level
-   * @param {InventorySlot} slot
-   * @param {Object} slotDef
-   * @returns {UIElement}
    */
   _slotRow(level, slot, slotDef) {
     const installed = slot.mods[slotDef.id]; // attachment itemId, or undefined when empty
@@ -384,12 +350,6 @@ globalThis.WeaponModUI = {
 
   /**
    * available-attachment row: name x count + Install (into the first matching empty slot).
-   * @param {Object} level
-   * @param {Inventory} inv
-   * @param {InventorySlot} slot
-   * @param {Weapon} wpn
-   * @param {string} modId
-   * @returns {UIElement}
    */
   _availableRow(level, inv, slot, wpn, modId) {
     const it = Item.get(modId);
@@ -423,10 +383,6 @@ globalThis.WeaponModUI = {
 
   /**
    * first empty slot id that accepts this attachment's category, or undefined.
-   * @param {Weapon} wpn
-   * @param {InventorySlot} slot
-   * @param {string} modId
-   * @returns {string|undefined}
    */
   _targetSlot(wpn, slot, modId) {
     const it = Item.get(modId);
@@ -442,10 +398,6 @@ globalThis.WeaponModUI = {
 
   /**
    * install modId into the first matching empty slot: consume one, record it, re-derive Stats.
-   * @param {Object} level
-   * @param {InventorySlot} slot
-   * @param {Weapon} wpn
-   * @param {string} modId
    */
   _installFirst(level, slot, wpn, modId) {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
@@ -461,9 +413,6 @@ globalThis.WeaponModUI = {
 
   /**
    * remove the attachment in slot id: refund it, re-derive Stats.
-   * @param {Object} level
-   * @param {InventorySlot} slot
-   * @param {string} slotId
    */
   _removeFrom(level, slot, slotId) {
     const modId = slot.mods[slotId];
@@ -479,9 +428,6 @@ globalThis.WeaponModUI = {
 
   /**
    * distinct itemIds of owned Ammo items of `caliber` (in slot order).
-   * @param {Inventory} [inv]
-   * @param {string} caliber
-   * @returns {string[]}
    */
   _ownedAmmo(inv, caliber) {
     const out = [];
@@ -502,9 +448,6 @@ globalThis.WeaponModUI = {
 
   /**
    * distinct itemIds of owned WeaponMod items whose category fits one of this weapon's slots.
-   * @param {Inventory} [inv]
-   * @param {Weapon} wpn
-   * @returns {string[]}
    */
   _compatibleMods(inv, wpn) {
     const out = [];
@@ -523,11 +466,6 @@ globalThis.WeaponModUI = {
     return out;
   },
 
-  /**
-   * @param {Weapon} wpn
-   * @param {string} category
-   * @returns {boolean}
-   */
   _weaponAccepts(wpn, category) {
     for (let i = 0; i < wpn.slots.length; i++)
       if (wpn.slots[i].accepts === category || wpn.slots[i].accepts === "*")
@@ -535,10 +473,6 @@ globalThis.WeaponModUI = {
     return false;
   },
 
-  /**
-   * @param {string} cat
-   * @returns {string}
-   */
   _slotLabelKey(cat) {
     if (cat === "scope") return "MOD_SLOT_SCOPE";
     if (cat === "barrel") return "MOD_SLOT_BARREL";
@@ -552,8 +486,6 @@ globalThis.WeaponModUI = {
 
   /**
    * small layout helpers
-   * @param {number} h
-   * @returns {UIElement}
    */
   _row(h) {
     return new UIElement({
@@ -567,11 +499,6 @@ globalThis.WeaponModUI = {
 
   /**
    * row of two label:value stat cells (rk null → only the left cell).
-   * @param {string} lk
-   * @param {number} lv
-   * @param {string|null} rk
-   * @param {number} rv
-   * @returns {UIElement}
    */
   _statRow2(lk, lv, rk, rv) {
     const row = new UIElement({
@@ -592,9 +519,6 @@ globalThis.WeaponModUI = {
 
   /**
    * one label:value CELL (two pack side-by-side per _statRow2) — gemsKeyValueRow grow mode.
-   * @param {string} labelKey
-   * @param {number} [value]
-   * @returns {UIElement}
    */
   _statCell(labelKey, value) {
     return gemsKeyValueRow(
@@ -606,10 +530,6 @@ globalThis.WeaponModUI = {
 
   /**
    * label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
-   * @param {string} left
-   * @param {string|number} right
-   * @param {number} [leftColor]
-   * @returns {UIElement}
    */
   _kvRow(left, right, leftColor) {
     return gemsKeyValueRow(left, string(right), {

@@ -20,14 +20,14 @@ globalThis.SystemMenu = {
   // so the kit names no app file.
   settingsFile: null,
 
-  /** Register an extra tab. @param {string|Function} label textRef or string @param {() => UIElement} build content builder, called each open (so it reads live state) */
+  /** Register an extra tab. `build` is called each open (so it reads live state). */
   addTab(label, build) {
     SystemMenu._extraTabs.push({ label, build });
   },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a level opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
-  /** @param {Object} game the Game controller (its `background` re-themes) */
+  /** game: the Game controller (its `background` re-themes) */
   update(game) {
     SystemMenu._game = game;
     const level = World.levels.current;
@@ -91,18 +91,17 @@ globalThis.SystemMenu = {
     return gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_start);
   },
 
-  /** @returns {boolean} */
   isOpen() {
     // METHOD not a getter — house style, not a runtime dodge.
     return SystemMenu._modal !== null;
   },
 
-  /** @returns {number} Time.scale to restore on resume. */
+  /** Time.scale to restore on resume. */
   scale() {
     return SystemMenu._scale;
   },
 
-  /** open + pause (idempotent). @param {number} [tabIndex=0] 0 System, 1 Settings, 2 About */
+  /** Open + pause (idempotent). tabIndex: 0 System, 1 Settings, 2 About. */
   open(tabIndex = 0) {
     if (SystemMenu._modal !== null) return;
     SystemMenu._scale = Time.scale; // remember live speed to restore on resume

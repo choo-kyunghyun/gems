@@ -35,18 +35,16 @@
  */
 globalThis.Debug = {
   enabled: true, // set false for a release build
-  /** @type {DebugSection[]} registration order = stacking order in a window */
+  /** Registration order = stacking order in a window. */
   sections: [],
 
   _open: false,
-  /** @type {Object<string, *>} window name -> its dbg_view handle */
+  /** Window name -> its dbg_view handle. */
   _handles: {},
 
   /**
    * register (or replace by name) a section; safe to re-call across level
    * reloads — re-add()ing is also how a section refreshes its own content.
-   * @param {DebugSection} section
-   * @returns {DebugSection}
    */
   add(section) {
     Debug._invalidate(Debug._windowOf(section));
@@ -62,9 +60,6 @@ globalThis.Debug = {
     return section;
   },
 
-  /**
-   * @param {string} name
-   */
   remove(name) {
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === name) {
@@ -75,10 +70,6 @@ globalThis.Debug = {
     }
   },
 
-  /**
-   * @param {DebugSection} section
-   * @returns {string}
-   */
   _windowOf(section) {
     return section.window !== undefined ? section.window : "General";
   },
@@ -86,7 +77,6 @@ globalThis.Debug = {
   /**
    * drop a window's dbg_view so the lazy pass rebuilds it (or lets it die
    * with its last section).
-   * @param {string} window
    */
   _invalidate(window) {
     const handle = Debug._handles[window];
@@ -97,7 +87,6 @@ globalThis.Debug = {
 
   /**
    * a method by house style, not a runtime dodge.
-   * @returns {boolean}
    */
   isOpen() {
     return Debug._open;
@@ -137,7 +126,6 @@ globalThis.Debug = {
 
   /**
    * one dbg_view hosting every section of `window`.
-   * @param {string} window
    */
   _build(window) {
     Debug._handles[window] = dbg_view(window, true);

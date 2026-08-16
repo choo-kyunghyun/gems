@@ -9,9 +9,6 @@
  * the shop open).
  */
 globalThis.TradeUI = {
-  /**
-   * @param {Object} level
-   */
   build(level) {
     level._tradeMerchantId = -1;
     level._tradeOpen = false;
@@ -78,8 +75,6 @@ globalThis.TradeUI = {
 
   /**
    * player's balance in the active merchant's currencyId (else "coin").
-   * @param {Object} level
-   * @returns {number}
    */
   _coins(level) {
     const inv = level.entities.get(Inventory, level.playerId);
@@ -90,8 +85,6 @@ globalThis.TradeUI = {
 
   /**
    * "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
-   * @param {Object} level
-   * @returns {string}
    */
   _balanceText(level) {
     const m = level.entities.get(Merchant, level._tradeMerchantId);
@@ -103,10 +96,6 @@ globalThis.TradeUI = {
 
   /**
    * titled column: gold header (title + live sub-label) over the sortable table.
-   * @param {() => string} titleRef
-   * @param {UIElement} tableEl
-   * @param {() => string} subFn
-   * @returns {UIElement}
    */
   _column(titleRef, tableEl, subFn) {
     const col = new UIElement({
@@ -132,9 +121,6 @@ globalThis.TradeUI = {
 
   /**
    * per-side table. `side` ("buy"/"sell") routes the transaction direction.
-   * @param {Object} level
-   * @param {string} side
-   * @returns {UIElement}
    */
   _table(level, side) {
     return gemsTable(TradeUI._columns(side), {
@@ -152,8 +138,6 @@ globalThis.TradeUI = {
 
   /**
    * Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
-   * @param {string} side
-   * @returns {Object[]}
    */
   _columns(side) {
     const gold = gemsColor("warn");

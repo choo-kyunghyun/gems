@@ -10,10 +10,6 @@ globalThis.RpgWorldOverlay = {
 
   /**
    * record a fading muzzle->impact gunshot tracer (see Combat.hitscan)
-   * @param {number} x0
-   * @param {number} y0
-   * @param {number} x1
-   * @param {number} y1
    */
   pushTracer(x0, y0, x1, y1) {
     this._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
@@ -28,8 +24,6 @@ globalThis.RpgWorldOverlay = {
    * sprite, else "" (no gap). Emits the RESOLVED ref's name, never the spr_item_<id> convention:
    * aliased ids (RpgItems.ICONS) share art whose name doesn't match, and UIRichText would
    * silently draw nothing for the nonexistent name.
-   * @param {string} itemId
-   * @returns {string}
    */
   iconTag(itemId) {
     const it = Item.get(itemId);
@@ -37,9 +31,6 @@ globalThis.RpgWorldOverlay = {
     return "[spr=" + sprite_get_name(it.sprite) + "] ";
   },
 
-  /**
-   * @param {Object} level
-   */
   drawWorld(level) {
     const entities = level.entities;
 

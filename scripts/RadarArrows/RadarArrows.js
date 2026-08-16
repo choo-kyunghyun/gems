@@ -5,10 +5,8 @@
  */
 globalThis.RadarArrows = {
   /**
-   * @param {object} entities
-   * @param {number} target  center entity id (the player) — skipped
-   * @param {{has:string,color:number}[]} rules  first entity-has-component rule wins
-   * @param {object} [opt]  { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat)
+   * `target` (the centered player) is skipped; the first entity-has-component rule wins.
+   * opt: { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat).
    */
   draw(entities, target, rules, opt = {}) {
     const tp = entities.get(Position, target);
@@ -60,12 +58,6 @@ globalThis.RadarArrows = {
 
   /**
    * filled triangle at (ax,ay) pointing along unit (nx,ny), `size` long
-   * @param {number} ax
-   * @param {number} ay
-   * @param {number} nx
-   * @param {number} ny
-   * @param {number} size
-   * @param {number} col
    */
   _arrow(ax, ay, nx, ny, size, col) {
     const px = -ny; // unit perpendicular
@@ -89,12 +81,6 @@ globalThis.RadarArrows = {
     );
   },
 
-  /**
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {{has:string,color:number}[]} rules
-   * @returns {number|null}
-   */
   _color(entities, id, rules) {
     for (let r = 0; r < rules.length; r++)
       if (entities.get(rules[r].has, id) !== undefined) return rules[r].color;

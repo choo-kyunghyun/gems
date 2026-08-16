@@ -9,7 +9,6 @@ globalThis.RpgInventoryUI = {
    * Build the hidden overlay + persistent tabbed structure once. Fixed panel (not a UIModal):
    * absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
    * uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
-   * @param {Object} level
    */
   build(level) {
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
@@ -81,10 +80,6 @@ globalThis.RpgInventoryUI = {
   // ── tab pages
   // Items: usage + category filter + sort, the bag slot GRID (icons; rarity borders, worn/fav
   // badges) beside a detail pane (name, maker + lore, description, stats), select/action row.
-  /**
-   * @param {Object} level
-   * @returns {UIElement}
-   */
   _buildItemsTab(level) {
     // fill the tab host so the grid+detail row takes the leftover height
     const page = new UIElement({
@@ -265,9 +260,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
-   * @param {Object} level
-   * @param {number} i
-   * @returns {UIElement}
    */
   _hotbarBtn(level, i) {
     return gemsButton(
@@ -288,10 +280,6 @@ globalThis.RpgInventoryUI = {
     );
   },
 
-  /**
-   * @param {Object} level
-   * @param {number} i
-   */
   _assignHotbar(level, i) {
     const hb = level.entities.get(Hotbar, level.playerId);
     if (hb === undefined) return;
@@ -302,8 +290,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
-   * @param {Object} level
-   * @returns {string}
    */
   _favLabel(level) {
     if (level._invSel === null) return I18n.text("INV_NOACTION");
@@ -313,9 +299,6 @@ globalThis.RpgInventoryUI = {
       : I18n.text("INV_FAVORITE");
   },
 
-  /**
-   * @param {Object} level
-   */
   _toggleFav(level) {
     if (level._invSel === null) return;
     const fav = level.entities.get(Favorites, level.playerId);
@@ -326,8 +309,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * Equipment: worn-slot rows, repopulated per rebuild into this host.
-   * @param {Object} level
-   * @returns {UIElement}
    */
   _buildEquipTab(level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -347,8 +328,6 @@ globalThis.RpgInventoryUI = {
   /**
    * Party: companion roster host + a binding-aware recall hint. Roster repopulated per rebuild
    * (present companions change across maps); per-row text + Dismiss state read the live Follower.
-   * @param {Object} level
-   * @returns {UIElement}
    */
   _buildFollowerTab(level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -379,8 +358,6 @@ globalThis.RpgInventoryUI = {
   /**
    * One card per squad companion, by live membership query (empty notice when none). Called from
    * rebuild(), not build() — the squad isn't seeded until after the window is built.
-   * @param {Object} level
-   * @param {UIElement} host
    */
   _buildFollowerRows(level, host) {
     const squad = level.entities.get(Squad, level.playerId);
@@ -408,9 +385,6 @@ globalThis.RpgInventoryUI = {
   /**
    * one companion card: name, live status + carry-bonus line, Kick button (leaves the squad
    * PERMANENTLY, in place — rehire by walking up and talking)
-   * @param {Object} level
-   * @param {number} fid
-   * @returns {UIElement}
    */
   _followerRow(level, fid) {
     const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
@@ -474,16 +448,9 @@ globalThis.RpgInventoryUI = {
 
   /**
    * Stats: live character sheet + the genre's extra records (Profile) host.
-   * @param {Object} level
-   * @returns {UIElement}
    */
   _buildStatsTab(level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
-    /**
-     * @param {string} labelKey
-     * @param {function(Stats): *} getter
-     * @returns {UIElement}
-     */
     const statRow = (labelKey, getter) =>
       gemsKeyValueRow(I18n.textRef(labelKey), () => {
         const st = level.entities.get(Stats, level.playerId);
@@ -499,10 +466,6 @@ globalThis.RpgInventoryUI = {
     page.insertChild(
       gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
     );
-    /**
-     * @param {Object} def
-     * @returns {UIElement}
-     */
     const attrRow = (def) =>
       gemsKeyValueRow(I18n.textRef(def.name), () => {
         const at = level.entities.get(Attributes, level.playerId);
@@ -523,8 +486,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * Quests: live tracker bound to the global QuestLog.
-   * @param {Object} level
-   * @returns {UIElement}
    */
   _buildQuestsTab(level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -541,8 +502,6 @@ globalThis.RpgInventoryUI = {
    * Achievements: one card per registered def. Built ONCE (the set is static after registration,
    * which precedes the window build); the status label reads Achievement live, so unlocks — or the
    * Debug section's Unlock/Clear All — show with no rebuild.
-   * @param {Object} _level
-   * @returns {UIElement}
    */
   _buildAchievementsTab(_level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -554,8 +513,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * one achievement card: name + live unlock status on the head row, description under
-   * @param {Object} a
-   * @returns {UIElement}
    */
   _achievementRow(a) {
     const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
@@ -594,8 +551,6 @@ globalThis.RpgInventoryUI = {
   /**
    * Settings: per-column visibility toggles, persisted. Toggling calls setColumns, which keeps
    * the current sort by column key.
-   * @param {Object} level
-   * @returns {UIElement}
    */
   _buildSettingsTab(level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -606,11 +561,6 @@ globalThis.RpgInventoryUI = {
     page.insertChild(title);
     // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
     // would be undefined and made the toggles one-way: disable but never re-enable).
-    /**
-     * @param {string} labelKey
-     * @param {string} settingKey
-     * @returns {UIElement}
-     */
     const toggle = (labelKey, settingKey) =>
       gemsCheckbox(
         I18n.textRef(labelKey),
@@ -680,8 +630,6 @@ globalThis.RpgInventoryUI = {
    * Refresh live data only (so the view/filter/active tab survive): swap the grid's items,
    * re-map the selection, refresh the detail pane, rebuild equipment + extra + party sections.
    *   opts: { equipSlots: [{ slot, labelKey }], extraRows?(level, host) }
-   * @param {Object} level
-   * @param {Object} opts
    */
   rebuild(level, opts) {
     RpgInventoryUI._refreshGrid(level);
@@ -719,7 +667,6 @@ globalThis.RpgInventoryUI = {
   /**
    * The bag is a grid now (no columns), but the Settings toggles still govern the shared
    * chest/trade tables — sync the chest window when it's open.
-   * @param {Object} level
    */
   _applyColumns(level) {
     if (level._storeBagTable !== undefined) StorageUI._applyColumns(level);
@@ -728,8 +675,6 @@ globalThis.RpgInventoryUI = {
   /**
    * Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
    * same equippable only the worn instance lights.
-   * @param {Object} level
-   * @returns {Object[]}
    */
   _buildRows(level) {
     const inv = level.entities.get(Inventory, level.playerId);
@@ -759,7 +704,6 @@ globalThis.RpgInventoryUI = {
    * Rebuild the grid view from the live bag: filter row models by category, map to UISlots
    * items (icon + rarity border + worn/fav badge), pad the unfiltered view with empty cells up
    * to capacity (the bag's size reads at a glance), re-map the selection, resize the element.
-   * @param {Object} level
    */
   _refreshGrid(level) {
     const rows = RpgInventoryUI._buildRows(level);
@@ -819,8 +763,6 @@ globalThis.RpgInventoryUI = {
   /**
    * Grid click → select the backing row model; a re-click acts on it (InvTable.reclick owns the
    * gesture). Clicking an empty/padding cell clears the selection.
-   * @param {Object} level
-   * @param {number} i
    */
   _onGridSelect(level, i) {
     const row = i >= 0 && i < level._invView.length ? level._invView[i] : null;
@@ -843,7 +785,6 @@ globalThis.RpgInventoryUI = {
    * description, the instance's COMPOSED weapon stats (maker ops + attachments included),
    * ammo ballistics, equip bonuses, installed attachments, qty/weight/value. Rebuilt on
    * selection change + rebuild() — cheap (a dozen elements), same pattern as CraftingUI.
-   * @param {Object} level
    */
   _refreshDetail(level) {
     const host = level._invDetailHost;
@@ -917,11 +858,6 @@ globalThis.RpgInventoryUI = {
       );
 
     host.insertChild(gemsDivider());
-    /**
-     * @param {string} key
-     * @param {string|number} v
-     * @returns {UIElement}
-     */
     const statLine = (key, v) =>
       gemsLabel(I18n.text(key) + ": " + v, { color: GemsTheme.textMuted });
 
@@ -1021,18 +957,11 @@ globalThis.RpgInventoryUI = {
 
   /**
    * same item — InvTable.rowId owns the uid-over-itemId rule
-   * @param {Object} a
-   * @param {Object} b
-   * @returns {boolean}
    */
   _sameRow(a, b) {
     return InvTable.rowId(a) === InvTable.rowId(b);
   },
 
-  /**
-   * @param {Object} level
-   * @param {Object|null} [row]
-   */
   _activate(level, row) {
     if (row === null || row === undefined) return;
     RpgInventoryUI.useItem(level, row.itemId, row.worn, row.uid);
@@ -1040,8 +969,6 @@ globalThis.RpgInventoryUI = {
 
   /**
    * context action verb for the selected item ("-" when none)
-   * @param {Object} level
-   * @returns {string}
    */
   _actionLabel(level) {
     if (level._invSel === null) return I18n.text("INV_NOACTION");
@@ -1058,10 +985,6 @@ globalThis.RpgInventoryUI = {
   /**
    * One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
    * the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
-   * @param {Object} level
-   * @param {string} slot
-   * @param {string} labelKey
-   * @returns {UIElement}
    */
   _equipRow(level, slot, labelKey) {
     const eq = level.entities.get(Equipment, level.playerId);
@@ -1105,10 +1028,6 @@ globalThis.RpgInventoryUI = {
    * Act on an item: equippables toggle equip/unequip, consumables use one unit. `wasWorn` is the
    * row's shown state (so with two identical equippables only the shown-equipped row unequips).
    * `uid` equips that exact instance; without it (the hotbar) equipFirst picks the first owned.
-   * @param {Object} level
-   * @param {string} itemId
-   * @param {boolean} wasWorn
-   * @param {string} [uid]
    */
   useItem(level, itemId, wasWorn, uid) {
     const item = Item.get(itemId);

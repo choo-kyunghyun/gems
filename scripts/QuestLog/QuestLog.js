@@ -19,10 +19,6 @@ globalThis.QuestLog = {
   _order: [],
   active: {}, // id -> state
 
-  /**
-   * @param {QuestDef[]} defs
-   * @returns {typeof QuestLog}
-   */
   register(defs) {
     Registry.register(QuestLog, defs);
     return this;
@@ -30,7 +26,6 @@ globalThis.QuestLog = {
 
   /**
    * every quest def in registration order — the editor's quest picker.
-   * @returns {QuestDef[]}
    */
   all() {
     return Registry.all(QuestLog);
@@ -38,17 +33,12 @@ globalThis.QuestLog = {
 
   /**
    * quests are session-scoped; call on level create.
-   * @returns {typeof QuestLog}
    */
   reset() {
     this.active = {};
     return this;
   },
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   accept(id) {
     const def = Registry.get(QuestLog, id);
     if (def === undefined || this.active[id] !== undefined) return false;
@@ -59,12 +49,6 @@ globalThis.QuestLog = {
   },
 
   // Advance matching objectives; returns ids of quests that became ready this call.
-  /**
-   * @param {string} kind
-   * @param {string} target
-   * @param {number} [n=1]
-   * @returns {string[]}
-   */
   report(kind, target, n = 1) {
     const became = [];
     for (let i = 0; i < this._order.length; i++) {
@@ -93,11 +77,6 @@ globalThis.QuestLog = {
     return became;
   },
 
-  /**
-   * @param {QuestDef} def
-   * @param {Object} st
-   * @returns {boolean}
-   */
   _allMet(def, st) {
     for (let o = 0; o < def.objectives.length; o++) {
       if (st.progress[o] < def.objectives[o].count) return false;
@@ -105,53 +84,31 @@ globalThis.QuestLog = {
     return true;
   },
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   isActive(id) {
     const st = this.active[id];
     return st !== undefined && !st.done;
   },
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   isReady(id) {
     const st = this.active[id];
     return st !== undefined && st.ready && !st.done;
   },
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   isDone(id) {
     const st = this.active[id];
     return st !== undefined && st.done;
   },
 
-  /**
-   * @param {string} id
-   * @returns {Object|undefined}
-   */
   status(id) {
     return this.active[id];
   },
 
-  /**
-   * @param {string} id
-   * @returns {QuestDef|undefined}
-   */
   def(id) {
     return Registry.get(QuestLog, id);
   },
 
   /**
    * Mark done and return rewards for the caller to apply; undefined if not ready.
-   * @param {string} id
-   * @returns {Object|undefined}
    */
   complete(id) {
     const st = this.active[id];
@@ -163,7 +120,6 @@ globalThis.QuestLog = {
 
   /**
    * in registration order — for UI.
-   * @returns {string[]}
    */
   activeIds() {
     const out = [];

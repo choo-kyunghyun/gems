@@ -1,4 +1,3 @@
-// ── GemsUI kit: theme palettes + kit-wide factory conventions ──
 // The overview the GemsContainers / GemsWidgets / GemsControls buckets cite.
 
 /**
@@ -96,7 +95,7 @@ globalThis.GemsTheme = {
   },
   mode: "dark",
 
-  /** Swap the active color palette onto the flat color keys (no-op on an unknown mode). Rebuild the UI after — colors are baked at build. @param {"dark"|"light"} mode */
+  /** Swap the active color palette ("dark"|"light"; no-op on an unknown mode). Rebuild the UI after — colors are baked at build. */
   setMode: function setMode(mode) {
     const p = GemsTheme.palettes[mode];
     if (p === undefined) return;
@@ -157,14 +156,14 @@ globalThis.GemsTheme = {
 };
 GemsTheme.setMode("dark"); // seed the flat color keys with the default palette
 
-/** Resolve a theme key, hex string, or raw color int → a GameMaker color int. @param {string|number} c @returns {number} */
+/** Resolve a theme key, hex string, or raw color int into a GameMaker color int. */
 globalThis.gemsColor = function gemsColor(c) {
   if (typeof c === "number") return c;
   if (GemsTheme[c] !== undefined) return Color.parse(GemsTheme[c]);
   return Color.parse(c);
 };
 
-/** Normalize a string or () => string into a live textRef — kit-facing alias of Core's uiTextRef. @param {string|(() => string)} label @returns {() => string} */
+/** Normalize a string or () => string into a live textRef — kit-facing alias of Core's uiTextRef. */
 globalThis.gemsTextRef = function gemsTextRef(label) {
   return uiTextRef(label);
 };

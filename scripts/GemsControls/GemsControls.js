@@ -1,4 +1,3 @@
-// ── GemsUI kit: interactive controls — checkbox/progress/slider/select/stepper/input ──
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 /** Index of the item whose `value` matches Settings[key] (0 if none). */

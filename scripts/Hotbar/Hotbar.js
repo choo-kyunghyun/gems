@@ -17,9 +17,6 @@ globalThis.RPG_HOTBAR_SIZE = 5;
 globalThis.HotbarSystem = {
   /**
    * bind itemId to slot i; out-of-range is a no-op
-   * @param {Hotbar} hb
-   * @param {number} i
-   * @param {string} itemId
    */
   set(hb, i, itemId) {
     if (i >= 0 && i < hb.slots.length) hb.slots[i] = itemId;
@@ -27,8 +24,6 @@ globalThis.HotbarSystem = {
 
   /**
    * clear slot i
-   * @param {Hotbar} hb
-   * @param {number} i
    */
   clear(hb, i) {
     if (i >= 0 && i < hb.slots.length) hb.slots[i] = "";
@@ -36,8 +31,6 @@ globalThis.HotbarSystem = {
 
   /**
    * first empty slot index, or -1 when full
-   * @param {Hotbar} hb
-   * @returns {number}
    */
   firstFree(hb) {
     for (let i = 0; i < hb.slots.length; i++) if (hb.slots[i] === "") return i;
@@ -46,9 +39,6 @@ globalThis.HotbarSystem = {
 
   /**
    * slot index bound to itemId, or -1
-   * @param {Hotbar} hb
-   * @param {string} itemId
-   * @returns {number}
    */
   indexOf(hb, itemId) {
     for (let i = 0; i < hb.slots.length; i++)
@@ -58,9 +48,6 @@ globalThis.HotbarSystem = {
 
   /**
    * clear all slots bound to itemId; returns true if any were cleared
-   * @param {Hotbar} hb
-   * @param {string} itemId
-   * @returns {boolean}
    */
   clearItem(hb, itemId) {
     let cleared = false;
