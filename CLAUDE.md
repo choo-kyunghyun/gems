@@ -34,7 +34,6 @@ Project guidelines for Claude Code.
 - **Don't hide errors**: surface an error as early as possible; an object never handles an error that is not its responsibility.
 - **Language**: JavaScript, not GML — all scripts in `scripts/` use `.js`.
 - **Globals**: scripts expose globals via `globalThis.Name = ...`; component/system/singleton shapes follow docs/ARCHITECTURE.md.
-- **Formatter**: Prettier with `{ "bracketSameLine": true }`, run with `--end-of-line crlf` (working tree is CRLF). `.d.js` stubs and `Build/`/`.gmcache/` are in `.prettierignore`.
 
 ### Prose & Commits
 

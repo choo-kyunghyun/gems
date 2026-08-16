@@ -1,7 +1,6 @@
 // blob8 autotile table (256 → 0-46 frame). N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
 // corner bits only count when both adjacent cardinals are set.
 // precomputed literal — GMRT can't bind closures nested in a top-level IIFE.
-// prettier-ignore
 const _BLOB8 = [
    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
    0,  1,  2, 16,  4,  5,  6, 17,  8,  9, 10, 18, 12, 13, 14, 19,
