@@ -8,7 +8,6 @@
  * Identity is its itemId (Recipe.requires references that).
  */
 globalThis.WorkbenchModule = class WorkbenchModule {
-  /** @param {Object} [d] kind: "recipes" (default) | "weaponmod" (modes documented above) */
   constructor(d = {}) {
     this.kind = d.kind ?? "recipes";
   }

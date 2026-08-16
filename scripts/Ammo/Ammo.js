@@ -10,7 +10,6 @@
  *   • penetration — lowers target defense at the hit (Combat.mitigate) — AP rounds bite armor.
  */
 globalThis.Ammo = class Ammo {
-  /** @param {Object} d caliber + the base stats mass/velocity/power/penetration (documented above) */
   constructor(d = {}) {
     this.caliber = d.caliber ?? "standard";
     this.mass = d.mass ?? 4;

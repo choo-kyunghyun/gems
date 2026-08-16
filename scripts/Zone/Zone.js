@@ -7,7 +7,6 @@
  * @property {Object} [data]    JSON payload, e.g. { factionId, weather, color } (nested OK, no Set)
  */
 globalThis.Zone = class Zone {
-  /** @param {ZoneOpt} opt */
   constructor(opt = {}) {
     this.id = opt.id;
     this.name = opt.name ?? "";
@@ -18,7 +17,6 @@ globalThis.Zone = class Zone {
     this.data = opt.data ?? {};
   }
 
-  /** @param {string} t @returns {boolean} whether this zone carries tag `t`. */
   hasTag(t) {
     return this.tags.indexOf(t) >= 0;
   }

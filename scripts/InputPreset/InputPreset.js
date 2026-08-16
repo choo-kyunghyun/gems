@@ -10,12 +10,11 @@
 globalThis.InputPreset = {
   PATH: "input.json",
 
-  /** @returns {boolean} whether the file was written. */
   save() {
     return File.write(this.PATH, json_stringify(Input.export()));
   },
 
-  /** Load + apply the keymap; missing file or bad shape is a no-op. @returns {boolean} applied. */
+  /** Missing file or bad shape is a no-op. */
   load() {
     const raw = File.read(this.PATH);
     if (raw === undefined) return false;

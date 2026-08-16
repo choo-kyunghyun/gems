@@ -8,7 +8,6 @@ globalThis.Consumable = class Consumable {
    * content; "" = none), statusDuration (override seconds; 0 = the def's duration), thirst/hunger
    * (survival: lowers Thirst/Hunger — a drink/food), yields (item id left behind after use, e.g. an
    * empty can; "" = none).
-   * @param {Object} d
    */
   constructor(d) {
     this.heal = d.heal ?? 0;

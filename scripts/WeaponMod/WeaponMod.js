@@ -12,7 +12,6 @@
  * Item.get(modItemId).getComponent(WeaponMod).
  */
 globalThis.WeaponMod = class WeaponMod {
-  /** @param {Object} d slot, ops, stat (documented on the class contract above) */
   constructor(d = {}) {
     this.slot = d.slot ?? "*";
     this.ops = d.ops ?? {};
