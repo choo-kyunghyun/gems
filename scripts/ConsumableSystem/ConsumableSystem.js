@@ -4,11 +4,6 @@ globalThis.ConsumableSystem = {
    * Injected attribute-grant policy (a *_shard). Kit can't reach the Demo stat model, so — like
    * Combat.mitigate — the Demo wires this in sceneRpg.create. Default no-op returns false (a shard
    * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} attr
-   * @param {number} amount
-   * @returns {boolean}
    */
   grantAttr(entities, id, attr, amount) {
     return false;
@@ -17,10 +12,6 @@ globalThis.ConsumableSystem = {
   /**
    * Use one unit of itemId from entity `id`. Fails if not consumable, not owned, or the effect would
    * do nothing now (e.g. healing at full HP — no waste).
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} itemId
-   * @returns {boolean}
    */
   use(entities, id, itemId) {
     const item = Item.get(itemId);
@@ -41,10 +32,6 @@ globalThis.ConsumableSystem = {
   /**
    * Apply the consumable's effects. Returns true if anything changed (so use() can refuse a no-op:
    * a potion at full HP does nothing and IS refused; a shard always changes the attribute).
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {Consumable} con
-   * @returns {boolean}
    */
   _apply(entities, id, con) {
     let did = false;

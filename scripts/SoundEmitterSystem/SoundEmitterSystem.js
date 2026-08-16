@@ -5,7 +5,6 @@ globalThis.SoundEmitterSystem = {
    * split). On fire the timer resets to `every` — never += the remainder — so a sleep
    * fast-forward caps at one cue per frame. An unknown sound name warns once and detaches
    * the component (fail fast, no per-interval spam).
-   * @param {Entity} entities
    */
   update(entities) {
     const ids = entities.query(SoundEmitter, Position);

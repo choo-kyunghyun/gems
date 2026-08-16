@@ -2,10 +2,6 @@
 globalThis.CraftSystem = {
   /**
    * module gate + input check. gate enforced here so it holds even if UI surfaces a recipe out of context.
-   * @param {Inventory} inv
-   * @param {Recipe} recipe
-   * @param {string|undefined} module
-   * @returns {boolean}
    */
   canCraft(inv, recipe, module) {
     if (inv === undefined || recipe === undefined) return false;
@@ -20,11 +16,6 @@ globalThis.CraftSystem = {
 
   /**
    * dry-run output fit before consuming inputs — a full bag can't eat materials.
-   * @param {Entity} entities
-   * @param {number} crafterId
-   * @param {string} recipeId
-   * @param {string|undefined} module
-   * @returns {boolean}
    */
   craft(entities, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
@@ -56,10 +47,6 @@ globalThis.CraftSystem = {
     return true;
   },
 
-  /**
-   * @param {InventorySlot[]} slots
-   * @returns {InventorySlot[]}
-   */
   _cloneSlots(slots) {
     const out = [];
     for (let i = 0; i < slots.length; i++) {

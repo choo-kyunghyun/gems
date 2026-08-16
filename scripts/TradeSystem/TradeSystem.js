@@ -8,8 +8,6 @@
 globalThis.TradeSystem = {
   /**
    * rarity-scaled base value (same formula the inventory "Value" column shows).
-   * @param {string} itemId
-   * @returns {number}
    */
   marketValue(itemId) {
     const it = Item.get(itemId);
@@ -19,18 +17,10 @@ globalThis.TradeSystem = {
 
   /**
    * per-unit price after the merchant's margins.
-   * @param {Merchant} m
-   * @param {string} itemId
-   * @returns {number}
    */
   buyPrice(m, itemId) {
     return Math.ceil(TradeSystem.marketValue(itemId) * m.buyMargin);
   },
-  /**
-   * @param {Merchant} m
-   * @param {string} itemId
-   * @returns {number}
-   */
   sellPrice(m, itemId) {
     return Math.floor(TradeSystem.marketValue(itemId) * m.sellMargin);
   },
@@ -38,12 +28,6 @@ globalThis.TradeSystem = {
   /**
    * Buy `qty` (instance always 1) of stock slot `idx`, clamped to affordable / available / free room —
    * buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
-   * @param {Entity} entities
-   * @param {number} buyerId
-   * @param {number} merchantId
-   * @param {number} idx
-   * @param {number} qty
-   * @returns {{amount: number, reason: string}}
    */
   buy(entities, buyerId, merchantId, idx, qty) {
     const m = entities.get(Merchant, merchantId);
@@ -97,12 +81,6 @@ globalThis.TradeSystem = {
    * Sell `qty` (instance always 1) of bag slot `idx`. Finite merchant must afford it (gated by `credits`)
    * + have room for the buyback; infinite always pays and discards. reason when 0 = MERCHANT_BROKE/FULL.
    * Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
-   * @param {Entity} entities
-   * @param {number} sellerId
-   * @param {number} merchantId
-   * @param {number} idx
-   * @param {number} qty
-   * @returns {{amount: number, reason: string}}
    */
   sell(entities, sellerId, merchantId, idx, qty) {
     const m = entities.get(Merchant, merchantId);
@@ -166,8 +144,6 @@ globalThis.TradeSystem = {
   /**
    * Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
    * removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
-   * @param {Entity} entities
-   * @param {number} dt
    */
   update(entities, dt) {
     const ids = entities.query(Merchant, Inventory);

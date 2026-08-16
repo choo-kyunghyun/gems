@@ -1,7 +1,6 @@
 // SettlementSystem — the entity↔settlement glue: resolves a settlement's residents (Resident with a
 // matching sid) by LIVE query, never a stored roster. Settlement owns the lands; this owns the inhabitants.
 globalThis.SettlementSystem = {
-  /** Every entity that is a resident of settlement `sid`. @returns {number[]} */
   residents(entities, sid) {
     const out = [];
     const ids = entities.query(Resident);
@@ -10,7 +9,7 @@ globalThis.SettlementSystem = {
     return out;
   },
 
-  /** @returns {number} how many residents settlement `sid` has (loaded in the store). */
+  /** Counts only residents loaded in the store. */
   count(entities, sid) {
     return SettlementSystem.residents(entities, sid).length;
   },
@@ -18,7 +17,7 @@ globalThis.SettlementSystem = {
   /**
    * The settlement's stockpile: its first resident carrying a storage Interaction (a chest) — the
    * deposit target for the future worker→resource loop. Reuses the chest's own Inventory; no
-   * dedicated marker. @returns {number} the entity id, or -1 if the settlement has no stockpile.
+   * dedicated marker. Returns the entity id, or -1 if the settlement has no stockpile.
    */
   storageOf(entities, sid) {
     const ids = entities.query(Resident);

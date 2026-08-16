@@ -1,7 +1,6 @@
 // Move-and-raycast for lobbed projectiles (guns now hitscan; retained for grenades). Each tick raycasts
 // the bullet's motion, damages a hit Health, despawns on impact (no Collision → invisible to Raycast/Solid).
 globalThis.ProjectileSystem = {
-  /** @param {Entity} entities */
   update(entities) {
     const dt = SimClock.tickDuration;
     for (const id of entities.query(Projectile, Position, Velocity)) {

@@ -6,7 +6,6 @@ globalThis.Manufacturer = class Manufacturer {
   /**
    * Manufacturer def, keyed by `id`: name/lore (i18n keys), color (colour int or "#rrggbb" hex), ops
    * (signature weapon ops layer — see the class contract above).
-   * @param {Object} def
    */
   constructor(def) {
     this.id = def.id;
@@ -24,42 +23,25 @@ globalThis.Manufacturer = class Manufacturer {
   static _defs = new Map();
   static _order = [];
 
-  /**
-   * @param {Object[]} defs
-   * @returns {typeof Manufacturer}
-   */
   static register(defs) {
     Registry.register(Manufacturer, defs, (def) => new Manufacturer(def));
     return Manufacturer;
   }
 
-  /**
-   * @param {string} id
-   * @returns {Manufacturer|undefined}
-   */
   static get(id) {
     return Registry.get(Manufacturer, id);
   }
 
-  /**
-   * @param {string} id
-   * @returns {boolean}
-   */
   static has(id) {
     return Registry.has(Manufacturer, id);
   }
 
-  /**
-   * @returns {Manufacturer[]}
-   */
   static all() {
     return Registry.all(Manufacturer);
   }
 
   /**
    * registration index, -1 when unknown — the inventory sort key.
-   * @param {string} id
-   * @returns {number}
    */
   static rank(id) {
     return Registry.rank(Manufacturer, id);

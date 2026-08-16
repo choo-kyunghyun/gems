@@ -98,7 +98,7 @@ globalThis.PlayerSystem = {
 
   // build the RPG player entity (RpgPlayer.spawn adds Playable + Animator with the rest of the
   // sheet) at this genre's tuning. Boot only — a portal arrival transfers the existing player.
-  /** @param {{ x: number, y: number }} spawn @returns {number} the player entity id */
+  /** Returns the player entity id. */
   spawn(entities, spawn) {
     return RpgPlayer.spawn(entities, spawn, {
       // 16 design × 1.5 scale = 24 world px — nearer the doll's visual body (a smaller box

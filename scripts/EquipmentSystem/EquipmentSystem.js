@@ -12,10 +12,6 @@ globalThis.EquipmentSystem = {
    * Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
    * or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
    * — e.g. the hotbar — use equipFirst.)
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} uid
-   * @returns {boolean}
    */
   equip(entities, id, uid) {
     const inv = entities.get(Inventory, id);
@@ -40,10 +36,6 @@ globalThis.EquipmentSystem = {
   /**
    * Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
    * hotbar, which only know an itemId). False if none owned / not equippable.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} itemId
-   * @returns {boolean}
    */
   equipFirst(entities, id, itemId) {
     const inv = entities.get(Inventory, id);
@@ -58,10 +50,6 @@ globalThis.EquipmentSystem = {
   /**
    * Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
    * Returns the unequipped uid, or "" if empty.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} slot
-   * @returns {string}
    */
   unequip(entities, id, slot) {
     const eq = entities.get(Equipment, id);
@@ -88,9 +76,6 @@ globalThis.EquipmentSystem = {
   /**
    * The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
    * controller needs the real slot — not a copy — to decrement `rounds` on a shot.
-   * @param {Entity} entities
-   * @param {number} id
-   * @returns {InventorySlot|null}
    */
   weaponSlot(entities, id) {
     const eq = entities.get(Equipment, id);
@@ -106,9 +91,6 @@ globalThis.EquipmentSystem = {
   /**
    * Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
    * unarmed defaults. Convenience over weaponSlot + composeWeapon.
-   * @param {Entity} entities
-   * @param {number} id
-   * @returns {Object|null}
    */
   weaponProfile(entities, id) {
     const slot = this.weaponSlot(entities, id);
@@ -119,8 +101,6 @@ globalThis.EquipmentSystem = {
    * Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
    * ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
    * damage/reach/fireCd → attachment ops → { kind:"melee", ... }.
-   * @param {InventorySlot} slot
-   * @returns {Object|null}
    */
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);
@@ -134,9 +114,6 @@ globalThis.EquipmentSystem = {
 
   /**
    * Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
-   * @param {Entity} entities
-   * @param {number} id
-   * @returns {number}
    */
   reload(entities, id) {
     const slot = this.weaponSlot(entities, id);
@@ -149,9 +126,6 @@ globalThis.EquipmentSystem = {
   /**
    * Top up a specific gun instance's magazine from `inv`'s ammo reserve (min(need, owned)). The slot
    * variant so the workbench panel can reload a SELECTED weapon that isn't equipped.
-   * @param {Inventory} inv
-   * @param {InventorySlot} slot
-   * @returns {number}
    */
   reloadSlot(inv, slot) {
     const item = Item.get(slot.itemId);
@@ -176,10 +150,6 @@ globalThis.EquipmentSystem = {
 
   /**
    * Load an ammo type into the equipped gun (caliber-gated), then top up.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {string} ammoItemId
-   * @returns {boolean}
    */
   loadAmmo(entities, id, ammoItemId) {
     const slot = this.weaponSlot(entities, id);
@@ -192,10 +162,6 @@ globalThis.EquipmentSystem = {
   /**
    * Load an ammo type into a specific gun instance (caliber-gated), then top up. Switching type
    * refunds the chambered rounds to `inv` first so a swap doesn't lose them. The slot variant.
-   * @param {Inventory} inv
-   * @param {InventorySlot} slot
-   * @param {string} ammoItemId
-   * @returns {boolean}
    */
   loadAmmoSlot(inv, slot, ammoItemId) {
     const item = Item.get(slot.itemId);
@@ -225,9 +191,6 @@ globalThis.EquipmentSystem = {
 
   /**
    * First caliber-compatible Ammo itemId in `inv` (slot order), or "" when none owned.
-   * @param {Inventory} inv
-   * @param {string} caliber
-   * @returns {string}
    */
   _firstAmmo(inv, caliber) {
     for (let i = 0; i < inv.slots.length; i++) {
@@ -242,8 +205,6 @@ globalThis.EquipmentSystem = {
   /**
    * Installed-attachment ops layers for an instance slot (order-independent), plus the item
    * maker's signature ops layer (Manufacturer.ops) — brand identity composes like an attachment.
-   * @param {InventorySlot} slot
-   * @returns {Object[]}
    */
   _modLayers(slot) {
     const layers = [];
@@ -260,11 +221,6 @@ globalThis.EquipmentSystem = {
     return layers;
   },
 
-  /**
-   * @param {InventorySlot} slot
-   * @param {Weapon} wpn
-   * @returns {Object}
-   */
   _composeMelee(slot, wpn) {
     const base = { damage: wpn.damage, reach: wpn.reach, fireCd: wpn.fireCd };
     const c = this._applyOps(base, this._modLayers(slot), [
@@ -280,12 +236,6 @@ globalThis.EquipmentSystem = {
     };
   },
 
-  /**
-   * @param {InventorySlot} slot
-   * @param {Weapon} wpn
-   * @param {Gun} gun
-   * @returns {Object}
-   */
   _composeGun(slot, wpn, gun) {
     if (slot.rounds === undefined) slot.rounds = 0;
     if (slot.ammo === undefined) slot.ammo = "";
@@ -342,10 +292,6 @@ globalThis.EquipmentSystem = {
    * Apply operator layers over a base map: per field, (base + Σadd) · Πmul (order-independent). A
    * field whose base is undefined stays undefined — ops can't fabricate a value the base never
    * declared (the controller defaults it). Index loops only — GMRT-safe.
-   * @param {Object} base
-   * @param {Object[]} layers
-   * @param {string[]} fields
-   * @returns {Object}
    */
   _applyOps(base, layers, fields) {
     const out = {};
@@ -372,10 +318,6 @@ globalThis.EquipmentSystem = {
   /**
    * Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
    * Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
-   * @param {Entity} entities
-   * @param {number} id
-   * @param {Item} item
-   * @param {number} sign
    */
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);

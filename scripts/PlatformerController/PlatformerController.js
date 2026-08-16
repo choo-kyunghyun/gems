@@ -21,7 +21,6 @@ const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after a respawn (1.5 s)
 // ctrl = { id, jumpBuffer, jumpReleased, coyote, facing, iframes }
 
 globalThis.PlatformerController = {
-  /** @param {{ x: number, y: number }} spawn */
   create(entities, spawn) {
     Input.bindAll({
       moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A")],
@@ -71,13 +70,11 @@ globalThis.PlatformerController = {
   },
 
   // must run before SimClock.advance() — presses on 0-tick frames would otherwise be lost
-  /** @param {{ jumpBuffer: number, jumpReleased: boolean }} ctrl */
   pollInput(ctrl) {
     if (Input.get("jump").pressed()) ctrl.jumpBuffer = PLATF_JUMP_BUFFER;
     if (Input.get("jump").released()) ctrl.jumpReleased = true;
   },
 
-  /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   update(entities, ctrl) {
     const dt = SimClock.tickDuration;
     const vel = entities.get(Velocity, ctrl.id);
@@ -143,7 +140,6 @@ globalThis.PlatformerController = {
   },
 
   // teleport to spawn, clear motion/jump state, grant i-frames to avoid instant re-hit
-  /** @param {{ id: number, jumpBuffer: number, jumpReleased: boolean, coyote: number, facing: number }} ctrl */
   respawn(entities, ctrl, spawn) {
     Audio.play({ sound: snd_hitsound_armor });
     const pos = entities.get(Position, ctrl.id);

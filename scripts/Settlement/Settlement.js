@@ -21,8 +21,6 @@ globalThis.Settlement = {
   /**
    * Ensure the settlement channel exists on a level and return it (idempotent). A map creates the
    * empty channel up front so RenderZone + persistence import have a target before anything is founded.
-   * @param {LevelGrid} grid
-   * @returns {ZoneMap}
    */
   channel(grid) {
     let m = grid.zoneMap(Settlement.CHANNEL);
@@ -32,16 +30,9 @@ globalThis.Settlement = {
 
   /**
    * Found a settlement over an inclusive cell rect: defines a Zone + paints its lands.
-   * @param {Object} grid  the LevelGrid hosting the channel
-   * @param {number} x1
-   * @param {number} y1
-   * @param {number} x2
-   * @param {number} y2  inclusive cell rect
-   * @param {{ id?: string, name?: string, factionId?: string, color?: string, comp?: string[], data?: Object }} [opt]
-   *        `id` is the stable sid (authored settlements pass one; player-founded default to a minted
-   *        uuid). `comp` is the initial SettlementComponent id array. `data` merges extra fields
-   *        onto the base (nesting OK — persisted via json_stringify / the Json codec).
-   * @returns {Zone} the founded settlement zone
+   * opt: `id` is the stable sid (authored settlements pass one; player-founded default to a minted
+   * uuid); `comp` the initial SettlementComponent id array; `data` merges extra fields onto the
+   * base (nesting OK — persisted via json_stringify / the Json codec).
    */
   found(grid, x1, y1, x2, y2, opt = {}) {
     const m = Settlement.channel(grid);
@@ -61,51 +52,32 @@ globalThis.Settlement = {
     return zone;
   },
 
-  /**
-   * @param {LevelGrid} grid
-   * @param {number} gx
-   * @param {number} gy
-   * @returns {Zone|undefined} the settlement whose lands include cell (gx,gy).
-   */
   at(grid, gx, gy) {
     const m = grid.zoneMap(Settlement.CHANNEL);
     return m === undefined ? undefined : m.at(gx, gy);
   },
 
-  /**
-   * @param {LevelGrid} grid
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {Zone|undefined} the settlement at a WORLD point.
-   */
   atWorld(grid, wx, wy) {
     const c = grid.worldToGrid(wx, wy);
     return Settlement.at(grid, c.x, c.y);
   },
 
-  /**
-   * @param {LevelGrid} grid
-   * @param {number} gx
-   * @param {number} gy
-   * @returns {string|undefined} owner faction id at a cell ("" = unfactioned; undefined = no settlement).
-   */
+  /** Owner faction id at a cell: "" = unfactioned; undefined = no settlement. */
   ownerAt(grid, gx, gy) {
     const z = Settlement.at(grid, gx, gy);
     return z === undefined ? undefined : z.data.factionId;
   },
 
-  /** @returns {Zone[]} every settlement on a level. */
   all(grid) {
     const m = grid.zoneMap(Settlement.CHANNEL);
     return m === undefined ? [] : m.byTag(Settlement.TAG);
   },
 
-  /** @returns {string} a settlement's stable id (Resident.settlementId matches this). */
+  /** The settlement's stable id (Resident.settlementId matches this). */
   sid(zone) {
     return zone.data.sid;
   },
 
-  /** @returns {Zone|undefined} the settlement with this sid on a level. */
   byId(grid, sid) {
     const all = Settlement.all(grid);
     for (let i = 0; i < all.length; i++)
@@ -115,18 +87,16 @@ globalThis.Settlement = {
 
   // ── capability components (a SettlementComponent id array in zone.data.comp) ──
 
-  /** @returns {string[]} the settlement's SettlementComponent ids (empty list if none). */
   components(zone) {
     const c = zone.data.comp;
     return Array.isArray(c) ? c : []; // the live array; legacy/undefined → empty
   },
 
-  /** @returns {boolean} whether the settlement carries component `id`. */
   hasComponent(zone, id) {
     return Settlement.components(zone).indexOf(id) >= 0;
   },
 
-  /** Add capability `id` to the settlement (no-op if already present). @returns {boolean} added */
+  /** No-op if already present. */
   addComponent(zone, id) {
     if (!Array.isArray(zone.data.comp)) zone.data.comp = [];
     if (zone.data.comp.indexOf(id) >= 0) return false;
@@ -134,7 +104,7 @@ globalThis.Settlement = {
     return true;
   },
 
-  /** Remove capability `id` from the settlement (no-op if absent). @returns {boolean} removed */
+  /** No-op if absent. */
   removeComponent(zone, id) {
     if (!Array.isArray(zone.data.comp)) return false;
     const i = zone.data.comp.indexOf(id);
@@ -152,7 +122,6 @@ globalThis.Settlement = {
   /**
    * World-coord centroid of a settlement's lands, or null if it has none. A rect settlement's
    * centroid lands inside it; snapped to a real cell center via gridToWorld.
-   * @returns {{x:number,y:number}|null}
    */
   centroidWorld(grid, zone) {
     const m = grid.zoneMap(Settlement.CHANNEL);

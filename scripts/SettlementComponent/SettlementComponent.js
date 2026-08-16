@@ -8,7 +8,6 @@ globalThis.SettlementComponent = {
   _defs: new Map(), // id -> { id, name, color }
   _order: [],
 
-  /** @param {{id:string,name?:string,color?:number|string}[]} defs @returns {SettlementComponent} this */
   register(defs) {
     Registry.register(SettlementComponent, defs, (d) => ({
       id: d.id,
