@@ -1,5 +1,3 @@
-// The level's GRID DATA — tile layers + zone channels (`zoneMaps`) + cell dims and world<->grid
-// conversion. Pure spatial data (no entities/systems/presentation); a Level holds it as `.grid`.
 /**
  * @typedef {{ cost: number | undefined }} NavData
  */
@@ -20,47 +18,27 @@
  * one nav source. `costAt` is on-demand layer cost, for debug/inspection.
  */
 globalThis.LevelGrid = class LevelGrid {
-  /**
-   * @param {{cellWidth?: number, cellHeight?: number, cols?: number, rows?: number}} [opt={}]
-   */
   constructor(opt = {}) {
     this.cellWidth = opt.cellWidth ?? 32;
     this.cellHeight = opt.cellHeight ?? 32;
     this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
 
-    /** @type {LevelLayer[]} */
     this.layers = [];
 
     // plain object — for...in is GMRT-safe, Map iteration is not
-    /** @type {Object<string, ZoneMap>} */
     this.zoneMaps = {};
   }
 
-  /**
-   * @param {string} key
-   * @param {ZoneMap} [map]
-   * @returns {ZoneMap}
-   */
   addZoneMap(key, map = new ZoneMap(this.cols, this.rows)) {
     this.zoneMaps[key] = map;
     return map;
   }
 
-  /**
-   * @param {string} key
-   * @returns {ZoneMap | undefined}
-   */
   zoneMap(key) {
     return this.zoneMaps[key];
   }
 
-  /**
-   * @param {string} key
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {Zone | undefined}
-   */
   zoneAt(key, wx, wy) {
     const map = this.zoneMaps[key];
     if (map === undefined) return undefined;
@@ -68,22 +46,12 @@ globalThis.LevelGrid = class LevelGrid {
     return map.at(g.x, g.y);
   }
 
-  /**
-   * Insert a LevelLayer at `index` (top by default; higher index = higher nav priority).
-   * @param {LevelLayer} layer
-   * @param {number} [index=this.layers.length]
-   * @returns {LevelGrid} this
-   */
+  /** Top by default; higher index = higher nav priority. */
   insert(layer, index = this.layers.length) {
     this.layers.splice(index, 0, layer);
     return this;
   }
 
-  /**
-   * Detach a LevelLayer.
-   * @param {LevelLayer} layer
-   * @returns {LevelGrid} this
-   */
   remove(layer) {
     const i = this.layers.indexOf(layer);
     if (i >= 0) this.layers.splice(i, 1);
@@ -94,9 +62,6 @@ globalThis.LevelGrid = class LevelGrid {
    * On-demand tile nav cost of a cell: topmost layer with a defined cost wins (higher index =
    * higher priority); no layer reporting → Infinity. Debug/inspection only (RenderDebugTileMap
    * shading) — live pathfinding reads NavGrid, never the tile layers.
-   * @param {number} x
-   * @param {number} y
-   * @returns {number}
    */
   costAt(x, y) {
     for (let i = this.layers.length - 1; i >= 0; i--) {
@@ -106,11 +71,6 @@ globalThis.LevelGrid = class LevelGrid {
     return Infinity;
   }
 
-  /**
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {{x:number,y:number}} the grid cell containing the point.
-   */
   worldToGrid(wx, wy) {
     return {
       x: Math.floor(wx / this.cellWidth),
@@ -118,11 +78,7 @@ globalThis.LevelGrid = class LevelGrid {
     };
   }
 
-  /**
-   * @param {number} gx
-   * @param {number} gy
-   * @returns {{x:number,y:number}} world coords of the cell's CENTER.
-   */
+  /** World coords of the cell's CENTER. */
   gridToWorld(gx, gy) {
     return {
       x: gx * this.cellWidth + this.cellWidth * 0.5,
@@ -130,7 +86,6 @@ globalThis.LevelGrid = class LevelGrid {
     };
   }
 
-  /** @returns {Object} */
   export() {
     const data = {
       cellWidth: this.cellWidth,
@@ -151,10 +106,6 @@ globalThis.LevelGrid = class LevelGrid {
     return data;
   }
 
-  /**
-   * @param {Object} data
-   * @returns {LevelGrid} this
-   */
   import(data) {
     for (let i = 0; i < this.layers.length; i++) {
       if (data.layers[i] !== undefined) {
@@ -172,7 +123,6 @@ globalThis.LevelGrid = class LevelGrid {
     return this;
   }
 
-  /** free layers + zone channels */
   destroy() {
     for (const layer of this.layers) {
       layer.destroy();

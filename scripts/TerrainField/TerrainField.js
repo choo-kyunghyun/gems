@@ -1,6 +1,3 @@
-// Palette-driven procedural terrain sampler — the generic, content-free half of a chunk generator
-// (a game injects its material table). Palette schema on the TerrainField declaration below.
-
 /**
  * value noise in [0,1): smoothstep-interpolated over a hashed integer lattice; pure in
  * (x, y, seed, lattice). Fold a salt into `seed` to draw an independent channel.
@@ -109,15 +106,14 @@ globalThis.TerrainField = class TerrainField {
 
   /**
    * Greedy-mesh a chunk's impassable cells into the fewest [gx,gy,w,h] rects, so the streamer makes
-   * one collider per rect not a per-cell box (per-cell seams snag sliding bodies — see memory
-   * project_tile_collider_seams). Pure in (cx, cy, seed); returns [] when nothing is impassable.
+   * one collider per rect not a per-cell box (per-cell seams snag sliding bodies).
+   * Pure in (cx, cy, seed); returns [] when nothing is impassable.
    */
   solidTerrain(cx, cy) {
     const cc = this.chunkCols;
     const cr = this.chunkRows;
     const gx0 = cx * cc;
     const gy0 = cy * cr;
-    // per-cell blocked flags; bail early if nothing is impassable
     const blocked = new Array(cc * cr);
     let any = false;
     for (let ly = 0; ly < cr; ly++)

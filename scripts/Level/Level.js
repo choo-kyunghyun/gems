@@ -1,5 +1,3 @@
-// A LEVEL — the per-instance coordinator layer, one per screen the LevelManager runs; the bottom of
-// the two-layer model (World singleton on top). The duck-typed contract is on the class below.
 /**
  * NOT a base class to extend — GMRT subclassing is broken (#15067: subclass field inits never run,
  * `super` faults), so this class has exactly two jobs:
@@ -23,24 +21,19 @@
 globalThis.Level = class Level {
   label = "";
 
-  /** @param {(factory:Function) => void} openLevel queue a navigation to another level */
+  /** `openLevel` queues a navigation to another level. */
   create(openLevel) {}
-  /** Advance one frame. */
   step() {}
-  /** Render the world view. */
   draw() {}
-  /** Tear down UI roots + resources. */
   destroy() {}
 
   // Freeze/thaw hooks: suspend when a guest keep-switches in front, resume when back() returns.
   // These defaults fit one UI root + one camera; a screen with extra state defines its own — the
   // RPG re-binds its keymap on resume, because the guest controller's destroy() unbound the
   // shared action names.
-  /** Hide this level while a guest runs in front. */
   suspend() {
     if (this.ui) UI.setEnabled(this.ui, false);
   }
-  /** Re-show + re-claim viewport 0 after a guest pops. */
   resume() {
     if (this.ui) UI.setEnabled(this.ui, true);
     if (this.camera) this.camera.assign(0);

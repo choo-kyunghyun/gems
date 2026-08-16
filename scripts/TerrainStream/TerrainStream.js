@@ -1,5 +1,3 @@
-// Per-chunk dual-grid renderer for the streamed overworld terrain: caches a VertexBuffer per material
-// per loaded chunk, built on load and freed on unload. Contract on the declaration below.
 /**
  * A border crossing only builds newly-entered chunks. Painter order = the generator palette's index
  * (deep water … rocky for the overworld): upper terrains' transparent dual-grid corners reveal the
@@ -14,7 +12,6 @@
  * @implements {RenderPass}
  */
 globalThis.TerrainStream = class TerrainStream {
-  /** @param {ChunkManager} chunks — read for chunk/cell size and the source (apron sampling). */
   constructor(chunks) {
     this.enabled = true; // RenderPass
     this.chunkCols = chunks.chunkCols;
@@ -89,7 +86,6 @@ globalThis.TerrainStream = class TerrainStream {
     if (!this._ok) return;
     const recs = chunks.records();
 
-    // Free chunks no longer loaded.
     const seen = {};
     for (let i = 0; i < recs.length; i++)
       seen[recs[i].cx + "," + recs[i].cy] = true;
@@ -101,7 +97,6 @@ globalThis.TerrainStream = class TerrainStream {
       }
     }
 
-    // build newly-loaded chunks, capped at `budget`
     let left = budget;
     for (let i = 0; i < recs.length && left > 0; i++) {
       const rec = recs[i];
@@ -113,9 +108,7 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  /**
-   * submit every cached chunk's per-material VBOs (no rebuild — that's the point), painter-ordered
-   */
+  /** Submit only — no rebuild here, that's the point. Painter-ordered. */
   draw(entities) {
     if (!this._ok) return;
     // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
@@ -228,7 +221,6 @@ globalThis.TerrainStream = class TerrainStream {
     return s.table[0][0];
   }
 
-  /** free one chunk's per-material VBOs */
   _destroyChunk(list) {
     for (let i = 0; i < list.length; i++) list[i].vb.destroy();
   }

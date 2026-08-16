@@ -1,12 +1,6 @@
 globalThis.LevelSerializer = {
   CURRENT_VERSION: 1,
 
-  /**
-   * Load and validate a level file.
-   * @param {string} path
-   * @param {{ genre?: string }} [opts]
-   * @returns {object|null} parsed data, or null on error
-   */
   load(path, opts = {}) {
     const raw = File.read(path);
     if (raw === undefined) {
@@ -36,20 +30,13 @@ globalThis.LevelSerializer = {
   },
 
   /**
-   * Serialize to the hand-editable, diff-friendly form — Json.encode's `pretty` mode owns the
-   * layout (and the native nested-stringify workaround behind it).
-   * @param {object} data
-   * @returns {string|undefined} undefined if the codec aborted
+   * Hand-editable, diff-friendly form — Json.encode's `pretty` mode owns the layout (and the
+   * native nested-stringify workaround behind it). Returns undefined if the codec aborted.
    */
   serialize(data) {
     return Json.encode(data, { pretty: true });
   },
 
-  /**
-   * @param {string} path
-   * @param {object} data
-   * @returns {boolean}
-   */
   save(path, data) {
     const text = LevelSerializer.serialize(data);
     if (text === undefined) return false; // codec already Log.error'd — never write a truncated level

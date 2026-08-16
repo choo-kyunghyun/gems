@@ -1,6 +1,3 @@
-// Reusable mini-layout a generator stamps into a world — Core/Level machinery, content-free (the
-// RPG's defs live in RpgPrefabs). Def shape is the PrefabDef typedef; the API is on the class below.
-
 /**
  * @typedef {Object} PrefabTiles
  * @property {string} layer      name resolved via apply()'s `opts.layers`
@@ -45,7 +42,6 @@
  * entity store. The def store is a `Registry` facade.
  */
 globalThis.Prefab = class Prefab {
-  /** @param {PrefabDef} def */
   constructor(def) {
     this.id = def.id;
     this.tags = def.tags ?? [];
@@ -58,7 +54,6 @@ globalThis.Prefab = class Prefab {
     this.spawns = def.spawns ?? [];
   }
 
-  /** @param {string} t @returns {boolean} */
   hasTag(t) {
     return this.tags.indexOf(t) !== -1;
   }
@@ -68,9 +63,6 @@ globalThis.Prefab = class Prefab {
    * Spawns are shallow copies with lx/ly replaced by gx/gy — nested arrays are still SHARED with
    * the def, so a consumer deep-copies what it mutates (OverworldGen clones loot/items). Tiles/
    * zones entries share the def's type/data and carry fresh translated `rects`.
-   * @param {number} ox
-   * @param {number} oy
-   * @returns {{ walls: number[][], tiles: PrefabTiles[], zones: PrefabZones[], spawns: Object<string, *>[] }}
    */
   stamp(ox, oy) {
     const walls = Prefab._shiftRects(this.walls, ox, oy);
@@ -97,7 +89,6 @@ globalThis.Prefab = class Prefab {
     const spawns = [];
     for (let i = 0; i < this.spawns.length; i++) {
       const s = this.spawns[i];
-      /** @type {Object<string, *>} */
       const out = {};
       const keys = Object.keys(s);
       for (let k = 0; k < keys.length; k++) {
@@ -120,8 +111,6 @@ globalThis.Prefab = class Prefab {
    *           rendered; author rendered walls as solid TILES on a wall layer instead)
    * Spawns are returned translated, NOT spawned — the descriptor shape is consumer-defined, so
    * the caller feeds them to its own adapter (e.g. RpgSpawn.spawnEntity).
-   * @param {PrefabApplyOpts} opts
-   * @returns {{ colliders: number[], zones: Zone[], spawns: Object<string, *>[] }}
    */
   apply(opts) {
     const st = this.stamp(opts.ox, opts.oy);
@@ -145,7 +134,6 @@ globalThis.Prefab = class Prefab {
       }
     }
 
-    /** @type {Zone[]} */
     const zones = [];
     for (let i = 0; i < st.zones.length; i++) {
       const z = st.zones[i];
@@ -159,12 +147,11 @@ globalThis.Prefab = class Prefab {
       zones.push(zone);
     }
 
-    /** @type {number[]} */
     const colliders = [];
     if (st.walls.length > 0) {
       if (opts.entities === undefined)
         throw new Error(`Prefab '${this.id}': walls need opts.entities`);
-      const entities = /** @type {Entity} */ (opts.entities);
+      const entities = opts.entities;
       const cw = grid.cellWidth;
       const ch = grid.cellHeight;
       for (let i = 0; i < st.walls.length; i++) {
@@ -190,15 +177,11 @@ globalThis.Prefab = class Prefab {
     return { colliders: colliders, zones: zones, spawns: st.spawns };
   }
 
-  // ── Registry facade (Registry owns the store's contract) ──
+  // Registry facade — Registry owns the store's contract.
   static _defs = new Map();
   static _order = [];
 
-  /**
-   * register defs (validated — throws on out-of-footprint content)
-   * @param {PrefabDef[]} defs
-   * @returns {typeof Prefab}
-   */
+  /** Validated — throws on out-of-footprint content. */
   static register(defs) {
     Registry.register(Prefab, defs, (def) => {
       const p = new Prefab(def);
@@ -210,7 +193,6 @@ globalThis.Prefab = class Prefab {
 
   // fail fast at register time — an overflowing rect/spawn would silently break the seam
   // margin a generator's interior placement guarantees
-  /** @param {Prefab} p */
   static _validate(p) {
     if (typeof p.id !== "string" || p.id === "")
       throw new Error(`Prefab def needs a string id`);
@@ -241,7 +223,6 @@ globalThis.Prefab = class Prefab {
     }
   }
 
-  /** @param {Prefab} p @param {string} channel @param {number[]} r */
   static _checkRect(p, channel, r) {
     const ok =
       r[0] >= 0 &&
@@ -256,7 +237,6 @@ globalThis.Prefab = class Prefab {
       );
   }
 
-  /** @param {number[][]} rects @param {number} ox @param {number} oy @returns {number[][]} */
   static _shiftRects(rects, ox, oy) {
     const out = [];
     for (let i = 0; i < rects.length; i++) {
@@ -266,22 +246,19 @@ globalThis.Prefab = class Prefab {
     return out;
   }
 
-  /** @param {string} id @returns {Prefab | undefined} */
   static get(id) {
     return Registry.get(Prefab, id);
   }
 
-  /** @param {string} id @returns {boolean} */
   static has(id) {
     return Registry.has(Prefab, id);
   }
 
-  /** @returns {Prefab[]} all prefabs in registration order */
   static all() {
     return Registry.all(Prefab);
   }
 
-  /** prefabs with this scope tag, in registration order @param {string} tag */
+  /** In registration order — PrefabStamp's weighted pick relies on it being stable. */
   static byTag(tag) {
     const all = Prefab.all();
     const out = [];

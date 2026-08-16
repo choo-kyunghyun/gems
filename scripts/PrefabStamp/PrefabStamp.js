@@ -1,5 +1,3 @@
-// Generic prefab-stamp GEN PASS for a ChunkGenerator — rolls a chance, weighted-picks a Prefab by
-// scope tag, and stamps it at a random interior offset. Content-free; policy via hooks (see below).
 /**
  * The interior offset keeps margin cells off the chunk border so stamped walls can't merge across a
  * seam. Policy enters via two hooks (the RPG's policy lives in OverworldGen.create):
@@ -16,7 +14,6 @@ globalThis.PrefabStamp = class PrefabStamp {
    * salt, see ChunkGenerator), chance? (probability a chunk stamps a prefab, default 0.45), margin?
    * (interior border kept clear in cells, default 1), spawnFilter?/defaultLoot? (the two policy hooks —
    * see the header).
-   * @param {Object} opts
    */
   constructor(opts = {}) {
     if (typeof opts.tag !== "string")
@@ -66,7 +63,6 @@ globalThis.PrefabStamp = class PrefabStamp {
     }
   }
 
-  /** weighted pick from the eligible prefab set */
   _pick(rng) {
     const all = this.prefabs;
     let total = 0;

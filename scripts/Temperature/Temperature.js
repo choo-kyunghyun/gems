@@ -1,5 +1,4 @@
-// Ambient world temperature in KELVIN (canonical unit — toCelsius/toFahrenheit to display). A pure
-// derivation, no stored state/tick: now() composes the season baseline with a time-of-day swing.
+// Ambient world temperature in KELVIN (canonical unit — toCelsius/toFahrenheit to display).
 /**
  * Read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + region
  * modifiers fold into now() here. The diurnal swing is a cosine of the hour.
@@ -34,19 +33,16 @@ globalThis.Temperature = {
     return Temperature._BASE[WorldClock.season().id];
   },
 
-  /** time-of-day delta: a cosine peaking at DIURNAL_PEAK */
   diurnal() {
     const h = WorldClock.hour;
     const phase = (2 * Math.PI * (h - Temperature.DIURNAL_PEAK)) / 24;
     return Temperature.DIURNAL_MEAN + Temperature.DIURNAL_AMP * Math.cos(phase);
   },
 
-  /** Kelvin → Celsius */
   toCelsius(k) {
     return k - Temperature.ZERO_C;
   },
 
-  /** Kelvin → Fahrenheit */
   toFahrenheit(k) {
     return ((k - Temperature.ZERO_C) * 9) / 5 + 32;
   },

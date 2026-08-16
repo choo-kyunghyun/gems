@@ -1,5 +1,3 @@
-// The level lifecycle manager — a `World` sub-module, held as `World.levels`. Flat level collection +
-// active pointer + the resident-map registry (the map pool). Contract on the class below.
 /**
  * There is NO level stack: every live level sits in a FLAT collection with ONE active pointer, and
  * `switchTo()` is the single transition. Switching away either DESTROYS the level (plain navigation —
@@ -17,39 +15,30 @@
  */
 globalThis.LevelManager = class LevelManager {
   constructor() {
-    // ── flat level collection ──
     this._all = []; // every live level entry { level, factory, label } — active + frozen
     this._current = null; // the ACTIVE entry (stepped + drawn) — the pointer into _all
     this._returnTo = null; // the frozen entry back() thaws (set by a keep switch); null = none
     this._onResult = null; // the kept switch's result handler, fired by back()
     this._pending = null; // queued switch { factory, opts }, applied next update()
     // Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
-    this.paused = false; // gates level.step() like the menu pause does
+    this.paused = false;
     this._stepRequested = false; // one-shot: lets exactly one frame through
-    // ── boot-wired seams (Core names no kit/Demo module) ──
+    // boot-wired seams (Core names no kit/Demo module):
     // pause menu, duck-typed { isOpen(), scale(), reset() } — Game wires the GemsUI
     // SystemMenu; null = no menu pause gating
     this.menu = null;
     // display-label resolver, (factory) => string | () => string | null — Game wires
     // LevelRegistry.labelOf; null = instance labels only
     this.resolveLabel = null;
-    // ── resident-map registry (was Universe) ──
     this._levels = {}; // mapId -> entry (at least { entities, grid }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
   }
 
-  /**
-   * Active Level instance, or null.
-   * @returns {Object|null}
-   */
   get current() {
     return this._current !== null ? this._current.level : null;
   }
 
-  /**
-   * Boot level: apply immediately (nothing to fade out from; caller runs LevelTransition.reveal).
-   * @param {() => Level} factory
-   */
+  /** Boot level: apply immediately (nothing to fade out from; caller runs LevelTransition.reveal). */
   start(factory) {
     this._apply(factory, {});
   }
@@ -61,19 +50,13 @@ globalThis.LevelManager = class LevelManager {
    * (suspend(), entities intact, instant — no fade) and records it as back()'s return target, with
    * `onResult` fired when the guest returns. Ignored mid-fade so a spammed button can't stack
    * swaps. This is the `openLevel` callback handed to every create().
-   * @param {() => Level} factory
-   * @param {{ keep?: boolean, fade?: boolean, onResult?: (result:any) => void }} [opts]
    */
   switchTo(factory, opts = {}) {
     if (LevelTransition.isBusy()) return;
     this._pending = { factory, opts };
   }
 
-  /**
-   * Return from a kept switch: destroy the active guest, thaw the kept level, and hand the
-   * guest's result() to the switch's onResult.
-   * @returns {boolean} false when nothing is kept.
-   */
+  /** Returns false when nothing is kept. */
   back() {
     if (this._returnTo === null) return false;
     const guest = this._current;
@@ -111,8 +94,6 @@ globalThis.LevelManager = class LevelManager {
    * Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)
    * and activate the new one in front. Otherwise: destroy every live level (a quit from a guest
    * must also drop its frozen host), reset the cross-level singletons, build the target fresh.
-   * @param {() => Level} factory
-   * @param {{ keep?: boolean, fade?: boolean, onResult?: (result:any) => void }} opts
    */
   _apply(factory, opts) {
     if (opts.keep === true && this._current !== null) {
@@ -141,11 +122,6 @@ globalThis.LevelManager = class LevelManager {
     entry.level.create((s) => this.switchTo(s));
   }
 
-  /**
-   * Build an entry: create the level, resolve its display label, back-reference the manager.
-   * @param {() => Level} factory
-   * @returns {{level: Object, factory: Function, label: string|Function|null}}
-   */
   _make(factory) {
     // A class level's `label` field never sets (GMRT skips subclass field inits — #15067), so the
     // resolved label (localized) is the reliable source; built-ins fall back to their instance label.
@@ -167,7 +143,7 @@ globalThis.LevelManager = class LevelManager {
     ParticleFx.clear();
   }
 
-  /** Tear down every live level, newest first (a guest before its frozen host). */
+  /** Newest first (a guest before its frozen host). */
   _destroyAll() {
     for (let i = this._all.length - 1; i >= 0; i--)
       this._all[i].level.destroy();
@@ -193,10 +169,6 @@ globalThis.LevelManager = class LevelManager {
     if (level !== null && level.retheme !== undefined) level.retheme();
   }
 
-  /**
-   * Display label of the active level: registry label, else instance label, else "-".
-   * @returns {string}
-   */
   label() {
     if (this._current === null) return "-";
     const lbl = this._current.label;
@@ -239,17 +211,12 @@ globalThis.LevelManager = class LevelManager {
     this._stepRequested = true;
   }
 
-  /**
-   * Consume the one-shot step flag (true at most once per requestStep).
-   * @returns {boolean}
-   */
   _takeStep() {
     if (!this._stepRequested) return false;
     this._stepRequested = false;
     return true;
   }
 
-  /** Render the active level. */
   draw() {
     const level = this.current;
     if (level !== null) level.draw();
@@ -260,61 +227,38 @@ globalThis.LevelManager = class LevelManager {
     this._destroyAll();
   }
 
-  // ── resident-map registry + whole-entity transfer (was Universe) ──
-
   /**
    * Index a map under its id. `entry` must carry at least { entities, grid } — Core reads only
    * those two fields; everything else is the owner's business (the RPG's park bundle).
    * Overwrites: RpgMap.build stores a minimal { entities, grid }, each RpgMap.suspend replaces it
    * with the full park bundle. A resumed map's entry may retain stale bundle fields until its
    * next suspend — harmless, nothing reads them (entities/grid are the same live objects throughout).
-   * @param {string} mapId
-   * @param {Object} entry
    */
   register(mapId, entry) {
     this._levels[mapId] = entry;
   }
 
-  /**
-   * @param {string} mapId
-   * @returns {Object|null} the registered entry (a park bundle, or the minimal { entities, grid })
-   */
   entryOf(mapId) {
     const e = this._levels[mapId];
     return e !== undefined ? e : null;
   }
 
-  /** @returns {string[]} every resident map id (teardown walks) */
   ids() {
     return Object.keys(this._levels);
   }
 
-  /**
-   * @param {string} mapId
-   */
   setActive(mapId) {
     this._active = mapId;
   }
 
-  /**
-   * @returns {string|null}
-   */
   activeId() {
     return this._active;
   }
 
-  /**
-   * @param {string} mapId
-   * @returns {boolean}
-   */
   isResident(mapId) {
     return this._levels[mapId] !== undefined;
   }
 
-  /**
-   * @param {string} mapId
-   * @returns {Entity|null}
-   */
   worldOf(mapId) {
     const e = this._levels[mapId];
     return e !== undefined ? e.entities : null;
@@ -324,9 +268,6 @@ globalThis.LevelManager = class LevelManager {
    * Capture a WHOLE entity (all components) out of a resident map's store and remove it. Returns the
    * snapshot (the caller now owns it), or null if the map isn't resident. EntitySnapshot references
    * the component data objects, so they survive the remove/flush (see EntitySnapshot).
-   * @param {string} mapId
-   * @param {number} id
-   * @returns {Object|null}
    */
   take(mapId, id) {
     const w = this.worldOf(mapId);
@@ -339,10 +280,6 @@ globalThis.LevelManager = class LevelManager {
   /**
    * Restore a whole-entity snapshot into a resident map's store; `overrides` apply after (e.g. a
    * fresh Position for the destination). Returns the new id, or -1 if the map isn't resident.
-   * @param {string} mapId
-   * @param {Object} snap
-   * @param {Object} [overrides]
-   * @returns {number}
    */
   put(mapId, snap, overrides) {
     const w = this.worldOf(mapId);
@@ -353,11 +290,6 @@ globalThis.LevelManager = class LevelManager {
   /**
    * Move a whole entity from one map to another. Destination resident → it lands there (new id); not
    * resident → the snapshot is returned for the caller to hold until it loads.
-   * @param {string} fromMapId
-   * @param {string} toMapId
-   * @param {number} id
-   * @param {Object} [overrides]
-   * @returns {number|Object|null}
    */
   transfer(fromMapId, toMapId, id, overrides) {
     const snap = this.take(fromMapId, id);

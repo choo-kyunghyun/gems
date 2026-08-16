@@ -4,13 +4,7 @@
  * when an entity leaves to an empty cell OR is removed / filtered out.
  */
 globalThis.ZoneSystem = {
-  /**
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {ZoneMap} map
-   * @param {{ has?: string, onEnter?: function, onExit?: function }} [opts]
-   *   has (a component token) filters tracked entities; callbacks get (entityId, zone).
-   */
+  /** opts.has (a component token) filters tracked entities; callbacks get (entityId, zone). */
   update(entities, grid, map, opts = {}) {
     const has = opts.has;
     const onEnter = opts.onEnter;
@@ -45,13 +39,6 @@ globalThis.ZoneSystem = {
     }
   },
 
-  /**
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {ZoneMap} map
-   * @param {number} id
-   * @returns {Zone | undefined}
-   */
   zoneOf(entities, grid, map, id) {
     const pos = entities.get(Position, id);
     if (pos === undefined) return undefined;
@@ -59,14 +46,6 @@ globalThis.ZoneSystem = {
     return map.at(g.x, g.y);
   },
 
-  /**
-   * @returns {number[]} ids of entities currently inside zone `id`.
-   * @param {Entity} entities
-   * @param {LevelGrid} grid
-   * @param {ZoneMap} map
-   * @param {number} id
-   * @param {{ has?: string }} [opts]  has = a component token filter
-   */
   entitiesIn(entities, grid, map, id, opts = {}) {
     const has = opts.has;
     const out = [];

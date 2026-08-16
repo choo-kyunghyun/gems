@@ -55,14 +55,12 @@ globalThis.WorldClock = {
     return (WorldClock.day - 1) * 24 + WorldClock.hour;
   },
 
-  /** "HH:MM" on a 24-hour clock */
   clockText() {
     const h = Math.floor(WorldClock.hour);
     const m = Math.floor((WorldClock.hour - h) * 60);
     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   },
 
-  /** coarse phase token (night/dawn/day/dusk) for HUD glyphs / AI hooks */
   phase() {
     const h = WorldClock.hour;
     if (h < 5 || h >= 20) return "night";
@@ -71,15 +69,11 @@ globalThis.WorldClock = {
     return "dusk";
   },
 
-  /**
-   * current season def, derived purely from `day` (each spans daysPerSeason days, cycling forever)
-   */
   season() {
     const i = Math.floor((WorldClock.day - 1) / WorldClock.daysPerSeason) % 4;
     return WorldClock._SEASONS[i];
   },
 
-  /** day within the current season, 1-based (the HUD's "Day 3") */
   seasonDay() {
     return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
   },

@@ -1,5 +1,3 @@
-// Global weather — current sky condition + a season-biased transition, a singleton like WorldClock
-// (one sky). State + visuals advance on SIM time (Time.delta). Contract on the declaration below.
 /**
  * On Time.delta, everything — transitions, rain/snow fall, cloud drift — freezes when the game pauses
  * and dilates with Time.scale (the bed fast-forward races the sky). Conditions are a fixed literal
@@ -129,9 +127,6 @@ globalThis.Weather = {
     Weather._time = 0;
   },
 
-  /**
-   * advance by `dt` (Time.delta): re-roll ambient on hold expiry, recompute effective, ease the cross-fade
-   */
   update(dt) {
     Weather._time += dt;
     Weather._timer -= dt;
@@ -146,7 +141,6 @@ globalThis.Weather = {
     }
   },
 
-  /** climate-zone enter: force a condition + temperature offset while inside */
   enterRegion(zone) {
     const d = zone.data;
     Weather._override =
@@ -155,14 +149,12 @@ globalThis.Weather = {
     Weather._sync();
   },
 
-  /** climate-zone exit: back to the open-sky ambient */
   exitRegion() {
     Weather._override = null;
     Weather._regionTemp = 0;
     Weather._sync();
   },
 
-  /** recompute effective (override ?? ambient); begin a cross-fade if it changed */
   _sync() {
     const eff =
       Weather._override !== null ? Weather._override : Weather._ambient;
@@ -214,7 +206,6 @@ globalThis.Weather = {
     return Weather._time;
   },
 
-  /** reads for HUD / Temperature / RenderWeather */
   current() {
     return Weather._COND[Weather._cur];
   }, // target condition (HUD name)
@@ -225,9 +216,7 @@ globalThis.Weather = {
     return Weather._blend;
   }, // 0..1 incoming weight
 
-  /**
-   * blended Kelvin temp delta (outgoing → incoming) + the climate-zone offset; folded into Temperature.now()
-   */
+  /** Blended Kelvin temp delta (outgoing → incoming) + the climate-zone offset; folded into Temperature.now(). */
   tempMod() {
     const p = Weather._COND[Weather._prev].temp;
     const c = Weather._COND[Weather._cur].temp;

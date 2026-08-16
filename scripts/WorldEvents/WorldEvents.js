@@ -1,5 +1,3 @@
-// The world's event queue — timed events on the WorldClock timeline, INDEPENDENT of any level's
-// per-tick simulation. A static singleton (like WorldClock/Weather). Contract on the declaration below.
 /**
  * One world, one queue; kept off WorldClock so the clock stays the pure temporal authority (same
  * split as Temperature).
@@ -57,7 +55,6 @@ globalThis.WorldEvents = {
     }
   },
 
-  /** Cancel every queued event of a kind (e.g. a trader removed). Returns the count dropped. */
   clearKind(kind) {
     const q = WorldEvents._q;
     let n = 0;
@@ -69,9 +66,7 @@ globalThis.WorldEvents = {
     return n;
   },
 
-  /**
-   * Drop all queued events (new game / level teardown). Handlers are kept — re-register per level.
-   */
+  /** Handlers are kept — re-register per level. */
   reset() {
     WorldEvents._q = [];
   },

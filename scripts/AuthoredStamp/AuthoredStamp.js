@@ -1,5 +1,3 @@
-// Authored-overlay GEN PASS for a ChunkGenerator — chunks inside the authored bounding box take their
-// walls/spawns from hand-built level data instead of procedural content. Contract on the class below.
 /**
  * The pass pushes the chunk's authored content (indexed per chunk at construction) and sets
  * `ctx.authored = true`, which the procedural passes (PrefabStamp, scatters) respect by early-outing.
@@ -13,7 +11,6 @@ globalThis.AuthoredStamp = class AuthoredStamp {
    * opts: data? (level-file data — { walls: [[gx,gy,w,h]...], spawns: [{gx,gy,...}] }), chunkCols?/
    * chunkRows? (cell size — must match the generator's), salt? (per-pass stream salt, unused — no rng
    * drawn).
-   * @param {Object} opts
    */
   constructor(opts = {}) {
     this.salt = opts.salt;
@@ -31,7 +28,6 @@ globalThis.AuthoredStamp = class AuthoredStamp {
     if (opts.data !== undefined) this._index(opts.data);
   }
 
-  /** stamp the chunk's authored content + claim the chunk (procedural passes check ctx.authored) */
   apply(ctx) {
     if (!this._inBox(ctx.cx, ctx.cy)) return;
     ctx.authored = true;

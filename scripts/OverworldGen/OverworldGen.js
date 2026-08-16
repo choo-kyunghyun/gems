@@ -1,5 +1,3 @@
-// The RPG overworld generator COMPOSITION (Demo): create(opts) wires a Core ChunkGenerator with the
-// RPG's TerrainField (data in RpgBiomes) and four passes. Contract on the declaration below.
 /**
  * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its box), a
  * PrefabStamp carrying the RPG spawn policy, and two scatter passes (rocks + rats). A different world
@@ -22,7 +20,6 @@ globalThis.OverworldGen = {
    * overlay the hub chunks (see AuthoredStamp); the last two override the RPG spawn policy (see
    * PrefabStamp). Register prefabs before calling (PrefabStamp resolves Prefab.byTag in its
    * constructor).
-   * @returns {ChunkGenerator}
    */
   create(opts = {}) {
     const seed = (opts.seed ?? 1337) | 0;
