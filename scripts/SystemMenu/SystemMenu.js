@@ -10,7 +10,7 @@
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the obj_game controller (its themed `background` — levels live on World.levels)
+  _game: null, // the Game controller (its themed `background` — levels live on World.levels)
   _scale: 1, // Time.scale to restore on resume
   // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this kit menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
@@ -29,7 +29,7 @@ globalThis.SystemMenu = {
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a level opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
-  /** @param {Object} game the obj_game controller (its `background` re-themes) */
+  /** @param {Object} game the Game controller (its `background` re-themes) */
   update(game) {
     SystemMenu._game = game;
     const level = World.levels.current;

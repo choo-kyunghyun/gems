@@ -4,7 +4,7 @@
  * DebugRender.add(cls, label), so Core stays decoupled. Each toggle finds the
  * live level's passes by instanceof (GMRT-safe on a flat class) and flips
  * `enabled` — no per-level re-registration (a level lacking the pass reads
- * off and no-ops). Registered once from obj_game Create_0.
+ * off and no-ops). Registered once from Game Create_0.
  */
 globalThis.DebugRender = {
   _registered: false, // register() (Create_0) has run

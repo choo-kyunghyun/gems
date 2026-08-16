@@ -2,7 +2,7 @@
  * Screenshot — screen capture into `screenshots/` under the save dir
  * (game_save_id-rooted: a relative path lands in the build tree — docs/GMRT.md
  * → working_directory). take() queues; update() saves the queue and must run
- * LAST in obj_game/Draw_75 — Draw GUI End is the only event screen_save
+ * LAST in Game/Draw_75 — Draw GUI End is the only event screen_save
  * permits, and a shot captures only what was drawn before the call — so a
  * take() anywhere up to that point lands the same frame. `hotkey` takes a
  * timestamped shot. Agent harness: a temp Time.frame timeline in Step_0

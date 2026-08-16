@@ -1,6 +1,6 @@
 // TODO: exists(fname)
 globalThis.File = {
-  // pending async requests keyed by buffer_*_async id; obj_game's Async event (Other_72)
+  // pending async requests keyed by buffer_*_async id; Game's Async event (Other_72)
   // calls _resolve(id, status) to dispatch each completion to its callback.
   _pending: {},
 
@@ -82,7 +82,7 @@ globalThis.File = {
   },
 
   // Async binary I/O — off-thread so a huge save can't freeze the frame; console vendors
-  // (Xbox/PS/Switch) *require* it to pass cert. Completion arrives in obj_game's Async event,
+  // (Xbox/PS/Switch) *require* it to pass cert. Completion arrives in Game's Async event,
   // routed here via _resolve. NOTE: both auto-prefix a "default/" folder, so saveAsync round-trips
   // through loadAsync — NOT the sync read/readBuffer, which look outside "default/".
   //
@@ -126,7 +126,7 @@ globalThis.File = {
   },
 
   /**
-   * dispatch an async completion to its callback (called by obj_game's Async event); unknown ids ignored.
+   * dispatch an async completion to its callback (called by Game's Async event); unknown ids ignored.
    * @param {number} id
    * @param {boolean} status
    */

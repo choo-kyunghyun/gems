@@ -38,7 +38,7 @@ globalThis.Audio = {
   },
 
   /**
-   * Reap spatial-cue emitters whose voice has ended. Called once per frame (obj_game Step_0):
+   * Reap spatial-cue emitters whose voice has ended. Called once per frame (Game Step_0):
    * audio_emitter_free STOPS a still-playing voice at once, so play() parks each throwaway
    * emitter here until its cue finishes instead of freeing at fire time.
    */

@@ -254,7 +254,7 @@ globalThis.RenderMesh = class RenderMesh {
   /** @param {Entity} entities */
   draw(entities) {
     const ident = matrix_build_identity();
-    // depth-writing like RenderBillboard (global default is off — obj_game Create_0)
+    // depth-writing like RenderBillboard (global default is off — Game Create_0)
     gpu_set_zwriteenable(true);
     // PASS 1 — baked models, lit by sh_meshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.

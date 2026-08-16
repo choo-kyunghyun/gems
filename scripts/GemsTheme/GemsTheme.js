@@ -112,7 +112,7 @@ globalThis.GemsTheme = {
    * ARCHITECTURE.md); their own field defaults are only what shows before the first setMode.
    * No-op while the globals are still loading: the seeding setMode below runs at script load,
    * where neither Color nor the singletons exist yet (GMRT load order) — the boot call in
-   * obj_game Create_0 is the one that lands.
+   * Game Create_0 is the one that lands.
    */
   _applyCore: function _applyCore() {
     if (

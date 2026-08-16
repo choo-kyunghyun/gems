@@ -22,7 +22,7 @@ globalThis.teardownLevel = function teardownLevel(level) {
  * content registries, which register from `create()` — so the catalogue is complete by boot.
  * `byCategory()` groups entries in registration order; a consumer imposes its own category
  * order (the lobby's fixed display list). `labelOf` serves LevelManager's boot-wired
- * `resolveLabel` seam (obj_game wires it): the match is by factory ref, so a guest level must
+ * `resolveLabel` seam (Game wires it): the match is by factory ref, so a guest level must
  * be opened with the factory it registered.
  */
 globalThis.LevelRegistry = {

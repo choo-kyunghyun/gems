@@ -135,9 +135,9 @@
   },
   "name":"gems",
   "resources":[
-    {"id":{"name":"obj_game","path":"objects/obj_game/obj_game.yy",},},
+    {"id":{"name":"Game","path":"objects/Game/Game.yy",},},
     {"id":{"name":"ps_muzzle","path":"particles/ps_muzzle/ps_muzzle.yy",},},
-    {"id":{"name":"rm_game","path":"rooms/rm_game/rm_game.yy",},},
+    {"id":{"name":"Room","path":"rooms/Room/Room.yy",},},
     {"id":{"name":"AABB","path":"scripts/AABB/AABB.yy",},},
     {"id":{"name":"Achievement","path":"scripts/Achievement/Achievement.yy",},},
     {"id":{"name":"Ammo","path":"scripts/Ammo/Ammo.yy",},},
@@ -544,7 +544,7 @@
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
-    {"roomId":{"name":"rm_game","path":"rooms/rm_game/rm_game.yy",},},
+    {"roomId":{"name":"Room","path":"rooms/Room/Room.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[

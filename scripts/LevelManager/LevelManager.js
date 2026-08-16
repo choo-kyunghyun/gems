@@ -27,10 +27,10 @@ globalThis.LevelManager = class LevelManager {
     this.paused = false; // gates level.step() like the menu pause does
     this._stepRequested = false; // one-shot: lets exactly one frame through
     // ── boot-wired seams (Core names no kit/Demo module) ──
-    // pause menu, duck-typed { isOpen(), scale(), reset() } — obj_game wires the GemsUI
+    // pause menu, duck-typed { isOpen(), scale(), reset() } — Game wires the GemsUI
     // SystemMenu; null = no menu pause gating
     this.menu = null;
-    // display-label resolver, (factory) => string | () => string | null — obj_game wires
+    // display-label resolver, (factory) => string | () => string | null — Game wires
     // LevelRegistry.labelOf; null = instance labels only
     this.resolveLabel = null;
     // ── resident-map registry (was Universe) ──
@@ -255,7 +255,7 @@ globalThis.LevelManager = class LevelManager {
     if (level !== null) level.draw();
   }
 
-  /** Teardown: destroys every level's UI roots, so obj_game must call this before UI.destroy(). */
+  /** Teardown: destroys every level's UI roots, so Game must call this before UI.destroy(). */
   destroy() {
     this._destroyAll();
   }

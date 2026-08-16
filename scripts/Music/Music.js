@@ -1,6 +1,6 @@
 /**
  * Music — looping BGM with cross-fade (a state machine over audio_play_sound + audio_sound_gain).
- * Wired in obj_game Step_0 (update) + Audio.restart.
+ * Wired in Game Step_0 (update) + Audio.restart.
  */
 globalThis.Music = {
   _bgm: -1, // current looping BGM instance handle (-1 = none)
@@ -75,7 +75,7 @@ globalThis.Music = {
     }
   },
 
-  /** Per-frame (obj_game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle. */
+  /** Per-frame (Game Step_0): stop a BGM whose fade-out has elapsed. Cheap no-op when idle. */
   update() {
     if (Music._fadeStop !== -1 && current_time >= Music._fadeAt) {
       audio_stop_sound(Music._fadeStop);

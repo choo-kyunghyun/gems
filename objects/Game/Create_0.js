@@ -82,7 +82,7 @@ this.background = Color.parse(GemsTheme.bg); // level backdrop; re-read on a the
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
-// World.levels (LevelManager) owns the level lifecycle + the resident-level registry; obj_game
+// World.levels (LevelManager) owns the level lifecycle + the resident-level registry; Game
 // delegates update/step/draw/destroy each event directly. Instantiated here, where load order is safe.
 World.levels = new LevelManager();
 // Boot-wire the Core seams to their kit/Demo owners: the pause menu, its quit target, and the

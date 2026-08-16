@@ -49,7 +49,7 @@ globalThis.Input = {
    * Push Input.deadzone to the gamepad hardware; a slot omitted from `device` means every slot.
    *
    * The built-in sets one SLOT (all of its axes at once), and the value neither follows a pad
-   * across a reconnect nor exists before a pad does — no pad is connected yet when obj_game's
+   * across a reconnect nor exists before a pad does — no pad is connected yet when Game's
    * Create runs, so the seeding sweep alone reaches nothing and the async system event re-pushes
    * per slot on "gamepad discovered". That event is the load-bearing call site.
    *

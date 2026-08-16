@@ -291,7 +291,7 @@ class _SceneRpgClass {
    * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
    */
   step() {
-    // no pause gate — obj_game skips level.step() while the SystemMenu is open
+    // no pause gate — Game skips level.step() while the SystemMenu is open
 
     // re-latch the player id from the live Playable query (derived, not stored — RpgMap.go's
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
@@ -928,7 +928,7 @@ class _SceneRpgClass {
 
   /**
    * LevelManager keep-switch host pause/resume while a guest runs in front.
-   * suspend: hide the UI root. obj_game won't step a non-top level, so step() naturally pauses
+   * suspend: hide the UI root. Game won't step a non-top level, so step() naturally pauses
    * BuildMode/Interactable/WorldClock/Weather — nothing else to do.
    */
   suspend() {

@@ -142,7 +142,7 @@ globalThis.RenderBillboard = class RenderBillboard {
   draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
-    // only pass that writes depth; global default is off (obj_game Create_0) to avoid z-fighting
+    // only pass that writes depth; global default is off (Game Create_0) to avoid z-fighting
     // in coplanar ground passes — restore after
     gpu_set_zwriteenable(true);
     if (this._litOk) {

@@ -392,7 +392,7 @@ globalThis.SaveGame = {
     return zones;
   },
 
-  // ── menu UI (injected into SystemMenu as an extra tab; see obj_game Create_0) ──
+  // ── menu UI (injected into SystemMenu as an extra tab; see Game Create_0) ──
   SLOTS: 3, // fixed named save slots shown in the menu
 
   /**

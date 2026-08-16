@@ -10,11 +10,11 @@
  * active level's step() drives it, not this file. Those three singletons are reached by their own
  * global, never mirrored into a member here: a member would be a second name for one object plus a
  * boot-wiring dependency. `levels` IS a member because it is the one live INSTANCE of a class,
- * constructed in obj_game Create_0 where load order is safe; the methods reference the singletons
+ * constructed in Game Create_0 where load order is safe; the methods reference the singletons
  * lazily, so load order among them is irrelevant.
  */
 globalThis.World = {
-  levels: null, // LevelManager instance — assigned once in obj_game Create_0
+  levels: null, // LevelManager instance — assigned once in Game Create_0
 
   // Advance world-scope time, then fire every event now due on that timeline. NOT yet wired: sceneRpg
   // still calls WorldClock.update / WorldEvents.update directly; phase 2 routes them through here.
