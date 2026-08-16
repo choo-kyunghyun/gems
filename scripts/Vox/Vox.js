@@ -1,4 +1,4 @@
-// Runtime MagicaVoxel .vox loader: parse + greedy-mesh, no bake step. Authoring: tools/vox-kit.
+// Runtime MagicaVoxel .vox loader: parse + greedy-mesh, no bake step.
 /**
  * Owner of the VOLUME mesh format contract (the art projection contract is RenderBillboard's).
  * `load` parses `meshes/<name>.vox` (an included file, committed as-is — the editable source IS

@@ -86,4 +86,3 @@ Standalone tools under `tools/`, never imported by the game. Each is self-contai
 - `pixel-art-kit/` — authors pixel-art sprites from data files and imports them as GameMaker sprites.
 - `audio-kit/` — synthesizes SFX and MIDI-based BGM, imports them as GameMaker sounds. The committed `snd_*`/`mus_*` set is hand-authored — read its GEMS.md before re-running any importer.
 - `gems-tree-ext/` — VS Code extension showing the GameMaker asset tree from `gems.yyp`.
-- `vox-kit/` — authoring guide for the `.vox` mesh models under `datafiles/meshes/`, parsed at runtime by `Vox`.
