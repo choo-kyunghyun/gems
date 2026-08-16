@@ -9,7 +9,7 @@
  * ints — a color fills the face when its sprite is unset, and tints the sprite when set.
  *
  * @typedef {Object} Mesh
- * @property {string} [model]     baked vox-kit mesh NAME (meshes/<model>.vbuf) — when set,
+ * @property {string} [model]     vox model NAME (meshes/<model>.vox, runtime-meshed by Vox) — when set,
  *                                RenderMesh submits the frozen mesh and every field below
  *                                is ignored for drawing (footprint fields still document size)
  * @property {number} [scale]     uniform model scale (default 1; model path only — analytic
@@ -25,7 +25,7 @@
  * @property {number} [yaw]       degrees about the up axis, pivoting on the footprint center
  *                                (default 0). Visual-only like scale: the BBox stays
  *                                axis-aligned — author the swapped footprint for a 90° turn of
- *                                oblong furniture. Vox models bake all four side faces, so any
+ *                                oblong furniture. Vox models carry all four side faces, so any
  *                                facing renders solid and sh_meshlit lights it correctly (the
  *                                packed normals rotate with the world matrix). The analytic box
  *                                rotates its two authored faces (its "front" stays local south).

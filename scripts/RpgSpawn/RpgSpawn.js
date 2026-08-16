@@ -28,26 +28,8 @@
  * scale separately) — and, on mesh spawns, `yaw?`, a visual turn in degrees (BBox stays axis-aligned).
  */
 globalThis.RpgSpawn = {
-  // Baked vox dimensions (meshes/meshes.json, emitted by vox2vbuf.py --all alongside the
-  // .vbuf set) — loaded once by register(). Replaces the old hand-measured FOOTPRINTS table:
-  // each entry is { size: [sx,sy,sz], content: [w,h,d] }, content = tight voxel extent.
-  _meshMeta: null,
-
-  _loadMeshMeta() {
-    if (RpgSpawn._meshMeta !== null) return;
-    RpgSpawn._meshMeta = {};
-    const text = File.read("meshes/meshes.json");
-    if (text === undefined) {
-      Log.warn(
-        "RpgSpawn: meshes/meshes.json missing — mesh props keep preset BBoxes",
-      );
-      return;
-    }
-    RpgSpawn._meshMeta = JSON.parse(text);
-  },
-
   /**
-   * Collider footprint for a vox model, derived from the manifest's content dims:
+   * Collider footprint for a vox model, derived from its tight voxel content dims (Vox):
    * max(8, content − 2) per axis — BBox ≤ voxel content, erring small for walkability
    * (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
    * 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
@@ -57,8 +39,7 @@ globalThis.RpgSpawn = {
    * @returns {{w: number, h: number}|undefined}
    */
   footprint(model) {
-    const m =
-      RpgSpawn._meshMeta === null ? undefined : RpgSpawn._meshMeta[model];
+    const m = Vox.load(model);
     if (m === undefined) return undefined;
     return {
       w: Math.max(8, m.content[0] - 2),
@@ -89,7 +70,6 @@ globalThis.RpgSpawn = {
    * through by reference — see EntityPreset._clone).
    */
   register() {
-    RpgSpawn._loadMeshMeta(); // mesh-prop footprints (vox2vbuf manifest)
     // the fence keeps 16px sprite art in the 32px world: density 0.5 → draw scale ×2, BBox
     // untouched (SpriteMeta.fit). Code-registered — no manifest file/gems.yyp entry needed.
     SpriteMeta.register([
@@ -484,7 +464,7 @@ globalThis.RpgSpawn = {
         model = RpgSpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
       if (model !== undefined) {
         over.Mesh = { model };
-        // collider matched to the model's baked voxel footprint (big furniture is multi-cell)
+        // collider matched to the model's voxel footprint (big furniture is multi-cell)
         const fp = RpgSpawn.footprint(model);
         if (fp !== undefined)
           over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
@@ -550,7 +530,7 @@ globalThis.RpgSpawn = {
       over.Portal = { toMap: s.toMap, toEntry: s.toEntry ?? "default" };
     }
 
-    // visual yaw for any mesh look (`yaw?`, degrees — vbufs bake all four sides, so any
+    // visual yaw for any mesh look (`yaw?`, degrees — vox meshes carry all four sides, so any
     // facing is solid). Gated to mesh-bearing spawns: on a sprite entity (fence) a bare
     // Mesh {yaw} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
     // author the swapped footprint for 90° turns of oblong furniture.

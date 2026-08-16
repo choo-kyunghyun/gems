@@ -1,7 +1,7 @@
 // Mesh lighting, vertex stage. The texcoord has TWO interpretations, selected by the
 // FRAGMENT stage's u_useTex (all uniforms live in the fsh — the proven-on-GMRT stage):
-// - vox mode: the texcoord is the face normal PACKED by tools/vox-kit/vox2vbuf.py
-//   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because the converter never emits a
+// - vox mode: the texcoord is the face normal PACKED by Vox (scripts/Vox)
+//   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because Vox never emits a
 //   BOTTOM face, so nz <= 0 with up = -z). The world matrix on this path is scale +
 //   OPTIONAL rotation (Mesh.yaw/pitch/roll) + translate: transforming the normal by
 //   mat3(world) + renormalizing rotates it with the model (a yawed mesh lights per its

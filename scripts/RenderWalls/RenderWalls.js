@@ -2,11 +2,11 @@
  * WALLS pass of the art projection contract (RenderBillboard): draws a solid tile
  * layer as lit boxes. Per wall cell it emits a plan-view TOP quad (at -height) plus a
  * vertical SOUTH face only where the south neighbor is empty — the two orientations the
- * fixed-yaw pitched camera can ever see (the vox-kit contract). Hidden-face removal happens
+ * fixed-yaw pitched camera can ever see (the Vox contract). Hidden-face removal happens
  * HERE at build time; no emitted face can backface a fixed-yaw camera, so GPU cull modes
  * would have nothing left to remove.
  *
- * Vertices are the vox-kit 24 B/vertex format (position_3d + colour + texcoord), in one of
+ * Vertices are the Vox 24 B/vertex format (position_3d + colour + texcoord), in one of
  * two sh_meshlit modes (both share the sun + view-culled point lights supplied by the host
  * RenderMesh pass, `opt.lights`, whose setupLights runs before the submits — walls join the
  * same depth pool as furniture and billboards, z-write on for the submit):
@@ -74,7 +74,7 @@ globalThis.RenderWalls = class RenderWalls {
         texOk: m.sprite !== undefined && sprite_exists(m.sprite),
       });
     }
-    // same 24 B/vertex declaration as RenderMesh._format — the lockstep vox-kit layout
+    // same 24 B/vertex declaration as RenderMesh._format — the lockstep Vox layout
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
@@ -121,7 +121,7 @@ globalThis.RenderWalls = class RenderWalls {
 
   /**
    * rebuild the per-bucket whole-layer VBOs: count quads per bucket for exact fixed buffers,
-   * then write vertices (byte order per vox2vbuf: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
+   * then write vertices (byte order per Vox: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
    * An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
    */
   _rebuild() {

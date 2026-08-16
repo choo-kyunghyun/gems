@@ -1,40 +1,25 @@
 # vox-kit
 
-The VOLUME furniture pipeline (see docs/ROADMAP.md — Art Rework): author boxy props in
-[MagicaVoxel](https://ephtracy.github.io/), commit the `.vox` as editable source, bake it to a
-GameMaker vertex-buffer binary the engine draws as real depth-writing geometry.
+The VOLUME furniture authoring guide: author boxy props in
+[MagicaVoxel](https://ephtracy.github.io/) and commit the `.vox` straight to
+`datafiles/meshes/<name>.vox` — the editable source IS the shipped asset. There is no bake
+step and no committed derivatives: the runtime `Vox` script parses and greedy-meshes the file
+on first use, `RenderMesh` draws it as real depth-writing geometry, and `RpgSpawn.footprint`
+derives the prop collider from its tight voxel extent.
 
 ```
-templates/<name>.vox  --vox2vbuf.py-->  datafiles/meshes/<name>.vbuf  --RenderMesh-->  screen
-   (editable source)                        (committed asset)             (Mesh { model })
+datafiles/meshes/<name>.vox  --Vox (runtime)-->  vertex buffer  --RenderMesh-->  screen
+   (editable source = shipped asset)                                (Mesh { model })
 ```
 
-Zero dependencies (Python stdlib only), deterministic output — same shape as the other kits
-(author → render → import).
-
-## Usage
-
-```sh
-python tools/vox-kit/vox2vbuf.py tools/vox-kit/templates/workbench.vox datafiles/meshes/workbench.vbuf
-python tools/vox-kit/vox2vbuf.py --all   # bake every templates/*.vox + rewrite the manifest
-```
-
-Faces are **greedy-meshed** per orientation plane (coplanar same-color faces merge into one
-quad — flat vertex color + constant normal, so output renders identically at a fraction of
-the vertex count). Every bake also updates **`datafiles/meshes/meshes.json`** — the shared
-dimensions manifest (`{ "<name>": { size: [sx,sy,sz], content: [w,h,d] } }`, content = tight
-voxel extent) the runtime derives mesh-prop colliders from (`RpgSpawn.footprint`:
-`max(8, content − 2)` per axis), replacing the old hand-measured FOOTPRINTS table.
-
-A NEW model's `.vbuf` must be registered once in `gems.yyp` under `IncludedFiles`
+A NEW model must be registered once in `gems.yyp` under `IncludedFiles`
 (`filePath: "datafiles/meshes"`). Insert the entry in **alphabetical filePath order** —
 GameMaker re-saves canonicalize the array and will DUPLICATE an out-of-place entry, after which
-the yyp fails to load. Re-bakes need no registration (churn-free; the manifest is one included
-file, registered once like a `.vbuf`).
+the yyp fails to load. Edits to an existing model need no re-registration.
 
 Spawn side: `world.add(id, Mesh, { model: "<name>", width, depth, height })` — `RenderMesh`
-loads, freezes, and caches the mesh; the width/depth/height document the footprint (BBox tuning)
-but the mesh itself replaces the analytic two-quad box.
+meshes, freezes, and caches the model; the width/depth/height document the footprint (BBox
+tuning) but the mesh itself replaces the analytic two-quad box.
 
 ## Conventions
 
@@ -42,23 +27,17 @@ but the mesh itself replaces the analytic two-quad box.
   center), feet at ground level.
 - **MagicaVoxel +x = east (width), +y = south (the face toward the camera)**, z = up. Author
   furniture front along +y.
-- **Top + all four side orientations** are emitted, so a runtime `Mesh.yaw` turn shows a solid
-  model from any facing (bottoms never — unrepresentable in the normal packing and only visible
-  past a ~90° tip; unrotated meshes render identically to the old top+south bake). The vertex
-  colour is the raw palette **albedo** (the palette IS the texture; no bitmap assets) and the
-  texcoord slot carries the **packed face normal** (`u = nx, v = ny`; the shader derives
-  `nz = -sqrt(1-u²-v²)` — valid since no bottom face is ever emitted).
-  Shading is LIVE, not baked: `sh_meshlit` lights the albedo per frame (directional sun via
-  `WorldClock.sunDir()` + the torch/lantern `Light` entities as point lights).
-- The emitted vertex layout (`position 3×f32 | colour RGBA u8 | texcoord 2×f32`, 24 B/vertex)
-  and `RenderMesh`'s declared vertex format are a **lockstep pair** — change both or neither
-  (and the texcoord's normal encoding pairs with `sh_meshlit.vsh`).
+- The palette IS the texture: the vertex colour is the raw palette **albedo** (no bitmap
+  assets), and shading is LIVE — `sh_meshlit` lights it per frame. First model per file only.
+- The full format contract (vertex layout, emitted face orientations, packed normals, greedy
+  meshing) is owned by `Vox`'s JSDoc — `scripts/Vox/Vox.js`.
 
 ## License & provenance
 
-Everything here is under the repository's MIT license. The models in `templates/` are
+Everything here is under the repository's MIT license. The models in `datafiles/meshes/` are
 **original works of this project** (MIT like the rest of the repo). MagicaVoxel is only the
 recommended _editor_: a free tool (free for personal and commercial use) that claims no rights
 over user-created content, with an openly published `.vox` format specification
 ([ephtracy/voxel-model](https://github.com/ephtracy/voxel-model), MIT). No MagicaVoxel code or
-assets ship in this repository; `vox2vbuf.py` is an original parser written from the open spec.
+assets ship in this repository; the runtime parser `Vox` is an original implementation written
+from the open spec.

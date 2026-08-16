@@ -3,9 +3,8 @@
  * `Mesh` + `Position` entity as real depth-writing geometry (z-write on for this loop
  * only, like RenderBillboard), so pawns sort against deep furniture per-pixel with zero
  * manual layering. Two paths per entity:
- * - `model` set → a baked MagicaVoxel mesh (tools/vox-kit vox2vbuf.py → meshes/<name>.vbuf,
- *   loaded via buffer_load + vertex_create_buffer_from_buffer, frozen + cached — no texture).
- *   The converter emits only the faces this camera can see (top+south), as UNSHADED albedo
+ * - `model` set → a MagicaVoxel mesh (meshes/<name>.vox, parsed + greedy-meshed by Vox on
+ *   first use, frozen + cached — no texture). Vox emits the exposed faces as UNSHADED albedo
  *   with the face normal PACKED in the texcoord — sh_meshlit lights them live: one
  *   directional sun (`opt.sun` provider, injected like RenderLighting's ambient — the demo
  *   wires WorldClock.sunDir; the default is a fixed neutral sun reproducing the old baked
@@ -44,9 +43,9 @@ globalThis.RenderMesh = class RenderMesh {
     this.enabled = true;
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
-    // baked-mesh models (tools/vox-kit): position_3d + colour + texcoord, 24 bytes/vertex —
-    // this declaration and the converter's byte layout are a lockstep pair (the texcoord
-    // carries the PACKED FACE NORMAL, not UVs — see vox2vbuf.py / sh_meshlit.vsh)
+    // vox models: position_3d + colour + texcoord, 24 bytes/vertex — this declaration and
+    // Vox's emitted layout are a lockstep pair (the texcoord carries the PACKED FACE
+    // NORMAL, not UVs — see Vox / sh_meshlit.vsh)
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
@@ -106,23 +105,20 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * baked model lookup: meshes/<name>.vbuf (included file) -> frozen vertex buffer, cached;
-   * a missing file caches vb -1 so the warning fires once, not per frame
+   * model lookup: meshes/<name>.vox (included file) -> Vox-meshed frozen vertex buffer,
+   * cached; a missing file caches vb -1 so the warning fires once, not per frame
    * @param {string} name
    * @returns {{vb: *}}
    */
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
-    m = { vb: -1 };
-    const buf = buffer_load(`meshes/${name}.vbuf`);
-    if (buffer_exists(buf)) {
-      m.vb = vertex_create_buffer_from_buffer(buf, this._format);
-      buffer_delete(buf);
+    m = { vb: Vox.mesh(name, this._format) };
+    if (m.vb !== -1) {
       vertex_freeze(m.vb);
       this._vbs.push(m.vb);
     } else {
-      Log.warn(`RenderMesh: missing model meshes/${name}.vbuf`);
+      Log.warn(`RenderMesh: missing model meshes/${name}.vox`);
     }
     this._models.set(name, m);
     return m;
@@ -267,7 +263,7 @@ globalThis.RenderMesh = class RenderMesh {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
       // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
-      // footprint center (vbufs bake all four side faces, so any facing is solid); the shader
+      // footprint center (vox meshes carry all four side faces, so any facing is solid); the shader
       // re-derives flipped/rotated normals from the world matrix, so lighting follows.
       const s = mesh.scale ?? 1;
       matrix_set(

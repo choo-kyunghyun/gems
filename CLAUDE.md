@@ -69,7 +69,7 @@ A script's directory + filename matches the identifier it exposes, cased to JS n
 - `subject` is what a stranger would call the thing (1–3 words), material leading when it splits same-object variants (`wooden_table`), size/style qualifier last (`_small`).
 - Game-data metadata (manufacturer/rarity/stats/tier) never enters a name — it lives on the def and reaches the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol`).
 - Sounds: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, bare `snd_coin`), `mus_<track>` for music.
-- Vox meshes (plain files, not GM assets): the `.vox` template, `.vbuf` bake, and `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
+- Vox meshes (plain files, not GM assets): the `.vox` model in `datafiles/meshes/` and its `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
 
 ## GMRT
 
@@ -86,4 +86,4 @@ Standalone tools under `tools/`, never imported by the game. Each is self-contai
 - `pixel-art-kit/` — authors pixel-art sprites from data files and imports them as GameMaker sprites.
 - `audio-kit/` — synthesizes SFX and MIDI-based BGM, imports them as GameMaker sounds. The committed `snd_*`/`mus_*` set is hand-authored — read its GEMS.md before re-running any importer.
 - `gems-tree-ext/` — VS Code extension showing the GameMaker asset tree from `gems.yyp`.
-- `vox-kit/` — `.vox` templates + the `vox2vbuf.py` baker emitting the `.vbuf` meshes `RenderMesh` and the prop colliders consume.
+- `vox-kit/` — authoring guide for the `.vox` mesh models under `datafiles/meshes/`, parsed at runtime by `Vox`.

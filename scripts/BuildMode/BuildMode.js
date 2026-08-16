@@ -183,7 +183,7 @@ globalThis.BuildMode = {
           }),
         },
         // decorative furniture — plain solid props over the spare vox models (RpgSpawn.FURN_MODELS);
-        // colliders come from the baked-manifest footprint, no per-item wiring
+        // colliders come from the voxel-content footprint (RpgSpawn.footprint), no per-item wiring
         {
           id: "table",
           labelKey: "BUILD_TABLE",

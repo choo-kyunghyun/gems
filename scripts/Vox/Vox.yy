@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Vox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Vox",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Vox.js",
+}
