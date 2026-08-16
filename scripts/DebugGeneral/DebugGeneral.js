@@ -45,8 +45,6 @@ globalThis.DebugGeneral = {
       },
       update() {
         const d = this.data;
-        // fps/fps_real read 0 in JS (GMRT.md → Runtime and Build Issues) — measure frames per
-        // current_time second instead (runs while the overlay is open)
         this._frames++;
         const now = current_time;
         if (now - this._t0 >= 1000) {

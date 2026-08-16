@@ -22,8 +22,8 @@ globalThis.rem = function rem(value) {
 
 /**
  * Pure 2D position hash → float in [0, 1); deterministic in (x, y, seed) — the shared home for
- * seeded worldgen/terrain hashing. Float math only (`sin`/`floor`): a chained xorshift
- * miscompiles on GMRT (docs/GMRT.md), so never "simplify" this to bitwise.
+ * seeded worldgen/terrain hashing. Float math only (`sin`/`floor`): bitwise overflow
+ * computes wrong values on GMRT (docs/GMRT.md), so never "simplify" this to a bitwise hash.
  * @param {number} x
  * @param {number} y
  * @param {number} seed

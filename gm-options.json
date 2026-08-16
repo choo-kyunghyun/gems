@@ -1,4 +1,4 @@
 {
-  "toolchain": "GMRT@0.20",
+  "toolchain": "GMRT",
   "$schema": ".gmcache\\schemas\\gm-options-schema-2.json"
 }
