@@ -1,6 +1,5 @@
-// Drifting cloud shadows (Demo) — soft dark patches sliding over the ground, their coverage from the
-// current Weather condition and daylight (gone by nightfall). Inserted before RenderWeather (outdoor only).
 /**
+ * Inserted before RenderWeather (outdoor only).
  * Coverage follows the current Weather condition (each _COND carries a `cloud` fraction, cross-faded
  * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
  * value-noise texture (baked ONCE into a surface from hash2 on a PERIODIC lattice, so it tiles)
@@ -15,7 +14,6 @@
  * @implements {RenderPass}
  */
 globalThis.RenderCloudShadow = class RenderCloudShadow {
-  /** @param {Object} [opt={}] */
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
@@ -36,7 +34,6 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     if (buffer_exists(this._buf)) buffer_delete(this._buf);
   }
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     if (this.camera === undefined) return;
 
@@ -98,7 +95,6 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
   /**
    * The density texture, baked once; recreate the surface (not the buffer) if the volatile surface
    * was lost. Returns the texture handle for the quad submit.
-   * @returns {*}
    */
   _texture() {
     if (this._buf === -1) this._buf = this._bake();
@@ -113,7 +109,6 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
    * Bake the seamless cloud-density field into an RGBA buffer (grey = density, alpha = 255). fbm of
    * periodic value noise (each octave wraps at its own frequency → the tile is seamless), then a
    * smooth threshold so the field is soft PATCHES with clear gaps, not uniform dapple.
-   * @returns {GMBuffer}
    */
   _bake() {
     const n = this._n;
@@ -154,11 +149,6 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
   /**
    * periodic value noise in [0,1): smoothstep-interpolated over a hashed lattice whose corners WRAP
    * at `period` (= this octave's frequency), so the tile is seamless. Pure in (fx, fy, seed).
-   * @param {number} fx
-   * @param {number} fy
-   * @param {number} period
-   * @param {number} seed
-   * @returns {number}
    */
   _pnoise(fx, fy, period, seed) {
     const ix = Math.floor(fx);

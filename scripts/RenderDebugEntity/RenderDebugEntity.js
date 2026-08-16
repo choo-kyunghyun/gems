@@ -13,7 +13,6 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
   destroy() {}
 
-  /** @param {Entity} entities */
   draw(entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
@@ -22,7 +21,6 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
 
     const ids = entities.query(Position);
 
-    // all outlines in one linelist draw call instead of N draw_rectangles
     draw_set_color(c_lime);
     draw_primitive_begin(pr_linelist);
     for (let i = 0; i < ids.length; i++) {

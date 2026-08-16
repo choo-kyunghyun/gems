@@ -1,5 +1,3 @@
-// World-space rings of each entity's range (turret fire radius, enemy aggro/attack distances) for
-// tuning — a generic Core pass; the level supplies { component, field, color } specs. Contract below.
 /**
  * Ring radius is entity[component][field]. RPG wires Brain ranges (see RpgMap). Inserted disabled,
  * toggled via the Debug Render section.
@@ -9,7 +7,6 @@ globalThis.RenderDebugRange = class RenderDebugRange {
   /**
    * opt: ranges ({component,field,color,alpha?}[]), alpha (default ring alpha when a spec omits its
    * own), enabled (start drawn — default false, a toggled overlay).
-   * @param {Object} [opt]
    */
   constructor(opt = {}) {
     this.enabled = opt.enabled ?? false;
@@ -20,7 +17,6 @@ globalThis.RenderDebugRange = class RenderDebugRange {
 
   destroy() {}
 
-  /** @param {Entity} entities */
   draw(entities) {
     if (this.ranges.length === 0) return;
     const color = draw_get_color();

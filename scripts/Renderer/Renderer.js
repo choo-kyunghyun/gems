@@ -5,14 +5,12 @@
  * @property {function(): void} draw
  */
 
-/** ordered back-to-front pass list; level owns one, calls draw(entities) each frame. */
+/** Ordered back-to-front pass list; level owns one, calls draw(entities) each frame. */
 globalThis.Renderer = class Renderer {
   constructor() {
-    /** @type {RenderPass[]} */
     this.passes = [];
   }
 
-  /** destroy every pass and clear the list. */
   destroy() {
     for (const pass of this.passes) {
       pass.destroy();
@@ -20,13 +18,11 @@ globalThis.Renderer = class Renderer {
     this.passes = [];
   }
 
-  /** insert `pass` at `index` (default: append). @param {RenderPass} pass @returns {Renderer} this */
   insert(pass, index = this.passes.length) {
     this.passes.splice(index, 0, pass);
     return this;
   }
 
-  /** detach `pass` without destroying it. @param {RenderPass} pass @returns {Renderer} this */
   remove(pass) {
     const index = this.passes.indexOf(pass);
     if (index >= 0) {
@@ -35,7 +31,6 @@ globalThis.Renderer = class Renderer {
     return this;
   }
 
-  /** run every enabled pass in order. @param {Entity} entities */
   draw(entities) {
     for (const pass of this.passes) {
       if (!pass.enabled) continue;

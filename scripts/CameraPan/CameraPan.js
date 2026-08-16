@@ -1,19 +1,11 @@
 // zoom to `next` keeping the world point under the cursor fixed (world delta = screen delta / zoom)
-/**
- * @param {any} cam
- * @param {number} next
- * @param {number} mx
- * @param {number} my
- * @param {number} sw
- * @param {number} sh
- */
 function _cameraPanZoom(cam, next, mx, my, sw, sh) {
   cam._panX += (mx - sw * 0.5) * (1 / cam._panZoom - 1 / next);
   cam._panY += (my - sh * 0.5) * (1 / cam._panZoom - 1 / next);
   cam._panZoom = next;
 }
 
-/** @this {any} - a Camera augmented with the _pan* fields set in CameraPan.create. */
+/** `this` = a Camera augmented with the _pan* fields set in CameraPan.create. */
 function _cameraPanOnUpdate() {
   const sw = surface_get_width(application_surface);
   const sh = surface_get_height(application_surface);
@@ -55,13 +47,11 @@ function _cameraPanOnUpdate() {
   this.setSize(sw / this._panZoom, sh / this._panZoom);
 }
 
-/** namespace over the pan/zoom build — `create` returns the configured Camera */
 globalThis.CameraPan = {
   /**
    * 2D pan + zoom inspector camera. Drag `button` to pan, wheel zooms toward the cursor.
    * At zoom 1 with the default center, world coords equal screen pixels.
-   * @param {any} [cam] - x/y (center), zoom, minZoom, maxZoom, zoomStep, button.
-   * @returns {Camera}
+   * cam: x/y (center), zoom, minZoom, maxZoom, zoomStep, button.
    */
   create(cam = {}) {
     cam.onUpdate = _cameraPanOnUpdate;
@@ -81,7 +71,7 @@ globalThis.CameraPan = {
     cam.width = sw;
     cam.height = sh;
 
-    const camera = /** @type {any} */ (new Camera(cam));
+    const camera = new Camera(cam);
 
     camera._panX = ix;
     camera._panY = iy;

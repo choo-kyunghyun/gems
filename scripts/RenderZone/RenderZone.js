@@ -11,11 +11,6 @@
  * @implements {RenderPass}
  */
 globalThis.RenderZone = class RenderZone {
-  /**
-   * @param {LevelGrid} grid
-   * @param {string} key - zone channel, e.g. "faction"
-   * @param {RenderZoneOptions} [opt]
-   */
   constructor(grid, key, opt = {}) {
     this.enabled = true;
     this.grid = grid;
@@ -26,10 +21,6 @@ globalThis.RenderZone = class RenderZone {
 
   destroy() {}
 
-  /**
-   * @param {Zone} zone
-   * @returns {number}
-   */
   _color(zone) {
     const c = zone.data.color;
     // stable hue per id when no explicit color (61 ≈ prime step for spread)
@@ -37,7 +28,6 @@ globalThis.RenderZone = class RenderZone {
     return Color.parse(c);
   }
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     const map = this.grid.zoneMap(this.key);
     if (map === undefined) return;

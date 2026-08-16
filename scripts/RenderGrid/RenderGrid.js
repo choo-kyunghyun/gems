@@ -5,15 +5,8 @@
  * @property {object} [camera] - Camera; when set, view-culls lines for large grids. Settable via `pass.camera`.
  */
 
-/**
- * world-space cell boundary lines. plain draw_line.
- * @implements {RenderPass}
- */
+/** @implements {RenderPass} */
 globalThis.RenderGrid = class RenderGrid {
-  /**
-   * @param {LevelGrid} grid
-   * @param {RenderGridOptions} [opt]
-   */
   constructor(grid, opt = {}) {
     this.enabled = true;
     this.grid = grid;
@@ -24,7 +17,6 @@ globalThis.RenderGrid = class RenderGrid {
 
   destroy() {}
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();

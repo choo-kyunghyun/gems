@@ -2,11 +2,7 @@
 // here while freeCam is on). WASD/Space/Shift move, Q/E roll, RMB yaw/pitch; on Time.raw (clock split).
 
 globalThis.CameraFly = {
-  /**
-   * Add fly state to a freshly-built Camera; the Debug Camera section toggles freeCam at runtime.
-   * @param {any} camera
-   * @param {object} [opts] flySpeed / mouseSens overrides
-   */
+  /** Add fly state to a freshly-built Camera; the Debug Camera section toggles freeCam at runtime. */
   install(camera, opts = {}) {
     camera.freeCam = false;
     camera._baseProjection = camera.projection; // restored on fly exit (fly forces perspective)
@@ -28,7 +24,6 @@ globalThis.CameraFly = {
    * Drive the fly camera one frame (from follow onUpdate while freeCam is on). Basis matches the
    * follow camera (worldUp +Z) so toggling in/out never flips. Reads realtime input directly — fine
    * here (debug-only, not edge-triggered).
-   * @param {any} cam - the Camera holding the fly state (see install).
    */
   update(cam) {
     // first frame: seed pos + yaw/pitch from the follow view so there's no jump

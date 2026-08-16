@@ -1,7 +1,4 @@
-/**
- * draws Visual+Position entities via draw_sprite_ext with lerp'd position and looped anim.
- * @implements {RenderPass}
- */
+/** @implements {RenderPass} */
 globalThis.RenderEntity = class RenderEntity {
   constructor() {
     this.enabled = true;
@@ -10,7 +7,6 @@ globalThis.RenderEntity = class RenderEntity {
 
   destroy() {}
 
-  /** @param {Entity} entities */
   draw(entities) {
     const ids = entities.query(Visual, Position);
     for (const entity of ids) {

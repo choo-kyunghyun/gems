@@ -9,11 +9,6 @@
  * @implements {RenderPass}
  */
 globalThis.RenderZoneLabel = class RenderZoneLabel {
-  /**
-   * @param {LevelGrid} grid
-   * @param {string} key - zone channel, e.g. "faction"
-   * @param {RenderZoneLabelOptions} [opt]
-   */
   constructor(grid, key, opt = {}) {
     this.enabled = true;
     this.grid = grid;
@@ -23,7 +18,6 @@ globalThis.RenderZoneLabel = class RenderZoneLabel {
 
   destroy() {}
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     const map = this.grid.zoneMap(this.key);
     if (map === undefined) return;

@@ -27,7 +27,6 @@ globalThis.Display = {
    * crash-safe clip-target size: min of renderW and its 1-frame-lagged _prevW. The live back buffer
    * always equals one of the two mid-transition, so min() can never exceed the target (a grow just
    * under-clips one invisible frame). Used by UIElement._drawClipped + UI.draw's frame-start reset.
-   * @returns {number}
    */
   clipW() {
     if (Display.renderW <= 0) return window_get_width();
@@ -35,9 +34,6 @@ globalThis.Display = {
       ? Math.min(Display.renderW, Display._prevW)
       : Display.renderW;
   },
-  /**
-   * @returns {number}
-   */
   clipH() {
     if (Display.renderH <= 0) return window_get_height();
     return Display._prevH > 0
@@ -57,7 +53,6 @@ globalThis.Display = {
   /**
    * supported fullscreen AA levels as valid display_reset `aa` args: 0 plus each 2/4/8 bit
    * display_aa reports (bit value == level, so `display_aa & lvl` is lvl when supported). Single `&` is GMRT-safe.
-   * @returns {number[]}
    */
   aaLevels() {
     const out = [0];
@@ -147,8 +142,6 @@ globalThis.Display = {
   /**
    * size the window + app surface, recenter, and record the requested size in renderW/H
    * (the synchronous render-target size for the GUI clip scale).
-   * @param {number} w
-   * @param {number} h
    */
   _resize(w, h) {
     Display.renderW = w;

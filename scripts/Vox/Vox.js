@@ -1,4 +1,3 @@
-// Runtime MagicaVoxel .vox loader: parse + greedy-mesh, no bake step.
 /**
  * Owner of the VOLUME mesh format contract (the art projection contract is RenderBillboard's).
  * `load` parses `meshes/<name>.vox` (an included file, committed as-is — the editable source IS
@@ -47,8 +46,6 @@ globalThis.Vox = {
   /**
    * Cached parse of meshes/<name>.vox; undefined when the file is missing (the caller owns the
    * miss report — RenderMesh warns once per model) or malformed (logged here once).
-   * @param {string} name
-   * @returns {VoxModel|undefined}
    */
   load(name) {
     const hit = Vox._cache[name];
@@ -65,10 +62,7 @@ globalThis.Vox = {
 
   /**
    * Greedy-mesh a model into a NEW vertex buffer (caller owns it: freeze/delete);
-   * -1 when the .vox is missing or malformed.
-   * @param {string} name
-   * @param {*} format - the consumer's vertex format (the lockstep layout above)
-   * @returns {*} vertex buffer or -1
+   * -1 when the .vox is missing or malformed. `format` is the lockstep layout above.
    */
   mesh(name, format) {
     const m = Vox.load(name);
@@ -79,12 +73,6 @@ globalThis.Vox = {
     return vb;
   },
 
-  /**
-   * chunk id at off — four u8s as a string ("SIZE", "XYZI", "RGBA")
-   * @param {GMBuffer} buf
-   * @param {number} off
-   * @returns {string}
-   */
   _fourcc(buf, off) {
     return (
       String.fromCharCode(buffer_peek(buf, off, buffer_u8)) +
@@ -98,9 +86,6 @@ globalThis.Vox = {
    * Linear chunk walk (children sit directly after a parent's content, so one forward scan
    * visits every chunk): first SIZE + XYZI pair + the RGBA palette. Malformed -> null + one
    * Log.error (a bad committed asset must fail loudly, not draw nothing silently).
-   * @param {GMBuffer} buf
-   * @param {string} name - for the error/warn lines
-   * @returns {VoxModel|null}
    */
   _parse(buf, name) {
     const len = buffer_get_size(buf);
@@ -195,12 +180,8 @@ globalThis.Vox = {
 
   /**
    * Merge a plane's cells into maximal same-color rects: row-major scan (v outer), extend
-   * along +u first, then grow +v while the whole run matches; consumed cells are zeroed.
-   * Deterministic for a given cell set.
-   * @param {number[]} cells - flat U*V color-index plane (0 = empty) — CONSUMED
-   * @param {number} U
-   * @param {number} V
-   * @param {function(number, number, number, number, number): void} emit - (u0, v0, w, h, colorIndex)
+   * along +u first, then grow +v while the whole run matches; consumed cells are zeroed
+   * (`cells` is CONSUMED). Deterministic for a given cell set. emit: (u0, v0, w, h, colorIndex).
    */
   _rects(cells, U, V, emit) {
     for (let v = 0; v < V; v++) {
@@ -233,8 +214,6 @@ globalThis.Vox = {
    * Emit the model's exposed faces as a raw 24 B/vertex stream in a NEW fixed buffer (caller
    * deletes). Orientation blocks run TOP, SOUTH, NORTH, EAST, WEST; planes ascend — the same
    * order as the retired vox2vbuf.py bake, so output is byte-identical to the old .vbuf.
-   * @param {VoxModel} m
-   * @returns {GMBuffer}
    */
   _verts(m) {
     const sx = m.size[0];
@@ -245,20 +224,12 @@ globalThis.Vox = {
     const oy = sy / 2;
     const verts = []; // x, y, z, r, g, b, nu, nv per vertex
 
-    /**
-     * @param {number[]} p1 - quad corners, consistent order (cull is off in-engine)
-     * @param {number[]} p2
-     * @param {number[]} p3
-     * @param {number[]} p4
-     * @param {number} c - 1-based palette index
-     * @param {number} nu
-     * @param {number} nv
-     */
+    /** Quad corners in consistent order (cull is off in-engine); c is a 1-based palette index. */
     const quad = (p1, p2, p3, p4, c, nu, nv) => {
       const r = m.palR[c - 1];
       const g = m.palG[c - 1];
       const b = m.palB[c - 1];
-      const ps = [p1, p2, p3, p1, p3, p4]; // two triangles
+      const ps = [p1, p2, p3, p1, p3, p4];
       for (let i = 0; i < 6; i++) {
         const p = ps[i];
         verts.push(p[0], p[1], p[2], r, g, b, nu, nv);

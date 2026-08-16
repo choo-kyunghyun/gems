@@ -1,6 +1,5 @@
 // Shared follow onUpdate (assigned as Camera.onUpdate, `this` = camera) — tracks surface size so a
 // resolution change rebuilds the view extent (view is matrix-driven, not GM's 2D view-size API).
-/** @this {any} - a Camera augmented with the follow fields set in _cameraFollowBuild. */
 function _cameraFollowOnUpdate() {
   // read each mouse query once per frame and share (the poll-once rule — UIPointer)
   // zoom input yields to the UI: a wheel over a hovered list scrolls it, never the world (UI.captured)
@@ -103,19 +102,12 @@ function _cameraFollowOnUpdate() {
   }
 }
 
-/**
- * Shared follow-camera builder; create/create2d differ only in projection, snap, and default height.
- * @param {any} cam
- * @param {number} projection
- * @param {boolean} snap
- * @param {number} defaultHeight
- * @returns {Camera}
- */
+/** Shared follow-camera builder; create/create2d differ only in projection, snap, and default height. */
 function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   cam.onUpdate = _cameraFollowOnUpdate;
   cam.projection = projection;
 
-  const camera = /** @type {any} */ (new Camera(cam));
+  const camera = new Camera(cam);
   camera.entities = cam.entities;
   camera.followTarget = cam.followTarget ?? -1;
   camera.followLerp = cam.followLerp ?? 0.1;
@@ -143,13 +135,8 @@ function _cameraFollowBuild(cam, projection, snap, defaultHeight) {
   return camera;
 }
 
-/** namespace over the shared follow builder: `create` = 3D perspective, `create2d` = 2D ortho */
 globalThis.CameraFollow = {
-  /**
-   * 3D perspective-FOV follow camera. Currently unused (scenes use create2d); kept as library variant.
-   * @param {object} [cam] - entities, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton
-   * @returns {Camera}
-   */
+  /** 3D perspective-FOV follow camera. Currently unused (scenes use create2d); kept as library variant. */
   create(cam = {}) {
     return _cameraFollowBuild(
       cam,
@@ -160,10 +147,9 @@ globalThis.CameraFollow = {
   },
 
   /**
-   * 2D pixel-snapped orthographic follow camera with wheel zoom. Middle-mouse resets zoom.
-   * @param {object} [cam] - entities, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton,
-   *   clamp { x1, y1, x2, y2 } world-px look-at bounds (pitch-aware; centers when world < view), viewCap
-   * @returns {Camera}
+   * 2D pixel-snapped orthographic follow camera with wheel zoom; middle-mouse resets zoom.
+   * cam: entities, followTarget, followLerp, followHeight, zoom/min/max/step/lerp/zoomResetButton,
+   * clamp { x1, y1, x2, y2 } world-px look-at bounds (pitch-aware; centers when world < view), viewCap.
    */
   create2d(cam = {}) {
     return _cameraFollowBuild(cam, CAMERA_PROJECTION.ORTHO, true, -100);

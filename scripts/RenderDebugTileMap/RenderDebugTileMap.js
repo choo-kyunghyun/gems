@@ -15,10 +15,6 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
-  /**
-   * @param {LevelGrid} grid
-   * @param {RenderDebugTileMapOptions} [opt]
-   */
   constructor(grid, opt = {}) {
     this.enabled = true;
     this.grid = grid;
@@ -37,7 +33,6 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
    * visible cell range, culled to Camera.groundRect when a camera is set — never
    * camera_get_view_* (returns 0 for the matrix-driven Camera); groundRect also owns the pitch
    * stretch, so the labelled band still covers a tilted view.
-   * @returns {{x0: number, y0: number, x1: number, y1: number}}
    */
   _range() {
     const { cols, rows, cellWidth, cellHeight } = this.grid;
@@ -52,12 +47,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     };
   }
 
-  /**
-   * topmost tile across all layers (matches Level nav resolution)
-   * @param {number} x
-   * @param {number} y
-   * @returns {TileType|undefined}
-   */
+  /** Topmost tile across all layers (matches Level nav resolution). */
   _topTile(x, y) {
     const layers = this.grid.layers;
     for (let i = layers.length - 1; i >= 0; i--) {
@@ -67,7 +57,6 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     return undefined;
   }
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();

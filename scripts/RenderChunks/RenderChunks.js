@@ -1,14 +1,9 @@
-// Streamed terrain pass — ground checker + wall rects per chunk, plus dimmed snapshots for LOAD-ring
-// frozen entities. Insert BEFORE entity passes so ground sits under everything.
 /**
- * The active set is bounded by loadRadius, so no view culling is needed.
+ * Insert BEFORE entity passes so ground sits under everything. The active set is bounded by
+ * loadRadius, so no view culling is needed.
  * @implements {RenderPass}
  */
 globalThis.RenderChunks = class RenderChunks {
-  /**
-   * @param {ChunkManager} chunks
-   * @param {Object} [opt={}]
-   */
   constructor(chunks, opt = {}) {
     this.enabled = true;
     this.chunks = chunks; // a ChunkManager instance
@@ -25,7 +20,6 @@ globalThis.RenderChunks = class RenderChunks {
 
   destroy() {}
 
-  /** @param {Entity} _entities */
   draw(_entities) {
     if (this.chunks === undefined) return;
     const color = draw_get_color();
@@ -41,7 +35,6 @@ globalThis.RenderChunks = class RenderChunks {
     const cw = this.chunks.cellW;
     const ch = this.chunks.cellH;
 
-    // 1. ground fill (checker by chunk parity)
     if (this.ground)
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i];
@@ -54,7 +47,6 @@ globalThis.RenderChunks = class RenderChunks {
         draw_rectangle(gx, gy, gx + pxW, gy + pxH, false);
       }
 
-    // 2. wall rects (flat) — skipped when the lit wall pass owns them
     if (this.walls)
       for (let i = 0; i < recs.length; i++) {
         const walls = recs[i].walls;
@@ -71,7 +63,6 @@ globalThis.RenderChunks = class RenderChunks {
         }
       }
 
-    // 3. LOAD-ring frozen snapshots: dimmed box + name
     draw_set_halign(fa_center);
     draw_set_valign(fa_bottom);
     for (let i = 0; i < recs.length; i++) {

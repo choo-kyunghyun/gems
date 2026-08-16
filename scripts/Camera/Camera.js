@@ -7,7 +7,7 @@ globalThis.CAMERA_PROJECTION = Object.freeze({
 
 /** Wraps a GameMaker camera handle, driven by matrix each update(). Owns a native handle — call destroy() at teardown. */
 globalThis.Camera = class Camera {
-  /** @param {any} [cam] - config bag: onUpdate, from/to/up XYZ, width/height, znear/zfar/fov, projection. */
+  /** cam: config bag — onUpdate, from/to/up XYZ, width/height, znear/zfar/fov, projection. */
   constructor(cam = {}) {
     this.id = camera_create();
     this.viewport = -1;
@@ -44,7 +44,6 @@ globalThis.Camera = class Camera {
     }
   }
 
-  /** Rebuild view + projection matrices and apply if assigned to a viewport. */
   update() {
     this.onUpdate();
 
@@ -93,15 +92,10 @@ globalThis.Camera = class Camera {
     if (this.isAssigned()) camera_apply(this.id);
   }
 
-  /** @returns {boolean} */
   isAssigned() {
     return this.viewport !== -1;
   }
 
-  /**
-   * @param {number} [viewport=0]
-   * @returns {Camera} this
-   */
   assign(viewport = 0) {
     if (this.isAssigned()) this.unassign();
     this.viewport = viewport;
@@ -111,10 +105,6 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * Detach from its viewport and restore default room rendering.
-   * @returns {Camera} this
-   */
   unassign() {
     if (this.isAssigned()) {
       view_set_camera(this.viewport, -1);
@@ -126,12 +116,6 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} z
-   * @returns {Camera} this
-   */
   setFrom(x, y, z) {
     this.fromX = x;
     this.fromY = y;
@@ -139,12 +123,6 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} z
-   * @returns {Camera} this
-   */
   setTo(x, y, z) {
     this.toX = x;
     this.toY = y;
@@ -152,12 +130,6 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} z
-   * @returns {Camera} this
-   */
   setUp(x, y, z) {
     this.upX = x;
     this.upY = y;
@@ -165,21 +137,12 @@ globalThis.Camera = class Camera {
     return this;
   }
 
-  /**
-   * @param {number} width
-   * @param {number} height
-   * @returns {Camera} this
-   */
   setSize(width, height) {
     this.width = width;
     this.height = height;
     return this;
   }
 
-  /**
-   * @param {number} projection - A CAMERA_PROJECTION value.
-   * @returns {Camera} this
-   */
   setProjection(projection) {
     this.projection = projection;
     return this;
@@ -192,7 +155,6 @@ globalThis.Camera = class Camera {
    * clamp, the mesh light cull, and the grid/tile-map culls can't disagree about what is
    * on-screen. Pitch comes from the follow camera's live `followPitch` radians (CameraFollow);
    * a flat or non-follow camera reads 0 and the rect is plain width × height.
-   * @returns {{x1:number, y1:number, x2:number, y2:number}}
    */
   groundRect() {
     const halfW = this.width / 2;
@@ -209,10 +171,6 @@ globalThis.Camera = class Camera {
    * World → surface-pixel projection under the current ortho view. Uses the up vector so a
    * pitched (2.5D) camera foreshortens world-y correctly. Used by screen-space overlays (e.g.
    * RenderLighting) to land in the right place in both flat and pitched views.
-   * @param {number} wx
-   * @param {number} wy
-   * @param {number} [wz=0]
-   * @returns {{x:number, y:number}}
    */
   project(wx, wy, wz = 0) {
     const sw = surface_get_width(application_surface);
@@ -229,9 +187,6 @@ globalThis.Camera = class Camera {
    * Pitch-aware via the up vector (a flat camera's upY=1/upZ=0 reduces to the linear mapping).
    * GMRT's own mouse_x/mouse_y are wrong under a pitched matrix-driven camera,
    * so world-cursor consumers must convert through this instead.
-   * @param {number} sx
-   * @param {number} sy
-   * @returns {{x:number, y:number}}
    */
   unproject(sx, sy) {
     const sw = surface_get_width(application_surface);
@@ -253,7 +208,6 @@ globalThis.Camera = class Camera {
    * (sceneRpg.step → level.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
    * mouse_x/y remain valid (the editor's CameraPan uses them). The result is a GROUND-plane
    * point — an entity's FEET — so pointing at a tall billboard's upper body lands behind it.
-   * @returns {{x:number, y:number}}
    */
   cursorWorld() {
     const sw = surface_get_width(application_surface);

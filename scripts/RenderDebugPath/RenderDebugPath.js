@@ -3,7 +3,6 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugPath = class RenderDebugPath {
-  /** @param {LevelGrid} grid grid→world mapping source. */
   constructor(grid) {
     this.enabled = true;
     this.grid = grid;
@@ -11,7 +10,6 @@ globalThis.RenderDebugPath = class RenderDebugPath {
 
   destroy() {}
 
-  /** @param {Entity} entities */
   draw(entities) {
     const color = draw_get_color();
     const alpha = draw_get_alpha();
