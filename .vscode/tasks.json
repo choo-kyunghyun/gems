@@ -22,7 +22,6 @@
     },
     {
       "label": "Open Working Directory",
-      "detail": "Open the save dir (%LOCALAPPDATA%\\gems\\) in File Explorer — holds game.log, save.json, settings.json, debug.txt.",
       "type": "shell",
       "command": "explorer",
       "args": ["${env:LOCALAPPDATA}\\gems"],
