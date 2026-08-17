@@ -23,8 +23,8 @@ globalThis.LevelManager = class LevelManager {
     // Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
     this.paused = false;
     this._stepRequested = false; // one-shot: lets exactly one frame through
-    // boot-wired seams (Core names no kit/Demo module):
-    // pause menu, duck-typed { isOpen(), scale(), reset() } — Game wires the GemsUI
+    // boot-wired seams (Core names no Game module):
+    // pause menu, duck-typed { isOpen(), scale(), reset() } — Game wires
     // SystemMenu; null = no menu pause gating
     this.menu = null;
     // display-label resolver, (factory) => string | () => string | null — Game wires

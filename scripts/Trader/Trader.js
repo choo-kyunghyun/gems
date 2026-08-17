@@ -1,5 +1,5 @@
 // Wandering traders — merchants that cross the map graph off-focus, driven entirely by WorldEvents.
-// A static singleton (Demo); the reference consumer of WorldEvents + World.levels (LevelManager).
+// A static singleton (Game); the reference consumer of WorldEvents + World.levels (LevelManager).
 /**
  * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
  * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When

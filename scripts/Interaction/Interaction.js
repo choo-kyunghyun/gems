@@ -3,7 +3,7 @@
  * names the action (looked up in the InteractAction registry — the RPG registers its set in
  * RpgInteractions); the extra flat fields are per-instance params the action's run() reads (each
  * with its own default), so one component drives everything from opening a UI window to feeding /
- * hydrating / buffing the player. The generic pick/prompt/dispatch engine is the Demo/UI
+ * hydrating / buffing the player. The generic pick/prompt/dispatch engine is the Game/UI
  * `Interactable` module. Replaces the old Core `Station` component.
  * @typedef {Object} Interaction
  * @property {string} kind      registered InteractAction id. The RPG's set: "storage" |

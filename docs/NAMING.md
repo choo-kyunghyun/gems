@@ -8,7 +8,7 @@ Members are short idiomatic verbs and nouns (`Entity.create`, `Item.get`, `File.
 
 ## Scripts
 
-A script's directory + filename matches the identifier it exposes, cased to JS norms: PascalCase for a class or namespace object (`World`, `CameraFollow`), camelCase for a plain function (`teardownLevel`), and a PascalCase category bucket for a family of free functions with no single matching global (`Utils`, `UIDraw`, the GemsUI kit). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
+A script's directory + filename matches the identifier it exposes, cased to JS norms: PascalCase for a class or namespace object (`World`, `CameraFollow`), camelCase for a plain function (`teardownLevel`), and a PascalCase category bucket for a family of free functions with no single matching global (`Utils`, `UIDraw`, the `Gems*` buckets). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
 
 ## Media Assets
 

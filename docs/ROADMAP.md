@@ -4,7 +4,11 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 ## Current Works
 
-One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns.
+One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Game), never by mixing concerns.
+
+### Gameplay Regrouping
+
+`Core/Gameplay` was folded in wholesale, so genre-common modules (`Animation`, `Lighting`) sit beside single-genre ones (`Combat`). Re-sort within Core pending.
 
 ### Tools Review
 
@@ -21,7 +25,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 ### Dead & Caller-less Code
 
 - **Caller-less Core/Util members**: `Query.farthest`, `Color.alpha`, `rem`, and `Settings.isModified` have no consumers; `isModified` also compares nested values by reference, so a set nested value always reads modified.
-- **`World.update`/`World.reset` are unwired scaffolding**: zero callers — `sceneRpg` still drives `WorldClock`/`WorldEvents` directly — and `World.update` carries the Core → Gameplay edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the methods until it lands.
+- **`World.update`/`World.reset` are unwired scaffolding**: zero callers — `sceneRpg` still drives `WorldClock`/`WorldEvents` directly — and `World.update` carries the engine → gameplay-kit edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the methods until it lands.
 - **`Collision.mask` is dead**: typed `Set|null`, authored `null` at every spawn site, read by no system — and a live `Set` would be silently nulled by the Json save path (the no-`Set` serialization invariant). Drop the field, or retype it serializable (bit flags) when masks become real.
 - **`Entity.import` and `Entity.register` have no callers**: saves store `entities.export()` but restore by reading entities out, and `add` auto-registers. `EntityData.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard, else drop it.
 - **`ZoneSystem` is dead machinery**: nothing calls `update`/`zoneOf`/`entitiesIn` — `sceneRpg` deliberately bypasses the sweep ("direct lookup beats it"), `ZoneMap._inside` exists only to serve it, and ARCHITECTURE.md still names it the zone driver. Wire it in or drop the module (plus `_inside` and the index line).
@@ -70,7 +74,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
   - Mountable turrets
 - Explosive like grenade and mine (`snd_explosion_large` is its reserved SFX)
 - Minify furnitures
-- Settlement and outpost (foundation done — Gameplay `Settlement`: player-owned territory zone with Name/Faction, build mode gated to owned land; outpost variant + settlement-management UI remain)
+- Settlement and outpost (foundation done — `Settlement`: player-owned territory zone with Name/Faction, build mode gated to owned land; outpost variant + settlement-management UI remain)
 - Farming and fishing (Farming layers on a settlement's lands)
 - Gamepad reloading
 - More role-playing optional components

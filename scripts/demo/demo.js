@@ -1,5 +1,5 @@
 // level catalogue (LevelRegistry) + teardown helper.
-// GemsUI factories split to separate files to avoid GMRT's large-file hoisting fault.
+// Gems factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
  * Release the `camera`/`renderer`/`entities`/`ui` a Level holds on `this`, in dependency order

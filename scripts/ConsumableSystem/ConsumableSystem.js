@@ -1,8 +1,8 @@
 // Use one unit of a Consumable from an entity's Inventory, applying its instant effect.
 globalThis.ConsumableSystem = {
   /**
-   * Injected attribute-grant policy (a *_shard). Kit can't reach the Demo stat model, so — like
-   * Combat.mitigate — the Demo wires this in sceneRpg.create. Default no-op returns false (a shard
+   * Injected attribute-grant policy (a *_shard). The kit can't reach the Game stat model, so — like
+   * Combat.mitigate — the Game wires this in sceneRpg.create. Default no-op returns false (a shard
    * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
    */
   grantAttr(entities, id, attr, amount) {

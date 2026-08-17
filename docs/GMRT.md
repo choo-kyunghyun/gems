@@ -51,7 +51,7 @@ What fails loudly, by phase: at runtime, a built-in diverging from its manual co
 - [#15566] no empty `for` initializer — `for (; c<n; c++)` in a `.js` file fails the BUILD. Add an initializer or use `while`.
 - [#15065] a class with ~50 methods corrupts its compilation unit — the symptom varies with the exact count, and the enclosing unit's own body counts against the budget. Split into collaborators, free functions, or composition (as `UIElement`/`Item` do). Same per-unit budget defect as #15564 at class scale; when the ceiling lifts, `UIElement`'s commented-out flexpanel setters can return.
 - [#15067] class inheritance is broken: `super.method()` is a compile error, and a subclass silently skips its BASE class's field initializers/constructor (its own do run). Use composition (a flat class + `components: []` queried by `instanceof`); assign anything a base would have initialized in a method that runs (e.g. `create()`).
-- [#15564] a file with roughly 200+ top-level `function` declarations corrupts its compilation unit — the game faults at startup. Assign explicitly (`globalThis.X = function X(…)`) and keep files small (why the GemsUI kit is split). Same per-unit budget defect as #15065 at file scale.
+- [#15564] a file with roughly 200+ top-level `function` declarations corrupts its compilation unit — the game faults at startup. Assign explicitly (`globalThis.X = function X(…)`) and keep files small (why the Gems UI kit is split). Same per-unit budget defect as #15065 at file scale.
 
 ## Known Incompatibilities
 

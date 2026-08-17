@@ -289,7 +289,7 @@ globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
  * resolve a widget font option at DRAW time: an I18n font KEY (string) resolves live
  * (a cached handle dangles after a locale reload — I18n.load deletes the old handles);
  * a raw handle (or -1 = inherit) passes through. Every font-taking widget routes through
- * this, so the GemsUI convention of passing key strings works uniformly. NEVER cache the
+ * this, so the Gems kit convention of passing key strings works uniformly. NEVER cache the
  * handle at construction: besides the dangle, I18n.font falls back to draw_get_font() for an
  * undeclared key, so a construction-time resolve can freeze whatever font happened to be set.
  * (World-space render passes are the deliberate exception — they take a handle and rebuild on

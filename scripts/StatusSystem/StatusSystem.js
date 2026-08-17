@@ -2,7 +2,7 @@
 // update(entities) is the per-tick driver; apply/remove/maintain/has/list/scale are on-demand verbs.
 /**
  * Stat-model coupling is ONE injected hook (like Combat.mitigate): a `mods`-bearing status only affects
- * derived Stats once the game re-derives, so apply/remove calls onStatsChanged (default no-op; Demo
+ * derived Stats once the game re-derives, so apply/remove calls onStatsChanged (default no-op; the Game
  * wires StatModel.recompute). dot/hot and live `mult` need no recompute — they act directly / are read
  * live.
  */

@@ -14,7 +14,7 @@
 globalThis.BuildMode = {
   active: false, // mirror of (level._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
-  OWNER: "player", // the Settlement owner faction id that gates building (Demo policy)
+  OWNER: "player", // the Settlement owner faction id that gates building (Game policy)
 
   // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
   // spawns via make()'s RpgSpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the

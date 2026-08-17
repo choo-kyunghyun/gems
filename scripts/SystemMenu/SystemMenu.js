@@ -10,11 +10,11 @@ globalThis.SystemMenu = {
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
   _game: null, // the Game controller (its themed `background` — levels live on World.levels)
   _scale: 1, // Time.scale to restore on resume
-  // Demo-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
-  // this kit menu free of Demo concerns (SaveGame/SceneRpg). Wired once at boot via addTab().
+  // Boot-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
+  // this menu free of scene/save concerns (SaveGame/sceneRpg). Wired once at boot via addTab().
   _extraTabs: [],
-  // Boot-wired quit-target level factory (the demo's lobby) — null hides the Quit button, so the
-  // kit menu names no Demo level.
+  // Boot-wired quit-target level factory (the app's lobby) — null hides the Quit button, so the
+  // menu names no specific level.
   quitTo: null,
   // Boot-wired filename the Settings tab's Save passes to Settings.save — null hides the button,
   // so the kit names no app file.
@@ -180,7 +180,7 @@ globalThis.SystemMenu = {
         content: SystemMenu._aboutTab(),
       },
     ];
-    // Demo-injected tabs (Save/Load) after the built-ins; built fresh each open so they read live state
+    // Boot-injected tabs (Save/Load) after the built-ins; built fresh each open so they read live state
     for (let i = 0; i < SystemMenu._extraTabs.length; i++)
       tabDefs.push({
         label: SystemMenu._extraTabs[i].label,

@@ -1,4 +1,4 @@
-// SaveGame — the RPG's disk save/load driver (Demo). Composes a Snapshot (the Core pass frame)
+// SaveGame — the RPG's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
 // with the RPG's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
  * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async

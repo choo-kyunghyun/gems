@@ -761,7 +761,7 @@ globalThis.RpgMap = {
   /**
    * Register the Debug "Camera" section bound to the LIVE level camera (pitch + zoom) for runtime
    * render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
-   * drive the ACTIVE map's camera; removed on level destroy. RPG-owned (pitch is a Demo concern).
+   * drive the ACTIVE map's camera; removed on level destroy. RPG-owned (pitch is a Game concern).
    */
   _registerCameraDebug(level) {
     const cam = level.camera;
