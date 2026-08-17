@@ -41,6 +41,7 @@ Read `docs/ARCHITECTURE.md` before modifying code.
     - An uncaught runtime error is logged (`UNHANDLED EXCEPTION`) unless the runtime died natively.
 - `Screenshot.take()` captures the screen on the frame it runs; capture under different names at different frames to compare, then read the PNGs from `%LOCALAPPDATA%/gems/screenshots/`.
 - Inspect entity state with `entities.dump()`.
+- Drive a debug run with a temporary frame counter in the `Game` object's `Step` event: log/screenshot at the target frames, then call `game_end()` a few frames later so the run exits on its own.
 
 ## Tools
 
