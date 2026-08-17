@@ -5,8 +5,6 @@
 - Remove levels from datafiles
 - Remove spritemeta
 - Consider Spine
-- Simplify CLAUDE.md
-    - 'Establish a plan before implementation'
 
 ## Issues
 

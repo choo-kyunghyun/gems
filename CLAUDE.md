@@ -1,4 +1,4 @@
-# CLAUDE.md
+# CLAUDE
 
 Project guidelines for Claude Code.
 
@@ -31,7 +31,7 @@ Project guidelines for Claude Code.
 
 `docs/GMRT.md` is the deny-list of JS forms and built-ins the pinned runtime breaks — read it before writing or modifying any script. When verification reveals unexpected runtime behavior, check the doc and record the quirk there.
 
-## Architecture (to be removed)
+## Architecture
 
 Read `docs/ARCHITECTURE.md` before modifying code.
 
