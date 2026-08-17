@@ -2,14 +2,13 @@
 """pixlib — shared pixel primitives for the kit (pure Python stdlib, no PIL).
 
 PNG decode/encode, an animated-GIF writer, nearest-neighbor compositing, and a
-palette-quantize helper. Imported by the common/ generators (draw, animate*, quantize)
-and the preview CLI. Path helpers (KIT/OUT) resolve the toolkit root so every script
-writes to the one shared out/.
+palette-quantize helper — the I/O half of the kit (`raster` is the drawing half).
+Path helpers (KIT/OUT) resolve the toolkit root so every script writes to the one
+shared out/.
 """
 import zlib, struct, binascii, os, json, re
 
-HERE = os.path.dirname(os.path.abspath(__file__))   # .../common
-KIT = os.path.dirname(HERE)                          # toolkit root
+KIT = os.path.dirname(os.path.abspath(__file__))    # toolkit root
 OUT = os.path.join(KIT, "out")                       # shared output root (gitignored)
 
 
@@ -268,101 +267,3 @@ def load_palette(path):
         if len(s) >= 6 and all(c in "0123456789abcdefABCDEF" for c in s[:6]):
             pal.append((int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)))
     return pal
-
-# ---- sprite templates (input data, separate from generator code) -----------
-
-_IDX = "0123456789abcdefghijklmnopqrstuv"   # .txt cell -> palette index (0-9, a-v = 10-31)
-
-
-def _parse_cell_hex(s):
-    """'rrggbb' or 'rrggbbaa' (optional leading '#'); falsy/null -> transparent."""
-    if not s:
-        return (0, 0, 0, 0)
-    s = s.lstrip("#")
-    a = int(s[6:8], 16) if len(s) >= 8 else 255
-    return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16), a)
-
-
-def load_template(path, palette=None):
-    """Load a sprite template -> (rows, charmap): `rows` = list of equal-length strings (one char per
-    pixel), `charmap` = {char: (r,g,b,a)}. Keeps ART in a data file, out of the generator code. Two
-    formats by extension:
-
-      .json : {"art": [<rows>], "palette": {<char>: "rrggbb" | "rrggbbaa" | null}} — self-contained
-              (palette embedded; null = transparent). Portable single file.
-      .txt  : a grid of single-char palette INDICES ('0'-'9','a'-'v' -> palette[0..31]; '.' =
-              transparent). `palette` (a list of (r,g,b), e.g. from load_palette) supplies the colors,
-              so many .txt sprites share one palette file. `#`-comment / blank lines are ignored.
-
-    Pair with template_pixels() to get (w, h, pixels) for write_png/blit."""
-    if os.path.splitext(path)[1].lower() == ".json":
-        data = json.load(open(path, encoding="utf-8"))
-        rows = list(data["art"])
-        charmap = {ch: _parse_cell_hex(v) for ch, v in data["palette"].items()}
-    else:
-        rows = []
-        for ln in open(path, encoding="utf-8"):
-            ln = ln.rstrip("\r\n")
-            if ln and not ln.startswith("#"):
-                rows.append(ln)
-        assert palette is not None, f"{path}: a .txt template needs a palette (pass load_palette(...))"
-        charmap = {".": (0, 0, 0, 0)}
-        for i, c in enumerate(palette):
-            charmap[_IDX[i]] = (c[0], c[1], c[2], 255)
-    w = len(rows[0])
-    for i, r in enumerate(rows):
-        assert len(r) == w, f"{path}: row {i} width {len(r)} != {w}"
-        for ch in r:
-            assert ch in charmap, f"{path}: row {i} has cell {ch!r} not in the palette"
-    return rows, charmap
-
-
-def template_pixels(rows, charmap):
-    """(rows, charmap) from load_template -> (w, h, flat [(r,g,b,a)]) ready for write_png / blit."""
-    h, w = len(rows), len(rows[0])
-    return w, h, [charmap[ch] for row in rows for ch in row]
-
-
-def load_frames(path, palette=None):
-    """Load a multi-frame ANIMATION -> (frames, charmap, meta): `frames` = list of `rows` (each a
-    list of equal-length strings), `charmap` = {char: (r,g,b,a)}, `meta` = {fps?, loop?, states?}.
-    The animation analogue of load_template; two input forms:
-
-      - a DIRECTORY of numbered single-frame templates: `0.txt`, `1.txt`, ... (or `f0`/`name_0`, `.txt`
-        or `.json`), sorted by trailing integer; each loaded via load_template(palette). An optional
-        `meta.json` in the dir supplies fps/loop/states.
-      - a single multi-frame `.json`: {"palette": {<char>: hex|null}, "frames": [[<rows>], ...],
-        "fps"?, "loop"?, "states"?}. `frames` may instead be integer-string keys ({"0": [...], ...}).
-
-    `states` (when present) = [{name, from, to, fps?, loop?}] -> the consumer emits one clip per state.
-    Pair frames with the shared charmap to render (see common/animate.py)."""
-    if os.path.isfile(path) and path.lower().endswith(".json"):
-        data = json.load(open(path, encoding="utf-8"))
-        charmap = {ch: _parse_cell_hex(v) for ch, v in data["palette"].items()}
-        if "frames" in data:
-            frames = [list(fr) for fr in data["frames"]]
-        else:  # integer-keyed: {"0": [...], "1": [...]}
-            keys = sorted((k for k in data if k.lstrip("-").isdigit()), key=int)
-            frames = [list(data[k]) for k in keys]
-        meta = {k: data[k] for k in ("fps", "loop", "states") if k in data}
-    elif os.path.isdir(path):
-        def last_int(fn):
-            m = re.findall(r"\d+", os.path.splitext(fn)[0])
-            return int(m[-1]) if m else -1
-        files = sorted((f for f in os.listdir(path)
-                        if f.lower().endswith((".txt", ".json")) and f.lower() != "meta.json"),
-                       key=last_int)
-        frames, charmap = [], {}
-        for f in files:
-            rows, cm = load_template(os.path.join(path, f), palette)
-            frames.append(rows)
-            charmap.update(cm)
-        mp = os.path.join(path, "meta.json")
-        meta = json.load(open(mp, encoding="utf-8")) if os.path.isfile(mp) else {}
-    else:
-        raise FileNotFoundError(f"load_frames: {path} is neither a .json file nor a directory")
-    assert frames, f"{path}: no frames found"
-    h, w = len(frames[0]), len(frames[0][0])
-    for i, fr in enumerate(frames):
-        assert len(fr) == h and all(len(r) == w for r in fr), f"{path}: frame {i} size != {w}x{h}"
-    return frames, charmap, meta

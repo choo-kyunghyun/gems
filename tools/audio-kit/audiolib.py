@@ -11,8 +11,7 @@ WAV is written from a list of channel-buffers (mono = [buf], stereo = [L, R]).
 import os, struct, sys
 from array import array
 
-HERE = os.path.dirname(os.path.abspath(__file__))   # .../common
-KIT = os.path.dirname(HERE)                          # toolkit root
+KIT = os.path.dirname(os.path.abspath(__file__))    # toolkit root
 OUT = os.path.join(KIT, "out")                       # shared output root (gitignored)
 SR = 44100                                           # sample rate (Hz) — the GEMS audio convention
 

@@ -1,7 +1,7 @@
-# all generated artifacts (regenerable); committed content is scripts + docs only
+# everything generated; committed content is the kit + docs only
 out/
 __pycache__/
 *.pyc
 
-# machine/style-specific data + scratch experiments, kept out of the repo. See README.
-local/
+# throwaway per-sound scripts — write one, run it, leave it here or delete it
+scratch/

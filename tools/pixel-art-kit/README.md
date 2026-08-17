@@ -1,28 +1,11 @@
 # Pixel-Art Kit
 
-A small, **portable, zero-dependency** toolkit for generating pixel-art sprites with deterministic
-Python (stdlib only — no PIL, no external services, no installs). It produces static icons,
-animations, and autotile sets as an engine-agnostic **horizontal strip + JSON manifest** (PNG is the
-bus).
+A small, **zero-dependency** toolkit for making sprites for **quick prototypes** — draw in a throwaway
+script, push the result straight into GameMaker. Pure Python stdlib: no PIL, no installs.
 
----
-
-## No built-in style — scan, then ask
-
-This kit carries **no art style, palette, size, or project data of its own.** Before generating
-anything for a project:
-
-1. **Scan the target project** for its existing sprite conventions — cell size(s), the palette /
-   colors already in use, the output format (strip + manifest vs individual frames vs sheet), file
-   naming, directory layout, and any existing style/art doc.
-2. **Report what you found and ask the user to confirm or specify** the target — canvas size,
-   palette, look (flat / outlined / shaded), output format. If the project has no sprites yet, ask.
-3. **Only then generate**, matching the confirmed conventions.
-
-Never assume a palette, a resolution, or a look — derive them from the project and the user.
-
-> In **this** repo the answers are already settled — see **[GEMS.md](GEMS.md)** (16×16, DB32). Follow
-> it for G.E.M.S. sprites; the scan-then-ask flow above is for reusing the kit in another project.
+This kit is **not an asset pipeline.** It does not regenerate the project's committed art and does not
+try to. It is a box of primitives you import from a script you write for the sprite in front of you,
+and then usually delete.
 
 ---
 
@@ -30,173 +13,119 @@ Never assume a palette, a resolution, or a look — derive them from the project
 
 ```
 pixel-art-kit/
-├── GEMS.md     THIS project's confirmed conventions (16x16, DB32) — the "scan/ask" answer
-├── common/     engine-agnostic core (pure Python stdlib, no external deps)
-│   ├── pixlib.py       shared lib: PNG/GIF encode+decode, NN compositing, quantize, paths
-│   ├── draw.py         render templates/ statics -> icon PNGs + previews + sheet
-│   ├── animate.py      render templates/anim/ frame data -> strip + GIFs + filmstrip + manifest
-│   ├── quantize.py     remap a PNG/folder to a PROVIDED palette
-│   ├── tileset.py      synthesize an autotile set (dual + corner/quarter) from ONE material
-│   ├── terrain_materials.py  tileable terrain materials w/ selectable algos (ripple/grain/blades)
-│   ├── preview.py      matched previews + a contact sheet
-│   └── pack.py         assemble a rendered frames folder -> strip + GIFs + filmstrip + manifest
-├── templates/  sprite INPUT data: .txt index grids + .json statics; anim/ = animation frame data
-├── palettes/   palette library (.hex): db32 (default) + db16/arne16/aap64/endesga32/zughy32/nyx8
-├── gm-import/  GameMaker adapter (engine-specific; imports common/)
-│   ├── entity_sprites.py    draw this project's entities -> GameMaker sprites
-│   └── terrain_sprites.py   cut dual-grid terrain frames -> GameMaker sprites
-├── local/      GITIGNORED: machine/style-specific data + scratch experiments
-└── out/        all generated artifacts (gitignored, shared by every script)
+├── raster.py      drawing: Canvas (hard alpha) + Soft (anti-aliased)
+├── pixlib.py      I/O: PNG encode/decode, animated GIF, compositing, quantize, paths
+├── gmsprite.py    the one engine binding: frames -> a GameMaker sprite asset
+├── tileset.py     synthesize an autotile set from ONE material (seamless by construction)
+├── spritesize.py  measure a candidate's silhouette -> a grid-snapped frame size
+├── quantize.py    remap a PNG/folder onto a provided palette
+├── preview.py     nearest-neighbor previews + a contact sheet
+├── palettes/      palette library (.hex): db32 (default) + db16/arne16/aap64/endesga32/zughy32/nyx8
+└── out/           everything generated (gitignored)
 ```
 
-The `common/` core runs with no install and is **data-free** — palettes, sizes, and subjects are
-supplied per project, not baked in.
-
-> The engine-specific layer lives in the **`gm-import/`** subdir — it imports the core (`common/`) and
-> writes sprites into a particular GameMaker project, kept in its own subdir so `common/` stays
-> engine- and style-agnostic (see _Project bindings_ below).
+Flat on purpose — one `sys.path` entry and a scratch script can import the whole kit.
 
 ---
 
-## Method — programmatic, zero-dependency
+## The loop
 
-Sprites are **char-grids mapped through a palette** (`.` = transparent), kept as **data files** in
-`templates/` (input) and rendered to PNG by the generators (output) — art is never inlined in the
-code. **Strengths:** no deps, deterministic, version-controllable, exact palette/size, and animation
-coherence is *free* — every pixel is chosen each frame, so there's no flicker. **Weakness:**
-organic/curved forms are fiddly and detail is capped, so it's at its best at small cells where detail
-is naturally limited (the project's 32px sprites are a good fit).
+```python
+import sys; sys.path.insert(0, "tools/pixel-art-kit")
+import raster as R, gmsprite as G
 
-### Sprite templates (input)
+def draw(s):
+    s.rrect(6, 20, 26, 60, 4, (93, 138, 134))     # body
+    s.ellipse(16, 14, 7, 8, (216, 210, 196))      # head
 
-`draw.py` renders every template in `templates/`; `pixlib.load_template` accepts two formats:
+G.write("spr_scout", [R.soft_frame(draw, 32, 64)], 32, 64, anchor="foot")
+```
 
-- **`.txt` — index grid** (palette kept separate). Each cell is one character: `0`–`9` then `a`–`v`
-  select palette entry 0–31, and `.` is transparent. Colors come from a **`palettes/*.hex`** (default
-  `db32`; pass another to `draw.py`; one `rrggbb` per line, line N = index N), so many sprites share
-  one palette. `#`-comment and blank lines are ignored. (Single-char cells address up to 32 colors;
-  for a larger palette use `.json`.)
-- **`.json` — self-contained** (palette embedded): `{"art": [<rows>], "palette": {"<char>":
-  "rrggbb" | "rrggbbaa" | null}}` — `null` = transparent; use any chars you like.
+That is the whole workflow: draw frames, hand them to `gmsprite.write`. The sprite appears in
+`sprites/spr_scout/` filed under its IDE folder, with the origin already set.
 
-Drop a new `.txt`/`.json` in `templates/` and it renders — no code change. The shipped templates
-(`coin`/`sword`/`bed` as `.txt`, `potion` as `.json`) are **demo data**; replace per project.
+### Two drawing idioms
 
-### Palettes
+**`Canvas`** — hard alpha, 1 unit = 1 pixel. Every pixel is fully opaque or fully clear, the classic
+pixel-art constraint. Right for small cells (16–32 px) where a soft edge just reads as mud.
 
-`palettes/` is a small library of `.hex` palettes (one `rrggbb` per line; the `#`-comment header
-carries attribution) — the single source for both the `.txt` index grids and `quantize.py`.
-**`draw.py` keys the `.txt` demos to `palettes/db32.hex` by default** (DB32 / DawnBringer 32 — a solid
-prototype sweetspot). To render against another, pass its name — `python draw.py endesga32` — but the
-`.txt` cells are indexed to DB32's order, so re-index them for a different palette (or use `.json`
-templates, which embed their own). Bundled (community palettes, converted from Aseprite — attribution
-in each file): **db32** (default), db16, arne16, aap64, endesga32, zughy32, nyx8 (8–64 colors).
+```python
+c = R.Canvas(16, 16)
+c.rect(5, 6, 10, 15, (122, 96, 62, 255))
+c.disc(8, 4, 3, (200, 170, 90, 255))
+c.outline((38, 34, 24, 255))          # ink the silhouette — run last
+G.write("spr_crate", [c.px], 16, 16, anchor="foot")
+```
 
----
+**`Soft`** — shapes composited at 4× and box-downsampled, so curves and rotated quads come out
+anti-aliased. `soft_frame(drawfn, w, h)` runs draw → outline → downsample in one call. This is what
+the project's committed 32 px entity art was drawn with.
 
-## Animation
+Both finish as a flat list of `(r, g, b, a)` tuples, which is what `pixlib.write_png` and
+`gmsprite.write` take.
 
-`animate.py` renders multi-frame animation **data** (no hardcoded art) into a horizontal **strip** +
-GIF(s) + a filmstrip + a **manifest**. `pixlib.load_frames` accepts either input form:
+### Anchors
 
-- **Numbered frames** — a directory of single-frame templates (`0.txt`, `1.txt`, … indexing a
-  `palettes/*.hex`, or `.json`), sorted by trailing number; an optional `meta.json` in the dir sets
-  `fps`/`loop`/`states`. (e.g. `templates/anim/coin_spin/`.)
-- **Single multi-frame `.json`** — `{"palette": {…}, "frames": [[<rows>], …], "fps"?, "loop"?,
-  "states"?}` (frames may instead be index-keyed: `{"0": [<rows>], "1": […], …}`). With `states`
-  (`[{name, from, to, fps, loop}]`) it's multi-state → one GIF + manifest entry per state. (e.g.
-  `templates/anim/hero.json`.)
+`gmsprite.write(..., anchor=)` sets the sprite origin — the thing the IDE makes tedious by hand:
 
-`python animate.py` renders every animation under `templates/anim/`; or pass a dir/`.json` path (and
-`--palette NAME` for `.txt` frames). **`pack.py`** is the sibling for *already-rendered* PNG frames
-(`f*.png` → strip + GIFs + manifest).
+| anchor | origin | for |
+|---|---|---|
+| `foot` | bottom-center | entities that stand on the ground (the project default) |
+| `center` | middle-center | item icons, drawn centered in a UI slot |
+| `topleft` | 0,0 | tiles, wall/floor textures |
+
+Unsure of the frame size? `python spritesize.py <candidate.png>` measures the silhouette and snaps it
+to the size menu (`16,32,48,64,80,96,128`), printing the `write` call to paste.
 
 ---
 
 ## Autotile sets
 
-`tileset.py` synthesizes a full **autotile set from ONE material texture**, cut deterministically so
-the frames tile **by construction** (the edges match because every piece comes from the same patch):
+`tileset.py` synthesizes a full autotile set from **one** material texture, cut so the frames tile by
+construction — the edges match because every piece comes from the same patch:
 
-- `--mode dual` → 16 corner-keyed tile-frames (RPG-Maker-style A-over-B terrain transitions).
-- `--mode corner` → 13 quarter-tile pieces (the blob8 look from 13 half-cell pieces; good for walls).
-- `--mode both` → emit both.
+```sh
+python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--palette F]
+#   dual_strip16.png  = 16 corner-keyed frames     corner_strip13.png = 13 quarter pieces
+```
 
-Each mode writes `<mode>_strip<N>.png` (GameMaker `_stripN` auto-slice), a `preview_<mode>`, and a
-`seamless_<mode>` tiling test. `--heal` forces tileability on a non-seamless input; `--palette F`
-locks colors to a palette file. Omit the input for the built-in procedural demo material.
+`--mode dual` → 16 corner-keyed frames (RPG-Maker-style A-over-B transitions); `--mode corner` → 13
+quarter-tile pieces (the blob8 look; good for walls). Each mode also writes a `preview_<mode>` and a
+`seamless_<mode>` tiling test. `--heal` forces tileability on a non-seamless input. Omit the input for
+the built-in procedural demo material.
+
+Never assemble an autotile set from independently drawn cells — the seams won't line up. Cutting from
+one patch is the whole point.
+
+---
+
+## Other tools
+
+```sh
+python quantize.py <in_dir> <out_dir> <pal.hex>   # lock art onto a provided palette
+python preview.py                                 # NN previews + contact sheet from out/
+python spritesize.py <image.png> [foot|center]    # measure -> grid-snapped W x H
+```
+
+`palettes/` is a small library of `.hex` files (one `rrggbb` per line; the `#`-comment header carries
+attribution). **db32** (DawnBringer 32) is this project's standard — see [GEMS.md](GEMS.md).
+
+---
+
+## Registration
+
+`gmsprite.write` registers the resource in `gems.yyp` through `gm-cli` when it isn't there yet, so a
+new sprite is one call. It never hand-edits the yyp's Resources list — that corrupts the project (see
+`docs/GMCLI.md`). If `gm-cli` isn't on PATH it says so and tells you the command to run.
+
+Frame and layer uuids are uuid5-derived from the sprite name, so re-running a script rewrites the same
+ids instead of churning the `.yy`. That is free, and unrelated to whether the art itself is
+reproducible — it isn't, and doesn't need to be.
 
 ---
 
 ## Requirements
 
-- **Python 3, stdlib only** — no PIL; PNG encode+decode and the GIF writer are hand-rolled in
-  `pixlib.py`. Nothing to install.
-
-All generated output goes under **`out/`** (gitignored). Committed content is scripts + docs.
-
----
-
-## Usage
-
-```sh
-python common/draw.py            # render templates/ statics -> out/agent/
-python common/animate.py         # render templates/anim/ -> strips + GIFs + filmstrips + manifests
-python common/preview.py         # nearest-neighbor previews + contact sheet
-python common/quantize.py <in_dir> <out_dir> <pal.hex>   # lock onto a provided palette
-python common/pack.py <frames> <out> <manifest.json>     # frames -> strip + manifest
-
-# autotile: synthesize a set from ONE material (seamless by construction)
-python common/tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--palette F]
-#   dual_strip16.png  = 16 corner-keyed frames     corner_strip13.png = 13 quarter pieces
-```
-
-> The `templates/` sprites are demo placeholders (data, not code) — replace them with your project's;
-> `draw.py` renders whatever templates are present.
-
----
-
-## Conventions
-
-- **Data-driven input**: sprite art lives in `templates/` (`.txt` index grids keyed to a
-  `palettes/*.hex`, or self-contained `.json`), never inlined in the generators. The palette is
-  **provided per project** — none is baked into the kit.
-- **Nearest-exact previews**: `_x16.png` upscales are integer nearest-neighbor on a checker (so
-  transparency reads); a common display box matches different cell sizes for fair comparison.
-- **Strip + manifest output**: every horizontal strip (animations *and* autotile sets) is named
-  **`<base>_strip<N>.png`** — the `_stripN` convention, so engines that read it (e.g. GameMaker)
-  auto-slice into N frames. Animations also emit a `{name, from, to, fps, loop}` manifest.
-
----
-
-## Gotchas
-
-- **No PIL** — `pixlib` hand-rolls PNG encode+decode and an uncompressed-LZW animated-GIF writer.
-- Autotile edge-matching is the whole reason `tileset.py` cuts pieces from one patch — never assemble
-  an autotile set from independently-drawn cells; the seams won't line up.
-
----
-
-## Project bindings — the `gm-import/` adapter
-
-Engine- and project-specific code lives in the **`gm-import/`** subdir — it imports the core (via a
-`sys.path` shim to the sibling `common/`) and writes finished sprites, in this project's DB32 /
-foot-anchored / 32px style, straight into the GameMaker project's `sprites/`. Kept separate so the
-`common/` core stays engine- and style-agnostic:
-
-- `gm-import/entity_sprites.py` — draws this project's entities (hero/bandit/chest/torch/…, DB32,
-  foot-anchored) as GameMaker sprites.
-  `python tools/pixel-art-kit/gm-import/entity_sprites.py`
-- `gm-import/terrain_sprites.py` — imports `terrain_materials` + `tileset` and writes GameMaker
-  dual-grid `spr_terrain*` (run `common/terrain_materials.py` first).
-  `python tools/pixel-art-kit/gm-import/terrain_sprites.py`
-
-The target sprite resources must already be **registered** (IDE or `gm-cli resourcetool`); these only
-fill frames. Frame/layer/keyframe UUIDs are deterministic (uuid5), so re-running is reproducible (no
-churn).
-
-The kit core is **palette-agnostic**: `pixlib` carries no palette (`load_palette` reads one from a
-file), `quantize.py` takes a palette argument, and `tileset.py` takes an optional `--palette`. The
-only built-in pixel *data* left is the example sprite **templates** in `templates/`, the **palette
-library** in `palettes/` (community palettes, attributed), and the example terrains in
-`terrain_materials.py` — all clearly data; replace/extend per project.
+**Python 3, stdlib only.** PNG encode+decode and the animated-GIF writer are hand-rolled in `pixlib`.
+Nothing to install; `requirements.txt` is empty and says so deliberately. All output goes under `out/`
+(gitignored).

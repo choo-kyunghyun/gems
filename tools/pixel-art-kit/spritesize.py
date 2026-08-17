@@ -7,9 +7,9 @@ size MENU (multiples of the 16px half-unit) with a little margin so the outline 
 the smallest grid-friendly W x H that contains the subject — which naturally yields 1:2 for a standing
 biped, ~1.5:1 for a pistol, ~3:1 for a long rifle, etc.
 
-Carries NO project sizes (those live in the project's sprite_catalog) — only the menu + the snap logic.
+Carries NO project sizes — only the menu + the snap logic.
 
-  python common/spritesize.py <image.png> [foot|center]   # prints the measured bbox + recommended W x H
+  python spritesize.py <image.png> [foot|center]   # prints the measured bbox + recommended W x H
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # so `import pixlib` resolves standalone
@@ -71,4 +71,4 @@ if __name__ == "__main__":
     ratio = f"{W / H:.2f}:1" if W >= H else f"1:{H / W:.2f}"
     print(f"{os.path.basename(path)}: content {bw}x{bh} -> frame {W}x{H} "
           f"({anchor}-anchored, ratio {ratio})")
-    print(f"  catalog entry:  \"{os.path.splitext(os.path.basename(path))[0]}\": ({W}, {H}),")
+    print(f"  gmsprite call:  write(\"{os.path.splitext(os.path.basename(path))[0]}\", frames, {W}, {H})")
