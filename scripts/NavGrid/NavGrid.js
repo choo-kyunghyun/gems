@@ -2,7 +2,7 @@
  * A small fixed window re-centered on the agent each frame, in ABSOLUTE level-cell coords.
  *
  * Why a window: obstacles aren't tile data — terrain/walls/border exist only as kinematic-solid
- * collider ENTITIES (and on a chunked map only nearby chunks are loaded). One bounded grid unifies
+ * collider ENTITIES (and on a chunked map only SIM-ring chunks carry them). One bounded grid unifies
  * every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE while only
  * occupancy/origin change per frame. This is the ONE live nav source — the tile layers' costs
  * (LevelGrid.costAt) feed only the debug cost shading.

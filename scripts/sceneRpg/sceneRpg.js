@@ -478,12 +478,11 @@ class _SceneRpgClass {
     else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.entities); // timed world cues (the radio prop) re-fire their spatial SFX
 
-    // stream chunks (chunked maps only); before the portal check, which can swap the whole map out
+    // re-ring the entity sim-LOD around the player (chunked maps only); before the portal check,
+    // which can swap the whole map out
     if (this.chunks !== undefined) {
       const pp = this.entities.get(Position, this.playerId);
       this.chunks.update(pp.x, pp.y);
-      // rebuild newly-streamed terrain VBOs (diff-based; cheap when unchanged)
-      if (this.terrain !== undefined) this.terrain.rebuild(this.chunks);
     }
 
     // rebuild the inventory body only when open + dirty (UI.update already ran this frame)

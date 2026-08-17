@@ -25,7 +25,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`Collision.mask` is dead**: typed `Set|null`, authored `null` at every spawn site, read by no system — and a live `Set` would be silently nulled by the Json save path (the no-`Set` serialization invariant). Drop the field, or retype it serializable (bit flags) when masks become real.
 - **`Entity.import` and `Entity.register` have no callers**: saves store `entities.export()` but restore by reading entities out, and `add` auto-registers. `EntityData.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard, else drop it.
 - **`ZoneSystem` is dead machinery**: nothing calls `update`/`zoneOf`/`entitiesIn` — `sceneRpg` deliberately bypasses the sweep ("direct lookup beats it"), `ZoneMap._inside` exists only to serve it, and ARCHITECTURE.md still names it the zone driver. Wire it in or drop the module (plus `_inside` and the index line).
-- **Caller-less Core/Level members**: `TileLayer.from`, `ChunkManager.centerChunk`, and `ChunkManager.activeCount` have no consumers.
+- **Caller-less Core/Level members**: `TileLayer.from` has no consumers.
 - **`InputPreset` has no callers**: `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold their hardcoded defaults and `input.json` is never written. Wire the load into boot or drop the module.
 - **`InputAction.unbindButton`/`unbindAxis` are dead**: `UIRebind` remaps by assigning `action.buttons[0]` directly, so the unbind pair has no callers.
 - **`UIMinimap`/`gemsMinimap` are dead**: the factory has no callers and is `UIMinimap`'s only constructor site — `RadarArrows` is the shipped radar. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
@@ -91,11 +91,9 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 ### Engine
 
-Deferred chunk-streaming work (engine is `ChunkManager`):
+Deferred entity sim-LOD work (engine is `ChunkManager`):
 
-- Per-chunk build persistence (player builds inside streamed chunks)
-- On-disk chunk saves (beyond the in-session cache + save-game delta)
-- Throttled distant ticks (LOAD-ring entities simulate at low rate)
+- Throttled distant ticks (frozen-ring entities simulate at low rate)
 
 ### Verification
 

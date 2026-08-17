@@ -42,6 +42,7 @@ globalThis.RpgMap = {
     "_tilePasses",
     "_tilePass",
     "_gridPass",
+    "_chunkPass",
     "_clouds",
     "_weather",
     "_lighting",
@@ -139,11 +140,8 @@ globalThis.RpgMap = {
       level.camera.toY = sp.y;
     }
 
-    // chunked: seed the streaming rings around the entry so the first frame back has no ring gap
-    if (level.chunks !== undefined) {
-      level.chunks.update(sp.x, sp.y);
-      if (level.terrain !== undefined) level.terrain.rebuild(level.chunks);
-    }
+    // chunked: re-seed the entity sim ring around the entry so the first frame back has no gap
+    if (level.chunks !== undefined) level.chunks.update(sp.x, sp.y);
 
     RpgMap._activateReset(level);
     RpgMap._registerCameraDebug(level);
@@ -394,9 +392,9 @@ globalThis.RpgMap = {
     }
   },
 
-  // Entities. Chunked STREAMS them via ChunkManager; plain spawns all up front. Either way the
-  // level reads NPC/portal/enemy/companion handles LIVE by component query — stored id lists
-  // would dangle as chunks stream in/out.
+  // Entities. Chunked sim-LODs them via ChunkManager (live near the player, frozen snapshots
+  // beyond); plain spawns all up front. Either way the level reads NPC/portal/enemy/companion
+  // handles LIVE by component query — stored id lists would dangle across freeze/thaw.
   _spawnWorld(level, data, opts = {}) {
     if (level._chunked) {
       // the pass-composed generator: authored hub overlay + procedural wilderness in one
@@ -406,16 +404,13 @@ globalThis.RpgMap = {
         chunkRows: data.meta.chunkRows ?? 16,
         authored: data, // hand-built hub overlaid onto its chunks (AuthoredStamp)
       });
-      // Finite world: a worldCols × worldRows rectangle (matches the resident grid). Streaming
-      // clamps to it + a wall border rings it, so the player/enemies can't leave.
+      // Finite world: a worldCols × worldRows rectangle (matches the resident grid), ringed by
+      // a wall border so the player/enemies can't leave.
       const wc = data.meta.worldCols ?? data.cols ?? 128;
       const wr = data.meta.worldRows ?? data.rows ?? 128;
-      // The freeze (LOAD) tier: simRadius 1 keeps only ~9 chunks fully simulated. Historically a
-      // wider window was unaffordable — simRadius=loadRadius (25 SIM chunks)
-      // tanked the sim to ~260-334ms/step (3fps), dominated by SolidSystem's move-and-collide. That
-      // blocker is now lifted: SolidSystem is spatially indexed (its own static grid — see
-      // SolidSystem._gridRebuild). simRadius:1 stays the shipped default pending a simRadius:2
-      // re-measure with the grid in place.
+      // Entity sim-LOD: simRadius 1 keeps only ~9 chunks live (the rest hold frozen snapshots).
+      // simRadius:1 stays the shipped default pending a simRadius:2 re-measure with SolidSystem's
+      // static grid in place (the historical wide-SIM blocker — see SolidSystem._gridRebuild).
       level.chunks = new ChunkManager(
         level.entities,
         level.grid,
@@ -424,30 +419,35 @@ globalThis.RpgMap = {
           chunkCols: data.meta.chunkCols ?? 16,
           chunkRows: data.meta.chunkRows ?? 16,
           simRadius: 1,
-          loadRadius: 2,
           worldCols: wc,
           worldRows: wr,
-          /** descriptor adapter — streamed spawns build through the same path as file spawns */
+          /** descriptor adapter — chunk spawns build through the same path as file spawns */
           spawn: (entities, grid, desc) =>
             RpgSpawn.spawnEntity(entities, grid, desc),
         },
       );
       RpgGrid.buildWorldBorder(level.entities, level.grid, wc, wr); // edge walls (always present)
       // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
-      // level fade) — mid-game streaming is pure load/unload; generate() never runs in play.
+      // level fade) — geometry is resident for the map's lifetime; mid-game work is entity
+      // promote/demote only, and generate() never runs in play.
       const t0 = current_time;
       const pregen = level.chunks.pregenerate();
       Log.info(
         `RpgMap: pregenerated ${pregen} chunks in ${current_time - t0}ms`,
       );
       // deep-save restore: overwrite touched chunks with their saved entity state BEFORE the first
-      // stream, so they materialize saved snapshots (dead mobs stay dead) instead of fresh spawns.
+      // update, so they materialize saved snapshots (dead mobs stay dead) instead of fresh spawns.
       if (opts.chunkCache !== undefined)
         level.chunks.importCache(opts.chunkCache);
       const sp = level.entities.get(Position, level.playerId);
-      level.chunks.update(sp.x, sp.y); // populate the rings around the spawn
-      level.reachZone = RpgMap._authoredReach(level, data); // origin-area quest zone (not streamed)
+      level.chunks.update(sp.x, sp.y); // populate the sim ring around the spawn
+      level.reachZone = RpgMap._authoredReach(level, data); // origin-area quest zone (authored hub)
     } else {
+      // build reuses the live level object and only _restore rewrites every bundle key, so a
+      // previous chunked map's manager must not leak onto this one (step would keep driving the
+      // parked map's sim ring, and a save would export its cache under this map's id)
+      level.generator = undefined;
+      level.chunks = undefined;
       const ents = RpgSpawn.spawn(level.entities, level.grid, data);
       level.reachZone = ents.reach; // undefined when the map has no reach marker
     }
@@ -515,16 +515,19 @@ globalThis.RpgMap = {
     if (level._chunked) {
       level.terrain = new TerrainStream(level.chunks);
       level.renderer.insert(level.terrain); // one set of per-chunk VBOs, under everything
-      level.terrain.rebuild(level.chunks, Infinity); // initial: build every loaded chunk
-      level.renderer.insert(
-        new RenderChunks(level.chunks, {
-          font: I18n.font("default"),
-          ground: false,
-          // pitched maps draw the streamed walls as lit boxes (the RenderWalls insert
-          // below, over chunks.wallLayer()) — the flat rects stay only for the flat fallback
-          walls: !(pitch > 0),
-        }),
-      );
+      level.terrain.build(); // whole world once — geometry is resident, only entities freeze/thaw
+      level._chunkPass = new RenderChunks(level.chunks, {
+        font: I18n.font("default"),
+        ground: false,
+        // pitched maps draw the generated walls as lit boxes (the RenderWalls insert
+        // below, over chunks.wallLayer()) — the flat rects stay only for the flat fallback
+        walls: !(pitch > 0),
+      });
+      level.renderer.insert(level._chunkPass);
+    } else {
+      // same leak guard as _spawnWorld: a stale pass would get this map's camera below
+      level.terrain = undefined;
+      level._chunkPass = undefined;
     }
     // Resident tile layers (terrain/floor/fence) as real tilemaps again — bottom→top per
     // RpgGrid.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
@@ -711,14 +714,10 @@ globalThis.RpgMap = {
   _buildCamera(level, data) {
     const pitch = RpgMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 1.75 : 1;
-    // Cap zoom-OUT to the renderable world (a chunked map only streams a window; past it shows as
-    // dark void). viewCap = max view WIDTH (world px); camera derives live minZoom from it + the
-    // current surface each frame. Horizontal is the binding axis on a landscape surface.
-    const viewCap = level._chunked
-      ? // Worst case is a WORLD CORNER (hub spawn): the off-world side streams nothing, so only
-        // (loadRadius + 1) chunks load. View any wider → dark void.
-        (2 + 1) * (data.meta.chunkCols ?? 16) * level.grid.cellWidth
-      : level.grid.cols * level.grid.cellWidth;
+    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); camera derives live
+    // minZoom from it + the current surface each frame. Horizontal is the binding axis on a
+    // landscape surface.
+    const viewCap = level.grid.cols * level.grid.cellWidth;
     level.camera = CameraFollow.create2d({
       entities: level.entities,
       followTarget: level.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
@@ -748,6 +747,9 @@ globalThis.RpgMap = {
     // Cull the grid pass to the camera view (essential for the chunked map's large home grid).
     level._gridPass.camera = level.camera;
     level._tilePass.camera = level.camera; // view-cull the placeholder tile fill
+    // whole-world chunk passes cull to the view too (the world no longer streams)
+    if (level.terrain !== undefined) level.terrain.camera = level.camera;
+    if (level._chunkPass !== undefined) level._chunkPass.camera = level.camera;
     if (level._clouds !== undefined) level._clouds.camera = level.camera;
     if (level._weather !== undefined) level._weather.camera = level.camera;
     level._lighting.camera = level.camera;

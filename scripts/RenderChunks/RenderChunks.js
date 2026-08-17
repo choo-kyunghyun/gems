@@ -1,12 +1,13 @@
 /**
- * Insert BEFORE entity passes so ground sits under everything. The active set is bounded by
- * loadRadius, so no view culling is needed.
+ * Insert BEFORE entity passes so ground sits under everything. Records are the whole pregenerated
+ * world — chunks are culled to `camera` (level-assigned; unset draws all).
  * @implements {RenderPass}
  */
 globalThis.RenderChunks = class RenderChunks {
   constructor(chunks, opt = {}) {
     this.enabled = true;
     this.chunks = chunks; // a ChunkManager instance
+    this.camera = undefined; // level-assigned view cull (Camera.groundRect)
     this.font = opt.font;
     this.ground0 = opt.ground0 ?? make_colour_rgb(34, 42, 34);
     this.ground1 = opt.ground1 ?? make_colour_rgb(28, 34, 30);
@@ -29,11 +30,29 @@ globalThis.RenderChunks = class RenderChunks {
     const font = draw_get_font();
     if (this.font !== undefined) draw_set_font(this.font);
 
-    const recs = this.chunks.records();
     const pxW = this.chunks.pxW;
     const pxH = this.chunks.pxH;
     const cw = this.chunks.cellW;
     const ch = this.chunks.cellH;
+
+    // cull to the view (one-cell margin covers edge-hugging frozen entities)
+    let recs = this.chunks.records();
+    if (this.camera !== undefined) {
+      const view = this.camera.groundRect();
+      const vis = [];
+      for (let i = 0; i < recs.length; i++) {
+        const gx = recs[i].cx * pxW;
+        const gy = recs[i].cy * pxH;
+        if (
+          gx + pxW + cw >= view.x1 &&
+          gx - cw <= view.x2 &&
+          gy + pxH + ch >= view.y1 &&
+          gy - ch <= view.y2
+        )
+          vis.push(recs[i]);
+      }
+      recs = vis;
+    }
 
     if (this.ground)
       for (let i = 0; i < recs.length; i++) {
@@ -67,7 +86,7 @@ globalThis.RenderChunks = class RenderChunks {
     draw_set_valign(fa_bottom);
     for (let i = 0; i < recs.length; i++) {
       const rec = recs[i];
-      if (rec.ring !== "load") continue;
+      if (rec.ring !== "frozen") continue;
       const snaps = rec.snapshots;
       for (let j = 0; j < snaps.length; j++) {
         const comps = snaps[j].components;

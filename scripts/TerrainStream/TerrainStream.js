@@ -1,13 +1,15 @@
 /**
- * A border crossing only builds newly-entered chunks. Painter order = the generator palette's index
- * (deep water … rocky for the overworld): upper terrains' transparent dual-grid corners reveal the
- * one below. Each material draws its own untinted spr_terrain* sprite into its own VBO with its own
- * texture, so the tilesets needn't share a texture page.
+ * The whole pregenerated world's terrain as static per-chunk VBO sets, built ONCE by build() at
+ * map build time and only submitted thereafter (draw() culls chunks to `camera`). Painter order =
+ * the generator palette's index (deep water … rocky for the overworld): upper terrains'
+ * transparent dual-grid corners reveal the one below. Each material draws its own untinted
+ * spr_terrain* sprite into its own VBO with its own texture, so the tilesets needn't share a
+ * texture page.
  *
  * Dual-grid corner sampling reads one cell up/left, so a chunk needs a 1-cell APRON beyond its
  * top/left edge: interior from the chunk record, apron from the manager's STORE-backed sampler
- * (ChunkManager.materialAt — stored terrain, falling back to the source's pure sampler past the world
- * edge), so seams match the neighbor with no load-order dependency.
+ * (ChunkManager.materialAt — stored terrain, falling back to the source's pure sampler past the
+ * world edge), so seams match the neighbor with no build-order dependency.
  * GMRT-safe: Object.keys + index loops (no Map/Set iteration), class on globalThis.
  * @implements {RenderPass}
  */
@@ -19,8 +21,8 @@ globalThis.TerrainStream = class TerrainStream {
     this.cellW = chunks.cellW;
     this.cellH = chunks.cellH;
     this.chunks = chunks; // store-backed materialAt for the seam apron
-    this._cache = {}; // "cx,cy" → [{ vb, tex }] (one per terrain material)
-    this._buildBudget = 4; // chunk VBO sets per rebuild() — caps the per-frame build spike
+    this._cache = {}; // "cx,cy" → { x1, y1, x2, y2, list: [{ vb, tex }] } (one per material)
+    this.camera = undefined; // level-assigned view cull (Camera.groundRect); unset = draw all
     this.lights = undefined; // host RenderMesh pass (level-assigned) → lit ground; unset = unlit
 
     // One untinted dual-grid sprite per material, painter-ordered. The palette rides the
@@ -79,36 +81,18 @@ globalThis.TerrainStream = class TerrainStream {
     }
   }
 
-  // Diff the loaded chunk set against the cache: free vanished chunks, build newly-loaded ones (at
-  // most `budget`/call so a burst can't spike — the rest fill in over later frames, off-screen at
-  // loadRadius). Call each frame; initial load passes Infinity to build everything under the boot fade.
-  rebuild(chunks, budget = this._buildBudget) {
+  /** Build every chunk's VBO set — map build time, once. Idempotent per chunk. */
+  build() {
     if (!this._ok) return;
-    const recs = chunks.records();
-
-    const seen = {};
-    for (let i = 0; i < recs.length; i++)
-      seen[recs[i].cx + "," + recs[i].cy] = true;
-    const keys = Object.keys(this._cache);
-    for (let i = 0; i < keys.length; i++) {
-      if (seen[keys[i]] !== true) {
-        this._destroyChunk(this._cache[keys[i]]);
-        delete this._cache[keys[i]];
-      }
-    }
-
-    let left = budget;
-    for (let i = 0; i < recs.length && left > 0; i++) {
-      const rec = recs[i];
-      const key = rec.cx + "," + rec.cy;
-      if (this._cache[key] === undefined) {
-        this._cache[key] = this._buildChunk(rec);
-        left--;
-      }
+    const recs = this.chunks.records();
+    for (let i = 0; i < recs.length; i++) {
+      const key = recs[i].cx + "," + recs[i].cy;
+      if (this._cache[key] === undefined)
+        this._cache[key] = this._buildChunk(recs[i]);
     }
   }
 
-  /** Submit only — no rebuild here, that's the point. Painter-ordered. */
+  /** Submit only — no build here, that's the point. Painter-ordered, view-culled. */
   draw(entities) {
     if (!this._ok) return;
     // GROUND under the one lit shader (same contract as RenderTileMap.draw): `lights` = the
@@ -120,17 +104,25 @@ globalThis.TerrainStream = class TerrainStream {
       shader_set_uniform_f(this.lights.uUseTex, 1);
       shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
     }
+    const view = this.camera !== undefined ? this.camera.groundRect() : undefined;
     const keys = Object.keys(this._cache);
     for (let i = 0; i < keys.length; i++) {
-      const list = this._cache[keys[i]];
-      for (let j = 0; j < list.length; j++) list[j].vb.submit(list[j].tex);
+      const c = this._cache[keys[i]];
+      if (
+        view !== undefined &&
+        (c.x2 < view.x1 || c.x1 > view.x2 || c.y2 < view.y1 || c.y1 > view.y2)
+      )
+        continue;
+      for (let j = 0; j < c.list.length; j++) c.list[j].vb.submit(c.list[j].tex);
     }
     if (lit) shader_reset();
   }
 
   /**
    * Build one chunk's terrain VBOs — one per material layer, cumulative + painter-ordered, each with
-   * its own sprite/texture. Apron is sampled live; a material with no tiles in this chunk is skipped.
+   * its own sprite/texture — wrapped with the chunk's drawn world rect (half-cell dual-grid overhang
+   * padded to a full cell) for the draw() cull. Apron is sampled live; a material with no tiles in
+   * this chunk is skipped.
    */
   _buildChunk(rec) {
     const cc = this.chunkCols;
@@ -203,7 +195,13 @@ globalThis.TerrainStream = class TerrainStream {
       if (any) out.push({ vb, tex: s.tex });
       else vb.destroy();
     }
-    return out;
+    return {
+      x1: x0 * cw - cw,
+      y1: y0 * ch - ch,
+      x2: (x0 + cc) * cw + cw,
+      y2: (y0 + cr) * ch + ch,
+      list: out,
+    };
   }
 
   /**
@@ -221,15 +219,13 @@ globalThis.TerrainStream = class TerrainStream {
     return s.table[0][0];
   }
 
-  _destroyChunk(list) {
-    for (let i = 0; i < list.length; i++) list[i].vb.destroy();
-  }
-
-  /** Free every cached chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy). */
+  /** Free every chunk's VBOs. Idempotent (safe if the renderer also calls it on destroy). */
   destroy() {
     const keys = Object.keys(this._cache);
-    for (let i = 0; i < keys.length; i++)
-      this._destroyChunk(this._cache[keys[i]]);
+    for (let i = 0; i < keys.length; i++) {
+      const list = this._cache[keys[i]].list;
+      for (let j = 0; j < list.length; j++) list[j].vb.destroy();
+    }
     this._cache = {};
   }
 };
