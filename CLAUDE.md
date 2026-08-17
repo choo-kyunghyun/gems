@@ -4,82 +4,44 @@ Project guidelines for Claude Code.
 
 ## Project Overview
 
-- The name of this project is G.E.M.S. (GameMaker Entity & Map System).
-- This project is a public repository distributed under the MIT license. Do exercise caution with all code and actions.
-- This project uses GMRT, the new runtime for GameMaker, and JavaScript as the scripting language.
-- This project adopts the ECS design pattern. Entities are ids, and components are pure data. Logic is executed separately from the data.
+- This project is G.E.M.S. (GameMaker Entity & Map System), a public repository under the MIT license — exercise caution with all code and actions.
+- It uses GMRT, the new runtime for GameMaker, with JavaScript as the scripting language.
+- It follows the ECS pattern: entities are ids, components are pure data, and logic runs separately from the data.
 
 ## Working Guidelines
 
-- Think before acting. State assumptions before writing code; when anything is uncertain or ambiguous, ask the user rather than guess silently.
-- Verify after implementing. Never assume a result — run the code and confirm the behavior yourself (there are no tests; run the game — see GameMaker CLI + Debugging & Verification). The result is reported in conversation, never written into the repo (Conventions → Record).
-- Change only what's needed. Touch only the code the task requires, and report pre-existing dead or broken code instead of fixing it on the spot. This bounds scope, not quality — when the proper fix is improving an API, improve it and update its callers; only a redesign far broader than the task needs proposing first.
-- Keep CLAUDE.md stable. Unless explicitly requested by the user, record newly discovered knowledge in subdocuments located in the docs directory rather than CLAUDE.md.
+- Plan before implementing.
+- After changing code, run the game and verify the behavior. Verification is reported in conversation, never written into the repo — no run output or "verified <date>" stamps in code, docs, or commit messages.
+- A comment states only what the code cannot, briefly.
+    - A known runtime quirk is cited from `docs/GMRT.md`, never re-explained.
+    - Runtime quirks and future work carry a conventional tag such as `TODO` or `BUG`.
+- Commit messages are `type(scope): what changed` — one line, imperative, pitched at the module or rule that changed.
+- Don't hide errors; an object never handles an error that is not its responsibility.
+- Never cite or mention other GitHub repositories or external projects directly.
+    - An external link only as a required license attribution or with the user's permission.
+    - An upstream ticket is tool + bare number (`gm-cli #000`, GMRT `#00000`), never an issue URL or `owner/repo#n`.
+- Names — API members, scripts, media assets — are short, consistent terms per `docs/NAMING.md`.
+- Record newly discovered knowledge in subdocuments under `docs/`, not in CLAUDE.md.
 
 ## GameMaker CLI
 
 @docs/GMCLI.md
 
-## Debugging & Verification
-
-- **Runtime log**: `Log.info/warn/error/debug` lines land in `game.log` in the save dir (`%LOCALAPPDATA%\gems\`), flushed once per frame — add temporary `Log.debug` lines, `gm-cli run`, `Read` the log, revert. An uncaught fault is logged as `UNHANDLED EXCEPTION: <message>`; a dead run without one crashed natively (the log just stops).
-- **Screenshots**: add a temporary `Time.frame` timeline to `Game/Step_0.js` — `if (Time.frame === 40) Screenshot.take("<name>.png")` at the frames you want (several per run is fine; scene switches/teleports join the same timeline) and `game_end()` a couple frames after the last — `gm-cli run` blocks until then; `Read` the PNGs from `screenshots/` in the save dir, revert. Contract at `Screenshot`.
-- **Entity state**: `entities.dump(idOrIds, file?)` — `entities` is the level's `Entity` store (e.g. `World.levels.current.entities`) — writes the ids' components as `.json` to the save dir (default `entity.json`; whole store via `dump(entities.query())`), nesting/ref/cycle-safe. `Read` it after a run; contract at `Entity.dump`.
-
-## Conventions
-
-### Code
-
-- **Simple is best**: shorter and leaner wins as long as readability doesn't suffer — add nothing unnecessary.
-- **Don't hide errors**: surface an error as early as possible; an object never handles an error that is not its responsibility.
-- **Language**: JavaScript, not GML — all scripts in `scripts/` use `.js`.
-- **Globals**: scripts expose globals via `globalThis.Name = ...`; component/system/singleton shapes follow docs/ARCHITECTURE.md.
-
-### Prose & Commits
-
-- **Register**: repo prose — docs, comments, commit messages — is technical reference, not a blog. No emojis. Markdown is structure, never decoration: inline code for identifiers, tables for enumerable facts, headings and lists for hierarchy.
-- **Emphasis**: plain prose is the default. Bold marks only the term a list entry defines, at its start, all-or-nothing across that list — never mid-sentence, never around inline code. No italics. CAPS carries a contract word an implementer must not soften (`NEVER`) and stays rare.
-- **Record**: verification is reported in conversation, never written into the repo — no run output, probe narration, or "verified <date>" stamps in code, docs, or commit messages. A recorded fact pins to a version or ticket ("safe on 0.20", "#15095"), never to when it was checked; git owns history.
-- **Citations**: never add an external link, or anything that cross-references another project, without the user's explicit permission. An upstream ticket is tool + bare number (`gm-cli #000`, GMRT `#00000`) in any file or commit message, NEVER an issue/PR URL or `owner/repo#n` — both post a cross-reference into the other repository. Naming a repo in prose, a required license-attribution URL, and a plain URL to the doc that owns a fact are fine.
-- **Commits**: `type(scope): what changed` — one line, imperative, ≤72 chars, pitched at the module or rule that changed, never at the file-by-file diff. A body only when the change would be misread without it: at most ~5 single-line items, nothing the diff already shows; a growing body means the commit is too big — split it. Tickets per Citations.
-
-### Comments
-
-1. The default is no comment. A comment earns its line only by stating what the code cannot: an invariant, a unit, a coordinate space, a why — never what the code does, nor when or how a fact was established (Prose & Commits → Record). Short is not exempt: a one-line narration of the statement below it is the same defect as a paragraph of it — no such fact, no comment.
-2. A known quirk or invariant is cited, never re-explained, and a tag is a pointer, not a story. Any conventional tag (`TODO`, `BUG`, `NOTE`, …) is fine, for our own defects and gaps alike:
-   - `[Runtime #00000]` marks code shaped by an upstream runtime defect — name the ticket (or the quirk when unticketed), never its state (docs/GMRT.md → Overview), and say only what a reader must not "clean up". The tag is the whole citation: no `see docs/GMRT.md` beside a ticket (the number is the key into it; a doc pointer is the citation only when unticketed), and no clause teaching the bug's mechanics — `// json_stringify, not JSON.stringify (#15565)` is complete; appending `— native faults on nested values` re-explains the entry.
-   - A tag stays small and local; anything cross-cutting or multi-step is a docs/ROADMAP.md entry instead.
-
-### API Naming
-
-Members are short idiomatic verbs and nouns (`Entity.create`, `Item.get`, `File.read`); the owner is the namespace, so a member never restates it or pads with filler (`createNew`, `getInfo`). A class is named for what it is (`Entity`), not its role pattern (`*Manager`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`read` vs `readBuffer`); everything else a long name would carry belongs in JSDoc.
-
-### Script Naming
-
-A script's directory + filename matches the identifier it exposes, cased to JS norms: PascalCase for a class or namespace object (`World`, `CameraFollow`), camelCase for a plain function (`teardownLevel`), and a PascalCase category bucket for a family of free functions with no single matching global (`Utils`, `UIDraw`, the GemsUI kit). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
-
-### Media Asset Naming
-
-`<prefix>_<family>_<subject>[_<variant>]`, all-lowercase snake_case after the GM type prefix (`spr_`/`snd_`/`mus_`/`sh_`/`ps_`/`obj_`/`rm_`).
-
-- `family` names the CONSUMER that reads the asset — a closed set: `item` (bag icons, auto-wired — `spr_item_<item_id>`, the item id verbatim), `wear` (paper-doll overlay strips), `tex` (wall/floor face textures), `terrain` (dual-grid terrain sets), `tile` (autotile piece sets), `ui` (widget chrome/glyphs), `fx` (particle art). A bare subject with no family tag is reserved for entity animation strips (`spr_human`).
-- `subject` is what a stranger would call the thing (1–3 words), material leading when it splits same-object variants (`wooden_table`), size/style qualifier last (`_small`).
-- Game-data metadata (manufacturer/rarity/stats/tier) never enters a name — it lives on the def and reaches the player through UI; a brand string appears only inside an item id the sprite mirrors (`spr_item_aeon_pistol`).
-- Sounds: `snd_<subject>[_<event>]` for SFX (`snd_gun_fire`, bare `snd_coin`), `mus_<track>` for music.
-- Vox meshes (plain files, not GM assets): the `.vox` model in `datafiles/meshes/` and its `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
-
 ## GMRT
 
-docs/GMRT.md is the GMRT quirk reference — the deny-list of JS forms and built-ins the pinned runtime breaks or diverges on, and the workflow for recording a new quirk. Not auto-loaded: read it before writing or modifying any script in `scripts/`, and before diagnosing a build or runtime failure.
+`docs/GMRT.md` is the deny-list of JS forms and built-ins the pinned runtime breaks — read it before writing or modifying any script. When verification reveals unexpected runtime behavior, check the doc and record the quirk there.
 
-## Architecture
+## Architecture (to be removed)
 
-docs/ARCHITECTURE.md carries the layer map, the cross-cutting invariants, and the area index that locates an area's owning files. Not auto-loaded: read it before designing, placing, or modifying game code.
+Read `docs/ARCHITECTURE.md` before modifying code.
+
+## Debugging
+
+- Log with `Log`, then read `%LOCALAPPDATA%/gems/game.log`.
+    - An uncaught runtime error is logged (`UNHANDLED EXCEPTION`) unless the runtime died natively.
+- `Screenshot.take()` captures the screen on the frame it runs; capture under different names at different frames to compare, then read the PNGs from `%LOCALAPPDATA%/gems/screenshots/`.
+- Inspect entity state with `entities.dump()`.
 
 ## Tools
 
-Standalone tools under `tools/`, never imported by the game. Each is self-contained with its own README; read it before working with the tool.
-
-- `pixel-art-kit/` — authors pixel-art sprites from data files and imports them as GameMaker sprites.
-- `audio-kit/` — synthesizes SFX and MIDI-based BGM, imports them as GameMaker sounds. The committed `snd_*`/`mus_*` set is hand-authored — read its GEMS.md before re-running any importer.
-- `gems-tree-ext/` — VS Code extension showing the GameMaker asset tree from `gems.yyp`.
+`tools/` holds standalone tools independent of GameMaker; when the user asks for one, read its `README` first. The committed `snd_*`/`mus_*` set is hand-authored — read audio-kit's GEMS.md before re-running any importer.
