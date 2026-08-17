@@ -10,16 +10,16 @@ const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher =
 const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
 /**
- * factory so the level editor's Test Play can open this level; same ref LevelManager labels use
+ * factory so the scene editor's Test Play can open this scene; same ref LevelManager labels use
  */
 globalThis.SceneRpg = () => new _SceneRpgClass();
-LevelRegistry.add(SceneRpg, {
+SceneRegistry.add(SceneRpg, {
   label: I18n.textRef("RPG_NAME"),
   category: "SCENE_CAT_RPG",
 });
 
 /**
- * standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Level).
+ * standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Scene).
  */
 class _SceneRpgClass {
   label = "RPG";
@@ -57,9 +57,9 @@ class _SceneRpgClass {
       StatModel.recompute(entities, id);
     };
 
-    // world event queue + level manager (its registry is the map pool — every visited map stays
+    // world event queue + scene manager (its registry is the map pool — every visited map stays
     // alive/suspended there for the whole session, see RpgMap.go) + wandering traders — reset per
-    // level create so a fresh RPG session can't inherit the previous one's maps/schedule/records
+    // scene create so a fresh RPG session can't inherit the previous one's maps/schedule/records
     // (Trader.reset re-installs handlers).
     World.levels.reset();
     WorldEvents.reset();
@@ -260,7 +260,7 @@ class _SceneRpgClass {
     RpgInventoryUI.build(this);
     Interactable.build(this); // station prompt + storage + crafting windows
     TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
-    BuildMode.build(this); // grid build mode (HUD + per-level state)
+    BuildMode.build(this); // grid build mode (HUD + per-scene state)
   }
 
   /**
@@ -281,7 +281,7 @@ class _SceneRpgClass {
   }
 
   /**
-   * THE reference orchestration for a genre level — the shape, not just this game's order:
+   * THE reference orchestration for a genre scene — the shape, not just this game's order:
    *   once per frame   window edge-toggles, input context, sleep check (all before the loop)
    *   per tick         snapshot -> the physics Pipeline (headed by the player brain) -> damage,
    *                    death, drops, quest/achievement checks -> flush
@@ -289,8 +289,8 @@ class _SceneRpgClass {
    *   LAST             portals — a door swaps the store out from under everything above
    * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
    */
-  step() {
-    // no pause gate — Game skips level.step() while the SystemMenu is open
+  update() {
+    // no pause gate — Game skips scene.update() while the SystemMenu is open
 
     // re-latch the player id from the live Playable query (derived, not stored — RpgMap.go's
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
@@ -497,7 +497,7 @@ class _SceneRpgClass {
         /**
          * genre extraRows hook: a kills/items/quests records line below the stats
          */
-        extraRows: (level, body) => {
+        extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
             gemsLabel(
@@ -929,7 +929,7 @@ class _SceneRpgClass {
   }
 
   /**
-   * launch the platformer as a guest minigame (keep-switch: this level freezes as-is, back()
+   * launch the platformer as a guest minigame (keep-switch: this scene freezes as-is, back()
    * thaws it); on return its result() score becomes a coin reward
    */
   _openArcade() {
@@ -974,13 +974,13 @@ class _SceneRpgClass {
 
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
-    InputContext.reset(); // hand input back to "default" for the next level
+    InputContext.reset(); // hand input back to "default" for the next scene
     Debug.remove("Camera"); // the live 2.5D-camera tuning section is RPG-only (RpgMap registers it)
     Debug.remove("Achievements"); // RPG-only debug section (registered in create)
     PlayerSystem.unbind();
-    RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are level-local)
+    RpgWorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are scene-local)
     Weather.exitRegion();
-    PathFollow.bind(null); // drop the terrain pricing (the next level binds its own or none)
+    PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     // free every resident map via the manager index: park the active one first (its fields live
     // flat on `this`) so every registry entry is a full bundle, then reclaim them all
     RpgMap.suspend(this);

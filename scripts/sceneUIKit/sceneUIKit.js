@@ -1,16 +1,16 @@
 // Gems kit widget showcase. pure UI — no entities/renderer/step/draw.
 // tab host flex-grows; each page is a gemsScroll({ grow:true }) to reflow at any GUI size.
 
-LevelRegistry.add(() => new _SceneUIKitClass(), {
+SceneRegistry.add(() => new _SceneUIKitClass(), {
   label: I18n.textRef("UIKIT_NAME"),
   category: "SCENE_CAT_UI",
 });
 
-/** standalone SCREEN class — duck-typed contract, see Level. */
+/** standalone SCREEN class — duck-typed contract, see Scene. */
 class _SceneUIKitClass {
   label = "UIKit";
 
-  create(openLevel) {
+  create(openScene) {
     // widget state — echoed live via textRefs
     this.typed = "";
     this.clicks = 0;
@@ -86,7 +86,7 @@ class _SceneUIKitClass {
     );
 
     this.ui.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BACK"), () => openLevel(LEVELS.lobby), {
+      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
         tooltip: I18n.textRef("UIKIT_TIP_BACK"),
       }),
     );
@@ -783,8 +783,8 @@ class _SceneUIKitClass {
   }
 
   // pure UI — no sim/world view; declared because LevelManager calls them unconditionally
-  // (standalone class: these were previously inherited Level stubs)
-  step() {}
+  // (standalone class: these were previously inherited Scene stubs)
+  update() {}
   draw() {}
 
   destroy() {

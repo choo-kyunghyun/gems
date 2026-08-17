@@ -1,5 +1,5 @@
 // Orchestrator: registers all shared RPG content (items, statuses, recipes, prefabs) in one
-// idempotent call. Called from a level's create() (via RpgQuests.register), NOT at top level.
+// idempotent call. Called from a scene's create() (via RpgQuests.register), NOT at top level.
 /**
  * Sequences the per-domain modules. Called from create() (not top level) to avoid GMRT load-order
  * issues; prefabs register before any chunk generator is built (PrefabStamp resolves Prefab.byTag in

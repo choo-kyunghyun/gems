@@ -1,21 +1,21 @@
 /**
- * There is NO level stack: every live level sits in a FLAT collection with ONE active pointer, and
- * `switchTo()` is the single transition. Switching away either DESTROYS the level (plain navigation —
+ * There is NO scene stack: every live scene sits in a FLAT collection with ONE active pointer, and
+ * `switchTo()` is the single transition. Switching away either DESTROYS the scene (plain navigation —
  * lobby, quit) or FREEZES it as-is (`keep: true` — suspend() hides its UI; its entities/state stay
  * untouched) to be thawed by `back()` — the guest-minigame path (the RPG's arcade cabinet), which
- * also hands the guest's result() to the switch's onResult. One kept level at a time (no nesting —
+ * also hands the guest's result() to the switch's onResult. One kept scene at a time (no nesting —
  * fail fast).
  *
- * REGISTRY: a flat mapId -> entry index of every RESIDENT map — THE map pool (no level-side pool). An
+ * REGISTRY: a flat mapId -> entry index of every RESIDENT map — THE map pool (no scene-side pool). An
  * entry is opaque to Core except for { entities, grid }: RpgMap registers a minimal pair at build and
  * overwrites it with its full park bundle at each suspend, so parked worlds live here. take/put/transfer
  * move a WHOLE entity (all components, via EntitySnapshot) between two resident maps' stores — the
  * portal-squad + wandering-trader path. Registry `reset()` drops the index (map-pool teardown; the
- * owner frees the stores first); it is INDEPENDENT of the level collection (destroy() tears that down).
+ * owner frees the stores first); it is INDEPENDENT of the scene collection (destroy() tears that down).
  */
 globalThis.LevelManager = class LevelManager {
   constructor() {
-    this._all = []; // every live level entry { level, factory, label } — active + frozen
+    this._all = []; // every live scene entry { scene, factory, label } — active + frozen
     this._current = null; // the ACTIVE entry (stepped + drawn) — the pointer into _all
     this._returnTo = null; // the frozen entry back() thaws (set by a keep switch); null = none
     this._onResult = null; // the kept switch's result handler, fired by back()
@@ -28,31 +28,31 @@ globalThis.LevelManager = class LevelManager {
     // SystemMenu; null = no menu pause gating
     this.menu = null;
     // display-label resolver, (factory) => string | () => string | null — Game wires
-    // LevelRegistry.labelOf; null = instance labels only
+    // SceneRegistry.labelOf; null = instance labels only
     this.resolveLabel = null;
     this._levels = {}; // mapId -> entry (at least { entities, grid }; parked maps store their full bundle)
     this._active = null; // the mapId currently stepped + drawn
   }
 
   get current() {
-    return this._current !== null ? this._current.level : null;
+    return this._current !== null ? this._current.scene : null;
   }
 
-  /** Boot level: apply immediately (nothing to fade out from; caller runs LevelTransition.reveal). */
+  /** Boot scene: apply immediately (nothing to fade out from; caller runs SceneTransition.reveal). */
   start(factory) {
     this._apply(factory, {});
   }
 
   /**
-   * THE transition: queue an active-level switch, applied next frame (after UI.update, so the UI
-   * tree isn't torn down mid-traversal). Default DESTROYS every live level first (plain
-   * navigation) and runs through the fade; `keep: true` instead FREEZES the current level
+   * THE transition: queue an active-scene switch, applied next frame (after UI.update, so the UI
+   * tree isn't torn down mid-traversal). Default DESTROYS every live scene first (plain
+   * navigation) and runs through the fade; `keep: true` instead FREEZES the current scene
    * (suspend(), entities intact, instant — no fade) and records it as back()'s return target, with
    * `onResult` fired when the guest returns. Ignored mid-fade so a spammed button can't stack
-   * swaps. This is the `openLevel` callback handed to every create().
+   * swaps. This is the `openScene` callback handed to every create().
    */
   switchTo(factory, opts = {}) {
-    if (LevelTransition.isBusy()) return;
+    if (SceneTransition.isBusy()) return;
     this._pending = { factory, opts };
   }
 
@@ -61,13 +61,13 @@ globalThis.LevelManager = class LevelManager {
     if (this._returnTo === null) return false;
     const guest = this._current;
     const result =
-      guest.level.result !== undefined ? guest.level.result() : undefined;
-    guest.level.destroy();
+      guest.scene.result !== undefined ? guest.scene.result() : undefined;
+    guest.scene.destroy();
     this._all.splice(this._all.indexOf(guest), 1);
     this._clearOverlays();
     this._current = this._returnTo;
     this._returnTo = null;
-    if (this._current.level.resume !== undefined) this._current.level.resume();
+    if (this._current.scene.resume !== undefined) this._current.scene.resume();
     const onResult = this._onResult;
     this._onResult = null;
     if (onResult !== null) onResult(result);
@@ -75,61 +75,61 @@ globalThis.LevelManager = class LevelManager {
   }
 
   /**
-   * Per-frame: flush a queued switch — a destroying swap goes through the fade (LevelTransition
+   * Per-frame: flush a queued switch — a destroying swap goes through the fade (SceneTransition
    * .start runs _apply at full cover), a kept swap applies instantly (an in-world guest open) —
    * then advance the fade timer. Busy guard stops a second switchTo from stacking swaps.
    */
   update() {
-    if (this._pending !== null && !LevelTransition.isBusy()) {
+    if (this._pending !== null && !SceneTransition.isBusy()) {
       const p = this._pending;
       this._pending = null;
       if (p.opts.keep === true || p.opts.fade === false)
         this._apply(p.factory, p.opts);
-      else LevelTransition.start(() => this._apply(p.factory, p.opts));
+      else SceneTransition.start(() => this._apply(p.factory, p.opts));
     }
-    LevelTransition.update();
+    SceneTransition.update();
   }
 
   /**
-   * Apply a switch NOW. keep: freeze the current level (ONE slot — no nested guests, fail fast)
-   * and activate the new one in front. Otherwise: destroy every live level (a quit from a guest
-   * must also drop its frozen host), reset the cross-level singletons, build the target fresh.
+   * Apply a switch NOW. keep: freeze the current scene (ONE slot — no nested guests, fail fast)
+   * and activate the new one in front. Otherwise: destroy every live scene (a quit from a guest
+   * must also drop its frozen host), reset the cross-scene singletons, build the target fresh.
    */
   _apply(factory, opts) {
     if (opts.keep === true && this._current !== null) {
       if (this._returnTo !== null) {
-        Log.warn("LevelManager: keep-switch while a level is already kept");
+        Log.warn("LevelManager: keep-switch while a scene is already kept");
         return;
       }
-      if (this._current.level.suspend !== undefined)
-        this._current.level.suspend();
+      if (this._current.scene.suspend !== undefined)
+        this._current.scene.suspend();
       this._returnTo = this._current;
       this._onResult = opts.onResult ?? null;
       // host's world-space numbers/particles/dialogue must not bleed into the guest
       this._clearOverlays();
     } else {
       this._destroyAll();
-      UINav.reset(); // drop focus held on the outgoing level's UI
+      UINav.reset(); // drop focus held on the outgoing scene's UI
       if (this.menu !== null) this.menu.reset(); // close the pause overlay + restore time scale
       Dialogue.clear();
-      FloatingText.clear(); // world coords are level-local
-      ParticleFx.clear(); // world coords are level-local
-      Audio.restart(); // one level's BGM/SFX must not bleed into the next
+      FloatingText.clear(); // world coords are scene-local
+      ParticleFx.clear(); // world coords are scene-local
+      Audio.restart(); // one scene's BGM/SFX must not bleed into the next
     }
     const entry = this._make(factory);
     this._all.push(entry);
     this._current = entry;
-    entry.level.create((s) => this.switchTo(s));
+    entry.scene.create((f, o) => this.switchTo(f, o));
   }
 
   _make(factory) {
-    // A class level's `label` field never sets (GMRT skips subclass field inits — #15067), so the
+    // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
     // resolved label (localized) is the reliable source; built-ins fall back to their instance label.
-    const level = factory();
-    level.manager = this;
+    const scene = factory();
+    scene.manager = this;
     const label =
       this.resolveLabel !== null ? this.resolveLabel(factory) : null;
-    return { level, factory, label };
+    return { scene, factory, label };
   }
 
   /**
@@ -146,51 +146,51 @@ globalThis.LevelManager = class LevelManager {
   /** Newest first (a guest before its frozen host). */
   _destroyAll() {
     for (let i = this._all.length - 1; i >= 0; i--)
-      this._all[i].level.destroy();
+      this._all[i].scene.destroy();
     this._all = [];
     this._current = null;
     this._returnTo = null;
     this._onResult = null;
   }
 
-  /** Re-open the active level from scratch (Debug "Restart Level") — a destroying re-switch. */
+  /** Re-open the active scene from scratch (Debug "Restart Scene") — a destroying re-switch. */
   restart() {
     if (this._current !== null) this.switchTo(this._current.factory);
   }
 
   /**
-   * Live theme swap: rebuild the active level's UI in place (colors are baked at build, so a
-   * palette change only shows after a rebuild). Delegates to the level's optional retheme() —
-   * a UI-only rebuild that never regenerates world/gameplay state, unlike restart(). A level
+   * Live theme swap: rebuild the active scene's UI in place (colors are baked at build, so a
+   * palette change only shows after a rebuild). Delegates to the scene's optional retheme() —
+   * a UI-only rebuild that never regenerates world/gameplay state, unlike restart(). A scene
    * that doesn't implement it keeps its old-palette UI until its next natural rebuild.
    */
   retheme() {
-    const level = this.current;
-    if (level !== null && level.retheme !== undefined) level.retheme();
+    const scene = this.current;
+    if (scene !== null && scene.retheme !== undefined) scene.retheme();
   }
 
   label() {
     if (this._current === null) return "-";
     const lbl = this._current.label;
     if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
-    const level = this._current.level;
-    return level.label != null && level.label !== "" ? level.label : "-";
+    const scene = this._current.scene;
+    return scene.label != null && scene.label !== "" ? scene.label : "-";
   }
 
   /**
    * Per-frame sim tick, pause-gated two ways: the boot-wired menu overlay and the Debug "Pause"
-   * toggle. While paused, level.step() is skipped except for a one-frame advance via requestStep().
+   * toggle. While paused, scene.update() is skipped except for a one-frame advance via requestStep().
    */
   step() {
-    const level = this.current;
-    if (level === null) return;
+    const scene = this.current;
+    if (scene === null) return;
     if (this.menu !== null && this.menu.isOpen()) {
       // Menu forces Time.scale = 0; a step must restore a non-zero delta (store.update advances off
       // Time.delta) then re-freeze.
       if (this._takeStep()) {
         Time.scale = this.menu.scale();
         Time.delta = Time.raw * Time.scale;
-        level.step();
+        scene.update();
         Time.delta = 0;
         Time.scale = 0;
       }
@@ -199,11 +199,11 @@ globalThis.LevelManager = class LevelManager {
     if (this.paused) {
       // Debug pause leaves Time.scale untouched (so it doesn't fight the Time panel's Scale slider)
       // and just gates the sim — a step lets one frame through at live delta.
-      if (this._takeStep()) level.step();
+      if (this._takeStep()) scene.update();
       return;
     }
     this._stepRequested = false; // don't carry a stale step into normal play
-    level.step();
+    scene.update();
   }
 
   /** Request a one-frame sim advance while paused (Debug "Step Frame"). */
@@ -218,11 +218,11 @@ globalThis.LevelManager = class LevelManager {
   }
 
   draw() {
-    const level = this.current;
-    if (level !== null) level.draw();
+    const scene = this.current;
+    if (scene !== null) scene.draw();
   }
 
-  /** Teardown: destroys every level's UI roots, so Game must call this before UI.destroy(). */
+  /** Teardown: destroys every scene's UI roots, so Game must call this before UI.destroy(). */
   destroy() {
     this._destroyAll();
   }
@@ -300,7 +300,7 @@ globalThis.LevelManager = class LevelManager {
 
   /**
    * New game / map-pool teardown — the pooled stores are freed by RpgMap, so just drop the index.
-   * INDEPENDENT of the level collection (destroy() tears that down).
+   * INDEPENDENT of the scene collection (destroy() tears that down).
    */
   reset() {
     this._levels = {};

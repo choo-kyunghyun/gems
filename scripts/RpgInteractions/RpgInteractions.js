@@ -1,7 +1,7 @@
 // Registers the RPG's concrete InteractAction defs — the data behind the generic Interactable engine.
 // Called once from RpgContent.register(); adding an interaction = one entry here + a prompt key.
 /**
- * Two families: WINDOW actions open a UI + set level._interOpenId (so the engine range-closes /
+ * Two families: WINDOW actions open a UI + set scene._interOpenId (so the engine range-closes /
  * refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/buff) act on
  * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
  * something to the player, not just open a panel". The entity just carries { kind: <id> }.
@@ -19,8 +19,8 @@ globalThis.RpgInteractions = {
         id: "storage",
         prompt: "STORAGE_PROMPT",
         run(ctx) {
-          ctx.level._interOpenId = ctx.id;
-          StorageUI.open(ctx.level, ctx.id);
+          ctx.scene._interOpenId = ctx.id;
+          StorageUI.open(ctx.scene, ctx.id);
         },
       },
       {
@@ -30,18 +30,18 @@ globalThis.RpgInteractions = {
         id: "corpse",
         prompt: "CORPSE_PROMPT",
         run(ctx) {
-          ctx.level._interOpenId = ctx.id;
-          ctx.level._storeOnTake = (itemId, qty) =>
-            ctx.level._onCollect(itemId, qty);
-          StorageUI.open(ctx.level, ctx.id);
+          ctx.scene._interOpenId = ctx.id;
+          ctx.scene._storeOnTake = (itemId, qty) =>
+            ctx.scene._onCollect(itemId, qty);
+          StorageUI.open(ctx.scene, ctx.id);
         },
       },
       {
         id: "workbench",
         prompt: "CRAFT_PROMPT",
         run(ctx) {
-          ctx.level._interOpenId = ctx.id;
-          CraftingUI.open(ctx.level, ctx.id);
+          ctx.scene._interOpenId = ctx.id;
+          CraftingUI.open(ctx.scene, ctx.id);
         },
       },
 
@@ -92,25 +92,25 @@ globalThis.RpgInteractions = {
       },
       {
         // Survey Post — founds the player's Settlement (its buildable land). Keeps the "claim"
-        // id so existing level JSON (kind:"claim") is unchanged; the prompt reads as founding.
+        // id so existing scene JSON (kind:"claim") is unchanged; the prompt reads as founding.
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {
-          BuildMode.claim(ctx.level, ctx.id);
+          BuildMode.claim(ctx.scene, ctx.id);
         },
       },
       {
         id: "arcade",
         prompt: "ARCADE_PROMPT",
         run(ctx) {
-          ctx.level._openArcade();
+          ctx.scene._openArcade();
         },
       },
       {
         id: "bed",
         prompt: "BED_PROMPT",
         run(ctx) {
-          ctx.level._sleep();
+          ctx.scene._sleep();
         },
       },
       {
@@ -120,7 +120,7 @@ globalThis.RpgInteractions = {
         prompt: "REHIRE_PROMPT",
         run(ctx) {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
-          ctx.level._invDirty = true; // squad roster changed
+          ctx.scene._invDirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
       },

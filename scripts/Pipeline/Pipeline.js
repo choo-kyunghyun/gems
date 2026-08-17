@@ -1,4 +1,4 @@
-/** Runs inside the level's tick loop — the bracketing ordering contract at SimClock.advance. */
+/** Runs inside a scene's tick loop — the bracketing ordering contract at SimClock.advance. */
 globalThis.Pipeline = class Pipeline {
   constructor() {
     this._steps = [];

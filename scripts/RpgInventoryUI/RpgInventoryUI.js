@@ -10,57 +10,57 @@ globalThis.RpgInventoryUI = {
    * absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
    * uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
    */
-  build(level) {
+  build(scene) {
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
     // Inserted AFTER the HUD so the backdrop veils it; Esc / the inventory key also close
     // (sceneRpg.handleEscape + step() toggle). Tabs (built below) flex-grow in host.body.
     const host = gemsOverlay(I18n.textRef("INV_TITLE"), {
       onClose: () => {
-        level.invOpen = false;
-        level._invWin.enabled = false;
+        scene.invOpen = false;
+        scene._invWin.enabled = false;
       },
     });
-    level._invWin = host;
-    level.ui.insertChild(host);
+    scene._invWin = host;
+    scene.ui.insertChild(host);
 
-    level._invSel = null; // selected row model
-    level._invClick = { key: "", time: 0 }; // InvTable.reclick latch (double-click-to-use)
-    level._invCat = ""; // active category filter code ("" = all)
+    scene._invSel = null; // selected row model
+    scene._invClick = { key: "", time: 0 }; // InvTable.reclick latch (double-click-to-use)
+    scene._invCat = ""; // active category filter code ("" = all)
 
     const tabs = gemsTabs(
       [
         {
           label: I18n.textRef("INV_TAB_ITEMS"),
-          content: RpgInventoryUI._buildItemsTab(level),
+          content: RpgInventoryUI._buildItemsTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_EQUIP"),
-          content: RpgInventoryUI._buildEquipTab(level),
+          content: RpgInventoryUI._buildEquipTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_PARTY"),
-          content: RpgInventoryUI._buildFollowerTab(level),
+          content: RpgInventoryUI._buildFollowerTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_STATS"),
-          content: RpgInventoryUI._buildStatsTab(level),
+          content: RpgInventoryUI._buildStatsTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_QUESTS"),
-          content: RpgInventoryUI._buildQuestsTab(level),
+          content: RpgInventoryUI._buildQuestsTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_ACH"),
-          content: RpgInventoryUI._buildAchievementsTab(level),
+          content: RpgInventoryUI._buildAchievementsTab(scene),
         },
         {
           label: I18n.textRef("INV_TAB_SETTINGS"),
-          content: RpgInventoryUI._buildSettingsTab(level),
+          content: RpgInventoryUI._buildSettingsTab(scene),
         },
       ],
       { grow: true }, // fill the card; the Items tab + bag table grow with it
     );
-    level._invWin.body.insertChild(tabs);
+    scene._invWin.body.insertChild(tabs);
   },
 
   // Items-tab grid geometry + detail-pane tuning (plain data on the namespace object)
@@ -80,7 +80,7 @@ globalThis.RpgInventoryUI = {
   // ── tab pages
   // Items: usage + category filter + sort, the bag slot GRID (icons; rarity borders, worn/fav
   // badges) beside a detail pane (name, maker + lore, description, stats), select/action row.
-  _buildItemsTab(level) {
+  _buildItemsTab(scene) {
     // fill the tab host so the grid+detail row takes the leftover height
     const page = new UIElement({
       width: "100%",
@@ -98,11 +98,11 @@ globalThis.RpgInventoryUI = {
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
-      // read level.entities LIVE (not a captured const): RpgMap.go swaps level.entities on a map
+      // read scene.entities LIVE (not a captured const): RpgMap.go swaps scene.entities on a map
       // change while the window is open, so a captured ref would read the parked old store.
       gemsLabel(
         () => {
-          const v = level.entities.get(Inventory, level.playerId);
+          const v = scene.entities.get(Inventory, scene.playerId);
           let s =
             I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
@@ -131,9 +131,9 @@ globalThis.RpgInventoryUI = {
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(
       gemsSelectCustom(cats, 0, (_i, code) => {
-        level._invCat = code;
-        RpgInventoryUI._refreshGrid(level);
-        RpgInventoryUI._refreshDetail(level); // the selection may have filtered away
+        scene._invCat = code;
+        RpgInventoryUI._refreshGrid(scene);
+        RpgInventoryUI._refreshDetail(scene); // the selection may have filtered away
       }),
     );
     top.insertChild(filterCell);
@@ -142,8 +142,8 @@ globalThis.RpgInventoryUI = {
       gemsButton(
         I18n.textRef("INV_SORT"),
         () => {
-          InventorySystem.sort(level.entities.get(Inventory, level.playerId));
-          level._invDirty = true;
+          InventorySystem.sort(scene.entities.get(Inventory, scene.playerId));
+          scene._invDirty = true;
         },
         { width: 90, height: 28 },
       ),
@@ -164,16 +164,16 @@ globalThis.RpgInventoryUI = {
       cols: RpgInventoryUI.GRID_COLS,
       cellSize: RpgInventoryUI.GRID_CELL,
       gap: RpgInventoryUI.GRID_GAP,
-      onSelect: (i) => RpgInventoryUI._onGridSelect(level, i),
+      onSelect: (i) => RpgInventoryUI._onGridSelect(scene, i),
       onActivate: (i) => {
         // browse-mode confirm acts on the cursor slot (the mouse path double-clicks)
-        const row = level._invView[i];
-        if (row !== undefined) RpgInventoryUI._activate(level, row);
+        const row = scene._invView[i];
+        if (row !== undefined) RpgInventoryUI._activate(scene, row);
       },
     });
-    level._invGrid = grid.getComponent(UISlots);
-    level._invGridEl = grid;
-    level._invView = []; // filtered row models, parallel to the grid's items
+    scene._invGrid = grid.getComponent(UISlots);
+    scene._invGridEl = grid;
+    scene._invView = []; // filtered row models, parallel to the grid's items
     const gridCell = new UIElement({ flexShrink: 0 });
     gridCell.insertChild(grid);
     content.insertChild(gridCell);
@@ -192,7 +192,7 @@ globalThis.RpgInventoryUI = {
         borderColor: gemsColor(GemsTheme.border),
       }),
     );
-    level._invDetailHost = detail;
+    scene._invDetailHost = detail;
     content.insertChild(detail);
     page.insertChild(content);
 
@@ -208,26 +208,26 @@ globalThis.RpgInventoryUI = {
     selCell.insertChild(
       gemsLabel(
         () =>
-          level._invSel === null
+          scene._invSel === null
             ? I18n.text("INV_SELECT_NONE")
-            : level._invSel.name,
+            : scene._invSel.name,
         { color: GemsTheme.text },
       ),
     );
     action.insertChild(selCell);
     action.insertChild(
       gemsButton(
-        () => RpgInventoryUI._favLabel(level),
-        () => RpgInventoryUI._toggleFav(level),
-        { width: 110, height: 28, disabled: () => level._invSel === null },
+        () => RpgInventoryUI._favLabel(scene),
+        () => RpgInventoryUI._toggleFav(scene),
+        { width: 110, height: 28, disabled: () => scene._invSel === null },
       ),
     );
     action.insertChild(
       gemsButton(
-        () => RpgInventoryUI._actionLabel(level),
+        () => RpgInventoryUI._actionLabel(scene),
         () => {
-          if (level._invSel !== null)
-            RpgInventoryUI._activate(level, level._invSel);
+          if (scene._invSel !== null)
+            RpgInventoryUI._activate(scene, scene._invSel);
         },
         { width: 120, height: 28 },
       ),
@@ -251,7 +251,7 @@ globalThis.RpgInventoryUI = {
     });
     for (let i = 0; i < RPG_HOTBAR_SIZE; i++) {
       const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-      cell.insertChild(RpgInventoryUI._hotbarBtn(level, i));
+      cell.insertChild(RpgInventoryUI._hotbarBtn(scene, i));
       hbRow.insertChild(cell);
     }
     page.insertChild(hbRow);
@@ -261,10 +261,10 @@ globalThis.RpgInventoryUI = {
   /**
    * one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
    */
-  _hotbarBtn(level, i) {
+  _hotbarBtn(scene, i) {
     return gemsButton(
       () => {
-        const hb = level.entities.get(Hotbar, level.playerId);
+        const hb = scene.entities.get(Hotbar, scene.playerId);
         const itemId = hb !== undefined ? hb.slots[i] : "";
         if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
         const it = Item.get(itemId);
@@ -275,53 +275,53 @@ globalThis.RpgInventoryUI = {
           (it !== undefined ? I18n.text(it.name) : itemId)
         );
       },
-      () => RpgInventoryUI._assignHotbar(level, i),
+      () => RpgInventoryUI._assignHotbar(scene, i),
       { height: 30 },
     );
   },
 
-  _assignHotbar(level, i) {
-    const hb = level.entities.get(Hotbar, level.playerId);
+  _assignHotbar(scene, i) {
+    const hb = scene.entities.get(Hotbar, scene.playerId);
     if (hb === undefined) return;
-    if (level._invSel !== null) HotbarSystem.set(hb, i, level._invSel.itemId);
+    if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
     else HotbarSystem.clear(hb, i);
-    level._showHotbar(); // pop the HUD bar so the change is visible
+    scene._showHotbar(); // pop the HUD bar so the change is visible
   },
 
   /**
    * favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
    */
-  _favLabel(level) {
-    if (level._invSel === null) return I18n.text("INV_NOACTION");
-    const fav = level.entities.get(Favorites, level.playerId);
-    return fav !== undefined && FavoritesSystem.has(fav, level._invSel.itemId)
+  _favLabel(scene) {
+    if (scene._invSel === null) return I18n.text("INV_NOACTION");
+    const fav = scene.entities.get(Favorites, scene.playerId);
+    return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
   },
 
-  _toggleFav(level) {
-    if (level._invSel === null) return;
-    const fav = level.entities.get(Favorites, level.playerId);
+  _toggleFav(scene) {
+    if (scene._invSel === null) return;
+    const fav = scene.entities.get(Favorites, scene.playerId);
     if (fav === undefined) return;
-    FavoritesSystem.toggle(fav, level._invSel.itemId);
-    level._invDirty = true;
+    FavoritesSystem.toggle(fav, scene._invSel.itemId);
+    scene._invDirty = true;
   },
 
   /**
    * Equipment: worn-slot rows, repopulated per rebuild into this host.
    */
-  _buildEquipTab(level) {
+  _buildEquipTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
       gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
     );
     page.insertChild(title);
-    level._invEquipHost = new UIElement({
+    scene._invEquipHost = new UIElement({
       width: "100%",
       gap: GemsTheme.gapSm,
     });
-    page.insertChild(level._invEquipHost);
+    page.insertChild(scene._invEquipHost);
     return page;
   },
 
@@ -329,18 +329,18 @@ globalThis.RpgInventoryUI = {
    * Party: companion roster host + a binding-aware recall hint. Roster repopulated per rebuild
    * (present companions change across maps); per-row text + Dismiss state read the live Follower.
    */
-  _buildFollowerTab(level) {
+  _buildFollowerTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
       gemsLabel(I18n.textRef("INV_FOLLOWERS"), { color: "warn" }),
     );
     page.insertChild(title);
-    level._invFollowerHost = new UIElement({
+    scene._invFollowerHost = new UIElement({
       width: "100%",
       gap: GemsTheme.gapSm,
     });
-    page.insertChild(level._invFollowerHost);
+    page.insertChild(scene._invFollowerHost);
 
     // recall hint, binding-aware (reads the follow action's live key, like gemsKeyHints)
     page.insertChild(gemsDivider());
@@ -359,11 +359,11 @@ globalThis.RpgInventoryUI = {
    * One card per squad companion, by live membership query (empty notice when none). Called from
    * rebuild(), not build() — the squad isn't seeded until after the window is built.
    */
-  _buildFollowerRows(level, host) {
-    const squad = level.entities.get(Squad, level.playerId);
+  _buildFollowerRows(scene, host) {
+    const squad = scene.entities.get(Squad, scene.playerId);
     const ids =
       squad !== undefined
-        ? FollowerSystem.members(level.entities, squad.id, level.playerId)
+        ? FollowerSystem.members(scene.entities, squad.id, scene.playerId)
         : [];
     if (ids.length <= 1) {
       // [0] is the player
@@ -377,8 +377,8 @@ globalThis.RpgInventoryUI = {
       return;
     }
     for (let i = 1; i < ids.length; i++) {
-      if (!level.entities.isValid(ids[i])) continue;
-      host.insertChild(RpgInventoryUI._followerRow(level, ids[i]));
+      if (!scene.entities.isValid(ids[i])) continue;
+      host.insertChild(RpgInventoryUI._followerRow(scene, ids[i]));
     }
   },
 
@@ -386,14 +386,14 @@ globalThis.RpgInventoryUI = {
    * one companion card: name, live status + carry-bonus line, Kick button (leaves the squad
    * PERMANENTLY, in place — rehire by walking up and talking)
    */
-  _followerRow(level, fid) {
+  _followerRow(scene, fid) {
     const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
 
     const head = new UIElement({ width: "100%", height: 22 });
     head.insertChild(
       gemsLabel(
         () => {
-          const nm = level.entities.get(Name, fid);
+          const nm = scene.entities.get(Name, fid);
           return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
         },
         { color: GemsTheme.text, font: "header" },
@@ -405,10 +405,10 @@ globalThis.RpgInventoryUI = {
     status.insertChild(
       gemsLabel(
         () => {
-          const f = level.entities.get(Follower, fid);
+          const f = scene.entities.get(Follower, fid);
           if (f === undefined) return "";
           let state;
-          if (level.entities.get(Downed, fid) !== undefined)
+          if (scene.entities.get(Downed, fid) !== undefined)
             state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
           else if (f.state === "follow")
             state = I18n.text("FOLLOWER_STATE_FOLLOW");
@@ -431,13 +431,13 @@ globalThis.RpgInventoryUI = {
     card.insertChild(
       gemsButton(
         I18n.textRef("FOLLOWER_DISMISS"),
-        () => level._kickFollower(fid),
+        () => scene._kickFollower(fid),
         {
           height: 30,
           disabled: () => {
             return (
-              level.entities.get(Squad, fid) === undefined || // already out
-              level.entities.get(Downed, fid) !== undefined // can't kick while down
+              scene.entities.get(Squad, fid) === undefined || // already out
+              scene.entities.get(Downed, fid) !== undefined // can't kick while down
             );
           },
         },
@@ -449,11 +449,11 @@ globalThis.RpgInventoryUI = {
   /**
    * Stats: live character sheet + the genre's extra records (Profile) host.
    */
-  _buildStatsTab(level) {
+  _buildStatsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const statRow = (labelKey, getter) =>
       gemsKeyValueRow(I18n.textRef(labelKey), () => {
-        const st = level.entities.get(Stats, level.playerId);
+        const st = scene.entities.get(Stats, scene.playerId);
         return st === undefined ? "" : String(getter(st));
       });
     page.insertChild(statRow("STAT_ATK", (st) => st.attack));
@@ -468,7 +468,7 @@ globalThis.RpgInventoryUI = {
     );
     const attrRow = (def) =>
       gemsKeyValueRow(I18n.textRef(def.name), () => {
-        const at = level.entities.get(Attributes, level.playerId);
+        const at = scene.entities.get(Attributes, scene.playerId);
         return at === undefined ? "" : String(at[def.id]);
       });
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
@@ -476,18 +476,18 @@ globalThis.RpgInventoryUI = {
     }
 
     page.insertChild(gemsDivider());
-    level._invExtraHost = new UIElement({
+    scene._invExtraHost = new UIElement({
       width: "100%",
       gap: GemsTheme.gapSm,
     });
-    page.insertChild(level._invExtraHost);
+    page.insertChild(scene._invExtraHost);
     return page;
   },
 
   /**
    * Quests: live tracker bound to the global QuestLog.
    */
-  _buildQuestsTab(level) {
+  _buildQuestsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     page.insertChild(
       gemsQuestTracker({
@@ -552,7 +552,7 @@ globalThis.RpgInventoryUI = {
    * Settings: per-column visibility toggles, persisted. Toggling calls setColumns, which keeps
    * the current sort by column key.
    */
-  _buildSettingsTab(level) {
+  _buildSettingsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
@@ -568,7 +568,7 @@ globalThis.RpgInventoryUI = {
         () => {
           Settings.set(settingKey, !Settings.get(settingKey));
           Settings.save(SETTINGS_FILE);
-          RpgInventoryUI._applyColumns(level);
+          RpgInventoryUI._applyColumns(scene);
         },
         { style: "switch" },
       );
@@ -629,38 +629,38 @@ globalThis.RpgInventoryUI = {
   /**
    * Refresh live data only (so the view/filter/active tab survive): swap the grid's items,
    * re-map the selection, refresh the detail pane, rebuild equipment + extra + party sections.
-   *   opts: { equipSlots: [{ slot, labelKey }], extraRows?(level, host) }
+   *   opts: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
    */
-  rebuild(level, opts) {
-    RpgInventoryUI._refreshGrid(level);
-    RpgInventoryUI._refreshDetail(level);
+  rebuild(scene, opts) {
+    RpgInventoryUI._refreshGrid(scene);
+    RpgInventoryUI._refreshDetail(scene);
 
     // equipment rows: clear + re-add for the new contents
-    const eh = level._invEquipHost;
+    const eh = scene._invEquipHost;
     const ek = [...eh.children];
     for (let i = 0; i < ek.length; i++) ek[i].destroy();
     for (let i = 0; i < opts.equipSlots.length; i++)
       eh.insertChild(
         RpgInventoryUI._equipRow(
-          level,
+          scene,
           opts.equipSlots[i].slot,
           opts.equipSlots[i].labelKey,
         ),
       );
 
     // genre extra rows (Profile records) into the Stats tab
-    const xh = level._invExtraHost;
+    const xh = scene._invExtraHost;
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();
-    if (opts.extraRows !== undefined) opts.extraRows(level, xh);
+    if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
 
     // party roster rebuilt here (not live) because present companions change across maps
     // (a "follow" one travels, a "wait" one is map-local). Per-row state is live off the Follower.
-    const fh = level._invFollowerHost;
+    const fh = scene._invFollowerHost;
     if (fh !== undefined) {
       const fk = [...fh.children];
       for (let i = 0; i < fk.length; i++) fk[i].destroy();
-      RpgInventoryUI._buildFollowerRows(level, fh);
+      RpgInventoryUI._buildFollowerRows(scene, fh);
     }
   },
 
@@ -668,18 +668,18 @@ globalThis.RpgInventoryUI = {
    * The bag is a grid now (no columns), but the Settings toggles still govern the shared
    * chest/trade tables — sync the chest window when it's open.
    */
-  _applyColumns(level) {
-    if (level._storeBagTable !== undefined) StorageUI._applyColumns(level);
+  _applyColumns(scene) {
+    if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
   },
 
   /**
    * Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
    * same equippable only the worn instance lights.
    */
-  _buildRows(level) {
-    const inv = level.entities.get(Inventory, level.playerId);
-    const eq = level.entities.get(Equipment, level.playerId);
-    const fav = level.entities.get(Favorites, level.playerId);
+  _buildRows(scene) {
+    const inv = scene.entities.get(Inventory, scene.playerId);
+    const eq = scene.entities.get(Equipment, scene.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
@@ -705,16 +705,16 @@ globalThis.RpgInventoryUI = {
    * items (icon + rarity border + worn/fav badge), pad the unfiltered view with empty cells up
    * to capacity (the bag's size reads at a glance), re-map the selection, resize the element.
    */
-  _refreshGrid(level) {
-    const rows = RpgInventoryUI._buildRows(level);
-    const cat = level._invCat;
+  _refreshGrid(scene) {
+    const rows = RpgInventoryUI._buildRows(scene);
+    const cat = scene._invCat;
     const view = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
       if (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) view.push(r);
     }
-    level._invView = view;
+    scene._invView = view;
 
     const gold = gemsColor("warn");
     const accent = gemsColor(GemsTheme.accent);
@@ -731,30 +731,30 @@ globalThis.RpgInventoryUI = {
       });
     }
     if (cat === "") {
-      const inv = level.entities.get(Inventory, level.playerId);
+      const inv = scene.entities.get(Inventory, scene.playerId);
       for (let i = view.length; i < inv.capacity; i++) items.push(null);
     }
 
-    const g = level._invGrid;
+    const g = scene._invGrid;
     g.items = items;
 
     // re-map the selection by uid/itemId (row models are fresh objects each refresh)
     let sel = -1;
-    if (level._invSel !== null) {
+    if (scene._invSel !== null) {
       for (let i = 0; i < view.length; i++) {
-        if (RpgInventoryUI._sameRow(view[i], level._invSel)) {
+        if (RpgInventoryUI._sameRow(view[i], scene._invSel)) {
           sel = i;
           break;
         }
       }
-      level._invSel = sel >= 0 ? view[sel] : null;
+      scene._invSel = sel >= 0 ? view[sel] : null;
     }
     g.selected = sel;
 
     // fit the host element to the item count (flexpanel point mutation — the UIText idiom)
     const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
     uiResizeTo(
-      level._invGridEl,
+      scene._invGridEl,
       g.cols * g.cellSize + (g.cols - 1) * g.gap,
       rowsN * g.cellSize + (rowsN - 1) * g.gap,
     );
@@ -764,20 +764,20 @@ globalThis.RpgInventoryUI = {
    * Grid click → select the backing row model; a re-click acts on it (InvTable.reclick owns the
    * gesture). Clicking an empty/padding cell clears the selection.
    */
-  _onGridSelect(level, i) {
-    const row = i >= 0 && i < level._invView.length ? level._invView[i] : null;
+  _onGridSelect(scene, i) {
+    const row = i >= 0 && i < scene._invView.length ? scene._invView[i] : null;
     if (row === null) {
-      level._invSel = null;
-      level._invGrid.selected = -1;
-      RpgInventoryUI._refreshDetail(level);
+      scene._invSel = null;
+      scene._invGrid.selected = -1;
+      RpgInventoryUI._refreshDetail(scene);
       return;
     }
-    if (InvTable.reclick(level._invClick, row, "bag")) {
-      RpgInventoryUI._activate(level, row); // sets _invDirty → rebuild refreshes grid+detail
+    if (InvTable.reclick(scene._invClick, row, "bag")) {
+      RpgInventoryUI._activate(scene, row); // sets _invDirty → rebuild refreshes grid+detail
       return;
     }
-    level._invSel = row;
-    RpgInventoryUI._refreshDetail(level);
+    scene._invSel = row;
+    RpgInventoryUI._refreshDetail(scene);
   },
 
   /**
@@ -786,13 +786,13 @@ globalThis.RpgInventoryUI = {
    * ammo ballistics, equip bonuses, installed attachments, qty/weight/value. Rebuilt on
    * selection change + rebuild() — cheap (a dozen elements), same pattern as CraftingUI.
    */
-  _refreshDetail(level) {
-    const host = level._invDetailHost;
+  _refreshDetail(scene) {
+    const host = scene._invDetailHost;
     if (host === undefined) return;
     const kids = [...host.children];
     for (let i = 0; i < kids.length; i++) kids[i].destroy();
 
-    const row = level._invSel;
+    const row = scene._invSel;
     if (row === null) {
       host.insertChild(
         gemsLabel(I18n.textRef("INV_SELECT_NONE"), {
@@ -802,7 +802,7 @@ globalThis.RpgInventoryUI = {
       return;
     }
     const it = Item.get(row.itemId);
-    const inv = level.entities.get(Inventory, level.playerId);
+    const inv = scene.entities.get(Inventory, scene.playerId);
     const inst =
       row.uid !== undefined
         ? InventorySystem.findByUid(inv, row.uid)
@@ -962,19 +962,19 @@ globalThis.RpgInventoryUI = {
     return InvTable.rowId(a) === InvTable.rowId(b);
   },
 
-  _activate(level, row) {
+  _activate(scene, row) {
     if (row === null || row === undefined) return;
-    RpgInventoryUI.useItem(level, row.itemId, row.worn, row.uid);
+    RpgInventoryUI.useItem(scene, row.itemId, row.worn, row.uid);
   },
 
   /**
    * context action verb for the selected item ("-" when none)
    */
-  _actionLabel(level) {
-    if (level._invSel === null) return I18n.text("INV_NOACTION");
-    const it = Item.get(level._invSel.itemId);
+  _actionLabel(scene) {
+    if (scene._invSel === null) return I18n.text("INV_NOACTION");
+    const it = Item.get(scene._invSel.itemId);
     if (it !== undefined && it.hasComponent(Equippable))
-      return level._invSel.worn
+      return scene._invSel.worn
         ? I18n.text("INV_UNEQUIP")
         : I18n.text("INV_EQUIP");
     if (it !== undefined && it.hasComponent(Consumable))
@@ -986,11 +986,11 @@ globalThis.RpgInventoryUI = {
    * One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
    * the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
    */
-  _equipRow(level, slot, labelKey) {
-    const eq = level.entities.get(Equipment, level.playerId);
+  _equipRow(scene, slot, labelKey) {
+    const eq = scene.entities.get(Equipment, scene.playerId);
     const uid = eq !== undefined ? eq.slots[slot] : "";
     if (uid !== undefined && uid !== "") {
-      const inv = level.entities.get(Inventory, level.playerId);
+      const inv = scene.entities.get(Inventory, scene.playerId);
       const inst =
         inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
       const itemId = inst !== undefined ? inst.itemId : "";
@@ -1004,8 +1004,8 @@ globalThis.RpgInventoryUI = {
       return gemsButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
-          EquipmentSystem.unequip(level.entities, level.playerId, slot);
-          level._invDirty = true;
+          EquipmentSystem.unequip(scene.entities, scene.playerId, slot);
+          scene._invDirty = true;
           Log.info(`unequipped ${itemId}`);
         },
         {
@@ -1029,27 +1029,27 @@ globalThis.RpgInventoryUI = {
    * row's shown state (so with two identical equippables only the shown-equipped row unequips).
    * `uid` equips that exact instance; without it (the hotbar) equipFirst picks the first owned.
    */
-  useItem(level, itemId, wasWorn, uid) {
+  useItem(scene, itemId, wasWorn, uid) {
     const item = Item.get(itemId);
     if (item === undefined) return;
     if (item.hasComponent(Equippable)) {
       const eqp = item.getComponent(Equippable);
       if (wasWorn) {
-        EquipmentSystem.unequip(level.entities, level.playerId, eqp.slot);
+        EquipmentSystem.unequip(scene.entities, scene.playerId, eqp.slot);
         Log.info(`unequipped ${itemId}`);
       } else {
         const ok =
           uid !== undefined
-            ? EquipmentSystem.equip(level.entities, level.playerId, uid)
+            ? EquipmentSystem.equip(scene.entities, scene.playerId, uid)
             : EquipmentSystem.equipFirst(
-                level.entities,
-                level.playerId,
+                scene.entities,
+                scene.playerId,
                 itemId,
               );
         if (ok) Log.info(`equipped ${itemId}`);
       }
     } else if (item.hasComponent(Consumable)) {
-      if (ConsumableSystem.use(level.entities, level.playerId, itemId)) {
+      if (ConsumableSystem.use(scene.entities, scene.playerId, itemId)) {
         // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
         const c = item.getComponent(Consumable);
         if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
@@ -1059,6 +1059,6 @@ globalThis.RpgInventoryUI = {
         Log.info(`used ${itemId}`);
       }
     }
-    level._invDirty = true;
+    scene._invDirty = true;
   },
 };

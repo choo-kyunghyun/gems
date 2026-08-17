@@ -5,14 +5,14 @@ const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping 
 
 /**
  * global factory so it can be pushed as a LevelManager guest (RPG arcade cabinet).
- * not LevelRegistry.add'd — reachable only in-world, not from the lobby.
+ * not SceneRegistry.add'd — reachable only in-world, not from the lobby.
  */
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
 /**
  * side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
  * one-way drop-through, stomp enemies, spike/void respawn. no RPG layer.
- * standalone SCREEN class — duck-typed contract, see Level.
+ * standalone SCREEN class — duck-typed contract, see Scene.
  */
 class _ScenePlatformerClass {
   create() {
@@ -67,7 +67,7 @@ class _ScenePlatformerClass {
     );
   }
 
-  step() {
+  update() {
     PlatformerController.pollInput(this.ctrl); // edge-triggered input latched once per frame
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
@@ -116,6 +116,6 @@ class _ScenePlatformerClass {
 
   destroy() {
     PlatformerController.destroy();
-    teardownLevel(this);
+    teardownScene(this);
   }
 }

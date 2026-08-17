@@ -1,7 +1,7 @@
 // See GemsTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 /**
- * Full-screen level root. With `opts.maxWidth`, content is centered in a capped column
+ * Full-screen scene root. With `opts.maxWidth`, content is centered in a capped column
  * (menu look); `insertChild` is redirected to the inner column so callers are unaffected.
  * Without `maxWidth`, plain full-bleed — for HUDs that must anchor to the whole screen.
  */
@@ -239,13 +239,13 @@ globalThis.gemsModal = function gemsModal(opts = {}) {
  * windows (bag / workbench / chest / trade). Absolute dim host that veils the HUD, a
  * centered full-height card capped for ultra-wide, and a title row (title + close "x")
  * over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
- * content keeps sort/filter/selection; the caller inserts it into its level root itself.
+ * content keeps sort/filter/selection; the caller inserts it into its scene root itself.
  * Content goes into the returned host's `.body` (the card, under the divider); callers
  * needing extra title-row items (TradeUI's credits) insert into `.titleRow` before its
  * close button. `opts`: { onClose, maxWidth }.
  */
 globalThis.gemsOverlay = function gemsOverlay(title, opts = {}) {
-  // absolute → fills the screen ignoring the level root's padding; 28px margin around the card.
+  // absolute → fills the screen ignoring the scene root's padding; 28px margin around the card.
   const host = new UIElement({
     positionType: "absolute",
     left: 0,
@@ -531,7 +531,7 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
 
 /**
  * Category bar with a pop-up flyout — category buttons; clicking one toggles a flyout
- * of its items above the bar (one open at a time). Shared by the RPG build HUD + level
+ * of its items above the bar (one open at a time). Shared by the RPG build HUD + scene
  * editor palette.
  *
  * `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]. opts:

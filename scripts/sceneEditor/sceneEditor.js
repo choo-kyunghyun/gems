@@ -1,11 +1,11 @@
-// In-engine level editor: paint tiles/entities/spawn/zones, export to save dir, Test Play in
+// In-engine scene editor: paint tiles/entities/spawn/zones, export to save dir, Test Play in
 // sceneRpg. No World — entities are spawns records (data only), not live AI.
 
-const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level loaded for editing
+const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level file loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
 const EDITOR_PLAYTEST_FILE = "topdown_playtest.json"; // Test Play target (separate from export)
 
-// "New" size presets (cols × rows); cell size inherits from the loaded level.
+// "New" size presets (cols × rows); cell size inherits from the loaded scene.
 const EDITOR_SIZES = [
   [48, 32],
   [64, 48],
@@ -13,16 +13,16 @@ const EDITOR_SIZES = [
   [128, 96],
 ];
 
-LevelRegistry.add(() => new _SceneEditorClass(), {
+SceneRegistry.add(() => new _SceneEditorClass(), {
   label: I18n.textRef("EDITOR_NAME"),
   category: "SCENE_CAT_EDITOR",
 });
 
-/** standalone SCREEN class — duck-typed contract, see Level. */
+/** standalone SCREEN class — duck-typed contract, see Scene. */
 class _SceneEditorClass {
   label = "Editor";
 
-  create(openLevel) {
+  create(openScene) {
     // item + quest registries for the property editor; idempotent if sceneRpg called it first
     RpgQuests.register();
 
@@ -40,16 +40,16 @@ class _SceneEditorClass {
       LevelSerializer.load(EDITOR_SOURCE_FILE, { genre: "topdown" }),
     );
 
-    this._buildPalette(openLevel);
+    this._buildPalette(openScene);
     this._buildPropPanel();
 
     Log.info(
-      `level editor ready — ${this.grid.cols}x${this.grid.rows}, ` +
+      `scene editor ready — ${this.grid.cols}x${this.grid.rows}, ` +
         `spawns=${this._spawns.length}`,
     );
   }
 
-  /** (re)build editor state from a level-data object — shared by create() and Open */
+  /** (re)build editor state from a scene-data object — shared by create() and Open */
   _loadData(data) {
     this._cell = data.cell ?? 32; // 32px-cell convention; loaded file wins
     this._initLevel(data.cols, data.rows, this._cell);
@@ -90,7 +90,7 @@ class _SceneEditorClass {
     );
   }
 
-  /** rebuild level grid + tile layers at the given size; destroy previous level first */
+  /** rebuild the level grid + tile layers at the given size; destroy the previous one first */
   _initLevel(cols, rows, cell) {
     if (this.grid !== undefined) this.grid.destroy(); // destroys inserted layers too
     this.grid = new LevelGrid({
@@ -110,7 +110,7 @@ class _SceneEditorClass {
     this.grid.insert(this.floorLayer);
     this.grid.insert(this.wallLayer);
 
-    // rebind to new level; reads live (no VBO) so edits show immediately
+    // rebind to new scene; reads live (no VBO) so edits show immediately
     if (this._tilePass !== undefined) this.renderer.remove(this._tilePass);
     this._tilePass = new RenderDebugTileMap(this.grid, {
       names: true,
@@ -139,7 +139,7 @@ class _SceneEditorClass {
     this.renderer.insert(this._zoneLabelPass);
   }
 
-  /** blank level at chosen size: border wall ring, no entities, spawn at (2,2) */
+  /** blank scene at chosen size: border wall ring, no entities, spawn at (2,2) */
   _newBlank(cols, rows) {
     this._initLevel(cols, rows, this._cell);
     for (let x = 0; x < cols; x++) {
@@ -167,12 +167,12 @@ class _SceneEditorClass {
   }
 
   /** palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting */
-  _buildPalette(openLevel) {
+  _buildPalette(openScene) {
     this.ui = gemsRoot();
     UI.insert(this.ui);
 
     this._buildCatBar();
-    this._buildFileCard(openLevel);
+    this._buildFileCard(openScene);
   }
 
   /** catbar: Tiles / Entities / Tools — sets _tool (and _placePreset for entities) */
@@ -241,7 +241,7 @@ class _SceneEditorClass {
   }
 
   /** top-left file card: hint, tool status, New/Open pickers, Test Play / Export / Back */
-  _buildFileCard(openLevel) {
+  _buildFileCard(openScene) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 12,
@@ -258,7 +258,7 @@ class _SceneEditorClass {
     labelRow(I18n.textRef("EDITOR_HINT"), { color: GemsTheme.textMuted });
     labelRow(() => this._toolStatus(), { color: GemsTheme.accent });
 
-    // current size + blank-level new at a chosen preset
+    // current size + blank-scene new at a chosen preset
     labelRow(
       () => I18n.text("EDITOR_SIZE", this.grid.cols, this.grid.rows),
       { color: GemsTheme.textMuted, font: "header" },
@@ -306,7 +306,7 @@ class _SceneEditorClass {
     );
 
     card.insertChild(
-      gemsButton(I18n.textRef("EDITOR_PLAY"), () => this._play(openLevel), {
+      gemsButton(I18n.textRef("EDITOR_PLAY"), () => this._play(openScene), {
         primary: true,
       }),
     );
@@ -314,7 +314,7 @@ class _SceneEditorClass {
       gemsButton(I18n.textRef("EDITOR_EXPORT"), () => this._export()),
     );
     card.insertChild(
-      gemsButton(I18n.textRef("EDITOR_BACK"), () => openLevel(LEVELS.lobby)),
+      gemsButton(I18n.textRef("EDITOR_BACK"), () => openScene(SCENES.lobby)),
     );
     wrap.insertChild(card);
     this.ui.insertChild(wrap);
@@ -341,7 +341,7 @@ class _SceneEditorClass {
     return I18n.text("EDITOR_TOOL", I18n.text(key));
   }
 
-  step() {
+  update() {
     this.camera.update();
 
     if (this._propDirty) {
@@ -661,7 +661,7 @@ class _SceneEditorClass {
     return row;
   }
 
-  /** assemble level-data object (walls/floors greedy-meshed; zone only if non-empty) */
+  /** assemble scene-data object (walls/floors greedy-meshed; zone only if non-empty) */
   _buildData() {
     const data = {
       version: 1,
@@ -699,11 +699,11 @@ class _SceneEditorClass {
   }
 
   /** serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor */
-  _play(openLevel) {
+  _play(openScene) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
     RpgGrid.playtestFile = EDITOR_PLAYTEST_FILE;
     Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
-    openLevel(SceneRpg);
+    openScene(SceneRpg);
   }
 
   draw() {
@@ -787,6 +787,6 @@ class _SceneEditorClass {
 
   destroy() {
     this.grid.destroy(); // destroys inserted layers too
-    teardownLevel(this);
+    teardownScene(this);
   }
 }

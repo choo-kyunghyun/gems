@@ -4,7 +4,7 @@
  * `opts.spawn` adapter for descriptors, and drives EntitySnapshot capture/restore as chunks cross
  * the SIM ring.
  *
- * pregenerate() (map build, behind the level fade) generates EVERY in-bounds chunk record up
+ * pregenerate() (map build, behind the scene fade) generates EVERY in-bounds chunk record up
  * front — terrain/walls/spawns are resident for the map's lifetime, generate() never runs
  * mid-game, and materialAt/costAt read stored terrain instead of re-sampling noise (TerrainStream
  * apron, NavGrid weights, PathFollow pricing).
@@ -235,7 +235,7 @@ globalThis.ChunkManager = class ChunkManager {
   // once", so we never spawn a chunk we don't sim.
 
   /**
-   * Generate EVERY in-bounds chunk record NOW (map build time, behind the level fade) — after
+   * Generate EVERY in-bounds chunk record NOW (map build time, behind the scene fade) — after
    * this the records ARE the world and mid-game work is entity promote/demote only. Idempotent —
    * existing records keep their (possibly modified) state, so a resume/second call can't wipe
    * live state.

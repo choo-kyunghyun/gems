@@ -4,7 +4,7 @@
  */
 globalThis.DebugGeneral = {
   /**
-   * sections read World.levels live, so bindings track the current level
+   * sections read World.levels live, so bindings track the current scene
    * across swaps.
    */
   register() {
@@ -32,7 +32,7 @@ globalThis.DebugGeneral = {
     });
     Debug.add({
       name: "Perf",
-      data: { fps: 0, level: "", entities: 0 },
+      data: { fps: 0, scene: "", entities: 0 },
       _frames: 0,
       _t0: 0,
       build() {
@@ -40,7 +40,7 @@ globalThis.DebugGeneral = {
         this._frames = 0;
         this._t0 = current_time;
         dbg_watch(ref_create(d, "fps"), "FPS");
-        dbg_watch(ref_create(d, "level"), "Level");
+        dbg_watch(ref_create(d, "scene"), "Scene");
         dbg_watch(ref_create(d, "entities"), "Entities");
       },
       update() {
@@ -52,7 +52,7 @@ globalThis.DebugGeneral = {
           this._frames = 0;
           this._t0 = now;
         }
-        d.level = World.levels.label();
+        d.scene = World.levels.label();
         const s = World.levels.current;
         const w =
           s !== null && s !== undefined && s.entities !== undefined
@@ -72,14 +72,14 @@ globalThis.DebugGeneral = {
         this.data.lines = Log.count();
       },
     });
-    // sim controls relocated from SystemMenu; Pause gates level.step()
+    // sim controls relocated from SystemMenu; Pause gates scene.update()
     Debug.add({
       name: "Sim",
       build() {
         // World.levels is the one live manager — the ref binds `paused` two-way
         dbg_checkbox(ref_create(World.levels, "paused"), "Pause");
         dbg_button("Step Frame", () => World.levels.requestStep());
-        dbg_button("Restart Level", () => World.levels.restart());
+        dbg_button("Restart Scene", () => World.levels.restart());
       },
     });
   },

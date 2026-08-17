@@ -2,8 +2,8 @@
  * DebugRender — registers a "Render" Debug section of per-pass overlay
  * toggles. Core lists Core passes; a genre layer adds its own via
  * DebugRender.add(cls, label), so Core stays decoupled. Each toggle finds the
- * live level's passes by instanceof (GMRT-safe on a flat class) and flips
- * `enabled` — no per-level re-registration (a level lacking the pass reads
+ * live scene's passes by instanceof (GMRT-safe on a flat class) and flips
+ * `enabled` — no per-scene re-registration (a scene lacking the pass reads
  * off and no-ops). Registered once from Game Create_0.
  */
 globalThis.DebugRender = {
@@ -14,7 +14,7 @@ globalThis.DebugRender = {
    * append a pass toggle (deduped by class) — the seam a genre layer uses
    * without Core referencing it. Re-adds the section if register() ran
    * (build() resolves the list fresh); else register() (Create_0) picks it
-   * up. The class is loaded by the time the level calls this, so storing the
+   * up. The class is loaded by the time the scene calls this, so storing the
    * ref here is load-order-safe.
    */
   add(cls, label) {
@@ -88,15 +88,15 @@ globalThis.DebugRender = {
   },
 
   /**
-   * The live level's renderer passes that are instances of `cls` ([] when
+   * The live scene's renderer passes that are instances of `cls` ([] when
    * none).
    */
   _passesOf(cls) {
     const out = [];
-    const level = World.levels !== null ? World.levels.current : null;
-    if (level === null || level === undefined || level.renderer == null)
+    const scene = World.levels !== null ? World.levels.current : null;
+    if (scene === null || scene === undefined || scene.renderer == null)
       return out;
-    const passes = level.renderer.passes;
+    const passes = scene.renderer.passes;
     for (let i = 0; i < passes.length; i++) {
       if (passes[i] instanceof cls) out.push(passes[i]);
     }

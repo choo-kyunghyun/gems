@@ -1,25 +1,25 @@
-// Interaction engine for the RPG level: each frame it picks one `Interaction`-carrying target
+// Interaction engine for the RPG scene: each frame it picks one `Interaction`-carrying target
 // (under the cursor if in range, else nearest), prompts it, and runs its action on E.
 /**
  * The action itself is data (InteractAction registry, RPG set in RpgInteractions), so this engine is
  * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
  * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
- * cursor is level.mouseWorld (the level's per-frame pitch-aware latch, see Camera). Per-frame/open
- * state on the level (_inter*). Build once in create() after player + ui; update() each step,
+ * cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch, see Camera). Per-frame/open
+ * state on the scene (_inter*). Build once in create() after player + ui; update() each step,
  * drawTarget() in draw() (world).
  *
  * THE STATION-WINDOW DRIVER: update() also owns the open windows' lifecycle — it range-closes the one
- * recorded in level._interOpenId and sets its _*Dirty flag when the target's contents change. The
+ * recorded in scene._interOpenId and sets its _*Dirty flag when the target's contents change. The
  * protocol every station window shares: the manager refreshes only when its flag is set, so gameplay
- * code that mutates an inventory elsewhere must set the flag (e.g. level._storeDirty).
+ * code that mutates an inventory elsewhere must set the flag (e.g. scene._storeDirty).
  */
 globalThis.Interactable = {
   RADIUS: 72, // interact range (px); 32px-cell scale
 
-  build(level) {
-    level._interTarget = -1;
-    level._interKind = "";
-    level._interOpenId = -1;
+  build(scene) {
+    scene._interTarget = -1;
+    scene._interKind = "";
+    scene._interOpenId = -1;
 
     // proximity prompt — shown only while a station is in range and no window is open;
     // label re-resolves each draw to track the target's kind
@@ -48,84 +48,84 @@ globalThis.Interactable = {
       }),
     );
     pill.insertChild(
-      gemsLabel(() => Interactable._promptText(level), {
+      gemsLabel(() => Interactable._promptText(scene), {
         halign: fa_center,
         color: GemsTheme.text,
       }),
     );
     prompt.insertChild(pill);
     prompt.enabled = false;
-    level._interPrompt = prompt;
-    level.ui.insertChild(prompt);
+    scene._interPrompt = prompt;
+    scene.ui.insertChild(prompt);
 
-    StorageUI.build(level);
-    CraftingUI.build(level); // the workbench window — also hosts the weapon-mod panel (Toolkit module)
+    StorageUI.build(scene);
+    CraftingUI.build(scene); // the workbench window — also hosts the weapon-mod panel (Toolkit module)
   },
 
-  _promptText(level) {
-    const def = InteractAction.get(level._interKind);
+  _promptText(scene) {
+    const def = InteractAction.get(scene._interKind);
     return def === undefined ? "" : I18n.text(def.prompt);
   },
 
   /**
    * Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
-   * here — the level's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
+   * here — the scene's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
    * activate()/closeAll(), so one E press can't fire two handlers.
    */
-  update(level) {
-    Interactable._pick(level);
+  update(scene) {
+    Interactable._pick(scene);
 
     // opened station left range → close
     if (
-      (level._storeOpen || level._craftOpen) &&
-      !Interactable._inRange(level, level._interOpenId)
+      (scene._storeOpen || scene._craftOpen) &&
+      !Interactable._inRange(scene, scene._interOpenId)
     ) {
-      Interactable._closeAll(level);
+      Interactable._closeAll(scene);
     }
 
-    level._interPrompt.enabled =
-      level._interTarget !== -1 && !level._storeOpen && !level._craftOpen;
+    scene._interPrompt.enabled =
+      scene._interTarget !== -1 && !scene._storeOpen && !scene._craftOpen;
 
-    if (level._storeOpen && level._storeDirty) {
-      StorageUI.refresh(level);
-      level._storeDirty = false;
+    if (scene._storeOpen && scene._storeDirty) {
+      StorageUI.refresh(scene);
+      scene._storeDirty = false;
     }
-    if (level._craftOpen && level._craftDirty) {
-      CraftingUI.refresh(level); // refreshes the active panel (recipes OR the weapon-mod view)
-      level._craftDirty = false;
+    if (scene._craftOpen && scene._craftDirty) {
+      CraftingUI.refresh(scene); // refreshes the active panel (recipes OR the weapon-mod view)
+      scene._craftDirty = false;
     }
   },
 
-  // ── Arbiter hooks (called by the level's interact dispatcher)
-  // open/claim the current target; the level calls this when the station wins this E press
-  activate(level) {
-    Interactable._open(level);
+  // ── Arbiter hooks (called by the scene's interact dispatcher)
+  // open/claim the current target; the scene calls this when the station wins this E press
+  activate(scene) {
+    Interactable._open(scene);
   },
 
   /** close any open station window */
-  closeAll(level) {
-    Interactable._closeAll(level);
+  closeAll(scene) {
+    Interactable._closeAll(scene);
   },
 
-  /** true when the cursor is over entity `id`'s BBox — lets the level break a station-vs-NPC tie */
-  isCursorOver(level, id) {
+  /** true when the cursor is over entity `id`'s BBox — lets the scene break a station-vs-NPC tie */
+  isCursorOver(scene, id) {
     if (id === -1) return false;
-    const pos = level.entities.get(Position, id);
+    const pos = scene.entities.get(Position, id);
     if (pos === undefined) return false;
     return Interactable._mouseInside(
       pos,
-      level.entities.get(BBox, id),
-      level.mouseWorld,
+      scene.entities.get(BBox, id),
+      scene.mouseWorld,
     );
   },
 
   /** pick target = station under the mouse (if in range), else nearest in range */
-  _pick(level) {
-    const entities = level.entities;
-    const p = entities.get(Position, level.playerId);
+  _pick(scene) {
+    const entities = scene.entities;
+    const p = entities.get(Position, scene.playerId);
     if (p === undefined) {
-      level._interTarget = -1;
-      level._interKind = "";
+      scene._interTarget = -1;
+      scene._interKind = "";
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
@@ -146,10 +146,10 @@ globalThis.Interactable = {
         nearest = id;
       }
       if (
-        Interactable._mouseInside(pos, entities.get(BBox, id), level.mouseWorld)
+        Interactable._mouseInside(pos, entities.get(BBox, id), scene.mouseWorld)
       ) {
         const dMouse =
-          (pos.x - level.mouseWorld.x) ** 2 + (pos.y - level.mouseWorld.y) ** 2;
+          (pos.x - scene.mouseWorld.x) ** 2 + (pos.y - scene.mouseWorld.y) ** 2;
         if (dMouse < mouseSq) {
           mouseSq = dMouse;
           mousePick = id;
@@ -158,17 +158,17 @@ globalThis.Interactable = {
     }
 
     const target = mousePick !== -1 ? mousePick : nearest;
-    level._interTarget = target;
+    scene._interTarget = target;
     if (target !== -1) {
       const comp = entities.get(Interaction, target);
-      level._interKind = comp !== undefined ? comp.kind : "";
+      scene._interKind = comp !== undefined ? comp.kind : "";
     } else {
-      level._interKind = "";
+      scene._interKind = "";
     }
   },
 
   /**
-   * true when the world cursor `m` ({x,y} — the level's per-frame pitch-aware latch) is inside
+   * true when the world cursor `m` ({x,y} — the scene's per-frame pitch-aware latch) is inside
    * the entity's world BBox (offset from Position)
    */
   _mouseInside(pos, bbox, m) {
@@ -181,10 +181,10 @@ globalThis.Interactable = {
     return m.x >= left && m.x <= left + w && m.y >= top && m.y <= top + h;
   },
 
-  _inRange(level, id) {
+  _inRange(scene, id) {
     if (id === -1) return false;
-    const entities = level.entities;
-    const p = entities.get(Position, level.playerId);
+    const entities = scene.entities;
+    const p = entities.get(Position, scene.playerId);
     const pos = entities.get(Position, id);
     if (p === undefined || pos === undefined) return false;
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
@@ -193,37 +193,37 @@ globalThis.Interactable = {
 
   /**
    * dispatch the target's Interaction via the registry: look up its `kind` and run the def. A window
-   * action's run() sets level._interOpenId itself (so this stays generic — instant vs window is the
+   * action's run() sets scene._interOpenId itself (so this stays generic — instant vs window is the
    * def's concern, not the engine's). New interactions are a data entry in InteractAction, not here.
    */
-  _open(level) {
-    const id = level._interTarget;
-    const comp = level.entities.get(Interaction, id);
+  _open(scene) {
+    const id = scene._interTarget;
+    const comp = scene.entities.get(Interaction, id);
     if (comp === undefined) return;
     const def = InteractAction.get(comp.kind);
     if (def === undefined) return;
     def.run({
-      level,
-      entities: level.entities,
+      scene,
+      entities: scene.entities,
       id,
       comp,
-      playerId: level.playerId,
+      playerId: scene.playerId,
     });
   },
 
-  _closeAll(level) {
-    if (level._storeOpen) StorageUI.close(level);
-    if (level._craftOpen) CraftingUI.close(level);
-    level._interOpenId = -1;
+  _closeAll(scene) {
+    if (scene._storeOpen) StorageUI.close(scene);
+    if (scene._craftOpen) CraftingUI.close(scene);
+    scene._interOpenId = -1;
   },
 
   /**
-   * world-space highlight outline around the target's BBox; called from level.draw() after the world
+   * world-space highlight outline around the target's BBox; called from scene.draw() after the world
    */
-  drawTarget(level) {
-    const id = level._interTarget;
+  drawTarget(scene) {
+    const id = scene._interTarget;
     if (id === -1) return;
-    const entities = level.entities;
+    const entities = scene.entities;
     const pos = entities.get(Position, id);
     const bbox = entities.get(BBox, id);
     if (pos === undefined || bbox === undefined) return;

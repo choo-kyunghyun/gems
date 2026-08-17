@@ -1,6 +1,6 @@
 /**
  * A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
- * the entity has that component. World-space immediate-mode; draw() from a level's draw() after
+ * the entity has that component. World-space immediate-mode; draw() from a scene's draw() after
  * renderer.draw(). Reads entities live, so no rebuild across a map swap. Rule colors must be GM colour ints.
  */
 globalThis.RadarArrows = {

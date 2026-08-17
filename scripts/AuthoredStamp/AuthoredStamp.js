@@ -53,7 +53,7 @@ globalThis.AuthoredStamp = class AuthoredStamp {
 
   /**
    * Index the file's walls + spawns into per-chunk buckets. "reach" spawns stay in — the spawn
-   * adapter skips them; the level resolves the reach zone separately.
+   * adapter skips them; the scene resolves the reach zone separately.
    */
   _index(data) {
     const walls = data.walls ?? [];

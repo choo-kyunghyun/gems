@@ -52,7 +52,7 @@ globalThis.Audio = {
   },
 
   /**
-   * Stop everything on a base level swap (cues + BGM) — clean slate. NOT across a guest push / map
+   * Stop everything on a scene swap (cues + BGM) — clean slate. NOT across a guest push / map
    * change (Music carries over); LevelManager._apply's destroying path only.
    */
   restart() {

@@ -64,7 +64,7 @@ globalThis.RpgSpawn = {
   /**
    * Register the RPG archetypes as EntityPreset defs (idempotent; called by RpgContent).
    * Register-time evaluation (Color.parse / RpgPlayer.animGraph) is safe here — this runs from a
-   * level's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
+   * scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
    * through by reference — see EntityPreset._clone).
    */
   register() {
@@ -336,8 +336,8 @@ globalThis.RpgSpawn = {
   },
 
   /**
-   * Spawn the level's entities from data.spawns. Enemies acquire targets live by faction and
-   * stations are discovered live by Interactable, so only the handles the level's logic needs
+   * Spawn the scene's entities from data.spawns. Enemies acquire targets live by faction and
+   * stations are discovered live by Interactable, so only the handles the scene's logic needs
    * are returned:
    *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
    *     portals: [{ id, toMap, toEntry }], followers: id[] }
@@ -358,7 +358,7 @@ globalThis.RpgSpawn = {
       }
       const id = RpgSpawn.spawnEntity(entities, grid, s);
       if (id === -1) continue;
-      // classify into the level's typed handles by preset
+      // classify into the scene's typed handles by preset
       if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
       else if (s.preset === "npc") npc = id;
       else if (s.preset === "portal")
@@ -527,7 +527,7 @@ globalThis.RpgSpawn = {
     });
 
     // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
-    // Inventory (its OWN goods); the level opens TradeUI on E. Stock built via InventorySystem.add
+    // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
     // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
     if (s.preset === "npc" && s.merchant !== undefined) {
       const mc = s.merchant;
@@ -552,7 +552,7 @@ globalThis.RpgSpawn = {
   },
 
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
-  // descriptor + the level's programmatic party seed.
+  // descriptor + the scene's programmatic party seed.
   spawnFollower(entities, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
     // `opt.color` is the OUTFIT tint, not a whole-body wash.

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Level",
+  "%Name":"Scene",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Level",
+  "name":"Scene",
   "parent":{
-    "name":"Level",
-    "path":"folders/Core/Level.yy",
+    "name":"Scene",
+    "path":"folders/Core/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Level.js",
+  "scriptSource":"Scene.js",
 }

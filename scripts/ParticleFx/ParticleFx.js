@@ -6,8 +6,8 @@
  * before that first update (spawnAsset does) and the burst lands right.
  *
  * Wiring (mirrors FloatingText — world space, pause-aware): update() once per frame from step()
- * (so effects freeze when the level pauses), draw() from draw() AFTER the renderer; clear() on
- * level/map swap (world coords are level-local, must not bleed into the next).
+ * (so effects freeze when the scene pauses), draw() from draw() AFTER the renderer; clear() on
+ * scene/map swap (world coords are map-local, must not bleed into the next).
  *
  * GMRT (see CLAUDE.md): renders via the MANUAL part_system_drawit path (auto-draw/update off).
  * Handles are OPAQUE STRUCT REFS — never `>= 0`-test them; use part_*_exists. The stepper advances
@@ -21,7 +21,7 @@ globalThis.ParticleFx = {
   // asset points elsewhere. Omit `angDeg` for no rotation.
   spawnAsset(asset, x, y, angDeg, baseDeg = 90) {
     const s = part_system_create(asset); // instances the asset's baked emitters/types
-    part_system_automatic_draw(s, false); // the level draws it (z-ordered over day/night)
+    part_system_automatic_draw(s, false); // the scene draws it (z-ordered over day/night)
     part_system_automatic_update(s, false); // we tick it (pause-aware via step())
     part_system_position(s, x, y); // before the first update → burst lands here
     if (angDeg !== undefined) part_system_angle(s, angDeg - baseDeg);
@@ -41,13 +41,13 @@ globalThis.ParticleFx = {
     ParticleFx._active = live;
   },
 
-  /** Draw every live instance — from a level's draw() in world space, after the renderer. */
+  /** Draw every live instance — from a scene's draw() in world space, after the renderer. */
   draw() {
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) part_system_drawit(a[i]);
   },
 
-  /** Destroy all live instances. Call on level/map swap (their world coords are level-local). */
+  /** Destroy all live instances. Call on scene/map swap (their world coords are map-local). */
   clear() {
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) part_system_destroy(a[i]);

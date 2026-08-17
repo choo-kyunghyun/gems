@@ -1,5 +1,5 @@
 /**
- * Only the active level is stepped each frame, so a single accumulator is authoritative (a parked map
+ * Only the active scene is stepped each frame, so a single accumulator is authoritative (a parked map
  * isn't ticked, so it needs no clock of its own). Converts this frame's sim time (Time.delta) into a
  * whole number of fixed ticks and exposes `alpha`, the [0,1) render-interpolation remainder renderers
  * lerp by.
@@ -17,7 +17,7 @@ globalThis.SimClock = {
    * Advance the accumulator by this frame's sim time; return the whole ticks to run this frame, capped
    * by maxTicks (under overload the sim slows instead of freezing). Sets `alpha` from the remainder.
    *
-   * THE TICK LOOP a level's step() builds around this call — two ordering contracts:
+   * THE TICK LOOP a scene's step() builds around this call — two ordering contracts:
    *   for (t < advance()) { InterpolationSystem.snapshot(entities)  FIRST — records pre-move
    *                         <the genre's system sequence, a Pipeline>       positions
    *                         entities.flush() }                        LAST — commits the tick's

@@ -89,7 +89,7 @@ globalThis.Music = {
   },
 
   /**
-   * Hard stop + clear on a base level swap (via Audio.restart). Graceful stop() is the per-level path.
+   * Hard stop + clear on a base level swap (via Audio.restart). Graceful stop() is the per-scene path.
    */
   reset() {
     if (Music._bgm !== -1) audio_stop_sound(Music._bgm);

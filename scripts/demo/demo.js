@@ -1,30 +1,30 @@
-// level catalogue (LevelRegistry) + teardown helper.
+// scene catalogue (SceneRegistry) + teardown helper.
 // Gems factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
- * Release the `camera`/`renderer`/`entities`/`ui` a Level holds on `this`, in dependency order
- * (missing fields skipped). Call it from `destroy()` AFTER releasing the level's own
- * resources (controllers, sub-levels) — those may still reference these.
+ * Release the `camera`/`renderer`/`entities`/`ui` a Scene holds on `this`, in dependency order
+ * (missing fields skipped). Call it from `destroy()` AFTER releasing the scene's own
+ * resources (controllers, guests) — those may still reference these.
  */
-globalThis.teardownLevel = function teardownLevel(level) {
-  if (level.camera) level.camera.destroy();
-  if (level.renderer) level.renderer.destroy();
-  if (level.entities) level.entities.destroy();
-  if (level.ui) {
-    UI.remove(level.ui);
-    level.ui.destroy();
+globalThis.teardownScene = function teardownScene(scene) {
+  if (scene.camera) scene.camera.destroy();
+  if (scene.renderer) scene.renderer.destroy();
+  if (scene.entities) scene.entities.destroy();
+  if (scene.ui) {
+    UI.remove(scene.ui);
+    scene.ui.destroy();
   }
 };
 
 /**
- * The lobby's level catalogue. A level registers from its script's top-level code — unlike the
+ * The lobby's scene catalogue. A scene registers from its script's top-level code — unlike the
  * content registries, which register from `create()` — so the catalogue is complete by boot.
  * `byCategory()` groups entries in registration order; a consumer imposes its own category
- * order (the lobby's fixed display list). `labelOf` serves LevelManager's boot-wired
- * `resolveLabel` seam (Game wires it): the match is by factory ref, so a guest level must
- * be opened with the factory it registered.
+ * order (the lobby's fixed display list). `labelOf` serves the Game object's boot-wired
+ * `resolveLabel` seam: the match is by factory ref, so a guest scene must be opened with the
+ * factory it registered.
  */
-globalThis.LevelRegistry = {
+globalThis.SceneRegistry = {
   _entries: [],
   add(factory, opts) {
     this._entries.push({

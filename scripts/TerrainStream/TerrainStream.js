@@ -22,8 +22,8 @@ globalThis.TerrainStream = class TerrainStream {
     this.cellH = chunks.cellH;
     this.chunks = chunks; // store-backed materialAt for the seam apron
     this._cache = {}; // "cx,cy" → { x1, y1, x2, y2, list: [{ vb, tex }] } (one per material)
-    this.camera = undefined; // level-assigned view cull (Camera.groundRect); unset = draw all
-    this.lights = undefined; // host RenderMesh pass (level-assigned) → lit ground; unset = unlit
+    this.camera = undefined; // scene-assigned view cull (Camera.groundRect); unset = draw all
+    this.lights = undefined; // host RenderMesh pass (scene-assigned) → lit ground; unset = unlit
 
     // One untinted dual-grid sprite per material, painter-ordered. The palette rides the
     // GENERATOR instance (ChunkGenerator.palette), not a generator class static — a swapped-in

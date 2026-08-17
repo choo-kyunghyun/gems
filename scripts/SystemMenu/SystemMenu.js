@@ -1,20 +1,20 @@
 /**
- * Pause is global: LevelManager skips level.step() while isOpen() (this menu is its boot-wired
+ * Pause is global: LevelManager skips scene.update() while isOpen() (this menu is its boot-wired
  * `menu` seam), and the menu forces Time.scale=0 each frame (the menu itself runs on Time.raw).
  * UIModal blocks the underlying UI. Open triggers: F1 anywhere, gamepad Start during gameplay; Esc
- * during gameplay is context-aware (level.handleEscape() gets first refusal). A level opts into
+ * during gameplay is context-aware (scene.handleEscape() gets first refusal). A scene opts into
  * gameplay pause/nav via this.gameplay.
  */
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the Game controller (its themed `background` — levels live on World.levels)
+  _game: null, // the Game controller (its themed `background` — scenes live on the Game object)
   _scale: 1, // Time.scale to restore on resume
   // Boot-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this menu free of scene/save concerns (SaveGame/sceneRpg). Wired once at boot via addTab().
   _extraTabs: [],
-  // Boot-wired quit-target level factory (the app's lobby) — null hides the Quit button, so the
-  // menu names no specific level.
+  // Boot-wired quit-target scene factory (the app's lobby) — null hides the Quit button, so the
+  // menu names no specific scene.
   quitTo: null,
   // Boot-wired filename the Settings tab's Save passes to Settings.save — null hides the button,
   // so the kit names no app file.
@@ -26,32 +26,32 @@ globalThis.SystemMenu = {
   },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
-  // scenes. a level opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
+  // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
   /** game: the Game controller (its `background` re-themes) */
   update(game) {
     SystemMenu._game = game;
-    const level = World.levels.current;
+    const scene = World.levels.current;
 
     if (SystemMenu._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
       if (keyboard_check_pressed(vk_f1) || SystemMenu._startPressed()) {
         SystemMenu.close();
       }
-      UINav.suspended = false; // overlay must stay nav-reachable over any level
+      UINav.suspended = false; // overlay must stay nav-reachable over any scene
       Time.scale = 0; // freeze Time.delta consumers behind the overlay
       Time.delta = 0;
       return;
     }
 
-    // closed. F1 opens anywhere (even a non-gameplay level)
+    // closed. F1 opens anywhere (even a non-gameplay scene)
     if (keyboard_check_pressed(vk_f1)) {
       SystemMenu.open();
       return;
     }
 
-    // gameplay-only below. read level.gameplay LIVE — never cache into a local bool (the &&-clobber
+    // gameplay-only below. read scene.gameplay LIVE — never cache into a local bool (the &&-clobber
     // quirk, #15549).
-    if (level === null || level.gameplay !== true) return;
+    if (scene === null || scene.gameplay !== true) return;
 
     // gamepad Start opens the pause menu directly
     if (SystemMenu._startPressed()) {
@@ -59,10 +59,10 @@ globalThis.SystemMenu = {
       return;
     }
 
-    // Esc during gameplay: level.handleEscape() gets first refusal (close window / exit build);
+    // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
     // opens the menu only if unconsumed (so F1/Start stay the always-on pause)
     if (keyboard_check_pressed(vk_escape)) {
-      if (level.handleEscape !== undefined && level.handleEscape()) {
+      if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
       } else if (World.levels.back()) {
         // guest minigame was active — Esc returned to the frozen host, not open the menu
@@ -75,7 +75,7 @@ globalThis.SystemMenu = {
     // gamepad B = back: same handleEscape hook as Esc but never opens the menu. B is also UINav's
     // cancel, so in a window it disengages focus AND closes it.
     if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
-      if (level.handleEscape !== undefined && level.handleEscape()) {
+      if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed
         return;
       }
@@ -141,7 +141,7 @@ globalThis.SystemMenu = {
       flexGrow: 1,
       padding: GemsTheme.pad,
       gap: GemsTheme.gapSm,
-      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused level
+      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused scene
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
@@ -220,7 +220,7 @@ globalThis.SystemMenu = {
     if (SystemMenu._modal !== null) SystemMenu._modal.close();
   },
 
-  /** force-close + restore time scale on a level swap. */
+  /** force-close + restore time scale on a scene swap. */
   reset() {
     if (SystemMenu._modal !== null) {
       SystemMenu._modal.close();
@@ -249,18 +249,18 @@ globalThis.SystemMenu = {
 
   /**
    * Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
-   * re-seed the Core focus-ring + level backdrop, rebuild the active level's UI (colors bake at
+   * re-seed the Core focus-ring + scene backdrop, rebuild the active scene's UI (colors bake at
    * build time) and this overlay, and fade back. No-op when the mode is unchanged.
    */
   _applyTheme(mode) {
     if (mode === GemsTheme.mode) return;
     Settings.set("theme", mode);
-    LevelTransition.start(() => {
+    SceneTransition.start(() => {
       GemsTheme.setMode(mode);
       UINav.color = Color.parse(GemsTheme.accent);
       const game = SystemMenu._game;
       if (game !== null) game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
-      World.levels.retheme(); // rebuild active level UI in place
+      World.levels.retheme(); // rebuild active scene UI in place
       UINav.reset(); // focus was on now-destroyed elements
       SystemMenu.reopen(1); // reopen on the Settings tab, recolored
     });
@@ -425,7 +425,7 @@ globalThis.SystemMenu = {
     scroll.scrollBody.insertChild(uiSection);
 
     // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds
-    // the level UI + this menu under cover (colors are baked at build, so a rebuild is required)
+    // the scene UI + this menu under cover (colors are baked at build, so a rebuild is required)
     const themeSection = gemsSection(I18n.textRef("SETTINGS_THEME_TITLE"));
     const themeItems = [
       { name: I18n.text("SETTINGS_THEME_DARK"), value: "dark" },

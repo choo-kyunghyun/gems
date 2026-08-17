@@ -29,7 +29,7 @@
  * original single-material behavior).
  *
  * VBO-cached like RenderTileMap: call markDirty() after any tile edit — BuildMode's
- * _markTileDirty reaches it through level._tilePasses. Coords are absolute world px, so the
+ * _markTileDirty reaches it through scene._tilePasses. Coords are absolute world px, so the
  * draw needs no world matrix and a whole-layer rebuild is one pass over the grid.
  * @implements {RenderPass}
  */

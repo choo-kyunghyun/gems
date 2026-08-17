@@ -32,7 +32,7 @@ globalThis.QuestLog = {
   },
 
   /**
-   * quests are session-scoped; call on level create.
+   * quests are session-scoped; call on scene create.
    */
   reset() {
     this.active = {};

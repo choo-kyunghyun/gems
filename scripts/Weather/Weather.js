@@ -115,7 +115,7 @@ globalThis.Weather = {
     Weather._time = d.time;
   },
 
-  /** reset to a settled clear sky, no region override (level create() once) */
+  /** reset to a settled clear sky, no region override (scene create() once) */
   reset() {
     Weather._ambient = "clear";
     Weather._override = null;

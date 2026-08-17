@@ -33,7 +33,7 @@ globalThis.InputContext = {
     else InputContext._stack[InputContext._stack.length - 1] = name;
   },
 
-  /** Reset to just the base context (level teardown). */
+  /** Reset to just the base context (scene teardown). */
   reset() {
     InputContext._stack = ["default"];
   },

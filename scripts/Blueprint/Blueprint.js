@@ -13,27 +13,27 @@ globalThis.Blueprint = {
    * Capture the builds inside a cell rect into a plan (offsets relative to x1,y1);
    * opts.withState → include each entity's exact snapshot.
    */
-  capture(level, x1, y1, x2, y2, opts = {}) {
+  capture(scene, x1, y1, x2, y2, opts = {}) {
     const tiles = [];
     const ents = [];
-    const bk = Object.keys(level._built);
+    const bk = Object.keys(scene._built);
     for (let i = 0; i < bk.length; i++) {
       const c = bk[i].split(",");
       const gx = Number(c[0]);
       const gy = Number(c[1]);
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
-      tiles.push({ dx: gx - x1, dy: gy - y1, item: level._built[bk[i]] });
+      tiles.push({ dx: gx - x1, dy: gy - y1, item: scene._built[bk[i]] });
     }
-    const ek = Object.keys(level._builtEnts);
+    const ek = Object.keys(scene._builtEnts);
     for (let i = 0; i < ek.length; i++) {
       const c = ek[i].split(",");
       const gx = Number(c[0]);
       const gy = Number(c[1]);
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
-      const e = level._builtEnts[ek[i]];
+      const e = scene._builtEnts[ek[i]];
       const ent = { dx: gx - x1, dy: gy - y1, item: e.itemId };
-      if (opts.withState === true && level.entities.isValid(e.ent))
-        ent.snapshot = EntitySnapshot.capture(level.entities, e.ent);
+      if (opts.withState === true && scene.entities.isValid(e.ent))
+        ent.snapshot = EntitySnapshot.capture(scene.entities, e.ent);
       ents.push(ent);
     }
     return { w: x2 - x1 + 1, h: y2 - y1 + 1, tiles, ents };
@@ -44,7 +44,7 @@ globalThis.Blueprint = {
    * finished neighboring walls), then entities; the single solid (wall) layer is remeshed once at
    * the end rather than per tile. Ungated — the caller decides validity/cost.
    */
-  stamp(level, ox, oy, plan) {
+  stamp(scene, ox, oy, plan) {
     if (plan === null || plan === undefined) return 0;
     let n = 0;
     let remeshWall = false;
@@ -53,7 +53,7 @@ globalThis.Blueprint = {
       const t = tiles[i];
       const item = BuildMode.item(t.item);
       if (item === undefined) continue; // stale/removed catalog id
-      const solid = BuildMode.applyItem(level, ox + t.dx, oy + t.dy, item, {
+      const solid = BuildMode.applyItem(scene, ox + t.dx, oy + t.dy, item, {
         deferRemesh: true,
       });
       if (solid === true) remeshWall = true;
@@ -64,7 +64,7 @@ globalThis.Blueprint = {
       const e = ents[i];
       const item = BuildMode.item(e.item);
       if (item === undefined) continue;
-      BuildMode.applyItem(level, ox + e.dx, oy + e.dy, item, {
+      BuildMode.applyItem(scene, ox + e.dx, oy + e.dy, item, {
         snapshot: e.snapshot,
       });
       n++;
@@ -72,10 +72,10 @@ globalThis.Blueprint = {
     // one remesh for the whole batch (the wall layer is the only solid one)
     if (remeshWall)
       TileEdit.remesh(
-        level.entities,
-        level.grid,
-        level.wallLayer,
-        level.colliders,
+        scene.entities,
+        scene.grid,
+        scene.wallLayer,
+        scene.colliders,
       );
     return n;
   },

@@ -1,13 +1,13 @@
 // boot level + dev launcher (F2). flat button list of all registered scenes, then
 // global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits level.
 
-globalThis.LEVELS = {
+globalThis.SCENES = {
   lobby: () =>
-    Object.assign(new Level(), {
+    Object.assign(new Scene(), {
       label: "Lobby",
 
-      create(openLevel) {
-        this._openLevel = openLevel; // stashed so retheme() can rebuild the button callbacks
+      create(openScene) {
+        this._openScene = openScene; // stashed so retheme() can rebuild the button callbacks
         this._buildUI();
       },
 
@@ -22,7 +22,7 @@ globalThis.LEVELS = {
       },
 
       _buildUI() {
-        const openLevel = this._openLevel;
+        const openScene = this._openScene;
         this.ui = gemsRoot({ maxWidth: 720 });
         UI.insert(this.ui);
 
@@ -40,7 +40,7 @@ globalThis.LEVELS = {
           "SCENE_CAT_UI",
         ];
         const entries = [];
-        const groups = LevelRegistry.byCategory();
+        const groups = SceneRegistry.byCategory();
         for (let g = 0; g < groups.length; g++)
           for (let e = 0; e < groups[g].entries.length; e++)
             entries.push(groups[g].entries[e]);
@@ -60,7 +60,7 @@ globalThis.LEVELS = {
         for (let i = 0; i < order.length; i++) {
           const entry = entries[order[i]];
           col.insertChild(
-            gemsButton(entry.label, () => openLevel(entry.factory)),
+            gemsButton(entry.label, () => openScene(entry.factory)),
           );
         }
 
@@ -73,8 +73,8 @@ globalThis.LEVELS = {
         );
         col.insertChild(
           gemsButton(I18n.textRef("TITLE_QUIT"), () =>
-            openLevel(() =>
-              Object.assign(new Level(), {
+            openScene(() =>
+              Object.assign(new Scene(), {
                 create() {
                   game_end();
                 },

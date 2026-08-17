@@ -1,13 +1,13 @@
 /**
  * Insert BEFORE entity passes so ground sits under everything. Records are the whole pregenerated
- * world — chunks are culled to `camera` (level-assigned; unset draws all).
+ * world — chunks are culled to `camera` (scene-assigned; unset draws all).
  * @implements {RenderPass}
  */
 globalThis.RenderChunks = class RenderChunks {
   constructor(chunks, opt = {}) {
     this.enabled = true;
     this.chunks = chunks; // a ChunkManager instance
-    this.camera = undefined; // level-assigned view cull (Camera.groundRect)
+    this.camera = undefined; // scene-assigned view cull (Camera.groundRect)
     this.font = opt.font;
     this.ground0 = opt.ground0 ?? make_colour_rgb(34, 42, 34);
     this.ground1 = opt.ground1 ?? make_colour_rgb(28, 34, 30);

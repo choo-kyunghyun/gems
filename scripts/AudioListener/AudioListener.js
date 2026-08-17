@@ -12,7 +12,7 @@ globalThis.AudioListener = {
   },
 
   /**
-   * Move the ears to world (x, y); z fixed at 0. Called each frame by the active level, which
+   * Move the ears to world (x, y); z fixed at 0. Called each frame by the active scene, which
    * owns the policy of WHOSE position the ears track.
    */
   position(x, y) {

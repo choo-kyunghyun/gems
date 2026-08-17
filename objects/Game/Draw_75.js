@@ -6,5 +6,5 @@ Tooltip.draw();
 Toast.draw();
 Dialogue.draw(); // RPG dialogue box, over the UI
 DebugInspector.draw(); // selected-entity highlight (debug overlay open)
-LevelTransition.draw(); // last: the fade cover veils the UI + level during a swap
+SceneTransition.draw(); // last: the fade cover veils the UI + level during a swap
 Screenshot.update(); // after every drawer, so a shot captures the full frame

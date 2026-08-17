@@ -1,25 +1,25 @@
 // Bag↔Chest transfer window — near-fullscreen shell over a two-column UITable layout (like
-// TradeUI/RpgInventoryUI). Open/close/prompt owned by Interactable; all state on level (_store*).
+// TradeUI/RpgInventoryUI). Open/close/prompt owned by Interactable; all state on scene (_store*).
 /**
  * Tables swap rows via setRows (not rebuilt) so column sort survives every transfer. Caller contract:
- * set level._storeDirty whenever the bag changes from outside this file (a craft, a pickup, an equip)
+ * set scene._storeDirty whenever the bag changes from outside this file (a craft, a pickup, an equip)
  * — refresh is flag-driven and will otherwise show stale rows.
  */
 globalThis.StorageUI = {
-  build(level) {
-    level._storageId = -1;
-    level._storeOpen = false;
-    level._storeDirty = false;
-    level._storeClick = { key: "", time: 0 }; // InvTable.reclick latch
-    level._storeQtyModal = null; // open amount-picker modal, else null
+  build(scene) {
+    scene._storageId = -1;
+    scene._storeOpen = false;
+    scene._storeDirty = false;
+    scene._storeClick = { key: "", time: 0 }; // InvTable.reclick latch
+    scene._storeQtyModal = null; // open amount-picker modal, else null
 
     // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
     // Esc / E also close (handleEscape / _dispatchInteract).
     const host = gemsOverlay(I18n.textRef("STORAGE_TITLE"), {
-      onClose: () => StorageUI.close(level),
+      onClose: () => StorageUI.close(scene),
     });
-    level._storeWin = host;
-    level.ui.insertChild(host);
+    scene._storeWin = host;
+    scene.ui.insertChild(host);
     const card = host.body;
 
     const cols = new UIElement({
@@ -29,17 +29,17 @@ globalThis.StorageUI = {
       flexDirection: "row",
       gap: GemsTheme.gap,
     });
-    const bagTable = StorageUI._table(level, "bag");
-    const boxTable = StorageUI._table(level, "box");
-    level._storeBagTable = bagTable.getComponent(UITable);
-    level._storeBoxTable = boxTable.getComponent(UITable);
+    const bagTable = StorageUI._table(scene, "bag");
+    const boxTable = StorageUI._table(scene, "box");
+    scene._storeBagTable = bagTable.getComponent(UITable);
+    scene._storeBoxTable = boxTable.getComponent(UITable);
     cols.insertChild(
       StorageUI._column(
         I18n.textRef("STORAGE_BAG"),
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
-        () => StorageUI._allFrom(level, "bag"),
-        () => level.entities.get(Inventory, level.playerId),
+        () => StorageUI._allFrom(scene, "bag"),
+        () => scene.entities.get(Inventory, scene.playerId),
       ),
     );
     cols.insertChild(
@@ -47,8 +47,8 @@ globalThis.StorageUI = {
         I18n.textRef("STORAGE_BOX"),
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
-        () => StorageUI._allFrom(level, "box"),
-        () => level.entities.get(Inventory, level._storageId),
+        () => StorageUI._allFrom(scene, "box"),
+        () => scene.entities.get(Inventory, scene._storageId),
       ),
     );
     card.insertChild(cols);
@@ -123,32 +123,32 @@ globalThis.StorageUI = {
   /**
    * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
    */
-  _table(level, side) {
+  _table(scene, side) {
     return gemsTable(InvTable.columns({ fav: true }), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
       emptyText: I18n.text("STORAGE_EMPTY"),
-      onSelect: (row) => StorageUI._click(level, side, row),
-      onActivate: (row) => StorageUI._move(level, side, row),
+      onSelect: (row) => StorageUI._click(scene, side, row),
+      onActivate: (row) => StorageUI._move(scene, side, row),
     });
   },
 
   /**
    * re-apply the Settings-driven column set to both tables (toggle changed / chest opened).
    */
-  _applyColumns(level) {
-    level._storeBagTable.setColumns(InvTable.columns({ fav: true }));
-    level._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
+  _applyColumns(scene) {
+    scene._storeBagTable.setColumns(InvTable.columns({ fav: true }));
+    scene._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
   },
 
   /**
    * row models for one inventory. `idx` (slot index) is valid until the next refresh =
    * when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
    */
-  _rows(level, inv) {
-    const fav = level.entities.get(Favorites, level.playerId);
+  _rows(scene, inv) {
+    const fav = scene.entities.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -162,40 +162,40 @@ globalThis.StorageUI = {
     return rows;
   },
 
-  open(level, id) {
-    level._storageId = id;
-    level._storeOpen = true;
-    level._storeWin.enabled = true;
-    StorageUI._applyColumns(level); // pick up any column-setting change since build
-    level._storeDirty = true;
+  open(scene, id) {
+    scene._storageId = id;
+    scene._storeOpen = true;
+    scene._storeWin.enabled = true;
+    StorageUI._applyColumns(scene); // pick up any column-setting change since build
+    scene._storeDirty = true;
   },
 
-  close(level) {
-    level._storeOpen = false;
-    level._storeWin.enabled = false;
-    level._storageId = -1;
-    level._storeOnTake = undefined; // per-open hook (corpse looting) never outlives the window
+  close(scene) {
+    scene._storeOpen = false;
+    scene._storeWin.enabled = false;
+    scene._storageId = -1;
+    scene._storeOnTake = undefined; // per-open hook (corpse looting) never outlives the window
     // dismiss a dangling amount picker if the window closed under it
-    if (level._storeQtyModal !== null && level._storeQtyModal !== undefined)
-      level._storeQtyModal.close();
+    if (scene._storeQtyModal !== null && scene._storeQtyModal !== undefined)
+      scene._storeQtyModal.close();
   },
 
-  refresh(level) {
-    const entities = level.entities;
-    const bagInv = entities.get(Inventory, level.playerId);
-    const boxInv = entities.get(Inventory, level._storageId);
+  refresh(scene) {
+    const entities = scene.entities;
+    const bagInv = entities.get(Inventory, scene.playerId);
+    const boxInv = entities.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
-    level._storeBagTable.setRows(StorageUI._rows(level, bagInv)); // re-applies the sort
-    level._storeBoxTable.setRows(StorageUI._rows(level, boxInv));
+    scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
+    scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
   },
 
   /**
    * single click selects; a re-click transfers (InvTable.reclick owns the gesture).
    */
-  _click(level, side, row) {
+  _click(scene, side, row) {
     if (row === null || row === undefined) return;
-    if (InvTable.reclick(level._storeClick, row, side))
-      StorageUI._move(level, side, row);
+    if (InvTable.reclick(scene._storeClick, row, side))
+      StorageUI._move(scene, side, row);
   },
 
   /**
@@ -203,33 +203,33 @@ globalThis.StorageUI = {
    * a single unit or an instance transfers whole. storing a favorited item from the bag is
    * refused; taking from the chest is never protected.
    */
-  _move(level, side, row) {
+  _move(scene, side, row) {
     if (row === null || row === undefined) return;
-    const entities = level.entities;
+    const entities = scene.entities;
     const srcInv = entities.get(
       Inventory,
-      side === "bag" ? level.playerId : level._storageId,
+      side === "bag" ? scene.playerId : scene._storageId,
     );
     if (srcInv === undefined) return;
-    if (side === "bag" && StorageUI._storeBlocked(level, false)[row.itemId])
+    if (side === "bag" && StorageUI._storeBlocked(scene, false)[row.itemId])
       return; // favorited
     const s = srcInv.slots[row.idx];
     if (s === undefined) return;
     const def = Item.get(s.itemId);
     if ((def === undefined || !def.isInstanced()) && s.qty > 1) {
-      StorageUI._promptAmount(level, side, row, s.qty);
+      StorageUI._promptAmount(scene, side, row, s.qty);
       return;
     }
-    StorageUI._doMove(level, side, row, s.qty);
+    StorageUI._doMove(scene, side, row, s.qty);
   },
 
   /**
    * amount picker (gemsAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
-   * Esc is owned by the level's handleEscape (closeOnEscape:false in the factory), so it
+   * Esc is owned by the scene's handleEscape (closeOnEscape:false in the factory), so it
    * cancels the picker before the window.
    */
-  _promptAmount(level, side, row, maxQty) {
-    level._storeQtyModal = gemsAmountPicker({
+  _promptAmount(scene, side, row, maxQty) {
+    scene._storeQtyModal = gemsAmountPicker({
       title: row.name,
       max: maxQty,
       prompt: I18n.text("STORAGE_QTY_PROMPT"),
@@ -237,8 +237,8 @@ globalThis.StorageUI = {
       all: I18n.text("STORAGE_QTY_ALL"),
       cancelLabel: I18n.text("STORAGE_CANCEL"),
       confirmLabel: I18n.text("STORAGE_TRANSFER"),
-      onConfirm: (amount) => StorageUI._doMove(level, side, row, amount),
-      onClose: () => (level._storeQtyModal = null),
+      onConfirm: (amount) => StorageUI._doMove(scene, side, row, amount),
+      onClose: () => (scene._storeQtyModal = null),
     });
   },
 
@@ -246,23 +246,23 @@ globalThis.StorageUI = {
    * transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
    * its hotbar slot; a partial transfer keeps the binding usable.
    */
-  _doMove(level, side, row, amount) {
-    const entities = level.entities;
-    const bag = entities.get(Inventory, level.playerId);
-    const box = entities.get(Inventory, level._storageId);
+  _doMove(scene, side, row, amount) {
+    const entities = scene.entities;
+    const bag = entities.get(Inventory, scene.playerId);
+    const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     if (side === "bag") {
-      const moved = StorageUI._transfer(level, bag, box, row.idx, amount);
+      const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
       if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
-        const hb = entities.get(Hotbar, level.playerId);
+        const hb = entities.get(Hotbar, scene.playerId);
         if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
       }
     } else {
-      const moved = StorageUI._transfer(level, box, bag, row.idx, amount);
+      const moved = StorageUI._transfer(scene, box, bag, row.idx, amount);
       // optional take hook (set by the opener, e.g. corpse looting reports pickup credit);
       // a plain chest never sets it, so withdrawing can't farm collect quests
-      if (moved > 0 && level._storeOnTake !== undefined)
-        level._storeOnTake(row.itemId, moved);
+      if (moved > 0 && scene._storeOnTake !== undefined)
+        scene._storeOnTake(row.itemId, moved);
     }
   },
 
@@ -271,7 +271,7 @@ globalThis.StorageUI = {
    * fungible stack; an INSTANCE always moves whole by reference (preserving uid + mods).
    * returns the amount moved (0 if nothing fit) so the caller can react (e.g. unbind hotbar).
    */
-  _transfer(level, srcInv, dstInv, idx, amount) {
+  _transfer(scene, srcInv, dstInv, idx, amount) {
     if (idx < 0 || idx >= srcInv.slots.length) return 0;
     const s = srcInv.slots[idx];
     const itemId = s.itemId;
@@ -291,10 +291,10 @@ globalThis.StorageUI = {
       s.qty -= moved;
       if (s.qty <= 0) srcInv.slots.splice(idx, 1);
     }
-    StorageUI._reconcileEquip(level, srcInv);
+    StorageUI._reconcileEquip(scene, srcInv);
 
-    level._storeDirty = true;
-    level._invDirty = true; // keep the inventory window in sync
+    scene._storeDirty = true;
+    scene._invDirty = true; // keep the inventory window in sync
     Log.info(`transferred ${moved}x ${itemId}`);
     return moved;
   },
@@ -303,23 +303,23 @@ globalThis.StorageUI = {
    * bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
    * halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
    */
-  _allFrom(level, side) {
-    const entities = level.entities;
-    const bag = entities.get(Inventory, level.playerId);
-    const box = entities.get(Inventory, level._storageId);
+  _allFrom(scene, side) {
+    const entities = scene.entities;
+    const bag = entities.get(Inventory, scene.playerId);
+    const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
     // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
     // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
     if (side === "bag")
       StorageUI._transferAll(
-        level,
+        scene,
         bag,
         box,
-        StorageUI._equipKeep(level),
-        StorageUI._storeBlocked(level, true), // bulk store protects hotbar items too
+        StorageUI._equipKeep(scene),
+        StorageUI._storeBlocked(scene, true), // bulk store protects hotbar items too
       );
     else
-      StorageUI._transferAll(level, box, bag, null, null, level._storeOnTake);
+      StorageUI._transferAll(scene, box, bag, null, null, scene._storeOnTake);
   },
 
   /**
@@ -327,13 +327,13 @@ globalThis.StorageUI = {
    * hotbar-bound blocked only for BULK Store All (`includeHotbar`) — a single double-click can
    * still store one (it unbinds the hotbar; see _move).
    */
-  _storeBlocked(level, includeHotbar) {
+  _storeBlocked(scene, includeHotbar) {
     const blocked = {};
-    const fav = level.entities.get(Favorites, level.playerId);
+    const fav = scene.entities.get(Favorites, scene.playerId);
     if (fav !== undefined)
       for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
     if (includeHotbar) {
-      const hb = level.entities.get(Hotbar, level.playerId);
+      const hb = scene.entities.get(Hotbar, scene.playerId);
       if (hb !== undefined)
         for (let i = 0; i < hb.slots.length; i++)
           if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
@@ -345,9 +345,9 @@ globalThis.StorageUI = {
    * equipped instance uids to keep in the bag during a Store All — a worn instance must stay so
    * its Equipment slot doesn't dangle. exact { uid: true } set (Equipment keys by uid).
    */
-  _equipKeep(level) {
+  _equipKeep(scene) {
     const keep = {};
-    const eq = level.entities.get(Equipment, level.playerId);
+    const eq = scene.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return keep;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -361,7 +361,7 @@ globalThis.StorageUI = {
    * or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as
    * fits. `onMoved(itemId, qty)` (optional) fires per stack moved — the take-direction hook.
    */
-  _transferAll(level, srcInv, dstInv, keep, blocked, onMoved) {
+  _transferAll(scene, srcInv, dstInv, keep, blocked, onMoved) {
     let total = 0;
     let i = 0;
     while (i < srcInv.slots.length) {
@@ -400,8 +400,8 @@ globalThis.StorageUI = {
       i++; // partial (dst full) or nothing fit — leave the stack and move on
     }
     if (total === 0) return;
-    level._storeDirty = true;
-    level._invDirty = true;
+    scene._storeDirty = true;
+    scene._invDirty = true;
     Log.info(`transferred all (${total} items)`);
   },
 
@@ -409,9 +409,9 @@ globalThis.StorageUI = {
    * unequip any worn item no longer in the bag, else its Equipment slot (and stat mods) dangle.
    * no-op when srcInv isn't the player bag.
    */
-  _reconcileEquip(level, srcInv) {
-    if (srcInv !== level.entities.get(Inventory, level.playerId)) return;
-    const eq = level.entities.get(Equipment, level.playerId);
+  _reconcileEquip(scene, srcInv) {
+    if (srcInv !== scene.entities.get(Inventory, scene.playerId)) return;
+    const eq = scene.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -420,7 +420,7 @@ globalThis.StorageUI = {
         uid !== "" &&
         InventorySystem.findByUid(srcInv, uid) === undefined
       ) {
-        EquipmentSystem.unequip(level.entities, level.playerId, slot);
+        EquipmentSystem.unequip(scene.entities, scene.playerId, slot);
       }
     }
   },

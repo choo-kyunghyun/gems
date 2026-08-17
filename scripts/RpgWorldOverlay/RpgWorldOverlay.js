@@ -1,4 +1,4 @@
-// World-space gameplay overlay for the RPG level — item drops (rarity squares), projectile dots,
+// World-space gameplay overlay for the RPG scene — item drops (rarity squares), projectile dots,
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneRpg.draw() AFTER renderer.draw().
 /**
  * Drawn after renderer.draw() because RenderChunks paints an opaque ground fill that would hide it.
@@ -31,8 +31,8 @@ globalThis.RpgWorldOverlay = {
     return "[spr=" + sprite_get_name(it.sprite) + "] ";
   },
 
-  drawWorld(level) {
-    const entities = level.entities;
+  drawWorld(scene) {
+    const entities = scene.entities;
 
     const drops = entities.query(ItemDrop, Position);
     for (const id of drops) {
@@ -56,7 +56,7 @@ globalThis.RpgWorldOverlay = {
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
     // Flat top-down (pitch 0) lifts nothing.
     const lift =
-      level.camera !== undefined && level.camera.followPitch !== 0 ? 32 : 0;
+      scene.camera !== undefined && scene.camera.followPitch !== 0 ? 32 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -87,9 +87,9 @@ globalThis.RpgWorldOverlay = {
       gpu_set_ztestenable(true);
     }
 
-    // reach-quest zone, only when the level defines one and it's unmet
-    if (level.reachZone !== undefined && !level.reachDone) {
-      const z = level.reachZone;
+    // reach-quest zone, only when the scene defines one and it's unmet
+    if (scene.reachZone !== undefined && !scene.reachDone) {
+      const z = scene.reachZone;
       draw_set_alpha(0.35);
       draw_set_color(make_colour_rgb(120, 200, 255));
       draw_rectangle(z.x1, z.y1, z.x2, z.y2, false);

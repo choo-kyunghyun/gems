@@ -5,7 +5,7 @@
  * @property {function(): void} draw
  */
 
-/** Ordered back-to-front pass list; level owns one, calls draw(entities) each frame. */
+/** Ordered back-to-front pass list; a scene owns one, calls draw(entities) each frame. */
 globalThis.Renderer = class Renderer {
   constructor() {
     this.passes = [];

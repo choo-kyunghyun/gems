@@ -3,20 +3,20 @@
  * split as Temperature).
  *
  * The point: off-focus world state (a wandering trader crossing maps, a scheduled raid, a timed
- * respawn) advances by DISCRETE scheduled events, not by simulating a level every frame. `update(now)`
- * fires every event whose time has come, whatever map is active — the queue is blind to which level is
+ * respawn) advances by DISCRETE scheduled events, not by simulating a scene every frame. `update(now)`
+ * fires every event whose time has come, whatever map is active — the queue is blind to which scene is
  * loaded. Handlers do the work (they touch the active World only at a hydrate/dehydrate boundary).
  *
  * Time is an absolute in-game hour count (WorldClock.absHours() = (day-1)*24 + hour), so sleeping
  * (Time.scale) fast-forwards schedules for free and the queue freezes in the lobby (WorldClock only
- * advances while the RPG level steps). Generic on `now` — it never reads WorldClock itself.
+ * advances while the RPG scene steps). Generic on `now` — it never reads WorldClock itself.
  */
 globalThis.WorldEvents = {
   _q: [], // [{ at, kind, data }] — kept sorted ascending by `at` (soonest first)
   _handlers: {}, // kind -> fn(data) ; a kind with no handler is dropped when due
 
   /**
-   * Register the handler for an event kind (last registration wins). Do this once at level setup.
+   * Register the handler for an event kind (last registration wins). Do this once at scene setup.
    */
   on(kind, fn) {
     WorldEvents._handlers[kind] = fn;
@@ -66,7 +66,7 @@ globalThis.WorldEvents = {
     return n;
   },
 
-  /** Handlers are kept — re-register per level. */
+  /** Handlers are kept — re-register per scene. */
   reset() {
     WorldEvents._q = [];
   },
