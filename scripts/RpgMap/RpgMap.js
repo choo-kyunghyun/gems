@@ -1,8 +1,10 @@
 // Map-graph engine for the RPG scene — portal travel, map pool, and persistence.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
- * Visited worlds stay ALIVE in the World level pool (the map pool — the pooled entry IS the
- * park bundle; no scene-side pool), so a door trip never destroys/rebuilds. Only the SQUAD migrates:
+ * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid +
+ * entities) and `_parked` below holds the per-map RUNTIME the RPG builds over it (renderer,
+ * camera, physics, nav, render-pass handles), so a door trip never destroys/rebuilds. Only the
+ * SQUAD migrates:
  * every entity sharing the player's Squad id (player included) moves as a WHOLE entity through
  * World.take/put — a portal forces a "wait" member back to "follow" first, so the squad
  * always travels together. There is no per-map player and no carried component subset; kicked/unhired
@@ -11,18 +13,18 @@
  * respawn-from-file reconcile. Disk saves are the follow-up seam.
  */
 globalThis.RpgMap = {
+  _parked: {}, // mapId -> the park bundle below. The map's DATA is its pooled Level, not this.
+
   // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
-  // per-activate transients reset by _activateReset on each map open). The per-layer tilemap
-  // handles (<key>Layer/<key>Type/<key>Types) are NOT listed — _bundleKeys derives them from
-  // RpgGrid.LAYERS, so a new LAYERS entry can't silently miss the bundle.
+  // per-activate transients reset by _activateReset on each map open). NOT listed: the Level
+  // itself (the pool holds it — a resume re-points scene.level at it) and the per-layer tilemap
+  // handles (<key>Layer/<key>Type/<key>Types), which _bundleKeys derives from RpgLevel.LAYERS so a
+  // new LAYERS entry can't silently miss the bundle.
   // (playerId is NOT bundled — it's DERIVED: set on boot spawn/arrival and re-latched per frame
   // from the Playable query, so the bundle never carries a player handle)
   BUNDLE_KEYS: [
-    "entities",
-    "grid",
     "spawn",
     "entries",
-    "mapId",
     "_chunked",
     "_indoor",
     "colliders",
@@ -59,9 +61,9 @@ globalThis.RpgMap = {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
     // ── PHASE A: pull the squad out, then park the current map (its store stays alive) ──
     if (scene.playerId !== undefined) {
-      const sid = scene.entities.get(Squad, scene.playerId).id;
+      const sid = scene.level.entities.get(Squad, scene.playerId).id;
       const members = FollowerSystem.members(
-        scene.entities,
+        scene.level.entities,
         sid,
         scene.playerId,
       );
@@ -69,24 +71,23 @@ globalThis.RpgMap = {
       for (let i = 0; i < members.length; i++) {
         // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus)
         FollowerSystem.setState(
-          scene.entities,
+          scene.level.entities,
           scene.playerId,
           members[i],
           "follow",
         );
-        squad.push(World.take(scene.mapId, members[i]));
+        squad.push(World.take(scene.level.id, members[i]));
       }
       Trader.onSuspend(scene); // dehydrate any embodied wandering trader → its record (before park)
-      scene.entities.flush(); // commit the taken members' removals before parking
+      scene.level.entities.flush(); // commit the taken members' removals before parking
       RpgMap.suspend(scene);
     }
     // ── PHASE B: enter the target — resume its parked bundle, else build from file ──
     // every resident map is parked at this point (Phase A parked the current one), so a
-    // registry hit is always a full park bundle
-    const bundle = World.get(mapId);
-    if (bundle !== null) RpgMap.resume(scene, bundle, entryId, squad);
+    // _parked hit is always a full park bundle
+    if (RpgMap._parked[mapId] !== undefined)
+      RpgMap.resume(scene, mapId, entryId, squad);
     else RpgMap.build(scene, mapId, entryId, squad);
-    World.activeId = scene.mapId;
     Trader.onActivate(scene); // embody any trader currently in this map
   },
 
@@ -97,36 +98,37 @@ globalThis.RpgMap = {
    */
   _arriveSquad(scene, squad, sp) {
     if (squad === null || squad.length === 0) return;
-    scene.playerId = World.put(scene.mapId, squad[0], {
+    scene.playerId = World.put(scene.level.id, squad[0], {
       [Position]: { x: sp.x, y: sp.y, z: 0 },
       [Velocity]: { x: 0, y: 0, z: 0 },
     });
     for (let i = 1; i < squad.length; i++)
-      World.put(scene.mapId, squad[i], {
+      World.put(scene.level.id, squad[i], {
         [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
   },
 
   /**
-   * Park the live map: its registry entry becomes the full bundle (was the minimal
-   * { entities, grid } from build, or the previous park). Unassign (not destroy) the camera —
-   * the parked map keeps it for resume; without the unassign its later destroy() would tear
-   * down the live view. exitRegion so the next map re-detects its climate.
+   * Park the live map: its runtime moves to _parked; its Level is already pooled and stays there
+   * untouched. Unassign (not destroy) the camera — the parked map keeps it for resume; without
+   * the unassign its later destroy() would tear down the live view. exitRegion so the next map
+   * re-detects its climate.
    */
   suspend(scene) {
     if (scene.camera) scene.camera.unassign();
     Weather.exitRegion();
-    World.add(scene.mapId, RpgMap._stash(scene));
+    RpgMap._parked[scene.level.id] = RpgMap._stash(scene);
   },
 
   /**
    * Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
    * at the entry (the parked store has no player — the squad left through the portal).
    */
-  resume(scene, bundle, entryId, squad) {
-    RpgMap._restore(scene, bundle);
-    // the registry entry stays (the map is resident either way); the next suspend overwrites it
+  resume(scene, mapId, entryId, squad) {
+    scene.level = World.get(mapId); // the pooled data, exactly as it parked
+    RpgMap._restore(scene, RpgMap._parked[mapId]);
+    World.activeId = mapId;
     MotionPlanner.setGrid(scene.nav);
     if (scene.camera) scene.camera.assign(0);
 
@@ -160,14 +162,14 @@ globalThis.RpgMap = {
   },
 
   /**
-   * Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgGrid.LAYERS
+   * Full bundle key list: BUNDLE_KEYS + the per-layer handles from RpgLevel.LAYERS
    * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
    * (portal-rate, tiny).
    */
   _bundleKeys() {
     const keys = RpgMap.BUNDLE_KEYS.slice();
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
-      const cfg = RpgGrid.LAYERS[i];
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
       keys.push(cfg.key + "Layer");
       keys.push(cfg.key + "Type");
       if (cfg.materials !== undefined) keys.push(cfg.key + "Types");
@@ -210,7 +212,7 @@ globalThis.RpgMap = {
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
-    CombatAI.bind(scene.entities, scene.grid);
+    CombatAI.bind(scene.level.entities, scene.level.grid);
     // Re-point the terrain movement pricing (mover speed × 1/cost) at the active map, same reason.
     PathFollow.bind(RpgMap._terrainCost(scene));
   },
@@ -224,8 +226,8 @@ globalThis.RpgMap = {
   _terrainCost(scene) {
     if (!scene._chunked || scene.chunks === undefined) return null;
     const chunks = scene.chunks;
-    const cw = scene.grid.cellWidth;
-    const ch = scene.grid.cellHeight;
+    const cw = scene.level.grid.cellWidth;
+    const ch = scene.level.grid.cellHeight;
     return (wx, wy) => chunks.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
   },
 
@@ -254,7 +256,6 @@ globalThis.RpgMap = {
     const data = loaded.data;
     mapId = loaded.mapId;
     entryId = loaded.entryId;
-    scene.mapId = mapId;
     // On a LOAD, SaveGame stashes each saved map's state; consume this map's here (null for a new
     // game / an unvisited map). Its chunk cache feeds _spawnWorld; its builds apply after scaffolding.
     const mapState = SaveGame.takePendingMap(mapId);
@@ -266,13 +267,10 @@ globalThis.RpgMap = {
       `RPG map: ${mapId} (entry ${entryId})${scene._chunked ? " [chunked]" : ""}`,
     );
 
-    RpgMap._buildWorld(scene, data, entryId, squad); // entity store + LevelGrid (+ player on boot) + zones
-    // register BEFORE the squad lands — World.put targets the registry. Minimal entry;
-    // suspend later overwrites it with the full park bundle.
-    World.add(scene.mapId, {
-      entities: scene.entities,
-      grid: scene.grid,
-    });
+    RpgMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + zones
+    // pool it BEFORE the squad lands — World.put resolves the destination through the pool
+    World.add(mapId, scene.level);
+    World.activeId = mapId; // building a map activates it (a load boots straight through here)
     RpgMap._arriveSquad(scene, squad, scene.spawn); // scene.spawn is already entry-resolved
     // build-mode tracking, fresh per first visit (parks with the bundle thereafter). _builtEnts
     // persists on the scene across map swaps (BuildMode.build runs once) — reset explicitly.
@@ -300,15 +298,15 @@ globalThis.RpgMap = {
    * Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
    */
   _loadData(mapId, entryId) {
-    const file = RpgGrid.mapFile(mapId);
+    const file = RpgLevel.mapFile(mapId);
     let data = LevelSerializer.load(file, { genre: "topdown" });
     if (data === null) {
       Log.error(
-        `map "${mapId}" (${file}) failed — falling back to ${RpgGrid.START}`,
+        `map "${mapId}" (${file}) failed — falling back to ${RpgLevel.START}`,
       );
-      mapId = RpgGrid.START;
+      mapId = RpgLevel.START;
       entryId = "default";
-      data = LevelSerializer.load(RpgGrid.mapFile(mapId), {
+      data = LevelSerializer.load(RpgLevel.mapFile(mapId), {
         genre: "topdown",
       });
     }
@@ -321,18 +319,22 @@ globalThis.RpgMap = {
    * which re-latches scene.playerId. Chunked gets a bigger entity cap (a window of chunks' worth
    * of entities + colliders + drops) and an empty resident grid (player builds only).
    */
-  _buildWorld(scene, data, entryId, squad) {
-    scene.entities = new Entity(scene._chunked ? 1024 : 256);
+  _buildWorld(scene, data, mapId, entryId, squad) {
+    // a streamed map holds a window of chunks' worth of entities + colliders + drops at once
+    scene.level = new Level({
+      id: mapId,
+      capacity: scene._chunked ? 1024 : 256,
+    });
     const built = scene._chunked
-      ? RpgGrid.buildChunked(scene.entities, data, entryId)
-      : RpgGrid.build(scene.entities, data, entryId);
-    scene.grid = built.grid;
+      ? RpgLevel.buildChunked(scene.level.entities, data, entryId)
+      : RpgLevel.build(scene.level.entities, data, entryId);
+    scene.level.grid = built.grid;
     scene.spawn = built.spawn; // for player respawn on death
-    scene.entries = RpgMap._entryTable(scene.grid, data); // named entries → world coords (resume)
+    scene.entries = RpgMap._entryTable(scene.level.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
     // plus <key>Types for a materials-bearing layer (wall). Bundled via _bundleKeys.
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
-      const key = RpgGrid.LAYERS[i].key;
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const key = RpgLevel.LAYERS[i].key;
       scene[key + "Layer"] = built[key + "Layer"];
       scene[key + "Type"] = built[key + "Type"];
       if (built[key + "Types"] !== undefined)
@@ -343,13 +345,13 @@ globalThis.RpgMap = {
     // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
       PlayerSystem.bindKeys();
-      scene.playerId = PlayerSystem.spawn(scene.entities, built.spawn);
+      scene.playerId = PlayerSystem.spawn(scene.level.entities, built.spawn);
     }
 
     // settlement channel (one per map) — Survey Posts found player-owned Settlements into it, build
     // mode gates placement to owned land, RenderZone visualizes every settlement's territory. Created
     // empty up front so the persistence import + RenderZone have a target before anything is founded.
-    Settlement.channel(scene.grid);
+    Settlement.channel(scene.level.grid);
     // Authored non-player settlements (optional meta.settlements, mirroring meta.climate below):
     // faction hubs / raider camps. The overworld authors one — the colony "hub", whose NPCs and
     // stockpile chest are its Residents — so the player's own founded settlement and an authored
@@ -359,7 +361,7 @@ globalThis.RpgMap = {
       for (let i = 0; i < settlements.length; i++) {
         const s = settlements[i];
         const r = s.rect;
-        Settlement.found(scene.grid, r[0], r[1], r[2], r[3], {
+        Settlement.found(scene.level.grid, r[0], r[1], r[2], r[3], {
           id: s.id, // stable authored sid (residents reference it)
           // name is an i18n key — the label renders in-world (RenderZoneLabel), so localize it
           name: s.name !== undefined ? I18n.text(s.name) : "",
@@ -374,7 +376,7 @@ globalThis.RpgMap = {
     // persistence import so it round-trips like the buildable zone.
     const climate = data.meta.climate;
     if (climate !== undefined) {
-      const cmap = scene.grid.addZoneMap("climate");
+      const cmap = scene.level.grid.addZoneMap("climate");
       for (let i = 0; i < climate.length; i++) {
         const c = climate[i];
         const z = cmap.define({
@@ -412,8 +414,8 @@ globalThis.RpgMap = {
       // simRadius:1 stays the shipped default pending a simRadius:2 re-measure with SolidSystem's
       // static grid in place (the historical wide-SIM blocker — see SolidSystem._gridRebuild).
       scene.chunks = new ChunkManager(
-        scene.entities,
-        scene.grid,
+        scene.level.entities,
+        scene.level.grid,
         scene.generator,
         {
           chunkCols: data.meta.chunkCols ?? 16,
@@ -426,7 +428,7 @@ globalThis.RpgMap = {
             RpgSpawn.spawnEntity(entities, grid, desc),
         },
       );
-      RpgGrid.buildWorldBorder(scene.entities, scene.grid, wc, wr); // edge walls (always present)
+      RpgLevel.buildWorldBorder(scene.level.entities, scene.level.grid, wc, wr); // edge walls (always present)
       // Generate the ENTIRE finite world into the manager's store now (one-time, behind the
       // scene fade) — geometry is resident for the map's lifetime; mid-game work is entity
       // promote/demote only, and generate() never runs in play.
@@ -439,7 +441,7 @@ globalThis.RpgMap = {
       // update, so they materialize saved snapshots (dead mobs stay dead) instead of fresh spawns.
       if (opts.chunkCache !== undefined)
         scene.chunks.importCache(opts.chunkCache);
-      const sp = scene.entities.get(Position, scene.playerId);
+      const sp = scene.level.entities.get(Position, scene.playerId);
       scene.chunks.update(sp.x, sp.y); // populate the sim ring around the spawn
       scene.reachZone = RpgMap._authoredReach(scene, data); // origin-area quest zone (authored hub)
     } else {
@@ -448,7 +450,7 @@ globalThis.RpgMap = {
       // parked map's sim ring, and a save would export its cache under this map's id)
       scene.generator = undefined;
       scene.chunks = undefined;
-      const ents = RpgSpawn.spawn(scene.entities, scene.grid, data);
+      const ents = RpgSpawn.spawn(scene.level.entities, scene.level.grid, data);
       scene.reachZone = ents.reach; // undefined when the map has no reach marker
     }
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
@@ -472,17 +474,17 @@ globalThis.RpgMap = {
     // History: SolidSystem was O(bodies×statics); a per-tick static snapshot cut per-test
     // allocs (~8.5→~1.2ms/tick at simRadius:1), then spatial bucketing of that snapshot
     // removed the linear-over-all-statics scan — lifting the wide-SIM blocker (pending re-measure).
-    scene.entities.broadphase = new Broadphase(
-      scene.grid.cols * scene.grid.cellWidth,
-      scene.grid.rows * scene.grid.cellHeight,
+    scene.level.entities.broadphase = new Broadphase(
+      scene.level.grid.cols * scene.level.grid.cellWidth,
+      scene.level.grid.rows * scene.level.grid.cellHeight,
       96,
     );
 
     scene.nav = new NavGrid(
       32,
       32,
-      scene.grid.cellWidth,
-      scene.grid.cellHeight,
+      scene.level.grid.cellWidth,
+      scene.level.grid.cellHeight,
       RpgMap._terrainCost(scene), // weight routes by terrain (wade only when it beats going around)
     );
     MotionPlanner.setGrid(scene.nav);
@@ -530,13 +532,13 @@ globalThis.RpgMap = {
       scene._chunkPass = undefined;
     }
     // Resident tile layers (terrain/floor/fence) as real tilemaps again — bottom→top per
-    // RpgGrid.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
+    // RpgLevel.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
     // (flat fallback keeps its "corner" RenderTileMap). VBO-cached + keyed by layer so a
     // BuildMode edit markDirty's the matching pass. Chunked maps hold these layers EMPTY
     // (streamed terrain is TerrainStream's) — an empty layer emits no quads, so free there.
     scene._tilePasses = {};
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
-      const cfg = RpgGrid.LAYERS[i];
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
       if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
       const spr = asset_get_index(cfg.sprite);
       if (!sprite_exists(spr)) {
@@ -545,7 +547,7 @@ globalThis.RpgMap = {
       }
       const pass = new RenderTileMap(
         scene[cfg.key + "Layer"],
-        scene.grid,
+        scene.level.grid,
         spr,
         {
           autotile: cfg.type,
@@ -556,19 +558,19 @@ globalThis.RpgMap = {
       scene.renderer.insert(pass);
     }
     // the sprite-free cost fill stays as a debug overlay — Debug → Render → Tiles
-    scene._tilePass = new RenderDebugTileMap(scene.grid, {
+    scene._tilePass = new RenderDebugTileMap(scene.level.grid, {
       cost: true,
       tiles: false,
       alpha: 0.5,
     });
     scene._tilePass.enabled = false;
     scene.renderer.insert(scene._tilePass);
-    scene._gridPass = new RenderGrid(scene.grid); // cell boundary lines
+    scene._gridPass = new RenderGrid(scene.level.grid); // cell boundary lines
     scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid
     scene.renderer.insert(scene._gridPass);
-    scene.renderer.insert(new RenderZone(scene.grid, "settlement"));
+    scene.renderer.insert(new RenderZone(scene.level.grid, "settlement"));
     scene.renderer.insert(
-      new RenderZoneLabel(scene.grid, "settlement", {
+      new RenderZoneLabel(scene.level.grid, "settlement", {
         font: I18n.font("default"),
       }),
     );
@@ -618,7 +620,7 @@ globalThis.RpgMap = {
       // PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per material,
       // bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
       // default bucket for file/streamed walls.
-      const wallCfg = RpgGrid.layerCfg("wall");
+      const wallCfg = RpgLevel.layerCfg("wall");
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
         const m = wallCfg.materials[i];
@@ -630,7 +632,7 @@ globalThis.RpgMap = {
           color: Color.parse(m.color),
         });
       }
-      scene._tilePasses.wall = new RenderWalls(scene.grid, scene.wallLayer, {
+      scene._tilePasses.wall = new RenderWalls(scene.level.grid, scene.wallLayer, {
         color: wallMats[0].color,
         sprite: wallMats[0].sprite,
         frame: 0,
@@ -645,7 +647,7 @@ globalThis.RpgMap = {
       // keyed into _tilePasses). Same brick texture/tint as the resident walls.
       if (scene._chunked)
         scene.renderer.insert(
-          new RenderWalls(scene.grid, scene.chunks.wallLayer(), {
+          new RenderWalls(scene.level.grid, scene.chunks.wallLayer(), {
             color: wallMats[0].color, // occupancy view has no TileTypes — all default brick
             sprite: wallMats[0].sprite,
             frame: 0,
@@ -665,7 +667,7 @@ globalThis.RpgMap = {
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
     scene.renderer.insert(bbox);
-    const paths = new RenderDebugPath(scene.grid); // enemy A* paths, off until toggled
+    const paths = new RenderDebugPath(scene.level.grid); // enemy A* paths, off until toggled
     paths.enabled = false;
     scene.renderer.insert(paths);
     // entity "active range" rings (turret fire / enemy aggro/give-up/attack), off until toggled
@@ -717,9 +719,9 @@ globalThis.RpgMap = {
     // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); camera derives live
     // minZoom from it + the current surface each frame. Horizontal is the binding axis on a
     // landscape surface.
-    const viewCap = scene.grid.cols * scene.grid.cellWidth;
+    const viewCap = scene.level.grid.cols * scene.level.grid.cellWidth;
     scene.camera = CameraFollow.create2d({
-      entities: scene.entities,
+      entities: scene.level.entities,
       followTarget: scene.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
       followLerp: 0.15,
       pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
@@ -739,8 +741,8 @@ globalThis.RpgMap = {
       clamp: {
         x1: 0,
         y1: 0,
-        x2: scene.grid.cols * scene.grid.cellWidth,
-        y2: scene.grid.rows * scene.grid.cellHeight,
+        x2: scene.level.grid.cols * scene.level.grid.cellWidth,
+        y2: scene.level.grid.rows * scene.level.grid.cellHeight,
       },
     });
     scene.camera.assign(0);
@@ -812,15 +814,22 @@ globalThis.RpgMap = {
   },
 
   /**
-   * Reclaim ONE map bundle's owned resources. No global input/weather teardown — those are
-   * scene-scoped. Used by scene teardown. renderer.destroy() frees the terrain VBOs.
+   * Scene teardown: reclaim every parked map — its runtime here, its Level from the pool — then
+   * drop the park index (the caller drops the pool itself). Park the live map FIRST, so no map is
+   * missed. No global input/weather teardown — those are scene-scoped. renderer.destroy() frees
+   * the terrain VBOs.
    */
-  _free(b) {
-    if (b.chunks) b.chunks.destroy();
-    if (b.camera) b.camera.destroy();
-    if (b.renderer) b.renderer.destroy();
-    if (b.entities) b.entities.destroy();
-    if (b.grid) b.grid.destroy();
+  reset() {
+    const ids = Object.keys(RpgMap._parked);
+    for (let i = 0; i < ids.length; i++) {
+      const b = RpgMap._parked[ids[i]];
+      if (b.chunks) b.chunks.destroy();
+      if (b.camera) b.camera.destroy();
+      if (b.renderer) b.renderer.destroy();
+      const level = World.get(ids[i]);
+      if (level !== null) level.destroy();
+    }
+    RpgMap._parked = {};
   },
 
   /**
@@ -828,12 +837,12 @@ globalThis.RpgMap = {
    * go() swaps the store out so we return immediately.
    */
   checkPortals(scene) {
-    const p = AABB.of(scene.entities, scene.playerId);
+    const p = AABB.of(scene.level.entities, scene.playerId);
     // live query every doorway (Portal component) — no stored list to dangle as chunks stream
-    const ids = scene.entities.query(Portal);
+    const ids = scene.level.entities.query(Portal);
     let over = -1;
     for (let i = 0; i < ids.length; i++) {
-      const z = AABB.of(scene.entities, ids[i]);
+      const z = AABB.of(scene.level.entities, ids[i]);
       if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
         over = ids[i];
         break;
@@ -845,7 +854,7 @@ globalThis.RpgMap = {
       return;
     }
     if (scene._portalLock) return;
-    const portal = scene.entities.get(Portal, over);
+    const portal = scene.level.entities.get(Portal, over);
     Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
     RpgMap.go(scene, portal.toMap, portal.toEntry);
   },
@@ -858,7 +867,7 @@ globalThis.RpgMap = {
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++)
       if (spawns[i].preset === "reach")
-        return RpgSpawn.reachZone(scene.grid, spawns[i]);
+        return RpgSpawn.reachZone(scene.level.grid, spawns[i]);
     return undefined;
   },
 };

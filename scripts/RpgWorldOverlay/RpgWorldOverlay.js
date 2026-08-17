@@ -32,7 +32,7 @@ globalThis.RpgWorldOverlay = {
   },
 
   drawWorld(scene) {
-    const entities = scene.entities;
+    const entities = scene.level.entities;
 
     const drops = entities.query(ItemDrop, Position);
     for (const id of drops) {

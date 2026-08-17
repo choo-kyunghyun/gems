@@ -120,7 +120,7 @@ globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
 
 /**
  * One-line hint text on a card backdrop — for overlays where a bare gemsLabel would
- * float as low-contrast text over a level's render.
+ * float as low-contrast text over the scene's render.
  */
 globalThis.gemsHint = function gemsHint(label, opts = {}) {
   const card = gemsCard({ padding: GemsTheme.padSm });

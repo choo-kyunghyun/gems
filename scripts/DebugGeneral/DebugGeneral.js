@@ -54,11 +54,8 @@ globalThis.DebugGeneral = {
         }
         d.scene = game.label();
         const s = game.scene;
-        const w =
-          s !== null && s !== undefined && s.entities !== undefined
-            ? s.entities
-            : null;
-        d.entities = w !== null ? w.count() : "-";
+        const lv = s !== null && s !== undefined ? s.level : undefined;
+        d.entities = lv !== undefined && lv !== null ? lv.entities.count() : "-";
       },
     });
     Debug.add({

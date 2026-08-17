@@ -39,7 +39,7 @@ globalThis.StorageUI = {
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
         () => StorageUI._allFrom(scene, "bag"),
-        () => scene.entities.get(Inventory, scene.playerId),
+        () => scene.level.entities.get(Inventory, scene.playerId),
       ),
     );
     cols.insertChild(
@@ -48,7 +48,7 @@ globalThis.StorageUI = {
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
         () => StorageUI._allFrom(scene, "box"),
-        () => scene.entities.get(Inventory, scene._storageId),
+        () => scene.level.entities.get(Inventory, scene._storageId),
       ),
     );
     card.insertChild(cols);
@@ -148,7 +148,7 @@ globalThis.StorageUI = {
    * when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
    */
   _rows(scene, inv) {
-    const fav = scene.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(Favorites, scene.playerId);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -181,7 +181,7 @@ globalThis.StorageUI = {
   },
 
   refresh(scene) {
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const bagInv = entities.get(Inventory, scene.playerId);
     const boxInv = entities.get(Inventory, scene._storageId);
     if (bagInv === undefined || boxInv === undefined) return;
@@ -205,7 +205,7 @@ globalThis.StorageUI = {
    */
   _move(scene, side, row) {
     if (row === null || row === undefined) return;
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const srcInv = entities.get(
       Inventory,
       side === "bag" ? scene.playerId : scene._storageId,
@@ -247,7 +247,7 @@ globalThis.StorageUI = {
    * its hotbar slot; a partial transfer keeps the binding usable.
    */
   _doMove(scene, side, row, amount) {
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const bag = entities.get(Inventory, scene.playerId);
     const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
@@ -304,7 +304,7 @@ globalThis.StorageUI = {
    * halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
    */
   _allFrom(scene, side) {
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const bag = entities.get(Inventory, scene.playerId);
     const box = entities.get(Inventory, scene._storageId);
     if (bag === undefined || box === undefined) return;
@@ -329,11 +329,11 @@ globalThis.StorageUI = {
    */
   _storeBlocked(scene, includeHotbar) {
     const blocked = {};
-    const fav = scene.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(Favorites, scene.playerId);
     if (fav !== undefined)
       for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
     if (includeHotbar) {
-      const hb = scene.entities.get(Hotbar, scene.playerId);
+      const hb = scene.level.entities.get(Hotbar, scene.playerId);
       if (hb !== undefined)
         for (let i = 0; i < hb.slots.length; i++)
           if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
@@ -347,7 +347,7 @@ globalThis.StorageUI = {
    */
   _equipKeep(scene) {
     const keep = {};
-    const eq = scene.entities.get(Equipment, scene.playerId);
+    const eq = scene.level.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return keep;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -410,8 +410,8 @@ globalThis.StorageUI = {
    * no-op when srcInv isn't the player bag.
    */
   _reconcileEquip(scene, srcInv) {
-    if (srcInv !== scene.entities.get(Inventory, scene.playerId)) return;
-    const eq = scene.entities.get(Equipment, scene.playerId);
+    if (srcInv !== scene.level.entities.get(Inventory, scene.playerId)) return;
+    const eq = scene.level.entities.get(Equipment, scene.playerId);
     if (eq === undefined) return;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -420,7 +420,7 @@ globalThis.StorageUI = {
         uid !== "" &&
         InventorySystem.findByUid(srcInv, uid) === undefined
       ) {
-        EquipmentSystem.unequip(scene.entities, scene.playerId, slot);
+        EquipmentSystem.unequip(scene.level.entities, scene.playerId, slot);
       }
     }
   },

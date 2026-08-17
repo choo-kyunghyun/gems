@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"RpgGrid",
+  "%Name":"Level",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"RpgGrid",
+  "name":"Level",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Game/Scene.yy",
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"RpgGrid.js",
+  "scriptSource":"Level.js",
 }

@@ -1,15 +1,16 @@
 const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
 
 /**
- * build() creates the resident tile layers from LAYERS (terrain/floor/wall/fence, bottom→top) and
- * returns { grid, spawn, colliders, <key>Layer/<key>Type per layer }; the level owns the grid's
- * lifecycle. Wall colliders are greedy-meshed by TileEdit.
+ * The RPG's level builder: the map graph (id → file) plus build(), which paints a level FILE into
+ * a store + grid and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer } for the
+ * caller to hang on its Level (RpgMap._buildWorld does; the Level owns the grid's lifecycle from
+ * there). Wall colliders are greedy-meshed by TileEdit.
  *
- * Level data: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are cell
+ * File shape: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are cell
  * rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so a level
  * can exceed the view and the follow camera scrolls across it.
  */
-globalThis.RpgGrid = {
+globalThis.RpgLevel = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
   // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a level owns
@@ -21,7 +22,7 @@ globalThis.RpgGrid = {
   },
   START: "overworld",
   mapFile(id) {
-    return RpgGrid.MAPS[id];
+    return RpgLevel.MAPS[id];
   },
 
   // one-shot editor→play hand-off: the level editor's Test Play sets a save-dir level file;
@@ -155,8 +156,8 @@ globalThis.RpgGrid = {
 
   /** LAYERS config by key (BuildMode reads `solid`/`materials` off it). */
   layerCfg(key) {
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++)
-      if (RpgGrid.LAYERS[i].key === key) return RpgGrid.LAYERS[i];
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++)
+      if (RpgLevel.LAYERS[i].key === key) return RpgLevel.LAYERS[i];
     return undefined;
   },
 
@@ -168,8 +169,8 @@ globalThis.RpgGrid = {
    */
   _makeLayers(grid) {
     const h = {};
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
-      const cfg = RpgGrid.LAYERS[i];
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
       const layer = new TileLayer(grid.cols, grid.rows, {
         emptyCost: cfg.emptyCost,
       });
@@ -203,8 +204,8 @@ globalThis.RpgGrid = {
    * chunked leaves the resident grid empty (ChunkManager owns terrain).
    */
   _fillLayers(grid, h) {
-    for (let i = 0; i < RpgGrid.LAYERS.length; i++) {
-      const cfg = RpgGrid.LAYERS[i];
+    for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
+      const cfg = RpgLevel.LAYERS[i];
       if (!cfg.fill) continue;
       const layer = h[cfg.key + "Layer"];
       const type = h[cfg.key + "Type"];
@@ -242,10 +243,10 @@ globalThis.RpgGrid = {
     });
     // Terrain auto-filled as the walkable base; walls + optional floors from the file's
     // cell-rects (fence has no file source yet).
-    const h = RpgGrid._makeLayers(grid);
-    RpgGrid._fillLayers(grid, h);
-    RpgGrid._paintRects(h.wallLayer, data.walls, h.wallType);
-    RpgGrid._paintRects(h.floorLayer, data.floors, h.floorType);
+    const h = RpgLevel._makeLayers(grid);
+    RpgLevel._fillLayers(grid, h);
+    RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
+    RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
 
     const colliders = [];
     TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
@@ -272,7 +273,7 @@ globalThis.RpgGrid = {
     });
     // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
     // ChunkManager's. Same layer set/order as build() so Level.import matches.
-    const h = RpgGrid._makeLayers(grid);
+    const h = RpgLevel._makeLayers(grid);
 
     const spawn = this._resolveSpawn(grid, data, entryId);
     return { grid, spawn, colliders: [], ...h };

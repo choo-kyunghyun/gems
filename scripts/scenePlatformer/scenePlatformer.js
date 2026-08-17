@@ -19,9 +19,10 @@ class _ScenePlatformerClass {
     // set here, not as a class field: I18n may not have this locale's text at class-def time.
     this.label = I18n.text("PLAT_NAME");
 
-    this.entities = new Entity(256, { gravity: PLATF_GRAVITY });
-    this.spawn = PlatformerLevel.build(this.entities);
-    this.ctrl = PlatformerController.create(this.entities, this.spawn);
+    // grid-less: the platforms are solid entities, not tiles
+    this.level = new Level({ capacity: 256, gravity: PLATF_GRAVITY });
+    this.spawn = PlatformerLevel.build(this.level.entities);
+    this.ctrl = PlatformerController.create(this.level.entities, this.spawn);
     // BUG: [#15067] set in create(), not a class field.
     this.stomps = 0; // score reported back to host via result()
     Music.play(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
@@ -44,7 +45,7 @@ class _ScenePlatformerClass {
     this.renderer.insert(bbox);
 
     this.camera = CameraFollow.create2d({
-      entities: this.entities,
+      entities: this.level.entities,
       followTarget: this.ctrl.id,
       followLerp: 0.15,
       width: surface_get_width(application_surface),
@@ -63,7 +64,7 @@ class _ScenePlatformerClass {
     );
 
     Log.info(
-      `Platformer showcase ready — enemies=${this.entities.query(Enemy).length}`,
+      `Platformer showcase ready — enemies=${this.level.entities.query(Enemy).length}`,
     );
   }
 
@@ -71,42 +72,42 @@ class _ScenePlatformerClass {
     PlatformerController.pollInput(this.ctrl); // edge-triggered input latched once per frame
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
-      InterpolationSystem.snapshot(this.entities);
-      PlatformerController.update(this.entities, this.ctrl);
-      this.physics.update(this.entities);
-      EnemySystem.update(this.entities); // patrol/turn — runs after SolidSystem
+      InterpolationSystem.snapshot(this.level.entities);
+      PlatformerController.update(this.level.entities, this.ctrl);
+      this.physics.update(this.level.entities);
+      EnemySystem.update(this.level.entities); // patrol/turn — runs after SolidSystem
 
       const id = this.ctrl.id;
-      if (EnemySystem.resolveStomp(this.entities, id)) {
-        this.entities.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
+      if (EnemySystem.resolveStomp(this.level.entities, id)) {
+        this.level.entities.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
         this.stomps++;
         Audio.play({ sound: snd_hitsound_flesh }); // 2D — platformer sets no listener
       } else {
         let hurt = EnemySystem.resolveTouch(
-          this.entities,
+          this.level.entities,
           id,
           this.ctrl.iframes > 0,
         );
         if (
           !hurt &&
           this.ctrl.iframes <= 0 &&
-          CollectibleSystem.hitSpike(this.entities, id)
+          CollectibleSystem.hitSpike(this.level.entities, id)
         )
           hurt = true;
         if (hurt)
-          PlatformerController.respawn(this.entities, this.ctrl, this.spawn);
+          PlatformerController.respawn(this.level.entities, this.ctrl, this.spawn);
       }
-      if (this.entities.get(Position, id).y > PLATF_DEATH_Y)
-        PlatformerController.respawn(this.entities, this.ctrl, this.spawn);
+      if (this.level.entities.get(Position, id).y > PLATF_DEATH_Y)
+        PlatformerController.respawn(this.level.entities, this.ctrl, this.spawn);
 
-      this.entities.flush();
+      this.level.entities.flush();
     }
 
     this.camera.update();
   }
 
   draw() {
-    this.renderer.draw(this.entities);
+    this.renderer.draw(this.level.entities);
   }
 
   /** score returned to the RPG arcade cabinet via the Game object's back() onResult */

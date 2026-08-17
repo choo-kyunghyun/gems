@@ -99,10 +99,11 @@ globalThis.DebugInspector = {
     // register the Entity section up front so its window exists before the
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
-    const entities =
-      scene !== null && scene !== undefined && scene.entities !== undefined
-        ? scene.entities
+    const level =
+      scene !== null && scene !== undefined && scene.level !== undefined
+        ? scene.level
         : null;
+    const entities = level !== null && level !== undefined ? level.entities : null;
 
     // drop a stale selection (entity removed, or scene/store swapped).
     if (DebugInspector._id !== -1) {

@@ -110,18 +110,18 @@ globalThis.Interactable = {
   /** true when the cursor is over entity `id`'s BBox — lets the scene break a station-vs-NPC tie */
   isCursorOver(scene, id) {
     if (id === -1) return false;
-    const pos = scene.entities.get(Position, id);
+    const pos = scene.level.entities.get(Position, id);
     if (pos === undefined) return false;
     return Interactable._mouseInside(
       pos,
-      scene.entities.get(BBox, id),
+      scene.level.entities.get(BBox, id),
       scene.mouseWorld,
     );
   },
 
   /** pick target = station under the mouse (if in range), else nearest in range */
   _pick(scene) {
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const p = entities.get(Position, scene.playerId);
     if (p === undefined) {
       scene._interTarget = -1;
@@ -183,7 +183,7 @@ globalThis.Interactable = {
 
   _inRange(scene, id) {
     if (id === -1) return false;
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const p = entities.get(Position, scene.playerId);
     const pos = entities.get(Position, id);
     if (p === undefined || pos === undefined) return false;
@@ -198,13 +198,13 @@ globalThis.Interactable = {
    */
   _open(scene) {
     const id = scene._interTarget;
-    const comp = scene.entities.get(Interaction, id);
+    const comp = scene.level.entities.get(Interaction, id);
     if (comp === undefined) return;
     const def = InteractAction.get(comp.kind);
     if (def === undefined) return;
     def.run({
       scene,
-      entities: scene.entities,
+      entities: scene.level.entities,
       id,
       comp,
       playerId: scene.playerId,
@@ -223,7 +223,7 @@ globalThis.Interactable = {
   drawTarget(scene) {
     const id = scene._interTarget;
     if (id === -1) return;
-    const entities = scene.entities;
+    const entities = scene.level.entities;
     const pos = entities.get(Position, id);
     const bbox = entities.get(BBox, id);
     if (pos === undefined || bbox === undefined) return;

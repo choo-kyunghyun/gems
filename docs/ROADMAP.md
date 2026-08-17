@@ -44,7 +44,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`Query.hasCollision` duplicates `has: Collision`**: drop the opt and migrate its one caller (`RpgInteractions`).
 - **`MotionPlanner.plan`'s algorithm selector is speculative**: `MP_ALGORITHM` holds one value and the sole caller passes none — fold to `plan(start, goal, opt)` until a second algorithm exists. Planning with no grid bound should `Log.error`, not return the `[]` that also means unreachable.
 - **`Entity` argument order is split**: `get(Component, id)` reads one way, `add(id, Component, data)`/`detach(id, Component)` write the other. Normalizing the hottest API in the codebase is a full mechanical pass — decide the order first.
-- **`LevelManager`'s registry half predates the rename sweeps**: `worldOf(mapId)` returns an `Entity` store (`entitiesOf`), `_levels` holds map entries beside `_all`'s level entries, and `take`/`put`/`transfer` return null / -1 / id-or-snapshot across one family.
+- **`World`'s transfer family returns three shapes**: `take` gives a snapshot or null, `put` an id or -1, `transfer` an id, a snapshot, or null — one family, three failure signals a caller must know apart.
 - **One accessor against the house style**: `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.
 - **`SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order** of its siblings `density`/`anchor`; four call sites to swap.
 - **Singleton method style is split in Core/Util**: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
@@ -101,6 +101,6 @@ Deferred entity sim-LOD work (engine is `ChunkManager`):
 
 ### Verification
 
-- A dev-only test level satisfying the `Level` contract: builds a real `Entity` store, steps the actual systems, `Log.error`s failed assertions, then ends the run — so `gm-cli run` plus reading `game.log` is the whole loop. Registered in `LevelRegistry`, launched from `sceneLobby`'s dev launcher.
-- Assertions stay in that one level, never as per-module `test()` methods: a single deletable compilation unit costs each module nothing, keeps the shipped API surface clean, and stays clear of the per-unit budget defects (GMRT.md → Build).
+- A dev-only test scene satisfying the `Scene` contract: builds a real `Level`, steps the actual systems, `Log.error`s failed assertions, then ends the run — so `gm-cli run` plus reading `game.log` is the whole loop. Registered in `SceneRegistry`, launched from `sceneLobby`'s dev launcher.
+- Assertions stay in that one scene, never as per-module `test()` methods: a single deletable compilation unit costs each module nothing, keeps the shipped API surface clean, and stays clear of the per-unit budget defects (GMRT.md → Build).
 - Cover what only a running frame can catch (system ordering, `Pipeline` composition, grid/collider sync); leave one-off probes on the existing `Log`/`Screenshot`/`entities.dump` harness.

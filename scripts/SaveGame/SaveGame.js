@@ -174,7 +174,7 @@ globalThis.SaveGame = {
   applyMapState(scene, savedMap) {
     const zones = savedMap.zones;
     if (zones !== undefined && zones.settlement !== undefined) {
-      const zm = scene.grid.zoneMap("settlement");
+      const zm = scene.level.grid.zoneMap("settlement");
       if (zm !== undefined) zm.import(zones.settlement);
     }
     Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
@@ -207,7 +207,7 @@ globalThis.SaveGame = {
     id: "meta",
     capture(ctx) {
       const scene = ctx.scene;
-      const w = scene.entities;
+      const w = scene.level.entities;
       const pid = scene.playerId;
       const health = pid !== undefined ? w.get(Health, pid) : undefined;
       const stats = pid !== undefined ? w.get(Stats, pid) : undefined;
@@ -268,13 +268,13 @@ globalThis.SaveGame = {
       const maps = [];
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
-        // the ACTIVE map's live truth is on the scene (its registry entry is minimal until a
-        // suspend overwrites it); parked maps carry their full bundle in the registry.
+        const level = World.get(mapId); // the map's data — pooled whether it's active or parked
+        // its per-map RPG state lives flat on the scene while active, in the park bundle once parked
         const src =
-          mapId === activeId ? ctx.scene : World.get(mapId);
-        if (src === null || src.entities === undefined) continue;
-        const entities = src.entities;
-        const grid = src.grid;
+          mapId === activeId ? ctx.scene : RpgMap._parked[mapId];
+        if (level === null || src === undefined) continue;
+        const entities = level.entities;
+        const grid = level.grid;
         // component export → JSON, minus transient/rebuilt components (interpolation + pathfinding
         // are re-derived each tick; dropping them also shrinks the save and dodges any cyclic
         // reference a runtime component might carry — see Json's cycle guard).
@@ -337,7 +337,7 @@ globalThis.SaveGame = {
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
-        const pos = scene.entities.get(Position, scene.playerId);
+        const pos = scene.level.entities.get(Position, scene.playerId);
         if (pos !== undefined) {
           pos.x = pinfo.x;
           pos.y = pinfo.y;
@@ -442,14 +442,15 @@ globalThis.SaveGame = {
   },
 
   /**
-   * the current scene if it's saveable (has an entity store + player), else null — Save is gated on it.
+   * the current scene if it's saveable (has a level + player), else null — Save is gated on it.
    */
   _saveable(game) {
     const s = game.scene;
     if (
       s === null ||
       s === undefined ||
-      s.entities === undefined ||
+      s.level === undefined ||
+      s.level === null ||
       s.playerId === undefined
     )
       return null;

@@ -103,23 +103,23 @@ globalThis.Trader = {
   // Embody a settled trader IF its map is the active one and it isn't already embodied.
   _tryHydrate(scene, rec) {
     if (rec.inTransit || rec.entId !== -1) return;
-    if (scene === null || scene.mapId !== rec.map) return;
+    if (scene === null || scene.level.id !== rec.map) return;
     Trader._hydrate(scene, rec);
   },
   _hydrate(scene, rec) {
     // near the map's player spawn (each map's own "market point" — avoids per-map authored coords)
-    const sg = scene.grid.worldToGrid(scene.spawn.x, scene.spawn.y);
+    const sg = scene.level.grid.worldToGrid(scene.spawn.x, scene.spawn.y);
     const gx = sg.x + 3;
     const gy = sg.y;
     if (rec.snap !== undefined) {
       // re-embody living state via the scene manager (whole-entity restore into the active scene)
-      const w = scene.grid.gridToWorld(gx, gy);
-      rec.entId = World.put(scene.mapId, rec.snap, {
+      const w = scene.level.grid.gridToWorld(gx, gy);
+      rec.entId = World.put(scene.level.id, rec.snap, {
         [Position]: { x: w.x, y: w.y, z: 0 },
       });
     } else {
       // first time: build the vendor fresh from the descriptor (single entity path, RpgSpawn)
-      rec.entId = RpgSpawn.spawnEntity(scene.entities, scene.grid, {
+      rec.entId = RpgSpawn.spawnEntity(scene.level.entities, scene.level.grid, {
         preset: "npc",
         gx: gx,
         gy: gy,
@@ -128,14 +128,14 @@ globalThis.Trader = {
         merchant: rec.merchant,
       });
     }
-    Log.info(`trader ${rec.id} hydrated in ${scene.mapId} as ent ${rec.entId}`);
+    Log.info(`trader ${rec.id} hydrated in ${scene.level.id} as ent ${rec.entId}`);
   },
   _dehydrate(scene, rec) {
     if (scene._tradeOpen && scene._tradeMerchantId === rec.entId)
       TradeUI.close(scene); // its entity is leaving — close the shop if it's open on it
-    rec.snap = World.take(scene.mapId, rec.entId); // whole entity → held snapshot
+    rec.snap = World.take(scene.level.id, rec.entId); // whole entity → held snapshot
     rec.entId = -1;
-    Log.info(`trader ${rec.id} dehydrated from ${scene.mapId}`);
+    Log.info(`trader ${rec.id} dehydrated from ${scene.level.id}`);
   },
 
   /** New game / scene teardown: drop records + queued trader events; keep the handlers. */

@@ -1,5 +1,5 @@
 // HUD + overlay panels for the RPG scene — free functions taking the scene (mirrors RpgCombat/RpgMap).
-// Panels read scene.entities/playerId LIVE via gemsLabel callbacks, surviving the map-change store swap.
+// Panels read scene.level.entities/playerId LIVE via gemsLabel callbacks, surviving the map-change store swap.
 globalThis.RpgHud = {
   /**
    * build the persistent panels once (scene create)
@@ -44,7 +44,7 @@ globalThis.RpgHud = {
       gemsRichText(
         () => {
           if (scene.playerId === undefined) return "";
-          const hb = scene.entities.get(Hotbar, scene.playerId);
+          const hb = scene.level.entities.get(Hotbar, scene.playerId);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           return itemId ? RpgWorldOverlay.iconTag(itemId) : "";
         },
@@ -56,12 +56,12 @@ globalThis.RpgHud = {
         () => {
           const key = i + 1;
           if (scene.playerId === undefined) return "[" + key + "]";
-          const hb = scene.entities.get(Hotbar, scene.playerId);
+          const hb = scene.level.entities.get(Hotbar, scene.playerId);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
           const it = Item.get(itemId);
           const name = it !== undefined ? I18n.text(it.name) : itemId;
-          const inv = scene.entities.get(Inventory, scene.playerId);
+          const inv = scene.level.entities.get(Inventory, scene.playerId);
           const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
           return "[" + key + "]  " + name + " (" + n + ")";
         },
@@ -79,7 +79,7 @@ globalThis.RpgHud = {
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
       gemsProgress(
-        () => 1 - Survival.fraction(scene.entities.get(token, scene.playerId)),
+        () => 1 - Survival.fraction(scene.level.entities.get(token, scene.playerId)),
         {
           label: I18n.textRef(labelKey),
           fillColor: fillColor,
@@ -133,8 +133,8 @@ globalThis.RpgHud = {
     hpRow.insertChild(
       gemsLabel(
         () => {
-          const st = scene.entities.get(Stats, scene.playerId);
-          const hpC = scene.entities.get(Health, scene.playerId);
+          const st = scene.level.entities.get(Stats, scene.playerId);
+          const hpC = scene.level.entities.get(Health, scene.playerId);
           const hp = hpC !== undefined ? hpC.hp : 0;
           return I18n.text("RPG_HUD", hp, st.maxHp);
         },
@@ -150,7 +150,7 @@ globalThis.RpgHud = {
         () => {
           if (scene.playerId === undefined) return "";
           const prof = EquipmentSystem.weaponProfile(
-            scene.entities,
+            scene.level.entities,
             scene.playerId,
           );
           if (prof === null || prof.kind !== "gun") return ""; // melee/unarmed → hide
@@ -169,8 +169,8 @@ globalThis.RpgHud = {
     staRow.insertChild(
       gemsProgress(
         () => {
-          const sta = scene.entities.get(Stamina, scene.playerId);
-          const st = scene.entities.get(Stats, scene.playerId);
+          const sta = scene.level.entities.get(Stamina, scene.playerId);
+          const st = scene.level.entities.get(Stats, scene.playerId);
           if (sta === undefined || st === undefined || st.maxStamina <= 0)
             return 0;
           return sta.value / st.maxStamina;
@@ -226,7 +226,7 @@ globalThis.RpgHud = {
     statusRow.insertChild(
       gemsRichText(
         () => {
-          const list = StatusSystem.list(scene.entities, scene.playerId);
+          const list = StatusSystem.list(scene.level.entities, scene.playerId);
           let s = "";
           for (let i = 0; i < list.length; i++) {
             const def = Status.get(list[i].id);

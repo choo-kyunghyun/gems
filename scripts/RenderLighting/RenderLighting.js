@@ -7,7 +7,7 @@
  * Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
  * (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
  *
- * Inserted LAST in the RPG renderer; the level draws its bright cues AFTER so they stay above the tint.
+ * Inserted LAST in the RPG renderer; the scene draws its bright cues AFTER so they stay above the tint.
  * View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
  * @implements {RenderPass}
  */
