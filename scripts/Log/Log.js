@@ -6,44 +6,27 @@ globalThis.Log = {
   _lines: [],
   _dirty: false,
 
-  /**
-   * @param {string} msg
-   * @param {string} [level="INFO"]
-   */
   write(msg, level = "INFO") {
     this._lines.push(`[${current_time} ${level}] ${msg}`);
     if (this._lines.length > this.max) this._lines.shift();
     this._dirty = true;
   },
 
-  /**
-   * @param {string} msg
-   */
   info(msg) {
     this.write(msg, "INFO");
   },
-  /**
-   * @param {string} msg
-   */
   warn(msg) {
     this.write(msg, "WARN");
   },
-  /**
-   * @param {string} msg
-   */
   error(msg) {
     this.write(msg, "ERROR");
   },
-  /**
-   * @param {string} msg
-   */
   debug(msg) {
     this.write(msg, "DEBUG");
   },
 
   /**
    * buffered lines, capped at max (the oldest have already dropped).
-   * @returns {number}
    */
   count() {
     return this._lines.length;
@@ -67,8 +50,6 @@ globalThis.Log = {
    * unhandled-exception handler (wired via exception_unhandled_handler). Runs OUTSIDE any
    * event when the game is about to die, so record the crash to game.log before it does.
    * Returns the runner's exit code (non-zero = crashed).
-   * @param {Object} ex
-   * @returns {number}
    */
   exception(ex) {
     this.error("UNHANDLED EXCEPTION: " + ex.message);

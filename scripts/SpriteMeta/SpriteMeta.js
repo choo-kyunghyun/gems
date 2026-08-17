@@ -37,7 +37,6 @@ globalThis.SpriteMeta = {
 
   /**
    * Register defs (an array — from a manifest or code). Re-registering a name replaces.
-   * @param {Object[]} defs
    */
   register(defs) {
     for (const def of defs) {
@@ -81,8 +80,6 @@ globalThis.SpriteMeta = {
 
   /**
    * Def for a sprite ref or name — or undefined (an undeclared sprite is legal).
-   * @param {GMSprite|string} sprite
-   * @returns {Object|undefined}
    */
   of(sprite) {
     if (typeof sprite === "string") return SpriteMeta._byName.get(sprite);
@@ -96,8 +93,6 @@ globalThis.SpriteMeta = {
 
   /**
    * Density of a sheet — declared value, else 1 (the art-native baseline).
-   * @param {GMSprite|string} sprite
-   * @returns {number}
    */
   density(sprite) {
     const def = SpriteMeta.of(sprite);
@@ -107,9 +102,6 @@ globalThis.SpriteMeta = {
 
   /**
    * Final draw scale for a design scale on a sheet: scale / density.
-   * @param {number} scale
-   * @param {GMSprite|string} sprite
-   * @returns {number}
    */
   fit(scale, sprite) {
     return scale / SpriteMeta.density(sprite);
@@ -118,10 +110,6 @@ globalThis.SpriteMeta = {
   /** Named per-frame attachment point: [dx, dy] offset from the sprite origin (source px,
    *  dy negative = up), frame clamped into the table — or undefined (sheet has no anchors
    *  or no such name; an anchored consumer skips drawing).
-   * @param {GMSprite|string} sprite
-   * @param {string} name
-   * @param {number} frame
-   * @returns {number[]|undefined}
    */
   anchor(sprite, name, frame) {
     const def = SpriteMeta.of(sprite);

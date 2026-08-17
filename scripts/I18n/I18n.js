@@ -1,10 +1,10 @@
 // Localization registry — load(manifest) reads a locale's manifest.json (text masks + fonts/images/
 // sounds by role) into the Maps below; text()/textRef() resolve strings (textRef is a live () => string).
 globalThis.I18n = {
-  /** @type {Map<string,string>} */ texts: new Map(),
-  /** @type {Map<string,number>} */ fonts: new Map(),
-  /** @type {Map<string,number>} */ images: new Map(),
-  /** @type {Map<string,number>} */ sounds: new Map(),
+  texts: new Map(),
+  fonts: new Map(),
+  images: new Map(),
+  sounds: new Map(),
 
   /** Free all loaded assets + clear every registry (runs before each load). */
   destroy() {
@@ -20,7 +20,7 @@ globalThis.I18n = {
     I18n.sounds = new Map();
   },
 
-  /** Load a locale from its manifest.json. @param {string} fname manifest path */
+  /** Load a locale from its manifest.json path. */
   load(fname) {
     I18n.destroy();
 
@@ -100,9 +100,6 @@ globalThis.I18n = {
 
   /**
    * Resolve a key now (falls back to the key). Extra args fill `{0}`/`{1}`… placeholders.
-   * @param {string} key
-   * @param {...*} params
-   * @returns {string}
    */
   text(key, ...params) {
     if (params.length === 0) {
@@ -115,9 +112,6 @@ globalThis.I18n = {
   /**
    * Live `() => string` for UI labels that re-resolve (language swap / changing params).
    * `params` may be values or `() => value` getters.
-   * @param {string} key
-   * @param {...*} params
-   * @returns {() => string}
    */
   textRef(key, ...params) {
     if (params.length === 0) {
@@ -140,17 +134,17 @@ globalThis.I18n = {
     }
   },
 
-  /** @param {string} key @returns {number} the font handle, or the current draw font if undeclared */
+  /** The font handle, or the current draw font if undeclared. */
   font(key) {
     return I18n.fonts.get(key) ?? draw_get_font();
   },
 
-  /** @param {string} key @returns {number} the sprite handle, or -1 */
+  /** The sprite handle, or -1. */
   image(key) {
     return I18n.images.get(key) ?? -1;
   },
 
-  /** @param {string} key @returns {number} the sound stream handle, or -1 */
+  /** The sound stream handle, or -1. */
   sound(key) {
     return I18n.sounds.get(key) ?? -1;
   },

@@ -3,16 +3,14 @@
  * load/save touch, so only declared keys round-trip and `get` falls back to the default.
  */
 globalThis.Settings = {
-  /** @type {Object<string, any>} declared keys + their default values. */
+  /** Declared keys + their default values. */
   defaults: {},
 
-  /** @type {Object<string, any>} keys set this session (override defaults). */
+  /** Keys set this session (override defaults). */
   local: {},
 
   /**
    * merge into the defaults allowlist (additive; call before load).
-   * @param {Object<string, any>} obj
-   * @returns {typeof Settings}
    */
   register(obj) {
     Object.assign(this.defaults, obj);
@@ -21,8 +19,6 @@ globalThis.Settings = {
 
   /**
    * the set value, else the default.
-   * @param {string} key
-   * @returns {any}
    */
   get(key) {
     return key in this.local ? this.local[key] : this.defaults[key];
@@ -30,9 +26,6 @@ globalThis.Settings = {
 
   /**
    * set in memory (persisted on save).
-   * @param {string} key
-   * @param {any} value
-   * @returns {typeof Settings}
    */
   set(key, value) {
     this.local[key] = value;
@@ -41,8 +34,6 @@ globalThis.Settings = {
 
   /**
    * whether `key` was set and differs from its default.
-   * @param {string} key
-   * @returns {boolean}
    */
   isModified(key) {
     return key in this.local && this.local[key] !== this.defaults[key];
@@ -50,7 +41,6 @@ globalThis.Settings = {
 
   /**
    * drop all set values (back to defaults).
-   * @returns {typeof Settings}
    */
   reset() {
     this.local = {};
@@ -59,8 +49,6 @@ globalThis.Settings = {
 
   /**
    * Load declared keys from disk. Logs a warning on parse failure.
-   * @param {string} fname
-   * @returns {typeof Settings}
    */
   load(fname) {
     const raw = File.read(fname);
@@ -78,11 +66,8 @@ globalThis.Settings = {
 
   /**
    * write the declared keys set this session to disk; unset keys stay on defaults.
-   * @param {string} fname
-   * @returns {typeof Settings}
    */
   save(fname) {
-    /** @type {Object<string, any>} */
     const out = {};
     for (const key of Object.keys(this.defaults)) {
       if (key in this.local) out[key] = this.local[key];

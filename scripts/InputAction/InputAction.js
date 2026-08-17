@@ -9,25 +9,16 @@ globalThis.InputAction = class InputAction {
 
   /**
    * Restrict to given context names (indexOf-tested array, never a Set — GMRT Set iteration crashes).
-   * @param {string[]} list
-   * @returns {InputAction}
    */
   inContext(list) {
     this.contexts = list;
     return this;
   }
 
-  /**
-   * @returns {boolean}
-   */
   _blocked() {
     return this.contexts !== null && !InputContext.allows(this.contexts);
   }
 
-  /**
-   * @param {Object} data
-   * @returns {InputAction}
-   */
   static import(data) {
     const action = new InputAction();
     const buttons = data.buttons ?? [];
@@ -44,9 +35,6 @@ globalThis.InputAction = class InputAction {
     return action;
   }
 
-  /**
-   * @returns {{buttons: Object[], axes: Object[]}}
-   */
   export() {
     return {
       buttons: this.buttons.map((button) => button.export()),
@@ -54,38 +42,22 @@ globalThis.InputAction = class InputAction {
     };
   }
 
-  /**
-   * @param {number} source
-   * @param {number} button
-   * @param {number} [device=0]
-   * @returns {InputAction}
-   */
   bindButton(source, button, device = 0) {
     this.buttons.push(new InputButton(source, button, device));
     return this;
   }
 
-  /**
-   * @param {number} mode
-   * @param {number} axis
-   * @param {number} [device=0]
-   * @returns {InputAction}
-   */
   bindAxis(mode, axis, device = 0) {
     this.axes.push(new InputAxis(mode, axis, device));
     return this;
   }
 
   // single source of truth for binding→display text; reads live so a remap updates UIRebind + gemsKeyHints automatically.
-  /** @returns {string} e.g. "W" / "Shift" / "LMB", or "—" when unbound. */
+  /** E.g. "W" / "Shift" / "LMB", or "—" when unbound. */
   label() {
     return this.buttons.length > 0 ? this.buttons[0].label() : "—";
   }
 
-  /**
-   * @param {InputButton} button
-   * @returns {boolean}
-   */
   unbindButton(button) {
     const index = this.buttons.indexOf(button);
     if (index > -1) {
@@ -95,10 +67,6 @@ globalThis.InputAction = class InputAction {
     return false;
   }
 
-  /**
-   * @param {InputAxis} axis
-   * @returns {boolean}
-   */
   unbindAxis(axis) {
     const index = this.axes.indexOf(axis);
     if (index > -1) {
@@ -111,7 +79,6 @@ globalThis.InputAction = class InputAction {
   /**
    * mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
    * UIInput.active is a plain static field, read live each call.
-   * @returns {boolean}
    */
   static captured() {
     return UIInput.active !== null;
@@ -119,8 +86,6 @@ globalThis.InputAction = class InputAction {
 
   /**
    * debug overlay: MOUSE always muted (pick-click can't fire weapon); KEYBOARD only while overlay owns it so WASD still roams.
-   * @param {InputButton} button
-   * @returns {boolean}
    */
   static _debugMuted(button) {
     if (!Debug.isOpen()) return false;
@@ -132,7 +97,6 @@ globalThis.InputAction = class InputAction {
 
   /**
    * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam SystemMenu keeps UINav.suspended=true.
-   * @returns {boolean}
    */
   static _gamepadMuted() {
     return !UINav.suspended;
@@ -140,8 +104,6 @@ globalThis.InputAction = class InputAction {
 
   /**
    * avoids caching the bool across .some() callbacks — GMRT can clobber primitive bools in closures.
-   * @param {InputButton} button
-   * @returns {boolean}
    */
   static _buttonMuted(button) {
     if (InputAction._debugMuted(button)) return true;
@@ -150,9 +112,6 @@ globalThis.InputAction = class InputAction {
     );
   }
 
-  /**
-   * @returns {boolean}
-   */
   down() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
@@ -160,9 +119,6 @@ globalThis.InputAction = class InputAction {
     );
   }
 
-  /**
-   * @returns {boolean}
-   */
   pressed() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
@@ -170,9 +126,6 @@ globalThis.InputAction = class InputAction {
     );
   }
 
-  /**
-   * @returns {boolean}
-   */
   released() {
     if (InputAction.captured() || this._blocked()) return false;
     return this.buttons.some(
@@ -180,9 +133,6 @@ globalThis.InputAction = class InputAction {
     );
   }
 
-  /**
-   * @returns {number}
-   */
   value() {
     if (
       InputAction.captured() ||

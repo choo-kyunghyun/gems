@@ -3,9 +3,6 @@
 globalThis.Profile = {
   _counters: {},
 
-  /**
-   * @returns {typeof Profile}
-   */
   load() {
     this._counters = {};
     // accept only a plain object (a legacy string blob / missing value resets to empty)
@@ -15,29 +12,15 @@ globalThis.Profile = {
     return this;
   },
 
-  /**
-   * @param {string} key
-   * @returns {number}
-   */
   get(key) {
     return this._counters[key] ?? 0;
   },
 
-  /**
-   * @param {string} key
-   * @param {number} [n=1]
-   * @returns {number}
-   */
   add(key, n = 1) {
     this._counters[key] = (this._counters[key] ?? 0) + n;
     return this._counters[key];
   },
 
-  /**
-   * @param {string} key
-   * @param {number} value
-   * @returns {typeof Profile}
-   */
   set(key, value) {
     this._counters[key] = value;
     return this;
@@ -45,7 +28,6 @@ globalThis.Profile = {
 
   /**
    * raw counter map — the save bundle's profile blob (SaveGame)
-   * @returns {Object<string, number>}
    */
   counters() {
     return this._counters;
@@ -53,7 +35,6 @@ globalThis.Profile = {
 
   /**
    * persist the counter map to SaveData (nested-safe via json_stringify)
-   * @returns {typeof Profile}
    */
   save() {
     SaveData.set("profile", this._counters);

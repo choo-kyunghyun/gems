@@ -23,7 +23,7 @@
 
 globalThis.Audio = {
   _defaultGain: 1.0,
-  /** @type {{em: *, h: *}[]} live spatial-cue emitter/instance pairs — reaped by update() */
+  /** Live spatial-cue emitter/instance pairs — reaped by update(). */
   _emitters: [],
   falloff_ref: 128,
   falloff_max: 960,
@@ -71,13 +71,12 @@ globalThis.Audio = {
    * inert on GMRT (docs/GMRT.md) — honoring sound/loop/priority/gain/pitch; `offset` and
    * `listener_mask` are 2D-only. Mutates `params` in place (gain fold) — pass a throwaway
    * literal, not a shared struct.
-   * @param {SoundStruct} params
-   * @returns {*} sound instance handle, or -1
+   * Returns the sound instance handle, or -1.
    */
   play(params) {
     if (!audio_exists(params.sound)) return -1;
     params.gain = (params.gain ?? 1.0) * Audio._defaultGain;
-    const p = /** @type {SoundPosition} */ (params.position);
+    const p = params.position;
     if (p === undefined) return audio_play_sound_ext(params);
     const em = audio_emitter_create();
     audio_emitter_position(em, p.x, p.y, p.z ?? 0);
@@ -99,16 +98,10 @@ globalThis.Audio = {
     return h;
   },
 
-  /**
-   * @param {number} gain
-   */
   setDefaultGain(gain) {
     Audio._defaultGain = clamp(gain, 0, 1);
   },
 
-  /**
-   * @param {number} gain
-   */
   setMasterGain(gain) {
     audio_set_master_gain(0, clamp(gain, 0, 1));
   },

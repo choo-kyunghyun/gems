@@ -6,28 +6,16 @@ globalThis.INPUT_SOURCE = Object.freeze({
 
 /** One physical button binding: a keyboard key, mouse button, or gamepad button. */
 globalThis.InputButton = class InputButton {
-  /**
-   * @param {number} source
-   * @param {number} button
-   * @param {number} [device=0]
-   */
   constructor(source, button, device = 0) {
     this.source = source;
     this.button = button;
     this.device = device;
   }
 
-  /**
-   * @param {Object} data
-   * @returns {InputButton}
-   */
   static import(data) {
     return new InputButton(data.source, data.button, data.device);
   }
 
-  /**
-   * @returns {{source: number, button: number, device: number}}
-   */
   export() {
     return {
       source: this.source,
@@ -36,9 +24,6 @@ globalThis.InputButton = class InputButton {
     };
   }
 
-  /**
-   * @returns {boolean}
-   */
   down() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -52,9 +37,6 @@ globalThis.InputButton = class InputButton {
     }
   }
 
-  /**
-   * @returns {boolean}
-   */
   pressed() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -68,9 +50,6 @@ globalThis.InputButton = class InputButton {
     }
   }
 
-  /**
-   * @returns {boolean}
-   */
   released() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -85,7 +64,6 @@ globalThis.InputButton = class InputButton {
   }
 
   // single source of truth for binding→UI text (UIRebind + gemsKeyHints), so a remap reads the same everywhere.
-  /** @returns {string} */
   label() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -103,10 +81,6 @@ globalThis.InputButton = class InputButton {
   }
 
   // keycode → display string: named keys, F1–F12, letters/digits → char, else raw code.
-  /**
-   * @param {number} code
-   * @returns {string}
-   */
   static keyName(code) {
     if (code === 0) return "—";
     if (code === vk_space) return "Space";

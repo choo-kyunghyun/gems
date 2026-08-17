@@ -13,14 +13,12 @@ globalThis.Input = {
    * instead of replacing it — raising both compounds.
    */
   deadzone: 0,
-  /** @type {Object<string, InputAction>} */
   actions: {},
 
   destroy() {
     Input.actions = {};
   },
 
-  /** @param {{sensitivity:number,deadzone:number,actions:object}} data */
   import(data) {
     Input.destroy();
     Input.sensitivity = data.sensitivity;
@@ -31,7 +29,7 @@ globalThis.Input = {
     });
   },
 
-  /** @returns {{sensitivity:number,deadzone:number,actions:object}} Serializable keymap. */
+  /** Serializable keymap: { sensitivity, deadzone, actions }. */
   export() {
     const actions = {};
     Object.entries(Input.actions).forEach(([key, action]) => {
@@ -56,7 +54,6 @@ globalThis.Input = {
    * Slots are whatever gamepad_get_device_count() reports (4 on GMRT 0.20 Windows, against the
    * manual's 11-12 with DirectInput on 4-11); a set to a slot past that is silently DROPPED —
    * it reads back 0, with no error. Never assume a fixed slot map.
-   * @param {number} [device]
    */
   applyDeadzone(device) {
     if (device !== undefined) {
@@ -68,36 +65,23 @@ globalThis.Input = {
       gamepad_set_axis_deadzone(i, Input.deadzone);
   },
 
-  /**
-   * @param {string} key
-   * @returns {InputAction|undefined}
-   */
   get(key) {
     return Input.actions[key];
   },
 
-  /**
-   * @param {string} key
-   * @param {InputAction} action
-   * @returns {typeof Input}
-   */
   register(key, action) {
     Input.actions[key] = action;
     return Input;
   },
 
-  /**
-   * @param {string} key
-   */
   unregister(key) {
     delete Input.actions[key];
   },
 
   /**
    * Register many single-button actions at once.
-   * @param {Object<string, any[]>} spec - key → [source, button, contexts?].
+   * `spec`: key → [source, button, contexts?].
    *   3rd element is the InputContext list (see InputAction.inContext); omit for everywhere.
-   * @returns {typeof Input}
    */
   bindAll(spec) {
     for (const key in spec) {
@@ -109,7 +93,7 @@ globalThis.Input = {
     return Input;
   },
 
-  /** @param {string[]} keys - action keys from a bindAll spec. */
+  /** `keys`: action keys from a bindAll spec. */
   unbindAll(keys) {
     for (let i = 0; i < keys.length; i++) Input.unregister(keys[i]);
   },
