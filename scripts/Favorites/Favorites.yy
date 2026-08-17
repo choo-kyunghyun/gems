@@ -6,7 +6,7 @@
   "name":"Favorites",
   "parent":{
     "name":"Inventory",
-    "path":"folders/Gameplay/Inventory.yy",
+    "path":"folders/Core/Gameplay/Inventory.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

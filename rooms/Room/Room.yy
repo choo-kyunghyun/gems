@@ -18,7 +18,7 @@
   "name":"Room",
   "parent":{
     "name":"Lobby",
-    "path":"folders/Demo/Lobby.yy",
+    "path":"folders/Game/Lobby.yy",
   },
   "parentRoom":null,
   "physicsSettings":{

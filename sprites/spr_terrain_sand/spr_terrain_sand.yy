@@ -45,7 +45,7 @@
   "origin":0,
   "parent":{
     "name":"Bitmap Sprites",
-    "path":"folders/Media/Bitmap Sprites.yy",
+    "path":"folders/Game/Media/Bitmap Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

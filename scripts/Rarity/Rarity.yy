@@ -6,7 +6,7 @@
   "name":"Rarity",
   "parent":{
     "name":"Items",
-    "path":"folders/Gameplay/Items.yy",
+    "path":"folders/Core/Gameplay/Items.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

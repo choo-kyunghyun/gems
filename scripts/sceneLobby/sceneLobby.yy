@@ -6,7 +6,7 @@
   "name":"sceneLobby",
   "parent":{
     "name":"Lobby",
-    "path":"folders/Demo/Lobby.yy",
+    "path":"folders/Game/Lobby.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

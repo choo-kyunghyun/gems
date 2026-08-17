@@ -6,7 +6,7 @@
   "name":"Raider",
   "parent":{
     "name":"Component",
-    "path":"folders/Demo/Component.yy",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

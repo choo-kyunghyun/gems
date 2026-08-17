@@ -6,7 +6,7 @@
   "name":"RpgSpawn",
   "parent":{
     "name":"Scene",
-    "path":"folders/Demo/Scene.yy",
+    "path":"folders/Game/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

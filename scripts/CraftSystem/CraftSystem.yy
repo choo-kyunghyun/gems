@@ -6,7 +6,7 @@
   "name":"CraftSystem",
   "parent":{
     "name":"Crafting",
-    "path":"folders/Gameplay/Crafting.yy",
+    "path":"folders/Core/Gameplay/Crafting.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

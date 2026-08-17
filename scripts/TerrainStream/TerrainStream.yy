@@ -6,7 +6,7 @@
   "name":"TerrainStream",
   "parent":{
     "name":"System",
-    "path":"folders/Demo/System.yy",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

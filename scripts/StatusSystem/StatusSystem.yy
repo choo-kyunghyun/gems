@@ -6,7 +6,7 @@
   "name":"StatusSystem",
   "parent":{
     "name":"Status",
-    "path":"folders/Gameplay/Status.yy",
+    "path":"folders/Core/Gameplay/Status.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

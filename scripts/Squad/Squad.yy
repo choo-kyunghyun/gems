@@ -6,7 +6,7 @@
   "name":"Squad",
   "parent":{
     "name":"Squad",
-    "path":"folders/Gameplay/Squad.yy",
+    "path":"folders/Core/Gameplay/Squad.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -15,7 +15,7 @@
   "name":"snd_hitsound_armor",
   "parent":{
     "name":"SFX",
-    "path":"folders/Media/Audio/SFX.yy",
+    "path":"folders/Game/Media/Audio/SFX.yy",
   },
   "preload":false,
   "resourceType":"GMSound",

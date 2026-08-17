@@ -6,7 +6,7 @@
   "name":"AnimationSystem",
   "parent":{
     "name":"Animation",
-    "path":"folders/Gameplay/Animation.yy",
+    "path":"folders/Core/Gameplay/Animation.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

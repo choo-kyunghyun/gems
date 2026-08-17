@@ -15,7 +15,7 @@
   "name":"mus_ambient_tense",
   "parent":{
     "name":"BGM",
-    "path":"folders/Media/Audio/BGM.yy",
+    "path":"folders/Game/Media/Audio/BGM.yy",
   },
   "preload":false,
   "resourceType":"GMSound",

@@ -6,7 +6,7 @@
   "name":"NPC",
   "parent":{
     "name":"NPC",
-    "path":"folders/Gameplay/NPC.yy",
+    "path":"folders/Core/Gameplay/NPC.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

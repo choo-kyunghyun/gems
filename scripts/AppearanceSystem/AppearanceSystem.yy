@@ -6,7 +6,7 @@
   "name":"AppearanceSystem",
   "parent":{
     "name":"Equipment",
-    "path":"folders/Gameplay/Equipment.yy",
+    "path":"folders/Core/Gameplay/Equipment.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

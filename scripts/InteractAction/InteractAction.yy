@@ -6,7 +6,7 @@
   "name":"InteractAction",
   "parent":{
     "name":"Interaction",
-    "path":"folders/Gameplay/Interaction.yy",
+    "path":"folders/Core/Gameplay/Interaction.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -27,7 +27,7 @@
   "origin":7,
   "parent":{
     "name":"Entities",
-    "path":"folders/Media/Bitmap Sprites/Entities.yy",
+    "path":"folders/Game/Media/Bitmap Sprites/Entities.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

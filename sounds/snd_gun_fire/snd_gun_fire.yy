@@ -15,7 +15,7 @@
   "name":"snd_gun_fire",
   "parent":{
     "name":"SFX",
-    "path":"folders/Media/Audio/SFX.yy",
+    "path":"folders/Game/Media/Audio/SFX.yy",
   },
   "preload":false,
   "resourceType":"GMSound",

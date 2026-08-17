@@ -26,7 +26,7 @@
   "origin":4,
   "parent":{
     "name":"Textures",
-    "path":"folders/Media/Bitmap Sprites/Textures.yy",
+    "path":"folders/Game/Media/Bitmap Sprites/Textures.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

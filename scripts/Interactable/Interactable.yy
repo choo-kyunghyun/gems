@@ -6,7 +6,7 @@
   "name":"Interactable",
   "parent":{
     "name":"UI",
-    "path":"folders/Demo/UI.yy",
+    "path":"folders/Game/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

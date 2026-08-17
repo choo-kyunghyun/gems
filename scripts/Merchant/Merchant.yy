@@ -6,7 +6,7 @@
   "name":"Merchant",
   "parent":{
     "name":"Trade",
-    "path":"folders/Gameplay/Trade.yy",
+    "path":"folders/Core/Gameplay/Trade.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

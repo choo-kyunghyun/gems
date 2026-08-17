@@ -26,7 +26,7 @@
   "origin":0,
   "parent":{
     "name":"Basics",
-    "path":"folders/Media/Bitmap Sprites/Basics.yy",
+    "path":"folders/Game/Media/Bitmap Sprites/Basics.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

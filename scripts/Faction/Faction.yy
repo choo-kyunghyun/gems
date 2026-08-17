@@ -6,7 +6,7 @@
   "name":"Faction",
   "parent":{
     "name":"Combat",
-    "path":"folders/Gameplay/Combat.yy",
+    "path":"folders/Core/Gameplay/Combat.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

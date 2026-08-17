@@ -29,7 +29,7 @@
   "origin":4,
   "parent":{
     "name":"Icons",
-    "path":"folders/Media/Bitmap Sprites/Icons.yy",
+    "path":"folders/Game/Media/Bitmap Sprites/Icons.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

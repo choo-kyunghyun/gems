@@ -6,7 +6,7 @@
   "name":"RenderLighting",
   "parent":{
     "name":"Lighting",
-    "path":"folders/Gameplay/Lighting.yy",
+    "path":"folders/Core/Gameplay/Lighting.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

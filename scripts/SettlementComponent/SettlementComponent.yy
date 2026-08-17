@@ -6,7 +6,7 @@
   "name":"SettlementComponent",
   "parent":{
     "name":"Settlement",
-    "path":"folders/Gameplay/Settlement.yy",
+    "path":"folders/Core/Gameplay/Settlement.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

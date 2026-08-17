@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SystemMenu",
   "parent":{
-    "name":"GemsUI",
-    "path":"folders/GemsUI.yy",
+    "name":"UI",
+    "path":"folders/Game/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

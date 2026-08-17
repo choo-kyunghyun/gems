@@ -6,7 +6,7 @@
   "name":"ThirstSystem",
   "parent":{
     "name":"Survival",
-    "path":"folders/Gameplay/Survival.yy",
+    "path":"folders/Core/Gameplay/Survival.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"Temperature",
   "parent":{
     "name":"Environment",
-    "path":"folders/Gameplay/Environment.yy",
+    "path":"folders/Core/Gameplay/Environment.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

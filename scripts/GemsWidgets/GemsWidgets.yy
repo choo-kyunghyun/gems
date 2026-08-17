@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"GemsWidgets",
   "parent":{
-    "name":"GemsUI",
-    "path":"folders/GemsUI.yy",
+    "name":"Kit",
+    "path":"folders/Game/UI/Kit.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -15,7 +15,7 @@
   "overriddenProperties":[],
   "parent":{
     "name":"Lobby",
-    "path":"folders/Demo/Lobby.yy",
+    "path":"folders/Game/Lobby.yy",
   },
   "parentObjectId":null,
   "persistent":false,

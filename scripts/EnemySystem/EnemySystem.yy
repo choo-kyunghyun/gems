@@ -6,7 +6,7 @@
   "name":"EnemySystem",
   "parent":{
     "name":"Platformer",
-    "path":"folders/Demo/Platformer.yy",
+    "path":"folders/Game/Platformer.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

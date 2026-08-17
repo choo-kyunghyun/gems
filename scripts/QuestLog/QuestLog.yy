@@ -6,7 +6,7 @@
   "name":"QuestLog",
   "parent":{
     "name":"Quest",
-    "path":"folders/Gameplay/Quest.yy",
+    "path":"folders/Core/Gameplay/Quest.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
