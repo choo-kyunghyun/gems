@@ -1,89 +1,116 @@
 # Audio Kit
 
-A small, **zero-dependency** toolkit for making game audio for **quick prototypes** — synthesize in a
-throwaway script, push the result straight into GameMaker. Pure Python stdlib: no numpy, no
-SoundFont, no installs. The audio sibling of [`pixel-art-kit`](../pixel-art-kit).
+A toolkit for making game audio for quick prototypes — synthesize in a throwaway script, push the
+result straight into GameMaker. Numpy and scipy do the arithmetic; everything above them, including
+the WAV encoder, is the kit's own.
 
-This kit is **not an asset pipeline.** It does not regenerate the project's committed sounds and does
-not try to. It is a box of primitives you import from a script you write for the sound in front of
-you, and then usually delete.
-
----
+It is not an asset pipeline. It does not regenerate the project's committed sounds and does not try
+to. It is a box of primitives you import from a script you write for the sound in front of you, and
+then usually delete.
 
 ## Layout
 
 ```
 audio-kit/
-├── synth.py     oscillators (sine/square/pulse/saw/triangle/noise) + ADSR + filters + drums
-├── audiolib.py  buffers: mix/gain/normalize/fade, 16-bit PCM WAV encode, paths
+├── audiolib.py  signals, levels, 16-bit PCM WAV encode, paths
+├── synth.py     oscillators + noise + envelopes + filters + modal bodies + drums
+├── space.py     synthetic impulse responses, convolution reverb, delay, pan
+├── loop.py      the three rules that make a buffer repeat, and the seam metric
 ├── gm_sound.py  the one engine binding: a buffer -> a GameMaker sound asset
 └── out/         everything generated (gitignored)
 ```
 
-Flat on purpose — one `sys.path` entry and a scratch script can import the whole kit.
+Flat on purpose — one `sys.path` entry imports the whole kit. A signal is a float64 array: `(n,)`
+mono, `(n, 2)` stereo. Lengths are sample counts, and `A.seconds(0.2)` converts. Frequency arguments
+take a scalar or a per-sample array, so any envelope can be fed straight in as a pitch track.
 
----
-
-## The loop
+## Workflow
 
 ```python
 import sys; sys.path.insert(0, "tools/audio-kit")
-import audiolib as A, synth as S, gm_sound as G
+import audiolib as A, synth as S, space as X, gm_sound as G
 
 blip = S.adsr(S.tone(A.seconds(0.2), wave="square", f0=880.0, f1=220.0), r=0.08)
-G.write_sound("snd_blip", [A.normalize(blip)], folder="Media/Audio/SFX")
+blip = X.trim_tail(X.mono_reverb(blip, X.space("tight"), 0.22))
+G.write_sound("snd_blip", A.normalize(blip))
 ```
 
-That is the whole workflow: build a buffer, hand it to `gm_sound.write_sound`. The sound appears in
-`sounds/snd_blip/` filed under its IDE folder.
+Build a buffer, hand it to `write_sound`. The sound lands in `sounds/snd_blip/`, filed under its IDE
+folder and registered in `gems.yyp` through `gm-cli` if it wasn't there already. Registration never
+hand-edits the yyp's Resources list — that corrupts the project (see `docs/GMCLI.md`) — and a
+`GMSound` `.yy` carries no uuids, so re-running is churn-free.
 
-### Synthesis
+## Synthesis
 
-`tone(n, wave=, f0=, f1=, duty=, vib_rate=, vib_depth=, glide=, seed=)` is the one workhorse
-generator — `f1` sweeps the pitch (`lin`/`exp`), `vib_*` adds vibrato, `seed` makes noise repeatable.
-Shape it with `adsr(buf, a=, d=, s=, r=)`, round it off with `lowpass`/`highpass`, and layer with
-`audiolib.add_into(dst, src, at=, g=)`.
+`tone(n, wave=, f0=, f1=, duty=, vib_rate=, vib_depth=, glide=)` is the workhorse: `f1` sweeps the
+pitch, `vib_*` adds vibrato. Shape it with `adsr`, or `perc` for hits, `ar` for swells, `breakpoints`
+for arbitrary curves (`log=True` for frequency). Filter with `lowpass` / `highpass` / `bandpass`, or
+`sweep` for a cutoff that moves.
 
-`drum("kick"|"snare"|"hat")` gives percussion one-shots, and `PATCHES` holds named instrument presets
-(`lead`/`bass`/`pluck`/`pad`/…) if you want a consistent voice across several cues. Note names parse
-with `note_freq("C4")` / `note_midi("A#3")`.
+`modal(n, partials)` builds a body out of decaying sines, and the ratios decide the material:
+integer ratios give an instrument, non-integer ratios (1 : 1.83 : 2.71 : 3.94) give a bell, a shard,
+a struck hull. `drum` gives percussion, `noise(n, "white"|"pink"|"brown")` gives beds, and `PATCHES`
+with `voice()` renders a note from a named preset. Note names parse with `note_freq("C4")`.
 
-**Mono for SFX, stereo for BGM** — `[buf]` vs `[left, right]`. The engine's spatial audio needs a mono
-source to position; a stereo SFX can't be placed in the world.
+`tone` is not band-limited, so a fast sweep through the high register aliases audibly in the
+opposite direction. `bl_saw` and `bl_square` are band-limited alternatives for when that shows up.
 
-**Finish before writing**: `normalize(buf, target=)` sets the peak, `fade(buf, fin=, fout=)` kills
-clicks at the ends. A looping track wants no fade at all — the fade *is* the seam.
+## Space
 
-### The voice is chiptune, by design
+Reverb is not a finishing touch — it is what tells the ear how big the room is, so it changes what a
+sound is more than another waveform would. `space("tight"|"room"|"hall"|"cavern")` synthesizes an
+impulse response, `reverb(x, ir, wet=)` convolves it, and `delay` and `pan` sit next to it.
 
-Oscillators + noise + envelopes, not sampled instruments — the natural match for pixel art. The
-waveforms are not band-limited, which is authentic for the style (real chips alias too) but does mean
-a fast pitch sweep through the high register can produce audible aliasing sweeping the other way. For
-sampled or orchestral audio, use external assets, not this kit.
+`reverb` always returns stereo. An SFX the engine positions in the world has to stay mono, so use
+`mono_reverb` on those.
 
----
+Finish before writing: `normalize(buf, peak_db=)` sets the peak — there is no limiter and none is
+needed — `fade` kills clicks at the ends, and `trim_tail` cuts the silence convolution leaves on the
+end of a one-shot.
 
-## Registration
+## Loops
 
-`gm_sound.write_sound` registers the resource in `gems.yyp` through `gm-cli` when it isn't there yet,
-so a new sound is one call. It never hand-edits the yyp's Resources list — that corrupts the project
-(see `docs/GMCLI.md`). If `gm-cli` isn't on PATH it says so and tells you the command to run.
+A loop clicks unless all three of these hold. Each number is what that rule is worth on its own,
+over 8 s of the material it governs:
 
-A `GMSound` `.yy` carries no uuids, so re-running is inherently churn-free.
+| | | seam |
+|---|---|---|
+| 1 | Oscillators land on the loop's frequency grid — `qf`, `cyc`, `drift` | +37.2 → +0.0 dB |
+| 2 | Filters run cyclically, leaving no start-up transient at the head — `cyclic`, `cyc_sweep` | +19.8 → −10.6 dB |
+| 3 | Overhanging tails fold back onto the head — `wrap_tail`, `place` | +11.0 → −2.4 dB |
 
----
+`seam_db(x)` measures the jump across the loop point against the jumps inside the material. At or
+below 0 dB the seam is indistinguishable from any other sample step, and a perfectly periodic sine
+measures exactly 0.0. Check it after touching anything above; it is the one loop defect an ear
+always catches and a spectrogram never shows.
+
+```python
+import loop as L
+n = A.seconds(8.0)
+bed = S.bl_saw(n, L.qf(55.0, n) * L.drift(n, seed=A.seed_of("drone")), 9, tilt=1.6)
+bed = L.cyclic(bed, lambda z: S.lowpass(z, 700.0))
+bed = L.wrap_tail(X.reverb(X.pan(bed, 0.0), X.space("cavern"), 0.45), n)
+print(f"{L.seam_db(bed):+.1f} dB")
+G.write_sound("mus_drone", A.normalize(bed, -6.0), folder="Game/Media/Audio/BGM")
+```
+
+Never fade a loop. On a one-shot a fade hides the discontinuity; on a loop the fade is one.
 
 ## Gotchas
 
-- **WAV only.** It's the only format encodable stdlib-only. GameMaker imports it fine and
-  re-compresses at build per the asset's setting; switch a long track to *Compressed*/*Streamed* in
-  the IDE if size matters.
-- **Keep `compression: 0` for loops.** Lossy re-encoding can add a click at the loop point. Author the
-  last beat to resolve cleanly and let the loop flag do the rest.
-
----
+- WAV only. GameMaker re-compresses at build per the asset's setting, so switch a long track to
+  Compressed/Streamed in the IDE if size matters. Keep `compression: 0` on loops — lossy re-encoding
+  can add a click at the seam.
+- `normalize` goes last. Fading after it drops the peak of any sound whose attack falls inside the
+  fade, so the asset ships quieter than the target it was written for.
+- Seed from a name, not from `hash()`. `A.seed_of("coin")` is stable, while Python's built-in `hash`
+  is randomized per process. Numpy does not freeze `default_rng`'s distribution streams across
+  releases either, so an upgrade may shift a noise seed — harmless here, since the kit re-renders
+  nothing it has already shipped.
 
 ## Requirements
 
-**Python 3, stdlib only.** The WAV encoder is hand-rolled in `audiolib`. Nothing to install;
-`requirements.txt` is empty and says so deliberately. All output goes under `out/` (gitignored).
+Python 3, numpy >= 2.0, scipy >= 1.13 — `pip install -r requirements.txt`. Wheels everywhere, no
+compiler, no ffmpeg. Numpy carries the sample arithmetic and scipy contributes filter design,
+stateful filtering, and FFT convolution. That is the whole list, and the WAV encoder stays
+hand-rolled in `audiolib` to keep it there. Output goes under `out/` (gitignored).

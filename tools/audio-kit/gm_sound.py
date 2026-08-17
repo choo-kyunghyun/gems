@@ -5,12 +5,12 @@ A prototype script synthesizes with `synth`, then hands the buffer here:
 
     import audiolib as A, synth as S, gm_sound as G
 
-    buf = S.adsr(S.tone(int(0.2 * A.SR), wave="square", f0=880.0, f1=220.0), r=0.08)
-    G.write_sound("snd_blip", [buf])
+    buf = S.adsr(S.tone(A.seconds(0.2), wave="square", f0=880.0, f1=220.0), r=0.08)
+    G.write_sound("snd_blip", A.normalize(buf))
 
-Channels are `[mono]` for SFX and `[left, right]` for BGM — the project convention, since the
-engine's spatial audio needs a mono source to position. A GMSound .yy carries no uuids, so
-re-running is inherently churn-free.
+The buffer's shape decides the channel format: (n,) writes a mono asset, (n, 2) a stereo one.
+SFX stay mono because the engine's spatial audio needs a mono source to position; BGM is
+stereo. A GMSound .yy carries no uuids, so re-running is inherently churn-free.
 
 The resource must exist in gems.yyp; `write_sound` registers it through gm-cli when it doesn't.
 """
@@ -79,18 +79,18 @@ def _yy(name, soundfile, duration, channel_format, compression, folder):
 }}"""
 
 
-def write_sound(name, channels, folder=SFX_FOLDER, compression=0, sr=A.SR, register=True):
-    """Write one GMSound into sounds/<name>/. channels = [mono] or [L, R]. Returns the duration (s)."""
-    if not channels:
-        raise ValueError(f"{name}: no channels")
+def write_sound(name, buf, folder=SFX_FOLDER, compression=0, sr=A.SR, register=True):
+    """Write one GMSound into sounds/<name>/ from a (n,) mono or (n, 2) stereo buffer.
+    Returns the duration (s)."""
+    if buf.ndim not in (1, 2) or len(buf) == 0:
+        raise ValueError(f"{name}: expected a non-empty (n,) or (n, 2) buffer, got {buf.shape}")
     if register:
         ensure(name, folder)
 
     d = os.path.join(ROOT, "sounds", name)
     os.makedirs(d, exist_ok=True)
     wav = name + ".wav"
-    dur = A.write_wav(os.path.join(d, wav), channels, sr)
-    chfmt = 1 if len(channels) > 1 else 0
+    dur = A.write_wav(os.path.join(d, wav), buf, sr)
     with open(os.path.join(d, name + ".yy"), "w", newline="\n") as fh:
-        fh.write(_yy(name, wav, dur, chfmt, compression, folder))
+        fh.write(_yy(name, wav, dur, 1 if buf.ndim == 2 else 0, compression, folder))
     return dur

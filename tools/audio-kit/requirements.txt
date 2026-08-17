@@ -1,0 +1,4 @@
+# The kit's whole dependency surface. Wheels everywhere — no compiler, no ffmpeg.
+# numpy 2.x for its copy/promotion semantics; scipy for filter design + FFT convolution.
+numpy>=2.0
+scipy>=1.13
