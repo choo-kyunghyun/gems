@@ -1,10 +1,10 @@
 // Map-graph engine for the RPG scene — portal travel, map pool, and persistence.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
- * Visited worlds stay ALIVE in the World.levels registry (the map pool — the registry entry IS the
+ * Visited worlds stay ALIVE in the World level pool (the map pool — the pooled entry IS the
  * park bundle; no scene-side pool), so a door trip never destroys/rebuilds. Only the SQUAD migrates:
  * every entity sharing the player's Squad id (player included) moves as a WHOLE entity through
- * World.levels.take/put — a portal forces a "wait" member back to "follow" first, so the squad
+ * World.take/put — a portal forces a "wait" member back to "follow" first, so the squad
  * always travels together. There is no per-map player and no carried component subset; kicked/unhired
  * companions are plain map residents. Everything is persistent for the session: a map builds from
  * file exactly ONCE (first visit), then only freezes/thaws — no eviction, cold serialize, or
@@ -50,8 +50,8 @@ globalThis.RpgMap = {
 
   /**
    * Take the SQUAD through a portal: every member (player FIRST) leaves the current world as a
-   * whole entity via World.levels.take, the map parks, and the members land in the target via
-   * World.levels.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
+   * whole entity via World.take, the map parks, and the members land in the target via
+   * World.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
    * portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
    * together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
    */
@@ -74,7 +74,7 @@ globalThis.RpgMap = {
           members[i],
           "follow",
         );
-        squad.push(World.levels.take(scene.mapId, members[i]));
+        squad.push(World.take(scene.mapId, members[i]));
       }
       Trader.onSuspend(scene); // dehydrate any embodied wandering trader → its record (before park)
       scene.entities.flush(); // commit the taken members' removals before parking
@@ -83,26 +83,26 @@ globalThis.RpgMap = {
     // ── PHASE B: enter the target — resume its parked bundle, else build from file ──
     // every resident map is parked at this point (Phase A parked the current one), so a
     // registry hit is always a full park bundle
-    const bundle = World.levels.entryOf(mapId);
+    const bundle = World.get(mapId);
     if (bundle !== null) RpgMap.resume(scene, bundle, entryId, squad);
     else RpgMap.build(scene, mapId, entryId, squad);
-    World.levels.setActive(scene.mapId);
+    World.activeId = scene.mapId;
     Trader.onActivate(scene); // embody any trader currently in this map
   },
 
   /**
    * Land the traveling squad at the entry: the player (squad[0]) first — scene.playerId
    * re-latches to its new id — then companions staggered beside it. Whole-entity restore
-   * (World.levels.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
+   * (World.put), so Appearance/Equipment/Stats arrive intact with no re-derive.
    */
   _arriveSquad(scene, squad, sp) {
     if (squad === null || squad.length === 0) return;
-    scene.playerId = World.levels.put(scene.mapId, squad[0], {
+    scene.playerId = World.put(scene.mapId, squad[0], {
       [Position]: { x: sp.x, y: sp.y, z: 0 },
       [Velocity]: { x: 0, y: 0, z: 0 },
     });
     for (let i = 1; i < squad.length; i++)
-      World.levels.put(scene.mapId, squad[i], {
+      World.put(scene.mapId, squad[i], {
         [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
@@ -117,7 +117,7 @@ globalThis.RpgMap = {
   suspend(scene) {
     if (scene.camera) scene.camera.unassign();
     Weather.exitRegion();
-    World.levels.register(scene.mapId, RpgMap._stash(scene));
+    World.add(scene.mapId, RpgMap._stash(scene));
   },
 
   /**
@@ -267,9 +267,9 @@ globalThis.RpgMap = {
     );
 
     RpgMap._buildWorld(scene, data, entryId, squad); // entity store + LevelGrid (+ player on boot) + zones
-    // register BEFORE the squad lands — World.levels.put targets the registry. Minimal entry;
+    // register BEFORE the squad lands — World.put targets the registry. Minimal entry;
     // suspend later overwrites it with the full park bundle.
-    World.levels.register(scene.mapId, {
+    World.add(scene.mapId, {
       entities: scene.entities,
       grid: scene.grid,
     });

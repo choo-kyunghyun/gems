@@ -10,7 +10,7 @@ const RPG_HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher =
 const RPG_NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
 /**
- * factory so the scene editor's Test Play can open this scene; same ref LevelManager labels use
+ * factory so the scene editor's Test Play can open this scene; same ref SceneRegistry labels use
  */
 globalThis.SceneRpg = () => new _SceneRpgClass();
 SceneRegistry.add(SceneRpg, {
@@ -19,12 +19,13 @@ SceneRegistry.add(SceneRpg, {
 });
 
 /**
- * standalone SCREEN class satisfying the duck-typed screen contract LevelManager drives (see Scene).
+ * standalone SCREEN class satisfying the duck-typed screen contract the Game object drives (see Scene).
  */
 class _SceneRpgClass {
   label = "RPG";
 
-  create() {
+  create(openScene) {
+    this._openScene = openScene; // stashed: the arcade cabinet opens its guest long after create
     // load before building anything
     SaveData.load();
     RpgQuests.register();
@@ -57,12 +58,11 @@ class _SceneRpgClass {
       StatModel.recompute(entities, id);
     };
 
-    // world event queue + scene manager (its registry is the map pool — every visited map stays
-    // alive/suspended there for the whole session, see RpgMap.go) + wandering traders — reset per
-    // scene create so a fresh RPG session can't inherit the previous one's maps/schedule/records
-    // (Trader.reset re-installs handlers).
-    World.levels.reset();
-    WorldEvents.reset();
+    // the world (its level pool is the map pool — every visited map stays alive/suspended there
+    // for the whole session, see RpgMap.go) + wandering traders — reset per scene create so a
+    // fresh RPG session can't inherit the previous one's maps/schedule/records (Trader.reset
+    // re-installs handlers).
+    World.reset();
     Trader.reset();
 
     this.invOpen = false;
@@ -264,7 +264,7 @@ class _SceneRpgClass {
   }
 
   /**
-   * Live theme swap (LevelManager.retheme): close any open transient window/build/sleep via the
+   * Live theme swap (the Game object's retheme): close any open transient window/build/sleep via the
    * existing Esc chain — cheaper + safer than re-applying each window's state onto fresh elements —
    * then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
    */
@@ -909,7 +909,7 @@ class _SceneRpgClass {
   }
 
   /**
-   * LevelManager keep-switch host pause/resume while a guest runs in front.
+   * keep-switch host pause/resume while a guest runs in front.
    * suspend: hide the UI root. Game won't step a non-top level, so step() naturally pauses
    * BuildMode/Interactable/WorldClock/Weather — nothing else to do.
    */
@@ -933,7 +933,7 @@ class _SceneRpgClass {
    * thaws it); on return its result() score becomes a coin reward
    */
   _openArcade() {
-    this.manager.switchTo(ScenePlatformer, {
+    this._openScene(ScenePlatformer, {
       keep: true,
       onResult: (r) => {
         const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
@@ -984,11 +984,10 @@ class _SceneRpgClass {
     // free every resident map via the manager index: park the active one first (its fields live
     // flat on `this`) so every registry entry is a full bundle, then reclaim them all
     RpgMap.suspend(this);
-    const mapIds = World.levels.ids();
+    const mapIds = World.ids();
     for (let i = 0; i < mapIds.length; i++)
-      RpgMap._free(World.levels.entryOf(mapIds[i]));
-    World.levels.reset(); // drop the manager index (all stores freed above)
-    WorldEvents.reset(); // clear the world event queue
+      RpgMap._free(World.get(mapIds[i]));
+    World.reset(); // drop the level pool + world timeline (all stores freed above)
     Trader.reset(); // drop trader records + queued trader events
     if (this.ui) {
       UI.remove(this.ui);

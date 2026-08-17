@@ -4,7 +4,7 @@ const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void)
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
 /**
- * global factory so it can be pushed as a LevelManager guest (RPG arcade cabinet).
+ * global factory so it can be opened as a keep-switch guest (RPG arcade cabinet).
  * not SceneRegistry.add'd — reachable only in-world, not from the lobby.
  */
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
@@ -109,7 +109,7 @@ class _ScenePlatformerClass {
     this.renderer.draw(this.entities);
   }
 
-  /** score returned to the RPG arcade cabinet via LevelManager.back's onResult */
+  /** score returned to the RPG arcade cabinet via the Game object's back() onResult */
   result() {
     return { stomps: this.stomps };
   }

@@ -782,7 +782,7 @@ class _SceneUIKitClass {
     return scrollSec;
   }
 
-  // pure UI — no sim/world view; declared because LevelManager calls them unconditionally
+  // pure UI — no sim/world view; declared because the Game object calls them unconditionally
   // (standalone class: these were previously inherited Scene stubs)
   update() {}
   draw() {}

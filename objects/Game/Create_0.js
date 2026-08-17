@@ -78,29 +78,172 @@ UI.applyScale(Settings.get("uiScale"));
 // importers) — before any level spawns entities, so the density bake reads declared values
 SpriteMeta.load();
 
-this.background = Color.parse(GemsTheme.bg); // level backdrop; re-read on a theme swap (Draw_0)
+this.background = Color.parse(GemsTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 
 UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 
-// World.levels (LevelManager) owns the level lifecycle + the resident-level registry; Game
-// delegates update/step/draw/destroy each event directly. Instantiated here, where load order is safe.
-World.levels = new LevelManager();
-// Boot-wire the Core seams to their kit/Demo owners: the pause menu, its quit target, and the
-// localized level labels — before start(), so the boot level's label resolves.
-World.levels.menu = SystemMenu;
-World.levels.resolveLabel = (factory) => SceneRegistry.labelOf(factory);
+// ─────────────────────────────────────────────────────────────────────────────
+// THE SCENE. Game owns the active Scene outright — there is no scene manager: this pointer IS
+// the lifecycle. Step_0 flushes a queued swap then calls update(), Draw_0 calls draw(), CleanUp
+// destroys. switchTo()/back() below are the only transitions, and the closures are defined here
+// because instance state (the pointer, the queue) lives on the instance.
+//
+// There is NO scene stack: at most TWO scenes are live — the active one and, behind a keep-switch
+// guest, its FROZEN host (`_host`). Switching away either DESTROYS the live scenes (plain
+// navigation — lobby, quit) or FREEZES the current one as-is (`keep: true` — suspend() hides its
+// UI, entities and state untouched) for back() to thaw, which also hands the guest's result() to
+// the switch's onResult. One kept scene at a time (no nesting — fail fast).
+// ─────────────────────────────────────────────────────────────────────────────
+this.scene = null; // the live Scene — stepped + drawn
+this._factory = null; // its factory (restart re-opens it)
+this._label = null; // its resolved display label (localized), or null
+this._host = null; // { scene, factory, label } frozen behind a guest; null = none
+this._onResult = null; // the keep-switch's result handler, fired by back()
+this._pending = null; // queued switch { factory, opts }, applied next Step_0
+// Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
+this.paused = false;
+this._stepRequested = false; // one-shot: lets exactly one frame through
+
+/**
+ * THE transition: queue a scene switch, applied next Step (after UI.update, so the UI tree isn't
+ * torn down mid-traversal). Default DESTROYS the live scenes and runs through the fade; `keep:
+ * true` instead FREEZES the current scene as back()'s return target, with `onResult` fired when
+ * the guest returns (instant — no fade). Ignored mid-fade so a spammed button can't stack swaps.
+ * This is the `openScene` callback handed to every create().
+ */
+this.switchTo = (factory, opts = {}) => {
+  if (SceneTransition.isBusy()) return;
+  this._pending = { factory, opts };
+};
+
+/** Thaw the frozen host in front of which a guest ran. Returns false when nothing is kept. */
+this.back = () => {
+  if (this._host === null) return false;
+  const result =
+    this.scene.result !== undefined ? this.scene.result() : undefined;
+  this.scene.destroy();
+  this._clearOverlays();
+  const host = this._host;
+  this._host = null;
+  this.scene = host.scene;
+  this._factory = host.factory;
+  this._label = host.label;
+  if (this.scene.resume !== undefined) this.scene.resume();
+  const onResult = this._onResult;
+  this._onResult = null;
+  if (onResult !== null) onResult(result);
+  return true;
+};
+
+/** Re-open the active scene from scratch (Debug "Restart Scene") — a destroying re-switch. */
+this.restart = () => {
+  if (this._factory !== null) this.switchTo(this._factory);
+};
+
+/**
+ * Live theme swap: rebuild the active scene's UI in place (colors are baked at build, so a
+ * palette change only shows after a rebuild). Delegates to the scene's optional retheme() — a
+ * UI-only rebuild that never regenerates world/gameplay state, unlike restart(). A scene that
+ * doesn't implement it keeps its old-palette UI until its next natural rebuild.
+ */
+this.retheme = () => {
+  if (this.scene !== null && this.scene.retheme !== undefined)
+    this.scene.retheme();
+};
+
+/** Display label of the active scene: the registered (localized) one, else its instance label. */
+this.label = () => {
+  const lbl = this._label;
+  if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
+  const s = this.scene;
+  return s !== null && s.label != null && s.label !== "" ? s.label : "-";
+};
+
+/** Request a one-frame sim advance while paused (Debug "Step Frame"). */
+this.requestStep = () => {
+  this._stepRequested = true;
+};
+
+this._takeStep = () => {
+  if (!this._stepRequested) return false;
+  this._stepRequested = false;
+  return true;
+};
+
+/**
+ * Apply a switch NOW (Step_0 calls it at full fade cover, or immediately for a keep/no-fade
+ * swap). keep: freeze the current scene into the ONE host slot — no nested guests, fail fast.
+ * Otherwise: destroy every live scene (a quit from a guest must also drop its frozen host) and
+ * reset the cross-scene singletons before the target builds.
+ */
+this._apply = (factory, opts) => {
+  if (opts.keep === true && this.scene !== null) {
+    if (this._host !== null) {
+      Log.warn("Game: keep-switch while a scene is already kept");
+      return;
+    }
+    if (this.scene.suspend !== undefined) this.scene.suspend();
+    this._host = {
+      scene: this.scene,
+      factory: this._factory,
+      label: this._label,
+    };
+    this._onResult = opts.onResult ?? null;
+    // host's world-space numbers/particles/dialogue must not bleed into the guest
+    this._clearOverlays();
+  } else {
+    this._destroyScenes();
+    UINav.reset(); // drop focus held on the outgoing scene's UI
+    SystemMenu.reset(); // close the pause overlay + restore time scale
+    Dialogue.clear();
+    FloatingText.clear(); // world coords are map-local
+    ParticleFx.clear(); // world coords are map-local
+    Audio.restart(); // one scene's BGM/SFX must not bleed into the next
+  }
+  // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
+  // registered label (localized) is the reliable source; built-ins fall back to their instance one.
+  this.scene = factory();
+  this._factory = factory;
+  this._label = SceneRegistry.labelOf(factory);
+  this.scene.create((f, o) => this.switchTo(f, o));
+};
+
+/**
+ * Lighter reset than a destroying swap, for a keep/back boundary: clears the world-space
+ * singletons + drops nav focus (so it can't point at a hidden host widget), but leaves the
+ * frozen host's menu state.
+ */
+this._clearOverlays = () => {
+  UINav.reset();
+  Dialogue.clear();
+  FloatingText.clear();
+  ParticleFx.clear();
+};
+
+/** Newest first — a guest before its frozen host. */
+this._destroyScenes = () => {
+  if (this.scene !== null) this.scene.destroy();
+  if (this._host !== null) this._host.scene.destroy();
+  this.scene = null;
+  this._factory = null;
+  this._label = null;
+  this._host = null;
+  this._onResult = null;
+};
+
 SystemMenu.quitTo = SCENES.lobby;
 SystemMenu.settingsFile = SETTINGS_FILE;
-// lobby is the boot level + dev launcher; F2 (Step_0) also returns here
-World.levels.start(SCENES.lobby);
-SceneTransition.reveal(); // boot fades in from black
+// lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
+// nothing to fade out from, so the boot fades IN from black instead.
+this._apply(SCENES.lobby, {});
+SceneTransition.reveal();
 
-// register built-in debug sections; live bindings track the current level across swaps
-DebugGeneral.register();
-DebugRender.register(); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
+// register built-in debug sections; they read this.scene live, so bindings track it across swaps
+DebugGeneral.register(this);
+DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
-// the Demo's SaveGame/SceneRpg). Save is gated on a saveable level; Load boots a fresh RPG.
+// the Demo's SaveGame/SceneRpg). Save is gated on a saveable scene; Load boots a fresh RPG.
 SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
-  SaveGame.buildMenuTab(),
+  SaveGame.buildMenuTab(this),
 );

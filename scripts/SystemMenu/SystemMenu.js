@@ -1,6 +1,6 @@
 /**
- * Pause is global: LevelManager skips scene.update() while isOpen() (this menu is its boot-wired
- * `menu` seam), and the menu forces Time.scale=0 each frame (the menu itself runs on Time.raw).
+ * Pause is global: the Game object skips scene.update() while isOpen(), and the menu forces
+ * Time.scale=0 each frame (the menu itself runs on Time.raw).
  * UIModal blocks the underlying UI. Open triggers: F1 anywhere, gamepad Start during gameplay; Esc
  * during gameplay is context-aware (scene.handleEscape() gets first refusal). A scene opts into
  * gameplay pause/nav via this.gameplay.
@@ -8,7 +8,7 @@
 globalThis.SystemMenu = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the Game controller (its themed `background` — scenes live on the Game object)
+  _game: null, // the Game object, re-latched each update() — owner of the scene pointer + backdrop
   _scale: 1, // Time.scale to restore on resume
   // Boot-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
   // this menu free of scene/save concerns (SaveGame/sceneRpg). Wired once at boot via addTab().
@@ -30,7 +30,7 @@ globalThis.SystemMenu = {
   /** game: the Game controller (its `background` re-themes) */
   update(game) {
     SystemMenu._game = game;
-    const scene = World.levels.current;
+    const scene = game.scene;
 
     if (SystemMenu._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
@@ -64,7 +64,7 @@ globalThis.SystemMenu = {
     if (keyboard_check_pressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
-      } else if (World.levels.back()) {
+      } else if (game.back()) {
         // guest minigame was active — Esc returned to the frozen host, not open the menu
       } else {
         SystemMenu.open();
@@ -79,7 +79,7 @@ globalThis.SystemMenu = {
         UINav.suspended = true; // consumed
         return;
       }
-      if (World.levels.back()) return; // B also exits a guest minigame back to the host
+      if (game.back()) return; // B also exits a guest minigame back to the host
     }
 
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
@@ -259,8 +259,10 @@ globalThis.SystemMenu = {
       GemsTheme.setMode(mode);
       UINav.color = Color.parse(GemsTheme.accent);
       const game = SystemMenu._game;
-      if (game !== null) game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
-      World.levels.retheme(); // rebuild active scene UI in place
+      if (game !== null) {
+        game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
+        game.retheme(); // rebuild active scene UI in place
+      }
       UINav.reset(); // focus was on now-destroyed elements
       SystemMenu.reopen(1); // reopen on the Settings tab, recolored
     });
@@ -286,7 +288,7 @@ globalThis.SystemMenu = {
         gemsButton(
           I18n.textRef("SYS_QUIT"),
           () => {
-            World.levels.switchTo(SystemMenu.quitTo);
+            SystemMenu._game.switchTo(SystemMenu.quitTo);
             SystemMenu.close();
           },
           { width: 200 },

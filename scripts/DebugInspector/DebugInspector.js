@@ -11,6 +11,7 @@
 globalThis.DebugInspector = {
   _entities: null,
   _id: -1,
+  _scene: null, // the live Scene, re-latched each update() (Step_0 hands it in)
   _registered: false, // Entity section registered at least once
   pickRadius: 128, // max world px from cursor to accept a pick
   markerR: 18, // highlight half-size (GUI px)
@@ -91,12 +92,13 @@ globalThis.DebugInspector = {
     DebugInspector.select(null, -1);
   },
 
-  update() {
+  /** `scene` is the live Scene, handed in each frame by Game Step_0 (draw() reuses it). */
+  update(scene) {
+    DebugInspector._scene = scene;
     if (!Debug.enabled) return;
     // register the Entity section up front so its window exists before the
     // first pick.
     if (!DebugInspector._registered) DebugInspector.select(null, -1);
-    const scene = World.levels.current;
     const entities =
       scene !== null && scene !== undefined && scene.entities !== undefined
         ? scene.entities
@@ -134,7 +136,7 @@ globalThis.DebugInspector = {
     if (!Debug.enabled || !Debug.isOpen() || DebugInspector._id === -1) return;
     const entities = DebugInspector._entities;
     if (entities === null || !entities.isValid(DebugInspector._id)) return;
-    const scene = World.levels.current;
+    const scene = DebugInspector._scene;
     if (scene === null || scene === undefined || scene.camera === undefined)
       return;
     const pos = entities.get(Position, DebugInspector._id);

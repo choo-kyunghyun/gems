@@ -8,6 +8,7 @@
  */
 globalThis.DebugRender = {
   _registered: false, // register() (Create_0) has run
+  _game: null, // the Game object — the live scene pointer the toggles resolve passes through
   _extra: [], // [pass class, label] from a genre layer's add()
 
   /**
@@ -25,7 +26,8 @@ globalThis.DebugRender = {
     if (DebugRender._registered) Debug.add(DebugRender._section);
   },
 
-  register() {
+  register(game) {
+    DebugRender._game = game;
     DebugRender._registered = true;
     Debug.add(DebugRender._section);
   },
@@ -93,7 +95,7 @@ globalThis.DebugRender = {
    */
   _passesOf(cls) {
     const out = [];
-    const scene = World.levels !== null ? World.levels.current : null;
+    const scene = DebugRender._game !== null ? DebugRender._game.scene : null;
     if (scene === null || scene === undefined || scene.renderer == null)
       return out;
     const passes = scene.renderer.passes;

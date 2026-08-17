@@ -12,7 +12,7 @@ globalThis.SCENES = {
       },
 
       /**
-       * Live theme swap (LevelManager.retheme): tear down + rebuild the UI so it bakes the new
+       * Live theme swap (the Game object's retheme): tear down + rebuild the UI so it bakes the new
        * palette. The lobby holds no world/gameplay state, so a plain UI rebuild is enough.
        */
       retheme() {

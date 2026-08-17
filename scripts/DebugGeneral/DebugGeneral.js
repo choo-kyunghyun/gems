@@ -4,10 +4,10 @@
  */
 globalThis.DebugGeneral = {
   /**
-   * sections read World.levels live, so bindings track the current scene
-   * across swaps.
+   * `game` is the Game object — sections read its live scene pointer, so the
+   * bindings track the current scene across swaps.
    */
-  register() {
+  register(game) {
     Debug.add({
       name: "Time",
       data: { scale: 1, delta: 0, raw: 0 },
@@ -52,8 +52,8 @@ globalThis.DebugGeneral = {
           this._frames = 0;
           this._t0 = now;
         }
-        d.scene = World.levels.label();
-        const s = World.levels.current;
+        d.scene = game.label();
+        const s = game.scene;
         const w =
           s !== null && s !== undefined && s.entities !== undefined
             ? s.entities
@@ -76,10 +76,10 @@ globalThis.DebugGeneral = {
     Debug.add({
       name: "Sim",
       build() {
-        // World.levels is the one live manager — the ref binds `paused` two-way
-        dbg_checkbox(ref_create(World.levels, "paused"), "Pause");
-        dbg_button("Step Frame", () => World.levels.requestStep());
-        dbg_button("Restart Scene", () => World.levels.restart());
+        // the ref binds the Game object's `paused` two-way
+        dbg_checkbox(ref_create(game, "paused"), "Pause");
+        dbg_button("Step Frame", () => game.requestStep());
+        dbg_button("Restart Scene", () => game.restart());
       },
     });
   },

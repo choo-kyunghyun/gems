@@ -212,11 +212,11 @@ globalThis.SaveGame = {
       const health = pid !== undefined ? w.get(Health, pid) : undefined;
       const stats = pid !== undefined ? w.get(Stats, pid) : undefined;
       const inv = pid !== undefined ? w.get(Inventory, pid) : undefined;
-      ctx.manifest.activeMap = World.levels.activeId();
+      ctx.manifest.activeMap = World.activeId;
       ctx.manifest.meta = {
         version: Snapshot.VERSION,
         savedAt: new Date().toISOString(), // clean wall-clock stamp (date_datetime_string is garbled on GMRT)
-        map: World.levels.activeId(),
+        map: World.activeId,
         day: WorldClock.day,
         season: WorldClock.season().id,
         clock: WorldClock.clockText(),
@@ -263,15 +263,15 @@ globalThis.SaveGame = {
   _mapsPass: {
     id: "maps",
     capture(ctx) {
-      const activeId = World.levels.activeId();
-      const ids = World.levels.ids();
+      const activeId = World.activeId;
+      const ids = World.ids();
       const maps = [];
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
         // the ACTIVE map's live truth is on the scene (its registry entry is minimal until a
         // suspend overwrites it); parked maps carry their full bundle in the registry.
         const src =
-          mapId === activeId ? ctx.scene : World.levels.entryOf(mapId);
+          mapId === activeId ? ctx.scene : World.get(mapId);
         if (src === null || src.entities === undefined) continue;
         const entities = src.entities;
         const grid = src.grid;
@@ -373,18 +373,19 @@ globalThis.SaveGame = {
 
   /**
    * Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
-   * Called fresh on each menu open, so the rows reflect the current index.
+   * Called fresh on each menu open, so the rows reflect the current index. `game` is the Game
+   * object — Save reads its live scene, Load switches it.
    */
-  buildMenuTab() {
+  buildMenuTab(game) {
     const scroll = gemsScroll({ grow: true });
     const sec = gemsSection(I18n.textRef("SAVE_TITLE"));
     for (let i = 1; i <= SaveGame.SLOTS; i++)
-      sec.insertChild(SaveGame._slotRow("slot" + i, i));
+      sec.insertChild(SaveGame._slotRow(game, "slot" + i, i));
     scroll.scrollBody.insertChild(sec);
     return scroll;
   },
 
-  _slotRow(slot, n) {
+  _slotRow(game, slot, n) {
     const row = new UIElement({
       width: "100%",
       height: GemsTheme.rowH,
@@ -408,7 +409,7 @@ globalThis.SaveGame = {
     row.insertChild(
       gemsButton(
         I18n.textRef("SAVE_ACTION"),
-        () => SaveGame._menuSave(slot, n),
+        () => SaveGame._menuSave(game, slot, n),
         {
           width: 120,
           primary: true,
@@ -418,7 +419,7 @@ globalThis.SaveGame = {
     row.insertChild(
       gemsButton(
         I18n.textRef("LOAD_ACTION"),
-        () => SaveGame._menuLoad(slot, n),
+        () => SaveGame._menuLoad(game, slot, n),
         {
           width: 120,
         },
@@ -443,8 +444,8 @@ globalThis.SaveGame = {
   /**
    * the current scene if it's saveable (has an entity store + player), else null — Save is gated on it.
    */
-  _saveable() {
-    const s = World.levels.current;
+  _saveable(game) {
+    const s = game.scene;
     if (
       s === null ||
       s === undefined ||
@@ -455,8 +456,8 @@ globalThis.SaveGame = {
     return s;
   },
 
-  _menuSave(slot, n) {
-    const s = SaveGame._saveable();
+  _menuSave(game, slot, n) {
+    const s = SaveGame._saveable(game);
     if (s === null) {
       Toast.push(I18n.text("SAVE_TOAST_NOSCENE"));
       return;
@@ -465,7 +466,7 @@ globalThis.SaveGame = {
     Toast.push(I18n.text("SAVE_TOAST_SAVED", n), { type: "success" });
   },
 
-  _menuLoad(slot, n) {
+  _menuLoad(game, slot, n) {
     if (!SaveGame.has(slot)) {
       Toast.push(I18n.text("SAVE_TOAST_EMPTY", n));
       return;
@@ -475,7 +476,7 @@ globalThis.SaveGame = {
       return;
     }
     SystemMenu.close();
-    World.levels.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
+    game.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
   },
 
   // ── restore helpers: pull entities back out of a store export ──
@@ -512,7 +513,7 @@ globalThis.SaveGame = {
 
   /**
    * rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
-   * EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.levels.put) consume.
+   * EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.put) consume.
    */
   _recordAt(exp, idx) {
     const comps = {};

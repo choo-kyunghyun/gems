@@ -1,5 +1,5 @@
 // Wandering traders — merchants that cross the map graph off-focus, driven entirely by WorldEvents.
-// A static singleton (Game); the reference consumer of WorldEvents + World.levels (LevelManager).
+// A static singleton (Game); the reference consumer of WorldEvents + the World level pool.
 /**
  * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
  * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
@@ -114,7 +114,7 @@ globalThis.Trader = {
     if (rec.snap !== undefined) {
       // re-embody living state via the scene manager (whole-entity restore into the active scene)
       const w = scene.grid.gridToWorld(gx, gy);
-      rec.entId = World.levels.put(scene.mapId, rec.snap, {
+      rec.entId = World.put(scene.mapId, rec.snap, {
         [Position]: { x: w.x, y: w.y, z: 0 },
       });
     } else {
@@ -133,7 +133,7 @@ globalThis.Trader = {
   _dehydrate(scene, rec) {
     if (scene._tradeOpen && scene._tradeMerchantId === rec.entId)
       TradeUI.close(scene); // its entity is leaving — close the shop if it's open on it
-    rec.snap = World.levels.take(scene.mapId, rec.entId); // whole entity → held snapshot
+    rec.snap = World.take(scene.mapId, rec.entId); // whole entity → held snapshot
     rec.entId = -1;
     Log.info(`trader ${rec.id} dehydrated from ${scene.mapId}`);
   },

@@ -16,7 +16,7 @@
  * `setMode(mode)` copies the active palette's colors onto the flat GemsTheme keys the factories
  * read, so each `GemsTheme.<colorKey>` resolves to the current mode. Factories bake those colors
  * into UI components at BUILD time, so a LIVE swap must rebuild the UI afterwards
- * (LevelManager.retheme → each scene's retheme()); it is NOT read live per frame. Geometry/motion
+ * (the Game object's retheme() → each scene's retheme()); it is NOT read live per frame. Geometry/motion
  * are theme-independent and stay flat on the object.
  */
 globalThis.GemsTheme = {
