@@ -1,18 +1,10 @@
 # Roadmap
 
-Where the project is going: what is being worked on now, what is known broken, and what is planned. Contracts live in the code (CLAUDE.md → Comments law 2); this file holds only intent.
+Where the project is going: what is being worked on now, what is known broken, and what is planned. Contracts live in the code; this file holds only intent.
 
 ## Current Works
 
 One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Gameplay → GemsUI → Demo), never by mixing concerns.
-
-### JSDoc Signature Backfill
-
-Carrying every function and method to one typed `@param` per parameter plus a typed `@returns` wherever it returns a value (CLAUDE.md → Comments law 4). A paramless function returning nothing needs no block at all; `//` stays correct for file headers, statement comments inside a body, section dividers, and trailing remarks.
-
-What remains is the demo-heavy tail: `sceneEditor` (18 members), `CraftingUI` (15), `BuildMode` (14), `Interactable` (12), `RpgMap` (12), `TradeUI` (10), `Settlement` (9), `RpgGrid` (7), `TerrainField` (7), `AuthoredStamp` (6), `PlayerSystem` (5), `SettlementSystem` (5), `StatModel` (5), `OverworldGen` (4), `Survival` (4), `TerrainStream` (4), `WorldEvents` (4), `EnemySystem` (3), `InteractAction` (3), `PlatformerController` (3), `PrefabStamp` (3), `Weather` (3), and one or two each in `CollectibleSystem`, `Combat`, `Dialogue`, `DrowsinessSystem`, `EncumbranceSystem`, `HungerSystem`, `Prefab`, `RpgAchievements`, `RpgCatalog`, `RpgPlayer`, `RpgProgression`, `SettlementComponent`, `SystemMenu`, `Temperature`, `ThirstSystem`, `WorldClock`.
-
-Two vocabulary rules the pass rests on. A GM asset type is bare (`{GMSprite}`, `{GMSound}`) — the manual's `Asset.GMSprite` namespace does not resolve. A project global (`{Entity}`, `{Item}`, `{Weapon}`) never resolves as a TYPE either, since it is declared by assignment; that is expected, not a defect to "fix" by inventing a typedef. Neither is machine-checkable today: `lib.gml.d.js` carries TypeScript the compiler cannot parse (enum members written `name: number = 0` among others), and a parse error there voids semantic analysis for the whole program, so the `checkJs` flag in `jsconfig.json` reports nothing on `scripts/`. Type-checking a batch needs a scoped config that drops that stub for a hand-written shim.
 
 ### Tools Review
 

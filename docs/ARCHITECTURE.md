@@ -2,9 +2,9 @@
 
 ## Overview
 
-This file carries the layer map, the cross-cutting invariants, and the area index — and nothing per-module: a module's contracts live in JSDoc at its owning declaration (CLAUDE.md → Comments law 2).
+This file carries the layer map, the cross-cutting invariants, and the area index — and nothing per-module: a module's contracts live in JSDoc at its owning declaration.
 
-Routing rule: the code is the primary reference. Before designing or modifying an area, read its owning files' JSDoc contracts, the invariants here, and the quirks in GMRT.md. The per-area ledgers that used to sit under `docs/architecture/` are gone — their contracts now live at the owning declarations (CLAUDE.md → Comments law 2). The index below exists only to locate an area's owning files; a new contract goes to its owner, never here.
+Routing rule: the code is the primary reference. Before designing or modifying an area, read its owning files' JSDoc contracts, the invariants here, and the quirks in GMRT.md. The per-area ledgers that used to sit under `docs/architecture/` are gone — their contracts now live at the owning declarations. The index below exists only to locate an area's owning files; a new contract goes to its owner, never here.
 
 Doc laws — what this file may contain:
 
