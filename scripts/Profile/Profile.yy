@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Profile",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

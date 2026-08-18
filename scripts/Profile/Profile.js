@@ -1,5 +1,6 @@
 // Lifetime counters under SaveData's "profile" key (native object — nested via json_stringify, see
-// docs/GMRT.md); load() needs SaveData.load() first, unlocks trigger via RpgAchievements.report.
+// docs/GMRT.md); load() needs SaveData.load() first. Every key is the caller's — this store names
+// none, which is what keeps a lifetime-counter store free of any gameplay rule.
 globalThis.Profile = {
   _counters: {},
 
