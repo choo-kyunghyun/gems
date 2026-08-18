@@ -63,7 +63,7 @@ globalThis.ColonyCombat = {
           // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
           // armored (geared squad), enemies as flesh (raiders/rats).
           const at = { x: pos.x, y: pos.y };
-          if (entities.get(id, Mesh) !== undefined)
+          if (entities.has(id, Mesh))
             Audio.play({ sound: snd_hitsound_metal, position: at });
           else if (isAlly)
             Audio.play({ sound: snd_hitsound_armor, position: at });

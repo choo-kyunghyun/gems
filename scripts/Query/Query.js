@@ -59,10 +59,10 @@ globalThis.Query = {
 
   _matchesOpts(entities, id, opts) {
     if (opts.has !== undefined) {
-      if (entities.get(id, opts.has) === undefined) return false;
+      if (!entities.has(id, opts.has)) return false;
     }
     if (opts.hasCollision) {
-      if (entities.get(id, Collision) === undefined) return false;
+      if (!entities.has(id, Collision)) return false;
     }
     return true;
   },

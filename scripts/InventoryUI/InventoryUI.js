@@ -408,7 +408,7 @@ globalThis.InventoryUI = {
           const f = scene.level.entities.get(fid, Follower);
           if (f === undefined) return "";
           let state;
-          if (scene.level.entities.get(fid, Downed) !== undefined)
+          if (scene.level.entities.has(fid, Downed))
             state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
           else if (f.state === "follow")
             state = I18n.text("FOLLOWER_STATE_FOLLOW");
@@ -436,8 +436,8 @@ globalThis.InventoryUI = {
           height: 30,
           disabled: () => {
             return (
-              scene.level.entities.get(fid, Squad) === undefined || // already out
-              scene.level.entities.get(fid, Downed) !== undefined // can't kick while down
+              !scene.level.entities.has(fid, Squad) || // already out
+              scene.level.entities.has(fid, Downed) // can't kick while down
             );
           },
         },

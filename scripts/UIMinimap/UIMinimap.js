@@ -79,7 +79,7 @@ globalThis.UIMinimap = class UIMinimap {
   /** The first matching rule color, or null if no rule matches. */
   _color(id) {
     for (let r = 0; r < this.rules.length; r++) {
-      if (this.entities.get(id, this.rules[r].has) !== undefined)
+      if (this.entities.has(id, this.rules[r].has))
         return this.rules[r].color;
     }
     return null;

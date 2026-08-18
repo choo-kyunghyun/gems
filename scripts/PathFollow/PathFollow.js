@@ -68,9 +68,9 @@ globalThis.PathFollow = {
 
   /** Drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior). */
   clear(entities, id) {
-    if (entities.get(id, PathResponse) !== undefined)
+    if (entities.has(id, PathResponse))
       entities.detach(id, PathResponse);
-    if (entities.get(id, PathRequest) !== undefined)
+    if (entities.has(id, PathRequest))
       entities.detach(id, PathRequest);
   },
 };

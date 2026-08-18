@@ -38,6 +38,13 @@ globalThis.ComponentStore = class ComponentStore {
     return column[EntityID.index(id)];
   }
 
+  /** No `&&`: a short-circuit corrupts its left operand on this runtime (GMRT.md #15549). */
+  has(id, token) {
+    const column = this._byToken.get(token);
+    if (column === undefined) return false;
+    return column[EntityID.index(id)] !== undefined;
+  }
+
   detach(id, token) {
     const column = this._byToken.get(token);
     if (column !== undefined) column[EntityID.index(id)] = undefined;

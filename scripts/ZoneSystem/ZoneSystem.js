@@ -13,7 +13,7 @@ globalThis.ZoneSystem = {
     const seen = {};
 
     entities.forEach([Position], (id) => {
-      if (has !== undefined && entities.get(id, has) === undefined) return;
+      if (has !== undefined && !entities.has(id, has)) return;
       seen[id] = true;
       const pos = entities.get(id, Position);
       const g = grid.worldToGrid(pos.x, pos.y);
@@ -50,7 +50,7 @@ globalThis.ZoneSystem = {
     const has = opts.has;
     const out = [];
     entities.forEach([Position], (eid) => {
-      if (has !== undefined && entities.get(eid, has) === undefined) return;
+      if (has !== undefined && !entities.has(eid, has)) return;
       const pos = entities.get(eid, Position);
       const g = grid.worldToGrid(pos.x, pos.y);
       if (map.idAt(g.x, g.y) === id) out.push(eid);

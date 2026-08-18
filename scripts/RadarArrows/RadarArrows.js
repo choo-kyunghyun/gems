@@ -83,7 +83,7 @@ globalThis.RadarArrows = {
 
   _color(entities, id, rules) {
     for (let r = 0; r < rules.length; r++)
-      if (entities.get(id, rules[r].has) !== undefined) return rules[r].color;
+      if (entities.has(id, rules[r].has)) return rules[r].color;
     return null;
   },
 };

@@ -22,7 +22,7 @@ globalThis.FollowerSystem = {
       const vel = entities.get(id, Velocity);
       if (f === undefined || vel === undefined) continue;
       // downed or stationed → hold still; only "follow" seeks.
-      if (f.state !== "follow" || entities.get(id, Downed) !== undefined) {
+      if (f.state !== "follow" || entities.has(id, Downed)) {
         vel.x = 0;
         vel.y = 0;
       } else {
@@ -97,7 +97,7 @@ globalThis.FollowerSystem = {
    */
   hire(entities, playerId, fid) {
     const squad = entities.get(playerId, Squad);
-    if (squad === undefined || entities.get(fid, Follower) === undefined)
+    if (squad === undefined || !entities.has(fid, Follower))
       return;
     entities.add(fid, Squad, { id: squad.id });
     FollowerSystem.setState(entities, playerId, fid, "follow");

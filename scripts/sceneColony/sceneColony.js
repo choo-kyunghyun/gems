@@ -407,7 +407,7 @@ class _SceneColonyClass {
           this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
           const kind =
-            this.level.entities.get(id, Rat) !== undefined ? "rat" : "raider";
+            this.level.entities.has(id, Rat) ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
@@ -635,8 +635,8 @@ class _SceneColonyClass {
    * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
    */
   _kickFollower(fid) {
-    if (this.level.entities.get(fid, Squad) === undefined) return; // not a member
-    if (this.level.entities.get(fid, Downed) !== undefined) return; // recovering — can't kick mid-revive
+    if (!this.level.entities.has(fid, Squad)) return; // not a member
+    if (this.level.entities.has(fid, Downed)) return; // recovering — can't kick mid-revive
     FollowerSystem.kick(this.level.entities, this.playerId, fid);
     this._invDirty = true; // squad roster changed
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
@@ -776,7 +776,7 @@ class _SceneColonyClass {
     const npc = this.level.entities.get(id, NPC);
     this.dialogueName = npc.name;
     // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
-    if (this.level.entities.get(id, Merchant) !== undefined) {
+    if (this.level.entities.has(id, Merchant)) {
       this.dialogueLine = "NPC_MERCHANT_GREET";
       this.dialogueAction = "MERCHANT_TRADE";
       return;
@@ -853,7 +853,7 @@ class _SceneColonyClass {
   _npcActivate() {
     if (this._npcId === -1 || !this.nearNpc) return;
     // a merchant NPC opens its shop instead of the quest flow
-    if (this.level.entities.get(this._npcId, Merchant) !== undefined) {
+    if (this.level.entities.has(this._npcId, Merchant)) {
       TradeUI.open(this, this._npcId);
       return;
     }

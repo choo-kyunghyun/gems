@@ -70,6 +70,11 @@ globalThis.EntityStore = class EntityStore {
     return this.components.get(id, token);
   }
 
+  /** Presence test — what a marker component is queried with, since it carries no data to read. */
+  has(id, token) {
+    return this.components.has(id, token);
+  }
+
   detach(id, token) {
     this.components.detach(id, token);
   }
