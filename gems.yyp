@@ -30,6 +30,7 @@
     {"$GMFolder":"","%Name":"Content","folderPath":"folders/Game/Content.yy","name":"Content","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Editor","folderPath":"folders/Game/Editor.yy","name":"Editor","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Item","folderPath":"folders/Game/Item.yy","name":"Item","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Component","folderPath":"folders/Game/Item/Component.yy","name":"Component","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Lobby","folderPath":"folders/Game/Lobby.yy","name":"Lobby","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Media","folderPath":"folders/Game/Media.yy","name":"Media","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Audio","folderPath":"folders/Game/Media/Audio.yy","name":"Audio","resourceType":"GMFolder","resourceVersion":"2.0",},

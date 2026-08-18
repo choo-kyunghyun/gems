@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Ammo",
   "parent":{
-    "name":"Item",
-    "path":"folders/Game/Item.yy",
+    "name":"Component",
+    "path":"folders/Game/Item/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
