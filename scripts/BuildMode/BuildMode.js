@@ -8,7 +8,7 @@
  * frame so drawWorld can gate the cursor highlight to "build context owns input".
  *
  * scene contract (create()/ColonyMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
- * ColonyLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
+ * contentTiles.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
  * _tilePasses (render pass per layer key).
  */
 globalThis.BuildMode = {
@@ -21,7 +21,7 @@ globalThis.BuildMode = {
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
-      // tile items: `layer` names the ColonyLevel.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
+      // tile items: `layer` names the contentTiles.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
       // a wall item's `mat` picks the per-cell material TileType (scene.wallTypes[mat]).
       labelKey: "BUILD_CAT_TILES",
       items: [
@@ -603,7 +603,7 @@ globalThis.BuildMode = {
     )
       return false;
     const solid = !(
-      item.kind === "tile" && ColonyLevel.layerCfg(item.layer).solid !== true
+      item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
     if (solid) {
       const pp = scene.level.entities.get(Position, scene.playerId);
@@ -645,7 +645,7 @@ globalThis.BuildMode = {
           ? scene[item.layer + "Types"][item.mat]
           : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      const solid = ColonyLevel.layerCfg(item.layer).solid === true;
+      const solid = contentTiles.get(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
         TileEdit.remesh(scene.level.entities, grid, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
@@ -697,7 +697,7 @@ globalThis.BuildMode = {
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(scene[lkey + "Layer"], gx, gy);
-    if (ColonyLevel.layerCfg(lkey).solid === true)
+    if (contentTiles.get(lkey).solid === true)
       TileEdit.remesh(
         scene.level.entities,
         grid,

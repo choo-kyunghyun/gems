@@ -1,8 +1,0 @@
-[
-  { "id": "plains", "name": "Plains", "pathCost": 1 },
-  { "id": "forest", "name": "Forest", "pathCost": 2 },
-  { "id": "hills", "name": "Hills", "pathCost": 3 },
-  { "id": "marsh", "name": "Marsh", "pathCost": 4 },
-  { "id": "mountain", "name": "Mountain", "pathCost": null },
-  { "id": "water", "name": "Water", "pathCost": null }
-]

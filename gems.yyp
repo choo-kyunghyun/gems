@@ -58,10 +58,6 @@
   ],
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
-    {"$GMIncludedFile":"","%Name":"entity.json","CopyToMask":-1,"filePath":"datafiles/data","name":"entity.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"floor.json","CopyToMask":-1,"filePath":"datafiles/data","name":"floor.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"structure.json","CopyToMask":-1,"filePath":"datafiles/data","name":"structure.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"terrain.json","CopyToMask":-1,"filePath":"datafiles/data","name":"terrain.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"OFL.txt","CopyToMask":-1,"filePath":"datafiles/i18n/en-US/fonts/Noto_Sans","name":"OFL.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"README.txt","CopyToMask":-1,"filePath":"datafiles/i18n/en-US/fonts/Noto_Sans","name":"README.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"NotoSans-Bold.ttf","CopyToMask":-1,"filePath":"datafiles/i18n/en-US/fonts/Noto_Sans/static","name":"NotoSans-Bold.ttf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -166,6 +162,7 @@
     {"id":{"name":"contentQuests","path":"scripts/contentQuests/contentQuests.yy",},},
     {"id":{"name":"contentRecipes","path":"scripts/contentRecipes/contentRecipes.yy",},},
     {"id":{"name":"contentStatuses","path":"scripts/contentStatuses/contentStatuses.yy",},},
+    {"id":{"name":"contentTiles","path":"scripts/contentTiles/contentTiles.yy",},},
     {"id":{"name":"CraftingUI","path":"scripts/CraftingUI/CraftingUI.yy",},},
     {"id":{"name":"CraftSystem","path":"scripts/CraftSystem/CraftSystem.yy",},},
     {"id":{"name":"Debug","path":"scripts/Debug/Debug.yy",},},

@@ -18,7 +18,7 @@ globalThis.ColonyMap = {
   // fields _stash/_restore copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open). NOT listed: the Level
   // itself (the pool holds it — a resume re-points scene.level at it) and the per-layer tilemap
-  // handles (<key>Layer/<key>Type/<key>Types), which _bundleKeys derives from ColonyLevel.LAYERS so a
+  // handles (<key>Layer/<key>Type/<key>Types), which _bundleKeys derives from contentTiles.LAYERS so a
   // new LAYERS entry can't silently miss the bundle.
   // (playerId is NOT bundled — it's DERIVED: set on boot spawn/arrival and re-latched per frame
   // from the Playable query, so the bundle never carries a player handle)
@@ -159,14 +159,14 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Full bundle key list: BUNDLE_KEYS + the per-layer handles from ColonyLevel.LAYERS
+   * Full bundle key list: BUNDLE_KEYS + the per-layer handles from contentTiles.LAYERS
    * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
    * (portal-rate, tiny).
    */
   _bundleKeys() {
     const keys = ColonyMap.BUNDLE_KEYS.slice();
-    for (let i = 0; i < ColonyLevel.LAYERS.length; i++) {
-      const cfg = ColonyLevel.LAYERS[i];
+    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
+      const cfg = contentTiles.LAYERS[i];
       keys.push(cfg.key + "Layer");
       keys.push(cfg.key + "Type");
       if (cfg.materials !== undefined) keys.push(cfg.key + "Types");
@@ -327,8 +327,8 @@ globalThis.ColonyMap = {
     scene.entries = ColonyMap._entryTable(scene.level.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
     // plus <key>Types for a materials-bearing layer (wall). Bundled via _bundleKeys.
-    for (let i = 0; i < ColonyLevel.LAYERS.length; i++) {
-      const key = ColonyLevel.LAYERS[i].key;
+    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
+      const key = contentTiles.LAYERS[i].key;
       scene[key + "Layer"] = built[key + "Layer"];
       scene[key + "Type"] = built[key + "Type"];
       if (built[key + "Types"] !== undefined)
@@ -495,13 +495,13 @@ globalThis.ColonyMap = {
         scene.renderer.insert(pass);
       }
     // Resident tile layers (terrain/floor/fence) as real tilemaps — bottom→top per
-    // ColonyLevel.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
+    // contentTiles.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
     // (flat fallback keeps its "corner" RenderTileMap). VBO-cached + keyed by layer so a
     // BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence layers
     // EMPTY until the player builds — an empty layer emits no quads, so they are free there.
     scene._tilePasses = {};
-    for (let i = 0; i < ColonyLevel.LAYERS.length; i++) {
-      const cfg = ColonyLevel.LAYERS[i];
+    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
+      const cfg = contentTiles.LAYERS[i];
       if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
       const spr = asset_get_index(cfg.sprite);
@@ -586,7 +586,7 @@ globalThis.ColonyMap = {
       // paint the same layer. PER-CELL MATERIALS from the wall cfg (near-white face texture × tint
       // per material, bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as
       // the default bucket for file and generated walls.
-      const wallCfg = ColonyLevel.layerCfg("wall");
+      const wallCfg = contentTiles.get("wall");
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
         const m = wallCfg.materials[i];

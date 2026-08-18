@@ -1,7 +1,0 @@
-[
-  { "id": "stone_road", "name": "Stone Road", "pathCost": 0.5 },
-  { "id": "dirt_path", "name": "Dirt Path", "pathCost": 0.8 },
-  { "id": "wooden_bridge", "name": "Wooden Bridge", "pathCost": 1 },
-  { "id": "marble_floor", "name": "Marble Floor", "pathCost": 1 },
-  { "id": "iron_grate", "name": "Iron Grate", "pathCost": 1.2 }
-]
