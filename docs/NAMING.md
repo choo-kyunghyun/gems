@@ -4,7 +4,7 @@ Naming rules for API members, scripts, and media assets.
 
 ## API
 
-Members are short idiomatic verbs and nouns (`Entity.create`, `Item.get`, `File.read`); the owner is the namespace, so a member never restates it or pads with filler (`createNew`, `getInfo`). A class is named for what it is (`Entity`), not its role pattern (`*Manager`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`read` vs `readBuffer`); everything else a long name would carry belongs in JSDoc.
+Members are short idiomatic verbs and nouns (`EntityStore.create`, `Item.get`, `File.read`); the owner is the namespace, so a member never restates it or pads with filler (`createNew`, `getInfo`). A class is named for what it is (`EntityStore`), not its role pattern (`*Manager`, `*Helper`, `*Impl`). A qualifier exists only to split two real members (`read` vs `readBuffer`); everything else a long name would carry belongs in JSDoc.
 
 ## Scripts
 

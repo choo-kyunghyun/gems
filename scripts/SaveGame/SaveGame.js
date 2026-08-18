@@ -501,7 +501,7 @@ globalThis.SaveGame = {
       const ids = lists[l];
       if (ids === undefined) continue;
       for (let i = 0; i < ids.length; i++, n++)
-        excl[EntityID.getIndex(ids[i])] = true;
+        excl[EntityID.index(ids[i])] = true;
     }
     if (n === 0) return;
     const toks = Object.keys(exp.components);
@@ -531,7 +531,7 @@ globalThis.SaveGame = {
     const be = savedMap.builtEnts !== undefined ? savedMap.builtEnts : {};
     const bk = Object.keys(be);
     for (let i = 0; i < bk.length; i++)
-      skip[EntityID.getIndex(be[bk[i]].ent)] = true;
+      skip[EntityID.index(be[bk[i]].ent)] = true;
 
     const idxs = SaveGame._indexes(exp);
     let n = 0;
@@ -645,7 +645,7 @@ globalThis.SaveGame = {
       const c = ek[i].split(",");
       const rec = be[ek[i]];
       const ent = { dx: Number(c[0]), dy: Number(c[1]), item: rec.itemId };
-      const snap = SaveGame._recordAt(active.world, EntityID.getIndex(rec.ent));
+      const snap = SaveGame._recordAt(active.world, EntityID.index(rec.ent));
       if (Object.keys(snap.components).length > 0) ent.snapshot = snap;
       ents.push(ent);
     }

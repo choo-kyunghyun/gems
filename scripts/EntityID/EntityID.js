@@ -5,15 +5,15 @@ globalThis.EntityID = class EntityID {
   static INDEX_MASK = (1 << 20) - 1;
   static GENERATION_MASK = 0xfff;
 
-  static makeId(index, generation) {
+  static make(index, generation) {
     return (generation << this.INDEX_BITS) | index;
   }
 
-  static getIndex(id) {
+  static index(id) {
     return id & this.INDEX_MASK;
   }
 
-  static getGeneration(id) {
+  static generation(id) {
     return id >>> this.INDEX_BITS;
   }
 
@@ -33,12 +33,12 @@ globalThis.EntityID = class EntityID {
       generation = 0;
       this.generations[index] = generation;
     }
-    return EntityID.makeId(index, generation);
+    return EntityID.make(index, generation);
   }
 
   free(id) {
-    const index = EntityID.getIndex(id);
-    const generation = EntityID.getGeneration(id);
+    const index = EntityID.index(id);
+    const generation = EntityID.generation(id);
     if (this.generations[index] !== generation) return false;
     this.generations[index] =
       (this.generations[index] + 1) & EntityID.GENERATION_MASK;
@@ -51,8 +51,8 @@ globalThis.EntityID = class EntityID {
   }
 
   isValid(id) {
-    const index = EntityID.getIndex(id);
-    const generation = EntityID.getGeneration(id);
+    const index = EntityID.index(id);
+    const generation = EntityID.generation(id);
     return this.generations[index] === generation;
   }
 

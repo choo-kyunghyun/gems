@@ -27,7 +27,7 @@
 /**
  * @typedef {Object} PrefabApplyOpts
  * @property {LevelGrid} grid    the level grid (tile layers / zones / cell dims)
- * @property {Entity} [entities]       the ECS entity store — required only when the def has walls
+ * @property {EntityStore} [entities]       the ECS entity store — required only when the def has walls
  * @property {number} ox         absolute cell offset of the prefab origin
  * @property {number} oy
  * @property {Object<string, TileLayer>} [layers] named TileLayer map the def's tiles refer to

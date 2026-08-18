@@ -1,9 +1,9 @@
-/** @typedef {Object} EntityOpts @property {number} [gravity] override GravitySystem.strength for this store */
-globalThis.Entity = class Entity {
+/** @typedef {Object} EntityStoreOpts @property {number} [gravity] override GravitySystem.strength for this store */
+globalThis.EntityStore = class EntityStore {
   constructor(maxEntities, opts = {}) {
     this.maxEntities = maxEntities;
     this.ids = new EntityID(maxEntities);
-    this.storage = new EntityData(maxEntities, this.ids);
+    this.components = new ComponentStore(maxEntities, this.ids);
     this._pending = [];
     this.gravity = opts.gravity ?? null;
     /**
@@ -14,7 +14,7 @@ globalThis.Entity = class Entity {
   }
 
   destroy() {
-    this.storage.destroy();
+    this.components.destroy();
     this.ids.reset();
   }
 
@@ -46,53 +46,53 @@ globalThis.Entity = class Entity {
   flush() {
     for (const id of this._pending) {
       if (!this.ids.isValid(id)) {
-        Log.warn("Entity.flush: stale remove for id " + id + " — skipped");
+        Log.warn("EntityStore.flush: stale remove for id " + id + " — skipped");
         continue;
       }
-      this.storage.clear(EntityID.getIndex(id));
+      this.components.clear(EntityID.index(id));
       this.ids.free(id);
     }
     this._pending = [];
   }
 
-  register(ComponentClass) {
-    this.storage.register(ComponentClass);
+  register(token) {
+    this.components.register(token);
     return this;
   }
 
   /** Per-entity accessors are ENTITY-FIRST (add/get/detach): a swapped pair would read
    *  as a miss, not an error — get() returns undefined for an unregistered component. */
-  add(id, ComponentClass, data) {
-    this.storage.add(id, ComponentClass, data);
+  add(id, token, data) {
+    this.components.add(id, token, data);
   }
 
-  get(id, ComponentClass) {
-    return this.storage.get(id, ComponentClass);
+  get(id, token) {
+    return this.components.get(id, token);
   }
 
-  detach(id, ComponentClass) {
-    this.storage.detach(id, ComponentClass);
+  detach(id, token) {
+    this.components.detach(id, token);
   }
 
   componentsOf(id) {
-    return this.storage.componentsOf(id);
+    return this.components.componentsOf(id);
   }
 
-  query(...ComponentClasses) {
-    return this.storage.query(ComponentClasses);
+  query(...tokens) {
+    return this.components.query(tokens);
   }
 
-  forEach(ComponentClasses, fn) {
-    this.storage.forEach(ComponentClasses, fn);
+  forEach(tokens, fn) {
+    this.components.forEach(tokens, fn);
   }
 
   export() {
-    return { ids: this.ids.export(), components: this.storage.export() };
+    return { ids: this.ids.export(), components: this.components.export() };
   }
 
   import(snapshot) {
     this.ids.import(snapshot.ids);
-    this.storage.import(snapshot.components);
+    this.components.import(snapshot.components);
   }
 
   /**

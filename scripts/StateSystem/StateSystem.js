@@ -1,9 +1,9 @@
 /**
  * @typedef {Object} StateSchema
  * @property {string} id                             registry name (e.g. "combat.idle")
- * @property {function(Entity, number): void} [enter]   called once on transition in
- * @property {function(Entity, number): void} [update]  called every tick while active
- * @property {function(Entity, number): void} [finish]  called once on transition out
+ * @property {function(EntityStore, number): void} [enter]   called once on transition in
+ * @property {function(EntityStore, number): void} [update]  called every tick while active
+ * @property {function(EntityStore, number): void} [finish]  called once on transition out
  */
 
 /**

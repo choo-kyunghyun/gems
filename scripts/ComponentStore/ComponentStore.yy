@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Entity",
+  "%Name":"ComponentStore",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Entity",
+  "name":"ComponentStore",
   "parent":{
     "name":"Entity",
     "path":"folders/Core/Entity.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Entity.js",
+  "scriptSource":"ComponentStore.js",
 }
