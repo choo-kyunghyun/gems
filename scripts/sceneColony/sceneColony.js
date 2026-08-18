@@ -187,9 +187,14 @@ class _SceneColonyClass {
     // tab's status labels read Achievement live, so no rebuild is needed.
     Debug.add({
       name: "Achievements",
-      data: { unlocked: "" },
       build() {
-        dbg_watch(ref_create(this.data, "unlocked"), "unlocked");
+        Debug.watch("unlocked", () => {
+          const all = Achievement.all();
+          let n = 0;
+          for (let i = 0; i < all.length; i++)
+            if (Achievement.isUnlocked(all[i].id)) n++;
+          return `${n}/${all.length}`;
+        });
         dbg_button("Unlock All", () => {
           Achievement.unlockAll();
           Log.info("debug: all achievements unlocked");
@@ -198,13 +203,6 @@ class _SceneColonyClass {
           Achievement.clear();
           Log.info("debug: all achievements cleared");
         });
-      },
-      update() {
-        const all = Achievement.all();
-        let n = 0;
-        for (let i = 0; i < all.length; i++)
-          if (Achievement.isUnlocked(all[i].id)) n++;
-        this.data.unlocked = `${n}/${all.length}`;
       },
     });
 

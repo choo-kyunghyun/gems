@@ -2,36 +2,37 @@
  * Debug — a registry of debug sections rendered by GameMaker's native ImGui
  * overlay (F3). The overlay renders OUTSIDE the game surface, so screen_save
  * misses it — human-only at draw time; an agent tunes from a harness by
- * writing the same live state a control binds (e.g. Time.scale,
- * the Game object's requestStep()) or a section's staged `data` field.
+ * writing the same live state a control binds (e.g. Time.scale, the Game
+ * object's requestStep()).
  *
- * A section is a duck-typed object { name, window?, build(), update()?,
- * data? } rendered as its own dbg_section; `window` names the dbg_view
- * window hosting it (default "General") — a window's sections stack in
- * registration order. The manager opens the dbg_section, then build() emits
- * dbg_* controls (it may nest further dbg_sections — the Inspector's
- * per-component ones); update() runs each frame while the overlay is open.
- * Controls bind through ref_create — directly at a live plain object where
- * one exists (two-way, no sync code); a class STATIC or computed value can't
- * be ref'd, so it stages through the section's plain `data` struct: update()
- * pulls reads (data.fps = fps) and, for editable fields,
- * change-detect-pushes so external writes (e.g. Time.scale = 0 on pause)
- * aren't clobbered by a stale control.
+ * A section is a duck-typed object { name, window?, build(), update()? }
+ * rendered as its own dbg_section; `window` names the dbg_view hosting it
+ * (default "General") — a window's sections stack in registration order.
+ * build() emits dbg_* controls (it may nest further dbg_sections — the
+ * Inspector's per-component ones); the optional update() runs each frame while
+ * the overlay is open, for whatever isn't a control.
+ *
+ * A control binds through ref_create, which needs a live plain object: ref one
+ * directly where it exists (the Inspector's component structs — two-way, no
+ * sync code), and route everything else — a class STATIC, a computed value —
+ * through Debug.watch/checkbox, which stage a get/set pair behind a
+ * hidden cell the update pass pumps: a read pulls, and an edit pushes only on
+ * change, so an external write (Time.scale = 0 on pause) is never clobbered by
+ * a stale control.
  *
  * Windows build LAZILY on first open (a bare dbg_view can raise the overlay,
- * and enabled = false must stay inert) and live until their sections are
- * gone — an F3 toggle hides, never rebuilds. No dbg_set_view on GMRT:
- * dbg_section lands in the most-recently-created dbg_view only, so any
- * section change (add/re-add/remove) drops its WHOLE window for the lazy
- * pass to rebuild — a section that churns (the Inspector re-registers per
- * pick) takes a window of its own so the stable ones keep their dragged
- * positions.
+ * and enabled = false must stay inert) and live until their sections are gone
+ * — an F3 toggle hides, never rebuilds. No dbg_set_view on GMRT: dbg_section
+ * lands in the most-recently-created dbg_view only, so any section change
+ * (add/re-add/remove) drops its WHOLE window for the lazy pass to rebuild — a
+ * section that churns (the Inspector re-registers per pick) takes a window of
+ * its own so the stable ones keep their dragged positions.
  */
 /**
  * @typedef {{name: string, build: function(): void} & Object<string, *>}
  *   DebugSection
- * (the open record admits the optional members — window, update(), data —
- * and any per-section staging state: `_last`, …)
+ * (the open record admits the optional members — window, update() — plus the
+ * `_staged` bindings Debug attaches)
  */
 globalThis.Debug = {
   enabled: true, // set false for a release build
@@ -41,12 +42,15 @@ globalThis.Debug = {
   _open: false,
   /** Window name -> its dbg_view handle. */
   _handles: {},
+  /** the section whose build() is running — owner of the staged bindings. */
+  _building: null,
 
   /**
    * register (or replace by name) a section; safe to re-call across scene
    * reloads — re-add()ing is also how a section refreshes its own content.
    */
   add(section) {
+    section._staged = [];
     Debug._invalidate(Debug._windowOf(section));
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === section.name) {
@@ -68,6 +72,26 @@ globalThis.Debug = {
         return;
       }
     }
+  },
+
+  /** build()-time: a read-only display of whatever `get` computes. */
+  watch(label, get) {
+    dbg_watch(Debug._stage(get, undefined), label);
+  },
+
+  /** build()-time: an editable checkbox over a get/set pair. */
+  checkbox(label, get, set) {
+    dbg_checkbox(Debug._stage(get, set), label);
+  },
+
+  /**
+   * a ref to the hidden cell update() pumps against get/set. Stored read/write
+   * — the `{ get }`/`{ set }` shorthand quirk (docs/GMRT.md).
+   */
+  _stage(get, set) {
+    const cell = { v: get() };
+    Debug._building._staged.push({ cell, read: get, write: set, last: cell.v });
+    return ref_create(cell, "v");
   },
 
   _windowOf(section) {
@@ -94,7 +118,7 @@ globalThis.Debug = {
 
   /**
    * Step_0: F3 toggle; while open, rebuild windows missing their dbg_view,
-   * then run every section's update().
+   * then pump every section's staged bindings and update().
    */
   update() {
     if (!Debug.enabled) return;
@@ -108,6 +132,13 @@ globalThis.Debug = {
     }
     for (let i = 0; i < Debug.sections.length; i++) {
       const section = Debug.sections[i];
+      const staged = section._staged;
+      for (let j = 0; j < staged.length; j++) {
+        const b = staged[j];
+        if (b.write !== undefined && b.cell.v !== b.last) b.write(b.cell.v);
+        else b.cell.v = b.read();
+        b.last = b.cell.v;
+      }
       if (section.update !== undefined) section.update();
     }
   },
@@ -133,7 +164,10 @@ globalThis.Debug = {
       const section = Debug.sections[i];
       if (Debug._windowOf(section) === window) {
         dbg_section(section.name, true);
+        section._staged = [];
+        Debug._building = section;
         section.build();
+        Debug._building = null;
       }
     }
   },

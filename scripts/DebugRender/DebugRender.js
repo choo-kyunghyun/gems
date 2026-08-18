@@ -32,13 +32,10 @@ globalThis.DebugRender = {
     Debug.add(DebugRender._section);
   },
 
-  // the "Render" section: pass toggles are computed get/set over live pass
-  // instances — unref'able, staged through data (contract: Debug)
+  // a pass toggle is a computed get/set over live pass instances — unref'able,
+  // so it stages (contract: Debug)
   _section: {
     name: "Render",
-    data: {},
-    _last: {},
-    _list: [],
     build() {
       // list built here (not a field initializer) so the class refs resolve at
       // call time — an initializer referencing a class that loads AFTER this
@@ -54,30 +51,20 @@ globalThis.DebugRender = {
       ];
       for (let i = 0; i < DebugRender._extra.length; i++)
         list.push(DebugRender._extra[i]);
-      this._list = list;
-      for (let i = 0; i < list.length; i++) {
-        const label = list[i][1];
-        this.data[label] = DebugRender._enabled(list[i][0]);
-        this._last[label] = this.data[label];
-        dbg_checkbox(ref_create(this.data, label), label);
-      }
-    },
-    update() {
-      const list = this._list;
       for (let i = 0; i < list.length; i++) {
         const cls = list[i][0];
-        const label = list[i][1];
-        if (this.data[label] !== this._last[label])
-          DebugRender._apply(cls, this.data[label]);
-        else this.data[label] = DebugRender._enabled(cls);
-        this._last[label] = this.data[label];
+        Debug.checkbox(
+          list[i][1],
+          () => DebugRender._enabled(cls),
+          (v) => DebugRender._apply(cls, v),
+        );
       }
     },
   },
 
   _enabled(cls) {
     const passes = DebugRender._passesOf(cls);
-    return passes.length > 0 && passes[0].enabled;
+    return passes.length > 0 ? passes[0].enabled : false;
   },
 
   /**

@@ -725,21 +725,24 @@ globalThis.ColonyMap = {
       name: "Camera",
       // pitchCurve and freeCam are computed toggles — staged (contract: Debug); the plain
       // control fields below ref live, two-way
-      data: { pitchCurve: false, freeCam: false, zoom: 0, pitch: 0 },
-      _curve: false,
-      _fly: false,
       build() {
         // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
-        this.data.pitchCurve = follow.pitchCurve !== undefined;
-        this._curve = this.data.pitchCurve;
-        this.data.freeCam = false; // the reinstall above guarantees the follow control is live
-        this._fly = false;
-        dbg_checkbox(ref_create(this.data, "pitchCurve"), "Pitch by zoom");
+        Debug.checkbox(
+          "Pitch by zoom",
+          () => follow.pitchCurve !== undefined,
+          (v) => (follow.pitchCurve = v ? ColonyMap._pitchCurve : undefined),
+        );
         dbg_slider(ref_create(follow, "pitchDeg"), 0, 85, "Pitch (deg)", 1);
         dbg_slider(ref_create(follow, "zoomTarget"), 0.5, 4, "Zoom", 0.1);
         // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
         // from the player to inspect the render from any angle. Swaps in the perspective control.
-        dbg_checkbox(ref_create(this.data, "freeCam"), "Free cam (WASD/RMB)");
+        // setControl (never a bare assignment) runs the incoming control's enter() seed, which is
+        // what makes the fly camera pick up the live view instead of a stale pose.
+        Debug.checkbox(
+          "Free cam (WASD/RMB)",
+          () => cam.control === fly,
+          (v) => cam.setControl(v ? fly : follow),
+        );
         dbg_slider(ref_create(fly, "speed"), 60, 2400, "Fly speed", 10);
         dbg_button("Recenter on player", () => {
           if (follow.entities === undefined) return;
@@ -749,22 +752,8 @@ globalThis.ColonyMap = {
             cam.toY = pos.y;
           }
         });
-        dbg_watch(ref_create(this.data, "zoom"), "Zoom (live)");
-        dbg_watch(ref_create(this.data, "pitch"), "Pitch (rad)");
-      },
-      update() {
-        const d = this.data;
-        if (d.pitchCurve !== this._curve)
-          follow.pitchCurve = d.pitchCurve ? ColonyMap._pitchCurve : undefined;
-        else d.pitchCurve = follow.pitchCurve !== undefined;
-        this._curve = d.pitchCurve;
-        // setControl (never a bare assignment) — it runs the incoming control's enter() seed, which
-        // is what makes the fly camera pick up the live view instead of a stale pose
-        if (d.freeCam !== this._fly) cam.setControl(d.freeCam ? fly : follow);
-        else d.freeCam = cam.control === fly;
-        this._fly = d.freeCam;
-        d.zoom = follow.zoom;
-        d.pitch = cam.pitch;
+        Debug.watch("Zoom (live)", () => follow.zoom);
+        Debug.watch("Pitch (rad)", () => cam.pitch);
       },
     });
   },

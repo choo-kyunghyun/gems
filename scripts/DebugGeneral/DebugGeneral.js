@@ -4,69 +4,39 @@
  */
 globalThis.DebugGeneral = {
   /**
-   * `game` is the Game object — sections read its live scene pointer, so the
-   * bindings track the current scene across swaps.
+   * `game` is the Game object — the getters read its live scene pointer, so
+   * the bindings track the current scene across swaps.
    */
   register(game) {
     Debug.add({
       name: "Time",
-      data: { scale: 1, delta: 0, raw: 0 },
-      _last: 1,
       build() {
-        const d = this.data;
-        d.scale = Time.scale;
-        this._last = d.scale;
-        dbg_slider(ref_create(d, "scale"), 0, 3, "Scale", 0.1);
-        dbg_watch(ref_create(d, "delta"), "Delta");
-        dbg_watch(ref_create(d, "raw"), "Raw");
-      },
-      update() {
-        // Time.* staged through data (contract: Debug)
-        const d = this.data;
-        if (d.scale !== this._last) Time.scale = d.scale;
-        else d.scale = Time.scale;
-        this._last = d.scale;
-        d.delta = Time.delta;
-        d.raw = Time.raw;
+        // Time is a plain object — every field refs live, two-way
+        dbg_slider(ref_create(Time, "scale"), 0, 3, "Scale", 0.1);
+        dbg_watch(ref_create(Time, "delta"), "Delta");
+        dbg_watch(ref_create(Time, "raw"), "Raw");
       },
     });
     Debug.add({
       name: "Perf",
-      data: { fps: 0, scene: "", entities: 0 },
-      _frames: 0,
-      _t0: 0,
       build() {
-        const d = this.data;
-        this._frames = 0;
-        this._t0 = current_time;
-        dbg_watch(ref_create(d, "fps"), "FPS");
-        dbg_watch(ref_create(d, "scene"), "Scene");
-        dbg_watch(ref_create(d, "entities"), "Entities");
-      },
-      update() {
-        const d = this.data;
-        this._frames++;
-        const now = current_time;
-        if (now - this._t0 >= 1000) {
-          d.fps = round((this._frames * 1000) / (now - this._t0));
-          this._frames = 0;
-          this._t0 = now;
-        }
-        d.scene = game.label();
-        const s = game.scene;
-        const lv = s !== null && s !== undefined ? s.level : undefined;
-        d.entities = lv !== undefined && lv !== null ? lv.entities.count() : "-";
+        Debug.watch("FPS", () => fps);
+        Debug.watch("Scene", () => game.label());
+        Debug.watch("Entities", () => {
+          const scene = game.scene;
+          const level =
+            scene !== null && scene !== undefined ? scene.level : null;
+          return level !== null && level !== undefined
+            ? level.entities.count()
+            : "-";
+        });
       },
     });
     Debug.add({
       name: "Log",
-      data: { lines: 0 },
       build() {
-        dbg_watch(ref_create(this.data, "lines"), "Lines");
+        Debug.watch("Lines", () => Log.count());
         dbg_button("Clear", () => Log.clear());
-      },
-      update() {
-        this.data.lines = Log.count();
       },
     });
     // sim controls relocated from SystemMenu; Pause gates scene.update()
