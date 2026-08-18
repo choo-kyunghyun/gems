@@ -9,8 +9,8 @@
  *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle (metadata, world-sim, and each
  *                            map's component export).
  *   saves/<slot>/<blob>.bin      the binary half, for dense data. NOTHING emits one today: the
- *                            resident tile grid replays from `built`, and the chunk cache is a delta
- *                            small enough for the manifest.
+ *                            level's grid rebuilds from its file or its seed, and the player's own
+ *                            edits replay from `built`.
  * Passes run in insert order both ways; capture and restore live on the same pass object so they
  * can't drift.
  */
@@ -21,7 +21,7 @@ globalThis.SaveGame = {
   _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
   // per-map saved state awaiting each map's first build after a load — the active map consumes its
   // entry immediately; a parked map consumes its entry when the player first portals to it (so a
-  // visited map's builds/chunk-state don't rebuild fresh from file). mapId -> saved map entry.
+  // visited map's residents and builds don't come back fresh from file). mapId -> saved map entry.
   _pendingMaps: {},
   // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
   // are re-derived each tick; dropping them shrinks the save and avoids a cyclic runtime ref).
@@ -168,7 +168,7 @@ globalThis.SaveGame = {
    * Apply a saved map's build state onto a freshly-built map: the founded settlements, then the
    * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
    * the store export, so a chest keeps its contents). Shared by the active-map restore and every
-   * parked map's first build. The deep chunk cache is applied earlier, inside build().
+   * parked map's first build. The map's residents are restored earlier, inside build().
    * `savedMap` is a manifest maps[] entry.
    */
   applyMapState(scene, savedMap) {
@@ -281,33 +281,39 @@ globalThis.SaveGame = {
         const exp = entities.export();
         for (let t = 0; t < SaveGame._TRANSIENT.length; t++)
           delete exp.components[SaveGame._TRANSIENT[t]];
-        // DEEP: chunk-owned wilderness/hub entities ride the chunk cache (exact state), NOT the store
-        // export — exclude them here so they aren't saved twice, then capture the chunk delta.
-        let chunkCache;
-        if (src.chunks !== undefined) {
-          SaveGame._excludeChunkOwned(exp, src.chunks);
-          chunkCache = src.chunks.exportCache(SaveGame._TRANSIENT);
-        }
+        // WHAT THE BOOT REBUILDS IS NOT SAVED, so restoring the rest can't double it: the level's
+        // geometry (the grid comes back from the file or the seed, and its colliders are re-meshed
+        // with it) and the scene's own re-created entities (Trader.register re-embodies its
+        // wandering vendor; sceneRpg's arcade cabinet is gated on a new game instead, since it is
+        // spawned once rather than per activation).
+        // Trader ids only against the ACTIVE map: a trader is embodied in exactly one map (parking
+        // dehydrates it), and an entity INDEX is per-store — matching one against another map's
+        // store would drop an unrelated entity from that map's save.
+        SaveGame._excludeRebuilt(
+          exp,
+          src.colliders,
+          src.statics,
+          mapId === activeId ? Trader.entityIds() : undefined,
+        );
         maps.push({
           id: mapId,
-          chunked: src._chunked === true,
+          generated: src._generated === true,
           indoor: src._indoor === true,
           reachDone: src.reachDone === true,
           built: src._built !== undefined ? src._built : {},
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
           world: exp, // on-disk manifest key — renaming it orphans existing saves
-          chunkCache: chunkCache, // undefined on plain maps (Json drops it)
           zones: SaveGame._zonesOf(grid), // founded settlements (tiles come from `built` via Blueprint)
         });
       }
       ctx.manifest.maps = maps;
     },
     /**
-     * v1 (Full-session): rebuild the ACTIVE map fresh from file and re-arrive the SAVED squad
-     * (player + companions) through the existing portal-transfer machinery, then drop the player
-     * back at its saved position. Wilderness/hub/NPCs regenerate deterministically from seed.
-     * Non-active maps are stashed (_stashPending) and applied on that map's first build, so a
-     * parked map restores when first portaled to rather than up front.
+     * v1 (Full-session): rebuild the ACTIVE map's GRID fresh from its file/seed, restore its saved
+     * residents in place of the spawn pass, and re-arrive the SAVED squad (player + companions)
+     * through the existing portal-transfer machinery, then drop the player back at its saved
+     * position. Non-active maps are stashed (_stashPending) and applied on that map's first build,
+     * so a parked map restores when first portaled to rather than up front.
      */
     restore(ctx) {
       const scene = ctx.scene;
@@ -315,7 +321,7 @@ globalThis.SaveGame = {
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
       // Stash EVERY saved map. The active one is applied by the build() below (RpgMap.build consults
-      // takePendingMap for chunk cache + applyMapState); parked maps apply on their first portal.
+      // takePendingMap for its residents + applyMapState); parked maps apply on their first portal.
       SaveGame._stashPending(maps);
       let active = null;
       for (let i = 0; i < maps.length; i++)
@@ -332,7 +338,7 @@ globalThis.SaveGame = {
       // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
       PlayerSystem.bindKeys();
       // Build the active map, arriving the restored squad at its default entry. build() consumes the
-      // active map's stashed state (deep chunk cache + builds + claimed zone).
+      // active map's stashed state (residents + builds + claimed zone).
       RpgMap.build(scene, activeMap, "default", squad);
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
@@ -347,7 +353,6 @@ globalThis.SaveGame = {
           scene.camera.toX = pinfo.x;
           scene.camera.toY = pinfo.y;
         }
-        if (scene.chunks !== undefined) scene.chunks.update(pinfo.x, pinfo.y);
       }
     },
   },
@@ -483,15 +488,22 @@ globalThis.SaveGame = {
   // ── restore helpers: pull entities back out of a store export ──
 
   /**
-   * Drop a chunk manager's live SIM entities from a store export (they're saved in the chunk cache
-   * instead). Filters each component's sparse entry list by entity INDEX; the id-pool export is left
-   * as-is (restore reads specific entities out, never re-imports the whole export).
+   * Drop from a store export every entity the next BOOT re-creates by itself, so restoreResidents
+   * can bring back all the rest without landing a duplicate. Takes any number of id lists (see the
+   * capture site for what each is). Filters each component's sparse entry list by entity INDEX; the
+   * id-pool export is left as-is (restore reads specific entities out, never re-imports the whole
+   * export).
    */
-  _excludeChunkOwned(exp, chunks) {
-    const ids = chunks.entityIds();
-    if (ids.length === 0) return;
+  _excludeRebuilt(exp, ...lists) {
     const excl = {}; // index -> true (numeric-keyed plain object, not a Map — GMRT)
-    for (let i = 0; i < ids.length; i++) excl[EntityID.getIndex(ids[i])] = true;
+    let n = 0;
+    for (let l = 0; l < lists.length; l++) {
+      const ids = lists[l];
+      if (ids === undefined) continue;
+      for (let i = 0; i < ids.length; i++, n++)
+        excl[EntityID.getIndex(ids[i])] = true;
+    }
+    if (n === 0) return;
     const toks = Object.keys(exp.components);
     for (let t = 0; t < toks.length; t++) {
       const entries = exp.components[toks[t]];
@@ -500,6 +512,57 @@ globalThis.SaveGame = {
         if (excl[entries[e][0]] !== true) kept.push(entries[e]);
       exp.components[toks[t]] = kept;
     }
+  },
+
+  /**
+   * Re-create a loaded map's residents into a freshly-built store, in place of its spawn pass —
+   * which is what makes a killed mob stay dead, a moved one stay moved, and dropped loot stay on
+   * the ground. Everything in the export is restored EXCEPT the two sets another step owns: the
+   * SQUAD (RpgMap._arriveSquad lands those as whole entities) and the player's BUILDS (Blueprint
+   * replays those from `builtEnts`, each with its own snapshot). Level geometry was never in the
+   * export — _excludeRebuilt dropped it on capture. Returns how many were restored.
+   */
+  restoreResidents(entities, savedMap) {
+    const exp = savedMap.world;
+    if (exp === undefined) return 0;
+    const skip = {}; // entity INDEX -> true
+    const squad = SaveGame._squadIndexes(exp);
+    if (squad !== null) for (let i = 0; i < squad.length; i++) skip[squad[i]] = true;
+    const be = savedMap.builtEnts !== undefined ? savedMap.builtEnts : {};
+    const bk = Object.keys(be);
+    for (let i = 0; i < bk.length; i++)
+      skip[EntityID.getIndex(be[bk[i]].ent)] = true;
+
+    const idxs = SaveGame._indexes(exp);
+    let n = 0;
+    for (let i = 0; i < idxs.length; i++) {
+      if (skip[idxs[i]] === true) continue;
+      EntitySnapshot.restore(entities, SaveGame._recordAt(exp, idxs[i]));
+      n++;
+    }
+    return n;
+  },
+
+  /**
+   * Every entity index the export mentions, ascending — the restore order, so a reload lays the
+   * store out the same way twice.
+   */
+  _indexes(exp) {
+    const seen = {};
+    const out = [];
+    const toks = Object.keys(exp.components);
+    for (let t = 0; t < toks.length; t++) {
+      const entries = exp.components[toks[t]];
+      for (let e = 0; e < entries.length; e++) {
+        const idx = entries[e][0];
+        if (seen[idx] === true) continue;
+        seen[idx] = true;
+        out.push(idx);
+      }
+    }
+    // GMRT #15593: comparators must return a SIGN (a fractional difference shuffles ties)
+    out.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    return out;
   },
 
   /**
@@ -527,10 +590,11 @@ globalThis.SaveGame = {
   },
 
   /**
-   * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
-   * RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   * the SQUAD's entity indexes (player FIRST, then companions sharing its Squad id), or null when
+   * the export holds no player. Two readers: the records handed to RpgMap.build, and the skip set
+   * restoreResidents needs so the squad isn't landed twice.
    */
-  _extractSquad(exp) {
+  _squadIndexes(exp) {
     const players = exp.components["Playable"];
     if (players === undefined || players.length === 0) return null;
     const pidx = players[0][0]; // the player's entity index
@@ -545,6 +609,16 @@ globalThis.SaveGame = {
       for (let i = 0; i < squads.length; i++)
         if (squads[i][0] !== pidx && squads[i][1].id === sid)
           idxs.push(squads[i][0]);
+    return idxs;
+  },
+
+  /**
+   * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
+   * RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   */
+  _extractSquad(exp) {
+    const idxs = SaveGame._squadIndexes(exp);
+    if (idxs === null) return null;
     const out = [];
     for (let i = 0; i < idxs.length; i++)
       out.push(SaveGame._recordAt(exp, idxs[i]));

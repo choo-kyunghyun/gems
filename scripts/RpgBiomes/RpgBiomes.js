@@ -5,19 +5,19 @@
  * sibling generator (cave/desert) authors its own table and the machinery never changes.
  */
 globalThis.RpgBiomes = {
-  // Biome palette (the TerrainField contract): material id = index = painter order (TerrainStream
-  // stacks cumulatively, so each upper terrain's dual border reveals the one below). `threshold`
+  // Biome palette (the TerrainField contract): material id = index = painter order (the terrain
+  // layer's dual passes stack cumulatively, so each upper terrain's border reveals the one below). `threshold`
   // entries are the ELEVATION gradient (ascending — deep water → water → sand; past the last one
   // the cell is land), `ground` entries (ascending over the independent ground-detail noise) split
   // the land — grass dominant, with wet depressions (richsoil → soil → mud going in) and rock
   // outcrops (gravel ringing rocky) as patchy features. `sprite` is the untinted dual-grid tileset
-  // TerrainStream renders the layer with; `color` is the design-reference tint (no longer drawn —
+  // the material's pass renders with; `color` is the design-reference tint (no longer drawn —
   // real colored art now). `pathCost` is the WEIGHTED movement cost (TileType convention: null →
   // impassable): it prices both pathfinding (NavGrid samples it, MotionPlanner multiplies step
   // distance by it) and movement-point consumption (PathFollow.speedScale — a mover's speed ×
   // 1/cost). Easy ground 1, loose 1.5, rough 2; shallow water is WADEABLE at 3 (slow, and A* only
   // wades when it beats walking around) but `spawnable: false` (travel yes, homes no); only deep
-  // water is null → a collide-only collider per chunk via TerrainField.solidTerrain.
+  // water is null → collide-only colliders greedy-meshed by TerrainField.solidRects.
   TERRAIN: [
     {
       id: "deepwater",

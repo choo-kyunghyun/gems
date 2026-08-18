@@ -93,12 +93,6 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 - Prefabs
 
-### Engine
-
-Deferred entity sim-LOD work (engine is `ChunkManager`):
-
-- Throttled distant ticks (frozen-ring entities simulate at low rate)
-
 ### Verification
 
 - A dev-only test scene satisfying the `Scene` contract: builds a real `Level`, steps the actual systems, `Log.error`s failed assertions, then ends the run — so `gm-cli run` plus reading `game.log` is the whole loop. Registered in `SceneRegistry`, launched from `sceneLobby`'s dev launcher.

@@ -2,7 +2,7 @@
 // idempotent call. Called from a scene's create() (via RpgQuests.register), NOT at top level.
 /**
  * Sequences the per-domain modules. Called from create() (not top level) to avoid GMRT load-order
- * issues; prefabs register before any chunk generator is built (PrefabStamp resolves Prefab.byTag in
+ * issues; prefabs register before any level generator is built (PrefabStamp resolves Prefab.byTag in
  * its constructor).
  */
 globalThis.RpgContent = {

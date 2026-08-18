@@ -23,10 +23,9 @@
  * PER-CELL MATERIALS (opt.materials): cells are bucketed by their TileType id, each bucket
  * a { sprite, frame, color } of its own — one solid layer renders brick/concrete/metal/plank
  * side by side while colliders/nav stay occupancy-based (one TileEdit layer). A cell whose
- * id matches no material — including bare-occupancy views like ChunkManager.wallLayer(),
- * whose get() returns booleans/1s without a TileType — falls to the DEFAULT bucket
- * (opt.sprite/opt.color). Without opt.materials everything is the default bucket (the
- * original single-material behavior).
+ * id matches no material — including a bare-occupancy view whose get() returns booleans/1s
+ * without a TileType — falls to the DEFAULT bucket (opt.sprite/opt.color). Without
+ * opt.materials everything is the default bucket (the original single-material behavior).
  *
  * VBO-cached like RenderTileMap: call markDirty() after any tile edit — BuildMode's
  * _markTileDirty reaches it through scene._tilePasses. Coords are absolute world px, so the
@@ -36,8 +35,7 @@
 globalThis.RenderWalls = class RenderWalls {
   /**
    * `layer`: only `get(gx, gy)` is read (truthy cell = wall), so any occupancy view satisfies
-   * it — ChunkManager.wallLayer() hands the streamed overworld's authored walls to a second
-   * instance of this pass. opt: `sprite` is an asset REF (validated via sprite_exists —
+   * it, not just a TileLayer. opt: `sprite` is an asset REF (validated via sprite_exists —
    * asset_get_index refs never compare >= 0 on GMRT); `frame` picks the subimage (default 0);
    * `materials` buckets cells by TileType id (see the class doc), id-less/unmatched cells
    * using the top-level defaults.

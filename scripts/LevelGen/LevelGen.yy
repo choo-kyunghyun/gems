@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"ChunkManager",
+  "%Name":"LevelGen",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"ChunkManager",
+  "name":"LevelGen",
   "parent":{
     "name":"Level",
     "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"ChunkManager.js",
+  "scriptSource":"LevelGen.js",
 }

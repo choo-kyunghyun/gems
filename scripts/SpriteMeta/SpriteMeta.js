@@ -17,9 +17,9 @@
  *   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
  *   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate frames for
  *            one neighbor mask, so a large field of one terrain doesn't tile visibly. Only the
- *            dual-grid full-cell mask "15" is emitted today, and only TerrainStream picks from it
- *            (position-hashed, so a reloaded chunk re-picks the same frame); an undeclared sheet falls
- *            back to uniform weights past frame 15.
+ *            dual-grid full-cell mask "15" is emitted today, and only RenderTileMap's dual path picks
+ *            from it (position-hashed, so a rebuilt layer re-picks the same frame); an undeclared
+ *            sheet falls back to uniform weights past frame 15.
  *   anchors  { name: [[dx, dy], ...] } — named per-frame attachment points as offsets from the sprite
  *            ORIGIN in source px (dy negative = up). Emitted by the humanoid importer from the
  *            segmented parts (handR/head/...); read via anchor() — the substrate for anchored

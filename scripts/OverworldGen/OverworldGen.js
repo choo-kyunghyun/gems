@@ -1,58 +1,51 @@
 /**
- * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its box), a
+ * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its claim), a
  * PrefabStamp carrying the RPG spawn policy, and two scatter passes (rocks + rats). A different world
  * (cave/desert/…) is a different composition of the same Core pieces, not a rewrite; a variant
  * overworld overrides the policy hooks via opts.
  *
- * Contract: `create` returns a ChunkGenerator the source ChunkManager holds directly —
- * generate(cx,cy) → { terrain, solid, walls, spawns } (absolute grid coords, deterministic from
- * (cx, cy, seed, pass salt): the same seed MUST rebuild the same world, since a save stores only the
- * touched-chunk delta and the rest regenerates next session; each pass draws from its OWN salted
- * stream, so adding/removing a pass never reshuffles the others' output) — plus the `palette` field
- * and the samplers (materialAt/costAt/terrain/solidTerrain).
+ * Contract: `create` returns a LevelGen the level builder holds directly — generate(cols, rows) →
+ * { walls, spawns, solid } (grid coords, deterministic from (seed, pass salt): the same seed MUST
+ * rebuild the same level, since a save stores only entity state and the ground comes back from the
+ * seed; each pass draws from its OWN salted stream, so adding/removing a pass never reshuffles the
+ * others' output) — plus the `palette` field and paint().
+ *
+ * Scatter DENSITY is per 1000 cells, so a pass covers whatever level it is handed. Every scatter
+ * respects ctx.claimed, so nothing lands inside the hub, a stamped prefab, or an earlier boulder.
  * GMRT-safe: index loops, namespace object on globalThis.
  */
 
 globalThis.OverworldGen = {
   /**
-   * Build the overworld generator. opts: { seed, chunkCols, chunkRows, authored, prefabChance,
-   * prefabTag, spawnFilter, defaultLoot } — `authored` is the level-file data whose walls/spawns
-   * overlay the hub chunks (see AuthoredStamp); the last two override the RPG spawn policy (see
-   * PrefabStamp). Register prefabs before calling (PrefabStamp resolves Prefab.byTag in its
-   * constructor).
+   * Build the overworld generator. opts: { seed, authored, prefabDensity, prefabTag, spawnFilter,
+   * defaultLoot } — `authored` is the level-file data whose walls/spawns overlay the hub (see
+   * AuthoredStamp); the last two override the RPG spawn policy (see PrefabStamp). Register prefabs
+   * before calling (PrefabStamp resolves Prefab.byTag in its constructor).
    */
   create(opts = {}) {
     const seed = (opts.seed ?? 1337) | 0;
-    const chunkCols = opts.chunkCols ?? 16;
-    const chunkRows = opts.chunkRows ?? 16;
-    // the generic terrain sampler (Core) over the RPG's biome data; its palette is what
-    // TerrainStream renders by (render order = palette order)
+    // the generic terrain sampler (Core) over the RPG's biome data; its palette is what the
+    // terrain layer's TileTypes and the stacked dual-grid passes are built from (order = painter order)
     const field = new TerrainField(RpgBiomes.TERRAIN, {
       seed: seed,
-      chunkCols: chunkCols,
-      chunkRows: chunkRows,
       lattice: RpgBiomes.LATTICE,
       groundLattice: RpgBiomes.GROUND_LATTICE,
       groundSalt: RpgBiomes.GROUND_SALT,
     });
-    return new ChunkGenerator({
+    return new LevelGen({
       seed: seed,
-      chunkCols: chunkCols,
-      chunkRows: chunkRows,
       field: field,
       passes: [
-        // hand-built hub overlaid onto its chunks FIRST — claims them (ctx.authored), so the
-        // procedural passes below leave the hub area alone
+        // hand-built hub laid down FIRST — it claims its extent, so the procedural passes below
+        // leave the hub area alone
         new AuthoredStamp({
           data: opts.authored,
-          chunkCols: chunkCols,
-          chunkRows: chunkRows,
           salt: 4,
         }),
         new PrefabStamp({
           tag: opts.prefabTag ?? "overworld",
           salt: 1,
-          chance: opts.prefabChance ?? 0.45,
+          density: opts.prefabDensity ?? 1.76,
           // RPG spawn policy: mobile combatants (raider) stay off water — nothing spawns
           // swimming, and deep water's collider would snag a dynamic body
           spawnFilter:
@@ -82,14 +75,15 @@ globalThis.OverworldGen = {
   trees() {
     return {
       salt: 5,
+      density: 6.8,
       apply(ctx) {
-        if (ctx.authored === true) return; // hub chunks are hand-built
         const rng = ctx.rng;
-        const trees = 2 + Math.floor(rng() * 4); // 2..5
+        const trees = OverworldGen.count(ctx, this.density);
         for (let i = 0; i < trees; i++) {
-          const gx = ctx.gx0 + 1 + Math.floor(rng() * (ctx.cols - 2));
-          const gy = ctx.gy0 + 1 + Math.floor(rng() * (ctx.rows - 2));
+          const gx = 1 + Math.floor(rng() * (ctx.cols - 2));
+          const gy = 1 + Math.floor(rng() * (ctx.rows - 2));
           if (!ctx.field.spawnable(gx, gy)) continue; // no pines in water
+          if (ctx.claimed(gx, gy)) continue; // hub, prefab, or boulder
           const q = Math.floor(hash2(gx, gy, ctx.gen.seed + 13) * 2147483647);
           ctx.out.spawns.push({
             preset: "tree",
@@ -106,22 +100,23 @@ globalThis.OverworldGen = {
   /**
    * rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over
    * the w×h cells; the adapter gives it the same solid footprint the old wall rect had); kept
-   * off the 1-cell border so a cluster never merges across a seam or blocks an entrance
+   * off the 1-cell level border so a cluster never merges into the world-border wall or blocks an
+   * entrance, and claimed so later scatters don't stand inside the boulder
    */
   rocks() {
     return {
       salt: 2,
+      density: 5.9,
       apply(ctx) {
-        if (ctx.authored === true) return; // hub chunks are hand-built
         const rng = ctx.rng;
-        const rocks = 2 + Math.floor(rng() * 3); // 2..4
+        const rocks = OverworldGen.count(ctx, this.density);
         for (let i = 0; i < rocks; i++) {
           const w = 1 + Math.floor(rng() * 2);
           const h = 1 + Math.floor(rng() * 2);
-          const lx = 1 + Math.floor(rng() * (ctx.cols - 2 - w));
-          const ly = 1 + Math.floor(rng() * (ctx.rows - 2 - h));
-          const gx = ctx.gx0 + lx;
-          const gy = ctx.gy0 + ly;
+          const gx = 1 + Math.floor(rng() * (ctx.cols - 2 - w));
+          const gy = 1 + Math.floor(rng() * (ctx.rows - 2 - h));
+          if (!ctx.free(gx, gy, w, h)) continue;
+          ctx.claim(gx, gy, w, h);
           // random quarter-turn facing so the one boulder mesh doesn't visibly repeat —
           // by POSITION HASH, not the pass rng (no extra stream draws, so placement is
           // untouched). A stretched oblong cluster only takes 0/180: the per-cluster
@@ -147,15 +142,16 @@ globalThis.OverworldGen = {
   rats() {
     return {
       salt: 3,
+      density: 3.9,
       apply(ctx) {
-        if (ctx.authored === true) return; // hub chunks are hand-built
         const rng = ctx.rng;
-        const rats = 1 + Math.floor(rng() * 3); // 1..3
+        const rats = OverworldGen.count(ctx, this.density);
         for (let i = 0; i < rats; i++) {
-          const gx = ctx.gx0 + 1 + Math.floor(rng() * (ctx.cols - 2));
-          const gy = ctx.gy0 + 1 + Math.floor(rng() * (ctx.rows - 2));
+          const gx = 1 + Math.floor(rng() * (ctx.cols - 2));
+          const gy = 1 + Math.floor(rng() * (ctx.rows - 2));
           // keep wildlife off water (no swimming spawns; deep water would snag it)
           if (!ctx.field.spawnable(gx, gy)) continue;
+          if (ctx.claimed(gx, gy)) continue;
           ctx.out.spawns.push({
             preset: "rat",
             gx: gx,
@@ -166,6 +162,11 @@ globalThis.OverworldGen = {
         }
       },
     };
+  },
+
+  /** placements a density (per 1000 cells) asks for on this level */
+  count(ctx, density) {
+    return Math.round((density * ctx.cols * ctx.rows) / 1000);
   },
 
   /** wilderness raider loot table (the PrefabStamp defaultLoot policy) */

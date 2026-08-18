@@ -123,7 +123,7 @@ globalThis.RenderMesh = class RenderMesh {
 
   /**
    * THE SHARED-LIGHT SEAM — the public surface a sibling pass gets by taking this pass as
-   * `opt.lights` (RenderBillboard / RenderWalls / RenderTileMap / TerrainStream): `litOk`
+   * `opt.lights` (RenderBillboard / RenderWalls / RenderTileMap): `litOk`
    * (is the shader usable at all), this method, and the `uUseTex` / `uNormal` uniform handles
    * each caller overrides for its own submits. Everything else here is private.
    *

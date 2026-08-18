@@ -1,5 +1,6 @@
 // Destination carried on the portal entity so a live entities.query(Portal) can resolve it —
-// required when portals are chunk-streamed and the level can't hold a fixed portals[] list.
+// required because a portal can come from the level file, a generator, or a save restore, so no
+// fixed portals[] list on the level would stay valid.
 /**
  * @typedef {Object} Portal
  * @property {string} toMap   destination map id (RpgLevel.MAPS key)

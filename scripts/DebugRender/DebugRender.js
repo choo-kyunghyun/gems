@@ -81,8 +81,8 @@ globalThis.DebugRender = {
   },
 
   /**
-   * flip EVERY instance — a class can appear twice in one renderer (the RPG's
-   * resident + chunk RenderWalls), and toggling only the first would mislead
+   * flip EVERY instance — a class can appear many times in one renderer (the RPG's
+   * stacked terrain RenderTileMaps), and toggling only the first would mislead
    */
   _apply(cls, v) {
     const passes = DebugRender._passesOf(cls);

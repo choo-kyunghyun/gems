@@ -3,8 +3,8 @@
 /**
  * Contract: the scene owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`. The enemy
  * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower
- * component, so chunk streaming/squad transfer need no bookkeeping — allegiance and membership are
- * component queries, not stored lists.
+ * component, so a save restore or squad transfer needs no bookkeeping — allegiance and membership
+ * are component queries, not stored lists.
  *
  * Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
  * ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
@@ -179,7 +179,7 @@ globalThis.RpgCombat = {
    * Health/Stats/AI/Faction (targeting, the death scan and CombatAI aggro all key on those) —
    * make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
    * so the Interactable engine opens StorageUI on its Inventory (see RpgInteractions). Keeping
-   * the SAME entity means a chunk demote/unload snapshots the corpse like any resident entity.
+   * the SAME entity means a save snapshots the corpse like any other resident.
    * Species markers (Raider/Rat — radar blips) are the scene's to drop in onKill, not ours.
    */
   _toCorpse(scene, id) {

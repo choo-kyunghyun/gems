@@ -1,11 +1,11 @@
 /**
  * A small fixed window re-centered on the agent each frame, in ABSOLUTE level-cell coords.
  *
- * Why a window: obstacles aren't tile data — terrain/walls/border exist only as kinematic-solid
- * collider ENTITIES (and on a chunked map only SIM-ring chunks carry them). One bounded grid unifies
- * every obstacle source and keeps size() constant, so MotionPlanner.setGrid runs ONCE while only
- * occupancy/origin change per frame. This is the ONE live nav source — the tile layers' costs
- * (LevelGrid.costAt) feed only the debug cost shading.
+ * Why a window: obstacles aren't tile data — walls, water, and the level border block as
+ * kinematic-solid collider ENTITIES, and a level can be far larger than any agent needs to see. One
+ * bounded grid unifies every obstacle source and keeps size() constant, so MotionPlanner.setGrid
+ * runs ONCE while only occupancy/origin change per frame. This is the ONE live BLOCKING source; the
+ * tile layers supply only the weights, through the cost sampler the level hands in.
  *
  * Coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
  * buffer, so paths come back in absolute cells. GMRT-safe: for-of over the entities.query ARRAY is

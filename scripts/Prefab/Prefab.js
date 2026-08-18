@@ -107,7 +107,7 @@ globalThis.Prefab = class Prefab {
    *   tiles → TileEdit.set into the named layer from `opts.layers` (nav synced per cell; the
    *           caller remeshes a SOLID layer's colliders ONCE after its stamps — TileEdit's contract)
    *   zones → one Zone defined + painted per entry, channel created on demand
-   *   walls → bare collide-only kinematic colliders (ChunkManager's wall-rect convention — NOT
+   *   walls → bare collide-only kinematic colliders (the wall-rect convention — NOT
    *           rendered; author rendered walls as solid TILES on a wall layer instead)
    * Spawns are returned translated, NOT spawned — the descriptor shape is consumer-defined, so
    * the caller feeds them to its own adapter (e.g. RpgSpawn.spawnEntity).

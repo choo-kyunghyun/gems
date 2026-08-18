@@ -21,52 +21,35 @@ function _noise2(x, y, seed, lattice) {
 }
 
 /**
- * Every query is a PURE function of absolute cell coords + the seed, so adjacent chunks agree at seams
- * and a chunk regenerates identically every visit (the streaming contract).
+ * Every query is a PURE function of cell coords + the seed, so the same seed paints the same level
+ * every build — which is what lets a save store only the entity state and rebuild the ground.
  *
- * The PALETTE is an ordered array of material entries — material id = index = painter order
- * (TerrainStream stacks per-material dual-grid layers cumulatively, lowest first):
+ * The PALETTE is an ordered array of material entries — material id = index = painter order (the
+ * terrain layer's TileType ids are `index + 1`, and the render stacks one dual-grid pass per
+ * material cumulatively, lowest first):
  *   { id, name?, sprite?, threshold? | ground?, pathCost, spawnable? }
  *   threshold entries FIRST (ascending over the ELEVATION noise channel — e.g. deep water → water →
  *     sand; past the last threshold the cell is land),
  *   then ground entries (ascending over an independent GROUND-detail channel, last one Infinity)
  *     splitting the land — so surface patches vary freely instead of ringing every shoreline as fixed
  *     contour bands (what one shared gradient would do).
- *   pathCost is the weighted movement cost (TileType convention: null → impassable → solidTerrain
+ *   pathCost is the weighted movement cost (TileType convention: null → impassable → solidRects
  *     meshes it into collide-only rects); spawnable:false bans placement without blocking travel
- *     (wadeable water). sprite/name are consumer data (TerrainStream / debug) — not read here.
+ *     (wadeable water). sprite/name are consumer data (the render passes / debug) — not read here.
  * GMRT-safe: index loops, while (no empty for-initializer), class on globalThis.
  */
 globalThis.TerrainField = class TerrainField {
-  // opts: { seed, chunkCols, chunkRows, lattice, groundLattice, groundSalt } — lattice = noise
-  // blob spacing in cells (bigger = larger regions), groundSalt decorrelates the detail channel.
+  // opts: { seed, lattice, groundLattice, groundSalt } — lattice = noise blob spacing in cells
+  // (bigger = larger regions), groundSalt decorrelates the detail channel.
   constructor(palette, opts = {}) {
     this.palette = palette;
     this.seed = (opts.seed ?? 1337) | 0;
-    this.chunkCols = opts.chunkCols ?? 16;
-    this.chunkRows = opts.chunkRows ?? 16;
     this.lattice = opts.lattice ?? 10;
     this.groundLattice = opts.groundLattice ?? 6;
     this.groundSalt = opts.groundSalt ?? 1013904223;
   }
 
-  /**
-   * Per-cell material grid for one chunk, row-major (a pure coord fn per cell — never per-chunk
-   * RNG, which would tear at seams).
-   */
-  terrain(cx, cy) {
-    const cc = this.chunkCols;
-    const cr = this.chunkRows;
-    const gx0 = cx * cc;
-    const gy0 = cy * cr;
-    const out = new Array(cc * cr);
-    for (let ly = 0; ly < cr; ly++)
-      for (let lx = 0; lx < cc; lx++)
-        out[ly * cc + lx] = this.materialAt(gx0 + lx, gy0 + ly);
-    return out;
-  }
-
-  /** single-cell material id (index into the palette) — TerrainStream's seam apron samples this */
+  /** single-cell material id (index into the palette) */
   materialAt(ax, ay) {
     const pal = this.palette;
     const n = _noise2(ax, ay, this.seed, this.lattice);
@@ -87,8 +70,8 @@ globalThis.TerrainField = class TerrainField {
   }
 
   /**
-   * per-cell movement cost (1 = easy … Infinity = impassable) — NavGrid's weight sampler +
-   * PathFollow's speed pricing
+   * per-cell movement cost (1 = easy … Infinity = impassable). The LIVE consumer is the terrain
+   * layer's TileType (LevelGrid.costAt) once paint() has run — this is the pre-paint sampler.
    */
   costAt(ax, ay) {
     const c = this.palette[this.materialAt(ax, ay)].pathCost;
@@ -105,32 +88,40 @@ globalThis.TerrainField = class TerrainField {
   }
 
   /**
-   * Greedy-mesh a chunk's impassable cells into the fewest [gx,gy,w,h] rects, so the streamer makes
-   * one collider per rect not a per-cell box (per-cell seams snag sliding bodies).
-   * Pure in (cx, cy, seed); returns [] when nothing is impassable.
+   * Write every cell's material into `layer` — `types` is one TileType per palette entry, indexed by
+   * material id. After this the ground IS tile data: LevelGrid.costAt prices nav from it and the
+   * dual-grid passes render it, so nothing samples the field at play time.
    */
-  solidTerrain(cx, cy) {
-    const cc = this.chunkCols;
-    const cr = this.chunkRows;
-    const gx0 = cx * cc;
-    const gy0 = cy * cr;
-    const blocked = new Array(cc * cr);
+  paint(layer, types, cols, rows) {
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++)
+        layer.set(x, y, types[this.materialAt(x, y)]);
+  }
+
+  /**
+   * Greedy-mesh the level's impassable cells into the fewest [gx,gy,w,h] rects, so the caller makes
+   * one collider per rect not a per-cell box (per-cell seams snag sliding bodies). These stay
+   * COLLIDE-ONLY: the material is drawn as ground, so nothing renders them.
+   * Pure in (cols, rows, seed); returns [] when nothing is impassable.
+   */
+  solidRects(cols, rows) {
+    const blocked = new Array(cols * rows);
     let any = false;
-    for (let ly = 0; ly < cr; ly++)
-      for (let lx = 0; lx < cc; lx++) {
-        const b = !this.passable(gx0 + lx, gy0 + ly);
-        blocked[ly * cc + lx] = b;
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++) {
+        const b = !this.passable(x, y);
+        blocked[y * cols + x] = b;
         if (b) any = true;
       }
     if (!any) return [];
 
     // Greedy mesh: extend right for width, then down while the whole row stays blocked.
-    const consumed = new Array(cc * cr).fill(false);
+    const consumed = new Array(cols * rows).fill(false);
     const solid = (x, y) =>
-      x < cc && y < cr && blocked[y * cc + x] && !consumed[y * cc + x];
+      x < cols && y < rows && blocked[y * cols + x] && !consumed[y * cols + x];
     const rects = [];
-    for (let y = 0; y < cr; y++) {
-      for (let x = 0; x < cc; x++) {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
         if (!solid(x, y)) continue;
         let w = 1;
         while (solid(x + w, y)) w++;
@@ -144,8 +135,8 @@ globalThis.TerrainField = class TerrainField {
         }
         h--; // last iteration that incremented also set grow=false
         for (let yy = y; yy < y + h; yy++)
-          for (let xx = x; xx < x + w; xx++) consumed[yy * cc + xx] = true;
-        rects.push([gx0 + x, gy0 + y, w, h]);
+          for (let xx = x; xx < x + w; xx++) consumed[yy * cols + xx] = true;
+        rects.push([x, y, w, h]);
       }
     }
     return rects;

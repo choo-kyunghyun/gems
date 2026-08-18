@@ -165,16 +165,20 @@ class _SceneRpgClass {
     });
 
     // arcade cabinet: E launches the platformer as a guest minigame (Interaction kind
-    // "arcade" → the "arcade" InteractAction → _openArcade). Lives directly in the store (not chunk-managed) so it persists.
-    const sg = this.level.grid.worldToGrid(this.spawn.x, this.spawn.y);
-    RpgSpawn.spawnEntity(this.level.entities, this.level.grid, {
-      preset: "prop",
-      gx: sg.x + 2,
-      gy: sg.y - 2,
-      label: "Arcade",
-      color: "#9b8cff",
-      kind: "arcade",
-    });
+    // "arcade" → the "arcade" InteractAction → _openArcade). Spawned by the scene, not the level
+    // file — so NEW GAME only: it is a one-time spawn, and a load brings the saved one back with
+    // the map's residents (spawning it again would stack a second cabinet per load).
+    if (!loaded) {
+      const sg = this.level.grid.worldToGrid(this.spawn.x, this.spawn.y);
+      RpgSpawn.spawnEntity(this.level.entities, this.level.grid, {
+        preset: "prop",
+        gx: sg.x + 2,
+        gy: sg.y - 2,
+        label: "Arcade",
+        color: "#9b8cff",
+        kind: "arcade",
+      });
+    }
 
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
@@ -477,13 +481,6 @@ class _SceneRpgClass {
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
-
-    // re-ring the entity sim-LOD around the player (chunked maps only); before the portal check,
-    // which can swap the whole map out
-    if (this.chunks !== undefined) {
-      const pp = this.level.entities.get(Position, this.playerId);
-      this.chunks.update(pp.x, pp.y);
-    }
 
     // rebuild the inventory body only when open + dirty (UI.update already ran this frame)
     if (this.invOpen && this._invDirty) {
@@ -954,7 +951,7 @@ class _SceneRpgClass {
     // free-cam updates here so it pans while the sim is paused (step() is skipped then); apply before the renderer reads it
     if (this.camera.freeCam) this.camera.update();
     this.renderer.draw(this.level.entities); // tilemap + zone + player / enemies / elder: boxes + labels
-    // overlay AFTER the renderer: RenderChunks paints an OPAQUE ground fill that would cover it if drawn first
+    // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("rpgRadar"))
       // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera

@@ -6,6 +6,10 @@ const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px conve
  * caller to hang on its Level (RpgMap._buildWorld does; the Level owns the grid's lifecycle from
  * there). Wall colliders are greedy-meshed by TileEdit.
  *
+ * A level is fully resident: everything it holds is built here, once, and simulated for the map's
+ * lifetime. `meta.generated` swaps the file's hand-painted grid for a procedural one (_generate) —
+ * the ground is still ordinary tile data either way, so nothing downstream knows the difference.
+ *
  * File shape: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are cell
  * rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so a level
  * can exceed the view and the follow camera scrolls across it.
@@ -13,9 +17,8 @@ const RPG_CELL = 32; // fallback cell size when a level omits `cell` (32px conve
 globalThis.RpgLevel = {
   // World graph: map id → level file. Maps are connected by `portal` spawns (see RpgSpawn.spawn).
   // Seed registry — extract to a `maps.json` manifest if it grows. START is the boot map.
-  // DISCRETE FILES, not one streamed world: a level file has to parse in one go, and a level owns
-  // exactly one entity store — so map size is bounded by both. The chunked overworld streams
-  // WITHIN one such map; the graph is how the world grows past it.
+  // DISCRETE FILES: a level file has to parse in one go, and a level owns exactly one entity store —
+  // so map size is bounded by both. The graph is how the world grows past one map.
   MAPS: {
     overworld: "levels/overworld.json",
     interior_01: "levels/interior_01.json",
@@ -35,7 +38,8 @@ globalThis.RpgLevel = {
   // corner-grid, "corner" 13-piece sub-tile, 0 raw single-frame, 16 blob4, 47 blob8. For a
   // type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
   // frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed. `fill` auto-fills the
-  // grid (walkable base) on plain maps; chunked builds these EMPTY. Order = nav priority (top wins).
+  // grid (walkable base) on authored maps; a generated map paints the terrain layer per cell from
+  // its biome palette instead (_generate). Order = nav priority (top wins).
   // `name` is an I18n key (resolved at build in _makeLayers — top level runs before the locale loads).
   LAYERS: [
     {
@@ -66,7 +70,7 @@ globalThis.RpgLevel = {
     },
     // Floor VARIANTS — one type-0 layer per material (the LAYERS design rule: one material
     // per layer + pass; the spare near-white spr_tex_* sheets each get their own tint).
-    // Build-Mode-only surfaces: level files paint only `floor`, chunked maps hold them empty.
+    // Build-Mode-only surfaces: level files paint only `floor`, generated maps hold them empty.
     {
       key: "floorTile",
       id: 1,
@@ -165,7 +169,7 @@ globalThis.RpgLevel = {
    * Make the LAYERS TileLayers + TileTypes (bottom→top) and return a handles bag keyed
    * `<key>Layer`/`<key>Type` — plus, for a materials-bearing layer (wall), `<key>Types`:
    * one TileType per material keyed by material key (`<key>Type` stays materials[0], the
-   * default every existing consumer paints). Shared by build() + buildChunked().
+   * default every existing consumer paints).
    */
   _makeLayers(grid) {
     const h = {};
@@ -200,8 +204,8 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Auto-fill each `fill` layer's grid with its material (the walkable base). Plain maps only —
-   * chunked leaves the resident grid empty (ChunkManager owns terrain).
+   * Auto-fill each `fill` layer's grid with its material (the walkable base). Authored maps only —
+   * a generated map paints the same layer from its biome palette instead.
    */
   _fillLayers(grid, h) {
     for (let i = 0; i < RpgLevel.LAYERS.length; i++) {
@@ -228,10 +232,18 @@ globalThis.RpgLevel = {
   },
 
   /**
-   * Build a Level: paint walls + mesh kinematic wall colliders. Returns the built handles; the
+   * Build a Level: paint the grid + mesh kinematic wall colliders. Returns the built handles; the
    * caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
    * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
    * meta.playerSpawn.
+   *
+   * A `meta.generated` level paints itself (_generate) and hands back `spawns` (the descriptors the
+   * caller feeds RpgSpawn) + `terrainMats` (the material table its render passes stack); an authored
+   * one fills the walkable base from the file's cell-rects and leaves both undefined.
+   *
+   * TWO collider lists, because they have different lifetimes: `colliders` is the wall layer's
+   * greedy mesh, which BuildMode remeshes wholesale on every tile edit, while `statics` is the
+   * geometry that has no tile layer to remesh from (impassable terrain, the level edge).
    */
   build(entities, data, entryId = "default") {
     const cell = data.cell ?? RPG_CELL;
@@ -241,76 +253,119 @@ globalThis.RpgLevel = {
       cols: data.cols,
       rows: data.rows,
     });
-    // Terrain auto-filled as the walkable base; walls + optional floors from the file's
-    // cell-rects (fence has no file source yet).
     const h = RpgLevel._makeLayers(grid);
-    RpgLevel._fillLayers(grid, h);
-    RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
-    RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
+    const statics = [];
+    const gen =
+      data.meta.generated === true
+        ? RpgLevel._generate(entities, grid, h, data, statics)
+        : undefined;
+    if (gen === undefined) {
+      // Terrain auto-filled as the walkable base; walls + optional floors from the file's
+      // cell-rects (fence has no file source yet).
+      RpgLevel._fillLayers(grid, h);
+      RpgLevel._paintRects(h.wallLayer, data.walls, h.wallType);
+      RpgLevel._paintRects(h.floorLayer, data.floors, h.floorType);
+    }
 
     const colliders = [];
     TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
 
     const spawn = this._resolveSpawn(grid, data, entryId);
-    return { grid, spawn, colliders, ...h };
+    return {
+      grid,
+      spawn,
+      colliders,
+      statics,
+      spawns: gen !== undefined ? gen.spawns : undefined,
+      terrainMats: gen !== undefined ? gen.mats : undefined,
+      ...h,
+    };
   },
 
   /**
-   * Build a Level for a CHUNK-STREAMED map: a large resident grid left EMPTY (player builds only).
-   * The streamed terrain is owned by the ChunkManager, so nothing is painted/meshed here
-   * (colliders: []). Grid size from meta.worldCols/worldRows. Same return shape + layer order as
-   * build() so the level code and Level.import round-trip unchanged.
+   * Paint a GENERATED level in place. The biome terrain lands as per-cell TileTypes on the terrain
+   * layer, so it is ordinary tile data from here on — LevelGrid.costAt prices nav from it and the
+   * stacked dual-grid passes render it, with no sampler left running at play time. Generated walls
+   * join the file's on the wall layer (the caller meshes them). Impassable terrain and the level
+   * edge become COLLIDE-ONLY boxes collected into `statics`, apart from the wall layer's mesh so a
+   * build-mode remesh can't free them.
    */
-  buildChunked(entities, data, entryId = "default") {
-    const cell = data.cell ?? RPG_CELL;
-    const cols = data.meta.worldCols ?? data.cols ?? 128;
-    const rows = data.meta.worldRows ?? data.rows ?? 128;
-    const grid = new LevelGrid({
-      cellWidth: cell,
-      cellHeight: cell,
-      cols,
-      rows,
+  _generate(entities, grid, h, data, statics) {
+    const t0 = current_time;
+    const gen = OverworldGen.create({
+      seed: data.meta.seed ?? 1337,
+      authored: data, // hand-built hub laid over the generated ground (AuthoredStamp)
     });
-    // Resident grid stays EMPTY (player builds only); streamed terrain + colliders are the
-    // ChunkManager's. Same layer set/order as build() so Level.import matches.
-    const h = RpgLevel._makeLayers(grid);
-
-    const spawn = this._resolveSpawn(grid, data, entryId);
-    return { grid, spawn, colliders: [], ...h };
+    const out = gen.generate(grid.cols, grid.rows);
+    // one TileType per palette material, id = index + 1 (a 0 id reads as an empty cell). The order
+    // IS the painter order, which is what lets the stacked render passes threshold on the id.
+    const mats = [];
+    const types = [];
+    for (let i = 0; i < gen.palette.length; i++) {
+      const p = gen.palette[i];
+      const type = new TileType({
+        id: i + 1,
+        name: p.name,
+        pathCost: p.pathCost,
+      });
+      types.push(type);
+      mats.push({ type: type, sprite: p.sprite });
+    }
+    gen.paint(h.terrainLayer, types, grid.cols, grid.rows);
+    RpgLevel._paintRects(h.wallLayer, out.walls, h.wallType);
+    for (let i = 0; i < out.solid.length; i++) {
+      const r = out.solid[i];
+      statics.push(
+        RpgLevel._solidBox(
+          entities,
+          r[0] * grid.cellWidth,
+          r[1] * grid.cellHeight,
+          r[2] * grid.cellWidth,
+          r[3] * grid.cellHeight,
+        ),
+      );
+    }
+    RpgLevel.buildWorldBorder(entities, grid, statics);
+    Log.info(
+      `RpgLevel: generated ${grid.cols}x${grid.rows} in ${current_time - t0}ms — ` +
+        `${out.walls.length} wall rect(s), ${out.spawns.length} spawn(s)`,
+    );
+    return { spawns: out.spawns, mats: mats };
   },
 
   /**
-   * Wall border ringing a finite chunked world (anchored at cell 0) so the player + enemies can't
-   * leave. The 4 colliders are ALWAYS present (not chunk-managed), kinematic-solid like any wall,
-   * so SolidSystem collides + NavGrid rasterizes them. Returns the ids (freed by entities.destroy()).
-   * Left/right span one cell past top/bottom to cover the outer corners (no diagonal slip-through).
+   * Wall border ringing the level (anchored at cell 0) so the player + enemies can't leave; the
+   * 4 ids are pushed onto `out`. Kinematic-solid like any wall, so SolidSystem collides + NavGrid
+   * rasterizes them. Left/right span one cell past top/bottom to cover the outer corners (no
+   * diagonal slip-through).
    */
-  buildWorldBorder(entities, grid, worldCols, worldRows) {
+  buildWorldBorder(entities, grid, out) {
     const cw = grid.cellWidth;
     const ch = grid.cellHeight;
-    const W = worldCols * cw;
-    const H = worldRows * ch;
-    const rects = [
-      [0, -ch, W, ch], // top
-      [0, H, W, ch], // bottom
-      [-cw, -ch, cw, H + 2 * ch], // left (covers outer corners)
-      [W, -ch, cw, H + 2 * ch], // right (covers outer corners)
-    ];
-    const ids = [];
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      const id = entities.create();
-      entities.add(id, Position, { x: r[0], y: r[1], z: 0 });
-      entities.add(id, BBox, { x: 0, y: 0, width: r[2], height: r[3] });
-      entities.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      ids.push(id);
-    }
-    return ids;
+    const W = grid.cols * cw;
+    const H = grid.rows * ch;
+    out.push(RpgLevel._solidBox(entities, 0, -ch, W, ch)); // top
+    out.push(RpgLevel._solidBox(entities, 0, H, W, ch)); // bottom
+    out.push(RpgLevel._solidBox(entities, -cw, -ch, cw, H + 2 * ch)); // left
+    out.push(RpgLevel._solidBox(entities, W, -ch, cw, H + 2 * ch)); // right
+  },
+
+  /**
+   * One bare kinematic-solid collider (world px) — the collide-only form for water and the level
+   * border, which are drawn as ground or not at all rather than as walls. Same shape as
+   * TileEdit.meshSolid's: Position at the rect's top-left, BBox (0,0) spanning it.
+   */
+  _solidBox(entities, x, y, w, h) {
+    const id = entities.create();
+    entities.add(id, Position, { x: x, y: y, z: 0 });
+    entities.add(id, BBox, { x: 0, y: 0, width: w, height: h });
+    entities.add(id, Collision, {
+      solid: true,
+      kinematic: true,
+      mask: null,
+      hits: [],
+    });
+    return id;
   },
 
   /**

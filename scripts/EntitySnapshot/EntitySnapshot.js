@@ -1,8 +1,8 @@
 /** @typedef {Object} EntitySnapshotRecord @property {Object<string,Object>} components token -> data */
 /**
  * The substrate for whole-entity migration between level stores (World.take/put/transfer wraps
- * it — the squad crossing a portal) and for chunk streaming (un/load is the same capture/restore over
- * a region). Data objects are REFERENCED, not deep-copied: a captured component re-attaches by
+ * it — the squad crossing a portal) and for re-creating a saved map's residents (SaveGame's
+ * restoreResidents). Data objects are REFERENCED, not deep-copied: a captured component re-attaches by
  * reference and the objects outlive the source store's destroy() (only the storage map is dropped).
  * For disk, serialize the record yourself (mind the JSON nested-value fault + Set fields).
  */

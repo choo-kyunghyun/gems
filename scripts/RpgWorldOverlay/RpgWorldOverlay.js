@@ -1,7 +1,7 @@
 // World-space gameplay overlay for the RPG scene — item drops (rarity squares), projectile dots,
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneRpg.draw() AFTER renderer.draw().
 /**
- * Drawn after renderer.draw() because RenderChunks paints an opaque ground fill that would hide it.
+ * Drawn after renderer.draw() because the ground passes paint an opaque fill that would hide it.
  * (HUD/inventory/dialogue are GUI-layer panels, not here.)
  */
 globalThis.RpgWorldOverlay = {

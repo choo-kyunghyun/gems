@@ -4,7 +4,7 @@
  * The archetypes are EntityPreset DEFS (register(), called by RpgContent.register) — component data
  * + design scale + a `post` hook for wiring data can't express (CombatAI.attach). spawnEntity does
  * grid→world and per-spawn overrides (field-merged onto the def like a variant). Up-front map spawns
- * (RpgSpawn.spawn), the chunk streamer (ChunkManager's spawn adapter), BuildMode, and the Trader all
+ * (RpgSpawn.spawn), a generated level's descriptors (RpgMap._spawnWorld), BuildMode, and the Trader all
  * route through it; a variant preset (`extends: "raider"`) uses the same path when its descriptor
  * fields match its base's.
  *
@@ -382,8 +382,7 @@ globalThis.RpgSpawn = {
    * Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
    * The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
    * (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
-   * `gx/gy` are absolute grid coords (gridToWorld handles negatives, so chunk-streamed
-   * entities work too).
+   * `gx/gy` are grid coords (gridToWorld handles negatives, so an off-grid descriptor works too).
    */
   spawnEntity(entities, grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
@@ -604,8 +603,8 @@ globalThis.RpgSpawn = {
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
   /**
-   * deterministic skin pick — hashed from the spawn CELL so a regenerated chunk's humanoid
-   * keeps the same face (OverworldGen chunks must regenerate identically)
+   * deterministic skin pick — hashed from the spawn CELL so a regenerated level's humanoid
+   * keeps the same face (a seed must rebuild the same level — see LevelGen)
    */
   _skin(s) {
     const gx = s.gx ?? 0;

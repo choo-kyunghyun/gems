@@ -1,16 +1,16 @@
 /**
  * A save is built by an ordered list of PASSES, each owning one aspect of the world (metadata,
- * world-sim, per-map entities, tile grids, chunk cache, …); the same pass captures AND restores its
+ * world-sim, per-map entities, tile grids, …); the same pass captures AND restores its
  * slice, so the two directions can never drift. Composition, not a monolith — a scene inserts exactly
- * the passes its content needs (a chunked overworld adds a chunk pass a plain interior doesn't), which
- * is why different levels can carry different component/system sets in one save.
+ * the passes its content needs, which is why different levels can carry different component/system
+ * sets in one save.
  *
  * A pass is `{ id, capture(ctx), restore(ctx) }` (a bare fn is wrapped as a capture-only pass).
- * insert/remove mirror Renderer/ChunkGenerator.
+ * insert/remove mirror Renderer/LevelGen.
  *
  * THE BUNDLE is HYBRID by design: passes write structured, variable-shape data (metadata, the per-map
  * component set — self-describing, differs per level) into a JSON manifest, and dense fixed-shape data
- * (tile grids, chunk buffers) into named binary blobs. SaveGame owns the disk side (manifest.json +
+ * (tile grids) into named binary blobs. SaveGame owns the disk side (manifest.json +
  * <name>.bin under saves/<slot>/); Snapshot only builds/consumes the bundle in memory, so it stays
  * engine-generic. The ctx handed to each pass:
  *   ctx.mode      "capture" | "restore"

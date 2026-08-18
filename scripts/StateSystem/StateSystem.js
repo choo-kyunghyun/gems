@@ -9,7 +9,7 @@
 /**
  * Per-entity state machine over a NAMED state pool. States register once by id (like
  * Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
- * through the pool each use — so a captured/parked actor (EntitySnapshot, chunk streaming,
+ * through the pool each use — so a captured/parked actor (EntitySnapshot, a save restore,
  * entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
  * (entities, id): the store needs no module statics (a per-map context like the Level still
  * lives with the states' owner — see CombatAI._grid/bind). `change` queues, `update`

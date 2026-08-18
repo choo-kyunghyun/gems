@@ -56,6 +56,18 @@ globalThis.Trader = {
   },
 
   /**
+   * Every trader entity currently EMBODIED (at most one per registered trader, in the active map).
+   * A save excludes these: register() re-embodies each trader from its record on every boot, so
+   * saving the entity too would land a second copy on load.
+   */
+  entityIds() {
+    const out = [];
+    for (const id in Trader._recs)
+      if (Trader._recs[id].entId !== -1) out.push(Trader._recs[id].entId);
+    return out;
+  },
+
+  /**
    * Map (re)activated: remember the live scene + embody every settled trader whose current map is this one.
    */
   onActivate(scene) {

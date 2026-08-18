@@ -2,14 +2,10 @@
   "version": 1,
   "genre": "topdown",
   "cell": 32,
-  "cols": 48,
-  "rows": 32,
+  "cols": 128,
+  "rows": 128,
   "meta": {
-    "chunked": true,
-    "worldCols": 128,
-    "worldRows": 128,
-    "chunkCols": 16,
-    "chunkRows": 16,
+    "generated": true,
     "seed": 1337,
     "playerSpawn": { "gx": 2, "gy": 2 },
     "entries": {

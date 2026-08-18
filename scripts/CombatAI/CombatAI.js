@@ -6,7 +6,8 @@ const RPG_SHOT_RANGE_SECS = 1.5;
 
 /**
  * per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
- * MUST survive chunk demote/restore, which re-creates the actor under a NEW id: so a Brain never
+ * MUST survive a snapshot round-trip, which re-creates the actor under a NEW id (a save restore, a
+ * portal transfer): so a Brain never
  * stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
  * callbacks, and state callbacks receive (entities, id) instead of closing over either.
  */

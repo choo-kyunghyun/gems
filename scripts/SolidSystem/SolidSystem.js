@@ -1,8 +1,17 @@
 /**
  * Bodies it moves must NOT also be in MovementSystem. SOLE writer of `Grounded.isGrounded` (true when
  * a downward sub-step pushed the body back up) — jump/coyote logic reads it live off the component
- * (the &&-clobber quirk, GMRT.md → Runtime and Build Issues). Statics are bucketed into a per-tick
- * spatial grid (_gridRebuild) so each body tests only its local cells, not every static — see _resolve.
+ * (the &&-clobber quirk, GMRT.md → Runtime and Build Issues). Statics are bucketed into a spatial
+ * grid (_gridRebuild) so each body tests only its local cells, not every static — see _resolve.
+ *
+ * The snapshot + grid are CACHED across ticks, which is what makes a whole map's worth of statics
+ * affordable: re-deriving them each tick costs with the LEVEL's size (every wall, water rect and
+ * boulder, plus a bucket per cell they span), while the body loop that actually resolves collisions
+ * costs with the number of movers. The cache holds a STATIC IS STATIC premise: a kinematic solid
+ * never moves or resizes in place. Every one in the project comes from a level build, a tile remesh
+ * or a prop spawn, and each of those replaces entities rather than moving them — so a changed id set
+ * is the whole signal, and it is checked every tick. Give a solid a Velocity (MovementSystem's job)
+ * and this would go stale; call invalidate() if you must mutate one in place.
  */
 globalThis.SolidSystem = {
   maxStep: 8, // keep below thinnest collider to prevent tunneling
@@ -16,29 +25,23 @@ globalThis.SolidSystem = {
   _rows: 0,
   _buckets: [],
 
+  // cache: the store it was taken from, the id set it was taken from (the fingerprint), and the
+  // baked records _resolve reads
+  _store: null,
+  _ids: [],
+  _statics: [],
+
+  /** Force the next update to re-derive the static snapshot (see the class doc's premise). */
+  invalidate() {
+    SolidSystem._store = null;
+  },
+
   update(entities) {
     const dt = SimClock.tickDuration;
 
-    // Per-tick snapshot of the kinematic solids: edges + oneWay baked into flat records, so the
-    // body×static resolve loop below reads plain fields — no AABB.of / entities.get per test. Those
-    // per-test Map lookups + edge allocs were ~70% of the RPG's tick cost (~20 bodies × ~90
-    // statics × 2 axes ≈ 8ms/tick). Statics can't move mid-update, so a
-    // once-per-tick capture is exact.
-    const statics = [];
-    for (const id of entities.query(Collision, Position, BBox)) {
-      const col = entities.get(Collision, id);
-      if (!col.solid || !col.kinematic) continue;
-      const e = AABB.of(entities, id);
-      statics.push({
-        x1: e.x1,
-        y1: e.y1,
-        x2: e.x2,
-        y2: e.y2,
-        oneWay: col.oneWay === true,
-      });
-    }
-
-    this._gridRebuild(statics);
+    const ids = entities.query(Collision, Position, BBox);
+    if (!this._fresh(entities, ids)) this._snapshot(entities, ids);
+    const statics = this._statics;
 
     for (const id of entities.query(Collision, Position, BBox, Velocity)) {
       const col = entities.get(Collision, id);
@@ -82,7 +85,7 @@ globalThis.SolidSystem = {
 
   /**
    * push body out of overlapping statics along one axis (deepest correction wins).
-   * `statics` is update()'s per-tick snapshot (precomputed edges + oneWay flag), so the loop is
+   * `statics` is the cached snapshot (precomputed edges + oneWay flag), so the loop is
    * flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
    * statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
    * maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
@@ -139,6 +142,45 @@ globalThis.SolidSystem = {
     return correction < 0 ? 1 : -1;
   },
 
+  /**
+   * Is the cache still the truth? Same store, same candidate ids in the same order — query() walks
+   * entity indexes ascending, so the order only moves when the set does. An id compare over the
+   * candidates is a few hundred int tests; re-deriving them is that many component lookups, AABB
+   * allocations and bucket inserts.
+   */
+  _fresh(entities, ids) {
+    if (this._store !== entities) return false;
+    const prev = this._ids;
+    if (prev.length !== ids.length) return false;
+    for (let i = 0; i < ids.length; i++) if (prev[i] !== ids[i]) return false;
+    return true;
+  },
+
+  /**
+   * Bake the kinematic solids into flat records: edges + oneWay, so the body×static resolve loop
+   * reads plain fields — no AABB.of / entities.get per test. Those per-test Map lookups + edge
+   * allocs were ~70% of the RPG's tick cost before the snapshot existed.
+   */
+  _snapshot(entities, ids) {
+    const statics = [];
+    for (let i = 0; i < ids.length; i++) {
+      const col = entities.get(Collision, ids[i]);
+      if (!col.solid || !col.kinematic) continue;
+      const e = AABB.of(entities, ids[i]);
+      statics.push({
+        x1: e.x1,
+        y1: e.y1,
+        x2: e.x2,
+        y2: e.y2,
+        oneWay: col.oneWay === true,
+      });
+    }
+    this._store = entities;
+    this._ids = ids.slice(); // query()'s array is fresh, but the fingerprint must outlive this tick
+    this._statics = statics;
+    this._gridRebuild(statics);
+  },
+
   _clampCol(g) {
     return g < 0 ? 0 : g >= this._cols ? this._cols - 1 : g;
   },
@@ -147,10 +189,10 @@ globalThis.SolidSystem = {
   },
 
   /**
-   * Bucket the per-tick static snapshot by AABB span (each static into every cell it overlaps), so
-   * _resolve scans only a body's local cells. Sized to the statics' extent (origin 0 — the world is
-   * anchored at cell 0 by the always-present border); buckets are reused across ticks, reallocated
-   * only when the SIM window resizes the grid.
+   * Bucket the static snapshot by AABB span (each static into every cell it overlaps), so _resolve
+   * scans only a body's local cells. Sized to the statics' extent (origin 0 — the level is anchored
+   * at cell 0 by the always-present border); buckets are reused, reallocated only when a new level
+   * resizes the grid. Runs with the snapshot, not per tick.
    */
   _gridRebuild(statics) {
     let maxX = 0;

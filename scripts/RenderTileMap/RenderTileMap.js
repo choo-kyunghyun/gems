@@ -25,15 +25,22 @@ const _BLOB8 = [
  * @property {0|16|47|"dual"|"corner"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
  *   "dual": half-cell-offset grid; samples 4 cells per display corner (TL=1 TR=2 BR=4 BL=8 →
  *   frame); transparent corners let lower terrain show through — stack dual passes per terrain
- *   for RPG-Maker-style A-over-B transitions. This path draws `frame = mask` flat: the weighted
- *   full-tile variant pick for mask 15 lives only in TerrainStream — add it here too if a
- *   variant-bearing sheet ever gets a RenderTileMap consumer.
+ *   for RPG-Maker-style A-over-B transitions.
  *   "corner": sub-tile; each filled cell drawn as 4 half-cell quads from a 13-piece sprite picked
  *   by the 3 neighbors at that corner (0 fill, 1-4 outer TL/TR/BR/BL, 5-6 edge top/bottom,
  *   7-8 edge left/right, 9-12 inner TL/TR/BR/BL). covers all 256 masks without _BLOB8.
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {boolean} [softEdge] - per-vertex alpha at tile edges; per-cell modes only, ignored for "dual".
+ * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
+ *   this. Ordered ids make ONE layer render as a cumulative material stack — pass m takes
+ *   minId = m + 1 — instead of one layer per material (the terrain palette, see RpgLevel).
+ * @property {number} [skipAbove] - "dual" only: skip a display tile the NEXT material covers whole
+ *   (its mask at this threshold is 15). Without it every lower material draws its full extent
+ *   under the ones above it; with it a stack costs about one grid's quads, not one per material.
+ * @property {boolean} [variants] - "dual" only: pick a weighted full-tile variant for mask 15 from
+ *   the sheet's SpriteMeta `variants["15"]`, hashed by position, so a wide field of one material
+ *   doesn't tile visibly. An undeclared sheet falls back to uniform weights past frame 15.
  */
 
 /** @implements {RenderPass} */
@@ -51,10 +58,37 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._vbuf = new VertexBuffer();
     this._tex = undefined;
     this.lights = opt.lights; // host RenderMesh pass → lit ground (see draw); unset = unlit
+    // "dual" material-stack options (see the typedef); minId 0 accepts any TileType, so an
+    // ordinary single-material dual layer behaves exactly as plain occupancy.
+    this.minId = opt.minId ?? 0;
+    this.skipAbove = opt.skipAbove;
 
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
     this._corner = mode === "corner";
+    // weighted full-tile variant table [[frame, weight], ...] for mask 15. Frames 0..15 are the
+    // dual-grid corner masks; frames past 15 are extra full-tile variants — the sheet's SpriteMeta
+    // def declares their weights (plain re-rolls heavy, decorated frames light).
+    this._variants = undefined;
+    if (this._dual && opt.variants === true) {
+      const def = SpriteMeta.of(sprite);
+      let table =
+        def !== undefined && def.variants !== undefined
+          ? def.variants["15"]
+          : undefined;
+      if (table === undefined) {
+        table = [];
+        const n = Math.max(1, sprite_get_number(sprite) - 15);
+        let v = 0;
+        while (v < n) {
+          table.push([15 + v, 1]);
+          v++;
+        }
+      }
+      let total = 0;
+      for (let k = 0; k < table.length; k++) total += table[k][1];
+      if (table.length > 1) this._variants = { table, total };
+    }
     if (mode === 16) {
       this._frameOf = (x, y) => this._blob4(x, y);
     } else if (mode === 47) {
@@ -222,14 +256,15 @@ globalThis.RenderTileMap = class RenderTileMap {
     // one extra row/col of corner points (0..cols and 0..rows inclusive)
     for (let j = 0; j <= rows; j++) {
       for (let i = 0; i <= cols; i++) {
-        let mask = 0;
-        if (this._isSolid(i - 1, j - 1)) mask |= 1; // TL
-        if (this._isSolid(i, j - 1)) mask |= 2; // TR
-        if (this._isSolid(i, j)) mask |= 4; // BR
-        if (this._isSolid(i - 1, j)) mask |= 8; // BL
+        const mask = this._dualMask(i, j, this.minId);
         if (mask === 0) continue;
+        // fully hidden by the material stacked above → no quad at all
+        if (this.skipAbove !== undefined && this._dualMask(i, j, this.skipAbove) === 15)
+          continue;
         const q = this._quad(
-          mask,
+          mask === 15 && this._variants !== undefined
+            ? this._variant(i, j)
+            : mask,
           i * cellWidth - hw,
           j * cellHeight - hh,
           cellWidth,
@@ -251,6 +286,42 @@ globalThis.RenderTileMap = class RenderTileMap {
     }
     this._vbuf.end();
     this.dirty = false;
+  }
+
+  /**
+   * dual corner mask at corner point (i, j) for a material threshold: TL=1 TR=2 BR=4 BL=8. OOB
+   * reads as empty, so a level edge fades out rather than tiling past itself.
+   */
+  _dualMask(i, j, minId) {
+    let mask = 0;
+    if (this._atLeast(i - 1, j - 1, minId)) mask |= 1;
+    if (this._atLeast(i, j - 1, minId)) mask |= 2;
+    if (this._atLeast(i, j, minId)) mask |= 4;
+    if (this._atLeast(i - 1, j, minId)) mask |= 8;
+    return mask;
+  }
+
+  _atLeast(x, y, minId) {
+    const { cols, rows } = this.grid;
+    if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
+    const t = this.layer.get(x, y); // Grid.get returns 0 for empty, not undefined
+    return t ? t.id >= minId : false;
+  }
+
+  /**
+   * deterministic per-cell WEIGHTED variant frame: sine position hash walked down the cumulative
+   * [[frame, weight]] table. Pure in (gx, gy), so a rebuild re-picks the same frame.
+   */
+  _variant(gx, gy) {
+    const v = this._variants;
+    let r = Math.floor(hash2(gx, gy, 374761393) * v.total);
+    let k = 0;
+    while (k < v.table.length) {
+      r -= v.table[k][1];
+      if (r < 0) return v.table[k][0];
+      k++;
+    }
+    return v.table[0][0];
   }
 
   /**
