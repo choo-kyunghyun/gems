@@ -6,7 +6,7 @@
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
  * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
  * @property {number} [font] - font for cell labels (default: leaves the current font)
- * @property {object} [camera] - Camera; when set, view-culls cells for large grids. Settable via `pass.camera`.
+ * @property {object} [camera] - Camera; when set, view-culls cells for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
  */
 
 /**
@@ -24,28 +24,10 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     this.names = opt.names ?? false;
     this.alpha = opt.alpha ?? 0.25;
     this.font = opt.font;
-    this.camera = opt.camera; // optional view-cull source (see _range)
+    this.camera = opt.camera; // optional view-cull source (LevelGrid.viewRange)
   }
 
   destroy() {}
-
-  /**
-   * visible cell range, culled to Camera.groundRect when a camera is set — never
-   * camera_get_view_* (returns 0 for the matrix-driven Camera); groundRect also owns the pitch
-   * stretch, so the labelled band still covers a tilted view.
-   */
-  _range() {
-    const { cols, rows, cellWidth, cellHeight } = this.grid;
-    if (this.camera === undefined || !(this.camera.width > 0))
-      return { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
-    const view = this.camera.groundRect();
-    return {
-      x0: Math.max(0, Math.floor(view.x1 / cellWidth)),
-      y0: Math.max(0, Math.floor(view.y1 / cellHeight)),
-      x1: Math.min(cols - 1, Math.floor(view.x2 / cellWidth)),
-      y1: Math.min(rows - 1, Math.floor(view.y2 / cellHeight)),
-    };
-  }
 
   /** Topmost tile across all layers (matches Level nav resolution). */
   _topTile(x, y) {
@@ -66,13 +48,13 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     if (this.font !== undefined) draw_set_font(this.font);
 
     const { cellWidth, cellHeight } = this.grid;
-    const r = this._range();
+    const r = this.grid.viewRange(this.camera); // x1/y1 EXCLUSIVE
 
     // cost shading: blocking cells red, costlier-than-default orange
     if (this.cost) {
       draw_set_alpha(this.alpha);
-      for (let y = r.y0; y <= r.y1; y++) {
-        for (let x = r.x0; x <= r.x1; x++) {
+      for (let y = r.y0; y < r.y1; y++) {
+        for (let x = r.x0; x < r.x1; x++) {
           const c = this.grid.costAt(x, y);
           if (c === 1) continue; // default walkable
           draw_set_color(c === Infinity ? c_red : c_orange);
@@ -88,8 +70,8 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       draw_set_alpha(1);
       draw_set_halign(fa_center);
       draw_set_valign(fa_middle);
-      for (let y = r.y0; y <= r.y1; y++) {
-        for (let x = r.x0; x <= r.x1; x++) {
+      for (let y = r.y0; y < r.y1; y++) {
+        for (let x = r.x0; x < r.x1; x++) {
           const cx = x * cellWidth + cellWidth * 0.5;
           const cy = y * cellHeight + cellHeight * 0.5;
 
