@@ -21,6 +21,7 @@ globalThis.Broadphase = class Broadphase {
     const n = this.cols * this.rows;
     this._buckets = [];
     for (let i = 0; i < n; i++) this._buckets.push([]);
+    this._rect = AABB.rect(); // reused by rebuild — one bucketing pass per tick per sweeper
   }
 
   clear() {
@@ -43,9 +44,10 @@ globalThis.Broadphase = class Broadphase {
 
   rebuild(entities, ids) {
     this.clear();
+    const r = this._rect;
     for (let i = 0; i < ids.length; i++) {
-      const aabb = AABB.of(entities, ids[i]);
-      this.insert(ids[i], aabb.cx, aabb.cy);
+      AABB.ofInto(entities, ids[i], r);
+      this.insert(ids[i], r.cx, r.cy);
     }
   }
 
