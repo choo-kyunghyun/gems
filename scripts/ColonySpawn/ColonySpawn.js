@@ -1,14 +1,14 @@
 // Entity construction for the colony levels — spawnEntity is the DESCRIPTOR ADAPTER, the one place a
 // spawn descriptor becomes an entity. Archetypes and their descriptor fields are on the JSDoc below.
 /**
- * The archetypes are EntityPreset DEFS (register(), called by content.register) — component data
+ * The entity kinds are EntityPreset DEFS (register(), called by content.register) — component data
  * + design scale + a `post` hook for wiring data can't express (CombatAI.attach). spawnEntity does
  * grid→world and per-spawn overrides (field-merged onto the def like a variant). Up-front map spawns
  * (ColonySpawn.spawn), a generated level's descriptors (ColonyMap._spawnWorld), BuildMode, and the Trader all
  * route through it; a variant preset (`extends: "raider"`) uses the same path when its descriptor
  * fields match its base's.
  *
- * Presets (grid coords gx/gy; sprites + box sizes are archetype, kept in the defs):
+ * Presets (grid coords gx/gy; sprites + box sizes are per-preset, kept in the defs):
  *   raider   hp? loot[]   (hostile human — camp + quest enemy)
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
  *   npc      label nameKey questId merchant?
@@ -62,7 +62,7 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * Register the colony archetypes as EntityPreset defs (idempotent; called by content).
+   * Register the colony entity kinds as EntityPreset defs (idempotent; called by content).
    * Register-time evaluation (Color.parse / ColonyPlayer.animGraph) is safe here — this runs from a
    * scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
    * through by reference — see EntityPreset._clone).
@@ -192,7 +192,7 @@ globalThis.ColonySpawn = {
           Collision: { solid: true, kinematic: true, mask: null, hits: [] },
           Name: { name: "Lamp" },
           Mesh: { model: "torch" }, // vox mesh — no Visual, billboard/shadow passes skip it
-          // warm, gently flickering torch light (archetype values)
+          // warm, gently flickering torch light (preset values)
           Light: {
             radius: 150,
             color: Color.parse("#ffd09a"),
@@ -519,7 +519,7 @@ globalThis.ColonySpawn = {
     if (s.settlement !== undefined)
       over.Resident = { settlementId: s.settlement };
 
-    const id = EntityPreset.spawn(s.preset, entities, w.x, w.y, 0, {
+    const id = EntityPreset.spawn(entities, s.preset, w.x, w.y, 0, {
       size: s.size,
       components: over,
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
@@ -579,7 +579,7 @@ globalThis.ColonySpawn = {
     if (opt.bonusCapacity !== undefined) fol.bonusCapacity = opt.bonusCapacity;
     if (opt.bonusWeight !== undefined) fol.bonusWeight = opt.bonusWeight;
     if (Object.keys(fol).length > 0) over.Follower = fol;
-    return EntityPreset.spawn("follower", entities, wx, wy, 0, {
+    return EntityPreset.spawn(entities, "follower", wx, wy, 0, {
       size: opt.size,
       components: over,
     });

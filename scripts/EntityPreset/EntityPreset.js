@@ -6,7 +6,7 @@
  * @property {string} [extends]  base preset id, resolved at REGISTER time (base registers first;
  *   unknown base throws). Per-component FIELD merge — this def's fields win, new components add.
  * @property {number} [scale]    DESIGN size factor (default 1; inherited from the base) — the
- *   archetype's BASIC factor, scaling BBox + Visual + Mesh. A per-spawn `opts.size` scalar
+ *   preset's BASIC factor, scaling BBox + Visual + Mesh. A per-spawn `opts.size` scalar
  *   multiplies on top (the dedicated Alpha/boss knob — see spawn()).
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
@@ -15,26 +15,28 @@
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  */
 globalThis.EntityPreset = {
-  presets: new Map(), // id → FLATTENED def (string keys — never key a Map by a ref)
+  _defs: new Map(), // id → FLATTENED def (string keys — never key a Map by a ref)
+  _order: [],
 
   /** Register defs in order; `extends` flattens against the already-registered base, so a
    *  chain works top-down. Re-registering an id replaces it. */
   register(presets) {
-    for (const def of presets) {
-      let flat = def;
-      if (def.extends !== undefined) {
-        const base = this.presets.get(def.extends);
-        if (base === undefined)
-          throw new Error(`Unknown base preset: ${def.extends}`);
-        flat = {
-          id: def.id,
-          scale: def.scale ?? base.scale,
-          post: def.post ?? base.post,
-          components: EntityPreset._merge(base.components, def.components),
-        };
-      }
-      this.presets.set(flat.id, flat);
-    }
+    Registry.register(this, presets, EntityPreset._flatten);
+  },
+
+  /** Registry `make` hook: resolve `extends` against what is already stored (defs land in list
+   *  order, so a base registered earlier in the same call is visible here). */
+  _flatten(def) {
+    if (def.extends === undefined) return def;
+    const base = EntityPreset.get(def.extends);
+    if (base === undefined)
+      throw new Error(`Unknown base preset: ${def.extends}`);
+    return {
+      id: def.id,
+      scale: def.scale ?? base.scale,
+      post: def.post ?? base.post,
+      components: EntityPreset._merge(base.components, def.components),
+    };
   },
 
   /**
@@ -45,8 +47,8 @@ globalThis.EntityPreset = {
    * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
    * Returns the entity id.
    */
-  spawn(presetId, entities, x, y, z = 0, opts = {}) {
-    const preset = this.presets.get(presetId);
+  spawn(entities, presetId, x, y, z = 0, opts = {}) {
+    const preset = EntityPreset.get(presetId);
     if (preset === undefined)
       throw new Error(`Unknown entity preset: ${presetId}`);
 
@@ -75,11 +77,11 @@ globalThis.EntityPreset = {
   },
 
   has(presetId) {
-    return this.presets.has(presetId);
+    return Registry.has(this, presetId);
   },
 
   get(presetId) {
-    return this.presets.get(presetId);
+    return Registry.get(this, presetId);
   },
 
   /**
@@ -150,7 +152,7 @@ globalThis.EntityPreset = {
 
   /**
    * Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
-   * model never diverges from its collider. The authored Mesh fields stay the archetype's
+   * model never diverges from its collider. The authored Mesh fields stay the preset's
    * basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
    * over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
    */

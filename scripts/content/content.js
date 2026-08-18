@@ -17,7 +17,7 @@ globalThis.content = {
     contentPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
     contentInteractions.register(); // InteractAction defs (storage/workbench/claim/arcade/bed + hydrate/feed/buff)
     CombatAI.register(); // named combat states (combat.idle/chase/attack) into the StateSystem pool
-    ColonySpawn.register(); // entity archetypes (raider/rat/npc/chest/prop/torch/turret/portal/follower) as EntityPreset defs
+    ColonySpawn.register(); // entity presets (raider/rat/npc/chest/prop/torch/turret/portal/follower) as EntityPreset defs
 
     // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
     // just one register + setRelation here. "colony" is the neutral settler faction that owns the
