@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"CraftSystem",
+  "%Name":"FavoritesSystem",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"CraftSystem",
+  "name":"FavoritesSystem",
   "parent":{
     "name":"System",
     "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"CraftSystem.js",
+  "scriptSource":"FavoritesSystem.js",
 }

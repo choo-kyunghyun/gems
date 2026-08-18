@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"FactionSystem",
   "parent":{
-    "name":"Combat",
-    "path":"folders/Core/Gameplay/Combat.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

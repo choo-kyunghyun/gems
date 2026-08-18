@@ -37,7 +37,7 @@ const BB_NORMAL_Z = -0.866;
  * Sprites draw under sh_meshlit (textured + texel cutout, bent normal via u_normal) — ONE
  * world shader: with `opt.lights` (the host RenderMesh pass) they share its sun + point
  * gather and light per-pixel like the meshes; unset → neutral uniforms (full-bright albedo,
- * cutout only — the kit/flat default).
+ * cutout only — the flat default).
  * @implements {RenderPass}
  */
 globalThis.RenderBillboard = class RenderBillboard {
@@ -77,7 +77,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, dim-safe)
     // opt.lights = the host RenderMesh pass: its setupLights supplies this frame's sun +
     // view-culled point lights (ONE shared gather — a sprite and the mesh beside it can't
-    // diverge). Unset (flat maps, kit default) → neutral uniforms: full-bright albedo with
+    // diverge). Unset (flat maps, the default) → neutral uniforms: full-bright albedo with
     // the cutout only.
     this.lights = opt.lights;
   }

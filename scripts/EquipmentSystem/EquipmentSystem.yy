@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EquipmentSystem",
   "parent":{
-    "name":"Equipment",
-    "path":"folders/Core/Gameplay/Equipment.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

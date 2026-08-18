@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"StatusSystem",
   "parent":{
-    "name":"Status",
-    "path":"folders/Core/Gameplay/Status.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

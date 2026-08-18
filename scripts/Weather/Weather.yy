@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Weather",
   "parent":{
-    "name":"Environment",
-    "path":"folders/Core/Gameplay/Environment.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

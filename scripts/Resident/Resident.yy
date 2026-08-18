@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Resident",
   "parent":{
-    "name":"Settlement",
-    "path":"folders/Core/Gameplay/Settlement.yy",
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

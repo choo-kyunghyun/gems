@@ -36,7 +36,7 @@ class _SceneRpgClass {
     QuestLog.accept(RpgQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(RpgQuests.QUEST_REACH); // reach — tracked passively
 
-    // inject stat-driven mitigation into the kit's stat-agnostic Combat applier (static hook, survives map reloads)
+    // inject stat-driven mitigation into the stat-agnostic Combat applier (static hook, survives map reloads)
     Combat.mitigate = function (entities, targetId, amount, penetration = 0) {
       const s = entities.get(Stats, targetId);
       const defense = s !== undefined ? s.defense : 0;

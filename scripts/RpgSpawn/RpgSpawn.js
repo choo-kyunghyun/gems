@@ -525,7 +525,7 @@ globalThis.RpgSpawn = {
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
     });
 
-    // Merchant NPC (Gameplay/Trade): a `merchant` descriptor attaches the trade config + a stock
+    // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
     // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
     // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
     if (s.preset === "npc" && s.merchant !== undefined) {

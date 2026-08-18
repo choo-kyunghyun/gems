@@ -5,7 +5,7 @@
  *   dot/hot — Health change per `interval` (StatusSystem.update)
  *   mult    — live multiplicative factors read at use via StatusSystem.scale; never folded into Stats
  *   mods    — flat Stats deltas folded by the GAME (StatModel._foldStatuses), re-derived via onStatsChanged
- * Kit stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
+ * Status stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
  */
 globalThis.Status = {
   // ── Registry facade (Registry owns the store's contract) ──

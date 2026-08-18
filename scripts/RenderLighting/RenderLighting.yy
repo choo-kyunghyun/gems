@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderLighting",
   "parent":{
-    "name":"Lighting",
-    "path":"folders/Core/Gameplay/Lighting.yy",
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"DrowsinessSystem",
   "parent":{
-    "name":"Survival",
-    "path":"folders/Core/Gameplay/Survival.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Animator",
   "parent":{
-    "name":"Animation",
-    "path":"folders/Core/Gameplay/Animation.yy",
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

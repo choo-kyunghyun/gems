@@ -1,4 +1,4 @@
-// RPG status defs — the content for the genre-agnostic Status kit. Registered once at level create()
+// RPG status defs — the content for the Status registry. Registered once at level create()
 // (NOT top-level — GMRT load-order). Colors drive HUD chip tints.
 /**
  * A DoT poison is symmetric to regen — one def + an applier away if needed.

@@ -15,7 +15,7 @@ globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
     this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
-    // INJECTED ambient provider () => { color, alpha } — keeps this Gameplay-kit pass day/night-agnostic
+    // INJECTED ambient provider () => { color, alpha } — keeps this Core pass day/night-agnostic
     // (demo wires WorldClock.tint). Default full daylight (alpha 0) early-outs below.
     this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));
     // scales the cycle's overlay alpha; higher = darker nights. clamped to 1 (never fully black).

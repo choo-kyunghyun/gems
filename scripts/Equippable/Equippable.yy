@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Equippable",
   "parent":{
-    "name":"Equipment",
-    "path":"folders/Core/Gameplay/Equipment.yy",
+    "name":"Item",
+    "path":"folders/Game/Item.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

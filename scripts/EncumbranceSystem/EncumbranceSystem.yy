@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EncumbranceSystem",
   "parent":{
-    "name":"Inventory",
-    "path":"folders/Core/Gameplay/Inventory.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

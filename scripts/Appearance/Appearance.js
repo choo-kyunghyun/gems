@@ -4,7 +4,7 @@
  * contract that keeps layers in lockstep: every layer sheet mirrors the body sprite's strip
  * layout (frame count/order via AnimState `start` offsets), cell size, and foot anchor — so a
  * layer needs zero animation knowledge and can never desync from the Animator.
- * DERIVED data, rebuilt from Equipment by AppearanceSystem (Gameplay) — never authored per
+ * DERIVED data, rebuilt from Equipment by AppearanceSystem (Game) — never authored per
  * entity, never serialized (a carried sheet re-derives it after EntitySnapshot.apply).
  *
  * @typedef {Object} AppearanceLayer

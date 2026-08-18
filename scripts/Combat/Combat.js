@@ -1,9 +1,8 @@
-// Single damage applier for all paths (melee, hitscan, projectile) — kit stays stat-agnostic via the
+// Single damage applier for all paths (melee, hitscan, projectile) — stays stat-agnostic via the
 // injected `mitigate` hook. Only subtracts hp; the reaction at <=0 hp is the Mortal death pass.
 /**
- * The RPG wires its defense formula in sceneRpg.create. Lives in the Gameplay kit rather than Core
- * (with the other raycast/hit machinery) because hitscan reads Health + Faction — Core may not know a
- * gameplay model. Same for ProjectileSystem.
+ * The RPG wires its defense formula in sceneRpg.create, so the applier itself never reads a stat
+ * sheet — hitscan needs only Health + Faction.
  */
 globalThis.Combat = {
   // injected defense formula — default identity; RPG overrides with max(1, amount-max(0,defense-pen))

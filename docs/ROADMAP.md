@@ -6,10 +6,6 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Game), never by mixing concerns.
 
-### Gameplay Regrouping
-
-`Core/Gameplay` was folded in wholesale, so genre-common modules (`Animation`, `Lighting`) sit beside single-genre ones (`Combat`). Re-sort within Core pending.
-
 ### Tools Review
 
 `tools/` is self-contained (never imported by the game; each tool owns a README). Pending, per tool: fix the docs, then overhaul as needed.

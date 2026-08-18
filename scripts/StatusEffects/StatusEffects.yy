@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"StatusEffects",
   "parent":{
-    "name":"Status",
-    "path":"folders/Core/Gameplay/Status.yy",
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

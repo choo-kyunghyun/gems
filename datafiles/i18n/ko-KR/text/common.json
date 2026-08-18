@@ -260,6 +260,11 @@
   "MOD_SLOT_POMMEL": "손잡이 끝",
   "MOD_SLOT_GENERIC": "슬롯",
 
+  "SEASON_SPRING": "봄",
+  "SEASON_SUMMER": "여름",
+  "SEASON_AUTUMN": "가을",
+  "SEASON_WINTER": "겨울",
+
   "SETTLEMENT_FOUND_PROMPT": "[E] 정착지 건설",
 
   "ARCADE_PROMPT": "[E] 아케이드 플레이",

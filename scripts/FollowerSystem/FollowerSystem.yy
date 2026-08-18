@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"FollowerSystem",
   "parent":{
-    "name":"Squad",
-    "path":"folders/Core/Gameplay/Squad.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

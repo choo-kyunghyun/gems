@@ -9,7 +9,7 @@
  *   directional sun (`opt.sun` provider, injected like RenderLighting's ambient — the demo
  *   wires WorldClock.sunDir; the default is a fixed neutral sun reproducing the old baked
  *   top/south look) + the nearest injected point lights (`opt.pointLights` provider — the
- *   demo gathers the Gameplay `Light` entities; torch/lantern — faces toward a torch
+ *   demo gathers the `Light` entities; torch/lantern — faces toward a torch
  *   brighten, tops of tall meshes stay dark to a ground-level flame). This
  *   composes UNDER RenderLighting's screen-space multiply: the shader differentiates faces
  *   by direction, the light map owns absolute night darkness + the visible glow pools.
@@ -81,12 +81,11 @@ globalThis.RenderMesh = class RenderMesh {
       : -1;
     // (no ambient field: ambient is derived per frame as the sun's complement — see setupLights)
     // sun provider: () => flat { x, y, z (toward the sun, up = -z), strength, r, g, b }.
-    // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a kit
+    // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a bare
     // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
     this.sun = opt.sun;
     this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
-    // point-light provider, injected like `sun` (the `Light` token is Gameplay — this Core pass
-    // takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
+    // point-light provider, injected like `sun` (this pass takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
     // flicker?, seed? }] — color a GM color int, seed the flicker phase offset (the demo passes
     // the entity id so the mesh term stays in phase with RenderLighting's glow pools).
     // Unset = sun-only.

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Favorites",
   "parent":{
-    "name":"Inventory",
-    "path":"folders/Core/Gameplay/Inventory.yy",
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

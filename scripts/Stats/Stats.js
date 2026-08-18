@@ -1,5 +1,5 @@
 /**
- * Derived combat stats — the caps/factors kit systems read (StaminaSystem, StatusSystem,
+ * Derived combat stats — the caps/factors the combat/survival systems read (StaminaSystem, StatusSystem,
  * ConsumableSystem, movers), with per-reader defaults when absent. Deriving it is the GAME's
  * business: the demo rebuilds it from Attributes via StatModel. Session-scoped.
  *

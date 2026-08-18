@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"NPC",
   "parent":{
-    "name":"NPC",
-    "path":"folders/Core/Gameplay/NPC.yy",
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

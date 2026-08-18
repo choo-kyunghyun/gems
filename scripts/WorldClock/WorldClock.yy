@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"WorldClock",
   "parent":{
-    "name":"Environment",
-    "path":"folders/Core/Gameplay/Environment.yy",
+    "name":"World",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

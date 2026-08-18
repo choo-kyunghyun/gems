@@ -9,7 +9,7 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 - **Flexbox-based Layout**: Responsive UI design utilizing the `flexpanel`.
 - **GMRT & JavaScript**: All game logic is JavaScript on the GMRT runtime, not GML.
 - **ECS**: Instance-based entity-component-system core with fixed-rate simulation.
-- **Gameplay Kit**: A reusable genre-agnostic gameplay kit (combat, items, inventory, equipment, animation, lighting, quests, …) with ready-made action-RPG and Platformer scenes built on it.
+- **Gameplay Model**: A complete action-RPG model — combat, items/inventory/equipment, status, survival, crafting, trade, quests — as flat components and systems over the engine, with ready-made action-RPG and Platformer scenes.
 - **Renderer**: Hardware-accelerated tilemaps with autotiling and dual-grid terrain blending.
 - **Pathfinding, Input, Save & I18n**: Grid A\*, rebindable input actions, persistence, and localization.
 
@@ -35,9 +35,7 @@ VS Code users can run these via the bundled tasks (`.vscode/tasks.json`): **Run*
 
 - G.E.M.S.
   - Core — the pure engine: ECS, systems, level, render, UI, input, utilities
-  - Gameplay — the reusable genre-agnostic gameplay kit (combat, items/inventory/equipment, animation, lighting, quests, crafting, party, NPC)
-  - GemsUI — the themed UI factory kit over the Core UI system
-  - Demo — the integrated demo: the action-RPG, the embedded Platformer minigame, and the app shell / lobby
+  - Game — the integrated demo consuming Core: the gameplay model (`Component`/`System`), the item vocabulary (`Item`), content, the themed UI factory kit over the Core UI system, and the scenes — the action-RPG, the embedded Platformer minigame, and the app shell / lobby
 
 ## License
 

@@ -1,8 +1,8 @@
 // Use one unit of a Consumable from an entity's Inventory, applying its instant effect.
 globalThis.ConsumableSystem = {
   /**
-   * Injected attribute-grant policy (a *_shard). The kit can't reach the Game stat model, so — like
-   * Combat.mitigate — the Game wires this in sceneRpg.create. Default no-op returns false (a shard
+   * Injected attribute-grant policy (a *_shard). Keeps this system off the stat model — like
+   * Combat.mitigate, sceneRpg.create wires it. Default no-op returns false (a shard
    * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
    */
   grantAttr(entities, id, attr, amount) {
@@ -52,7 +52,7 @@ globalThis.ConsumableSystem = {
       ConsumableSystem.grantAttr(entities, id, con.attr, con.amount)
     )
       did = true;
-    // Status grant via the StatusSystem kit. A status-only consumable still counts as "did
+    // Status grant via StatusSystem. A status-only consumable still counts as "did
     // something". statusDuration 0 → the def's own duration.
     if (con.status !== "") {
       StatusSystem.apply(
@@ -63,7 +63,7 @@ globalThis.ConsumableSystem = {
       );
       did = true;
     }
-    // Survival restores (drink/eat) via the Survival kit. restore() returns false when the need is
+    // Survival restores (drink/eat) via Survival. restore() returns false when the need is
     // already satisfied, so a no-op drink/food isn't wasted (same rule as healing at full HP).
     if (con.thirst > 0 && ThirstSystem.restore(entities, id, con.thirst))
       did = true;

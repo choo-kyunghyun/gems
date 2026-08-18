@@ -10,10 +10,10 @@ globalThis.WorldClock = {
   // four seasons in cycle order; a literal (an initializer can't self-reference). Season is
   // a pure derivation of `day`, like phase() of hour.
   _SEASONS: [
-    { id: "spring", name: "RPG_SEASON_SPRING" },
-    { id: "summer", name: "RPG_SEASON_SUMMER" },
-    { id: "autumn", name: "RPG_SEASON_AUTUMN" },
-    { id: "winter", name: "RPG_SEASON_WINTER" },
+    { id: "spring", name: "SEASON_SPRING" },
+    { id: "summer", name: "SEASON_SUMMER" },
+    { id: "autumn", name: "SEASON_AUTUMN" },
+    { id: "winter", name: "SEASON_WINTER" },
   ],
 
   // Hand-authored day/night overlay keyframes { h, c tint, a alpha }, sorted by hour and wrapping
