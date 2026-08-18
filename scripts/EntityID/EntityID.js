@@ -19,29 +19,39 @@ globalThis.EntityID = class EntityID {
 
   constructor(maxEntities) {
     this.generations = new Uint16Array(maxEntities);
+    /**
+     * packed[index] = the id `alloc()` hands out for that index at its CURRENT generation.
+     * A derived mirror of `generations` (rebuilt by _repack), kept so a query can emit an id
+     * by one plain-array read instead of recomposing make(index, generation) per match — a
+     * typed-array read costs ~20x a plain one here (docs/PERF.md), and this sits on every
+     * matched entity of every query. A freed index holds the id its NEXT owner will get,
+     * which no query can reach: flush() clears the component slots before freeing the id.
+     */
+    this.packed = new Array(maxEntities);
     this.freeIndices = [];
     this.next = 0;
+    this._repack();
   }
 
   alloc() {
-    let index, generation;
+    let index;
     if (this.freeIndices.length > 0) {
       index = this.freeIndices.pop();
-      generation = this.generations[index];
     } else {
       index = this.next++;
-      generation = 0;
-      this.generations[index] = generation;
+      this.generations[index] = 0;
+      this.packed[index] = index; // generation 0
     }
-    return EntityID.make(index, generation);
+    return this.packed[index];
   }
 
   free(id) {
     const index = EntityID.index(id);
     const generation = EntityID.generation(id);
     if (this.generations[index] !== generation) return false;
-    this.generations[index] =
-      (this.generations[index] + 1) & EntityID.GENERATION_MASK;
+    const bumped = (generation + 1) & EntityID.GENERATION_MASK;
+    this.generations[index] = bumped;
+    this.packed[index] = EntityID.make(index, bumped);
     this.freeIndices.push(index);
     return true;
   }
@@ -61,6 +71,14 @@ globalThis.EntityID = class EntityID {
     this.generations.fill(0, 0, this.generations.length);
     this.freeIndices = [];
     this.next = 0;
+    this._repack();
+  }
+
+  /** Re-derive `packed` from `generations` — after any BULK write to the generation table. */
+  _repack() {
+    const g = this.generations;
+    const p = this.packed;
+    for (let i = 0; i < p.length; i++) p[i] = EntityID.make(i, g[i]);
   }
 
   export() {
@@ -75,5 +93,6 @@ globalThis.EntityID = class EntityID {
     this.generations.set(data.generations);
     this.freeIndices = data.freeIndices;
     this.next = data.next;
+    this._repack();
   }
 };
