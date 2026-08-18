@@ -4,8 +4,7 @@
  */
 globalThis.InterpolationSystem = {
   snapshot(entities) {
-    for (const id of entities.query(Position, Velocity)) {
-      const pos = entities.get(id, Position);
+    entities.forEach([Position, Velocity], (id, pos) => {
       const prev = entities.get(id, PrevPosition);
       if (prev === undefined) {
         entities.add(id, PrevPosition, { x: pos.x, y: pos.y, z: pos.z });
@@ -14,7 +13,7 @@ globalThis.InterpolationSystem = {
         prev.y = pos.y;
         prev.z = pos.z;
       }
-    }
+    });
   },
 
   /** Writes into `out` (reused scratch — no alloc per entity). */

@@ -7,9 +7,7 @@ globalThis.EncumbranceSystem = {
    * mover reads scale.
    */
   update(entities) {
-    const ids = entities.query(Encumbrance, Inventory);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
+    entities.forEach([Encumbrance, Inventory], (id) => {
       const s = EncumbranceSystem.scale(entities, id);
       StatusSystem.maintain(
         entities,
@@ -17,7 +15,7 @@ globalThis.EncumbranceSystem = {
         "encumbered",
         s < 1 ? { speed: s } : null,
       );
-    }
+    });
   },
 
   /**

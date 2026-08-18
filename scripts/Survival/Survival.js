@@ -6,14 +6,11 @@ globalThis.Survival = {
    */
   tick(entities, token) {
     const dt = SimClock.tickDuration;
-    const ids = entities.query(token);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const c = entities.get(id, token);
+    entities.forEach([token], (id, c) => {
       c.value += c.rate * dt;
       if (c.value > c.max) c.value = c.max;
       Survival.refresh(entities, id, c);
-    }
+    });
   },
 
   /**

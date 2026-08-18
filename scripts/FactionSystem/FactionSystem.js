@@ -101,21 +101,28 @@ globalThis.FactionSystem = {
     const fa = this.factionOf(entities, id);
     if (fa === undefined) return -1;
     const needsHealth = opt.needsHealth !== false;
-    const ids = needsHealth
-      ? entities.query(Health, Position)
-      : entities.query(Position);
     let bestId = -1;
     let bestD = range * range;
-    for (const oid of ids) {
-      if (oid === id) continue;
-      const fb = this.factionOf(entities, oid);
-      if (fb === undefined || !this.isHostile(fa, fb)) continue;
-      const p = entities.get(oid, Position);
-      const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    // Faction JOINS the query: a factionless candidate was skipped by the old undefined check
+    // anyway, so matching on it is the same set for one fewer `get` per candidate. This scan is
+    // per idle actor (throttled by Brain.aggroRate), so it is the crowd's dominant cost.
+    const consider = (oid, pos, fac) => {
+      if (oid === id) return;
+      if (!FactionSystem.isHostile(fa, fac.id)) return;
+      const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
       if (d < bestD) {
         bestD = d;
         bestId = oid;
       }
+    };
+    if (needsHealth) {
+      entities.forEach([Health, Position, Faction], (oid, hp, pos, fac) => {
+        consider(oid, pos, fac);
+      });
+    } else {
+      entities.forEach([Position, Faction], (oid, pos, fac) => {
+        consider(oid, pos, fac);
+      });
     }
     return bestId;
   },

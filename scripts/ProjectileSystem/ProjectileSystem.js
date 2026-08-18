@@ -3,11 +3,7 @@
 globalThis.ProjectileSystem = {
   update(entities) {
     const dt = SimClock.tickDuration;
-    for (const id of entities.query(Projectile, Position, Velocity)) {
-      const proj = entities.get(id, Projectile);
-      const pos = entities.get(id, Position);
-      const vel = entities.get(id, Velocity);
-
+    entities.forEach([Projectile, Position, Velocity], (id, proj, pos, vel) => {
       const x1 = pos.x + vel.x * dt;
       const y1 = pos.y + vel.y * dt;
 
@@ -18,7 +14,7 @@ globalThis.ProjectileSystem = {
       if (hit === null) {
         pos.x = x1;
         pos.y = y1;
-        continue;
+        return;
       }
 
       pos.x = hit.x;
@@ -38,6 +34,6 @@ globalThis.ProjectileSystem = {
         );
       }
       entities.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
-    }
+    });
   },
 };

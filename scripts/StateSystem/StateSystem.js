@@ -38,10 +38,7 @@ globalThis.StateSystem = {
   },
 
   update(entities) {
-    const ids = entities.query(State);
-    for (const id of ids) {
-      const state = entities.get(id, State);
-
+    entities.forEach([State], (id, state) => {
       if (state.next !== "") {
         if (state.current !== "") {
           const prev = StateSystem.get(state.current);
@@ -57,6 +54,6 @@ globalThis.StateSystem = {
         const cur = StateSystem.get(state.current);
         if (cur.update) cur.update(entities, id);
       }
-    }
+    });
   },
 };

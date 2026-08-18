@@ -2,11 +2,9 @@
 // selection; uses Time.delta (sim time, so animation pauses/dilates with the game).
 globalThis.AnimationSystem = {
   update(entities) {
-    for (const id of entities.query(Animator, Visual)) {
-      const anim = entities.get(id, Animator);
-      const vis = entities.get(id, Visual);
+    entities.forEach([Animator, Visual], (id, anim, vis) => {
       const st = anim.graph[anim.state];
-      if (st === undefined) continue;
+      if (st === undefined) return;
 
       // clamp frames >= 1: GMRT reports 0 frames for SVG sprites (0.20), which would land a
       // non-looping state on frames-1 = -1 (negative subimage).
@@ -32,7 +30,7 @@ globalThis.AnimationSystem = {
       vis.sprite = st.sprite;
       // `start` offsets into a shared strip (unified humanoid sheet); absent = standalone sprite
       vis.subimg = (st.start ?? 0) + (anim.frame < 0 ? 0 : anim.frame);
-    }
+    });
   },
 
   /**
