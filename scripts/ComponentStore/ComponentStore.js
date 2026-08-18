@@ -77,15 +77,28 @@ globalThis.ComponentStore = class ComponentStore {
 
     const result = [];
     const hi = this.ids.next;
-    const gens = this.ids.generations;
+    const packed = this.ids.packed;
     for (let i = 0; i < hi; i++) {
       let c = 0;
       while (c < n && columns[c][i] !== undefined) c++;
-      if (c === n) result.push(EntityID.make(i, gens[i]));
+      if (c === n) result.push(packed[i]);
     }
     return result;
   }
 
+  /**
+   * The allocation-free counterpart to `query`, and the form a per-tick system wants: no
+   * result array, and the callback is handed the component data the scan ALREADY resolved,
+   * so the loop body pays no `get` per entity — together ~9x `query` + `get` (docs/PERF.md).
+   *
+   * `fn(id, data0, data1, data2, data3)` — data in token order, up to the FOURTH token;
+   * a match on a fifth or later token still gates the visit, but read its data with `get`
+   * (nothing in the project queries more than four).
+   *
+   * Removal stays deferred (EntityStore.remove), so a callback may remove while iterating;
+   * ADDING a component mid-iteration is not defined — the columns are captured up front and
+   * the scan is by ascending index.
+   */
   forEach(tokens, fn) {
     const n = tokens.length;
     const columns = new Array(n);
@@ -96,11 +109,56 @@ globalThis.ComponentStore = class ComponentStore {
     }
 
     const hi = this.ids.next;
-    const gens = this.ids.generations;
+    const packed = this.ids.packed;
+    const c0 = columns[0];
+
+    if (n === 1) {
+      for (let i = 0; i < hi; i++) {
+        const d0 = c0[i];
+        if (d0 !== undefined) fn(packed[i], d0);
+      }
+      return;
+    }
+
+    const c1 = columns[1];
+    if (n === 2) {
+      for (let i = 0; i < hi; i++) {
+        const d0 = c0[i];
+        if (d0 === undefined) continue;
+        const d1 = c1[i];
+        if (d1 === undefined) continue;
+        fn(packed[i], d0, d1);
+      }
+      return;
+    }
+
+    const c2 = columns[2];
+    if (n === 3) {
+      for (let i = 0; i < hi; i++) {
+        const d0 = c0[i];
+        if (d0 === undefined) continue;
+        const d1 = c1[i];
+        if (d1 === undefined) continue;
+        const d2 = c2[i];
+        if (d2 === undefined) continue;
+        fn(packed[i], d0, d1, d2);
+      }
+      return;
+    }
+
+    const c3 = columns[3];
     for (let i = 0; i < hi; i++) {
-      let c = 0;
+      const d0 = c0[i];
+      if (d0 === undefined) continue;
+      const d1 = c1[i];
+      if (d1 === undefined) continue;
+      const d2 = c2[i];
+      if (d2 === undefined) continue;
+      const d3 = c3[i];
+      if (d3 === undefined) continue;
+      let c = 4;
       while (c < n && columns[c][i] !== undefined) c++;
-      if (c === n) fn(EntityID.make(i, gens[i]));
+      if (c === n) fn(packed[i], d0, d1, d2, d3);
     }
   }
 
