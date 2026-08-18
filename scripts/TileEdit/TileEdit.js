@@ -17,43 +17,10 @@ globalThis.TileEdit = {
     layer.set(gx, gy, undefined);
   },
 
-  /**
-   * Greedy-mesh solid cells into fewest rects — per-cell boxes leave seams that snag the AABB
-   * resolver. Returns [gx,gy,wCells,hCells] in grid coords.
-   */
+  /** A layer's solid cells as the fewest [gx,gy,wCells,hCells] rects (Grid.meshRects). */
   meshRects(grid, layer) {
-    const cols = grid.cols;
-    const rows = grid.rows;
-    const consumed = new Array(cols * rows).fill(false);
     // Grid.get returns 0 for empty (not undefined) — test truthiness, not !== undefined
-    const solid = (x, y) =>
-      x < cols && y < rows && layer.get(x, y) && !consumed[y * cols + x];
-
-    const rects = [];
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (!solid(x, y)) continue;
-
-        let w = 1;
-        while (solid(x + w, y)) w++;
-
-        let h = 1;
-        for (let grow = true; grow; h++) {
-          for (let k = 0; k < w; k++)
-            if (!solid(x + k, y + h)) {
-              grow = false;
-              break;
-            }
-        }
-        h--; // last iteration that incremented also set grow=false
-
-        for (let yy = y; yy < y + h; yy++)
-          for (let xx = x; xx < x + w; xx++) consumed[yy * cols + xx] = true;
-
-        rects.push([x, y, w, h]);
-      }
-    }
-    return rects;
+    return Grid.meshRects(grid.cols, grid.rows, (x, y) => !!layer.get(x, y));
   },
 
   /** One kinematic-solid collider per meshRects rectangle; ids pushed onto `out`. */

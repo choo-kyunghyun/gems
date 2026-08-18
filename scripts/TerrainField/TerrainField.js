@@ -105,6 +105,8 @@ globalThis.TerrainField = class TerrainField {
    * Pure in (cols, rows, seed); returns [] when nothing is impassable.
    */
   solidRects(cols, rows) {
+    // passable() costs two noise channels per call and the mesh probes a cell repeatedly, so
+    // sample the field once into a flat array and let Grid.meshRects read that.
     const blocked = new Array(cols * rows);
     let any = false;
     for (let y = 0; y < rows; y++)
@@ -114,31 +116,6 @@ globalThis.TerrainField = class TerrainField {
         if (b) any = true;
       }
     if (!any) return [];
-
-    // Greedy mesh: extend right for width, then down while the whole row stays blocked.
-    const consumed = new Array(cols * rows).fill(false);
-    const solid = (x, y) =>
-      x < cols && y < rows && blocked[y * cols + x] && !consumed[y * cols + x];
-    const rects = [];
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (!solid(x, y)) continue;
-        let w = 1;
-        while (solid(x + w, y)) w++;
-        let h = 1;
-        for (let grow = true; grow; h++) {
-          for (let k = 0; k < w; k++)
-            if (!solid(x + k, y + h)) {
-              grow = false;
-              break;
-            }
-        }
-        h--; // last iteration that incremented also set grow=false
-        for (let yy = y; yy < y + h; yy++)
-          for (let xx = x; xx < x + w; xx++) consumed[yy * cols + xx] = true;
-        rects.push([x, y, w, h]);
-      }
-    }
-    return rects;
+    return Grid.meshRects(cols, rows, (x, y) => blocked[y * cols + x]);
   }
 };
