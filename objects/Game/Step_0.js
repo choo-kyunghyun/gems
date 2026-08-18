@@ -41,5 +41,5 @@ if (SystemMenu.isOpen()) {
 }
 
 Debug.update(); // F3: human-facing native ImGui overlay over the panel registry
-DebugInspector.update(this.scene); // click-to-pick entity inspector (overlay open)
+DebugInspector.update(); // click-to-pick entity inspector (overlay open)
 Log.flush();

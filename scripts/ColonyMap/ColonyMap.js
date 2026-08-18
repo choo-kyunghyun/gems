@@ -711,7 +711,7 @@ globalThis.ColonyMap = {
   /**
    * Register the Debug "Camera" section bound to the LIVE scene camera (pitch + zoom) for runtime
    * render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
-   * drive the ACTIVE map's camera; removed on scene destroy. colony-owned (pitch is a Game concern).
+   * drive the ACTIVE map's camera. colony-owned (pitch is a Game concern).
    */
   _registerCameraDebug(scene) {
     const cam = scene.camera;
@@ -723,6 +723,7 @@ globalThis.ColonyMap = {
     const fly = new CameraFly();
     Debug.add({
       name: "Camera",
+      scoped: true, // bound to THIS scene's camera — Game drops it at the scene boundary
       // pitchCurve and freeCam are computed toggles — staged (contract: Debug); the plain
       // control fields below ref live, two-way
       build() {

@@ -5,12 +5,15 @@
  * writing the same live state a control binds (e.g. Time.scale, the Game
  * object's requestStep()).
  *
- * A section is a duck-typed object { name, window?, build(), update()? }
- * rendered as its own dbg_section; `window` names the dbg_view hosting it
- * (default "General") — a window's sections stack in registration order.
- * build() emits dbg_* controls (it may nest further dbg_sections — the
- * Inspector's per-component ones); the optional update() runs each frame while
- * the overlay is open, for whatever isn't a control.
+ * A section is a duck-typed object { name, window?, scoped?, build(),
+ * update()? } rendered as its own dbg_section; `window` names the dbg_view
+ * hosting it (default "General") — a window's sections stack in registration
+ * order. build() emits dbg_* controls (it may nest further dbg_sections — the
+ * Inspector's per-component ones) and re-runs on Debug.refresh(name), so a
+ * section whose content tracks live state republishes without re-registering;
+ * the optional update() runs each frame while the overlay is open, for
+ * whatever isn't a control. `scoped: true` ties the section to the live scene
+ * — Game drops it at the scene boundary, so a scene never unregisters by hand.
  *
  * A control binds through ref_create, which needs a live plain object: ref one
  * directly where it exists (the Inspector's component structs — two-way, no
@@ -24,15 +27,15 @@
  * and enabled = false must stay inert) and live until their sections are gone
  * — an F3 toggle hides, never rebuilds. No dbg_set_view on GMRT: dbg_section
  * lands in the most-recently-created dbg_view only, so any section change
- * (add/re-add/remove) drops its WHOLE window for the lazy pass to rebuild — a
- * section that churns (the Inspector re-registers per pick) takes a window of
+ * (add/refresh/drop) takes its WHOLE window down for the lazy pass to rebuild —
+ * a section that churns (the Inspector refreshes per pick) takes a window of
  * its own so the stable ones keep their dragged positions.
  */
 /**
  * @typedef {{name: string, build: function(): void} & Object<string, *>}
  *   DebugSection
- * (the open record admits the optional members — window, update() — plus the
- * `_staged` bindings Debug attaches)
+ * (the open record admits the optional members — window, scoped, update() —
+ * plus the `_staged` bindings Debug attaches)
  */
 globalThis.Debug = {
   enabled: true, // set false for a release build
@@ -47,7 +50,7 @@ globalThis.Debug = {
 
   /**
    * register (or replace by name) a section; safe to re-call across scene
-   * reloads — re-add()ing is also how a section refreshes its own content.
+   * reloads. To republish an existing section's content, refresh() it.
    */
   add(section) {
     section._staged = [];
@@ -64,12 +67,33 @@ globalThis.Debug = {
     return section;
   },
 
-  remove(name) {
+  /**
+   * re-run a registered section's build() on the next pass — how a section
+   * whose content reads live state (the Inspector's selection, DebugRender's
+   * pass list) republishes it. Unknown name = no-op, so a caller may refresh
+   * before the owner has registered.
+   */
+  refresh(name) {
     for (let i = 0; i < Debug.sections.length; i++) {
       if (Debug.sections[i].name === name) {
         Debug._invalidate(Debug._windowOf(Debug.sections[i]));
-        Debug.sections.splice(i, 1);
         return;
+      }
+    }
+  },
+
+  /**
+   * drop every `scoped` section — Game's scene boundary, alongside the other
+   * per-scene global resets. A keep-switch suspends rather than destroys, so
+   * it does NOT come through here: the frozen host keeps its sections and gets
+   * them back on resume.
+   */
+  clearScoped() {
+    for (let i = Debug.sections.length - 1; i >= 0; i--) {
+      const section = Debug.sections[i];
+      if (section.scoped === true) {
+        Debug._invalidate(Debug._windowOf(section));
+        Debug.sections.splice(i, 1);
       }
     }
   },

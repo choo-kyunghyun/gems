@@ -7,28 +7,26 @@
  * off and no-ops). Registered once from Game Create_0.
  */
 globalThis.DebugRender = {
-  _registered: false, // register() (Create_0) has run
   _game: null, // the Game object — the live scene pointer the toggles resolve passes through
   _extra: [], // [pass class, label] from a genre layer's add()
 
   /**
    * append a pass toggle (deduped by class) — the seam a genre layer uses
-   * without Core referencing it. Re-adds the section if register() ran
-   * (build() resolves the list fresh); else register() (Create_0) picks it
-   * up. The class is loaded by the time the scene calls this, so storing the
-   * ref here is load-order-safe.
+   * without Core referencing it. The class is loaded by the time the scene
+   * calls this, so storing the ref here is load-order-safe; a call landing
+   * before register() just refreshes nothing, and register() reads the list
+   * fresh.
    */
   add(cls, label) {
     for (let i = 0; i < DebugRender._extra.length; i++) {
       if (DebugRender._extra[i][0] === cls) return; // already added
     }
     DebugRender._extra.push([cls, label]);
-    if (DebugRender._registered) Debug.add(DebugRender._section);
+    Debug.refresh("Render");
   },
 
   register(game) {
     DebugRender._game = game;
-    DebugRender._registered = true;
     Debug.add(DebugRender._section);
   },
 

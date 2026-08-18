@@ -224,6 +224,7 @@ this._clearOverlays = () => {
 this._destroyScenes = () => {
   if (this.scene !== null) this.scene.destroy();
   if (this._host !== null) this._host.scene.destroy();
+  Debug.clearScoped(); // whatever sections either scene registered (the colony's Camera/Achievements)
   this.scene = null;
   this._factory = null;
   this._label = null;
@@ -241,6 +242,7 @@ SceneTransition.reveal();
 // register built-in debug sections; they read this.scene live, so bindings track it across swaps
 DebugGeneral.register(this);
 DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
+DebugInspector.register(this); // the click-to-pick "Entity" section (Step_0 drives the picking)
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
 // the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.

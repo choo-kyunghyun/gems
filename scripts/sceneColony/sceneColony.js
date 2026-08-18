@@ -187,6 +187,7 @@ class _SceneColonyClass {
     // tab's status labels read Achievement live, so no rebuild is needed.
     Debug.add({
       name: "Achievements",
+      scoped: true, // colony-only — Game drops it at the scene boundary
       build() {
         Debug.watch("unlocked", () => {
           const all = Achievement.all();
@@ -969,8 +970,6 @@ class _SceneColonyClass {
   destroy() {
     Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
-    Debug.remove("Camera"); // the live 2.5D-camera tuning section is colony-only (ColonyMap registers it)
-    Debug.remove("Achievements"); // colony-only debug section (registered in create)
     PlayerSystem.unbind();
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     Weather.exitRegion();
