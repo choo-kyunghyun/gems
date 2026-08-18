@@ -87,6 +87,11 @@ globalThis.EntityStore = class EntityStore {
     return this.components.query(tokens);
   }
 
+  /** First matching id, or -1 — contract at ComponentStore.first. */
+  first(...tokens) {
+    return this.components.first(tokens);
+  }
+
   /** Allocation-free iteration, data handed to the callback — contract at ComponentStore.forEach. */
   forEach(tokens, fn) {
     this.components.forEach(tokens, fn);

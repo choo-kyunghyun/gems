@@ -86,6 +86,26 @@ globalThis.ComponentStore = class ComponentStore {
     return result;
   }
 
+  /** First matching id by ascending index, or -1 — `query(...)[0]` without the array, and the
+   *  scan stops at the hit. */
+  first(tokens) {
+    const n = tokens.length;
+    const columns = new Array(n);
+    for (let c = 0; c < n; c++) {
+      const col = this._byToken.get(tokens[c]);
+      if (col === undefined) return -1;
+      columns[c] = col;
+    }
+    const hi = this.ids.next;
+    const packed = this.ids.packed;
+    for (let i = 0; i < hi; i++) {
+      let c = 0;
+      while (c < n && columns[c][i] !== undefined) c++;
+      if (c === n) return packed[i];
+    }
+    return -1;
+  }
+
   /**
    * The allocation-free counterpart to `query`, and the form a per-tick system wants: no
    * result array, and the callback is handed the component data the scan ALREADY resolved,
