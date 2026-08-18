@@ -6,10 +6,6 @@ Where the project is going: what is being worked on now, what is known broken, a
 
 One concern per pass: each pass applies a single mechanical rule across all of `scripts/`, sized so one session can finish and verify it — never every rule on one file. A file touched by several passes is accepted churn. A pass too large for one session splits by pillar (Core → Game), never by mixing concerns.
 
-### Tools Review
-
-`tools/` is self-contained (never imported by the game; each tool owns a README). Pending, per tool: fix the docs, then overhaul as needed.
-
 ### Media Rename
 
 Media names predating CLAUDE.md → Media Asset Naming are grandfathered — never rename as a sweep; migrate one only when already touching it (mechanics: CLAUDE.md → Resourcetool). The set: the UI glyphs/lobby art (`spr_check`/`spr_play`/`spr_uibox`/…), unused spare icons (`spr_apple`), the `spr_fenceSquare`/`spr_fenceRound` sheets, and the `spr_tile16`/`spr_tilecornerRough` autotile sets.
@@ -21,7 +17,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 ### Dead & Caller-less Code
 
 - **Caller-less Core/Util members**: `Query.farthest`, `Color.alpha`, `rem`, and `Settings.isModified` have no consumers; `isModified` also compares nested values by reference, so a set nested value always reads modified.
-- **`World.update`/`World.reset` are unwired scaffolding**: zero callers — `sceneColony` still drives `WorldClock`/`WorldEvents` directly — and `World.update` carries the engine → gameplay-kit edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the methods until it lands.
+- **`World.update` is unwired scaffolding**: zero callers — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`) — and `update` carries the engine → gameplay-kit edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the method until it lands.
 - **`Collision.mask` is dead**: typed `Set|null`, authored `null` at every spawn site, read by no system — and a live `Set` would be silently nulled by the Json save path (the no-`Set` serialization invariant). Drop the field, or retype it serializable (bit flags) when masks become real.
 - **`EntityStore.import` and `EntityStore.register` have no callers**: saves store `entities.export()` but restore by reading entities out, and `add` auto-registers. `ComponentStore.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard, else drop it.
 - **`ZoneSystem` is dead machinery**: nothing calls `update`/`zoneOf`/`entitiesIn` — `sceneColony` deliberately bypasses the sweep ("direct lookup beats it"), `ZoneMap._inside` exists only to serve it, and ARCHITECTURE.md still names it the zone driver. Wire it in or drop the module (plus `_inside` and the index line).
@@ -53,7 +49,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 ### Media
 
-- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound`, `stand`, `wooden_bed_simple` remain unwired spares.
+- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile). `spr_fenceRound` and `wooden_bed_simple` remain unwired spares.
 - A dedicated plan-view TOP pattern per wall material if the shared face texture ever reads wrong.
 
 ### UI
@@ -64,7 +60,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 ### Gameplay
 
-- Modular turret
+- Modular turret (the built turret auto-fires a hardcoded hitscan today)
   - Auto turrets fire mounted weapons
   - Mountable turrets
 - Explosive like grenade and mine (`snd_explosion_large` is its reserved SFX)
