@@ -151,27 +151,13 @@ globalThis.Prefab = class Prefab {
     if (st.walls.length > 0) {
       if (opts.entities === undefined)
         throw new Error(`Prefab '${this.id}': walls need opts.entities`);
-      const entities = opts.entities;
-      const cw = grid.cellWidth;
-      const ch = grid.cellHeight;
-      for (let i = 0; i < st.walls.length; i++) {
-        const r = st.walls[i];
-        const id = entities.create();
-        entities.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
-        entities.add(id, BBox, {
-          x: 0,
-          y: 0,
-          width: r[2] * cw,
-          height: r[3] * ch,
-        });
-        entities.add(id, Collision, {
-          solid: true,
-          kinematic: true,
-          mask: null,
-          hits: [],
-        });
-        colliders.push(id);
-      }
+      SolidSystem.boxes(
+        opts.entities,
+        st.walls,
+        grid.cellWidth,
+        grid.cellHeight,
+        colliders,
+      );
     }
 
     return { colliders: colliders, zones: zones, spawns: st.spawns };

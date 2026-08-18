@@ -25,27 +25,13 @@ globalThis.TileEdit = {
 
   /** One kinematic-solid collider per meshRects rectangle; ids pushed onto `out`. */
   meshSolid(entities, grid, layer, out) {
-    const cw = grid.cellWidth;
-    const ch = grid.cellHeight;
-    const rects = this.meshRects(grid, layer);
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      const id = entities.create();
-      entities.add(id, Position, { x: r[0] * cw, y: r[1] * ch, z: 0 });
-      entities.add(id, BBox, {
-        x: 0,
-        y: 0,
-        width: r[2] * cw,
-        height: r[3] * ch,
-      });
-      entities.add(id, Collision, {
-        solid: true,
-        kinematic: true,
-        mask: null,
-        hits: [],
-      });
-      out.push(id);
-    }
+    SolidSystem.boxes(
+      entities,
+      this.meshRects(grid, layer),
+      grid.cellWidth,
+      grid.cellHeight,
+      out,
+    );
   },
 
   /** Flush first so old ids don't collide. */

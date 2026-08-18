@@ -41,6 +41,43 @@ globalThis.SolidSystem = {
     SolidSystem._store = null;
   },
 
+  /**
+   * THE bare static collider (world px), the form every wall, water rect and level edge takes:
+   * Position at the box's TOP-LEFT, BBox anchored (0,0) spanning w×h, and nothing else — no
+   * Visual, so the caller either draws it as tiles or leaves it invisible (water, the border).
+   * Kinematic, so bodies collide against it here and NavGrid rasterizes it as blocked; made by
+   * replacement, never moved or resized (the cache premise above).
+   */
+  box(entities, x, y, w, h) {
+    const id = entities.create();
+    entities.add(id, Position, { x: x, y: y, z: 0 });
+    entities.add(id, BBox, { x: 0, y: 0, width: w, height: h });
+    entities.add(id, Collision, {
+      solid: true,
+      kinematic: true,
+      mask: null,
+      hits: [],
+    });
+    return id;
+  },
+
+  /** One box() per [gx, gy, wCells, hCells] grid rect (Grid.meshRects' form), ids pushed onto `out`. */
+  boxes(entities, rects, cellW, cellH, out) {
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      out.push(
+        SolidSystem.box(
+          entities,
+          r[0] * cellW,
+          r[1] * cellH,
+          r[2] * cellW,
+          r[3] * cellH,
+        ),
+      );
+    }
+    return out;
+  },
+
   update(entities) {
     const dt = SimClock.tickDuration;
 

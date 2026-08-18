@@ -180,18 +180,13 @@ globalThis.ColonyLevel = {
     }
     gen.paint(h.terrainLayer, types, grid.cols, grid.rows);
     ColonyLevel._paintRects(h.wallLayer, out.walls, h.wallType);
-    for (let i = 0; i < out.solid.length; i++) {
-      const r = out.solid[i];
-      statics.push(
-        ColonyLevel._solidBox(
-          entities,
-          r[0] * grid.cellWidth,
-          r[1] * grid.cellHeight,
-          r[2] * grid.cellWidth,
-          r[3] * grid.cellHeight,
-        ),
-      );
-    }
+    SolidSystem.boxes(
+      entities,
+      out.solid,
+      grid.cellWidth,
+      grid.cellHeight,
+      statics,
+    );
     ColonyLevel.buildWorldBorder(entities, grid, statics);
     Log.info(
       `ColonyLevel: generated ${grid.cols}x${grid.rows} in ${current_time - t0}ms — ` +
@@ -211,28 +206,10 @@ globalThis.ColonyLevel = {
     const ch = grid.cellHeight;
     const W = grid.cols * cw;
     const H = grid.rows * ch;
-    out.push(ColonyLevel._solidBox(entities, 0, -ch, W, ch)); // top
-    out.push(ColonyLevel._solidBox(entities, 0, H, W, ch)); // bottom
-    out.push(ColonyLevel._solidBox(entities, -cw, -ch, cw, H + 2 * ch)); // left
-    out.push(ColonyLevel._solidBox(entities, W, -ch, cw, H + 2 * ch)); // right
-  },
-
-  /**
-   * One bare kinematic-solid collider (world px) — the collide-only form for water and the level
-   * border, which are drawn as ground or not at all rather than as walls. Same shape as
-   * TileEdit.meshSolid's: Position at the rect's top-left, BBox (0,0) spanning it.
-   */
-  _solidBox(entities, x, y, w, h) {
-    const id = entities.create();
-    entities.add(id, Position, { x: x, y: y, z: 0 });
-    entities.add(id, BBox, { x: 0, y: 0, width: w, height: h });
-    entities.add(id, Collision, {
-      solid: true,
-      kinematic: true,
-      mask: null,
-      hits: [],
-    });
-    return id;
+    out.push(SolidSystem.box(entities, 0, -ch, W, ch)); // top
+    out.push(SolidSystem.box(entities, 0, H, W, ch)); // bottom
+    out.push(SolidSystem.box(entities, -cw, -ch, cw, H + 2 * ch)); // left
+    out.push(SolidSystem.box(entities, W, -ch, cw, H + 2 * ch)); // right
   },
 
   /**
