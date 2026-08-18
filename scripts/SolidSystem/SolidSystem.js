@@ -31,6 +31,11 @@ globalThis.SolidSystem = {
   _ids: [],
   _statics: [],
 
+  // Scratch reused every tick: the candidate list the cache fingerprints against, and the
+  // mover's rect (_resolve runs twice per sub-step per body — docs/PERF.md).
+  _candidates: [],
+  _rect: AABB.rect(),
+
   /** Force the next update to re-derive the static snapshot (see the class doc's premise). */
   invalidate() {
     SolidSystem._store = null;
@@ -39,23 +44,23 @@ globalThis.SolidSystem = {
   update(entities) {
     const dt = SimClock.tickDuration;
 
-    const ids = entities.query(Collision, Position, BBox);
+    const ids = SolidSystem._candidates;
+    let w = 0;
+    entities.forEach([Collision, Position, BBox], (id) => {
+      ids[w++] = id;
+    });
+    ids.length = w;
     if (!this._fresh(entities, ids)) this._snapshot(entities, ids);
     const statics = this._statics;
 
-    for (const id of entities.query(Collision, Position, BBox, Velocity)) {
-      const col = entities.get(id, Collision);
-      if (!col.solid || col.kinematic) continue;
-
-      const pos = entities.get(id, Position);
-      const vel = entities.get(id, Velocity);
-      const box = entities.get(id, BBox);
+    entities.forEach([Collision, Position, BBox, Velocity], (id, col, pos, box, vel) => {
+      if (!col.solid || col.kinematic) return;
 
       const dx = vel.x * dt;
       const dy = vel.y * dt;
       const steps = Math.max(
         1,
-        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / this.maxStep),
+        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
       );
       const sx = dx / steps;
       const sy = dy / steps;
@@ -64,10 +69,11 @@ globalThis.SolidSystem = {
 
       for (let s = 0; s < steps; s++) {
         pos.x += sx;
-        if (this._resolve(pos, box, col, statics, sx, true) !== 0) vel.x = 0;
+        if (SolidSystem._resolve(pos, box, col, statics, sx, true) !== 0)
+          vel.x = 0;
 
         pos.y += sy;
-        const pushY = this._resolve(pos, box, col, statics, sy, false);
+        const pushY = SolidSystem._resolve(pos, box, col, statics, sy, false);
         if (pushY !== 0) {
           if (pushY > 0) grounded = true;
           vel.y = 0;
@@ -80,7 +86,7 @@ globalThis.SolidSystem = {
 
       const gr = entities.get(id, Grounded);
       if (gr !== undefined) gr.isGrounded = grounded;
-    }
+    });
   },
 
   /**
@@ -94,20 +100,20 @@ globalThis.SolidSystem = {
    * for Y, +1 means grounded.
    */
   _resolve(pos, box, colMover, statics, v, isX) {
-    const a = AABB.edges(pos, box);
+    const a = AABB.edgesInto(pos, box, SolidSystem._rect);
 
     let correction = 0;
 
     // exact cell range an [x1,x2)×[y1,y2) AABB touches: floor(lo) .. ceil(hi)-1 (x2/y2 exclusive)
-    const cell = this._cell;
-    const gx0 = this._clampCol(Math.floor(a.x1 / cell));
-    const gy0 = this._clampRow(Math.floor(a.y1 / cell));
-    const gx1 = this._clampCol(Math.ceil(a.x2 / cell) - 1);
-    const gy1 = this._clampRow(Math.ceil(a.y2 / cell) - 1);
+    const cell = SolidSystem._cell;
+    const gx0 = SolidSystem._clampCol(Math.floor(a.x1 / cell));
+    const gy0 = SolidSystem._clampRow(Math.floor(a.y1 / cell));
+    const gx1 = SolidSystem._clampCol(Math.ceil(a.x2 / cell) - 1);
+    const gy1 = SolidSystem._clampRow(Math.ceil(a.y2 / cell) - 1);
 
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
-        const bucket = this._buckets[gy * this._cols + gx];
+        const bucket = SolidSystem._buckets[gy * SolidSystem._cols + gx];
         for (let k = 0; k < bucket.length; k++) {
           const b = statics[bucket[k]];
 
@@ -119,7 +125,7 @@ globalThis.SolidSystem = {
             if (colMover.passThroughTicks > 0) continue;
             if (v < 0) continue;
             const prevBot = a.y2 - v; // bottom edge before this sub-step's move
-            if (prevBot > b.y1 + this.oneWayTol) continue;
+            if (prevBot > b.y1 + SolidSystem.oneWayTol) continue;
           }
 
           if (!AABB.overlap(a, b)) continue;

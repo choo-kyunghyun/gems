@@ -3,13 +3,19 @@
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
+  // Scratch reused every tick — the body list and the two pair rects (docs/PERF.md).
+  _bodies: [],
+  _a: AABB.rect(),
+  _b: AABB.rect(),
+
   update(entities) {
     // collect once; positions shift per pass but the body list is stable
-    const bodies = [];
-    for (const id of entities.query(Collision, Position, BBox)) {
-      const col = entities.get(id, Collision);
-      if (col.solid && !col.kinematic) bodies.push(id);
-    }
+    const bodies = SeparationSystem._bodies;
+    let w = 0;
+    entities.forEach([Collision, Position, BBox], (id, col) => {
+      if (col.solid && !col.kinematic) bodies[w++] = id;
+    });
+    bodies.length = w;
 
     const bp = entities.broadphase;
     const sep = (a, b) => SeparationSystem._separate(entities, a, b);
@@ -28,8 +34,8 @@ globalThis.SeparationSystem = {
   },
 
   _separate(entities, ida, idb) {
-    const a = AABB.of(entities, ida);
-    const b = AABB.of(entities, idb);
+    const a = AABB.ofInto(entities, ida, SeparationSystem._a);
+    const b = AABB.ofInto(entities, idb, SeparationSystem._b);
 
     if (!AABB.overlap(a, b)) return;
 

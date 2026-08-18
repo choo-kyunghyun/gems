@@ -25,6 +25,7 @@ globalThis.NavGrid = class NavGrid {
     this.originY = 0;
     this.costAt = costAt;
     this._terrain = null; // cached per-window terrain costs; resampled only when the origin moves
+    this._rect = AABB.rect(); // reused by rebuild's collider stamp
   }
 
   destroy() {
@@ -65,25 +66,26 @@ globalThis.NavGrid = class NavGrid {
 
     const cw = this.cellW;
     const ch = this.cellH;
-    for (const id of entities.query(Collision, Position, BBox)) {
-      const col = entities.get(id, Collision);
-      if (!col.solid || !col.kinematic) continue;
-      const e = AABB.of(entities, id);
+    const cols = this.cols;
+    const ox2 = this.originX;
+    const oy2 = this.originY;
+    const e = this._rect; // reused: one stamp per collider, every frame
+    entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
+      if (!col.solid || !col.kinematic) return;
+      AABB.edgesInto(pos, box, e);
       // inclusive cell range (x2/y2 are exclusive edges, so -1)
       let gx0 = Math.floor(e.x1 / cw);
       let gy0 = Math.floor(e.y1 / ch);
       let gx1 = Math.floor((e.x2 - 1) / cw);
       let gy1 = Math.floor((e.y2 - 1) / ch);
-      if (gx0 < this.originX) gx0 = this.originX;
-      if (gy0 < this.originY) gy0 = this.originY;
-      if (gx1 > this.originX + this.cols - 1)
-        gx1 = this.originX + this.cols - 1;
-      if (gy1 > this.originY + this.rows - 1)
-        gy1 = this.originY + this.rows - 1;
+      if (gx0 < ox2) gx0 = ox2;
+      if (gy0 < oy2) gy0 = oy2;
+      if (gx1 > ox2 + cols - 1) gx1 = ox2 + cols - 1;
+      if (gy1 > oy2 + this.rows - 1) gy1 = oy2 + this.rows - 1;
       for (let ay = gy0; ay <= gy1; ay++)
         for (let ax = gx0; ax <= gx1; ax++)
-          d[(ay - this.originY) * this.cols + (ax - this.originX)] = Infinity;
-    }
+          d[(ay - oy2) * cols + (ax - ox2)] = Infinity;
+    });
   }
 
   /** sample the injected terrain cost at each window cell's center (world coords) */
