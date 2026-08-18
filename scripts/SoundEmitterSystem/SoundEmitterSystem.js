@@ -7,24 +7,21 @@ globalThis.SoundEmitterSystem = {
    * the component (fail fast, no per-interval spam).
    */
   update(entities) {
-    const ids = entities.query(SoundEmitter, Position);
-    for (const id of ids) {
-      const se = entities.get(id, SoundEmitter);
+    entities.forEach([SoundEmitter, Position], (id, se, pos) => {
       se.timer = (se.timer ?? se.every) - Time.delta;
-      if (se.timer > 0) continue;
+      if (se.timer > 0) return;
       se.timer = se.every;
       const sound = asset_get_index(se.sound);
       if (!audio_exists(sound)) {
         Log.warn(`SoundEmitter: unknown sound "${se.sound}" — detached`);
         entities.detach(id, SoundEmitter);
-        continue;
+        return;
       }
-      const pos = entities.get(id, Position);
       Audio.play({
         sound,
         gain: se.gain ?? 1,
         position: { x: pos.x, y: pos.y },
       });
-    }
+    });
   },
 };

@@ -2,14 +2,13 @@
 globalThis.PathfindingSystem = {
   /** Drop all responses so stale paths re-plan after a grid change. */
   invalidate(entities) {
-    for (const id of entities.query(PathResponse)) {
+    entities.forEach([PathResponse], (id) => {
       entities.detach(id, PathResponse);
-    }
+    });
   },
 
   update(entities) {
-    for (const id of entities.query(PathRequest)) {
-      const req = entities.get(id, PathRequest);
+    entities.forEach([PathRequest], (id, req) => {
       const path = MotionPlanner.plan(
         { x: req.startX, y: req.startY },
         { x: req.goalX, y: req.goalY },
@@ -18,7 +17,7 @@ globalThis.PathfindingSystem = {
       if (path.length > 0) {
         entities.add(id, PathResponse, { path, index: 0 });
       }
-    }
+    });
   },
 
   current(entities, id) {

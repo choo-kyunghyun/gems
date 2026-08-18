@@ -8,14 +8,12 @@ globalThis.GravitySystem = {
     const strength = entities.gravity ?? this.strength;
     const { direction } = this;
     const dt = SimClock.tickDuration;
-    const ids = entities.query(Velocity);
-    for (const id of ids) {
+    entities.forEach([Velocity], (id, vel) => {
       const col = entities.get(id, Collision);
-      if (col && col.kinematic) continue;
-      const vel = entities.get(id, Velocity);
+      if (col !== undefined && col.kinematic) return;
       vel.x += direction.x * strength * dt;
       vel.y += direction.y * strength * dt;
       vel.z += direction.z * strength * dt;
-    }
+    });
   },
 };

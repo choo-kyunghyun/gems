@@ -70,8 +70,8 @@ globalThis.CameraFollow = class CameraFollow {
    */
   targetId() {
     if (this.entities === undefined) return -1;
-    const foci = this.entities.query(CameraFocus);
-    return foci.length > 0 ? foci[0] : this.target;
+    const focus = this.entities.first(CameraFocus);
+    return focus !== -1 ? focus : this.target;
   }
 
   /** Wheel/reset input → eased zoom → the view extent, tracked off the live surface. */

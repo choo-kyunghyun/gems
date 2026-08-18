@@ -3,9 +3,9 @@
 globalThis.SettlementSystem = {
   residents(entities, sid) {
     const out = [];
-    const ids = entities.query(Resident);
-    for (let i = 0; i < ids.length; i++)
-      if (entities.get(ids[i], Resident).settlementId === sid) out.push(ids[i]);
+    entities.forEach([Resident], (id, r) => {
+      if (r.settlementId === sid) out.push(id);
+    });
     return out;
   },
 
@@ -20,13 +20,13 @@ globalThis.SettlementSystem = {
    * dedicated marker. Returns the entity id, or -1 if the settlement has no stockpile.
    */
   storageOf(entities, sid) {
-    const ids = entities.query(Resident);
-    for (let i = 0; i < ids.length; i++) {
-      if (entities.get(ids[i], Resident).settlementId !== sid) continue;
-      const it = entities.get(ids[i], Interaction);
-      if (it !== undefined && it.kind === "storage") return ids[i];
-    }
-    return -1;
+    let found = -1;
+    entities.forEach([Resident, Interaction], (id, r, it) => {
+      if (found !== -1) return; // first match wins (forEach has no break)
+      if (r.settlementId !== sid) return;
+      if (it.kind === "storage") found = id;
+    });
+    return found;
   },
 
   /** Make `id` a resident of settlement `sid` (idempotent — overwrites any prior membership). */

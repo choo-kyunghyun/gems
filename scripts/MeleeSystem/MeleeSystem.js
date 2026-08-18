@@ -1,6 +1,8 @@
 // Instant melee swing (no projectile): an AABB hitbox extends `reach` in the facing direction (snapped
 // to 4-way) and damages every overlapping Health except the attacker + faction allies. Subtracts hp only.
 globalThis.MeleeSystem = {
+  _rect: AABB.rect(), // reused candidate edges (docs/PERF.md)
+
   /**
    * dirX/dirY: facing (sign matters; the larger magnitude picks the axis). reach: hitbox length
    * in px in front of the attacker. Returns the ids hit this swing.
@@ -19,15 +21,16 @@ globalThis.MeleeSystem = {
     }
 
     const hits = [];
-    for (const id of entities.query(Health, Position, BBox)) {
-      if (id === attackerId) continue;
-      if (FactionSystem.allied(entities, attackerId, id)) continue; // no friendly fire
-      const e = AABB.of(entities, id);
-      if (!AABB.overlap(box, e)) continue;
+    const e = MeleeSystem._rect;
+    entities.forEach([Health, Position, BBox], (id, _hp, pos, bb) => {
+      if (id === attackerId) return;
+      if (FactionSystem.allied(entities, attackerId, id)) return; // no friendly fire
+      AABB.edgesInto(pos, bb, e);
+      if (!AABB.overlap(box, e)) return;
       // shared applier mitigates + subtracts; death reaction is central
       Combat.applyDamage(entities, id, damage);
       hits.push(id);
-    }
+    });
     return hits;
   },
 };

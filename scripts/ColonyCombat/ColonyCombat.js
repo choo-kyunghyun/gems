@@ -17,10 +17,11 @@ globalThis.ColonyCombat = {
    */
   _enemies(entities, playerId) {
     const out = [];
-    const ids = entities.query(Health);
-    for (let i = 0; i < ids.length; i++) {
-      if (FactionSystem.hostile(entities, playerId, ids[i])) out.push(ids[i]);
-    }
+    // Faction JOINS the query: hostile() is false without one on both sides, so the same set
+    // for one fewer scan of the factionless majority (docs/PERF.md).
+    entities.forEach([Health, Faction], (id) => {
+      if (FactionSystem.hostile(entities, playerId, id)) out.push(id);
+    });
     return out;
   },
 
@@ -35,14 +36,14 @@ globalThis.ColonyCombat = {
       ColonyCombat._diffHp(scene, enemies[i], false, yOffset);
     // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
     // no-op). Live Follower query — squad members and residents alike are allies.
-    const followers = scene.level.entities.query(Follower);
-    for (let i = 0; i < followers.length; i++)
-      ColonyCombat._diffHp(scene, followers[i], true, yOffset);
+    scene.level.entities.forEach([Follower], (id) => {
+      ColonyCombat._diffHp(scene, id, true, yOffset);
+    });
     // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
     // Follower); a double-diffed id is harmless (the first call settles _hpTrack).
-    const meshBodies = scene.level.entities.query(Health, Mesh);
-    for (let i = 0; i < meshBodies.length; i++)
-      ColonyCombat._diffHp(scene, meshBodies[i], true, yOffset);
+    scene.level.entities.forEach([Health, Mesh], (id) => {
+      ColonyCombat._diffHp(scene, id, true, yOffset);
+    });
   },
 
   _diffHp(scene, id, isAlly, yOffset) {
@@ -91,7 +92,9 @@ globalThis.ColonyCombat = {
   resolveHealth(scene, h) {
     h = h ?? {};
     const entities = scene.level.entities;
-    // snapshot ids this tick (remove/detach are deferred / array is materialized)
+    // Stays on query(), NOT forEach: the loop SPAWNS entities (spillLoot's drops), and a fresh
+    // id can land on a recycled index the scan has not passed yet. The materialised snapshot is
+    // load-bearing here — see ComponentStore.forEach on mid-iteration adds.
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
@@ -144,12 +147,9 @@ globalThis.ColonyCombat = {
   updateDowned(scene, h) {
     h = h ?? {};
     const entities = scene.level.entities;
-    const ids = entities.query(Downed);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const d = entities.get(id, Downed);
+    entities.forEach([Downed], (id, d) => {
       d.timer -= SimClock.tickDuration;
-      if (d.timer > 0) continue;
+      if (d.timer > 0) return;
       const m = entities.get(id, Mortal);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
       entities.add(id, Health, { hp: reviveHp });
@@ -171,7 +171,7 @@ globalThis.ColonyCombat = {
       entities.detach(id, Downed);
       scene._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
       if (h.onRecover !== undefined) h.onRecover(id);
-    }
+    });
   },
 
   /**
@@ -214,13 +214,11 @@ globalThis.ColonyCombat = {
    */
   reapCorpses(scene) {
     const entities = scene.level.entities;
-    const ids = entities.query(Interaction);
-    for (let i = 0; i < ids.length; i++) {
-      const it = entities.get(ids[i], Interaction);
-      if (it === undefined || it.kind !== "corpse") continue;
-      const inv = entities.get(ids[i], Inventory);
-      if (inv === undefined || inv.slots.length === 0) entities.remove(ids[i]);
-    }
+    entities.forEach([Interaction], (id, it) => {
+      if (it.kind !== "corpse") return;
+      const inv = entities.get(id, Inventory);
+      if (inv === undefined || inv.slots.length === 0) entities.remove(id);
+    });
   },
 
   /**

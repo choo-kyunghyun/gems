@@ -114,10 +114,7 @@ globalThis.StatusSystem = {
    * Re-derive once per entity if any expiring status carried `mods`.
    */
   update(entities) {
-    const ids = entities.query(StatusEffects);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const eff = entities.get(id, StatusEffects);
+    entities.forEach([StatusEffects], (id, eff) => {
       const dt = SimClock.tickDuration;
       let modsExpired = false;
       for (let j = eff.list.length - 1; j >= 0; j--) {
@@ -143,7 +140,7 @@ globalThis.StatusSystem = {
         }
       }
       if (modsExpired) StatusSystem.onStatsChanged(entities, id);
-    }
+    });
   },
 
   /**

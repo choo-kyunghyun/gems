@@ -134,13 +134,9 @@ globalThis.Interactable = {
     let mousePick = -1;
     let mouseSq = Infinity;
 
-    const ids = entities.query(Interaction);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const pos = entities.get(id, Position);
-      if (pos === undefined) continue;
+    entities.forEach([Interaction, Position], (id, _it, pos) => {
       const dPlayer = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
-      if (dPlayer >= rSq) continue; // out of interact range
+      if (dPlayer >= rSq) return; // out of interact range
       if (dPlayer < nearestSq) {
         nearestSq = dPlayer;
         nearest = id;
@@ -155,7 +151,7 @@ globalThis.Interactable = {
           mousePick = id;
         }
       }
-    }
+    });
 
     const target = mousePick !== -1 ? mousePick : nearest;
     scene._interTarget = target;

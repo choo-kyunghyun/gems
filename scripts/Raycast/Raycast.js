@@ -1,6 +1,8 @@
 // Returns nearest hit { id, x, y, nx, ny, t } along (x0,y0)->(x1,y1), or null.
 // opts: { ignore? (id), solidOnly? (true) }.
 globalThis.Raycast = {
+  _rect: AABB.rect(), // reused per-candidate edges (docs/PERF.md)
+
   cast(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
 
@@ -10,14 +12,13 @@ globalThis.Raycast = {
     let best = null;
     let bestT = Infinity;
 
-    for (const id of entities.query(Collision, Position, BBox)) {
-      if (id === ignore) continue;
+    entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
+      if (id === ignore) return;
 
-      const col = entities.get(id, Collision);
       // read opts.solidOnly inline — never cache it in a bool local (the &&-clobber quirk, #15549)
-      if (opts.solidOnly !== false && !col.solid) continue;
+      if (opts.solidOnly !== false && !col.solid) return;
 
-      const e = AABB.of(entities, id);
+      const e = AABB.edgesInto(pos, box, Raycast._rect);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r !== null && r.t < bestT) {
         bestT = r.t;
@@ -30,7 +31,7 @@ globalThis.Raycast = {
           t: r.t,
         };
       }
-    }
+    });
     return best;
   },
 
@@ -44,14 +45,13 @@ globalThis.Raycast = {
 
     const hits = [];
 
-    for (const id of entities.query(Collision, Position, BBox)) {
-      if (id === ignore) continue;
+    entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
+      if (id === ignore) return;
 
-      const col = entities.get(id, Collision);
       // solidOnly read inline (default on) — see the boolean-local clobber note in cast().
-      if (opts.solidOnly !== false && !col.solid) continue;
+      if (opts.solidOnly !== false && !col.solid) return;
 
-      const e = AABB.of(entities, id);
+      const e = AABB.edgesInto(pos, box, Raycast._rect);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r !== null) {
         hits.push({
@@ -63,7 +63,7 @@ globalThis.Raycast = {
           t: r.t,
         });
       }
-    }
+    });
     // BUG: [#15593] sort by t with a SIGN comparator, NOT `a.t - b.t`.
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;

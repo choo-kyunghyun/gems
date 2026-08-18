@@ -116,14 +116,12 @@ globalThis.PlayerSystem = {
    * it); -1 when no Playable entity exists. sceneColony latches it per frame as scene.playerId.
    */
   id(entities) {
-    const ids = entities.query(Playable);
-    return ids.length > 0 ? ids[0] : -1;
+    return entities.first(Playable);
   },
 
   /** once per tick, from the physics Pipeline: drive every Playable entity */
   update(entities) {
-    const ids = entities.query(Playable);
-    for (let i = 0; i < ids.length; i++) PlayerSystem._drive(entities, ids[i]);
+    entities.forEach([Playable], (id) => PlayerSystem._drive(entities, id));
   },
 
   /** the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state */

@@ -146,21 +146,17 @@ globalThis.TradeSystem = {
    * removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
    */
   update(entities, dt) {
-    const ids = entities.query(Merchant, Inventory);
-    for (let i = 0; i < ids.length; i++) {
-      const m = entities.get(ids[i], Merchant);
-      if (m === undefined || m.infinite) continue;
-      if (m.restockSecs <= 0 || m.template === undefined) continue;
+    entities.forEach([Merchant, Inventory], (id, m, inv) => {
+      if (m.infinite) return;
+      if (m.restockSecs <= 0 || m.template === undefined) return;
       m.restockTimer -= dt;
-      if (m.restockTimer > 0) continue;
+      if (m.restockTimer > 0) return;
       m.restockTimer = m.restockSecs;
-      const inv = entities.get(ids[i], Inventory);
-      if (inv === undefined) continue;
       for (let k = 0; k < m.template.length; k++) {
         const t = m.template[k];
         const have = InventorySystem.count(inv, t.itemId);
         if (have < t.qty) InventorySystem.add(inv, t.itemId, t.qty - have);
       }
-    }
+    });
   },
 };

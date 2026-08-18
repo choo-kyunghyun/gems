@@ -14,13 +14,8 @@ globalThis.FollowerSystem = {
   update(entities, playerId) {
     const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
-    const ids = entities.query(Follower);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      if (id === playerId) continue;
-      const f = entities.get(id, Follower);
-      const vel = entities.get(id, Velocity);
-      if (f === undefined || vel === undefined) continue;
+    entities.forEach([Follower, Velocity], (id, f, vel) => {
+      if (id === playerId) return;
       // downed or stationed → hold still; only "follow" seeks.
       if (f.state !== "follow" || entities.has(id, Downed)) {
         vel.x = 0;
@@ -56,7 +51,7 @@ globalThis.FollowerSystem = {
           else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
         }
       }
-    }
+    });
   },
 
   /**
@@ -64,12 +59,11 @@ globalThis.FollowerSystem = {
    */
   members(entities, squadId, playerId) {
     const out = [];
-    const ids = entities.query(Squad);
-    for (let i = 0; i < ids.length; i++) {
-      if (entities.get(ids[i], Squad).id !== squadId) continue;
-      if (ids[i] === playerId) out.unshift(ids[i]);
-      else out.push(ids[i]);
-    }
+    entities.forEach([Squad], (id, sq) => {
+      if (sq.id !== squadId) return;
+      if (id === playerId) out.unshift(id);
+      else out.push(id);
+    });
     return out;
   },
 
