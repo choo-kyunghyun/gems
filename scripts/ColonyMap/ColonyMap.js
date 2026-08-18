@@ -551,10 +551,7 @@ globalThis.ColonyMap = {
         sun: () => WorldClock.sunDir(),
         pointLights: (entities) => {
           const out = [];
-          const ids = entities.query(Light, Position);
-          for (let i = 0; i < ids.length; i++) {
-            const p = entities.get(ids[i], Position);
-            const lt = entities.get(ids[i], Light);
+          entities.forEach([Light, Position], (id, lt, p) => {
             out.push({
               x: p.x,
               y: p.y,
@@ -562,9 +559,9 @@ globalThis.ColonyMap = {
               color: lt.color,
               intensity: lt.intensity,
               flicker: lt.flicker,
-              seed: ids[i],
+              seed: id,
             });
-          }
+          });
           return out;
         },
       });

@@ -34,10 +34,7 @@ globalThis.WorldOverlay = {
   drawWorld(scene) {
     const entities = scene.level.entities;
 
-    const drops = entities.query(ItemDrop, Position);
-    for (const id of drops) {
-      const p = entities.get(id, Position);
-      const d = entities.get(id, ItemDrop);
+    entities.forEach([ItemDrop, Position], (id, d, p) => {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
       if (sprite_exists(spr)) {
@@ -50,7 +47,7 @@ globalThis.WorldOverlay = {
         draw_set_color(c_black);
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);
       }
-    }
+    });
 
     // 2.5D: lift in-air cues (projectile dots + tracers) off the ground via a world-z offset so they
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
@@ -64,11 +61,9 @@ globalThis.WorldOverlay = {
     // Projectile entities (lobbed/grenade) as round dots — none while only hitscan guns fire, but
     // the path stays for the kept ProjectileSystem.
     draw_set_color(make_colour_rgb(255, 230, 90));
-    const bullets = entities.query(Projectile, Position);
-    for (const id of bullets) {
-      const p = entities.get(id, Position);
+    entities.forEach([Projectile, Position], (id, _proj, p) => {
       draw_circle(p.x, p.y, 4, false);
-    }
+    });
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw.
     const tracers = this._tracers;
     for (let i = tracers.length - 1; i >= 0; i--) {

@@ -8,9 +8,7 @@ globalThis.RenderEntity = class RenderEntity {
   destroy() {}
 
   draw(entities) {
-    const ids = entities.query(Visual, Position);
-    for (const entity of ids) {
-      const visual = entities.get(entity, Visual);
+    entities.forEach([Visual, Position], (entity, visual) => {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       const rx = rp.x;
       const ry = rp.y;
@@ -46,7 +44,7 @@ globalThis.RenderEntity = class RenderEntity {
             visual.alpha,
           );
         }
-        continue;
+        return;
       }
       draw_sprite_ext(
         visual.sprite,
@@ -59,6 +57,6 @@ globalThis.RenderEntity = class RenderEntity {
         visual.color,
         visual.alpha,
       );
-    }
+    });
   }
 };

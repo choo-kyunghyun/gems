@@ -244,11 +244,10 @@ globalThis.RenderMesh = class RenderMesh {
     // PASS 1 — baked models, lit by sh_meshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
     if (this.litOk) this.setupLights(entities);
-    for (const entity of entities.query(Mesh, Position)) {
-      const mesh = entities.get(entity, Mesh);
-      if (mesh.model === undefined || mesh.model === "") continue;
+    entities.forEach([Mesh, Position], (entity, mesh) => {
+      if (mesh.model === undefined || mesh.model === "") return;
       const m = this._model(mesh.model);
-      if (m.vb === -1) continue;
+      if (m.vb === -1) return;
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
       // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
@@ -270,12 +269,11 @@ globalThis.RenderMesh = class RenderMesh {
         ),
       );
       vertex_submit(m.vb, pr_trianglelist, -1);
-    }
+    });
     if (this.litOk) shader_reset();
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
-    for (const entity of entities.query(Mesh, Position)) {
-      const mesh = entities.get(entity, Mesh);
-      if (mesh.model !== undefined && mesh.model !== "") continue;
+    entities.forEach([Mesh, Position], (entity, mesh) => {
+      if (mesh.model !== undefined && mesh.model !== "") return;
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       const alpha = mesh.alpha ?? 1;
       // Face matrices are CENTER-relative and composed with an entity world matrix, so the
@@ -340,7 +338,7 @@ globalThis.RenderMesh = class RenderMesh {
         mesh.width,
         mesh.height,
       );
-    }
+    });
     matrix_set(matrix_world, ident);
     gpu_set_zwriteenable(false); // restore global default — ground passes stay painter-order
   }

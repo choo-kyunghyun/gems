@@ -66,14 +66,9 @@ globalThis.RenderLighting = class RenderLighting {
     surface_set_target(this._surf);
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
-    const lights = entities.query(Light, Position);
     const alpha = SimClock.alpha; // render interpolation, like RenderEntity
     const zx = w / this.camera.width; // world→screen scale for the blob radius
-    let i = 0;
-    while (i < lights.length) {
-      const id = lights[i];
-      const lt = entities.get(id, Light);
-      const pos = entities.get(id, Position);
+    entities.forEach([Light, Position], (id, lt, pos) => {
       const prev = entities.get(id, PrevPosition);
       const wx = prev ? prev.x + (pos.x - prev.x) * alpha : pos.x;
       const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
@@ -88,8 +83,7 @@ globalThis.RenderLighting = class RenderLighting {
       draw_set_alpha(intensity);
       // hue center → black at radius; bm_add sums overlaps
       draw_circle_color(s.x, s.y, lt.radius * zx, lt.color, c_black, false);
-      i++;
-    }
+    });
     gpu_set_blendmode(bm_normal);
 
     // 2b. Vignette — multiplicative (bm_dest_colour, bm_zero), like the composite, so it DEEPENS

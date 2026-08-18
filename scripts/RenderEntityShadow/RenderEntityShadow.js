@@ -19,16 +19,12 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
   draw(entities) {
     const prevA = draw_get_alpha();
     draw_set_alpha(this.alpha);
-    const ids = entities.query(Visual, Position);
-    for (const entity of ids) {
-      const visual = entities.get(entity, Visual);
-      if (!visual.visible) continue;
+    entities.forEach([Visual, Position], (entity, visual, pos) => {
+      if (!visual.visible) return;
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       let rx = this.defaultRx;
-      if (entities.has(entity, BBox)) {
-        const b = AABB.of(entities, entity);
-        rx = (b.x2 - b.x1) * this.scaleX;
-      }
+      const box = entities.get(entity, BBox);
+      if (box !== undefined) rx = box.width * this.scaleX;
       const ry = Math.max(3, rx * this.flatten);
       draw_ellipse_colour(
         rp.x - rx,
@@ -39,7 +35,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
         c_black,
         false,
       );
-    }
+    });
     draw_set_alpha(prevA);
   }
 };

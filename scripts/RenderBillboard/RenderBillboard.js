@@ -153,8 +153,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uNormal, 0, BB_NORMAL_Y, BB_NORMAL_Z);
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
-    for (const entity of entities.query(Visual, Position)) {
-      const visual = entities.get(entity, Visual);
+    entities.forEach([Visual, Position], (entity, visual) => {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
       // draws as the spr_missing placeholder; re-wrap subimg into the placeholder's frame
@@ -212,7 +211,7 @@ globalThis.RenderBillboard = class RenderBillboard {
           );
       }
       matrix_set(matrix_world, ident);
-    }
+    });
     matrix_set(matrix_world, ident);
     if (this._litOk) shader_reset();
     gpu_set_zwriteenable(false); // restore global default — only billboards write depth
