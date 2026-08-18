@@ -1,17 +1,17 @@
 // GEMS Project Tree — a read-only VS Code sidebar that mirrors the GameMaker
-// IDE folder tree (Core / Gameplay / GemsUI / Demo / Media). GameMaker keeps
-// every resource flat on disk under `scripts/<name>/`, `sprites/<name>/`, ...;
-// the IDE tree is virtual, encoded in `gems.yyp` (the `Folders` list) + each
-// resource `.yy`'s `parent.path`. This reads that and presents a tree whose
-// leaves open the REAL files — no links, no filesystem mutation, nothing to
-// drift or de-sync. Scripts show as flat `<name>.js` leaves; other resources
-// show by name and open their `.yy`. Auto-refreshes when the project changes.
+// IDE folder tree. GameMaker keeps every resource flat on disk under
+// `scripts/<name>/`, `sprites/<name>/`, ...; the IDE tree is virtual, encoded
+// in `gems.yyp` (the `Folders` list) + each resource `.yy`'s `parent.path`.
+// This reads that and presents a tree whose leaves open the REAL files — no
+// links, no filesystem mutation, nothing to drift or de-sync. Scripts show as
+// flat `<name>.js` leaves; other resources show by name and open their `.yy`.
+// Auto-refreshes when the project changes.
 
 const vscode = require("vscode");
 const fs = require("fs");
 const path = require("path");
 
-// GameMaker .yy/.yyp are JSON *with trailing commas* — not valid JSON.
+// GameMaker .yy/.yyp are JSON with trailing commas — not valid JSON.
 function readYY(file) {
   try {
     const raw = fs.readFileSync(file, "utf8").replace(/,(\s*[}\]])/g, "$1");
