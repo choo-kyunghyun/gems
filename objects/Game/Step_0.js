@@ -1,6 +1,5 @@
 Time.update();
 Music.update(); // reap a finished BGM cross-fade (wall clock — runs even while the sim is paused)
-Audio.update(); // reap spatial-cue emitters whose voice ended
 UIPointer.poll(); // latch this frame's pointer edges before any widget reads them
 UI.update();
 SlotDrag.update();
