@@ -14,7 +14,7 @@ globalThis.EntitySnapshot = {
     } else {
       comps = {};
       for (let i = 0; i < components.length; i++) {
-        const data = entities.get(components[i], id);
+        const data = entities.get(id, components[i]);
         if (data !== undefined) comps[components[i]] = data;
       }
     }

@@ -128,7 +128,7 @@ globalThis.PlayerSystem = {
 
   /** the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state */
   _drive(entities, id) {
-    const pl = entities.get(Playable, id);
+    const pl = entities.get(id, Playable);
     let dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
@@ -146,10 +146,10 @@ globalThis.PlayerSystem = {
       dy = sy;
     }
 
-    const vel = entities.get(Velocity, id);
-    const dir = entities.get(Direction, id);
-    const stats = entities.get(Stats, id);
-    const pp = entities.get(Position, id);
+    const vel = entities.get(id, Velocity);
+    const dir = entities.get(id, Direction);
+    const stats = entities.get(id, Stats);
+    const pp = entities.get(id, Position);
     // status speed multiplier (encumbrance/slow/haste) × terrain movement cost (wading/mud slow —
     // PathFollow.speedScale); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
@@ -204,7 +204,7 @@ globalThis.PlayerSystem = {
       const wpn =
         slot !== null ? EquipmentSystem.composeWeapon(slot) : PLAYER_FIST;
       // aim: right stick already set `dir` above; for KBM (stick centered) aim at the cursor instead
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       const rx = Input.get("aimX").value();
       const ry = Input.get("aimY").value();
       if (
@@ -242,7 +242,7 @@ globalThis.PlayerSystem = {
     }
 
     // animation tree: attack > walk > idle. attackCd read live off the component (no cached boolean — GMRT clobber)
-    const anim = entities.get(Animator, id);
+    const anim = entities.get(id, Animator);
     if (anim !== undefined) {
       let state = "idle";
       if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
@@ -251,7 +251,7 @@ globalThis.PlayerSystem = {
     }
 
     // facing: flip the xscale SIGN toward the last horizontal move
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     if (vis !== undefined) {
       // flip by SIGN only — |xscale| carries the baked size factor (PLAYER_SCALE), so a
       // bare ±1 here would silently reset the player's size
@@ -302,7 +302,7 @@ globalThis.PlayerSystem = {
     slot.rounds -= 1; // spend the round
 
     // muzzle flash at the barrel (~18px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
-    const pos = entities.get(Position, id);
+    const pos = entities.get(id, Position);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(
       ps_muzzle,

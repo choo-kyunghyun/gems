@@ -39,7 +39,7 @@ globalThis.StorageUI = {
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
         () => StorageUI._allFrom(scene, "bag"),
-        () => scene.level.entities.get(Inventory, scene.playerId),
+        () => scene.level.entities.get(scene.playerId, Inventory),
       ),
     );
     cols.insertChild(
@@ -48,7 +48,7 @@ globalThis.StorageUI = {
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
         () => StorageUI._allFrom(scene, "box"),
-        () => scene.level.entities.get(Inventory, scene._storageId),
+        () => scene.level.entities.get(scene._storageId, Inventory),
       ),
     );
     card.insertChild(cols);
@@ -148,7 +148,7 @@ globalThis.StorageUI = {
    * when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
    */
   _rows(scene, inv) {
-    const fav = scene.level.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(scene.playerId, Favorites);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
@@ -182,8 +182,8 @@ globalThis.StorageUI = {
 
   refresh(scene) {
     const entities = scene.level.entities;
-    const bagInv = entities.get(Inventory, scene.playerId);
-    const boxInv = entities.get(Inventory, scene._storageId);
+    const bagInv = entities.get(scene.playerId, Inventory);
+    const boxInv = entities.get(scene._storageId, Inventory);
     if (bagInv === undefined || boxInv === undefined) return;
     scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
     scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
@@ -207,8 +207,8 @@ globalThis.StorageUI = {
     if (row === null || row === undefined) return;
     const entities = scene.level.entities;
     const srcInv = entities.get(
-      Inventory,
       side === "bag" ? scene.playerId : scene._storageId,
+      Inventory,
     );
     if (srcInv === undefined) return;
     if (side === "bag" && StorageUI._storeBlocked(scene, false)[row.itemId])
@@ -248,13 +248,13 @@ globalThis.StorageUI = {
    */
   _doMove(scene, side, row, amount) {
     const entities = scene.level.entities;
-    const bag = entities.get(Inventory, scene.playerId);
-    const box = entities.get(Inventory, scene._storageId);
+    const bag = entities.get(scene.playerId, Inventory);
+    const box = entities.get(scene._storageId, Inventory);
     if (bag === undefined || box === undefined) return;
     if (side === "bag") {
       const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
       if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
-        const hb = entities.get(Hotbar, scene.playerId);
+        const hb = entities.get(scene.playerId, Hotbar);
         if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
       }
     } else {
@@ -305,8 +305,8 @@ globalThis.StorageUI = {
    */
   _allFrom(scene, side) {
     const entities = scene.level.entities;
-    const bag = entities.get(Inventory, scene.playerId);
-    const box = entities.get(Inventory, scene._storageId);
+    const bag = entities.get(scene.playerId, Inventory);
+    const box = entities.get(scene._storageId, Inventory);
     if (bag === undefined || box === undefined) return;
     // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
     // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
@@ -329,11 +329,11 @@ globalThis.StorageUI = {
    */
   _storeBlocked(scene, includeHotbar) {
     const blocked = {};
-    const fav = scene.level.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(scene.playerId, Favorites);
     if (fav !== undefined)
       for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
     if (includeHotbar) {
-      const hb = scene.level.entities.get(Hotbar, scene.playerId);
+      const hb = scene.level.entities.get(scene.playerId, Hotbar);
       if (hb !== undefined)
         for (let i = 0; i < hb.slots.length; i++)
           if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
@@ -347,7 +347,7 @@ globalThis.StorageUI = {
    */
   _equipKeep(scene) {
     const keep = {};
-    const eq = scene.level.entities.get(Equipment, scene.playerId);
+    const eq = scene.level.entities.get(scene.playerId, Equipment);
     if (eq === undefined) return keep;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -410,8 +410,8 @@ globalThis.StorageUI = {
    * no-op when srcInv isn't the player bag.
    */
   _reconcileEquip(scene, srcInv) {
-    if (srcInv !== scene.level.entities.get(Inventory, scene.playerId)) return;
-    const eq = scene.level.entities.get(Equipment, scene.playerId);
+    if (srcInv !== scene.level.entities.get(scene.playerId, Inventory)) return;
+    const eq = scene.level.entities.get(scene.playerId, Equipment);
     if (eq === undefined) return;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];

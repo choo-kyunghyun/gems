@@ -120,7 +120,7 @@ globalThis.CraftingUI = {
 
   /** slotted module itemId of the open workbench ("" = empty). */
   _module(scene) {
-    const st = scene.level.entities.get(Interaction, scene._craftStationId);
+    const st = scene.level.entities.get(scene._craftStationId, Interaction);
     return st !== undefined && st.module !== undefined ? st.module : "";
   },
 
@@ -152,7 +152,7 @@ globalThis.CraftingUI = {
       WeaponModUI.refresh(scene);
       return;
     }
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     const recipes = CraftingUI._visibleRecipes(module);
     if (recipes.length > 0 && !CraftingUI._hasRecipe(recipes, scene._craftSel))
       scene._craftSel = recipes[0].id;
@@ -254,7 +254,7 @@ globalThis.CraftingUI = {
 
   /** distinct itemIds of owned WorkbenchModule items (in slot order). */
   _ownedModules(scene) {
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     const out = [];
     const seen = {};
     if (inv === undefined) return out;
@@ -275,8 +275,8 @@ globalThis.CraftingUI = {
    * bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
    */
   _installModule(scene, id) {
-    const st = scene.level.entities.get(Interaction, scene._craftStationId);
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const st = scene.level.entities.get(scene._craftStationId, Interaction);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (st === undefined || inv === undefined) return;
     if (InventorySystem.remove(inv, id, 1) < 1) return; // didn't own it
     const prev = st.module;
@@ -295,8 +295,8 @@ globalThis.CraftingUI = {
 
   /** pop the slotted module back into the bag (refused if the bag is full). */
   _removeModule(scene) {
-    const st = scene.level.entities.get(Interaction, scene._craftStationId);
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const st = scene.level.entities.get(scene._craftStationId, Interaction);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (st === undefined || inv === undefined) return;
     if (st.module === undefined || st.module === "") return;
     if (InventorySystem.add(inv, st.module, 1) !== 0) {

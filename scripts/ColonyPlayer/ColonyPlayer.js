@@ -157,7 +157,7 @@ globalThis.ColonyPlayer = {
    * aim, else the mouse cursor. Returns the normalized aim { nx, ny } for the muzzle flash.
    */
   fireBullet(entities, shooterId, opts) {
-    const pos = entities.get(Position, shooterId);
+    const pos = entities.get(shooterId, Position);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
     let nx;
     let ny;

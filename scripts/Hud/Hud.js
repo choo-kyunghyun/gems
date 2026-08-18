@@ -44,7 +44,7 @@ globalThis.Hud = {
       gemsRichText(
         () => {
           if (scene.playerId === undefined) return "";
-          const hb = scene.level.entities.get(Hotbar, scene.playerId);
+          const hb = scene.level.entities.get(scene.playerId, Hotbar);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           return itemId ? WorldOverlay.iconTag(itemId) : "";
         },
@@ -56,12 +56,12 @@ globalThis.Hud = {
         () => {
           const key = i + 1;
           if (scene.playerId === undefined) return "[" + key + "]";
-          const hb = scene.level.entities.get(Hotbar, scene.playerId);
+          const hb = scene.level.entities.get(scene.playerId, Hotbar);
           const itemId = hb !== undefined ? hb.slots[i] : "";
           if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
           const it = Item.get(itemId);
           const name = it !== undefined ? I18n.text(it.name) : itemId;
-          const inv = scene.level.entities.get(Inventory, scene.playerId);
+          const inv = scene.level.entities.get(scene.playerId, Inventory);
           const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
           return "[" + key + "]  " + name + " (" + n + ")";
         },
@@ -79,7 +79,7 @@ globalThis.Hud = {
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
       gemsProgress(
-        () => 1 - Survival.fraction(scene.level.entities.get(token, scene.playerId)),
+        () => 1 - Survival.fraction(scene.level.entities.get(scene.playerId, token)),
         {
           label: I18n.textRef(labelKey),
           fillColor: fillColor,
@@ -133,8 +133,8 @@ globalThis.Hud = {
     hpRow.insertChild(
       gemsLabel(
         () => {
-          const st = scene.level.entities.get(Stats, scene.playerId);
-          const hpC = scene.level.entities.get(Health, scene.playerId);
+          const st = scene.level.entities.get(scene.playerId, Stats);
+          const hpC = scene.level.entities.get(scene.playerId, Health);
           const hp = hpC !== undefined ? hpC.hp : 0;
           return I18n.text("RPG_HUD", hp, st.maxHp);
         },
@@ -169,8 +169,8 @@ globalThis.Hud = {
     staRow.insertChild(
       gemsProgress(
         () => {
-          const sta = scene.level.entities.get(Stamina, scene.playerId);
-          const st = scene.level.entities.get(Stats, scene.playerId);
+          const sta = scene.level.entities.get(scene.playerId, Stamina);
+          const st = scene.level.entities.get(scene.playerId, Stats);
           if (sta === undefined || st === undefined || st.maxStamina <= 0)
             return 0;
           return sta.value / st.maxStamina;

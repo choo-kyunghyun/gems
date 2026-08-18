@@ -12,7 +12,7 @@ globalThis.Combat = {
 
   // apply damage through the mitigate hook; 0 if target has no Health (wall/prop)
   applyDamage(entities, targetId, amount, penetration = 0) {
-    const hp = entities.get(Health, targetId);
+    const hp = entities.get(targetId, Health);
     if (hp === undefined) return 0;
     const dealt = Combat.mitigate(entities, targetId, amount, penetration);
     hp.hp -= dealt;
@@ -34,7 +34,7 @@ globalThis.Combat = {
     let endY = y1;
     for (let i = 0; i < all.length; i++) {
       const h = all[i];
-      const hp = entities.get(Health, h.id);
+      const hp = entities.get(h.id, Health);
       if (hp === undefined || FactionSystem.allied(entities, owner, h.id)) {
         // wall/prop or ally blocks — stop here, no damage
         endX = h.x;

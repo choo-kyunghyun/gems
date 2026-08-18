@@ -7,7 +7,7 @@ globalThis.Query = {
       opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
     for (const id of entities.query(Position)) {
       if (!Query._matchesOpts(entities, id, opts)) continue;
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
       if (d < bestDist) {
         bestDist = d;
@@ -24,7 +24,7 @@ globalThis.Query = {
       opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
     for (const id of entities.query(Position)) {
       if (!Query._matchesOpts(entities, id, opts)) continue;
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
       if (d > bestDist && d <= maxDistSq) {
         bestDist = d;
@@ -37,7 +37,7 @@ globalThis.Query = {
   inRect(entities, x1, y1, x2, y2, opts = {}) {
     const result = [];
     for (const id of entities.query(Position)) {
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       if (pos.x < x1 || pos.x > x2 || pos.y < y1 || pos.y > y2) continue;
       if (!Query._matchesOpts(entities, id, opts)) continue;
       result.push(id);
@@ -49,7 +49,7 @@ globalThis.Query = {
     const result = [];
     const rSq = radius * radius;
     for (const id of entities.query(Position)) {
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       if ((pos.x - x) ** 2 + (pos.y - y) ** 2 > rSq) continue;
       if (!Query._matchesOpts(entities, id, opts)) continue;
       result.push(id);
@@ -59,10 +59,10 @@ globalThis.Query = {
 
   _matchesOpts(entities, id, opts) {
     if (opts.has !== undefined) {
-      if (entities.get(opts.has, id) === undefined) return false;
+      if (entities.get(id, opts.has) === undefined) return false;
     }
     if (opts.hasCollision) {
-      if (entities.get(Collision, id) === undefined) return false;
+      if (entities.get(id, Collision) === undefined) return false;
     }
     return true;
   },

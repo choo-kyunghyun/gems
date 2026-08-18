@@ -66,7 +66,7 @@ globalThis.NavGrid = class NavGrid {
     const cw = this.cellW;
     const ch = this.cellH;
     for (const id of entities.query(Collision, Position, BBox)) {
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       if (!col.solid || !col.kinematic) continue;
       const e = AABB.of(entities, id);
       // inclusive cell range (x2/y2 are exclusive edges, so -1)

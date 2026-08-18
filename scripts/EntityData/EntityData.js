@@ -30,7 +30,7 @@ globalThis.EntityData = class EntityData {
     this.components.get(ComponentClass)[EntityID.getIndex(id)] = data;
   }
 
-  get(ComponentClass, id) {
+  get(id, ComponentClass) {
     const storage = this.components.get(ComponentClass);
     if (storage === undefined) return undefined;
     return storage[EntityID.getIndex(id)];

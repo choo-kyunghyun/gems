@@ -13,7 +13,7 @@ globalThis.Raycast = {
     for (const id of entities.query(Collision, Position, BBox)) {
       if (id === ignore) continue;
 
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       // read opts.solidOnly inline — never cache it in a bool local (the &&-clobber quirk, #15549)
       if (opts.solidOnly !== false && !col.solid) continue;
 
@@ -47,7 +47,7 @@ globalThis.Raycast = {
     for (const id of entities.query(Collision, Position, BBox)) {
       if (id === ignore) continue;
 
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       // solidOnly read inline (default on) — see the boolean-local clobber note in cast().
       if (opts.solidOnly !== false && !col.solid) continue;
 

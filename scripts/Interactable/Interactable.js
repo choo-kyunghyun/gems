@@ -110,11 +110,11 @@ globalThis.Interactable = {
   /** true when the cursor is over entity `id`'s BBox — lets the scene break a station-vs-NPC tie */
   isCursorOver(scene, id) {
     if (id === -1) return false;
-    const pos = scene.level.entities.get(Position, id);
+    const pos = scene.level.entities.get(id, Position);
     if (pos === undefined) return false;
     return Interactable._mouseInside(
       pos,
-      scene.level.entities.get(BBox, id),
+      scene.level.entities.get(id, BBox),
       scene.mouseWorld,
     );
   },
@@ -122,7 +122,7 @@ globalThis.Interactable = {
   /** pick target = station under the mouse (if in range), else nearest in range */
   _pick(scene) {
     const entities = scene.level.entities;
-    const p = entities.get(Position, scene.playerId);
+    const p = entities.get(scene.playerId, Position);
     if (p === undefined) {
       scene._interTarget = -1;
       scene._interKind = "";
@@ -137,7 +137,7 @@ globalThis.Interactable = {
     const ids = entities.query(Interaction);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       if (pos === undefined) continue;
       const dPlayer = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
       if (dPlayer >= rSq) continue; // out of interact range
@@ -146,7 +146,7 @@ globalThis.Interactable = {
         nearest = id;
       }
       if (
-        Interactable._mouseInside(pos, entities.get(BBox, id), scene.mouseWorld)
+        Interactable._mouseInside(pos, entities.get(id, BBox), scene.mouseWorld)
       ) {
         const dMouse =
           (pos.x - scene.mouseWorld.x) ** 2 + (pos.y - scene.mouseWorld.y) ** 2;
@@ -160,7 +160,7 @@ globalThis.Interactable = {
     const target = mousePick !== -1 ? mousePick : nearest;
     scene._interTarget = target;
     if (target !== -1) {
-      const comp = entities.get(Interaction, target);
+      const comp = entities.get(target, Interaction);
       scene._interKind = comp !== undefined ? comp.kind : "";
     } else {
       scene._interKind = "";
@@ -184,8 +184,8 @@ globalThis.Interactable = {
   _inRange(scene, id) {
     if (id === -1) return false;
     const entities = scene.level.entities;
-    const p = entities.get(Position, scene.playerId);
-    const pos = entities.get(Position, id);
+    const p = entities.get(scene.playerId, Position);
+    const pos = entities.get(id, Position);
     if (p === undefined || pos === undefined) return false;
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
     return (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2 < rSq;
@@ -198,7 +198,7 @@ globalThis.Interactable = {
    */
   _open(scene) {
     const id = scene._interTarget;
-    const comp = scene.level.entities.get(Interaction, id);
+    const comp = scene.level.entities.get(id, Interaction);
     if (comp === undefined) return;
     const def = InteractAction.get(comp.kind);
     if (def === undefined) return;
@@ -224,8 +224,8 @@ globalThis.Interactable = {
     const id = scene._interTarget;
     if (id === -1) return;
     const entities = scene.level.entities;
-    const pos = entities.get(Position, id);
-    const bbox = entities.get(BBox, id);
+    const pos = entities.get(id, Position);
+    const bbox = entities.get(id, BBox);
     if (pos === undefined || bbox === undefined) return;
     const w = bbox.width;
     const h = bbox.height;

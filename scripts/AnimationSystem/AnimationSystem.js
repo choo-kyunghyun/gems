@@ -3,8 +3,8 @@
 globalThis.AnimationSystem = {
   update(entities) {
     for (const id of entities.query(Animator, Visual)) {
-      const anim = entities.get(Animator, id);
-      const vis = entities.get(Visual, id);
+      const anim = entities.get(id, Animator);
+      const vis = entities.get(id, Visual);
       const st = anim.graph[anim.state];
       if (st === undefined) continue;
 

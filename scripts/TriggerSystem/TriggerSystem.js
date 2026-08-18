@@ -5,14 +5,14 @@ globalThis.TriggerSystem = {
     const all = entities.query(Collision, Position, BBox);
 
     for (let i = 0; i < all.length; i++)
-      entities.get(Collision, all[i]).hits.length = 0;
+      entities.get(all[i], Collision).hits.length = 0;
 
     // Kinematic solids (merged wall/terrain rects) are excluded from the sweep entirely: they span
     // many broadphase cells, breaking the center-bucket contract (cell size > largest entity), so
     // their pairs were missed inconsistently and matched ones were noise no consumer reads.
     const ids = [];
     for (let i = 0; i < all.length; i++) {
-      const c = entities.get(Collision, all[i]);
+      const c = entities.get(all[i], Collision);
       if (c.solid && c.kinematic) continue;
       ids.push(all[i]);
     }
@@ -22,8 +22,8 @@ globalThis.TriggerSystem = {
       bp.rebuild(entities, ids);
       const w = entities;
       bp.pairs((ida, idb) => {
-        const ca = w.get(Collision, ida);
-        const cb = w.get(Collision, idb);
+        const ca = w.get(ida, Collision);
+        const cb = w.get(idb, Collision);
         if (ca.solid && cb.solid) return;
         if (AABB.overlap(AABB.of(w, ida), AABB.of(w, idb))) {
           ca.hits.push(idb);
@@ -32,10 +32,10 @@ globalThis.TriggerSystem = {
       });
     } else {
       for (let a = 0; a < ids.length; a++) {
-        const ca = entities.get(Collision, ids[a]);
+        const ca = entities.get(ids[a], Collision);
         const ea = AABB.of(entities, ids[a]);
         for (let b = a + 1; b < ids.length; b++) {
-          const cb = entities.get(Collision, ids[b]);
+          const cb = entities.get(ids[b], Collision);
           if (ca.solid && cb.solid) continue;
           const eb = AABB.of(entities, ids[b]);
           if (AABB.overlap(ea, eb)) {

@@ -60,12 +60,14 @@ globalThis.Entity = class Entity {
     return this;
   }
 
+  /** Per-entity accessors are ENTITY-FIRST (add/get/detach): a swapped pair would read
+   *  as a miss, not an error — get() returns undefined for an unregistered component. */
   add(id, ComponentClass, data) {
     this.storage.add(id, ComponentClass, data);
   }
 
-  get(ComponentClass, id) {
-    return this.storage.get(ComponentClass, id);
+  get(id, ComponentClass) {
+    return this.storage.get(id, ComponentClass);
   }
 
   detach(id, ComponentClass) {

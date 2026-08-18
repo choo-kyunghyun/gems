@@ -19,7 +19,7 @@ globalThis.ConsumableSystem = {
     const con = item.getComponent(Consumable);
     if (con === undefined) return false;
 
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined || !InventorySystem.has(inv, itemId, 1)) return false;
 
     if (!this._apply(entities, id, con)) return false; // nothing to do — don't waste it
@@ -36,8 +36,8 @@ globalThis.ConsumableSystem = {
   _apply(entities, id, con) {
     let did = false;
     if (con.heal > 0) {
-      const hp = entities.get(Health, id);
-      const stats = entities.get(Stats, id);
+      const hp = entities.get(id, Health);
+      const stats = entities.get(id, Stats);
       if (hp !== undefined) {
         const cap = stats !== undefined ? stats.maxHp : hp.hp + con.heal;
         if (hp.hp < cap) {

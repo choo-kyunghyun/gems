@@ -42,9 +42,9 @@ globalThis.StatModel = {
    * (monsters author Stats directly). clamps Health/Stamina to new maxima.
    */
   recompute(entities, id) {
-    const attrs = entities.get(Attributes, id);
+    const attrs = entities.get(id, Attributes);
     if (attrs === undefined) return; // monster with authored Stats — leave alone
-    const stats = entities.get(Stats, id);
+    const stats = entities.get(id, Stats);
     if (stats === undefined) return;
     const d = StatModel.derive(attrs);
     StatModel._foldEquipment(entities, id, d);
@@ -55,9 +55,9 @@ globalThis.StatModel = {
     stats.speed = d.speed;
     stats.maxStamina = d.maxStamina;
     // clamp resources down if maxima shrank; a raise doesn't free-heal
-    const hp = entities.get(Health, id);
+    const hp = entities.get(id, Health);
     if (hp !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;
-    const stam = entities.get(Stamina, id);
+    const stam = entities.get(id, Stamina);
     if (stam !== undefined && stam.value > stats.maxStamina)
       stam.value = stats.maxStamina;
   },
@@ -66,9 +66,9 @@ globalThis.StatModel = {
    * fold Equippable.mods into the derived block. for...in over plain object is GMRT-safe (no Map iterator).
    */
   _foldEquipment(entities, id, d) {
-    const eq = entities.get(Equipment, id);
+    const eq = entities.get(id, Equipment);
     if (eq === undefined) return;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined) return;
     const slots = eq.slots;
     for (const slot in slots) {
@@ -110,7 +110,7 @@ globalThis.StatModel = {
    * live mult statuses (speed) are NOT folded — read at point of use via StatusSystem.scale.
    */
   _foldStatuses(entities, id, d) {
-    const eff = entities.get(StatusEffects, id);
+    const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return;
     const list = eff.list;
     for (let i = 0; i < list.length; i++) {

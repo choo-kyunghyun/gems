@@ -70,7 +70,7 @@ globalThis.FactionSystem = {
    * faction id, or undefined with no Faction component.
    */
   factionOf(entities, id) {
-    const f = entities.get(Faction, id);
+    const f = entities.get(id, Faction);
     return f === undefined ? undefined : f.id;
   },
 
@@ -110,7 +110,7 @@ globalThis.FactionSystem = {
       if (oid === id) continue;
       const fb = this.factionOf(entities, oid);
       if (fb === undefined || !this.isHostile(fa, fb)) continue;
-      const p = entities.get(Position, oid);
+      const p = entities.get(oid, Position);
       const d = (p.x - x) ** 2 + (p.y - y) ** 2;
       if (d < bestD) {
         bestD = d;

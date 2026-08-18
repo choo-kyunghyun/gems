@@ -13,8 +13,8 @@ globalThis.AABB = {
 
   /** Position + BBox both required — callers pass component-queried ids, so the reads are unguarded. */
   of(entities, id) {
-    const pos = entities.get(Position, id);
-    const box = entities.get(BBox, id);
+    const pos = entities.get(id, Position);
+    const box = entities.get(id, BBox);
     return AABB.edges(pos, box);
   },
 

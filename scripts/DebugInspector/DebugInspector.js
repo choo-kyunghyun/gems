@@ -114,7 +114,7 @@ globalThis.DebugInspector = {
     const scene = DebugInspector._game.scene;
     if (scene === null || scene === undefined || scene.camera === undefined)
       return;
-    const pos = DebugInspector._entities.get(Position, DebugInspector._id);
+    const pos = DebugInspector._entities.get(DebugInspector._id, Position);
     if (pos === undefined) return;
 
     // world → surface px via the pitch-aware projection, then surface → GUI

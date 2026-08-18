@@ -209,9 +209,9 @@ globalThis.SaveGame = {
       const scene = ctx.scene;
       const w = scene.level.entities;
       const pid = scene.playerId;
-      const health = pid !== undefined ? w.get(Health, pid) : undefined;
-      const stats = pid !== undefined ? w.get(Stats, pid) : undefined;
-      const inv = pid !== undefined ? w.get(Inventory, pid) : undefined;
+      const health = pid !== undefined ? w.get(pid, Health) : undefined;
+      const stats = pid !== undefined ? w.get(pid, Stats) : undefined;
+      const inv = pid !== undefined ? w.get(pid, Inventory) : undefined;
       ctx.manifest.activeMap = World.activeId;
       ctx.manifest.meta = {
         version: Snapshot.VERSION,
@@ -343,7 +343,7 @@ globalThis.SaveGame = {
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
-        const pos = scene.level.entities.get(Position, scene.playerId);
+        const pos = scene.level.entities.get(scene.playerId, Position);
         if (pos !== undefined) {
           pos.x = pinfo.x;
           pos.y = pinfo.y;

@@ -9,7 +9,7 @@ globalThis.PathfindingSystem = {
 
   update(entities) {
     for (const id of entities.query(PathRequest)) {
-      const req = entities.get(PathRequest, id);
+      const req = entities.get(id, PathRequest);
       const path = MotionPlanner.plan(
         { x: req.startX, y: req.startY },
         { x: req.goalX, y: req.goalY },
@@ -22,13 +22,13 @@ globalThis.PathfindingSystem = {
   },
 
   current(entities, id) {
-    const response = entities.get(PathResponse, id);
+    const response = entities.get(id, PathResponse);
     if (response === undefined) return undefined;
     return response.path[response.index];
   },
 
   advance(entities, id) {
-    const response = entities.get(PathResponse, id);
+    const response = entities.get(id, PathResponse);
     if (response === undefined) return false;
     const next = response.index + 1;
     if (next >= response.path.length) {

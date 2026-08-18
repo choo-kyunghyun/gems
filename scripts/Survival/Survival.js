@@ -9,7 +9,7 @@ globalThis.Survival = {
     const ids = entities.query(token);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const c = entities.get(token, id);
+      const c = entities.get(id, token);
       c.value += c.rate * dt;
       if (c.value > c.max) c.value = c.max;
       Survival.refresh(entities, id, c);

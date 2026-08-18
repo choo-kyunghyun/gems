@@ -9,7 +9,7 @@ globalThis.SoundEmitterSystem = {
   update(entities) {
     const ids = entities.query(SoundEmitter, Position);
     for (const id of ids) {
-      const se = entities.get(SoundEmitter, id);
+      const se = entities.get(id, SoundEmitter);
       se.timer = (se.timer ?? se.every) - Time.delta;
       if (se.timer > 0) continue;
       se.timer = se.every;
@@ -19,7 +19,7 @@ globalThis.SoundEmitterSystem = {
         entities.detach(id, SoundEmitter);
         continue;
       }
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       Audio.play({
         sound,
         gain: se.gain ?? 1,

@@ -20,7 +20,7 @@ globalThis.UIMinimap = class UIMinimap {
   onDraw(element) {
     if (this.entities === null) return;
     const pos = element.getLayoutPosition();
-    const tp = this.entities.get(Position, this.target);
+    const tp = this.entities.get(this.target, Position);
     if (tp === undefined) return; // target gone — nothing to center on
 
     const color = draw_get_color();
@@ -51,7 +51,7 @@ globalThis.UIMinimap = class UIMinimap {
       if (id === this.target) continue;
       const c = this._color(id);
       if (c === null) continue;
-      const p = this.entities.get(Position, id);
+      const p = this.entities.get(id, Position);
       const dx = (p.x - tp.x) * scale;
       const dy = (p.y - tp.y) * scale;
       if (dx * dx + dy * dy > rSq) continue;
@@ -62,7 +62,7 @@ globalThis.UIMinimap = class UIMinimap {
     // target marker + facing notch (dot in the heading direction).
     draw_set_color(this.playerColor);
     draw_circle(cx, cy, this.blipSize + 1, false);
-    const dir = this.entities.get(Direction, this.target);
+    const dir = this.entities.get(this.target, Direction);
     if (dir !== undefined && (dir.x !== 0 || dir.y !== 0)) {
       draw_circle(
         cx + dir.x * (this.blipSize + 4),
@@ -79,7 +79,7 @@ globalThis.UIMinimap = class UIMinimap {
   /** The first matching rule color, or null if no rule matches. */
   _color(id) {
     for (let r = 0; r < this.rules.length; r++) {
-      if (this.entities.get(this.rules[r].has, id) !== undefined)
+      if (this.entities.get(id, this.rules[r].has) !== undefined)
         return this.rules[r].color;
     }
     return null;

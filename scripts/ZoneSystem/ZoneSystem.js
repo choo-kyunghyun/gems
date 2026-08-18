@@ -13,9 +13,9 @@ globalThis.ZoneSystem = {
     const seen = {};
 
     entities.forEach([Position], (id) => {
-      if (has !== undefined && entities.get(has, id) === undefined) return;
+      if (has !== undefined && entities.get(id, has) === undefined) return;
       seen[id] = true;
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       const g = grid.worldToGrid(pos.x, pos.y);
       const cur = map.idAt(g.x, g.y);
       const prev = inside[id] ?? 0;
@@ -40,7 +40,7 @@ globalThis.ZoneSystem = {
   },
 
   zoneOf(entities, grid, map, id) {
-    const pos = entities.get(Position, id);
+    const pos = entities.get(id, Position);
     if (pos === undefined) return undefined;
     const g = grid.worldToGrid(pos.x, pos.y);
     return map.at(g.x, g.y);
@@ -50,8 +50,8 @@ globalThis.ZoneSystem = {
     const has = opts.has;
     const out = [];
     entities.forEach([Position], (eid) => {
-      if (has !== undefined && entities.get(has, eid) === undefined) return;
-      const pos = entities.get(Position, eid);
+      if (has !== undefined && entities.get(eid, has) === undefined) return;
+      const pos = entities.get(eid, Position);
       const g = grid.worldToGrid(pos.x, pos.y);
       if (map.idAt(g.x, g.y) === id) out.push(eid);
     });

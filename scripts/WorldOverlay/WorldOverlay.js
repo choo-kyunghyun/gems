@@ -36,8 +36,8 @@ globalThis.WorldOverlay = {
 
     const drops = entities.query(ItemDrop, Position);
     for (const id of drops) {
-      const p = entities.get(Position, id);
-      const d = entities.get(ItemDrop, id);
+      const p = entities.get(id, Position);
+      const d = entities.get(id, ItemDrop);
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
       if (sprite_exists(spr)) {
@@ -66,7 +66,7 @@ globalThis.WorldOverlay = {
     draw_set_color(make_colour_rgb(255, 230, 90));
     const bullets = entities.query(Projectile, Position);
     for (const id of bullets) {
-      const p = entities.get(Position, id);
+      const p = entities.get(id, Position);
       draw_circle(p.x, p.y, 4, false);
     }
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw.

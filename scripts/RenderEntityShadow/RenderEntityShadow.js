@@ -21,11 +21,11 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
     draw_set_alpha(this.alpha);
     const ids = entities.query(Visual, Position);
     for (const entity of ids) {
-      const visual = entities.get(Visual, entity);
+      const visual = entities.get(entity, Visual);
       if (!visual.visible) continue;
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       let rx = this.defaultRx;
-      if (entities.get(BBox, entity) !== undefined) {
+      if (entities.get(entity, BBox) !== undefined) {
         const b = AABB.of(entities, entity);
         rx = (b.x2 - b.x1) * this.scaleX;
       }

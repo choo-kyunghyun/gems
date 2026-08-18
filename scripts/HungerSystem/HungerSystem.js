@@ -10,7 +10,7 @@ globalThis.HungerSystem = {
    * the debuff so dropping below critical clears it at once.
    */
   restore(entities, id, amount) {
-    const c = entities.get(Hunger, id);
+    const c = entities.get(id, Hunger);
     const changed = Survival.restore(c, amount);
     if (changed) Survival.refresh(entities, id, c);
     return changed;

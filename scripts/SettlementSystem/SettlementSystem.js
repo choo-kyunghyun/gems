@@ -5,7 +5,7 @@ globalThis.SettlementSystem = {
     const out = [];
     const ids = entities.query(Resident);
     for (let i = 0; i < ids.length; i++)
-      if (entities.get(Resident, ids[i]).settlementId === sid) out.push(ids[i]);
+      if (entities.get(ids[i], Resident).settlementId === sid) out.push(ids[i]);
     return out;
   },
 
@@ -22,8 +22,8 @@ globalThis.SettlementSystem = {
   storageOf(entities, sid) {
     const ids = entities.query(Resident);
     for (let i = 0; i < ids.length; i++) {
-      if (entities.get(Resident, ids[i]).settlementId !== sid) continue;
-      const it = entities.get(Interaction, ids[i]);
+      if (entities.get(ids[i], Resident).settlementId !== sid) continue;
+      const it = entities.get(ids[i], Interaction);
       if (it !== undefined && it.kind === "storage") return ids[i];
     }
     return -1;

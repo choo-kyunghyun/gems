@@ -30,9 +30,9 @@ globalThis.TradeSystem = {
    * buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
    */
   buy(entities, buyerId, merchantId, idx, qty) {
-    const m = entities.get(Merchant, merchantId);
-    const mInv = entities.get(Inventory, merchantId);
-    const bInv = entities.get(Inventory, buyerId);
+    const m = entities.get(merchantId, Merchant);
+    const mInv = entities.get(merchantId, Inventory);
+    const bInv = entities.get(buyerId, Inventory);
     if (m === undefined || mInv === undefined || bInv === undefined)
       return { amount: 0, reason: "" };
     const slot = mInv.slots[idx];
@@ -83,9 +83,9 @@ globalThis.TradeSystem = {
    * Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
    */
   sell(entities, sellerId, merchantId, idx, qty) {
-    const m = entities.get(Merchant, merchantId);
-    const mInv = entities.get(Inventory, merchantId);
-    const sInv = entities.get(Inventory, sellerId);
+    const m = entities.get(merchantId, Merchant);
+    const mInv = entities.get(merchantId, Inventory);
+    const sInv = entities.get(sellerId, Inventory);
     if (m === undefined || mInv === undefined || sInv === undefined)
       return { amount: 0, reason: "" };
     const slot = sInv.slots[idx];
@@ -148,13 +148,13 @@ globalThis.TradeSystem = {
   update(entities, dt) {
     const ids = entities.query(Merchant, Inventory);
     for (let i = 0; i < ids.length; i++) {
-      const m = entities.get(Merchant, ids[i]);
+      const m = entities.get(ids[i], Merchant);
       if (m === undefined || m.infinite) continue;
       if (m.restockSecs <= 0 || m.template === undefined) continue;
       m.restockTimer -= dt;
       if (m.restockTimer > 0) continue;
       m.restockTimer = m.restockSecs;
-      const inv = entities.get(Inventory, ids[i]);
+      const inv = entities.get(ids[i], Inventory);
       if (inv === undefined) continue;
       for (let k = 0; k < m.template.length; k++) {
         const t = m.template[k];

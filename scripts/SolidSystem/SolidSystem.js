@@ -44,12 +44,12 @@ globalThis.SolidSystem = {
     const statics = this._statics;
 
     for (const id of entities.query(Collision, Position, BBox, Velocity)) {
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       if (!col.solid || col.kinematic) continue;
 
-      const pos = entities.get(Position, id);
-      const vel = entities.get(Velocity, id);
-      const box = entities.get(BBox, id);
+      const pos = entities.get(id, Position);
+      const vel = entities.get(id, Velocity);
+      const box = entities.get(id, BBox);
 
       const dx = vel.x * dt;
       const dy = vel.y * dt;
@@ -78,7 +78,7 @@ globalThis.SolidSystem = {
         col.passThroughTicks--;
       }
 
-      const gr = entities.get(Grounded, id);
+      const gr = entities.get(id, Grounded);
       if (gr !== undefined) gr.isGrounded = grounded;
     }
   },
@@ -164,7 +164,7 @@ globalThis.SolidSystem = {
   _snapshot(entities, ids) {
     const statics = [];
     for (let i = 0; i < ids.length; i++) {
-      const col = entities.get(Collision, ids[i]);
+      const col = entities.get(ids[i], Collision);
       if (!col.solid || !col.kinematic) continue;
       const e = AABB.of(entities, ids[i]);
       statics.push({

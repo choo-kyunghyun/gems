@@ -19,7 +19,7 @@ globalThis.CraftSystem = {
    */
   craft(entities, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
-    const inv = entities.get(Inventory, crafterId);
+    const inv = entities.get(crafterId, Inventory);
     if (recipe === undefined || inv === undefined) return false;
     if (!this.canCraft(inv, recipe, module)) return false;
 

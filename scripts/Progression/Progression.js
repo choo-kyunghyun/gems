@@ -4,7 +4,7 @@ globalThis.Progression = {
   /** add reward items to the player's bag; no-op if reward is undefined */
   applyReward(scene, reward) {
     if (reward === undefined || reward.items === undefined) return;
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     for (let i = 0; i < reward.items.length; i++) {
       const it = reward.items[i];
       InventorySystem.add(inv, it.itemId, it.qty);

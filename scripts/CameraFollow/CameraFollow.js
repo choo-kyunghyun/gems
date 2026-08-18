@@ -122,7 +122,7 @@ globalThis.CameraFollow = class CameraFollow {
     const pos =
       this.entities === undefined
         ? undefined
-        : this.entities.get(Position, this.targetId());
+        : this.entities.get(this.targetId(), Position);
     if (pos === undefined) return;
 
     let x = lerp(camera.toX, pos.x, this.lerp);

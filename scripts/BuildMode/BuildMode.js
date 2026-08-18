@@ -496,7 +496,7 @@ globalThis.BuildMode = {
   },
 
   _statusText(scene) {
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
     const it = scene._buildItem;
@@ -577,7 +577,7 @@ globalThis.BuildMode = {
 
   /** does the player currently stand on land of a settlement they OWN? gates opening build mode. */
   _playerOwnsHere(scene) {
-    const pp = scene.level.entities.get(Position, scene.playerId);
+    const pp = scene.level.entities.get(scene.playerId, Position);
     if (pp === undefined) return false;
     const c = scene.level.grid.worldToGrid(pp.x, pp.y);
     return Settlement.ownerAt(scene.level.grid, c.x, c.y) === BuildMode.OWNER;
@@ -596,7 +596,7 @@ globalThis.BuildMode = {
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (
       inv === undefined ||
       !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
@@ -606,7 +606,7 @@ globalThis.BuildMode = {
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
     if (solid) {
-      const pp = scene.level.entities.get(Position, scene.playerId);
+      const pp = scene.level.entities.get(scene.playerId, Position);
       if (pp !== undefined) {
         const pc = grid.worldToGrid(pp.x, pp.y);
         if (pc.x === gx && pc.y === gy) return false;
@@ -618,7 +618,7 @@ globalThis.BuildMode = {
   _tryPlace(scene, gx, gy) {
     if (!BuildMode._canBuild(scene, gx, gy)) return;
     const item = scene._buildItem;
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
     BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
     scene._invDirty = true;
@@ -676,9 +676,9 @@ globalThis.BuildMode = {
     if (ent !== undefined) {
       // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
       if (scene.level.entities.isValid(ent.ent)) {
-        const st = scene.level.entities.get(Interaction, ent.ent);
+        const st = scene.level.entities.get(ent.ent, Interaction);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
-          const inv = scene.level.entities.get(Inventory, scene.playerId);
+          const inv = scene.level.entities.get(scene.playerId, Inventory);
           if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
@@ -722,7 +722,7 @@ globalThis.BuildMode = {
 
   _refund(scene, itemId) {
     const item = BuildMode.item(itemId);
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
   },
@@ -742,7 +742,7 @@ globalThis.BuildMode = {
         delete scene._builtEnts[k]; // already gone (removed elsewhere)
         continue;
       }
-      const hp = entities.get(Health, e.ent);
+      const hp = entities.get(e.ent, Health);
       if (hp !== undefined && hp.hp <= 0) {
         entities.remove(e.ent);
         delete scene._builtEnts[k];
@@ -762,7 +762,7 @@ globalThis.BuildMode = {
    */
   claim(scene, postId) {
     const grid = scene.level.grid;
-    const pos = scene.level.entities.get(Position, postId);
+    const pos = scene.level.entities.get(postId, Position);
     if (pos === undefined) return;
     const c = grid.worldToGrid(pos.x, pos.y);
     if (Settlement.at(grid, c.x, c.y) === undefined) {

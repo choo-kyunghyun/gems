@@ -14,8 +14,8 @@ globalThis.EquipmentSystem = {
    * — e.g. the hotbar — use equipFirst.)
    */
   equip(entities, id, uid) {
-    const inv = entities.get(Inventory, id);
-    const eq = entities.get(Equipment, id);
+    const inv = entities.get(id, Inventory);
+    const eq = entities.get(id, Equipment);
     if (inv === undefined || eq === undefined) return false;
     const slot = InventorySystem.findByUid(inv, uid);
     if (slot === undefined) return false; // must own this instance
@@ -38,7 +38,7 @@ globalThis.EquipmentSystem = {
    * hotbar, which only know an itemId). False if none owned / not equippable.
    */
   equipFirst(entities, id, itemId) {
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined) return false;
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].itemId === itemId && inv.slots[i].uid !== undefined)
@@ -52,7 +52,7 @@ globalThis.EquipmentSystem = {
    * Returns the unequipped uid, or "" if empty.
    */
   unequip(entities, id, slot) {
-    const eq = entities.get(Equipment, id);
+    const eq = entities.get(id, Equipment);
     if (eq === undefined) return "";
     const uid = eq.slots[slot];
     if (uid === undefined || uid === "") return "";
@@ -60,7 +60,7 @@ globalThis.EquipmentSystem = {
     eq.slots[slot] = ""; // clear FIRST so the re-derive drops the removed item's mods
     StatModel.recompute(entities, id);
     AppearanceSystem.rebuild(entities, id); // drop the removed item's paper-doll layer
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     const s =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
@@ -78,11 +78,11 @@ globalThis.EquipmentSystem = {
    * controller needs the real slot — not a copy — to decrement `rounds` on a shot.
    */
   weaponSlot(entities, id) {
-    const eq = entities.get(Equipment, id);
+    const eq = entities.get(id, Equipment);
     if (eq === undefined) return null;
     const uid = eq.slots.weapon;
     if (uid === undefined || uid === "") return null;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     const slot =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     return slot ?? null;
@@ -118,7 +118,7 @@ globalThis.EquipmentSystem = {
   reload(entities, id) {
     const slot = this.weaponSlot(entities, id);
     if (slot === null) return 0;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined) return 0;
     return this.reloadSlot(inv, slot);
   },
@@ -154,7 +154,7 @@ globalThis.EquipmentSystem = {
   loadAmmo(entities, id, ammoItemId) {
     const slot = this.weaponSlot(entities, id);
     if (slot === null) return false;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined) return false;
     return this.loadAmmoSlot(inv, slot, ammoItemId);
   },
@@ -322,7 +322,7 @@ globalThis.EquipmentSystem = {
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (inv === undefined) return;
     inv.capacity += con.capacity * sign;
     if (inv.capacity < 0) inv.capacity = 0;

@@ -10,7 +10,7 @@ globalThis.ThirstSystem = {
    * the debuff so dropping below critical clears it at once.
    */
   restore(entities, id, amount) {
-    const c = entities.get(Thirst, id);
+    const c = entities.get(id, Thirst);
     const changed = Survival.restore(c, amount);
     if (changed) Survival.refresh(entities, id, c);
     return changed;

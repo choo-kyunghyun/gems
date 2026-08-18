@@ -102,7 +102,7 @@ globalThis.InventoryUI = {
       // change while the window is open, so a captured ref would read the parked old store.
       gemsLabel(
         () => {
-          const v = scene.level.entities.get(Inventory, scene.playerId);
+          const v = scene.level.entities.get(scene.playerId, Inventory);
           let s =
             I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
@@ -142,7 +142,7 @@ globalThis.InventoryUI = {
       gemsButton(
         I18n.textRef("INV_SORT"),
         () => {
-          InventorySystem.sort(scene.level.entities.get(Inventory, scene.playerId));
+          InventorySystem.sort(scene.level.entities.get(scene.playerId, Inventory));
           scene._invDirty = true;
         },
         { width: 90, height: 28 },
@@ -264,7 +264,7 @@ globalThis.InventoryUI = {
   _hotbarBtn(scene, i) {
     return gemsButton(
       () => {
-        const hb = scene.level.entities.get(Hotbar, scene.playerId);
+        const hb = scene.level.entities.get(scene.playerId, Hotbar);
         const itemId = hb !== undefined ? hb.slots[i] : "";
         if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
         const it = Item.get(itemId);
@@ -281,7 +281,7 @@ globalThis.InventoryUI = {
   },
 
   _assignHotbar(scene, i) {
-    const hb = scene.level.entities.get(Hotbar, scene.playerId);
+    const hb = scene.level.entities.get(scene.playerId, Hotbar);
     if (hb === undefined) return;
     if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
     else HotbarSystem.clear(hb, i);
@@ -293,7 +293,7 @@ globalThis.InventoryUI = {
    */
   _favLabel(scene) {
     if (scene._invSel === null) return I18n.text("INV_NOACTION");
-    const fav = scene.level.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(scene.playerId, Favorites);
     return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
@@ -301,7 +301,7 @@ globalThis.InventoryUI = {
 
   _toggleFav(scene) {
     if (scene._invSel === null) return;
-    const fav = scene.level.entities.get(Favorites, scene.playerId);
+    const fav = scene.level.entities.get(scene.playerId, Favorites);
     if (fav === undefined) return;
     FavoritesSystem.toggle(fav, scene._invSel.itemId);
     scene._invDirty = true;
@@ -360,7 +360,7 @@ globalThis.InventoryUI = {
    * rebuild(), not build() — the squad isn't seeded until after the window is built.
    */
   _buildFollowerRows(scene, host) {
-    const squad = scene.level.entities.get(Squad, scene.playerId);
+    const squad = scene.level.entities.get(scene.playerId, Squad);
     const ids =
       squad !== undefined
         ? FollowerSystem.members(scene.level.entities, squad.id, scene.playerId)
@@ -393,7 +393,7 @@ globalThis.InventoryUI = {
     head.insertChild(
       gemsLabel(
         () => {
-          const nm = scene.level.entities.get(Name, fid);
+          const nm = scene.level.entities.get(fid, Name);
           return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
         },
         { color: GemsTheme.text, font: "header" },
@@ -405,10 +405,10 @@ globalThis.InventoryUI = {
     status.insertChild(
       gemsLabel(
         () => {
-          const f = scene.level.entities.get(Follower, fid);
+          const f = scene.level.entities.get(fid, Follower);
           if (f === undefined) return "";
           let state;
-          if (scene.level.entities.get(Downed, fid) !== undefined)
+          if (scene.level.entities.get(fid, Downed) !== undefined)
             state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
           else if (f.state === "follow")
             state = I18n.text("FOLLOWER_STATE_FOLLOW");
@@ -436,8 +436,8 @@ globalThis.InventoryUI = {
           height: 30,
           disabled: () => {
             return (
-              scene.level.entities.get(Squad, fid) === undefined || // already out
-              scene.level.entities.get(Downed, fid) !== undefined // can't kick while down
+              scene.level.entities.get(fid, Squad) === undefined || // already out
+              scene.level.entities.get(fid, Downed) !== undefined // can't kick while down
             );
           },
         },
@@ -453,7 +453,7 @@ globalThis.InventoryUI = {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     const statRow = (labelKey, getter) =>
       gemsKeyValueRow(I18n.textRef(labelKey), () => {
-        const st = scene.level.entities.get(Stats, scene.playerId);
+        const st = scene.level.entities.get(scene.playerId, Stats);
         return st === undefined ? "" : String(getter(st));
       });
     page.insertChild(statRow("STAT_ATK", (st) => st.attack));
@@ -468,7 +468,7 @@ globalThis.InventoryUI = {
     );
     const attrRow = (def) =>
       gemsKeyValueRow(I18n.textRef(def.name), () => {
-        const at = scene.level.entities.get(Attributes, scene.playerId);
+        const at = scene.level.entities.get(scene.playerId, Attributes);
         return at === undefined ? "" : String(at[def.id]);
       });
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
@@ -677,9 +677,9 @@ globalThis.InventoryUI = {
    * same equippable only the worn instance lights.
    */
   _buildRows(scene) {
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
-    const eq = scene.level.entities.get(Equipment, scene.playerId);
-    const fav = scene.level.entities.get(Favorites, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
+    const eq = scene.level.entities.get(scene.playerId, Equipment);
+    const fav = scene.level.entities.get(scene.playerId, Favorites);
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
@@ -731,7 +731,7 @@ globalThis.InventoryUI = {
       });
     }
     if (cat === "") {
-      const inv = scene.level.entities.get(Inventory, scene.playerId);
+      const inv = scene.level.entities.get(scene.playerId, Inventory);
       for (let i = view.length; i < inv.capacity; i++) items.push(null);
     }
 
@@ -802,7 +802,7 @@ globalThis.InventoryUI = {
       return;
     }
     const it = Item.get(row.itemId);
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     const inst =
       row.uid !== undefined
         ? InventorySystem.findByUid(inv, row.uid)
@@ -987,10 +987,10 @@ globalThis.InventoryUI = {
    * the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
    */
   _equipRow(scene, slot, labelKey) {
-    const eq = scene.level.entities.get(Equipment, scene.playerId);
+    const eq = scene.level.entities.get(scene.playerId, Equipment);
     const uid = eq !== undefined ? eq.slots[slot] : "";
     if (uid !== undefined && uid !== "") {
-      const inv = scene.level.entities.get(Inventory, scene.playerId);
+      const inv = scene.level.entities.get(scene.playerId, Inventory);
       const inst =
         inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
       const itemId = inst !== undefined ? inst.itemId : "";

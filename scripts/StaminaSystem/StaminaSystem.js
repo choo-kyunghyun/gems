@@ -10,9 +10,9 @@ globalThis.StaminaSystem = {
    * reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
    */
   sprint(entities, id, wantSprint) {
-    const sta = entities.get(Stamina, id);
+    const sta = entities.get(id, Stamina);
     if (sta === undefined) return false;
-    const stats = entities.get(Stats, id);
+    const stats = entities.get(id, Stats);
     const max = stats !== undefined ? stats.maxStamina : 100;
     const dt = SimClock.tickDuration;
 

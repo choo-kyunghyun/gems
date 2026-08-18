@@ -72,9 +72,9 @@ globalThis.RenderLighting = class RenderLighting {
     let i = 0;
     while (i < lights.length) {
       const id = lights[i];
-      const lt = entities.get(Light, id);
-      const pos = entities.get(Position, id);
-      const prev = entities.get(PrevPosition, id);
+      const lt = entities.get(id, Light);
+      const pos = entities.get(id, Position);
+      const prev = entities.get(id, PrevPosition);
       const wx = prev ? prev.x + (pos.x - prev.x) * alpha : pos.x;
       const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
       const s = this.camera.project(wx, wy, 0);

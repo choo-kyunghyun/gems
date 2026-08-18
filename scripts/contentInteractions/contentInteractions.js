@@ -54,8 +54,8 @@ globalThis.contentInteractions = {
         id: "door",
         prompt: "DOOR_PROMPT",
         run(ctx) {
-          const col = ctx.entities.get(Collision, ctx.id);
-          const mesh = ctx.entities.get(Mesh, ctx.id);
+          const col = ctx.entities.get(ctx.id, Collision);
+          const mesh = ctx.entities.get(ctx.id, Mesh);
           if (col === undefined) return;
           if (ctx.comp.open === 1) {
             // refuse to close over a standing body — it would trap it inside the collider
@@ -70,7 +70,7 @@ globalThis.contentInteractions = {
             );
             for (let i = 0; i < ids.length; i++) {
               if (ids[i] === ctx.id) continue;
-              const c = ctx.entities.get(Collision, ids[i]);
+              const c = ctx.entities.get(ids[i], Collision);
               if (
                 c !== undefined &&
                 c.solid === true &&

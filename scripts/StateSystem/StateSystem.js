@@ -31,7 +31,7 @@ globalThis.StateSystem = {
   },
 
   change(entities, id, name, force = false) {
-    const state = entities.get(State, id);
+    const state = entities.get(id, State);
     if (state === undefined) return;
     if (state.current === name && !force) return;
     state.next = name;
@@ -40,7 +40,7 @@ globalThis.StateSystem = {
   update(entities) {
     const ids = entities.query(State);
     for (const id of ids) {
-      const state = entities.get(State, id);
+      const state = entities.get(id, State);
 
       if (state.next !== "") {
         if (state.current !== "") {

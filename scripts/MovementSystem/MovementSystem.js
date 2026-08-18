@@ -4,8 +4,8 @@ globalThis.MovementSystem = {
     const dt = SimClock.tickDuration;
     const ids = entities.query(Position, Velocity);
     for (const id of ids) {
-      const pos = entities.get(Position, id);
-      const vel = entities.get(Velocity, id);
+      const pos = entities.get(id, Position);
+      const vel = entities.get(id, Velocity);
       pos.x += vel.x * dt;
       pos.y += vel.y * dt;
       pos.z += vel.z * dt;

@@ -10,7 +10,7 @@ globalThis.DrowsinessSystem = {
    * critical clears "drowsy" even while update() is bypassed during sleep.
    */
   restore(entities, id, amount) {
-    const c = entities.get(Drowsiness, id);
+    const c = entities.get(id, Drowsiness);
     const changed = Survival.restore(c, amount);
     if (changed) Survival.refresh(entities, id, c);
     return changed;

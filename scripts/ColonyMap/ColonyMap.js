@@ -61,7 +61,7 @@ globalThis.ColonyMap = {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
     // ── PHASE A: pull the squad out, then park the current map (its store stays alive) ──
     if (scene.playerId !== undefined) {
-      const sid = scene.level.entities.get(Squad, scene.playerId).id;
+      const sid = scene.level.entities.get(scene.playerId, Squad).id;
       const members = FollowerSystem.members(
         scene.level.entities,
         sid,
@@ -553,8 +553,8 @@ globalThis.ColonyMap = {
           const out = [];
           const ids = entities.query(Light, Position);
           for (let i = 0; i < ids.length; i++) {
-            const p = entities.get(Position, ids[i]);
-            const lt = entities.get(Light, ids[i]);
+            const p = entities.get(ids[i], Position);
+            const lt = entities.get(ids[i], Light);
             out.push({
               x: p.x,
               y: p.y,
@@ -747,7 +747,7 @@ globalThis.ColonyMap = {
         dbg_slider(ref_create(fly, "speed"), 60, 2400, "Fly speed", 10);
         dbg_button("Recenter on player", () => {
           if (follow.entities === undefined) return;
-          const pos = follow.entities.get(Position, follow.targetId());
+          const pos = follow.entities.get(follow.targetId(), Position);
           if (pos !== undefined) {
             cam.toX = pos.x;
             cam.toY = pos.y;
@@ -799,7 +799,7 @@ globalThis.ColonyMap = {
       return;
     }
     if (scene._portalLock) return;
-    const portal = scene.level.entities.get(Portal, over);
+    const portal = scene.level.entities.get(over, Portal);
     Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
     ColonyMap.go(scene, portal.toMap, portal.toEntry);
   },

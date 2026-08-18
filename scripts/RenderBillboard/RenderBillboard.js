@@ -154,7 +154,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
     for (const entity of entities.query(Visual, Position)) {
-      const visual = entities.get(Visual, entity);
+      const visual = entities.get(entity, Visual);
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
       // draws as the spr_missing placeholder; re-wrap subimg into the placeholder's frame
@@ -175,7 +175,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       // away = -y — an upright quad is a constant-y plane, so only a Y offset separates depth;
       // a z offset slides within the plane), so stack order wins deterministically;
       // BB_LAYER_DY is far above fp error and far below a visible shift.
-      const ap = entities.get(Appearance, entity);
+      const ap = entities.get(entity, Appearance);
       if (ap !== undefined) {
         for (let i = 0; i < ap.back.length; i++)
           this._drawLayer(

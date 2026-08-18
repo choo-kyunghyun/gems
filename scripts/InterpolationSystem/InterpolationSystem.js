@@ -5,8 +5,8 @@
 globalThis.InterpolationSystem = {
   snapshot(entities) {
     for (const id of entities.query(Position, Velocity)) {
-      const pos = entities.get(Position, id);
-      const prev = entities.get(PrevPosition, id);
+      const pos = entities.get(id, Position);
+      const prev = entities.get(id, PrevPosition);
       if (prev === undefined) {
         entities.add(id, PrevPosition, { x: pos.x, y: pos.y, z: pos.z });
       } else {
@@ -19,8 +19,8 @@ globalThis.InterpolationSystem = {
 
   /** Writes into `out` (reused scratch — no alloc per entity). */
   lerp(entities, id, out) {
-    const pos = entities.get(Position, id);
-    const prev = entities.get(PrevPosition, id);
+    const pos = entities.get(id, Position);
+    const prev = entities.get(id, PrevPosition);
     out.x =
       prev !== undefined ? prev.x + (pos.x - prev.x) * SimClock.alpha : pos.x;
     out.y =

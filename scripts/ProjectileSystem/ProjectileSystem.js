@@ -4,9 +4,9 @@ globalThis.ProjectileSystem = {
   update(entities) {
     const dt = SimClock.tickDuration;
     for (const id of entities.query(Projectile, Position, Velocity)) {
-      const proj = entities.get(Projectile, id);
-      const pos = entities.get(Position, id);
-      const vel = entities.get(Velocity, id);
+      const proj = entities.get(id, Projectile);
+      const pos = entities.get(id, Position);
+      const vel = entities.get(id, Velocity);
 
       const x1 = pos.x + vel.x * dt;
       const y1 = pos.y + vel.y * dt;
@@ -24,7 +24,7 @@ globalThis.ProjectileSystem = {
       pos.x = hit.x;
       pos.y = hit.y;
 
-      const hp = entities.get(Health, hit.id);
+      const hp = entities.get(hit.id, Health);
       // damage a hit Health unless allied (ally blocks like a wall); death reaction is central
       if (
         hp !== undefined &&

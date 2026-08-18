@@ -245,7 +245,7 @@ globalThis.RenderMesh = class RenderMesh {
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
     if (this.litOk) this.setupLights(entities);
     for (const entity of entities.query(Mesh, Position)) {
-      const mesh = entities.get(Mesh, entity);
+      const mesh = entities.get(entity, Mesh);
       if (mesh.model === undefined || mesh.model === "") continue;
       const m = this._model(mesh.model);
       if (m.vb === -1) continue;
@@ -274,7 +274,7 @@ globalThis.RenderMesh = class RenderMesh {
     if (this.litOk) shader_reset();
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
     for (const entity of entities.query(Mesh, Position)) {
-      const mesh = entities.get(Mesh, entity);
+      const mesh = entities.get(entity, Mesh);
       if (mesh.model !== undefined && mesh.model !== "") continue;
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       const alpha = mesh.alpha ?? 1;

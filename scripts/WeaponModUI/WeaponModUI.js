@@ -27,7 +27,7 @@ globalThis.WeaponModUI = {
    * selected uid is no longer owned).
    */
   refresh(scene) {
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     const weapons = WeaponModUI._weaponInstances(inv);
     if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, scene._modSel))
       scene._modSel = weapons[0].uid;
@@ -78,7 +78,7 @@ globalThis.WeaponModUI = {
    * refilled via the shared gemsFillList.
    */
   _fillList(scene, inv, weapons) {
-    const eq = scene.level.entities.get(Equipment, scene.playerId);
+    const eq = scene.level.entities.get(scene.playerId, Equipment);
     const equippedUid = eq !== undefined ? eq.slots.weapon : "";
     const entries = [];
     for (let i = 0; i < weapons.length; i++) {
@@ -402,7 +402,7 @@ globalThis.WeaponModUI = {
   _installFirst(scene, slot, wpn, modId) {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
     if (slotId === undefined) return; // no matching empty slot
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (InventorySystem.remove(inv, modId, 1) < 1) return; // not owned
     slot.mods[slotId] = modId;
     StatModel.recompute(scene.level.entities, scene.playerId); // an attachment may grant Stats
@@ -418,7 +418,7 @@ globalThis.WeaponModUI = {
     const modId = slot.mods[slotId];
     if (modId === undefined) return;
     delete slot.mods[slotId];
-    const inv = scene.level.entities.get(Inventory, scene.playerId);
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
     InventorySystem.add(inv, modId, 1); // refund
     StatModel.recompute(scene.level.entities, scene.playerId);
     scene._craftDirty = true;

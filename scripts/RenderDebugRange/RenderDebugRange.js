@@ -28,7 +28,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
       const ids = entities.query(spec.component, Position);
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
-        const radius = entities.get(spec.component, id)[spec.field];
+        const radius = entities.get(id, spec.component)[spec.field];
         if (!(radius > 0)) continue; // skip 0/NaN radii
         const rp = InterpolationSystem.lerp(entities, id, this._rp);
         const x = rp.x;

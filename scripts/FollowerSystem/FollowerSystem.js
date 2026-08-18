@@ -12,21 +12,21 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
  */
 globalThis.FollowerSystem = {
   update(entities, playerId) {
-    const pp = entities.get(Position, playerId);
+    const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
     const ids = entities.query(Follower);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === playerId) continue;
-      const f = entities.get(Follower, id);
-      const vel = entities.get(Velocity, id);
+      const f = entities.get(id, Follower);
+      const vel = entities.get(id, Velocity);
       if (f === undefined || vel === undefined) continue;
       // downed or stationed → hold still; only "follow" seeks.
-      if (f.state !== "follow" || entities.get(Downed, id) !== undefined) {
+      if (f.state !== "follow" || entities.get(id, Downed) !== undefined) {
         vel.x = 0;
         vel.y = 0;
       } else {
-        const pos = entities.get(Position, id);
+        const pos = entities.get(id, Position);
         const dx = pp.x - pos.x;
         const dy = pp.y - pos.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -44,13 +44,13 @@ globalThis.FollowerSystem = {
 
       // paper-doll drive (opt-in via Animator): idle/walk by velocity + facing flip. Flip by
       // SIGN only — |xscale| carries the baked size factor (see the preset design scale).
-      const anim = entities.get(Animator, id);
+      const anim = entities.get(id, Animator);
       if (anim !== undefined) {
         AnimationSystem.set(
           anim,
           vel.x * vel.x + vel.y * vel.y > 1 ? "walk" : "idle",
         );
-        const vis = entities.get(Visual, id);
+        const vis = entities.get(id, Visual);
         if (vis !== undefined) {
           if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
           else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
@@ -66,7 +66,7 @@ globalThis.FollowerSystem = {
     const out = [];
     const ids = entities.query(Squad);
     for (let i = 0; i < ids.length; i++) {
-      if (entities.get(Squad, ids[i]).id !== squadId) continue;
+      if (entities.get(ids[i], Squad).id !== squadId) continue;
       if (ids[i] === playerId) out.unshift(ids[i]);
       else out.push(ids[i]);
     }
@@ -80,7 +80,7 @@ globalThis.FollowerSystem = {
    * entity, so it rides a map change with no re-apply — never recompute it per map.
    */
   setState(entities, playerId, fid, state) {
-    const f = entities.get(Follower, fid);
+    const f = entities.get(fid, Follower);
     if (f === undefined || f.state === state) return;
     if (state === "follow") {
       f.state = "follow";
@@ -96,8 +96,8 @@ globalThis.FollowerSystem = {
    * Interaction (it's a squad member now, not a talk-to-hire resident).
    */
   hire(entities, playerId, fid) {
-    const squad = entities.get(Squad, playerId);
-    if (squad === undefined || entities.get(Follower, fid) === undefined)
+    const squad = entities.get(playerId, Squad);
+    if (squad === undefined || entities.get(fid, Follower) === undefined)
       return;
     entities.add(fid, Squad, { id: squad.id });
     FollowerSystem.setState(entities, playerId, fid, "follow");
@@ -120,7 +120,7 @@ globalThis.FollowerSystem = {
    */
   applyBenefit(entities, playerId, f, sign) {
     if (f === undefined) return;
-    const inv = entities.get(Inventory, playerId);
+    const inv = entities.get(playerId, Inventory);
     if (inv === undefined) return;
     if (f.bonusCapacity) {
       inv.capacity += f.bonusCapacity * sign;

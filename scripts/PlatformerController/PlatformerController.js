@@ -77,10 +77,10 @@ globalThis.PlatformerController = {
 
   update(entities, ctrl) {
     const dt = SimClock.tickDuration;
-    const vel = entities.get(Velocity, ctrl.id);
+    const vel = entities.get(ctrl.id, Velocity);
     // read isGrounded live off the component — caching a boolean local is miscompiled by
     // GMRT (flips mid-function, broke coyote time/jump). caching the object is fine.
-    const groundedComp = entities.get(Grounded, ctrl.id);
+    const groundedComp = entities.get(ctrl.id, Grounded);
 
     if (ctrl.iframes > 0) ctrl.iframes--;
 
@@ -106,16 +106,16 @@ globalThis.PlatformerController = {
 
     if (dx !== 0) {
       ctrl.facing = dx;
-      const dir = entities.get(Direction, ctrl.id);
+      const dir = entities.get(ctrl.id, Direction);
       dir.x = dx;
       dir.y = 0;
-      const vis = entities.get(Visual, ctrl.id);
+      const vis = entities.get(ctrl.id, Visual);
       if (vis !== undefined) vis.xscale = dx;
     }
 
     // SolidSystem skips one-way platforms while passThroughTicks counts down
     if (groundedComp.isGrounded && Input.get("drop").down())
-      entities.get(Collision, ctrl.id).passThroughTicks = PLATF_DROP_TICKS;
+      entities.get(ctrl.id, Collision).passThroughTicks = PLATF_DROP_TICKS;
 
     // coyote time: extend jump window a few ticks after leaving a ledge
     if (groundedComp.isGrounded) ctrl.coyote = PLATF_COYOTE;
@@ -142,8 +142,8 @@ globalThis.PlatformerController = {
   // teleport to spawn, clear motion/jump state, grant i-frames to avoid instant re-hit
   respawn(entities, ctrl, spawn) {
     Audio.play({ sound: snd_hitsound_armor });
-    const pos = entities.get(Position, ctrl.id);
-    const vel = entities.get(Velocity, ctrl.id);
+    const pos = entities.get(ctrl.id, Position);
+    const vel = entities.get(ctrl.id, Velocity);
     pos.x = spawn.x;
     pos.y = spawn.y;
     pos.z = 0;
@@ -155,10 +155,10 @@ globalThis.PlatformerController = {
     ctrl.coyote = 0;
     ctrl.facing = 1;
     ctrl.iframes = PLATF_IFRAMES_RESPAWN;
-    entities.get(Collision, ctrl.id).passThroughTicks = 0; // prevent dropping through spawn ledge
+    entities.get(ctrl.id, Collision).passThroughTicks = 0; // prevent dropping through spawn ledge
 
     // snap PrevPosition too, or the player streaks across the screen for one frame
-    const prev = entities.get(PrevPosition, ctrl.id);
+    const prev = entities.get(ctrl.id, PrevPosition);
     if (prev !== undefined) {
       prev.x = spawn.x;
       prev.y = spawn.y;

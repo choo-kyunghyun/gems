@@ -57,8 +57,8 @@ globalThis.CombatAI = {
           CombatAI._tint(entities, id, 255, 255, 255, 0); // no wash — back to the base/skin color
         },
         update(entities, id) {
-          const brain = entities.get(Brain, id);
-          const pos = entities.get(Position, id);
+          const brain = entities.get(id, Brain);
+          const pos = entities.get(id, Position);
           // a mobile actor drifts back home if knocked away; a turret just watches
           if (brain.mobile) {
             const dx = brain.home.x - pos.x;
@@ -108,10 +108,10 @@ globalThis.CombatAI = {
         id: "combat.chase",
         enter(entities, id) {
           CombatAI._tint(entities, id, 230, 170, 70, 0.35); // alert orange flush
-          entities.get(Brain, id).losCd = 0; // raycast LOS immediately on entering the chase
+          entities.get(id, Brain).losCd = 0; // raycast LOS immediately on entering the chase
         },
         update(entities, id) {
-          const brain = entities.get(Brain, id);
+          const brain = entities.get(id, Brain);
           // target killed or streamed out — re-acquire from idle
           if (!entities.isValid(brain.target)) {
             brain.target = -1;
@@ -128,8 +128,8 @@ globalThis.CombatAI = {
             StateSystem.change(entities, id, "combat.attack");
             return;
           }
-          const sp = entities.get(Position, id);
-          const tp = entities.get(Position, brain.target);
+          const sp = entities.get(id, Position);
+          const tp = entities.get(brain.target, Position);
 
           // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
           // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
@@ -143,7 +143,7 @@ globalThis.CombatAI = {
               ignore: id,
             });
             brain.losBlocked =
-              hit !== null && entities.get(Collision, hit.id).kinematic;
+              hit !== null && entities.get(hit.id, Collision).kinematic;
           }
           const blocked = brain.losBlocked;
           if (!blocked || CombatAI._grid === undefined) {
@@ -179,7 +179,7 @@ globalThis.CombatAI = {
           CombatAI._stop(entities, id);
         },
         update(entities, id) {
-          const brain = entities.get(Brain, id);
+          const brain = entities.get(id, Brain);
           if (!entities.isValid(brain.target)) {
             brain.target = -1;
             StateSystem.change(entities, id, "combat.idle");
@@ -214,10 +214,10 @@ globalThis.CombatAI = {
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
   attach(entities, id, grid, opt = {}) {
     this._grid = grid;
-    const pos = entities.get(Position, id);
+    const pos = entities.get(id, Position);
     // authored/base Visual color captured for the aggro wash (a doll actor's color is its SKIN
     // tint, so the wash must blend FROM it, not from white). Flat int — snapshot-safe.
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
     entities.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
@@ -260,10 +260,10 @@ globalThis.CombatAI = {
    * distance to Brain.target; Infinity if none / gone
    */
   _distTo(entities, id) {
-    const t = entities.get(Brain, id).target;
+    const t = entities.get(id, Brain).target;
     if (!entities.isValid(t)) return Infinity;
-    const p = entities.get(Position, id);
-    const tp = entities.get(Position, t);
+    const p = entities.get(id, Position);
+    const tp = entities.get(t, Position);
     const dx = tp.x - p.x;
     const dy = tp.y - p.y;
     return Math.sqrt(dx * dx + dy * dy);
@@ -274,8 +274,8 @@ globalThis.CombatAI = {
    * (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
    */
   _seek(entities, id, tx, ty, speed) {
-    const pos = entities.get(Position, id);
-    const vel = entities.get(Velocity, id);
+    const pos = entities.get(id, Position);
+    const vel = entities.get(id, Velocity);
     const dx = tx - pos.x;
     const dy = ty - pos.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -285,7 +285,7 @@ globalThis.CombatAI = {
   },
 
   _stop(entities, id) {
-    const vel = entities.get(Velocity, id);
+    const vel = entities.get(id, Velocity);
     vel.x = 0;
     vel.y = 0;
   },
@@ -297,9 +297,9 @@ globalThis.CombatAI = {
    * per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
    */
   _tint(entities, id, r, g, b, k) {
-    const brain = entities.get(Brain, id);
+    const brain = entities.get(id, Brain);
     if (brain !== undefined && !brain.mobile) return;
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     if (vis === undefined) return;
     const base =
       brain !== undefined && brain.baseColor !== undefined
@@ -313,15 +313,15 @@ globalThis.CombatAI = {
    * carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
    */
   _animate(entities, id, attacking) {
-    const anim = entities.get(Animator, id);
+    const anim = entities.get(id, Animator);
     if (anim === undefined) return;
-    const vel = entities.get(Velocity, id);
+    const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
     else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
       st = "walk";
     AnimationSystem.set(anim, st);
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     if (vis === undefined || vel === undefined) return;
     if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
     else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
@@ -331,7 +331,7 @@ globalThis.CombatAI = {
    * outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
    */
   _attackPower(entities, id) {
-    const stats = entities.get(Stats, id);
+    const stats = entities.get(id, Stats);
     return stats !== undefined ? stats.attack : 0;
   },
 
@@ -339,7 +339,7 @@ globalThis.CombatAI = {
    * one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
    */
   _hitTarget(entities, id) {
-    const t = entities.get(Brain, id).target;
+    const t = entities.get(id, Brain).target;
     if (!entities.isValid(t)) return;
     Combat.applyDamage(entities, t, CombatAI._attackPower(entities, id));
   },
@@ -352,8 +352,8 @@ globalThis.CombatAI = {
   _fireAt(entities, id, brain) {
     const t = brain.target;
     if (!entities.isValid(t)) return;
-    const sp = entities.get(Position, id);
-    const tp = entities.get(Position, t);
+    const sp = entities.get(id, Position);
+    const tp = entities.get(t, Position);
     const dx = tp.x - sp.x;
     const dy = tp.y - sp.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;

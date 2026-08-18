@@ -38,7 +38,7 @@ class _SceneColonyClass {
 
     // inject stat-driven mitigation into the stat-agnostic Combat applier (static hook, survives map reloads)
     Combat.mitigate = function (entities, targetId, amount, penetration = 0) {
-      const s = entities.get(Stats, targetId);
+      const s = entities.get(targetId, Stats);
       const defense = s !== undefined ? s.defense : 0;
       // clamp so penetration never adds damage; min-1 floor so every hit registers
       const effDef = Math.max(0, defense - penetration);
@@ -46,7 +46,7 @@ class _SceneColonyClass {
     };
     // inject how a *_serum consumable raises an attribute; false → use() refuses (no waste)
     ConsumableSystem.grantAttr = function (entities, id, attr, amount) {
-      const a = entities.get(Attributes, id);
+      const a = entities.get(id, Attributes);
       if (a === undefined || a[attr] === undefined) return false;
       a[attr] += amount;
       StatModel.recompute(entities, id);
@@ -116,7 +116,7 @@ class _SceneColonyClass {
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
       // equipped so the attack is item-driven from frame one; travels with the carried inventory
-      const startInv = this.level.entities.get(Inventory, this.playerId);
+      const startInv = this.level.entities.get(this.playerId, Inventory);
       InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
       EquipmentSystem.equipFirst(this.level.entities, this.playerId, "lead_pipe"); // equip that instance by uid
       InventorySystem.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
@@ -124,7 +124,7 @@ class _SceneColonyClass {
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
       // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
       // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
-      const pp = this.level.entities.get(Position, this.playerId);
+      const pp = this.level.entities.get(this.playerId, Position);
       const companion = ColonySpawn.spawnFollower(
         this.level.entities,
         pp.x - 28,
@@ -330,7 +330,7 @@ class _SceneColonyClass {
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
     // unprojection (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
     this.mouseWorld = this.camera.cursorWorld();
-    const pl = this.level.entities.get(Playable, this.playerId);
+    const pl = this.level.entities.get(this.playerId, Playable);
     pl.cursorX = this.mouseWorld.x;
     pl.cursorY = this.mouseWorld.y;
 
@@ -364,7 +364,7 @@ class _SceneColonyClass {
     // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap. Rebuild only when
     // the player changed cell (window + occupancy are otherwise stable), with a periodic safety
     // rebuild to pick up in-place collider edits (build mode) that don't move the player a cell.
-    const np = this.level.entities.get(Position, this.playerId);
+    const np = this.level.entities.get(this.playerId, Position);
     const nc = this.level.grid.worldToGrid(np.x, np.y);
     this._navTick = (this._navTick + 1) % NAV_REBUILD_EVERY;
     if (nc.x !== this._navGx || nc.y !== this._navGy || this._navTick === 0) {
@@ -396,7 +396,7 @@ class _SceneColonyClass {
       ColonyCombat.resolveHealth(this, {
         spill: { yBase: 0, ySpread: 28 },
         onKill: (id) => {
-          const dp = this.level.entities.get(Position, id);
+          const dp = this.level.entities.get(id, Position);
           // death pop (spatial)
           if (dp !== undefined)
             Audio.play({
@@ -407,7 +407,7 @@ class _SceneColonyClass {
           this._reportAchievements("enemiesKilled");
           // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
           const kind =
-            this.level.entities.get(Rat, id) !== undefined ? "rat" : "raider";
+            this.level.entities.get(id, Rat) !== undefined ? "rat" : "raider";
           QuestLog.report("kill", kind, 1);
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
@@ -416,8 +416,8 @@ class _SceneColonyClass {
           Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
         },
         onRespawn: (id) => {
-          const pos = this.level.entities.get(Position, id);
-          const vel = this.level.entities.get(Velocity, id);
+          const pos = this.level.entities.get(id, Position);
+          const vel = this.level.entities.get(id, Velocity);
           pos.x = this.spawn.x;
           pos.y = this.spawn.y;
           vel.x = 0;
@@ -425,7 +425,7 @@ class _SceneColonyClass {
           // respawn half-hydrated/-fed/-slept: each need to mid-meter, refresh so a
           // critical debuff (dehydrated/starving/drowsy) clears at once
           for (const token of [Thirst, Hunger, Drowsiness]) {
-            const need = this.level.entities.get(token, id);
+            const need = this.level.entities.get(id, token);
             need.value = need.max * 0.5;
             Survival.refresh(this.level.entities, id, need);
           }
@@ -477,7 +477,7 @@ class _SceneColonyClass {
     // ears on the PLAYER's body, not the view: CameraFollow clamps its look-at at map edges
     // (and debug free-cam flies away entirely), parking the view center off the player — spatial
     // SFX pan/attenuate from where the player stands; camera center is the no-player fallback
-    const ep = this.level.entities.get(Position, this.playerId);
+    const ep = this.level.entities.get(this.playerId, Position);
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
@@ -521,8 +521,8 @@ class _SceneColonyClass {
 
     // merchant shop: refresh when dirty; auto-close if the player walked out of range (no station range-close)
     if (this._tradeOpen) {
-      const mp = this.level.entities.get(Position, this._tradeMerchantId);
-      const tp = this.level.entities.get(Position, this.playerId);
+      const mp = this.level.entities.get(this._tradeMerchantId, Position);
+      const tp = this.level.entities.get(this.playerId, Position);
       if (
         mp === undefined ||
         tp === undefined ||
@@ -544,7 +544,7 @@ class _SceneColonyClass {
    * number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
    */
   _useHotbar() {
-    const hb = this.level.entities.get(Hotbar, this.playerId);
+    const hb = this.level.entities.get(this.playerId, Hotbar);
     if (hb === undefined) return;
     for (let i = 0; i < hb.size; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
@@ -566,11 +566,11 @@ class _SceneColonyClass {
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
-    const eq = this.level.entities.get(Equipment, this.playerId);
+    const eq = this.level.entities.get(this.playerId, Equipment);
     if (eq === undefined) return false;
     const uid = eq.slots[it.getComponent(Equippable).slot];
     if (uid === undefined || uid === "") return false;
-    const inv = this.level.entities.get(Inventory, this.playerId);
+    const inv = this.level.entities.get(this.playerId, Inventory);
     const inst =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     return inst !== undefined && inst.itemId === itemId;
@@ -581,7 +581,7 @@ class _SceneColonyClass {
    * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
    */
   _onCollect(itemId, got) {
-    const pp = this.level.entities.get(Position, this.playerId);
+    const pp = this.level.entities.get(this.playerId, Position);
     // pickup blip (spatial, ~centred)
     if (pp !== undefined)
       Audio.play({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
@@ -599,8 +599,8 @@ class _SceneColonyClass {
    */
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
-    const p = this.level.entities.get(Position, this.playerId);
-    const squad = this.level.entities.get(Squad, this.playerId);
+    const p = this.level.entities.get(this.playerId, Position);
+    const squad = this.level.entities.get(this.playerId, Squad);
     if (p === undefined || squad === undefined) return;
     const members = FollowerSystem.members(
       this.level.entities,
@@ -611,7 +611,7 @@ class _SceneColonyClass {
     let bestSq = 80 * 80; // reach to a companion (px)
     for (let i = 1; i < members.length; i++) {
       // [0] is the player
-      const pos = this.level.entities.get(Position, members[i]);
+      const pos = this.level.entities.get(members[i], Position);
       if (pos === undefined) continue;
       const d = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
       if (d < bestSq) {
@@ -620,7 +620,7 @@ class _SceneColonyClass {
       }
     }
     if (best === -1) return;
-    const f = this.level.entities.get(Follower, best);
+    const f = this.level.entities.get(best, Follower);
     if (f.state === "follow") {
       FollowerSystem.setState(this.level.entities, this.playerId, best, "wait");
       Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
@@ -635,8 +635,8 @@ class _SceneColonyClass {
    * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
    */
   _kickFollower(fid) {
-    if (this.level.entities.get(Squad, fid) === undefined) return; // not a member
-    if (this.level.entities.get(Downed, fid) !== undefined) return; // recovering — can't kick mid-revive
+    if (this.level.entities.get(fid, Squad) === undefined) return; // not a member
+    if (this.level.entities.get(fid, Downed) !== undefined) return; // recovering — can't kick mid-revive
     FollowerSystem.kick(this.level.entities, this.playerId, fid);
     this._invDirty = true; // squad roster changed
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
@@ -688,7 +688,7 @@ class _SceneColonyClass {
    * Display name of a companion (for the down/recover toasts).
    */
   _followerName(id) {
-    const nm = this.level.entities.get(Name, id);
+    const nm = this.level.entities.get(id, Name);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
   }
 
@@ -710,7 +710,7 @@ class _SceneColonyClass {
   _updateClimate() {
     const cmap = this.level.grid.zoneMap("climate");
     if (cmap === undefined) return;
-    const pos = this.level.entities.get(Position, this.playerId);
+    const pos = this.level.entities.get(this.playerId, Position);
     const g = this.level.grid.worldToGrid(pos.x, pos.y);
     const id = cmap.idAt(g.x, g.y);
     if (id === this._climateZone) return; // no border crossed this frame
@@ -762,7 +762,7 @@ class _SceneColonyClass {
   _updateNpc() {
     this._npcId = -1;
     this.nearNpc = false;
-    const p = this.level.entities.get(Position, this.playerId);
+    const p = this.level.entities.get(this.playerId, Position);
     if (p === undefined) return;
     // nearest in-reach NPC (streamed or up-front); none → no dialogue this frame
     const id = Query.nearest(this.level.entities, p.x, p.y, {
@@ -773,10 +773,10 @@ class _SceneColonyClass {
     this._npcId = id;
     this.nearNpc = true;
 
-    const npc = this.level.entities.get(NPC, id);
+    const npc = this.level.entities.get(id, NPC);
     this.dialogueName = npc.name;
     // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
-    if (this.level.entities.get(Merchant, id) !== undefined) {
+    if (this.level.entities.get(id, Merchant) !== undefined) {
       this.dialogueLine = "NPC_MERCHANT_GREET";
       this.dialogueAction = "MERCHANT_TRADE";
       return;
@@ -835,9 +835,9 @@ class _SceneColonyClass {
       if (sCur !== nCur) {
         toStation = sCur;
       } else {
-        const p = this.level.entities.get(Position, this.playerId);
-        const sp = this.level.entities.get(Position, stationId);
-        const np = this.level.entities.get(Position, npcId);
+        const p = this.level.entities.get(this.playerId, Position);
+        const sp = this.level.entities.get(stationId, Position);
+        const np = this.level.entities.get(npcId, Position);
         toStation =
           (sp.x - p.x) ** 2 + (sp.y - p.y) ** 2 <=
           (np.x - p.x) ** 2 + (np.y - p.y) ** 2;
@@ -853,11 +853,11 @@ class _SceneColonyClass {
   _npcActivate() {
     if (this._npcId === -1 || !this.nearNpc) return;
     // a merchant NPC opens its shop instead of the quest flow
-    if (this.level.entities.get(Merchant, this._npcId) !== undefined) {
+    if (this.level.entities.get(this._npcId, Merchant) !== undefined) {
       TradeUI.open(this, this._npcId);
       return;
     }
-    const npc = this.level.entities.get(NPC, this._npcId);
+    const npc = this.level.entities.get(this._npcId, NPC);
     const qid = npc.questId;
     if (QuestLog.isReady(qid)) {
       this._completeQuest(qid);
@@ -936,7 +936,7 @@ class _SceneColonyClass {
         const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
         if (n > 0) {
           InventorySystem.add(
-            this.level.entities.get(Inventory, this.playerId),
+            this.level.entities.get(this.playerId, Inventory),
             "coin",
             n,
           );

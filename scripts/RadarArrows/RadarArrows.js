@@ -9,7 +9,7 @@ globalThis.RadarArrows = {
    * opt: { range, ring, near, far, lift } — lift is the 2.5D world-z (0 = flat).
    */
   draw(entities, target, rules, opt = {}) {
-    const tp = entities.get(Position, target);
+    const tp = entities.get(target, Position);
     if (tp === undefined) return; // target gone — nothing to center on
     const range = opt.range ?? 460;
     const ring = opt.ring ?? 52; // world px from player to each arrow
@@ -35,7 +35,7 @@ globalThis.RadarArrows = {
       if (id === target) continue;
       const col = RadarArrows._color(entities, id, rules);
       if (col === null) continue; // no matching rule — not tracked
-      const p = entities.get(Position, id);
+      const p = entities.get(id, Position);
       const dx = p.x - tp.x;
       const dy = p.y - tp.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -83,7 +83,7 @@ globalThis.RadarArrows = {
 
   _color(entities, id, rules) {
     for (let r = 0; r < rules.length; r++)
-      if (entities.get(rules[r].has, id) !== undefined) return rules[r].color;
+      if (entities.get(id, rules[r].has) !== undefined) return rules[r].color;
     return null;
   },
 };

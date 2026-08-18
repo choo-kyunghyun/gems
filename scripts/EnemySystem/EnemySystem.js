@@ -4,8 +4,8 @@ globalThis.EnemySystem = {
   /** reverse on wall (vel.x zeroed by SolidSystem), then drive walk vel. no ledge probing. */
   update(entities) {
     for (const id of entities.query(Enemy, Velocity)) {
-      const en = entities.get(Enemy, id);
-      const vel = entities.get(Velocity, id);
+      const en = entities.get(id, Enemy);
+      const vel = entities.get(id, Velocity);
       if (vel.x === 0) en.dir = -en.dir; // hit a wall on the last move
       vel.x = en.dir * en.speed;
     }
@@ -16,7 +16,7 @@ globalThis.EnemySystem = {
    * mid-iteration removal is safe. returns true if any enemy was defeated.
    */
   resolveStomp(entities, playerId) {
-    const pvel = entities.get(Velocity, playerId);
+    const pvel = entities.get(playerId, Velocity);
     if (pvel.y <= 0) return false; // only when descending
     const p = AABB.of(entities, playerId);
     let stomped = false;

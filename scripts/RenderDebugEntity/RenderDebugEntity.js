@@ -25,7 +25,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
     draw_primitive_begin(pr_linelist);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const bbox = entities.get(BBox, id);
+      const bbox = entities.get(id, BBox);
       if (bbox === undefined) continue;
       const e = AABB.edges(
         InterpolationSystem.lerp(entities, id, this._rp),

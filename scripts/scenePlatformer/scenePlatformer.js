@@ -30,7 +30,7 @@ class _ScenePlatformerClass {
     this.physics = new Pipeline()
       .add(GravitySystem)
       .add((entities) => {
-        const vel = entities.get(Velocity, this.ctrl.id);
+        const vel = entities.get(this.ctrl.id, Velocity);
         if (vel.y > PLATF_MAX_FALL) vel.y = PLATF_MAX_FALL;
       })
       .add(SolidSystem)
@@ -79,7 +79,7 @@ class _ScenePlatformerClass {
 
       const id = this.ctrl.id;
       if (EnemySystem.resolveStomp(this.level.entities, id)) {
-        this.level.entities.get(Velocity, id).y = -PLATF_STOMP_BOUNCE;
+        this.level.entities.get(id, Velocity).y = -PLATF_STOMP_BOUNCE;
         this.stomps++;
         Audio.play({ sound: snd_hitsound_flesh }); // 2D — platformer sets no listener
       } else {
@@ -97,7 +97,7 @@ class _ScenePlatformerClass {
         if (hurt)
           PlatformerController.respawn(this.level.entities, this.ctrl, this.spawn);
       }
-      if (this.level.entities.get(Position, id).y > PLATF_DEATH_Y)
+      if (this.level.entities.get(id, Position).y > PLATF_DEATH_Y)
         PlatformerController.respawn(this.level.entities, this.ctrl, this.spawn);
 
       this.level.entities.flush();

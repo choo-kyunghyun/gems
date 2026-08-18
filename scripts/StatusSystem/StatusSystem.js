@@ -42,7 +42,7 @@ globalThis.StatusSystem = {
    * Remove by id; re-derives if the def carried `mods`. Returns whether it was present.
    */
   remove(entities, id, statusId) {
-    const eff = entities.get(StatusEffects, id);
+    const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return false;
     const i = StatusSystem._find(eff, statusId);
     if (i < 0) return false;
@@ -60,7 +60,7 @@ globalThis.StatusSystem = {
    */
   maintain(entities, id, statusId, mult) {
     if (mult === null || mult === undefined) {
-      const eff = entities.get(StatusEffects, id);
+      const eff = entities.get(id, StatusEffects);
       if (eff === undefined) return;
       const i = StatusSystem._find(eff, statusId);
       if (i >= 0) eff.list.splice(i, 1);
@@ -77,7 +77,7 @@ globalThis.StatusSystem = {
   },
 
   has(entities, id, statusId) {
-    const eff = entities.get(StatusEffects, id);
+    const eff = entities.get(id, StatusEffects);
     return eff !== undefined && StatusSystem._find(eff, statusId) >= 0;
   },
 
@@ -85,7 +85,7 @@ globalThis.StatusSystem = {
    * Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id).
    */
   list(entities, id) {
-    const eff = entities.get(StatusEffects, id);
+    const eff = entities.get(id, StatusEffects);
     return eff !== undefined ? eff.list : [];
   },
 
@@ -94,7 +94,7 @@ globalThis.StatusSystem = {
    * The mover reads this for "speed" so speed statuses compose by multiplication. Read live each use.
    */
   scale(entities, id, key) {
-    const eff = entities.get(StatusEffects, id);
+    const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return 1;
     let m = 1;
     for (let i = 0; i < eff.list.length; i++) {
@@ -117,7 +117,7 @@ globalThis.StatusSystem = {
     const ids = entities.query(StatusEffects);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const eff = entities.get(StatusEffects, id);
+      const eff = entities.get(id, StatusEffects);
       const dt = SimClock.tickDuration;
       let modsExpired = false;
       for (let j = eff.list.length - 1; j >= 0; j--) {
@@ -151,11 +151,11 @@ globalThis.StatusSystem = {
    * armor); HoT clamps to Stats.maxHp. Only changes hp — the <=0 reaction is the Mortal death pass.
    */
   _applyTick(entities, id, def) {
-    const hp = entities.get(Health, id);
+    const hp = entities.get(id, Health);
     if (hp === undefined) return;
     if (def.dot > 0) hp.hp -= def.dot * def.interval;
     if (def.hot > 0) {
-      const stats = entities.get(Stats, id);
+      const stats = entities.get(id, Stats);
       const cap =
         stats !== undefined ? stats.maxHp : hp.hp + def.hot * def.interval;
       hp.hp += def.hot * def.interval;
@@ -164,7 +164,7 @@ globalThis.StatusSystem = {
   },
 
   _ensure(entities, id) {
-    let eff = entities.get(StatusEffects, id);
+    let eff = entities.get(id, StatusEffects);
     if (eff === undefined) {
       eff = { list: [] };
       entities.add(id, StatusEffects, eff);

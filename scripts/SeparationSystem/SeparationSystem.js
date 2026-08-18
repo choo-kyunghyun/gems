@@ -7,7 +7,7 @@ globalThis.SeparationSystem = {
     // collect once; positions shift per pass but the body list is stable
     const bodies = [];
     for (const id of entities.query(Collision, Position, BBox)) {
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       if (col.solid && !col.kinematic) bodies.push(id);
     }
 
@@ -36,8 +36,8 @@ globalThis.SeparationSystem = {
     const ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
     const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
 
-    const pa = entities.get(Position, ida);
-    const pb = entities.get(Position, idb);
+    const pa = entities.get(ida, Position);
+    const pb = entities.get(idb, Position);
 
     if (ox < oy) {
       const dir = a.cx < b.cx ? -1 : 1;

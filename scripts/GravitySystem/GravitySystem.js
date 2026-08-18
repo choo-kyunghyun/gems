@@ -10,9 +10,9 @@ globalThis.GravitySystem = {
     const dt = SimClock.tickDuration;
     const ids = entities.query(Velocity);
     for (const id of ids) {
-      const col = entities.get(Collision, id);
+      const col = entities.get(id, Collision);
       if (col && col.kinematic) continue;
-      const vel = entities.get(Velocity, id);
+      const vel = entities.get(id, Velocity);
       vel.x += direction.x * strength * dt;
       vel.y += direction.y * strength * dt;
       vel.z += direction.z * strength * dt;

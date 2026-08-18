@@ -25,9 +25,9 @@ globalThis.EncumbranceSystem = {
    * Encumbrance/Inventory/maxWeight, or below `threshold`; linear from threshold to minScale at full.
    */
   scale(entities, id) {
-    const enc = entities.get(Encumbrance, id);
+    const enc = entities.get(id, Encumbrance);
     if (enc === undefined) return 1;
-    const inv = entities.get(Inventory, id);
+    const inv = entities.get(id, Inventory);
     if (
       inv === undefined ||
       inv.maxWeight === undefined ||

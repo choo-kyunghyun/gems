@@ -48,11 +48,11 @@ globalThis.ColonyCombat = {
   _diffHp(scene, id, isAlly, yOffset) {
     const entities = scene.level.entities;
     if (!entities.isValid(id)) return;
-    const hp = entities.get(Health, id);
+    const hp = entities.get(id, Health);
     if (hp === undefined) return;
     const prev = scene._hpTrack[id];
     if (prev !== undefined && hp.hp !== prev) {
-      const pos = entities.get(Position, id);
+      const pos = entities.get(id, Position);
       if (pos !== undefined) {
         const d = hp.hp - prev; // <0 = damage, >0 = heal
         if (d < 0) {
@@ -63,7 +63,7 @@ globalThis.ColonyCombat = {
           // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
           // armored (geared squad), enemies as flesh (raiders/rats).
           const at = { x: pos.x, y: pos.y };
-          if (entities.get(Mesh, id) !== undefined)
+          if (entities.get(id, Mesh) !== undefined)
             Audio.play({ sound: snd_hitsound_metal, position: at });
           else if (isAlly)
             Audio.play({ sound: snd_hitsound_armor, position: at });
@@ -95,9 +95,9 @@ globalThis.ColonyCombat = {
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const hp = entities.get(Health, id);
+      const hp = entities.get(id, Health);
       if (hp === undefined || hp.hp > 0) continue;
-      const m = entities.get(Mortal, id);
+      const m = entities.get(id, Mortal);
       if (m.kind === "despawn") {
         ColonyCombat.spillLoot(scene, id, h.spill);
         if (h.onKill !== undefined) h.onKill(id);
@@ -106,7 +106,7 @@ globalThis.ColonyCombat = {
         if (h.onKill !== undefined) h.onKill(id); // before the transform strips components
         ColonyCombat._toCorpse(scene, id);
       } else if (m.kind === "respawn") {
-        const st = entities.get(Stats, id);
+        const st = entities.get(id, Stats);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
         if (h.onRespawn !== undefined) h.onRespawn(id);
         scene._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
@@ -126,12 +126,12 @@ globalThis.ColonyCombat = {
   _goDown(scene, id, m, h) {
     const entities = scene.level.entities;
     entities.detach(id, Health);
-    const vel = entities.get(Velocity, id);
+    const vel = entities.get(id, Velocity);
     if (vel !== undefined) {
       vel.x = 0;
       vel.y = 0;
     }
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
     delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
@@ -147,18 +147,18 @@ globalThis.ColonyCombat = {
     const ids = entities.query(Downed);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      const d = entities.get(Downed, id);
+      const d = entities.get(id, Downed);
       d.timer -= SimClock.tickDuration;
       if (d.timer > 0) continue;
-      const m = entities.get(Mortal, id);
+      const m = entities.get(id, Mortal);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
       entities.add(id, Health, { hp: reviveHp });
-      const vis = entities.get(Visual, id);
+      const vis = entities.get(id, Visual);
       if (vis !== undefined) vis.alpha = 1;
       const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
       if (spot !== undefined) {
-        const pos = entities.get(Position, id);
-        const vel = entities.get(Velocity, id);
+        const pos = entities.get(id, Position);
+        const vel = entities.get(id, Velocity);
         if (pos !== undefined) {
           pos.x = spot.x;
           pos.y = spot.y;
@@ -193,9 +193,9 @@ globalThis.ColonyCombat = {
     entities.detach(id, PrevPosition); // renderers lerp Prev→Pos when present — a stale one offsets the draw
     entities.detach(id, Faction);
     entities.detach(id, Animator); // stop the state machine writing subimg
-    const col = entities.get(Collision, id);
+    const col = entities.get(id, Collision);
     if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight
-    const vis = entities.get(Visual, id);
+    const vis = entities.get(id, Visual);
     if (vis !== undefined) {
       vis.alpha = 0.4; // dimmed = dead (the Downed convention; Appearance layers share alpha)
       vis.speed = 0; // freeze self-animating sprites (rat scuttle)
@@ -216,9 +216,9 @@ globalThis.ColonyCombat = {
     const entities = scene.level.entities;
     const ids = entities.query(Interaction);
     for (let i = 0; i < ids.length; i++) {
-      const it = entities.get(Interaction, ids[i]);
+      const it = entities.get(ids[i], Interaction);
       if (it === undefined || it.kind !== "corpse") continue;
-      const inv = entities.get(Inventory, ids[i]);
+      const inv = entities.get(ids[i], Inventory);
       if (inv === undefined || inv.slots.length === 0) entities.remove(ids[i]);
     }
   },
@@ -228,8 +228,8 @@ globalThis.ColonyCombat = {
    */
   spillLoot(scene, enemyId, opts) {
     const entities = scene.level.entities;
-    const inv = entities.get(Inventory, enemyId);
-    const pos = entities.get(Position, enemyId);
+    const inv = entities.get(enemyId, Inventory);
+    const pos = entities.get(enemyId, Position);
     if (inv === undefined || pos === undefined) return;
     const yBase =
       opts !== undefined && opts.yBase !== undefined ? opts.yBase : 0;
@@ -281,11 +281,11 @@ globalThis.ColonyCombat = {
    */
   collectDrops(scene, onCollect) {
     const entities = scene.level.entities;
-    const hits = entities.get(Collision, scene.playerId).hits;
-    const inv = entities.get(Inventory, scene.playerId);
+    const hits = entities.get(scene.playerId, Collision).hits;
+    const inv = entities.get(scene.playerId, Inventory);
     for (let i = 0; i < hits.length; i++) {
       const id = hits[i];
-      const d = entities.get(ItemDrop, id);
+      const d = entities.get(id, ItemDrop);
       if (d === undefined) continue;
       // An instance drop re-inserts whole (uid + mods preserved); a fungible drop adds by qty.
       if (d.uid !== undefined) {
