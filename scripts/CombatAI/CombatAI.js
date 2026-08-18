@@ -2,7 +2,7 @@
 // registers the "combat.*" StateSystem states. System contract on the CombatAI declaration below.
 
 // turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
-const RPG_SHOT_RANGE_SECS = 1.5;
+const SHOT_RANGE_SECS = 1.5;
 
 /**
  * per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
@@ -48,7 +48,7 @@ globalThis.CombatAI = {
   // bind() on each map activate (a resumed map keeps its actors' Brain/State without re-attach).
   _grid: undefined,
 
-  /** Register the combat states into the StateSystem pool (idempotent; called by RpgContent). */
+  /** Register the combat states into the StateSystem pool (idempotent; called by content). */
   register() {
     StateSystem.register([
       {
@@ -248,7 +248,7 @@ globalThis.CombatAI = {
 
   /**
    * Re-point the Level static at the active map without re-attaching actors (a resumed map —
-   * RpgMap.resume — keeps its actors' Brain/State without calling attach). Called per map
+   * ColonyMap.resume — keeps its actors' Brain/State without calling attach). Called per map
    * activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
    * is stored — the store reaches states through the StateSystem callbacks.
    */
@@ -360,7 +360,7 @@ globalThis.CombatAI = {
     const nx = dx / d;
     const ny = dy / d;
     // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
-    const range = brain.bulletSpeed * RPG_SHOT_RANGE_SECS;
+    const range = brain.bulletSpeed * SHOT_RANGE_SECS;
     const shot = Combat.hitscan(
       entities,
       sp.x,
@@ -372,6 +372,6 @@ globalThis.CombatAI = {
         damage: CombatAI._attackPower(entities, id),
       },
     );
-    RpgWorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);
+    WorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);
   },
 };

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Hud",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Hud",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Game/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Hud.js",
+}

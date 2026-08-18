@@ -73,7 +73,7 @@ globalThis.World = {
   },
 
   // Advance world-scope time by `dt` sim seconds, then fire every event now due on that timeline.
-  // NOT yet wired: sceneRpg still calls WorldClock.update / WorldEvents.update directly.
+  // NOT yet wired: sceneColony still calls WorldClock.update / WorldEvents.update directly.
   update(dt) {
     WorldClock.update(dt);
     WorldEvents.update(WorldClock.absHours());

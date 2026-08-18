@@ -159,7 +159,7 @@ globalThis.SolidSystem = {
   /**
    * Bake the kinematic solids into flat records: edges + oneWay, so the body×static resolve loop
    * reads plain fields — no AABB.of / entities.get per test. Those per-test Map lookups + edge
-   * allocs were ~70% of the RPG's tick cost before the snapshot existed.
+   * allocs were ~70% of the colony's tick cost before the snapshot existed.
    */
   _snapshot(entities, ids) {
     const statics = [];

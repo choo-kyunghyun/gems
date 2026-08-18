@@ -1,5 +1,5 @@
 // Status/buff DEFINITION registry (parallel of Item/Rarity). Registered at scene create()
-// (RpgStatuses.register), NOT at top level — GMRT load-order. Effect kinds on the declaration below.
+// (contentStatuses.register), NOT at top level — GMRT load-order. Effect kinds on the declaration below.
 /**
  * A status carries up to three effect kinds:
  *   dot/hot — Health change per `interval` (StatusSystem.update)

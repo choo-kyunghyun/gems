@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Progression",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Progression",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Progression.js",
+}

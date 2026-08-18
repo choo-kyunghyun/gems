@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentAchievements",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentAchievements",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentAchievements.js",
+}

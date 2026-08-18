@@ -9,9 +9,9 @@
 globalThis.Hotbar = "Hotbar";
 
 /**
- * single source of truth for slot count (RpgPlayer.spawn / PlayerSystem bindings / RpgHud / RpgInventoryUI)
+ * single source of truth for slot count (ColonyPlayer.spawn / PlayerSystem bindings / Hud / InventoryUI)
  */
-globalThis.RPG_HOTBAR_SIZE = 5;
+globalThis.HOTBAR_SIZE = 5;
 
 /** stateless operations on a Hotbar component */
 globalThis.HotbarSystem = {

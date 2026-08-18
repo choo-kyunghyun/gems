@@ -1,11 +1,11 @@
 // Single damage applier for all paths (melee, hitscan, projectile) — stays stat-agnostic via the
 // injected `mitigate` hook. Only subtracts hp; the reaction at <=0 hp is the Mortal death pass.
 /**
- * The RPG wires its defense formula in sceneRpg.create, so the applier itself never reads a stat
+ * The colony wires its defense formula in sceneColony.create, so the applier itself never reads a stat
  * sheet — hitscan needs only Health + Faction.
  */
 globalThis.Combat = {
-  // injected defense formula — default identity; RPG overrides with max(1, amount-max(0,defense-pen))
+  // injected defense formula — default identity; colony overrides with max(1, amount-max(0,defense-pen))
   mitigate(entities, targetId, amount, penetration = 0) {
     return amount;
   },

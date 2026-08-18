@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColonyLevel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColonyLevel",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/Game/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColonyLevel.js",
+}

@@ -1,5 +1,5 @@
-// SaveGame — the RPG's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
-// with the RPG's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
+// SaveGame — the colony's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
+// with the colony's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
  * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
  * default/ path, see docs/GMRT.md):
@@ -18,7 +18,7 @@ globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
-  _pending: null, // a loaded bundle awaiting the RPG scene's create() load-branch
+  _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch
   // per-map saved state awaiting each map's first build after a load — the active map consumes its
   // entry immediately; a parked map consumes its entry when the player first portals to it (so a
   // visited map's residents and builds don't come back fresh from file). mapId -> saved map entry.
@@ -93,8 +93,8 @@ globalThis.SaveGame = {
   // ── load ──
 
   /**
-   * Read a slot's bundle off disk and PARK it for the RPG scene's create() load-branch (the
-   * actual reconstruction needs a fresh scene). The caller then boots/switches to SceneRpg.
+   * Read a slot's bundle off disk and PARK it for the colony scene's create() load-branch (the
+   * actual reconstruction needs a fresh scene). The caller then boots/switches to SceneColony.
    * Returns false if the slot can't be read.
    */
   load(slot) {
@@ -126,7 +126,7 @@ globalThis.SaveGame = {
   },
 
   /**
-   * Reconstruct the session into a FRESH RPG scene — called from sceneRpg.create()'s load-branch
+   * Reconstruct the session into a FRESH colony scene — called from sceneColony.create()'s load-branch
    * in place of the new-game map+player seeding. Runs the frame's restore passes, then frees the
    * loaded blobs. Clears the pending bundle.
    */
@@ -269,9 +269,9 @@ globalThis.SaveGame = {
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
         const level = World.get(mapId); // the map's data — pooled whether it's active or parked
-        // its per-map RPG state lives flat on the scene while active, in the park bundle once parked
+        // its per-map colony state lives flat on the scene while active, in the park bundle once parked
         const src =
-          mapId === activeId ? ctx.scene : RpgMap._parked[mapId];
+          mapId === activeId ? ctx.scene : ColonyMap._parked[mapId];
         if (level === null || src === undefined) continue;
         const entities = level.entities;
         const grid = level.grid;
@@ -284,7 +284,7 @@ globalThis.SaveGame = {
         // WHAT THE BOOT REBUILDS IS NOT SAVED, so restoring the rest can't double it: the level's
         // geometry (the grid comes back from the file or the seed, and its colliders are re-meshed
         // with it) and the scene's own re-created entities (Trader.register re-embodies its
-        // wandering vendor; sceneRpg's arcade cabinet is gated on a new game instead, since it is
+        // wandering vendor; sceneColony's arcade cabinet is gated on a new game instead, since it is
         // spawned once rather than per activation).
         // Trader ids only against the ACTIVE map: a trader is embodied in exactly one map (parking
         // dehydrates it), and an entity INDEX is per-store — matching one against another map's
@@ -320,7 +320,7 @@ globalThis.SaveGame = {
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
-      // Stash EVERY saved map. The active one is applied by the build() below (RpgMap.build consults
+      // Stash EVERY saved map. The active one is applied by the build() below (ColonyMap.build consults
       // takePendingMap for its residents + applyMapState); parked maps apply on their first portal.
       SaveGame._stashPending(maps);
       let active = null;
@@ -339,7 +339,7 @@ globalThis.SaveGame = {
       PlayerSystem.bindKeys();
       // Build the active map, arriving the restored squad at its default entry. build() consumes the
       // active map's stashed state (residents + builds + claimed zone).
-      RpgMap.build(scene, activeMap, "default", squad);
+      ColonyMap.build(scene, activeMap, "default", squad);
       // then move the player from the entry back to where it was saved
       const pinfo = SaveGame._playerPos(active.world);
       if (pinfo !== null && scene.playerId !== undefined) {
@@ -482,7 +482,7 @@ globalThis.SaveGame = {
       return;
     }
     SystemMenu.close();
-    game.switchTo(SceneRpg); // fresh RPG boot → create() load-branch → restore
+    game.switchTo(SceneColony); // fresh colony boot → create() load-branch → restore
   },
 
   // ── restore helpers: pull entities back out of a store export ──
@@ -518,7 +518,7 @@ globalThis.SaveGame = {
    * Re-create a loaded map's residents into a freshly-built store, in place of its spawn pass —
    * which is what makes a killed mob stay dead, a moved one stay moved, and dropped loot stay on
    * the ground. Everything in the export is restored EXCEPT the two sets another step owns: the
-   * SQUAD (RpgMap._arriveSquad lands those as whole entities) and the player's BUILDS (Blueprint
+   * SQUAD (ColonyMap._arriveSquad lands those as whole entities) and the player's BUILDS (Blueprint
    * replays those from `builtEnts`, each with its own snapshot). Level geometry was never in the
    * export — _excludeRebuilt dropped it on capture. Returns how many were restored.
    */
@@ -577,7 +577,7 @@ globalThis.SaveGame = {
 
   /**
    * rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
-   * EntitySnapshot.apply/restore (and RpgMap._arriveSquad via World.put) consume.
+   * EntitySnapshot.apply/restore (and ColonyMap._arriveSquad via World.put) consume.
    */
   _recordAt(exp, idx) {
     const comps = {};
@@ -591,7 +591,7 @@ globalThis.SaveGame = {
 
   /**
    * the SQUAD's entity indexes (player FIRST, then companions sharing its Squad id), or null when
-   * the export holds no player. Two readers: the records handed to RpgMap.build, and the skip set
+   * the export holds no player. Two readers: the records handed to ColonyMap.build, and the skip set
    * restoreResidents needs so the squad isn't landed twice.
    */
   _squadIndexes(exp) {
@@ -614,7 +614,7 @@ globalThis.SaveGame = {
 
   /**
    * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
-   * RpgMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   * ColonyMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
    */
   _extractSquad(exp) {
     const idxs = SaveGame._squadIndexes(exp);

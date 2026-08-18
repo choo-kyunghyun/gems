@@ -4,14 +4,14 @@ const PLATF_DEATH_Y = 900; // fall past this (off a platform edge into the void)
 const PLATF_STOMP_BOUNCE = 420; // upward vy given to the player after stomping an enemy
 
 /**
- * global factory so it can be opened as a keep-switch guest (RPG arcade cabinet).
+ * global factory so it can be opened as a keep-switch guest (colony arcade cabinet).
  * not SceneRegistry.add'd — reachable only in-world, not from the lobby.
  */
 globalThis.ScenePlatformer = () => new _ScenePlatformerClass();
 
 /**
  * side-scrolling movement showcase: accel/skid, coyote time, jump buffer, variable jump,
- * one-way drop-through, stomp enemies, spike/void respawn. no RPG layer.
+ * one-way drop-through, stomp enemies, spike/void respawn. no colony layer.
  * standalone SCREEN class — duck-typed contract, see Scene.
  */
 class _ScenePlatformerClass {
@@ -25,7 +25,7 @@ class _ScenePlatformerClass {
     this.ctrl = PlatformerController.create(this.level.entities, this.spawn);
     // BUG: [#15067] set in create(), not a class field.
     this.stomps = 0; // score reported back to host via result()
-    Music.play(mus_ambient_danger); // crossfades the RPG's overworld track; restored on pop
+    Music.play(mus_ambient_danger); // crossfades the colony's overworld track; restored on pop
 
     this.physics = new Pipeline()
       .add(GravitySystem)
@@ -110,7 +110,7 @@ class _ScenePlatformerClass {
     this.renderer.draw(this.level.entities);
   }
 
-  /** score returned to the RPG arcade cabinet via the Game object's back() onResult */
+  /** score returned to the colony arcade cabinet via the Game object's back() onResult */
   result() {
     return { stomps: this.stomps };
   }

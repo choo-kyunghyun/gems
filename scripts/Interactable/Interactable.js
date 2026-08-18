@@ -1,7 +1,7 @@
-// Interaction engine for the RPG scene: each frame it picks one `Interaction`-carrying target
+// Interaction engine for the colony scene: each frame it picks one `Interaction`-carrying target
 // (under the cursor if in range, else nearest), prompts it, and runs its action on E.
 /**
- * The action itself is data (InteractAction registry, RPG set in RpgInteractions), so this engine is
+ * The action itself is data (InteractAction registry, colony set in contentInteractions), so this engine is
  * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
  * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
  * cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch, see Camera). Per-frame/open
@@ -69,7 +69,7 @@ globalThis.Interactable = {
 
   /**
    * Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
-   * here — the scene's arbiter (sceneRpg._dispatchInteract) decides station-vs-NPC and calls
+   * here — the scene's arbiter (sceneColony._dispatchInteract) decides station-vs-NPC and calls
    * activate()/closeAll(), so one E press can't fire two handlers.
    */
   update(scene) {

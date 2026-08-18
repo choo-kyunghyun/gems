@@ -9,9 +9,9 @@
  *      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
  *    `openScene(factory, opts)` is the ONLY handle a scene gets on the switch — a scene that opens
- *    a guest later (the RPG's arcade cabinet) stashes it in create(). There is no back-ref to the
+ *    a guest later (the colony's arcade cabinet) stashes it in create(). There is no back-ref to the
  *    Game object.
- *    Genre screens (sceneRpg / scenePlatformer / sceneEditor / sceneUIKit) are STANDALONE classes
+ *    Genre screens (sceneColony / scenePlatformer / sceneEditor / sceneUIKit) are STANDALONE classes
  *    satisfying it — composition, never `extends Scene`.
  *
  * 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need (the lobby:
@@ -31,7 +31,7 @@ globalThis.Scene = class Scene {
 
   // Freeze/thaw hooks: suspend when a guest keep-switches in front, resume when back() returns.
   // These defaults fit one UI root + one camera; a screen with extra state defines its own — the
-  // RPG re-binds its keymap on resume, because the guest controller's destroy() unbound the
+  // The colony scene re-binds its keymap on resume, because the guest controller's destroy() unbound the
   // shared action names.
   suspend() {
     if (this.ui) UI.setEnabled(this.ui, false);

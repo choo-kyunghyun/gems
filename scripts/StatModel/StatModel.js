@@ -1,7 +1,7 @@
 // Swappable stat model: rewrite ATTRS + derive() to change the attribute set (D&D-6, SPECIAL, …)
 // without touching anything downstream — combat reads derived Stats only, via Combat's injected mitigate.
 /**
- * Game-side (names the RPG sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed,
+ * Game-side (names the colony sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed,
  * END→maxStamina.
  */
 globalThis.StatModel = {
@@ -13,7 +13,7 @@ globalThis.StatModel = {
     { id: "end", name: "ATTR_END", default: 6 },
   ],
 
-  /** fresh attribute bag from defaults; RpgPlayer.spawn uses this */
+  /** fresh attribute bag from defaults; ColonyPlayer.spawn uses this */
   defaults() {
     const a = {};
     for (let i = 0; i < StatModel.ATTRS.length; i++) {

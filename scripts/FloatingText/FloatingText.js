@@ -46,7 +46,7 @@ globalThis.FloatingText = {
    * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
    * camera, pitchDeg tilts each number to face the camera head-on (text readability — unlike the
    * entity sprites, which draw UPRIGHT via RenderBillboard) instead of splayed flat; 0 = flat
-   * top-down. sceneRpg passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
+   * top-down. sceneColony passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
    */
   draw(pitchDeg = 0) {
     const items = FloatingText._items;

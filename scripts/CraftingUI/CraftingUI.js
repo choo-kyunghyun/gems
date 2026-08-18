@@ -1,5 +1,5 @@
 // WORKBENCH window: near-fullscreen shell (absolute host + dim backdrop + centered card, built once,
-// shown via `.enabled` — like TradeUI/RpgInventoryUI). Open/close owned by Interactable.
+// shown via `.enabled` — like TradeUI/InventoryUI). Open/close owned by Interactable.
 /**
  * One bench upgraded by a single MODULE slot (Interaction.module): slot a WorkbenchModule to change
  * what it does. Two parts:

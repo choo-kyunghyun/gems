@@ -3,21 +3,21 @@
 /**
  * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
  * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
- * its map is the ACTIVE one the record is HYDRATED into a real Merchant NPC entity (via RpgSpawn — so
+ * its map is the ACTIVE one the record is HYDRATED into a real Merchant NPC entity (via ColonySpawn — so
  * TradeUI / TradeSystem / _npcActivate treat it like any vendor); on leave/depart it DEHYDRATES back
  * to the record (living state captured as a whole-entity snapshot through Universe). So a trader is an
  * entity in exactly one place — the map you're standing in.
  *
  * A record: { id, name, route:[{map,dwellH}], travelH, merchant, idx, map, inTransit, entId, snap }
  *   route     ordered stops (map id + hours to dwell there); travelH = hours in transit between stops
- *   merchant  the descriptor RpgSpawn builds the vendor from on the FIRST hydrate (stock/margins/mode)
+ *   merchant  the descriptor ColonySpawn builds the vendor from on the FIRST hydrate (stock/margins/mode)
  *   map       current map when settled; inTransit true while travelling between stops
  *   entId     live entity id while embodied in the active map, else -1
  *   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
  */
 globalThis.Trader = {
   _recs: {}, // id -> record
-  _scene: null, // the active RPG scene — handlers reach the active store/map through it
+  _scene: null, // the active colony scene — handlers reach the active store/map through it
   _installed: false, // WorldEvents handlers registered once
 
   /** Register the arrive/depart handlers on WorldEvents (once; survives scene resets). */
@@ -130,8 +130,8 @@ globalThis.Trader = {
         [Position]: { x: w.x, y: w.y, z: 0 },
       });
     } else {
-      // first time: build the vendor fresh from the descriptor (single entity path, RpgSpawn)
-      rec.entId = RpgSpawn.spawnEntity(scene.level.entities, scene.level.grid, {
+      // first time: build the vendor fresh from the descriptor (single entity path, ColonySpawn)
+      rec.entId = ColonySpawn.spawnEntity(scene.level.entities, scene.level.grid, {
         preset: "npc",
         gx: gx,
         gy: gy,

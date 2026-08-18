@@ -16,7 +16,7 @@
 globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
+    this.camera = opt.camera; // a Camera instance; assigned by ColonyMap.build
     this.darkness = opt.darkness ?? 0.38; // core darkening at full coverage + full sun
     this.windX = opt.windX ?? -22; // drift, world px/s — leftward like the rain's slant
     this.windY = opt.windY ?? 8;

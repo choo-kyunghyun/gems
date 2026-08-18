@@ -1,5 +1,5 @@
 // In-engine level editor: paint tiles/entities/spawn/zones, export to save dir, Test Play in
-// sceneRpg. No World — entities are spawns records (data only), not live AI.
+// sceneColony. No World — entities are spawns records (data only), not live AI.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level file loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
@@ -23,8 +23,8 @@ class _SceneEditorClass {
   label = "Editor";
 
   create(openScene) {
-    // item + quest registries for the property editor; idempotent if sceneRpg called it first
-    RpgQuests.register();
+    // item + quest registries for the property editor; idempotent if sceneColony called it first
+    contentQuests.register();
 
     // renderer + camera built once; _initLevel rebinds passes per level so New/Open are cheap
     this.renderer = new Renderer();
@@ -33,7 +33,7 @@ class _SceneEditorClass {
     this.camera.assign(0);
 
     this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
-    this._placePreset = RpgCatalog.entries[0].id; // active entity preset
+    this._placePreset = contentCatalog.entries[0].id; // active entity preset
     this._sizeIdx = 0; // selected "New" size preset
     this._openIdx = 0; // selected "Open" file
 
@@ -192,8 +192,8 @@ class _SceneEditorClass {
       },
     ];
     const ents = [];
-    for (let i = 0; i < RpgCatalog.entries.length; i++) {
-      const entry = RpgCatalog.entries[i];
+    for (let i = 0; i < contentCatalog.entries.length; i++) {
+      const entry = contentCatalog.entries[i];
       ents.push({
         label: entry.label,
         onSelect: () => {
@@ -323,7 +323,7 @@ class _SceneEditorClass {
 
   _toolStatus() {
     if (this._tool === "entity") {
-      const e = RpgCatalog.get(this._placePreset);
+      const e = contentCatalog.get(this._placePreset);
       return I18n.text("EDITOR_TOOL", e ? e.label : this._placePreset);
     }
     const key =
@@ -384,7 +384,7 @@ class _SceneEditorClass {
     if (this._tool === "entity") {
       // LMB places + selects; RMB deletes — edge-triggered to avoid spam
       if (mouse_check_button_pressed(mb_left)) {
-        const rec = RpgCatalog.get(this._placePreset).make(cell.x, cell.y);
+        const rec = contentCatalog.get(this._placePreset).make(cell.x, cell.y);
         this._spawns.push(rec);
         this._select(rec);
       } else if (mouse_check_button_pressed(mb_right)) {
@@ -525,7 +525,7 @@ class _SceneEditorClass {
     }
 
     const rec = this._selected;
-    const entry = RpgCatalog.get(rec.preset);
+    const entry = contentCatalog.get(rec.preset);
     const head = new UIElement({ width: "100%", height: 22 });
     head.insertChild(
       gemsLabel(
@@ -698,12 +698,12 @@ class _SceneEditorClass {
     );
   }
 
-  /** serialize to playtest file, open sceneRpg; returning goes to lobby, not back to editor */
+  /** serialize to playtest file, open sceneColony; returning goes to lobby, not back to editor */
   _play(openScene) {
     LevelSerializer.save(EDITOR_PLAYTEST_FILE, this._buildData());
-    RpgLevel.playtestFile = EDITOR_PLAYTEST_FILE;
+    ColonyLevel.playtestFile = EDITOR_PLAYTEST_FILE;
     Log.info(`editor play → ${EDITOR_PLAYTEST_FILE}`);
-    openScene(SceneRpg);
+    openScene(SceneColony);
   }
 
   draw() {
@@ -754,7 +754,7 @@ class _SceneEditorClass {
     draw_set_halign(fa_center);
     for (let i = 0; i < this._spawns.length; i++) {
       const s = this._spawns[i];
-      const e = RpgCatalog.get(s.preset);
+      const e = contentCatalog.get(s.preset);
       const wx = s.gx * cw;
       const wy = s.gy * ch;
       draw_set_color(e !== undefined ? Color.parse(e.color) : c_white);

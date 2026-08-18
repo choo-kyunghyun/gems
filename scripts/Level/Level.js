@@ -5,7 +5,7 @@
  *
  * Both halves are optional in practice: a side-scroller has entities and no grid, the level
  * editor a grid it edits and no entities. `grid` is assigned after construction when the builder
- * needs the store first (RpgLevel.build fills a store, then hands back the grid it painted).
+ * needs the store first (ColonyLevel.build fills a store, then hands back the grid it painted).
  */
 globalThis.Level = class Level {
   /**

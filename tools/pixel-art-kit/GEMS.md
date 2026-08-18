@@ -7,7 +7,7 @@ What a new sprite has to match to sit next to the committed set. The kit itself 
 
 | | |
 |---|---|
-| **World cell** | **32 world px** (`RpgLevel` `RPG_CELL = 32`). Terrain and textures author 1:1 at 32 px. |
+| **World cell** | **32 world px** (`ColonyLevel` `CELL = 32`). Terrain and textures author 1:1 at 32 px. |
 | **Palette** | **DB32** (DawnBringer 32) — `palettes/db32.hex`. No other palette. |
 | **Color style** | Flat color + **one dark outline** around each silhouette. Use `raster.INK` (a warm dark brown), not cold near-black. |
 | **Entity origin** | **Foot-anchored** — `RenderEntity` draws at the entity `Position`, so the sprite stands up from its feet. Items and icons are centered; tiles and textures are top-left. |

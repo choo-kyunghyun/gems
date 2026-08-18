@@ -1,6 +1,6 @@
 /**
  * @implements {UIComponent}
- * Quest tracker — live list bound to an injected quest source (`t.source`, e.g. the RPG's
+ * Quest tracker — live list bound to an injected quest source (`t.source`, e.g. the colony's
  * `QuestLog`), so this Core widget stays genre-agnostic. The source exposes `activeIds()`,
  * `def(id) → { name, objLabel, objectives:[{count}] }`, `status(id) → { ready, progress:[] }`.
  * Drawn entirely in onDraw over one element (immediate-mode, like UISlots), reading the source
@@ -10,7 +10,7 @@
  */
 globalThis.UIQuestTracker = class UIQuestTracker {
   constructor(t = {}) {
-    // injected source so this Core widget doesn't reference RPG-layer QuestLog; null = empty
+    // injected source so this Core widget doesn't reference colony-layer QuestLog; null = empty
     this.source = t.source ?? null;
     // Font KEYS (resolved via I18n.font at DRAW time), not handles: a handle captured at
     // construction freezes a stale/invalid font that renders nothing later. null = inherit.

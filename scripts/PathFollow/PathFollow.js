@@ -9,7 +9,7 @@
 globalThis.PathFollow = {
   // Injected per-map terrain-cost provider: (wx, wy) → cost (1 = easy, >1 = rough, Infinity =
   // impassable), or null when the map prices no terrain (interiors — every cell costs 1).
-  // Rebound on each map activate (RpgMap._activateReset), like CombatAI.bind.
+  // Rebound on each map activate (ColonyMap._activateReset), like CombatAI.bind.
   costProvider: null,
   // Speed clamp: cost at/above this moves at 1/maxCost instead of freezing — a mover whose feet
   // land on a blocked/Infinity sliver (deep-water edge cell) crawls out instead of stranding.

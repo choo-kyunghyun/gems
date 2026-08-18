@@ -1,6 +1,6 @@
 /**
  * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its claim), a
- * PrefabStamp carrying the RPG spawn policy, and two scatter passes (rocks + rats). A different world
+ * PrefabStamp carrying the colony spawn policy, and two scatter passes (rocks + rats). A different world
  * (cave/desert/…) is a different composition of the same Core pieces, not a rewrite; a variant
  * overworld overrides the policy hooks via opts.
  *
@@ -19,18 +19,18 @@ globalThis.OverworldGen = {
   /**
    * Build the overworld generator. opts: { seed, authored, prefabDensity, prefabTag, spawnFilter,
    * defaultLoot } — `authored` is the level-file data whose walls/spawns overlay the hub (see
-   * AuthoredStamp); the last two override the RPG spawn policy (see PrefabStamp). Register prefabs
+   * AuthoredStamp); the last two override the colony spawn policy (see PrefabStamp). Register prefabs
    * before calling (PrefabStamp resolves Prefab.byTag in its constructor).
    */
   create(opts = {}) {
     const seed = (opts.seed ?? 1337) | 0;
-    // the generic terrain sampler (Core) over the RPG's biome data; its palette is what the
+    // the generic terrain sampler (Core) over the colony's biome data; its palette is what the
     // terrain layer's TileTypes and the stacked dual-grid passes are built from (order = painter order)
-    const field = new TerrainField(RpgBiomes.TERRAIN, {
+    const field = new TerrainField(contentBiomes.TERRAIN, {
       seed: seed,
-      lattice: RpgBiomes.LATTICE,
-      groundLattice: RpgBiomes.GROUND_LATTICE,
-      groundSalt: RpgBiomes.GROUND_SALT,
+      lattice: contentBiomes.LATTICE,
+      groundLattice: contentBiomes.GROUND_LATTICE,
+      groundSalt: contentBiomes.GROUND_SALT,
     });
     return new LevelGen({
       seed: seed,
@@ -46,7 +46,7 @@ globalThis.OverworldGen = {
           tag: opts.prefabTag ?? "overworld",
           salt: 1,
           density: opts.prefabDensity ?? 1.76,
-          // RPG spawn policy: mobile combatants (raider) stay off water — nothing spawns
+          // Colony spawn policy: mobile combatants (raider) stay off water — nothing spawns
           // swimming, and deep water's collider would snag a dynamic body
           spawnFilter:
             opts.spawnFilter ??

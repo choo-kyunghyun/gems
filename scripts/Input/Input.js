@@ -9,7 +9,7 @@ globalThis.Input = {
   /**
    * Gamepad stick deadzone, 0-1, pushed to the hardware by applyDeadzone().
    * gamepad_axis_value RENORMALIZES above it (at deadzone 0.2, raw 0.5 reads 0.375), so a consumer
-   * threshold (PlayerSystem's RPG_STICK_DEADZONE, UINav's stick edges) stacks on top of this
+   * threshold (PlayerSystem's STICK_DEADZONE, UINav's stick edges) stacks on top of this
    * instead of replacing it — raising both compounds.
    */
   deadzone: 0,

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColonyCombat",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColonyCombat",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColonyCombat.js",
+}

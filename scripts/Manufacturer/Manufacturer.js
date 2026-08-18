@@ -19,7 +19,7 @@ globalThis.Manufacturer = class Manufacturer {
   }
 
   // ── Registry facade (Registry owns the store's contract) ──
-  // each genre registers its own companies (the RPG's via RpgContent.register).
+  // each genre registers its own companies (the colony's via content.register).
   static _defs = new Map();
   static _order = [];
 

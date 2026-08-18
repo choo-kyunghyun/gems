@@ -81,7 +81,7 @@ globalThis.DebugRender = {
   },
 
   /**
-   * flip EVERY instance — a class can appear many times in one renderer (the RPG's
+   * flip EVERY instance — a class can appear many times in one renderer (the colony's
    * stacked terrain RenderTileMaps), and toggling only the first would mislead
    */
   _apply(cls, v) {

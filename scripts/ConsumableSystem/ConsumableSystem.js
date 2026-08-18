@@ -2,7 +2,7 @@
 globalThis.ConsumableSystem = {
   /**
    * Injected attribute-grant policy (a *_shard). Keeps this system off the stat model — like
-   * Combat.mitigate, sceneRpg.create wires it. Default no-op returns false (a shard
+   * Combat.mitigate, sceneColony.create wires it. Default no-op returns false (a shard
    * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
    */
   grantAttr(entities, id, attr, amount) {

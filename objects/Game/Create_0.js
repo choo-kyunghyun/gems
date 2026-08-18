@@ -39,16 +39,16 @@ Settings.register({
   volSfx: 1.0,
   mouseSensitivity: 0.5,
   rawInput: false,
-  // RPG inventory column visibility (toggled in inventory Settings tab)
+  // inventory column visibility (toggled in inventory Settings tab)
   invColRarity: false,
   invColMaker: true,
   invColType: true,
   invColWeight: true,
   invColValue: true,
-  // RPG HUD temperature unit ("K"|"C"|"F"; toggled in inventory Settings tab)
+  // HUD temperature unit ("K"|"C"|"F"; toggled in inventory Settings tab)
   tempUnit: "K",
-  // RPG HUD directional radar (RadarArrows; toggled in inventory Settings tab)
-  rpgRadar: false,
+  // colony HUD directional radar (RadarArrows; toggled in inventory Settings tab)
+  hudRadar: false,
   // GemsUI color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",
 });
@@ -243,7 +243,7 @@ DebugGeneral.register(this);
 DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
 
 // Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
-// the Demo's SaveGame/SceneRpg). Save is gated on a saveable scene; Load boots a fresh RPG.
+// the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
 SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
   SaveGame.buildMenuTab(this),
 );

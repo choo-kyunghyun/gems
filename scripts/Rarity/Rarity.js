@@ -15,7 +15,7 @@ globalThis.Rarity = class Rarity {
   }
 
   // ── Registry facade (Registry owns the store's contract) ──
-  // each genre registers its own tiers (the RPG's via RpgContent.register), low tier first.
+  // each genre registers its own tiers (the colony's via content.register), low tier first.
   static _defs = new Map();
   static _order = [];
 

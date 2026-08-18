@@ -5,7 +5,7 @@
  * Release the `camera`/`renderer`/`level`/`ui` a Scene holds on `this`, in dependency order
  * (missing fields skipped). Call it from `destroy()` AFTER releasing the scene's own
  * resources (controllers, guests) — those may still reference these. A POOLED level is the
- * World's to free, not this — a scene that parks its maps (the RPG) frees them itself.
+ * World's to free, not this — a scene that parks its maps (the colony) frees them itself.
  */
 globalThis.teardownScene = function teardownScene(scene) {
   if (scene.camera) scene.camera.destroy();

@@ -1,7 +1,7 @@
 /**
  * Scatters prefabs across the whole level at a per-area DENSITY, rejecting any placement that
  * overlaps an existing claim (the authored hub, or an earlier stamp) and claiming its own footprint
- * so nothing lands on top of it. Policy enters via two hooks (the RPG's policy lives in
+ * so nothing lands on top of it. Policy enters via two hooks (the colony's policy lives in
  * OverworldGen.create):
  *   spawnFilter(s, field) -> keep this stamped spawn? (default: keep all)
  *   defaultLoot(s, rng)   -> loot array for a spawn that authored none, or undefined to leave it.

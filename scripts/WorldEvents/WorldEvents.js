@@ -9,7 +9,7 @@
  *
  * Time is an absolute in-game hour count (WorldClock.absHours() = (day-1)*24 + hour), so sleeping
  * (Time.scale) fast-forwards schedules for free and the queue freezes in the lobby (WorldClock only
- * advances while the RPG scene steps). Generic on `now` — it never reads WorldClock itself.
+ * advances while the colony scene steps). Generic on `now` — it never reads WorldClock itself.
  */
 globalThis.WorldEvents = {
   _q: [], // [{ at, kind, data }] — kept sorted ascending by `at` (soonest first)

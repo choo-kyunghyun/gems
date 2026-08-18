@@ -10,7 +10,7 @@
  *   `target` is a component token for "kill", an item id for "collect", a marker for "reach", an
  *   NPC id for "talk"; `progress[i]` counts up to `objectives[i].count`.
  * @property {{items: Array<{itemId:string, qty:number}>}} [rewards] item-only BY DESIGN — there is
- *   no XP, so a reward can never be a power shortcut around gathering (see RpgProgression). The
+ *   no XP, so a reward can never be a power shortcut around gathering (see Progression). The
  *   wrapper object is what `complete`'s `?? {}` fallback stands in for.
  */
 globalThis.QuestLog = {

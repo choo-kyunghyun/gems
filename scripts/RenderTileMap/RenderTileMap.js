@@ -34,7 +34,7 @@ const _BLOB8 = [
  * @property {boolean} [softEdge] - per-vertex alpha at tile edges; per-cell modes only, ignored for "dual".
  * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
  *   this. Ordered ids make ONE layer render as a cumulative material stack — pass m takes
- *   minId = m + 1 — instead of one layer per material (the terrain palette, see RpgLevel).
+ *   minId = m + 1 — instead of one layer per material (the terrain palette, see ColonyLevel).
  * @property {number} [skipAbove] - "dual" only: skip a display tile the NEXT material covers whole
  *   (its mask at this threshold is 15). Without it every lower material draws its full extent
  *   under the ones above it; with it a stack costs about one grid's quads, not one per material.

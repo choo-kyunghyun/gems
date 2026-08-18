@@ -307,7 +307,7 @@ globalThis.gemsOverlay = function gemsOverlay(title, opts = {}) {
 
 /**
  * Draggable window: a grab-to-move card (UIDrag → offset, never flex mutation) + an
- * optional close button. Kit inventory — currently unwired (gemsOverlay is what the RPG
+ * optional close button. Kit inventory — currently unwired (gemsOverlay is what the colony
  * windows use). Add content to the wrapper's `.body`; toggle visibility via
  * `.enabled`. `opts`: { left, top, width, titleH, onClose, padding }.
  */
@@ -531,7 +531,7 @@ globalThis.gemsAccordion = function gemsAccordion(sections, opts = {}) {
 
 /**
  * Category bar with a pop-up flyout — category buttons; clicking one toggles a flyout
- * of its items above the bar (one open at a time). Shared by the RPG build HUD + scene
+ * of its items above the bar (one open at a time). Shared by the colony build HUD + scene
  * editor palette.
  *
  * `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]. opts:

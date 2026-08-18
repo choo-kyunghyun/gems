@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentBiomes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentBiomes",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentBiomes.js",
+}

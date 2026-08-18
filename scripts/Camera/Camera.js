@@ -263,7 +263,7 @@ globalThis.Camera = class Camera {
    * Latch ONCE per frame and share (the poll-once rule — UIPointer).
    * THE world cursor under a PITCHED camera: mouse_x/mouse_y are the flat-camera answer and are
    * simply wrong once the view tilts, so aim/build/interact all read the latched value instead
-   * (sceneRpg.update → scene.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
+   * (sceneColony.update → scene.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
    * mouse_x/y remain valid (the editor's CameraPan uses them). The result is a GROUND-plane
    * point — an entity's FEET — so pointing at a tall billboard's upper body lands behind it.
    * ORTHO only (see project).

@@ -28,7 +28,7 @@
  * deterministic for a given .vox.
  *
  * `content` (tight non-empty voxel extent) replaces the old baked meshes.json manifest —
- * RpgSpawn.footprint derives mesh-prop colliders from it.
+ * ColonySpawn.footprint derives mesh-prop colliders from it.
  */
 globalThis.Vox = {
   _cache: {}, // name -> VoxModel | null (null = missing/malformed, checked once per run)

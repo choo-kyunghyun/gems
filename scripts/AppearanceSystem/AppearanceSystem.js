@@ -43,7 +43,7 @@ globalThis.AppearanceSystem = {
         if (sprite_exists(spr)) out.push({ sprite: spr, color: c_white });
       } else if (slotName === "weapon" && sprite_exists(item.sprite)) {
         // held-icon fallback: the item's own icon at the right hand's per-frame anchor
-        // (RenderBillboard's anchored-layer branch; item.sprite is the ref RpgItems'
+        // (RenderBillboard's anchored-layer branch; item.sprite is the ref contentItems'
         // spr_item_<id> auto-wire resolved, -1 = none and sprite_exists rejects it)
         out.push({
           sprite: item.sprite,

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentQuests",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentQuests",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentQuests.js",
+}

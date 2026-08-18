@@ -110,7 +110,7 @@ globalThis.Prefab = class Prefab {
    *   walls → bare collide-only kinematic colliders (the wall-rect convention — NOT
    *           rendered; author rendered walls as solid TILES on a wall layer instead)
    * Spawns are returned translated, NOT spawned — the descriptor shape is consumer-defined, so
-   * the caller feeds them to its own adapter (e.g. RpgSpawn.spawnEntity).
+   * the caller feeds them to its own adapter (e.g. ColonySpawn.spawnEntity).
    */
   apply(opts) {
     const st = this.stamp(opts.ox, opts.oy);

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentRecipes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentRecipes",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentRecipes.js",
+}

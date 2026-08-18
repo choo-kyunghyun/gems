@@ -3,12 +3,12 @@
  * "player") — founded by pressing E at a Survey Post (Interactable routes to BuildMode.claim →
  * Settlement.found). Build mode only OPENS while the player stands in an owned settlement, and
  * placement is gated cell-by-cell to owned land. The palette (a bottom-center gemsCatBar) item is a
- * TILE (TileLayer via TileEdit) or an ENTITY (via RpgSpawn.spawnEntity); LMB places at the hovered
+ * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places at the hovered
  * cell, RMB deconstructs. State on the scene (`_build*`); the static `active` flag is mirrored each
  * frame so drawWorld can gate the cursor highlight to "build context owns input".
  *
- * scene contract (create()/RpgMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
- * RpgLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
+ * scene contract (create()/ColonyMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
+ * ColonyLevel.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
  * _tilePasses (render pass per layer key).
  */
 globalThis.BuildMode = {
@@ -17,11 +17,11 @@ globalThis.BuildMode = {
   OWNER: "player", // the Settlement owner faction id that gates building (Game policy)
 
   // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
-  // spawns via make()'s RpgSpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
+  // spawns via make()'s ColonySpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   CATALOG: [
     {
-      // tile items: `layer` names the RpgLevel.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
+      // tile items: `layer` names the ColonyLevel.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
       // a wall item's `mat` picks the per-cell material TileType (scene.wallTypes[mat]).
       labelKey: "BUILD_CAT_TILES",
       items: [
@@ -95,7 +95,7 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          /** furn sub-type picks the vox mesh (RpgSpawn prop branch, wooden_crate). */
+          /** furn sub-type picks the vox mesh (ColonySpawn prop branch, wooden_crate). */
           make: (gx, gy) => ({
             preset: "prop",
             gx,
@@ -180,8 +180,8 @@ globalThis.BuildMode = {
             furn: "cot",
           }),
         },
-        // decorative furniture — plain solid props over the spare vox models (RpgSpawn.FURN_MODELS);
-        // colliders come from the voxel-content footprint (RpgSpawn.footprint), no per-item wiring
+        // decorative furniture — plain solid props over the spare vox models (ColonySpawn.FURN_MODELS);
+        // colliders come from the voxel-content footprint (ColonySpawn.footprint), no per-item wiring
         {
           id: "table",
           labelKey: "BUILD_TABLE",
@@ -371,7 +371,7 @@ globalThis.BuildMode = {
     {
       // survival stations — vox-mesh props (tub/bin/alter) carrying an Interaction whose
       // InteractAction acts on the player (hydrate/feed/buff). Same prop pattern as
-      // bed/workbench; the action is data (RpgInteractions).
+      // bed/workbench; the action is data (contentInteractions).
       labelKey: "BUILD_CAT_SURVIVAL",
       items: [
         {
@@ -603,7 +603,7 @@ globalThis.BuildMode = {
     )
       return false;
     const solid = !(
-      item.kind === "tile" && RpgLevel.layerCfg(item.layer).solid !== true
+      item.kind === "tile" && ColonyLevel.layerCfg(item.layer).solid !== true
     );
     if (solid) {
       const pp = scene.level.entities.get(Position, scene.playerId);
@@ -645,7 +645,7 @@ globalThis.BuildMode = {
           ? scene[item.layer + "Types"][item.mat]
           : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      const solid = RpgLevel.layerCfg(item.layer).solid === true;
+      const solid = ColonyLevel.layerCfg(item.layer).solid === true;
       if (solid && opts.deferRemesh !== true)
         TileEdit.remesh(scene.level.entities, grid, layer, scene.colliders);
       BuildMode._markTileDirty(scene, item.layer);
@@ -654,7 +654,7 @@ globalThis.BuildMode = {
     }
     // entity: an exact snapshot restore (state preserved) or a fresh make() (a new instance).
     // make's optional 3rd arg is the scene (the door auto-orients off the wall layer); a built
-    // prop is identical to a file/streamed one and persists via EntitySnapshot (see RpgMap).
+    // prop is identical to a file/streamed one and persists via EntitySnapshot (see ColonyMap).
     let id;
     if (opts.snapshot !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
@@ -662,7 +662,7 @@ globalThis.BuildMode = {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
-      id = RpgSpawn.spawnEntity(scene.level.entities, grid, item.make(gx, gy, scene));
+      id = ColonySpawn.spawnEntity(scene.level.entities, grid, item.make(gx, gy, scene));
     }
     scene._builtEnts[key] = { ent: id, itemId: item.id };
     return id;
@@ -683,7 +683,7 @@ globalThis.BuildMode = {
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
-        RpgCombat.spillLoot(scene, ent.ent);
+        ColonyCombat.spillLoot(scene, ent.ent);
         scene.level.entities.remove(ent.ent);
       }
       BuildMode._refund(scene, ent.itemId);
@@ -697,7 +697,7 @@ globalThis.BuildMode = {
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(scene[lkey + "Layer"], gx, gy);
-    if (RpgLevel.layerCfg(lkey).solid === true)
+    if (ColonyLevel.layerCfg(lkey).solid === true)
       TileEdit.remesh(
         scene.level.entities,
         grid,

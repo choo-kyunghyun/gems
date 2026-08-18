@@ -13,7 +13,7 @@
  *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a
  *            denser subject OR a taller one — only the art's author knows. Divides the DRAW scale only
  *            (xscale/yscale = design scale / density); never touches the BBox. Bake sites:
- *            EntityPreset.spawn / RpgPlayer.spawn; AnimationSystem refits when a graph state swaps sheets.
+ *            EntityPreset.spawn / ColonyPlayer.spawn; AnimationSystem refits when a graph state swaps sheets.
  *   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
  *   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate frames for
  *            one neighbor mask, so a large field of one terrain doesn't tile visibly. Only the

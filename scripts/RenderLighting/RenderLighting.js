@@ -7,14 +7,14 @@
  * Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
  * (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
  *
- * Inserted LAST in the RPG renderer; the scene draws its bright cues AFTER so they stay above the tint.
+ * Inserted LAST in the colony renderer; the scene draws its bright cues AFTER so they stay above the tint.
  * View rect from the Camera's OWN fields, NOT camera_get_view_* (matrix-driven Camera returns 0).
  * @implements {RenderPass}
  */
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance; assigned by RpgMap.build
+    this.camera = opt.camera; // a Camera instance; assigned by ColonyMap.build
     // INJECTED ambient provider () => { color, alpha } — keeps this Core pass day/night-agnostic
     // (demo wires WorldClock.tint). Default full daylight (alpha 0) early-outs below.
     this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));

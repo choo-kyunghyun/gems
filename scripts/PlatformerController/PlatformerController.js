@@ -14,7 +14,7 @@ const PLATF_JUMP_BUFFER = 10; // ticks a jump press is remembered before landing
 const PLATF_DROP_TICKS = 8; // ticks the player ignores one-way platforms after a drop press
 const PLATF_IFRAMES_RESPAWN = 90; // invincibility ticks after a respawn (1.5 s)
 
-// platformer player input + entity setup. no RPG layer.
+// platformer player input + entity setup. no colony layer.
 // edge-triggered input (jump press/release) is sampled once per frame in pollInput() to
 // avoid drop on 0-tick frames or double-count on multi-tick frames; continuous input
 // (movement) is read per tick.

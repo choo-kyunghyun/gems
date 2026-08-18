@@ -3,7 +3,7 @@
 // fixed portals[] list on the level would stay valid.
 /**
  * @typedef {Object} Portal
- * @property {string} toMap   destination map id (RpgLevel.MAPS key)
+ * @property {string} toMap   destination map id (ColonyLevel.MAPS key)
  * @property {string} toEntry destination entry point (meta.entries key)
  */
 globalThis.Portal = "Portal";

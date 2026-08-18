@@ -132,7 +132,7 @@ globalThis.WeaponModUI = {
 
     host.insertChild(
       gemsRichText(
-        RpgWorldOverlay.iconTag(slot.itemId) +
+        WorldOverlay.iconTag(slot.itemId) +
           (it !== undefined ? I18n.text(it.name) : slot.itemId),
         {
           font: "header",
@@ -281,7 +281,7 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsRichText(RpgWorldOverlay.iconTag(ammoId) + nm + " x" + count, {
+      gemsRichText(WorldOverlay.iconTag(ammoId) + nm + " x" + count, {
         color: InvTable.rarityColor(ammoId),
       }),
     );
@@ -323,7 +323,7 @@ globalThis.WeaponModUI = {
       const nm = it !== undefined ? I18n.text(it.name) : installed;
       cell.insertChild(
         gemsRichText(
-          RpgWorldOverlay.iconTag(installed) + catLabel + ": " + nm,
+          WorldOverlay.iconTag(installed) + catLabel + ": " + nm,
           {
             color: InvTable.rarityColor(installed),
           },
@@ -358,7 +358,7 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsRichText(RpgWorldOverlay.iconTag(modId) + nm + " x" + count, {
+      gemsRichText(WorldOverlay.iconTag(modId) + nm + " x" + count, {
         color: InvTable.rarityColor(modId),
       }),
     );

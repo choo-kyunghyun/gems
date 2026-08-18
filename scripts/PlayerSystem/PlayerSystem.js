@@ -1,13 +1,13 @@
-const RPG_MOVE_SPEED = 220; // world px/s (32px-cell scale)
-const RPG_PLAYER_SCALE = 1.5; // baked size factor over the 32px spr_human sheet (bbox + Visual)
-const RPG_SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
-const RPG_BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
-const RPG_SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
-const RPG_FIRE_CD = 8; // ticks between shots while held
-const RPG_ATTACK_ANIM = 18; // ticks the punch pose stays up after a shot/swing (3 frames @ 10fps)
-const RPG_KICK_ANIM = 23; // ticks the kick plays (5 frames @ 13fps — fits the fist's 22-tick cadence)
-const RPG_MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
-const RPG_STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
+const MOVE_SPEED = 220; // world px/s (32px-cell scale)
+const PLAYER_SCALE = 1.5; // baked size factor over the 32px spr_human sheet (bbox + Visual)
+const SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
+const BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
+const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
+const FIRE_CD = 8; // ticks between shots while held
+const ATTACK_ANIM = 18; // ticks the punch pose stays up after a shot/swing (3 frames @ 10fps)
+const KICK_ANIM = 23; // ticks the kick plays (5 frames @ 13fps — fits the fist's 22-tick cadence)
+const MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
+const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
@@ -18,14 +18,14 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 // SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
 // player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the scene calls them from
-// create()/resume()/destroy() (see sceneRpg).
+// create()/resume()/destroy() (see sceneColony).
 
 globalThis.PlayerSystem = {
   /**
-   * register the RPG keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
+   * register the colony keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
    * guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
    *
-   * tags (set by sceneRpg each frame): movement live everywhere; fire "play"-only so it self-mutes
+   * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
    * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
    * build/follow inert with a window open. See InputContext / inContext.
    */
@@ -86,7 +86,7 @@ globalThis.PlayerSystem = {
 
     // hotbar number keys 1..N, "play"-only so they self-mute with a window open or building (keyboard
     // only — the gamepad dpad is movement)
-    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) {
+    for (let i = 0; i < HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
         new InputAction()
@@ -96,24 +96,24 @@ globalThis.PlayerSystem = {
     }
   },
 
-  // build the RPG player entity (RpgPlayer.spawn adds Playable + Animator with the rest of the
+  // build the colony player entity (ColonyPlayer.spawn adds Playable + Animator with the rest of the
   // sheet) at this genre's tuning. Boot only — a portal arrival transfers the existing player.
   /** Returns the player entity id. */
   spawn(entities, spawn) {
-    return RpgPlayer.spawn(entities, spawn, {
+    return ColonyPlayer.spawn(entities, spawn, {
       // 16 design × 1.5 scale = 24 world px — nearer the doll's visual body (a smaller box
       // let the sprite hug walls/mobs deep enough to bury); stays under the 32px cell so
       // 1-cell doorways remain passable
       bbox: { x: -8, y: -8, width: 16, height: 16 },
       dir: { x: 0, y: 1, z: 0 },
-      speed: RPG_MOVE_SPEED,
-      scale: RPG_PLAYER_SCALE,
+      speed: MOVE_SPEED,
+      scale: PLAYER_SCALE,
     });
   },
 
   /**
    * resolve THE player entity live by query (never a stored id — a map transfer can't dangle
-   * it); -1 when no Playable entity exists. sceneRpg latches it per frame as scene.playerId.
+   * it); -1 when no Playable entity exists. sceneColony latches it per frame as scene.playerId.
    */
   id(entities) {
     const ids = entities.query(Playable);
@@ -139,8 +139,8 @@ globalThis.PlayerSystem = {
     const sx = Input.get("moveX").value();
     const sy = Input.get("moveY").value();
     if (
-      Math.abs(sx) > RPG_STICK_DEADZONE ||
-      Math.abs(sy) > RPG_STICK_DEADZONE
+      Math.abs(sx) > STICK_DEADZONE ||
+      Math.abs(sy) > STICK_DEADZONE
     ) {
       dx = sx;
       dy = sy;
@@ -153,7 +153,7 @@ globalThis.PlayerSystem = {
     // status speed multiplier (encumbrance/slow/haste) × terrain movement cost (wading/mud slow —
     // PathFollow.speedScale); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
-      (stats !== undefined ? stats.speed : RPG_MOVE_SPEED) *
+      (stats !== undefined ? stats.speed : MOVE_SPEED) *
       StatusSystem.scale(entities, id, "speed") *
       PathFollow.speedScale(pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -164,7 +164,7 @@ globalThis.PlayerSystem = {
       id,
       len > 0 && Input.get("sprint").down(),
     );
-    const moveSpeed = speed * (sprinting ? RPG_SPRINT_MULT : 1);
+    const moveSpeed = speed * (sprinting ? SPRINT_MULT : 1);
     if (len > 0) {
       // clamp magnitude to 1: a partly-tilted stick walks slower; digital input is unchanged
       const mag = Math.min(len, 1);
@@ -182,8 +182,8 @@ globalThis.PlayerSystem = {
     const aimX = Input.get("aimX").value();
     const aimY = Input.get("aimY").value();
     if (
-      Math.abs(aimX) > RPG_STICK_DEADZONE ||
-      Math.abs(aimY) > RPG_STICK_DEADZONE
+      Math.abs(aimX) > STICK_DEADZONE ||
+      Math.abs(aimY) > STICK_DEADZONE
     ) {
       const al = Math.sqrt(aimX * aimX + aimY * aimY) || 1;
       dir.x = aimX / al;
@@ -208,11 +208,11 @@ globalThis.PlayerSystem = {
       const rx = Input.get("aimX").value();
       const ry = Input.get("aimY").value();
       if (
-        Math.abs(rx) <= RPG_STICK_DEADZONE &&
-        Math.abs(ry) <= RPG_STICK_DEADZONE
+        Math.abs(rx) <= STICK_DEADZONE &&
+        Math.abs(ry) <= STICK_DEADZONE
       ) {
         // scene-latched ground-plane cursor — NOT mouse_x/mouse_y, which are wrong under the
-        // pitched matrix camera (see Camera.unproject; sceneRpg.step latches Playable.cursorX/Y)
+        // pitched matrix camera (see Camera.unproject; sceneColony.step latches Playable.cursorX/Y)
         const adx = pl.cursorX - pos.x;
         const ady = pl.cursorY - pos.y;
         const adist = Math.sqrt(adx * adx + ady * ady) || 1;
@@ -226,18 +226,18 @@ globalThis.PlayerSystem = {
       } else if (wpn.kind === "gun") {
         PlayerSystem._fireGun(entities, id, pl, slot, wpn, dir, attack);
       } else {
-        const reach = wpn.reach !== undefined ? wpn.reach : RPG_MELEE_REACH;
+        const reach = wpn.reach !== undefined ? wpn.reach : MELEE_REACH;
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
         MeleeSystem.swing(entities, id, dir.x, dir.y, reach, damage);
         pl.fireCd =
-          wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : RPG_FIRE_CD;
+          wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : FIRE_CD;
         // the unarmed fist fallback alternates punch/kick; an armed swing stays the punch
         // thrust (the held-weapon overlay rides the hand through it)
         pl.attackAnim =
           wpn === PLAYER_FIST && pl.attackAnim !== "kick" ? "kick" : "attack";
         pl.attackCd =
-          pl.attackAnim === "kick" ? RPG_KICK_ANIM : RPG_ATTACK_ANIM;
+          pl.attackAnim === "kick" ? KICK_ANIM : ATTACK_ANIM;
       }
     }
 
@@ -253,7 +253,7 @@ globalThis.PlayerSystem = {
     // facing: flip the xscale SIGN toward the last horizontal move
     const vis = entities.get(Visual, id);
     if (vis !== undefined) {
-      // flip by SIGN only — |xscale| carries the baked size factor (RPG_PLAYER_SCALE), so a
+      // flip by SIGN only — |xscale| carries the baked size factor (PLAYER_SCALE), so a
       // bare ±1 here would silently reset the player's size
       if (dir.x < -0.01) vis.xscale = -Math.abs(vis.xscale);
       else if (dir.x > 0.01) vis.xscale = Math.abs(vis.xscale);
@@ -288,14 +288,14 @@ globalThis.PlayerSystem = {
     }
     if (slot.rounds <= 0) return PlayerSystem._dryClick(); // still empty after the reload attempt
 
-    const speed = wpn.velocity !== undefined ? wpn.velocity : RPG_BULLET_SPEED;
+    const speed = wpn.velocity !== undefined ? wpn.velocity : BULLET_SPEED;
     // damage = round's kinetic power + attack. penetration lowers target defense; velocity
     // scales reach (the shot is instant, not travel-based).
     const damage = Math.round(wpn.power) + attack;
-    const aim = RpgPlayer.fireBullet(entities, id, {
+    const aim = ColonyPlayer.fireBullet(entities, id, {
       damage,
       penetration: wpn.penetration,
-      range: speed * RPG_SHOT_RANGE_SECS,
+      range: speed * SHOT_RANGE_SECS,
       nx: dir.x,
       ny: dir.y,
     });
@@ -313,9 +313,9 @@ globalThis.PlayerSystem = {
     // gunshot (spatial); the hit plays a hitsound later
     Audio.play({ sound: snd_gun_fire, position: { x: pos.x, y: pos.y } });
 
-    pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : RPG_FIRE_CD;
+    pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
     pl.attackAnim = "attack"; // gun fire plays the punch thrust (reads as recoil), never the kick
-    pl.attackCd = RPG_ATTACK_ANIM;
+    pl.attackCd = ATTACK_ANIM;
   },
 
   /** drop the keymap (scene destroy; a guest's own unbind is why resume() re-runs bindKeys) */
@@ -337,7 +337,7 @@ globalThis.PlayerSystem = {
       "aimX",
       "aimY",
     ];
-    for (let i = 0; i < RPG_HOTBAR_SIZE; i++) keys.push("hotbar" + (i + 1));
+    for (let i = 0; i < HOTBAR_SIZE; i++) keys.push("hotbar" + (i + 1));
     Input.unbindAll(keys);
   },
 };

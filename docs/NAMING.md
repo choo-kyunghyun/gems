@@ -10,6 +10,8 @@ Members are short idiomatic verbs and nouns (`Entity.create`, `Item.get`, `File.
 
 A script's directory + filename matches the identifier it exposes, cased to JS norms: PascalCase for a class or namespace object (`World`, `CameraFollow`), camelCase for a plain function (`teardownScene`), and a PascalCase category bucket for a family of free functions with no single matching global (`Utils`, `UIDraw`, the `Gems*` buckets). GameMaker-asset families keep their conventional prefix (`scene*`, `Render*`, `*System`, `obj_*`/`rm_*`/`sh_*`).
 
+A lowercase prefix marks a script that is not logic: `scene*` for a screen, `content*` for a data module whose whole body is defs handed to a registry (`contentItems`, `contentRecipes` — the case itself says data, not engine). A module that decides something stays PascalCase even when it registers defs (`ColonySpawn`). Content and its scene take the GAME's name, never the genre or the layer — `Colony*`/`sceneColony`, not `Rpg*` (a genre label), `Game*` (the layer + the shell object) or `Gems*` (the engine, and the UI kit's). Drop the prefix wherever the folder and suffix already scope the name (`Hud`, `InventoryUI` next to `StorageUI`/`TradeUI`); keep it only where the bare name would collide or read as engine (`ColonyLevel` vs Core `Level`, `ColonyCombat` vs `Combat`).
+
 ## Media Assets
 
 `<prefix>_<family>_<subject>[_<variant>]`, all-lowercase snake_case after the GM type prefix (`spr_`/`snd_`/`mus_`/`sh_`/`ps_`/`obj_`/`rm_`).

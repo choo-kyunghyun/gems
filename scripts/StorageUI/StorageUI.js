@@ -1,5 +1,5 @@
 // Bag↔Chest transfer window — near-fullscreen shell over a two-column UITable layout (like
-// TradeUI/RpgInventoryUI). Open/close/prompt owned by Interactable; all state on scene (_store*).
+// TradeUI/InventoryUI). Open/close/prompt owned by Interactable; all state on scene (_store*).
 /**
  * Tables swap rows via setRows (not rebuilt) so column sort survives every transfer. Caller contract:
  * set scene._storeDirty whenever the bag changes from outside this file (a craft, a pickup, an equip)

@@ -3,8 +3,8 @@
 /**
  * This file is presentation + the double-click/amount gesture, plus the sell-side worn/favorited
  * guard (it reads the player's Equipment/Favorites). Each column is a sortable UITable with a Price
- * column. State on the scene (_trade*). Opened by sceneRpg._npcActivate when the targeted NPC carries
- * a Merchant; it closes itself past RPG_TRADE_RANGE (Interactable's range-close covers only windows
+ * column. State on the scene (_trade*). Opened by sceneColony._npcActivate when the targeted NPC carries
+ * a Merchant; it closes itself past TRADE_RANGE (Interactable's range-close covers only windows
  * opened from an Interaction, and a merchant NPC has none — so without this, walking away would leave
  * the shop open).
  */

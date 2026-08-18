@@ -11,7 +11,7 @@ globalThis.SystemMenu = {
   _game: null, // the Game object, re-latched each update() — owner of the scene pointer + backdrop
   _scale: 1, // Time.scale to restore on resume
   // Boot-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
-  // this menu free of scene/save concerns (SaveGame/sceneRpg). Wired once at boot via addTab().
+  // this menu free of scene/save concerns (SaveGame/sceneColony). Wired once at boot via addTab().
   _extraTabs: [],
   // Boot-wired quit-target scene factory (the app's lobby) — null hides the Quit button, so the
   // menu names no specific scene.
