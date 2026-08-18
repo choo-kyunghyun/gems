@@ -38,6 +38,7 @@ globalThis.RpgMap = {
     "physics",
     "renderer",
     "camera",
+    "cameraFollow", // the camera's normal control — parks with it, so a resume can put it back
     // NOTE: no "followers"/"playerId" — squad members leave before the park; residents live in the world
 
     "_tilePasses",
@@ -667,35 +668,34 @@ globalThis.RpgMap = {
   _buildCamera(scene, data) {
     const pitch = RpgMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 1.75 : 1;
-    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); camera derives live
-    // minZoom from it + the current surface each frame. Horizontal is the binding axis on a
+    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the control derives its live
+    // zoom floor from it + the current surface each frame. Horizontal is the binding axis on a
     // landscape surface.
     const viewCap = scene.level.grid.cols * scene.level.grid.cellWidth;
-    scene.camera = CameraFollow.create2d({
+    // no width/height seed — CameraFollow re-derives the extent from the surface every update
+    scene.cameraFollow = new CameraFollow({
       entities: scene.level.entities,
-      followTarget: scene.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
-      followLerp: 0.15,
+      target: scene.playerId, // fallback seed — the live CameraFocus query wins (RpgPlayer)
+      lerp: 0.15,
       pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
       // pitch-by-zoom (upright-sprite camera) — see RpgMap._pitchCurve
       pitchCurve: RpgMap._pitchCurve,
-      // ortho eye distance: the -100 default near-clips close ground at steep pitch
+      // ortho eye distance: the 100 default near-clips close ground at steep pitch
       // (a black band along the screen bottom); image-identical otherwise under ortho
-      followHeight: -2000,
-      // CameraFollow recomputes the view extent each frame, so width/height below are just the seed.
+      eyeDist: 2000,
       zoom: baseZoom,
-      viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the streamed region)
-      maxZoom: baseZoom * 1.5, // modest zoom-in headroom
-      width: surface_get_width(application_surface),
-      height: surface_get_height(application_surface),
-      // Edge-clamp the look-at to the finite world so the pitched view never shows past a map edge.
-      // gridToWorld anchors cell 0 at world (0,0).
-      clamp: {
+      viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the map)
+      zoomMax: baseZoom * 1.5, // modest zoom-in headroom
+      // Edge-clamp the look-at to the finite world so the pitched view never shows past a map
+      // edge. gridToWorld anchors cell 0 at world (0,0).
+      bounds: {
         x1: 0,
         y1: 0,
         x2: scene.level.grid.cols * scene.level.grid.cellWidth,
         y2: scene.level.grid.rows * scene.level.grid.cellHeight,
       },
     });
+    scene.camera = new Camera().setControl(scene.cameraFollow);
     scene.camera.assign(0);
     // Cull the grid pass to the camera view (essential on a large generated map).
     scene._gridPass.camera = scene.camera;
@@ -715,32 +715,35 @@ globalThis.RpgMap = {
    */
   _registerCameraDebug(scene) {
     const cam = scene.camera;
-    if (cam === undefined) return;
+    const follow = scene.cameraFollow;
+    if (cam === undefined || follow === undefined) return;
+    // A map can park while free cam is flying. This section is rebuilt with a FRESH fly control, so
+    // put the follow control back rather than leave the camera on an orphaned one.
+    if (cam.control !== follow) cam.setControl(follow);
+    const fly = new CameraFly();
     Debug.add({
       name: "Camera",
-      // pitchCurve is a computed toggle — staged (contract: Debug); the plain
-      // cam fields below ref live, two-way
-      data: { pitchCurve: false, zoom: 0, pitch: 0 },
-      _last: false,
+      // pitchCurve and freeCam are computed toggles — staged (contract: Debug); the plain
+      // control fields below ref live, two-way
+      data: { pitchCurve: false, freeCam: false, zoom: 0, pitch: 0 },
+      _curve: false,
+      _fly: false,
       build() {
         // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
-        this.data.pitchCurve = cam.followPitchCurve !== undefined;
-        this._last = this.data.pitchCurve;
+        this.data.pitchCurve = follow.pitchCurve !== undefined;
+        this._curve = this.data.pitchCurve;
+        this.data.freeCam = false; // the reinstall above guarantees the follow control is live
+        this._fly = false;
         dbg_checkbox(ref_create(this.data, "pitchCurve"), "Pitch by zoom");
-        dbg_slider(ref_create(cam, "pitchDeg"), 0, 85, "Pitch (deg)", 1);
-        dbg_slider(ref_create(cam, "followZoomTarget"), 0.5, 4, "Zoom", 0.1);
+        dbg_slider(ref_create(follow, "pitchDeg"), 0, 85, "Pitch (deg)", 1);
+        dbg_slider(ref_create(follow, "zoomTarget"), 0.5, 4, "Zoom", 0.1);
         // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
-        // from the player to inspect the render from any angle. Switches to perspective projection.
-        dbg_checkbox(ref_create(cam, "freeCam"), "Free cam (WASD/RMB)");
-        dbg_slider(ref_create(cam, "flySpeed"), 60, 2400, "Fly speed", 10);
+        // from the player to inspect the render from any angle. Swaps in the perspective control.
+        dbg_checkbox(ref_create(this.data, "freeCam"), "Free cam (WASD/RMB)");
+        dbg_slider(ref_create(fly, "speed"), 60, 2400, "Fly speed", 10);
         dbg_button("Recenter on player", () => {
-          // same live resolution as CameraFollow: the CameraFocus carrier, else followTarget
-          if (cam.entities === undefined) return;
-          const foci = cam.entities.query(CameraFocus);
-          const pos = cam.entities.get(
-            Position,
-            foci.length > 0 ? foci[0] : cam.followTarget,
-          );
+          if (follow.entities === undefined) return;
+          const pos = follow.entities.get(Position, follow.targetId());
           if (pos !== undefined) {
             cam.toX = pos.x;
             cam.toY = pos.y;
@@ -751,12 +754,17 @@ globalThis.RpgMap = {
       },
       update() {
         const d = this.data;
-        if (d.pitchCurve !== this._last)
-          cam.followPitchCurve = d.pitchCurve ? RpgMap._pitchCurve : undefined;
-        else d.pitchCurve = cam.followPitchCurve !== undefined;
-        this._last = d.pitchCurve;
-        d.zoom = cam.followZoom;
-        d.pitch = cam.followPitch;
+        if (d.pitchCurve !== this._curve)
+          follow.pitchCurve = d.pitchCurve ? RpgMap._pitchCurve : undefined;
+        else d.pitchCurve = follow.pitchCurve !== undefined;
+        this._curve = d.pitchCurve;
+        // setControl (never a bare assignment) — it runs the incoming control's enter() seed, which
+        // is what makes the fly camera pick up the live view instead of a stale pose
+        if (d.freeCam !== this._fly) cam.setControl(d.freeCam ? fly : follow);
+        else d.freeCam = cam.control === fly;
+        this._fly = d.freeCam;
+        d.zoom = follow.zoom;
+        d.pitch = cam.pitch;
       },
     });
   },

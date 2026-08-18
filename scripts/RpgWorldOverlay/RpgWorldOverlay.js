@@ -56,7 +56,7 @@ globalThis.RpgWorldOverlay = {
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
     // Flat top-down (pitch 0) lifts nothing.
     const lift =
-      scene.camera !== undefined && scene.camera.followPitch !== 0 ? 32 : 0;
+      scene.camera !== undefined && scene.camera.pitch !== 0 ? 32 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));

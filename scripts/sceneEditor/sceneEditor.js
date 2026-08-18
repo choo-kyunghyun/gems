@@ -28,7 +28,8 @@ class _SceneEditorClass {
 
     // renderer + camera built once; _initLevel rebinds passes per level so New/Open are cheap
     this.renderer = new Renderer();
-    this.camera = CameraPan.create(); // middle-drag pan + wheel zoom; LMB/RMB free for editing
+    // middle-drag pan + wheel zoom; LMB/RMB free for editing
+    this.camera = new Camera().setControl(new CameraPan());
     this.camera.assign(0);
 
     this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity

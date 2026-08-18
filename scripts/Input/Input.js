@@ -1,7 +1,7 @@
 /** registry of named InputActions; controllers bind their keymap per-level via bindAll. */
 globalThis.Input = {
   /**
-   * Mouse-look multiplier over a consumer's own base radians-per-pixel (CameraFly's mouseSens),
+   * Mouse-look multiplier over a consumer's own base radians-per-pixel (CameraFly's `sens`),
    * so 1.0 is that base and the shipped 2.5 is the tuned default. Read live, per frame.
    * Unitless and never Time-scaled — a mouse delta is a distance already, not a rate.
    */

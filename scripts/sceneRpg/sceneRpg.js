@@ -472,8 +472,9 @@ class _SceneRpgClass {
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     this._updateClimate(); // climate-zone enter/exit → Weather region override
-    // free-cam updates in draw() (runs while paused — the point of the debug free-fly); follow updates here
-    if (!this.camera.freeCam) this.camera.update();
+    // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
+    // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
+    if (!this.camera.control.raw) this.camera.update();
     // ears on the PLAYER's body, not the view: CameraFollow clamps its look-at at map edges
     // (and debug free-cam flies away entirely), parking the view center off the player — spatial
     // SFX pan/attenuate from where the player stands; camera center is the no-player fallback
@@ -948,24 +949,22 @@ class _SceneRpgClass {
   }
 
   draw() {
-    // free-cam updates here so it pans while the sim is paused (step() is skipped then); apply before the renderer reads it
-    if (this.camera.freeCam) this.camera.update();
+    // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
+    // is skipped then); apply before the renderer reads it
+    if (this.camera.control.raw) this.camera.update();
     this.renderer.draw(this.level.entities); // tilemap + zone + player / enemies / elder: boxes + labels
     // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     RpgWorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("rpgRadar"))
       // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
-        lift:
-          this.camera !== undefined && this.camera.followPitch !== 0 ? 32 : 0,
+        lift: this.camera !== undefined && this.camera.pitch !== 0 ? 32 : 0,
       });
     Interactable.drawTarget(this); // highlight the targeted station (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
     // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D
-    FloatingText.draw(
-      this.camera ? (this.camera.followPitch * 180) / Math.PI : 0,
-    );
+    FloatingText.draw(this.camera ? (this.camera.pitch * 180) / Math.PI : 0);
     // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here
   }
 

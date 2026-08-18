@@ -44,13 +44,13 @@ class _ScenePlatformerClass {
     bbox.enabled = false;
     this.renderer.insert(bbox);
 
-    this.camera = CameraFollow.create2d({
-      entities: this.level.entities,
-      followTarget: this.ctrl.id,
-      followLerp: 0.15,
-      width: surface_get_width(application_surface),
-      height: surface_get_height(application_surface),
-    });
+    this.camera = new Camera().setControl(
+      new CameraFollow({
+        entities: this.level.entities,
+        target: this.ctrl.id,
+        lerp: 0.15,
+      }),
+    );
     this.camera.assign(0);
 
     // opts SystemMenu into gameplay pause + nav suspension.

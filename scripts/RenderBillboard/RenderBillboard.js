@@ -25,7 +25,7 @@ const BB_NORMAL_Z = -0.866;
  *
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
  * Starve / Paper Mario) via a world matrix, under the pitch-by-zoom camera
- * (CameraFollow.create2d `pitchCurve`). Upright — NOT perpendicular-to-view: a
+ * (CameraFollow's `pitchCurve`). Upright — NOT perpendicular-to-view: a
  * camera-facing billboard under a mostly-top-down pitch reclines ~cos(pitch) of its height
  * along the ground, so at wall contact the body crosses the wall mesh's depth and buries
  * itself; an upright sprite's top is always camera-side of geometry it stands in front of. The camera pitch foreshortens

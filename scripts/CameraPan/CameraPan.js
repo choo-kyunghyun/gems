@@ -1,89 +1,104 @@
-// zoom to `next` keeping the world point under the cursor fixed (world delta = screen delta / zoom)
-function _cameraPanZoom(cam, next, mx, my, sw, sh) {
-  cam._panX += (mx - sw * 0.5) * (1 / cam._panZoom - 1 / next);
-  cam._panY += (my - sh * 0.5) * (1 / cam._panZoom - 1 / next);
-  cam._panZoom = next;
-}
+/**
+ * 2D pan + zoom inspector camera — a Camera CONTROL (the contract is Camera's JSDoc). Drag
+ * `button` to pan, wheel zooms toward the cursor. At zoom 1 with the default center, world coords
+ * equal screen pixels, which is what lets the editor keep working in plain mouse_x/mouse_y.
+ *
+ * Unlike CameraFollow's eased, screen-centred zoom, this one is instant and CURSOR-anchored: the
+ * world point under the pointer stays put. That anchor is the whole difference between the two —
+ * an inspector zooms into what you are pointing at, a game camera into what you are watching.
+ *
+ * opt: `x`/`y` (center — defaults to the surface center), `zoom`/`zoomMin`/`zoomMax`/`zoomStep`,
+ * `button`.
+ */
+globalThis.CameraPan = class CameraPan {
+  constructor(opt = {}) {
+    this.raw = false; // sim-clock control (Camera contract)
 
-/** `this` = a Camera augmented with the _pan* fields set in CameraPan.create. */
-function _cameraPanOnUpdate() {
-  const sw = surface_get_width(application_surface);
-  const sh = surface_get_height(application_surface);
+    this.x = opt.x; // undefined → seeded to the surface center by enter()
+    this.y = opt.y;
+    this.zoom = opt.zoom ?? 1;
+    this.zoomMin = opt.zoomMin ?? 0.25;
+    this.zoomMax = opt.zoomMax ?? 8;
+    this.zoomStep = opt.zoomStep ?? 0.15;
+    this.button = opt.button ?? mb_middle;
 
-  // device_mouse_*_to_gui returns GUI coords on a fixed design size (≠ surface), so scale
-  // GUI→surface to keep pan/zoom in the camera's pixel space
-  const mx = (device_mouse_x_to_gui(0) * sw) / display_get_gui_width();
-  const my = (device_mouse_y_to_gui(0) * sh) / display_get_gui_height();
-
-  // drag to pan: move camera opposite the mouse delta (world delta = screen / zoom)
-  if (mouse_check_button_pressed(this._panButton)) {
-    this._panDragging = true;
-    this._panMx = mx;
-    this._panMy = my;
+    this.dragging = false;
+    this.mx = 0;
+    this.my = 0;
   }
-  if (this._panDragging) {
-    if (mouse_check_button(this._panButton)) {
-      this._panX -= (mx - this._panMx) / this._panZoom;
-      this._panY -= (my - this._panMy) / this._panZoom;
-      this._panMx = mx;
-      this._panMy = my;
+
+  /** Seed center + extent so frame 0 already frames the world; pin the ortho projection. */
+  enter(camera) {
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
+    if (this.x === undefined) this.x = sw * 0.5;
+    if (this.y === undefined) this.y = sh * 0.5;
+
+    camera.projection = CAMERA_PROJECTION.ORTHO;
+    camera
+      .setFrom(this.x, this.y, -100)
+      .setTo(this.x, this.y, 0)
+      .setSize(sw, sh);
+  }
+
+  update(camera) {
+    const sw = surface_get_width(application_surface);
+    const sh = surface_get_height(application_surface);
+    // pan/zoom work in the camera's own pixel space, so read the pointer in surface px
+    // (Camera.mouseSurface owns the GUI→surface conversion)
+    const m = camera.mouseSurface();
+
+    this._drag(m.x, m.y);
+    this._wheel(m.x, m.y, sw, sh);
+
+    camera
+      .setFrom(this.x, this.y, camera.fromZ)
+      .setTo(this.x, this.y, 0)
+      .setSize(sw / this.zoom, sh / this.zoom);
+  }
+
+  /** Hold `button` to drag the world: the center moves opposite the pointer (delta / zoom). */
+  _drag(mx, my) {
+    if (mouse_check_button_pressed(this.button)) {
+      this.dragging = true;
+      this.mx = mx;
+      this.my = my;
+    }
+    if (!this.dragging) return;
+
+    if (mouse_check_button(this.button)) {
+      this.x -= (mx - this.mx) / this.zoom;
+      this.y -= (my - this.my) / this.zoom;
+      this.mx = mx;
+      this.my = my;
     } else {
-      this._panDragging = false;
+      this.dragging = false;
     }
   }
 
-  // wheel to zoom toward the cursor (clamped to range)
-  if (mouse_wheel_up()) {
-    const next = Math.min(this._panMaxZoom, this._panZoom * (1 + this._panZoomStep));
-    _cameraPanZoom(this, next, mx, my, sw, sh);
+  _wheel(mx, my, sw, sh) {
+    if (mouse_wheel_up())
+      this._zoomTo(
+        Math.min(this.zoomMax, this.zoom * (1 + this.zoomStep)),
+        mx,
+        my,
+        sw,
+        sh,
+      );
+    if (mouse_wheel_down())
+      this._zoomTo(
+        Math.max(this.zoomMin, this.zoom * (1 - this.zoomStep)),
+        mx,
+        my,
+        sw,
+        sh,
+      );
   }
-  if (mouse_wheel_down()) {
-    const next = Math.max(this._panMinZoom, this._panZoom * (1 - this._panZoomStep));
-    _cameraPanZoom(this, next, mx, my, sw, sh);
+
+  /** Zoom to `next` keeping the world point under the cursor fixed (world delta = screen / zoom). */
+  _zoomTo(next, mx, my, sw, sh) {
+    this.x += (mx - sw * 0.5) * (1 / this.zoom - 1 / next);
+    this.y += (my - sh * 0.5) * (1 / this.zoom - 1 / next);
+    this.zoom = next;
   }
-
-  this.setFrom(this._panX, this._panY, this.fromZ);
-  this.setTo(this._panX, this._panY, 0);
-  this.setSize(sw / this._panZoom, sh / this._panZoom);
-}
-
-globalThis.CameraPan = {
-  /**
-   * 2D pan + zoom inspector camera. Drag `button` to pan, wheel zooms toward the cursor.
-   * At zoom 1 with the default center, world coords equal screen pixels.
-   * cam: x/y (center), zoom, minZoom, maxZoom, zoomStep, button.
-   */
-  create(cam = {}) {
-    cam.onUpdate = _cameraPanOnUpdate;
-    cam.projection = CAMERA_PROJECTION.ORTHO;
-
-    const sw = surface_get_width(application_surface);
-    const sh = surface_get_height(application_surface);
-
-    const ix = cam.x ?? sw * 0.5;
-    const iy = cam.y ?? sh * 0.5;
-
-    cam.fromX = ix;
-    cam.fromY = iy;
-    cam.fromZ = -100;
-    cam.toX = ix;
-    cam.toY = iy;
-    cam.width = sw;
-    cam.height = sh;
-
-    const camera = new Camera(cam);
-
-    camera._panX = ix;
-    camera._panY = iy;
-    camera._panZoom = cam.zoom ?? 1;
-    camera._panMinZoom = cam.minZoom ?? 0.25;
-    camera._panMaxZoom = cam.maxZoom ?? 8;
-    camera._panZoomStep = cam.zoomStep ?? 0.15;
-    camera._panButton = cam.button ?? mb_middle;
-    camera._panDragging = false;
-    camera._panMx = 0;
-    camera._panMy = 0;
-
-    return camera;
-  },
 };
