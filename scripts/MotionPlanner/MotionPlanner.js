@@ -112,8 +112,9 @@ globalThis.MotionPlanner = {
     if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
     this._g.fill(Infinity);
-    this._from.fill(-1);
-    this._closed.fill(0);
+    // Ranges are explicit: a typed array's fill() is a silent no-op without them (GMRT.md).
+    this._from.fill(-1, 0, this._from.length);
+    this._closed.fill(0, 0, this._closed.length);
 
     const g = this._g;
     const from = this._from;
