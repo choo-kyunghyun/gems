@@ -7,8 +7,8 @@
  *   defaultLoot(s, rng)   -> loot array for a spawn that authored none, or undefined to leave it.
  *     Drawn BEFORE the spawnFilter verdict so a filtered-out spawn consumes the same rng draws — the
  *     level's remaining placements must not shift.
- * Output carries only walls + spawns, so a tiles/zones-bearing prefab warns once at construction
- * rather than silently dropping channels (apply()-based generators consume those).
+ * A prefab is a LevelData, so every channel it carries reaches the level unchanged — the stamp
+ * translates it to the placement offset and merges it into the generator's own LevelData.
  */
 globalThis.PrefabStamp = class PrefabStamp {
   /**
@@ -28,13 +28,6 @@ globalThis.PrefabStamp = class PrefabStamp {
     this.prefabs = Prefab.byTag(opts.tag);
     this.spawnFilter = opts.spawnFilter ?? ((s, field) => true);
     this.defaultLoot = opts.defaultLoot ?? ((s, rng) => undefined);
-    for (let i = 0; i < this.prefabs.length; i++) {
-      const p = this.prefabs[i];
-      if (p.tiles.length > 0 || p.zones.length > 0)
-        Log.warn(
-          `PrefabStamp: prefab '${p.id}' has tiles/zones — level output drops them`,
-        );
-    }
   }
 
   apply(ctx) {
@@ -62,11 +55,16 @@ globalThis.PrefabStamp = class PrefabStamp {
       if (ox < 0) continue;
       ctx.claim(ox, oy, p.cols, p.rows);
 
-      const st = p.stamp(ox, oy);
-      for (let i = 0; i < st.walls.length; i++) ctx.out.walls.push(st.walls[i]);
+      const st = LevelData.translate(p, ox, oy);
+      for (let i = 0; i < st.tiles.length; i++) {
+        const t = st.tiles[i];
+        const dst = ctx.rects(t.layer, t.material);
+        for (let j = 0; j < t.rects.length; j++) dst.push(t.rects[j]);
+      }
+      for (let i = 0; i < st.zones.length; i++) ctx.out.zones.push(st.zones[i]);
       for (let i = 0; i < st.spawns.length; i++) {
         const s = st.spawns[i];
-        // stamp's spawn copy is shallow — deep-copy item arrays so stamped instances never
+        // translate's spawn copy is shallow — deep-copy item arrays so stamped instances never
         // share (and mutate on pickup) the registry def's arrays
         if (s.loot !== undefined) s.loot = this._cloneItems(s.loot);
         if (s.items !== undefined) s.items = this._cloneItems(s.items);

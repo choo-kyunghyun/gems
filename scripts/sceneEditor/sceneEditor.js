@@ -1,5 +1,7 @@
-// In-engine level editor: paint tiles/entities/spawn/zones, export to save dir, Test Play in
+// In-engine level editor: paint tiles/entities/spawn, export to save dir, Test Play in
 // sceneColony. No World — entities are spawns records (data only), not live AI.
+// No zone authoring: the channels a level actually carries (settlement/climate) are built by
+// ColonyMap from `meta`, which the editor round-trips whole (see _loadData) but doesn't edit.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level file loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
@@ -32,7 +34,7 @@ class _SceneEditorClass {
     this.camera = new Camera().setControl(new CameraPan());
     this.camera.assign(0);
 
-    this._tool = "wall"; // wall|floor|erase|spawn|select|zone|entity
+    this._tool = "wall"; // wall|floor|erase|spawn|select|entity
     this._placePreset = contentCatalog.entries[0].id; // active entity preset
     this._sizeIdx = 0; // selected "New" size preset
     this._openIdx = 0; // selected "Open" file
@@ -54,25 +56,17 @@ class _SceneEditorClass {
   _loadData(data) {
     this._cell = data.cell ?? 32; // 32px-cell convention; loaded file wins
     this._initLevel(data.cols, data.rows, this._cell);
-    this._paintRects(this.wallLayer, data.walls, this.wallType);
-    this._paintRects(this.floorLayer, data.floors, this.floorType);
+    this._loadTiles(data.tiles);
 
     this._spawns = (data.spawns ?? []).slice(); // copy so add/remove don't mutate the data obj
+    // meta is level-scope data the editor doesn't author (entries, climate, settlements, the
+    // generator seed) — held whole so export writes it back instead of dropping it
+    this._meta = { ...data.meta };
     this._spawnPoint = {
       gx: data.meta.playerSpawn.gx,
       gy: data.meta.playerSpawn.gy,
     };
 
-    // restore saved buildable zone; import() replaces the map _initLevel just created,
-    // so re-point _zoneId at the imported zone for the Zone tool
-    if (data.zoneMaps !== undefined && data.zoneMaps.buildable !== undefined) {
-      const map = this.level.grid.zoneMap("buildable");
-      map.import(data.zoneMaps.buildable);
-      const z = map.byTag("buildable")[0];
-      if (z !== undefined) this._zoneId = z.id;
-    }
-
-    this._zoneDrag = undefined;
     this._select(undefined); // also sets _propDirty so the panel rebuilds next step
   }
 
@@ -94,7 +88,7 @@ class _SceneEditorClass {
   /** rebuild the level at the given size; destroy the previous one first */
   _initLevel(cols, rows, cell) {
     if (this.level !== undefined) this.level.destroy(); // destroys the grid's inserted layers too
-    // entity-less: the editor paints tiles and zones, and stores spawns as plain records
+    // entity-less: the editor paints tiles and stores spawns as plain records
     this.level = new Level({
       capacity: 1,
       grid: new LevelGrid({ cellWidth: cell, cellHeight: cell, cols, rows }),
@@ -120,23 +114,6 @@ class _SceneEditorClass {
     if (this._gridPass !== undefined) this.renderer.remove(this._gridPass);
     this._gridPass = new RenderGrid(this.level.grid);
     this.renderer.insert(this._gridPass);
-
-    // buildable zone channel: the Zone tool drag-paints here; RenderZone tints it over the grid
-    const zmap = this.level.grid.addZoneMap("buildable");
-    this._zoneId = zmap.define({
-      name: I18n.text("BUILD_ZONE"),
-      tags: ["buildable"],
-      data: { color: "#55aa55" },
-    }).id;
-    if (this._zonePass !== undefined) this.renderer.remove(this._zonePass);
-    this._zonePass = new RenderZone(this.level.grid, "buildable", { alpha: 0.28 });
-    this.renderer.insert(this._zonePass);
-    if (this._zoneLabelPass !== undefined)
-      this.renderer.remove(this._zoneLabelPass);
-    this._zoneLabelPass = new RenderZoneLabel(this.level.grid, "buildable", {
-      font: I18n.font("default"),
-    });
-    this.renderer.insert(this._zoneLabelPass);
   }
 
   /** blank level at chosen size: border wall ring, no entities, spawn at (2,2) */
@@ -151,8 +128,9 @@ class _SceneEditorClass {
       this.wallLayer.set(cols - 1, y, this.wallType);
     }
     this._spawns = [];
+    this._meta = {};
+    this._extraTiles = [];
     this._spawnPoint = { gx: 2, gy: 2 };
-    this._zoneDrag = undefined; // freshly recreated by _initLevel
     this._select(undefined);
     Toast.push(I18n.text("EDITOR_SIZE", cols, rows), { type: "info" });
   }
@@ -164,6 +142,29 @@ class _SceneEditorClass {
       for (let y = r[1]; y < r[1] + r[3]; y++)
         for (let x = r[0]; x < r[0] + r[2]; x++) layer.set(x, y, type);
     }
+  }
+
+  /**
+   * Paint the LevelData tiles channel into the editor's two layers. The editor models only plain
+   * wall/floor, so an entry naming another layer — or a wall material it can't pick — is PARKED
+   * verbatim and re-emitted on export: invisible here, but never silently dropped from the file.
+   * TODO: the parking goes away with the pass that puts the editor on the real contentTiles stack.
+   */
+  _loadTiles(tiles) {
+    this._extraTiles = [];
+    const list = tiles ?? [];
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i];
+      if (t.material === undefined && t.layer === "wall")
+        this._paintRects(this.wallLayer, t.rects, this.wallType);
+      else if (t.material === undefined && t.layer === "floor")
+        this._paintRects(this.floorLayer, t.rects, this.floorType);
+      else this._extraTiles.push(t);
+    }
+    if (this._extraTiles.length > 0)
+      Log.info(
+        `editor: parked ${this._extraTiles.length} tiles entry/entries the editor can't paint`,
+      );
   }
 
   /** palette: bottom catbar (tools + entities) + top-left file card; both guard canvas painting */
@@ -211,10 +212,6 @@ class _SceneEditorClass {
         label: I18n.textRef("EDITOR_SELECT"),
         onSelect: () => (this._tool = "select"),
       },
-      {
-        label: I18n.textRef("EDITOR_ZONE"),
-        onSelect: () => (this._tool = "zone"),
-      },
     ];
 
     const wrap = new UIElement({
@@ -260,7 +257,8 @@ class _SceneEditorClass {
 
     // current size + blank-level new at a chosen preset
     labelRow(
-      () => I18n.text("EDITOR_SIZE", this.level.grid.cols, this.level.grid.rows),
+      () =>
+        I18n.text("EDITOR_SIZE", this.level.grid.cols, this.level.grid.rows),
       { color: GemsTheme.textMuted, font: "header" },
       26,
     );
@@ -289,7 +287,7 @@ class _SceneEditorClass {
       ),
     );
 
-    // open bundled source or save-dir export; only path that reads back exported zoneMaps
+    // open a bundled source level or a save-dir export
     const openItems = [
       { name: "topdown_1", value: EDITOR_SOURCE_FILE },
       { name: "export", value: EDITOR_EXPORT_FILE },
@@ -335,9 +333,7 @@ class _SceneEditorClass {
             ? "EDITOR_SPAWN"
             : this._tool === "select"
               ? "EDITOR_SELECT"
-              : this._tool === "zone"
-                ? "EDITOR_ZONE"
-                : "EDITOR_ERASE";
+              : "EDITOR_ERASE";
     return I18n.text("EDITOR_TOOL", I18n.text(key));
   }
 
@@ -347,12 +343,6 @@ class _SceneEditorClass {
     if (this._propDirty) {
       this._rebuildProps();
       this._propDirty = false;
-    }
-
-    // check release globally so dropping over a UI panel still finalizes the zone drag
-    if (this._tool === "zone" && this._zoneDrag !== undefined) {
-      const btn = this._zoneDrag.erase ? mb_right : mb_left;
-      if (mouse_check_button_released(btn)) this._commitZone();
     }
 
     // skip canvas edits when cursor is over any UI panel (file card, prop panel, catbar flyout)
@@ -366,12 +356,6 @@ class _SceneEditorClass {
       return;
 
     const cell = this.level.grid.worldToGrid(mouse_x, mouse_y);
-
-    // zone drag: start + live preview tracked here; release committed via the global check above
-    if (this._tool === "zone") {
-      this._zoneTrack(cell);
-      return;
-    }
 
     if (
       cell.x < 0 ||
@@ -411,36 +395,6 @@ class _SceneEditorClass {
   _eraseBoth(gx, gy) {
     TileEdit.clear(this.wallLayer, gx, gy);
     TileEdit.clear(this.floorLayer, gx, gy);
-  }
-
-  /**
-   * track zone drag start + current cell (both clamped so off-grid drags still rectangle to the edge)
-   */
-  _zoneTrack(cell) {
-    const gx = clamp(cell.x, 0, this.level.grid.cols - 1);
-    const gy = clamp(cell.y, 0, this.level.grid.rows - 1);
-    this._zoneCur = { x: gx, y: gy };
-    if (this._zoneDrag === undefined) {
-      if (mouse_check_button_pressed(mb_left))
-        this._zoneDrag = { sx: gx, sy: gy, erase: false };
-      else if (mouse_check_button_pressed(mb_right))
-        this._zoneDrag = { sx: gx, sy: gy, erase: true };
-    }
-  }
-
-  /** apply the drag rectangle to the zone map (paint or erase) and clear drag state */
-  _commitZone() {
-    const d = this._zoneDrag;
-    const cur = this._zoneCur ?? { x: d.sx, y: d.sy };
-    const x1 = d.sx < cur.x ? d.sx : cur.x;
-    const y1 = d.sy < cur.y ? d.sy : cur.y;
-    const x2 = d.sx > cur.x ? d.sx : cur.x;
-    const y2 = d.sy > cur.y ? d.sy : cur.y;
-    const map = this.level.grid.zoneMap("buildable");
-    if (d.erase) map.eraseRect(x1, y1, x2, y2);
-    else map.paintRect(this._zoneId, x1, y1, x2, y2);
-    this._zoneDrag = undefined;
-    this._zoneCur = undefined;
   }
 
   /** true if GUI cursor overlaps the panel's rect (width > 0 guards the first-frame NaN rect) */
@@ -661,8 +615,19 @@ class _SceneEditorClass {
     return row;
   }
 
-  /** assemble the level-data object (walls/floors greedy-meshed; zone only if non-empty) */
+  /**
+   * Assemble the level FILE: a LevelData (tile layers greedy-meshed back into rects) plus the
+   * level-scope keys. `meta` is the loaded one with the edited player spawn written over it, so a
+   * level's entries/climate/settlements survive a round trip through the editor.
+   */
   _buildData() {
+    const tiles = [];
+    const walls = TileEdit.meshRects(this.level.grid, this.wallLayer);
+    if (walls.length > 0) tiles.push({ layer: "wall", rects: walls });
+    const floors = TileEdit.meshRects(this.level.grid, this.floorLayer);
+    if (floors.length > 0) tiles.push({ layer: "floor", rects: floors });
+    for (let i = 0; i < this._extraTiles.length; i++)
+      tiles.push(this._extraTiles[i]); // see _loadTiles
     const data = {
       version: 1,
       genre: "topdown",
@@ -670,16 +635,12 @@ class _SceneEditorClass {
       cols: this.level.grid.cols,
       rows: this.level.grid.rows,
       meta: {
+        ...this._meta,
         playerSpawn: { gx: this._spawnPoint.gx, gy: this._spawnPoint.gy },
       },
-      walls: TileEdit.meshRects(this.level.grid, this.wallLayer),
-      floors: TileEdit.meshRects(this.level.grid, this.floorLayer),
-      layers: [], // LevelSerializer.load expects this key; editor uses walls/floors instead
+      tiles: tiles,
       spawns: this._spawns,
     };
-    const zmap = this.level.grid.zoneMap("buildable");
-    if (zmap !== undefined && zmap.cells(this._zoneId).length > 0)
-      data.zoneMaps = { buildable: zmap.export() };
     return data;
   }
 
@@ -690,10 +651,13 @@ class _SceneEditorClass {
     Toast.push(I18n.text("EDITOR_SAVED", EDITOR_EXPORT_FILE), {
       type: ok ? "success" : "error",
     });
+    let rects = 0;
+    for (let i = 0; i < data.tiles.length; i++)
+      rects += data.tiles[i].rects.length;
     Log.info(
       `editor export ${ok ? "ok" : "FAILED"} → ${EDITOR_EXPORT_FILE} ` +
-        `${data.cols}x${data.rows} walls=${data.walls.length} ` +
-        `floors=${data.floors.length} spawns=${data.spawns.length} ` +
+        `${data.cols}x${data.rows} tiles=${data.tiles.length} channel(s)/${rects} rect(s) ` +
+        `spawns=${data.spawns.length} ` +
         `spawn=(${data.meta.playerSpawn.gx},${data.meta.playerSpawn.gy})`,
     );
   }
@@ -711,28 +675,6 @@ class _SceneEditorClass {
     this._drawFloors(); // translucent fill for painted floors
     this._drawMarkers(); // entity spawn records
     this._drawSpawn(); // player spawn marker
-    this._drawZonePreview(); // in-progress zone drag
-  }
-
-  /** preview the in-progress drag (green=paint, red=erase); committed zone drawn by RenderZone */
-  _drawZonePreview() {
-    if (this._zoneDrag === undefined || this._zoneCur === undefined) return;
-    const cw = this.level.grid.cellWidth;
-    const ch = this.level.grid.cellHeight;
-    const d = this._zoneDrag;
-    const c = this._zoneCur;
-    const x1 = (d.sx < c.x ? d.sx : c.x) * cw;
-    const y1 = (d.sy < c.y ? d.sy : c.y) * ch;
-    const x2 = ((d.sx > c.x ? d.sx : c.x) + 1) * cw;
-    const y2 = ((d.sy > c.y ? d.sy : c.y) + 1) * ch;
-    draw_set_color(
-      d.erase ? make_colour_rgb(220, 90, 80) : make_colour_rgb(90, 200, 110),
-    );
-    draw_set_alpha(0.25);
-    draw_rectangle(x1, y1, x2, y2, false);
-    draw_set_alpha(1);
-    draw_rectangle(x1, y1, x2, y2, true);
-    draw_set_color(c_white);
   }
 
   _drawFloors() {

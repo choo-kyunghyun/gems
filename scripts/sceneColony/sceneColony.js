@@ -704,8 +704,9 @@ class _SceneColonyClass {
   }
 
   /**
-   * track the player's climate cell (direct lookup beats ZoneSystem's sweep) and push/clear the
-   * Weather override on a border cross. No-op without a "climate" channel.
+   * Track the player's climate cell and push/clear the Weather override on a border cross. The
+   * cached last id IS the edge detector — a zone channel is a point-wise index with no per-entity
+   * membership (ZoneMap). No-op without a "climate" channel.
    */
   _updateClimate() {
     const cmap = this.level.grid.zoneMap("climate");

@@ -308,7 +308,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Entity store + LevelGrid + the buildable/climate zone channels. The player spawns here ONLY on boot
+   * Entity store + LevelGrid + the settlement/climate zone channels. The player spawns here ONLY on boot
    * (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
    * to _spawnWorld. A generated map is fully resident (scatter entities + terrain/wall colliders all
@@ -371,7 +371,7 @@ globalThis.ColonyMap = {
 
     // Climate zones (optional, from meta.climate): regions that override the open sky (forced
     // Weather condition + Kelvin temp offset) while the player is inside. Built before the
-    // persistence import so it round-trips like the buildable zone.
+    // persistence import so it round-trips like the settlement channel.
     const climate = data.meta.climate;
     if (climate !== undefined) {
       const cmap = scene.level.grid.addZoneMap("climate");
@@ -394,12 +394,12 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The level's residents, all live at once — a map is fully simulated for its lifetime. Three
+   * The level's residents, all live at once — a map is fully simulated for its lifetime. Two
    * sources, one adapter (ColonySpawn.spawnEntity): a LOADED map replays its saved store (so a killed
    * mob stays dead and dropped loot stays dropped — its ground already came back from the file or
-   * the seed), a generated map spawns the descriptors its generator produced, and an authored one
-   * spawns the file's. The scene reads NPC/portal/enemy/companion handles LIVE by component query —
-   * stored id lists would dangle across a map swap.
+   * the seed), and a FRESH one spawns the descriptors its build handed back — the file's, the
+   * generator's, or both merged, since the builder resolves that. The scene reads NPC/portal/enemy/
+   * companion handles LIVE by component query — stored id lists would dangle across a map swap.
    */
   _spawnWorld(scene, data, built, mapState) {
     const entities = scene.level.entities;
@@ -407,11 +407,9 @@ globalThis.ColonyMap = {
     if (mapState !== null) {
       const n = SaveGame.restoreResidents(entities, mapState);
       Log.info(`ColonyMap: restored ${n} saved resident(s)`);
-    } else if (built.spawns !== undefined) {
+    } else {
       for (let i = 0; i < built.spawns.length; i++)
         ColonySpawn.spawnEntity(entities, grid, built.spawns[i]);
-    } else {
-      ColonySpawn.spawn(entities, grid, data);
     }
     // A region, not an entity, so it is read straight off the file on every path.
     scene.reachZone = ColonyMap._fileReach(scene, data);

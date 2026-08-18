@@ -1,3 +1,8 @@
+/**
+ * Level FILE i/o. A file is a LevelData (its content channels, in grid coords) plus the level-scope
+ * keys LevelData has no opinion on: `version`/`genre` for the load guards and `meta` for spawn
+ * entries, climate, settlements and the generator seed.
+ */
 globalThis.LevelSerializer = {
   CURRENT_VERSION: 1,
 
@@ -20,10 +25,13 @@ globalThis.LevelSerializer = {
       );
       return null;
     }
-    if (!Array.isArray(data.layers) || !Array.isArray(data.spawns)) {
-      Log.error(
-        `LevelSerializer: missing required fields (layers, spawns) in ${path}`,
-      );
+    if (!Array.isArray(data.spawns)) {
+      Log.error(`LevelSerializer: missing required field (spawns) in ${path}`);
+      return null;
+    }
+    // optional, but a non-array would fail deep inside the painter instead of here
+    if (data.tiles !== undefined && !Array.isArray(data.tiles)) {
+      Log.error(`LevelSerializer: tiles is not an array in ${path}`);
       return null;
     }
     return data;

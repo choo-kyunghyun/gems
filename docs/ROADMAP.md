@@ -20,7 +20,6 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - **`World.update` is unwired scaffolding**: zero callers — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`) — and `update` carries the engine → gameplay-kit edge (`WorldClock`). Wire the phase-2 routing (clock injected, not named) or drop the method until it lands.
 - **`Collision.mask` is dead**: typed `Set|null`, authored `null` at every spawn site, read by no system — and a live `Set` would be silently nulled by the Json save path (the no-`Set` serialization invariant). Drop the field, or retype it serializable (bit flags) when masks become real.
 - **`EntityStore.import` and `EntityStore.register` have no callers**: saves store `entities.export()` but restore by reading entities out, and `add` auto-registers. `ComponentStore.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard, else drop it.
-- **`ZoneSystem` is dead machinery**: nothing calls `update`/`zoneOf`/`entitiesIn` — `sceneColony` deliberately bypasses the sweep ("direct lookup beats it"), `ZoneMap._inside` exists only to serve it, and ARCHITECTURE.md still names it the zone driver. Wire it in or drop the module (plus `_inside` and the index line).
 - **Caller-less Core/Level members**: `TileLayer.from` has no consumers.
 - **`InputPreset` has no callers**: `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold their hardcoded defaults and `input.json` is never written. Wire the load into boot or drop the module.
 - **`InputAction.unbindButton`/`unbindAxis` are dead**: `UIRebind` remaps by assigning `action.buttons[0]` directly, so the unbind pair has no callers.
@@ -82,7 +81,13 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 
 ### Editor
 
-- Prefabs
+The level file, a `Prefab`, and a generator's output are now one shape (`LevelData`); the editor is the half still on its own parallel model.
+
+- Paint the real `contentTiles` stack instead of the editor's two hardcoded layers, so the brush palette comes from `LAYERS` (+ the wall materials) and an entry the editor can't model stops being parked and re-emitted blind (`sceneEditor._loadTiles`).
+- Zone authoring, if it earns its way back: the editor now edits no channel at all (the dead `buildable` one is gone), so a level's `settlement`/`climate` regions are only reachable by hand-editing `meta`.
+- Author `meta.entries` (named spawn points) — only the single legacy `playerSpawn` is editable today, so an edited level can't be a portal target.
+- Draw with the real render passes instead of `RenderDebugTileMap` + hand-drawn markers, so what the editor shows is what plays. Whole-level residency (chunks dropped) is what makes this affordable.
+- Prefabs: capture a selected rect into a `PrefabDef`, stamp a registered one back. Both are plain `LevelData` ops, so no prefab-specific data path is needed — only the export, as a JS literal for `contentPrefabs` (content is code), mirroring the level export → `datafiles/levels/` workflow.
 
 ### Verification
 

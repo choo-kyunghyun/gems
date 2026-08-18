@@ -1,21 +1,21 @@
 /**
- * The pass pushes the level file's hand-built content (walls + spawns, already in grid coords) and
- * CLAIMS its extent, which the procedural passes (PrefabStamp, scatters) respect — so the hub area
- * stays procedural-free even where sparse. The claim is the content's BBOX, not its occupied cells:
- * a courtyard inside the hub is part of the hub. Terrain is untouched — the biome field paints the
- * same continuous ground under authored and wild ground alike. Run this FIRST in the pass list (it
- * draws no rng — its salt is unused).
+ * The pass pushes the level file's hand-built content (its LevelData channels, already in grid
+ * coords) and CLAIMS its extent, which the procedural passes (PrefabStamp, scatters) respect — so
+ * the hub area stays procedural-free even where sparse. The claim is the content's BBOX, not its
+ * occupied cells: a courtyard inside the hub is part of the hub. Terrain is untouched — the biome
+ * field paints the same continuous ground under authored and wild ground alike. Run this FIRST in
+ * the pass list (it draws no rng — its salt is unused).
  */
 globalThis.AuthoredStamp = class AuthoredStamp {
   /**
-   * opts: data? (level-file data — { walls: [[gx,gy,w,h]...], spawns: [{gx,gy,...}] }), margin?
-   * (extra cells claimed around the bbox, default 0), salt? (per-pass stream salt, unused — no rng
-   * drawn).
+   * opts: data? (the level file's LevelData — tiles/zones/spawns in grid coords), margin? (extra
+   * cells claimed around the bbox, default 0), salt? (per-pass stream salt, unused — no rng drawn).
    */
   constructor(opts = {}) {
     this.salt = opts.salt;
     this.margin = opts.margin ?? 0;
-    this._walls = [];
+    this._tiles = [];
+    this._zones = [];
     this._spawns = [];
     // cell bbox of the authored content — claimed whole, so procedural passes stay clear
     this._has = false;
@@ -27,8 +27,13 @@ globalThis.AuthoredStamp = class AuthoredStamp {
   }
 
   apply(ctx) {
-    for (let i = 0; i < this._walls.length; i++)
-      ctx.out.walls.push(this._walls[i]);
+    for (let i = 0; i < this._tiles.length; i++) {
+      const t = this._tiles[i];
+      const dst = ctx.rects(t.layer, t.material);
+      for (let j = 0; j < t.rects.length; j++) dst.push(t.rects[j]);
+    }
+    for (let i = 0; i < this._zones.length; i++)
+      ctx.out.zones.push(this._zones[i]);
     for (let i = 0; i < this._spawns.length; i++)
       ctx.out.spawns.push(this._spawns[i]);
     if (!this._has) return;
@@ -42,17 +47,23 @@ globalThis.AuthoredStamp = class AuthoredStamp {
   }
 
   /**
-   * Collect the file's walls + spawns and grow the bbox over them. "reach" spawns stay in — the
-   * spawn adapter skips them; the scene resolves the reach zone separately.
+   * Collect the file's channels and grow the bbox over them. "reach" spawns stay in — the spawn
+   * adapter skips them; the scene resolves the reach zone separately. Zones are re-emitted but do
+   * NOT grow the bbox: a climate region spans open wilderness the procedural passes must still fill.
    */
   _index(data) {
-    const walls = data.walls ?? [];
-    for (let i = 0; i < walls.length; i++) {
-      const r = walls[i];
-      this._walls.push(r);
-      this._grow(r[0], r[1]);
-      this._grow(r[0] + r[2] - 1, r[1] + r[3] - 1);
+    const tiles = data.tiles ?? [];
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      this._tiles.push(t);
+      for (let j = 0; j < t.rects.length; j++) {
+        const r = t.rects[j];
+        this._grow(r[0], r[1]);
+        this._grow(r[0] + r[2] - 1, r[1] + r[3] - 1);
+      }
     }
+    const zones = data.zones ?? [];
+    for (let i = 0; i < zones.length; i++) this._zones.push(zones[i]);
     const spawns = data.spawns ?? [];
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];

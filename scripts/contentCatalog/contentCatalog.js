@@ -1,4 +1,4 @@
-// Placeable-entity catalog for the level editor, mirroring ColonySpawn.spawn's presets.
+// Placeable-entity catalog for the level editor, mirroring ColonySpawn.spawnEntity's presets.
 // Entry shape + the field schema are on the contentCatalog declaration below.
 
 // Interaction kinds authorable on a prop in the editor (each = an InteractAction id). bed/arcade are

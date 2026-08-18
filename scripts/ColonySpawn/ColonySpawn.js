@@ -3,10 +3,10 @@
 /**
  * The entity kinds are EntityPreset DEFS (register(), called by content.register) — component data
  * + design scale + a `post` hook for wiring data can't express (CombatAI.attach). spawnEntity does
- * grid→world and per-spawn overrides (field-merged onto the def like a variant). Up-front map spawns
- * (ColonySpawn.spawn), a generated level's descriptors (ColonyMap._spawnWorld), BuildMode, and the Trader all
- * route through it; a variant preset (`extends: "raider"`) uses the same path when its descriptor
- * fields match its base's.
+ * grid→world and per-spawn overrides (field-merged onto the def like a variant). A fresh map's
+ * descriptors (ColonyMap._spawnWorld — the file's and the generator's alike), BuildMode, and the
+ * Trader all route through it; a variant preset (`extends: "raider"`) uses the same path when its
+ * descriptor fields match its base's.
  *
  * Presets (grid coords gx/gy; sprites + box sizes are per-preset, kept in the defs):
  *   raider   hp? loot[]   (hostile human — camp + quest enemy)
@@ -333,40 +333,6 @@ globalThis.ColonySpawn = {
         },
       },
     ]);
-  },
-
-  /**
-   * Spawn the scene's entities from data.spawns. Enemies acquire targets live by faction and
-   * stations are discovered live by Interactable, so only the handles the scene's logic needs
-   * are returned:
-   *   { enemies: id[], npc: id, reach: {x1,y1,x2,y2}|undefined,
-   *     portals: [{ id, toMap, toEntry }], followers: id[] }
-   */
-  spawn(entities, grid, data) {
-    const spawns = data.spawns ?? [];
-    const enemies = [];
-    const portals = [];
-    const followers = [];
-    let npc = -1;
-    let reach;
-
-    for (let i = 0; i < spawns.length; i++) {
-      const s = spawns[i];
-      if (s.preset === "reach") {
-        reach = ColonySpawn.reachZone(grid, s); // a region, not an entity
-        continue;
-      }
-      const id = ColonySpawn.spawnEntity(entities, grid, s);
-      if (id === -1) continue;
-      // classify into the scene's typed handles by preset
-      if (s.preset === "raider" || s.preset === "rat") enemies.push(id);
-      else if (s.preset === "npc") npc = id;
-      else if (s.preset === "portal")
-        portals.push({ id, toMap: s.toMap, toEntry: s.toEntry ?? "default" });
-      else if (s.preset === "follower") followers.push(id);
-    }
-
-    return { enemies, npc, reach, portals, followers };
   },
 
   /**

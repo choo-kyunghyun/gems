@@ -1,5 +1,6 @@
 // Colony overworld prefabs stamped by the overworld generator. Registered at level create() (NOT
 // top-level — GMRT load-order), before the generator is built (PrefabStamp resolves Prefab.byTag).
+// A def body is a LevelData in footprint-local coords — see Prefab.
 globalThis.contentPrefabs = {
   register() {
     Prefab.register([
@@ -12,10 +13,10 @@ globalThis.contentPrefabs = {
         cols: 4,
         rows: 4,
         spawns: [
-          { preset: "rock", lx: 0, ly: 0, w: 1, h: 2 },
-          { preset: "rock", lx: 2, ly: 0, w: 1, h: 1 },
-          { preset: "rock", lx: 1, ly: 2, w: 2, h: 1 },
-          { preset: "rock", lx: 3, ly: 3, w: 1, h: 1 },
+          { preset: "rock", gx: 0, gy: 0, w: 1, h: 2 },
+          { preset: "rock", gx: 2, gy: 0, w: 1, h: 1 },
+          { preset: "rock", gx: 1, gy: 2, w: 2, h: 1 },
+          { preset: "rock", gx: 3, gy: 3, w: 1, h: 1 },
         ],
       },
       // sheltered corner with a raider pack (one tougher)
@@ -25,14 +26,19 @@ globalThis.contentPrefabs = {
         weight: 3,
         cols: 5,
         rows: 5,
-        walls: [
-          [0, 0, 3, 1],
-          [0, 1, 1, 2],
+        tiles: [
+          {
+            layer: "wall",
+            rects: [
+              [0, 0, 3, 1],
+              [0, 1, 1, 2],
+            ],
+          },
         ],
         spawns: [
-          { preset: "raider", lx: 3, ly: 2, hp: 3 },
-          { preset: "raider", lx: 2, ly: 3, hp: 3 },
-          { preset: "raider", lx: 4, ly: 4, hp: 5 },
+          { preset: "raider", gx: 3, gy: 2, hp: 3 },
+          { preset: "raider", gx: 2, gy: 3, hp: 3 },
+          { preset: "raider", gx: 4, gy: 4, hp: 5 },
         ],
       },
       // broken walls around a loot chest
@@ -42,16 +48,21 @@ globalThis.contentPrefabs = {
         weight: 1,
         cols: 6,
         rows: 4,
-        walls: [
-          [0, 0, 4, 1],
-          [0, 1, 1, 2],
-          [5, 0, 1, 3],
+        tiles: [
+          {
+            layer: "wall",
+            rects: [
+              [0, 0, 4, 1],
+              [0, 1, 1, 2],
+              [5, 0, 1, 3],
+            ],
+          },
         ],
         spawns: [
           {
             preset: "chest",
-            lx: 2,
-            ly: 2,
+            gx: 2,
+            gy: 2,
             capacity: 8,
             items: [
               { itemId: "coin", qty: 5 },

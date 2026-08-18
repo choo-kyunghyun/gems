@@ -5,7 +5,7 @@
  * (persisted nested via json_stringify / the Json codec — see docs/GMRT.md). A cell belongs to at most
  * one settlement (one zone per cell), so lookup is O(1).
  *
- * Stateless namespace over a level's channel (like ZoneSystem/InventorySystem) — Core-only deps
+ * Stateless namespace over a level's channel (like InventorySystem) — Core-only deps
  * (grid/Zone/ZoneMap + uuid); it holds NO policy about which faction is "the player" (the consumer
  * decides, e.g. BuildMode gates on ownerAt === "player"). Multiple settlements per map are supported: a
  * player Home founded at a Survey Post, plus authored faction hubs / raider camps (data-driven). The

@@ -21,12 +21,16 @@ function _stream(seed) {
  * terrain base comes from a composed `field` (TerrainField-like sampler), which paint() writes into
  * the level's terrain layer.
  *
- * ctx = { gen, field, cols, rows, rng, claims, claim(x,y,w,h), claimed(gx,gy), out: { walls, spawns } }
- * — a pass reads the field and pushes grid-coord walls/spawns into `out`. CLAIMS are the exclusion
- * channel: an overlay pass (AuthoredStamp) claims the hand-built area, a stamp claims its own
- * footprint, and later passes skip claimed cells — so nothing scatters into a building and two
- * stamps can't overlap. Suppression follows the CONTENT: a claim is a rect a pass drew, not a
- * region of the level fixed up front.
+ * ctx = { gen, field, cols, rows, rng, claims, claim(x,y,w,h), free(x,y,w,h), claimed(gx,gy),
+ * rects(layer, material), out } — `out` accumulates a LevelData in grid coords, so what a generator
+ * produces is the same shape a level FILE holds and one painter writes both. A pass reads the field
+ * and pushes into `out`: tile rects through `ctx.rects`, which merges them by (layer, material) so
+ * the output stays one entry per channel however many passes drew into it; zones and spawns onto
+ * `out.zones`/`out.spawns` directly. CLAIMS are the exclusion channel: an overlay pass
+ * (AuthoredStamp) claims the hand-built area, a stamp claims its own footprint, and later passes
+ * skip claimed cells — so nothing scatters into a building and two stamps can't overlap.
+ * Suppression follows the CONTENT: a claim is a rect a pass drew, not a region of the level fixed
+ * up front.
  *
  * Determinism: each pass draws from its OWN stream, seeded from (seed, pass salt) — so the same seed
  * lays out the same level on every BUILD (a SAVE keeps only entity state, so the ground and its
@@ -67,12 +71,12 @@ globalThis.LevelGen = class LevelGen {
   }
 
   /**
-   * Run every pass over a cols×rows level. Returns { walls, spawns, solid } in GRID coords — walls
-   * paint into the wall layer (and mesh with it), `solid` is the impassable terrain's collide-only
-   * rects, and spawns go to the caller's descriptor adapter.
+   * Run every pass over a cols×rows level. Returns the accumulated LevelData (grid coords) plus
+   * `solid`, the impassable terrain's collide-only rects — the one channel that is NOT LevelData,
+   * because it has no tile layer to remesh from and so outlives a build-mode edit.
    */
   generate(cols, rows) {
-    const out = { walls: [], spawns: [] };
+    const out = { cols: cols, rows: rows, tiles: [], zones: [], spawns: [] };
     const ctx = {
       gen: this,
       field: this.field,
@@ -83,6 +87,19 @@ globalThis.LevelGen = class LevelGen {
       out: out,
       claim(x, y, w, h) {
         this.claims.push([x, y, x + w - 1, y + h - 1]);
+      },
+      /**
+       * The rect array of `out`'s (layer, material) tiles entry, created on first use — every pass
+       * drawing the same channel appends to ONE entry.
+       */
+      rects(layer, material) {
+        const tiles = this.out.tiles;
+        for (let i = 0; i < tiles.length; i++)
+          if (tiles[i].layer === layer && tiles[i].material === material)
+            return tiles[i].rects;
+        const entry = { layer: layer, material: material, rects: [] };
+        tiles.push(entry);
+        return entry.rects;
       },
       /** true if the cell rect overlaps no claim — the placement test for a stamp */
       free(x, y, w, h) {
@@ -107,11 +124,8 @@ globalThis.LevelGen = class LevelGen {
       ctx.rng = _stream(this.seed + salt * 101159);
       p.apply(ctx);
     }
-    return {
-      walls: out.walls,
-      spawns: out.spawns,
-      solid: this.field.solidRects(cols, rows),
-    };
+    out.solid = this.field.solidRects(cols, rows);
+    return out;
   }
 
   /** Paint the terrain base into a layer — `types` is one TileType per palette entry. */

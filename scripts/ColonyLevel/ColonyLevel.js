@@ -10,12 +10,13 @@ const CELL = 32; // fallback cell size when a level omits `cell` (32px conventio
  * lifetime. `meta.generated` swaps the file's hand-painted grid for a procedural one (_generate) —
  * the ground is still ordinary tile data either way, so nothing downstream knows the difference.
  *
- * File shape: { cell?, cols, rows, meta: { playerSpawn }, walls: [[x,y,w,h]...] } — walls are cell
- * rectangles (map straight onto the greedy mesh). Grid size is cols/rows, NOT the room, so a level
- * can exceed the view and the follow camera scrolls across it.
+ * File shape is a LevelData plus `meta` — one painter (LevelData.paint) writes it whether it came
+ * off disk or out of a generator, so the two branches below differ only in the terrain BASE. Grid
+ * size is cols/rows, NOT the room, so a level can exceed the view and the follow camera scrolls
+ * across it.
  */
 globalThis.ColonyLevel = {
-  // World graph: map id → level file. Maps are connected by `portal` spawns (see ColonySpawn.spawn).
+  // World graph: map id → level file. Maps are connected by `portal` spawns (see ColonySpawn.spawnEntity).
   // START is the boot map.
   // DISCRETE FILES: a level file has to parse in one go, and a level owns exactly one entity store —
   // so map size is bounded by both. The graph is how the world grows past one map.
@@ -86,27 +87,13 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Paint cell-rectangles ([x,y,w,h]) of `type` into a layer. An absent array is a no-op, so
-   * older level files are unaffected.
-   */
-  _paintRects(layer, rects, type) {
-    if (rects === undefined) return;
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      for (let y = r[1]; y < r[1] + r[3]; y++)
-        for (let x = r[0]; x < r[0] + r[2]; x++) layer.set(x, y, type);
-    }
-  },
-
-  /**
    * Build a Level: paint the grid + mesh kinematic wall colliders. Returns the built handles; the
    * caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
    * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
    * meta.playerSpawn.
    *
-   * A `meta.generated` level paints itself (_generate) and hands back `spawns` (the descriptors the
-   * caller feeds ColonySpawn) + `terrainMats` (the material table its render passes stack); an authored
-   * one fills the walkable base from the file's cell-rects and leaves both undefined.
+   * `spawns` comes back on every path — the descriptors the caller feeds ColonySpawn, translated
+   * but not spawned. `terrainMats` (the material table the render passes stack) is generated-only.
    *
    * TWO collider lists, because they have different lifetimes: `colliders` is the wall layer's
    * greedy mesh, which BuildMode remeshes wholesale on every tile edit, while `statics` is the
@@ -122,17 +109,21 @@ globalThis.ColonyLevel = {
     });
     const h = ColonyLevel._makeLayers(grid);
     const statics = [];
-    const gen =
-      data.meta.generated === true
-        ? ColonyLevel._generate(entities, grid, h, data, statics)
-        : undefined;
-    if (gen === undefined) {
-      // Terrain auto-filled as the walkable base; walls + optional floors from the file's
-      // cell-rects (fence has no file source yet).
+
+    // The CONTENT is one shape either way: a generated level's passes ACCUMULATE a LevelData (the
+    // file's own content among them, via AuthoredStamp), an authored level IS one. Only the terrain
+    // BASE forks — the biome field paints it per cell, a hand-painted map auto-fills the walkable
+    // material.
+    let content = data;
+    let mats;
+    if (data.meta.generated === true) {
+      const gen = ColonyLevel._generate(entities, grid, h, data, statics);
+      content = gen.out;
+      mats = gen.mats;
+    } else {
       ColonyLevel._fillLayers(grid, h);
-      ColonyLevel._paintRects(h.wallLayer, data.walls, h.wallType);
-      ColonyLevel._paintRects(h.floorLayer, data.floors, h.floorType);
     }
+    const painted = LevelData.paint(content, { grid: grid, layers: h });
 
     const colliders = [];
     TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
@@ -143,19 +134,23 @@ globalThis.ColonyLevel = {
       spawn,
       colliders,
       statics,
-      spawns: gen !== undefined ? gen.spawns : undefined,
-      terrainMats: gen !== undefined ? gen.mats : undefined,
+      spawns: painted.spawns,
+      terrainMats: mats,
       ...h,
     };
   },
 
   /**
-   * Paint a GENERATED level in place. The biome terrain lands as per-cell TileTypes on the terrain
-   * layer, so it is ordinary tile data from here on — LevelGrid.costAt prices nav from it and the
-   * stacked dual-grid passes render it, with no sampler left running at play time. Generated walls
-   * join the file's on the wall layer (the caller meshes them). Impassable terrain and the level
-   * edge become COLLIDE-ONLY boxes collected into `statics`, apart from the wall layer's mesh so a
-   * build-mode remesh can't free them.
+   * Run the generator and lay down everything that is NOT LevelData: the biome terrain base, and
+   * the collide-only geometry that has no tile layer behind it. Returns `{ out, mats }` — `out` the
+   * accumulated LevelData for the caller's painter (the file's authored content is already merged
+   * into it by AuthoredStamp), `mats` the palette table the stacked render passes threshold on.
+   *
+   * The terrain lands as per-cell TileTypes on the terrain layer, so it is ordinary tile data from
+   * here on — LevelGrid.costAt prices nav from it and the stacked dual-grid passes render it, with
+   * no sampler left running at play time. Impassable terrain and the level edge become COLLIDE-ONLY
+   * boxes collected into `statics`, apart from the wall layer's mesh so a build-mode remesh can't
+   * free them.
    */
   _generate(entities, grid, h, data, statics) {
     const t0 = current_time;
@@ -179,7 +174,6 @@ globalThis.ColonyLevel = {
       mats.push({ type: type, sprite: p.sprite });
     }
     gen.paint(h.terrainLayer, types, grid.cols, grid.rows);
-    ColonyLevel._paintRects(h.wallLayer, out.walls, h.wallType);
     SolidSystem.boxes(
       entities,
       out.solid,
@@ -188,11 +182,14 @@ globalThis.ColonyLevel = {
       statics,
     );
     ColonyLevel.buildWorldBorder(entities, grid, statics);
+    let rects = 0;
+    for (let i = 0; i < out.tiles.length; i++)
+      rects += out.tiles[i].rects.length;
     Log.info(
       `ColonyLevel: generated ${grid.cols}x${grid.rows} in ${current_time - t0}ms — ` +
-        `${out.walls.length} wall rect(s), ${out.spawns.length} spawn(s)`,
+        `${rects} tile rect(s), ${out.spawns.length} spawn(s)`,
     );
-    return { spawns: out.spawns, mats: mats };
+    return { out: out, mats: mats };
   },
 
   /**

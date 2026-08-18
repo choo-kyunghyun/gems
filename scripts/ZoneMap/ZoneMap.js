@@ -1,20 +1,24 @@
 /**
- * one zone channel: Grid of zone-id ints (0 = none) + Zone registry.
- * overlapping purposes (faction / weather / event) use separate ZoneMaps.
+ * One zone channel: a Grid of zone-id ints (0 = none) + its Zone registry. Overlapping purposes
+ * (faction / weather / event) use separate ZoneMaps.
+ *
+ * A channel is a pure SPATIAL INDEX, queried POINT-WISE: `idAt`/`at` answer "which zone owns this
+ * cell" in one array read, which is the question every consumer actually asks — BuildMode gates a
+ * cursor cell, `Settlement.ownerAt` a placement, `sceneColony._updateClimate` the player's cell. It
+ * holds no per-entity membership, so a consumer wanting a border-cross EDGE caches the last id it
+ * read and compares (what _updateClimate does).
  */
 globalThis.ZoneMap = class ZoneMap {
   constructor(cols, rows) {
     this.grid = new Grid(cols, rows); // int zone ids, 0 = none
     // plain object — for...in is GMRT-safe; Map iteration is not
     this.zones = {};
-    // entityId -> zoneId for ZoneSystem enter/exit sweep
-    this._inside = {};
     this._nextId = 1;
   }
 
   define(opt = {}) {
     const id = opt.id ?? this._nextId;
-    // data is deep-copied: a def stamped repeatedly (Prefab.apply) passes ONE payload object for
+    // data is deep-copied: a def painted repeatedly (LevelData.paint) passes ONE payload object for
     // every zone it defines — stored by reference, mutating one zone's data would alias its
     // siblings and the registry def. Round-trip is safe: Zone.data is a JSON payload (no Set/refs),
     // and only native stringify faults on nesting (GMRT.md #15565).
@@ -111,7 +115,6 @@ globalThis.ZoneMap = class ZoneMap {
       this.zones[z.id] = new Zone(z);
     }
     this._nextId = data.nextId;
-    this._inside = {};
     return this;
   }
 
@@ -119,6 +122,5 @@ globalThis.ZoneMap = class ZoneMap {
     this.grid.destroy();
     this.grid = undefined;
     this.zones = {};
-    this._inside = {};
   }
 };
