@@ -57,7 +57,8 @@ globalThis.EntityID = class EntityID {
   }
 
   reset() {
-    this.generations.fill(0);
+    // Range is explicit: a typed array's fill() is a silent no-op without it (GMRT.md).
+    this.generations.fill(0, 0, this.generations.length);
     this.freeIndices = [];
     this.next = 0;
   }
