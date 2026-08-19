@@ -84,9 +84,7 @@ globalThis.Debug = {
 
   /**
    * drop every `scoped` section — Game's scene boundary, alongside the other
-   * per-scene global resets. A keep-switch suspends rather than destroys, so
-   * it does NOT come through here: the frozen host keeps its sections and gets
-   * them back on resume.
+   * per-scene global resets.
    */
   clearScoped() {
     for (let i = Debug.sections.length - 1; i >= 0; i--) {

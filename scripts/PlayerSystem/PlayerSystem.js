@@ -17,13 +17,13 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 // every Playable entity once per tick — it runs at the HEAD of the scene's physics sequence, before
 // SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
-// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the scene calls them from
-// create()/resume()/destroy() (see sceneColony).
+// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — bound at map boot
+// (ColonyMap.build, and SaveGame on a load boot), unbound in sceneColony.destroy().
 
 globalThis.PlayerSystem = {
   /**
-   * register the colony keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
-   * guest's destroy unbinds shared action names (moveLeft/moveRight). Idempotent.
+   * register the colony keymap + InputContext tags. Split out so a load boot can apply it without
+   * going through the new-game path. Idempotent.
    *
    * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
    * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
@@ -316,7 +316,7 @@ globalThis.PlayerSystem = {
     pl.attackCd = ATTACK_ANIM;
   },
 
-  /** drop the keymap (scene destroy; a guest's own unbind is why resume() re-runs bindKeys) */
+  /** drop the keymap (scene destroy) */
   unbind() {
     const keys = [
       "moveLeft",

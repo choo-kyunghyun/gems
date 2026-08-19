@@ -9,14 +9,11 @@ Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-
 // dev-only: F2 returns to lobby without a restart
 if (DEV_MODE && keyboard_check_pressed(vk_f2)) this.switchTo(SCENES.lobby);
 
-// flush a queued scene swap: a destroying swap applies at full fade cover, a keep-switch (guest
-// minigame) or an explicit fade:false applies right here; then advance the fade timer.
+// flush a queued scene swap: it applies at full fade cover; then advance the fade timer.
 if (this._pending !== null && !SceneTransition.isBusy()) {
-  const p = this._pending;
+  const factory = this._pending;
   this._pending = null;
-  if (p.opts.keep === true || p.opts.fade === false)
-    this._apply(p.factory, p.opts);
-  else SceneTransition.start(() => this._apply(p.factory, p.opts));
+  SceneTransition.start(() => this._apply(factory));
 }
 SceneTransition.update();
 

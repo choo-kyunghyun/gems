@@ -64,8 +64,6 @@ globalThis.SystemMenu = {
     if (keyboard_check_pressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
-      } else if (game.back()) {
-        // guest minigame was active — Esc returned to the frozen host, not open the menu
       } else {
         SystemMenu.open();
       }
@@ -79,7 +77,6 @@ globalThis.SystemMenu = {
         UINav.suspended = true; // consumed
         return;
       }
-      if (game.back()) return; // B also exits a guest minigame back to the host
     }
 
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left

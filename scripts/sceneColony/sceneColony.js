@@ -900,26 +900,6 @@ class _SceneColonyClass {
     return false;
   }
 
-  /**
-   * keep-switch host pause/resume while a guest runs in front.
-   * suspend: hide the UI root. Game won't step a non-top level, so step() naturally pauses
-   * BuildMode/Interactable/WorldClock/Weather — nothing else to do.
-   */
-  suspend() {
-    UI.setEnabled(this.ui, false);
-  }
-
-  /**
-   * resume: re-show UI, re-claim viewport 0, RE-BIND the keymap — a guest's destroy unbinds shared
-   * action names (moveLeft/moveRight) so the colony must re-register. Idempotent.
-   */
-  resume() {
-    UI.setEnabled(this.ui, true);
-    this.camera.assign(0);
-    PlayerSystem.bindKeys();
-    ColonyMap._applyBgm(this); // restore the map's ambient after a guest crossfaded its own
-  }
-
   draw() {
     // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
     // is skipped then); apply before the renderer reads it
