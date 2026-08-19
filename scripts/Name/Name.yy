@@ -6,7 +6,7 @@
   "name":"Name",
   "parent":{
     "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "path":"folders/Game/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
