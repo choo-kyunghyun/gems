@@ -19,7 +19,7 @@ globalThis.SimClock = {
    *
    * THE TICK LOOP a scene's step() builds around this call — two ordering contracts:
    *   for (t < advance()) { InterpolationSystem.snapshot(entities)  FIRST — records pre-move
-   *                         <the genre's system sequence, a Pipeline>       positions
+   *                         <the genre's system sequence>                   positions
    *                         entities.flush() }                        LAST — commits the tick's
    *                                                                          queued removals
    * Once-per-FRAME work (edge-triggered input latching, NavGrid.rebuild) sits outside the loop:

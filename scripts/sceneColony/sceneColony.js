@@ -269,7 +269,7 @@ class _SceneColonyClass {
   /**
    * THE reference orchestration for a genre scene — the shape, not just this game's order:
    *   once per frame   window edge-toggles, input context, sleep check (all before the loop)
-   *   per tick         snapshot -> the physics Pipeline (headed by the player brain) -> damage,
+   *   per tick         snapshot -> the physics sequence (headed by the player brain) -> damage,
    *                    death, drops, quest/achievement checks -> flush
    *   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
    *   LAST             portals — a door swaps the store out from under everything above
@@ -372,7 +372,16 @@ class _SceneColonyClass {
         );
       else DrowsinessSystem.update(this.level.entities);
       FollowerSystem.update(this.level.entities, this.playerId); // seek, by live Follower query (before physics)
-      this.physics.update(this.level.entities); // PlayerSystem (input) heads the pipeline, then AI + collision
+      // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
+      // crowders apart → triggers (pickups) → projectiles → expire.
+      PlayerSystem.update(this.level.entities); // the player brain: input → Velocity/fire
+      StateSystem.update(this.level.entities); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
+      PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.nav
+      SolidSystem.update(this.level.entities);
+      SeparationSystem.update(this.level.entities); // unstack dynamic bodies (crowding), after SolidSystem
+      TriggerSystem.update(this.level.entities);
+      ProjectileSystem.update(this.level.entities);
+      LifetimeSystem.update(this.level.entities);
 
       ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)

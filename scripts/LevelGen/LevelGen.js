@@ -17,7 +17,7 @@ function _stream(seed) {
  */
 /**
  * A PASS is `{ salt?, apply(ctx) }` (a GenPass) or a bare `function(ctx)` (wrapped on insert, like
- * Pipeline). An ordered list of passes builds ONE WHOLE LEVEL's content over a shared context; the
+ * Snapshot). An ordered list of passes builds ONE WHOLE LEVEL's content over a shared context; the
  * terrain base comes from a composed `field` (TerrainField-like sampler), which paint() writes into
  * the level's terrain layer.
  *

@@ -14,7 +14,7 @@ const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as cente
 const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 
 // The player brain as an ECS system (the input counterpart of CombatAI): update(entities) drives
-// every Playable entity once per tick — it runs at the HEAD of the physics Pipeline, before
+// every Playable entity once per tick — it runs at the HEAD of the scene's physics sequence, before
 // SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
 // player. bindKeys()/unbind() are input LIFECYCLE, not simulation — the scene calls them from
@@ -119,7 +119,7 @@ globalThis.PlayerSystem = {
     return entities.first(Playable);
   },
 
-  /** once per tick, from the physics Pipeline: drive every Playable entity */
+  /** once per tick, from the scene's physics sequence: drive every Playable entity */
   update(entities) {
     entities.forEach([Playable], (id) => PlayerSystem._drive(entities, id));
   },

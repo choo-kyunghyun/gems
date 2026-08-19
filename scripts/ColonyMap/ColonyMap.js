@@ -276,7 +276,7 @@ globalThis.ColonyMap = {
     // residents: a loaded map restores its saved store, everything else spawns fresh
     ColonyMap._spawnWorld(scene, data, built, mapState);
     ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
-    ColonyMap._buildPipeline(scene); // nav window + physics pipeline
+    ColonyMap._buildSpatial(scene); // broadphase + nav window
     ColonyMap._buildRenderer(scene, data); // render pass stack
     ColonyMap._buildCamera(scene, data); // follow camera + view culling + debug
     ColonyMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
@@ -418,10 +418,11 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pathfinding nav window + physics pipeline. NavGrid.size() is constant, so MotionPlanner.setGrid
-   * runs once here per map (sceneColony.step rebuilds occupancy around the player each frame).
+   * The map's two spatial indexes: the store's broadphase + the pathfinding nav window.
+   * NavGrid.size() is constant, so MotionPlanner.setGrid runs once here per map
+   * (sceneColony.step rebuilds occupancy around the player each frame).
    */
-  _buildPipeline(scene) {
+  _buildSpatial(scene) {
     // O(n) broadphase for SeparationSystem + TriggerSystem (each rebuilds it per tick). It removes
     // TriggerSystem's O(n²) sweep over every collider, which is what makes a whole map's worth of
     // residents affordable in one store. cellSize (48px) exceeds max dynamic-body / non-solid sensor
@@ -445,18 +446,6 @@ globalThis.ColonyMap = {
       ColonyMap._terrainCost(scene), // weight routes by terrain (wade only when it beats going around)
     );
     MotionPlanner.setGrid(scene.nav);
-
-    // brains decide velocity (player input, then AI) → resolve paths → collide → push crowders
-    // apart → triggers (pickups) → projectiles → expire.
-    scene.physics = new Pipeline()
-      .add(PlayerSystem) // the player brain: input → Velocity/fire (drives Playable entities)
-      .add(StateSystem) // drives the CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
-      .add(PathfindingSystem) // enemy PathRequest → PathResponse over scene.nav
-      .add(SolidSystem)
-      .add(SeparationSystem) // unstack dynamic bodies (RTS-style crowding), after SolidSystem
-      .add(TriggerSystem)
-      .add(ProjectileSystem)
-      .add(LifetimeSystem);
   },
 
   /**

@@ -25,7 +25,7 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - `InputAction.unbindButton`/`unbindAxis` are dead: `UIRebind` remaps by assigning `action.buttons[0]` directly, so the unbind pair has no callers.
 - `UIMinimap`/`gemsMinimap` are dead: the factory has no callers and is `UIMinimap`'s only constructor site — `RadarArrows` is the shipped radar. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - `gemsWindow` is unwired and carries `UIDrag`/`UIResize` with it: the draggable-window factory is self-declared kit inventory (`gemsOverlay` is what the colony windows use) and is the sole constructor site of Core's `UIDrag` and `UIResize` — a three-module spare chain like `UIMinimap`/`gemsMinimap`. Wire a consumer or keep all three as deliberate spares.
-- `Projectile`/`ProjectileSystem` run with zero spawn sites: `ColonyMap`'s pipeline ticks the system and `WorldOverlay` queries bullets every frame, but nothing ever adds a `Projectile` — both files admit "retained for grenades". Unregister the pair until a spawner exists (re-adding is one line), or accept the idle queries explicitly at the pipeline site.
+- `Projectile`/`ProjectileSystem` run with zero spawn sites: `sceneColony`'s tick loop ticks the system and `WorldOverlay` queries bullets every frame, but nothing ever adds a `Projectile` — both files admit "retained for grenades". Unregister the pair until a spawner exists (re-adding is one line), or accept the idle queries explicitly at the tick-loop site.
 - The settlement inhabitant/capability layers have no consumers: `SettlementSystem` is fully caller-less (`ColonySpawn` attaches `Resident` directly, bypassing `assign`), the `SettlementComponent` registry is registered by `content` and read by nothing, and `Settlement.addComponent`/`removeComponent`/`expand` are self-declared seeds for the Farming/raid features. The lands half (`found`/`at`/`ownerAt`/`all`/`centroidWorld`) is live. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares.
 - Caller-less registry-parity members: `Status.all`, `FactionSystem.all`, `SettlementComponent.all`, and `Recipe.has` have no consumers — the `Registry` facade member set, kept whole without a reader.
 
@@ -90,4 +90,4 @@ The level file, a `Prefab`, and a generator's output are now one shape (`LevelDa
 
 ### Verification
 
-- Cover what only a running frame can catch (system ordering, `Pipeline` composition, grid/collider sync); leave one-off probes on the existing `Log`/`Screenshot`/`entities.dump` harness.
+- Cover what only a running frame can catch (system ordering, grid/collider sync); leave one-off probes on the existing `Log`/`Screenshot`/`entities.dump` harness.

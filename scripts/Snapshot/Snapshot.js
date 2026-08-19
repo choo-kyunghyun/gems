@@ -27,7 +27,7 @@ globalThis.Snapshot = class Snapshot {
   }
 
   /**
-   * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Pipeline's step wrap.
+   * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Renderer/LevelGen.
    */
   _wrap(pass) {
     if (typeof pass === "function")

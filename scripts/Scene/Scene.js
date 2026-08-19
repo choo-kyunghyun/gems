@@ -16,7 +16,7 @@
  * 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need (the lobby:
  *    `Object.assign(new Scene(), { create, destroy })` — the no-op stubs below cover the rest). A
  *    screen COMPOSES its sub-modules, all optional:
- *      level (Level: grid + entities) · systems (Pipeline) · renderer · camera · ui
+ *      level (Level: grid + entities) · renderer · camera · ui
  *    A menu is just a screen with only `ui` set.
  */
 globalThis.Scene = class Scene {
