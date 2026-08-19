@@ -714,7 +714,8 @@ globalThis.gemsDivider = function gemsDivider(opts = {}) {
 
 /**
  * Label + control on one line — a two-column row (fixed-width label cell | control fills
- * the rest), vertically centered.
+ * the rest), vertically centered. `opts.key` names the Settings key (or keys) the control
+ * writes, marking the label while it differs from its default.
  */
 globalThis.gemsRow = function gemsRow(label, control, opts = {}) {
   const row = new UIElement({
@@ -728,7 +729,9 @@ globalThis.gemsRow = function gemsRow(label, control, opts = {}) {
     flexShrink: 0,
   });
   labelCell.insertChild(
-    gemsLabel(label, { color: opts.labelColor ?? GemsTheme.textMuted }),
+    gemsLabel(gemsSettingsRef(label, opts.key), {
+      color: opts.labelColor ?? GemsTheme.textMuted,
+    }),
   );
   const ctrlCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
   ctrlCell.insertChild(control);

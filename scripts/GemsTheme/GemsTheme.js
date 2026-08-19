@@ -167,3 +167,14 @@ globalThis.gemsColor = function gemsColor(c) {
 globalThis.gemsTextRef = function gemsTextRef(label) {
   return uiTextRef(label);
 };
+
+/**
+ * Live textRef for a Settings-bound label: suffixed with `*` while `key` (one key, or an
+ * array of them for a row that writes several) differs from its default. Resolved per draw,
+ * so a set or a reset shows without a rebuild. Pass no key and it is gemsTextRef.
+ */
+globalThis.gemsSettingsRef = function gemsSettingsRef(label, key) {
+  const base = gemsTextRef(label);
+  if (key === undefined) return base;
+  return () => (Settings.isModified(key) ? base() + " *" : base());
+};

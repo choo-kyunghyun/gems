@@ -570,7 +570,7 @@ globalThis.InventoryUI = {
           Settings.save(SETTINGS_FILE);
           InventoryUI._applyColumns(scene);
         },
-        { style: "switch" },
+        { style: "switch", key: settingKey },
       );
     page.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
     page.insertChild(toggle("INV_COL_MAKER", "invColMaker"));
@@ -601,6 +601,7 @@ globalThis.InventoryUI = {
           Settings.set("tempUnit", code);
           Settings.save(SETTINGS_FILE);
         }),
+        { key: "tempUnit" },
       ),
     );
 
@@ -620,7 +621,7 @@ globalThis.InventoryUI = {
           Settings.set("hudRadar", !Settings.get("hudRadar"));
           Settings.save(SETTINGS_FILE);
         },
-        { style: "switch" },
+        { style: "switch", key: "hudRadar" },
       ),
     );
     return page;

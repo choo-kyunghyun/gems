@@ -399,7 +399,8 @@ globalThis.gemsIconButton = function gemsIconButton(
 
 /**
  * Boolean button: renders `label: ON/OFF`, live from getValue(); click → onToggle.
- * onText/offText may be strings or () => string (for live i18n).
+ * onText/offText may be strings or () => string (for live i18n). `opts.key` names the Settings
+ * key (or keys) onToggle writes, marking the button while it differs from its default.
  */
 globalThis.gemsToggle = function gemsToggle(
   label,
@@ -410,8 +411,12 @@ globalThis.gemsToggle = function gemsToggle(
   const ref = gemsTextRef(label);
   const onRef = gemsTextRef(opts.onText ?? "ON");
   const offRef = gemsTextRef(opts.offText ?? "OFF");
+  // the mark trails the whole `label: ON` string — mid-string it reads as a footnote
   return gemsButton(
-    () => `${ref()}: ${getValue() ? onRef() : offRef()}`,
+    gemsSettingsRef(
+      () => `${ref()}: ${getValue() ? onRef() : offRef()}`,
+      opts.key,
+    ),
     onToggle,
     opts,
   );

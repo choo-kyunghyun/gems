@@ -11,8 +11,9 @@ globalThis.gemsSettingsIndex = function gemsSettingsIndex(key, items) {
 
 /**
  * Checkbox/switch row: label left, toggle graphic right; the whole row is the click
- * target. `opts.style` "check" (box+tick, default) or "switch" (pill+knob). For a
- * `label: ON/OFF` button instead, use gemsToggle.
+ * target. `opts.style` "check" (box+tick, default) or "switch" (pill+knob). `opts.key` names
+ * the Settings key (or keys) onToggle writes, marking the label while it differs from its
+ * default. For a `label: ON/OFF` button instead, use gemsToggle.
  */
 globalThis.gemsCheckbox = function gemsCheckbox(
   label,
@@ -41,7 +42,9 @@ globalThis.gemsCheckbox = function gemsCheckbox(
     }),
   );
   el.insertChild(
-    gemsLabel(label, { color: opts.labelColor ?? GemsTheme.text }),
+    gemsLabel(gemsSettingsRef(label, opts.key), {
+      color: opts.labelColor ?? GemsTheme.text,
+    }),
   );
   return gemsAttachTooltip(el, opts);
 };

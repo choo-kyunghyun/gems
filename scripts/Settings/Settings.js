@@ -3,7 +3,7 @@
  * load/save touch, so only declared keys round-trip and `get` falls back to the default.
  */
 globalThis.Settings = {
-  /** Declared keys + their default values. */
+  /** Declared keys + their default values. Scalars only — see `isModified`. */
   defaults: {},
 
   /** Keys set this session (override defaults). */
@@ -33,10 +33,16 @@ globalThis.Settings = {
   },
 
   /**
-   * whether `key` was set and differs from its default.
+   * whether `key` — one key or an array of them — differs from its declared default. Every
+   * declared default is a scalar, so `!==` is the whole test: a nested default would compare
+   * by reference and always read modified.
    */
-  isModified(key) {
-    return key in this.local && this.local[key] !== this.defaults[key];
+  isModified(keyOrKeys) {
+    const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
+    for (const key of keys) {
+      if (this.get(key) !== this.defaults[key]) return true;
+    }
+    return false;
   },
 
   /**

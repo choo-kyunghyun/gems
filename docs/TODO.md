@@ -11,8 +11,7 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
-- Caller-less members: `Query.farthest`, `Color.alpha`, `Settings.isModified`, `TileLayer.from`, `Status.all`, `FactionSystem.all`, `SettlementComponent.all`, `Recipe.has`
-    - `isModified` also compares nested values by reference, so a set nested value always reads modified
+- Caller-less members: `Query.farthest`, `Color.alpha`, `TileLayer.from`, `Status.all`, `FactionSystem.all`, `SettlementComponent.all`, `Recipe.has`
     - the `all`/`has` group is `Registry` facade parity, kept whole without a reader
 - `World.update` is unwired scaffolding — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`), and `update` carries the engine → gameplay-kit edge. Wire the phase-2 routing (clock injected, not named) or drop it.
 - `EntityStore.import`/`register` — saves store `entities.export()` but restore reads entities out, and `add` auto-registers. `ComponentStore.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard.

@@ -313,18 +313,21 @@ globalThis.SystemMenu = {
       gemsRow(
         I18n.textRef("SETTINGS_VOL_MASTER"),
         volSlider("volMaster", (v) => Audio.setMasterGain(v)),
+        { key: "volMaster" },
       ),
     );
     volSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_VOL_MUSIC"),
         volSlider("volMusic", (v) => Music.setGain(v)),
+        { key: "volMusic" },
       ),
     );
     volSection.insertChild(
       gemsRow(
         I18n.textRef("SETTINGS_VOL_SFX"),
         volSlider("volSfx", (v) => Audio.setDefaultGain(v)),
+        { key: "volSfx" },
       ),
     );
     scroll.scrollBody.insertChild(volSection);
@@ -339,6 +342,7 @@ globalThis.SystemMenu = {
           Display.apply();
         },
         {
+          key: "fullscreen",
           onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
           offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
         },
@@ -367,6 +371,7 @@ globalThis.SystemMenu = {
           Settings.set("resolutionH", res.h);
           Display.apply();
         }),
+        { key: ["resolutionW", "resolutionH"] },
       ),
     );
     dispSection.insertChild(
@@ -382,6 +387,7 @@ globalThis.SystemMenu = {
           ],
           { onChange: () => Display.applyFps() },
         ),
+        { key: "fpsLimit" },
       ),
     );
     // V-Sync + AA go through display_reset (Display.applyVideo), which re-imposes the reset window/fps
@@ -394,6 +400,7 @@ globalThis.SystemMenu = {
           Display.applyVideo();
         },
         {
+          key: "vsync",
           onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
           offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
         },
@@ -410,6 +417,7 @@ globalThis.SystemMenu = {
         gemsSelect("antialias", aaItems, {
           onChange: () => Display.applyVideo(),
         }),
+        { key: "antialias" },
       ),
     );
     scroll.scrollBody.insertChild(dispSection);
@@ -422,6 +430,7 @@ globalThis.SystemMenu = {
         gemsSlider("uiScale", 0.5, 2, 0.1, {
           onChange: (v) => UI.applyScale(v),
         }),
+        { key: "uiScale" },
       ),
     );
     scroll.scrollBody.insertChild(uiSection);
@@ -443,6 +452,7 @@ globalThis.SystemMenu = {
         gemsSelectCustom(themeItems, themeIdx, (_i, value) =>
           SystemMenu._applyTheme(value),
         ),
+        { key: "theme" },
       ),
     );
     scroll.scrollBody.insertChild(themeSection);
@@ -465,6 +475,7 @@ globalThis.SystemMenu = {
           I18n.load("i18n/" + value + "/manifest.json");
           draw_set_font(I18n.font("default"));
         }),
+        { key: "language" },
       ),
     );
     scroll.scrollBody.insertChild(langSection);
