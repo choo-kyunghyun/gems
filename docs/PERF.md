@@ -37,23 +37,23 @@ facts explain most of what the table says.
 
 ## Idioms
 
-- **Per-tick ECS iteration is `entities.forEach(tokens, fn)`, not `query` + `get`** — no result
+- Per-tick ECS iteration is `entities.forEach(tokens, fn)`, not `query` + `get` — no result
   array, and the callback is handed the component data the scan already resolved (~9x; contract at
   `ComponentStore.forEach`). `query` remains for the callers that need a materialised, stable id
   list — one that outlives the scan, or that a mid-iteration structural change would invalidate.
-- **A marker JOINS the query, never filters after it** — `[NPC, Position]`, not `query(Position)`
+- A marker JOINS the query, never filters after it — `[NPC, Position]`, not `query(Position)`
   then `has(id, NPC)` per entity. The `has` costs a hash lookup on every candidate, and the rare
   column gates the scan when it leads the token list. This is the whole of `Query`'s 9.8x and
   `FactionSystem.nearestHostile`'s.
-- **One match wants `first(...)`, not `query(...)[0]`** — no array, and the scan stops at the hit.
-- **A query emits ids from `EntityID.packed`**, a plain-array mirror of the generation table, rather
+- One match wants `first(...)`, not `query(...)[0]` — no array, and the scan stops at the hit.
+- A query emits ids from `EntityID.packed`, a plain-array mirror of the generation table, rather
   than recomposing `make(index, generation)` per match.
-- **Geometry in a pair sweep writes into a caller-owned rect** (`AABB.edgesInto` / `AABB.ofInto`
+- Geometry in a pair sweep writes into a caller-owned rect (`AABB.edgesInto` / `AABB.ofInto`
   over `AABB.rect()`), held as scratch on the system. The allocation, not the arithmetic, is the
   cost. A rect is the caller's — never hand one to anything that outlives the call.
-- **Collect into a reused buffer**: `buf[w++] = id` then `buf.length = w`, over a fresh array per
+- Collect into a reused buffer: `buf[w++] = id` then `buf.length = w`, over a fresh array per
   tick.
-- **Hoist anything constant out of the element loop** — a `Map` lookup, a `this.` chain, a class
+- Hoist anything constant out of the element loop — a `Map` lookup, a `this.` chain, a class
   static.
 
 ## Where The Frame Goes

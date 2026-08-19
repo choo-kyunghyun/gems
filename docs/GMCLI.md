@@ -27,7 +27,7 @@ GMRT is still in its early stages and may behave differently from the manual. `l
 
 ## Resourcetool
 
-**Never create GameMaker assets (scripts, objects, rooms, sprites) by hand-writing files/folders or editing the `Resources` list in `gems.yyp`.** GameMaker manages asset metadata strictly — manual edits corrupt the project or are silently ignored. Creating, renaming, and deleting an asset all go through `gm-cli resourcetool eval`.
+NEVER create GameMaker assets (scripts, objects, rooms, sprites) by hand-writing files/folders or editing the `Resources` list in `gems.yyp`. GameMaker manages asset metadata strictly — manual edits corrupt the project or are silently ignored. Creating, renaming, and deleting an asset all go through `gm-cli resourcetool eval`.
 
 ### New Script
 
@@ -42,9 +42,9 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 
 ### Other Operations
 
-- **Filing**: `FOLDER=Parent/Child` on `RESOURCE CREATE` (missing folders are auto-created). To move an existing asset, edit its `.yy` `parent` to match a sibling's (`RESOURCE SET` can't).
-- **Folders**: `FOLDER CREATE FOLDER=Parent/Child`. It rejects names with spaces/`&` (over-strict), and there is no FOLDER DELETE — for both, hand-edit the `Folders` array in `gems.yyp` (safe, unlike `resources`).
-- **Delete**: `RESOURCE DELETE NAME=<name> TYPE=Script` — removes the `gems.yyp` entry and the asset's folder. Never by hand.
-- **Rename**: `RESOURCE SET EXPR=<name>.name VALUE=<newname>`. A script's `.js` + `scriptSource` are not renamed — `mv` the file, then re-set. NEVER inside a `SCRIPT PATH=` batch: it skips the `gems.yyp` save and the project won't load (revert the file renames to recover).
-- **Non-renameable**: an included file (the dotted name breaks EXPR — rename the file + hand-edit its `IncludedFiles` line) and an importer-owned sprite (update the importer, re-run).
-- **Verify**: `CHECK PROJECTPATH=gems.yyp`, then `gm-cli compile`.
+- Filing: `FOLDER=Parent/Child` on `RESOURCE CREATE` (missing folders are auto-created). To move an existing asset, edit its `.yy` `parent` to match a sibling's (`RESOURCE SET` can't).
+- Folders: `FOLDER CREATE FOLDER=Parent/Child`. It rejects names with spaces/`&` (over-strict), and there is no FOLDER DELETE — for both, hand-edit the `Folders` array in `gems.yyp` (safe, unlike `resources`).
+- Delete: `RESOURCE DELETE NAME=<name> TYPE=Script` — removes the `gems.yyp` entry and the asset's folder. Never by hand.
+- Rename: `RESOURCE SET EXPR=<name>.name VALUE=<newname>`. A script's `.js` + `scriptSource` are not renamed — `mv` the file, then re-set. NEVER inside a `SCRIPT PATH=` batch: it skips the `gems.yyp` save and the project won't load (revert the file renames to recover).
+- Non-renameable: an included file (the dotted name breaks EXPR — rename the file + hand-edit its `IncludedFiles` line) and an importer-owned sprite (update the importer, re-run).
+- Verify: `CHECK PROJECTPATH=gems.yyp`, then `gm-cli compile`.
