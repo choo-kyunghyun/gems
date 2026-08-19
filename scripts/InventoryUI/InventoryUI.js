@@ -447,7 +447,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Stats: live character sheet + the genre's extra records (Profile) host.
+   * Stats: live character sheet + the genre's extra records (the Tracker's line) host.
    */
   _buildStatsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
@@ -485,13 +485,13 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Quests: live tracker bound to the global QuestLog.
+   * Quests: live tracker bound to the global Tracker (defs come from QuestLog behind it).
    */
   _buildQuestsTab(scene) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
     page.insertChild(
       gemsQuestTracker({
-        source: QuestLog,
+        source: Tracker,
         emptyText: I18n.text("INV_NO_QUESTS"),
       }),
     );
@@ -500,7 +500,7 @@ globalThis.InventoryUI = {
 
   /**
    * Achievements: one card per registered def. Built ONCE (the set is static after registration,
-   * which precedes the window build); the status label reads Achievement live, so unlocks — or the
+   * which precedes the window build); the status label reads Tracker live, so unlocks — or the
    * Debug section's Unlock/Clear All — show with no rebuild.
    */
   _buildAchievementsTab(_level) {
@@ -533,7 +533,7 @@ globalThis.InventoryUI = {
     head.insertChild(nameCell);
     head.insertChild(
       gemsRichText(() =>
-        Achievement.isUnlocked(a.id)
+        Tracker.isUnlocked(a.id)
           ? "[c=accent]" + I18n.text("ACH_UNLOCKED") + "[/c]"
           : "[c=dim]" + I18n.text("ACH_LOCKED") + "[/c]",
       ),
@@ -648,7 +648,7 @@ globalThis.InventoryUI = {
         ),
       );
 
-    // genre extra rows (Profile records) into the Stats tab
+    // genre extra rows (the Tracker's records line) into the Stats tab
     const xh = scene._invExtraHost;
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();

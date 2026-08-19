@@ -33,8 +33,8 @@ class _SceneUIKitClass {
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
     );
 
-    // reset QuestLog first to clear any state a gameplay level left; must run before
-    // the tracker widget, which reads QuestLog at construction
+    // reset the Tracker first to clear any state a gameplay level left; must run before
+    // the tracker widget, which reads it at construction
     this._setupQuests();
 
     this.ui = gemsRoot();
@@ -287,7 +287,7 @@ class _SceneUIKitClass {
 
   /** fixed progress for a representative mix: one ready, one partial, two untouched */
   _setupQuests() {
-    QuestLog.reset().register([
+    QuestLog.register([
       {
         id: "uikit_q1",
         name: "UIKIT_Q1_NAME",
@@ -313,12 +313,17 @@ class _SceneUIKitClass {
         objectives: [{ kind: "talk", target: "sage", count: 1 }],
       },
     ]);
-    QuestLog.accept("uikit_q1");
-    QuestLog.accept("uikit_q2");
-    QuestLog.accept("uikit_q3");
-    QuestLog.accept("uikit_q4");
-    QuestLog.report("kill", "goblin", 5); // q1 → ready
-    QuestLog.report("collect", "moonherb", 2); // q2 → 2/3
+    // the kit has no achievement content: drop any rules hook a prior gameplay scene left (it is a
+    // static hook, like Combat.mitigate) so report() runs its quest stage alone — the hook is
+    // optional by design, whatever order the scenes were visited in.
+    Tracker.rules = null;
+    Tracker.reset();
+    Tracker.accept("uikit_q1");
+    Tracker.accept("uikit_q2");
+    Tracker.accept("uikit_q3");
+    Tracker.accept("uikit_q4");
+    Tracker.report("kill", "goblin", 5); // q1 → ready
+    Tracker.report("collect", "moonherb", 2); // q2 → 2/3
   }
 
   /**
@@ -329,7 +334,7 @@ class _SceneUIKitClass {
     const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
     sec.insertChild(
       gemsQuestTracker({
-        source: QuestLog,
+        source: Tracker,
         emptyText: I18n.textRef("UIKIT_QUEST_EMPTY"),
         tooltip: I18n.textRef("UIKIT_TIP_QUESTS"),
       }),

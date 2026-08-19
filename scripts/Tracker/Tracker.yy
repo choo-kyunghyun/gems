@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Profile",
+  "%Name":"Tracker",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Profile",
+  "name":"Tracker",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Profile.js",
+  "scriptSource":"Tracker.js",
 }

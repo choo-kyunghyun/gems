@@ -228,15 +228,14 @@ globalThis.SaveGame = {
     restore(_ctx) {}, // header is informational — nothing to apply
   },
 
-  // world-scope singletons: clock, weather, lifetime counters, achievement unlocks.
+  // world-scope singletons: clock, weather, and the whole progression (counters, unlocks, quests).
   _simPass: {
     id: "sim",
     capture(ctx) {
       ctx.manifest.sim = {
         clock: { hour: WorldClock.hour, day: WorldClock.day },
         weather: Weather.export(),
-        profile: Profile.export(),
-        achievements: Achievement.export(),
+        tracker: Tracker.export(),
       };
     },
     restore(ctx) {
@@ -245,10 +244,9 @@ globalThis.SaveGame = {
       WorldClock.hour = sim.clock.hour;
       WorldClock.day = sim.clock.day;
       Weather.import(sim.weather);
-      // lifetime counters + achievement unlocks REPLACE the session's — a load is not a merge, so
-      // whatever the previous slot left in memory can't survive into this one.
-      Profile.import(sim.profile);
-      Achievement.import(sim.achievements);
+      // the progression REPLACES the session's — a load is not a merge, so whatever the previous
+      // slot left in memory can't survive into this one.
+      Tracker.import(sim.tracker);
     },
   },
 

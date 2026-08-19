@@ -1,9 +1,10 @@
 // Colony achievement CONTENT — the defs plus the trigger rules mapping a gameplay counter onto unlock
 // requests. Called once from sceneColony.create() (not top-level — GMRT load-order). Idempotent.
 /**
- * Separated from contentQuests (quest data) so each content family has one home. The Achievement engine
- * holds no conditions and never sweeps: a gameplay chokepoint that bumps a Profile counter reports it
- * here (the trigger), and the matching threshold rules issue Achievement.unlock(id) requests.
+ * Separated from contentQuests (quest data) so each content family has one home. THE RULES HOOK:
+ * sceneColony wires this module onto `Tracker.rules`, so a single gameplay report drives both
+ * stages — counterOf names the counter an event kind feeds, then report turns a met threshold into
+ * a Tracker.unlock request. The engine holds no conditions and never sweeps.
  */
 globalThis.contentAchievements = {
   registered: false,
@@ -49,6 +50,21 @@ globalThis.contentAchievements = {
     ]);
   },
 
+  // Which counter each reported event kind feeds. A kind absent here bumps nothing ("reach"/"talk"
+  // exist only as quest objectives); a counter here with no RULES entry is tallied but unlocks
+  // nothing. Data, not closures.
+  COUNTERS: {
+    kill: "enemiesKilled", // any species — the Slayer rules don't discriminate
+    collect: "itemsCollected",
+    quest: "questsCompleted",
+    sleepSkip: "sleepFastForwards",
+  },
+
+  /** Tracker.rules hook: the counter this event kind feeds, or undefined for none. */
+  counterOf(kind) {
+    return this.COUNTERS[kind];
+  },
+
   // Threshold rules per lifetime counter: reaching `at` on that counter requests the unlock.
   // Data, not closures — the engine never evaluates a condition.
   RULES: {
@@ -63,16 +79,15 @@ globalThis.contentAchievements = {
   },
 
   /**
-   * The trigger: a gameplay site reports a counter it just changed (key + new value); every met
-   * rule becomes an unlock REQUEST (Achievement.unlock dedups). Returns newly-unlocked ids so the
-   * caller can toast them.
+   * Tracker.rules hook: a counter just changed (key + new total); every met rule becomes an unlock
+   * REQUEST (Tracker.unlock dedups). Returns newly-unlocked ids so the caller can toast them.
    */
   report(key, value) {
     const newly = [];
     const rules = this.RULES[key];
     if (rules === undefined) return newly;
     for (let i = 0; i < rules.length; i++) {
-      if (value >= rules[i].at && Achievement.unlock(rules[i].id))
+      if (value >= rules[i].at && Tracker.unlock(rules[i].id))
         newly.push(rules[i].id);
     }
     return newly;

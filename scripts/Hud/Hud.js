@@ -243,7 +243,7 @@ globalThis.Hud = {
     card.insertChild(gemsDivider());
     card.insertChild(
       gemsQuestTracker({
-        source: QuestLog,
+        source: Tracker,
         emptyText: I18n.textRef("RPG_NO_QUEST"),
       }),
     );

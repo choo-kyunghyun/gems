@@ -49,7 +49,7 @@ globalThis.gemsRichText = function gemsRichText(markup, opts = {}) {
 
 /**
  * Quest tracker: a live HUD list bound to opts.source (a quest log; the colony passes its
- * QuestLog) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
+ * Tracker) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
  * active quests by default (build it AFTER quests are registered/accepted — it measures
  * at construction); pass opts.height to fix it. opts.emptyText shows when empty.
  */

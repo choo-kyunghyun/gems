@@ -27,12 +27,11 @@ class _SceneColonyClass {
   create(openScene) {
     contentQuests.register();
     contentAchievements.register(); // achievement defs + trigger rules (separate from quest data)
-    // session records start empty; a LOAD's sim pass replaces them wholesale further down
-    Profile.reset();
-    Achievement.reset();
-    QuestLog.reset();
-    QuestLog.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
-    QuestLog.accept(contentQuests.QUEST_REACH); // reach — tracked passively
+    // the whole progression starts blank; a LOAD's sim pass replaces it wholesale further down
+    Tracker.reset();
+    // inject the colony's rules into the rule-free Tracker: which counter an event kind feeds, and
+    // which thresholds that counter's new total meets (the same seam as Combat.mitigate below)
+    Tracker.rules = contentAchievements;
 
     // inject stat-driven mitigation into the stat-agnostic Combat applier (static hook, survives map reloads)
     Combat.mitigate = function (entities, targetId, amount, penetration = 0) {
@@ -62,6 +61,13 @@ class _SceneColonyClass {
     // re-installs handlers).
     World.reset();
     Trader.reset();
+
+    // quests that close themselves the instant their objectives are met — what the report seam's
+    // `ready` is filtered through. td_humans is absent: its giver turns it in (see _interactNpc).
+    this._passiveQuests = [
+      contentQuests.QUEST_GATHER,
+      contentQuests.QUEST_REACH,
+    ];
 
     this.invOpen = false;
     this._invDirty = false; // rebuild the inventory window body next step when set
@@ -107,6 +113,9 @@ class _SceneColonyClass {
       SaveGame.restore(this); // restore() drives the map build + squad arrival itself
     else {
       SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
+      // the starting quests — NEW GAME only; a load brings back its own accepted set + progress
+      Tracker.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
+      Tracker.accept(contentQuests.QUEST_REACH); // reach — tracked passively
       ColonyMap.go(this, bootMap, "default");
     }
     Music.play(mus_ambient_tense); // carries across map changes (only _apply's reset stops it)
@@ -175,15 +184,15 @@ class _SceneColonyClass {
           const all = Achievement.all();
           let n = 0;
           for (let i = 0; i < all.length; i++)
-            if (Achievement.isUnlocked(all[i].id)) n++;
+            if (Tracker.isUnlocked(all[i].id)) n++;
           return `${n}/${all.length}`;
         });
         dbg_button("Unlock All", () => {
-          Achievement.unlockAll();
+          Tracker.unlockAll();
           Log.info("debug: all achievements unlocked");
         });
         dbg_button("Clear All", () => {
-          Achievement.clear();
+          Tracker.clear();
           Log.info("debug: all achievements cleared");
         });
       },
@@ -191,7 +200,7 @@ class _SceneColonyClass {
 
     Log.info(
       `colony ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
-        `achievements=${Achievement.all().length} kills=${Profile.get("enemiesKilled")}`,
+        `achievements=${Achievement.all().length} kills=${Tracker.count("enemiesKilled")}`,
     );
   }
 
@@ -299,8 +308,7 @@ class _SceneColonyClass {
           // hitting the ceiling IS the td_time_skip trigger — once per sleep session
           if (!this._sleepPeaked) {
             this._sleepPeaked = true;
-            Profile.add("sleepFastForwards", 1);
-            this._reportAchievements("sleepFastForwards");
+            this._track("sleepSkip", "", 1);
           }
         } else {
           Time.scale = s;
@@ -393,17 +401,16 @@ class _SceneColonyClass {
               sound: snd_explosion_small,
               position: { x: dp.x, y: dp.y },
             });
-          Profile.add("enemiesKilled", 1); // any enemy counts toward the Slayer achievement
-          this._reportAchievements("enemiesKilled");
-          // report by species so only raiders advance the "Raider Cull" quest (rats have no target)
+          // by species so only raiders advance the "Raider Cull" quest (rats have no target); the
+          // kill counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
           const kind =
             this.level.entities.has(id, Rat) ? "rat" : "raider";
-          QuestLog.report("kill", kind, 1);
+          this._track("kill", kind, 1);
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
           this.level.entities.detach(id, Raider);
           this.level.entities.detach(id, Rat);
-          Log.info(`${kind} killed — kills=${Profile.get("enemiesKilled")}`);
+          Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
         },
         onRespawn: (id) => {
           const pos = this.level.entities.get(id, Position);
@@ -441,8 +448,6 @@ class _SceneColonyClass {
         this._onCollect(itemId, got),
       );
       this._checkReach(); // reach-quest zone
-      this._tryTurnIn(contentQuests.QUEST_GATHER); // passive quests auto-complete
-      this._tryTurnIn(contentQuests.QUEST_REACH);
 
       this.level.entities.flush();
     }
@@ -491,15 +496,15 @@ class _SceneColonyClass {
               () =>
                 I18n.text("REC_KILLS") +
                 ": " +
-                Profile.get("enemiesKilled") +
+                Tracker.count("enemiesKilled") +
                 "   " +
                 I18n.text("REC_ITEMS") +
                 ": " +
-                Profile.get("itemsCollected") +
+                Tracker.count("itemsCollected") +
                 "   " +
                 I18n.text("REC_QUESTS") +
                 ": " +
-                Profile.get("questsCompleted"),
+                Tracker.count("questsCompleted"),
               { color: GemsTheme.textMuted },
             ),
           );
@@ -575,11 +580,9 @@ class _SceneColonyClass {
     // pickup blip (spatial, ~centred)
     if (pp !== undefined)
       Audio.play({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
-    Profile.add("itemsCollected", got);
-    this._reportAchievements("itemsCollected");
-    QuestLog.report("collect", itemId, got);
+    this._track("collect", itemId, got);
     Log.info(
-      `picked up ${got}x ${itemId} — items=${Profile.get("itemsCollected")}`,
+      `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,
     );
   }
 
@@ -688,7 +691,7 @@ class _SceneColonyClass {
     const z = this.reachZone;
     if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
       this.reachDone = true;
-      QuestLog.report("reach", "ruins", 1);
+      this._track("reach", "ruins", 1);
       Log.info("reached the ruins");
     }
   }
@@ -716,35 +719,36 @@ class _SceneColonyClass {
    * Caller checks isReady first; complete() is what marks it done.
    */
   _completeQuest(qid) {
-    Progression.applyReward(this, QuestLog.complete(qid));
-    Profile.add("questsCompleted", 1);
-    this._reportAchievements("questsCompleted");
+    Progression.applyReward(this, Tracker.complete(qid));
+    this._track("quest", qid, 1);
     Log.info(
-      `quest complete: ${qid} — questsCompleted=${Profile.get("questsCompleted")}`,
+      `quest complete: ${qid} — questsCompleted=${Tracker.count("questsCompleted")}`,
     );
   }
 
   /**
-   * Auto turn-in for the passive (non-NPC) quests once their objectives are met.
+   * THE report seam: every gameplay chokepoint tells the Tracker what happened ONCE, and the
+   * counter/achievement/quest fan-out follows from that single call — no site can bump a tally and
+   * forget a consumer. Handles what comes back: toast each unlock, close each passive quest that
+   * just became ready.
+   *
+   * Turn-in re-enters here (the reward items report as collects, the completion reports as a
+   * quest); that terminates because Tracker.complete marks a quest done BEFORE handing over its
+   * rewards, so a quest can never re-fire itself.
    */
-  _tryTurnIn(qid) {
-    if (QuestLog.isReady(qid)) this._completeQuest(qid);
-  }
-
-  /**
-   * The achievement trigger: a gameplay site just bumped a Profile counter — report it to the
-   * content rules (contentAchievements), which turn met thresholds into Achievement.unlock requests.
-   * The engine never sweeps conditions; this push replaces the old per-tick evaluate().
-   */
-  _reportAchievements(counterKey) {
-    const newly = contentAchievements.report(counterKey, Profile.get(counterKey));
-    for (let i = 0; i < newly.length; i++) {
-      const a = Achievement.get(newly[i]);
+  _track(kind, target, n = 1) {
+    const r = Tracker.report(kind, target, n);
+    for (let i = 0; i < r.unlocked.length; i++) {
+      const a = Achievement.get(r.unlocked[i]);
       Toast.push(I18n.text("RPG_UNLOCKED", I18n.text(a.name)), {
         type: "success",
       });
-      Log.info(`achievement unlocked: ${newly[i]}`);
+      Log.info(`achievement unlocked: ${r.unlocked[i]}`);
     }
+    for (let i = 0; i < r.ready.length; i++)
+      if (this._passiveQuests.indexOf(r.ready[i]) !== -1)
+        this._completeQuest(r.ready[i]);
+    return r;
   }
 
   /**
@@ -773,13 +777,13 @@ class _SceneColonyClass {
       return;
     }
     const qid = npc.questId;
-    if (QuestLog.isDone(qid)) {
+    if (Tracker.isDone(qid)) {
       this.dialogueLine = "NPC_ELDER_THANKS";
       this.dialogueAction = "";
-    } else if (QuestLog.isReady(qid)) {
+    } else if (Tracker.isReady(qid)) {
       this.dialogueLine = "NPC_ELDER_DONE";
       this.dialogueAction = "RPG_TURNIN";
-    } else if (QuestLog.isActive(qid)) {
+    } else if (Tracker.isActive(qid)) {
       this.dialogueLine = "NPC_ELDER_WIP";
       this.dialogueAction = "";
     } else {
@@ -850,10 +854,10 @@ class _SceneColonyClass {
     }
     const npc = this.level.entities.get(this._npcId, NPC);
     const qid = npc.questId;
-    if (QuestLog.isReady(qid)) {
+    if (Tracker.isReady(qid)) {
       this._completeQuest(qid);
-    } else if (!QuestLog.isActive(qid) && !QuestLog.isDone(qid)) {
-      QuestLog.accept(qid);
+    } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
+      Tracker.accept(qid);
       Log.info(`accepted ${qid}`);
     }
   }
