@@ -13,7 +13,6 @@
  */
 globalThis.SolidSystem = {
   maxStep: 8, // keep below thinnest collider to prevent tunneling
-  oneWayTol: 2, // px a body may sink into a one-way top and still be caught (resting slack)
 
   // Private static-collision grid — parallel-array buckets (GMRT: no object-keyed Map/Set). Insert
   // AND query by AABB SPAN (every cell an AABB overlaps), so there's no cell-size constraint (unlike
@@ -102,30 +101,26 @@ globalThis.SolidSystem = {
 
       for (let s = 0; s < steps; s++) {
         pos.x += sx;
-        if (SolidSystem._resolve(pos, box, col, statics, sx, true) !== 0)
+        if (SolidSystem._resolve(pos, box, statics, sx, true) !== 0)
           vel.x = 0;
 
         pos.y += sy;
-        if (SolidSystem._resolve(pos, box, col, statics, sy, false) !== 0)
+        if (SolidSystem._resolve(pos, box, statics, sy, false) !== 0)
           vel.y = 0;
-      }
-
-      if (col.passThroughTicks !== undefined && col.passThroughTicks > 0) {
-        col.passThroughTicks--;
       }
     });
   },
 
   /**
    * push body out of overlapping statics along one axis (deepest correction wins).
-   * `statics` is the cached snapshot (precomputed edges + oneWay flag), so the loop is
+   * `statics` is the cached snapshot (precomputed edges), so the loop is
    * flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
    * statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
    * maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
-   * may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.
+   * may be tested more than once — harmless: the overlap/deepest-correction body is idempotent.
    * returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
    */
-  _resolve(pos, box, colMover, statics, v, isX) {
+  _resolve(pos, box, statics, v, isX) {
     const a = AABB.edgesInto(pos, box, SolidSystem._rect);
 
     let correction = 0;
@@ -142,17 +137,6 @@ globalThis.SolidSystem = {
         const bucket = SolidSystem._buckets[gy * SolidSystem._cols + gx];
         for (let k = 0; k < bucket.length; k++) {
           const b = statics[bucket[k]];
-
-          if (b.oneWay) {
-            // jump-through platform: only blocks downward landing.
-            // never push horizontally — sideways ejection was caused by that.
-            // oneWayTol lets a resting body avoid slipping through on a sub-pixel sink.
-            if (isX) continue;
-            if (colMover.passThroughTicks > 0) continue;
-            if (v < 0) continue;
-            const prevBot = a.y2 - v; // bottom edge before this sub-step's move
-            if (prevBot > b.y1 + SolidSystem.oneWayTol) continue;
-          }
 
           if (!AABB.overlap(a, b)) continue;
 
@@ -189,7 +173,7 @@ globalThis.SolidSystem = {
   },
 
   /**
-   * Bake the kinematic solids into flat records: edges + oneWay, so the body×static resolve loop
+   * Bake the kinematic solids into flat records: edges only, so the body×static resolve loop
    * reads plain fields — no AABB.of / entities.get per test. Those per-test Map lookups + edge
    * allocs were ~70% of the colony's tick cost before the snapshot existed.
    */
@@ -204,7 +188,6 @@ globalThis.SolidSystem = {
         y1: e.y1,
         x2: e.x2,
         y2: e.y2,
-        oneWay: col.oneWay === true,
       });
     }
     this._store = entities;

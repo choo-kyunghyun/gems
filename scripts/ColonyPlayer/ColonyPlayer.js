@@ -20,12 +20,9 @@ globalThis.ColonyPlayer = {
       width: opts.bbox.width * k,
       height: opts.bbox.height * k,
     });
-    // oneWay/passThroughTicks unused in the colony; falsy defaults keep the Collision shape explicit
     entities.add(id, Collision, {
       solid: true,
       kinematic: false,
-      oneWay: false,
-      passThroughTicks: 0,
       mask: null,
       hits: [],
     });
