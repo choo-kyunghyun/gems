@@ -42,7 +42,6 @@ Issues noticed in passing or by a review batch, recorded here and deliberately l
 - `gemsSlider` is the kit's only positional signature: `(key, min, max, step, opts)` forces live callers to pass a placeholder (`SystemMenu`'s `gemsSlider(key, 0, 1, undefined, {…})`) where every sibling control takes `min`/`max`/`step` in the opts bag (`gemsStepper`). Fold them into opts.
 - `gemsRoot` redirects `insertChild` instead of exposing the host: the kit idiom is a named content property (`gemsScroll.scrollBody`, `gemsOverlay.body`); `gemsRoot`'s capped mode instead monkey-patches the wrapper's `insertChild` to the inner column, leaves `removeChild` un-redirected (a remove targets the wrapper and silently misses), and assigns a `.content` nothing reads. Expose the column like the siblings do.
 - `gemsSelectCustom` lost its doc line and its sizing: its header ("Panel-backed cycling select…") sits stranded above `gemsFieldPanel`, and it builds `gemsFieldPanel({})` where every sibling field control forwards `height`/`width` — a select can't be sized (latent; callers pass only `tooltip`). Re-home the comment and forward the opts.
-- `CollectibleSystem` is misnamed: its only member is `hitSpike` (spike-hazard detection) — no collectible exists in the platformer. Rename for what it does, or fold the check into `EnemySystem`/the scene.
 
 ## Planned Features
 

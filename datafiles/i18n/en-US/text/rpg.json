@@ -183,6 +183,7 @@
   "REC_ITEMS": "Items Found",
   "REC_QUESTS": "Quests Done",
 
+  "ITEM_COIN": "Credits",
   "ITEM_RAGS": "Rags",
   "ITEM_MEDKIT": "Medkit",
   "ITEM_MEDKIT_DESC": "Restores a little health when used.",

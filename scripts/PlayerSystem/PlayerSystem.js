@@ -23,7 +23,7 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 globalThis.PlayerSystem = {
   /**
    * register the colony keymap + InputContext tags. Split out so resume() can RE-APPLY it after a
-   * guest's destroy unbinds shared action names (platformer drops moveLeft/moveRight). Idempotent.
+   * guest's destroy unbinds shared action names (moveLeft/moveRight). Idempotent.
    *
    * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
    * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;

@@ -13,8 +13,8 @@ globalThis.RenderEntity = class RenderEntity {
       const rx = rp.x;
       const ry = rp.y;
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws
-      // as the spr_missing placeholder. Stretched over the BBox when present (so bodies like
-      // the platformer's platforms keep their physical extent legible), else at Position.
+      // as the spr_missing placeholder. Stretched over the BBox when present (so a body keeps
+      // its physical extent legible), else at Position.
       if (
         !sprite_exists(visual.sprite) ||
         sprite_get_number(visual.sprite) < 1

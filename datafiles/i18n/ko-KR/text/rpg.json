@@ -184,6 +184,7 @@
   "REC_ITEMS": "획득 아이템",
   "REC_QUESTS": "완료 퀘스트",
 
+  "ITEM_COIN": "크레딧",
   "ITEM_RAGS": "넝마",
   "ITEM_MEDKIT": "구급 키트",
   "ITEM_MEDKIT_DESC": "사용하면 체력을 조금 회복한다.",

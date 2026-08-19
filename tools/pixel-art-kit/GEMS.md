@@ -59,4 +59,4 @@ alongside the art; with the emitters gone they are ordinary committed data. Edit
 editing its manifest in the same commit — nothing checks this for you any more.
 
 Not covered by any tool: the lobby/editor UI icons `spr_back` / `spr_exit` / `spr_revert` and
-`spr_choo` / `spr_play` (Platformer debug-box art, 32 px).
+`spr_choo` / `spr_play` (32 px debug-box art, currently unused).

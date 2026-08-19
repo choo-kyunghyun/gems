@@ -1,7 +1,5 @@
 /**
- * Bodies it moves must NOT also be in MovementSystem. SOLE writer of `Grounded.isGrounded` (true when
- * a downward sub-step pushed the body back up) — jump/coyote logic reads it live off the component
- * (the &&-clobber quirk, GMRT.md → Runtime and Build Issues). Statics are bucketed into a spatial
+ * Bodies it moves must NOT also be in MovementSystem. Statics are bucketed into a spatial
  * grid (_gridRebuild) so each body tests only its local cells, not every static — see _resolve.
  *
  * The snapshot + grid are CACHED across ticks, which is what makes a whole map's worth of statics
@@ -102,27 +100,19 @@ globalThis.SolidSystem = {
       const sx = dx / steps;
       const sy = dy / steps;
 
-      let grounded = false;
-
       for (let s = 0; s < steps; s++) {
         pos.x += sx;
         if (SolidSystem._resolve(pos, box, col, statics, sx, true) !== 0)
           vel.x = 0;
 
         pos.y += sy;
-        const pushY = SolidSystem._resolve(pos, box, col, statics, sy, false);
-        if (pushY !== 0) {
-          if (pushY > 0) grounded = true;
+        if (SolidSystem._resolve(pos, box, col, statics, sy, false) !== 0)
           vel.y = 0;
-        }
       }
 
       if (col.passThroughTicks !== undefined && col.passThroughTicks > 0) {
         col.passThroughTicks--;
       }
-
-      const gr = entities.get(id, Grounded);
-      if (gr !== undefined) gr.isGrounded = grounded;
     });
   },
 
@@ -134,7 +124,6 @@ globalThis.SolidSystem = {
    * maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
    * may be tested more than once — harmless: the oneWay/overlap/deepest-correction body is idempotent.
    * returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
-   * for Y, +1 means grounded.
    */
   _resolve(pos, box, colMover, statics, v, isX) {
     const a = AABB.edgesInto(pos, box, SolidSystem._rect);

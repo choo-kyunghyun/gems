@@ -25,7 +25,6 @@ class _SceneColonyClass {
   label = "Colony";
 
   create(openScene) {
-    this._openScene = openScene; // stashed: the arcade cabinet opens its guest long after create
     // load before building anything
     SaveData.load();
     contentQuests.register();
@@ -163,22 +162,6 @@ class _SceneColonyClass {
         ],
       },
     });
-
-    // arcade cabinet: E launches the platformer as a guest minigame (Interaction kind
-    // "arcade" → the "arcade" InteractAction → _openArcade). Spawned by the scene, not the level
-    // file — so NEW GAME only: it is a one-time spawn, and a load brings the saved one back with
-    // the map's residents (spawning it again would stack a second cabinet per load).
-    if (!loaded) {
-      const sg = this.level.grid.worldToGrid(this.spawn.x, this.spawn.y);
-      ColonySpawn.spawnEntity(this.level.entities, this.level.grid, {
-        preset: "prop",
-        gx: sg.x + 2,
-        gy: sg.y - 2,
-        label: "Arcade",
-        color: "#9b8cff",
-        kind: "arcade",
-      });
-    }
 
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
@@ -917,35 +900,13 @@ class _SceneColonyClass {
 
   /**
    * resume: re-show UI, re-claim viewport 0, RE-BIND the keymap — a guest's destroy unbinds shared
-   * action names (PlatformerController drops moveLeft/moveRight) so the colony must re-register. Idempotent.
+   * action names (moveLeft/moveRight) so the colony must re-register. Idempotent.
    */
   resume() {
     UI.setEnabled(this.ui, true);
     this.camera.assign(0);
     PlayerSystem.bindKeys();
     ColonyMap._applyBgm(this); // restore the map's ambient after a guest crossfaded its own
-  }
-
-  /**
-   * launch the platformer as a guest minigame (keep-switch: this scene freezes as-is, back()
-   * thaws it); on return its result() score becomes a coin reward
-   */
-  _openArcade() {
-    this._openScene(ScenePlatformer, {
-      keep: true,
-      onResult: (r) => {
-        const n = r !== undefined && r.stomps !== undefined ? r.stomps : 0;
-        if (n > 0) {
-          InventorySystem.add(
-            this.level.entities.get(this.playerId, Inventory),
-            "coin",
-            n,
-          );
-          this._invDirty = true;
-        }
-        Toast.push(I18n.text("ARCADE_REWARD", n), { type: "success" });
-      },
-    });
   }
 
   draw() {

@@ -9,9 +9,8 @@
  *      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
  *    `openScene(factory, opts)` is the ONLY handle a scene gets on the switch — a scene that opens
- *    a guest later (the colony's arcade cabinet) stashes it in create(). There is no back-ref to the
- *    Game object.
- *    Genre screens (sceneColony / scenePlatformer / sceneEditor / sceneUIKit) are STANDALONE classes
+ *    a guest later stashes it in create(). There is no back-ref to the Game object.
+ *    Genre screens (sceneColony / sceneEditor / sceneUIKit) are STANDALONE classes
  *    satisfying it — composition, never `extends Scene`.
  *
  * 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need (the lobby:

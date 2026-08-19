@@ -15,7 +15,7 @@ globalThis.content = {
     contentStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
     contentRecipes.register(); // workbench recipes
     contentPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
-    contentInteractions.register(); // InteractAction defs (storage/workbench/claim/arcade/bed + hydrate/feed/buff)
+    contentInteractions.register(); // InteractAction defs (storage/workbench/claim/bed + hydrate/feed/buff)
     CombatAI.register(); // named combat states (combat.idle/chase/attack) into the StateSystem pool
     ColonySpawn.register(); // entity presets (raider/rat/npc/chest/prop/torch/turret/portal/follower) as EntityPreset defs
 

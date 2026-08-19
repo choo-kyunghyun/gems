@@ -100,13 +100,6 @@ globalThis.contentInteractions = {
         },
       },
       {
-        id: "arcade",
-        prompt: "ARCADE_PROMPT",
-        run(ctx) {
-          ctx.scene._openArcade();
-        },
-      },
-      {
         id: "bed",
         prompt: "BED_PROMPT",
         run(ctx) {

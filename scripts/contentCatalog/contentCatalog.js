@@ -1,8 +1,8 @@
 // Placeable-entity catalog for the level editor, mirroring ColonySpawn.spawnEntity's presets.
 // Entry shape + the field schema are on the contentCatalog declaration below.
 
-// Interaction kinds authorable on a prop in the editor (each = an InteractAction id). bed/arcade are
-// build-mode-only so they're omitted here; add a kind = one entry (matches the InteractAction registry).
+// Interaction kinds authorable on a prop in the editor (each = an InteractAction id). bed is
+// build-mode-only so it's omitted here; add a kind = one entry (matches the InteractAction registry).
 const INTERACTION_KINDS = [
   { name: "(none)", value: undefined },
   { name: "storage", value: "storage" },

@@ -284,8 +284,7 @@ globalThis.SaveGame = {
         // WHAT THE BOOT REBUILDS IS NOT SAVED, so restoring the rest can't double it: the level's
         // geometry (the grid comes back from the file or the seed, and its colliders are re-meshed
         // with it) and the scene's own re-created entities (Trader.register re-embodies its
-        // wandering vendor; sceneColony's arcade cabinet is gated on a new game instead, since it is
-        // spawned once rather than per activation).
+        // wandering vendor).
         // Trader ids only against the ACTIVE map: a trader is embodied in exactly one map (parking
         // dehydrates it), and an entity INDEX is per-store — matching one against another map's
         // store would drop an unrelated entity from that map's save.
