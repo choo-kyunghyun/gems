@@ -246,6 +246,7 @@
     {"id":{"name":"PathFollow","path":"scripts/PathFollow/PathFollow.yy",},},
     {"id":{"name":"PathRequest","path":"scripts/PathRequest/PathRequest.yy",},},
     {"id":{"name":"PathResponse","path":"scripts/PathResponse/PathResponse.yy",},},
+    {"id":{"name":"Persona","path":"scripts/Persona/Persona.yy",},},
     {"id":{"name":"Playable","path":"scripts/Playable/Playable.yy",},},
     {"id":{"name":"PlayerSystem","path":"scripts/PlayerSystem/PlayerSystem.yy",},},
     {"id":{"name":"Portal","path":"scripts/Portal/Portal.yy",},},

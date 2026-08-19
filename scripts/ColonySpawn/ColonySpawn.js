@@ -95,6 +95,7 @@ globalThis.ColonySpawn = {
           Raider: {}, // species marker (radar color + kill-quest type)
           Faction: { id: "monster" }, // hostile to "player" → CombatAI aggro target
           Name: { name: "Raider" },
+          Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
           // paper-doll bandit: the white humanoid template — color = per-spawn skin (adapter)
@@ -147,6 +148,7 @@ globalThis.ColonySpawn = {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.6 = 25.6 world px (visual-match bump)
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
+          Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // paper-doll civilian: skin + TINTED white shirt/shoes (colors from the adapter);
           // static, so the idle bob just loops
@@ -311,6 +313,7 @@ globalThis.ColonySpawn = {
           Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 260 },
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
+          Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
           Visual: { sprite: spr_human },
           Animator: {
             graph: ColonyPlayer.animGraph(),
@@ -371,11 +374,15 @@ globalThis.ColonySpawn = {
       }
       if (s.loot !== undefined) over.Inventory = { slots: s.loot };
       // deterministic skin over the white doll template (rat keeps its own art untinted)
-      if (s.preset === "raider") over.Visual = { color: ColonySpawn._skin(s) };
+      if (s.preset === "raider") {
+        over.Visual = { color: ColonySpawn._skin(s) };
+        over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
+      }
     } else if (s.preset === "npc") {
       over.Name = { name: s.label };
       over.NPC = { name: s.nameKey, questId: s.questId };
       over.Visual = { color: ColonySpawn._skin(s) };
+      over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
       // outfit color from the descriptor so elder/merchants read distinct
       over.Appearance = ColonySpawn._outfit(s.color ?? "#7a8a66");
     } else if (s.preset === "chest") {
@@ -521,10 +528,10 @@ globalThis.ColonySpawn = {
   spawnFollower(entities, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
     // `opt.color` is the OUTFIT tint, not a whole-body wash.
+    const spot = { gx: Math.round(wx), gy: Math.round(wy) };
     const over = {
-      Visual: {
-        color: ColonySpawn._skin({ gx: Math.round(wx), gy: Math.round(wy) }),
-      },
+      Visual: { color: ColonySpawn._skin(spot) },
+      Persona: ColonySpawn._persona(spot, 20, 45), // able-bodied party members
       Appearance: ColonySpawn._outfit(opt.color ?? "#9fe0c0"),
     };
     if (opt.hp !== undefined) {
@@ -577,6 +584,20 @@ globalThis.ColonySpawn = {
     const gy = s.gy ?? 0;
     const i = Math.abs(gx * 7 + gy * 13) % ColonySpawn.SKINS.length;
     return Color.parse(ColonySpawn.SKINS[i]);
+  },
+
+  /**
+   * Deterministic persona pick, banded by the caller's role — hashed from the spawn CELL like
+   * _skin, so a regenerated level keeps the same colonist. Two distinct hash2 seeds so sex and age
+   * are independent of each other and of the skin tone.
+   */
+  _persona(s, minAge, maxAge) {
+    const gx = s.gx ?? 0;
+    const gy = s.gy ?? 0;
+    return {
+      sex: hash2(gx, gy, 7717) < 0.5 ? "male" : "female",
+      age: minAge + Math.floor(hash2(gx, gy, 3373) * (maxAge - minAge + 1)),
+    };
   },
 
   /**

@@ -26,6 +26,8 @@ globalThis.ColonyPlayer = {
     });
     entities.add(id, Direction, opts.dir);
     entities.add(id, Name, { name: "Player" });
+    // the commander — authored like the name above, not hashed like a spawned colonist
+    entities.add(id, Persona, { sex: "male", age: 34 });
     entities.add(id, Faction, { id: "player" }); // squad faction — enemies aggro this by relation
     // squad identity — hired companions copy this id; a portal transfers every member with it
     entities.add(id, Squad, { id: uuid() });
