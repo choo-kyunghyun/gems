@@ -23,8 +23,6 @@ globalThis.ColonyPlayer = {
     entities.add(id, Collision, {
       solid: true,
       kinematic: false,
-      mask: null,
-      hits: [],
     });
     entities.add(id, Direction, opts.dir);
     entities.add(id, Name, { name: "Player" });

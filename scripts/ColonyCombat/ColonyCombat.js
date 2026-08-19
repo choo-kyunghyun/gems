@@ -11,6 +11,8 @@
  * authority that removes/respawns/incapacitates/leaves a body.
  */
 globalThis.ColonyCombat = {
+  _rect: AABB.rect(), // reused by collectDrops per drop tested (docs/PERF.md)
+
   /**
    * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
    * (followers/turrets, player faction) and neutral props (no Faction) are excluded.
@@ -255,14 +257,8 @@ globalThis.ColonyCombat = {
     const entities = scene.level.entities;
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y, z: 0 });
-    // match the ×2-drawn 16px icon sprite WorldOverlay draws so the trigger box lines up with the drop
+    // match the ×2-drawn 16px icon sprite WorldOverlay draws so the pickup box lines up with the drop
     entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
-    entities.add(id, Collision, {
-      solid: false,
-      kinematic: false,
-      mask: null,
-      hits: [],
-    });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
       drop.uid = src.uid;
@@ -275,16 +271,17 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * pick up overlapping ItemDrop sensors (in Collision.hits) into the bag; onCollect for genre effects
+   * pick up ItemDrops overlapping the player into the bag; onCollect for genre effects.
+   * Scans the drops directly (a handful per map) against the player's AABB — no sensor
+   * component and no per-tick pair sweep behind it.
    */
   collectDrops(scene, onCollect) {
     const entities = scene.level.entities;
-    const hits = entities.get(scene.playerId, Collision).hits;
+    const p = AABB.of(entities, scene.playerId);
     const inv = entities.get(scene.playerId, Inventory);
-    for (let i = 0; i < hits.length; i++) {
-      const id = hits[i];
-      const d = entities.get(id, ItemDrop);
-      if (d === undefined) continue;
+    const box = ColonyCombat._rect;
+    entities.forEach([ItemDrop, Position, BBox], (id, d, pos, bb) => {
+      if (!AABB.overlap(p, AABB.edgesInto(pos, bb, box))) return;
       // An instance drop re-inserts whole (uid + mods preserved); a fungible drop adds by qty.
       if (d.uid !== undefined) {
         const slot = {
@@ -299,9 +296,9 @@ globalThis.ColonyCombat = {
         if (ok) {
           scene._invDirty = true;
           if (onCollect !== undefined) onCollect(d.itemId, 1);
-          entities.remove(id);
+          entities.remove(id); // deferred — the tick's flush commits it
         }
-        continue; // bag full → leave the instance on the ground
+        return; // bag full → leave the instance on the ground
       }
       const left = InventorySystem.add(inv, d.itemId, d.qty);
       const got = d.qty - left;
@@ -311,6 +308,6 @@ globalThis.ColonyCombat = {
       }
       if (left <= 0) entities.remove(id);
       else d.qty = left; // bag full — leave the remainder on the ground
-    }
+    });
   },
 };

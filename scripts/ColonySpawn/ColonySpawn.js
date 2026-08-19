@@ -87,7 +87,7 @@ globalThis.ColonySpawn = {
           // ~2/3 of the visual, letting sprites bury into walls/each other); < 32px cell
           BBox: { x: -8, y: -8, width: 16, height: 16 },
           // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
-          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: false },
           Health: { hp: 3 },
           // Stats-driven damage/toughness like every combatant. maxHp mirrors hp; stamina vestigial.
           Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 90 },
@@ -126,7 +126,7 @@ globalThis.ColonySpawn = {
         scale: 1.4,
         components: {
           BBox: { x: -6, y: -6, width: 12, height: 12 }, // ×1.4 ≈ 16.8 world px (visual-match bump)
-          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: false },
           Health: { hp: 2 },
           Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 120 },
           Mortal: { kind: "corpse" },
@@ -145,7 +145,7 @@ globalThis.ColonySpawn = {
         scale: 1.6,
         components: {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.6 = 25.6 world px (visual-match bump)
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "" },
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // paper-doll civilian: skin + TINTED white shirt/shoes (colors from the adapter);
@@ -164,7 +164,7 @@ globalThis.ColonySpawn = {
         id: "chest",
         components: {
           BBox: { x: -11, y: -9, width: 22, height: 18 }, // military_crate content 22×18
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
           Inventory: { slots: [], capacity: 12 },
@@ -179,7 +179,7 @@ globalThis.ColonySpawn = {
         id: "prop",
         components: {
           BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; footprint() overrides per mesh model
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "" },
         },
       },
@@ -189,7 +189,7 @@ globalThis.ColonySpawn = {
         id: "torch",
         components: {
           BBox: { x: -3, y: -3, width: 6, height: 6 }, // thin post (content 2×2, padded)
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "Lamp" },
           Mesh: { model: "torch" }, // vox mesh — no Visual, billboard/shadow passes skip it
           // warm, gently flickering torch light (preset values)
@@ -206,7 +206,7 @@ globalThis.ColonySpawn = {
         id: "lantern",
         components: {
           BBox: { x: -5, y: -5, width: 10, height: 10 }, // lantern_floor content 10×10
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "Lantern" },
           Mesh: { model: "lantern_floor" },
           Light: {
@@ -223,7 +223,7 @@ globalThis.ColonySpawn = {
         id: "radio",
         components: {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // stand content 18×18
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "Radio" },
           Mesh: { model: "stand" },
           SoundEmitter: { sound: "snd_gun_fire", every: 1.2 },
@@ -236,7 +236,7 @@ globalThis.ColonySpawn = {
         id: "turret",
         components: {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // military_turret content 16×16
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Health: { hp: 8 },
           // shot damage is Stats.attack
           Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
@@ -265,7 +265,7 @@ globalThis.ColonySpawn = {
         id: "tree",
         components: {
           BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48×48 canopy
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "Pine" },
           Mesh: { model: "tree_pine" },
         },
@@ -277,7 +277,7 @@ globalThis.ColonySpawn = {
         id: "rock",
         components: {
           BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per-cluster (adapter)
-          Collision: { solid: true, kinematic: true, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
           Mesh: { model: "rock" },
         },
@@ -304,7 +304,7 @@ globalThis.ColonySpawn = {
         components: {
           Velocity: { x: 0, y: 0, z: 0 },
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — matches the player
-          Collision: { solid: true, kinematic: false, mask: null, hits: [] },
+          Collision: { solid: true, kinematic: false },
           Faction: { id: "player" }, // party ally; friendly fire skips it, but enemies aggro it (it has Health)
           Health: { hp: 6 },
           // a companion is a combatant, so it carries defense + attack like every other actor

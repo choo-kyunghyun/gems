@@ -373,13 +373,12 @@ class _SceneColonyClass {
       else DrowsinessSystem.update(this.level.entities);
       FollowerSystem.update(this.level.entities, this.playerId); // seek, by live Follower query (before physics)
       // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
-      // crowders apart → triggers (pickups) → projectiles → expire.
+      // crowders apart → projectiles → expire.
       PlayerSystem.update(this.level.entities); // the player brain: input → Velocity/fire
       StateSystem.update(this.level.entities); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
       PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.nav
       SolidSystem.update(this.level.entities);
       SeparationSystem.update(this.level.entities); // unstack dynamic bodies (crowding), after SolidSystem
-      TriggerSystem.update(this.level.entities);
       ProjectileSystem.update(this.level.entities);
       LifetimeSystem.update(this.level.entities);
 

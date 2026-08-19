@@ -8,10 +8,9 @@
  * sweep can't miss the pair.
  *
  * Opt a symmetric-pair system in by assigning an instance to the store's
- * `broadphase` field — `SeparationSystem`/`TriggerSystem` rebuild + sweep it
- * per tick, else fall back to O(n²) (`ColonyMap._buildSpatial` wires one).
- * Body-vs-static queries are asymmetric and keep their own grid in
- * `SolidSystem`.
+ * `broadphase` field — `SeparationSystem` rebuilds + sweeps it per tick, else
+ * falls back to O(n²) (`ColonyMap._buildSpatial` wires one). Body-vs-static
+ * queries are asymmetric and keep their own grid in `SolidSystem`.
  */
 globalThis.Broadphase = class Broadphase {
   constructor(worldWidth, worldHeight, cellSize) {

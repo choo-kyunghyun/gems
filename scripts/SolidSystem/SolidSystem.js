@@ -52,8 +52,6 @@ globalThis.SolidSystem = {
     entities.add(id, Collision, {
       solid: true,
       kinematic: true,
-      mask: null,
-      hits: [],
     });
     return id;
   },

@@ -423,13 +423,12 @@ globalThis.ColonyMap = {
    * (sceneColony.step rebuilds occupancy around the player each frame).
    */
   _buildSpatial(scene) {
-    // O(n) broadphase for SeparationSystem + TriggerSystem (each rebuilds it per tick). It removes
-    // TriggerSystem's O(n²) sweep over every collider, which is what makes a whole map's worth of
-    // residents affordable in one store. cellSize (48px) exceeds max dynamic-body / non-solid sensor
-    // diameter (~16-24px at 16px cells); huge SOLID colliders (level border, water rects) are exempt
-    // — TriggerSystem skips solid-vs-solid and SeparationSystem buckets dynamic bodies only. Rides
-    // with the store, so a parked map keeps it across a resume; rebuilt per cold build.
-    // NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob, mob↔sensor).
+    // O(n) broadphase for SeparationSystem, the one symmetric-pair sweep left (it rebuilds the grid
+    // per tick). cellSize (96px) exceeds max dynamic-body diameter (~27px at 16px cells), which is
+    // the center-bucket contract; huge SOLID colliders (level border, water rects) never enter it —
+    // SeparationSystem buckets dynamic bodies only. Rides with the store, so a parked map keeps it
+    // across a resume; rebuilt per cold build.
+    // NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob).
     // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
     // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
     scene.level.entities.broadphase = new Broadphase(

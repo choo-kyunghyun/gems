@@ -331,7 +331,6 @@
     {"id":{"name":"Trader","path":"scripts/Trader/Trader.yy",},},
     {"id":{"name":"TradeSystem","path":"scripts/TradeSystem/TradeSystem.yy",},},
     {"id":{"name":"TradeUI","path":"scripts/TradeUI/TradeUI.yy",},},
-    {"id":{"name":"TriggerSystem","path":"scripts/TriggerSystem/TriggerSystem.yy",},},
     {"id":{"name":"Tween","path":"scripts/Tween/Tween.yy",},},
     {"id":{"name":"UI","path":"scripts/UI/UI.yy",},},
     {"id":{"name":"UIAccordion","path":"scripts/UIAccordion/UIAccordion.yy",},},

@@ -80,8 +80,9 @@ Unfixed, in the order their size was measured:
   per-column dense id list, but only for SPARSE tokens — `Position`/`BBox`/`Collision` sit at ~100%
   selectivity, where a dense list is the same length plus an indirection and loses. Dense-list
   upkeep also costs ~75% more per component add/detach, so it must be opt-in, not blanket.
-- `SolidSystem`, `SeparationSystem` and `TriggerSystem` each scan `Collision, Position, BBox`
-  separately every tick; one shared pass would serve all three.
+- `SolidSystem` scans `Collision, Position, BBox` twice per tick (the static-cache fingerprint, then
+  the body loop with `Velocity`) and `SeparationSystem` scans it again; one shared pass would serve
+  them.
 - `ids.next` is a high-water mark that never shrinks, so a spawn spike permanently raises every
   query's cost for that map's lifetime. Latent today: the colony sits at `next == alive`, and
   nothing spawns in bulk.
