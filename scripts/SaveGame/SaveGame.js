@@ -232,15 +232,11 @@ globalThis.SaveGame = {
   _simPass: {
     id: "sim",
     capture(ctx) {
-      const ach = [];
-      const all = Achievement.all();
-      for (let i = 0; i < all.length; i++)
-        if (Achievement.isUnlocked(all[i].id)) ach.push(all[i].id);
       ctx.manifest.sim = {
         clock: { hour: WorldClock.hour, day: WorldClock.day },
         weather: Weather.export(),
-        profile: Profile.counters(),
-        achievements: ach,
+        profile: Profile.export(),
+        achievements: Achievement.export(),
       };
     },
     restore(ctx) {
@@ -249,13 +245,10 @@ globalThis.SaveGame = {
       WorldClock.hour = sim.clock.hour;
       WorldClock.day = sim.clock.day;
       Weather.import(sim.weather);
-      // lifetime counters + achievement unlocks
-      const prof = sim.profile;
-      const pk = Object.keys(prof);
-      for (let i = 0; i < pk.length; i++) Profile.set(pk[i], prof[pk[i]]);
-      Profile.save();
-      for (let i = 0; i < sim.achievements.length; i++)
-        Achievement.unlock(sim.achievements[i]);
+      // lifetime counters + achievement unlocks REPLACE the session's — a load is not a merge, so
+      // whatever the previous slot left in memory can't survive into this one.
+      Profile.import(sim.profile);
+      Achievement.import(sim.achievements);
     },
   },
 

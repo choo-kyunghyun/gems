@@ -31,7 +31,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `World`'s transfer family returns three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. One family, three failure signals a caller must know apart.
 - `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.
 - `SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order of its siblings `density`/`anchor`; four call sites to swap.
-- Singleton method style is split in Core/Util: `Log`/`Settings`/`SaveData` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
+- Singleton method style is split in Core/Util: `Log`/`Settings`/`Profile`/`Achievement` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
 - `gemsDropdown` ignores the `opts.onChange` its sibling `gemsSelect` fires after `Settings.set`, and has zero callers; `SystemMenu` hand-rolls the same binding over `gemsDropdownCustom` because it needs the apply hook. Pass `onChange` through and the hand-roll folds into the factory.
 - `gemsSlider(key, min, max, step, opts)` is the kit's only positional signature, forcing live callers to pass a placeholder; fold min/max/step into the opts bag like `gemsStepper`.
 - `gemsRoot` monkey-patches `insertChild` to the inner column instead of exposing it as a named content property (`gemsScroll.scrollBody`, `gemsOverlay.body`) — `removeChild` stays un-redirected, so a remove targets the wrapper and silently misses, and the assigned `.content` has no reader.

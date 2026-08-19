@@ -1,13 +1,14 @@
-// Achievement registry + unlock persistence — defs are pure data ({ id, name, desc }), NO condition;
-// the engine never sweeps. An outside trigger calls unlock(id); the engine checks/persists/reports.
+// Achievement registry + unlock state — defs are pure data ({ id, name, desc }), NO condition;
+// the engine never sweeps. An outside trigger calls unlock(id); the engine checks and reports.
 /**
  * Core despite naming progression: with no condition and no sweep the module states no gameplay
- * rule, so it is a persistence service like SaveData and the trigger rules stay with the content
- * that owns them.
+ * rule, so it holds state and nothing else, and the trigger rules stay with the content that owns
+ * them.
  *
- * unlock(id) checks the request (registered? still locked?), persists, and reports whether it was
- * newly unlocked (the caller toasts). The unlock set persists as a native id array under SaveData's
- * "achievements" key (SaveData serializes nested via json_stringify — see docs/GMRT.md).
+ * unlock(id) checks the request (registered? still locked?) and reports whether it was newly
+ * unlocked (the caller toasts). The unlock set is SESSION state whose only home is the save slot's
+ * bundle (SaveGame's sim pass) — nothing here touches disk, so an unlock lasts only as far as the
+ * next save of that slot, exactly like the health and inventory beside it in the bundle.
  */
 globalThis.Achievement = {
   // ── Registry facade (Registry owns the store's contract) ──
@@ -20,14 +21,9 @@ globalThis.Achievement = {
     return this;
   },
 
-  /**
-   * restore from SaveData (an id array under "achievements"; legacy/missing → empty)
-   */
-  load() {
+  /** start locked — a new game inherits no prior session's unlocks (scene create() once) */
+  reset() {
     this._unlocked = {};
-    const ids = SaveData.get("achievements", null);
-    if (Array.isArray(ids))
-      for (let i = 0; i < ids.length; i++) this._unlocked[ids[i]] = true;
     return this;
   },
 
@@ -51,7 +47,6 @@ globalThis.Achievement = {
     if (!Registry.has(Achievement, id) || this._unlocked[id] === true)
       return false;
     this._unlocked[id] = true;
-    this._persist();
     return true;
   },
 
@@ -59,21 +54,32 @@ globalThis.Achievement = {
   unlockAll() {
     for (let i = 0; i < this._order.length; i++)
       this._unlocked[this._order[i]] = true;
-    this._persist();
   },
 
-  /** debug: relock everything (persists the empty set) */
+  /** debug: relock everything */
   clear() {
     this._unlocked = {};
-    this._persist();
   },
 
-  _persist() {
+  /**
+   * unlocked ids in registration order, for the bundle's sim pass
+   */
+  export() {
     const ids = [];
     for (let i = 0; i < this._order.length; i++) {
       if (this._unlocked[this._order[i]]) ids.push(this._order[i]);
     }
-    SaveData.set("achievements", ids);
-    SaveData.save();
+    return ids;
+  },
+
+  /**
+   * REPLACE the unlock set from a bundle blob — a load is not a merge. Anything but an id array
+   * (a legacy blob, a missing key) restores empty.
+   */
+  import(ids) {
+    this._unlocked = {};
+    if (Array.isArray(ids))
+      for (let i = 0; i < ids.length; i++) this._unlocked[ids[i]] = true;
+    return this;
   },
 };

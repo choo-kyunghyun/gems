@@ -25,12 +25,11 @@ class _SceneColonyClass {
   label = "Colony";
 
   create(openScene) {
-    // load before building anything
-    SaveData.load();
     contentQuests.register();
     contentAchievements.register(); // achievement defs + trigger rules (separate from quest data)
-    Profile.load();
-    Achievement.load();
+    // session records start empty; a LOAD's sim pass replaces them wholesale further down
+    Profile.reset();
+    Achievement.reset();
     QuestLog.reset();
     QuestLog.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
     QuestLog.accept(contentQuests.QUEST_REACH); // reach — tracked passively
@@ -192,7 +191,7 @@ class _SceneColonyClass {
 
     Log.info(
       `colony ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
-        `achievements=${Achievement.all().length} kills(saved)=${Profile.get("enemiesKilled")}`,
+        `achievements=${Achievement.all().length} kills=${Profile.get("enemiesKilled")}`,
     );
   }
 
@@ -938,7 +937,6 @@ class _SceneColonyClass {
   }
 
   destroy() {
-    Profile.save(); // persist lifetime records (achievements persist on unlock)
     InputContext.reset(); // hand input back to "default" for the next scene
     PlayerSystem.unbind();
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)

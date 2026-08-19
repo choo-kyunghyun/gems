@@ -1,5 +1,5 @@
 // Ref-safe, nesting-safe, CYCLE-safe JSON codec — the disk-serialization substrate for save
-// games (SaveGame) and any structured blob that outgrows SaveData's flat key→scalar model.
+// games (SaveGame) and any structured blob that outgrows a flat key→scalar store.
 /**
  * It exists because native JSON on GMRT 0.20 can't round-trip live game data:
  *   1. JSON.stringify FAULTS NATIVELY on a nested object/array (process death, not a JS throw — see
@@ -8,7 +8,7 @@
  *      escaping). JSON.parse handles nesting fine, so decode() uses it directly and then revives.
  *      (GML json_stringify serializes nesting crash-free too — the interop workaround — but it can't
  *      tag asset refs (2) or guard cycles (below), so it backs the flat/ref-free stores instead:
- *      SaveData.)
+ *      Settings, InputPreset.)
  *   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports typeof
  *      "object" with an EMPTY key set, so a generic serializer would silently emit {}. encode()
  *      discriminates plain data by `v.constructor === Object` (true for object literals, false for

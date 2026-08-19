@@ -284,7 +284,6 @@
     {"id":{"name":"RenderZone","path":"scripts/RenderZone/RenderZone.yy",},},
     {"id":{"name":"RenderZoneLabel","path":"scripts/RenderZoneLabel/RenderZoneLabel.yy",},},
     {"id":{"name":"Resident","path":"scripts/Resident/Resident.yy",},},
-    {"id":{"name":"SaveData","path":"scripts/SaveData/SaveData.yy",},},
     {"id":{"name":"SaveGame","path":"scripts/SaveGame/SaveGame.yy",},},
     {"id":{"name":"Scene","path":"scripts/Scene/Scene.yy",},},
     {"id":{"name":"sceneColony","path":"scripts/sceneColony/sceneColony.yy",},},
