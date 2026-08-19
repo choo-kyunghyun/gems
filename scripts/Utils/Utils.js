@@ -12,14 +12,6 @@ globalThis.uuid = function uuid() {
   });
 };
 
-/** `value` × current font pixel size (rem-like; falls back to 16px). */
-globalThis.rem = function rem(value) {
-  const font = draw_get_font();
-  const info = font_get_info(font);
-  if (info === undefined) return value * 16;
-  return value * info.size;
-};
-
 /**
  * Pure 2D position hash → float in [0, 1); deterministic in (x, y, seed) — the shared home for
  * seeded worldgen/terrain hashing. Float math only (`sin`/`floor`): bitwise overflow
