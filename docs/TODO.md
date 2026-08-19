@@ -11,8 +11,6 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
-- Caller-less members: `Query.farthest`, `Color.alpha`, `TileLayer.from`, `Status.all`, `FactionSystem.all`, `SettlementComponent.all`, `Recipe.has`
-    - the `all`/`has` group is `Registry` facade parity, kept whole without a reader
 - `World.update` is unwired scaffolding — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`), and `update` carries the engine → gameplay-kit edge. Wire the phase-2 routing (clock injected, not named) or drop it.
 - `EntityStore.import`/`register` — saves store `entities.export()` but restore reads entities out, and `add` auto-registers. `ComponentStore.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard.
 - `InputPreset` — `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold hardcoded defaults and `input.json` is never written. Load at boot, or drop the module.
@@ -49,9 +47,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Gacha capsule with new UI
 - Radio
 - Gamepad reloading
-- More role-playing optional components
-    - Biological sex (display as XX and XY)
-    - Entity age
 
 ## UI
 
