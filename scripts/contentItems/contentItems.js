@@ -260,11 +260,11 @@ globalThis.contentItems = {
         value: 20,
         rarity: "uncommon",
         components: [
-          // worn: paper-doll overlay sheet (mirrors spr_human's strip layout — see Appearance)
+          // worn: paper-doll overlay sheet (mirrors pixHuman's strip layout — see Appearance)
           new Equippable({
             slot: "armor",
             mods: { defense: 2, maxHp: 5 },
-            worn: "spr_wear_vest",
+            worn: "pixWearVest",
           }),
         ],
       },
@@ -613,7 +613,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 3, maxHp: 8 },
-            worn: "spr_wear_vest",
+            worn: "pixWearVest",
           }),
         ],
       },

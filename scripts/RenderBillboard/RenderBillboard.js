@@ -87,7 +87,7 @@ globalThis.RenderBillboard = class RenderBillboard {
   /**
    * one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
    * (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
-   * OWN color — the body's Visual.color is the SKIN tint of the white spr_human template, so
+   * OWN color — the body's Visual.color is the SKIN tint of the white pixHuman template, so
    * it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
    * which layers share — the shader lights every layer identically (same uniforms).
    */
@@ -156,13 +156,13 @@ globalThis.RenderBillboard = class RenderBillboard {
     entities.forEach([Visual, Position], (entity, visual) => {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
-      // draws as the spr_missing placeholder; re-wrap subimg into the placeholder's frame
+      // draws as the pixMissing placeholder; re-wrap subimg into the placeholder's frame
       // range. Appearance layers keep visual.subimg (their sheets mirror the body strip) and
       // are sprite_exists-guarded upstream by AppearanceSystem.
       let sprite = visual.sprite;
       let subimg = visual.subimg;
       if (!sprite_exists(sprite) || sprite_get_number(sprite) < 1) {
-        sprite = spr_missing;
+        sprite = pixMissing;
         subimg = subimg % sprite_get_number(sprite);
       }
       if (visual.speed !== 0) subimg = AnimationSystem.advance(visual, sprite);

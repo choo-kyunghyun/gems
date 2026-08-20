@@ -49,7 +49,7 @@ regenerates the project's art, and changing a committed sprite means editing it 
 
 - `pixTerrain*` — 9 materials (deep water, water, sand, mud, soil, rich soil, grass, gravel, rocky), **32 px**
 - `pixTex*` — wall/floor textures, 32 px
-- `spr_item_*`, `spr_wear_*` — icons and garment overlays
+- `spr_item_*`, `pixWear*` — icons and garment overlays
 - the entity sprites are **16 px** legacy: tiles are UV-stretched over the cell, and a 16 px entity
   sprite draws at ×2 (declare `SpriteMeta density: 0.5`, as the fence does)
 
@@ -58,5 +58,5 @@ regenerates the project's art, and changing a committed sprite means editing it 
 alongside the art; with the emitters gone they are ordinary committed data. Editing a sheet means
 editing its manifest in the same commit — nothing checks this for you any more.
 
-Not covered by any tool: the lobby/editor UI icons `spr_back` / `spr_exit` / `spr_revert` and
-`spr_choo` / `spr_play` (32 px debug-box art, currently unused).
+Not covered by any tool: the lobby/editor UI icons `vecBack` / `vecExit` / `vecRevert` and
+`vecChoo` / `vecPlay` (32 px debug-box art, currently unused).

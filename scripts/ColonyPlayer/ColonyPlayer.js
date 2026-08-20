@@ -1,7 +1,7 @@
 // Player setup for the colony scene. Builds the player entity and owns the cursor-aimed HITSCAN
 // firing (fireBullet — an instant Combat.hitscan shot, reused by CombatAI for turrets).
 globalThis.ColonyPlayer = {
-  // default skin tint for the white spr_human template — "#e8b890" as a GM BGR color int
+  // default skin tint for the white pixHuman template — "#e8b890" as a GM BGR color int
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT)
   SKIN: 0x90b8e8,
 
@@ -78,17 +78,17 @@ globalThis.ColonyPlayer = {
     entities.add(id, Hotbar, { slots: hotbarSlots, size: HOTBAR_SIZE });
     entities.add(id, Favorites, { ids: [] });
     // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
-    // flip + baked size — the flip must preserve |xscale|, see PlayerSystem). spr_human is a
+    // flip + baked size — the flip must preserve |xscale|, see PlayerSystem). pixHuman is a
     // WHITE template — color IS the skin tint (layers keep their own color). `scale` is the
     // DESIGN size; the sheet's declared density (SpriteMeta) divides the draw scale only
     // (BBox stays design-scale).
     entities.add(id, Visual, {
       visible: true,
-      sprite: spr_human,
+      sprite: pixHuman,
       subimg: 0,
       scale: k,
-      xscale: SpriteMeta.fit(k, spr_human),
-      yscale: SpriteMeta.fit(k, spr_human),
+      xscale: SpriteMeta.fit(k, pixHuman),
+      yscale: SpriteMeta.fit(k, pixHuman),
       rot: 0,
       color: ColonyPlayer.SKIN,
       alpha: 1,
@@ -130,7 +130,7 @@ globalThis.ColonyPlayer = {
   },
 
   /**
-   * Canonical humanoid animation over the unified spr_human strip (the white tintable Rayman-
+   * Canonical humanoid animation over the unified pixHuman strip (the white tintable Rayman-
    * style figure, hand-drawn in Aseprite — source tools/pixel-art-kit/templates/human/, whose
    * frame tags this graph mirrors): 0 = idle, 1-2 = walk, 3-5 = fist punch, 6-10 = kick (the
    * unarmed swing alternates attack/kick — see PlayerSystem). EVERY paper-doll layer sheet
@@ -140,10 +140,10 @@ globalThis.ColonyPlayer = {
    */
   animGraph() {
     return {
-      idle: { sprite: spr_human, start: 0, frames: 1, fps: 1, loop: true },
-      walk: { sprite: spr_human, start: 1, frames: 2, fps: 10, loop: true },
-      attack: { sprite: spr_human, start: 3, frames: 3, fps: 10, loop: false },
-      kick: { sprite: spr_human, start: 6, frames: 5, fps: 13, loop: false },
+      idle: { sprite: pixHuman, start: 0, frames: 1, fps: 1, loop: true },
+      walk: { sprite: pixHuman, start: 1, frames: 2, fps: 10, loop: true },
+      attack: { sprite: pixHuman, start: 3, frames: 3, fps: 10, loop: false },
+      kick: { sprite: pixHuman, start: 6, frames: 5, fps: 13, loop: false },
     };
   },
 

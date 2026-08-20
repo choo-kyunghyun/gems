@@ -1,5 +1,5 @@
 const MOVE_SPEED = 220; // world px/s (32px-cell scale)
-const PLAYER_SCALE = 1.5; // baked size factor over the 32px spr_human sheet (bbox + Visual)
+const PLAYER_SCALE = 1.5; // baked size factor over the 32px pixHuman sheet (bbox + Visual)
 const SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range

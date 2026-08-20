@@ -18,7 +18,7 @@ Named like a class rather than like media — PascalCase, for what it is (`Game`
 
 ## Media Assets
 
-`<kind><Family><Subject>[<Variant>]` — a lowercase kind prefix, then camelCase (`pixItemLeadPipe`, `sndGunFire`). The kind names what the art IS, never which GameMaker resource holds it: `pix` (pixel art) and `spine` (skeletal rig) are both GMSprites, and that split is the point — the name says which render path the asset takes, `pix*` through `Visual` and `spine*` through `Skeleton`. `snd`/`mus` divide GMSound the same way; `sh`/`ps` hold one member each.
+`<kind><Family><Subject>[<Variant>]` — a lowercase kind prefix, then camelCase (`pixItemLeadPipe`, `sndGunFire`). The kind names what the art IS, never which GameMaker resource holds it: `pix` (pixel art), `vec` (vector) and `spine` (skeletal rig) are all GMSprites, and that split is the point — a name says which render path the asset takes (`pix*`/`vec*` through `Visual`, `spine*` through `Skeleton`) and, for `vec*`, that it is inert on the pinned runtime (GMRT.md → Known Incompatibilities). `snd`/`mus` divide GMSound the same way; `sh`/`ps` hold one member each.
 
 Casing follows word boundaries. Where a name is COMPUTED from a snake_case key the transform is mechanical (`_x` → `X`, acronyms included — `pixUiBox`, not `pixUIBox`), which is what keeps the item auto-wire a rule instead of a lookup table.
 

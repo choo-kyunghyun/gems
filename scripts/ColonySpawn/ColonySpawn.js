@@ -72,7 +72,7 @@ globalThis.ColonySpawn = {
     // untouched (SpriteMeta.fit). Code-registered — no manifest file/gems.yyp entry needed.
     SpriteMeta.register([
       {
-        sprite: "spr_fenceSquare",
+        sprite: "pixFenceSquare",
         kind: "entity",
         density: 0.5,
         cell: [16, 16],
@@ -99,7 +99,7 @@ globalThis.ColonySpawn = {
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
           // paper-doll bandit: the white humanoid template — color = per-spawn skin (adapter)
-          Visual: { sprite: spr_human },
+          Visual: { sprite: pixHuman },
           Animator: {
             graph: ColonyPlayer.animGraph(),
             state: "idle",
@@ -110,9 +110,9 @@ globalThis.ColonySpawn = {
           Appearance: {
             back: [],
             front: [
-              { sprite: spr_wear_black_shirt, color: c_white },
-              { sprite: spr_wear_black_sneakers, color: c_white },
-              { sprite: spr_wear_red_bandana, color: c_white },
+              { sprite: pixWearBlackShirt, color: c_white },
+              { sprite: pixWearBlackSneakers, color: c_white },
+              { sprite: pixWearRedBandana, color: c_white },
             ],
           },
         },
@@ -135,7 +135,7 @@ globalThis.ColonySpawn = {
           Faction: { id: "monster" },
           Name: { name: "Rat" },
           Inventory: { slots: [], capacity: 4 },
-          Visual: { sprite: spr_rat, speed: 6 }, // looping scuttle cycle
+          Visual: { sprite: pixRat, speed: 6 }, // looping scuttle cycle
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction
@@ -152,7 +152,7 @@ globalThis.ColonySpawn = {
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // paper-doll civilian: skin + TINTED white shirt/shoes (colors from the adapter);
           // static, so the idle bob just loops
-          Visual: { sprite: spr_human },
+          Visual: { sprite: pixHuman },
           Animator: {
             graph: ColonyPlayer.animGraph(),
             state: "idle",
@@ -314,7 +314,7 @@ globalThis.ColonySpawn = {
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
-          Visual: { sprite: spr_human },
+          Visual: { sprite: pixHuman },
           Animator: {
             graph: ColonyPlayer.animGraph(),
             state: "idle",
@@ -430,8 +430,8 @@ globalThis.ColonySpawn = {
           color = ColonySpawn._tint(s);
         over.Visual =
           color !== undefined
-            ? { sprite: spr_fenceSquare, color }
-            : { sprite: spr_fenceSquare };
+            ? { sprite: pixFenceSquare, color }
+            : { sprite: pixFenceSquare };
       }
       over.Name = { name: s.label };
       if (s.kind !== undefined)
@@ -572,7 +572,7 @@ globalThis.ColonySpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Skin tones for doll humanoids (Visual.color over the white spr_human template).
+  // Skin tones for doll humanoids (Visual.color over the white pixHuman template).
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
   /**
@@ -608,8 +608,8 @@ globalThis.ColonySpawn = {
     return {
       back: [],
       front: [
-        { sprite: spr_wear_shirt, color: Color.parse(shirtColor) },
-        { sprite: spr_wear_shoes, color: Color.parse("#55565e") },
+        { sprite: pixWearShirt, color: Color.parse(shirtColor) },
+        { sprite: pixWearShoes, color: Color.parse("#55565e") },
       ],
     };
   },

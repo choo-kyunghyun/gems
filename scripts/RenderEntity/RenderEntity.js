@@ -13,7 +13,7 @@ globalThis.RenderEntity = class RenderEntity {
       const rx = rp.x;
       const ry = rp.y;
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws
-      // as the spr_missing placeholder. Stretched over the BBox when present (so a body keeps
+      // as the pixMissing placeholder. Stretched over the BBox when present (so a body keeps
       // its physical extent legible), else at Position.
       if (
         !sprite_exists(visual.sprite) ||
@@ -22,7 +22,7 @@ globalThis.RenderEntity = class RenderEntity {
         const box = entities.get(entity, BBox);
         if (box !== undefined) {
           draw_sprite_stretched_ext(
-            spr_missing,
+            pixMissing,
             0,
             rx + box.x,
             ry + box.y,
@@ -33,7 +33,7 @@ globalThis.RenderEntity = class RenderEntity {
           );
         } else {
           draw_sprite_ext(
-            spr_missing,
+            pixMissing,
             0,
             rx,
             ry,
