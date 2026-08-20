@@ -2,7 +2,7 @@
  * @implements {UIComponent}
  * Sprite-skinned panel background — UIPanel sibling using hand-drawn art. Source sprite must have
  * IDE nine-slice enabled so draw_sprite_stretched_ext scales edges/center without distorting the
- * border (see spr_uibox, insets 3px). Non-interactive; add as a low-index component so it sits
+ * border (see pixUiBox, insets 3px). Non-interactive; add as a low-index component so it sits
  * behind content. Layout is always computed before components run (the central layout
  * guarantee — see UI.insert/UI.draw), so no NaN guard is needed here.
  */

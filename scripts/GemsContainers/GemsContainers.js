@@ -95,7 +95,7 @@ globalThis.gemsCard = function gemsCard(opts = {}) {
 
 /**
  * Sprite-skinned panel — gemsPanel's content box over a nine-slice sprite frame
- * (spr_uibox default) instead of a drawn roundrect, so the kit can wear hand-drawn
+ * (pixUiBox default) instead of a drawn roundrect, so the kit can wear hand-drawn
  * skins. `color` tints the frame (theme key / hex / int).
  */
 globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
@@ -106,7 +106,7 @@ globalThis.gemsNineSlice = function gemsNineSlice(opts = {}) {
   });
   el.addComponent(
     new UINineSlice({
-      sprite: opts.sprite ?? asset_get_index("spr_uibox"),
+      sprite: opts.sprite ?? asset_get_index("pixUiBox"),
       subimg: opts.subimg ?? 0,
       color: opts.color != null ? gemsColor(opts.color) : c_white,
       alpha: opts.alpha ?? 1,

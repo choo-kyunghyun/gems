@@ -22,7 +22,7 @@ globalThis.contentTiles = {
       id: 1,
       name: "TILE_TERRAIN",
       type: "dual",
-      sprite: "spr_tiledual",
+      sprite: "pixTileDual",
       // desaturated olive matching the streamed grass base (style-spec GROUND band)
       color: "#79825a",
       solid: false,
@@ -32,26 +32,26 @@ globalThis.contentTiles = {
     },
     {
       key: "floor",
-      // spr_tex_plaid = near-white checker weave (spr_tex_brick is the WALL texture — see
+      // pixTexPlaid = near-white checker weave (pixTexBrick is the WALL texture — see
       // ColonyMap._buildRenderer); wood-tan tint -> parquet flooring. For a type-0 layer the
       // id IS the frame index (and must be non-zero: 0 reads as empty occupancy).
       id: 1,
       name: "BUILD_FLOOR",
       type: 0,
-      sprite: "spr_tex_plaid",
+      sprite: "pixTexPlaid",
       color: "#aa9472",
       solid: false,
       pathCost: 1,
     },
     // Floor VARIANTS — one type-0 layer per material (the LAYERS design rule: one material
-    // per layer + pass; the spare near-white spr_tex_* sheets each get their own tint).
+    // per layer + pass; the spare near-white pixTex* sheets each get their own tint).
     // Build-Mode-only surfaces: level files paint only `floor`, generated maps hold them empty.
     {
       key: "floorTile",
       id: 1,
       name: "BUILD_FLOOR_TILE",
       type: 0,
-      sprite: "spr_tex_tile",
+      sprite: "pixTexTile",
       color: "#9dadb2",
       solid: false,
       pathCost: 1,
@@ -61,7 +61,7 @@ globalThis.contentTiles = {
       id: 1,
       name: "BUILD_FLOOR_CARPET",
       type: 0,
-      sprite: "spr_tex_carpet",
+      sprite: "pixTexCarpet",
       color: "#a05a50",
       solid: false,
       pathCost: 1,
@@ -71,7 +71,7 @@ globalThis.contentTiles = {
       id: 1,
       name: "BUILD_FLOOR_MOSAIC",
       type: 0,
-      sprite: "spr_tex_mosaic",
+      sprite: "pixTexMosaic",
       color: "#7096a8",
       solid: false,
       pathCost: 1,
@@ -81,7 +81,7 @@ globalThis.contentTiles = {
       id: 1,
       name: "EDITOR_WALL",
       type: "corner",
-      sprite: "spr_tilecorner",
+      sprite: "pixTileCorner",
       color: "#707888",
       solid: true,
       pathCost: null,
@@ -95,28 +95,28 @@ globalThis.contentTiles = {
           key: "brick",
           id: 1,
           name: "BUILD_WALL",
-          sprite: "spr_tex_brick",
+          sprite: "pixTexBrick",
           color: "#707888",
         },
         {
           key: "concrete",
           id: 2,
           name: "BUILD_WALL_CONCRETE",
-          sprite: "spr_tex_concrete",
+          sprite: "pixTexConcrete",
           color: "#9aa0a4",
         },
         {
           key: "metal",
           id: 3,
           name: "BUILD_WALL_METAL",
-          sprite: "spr_tex_metal",
+          sprite: "pixTexMetal",
           color: "#7d8a96",
         },
         {
           key: "plank",
           id: 4,
           name: "BUILD_WALL_PLANK",
-          sprite: "spr_tex_plank",
+          sprite: "pixTexPlank",
           color: "#a08050",
         },
       ],
@@ -126,7 +126,7 @@ globalThis.contentTiles = {
       id: 1,
       name: "BUILD_FENCE",
       type: 16,
-      sprite: "spr_tile16",
+      sprite: "pixTile16",
       color: "#8a6d3b",
       solid: true,
       pathCost: null,

@@ -97,7 +97,7 @@ globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
   const el = new UIElement({ width: size, height: size, flexShrink: 0 });
   el.addComponent(
     new UINineSlice({
-      sprite: opts.frameSprite ?? asset_get_index("spr_uibox"),
+      sprite: opts.frameSprite ?? asset_get_index("pixUiBox"),
       subimg: 0,
       color: opts.frameColor != null ? gemsColor(opts.frameColor) : c_white,
       alpha: opts.frameAlpha ?? 1,

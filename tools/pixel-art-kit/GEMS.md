@@ -47,8 +47,8 @@ detail (no blinks, no finger work). Typical clips: idle 2f, walk 4f, attack 3f.
 **107 sprites, authored and frozen.** The generators that produced them are gone — this kit no longer
 regenerates the project's art, and changing a committed sprite means editing it or drawing a new one.
 
-- `spr_terrain_*` — 9 materials (deep water, water, sand, mud, soil, rich soil, grass, gravel, rocky), **32 px**
-- `spr_tex_*` — wall/floor textures, 32 px
+- `pixTerrain*` — 9 materials (deep water, water, sand, mud, soil, rich soil, grass, gravel, rocky), **32 px**
+- `pixTex*` — wall/floor textures, 32 px
 - `spr_item_*`, `spr_wear_*` — icons and garment overlays
 - the entity sprites are **16 px** legacy: tiles are UV-stretched over the cell, and a 16 px entity
   sprite draws at ×2 (declare `SpriteMeta density: 0.5`, as the fence does)
