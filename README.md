@@ -19,12 +19,12 @@ G.E.M.S. is a high-performance UI and entity management system for GameMaker dev
 
 - GameMaker
 - GMRT 0.20.0
-- A Spine license from Esoteric Software — see [Spine Runtime](#spine-runtime)
+- A Spine license from Esoteric Software — to build the project, and to open its Spine project files ([Spine](#spine))
 
 ### Build & Run
 
 > [!WARNING]
-> **A Spine license is required to build this project.** It uses skeletal (Spine) sprites, so a build carries Esoteric Software's Spine Runtime — put there by GameMaker, not distributed by this repository, and not covered by the MIT license. Without a valid Spine license, do not build or run this project. See [Spine Runtime](#spine-runtime).
+> **A Spine license is required to build this project.** It uses skeletal (Spine) sprites, so a build carries Esoteric Software's Spine Runtime — put there by GameMaker, not distributed by this repository, and not covered by the MIT license. Without a valid Spine license, do not build or run this project. See [Spine](#spine).
 
 The project uses `gm-cli` (experimental GameMaker CLI) with the GMRT 0.20 toolchain. The IDE can also build and run.
 
@@ -45,9 +45,13 @@ VS Code users can run these via the bundled tasks (`.vscode/tasks.json`): **Run*
 
 G.E.M.S. is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file in the repository.
 
-### Spine Runtime
+### Spine
 
-The MIT license covers this repository only. This project uses skeletal (Spine) sprites, so a game built from it carries the Spine Runtime by Esoteric Software — included by GameMaker at build time, never shipped here. Its use is governed by the [Spine Runtimes License Agreement](https://esotericsoftware.com/spine-runtimes-license), which permits use only by holders of a valid Spine license; that requirement falls on whoever builds the project, not on the source. Without such a license, do not build, run, or distribute G.E.M.S.
+The MIT license covers this repository only, and Spine meets it twice — once to build, once to edit.
+
+**Building.** This project uses skeletal (Spine) sprites, so a game built from it carries the Spine Runtime by Esoteric Software — included by GameMaker at build time, never shipped here. Its use is governed by the [Spine Runtimes License Agreement](https://esotericsoftware.com/spine-runtimes-license), which permits use only by holders of a valid Spine license; that requirement falls on whoever builds the project, not on the source. Without such a license, do not build, run, or distribute G.E.M.S.
+
+**Editing.** The repository also carries the Spine project files the skeletons were authored from. They are original content, MIT-licensed like the rest of the repository — but MIT grants a right, not a tool: a `.spine` project opens only in Esoteric Software's Spine editor, a paid product whose trial can neither save nor export. The exported skeleton data committed beside each sprite asset needs nothing to read; changing a rig needs a Spine license.
 
 ## Notice of Generative AI Usage
 
