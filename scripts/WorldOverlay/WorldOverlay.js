@@ -21,7 +21,7 @@ globalThis.WorldOverlay = {
 
   /**
    * item-icon markup prefix for a UIRichText row — "[spr=<name>] " when the item has an icon
-   * sprite, else "" (no gap). Emits the RESOLVED ref's name, never the spr_item_<id> convention:
+   * sprite, else "" (no gap). Emits the RESOLVED ref's name, never the pixItem<Id> convention:
    * aliased ids (contentItems.ICONS) share art whose name doesn't match, and UIRichText would
    * silently draw nothing for the nonexistent name.
    */

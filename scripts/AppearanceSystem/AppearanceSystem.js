@@ -44,7 +44,7 @@ globalThis.AppearanceSystem = {
       } else if (slotName === "weapon" && sprite_exists(item.sprite)) {
         // held-icon fallback: the item's own icon at the right hand's per-frame anchor
         // (RenderBillboard's anchored-layer branch; item.sprite is the ref contentItems'
-        // spr_item_<id> auto-wire resolved, -1 = none and sprite_exists rejects it)
+        // pixItem<Id> auto-wire resolved, -1 = none and sprite_exists rejects it)
         out.push({
           sprite: item.sprite,
           color: c_white,

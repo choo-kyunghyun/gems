@@ -45,30 +45,47 @@ const MAKERS = [
 ];
 
 globalThis.contentItems = {
-  // Icon aliases for ids SHARING one sprite — 1:1 art auto-wires by the spr_item_<id> naming
-  // convention (2026-07 rename), so only many-to-one entries live here. Resolved by NAME +
+  /**
+   * An item id (a snake_case data KEY — docs/NAMING.md) to the Subject half of its sprite
+   * name, so the icon convention stays a rule instead of a lookup table. Cased by char code:
+   * toUpperCase returns garbage on this runtime (docs/GMRT.md).
+   */
+  _subject(id) {
+    const parts = id.split("_");
+    let out = "";
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (p === "") continue;
+      const code = p.charCodeAt(0);
+      out += (code >= 97 ? String.fromCharCode(code - 32) : p.charAt(0)) + p.slice(1);
+    }
+    return out;
+  },
+
+  // Icon aliases for ids SHARING one sprite — 1:1 art auto-wires by the pixItem<Id> naming
+  // convention, so only many-to-one entries live here. Resolved by NAME +
   // sprite_exists in register()'s auto-wire, so a missing asset keeps the colored-box fallback.
   // (circuitry art was retired with the media overhaul — colored-box fallback until new art)
   ICONS: {
     // one serum icon for all four attribute shards
-    power_serum: "spr_item_serum",
-    vitality_serum: "spr_item_serum",
-    agility_serum: "spr_item_serum",
-    endurance_serum: "spr_item_serum",
-    ration_pack: "spr_item_canned_food",
-    blaster: "spr_item_pistol",
-    adrenal_implant: "spr_item_energy",
+    power_serum: "pixItemSerum",
+    vitality_serum: "pixItemSerum",
+    agility_serum: "pixItemSerum",
+    endurance_serum: "pixItemSerum",
+    ration_pack: "pixItemCannedFood",
+    blaster: "pixItemPistol",
+    adrenal_implant: "pixItemEnergy",
     // one shared round icon for all three calibers (the only ammo art in the new set)
-    ammo_light: "spr_item_rounds",
-    ammo_heavy: "spr_item_rounds",
-    ammo_ap: "spr_item_rounds",
+    ammo_light: "pixItemRounds",
+    ammo_heavy: "pixItemRounds",
+    ammo_ap: "pixItemRounds",
     // branded gear reuses base art (dedicated icons are a follow-up)
-    aeon_pistol: "spr_item_pistol",
-    vekt_pistol: "spr_item_pistol",
-    aeon_cutter: "spr_item_energy",
-    helios_vest: "spr_item_armored_vest",
-    helios_ration: "spr_item_canned_food",
-    aeon_rounds: "spr_item_rounds",
+    aeon_pistol: "pixItemPistol",
+    vekt_pistol: "pixItemPistol",
+    aeon_cutter: "pixItemEnergy",
+    helios_vest: "pixItemArmoredVest",
+    helios_ration: "pixItemCannedFood",
+    aeon_rounds: "pixItemRounds",
   },
 
   register() {
@@ -657,14 +674,14 @@ globalThis.contentItems = {
       },
     ]);
 
-    // auto-wire icon sprites by naming convention spr_item_<id>, falling back to the ICONS alias
+    // auto-wire icon sprites by naming convention pixItem<Id>, falling back to the ICONS alias
     // table (legacy-named art); asset_get_index returns an opaque ref so validate with
     // sprite_exists, not >=0 (GMRT — see CLAUDE.md). defs with explicit sprites untouched.
     const items = Item.all();
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (it.sprite !== -1) continue;
-      let spr = asset_get_index("spr_item_" + it.id);
+      let spr = asset_get_index("pixItem" + contentItems._subject(it.id));
       if (!sprite_exists(spr) && contentItems.ICONS[it.id] !== undefined)
         spr = asset_get_index(contentItems.ICONS[it.id]);
       if (sprite_exists(spr)) it.sprite = spr;
