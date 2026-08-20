@@ -11,7 +11,7 @@ What a new sprite has to match to sit next to the committed set. The kit itself 
 | **Palette** | **DB32** (DawnBringer 32) — `palettes/db32.hex`. No other palette. |
 | **Color style** | Flat color + **one dark outline** around each silhouette. Use `raster.INK` (a warm dark brown), not cold near-black. |
 | **Entity origin** | **Foot-anchored** — `RenderEntity` draws at the entity `Position`, so the sprite stands up from its feet. Items and icons are centered; tiles and textures are top-left. |
-| **GM naming** | `spr_<family>_<subject>[_<variant>]`, snake_case (full rule in `docs/NAMING.md`): `spr_item_<item_id>` icons, `spr_wear_<garment>` overlays, `spr_tex_<material>` textures, `spr_terrain_<material>` tilesets; a **bare subject** (`spr_human`, `spr_rat`) is reserved for entity strips. |
+| **GM naming** | Owned by `docs/NAMING.md` — read it before naming anything the kit writes. What the kit needs from it: the **family** tag names the consumer (icons, garment overlays, textures, terrain sets), and a **bare subject** is reserved for entity strips. |
 | **IDE folder** | `Game/Media/Bitmap Sprites/…` — `gmsprite.SPRITES_FOLDER` is the default; pass `folder=` for a subfolder (`Icons`, `Terrains`, `Textures`, `Entities/Human`). |
 
 ## Frame size
