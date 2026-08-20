@@ -166,6 +166,7 @@ this._apply = (factory) => {
 
 this._destroyScene = () => {
   if (this.scene !== null) this.scene.destroy();
+  InstanceSystem.update(); // the outgoing scene's stores are gone — its puppets reap here
   Debug.clearScoped(); // whatever sections it registered (the colony's Camera/Achievements)
   this.scene = null;
   this._factory = null;

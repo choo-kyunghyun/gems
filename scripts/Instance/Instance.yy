@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Instance",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Instance",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Instance.js",
+}

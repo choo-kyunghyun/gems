@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SkeletonSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SkeletonSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SkeletonSystem.js",
+}

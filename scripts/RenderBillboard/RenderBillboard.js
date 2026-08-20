@@ -212,6 +212,19 @@ globalThis.RenderBillboard = class RenderBillboard {
       }
       matrix_set(matrix_world, ident);
     });
+    // SKELETAL category: a Spine body poses in its own instance's scope, so it draws through
+    // the stored handle — `draw_self` is the only path that BOTH poses and honours matrix_world
+    // (GMRT.md), and it beats draw_skeleton ~4x (PERF.md). A separate scan rather than a branch
+    // inside the loop above: the pair is rare, so the scan is nearly free, and a skeletal entity
+    // carries no Visual — one that did would draw its body twice.
+    entities.forEach([Skeleton, Instance, Position], (entity, sk, held) => {
+      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      matrix_set(
+        matrix_world,
+        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
+      );
+      held.inst.draw_self();
+    });
     matrix_set(matrix_world, ident);
     if (this._litOk) shader_reset();
     gpu_set_zwriteenable(false); // restore global default — only billboards write depth

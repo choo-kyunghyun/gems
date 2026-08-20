@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"InstanceSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"InstanceSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"InstanceSystem.js",
+}
