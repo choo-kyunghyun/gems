@@ -18,7 +18,7 @@ Both finish the same way — a flat list of (r, g, b, a) tuples, row-major, whic
     c = R.Canvas(16, 16)
     c.rect(5, 6, 10, 15, (122, 96, 62, 255))
     c.outline((38, 34, 24, 255))
-    G.write("spr_crate", [c.px], 16, 16, anchor="foot")
+    G.write("pixCrate", [c.px], 16, 16, anchor="foot")
 """
 import math
 

@@ -7,7 +7,7 @@
  * sheets; hand-authored sprites get hand entries.
  *
  * Def shape (JSON-manifest-safe):
- *   { sprite: "spr_name", kind, density?, cell?, variants?, anchors? }
+ *   { sprite: "<name>", kind, density?, cell?, variants?, anchors? }
  *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
  *            FIELDS, never switch on kind (its value is tooling/validation).
  *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a

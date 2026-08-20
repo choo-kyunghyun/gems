@@ -7,7 +7,7 @@ A prototype script draws frames with `raster`, then hands them here:
 
     c = R.Canvas(32, 64)
     ...
-    G.write("spr_goblin", [c.px], 32, 64, anchor="foot")
+    G.write("pixGoblin", [c.px], 32, 64, anchor="foot")
 
 `anchor` picks the sprite origin, which is the thing the IDE makes tedious to set by hand:
 

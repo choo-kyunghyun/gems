@@ -38,11 +38,11 @@ def draw(s):
     s.rrect(6, 20, 26, 60, 4, (93, 138, 134))     # body
     s.ellipse(16, 14, 7, 8, (216, 210, 196))      # head
 
-G.write("spr_scout", [R.soft_frame(draw, 32, 64)], 32, 64, anchor="foot")
+G.write("pixScout", [R.soft_frame(draw, 32, 64)], 32, 64, anchor="foot")
 ```
 
 That is the whole workflow: draw frames, hand them to `gmsprite.write`. The sprite appears in
-`sprites/spr_scout/` filed under its IDE folder, with the origin already set.
+`sprites/pixScout/` filed under its IDE folder, with the origin already set.
 
 ### Two drawing idioms
 
@@ -54,7 +54,7 @@ c = R.Canvas(16, 16)
 c.rect(5, 6, 10, 15, (122, 96, 62, 255))
 c.disc(8, 4, 3, (200, 170, 90, 255))
 c.outline((38, 34, 24, 255))          # ink the silhouette — run last
-G.write("spr_crate", [c.px], 16, 16, anchor="foot")
+G.write("pixCrate", [c.px], 16, 16, anchor="foot")
 ```
 
 **`Soft`** — shapes composited at 4× and box-downsampled, so curves and rotated quads come out

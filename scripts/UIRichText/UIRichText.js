@@ -4,7 +4,7 @@
  *
  * Markup:
  *   [c=#ff5555]…[/c]   colored span ([/] closes too); #rrggbb hex or an `opts.palette` name.
- *   [spr=spr_name]     inline icon; [spr=spr_name:2] picks a subimage. sprite MUST be raster
+ *   [spr=<name>]       inline icon; [spr=<name>:2] picks a subimage. sprite MUST be raster
  *                      (SVG reports 0 frames on GMRT and faults draw_sprite — see CLAUDE.md).
  *   \n                 hard line break.
  * Spans nest; unknown tags dropped. Self-sizes to parsed content; draws from pos.left/top + own
