@@ -5,7 +5,7 @@
  * manual layering. Two paths per entity:
  * - `model` set → a MagicaVoxel mesh (meshes/<name>.vox, parsed + greedy-meshed by Vox on
  *   first use, frozen + cached — no texture). Vox emits the exposed faces as UNSHADED albedo
- *   with the face normal PACKED in the texcoord — sh_meshlit lights them live: one
+ *   with the face normal PACKED in the texcoord — shMeshlit lights them live: one
  *   directional sun (`opt.sun` provider, injected like RenderLighting's ambient — the demo
  *   wires WorldClock.sunDir; the default is a fixed neutral sun reproducing the old baked
  *   top/south look) + the nearest injected point lights (`opt.pointLights` provider — the
@@ -24,7 +24,7 @@
  * @implements {RenderPass}
  */
 globalThis.RenderMesh = class RenderMesh {
-  static MAX_LIGHTS = 8; // must match sh_meshlit.fsh MAX_LIGHTS
+  static MAX_LIGHTS = 8; // must match shMeshlit.fsh MAX_LIGHTS
   static LIGHT_Z = -20; // point lights lifted off the ground plane (torch flame height)
   // literal (a static initializer can't reference its own class name — GMRT)
   static SUN_DEFAULT = {
@@ -44,7 +44,7 @@ globalThis.RenderMesh = class RenderMesh {
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
     // vox models: position_3d + colour + texcoord, 24 bytes/vertex — this declaration and
     // Vox's emitted layout are a lockstep pair (the texcoord carries the PACKED FACE
-    // NORMAL, not UVs — see Vox / sh_meshlit.vsh)
+    // NORMAL, not UVs — see Vox / shMeshlit.vsh)
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
@@ -53,7 +53,7 @@ globalThis.RenderMesh = class RenderMesh {
     this._models = new Map(); // name -> { vb } (string keys only — ref-keyed Maps crash GMRT)
     this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
     // THE world shader (guarded — without it models draw flat unlit albedo)
-    this._lit = asset_get_index("sh_meshlit");
+    this._lit = asset_get_index("shMeshlit");
     this.litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this.litOk
       ? shader_get_uniform(this._lit, "u_ambient")
@@ -126,7 +126,7 @@ globalThis.RenderMesh = class RenderMesh {
    * (is the shader usable at all), this method, and the `uUseTex` / `uNormal` uniform handles
    * each caller overrides for its own submits. Everything else here is private.
    *
-   * Sets sh_meshlit + this frame's lighting uniforms: the injected sun, then the nearest
+   * Sets shMeshlit + this frame's lighting uniforms: the injected sun, then the nearest
    * MAX_LIGHTS injected point-light records (same flicker formula as RenderLighting so the
    * mesh response tracks the visible glow pools). Arrays are reused scratch. This is the ONE
    * light gather every lit pass shares, so the whole level can't diverge; it leaves u_useTex
@@ -139,7 +139,7 @@ globalThis.RenderMesh = class RenderMesh {
     shader_set_uniform_f(this._uAlphaRef, 0); // no cutout; billboards/sprite faces raise it
     const sun = this.sun !== undefined ? this.sun() : RenderMesh.SUN_DEFAULT;
     // ambient = the sun's complement: 0.55 in full daylight (sun fills the rest), 1.0 at
-    // night so unlit meshes match the map-lit world around them (see sh_meshlit.fsh) —
+    // night so unlit meshes match the map-lit world around them (see shMeshlit.fsh) —
     // a constant ambient double-darkened meshes at night vs sprites/ground
     shader_set_uniform_f(this._uAmbient, 1 - 0.9 * sun.strength);
     shader_set_uniform_f(this._uSunDir, sun.x, sun.y, sun.z, sun.strength);
@@ -211,7 +211,7 @@ globalThis.RenderMesh = class RenderMesh {
   /**
    * one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
    * over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
-   * sprite_exists, never >= 0), else a flat color fill. A sprite face runs under sh_meshlit
+   * sprite_exists, never >= 0), else a flat color fill. A sprite face runs under shMeshlit
    * in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
    * stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
    * depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
@@ -241,7 +241,7 @@ globalThis.RenderMesh = class RenderMesh {
     const ident = matrix_build_identity();
     // depth-writing like RenderBillboard (global default is off — Game Create_0)
     gpu_set_zwriteenable(true);
-    // PASS 1 — baked models, lit by sh_meshlit (albedo × sun + point lights over the packed
+    // PASS 1 — baked models, lit by shMeshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
     if (this.litOk) this.setupLights(entities);
     entities.forEach([Mesh, Position], (entity, mesh) => {

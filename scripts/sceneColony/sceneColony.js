@@ -118,7 +118,7 @@ class _SceneColonyClass {
       Tracker.accept(contentQuests.QUEST_REACH); // reach — tracked passively
       ColonyMap.go(this, bootMap, "default");
     }
-    Music.play(mus_ambient_tense); // carries across map changes (only _apply's reset stops it)
+    Music.play(musAmbientTense); // carries across map changes (only _apply's reset stops it)
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
@@ -398,7 +398,7 @@ class _SceneColonyClass {
           // death pop (spatial)
           if (dp !== undefined)
             Audio.play({
-              sound: snd_explosion_small,
+              sound: sndExplosionSmall,
               position: { x: dp.x, y: dp.y },
             });
           // by species so only raiders advance the "Raider Cull" quest (rats have no target); the
@@ -581,7 +581,7 @@ class _SceneColonyClass {
     const pp = this.level.entities.get(this.playerId, Position);
     // pickup blip (spatial, ~centred)
     if (pp !== undefined)
-      Audio.play({ sound: snd_coin, position: { x: pp.x, y: pp.y } });
+      Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
     this._track("collect", itemId, got);
     Log.info(
       `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,

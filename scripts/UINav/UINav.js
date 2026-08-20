@@ -99,7 +99,7 @@ globalThis.UINav = {
     if (inp.confirm) {
       const comp = UINav._comp(UINav.focused, "navActivate");
       if (comp !== null) {
-        Audio.play({ sound: snd_button_click }); // cue before activate (may swap scene)
+        Audio.play({ sound: sndButtonClick }); // cue before activate (may swap scene)
         comp.navActivate(UINav.focused);
       }
       return;
@@ -116,7 +116,7 @@ globalThis.UINav = {
     // cue only on an actual focus change (input is already press-edged, so one cue per press)
     const prevFocus = UINav.focused;
     UINav._move(items, inp.dx, inp.dy);
-    if (UINav.focused !== prevFocus) Audio.play({ sound: snd_button_muted });
+    if (UINav.focused !== prevFocus) Audio.play({ sound: sndButtonMuted });
   },
 
   /** Draw the focus ring (Draw_75); Tab debug overlay when held. */

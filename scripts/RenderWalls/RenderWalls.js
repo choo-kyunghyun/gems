@@ -7,7 +7,7 @@
  * would have nothing left to remove.
  *
  * Vertices are the Vox 24 B/vertex format (position_3d + colour + texcoord), in one of
- * two sh_meshlit modes (both share the sun + view-culled point lights supplied by the host
+ * two shMeshlit modes (both share the sun + view-culled point lights supplied by the host
  * RenderMesh pass, `opt.lights`, whose setupLights runs before the submits — walls join the
  * same depth pool as furniture and billboards, z-write on for the submit):
  * - TEXTURED (sprite set): texcoord = real frame UVs, colour = the material tint
@@ -46,7 +46,7 @@ globalThis.RenderWalls = class RenderWalls {
     this.grid = grid;
     this.layer = layer;
     this.height = opt.height ?? 32; // wall height in world px (visual only — colliders are TileEdit's)
-    this.lights = opt.lights; // host RenderMesh pass (shares sh_meshlit + its light gather)
+    this.lights = opt.lights; // host RenderMesh pass (shares shMeshlit + its light gather)
     // normalized material buckets: [0] = the default/catch-all, then each opt.materials entry.
     // texOk resolved per bucket (a bucket with a missing sprite degrades to flat tint alone).
     this._mats = [
@@ -144,7 +144,7 @@ globalThis.RenderWalls = class RenderWalls {
 
     // per-bucket write state: buffers + UVs + tint (textured mode: the frame's texture-page
     // UV rect stretched over each face, trim insets [4..7] ignored — a full-bleed tile
-    // texture is never trimmed; flat mode: packed face normals sh_meshlit's vox path decodes)
+    // texture is never trimmed; flat mode: packed face normals shMeshlit's vox path decodes)
     const bufT = [];
     const bufS = [];
     const U0 = [];
@@ -264,7 +264,7 @@ globalThis.RenderWalls = class RenderWalls {
     // depth-writing like RenderMesh/RenderBillboard (global default is off)
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights.litOk;
-    if (lit) this.lights.setupLights(entities); // sets sh_meshlit + sun/point uniforms (u_useTex 0)
+    if (lit) this.lights.setupLights(entities); // sets shMeshlit + sun/point uniforms (u_useTex 0)
     // all tops under normal (0,0,-1), then all souths under (0,1,0) — one normal set per
     // orientation; flat buckets ignore u_normal (their normals ride the packed texcoord).
     if (lit) shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);

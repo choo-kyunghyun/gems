@@ -263,7 +263,7 @@ globalThis.PlayerSystem = {
    * (.down()), so an un-gated cue would repeat every tick while the trigger is held.
    */
   _dryClick() {
-    if (Input.get("fire").pressed()) Audio.play({ sound: snd_gun_uncocked });
+    if (Input.get("fire").pressed()) Audio.play({ sound: sndGunUncocked });
   },
 
   /**
@@ -299,17 +299,17 @@ globalThis.PlayerSystem = {
     });
     slot.rounds -= 1; // spend the round
 
-    // muzzle flash at the barrel (~18px along the aim); ps_muzzle emits up (90°), ParticleFx rotates it to the shot
+    // muzzle flash at the barrel (~18px along the aim); psMuzzle emits up (90°), ParticleFx rotates it to the shot
     const pos = entities.get(id, Position);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.spawnAsset(
-      ps_muzzle,
+      psMuzzle,
       pos.x + aim.nx * 18,
       pos.y + aim.ny * 18,
       ang,
     );
     // gunshot (spatial); the hit plays a hitsound later
-    Audio.play({ sound: snd_gun_fire, position: { x: pos.x, y: pos.y } });
+    Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
 
     pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
     pl.attackAnim = "attack"; // gun fire plays the punch thrust (reads as recoil), never the kick

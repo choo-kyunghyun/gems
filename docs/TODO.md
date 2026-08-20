@@ -39,11 +39,11 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)
     - Auto turrets fire mounted weapons
     - Mountable turrets
-- Explosives: grenade and mine (`snd_explosion_large` is the reserved SFX)
+- Explosives: grenade and mine (`sndExplosionLarge` is the reserved SFX)
 - Minify furnitures
 - Settlement and outpost — foundation done (`Settlement`: player-owned territory with Name/Faction, build mode gated to owned land); outpost variant + settlement-management UI remain
 - Farming and fishing (farming layers on a settlement's lands)
-- Raid event: defend the settlement (`mus_ambient_emergency` is the reserved BGM)
+- Raid event: defend the settlement (`musAmbientEmergency` is the reserved BGM)
 - Gacha capsule with new UI
 - Radio
 - Gamepad reloading

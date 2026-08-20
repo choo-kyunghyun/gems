@@ -32,10 +32,10 @@ import audiolib as A, synth as S, space as X, gm_sound as G
 
 blip = S.adsr(S.tone(A.seconds(0.2), wave="square", f0=880.0, f1=220.0), r=0.08)
 blip = X.trim_tail(X.mono_reverb(blip, X.space("tight"), 0.22))
-G.write_sound("snd_blip", A.normalize(blip))
+G.write_sound("sndBlip", A.normalize(blip))
 ```
 
-Build a buffer, hand it to `write_sound`. The sound lands in `sounds/snd_blip/`, filed under its IDE
+Build a buffer, hand it to `write_sound`. The sound lands in `sounds/sndBlip/`, filed under its IDE
 folder and registered in `gems.yyp` through `gm-cli` if it wasn't there already. Registration never
 hand-edits the yyp's Resources list — that corrupts the project (see `docs/GMCLI.md`) — and a
 `GMSound` `.yy` carries no uuids, so re-running is churn-free.
@@ -91,7 +91,7 @@ bed = S.bl_saw(n, L.qf(55.0, n) * L.drift(n, seed=A.seed_of("drone")), 9, tilt=1
 bed = L.cyclic(bed, lambda z: S.lowpass(z, 700.0))
 bed = L.wrap_tail(X.reverb(X.pan(bed, 0.0), X.space("cavern"), 0.45), n)
 print(f"{L.seam_db(bed):+.1f} dB")
-G.write_sound("mus_drone", A.normalize(bed, -6.0), folder="Game/Media/Audio/BGM")
+G.write_sound("musDrone", A.normalize(bed, -6.0), folder="Game/Media/Audio/BGM")
 ```
 
 Never fade a loop. On a one-shot a fade hides the discontinuity; on a loop the fade is one.

@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"musAmbientCozy",
+  "audioGroupId":{
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
+  },
+  "bitDepth":1,
+  "channelFormat":1,
+  "compression":3,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":120.000725,
+  "exportDir":"",
+  "name":"musAmbientCozy",
+  "parent":{
+    "name":"BGM",
+    "path":"folders/Game/Media/Audio/BGM.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"musAmbientCozy.ogg",
+  "volume":1.0,
+}

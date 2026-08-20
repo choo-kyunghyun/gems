@@ -228,7 +228,7 @@ globalThis.ColonySpawn = {
           Collision: { solid: true, kinematic: true },
           Name: { name: "Radio" },
           Mesh: { model: "stand" },
-          SoundEmitter: { sound: "snd_gun_fire", every: 1.2 },
+          SoundEmitter: { sound: "sndGunFire", every: 1.2 },
         },
       },
       {

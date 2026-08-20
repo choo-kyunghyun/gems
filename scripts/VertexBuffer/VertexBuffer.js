@@ -2,7 +2,7 @@
  * vertex-buffer wrapper, fixed position_3d+texcoord+colour format (quads at z=0). build via
  * begin → addQuad → end, submit(texture) each frame. backs RenderTileMap + RenderWalls.
  * owns a native handle — destroy it.
- * 3D positions so a ground VBO can submit under sh_meshlit (which reads v_worldPos from a
+ * 3D positions so a ground VBO can submit under shMeshlit (which reads v_worldPos from a
  * 3-component position; the z stays 0 — ground passes remain coplanar painter-order with
  * z-write off, so depth behavior is unchanged).
  */

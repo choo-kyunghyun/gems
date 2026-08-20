@@ -26,7 +26,7 @@
  *                                (default 0). Visual-only like scale: the BBox stays
  *                                axis-aligned — author the swapped footprint for a 90° turn of
  *                                oblong furniture. Vox models carry all four side faces, so any
- *                                facing renders solid and sh_meshlit lights it correctly (the
+ *                                facing renders solid and shMeshlit lights it correctly (the
  *                                packed normals rotate with the world matrix). The analytic box
  *                                rotates its two authored faces (its "front" stays local south).
  * @property {number} [pitch]     tilt in degrees about world x (default 0). Vox models have no

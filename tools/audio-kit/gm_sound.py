@@ -6,7 +6,7 @@ A prototype script synthesizes with `synth`, then hands the buffer here:
     import audiolib as A, synth as S, gm_sound as G
 
     buf = S.adsr(S.tone(A.seconds(0.2), wave="square", f0=880.0, f1=220.0), r=0.08)
-    G.write_sound("snd_blip", A.normalize(buf))
+    G.write_sound("sndBlip", A.normalize(buf))
 
 The buffer's shape decides the channel format: (n,) writes a mono asset, (n, 2) a stereo one.
 SFX stay mono because the engine's spatial audio needs a mono source to position; BGM is

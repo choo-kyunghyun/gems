@@ -62,16 +62,16 @@ globalThis.ColonyCombat = {
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
             type: isAlly ? "hurt" : "damage",
           });
-          // impact SFX; let the death pass own the killing blow (snd_explosion_small), so skip
+          // impact SFX; let the death pass own the killing blow (sndExplosionSmall), so skip
           // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
           // armored (geared squad), enemies as flesh (raiders/rats).
           const at = { x: pos.x, y: pos.y };
           if (entities.has(id, Mesh))
-            Audio.play({ sound: snd_hitsound_metal, position: at });
+            Audio.play({ sound: sndHitsoundMetal, position: at });
           else if (isAlly)
-            Audio.play({ sound: snd_hitsound_armor, position: at });
+            Audio.play({ sound: sndHitsoundArmor, position: at });
           else if (hp.hp > 0)
-            Audio.play({ sound: snd_hitsound_flesh, position: at });
+            Audio.play({ sound: sndHitsoundFlesh, position: at });
         } else {
           FloatingText.push(pos.x, pos.y - yOffset, "+" + d, { type: "heal" });
         }

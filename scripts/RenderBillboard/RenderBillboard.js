@@ -6,7 +6,7 @@
 // z-fight returned); ±y moves the plane itself toward/away from the south-side camera.
 const BB_LAYER_DY = 0.05;
 
-// Sprite sun response: STANDING sprites draw under sh_meshlit's textured mode with a fixed
+// Sprite sun response: STANDING sprites draw under shMeshlit's textured mode with a fixed
 // BENT normal riding the u_normal uniform — 30° south of straight-up, so a sprite nearly
 // faces the noon sun (daylight = the authored colors, clamped), dims + warms toward
 // dawn/dusk, and a point light prefers the camera-side face (a flame south of the sprite
@@ -21,7 +21,7 @@ const BB_NORMAL_Z = -0.866;
  *   STANDING  upright sprites (here) — pawns, props with no volume
  *   VOLUME    baked vox meshes (RenderMesh over the `Mesh` component) — deep furniture
  *   WALLS     tile-layer boxes (RenderWalls) — the built environment
- * All three write depth and light through sh_meshlit; the ground stays painter-order.
+ * All three write depth and light through shMeshlit; the ground stays painter-order.
  *
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't
  * Starve / Paper Mario) via a world matrix, under the pitch-by-zoom camera
@@ -34,7 +34,7 @@ const BB_NORMAL_Z = -0.866;
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
  * requires hard-alpha sprites: soft edges write depth on transparent pixels and occlude
  * what's behind them.
- * Sprites draw under sh_meshlit (textured + texel cutout, bent normal via u_normal) — ONE
+ * Sprites draw under shMeshlit (textured + texel cutout, bent normal via u_normal) — ONE
  * world shader: with `opt.lights` (the host RenderMesh pass) they share its sun + point
  * gather and light per-pixel like the meshes; unset → neutral uniforms (full-bright albedo,
  * cutout only — the flat default).
@@ -46,12 +46,12 @@ globalThis.RenderBillboard = class RenderBillboard {
     this.enabled = true;
     this.tiltDeg = opt.tiltDeg ?? -90; // -90 = upright off the flat-on-ground default
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
-    // THE world shader (sh_meshlit) in textured + cutout mode: the texel-alpha discard keeps
+    // THE world shader (shMeshlit) in textured + cutout mode: the texel-alpha discard keeps
     // transparent pixels from writing depth (GMRT's fixed-function alpha test is inert —
     // this replaced the retired sh_alphatest), and the mesh lighting model shades each
     // sprite per-pixel at the bent normal. Guarded: without it sprites draw plain
     // fixed-function (unlit, no cutout — the same degradation as RenderMesh).
-    this._lit = asset_get_index("sh_meshlit");
+    this._lit = asset_get_index("shMeshlit");
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this._litOk
       ? shader_get_uniform(this._lit, "u_ambient")

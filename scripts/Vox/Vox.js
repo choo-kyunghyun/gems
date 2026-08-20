@@ -7,7 +7,7 @@
  * Emitted vertex stream (24 B/vertex, pr_trianglelist) — a LOCKSTEP pair with the consumer's
  * declared format (RenderMesh._format; RenderWalls emits the same layout for wall quads):
  * position 3×f32 | colour RGBA u8 | texcoord 2×f32. The colour is the raw palette ALBEDO
- * (the palette is the texture; no bitmap assets), UNSHADED — sh_meshlit lights it live. The
+ * (the palette is the texture; no bitmap assets), UNSHADED — shMeshlit lights it live. The
  * texcoord carries the PACKED FACE NORMAL (u = nx, v = ny; the shader derives
  * nz = -sqrt(max(0, 1 - u² - v²)) — valid because no BOTTOM face is ever emitted, so nz ≤ 0
  * in the up-is-negative-z convention).
@@ -17,7 +17,7 @@
  * centered on the footprint (Position = footprint center), feet at z = 0.
  *
  * TOP + all FOUR side orientations are emitted, so a runtime `Mesh.yaw` shows a solid model
- * from any facing (sh_meshlit rotates the packed normals by mat3(world)):
+ * from any facing (shMeshlit rotates the packed normals by mat3(world)):
  *   TOP (air above, packed (0,0)) · SOUTH (air +y, (0,1)) · NORTH (air -y, (0,-1))
  *   EAST (air +x, (1,0)) · WEST (air -x, (-1,0))
  * BOTTOM faces never (nz > 0 is unrepresentable in the packing; only visible past a ~90° tip).

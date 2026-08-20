@@ -15,7 +15,7 @@ style-agnostic (see [README](README.md)).
 | SFX | Mono, uncompressed (`compression: 0` — instant, low-latency). Mono because the engine positions SFX in the world; a stereo source can't be placed. |
 | BGM | Stereo, looping, uncompressed (sample-perfect loop seam). |
 | Format | WAV — hand-encoded by the kit, with no audio-file library in the way. GameMaker re-compresses at build; switch a long track to Compressed/Streamed in the IDE. |
-| GM naming | SFX → `snd_<subject>[_<event>]` (`snd_coin`, `snd_gun_fire`), size/style qualifier last (`snd_explosion_small`, not `snd_small_explosion`); BGM → `mus_<track>`. Full rule in `docs/NAMING.md`. |
+| GM naming | Owned by `docs/NAMING.md` — read it before naming anything the kit writes. What the kit needs from it: SFX take `snd`, music takes `mus`, and a size/style qualifier goes last (`sndExplosionSmall`, never the other order). |
 | IDE folder | `Game/Media/Audio/SFX` and `Game/Media/Audio/BGM` — `gm_sound.SFX_FOLDER` is the default; pass `folder=` for BGM. |
 | Mixing | Render at full level. Category volume is folded by hand at playback, never baked into the asset — `scripts/Audio` owns the mixing contract (every sound sits in `audiogroup_default`). |
 | Space | Keep baked-in reverb small: the engine positions SFX itself, so a wet asset fights the world it is placed in. |
