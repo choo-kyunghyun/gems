@@ -9,7 +9,7 @@ A signal is a float64 numpy array, shaped by its channel count:
 Amplitude is nominally [-1, 1]. Intermediate stages may run past it — `normalize` pulls the
 peak back to the target before the file is written, which is why the kit needs no limiter.
 
-Sample rate is 44 100 Hz throughout (`SR`), the project convention stamped into every GMSound.
+Sample rate is 44 100 Hz throughout (`SR`), the project's one rate for every audio asset.
 Lengths are sample counts, not seconds: `seconds(0.2)` converts.
 """
 import hashlib, os, struct

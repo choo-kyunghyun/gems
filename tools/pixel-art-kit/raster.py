@@ -11,14 +11,14 @@ Two buffers, two idioms. Both hold their own size, so a script can mix frame siz
           This is what the project's committed 32 px entity art was drawn with.
 
 Both finish the same way — a flat list of (r, g, b, a) tuples, row-major, which is what
-`pixlib.write_png` and `gmsprite.write` take.
+`pixlib.write_png` takes.
 
-    import raster as R, gmsprite as G
+    import os, raster as R, pixlib as P
 
     c = R.Canvas(16, 16)
     c.rect(5, 6, 10, 15, (122, 96, 62, 255))
     c.outline((38, 34, 24, 255))
-    G.write("pixCrate", [c.px], 16, 16, anchor="foot")
+    P.write_png(os.path.join(P.out_dir("crate"), "pixCrate.png"), 16, 16, c.px)
 """
 import math
 

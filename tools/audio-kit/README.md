@@ -1,8 +1,8 @@
 # Audio Kit
 
-A toolkit for making game audio for quick prototypes — synthesize in a throwaway script, push the
-result straight into GameMaker. Numpy and scipy do the arithmetic; everything above them, including
-the WAV encoder, is the kit's own.
+A toolkit for making game audio for quick prototypes — synthesize in a throwaway script and render
+a WAV you import into GameMaker by hand. Numpy and scipy do the arithmetic; everything above them,
+including the WAV encoder, is the kit's own.
 
 It is not an asset pipeline. It does not regenerate the project's committed sounds and does not try
 to. It is a box of primitives you import from a script you write for the sound in front of you, and
@@ -16,7 +16,6 @@ audio-kit/
 ├── synth.py     oscillators + noise + envelopes + filters + modal bodies + drums
 ├── space.py     synthetic impulse responses, convolution reverb, delay, pan
 ├── loop.py      the three rules that make a buffer repeat, and the seam metric
-├── gm_sound.py  the one engine binding: a buffer -> a GameMaker sound asset
 └── out/         everything generated (gitignored)
 ```
 
@@ -27,18 +26,17 @@ take a scalar or a per-sample array, so any envelope can be fed straight in as a
 ## Workflow
 
 ```python
-import sys; sys.path.insert(0, "tools/audio-kit")
-import audiolib as A, synth as S, space as X, gm_sound as G
+import sys, os; sys.path.insert(0, "tools/audio-kit")
+import audiolib as A, synth as S, space as X
 
 blip = S.adsr(S.tone(A.seconds(0.2), wave="square", f0=880.0, f1=220.0), r=0.08)
 blip = X.trim_tail(X.mono_reverb(blip, X.space("tight"), 0.22))
-G.write_sound("sndBlip", A.normalize(blip))
+A.write_wav(os.path.join(A.out_dir("sfx"), "sndBlip.wav"), A.normalize(blip))
 ```
 
-Build a buffer, hand it to `write_sound`. The sound lands in `sounds/sndBlip/`, filed under its IDE
-folder and registered in `gems.yyp` through `gm-cli` if it wasn't there already. Registration never
-hand-edits the yyp's Resources list — that corrupts the project (see `docs/GMCLI.md`) — and a
-`GMSound` `.yy` carries no uuids, so re-running is churn-free.
+Build a buffer, hand it to `write_wav`. The WAV lands under `out/`, and nothing else happens — the
+kit has no engine binding. Importing the file as a `GMSound` is a manual step in the IDE, which is
+also where the audio group, the channel format, and the compression setting are chosen.
 
 ## Synthesis
 
@@ -91,7 +89,7 @@ bed = S.bl_saw(n, L.qf(55.0, n) * L.drift(n, seed=A.seed_of("drone")), 9, tilt=1
 bed = L.cyclic(bed, lambda z: S.lowpass(z, 700.0))
 bed = L.wrap_tail(X.reverb(X.pan(bed, 0.0), X.space("cavern"), 0.45), n)
 print(f"{L.seam_db(bed):+.1f} dB")
-G.write_sound("musDrone", A.normalize(bed, -6.0), folder="Game/Media/Audio/BGM")
+A.write_wav(os.path.join(A.out_dir("bgm"), "musDrone.wav"), A.normalize(bed, -6.0))
 ```
 
 Never fade a loop. On a one-shot a fade hides the discontinuity; on a loop the fade is one.

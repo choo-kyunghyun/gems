@@ -45,4 +45,4 @@ Read `docs/ARCHITECTURE.md` before modifying code.
 
 ## Tools
 
-`tools/` holds standalone tools independent of GameMaker; when the user asks for one, read its `README` first. The committed `snd*`/`mus*` set is hand-authored — read audio-kit's GEMS.md before re-running any importer.
+`tools/` holds standalone tools independent of GameMaker; when the user asks for one, read its `README` first. The committed `snd*`/`mus*` set is hand-authored — never regenerate it with an importer.

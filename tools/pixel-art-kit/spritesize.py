@@ -71,4 +71,4 @@ if __name__ == "__main__":
     ratio = f"{W / H:.2f}:1" if W >= H else f"1:{H / W:.2f}"
     print(f"{os.path.basename(path)}: content {bw}x{bh} -> frame {W}x{H} "
           f"({anchor}-anchored, ratio {ratio})")
-    print(f"  gmsprite call:  write(\"{os.path.splitext(os.path.basename(path))[0]}\", frames, {W}, {H})")
+    print(f"  write_png call: write_png(path, {W}, {H}, frame)")
