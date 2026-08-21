@@ -7,10 +7,10 @@
   },
   "bitDepth":1,
   "channelFormat":1,
-  "compression":3,
+  "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":120.000725,
+  "duration":24.0,
   "exportDir":"",
   "name":"musAmbientTense",
   "parent":{
@@ -21,6 +21,6 @@
   "resourceType":"GMSound",
   "resourceVersion":"2.0",
   "sampleRate":44100,
-  "soundFile":"musAmbientTense.ogg",
+  "soundFile":"musAmbientTense.wav",
   "volume":1.0,
 }

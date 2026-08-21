@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":2.4562132,
+  "duration":2.267483,
   "exportDir":"",
   "name":"sndBandage",
   "parent":{

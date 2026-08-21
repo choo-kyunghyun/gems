@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.6041043,
+  "duration":0.107324265,
   "exportDir":"",
   "name":"sndButtonMuted",
   "parent":{

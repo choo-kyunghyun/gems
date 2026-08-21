@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"musAmbientStorm",
+  "audioGroupId":{
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
+  },
+  "bitDepth":1,
+  "channelFormat":1,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":16.0,
+  "exportDir":"",
+  "name":"musAmbientStorm",
+  "parent":{
+    "name":"BGM",
+    "path":"folders/Game/Media/Audio/BGM.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"musAmbientStorm.wav",
+  "volume":1.0,
+}

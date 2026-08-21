@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":1.614898,
+  "duration":1.2805215,
   "exportDir":"",
   "name":"sndDrink",
   "parent":{

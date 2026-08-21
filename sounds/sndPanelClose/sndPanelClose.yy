@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"sndPanelClose",
+  "audioGroupId":{
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.39741495,
+  "exportDir":"",
+  "name":"sndPanelClose",
+  "parent":{
+    "name":"SFX",
+    "path":"folders/Game/Media/Audio/SFX.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"sndPanelClose.wav",
+  "volume":1.0,
+}

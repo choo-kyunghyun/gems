@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":1.005737,
+  "duration":1.0157369,
   "exportDir":"",
   "name":"sndMagic",
   "parent":{

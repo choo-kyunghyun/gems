@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.8873923,
+  "duration":0.19358277,
   "exportDir":"",
   "name":"sndHitsoundFlesh",
   "parent":{

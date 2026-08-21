@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"musAmbientHollow",
+  "audioGroupId":{
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
+  },
+  "bitDepth":1,
+  "channelFormat":1,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":20.0,
+  "exportDir":"",
+  "name":"musAmbientHollow",
+  "parent":{
+    "name":"BGM",
+    "path":"folders/Game/Media/Audio/BGM.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"musAmbientHollow.wav",
+  "volume":1.0,
+}

@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.6128798,
+  "duration":0.3364626,
   "exportDir":"",
   "name":"sndHitsoundMetal",
   "parent":{

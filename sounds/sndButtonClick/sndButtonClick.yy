@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.740136,
+  "duration":0.12870748,
   "exportDir":"",
   "name":"sndButtonClick",
   "parent":{
