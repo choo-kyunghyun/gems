@@ -1,0 +1,16 @@
+human.png
+size:56,26
+filter:Linear,Linear
+pma:true
+footLeft
+bounds:42,16,12,8
+footRight
+bounds:42,16,12,8
+handLeft
+bounds:42,4,10,10
+handRight
+bounds:42,4,10,10
+head
+bounds:2,2,22,22
+torso
+bounds:26,6,14,18
