@@ -26,7 +26,7 @@
   "origin":9,
   "parent":{
     "name":"Shirts",
-    "path":"folders/Game/Media/Bitmap Sprites/Entities/Human/Shirts.yy",
+    "path":"folders/Game/Media/Sprites/Entities/Human/Shirts.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

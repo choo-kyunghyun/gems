@@ -41,7 +41,7 @@
   "origin":0,
   "parent":{
     "name":"Tile Templates",
-    "path":"folders/Game/Media/Bitmap Sprites/Tile Templates.yy",
+    "path":"folders/Game/Media/Sprites/Tile Templates.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

@@ -26,7 +26,7 @@
   "origin":9,
   "parent":{
     "name":"Human",
-    "path":"folders/Game/Media/Bitmap Sprites/Entities/Human.yy",
+    "path":"folders/Game/Media/Sprites/Entities/Human.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

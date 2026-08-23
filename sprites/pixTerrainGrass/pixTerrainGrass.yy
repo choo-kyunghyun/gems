@@ -46,8 +46,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Bitmap Sprites",
-    "path":"folders/Game/Media/Bitmap Sprites.yy",
+    "name":"Terrains",
+    "path":"folders/Game/Media/Sprites/Terrains.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

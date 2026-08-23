@@ -26,7 +26,7 @@
   "origin":9,
   "parent":{
     "name":"Hats",
-    "path":"folders/Game/Media/Bitmap Sprites/Entities/Human/Hats.yy",
+    "path":"folders/Game/Media/Sprites/Entities/Human/Hats.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

@@ -26,7 +26,7 @@
   "origin":4,
   "parent":{
     "name":"Shoes",
-    "path":"folders/Game/Media/Bitmap Sprites/Entities/Human/Shoes.yy",
+    "path":"folders/Game/Media/Sprites/Entities/Human/Shoes.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

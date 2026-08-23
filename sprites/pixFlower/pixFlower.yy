@@ -26,7 +26,7 @@
   "origin":7,
   "parent":{
     "name":"MIsc",
-    "path":"folders/Game/Media/Bitmap Sprites/MIsc.yy",
+    "path":"folders/Game/Media/Sprites/MIsc.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
