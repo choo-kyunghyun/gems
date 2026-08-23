@@ -5,7 +5,7 @@
  *
  * @typedef {Object} Playable
  * @property {number} fireCd   ticks until the next shot/swing
- * @property {number} attackCd ticks the attack pose stays up (drives the Animator state)
+ * @property {number} attackCd ticks the attack pose stays up (drives the attack animation)
  * @property {string} attackAnim melee anim latched at swing ("attack"|"kick"; "" = none yet) —
  *                   the unarmed fist fallback alternates punch/kick by flipping this
  * @property {number} cursorX  ground-plane world cursor, latched once per frame by the scene

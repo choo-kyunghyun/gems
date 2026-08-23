@@ -9,7 +9,7 @@
  *      (GML json_stringify serializes nesting crash-free too — the interop workaround — but it can't
  *      tag asset refs (2) or guard cycles (below), so it backs the flat/ref-free stores instead:
  *      Settings, InputPreset.)
- *   2. An ASSET REF (a sprite handle in Visual.sprite / Animator graph states) reports typeof
+ *   2. An ASSET REF (a sprite handle in Visual.sprite / Skeleton.sprite / an Appearance slot) reports typeof
  *      "object" with an EMPTY key set, so a generic serializer would silently emit {}. encode()
  *      discriminates plain data by `v.constructor === Object` (true for object literals, false for
  *      asset refs) and tags a ref as {"$spr": name}; decode() revives it via asset_get_index.
@@ -165,7 +165,7 @@ globalThis.Json = {
         return;
       }
       // Not a plain object → an asset ref (typeof "object", constructor !== Object). The only
-      // refs stored in component data are sprite handles (Visual.sprite, Animator states) —
+      // refs stored in component data are sprite handles (Visual.sprite, Skeleton.sprite, Appearance slots) —
       // tag by NAME so decode can re-resolve. Fail loud on anything else.
       if (sprite_exists(v)) {
         out.push('{"$spr":');

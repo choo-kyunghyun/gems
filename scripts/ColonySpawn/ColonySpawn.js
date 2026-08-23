@@ -63,7 +63,7 @@ globalThis.ColonySpawn = {
 
   /**
    * Register the colony entity kinds as EntityPreset defs (idempotent; called by content).
-   * Register-time evaluation (Color.parse / ColonyPlayer.animGraph) is safe here — this runs from a
+   * Register-time evaluation (Color.parse) is safe here — this runs from a
    * scene's create(), never at script load. Defs are deep-copied per spawn (sprite refs pass
    * through by reference — see EntityPreset._clone).
    */

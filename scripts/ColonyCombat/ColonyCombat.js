@@ -194,7 +194,6 @@ globalThis.ColonyCombat = {
     entities.detach(id, Velocity); // no integrator touches it again
     entities.detach(id, PrevPosition); // renderers lerp Prev→Pos when present — a stale one offsets the draw
     entities.detach(id, Faction);
-    entities.detach(id, Animator); // stop the state machine writing subimg
     const col = entities.get(id, Collision);
     if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight
     const vis = entities.get(id, Visual);

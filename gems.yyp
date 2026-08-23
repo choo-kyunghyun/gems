@@ -125,7 +125,6 @@
     {"id":{"name":"Achievement","path":"scripts/Achievement/Achievement.yy",},},
     {"id":{"name":"Ammo","path":"scripts/Ammo/Ammo.yy",},},
     {"id":{"name":"AnimationSystem","path":"scripts/AnimationSystem/AnimationSystem.yy",},},
-    {"id":{"name":"Animator","path":"scripts/Animator/Animator.yy",},},
     {"id":{"name":"Appearance","path":"scripts/Appearance/Appearance.yy",},},
     {"id":{"name":"AppearanceSystem","path":"scripts/AppearanceSystem/AppearanceSystem.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},

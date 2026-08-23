@@ -33,7 +33,7 @@ globalThis.SkeletonSystem = {
 
   /**
    * Switch animation set, resetting playback only on an actual change — so a held key doesn't
-   * restart it (AnimationSystem.set's contract). No-op for an entity carrying no Skeleton.
+   * restart it. No-op for an entity carrying no Skeleton.
    */
   set(entities, id, anim, loop) {
     const sk = entities.get(id, Skeleton);
