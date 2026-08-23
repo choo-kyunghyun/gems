@@ -8,9 +8,12 @@
  * not). UVs come from world position + wind*time drift, wrapped (gpu_set_tex_repeat); drift runs on
  * Weather.time() (cumulative SIM seconds), so clouds freeze on pause and race under Time.scale.
  *
- * Blend: gpu_set_blendmode_ext(bm_zero, bm_inv_src_colour) → dst*(1 - src), a fade-able multiply
- * darken with src = texel density × the grey strength colour; at density 0 or strength 0 src is 0, so
- * the ground is untouched. Depth test off so the shadow lands on entities too.
+ * Blend: colour dst*(1 - src) (bm_zero, bm_inv_src_colour), a fade-able multiply darken with src =
+ * texel density × the grey strength colour; at density 0 or strength 0 src is 0, so the ground is
+ * untouched. Alpha is blended SEPARATELY as dst*1: the field bakes alpha 255, so the same factors on
+ * alpha would zero the back buffer under every cloud — invisible on screen, but screen_save keeps
+ * that alpha and a capture of the whole outdoors reads blank. Depth test off so the shadow lands on
+ * entities too.
  * @implements {RenderPass}
  */
 globalThis.RenderCloudShadow = class RenderCloudShadow {
@@ -80,7 +83,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     gpu_set_ztestenable(false);
     gpu_set_tex_repeat(true);
     gpu_set_tex_filter(true); // bilinear: the field is soft, so magnified texels must interpolate
-    gpu_set_blendmode_ext(bm_zero, bm_inv_src_colour);
+    gpu_set_blendmode_ext_sepalpha(bm_zero, bm_inv_src_colour, bm_zero, bm_one);
     this._vb
       .begin()
       .addQuad(x0, y0, x1 - x0, y1 - y0, u0, v0, u1, v1, grey, 1)
