@@ -454,6 +454,7 @@ class _SceneColonyClass {
 
     AnimationSystem.update(this.level.entities); // advance sprite frames (per frame)
     SkeletonSystem.update(this.level.entities); // pose skeletal bodies into their puppets (per frame)
+    AppearanceSystem.update(this.level.entities); // dress the puppets SkeletonSystem just minted
     InstanceSystem.update(); // reap the puppets of entities that died this frame
     this._updateNpc(); // proximity + dialogue text (no input here)
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel

@@ -66,6 +66,7 @@ globalThis.EntityPreset = {
       const token = keys[i];
       const data = EntityPreset._clone(components[token]);
       if (token === Visual) EntityPreset._bakeVisual(data, k);
+      else if (token === Skeleton) EntityPreset._bakeSkeleton(data, k);
       else if (token === BBox) EntityPreset._bakeBox(data, k);
       else if (token === Mesh) EntityPreset._bakeMesh(data, k);
       entities.add(id, token, data);
@@ -138,6 +139,23 @@ globalThis.EntityPreset = {
     const f = SpriteMeta.fit(k, vis.sprite);
     vis.xscale = f;
     vis.yscale = f;
+  },
+
+  /**
+   * Normalize an authored Skeleton (sprite + optional overrides) and bake the same size split a
+   * Visual gets. No strip fields — SkeletonSystem owns `frame`, and 30 fps is the rate Spine
+   * authors at.
+   */
+  _bakeSkeleton(sk, k) {
+    sk.anim = sk.anim ?? "idle";
+    sk.loop = sk.loop ?? true;
+    sk.fps = sk.fps ?? 30;
+    sk.frame = sk.frame ?? 0;
+    sk.color = sk.color ?? c_white;
+    sk.alpha = sk.alpha ?? 1;
+    const f = SpriteMeta.fit(k, sk.sprite);
+    sk.xscale = f;
+    sk.yscale = f;
   },
 
   /**

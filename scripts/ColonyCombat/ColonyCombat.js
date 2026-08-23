@@ -199,10 +199,18 @@ globalThis.ColonyCombat = {
     if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight
     const vis = entities.get(id, Visual);
     if (vis !== undefined) {
-      vis.alpha = 0.4; // dimmed = dead (the Downed convention; Appearance layers share alpha)
+      vis.alpha = 0.4; // dimmed = dead (the Downed convention)
       vis.speed = 0; // freeze self-animating sprites (rat scuttle)
       vis.subimg = 0; // neutral contact pose
       vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
+    }
+    // a doll dies the same way, one component over: fps 0 holds the pose SkeletonSystem last
+    // wrote, and the alpha carries the worn attachments with it (one blend, whole skeleton)
+    const sk = entities.get(id, Skeleton);
+    if (sk !== undefined) {
+      sk.alpha = 0.4;
+      sk.fps = 0;
+      sk.yscale = Math.abs(sk.yscale) * 0.45;
     }
     entities.add(id, Interaction, { kind: "corpse" });
     delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline

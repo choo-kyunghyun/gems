@@ -277,11 +277,12 @@ globalThis.contentItems = {
         value: 20,
         rarity: "uncommon",
         components: [
-          // worn: paper-doll overlay sheet (mirrors pixHuman's strip layout — see Appearance)
+          // worn: the sprite this shows in its doll slot (see Appearance); "" = the slot stays
+          // bare. TODO: no armour art survived the Spine move — authoring one fills the `outer` slot.
           new Equippable({
             slot: "armor",
             mods: { defense: 2, maxHp: 5 },
-            worn: "pixWearVest",
+            worn: "",
           }),
         ],
       },
@@ -630,7 +631,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 3, maxHp: 8 },
-            worn: "pixWearVest",
+            worn: "",
           }),
         ],
       },

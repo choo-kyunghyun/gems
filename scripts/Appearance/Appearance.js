@@ -1,25 +1,17 @@
 /**
- * Paper-doll layer stack drawn around the entity's Visual (RenderBillboard): `back` layers draw
- * behind the body, `front` over it, every layer at the SAME subimg/transform as the body. The
- * contract that keeps layers in lockstep: every layer sheet mirrors the body sprite's strip
- * layout (frame count/order via AnimState `start` offsets), cell size, and foot anchor — so a
- * layer needs zero animation knowledge and can never desync from the Animator.
- * DERIVED data, rebuilt from Equipment by AppearanceSystem (Game) — never authored per
- * entity, never serialized (a carried sheet re-derives it after EntitySnapshot.apply).
+ * Worn-gear map for a SKELETAL humanoid: a spineHuman SLOT NAME -> the sprite attached there
+ * (`-1` = bare). AppearanceSystem writes the map and pushes it onto the entity's puppet.
  *
- * @typedef {Object} AppearanceLayer
- * @property {Asset.GMSprite} sprite  same strip layout as the body sprite — UNLESS `anchor`
- *                                    is set: then any single-frame sprite (a held item icon)
- * @property {number} color           layer tint — independent of the body's Visual.color (the
- *                                    SKIN tint); whole-doll effects ride Visual.alpha instead
- * @property {string} [anchor]        ANCHORED variant: draw the sprite (subimg 0) at this named
- *                                    per-frame attachment point of the body sheet (SpriteMeta
- *                                    `anchors`, e.g. "handR" — the held weapon), not at the
- *                                    shared subimg; skipped if the body sheet declares none
- * @property {number} [scale]         anchored only: size relative to the body draw scale
+ * `dirty` is what survives a re-mint: attachments are per-INSTANCE (docs/GMRT.md), so a map
+ * transfer or a load leaves a fresh puppet wearing nothing — SkeletonSystem raises the flag when
+ * it mints and the next AppearanceSystem pass re-dresses it.
+ *
+ * DERIVED for an entity that also carries Equipment — AppearanceSystem owns exactly the slots in
+ * its SLOT map and rewrites them from the equipped items. AUTHORED otherwise: a raider's outfit
+ * is written straight into `slots` by its preset and rebuild never touches it.
  *
  * @typedef {Object} Appearance
- * @property {AppearanceLayer[]} back   drawn before the body (e.g. backpack)
- * @property {AppearanceLayer[]} front  drawn after the body (armor, then weapon)
+ * @property {Object} slots  spine slot name -> Asset.GMSprite, or -1 for bare
+ * @property {boolean} dirty pushed onto the puppet on the next pass, which clears it
  */
 globalThis.Appearance = "Appearance";

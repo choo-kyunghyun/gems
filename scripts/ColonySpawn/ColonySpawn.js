@@ -98,23 +98,14 @@ globalThis.ColonySpawn = {
           Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
-          // paper-doll bandit: the white humanoid template — color = per-spawn skin (adapter)
-          Visual: { sprite: pixHuman },
-          Animator: {
-            graph: ColonyPlayer.animGraph(),
-            state: "idle",
-            frame: 0,
-            time: 0,
-          },
-          // AUTHORED outfit (no Equipment, so AppearanceSystem.rebuild leaves these layers alone)
-          Appearance: {
-            back: [],
-            front: [
-              { sprite: pixWearBlackShirt, color: c_white },
-              { sprite: pixWearBlackSneakers, color: c_white },
-              { sprite: pixWearRedBandana, color: c_white },
-            ],
-          },
+          // doll bandit: the white humanoid body — color = per-spawn skin (adapter)
+          Skeleton: { sprite: spineHuman },
+          // AUTHORED outfit (no Equipment, so AppearanceSystem.rebuild leaves it alone)
+          Appearance: ColonySpawn._outfit(
+            pixShirtRedwine,
+            pixShoeDarkBrown,
+            pixHatRedBandana,
+          ),
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // Velocity + Brain + State (mobile melee)
@@ -150,16 +141,9 @@ globalThis.ColonySpawn = {
           Name: { name: "" },
           Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
-          // paper-doll civilian: skin + TINTED white shirt/shoes (colors from the adapter);
-          // static, so the idle bob just loops
-          Visual: { sprite: pixHuman },
-          Animator: {
-            graph: ColonyPlayer.animGraph(),
-            state: "idle",
-            frame: 0,
-            time: 0,
-          },
-          Appearance: ColonySpawn._outfit("#7a8a66"),
+          // doll civilian: skin tint over the shared civilian outfit; static, so idle just loops
+          Skeleton: { sprite: spineHuman },
+          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrownSneakers),
         },
       },
       {
@@ -314,14 +298,8 @@ globalThis.ColonySpawn = {
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
-          Visual: { sprite: pixHuman },
-          Animator: {
-            graph: ColonyPlayer.animGraph(),
-            state: "idle",
-            frame: 0,
-            time: 0,
-          },
-          Appearance: ColonySpawn._outfit("#9fe0c0"),
+          Skeleton: { sprite: spineHuman },
+          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrownSneakers),
           Follower: {
             state: "wait", // unhired residents hold still; hire() flips to follow
             speed: 260, // > player speed (220) so it can catch up when it lags
@@ -375,16 +353,16 @@ globalThis.ColonySpawn = {
       if (s.loot !== undefined) over.Inventory = { slots: s.loot };
       // deterministic skin over the white doll template (rat keeps its own art untinted)
       if (s.preset === "raider") {
-        over.Visual = { color: ColonySpawn._skin(s) };
+        over.Skeleton = { color: ColonySpawn._skin(s) };
         over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
       }
     } else if (s.preset === "npc") {
       over.Name = { name: s.label };
       over.NPC = { name: s.nameKey, questId: s.questId };
-      over.Visual = { color: ColonySpawn._skin(s) };
+      over.Skeleton = { color: ColonySpawn._skin(s) };
       over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
-      // outfit color from the descriptor so elder/merchants read distinct
-      over.Appearance = ColonySpawn._outfit(s.color ?? "#7a8a66");
+      // TODO: the descriptor's `color` no longer reaches the outfit — a Spine slot has no colour
+      // of its own (docs/GMRT.md), so garment variety needs authored sprites, not a tint.
     } else if (s.preset === "chest") {
       const inv = {};
       if (s.items !== undefined) inv.slots = s.items;
@@ -526,13 +504,12 @@ globalThis.ColonySpawn = {
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
   // descriptor + the scene's programmatic party seed.
   spawnFollower(entities, wx, wy, opt = {}) {
-    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot;
-    // `opt.color` is the OUTFIT tint, not a whole-body wash.
+    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot — it
+    // washes the WHOLE doll, garments included, since a Spine slot carries no colour of its own.
     const spot = { gx: Math.round(wx), gy: Math.round(wy) };
     const over = {
-      Visual: { color: ColonySpawn._skin(spot) },
+      Skeleton: { color: ColonySpawn._skin(spot) },
       Persona: ColonySpawn._persona(spot, 20, 45), // able-bodied party members
-      Appearance: ColonySpawn._outfit(opt.color ?? "#9fe0c0"),
     };
     if (opt.hp !== undefined) {
       over.Health = { hp: opt.hp };
@@ -572,7 +549,7 @@ globalThis.ColonySpawn = {
     return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
-  // Skin tones for doll humanoids (Visual.color over the white pixHuman template).
+  // Skin tones for doll humanoids (Skeleton.color over the white spineHuman body art).
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
   /**
@@ -601,16 +578,13 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * Authored civilian outfit: the WHITE tintable garments colored per entity via the layer
-   * color (one sheet, any outfit). Shoes stay a fixed dark neutral so any shirt color reads.
+   * Authored outfit as a spineHuman slot map — one sprite per slot, in its own colours (a Spine
+   * slot has no tint of its own, so an outfit varies by ART, never by colour). `hat` is optional;
+   * both shoes take the one sprite, mirrored by their bones.
    */
-  _outfit(shirtColor) {
-    return {
-      back: [],
-      front: [
-        { sprite: pixWearShirt, color: Color.parse(shirtColor) },
-        { sprite: pixWearShoes, color: Color.parse("#55565e") },
-      ],
-    };
+  _outfit(shirt, shoe, hat) {
+    const slots = { shirt: shirt, shoeLeft: shoe, shoeRight: shoe };
+    if (hat !== undefined) slots.hat = hat;
+    return { slots: slots, dirty: true };
   },
 };

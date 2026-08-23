@@ -1,9 +1,14 @@
 // Player setup for the colony scene. Builds the player entity and owns the cursor-aimed HITSCAN
 // firing (fireBullet — an instant Combat.hitscan shot, reused by CombatAI for turrets).
 globalThis.ColonyPlayer = {
-  // default skin tint for the white pixHuman template — "#e8b890" as a GM BGR color int
-  // (a literal, not Color.parse: top-level code runs in script load order on GMRT)
+  // default skin tint for the white spineHuman body art — "#e8b890" as a GM BGR color int
+  // (a literal, not Color.parse: top-level code runs in script load order on GMRT). One blend
+  // covers the WHOLE skeleton, worn attachments included (docs/GMRT.md) — there is no per-slot
+  // colour, so garments are authored in their own colours and take this as a warm wash.
   SKIN: 0x90b8e8,
+
+  // spineHuman is authored at 30 fps (its 1.0 s walk is 30 keyframed frames)
+  FPS: 30,
 
   /**
    * create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
@@ -77,27 +82,23 @@ globalThis.ColonyPlayer = {
     for (let i = 0; i < HOTBAR_SIZE; i++) hotbarSlots.push("");
     entities.add(id, Hotbar, { slots: hotbarSlots, size: HOTBAR_SIZE });
     entities.add(id, Favorites, { ids: [] });
-    // body sprite; the Animator overwrites sprite+subimg each frame, xscale/yscale persist (facing
-    // flip + baked size — the flip must preserve |xscale|, see PlayerSystem). pixHuman is a
-    // WHITE template — color IS the skin tint (layers keep their own color). `scale` is the
-    // DESIGN size; the sheet's declared density (SpriteMeta) divides the draw scale only
-    // (BBox stays design-scale).
-    entities.add(id, Visual, {
-      visible: true,
-      sprite: pixHuman,
-      subimg: 0,
-      scale: k,
-      xscale: SpriteMeta.fit(k, pixHuman),
-      yscale: SpriteMeta.fit(k, pixHuman),
-      rot: 0,
+    // skeletal body (SkeletonSystem mints the puppet and owns playback); xscale/yscale persist
+    // as facing flip + baked size, so a flip must preserve |xscale| — see ColonyPlayer.face.
+    // The body art is a WHITE template, so colour IS the skin tint.
+    entities.add(id, Skeleton, {
+      sprite: spineHuman,
+      anim: "idle",
+      loop: true,
+      fps: ColonyPlayer.FPS,
+      frame: 0,
+      xscale: SpriteMeta.fit(k, spineHuman),
+      yscale: SpriteMeta.fit(k, spineHuman),
       color: ColonyPlayer.SKIN,
       alpha: 1,
-      speed: 0,
-      time: 0,
     });
-    // paper-doll: worn-gear overlays drawn around the body (rebuilt from Equipment by
+    // the doll: worn gear attached to the skeleton's equipment slots (rebuilt from Equipment by
     // AppearanceSystem — the gear seed's equip fills it, a map-travel sheet apply re-derives it)
-    entities.add(id, Appearance, { back: [], front: [] });
+    entities.add(id, Appearance, { slots: {}, dirty: true });
     // the PlayerSystem brain state: presence marks the input-driven entity (found live by query);
     // flat scalars so fireCd/attackCd + the frame-latched world cursor ride the map transfer
     entities.add(id, Playable, {
@@ -106,13 +107,6 @@ globalThis.ColonyPlayer = {
       attackAnim: "",
       cursorX: spawn.x,
       cursorY: spawn.y,
-    });
-    // canonical humanoid strip states; PlayerSystem picks idle/walk/attack per tick
-    entities.add(id, Animator, {
-      graph: ColonyPlayer.animGraph(),
-      state: "idle",
-      frame: 0,
-      time: 0,
     });
     // the player's lantern — reference Light for RenderLighting (reveals night; no-op in daylight)
     entities.add(id, Light, {
@@ -130,21 +124,37 @@ globalThis.ColonyPlayer = {
   },
 
   /**
-   * Canonical humanoid animation over the unified pixHuman strip (the white tintable Rayman-
-   * style figure, hand-drawn in Aseprite — source tools/pixel-art-kit/templates/human/, whose
-   * frame tags this graph mirrors): 0 = idle, 1-2 = walk, 3-5 = fist punch, 6-10 = kick (the
-   * unarmed swing alternates attack/kick — see PlayerSystem). EVERY paper-doll layer sheet
-   * (Appearance / Equippable.worn) mirrors this exact strip layout — cell size, frame order,
-   * foot anchor — so a layer draws at the body's subimg with zero animation knowledge (they are
-   * derived from the same sheet by human_sprites.py). Fresh object per call.
+   * Humanoid state -> the spineHuman animation that plays it. The unarmed swing alternates
+   * attack/kick (see PlayerSystem), which lands as the rig's two punches. The set also carries
+   * dodge / rush / run / sprint, which no brain drives yet.
    */
-  animGraph() {
-    return {
-      idle: { sprite: pixHuman, start: 0, frames: 1, fps: 1, loop: true },
-      walk: { sprite: pixHuman, start: 1, frames: 2, fps: 10, loop: true },
-      attack: { sprite: pixHuman, start: 3, frames: 3, fps: 10, loop: false },
-      kick: { sprite: pixHuman, start: 6, frames: 5, fps: 13, loop: false },
-    };
+  STATES: {
+    idle: { anim: "idle", loop: true },
+    walk: { anim: "walk", loop: true },
+    attack: { anim: "punchRight", loop: false },
+    kick: { anim: "punchLeft", loop: false },
+  },
+
+  /**
+   * Drive a humanoid's skeleton to a named state — the one place a gameplay state becomes an
+   * animation name. No-op for an actor that carries no Skeleton (the rat, a strip actor).
+   */
+  setState(entities, id, state) {
+    const st = ColonyPlayer.STATES[state];
+    if (st === undefined) return;
+    SkeletonSystem.set(entities, id, st.anim, st.loop);
+  },
+
+  /**
+   * Flip a humanoid's facing toward `vx`, ignoring anything under `dead`. Sign ONLY — |xscale|
+   * carries the baked size factor, so a bare ±1 here would silently reset the actor's size.
+   */
+  face(entities, id, vx, dead) {
+    const sk = entities.get(id, Skeleton);
+    if (sk === undefined) return;
+    const d = dead ?? 1;
+    if (vx < -d) sk.xscale = -Math.abs(sk.xscale);
+    else if (vx > d) sk.xscale = Math.abs(sk.xscale);
   },
 
   /**

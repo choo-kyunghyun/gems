@@ -52,6 +52,10 @@ globalThis.SkeletonSystem = {
     held.inst.sprite_index = sk.sprite;
     held.inst.image_speed = 0; // SkeletonSystem owns the clock (docs/GMRT.md)
     held.inst.skeleton_animation_set(sk.anim, sk.loop);
+    // a fresh puppet wears nothing: attachments are per-instance (docs/GMRT.md), so a doll that
+    // just crossed a map or came back from a save has to be re-dressed by its Appearance owner
+    const ap = entities.get(id, Appearance);
+    if (ap !== undefined) ap.dirty = true;
     return held;
   },
 };

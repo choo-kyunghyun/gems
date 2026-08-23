@@ -1,11 +1,3 @@
-// world-Y bias between paper-doll layers so draw order beats coplanar float-rounding (see the
-// doll-stack comment in draw); world px — invisible on screen, decisive in the depth buffer.
-// Y, not Z: an UPRIGHT sprite's quad is a constant-y vertical plane, so a z offset just
-// slides the layer WITHIN that plane (zero depth separation — the z-bias that worked for the
-// old reclined billboards silently died with the upright adoption, and the bald-raider
-// z-fight returned); ±y moves the plane itself toward/away from the south-side camera.
-const BB_LAYER_DY = 0.05;
-
 // Sprite sun response: STANDING sprites draw under shMeshlit's textured mode with a fixed
 // BENT normal riding the u_normal uniform — 30° south of straight-up, so a sprite nearly
 // faces the noon sun (daylight = the authored colors, clamped), dims + warms toward
@@ -84,54 +76,6 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
-  /**
-   * one Appearance layer at the body's subimg/transform, depth-biased by `dy` along world Y
-   * (+y = south = toward the camera; see the doll-stack comment in draw). Layers keep their
-   * OWN color — the body's Visual.color is the SKIN tint of the white pixHuman template, so
-   * it must not bleed into outfit colors; whole-doll effects (downed dim) ride visual.alpha,
-   * which layers share — the shader lights every layer identically (same uniforms).
-   */
-  _drawLayer(layer, visual, rp, tiltDeg, dy) {
-    matrix_set(
-      matrix_world,
-      matrix_build(rp.x, rp.y + dy, 0, tiltDeg, 0, 0, 1, 1, 1),
-    );
-    if (layer.anchor !== undefined) {
-      // ANCHORED layer: a single-frame sprite (a held item's icon) drawn at the BODY
-      // sheet's named per-frame attachment point (SpriteMeta `anchors`) instead of the
-      // shared strip subimg — so any item sprite rides the hand with no dedicated held
-      // sheet. Offset is origin-relative source px; the signed xscale mirrors both the
-      // offset and the icon with the facing flip. No anchor table on the body sheet →
-      // nothing drawn (an undeclared sheet is legal).
-      const a = SpriteMeta.anchor(visual.sprite, layer.anchor, visual.subimg);
-      if (a === undefined) return;
-      const k = layer.scale ?? 1;
-      draw_sprite_ext(
-        layer.sprite,
-        0,
-        a[0] * visual.xscale,
-        a[1] * visual.yscale,
-        visual.xscale * k,
-        visual.yscale * k,
-        0,
-        layer.color,
-        visual.alpha,
-      );
-      return;
-    }
-    draw_sprite_ext(
-      layer.sprite,
-      visual.subimg,
-      0,
-      0,
-      visual.xscale,
-      visual.yscale,
-      0,
-      layer.color,
-      visual.alpha,
-    );
-  }
-
   draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
@@ -155,10 +99,8 @@ globalThis.RenderBillboard = class RenderBillboard {
     }
     entities.forEach([Visual, Position], (entity, visual) => {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
-      // an invalid BODY sprite — or an SVG one, which exists but reports 0 frames on GMRT —
-      // draws as the pixMissing placeholder; re-wrap subimg into the placeholder's frame
-      // range. Appearance layers keep visual.subimg (their sheets mirror the body strip) and
-      // are sprite_exists-guarded upstream by AppearanceSystem.
+      // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws as
+      // the pixMissing placeholder; re-wrap subimg into the placeholder's frame range.
       let sprite = visual.sprite;
       let subimg = visual.subimg;
       if (!sprite_exists(sprite) || sprite_get_number(sprite) < 1) {
@@ -166,25 +108,6 @@ globalThis.RenderBillboard = class RenderBillboard {
         subimg = subimg % sprite_get_number(sprite);
       }
       if (visual.speed !== 0) subimg = AnimationSystem.advance(visual, sprite);
-      // Paper-doll layers (Appearance) draw at the body's subimg/transform but CANNOT rely on
-      // coplanar depth equality: sprites are auto-trimmed on the texture page, so each sheet's
-      // quad has different vertices and the interpolated depth diverges by float rounding — a
-      // later layer randomly loses the lessequal test (a raider bald under its bandana). Bias
-      // each layer a hair along world Y instead (front toward the south-side camera = +y, back
-      // away = -y — an upright quad is a constant-y plane, so only a Y offset separates depth;
-      // a z offset slides within the plane), so stack order wins deterministically;
-      // BB_LAYER_DY is far above fp error and far below a visible shift.
-      const ap = entities.get(entity, Appearance);
-      if (ap !== undefined) {
-        for (let i = 0; i < ap.back.length; i++)
-          this._drawLayer(
-            ap.back[i],
-            visual,
-            rp,
-            tiltDeg,
-            -(ap.back.length - i) * BB_LAYER_DY,
-          );
-      }
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
@@ -200,16 +123,6 @@ globalThis.RenderBillboard = class RenderBillboard {
         visual.color,
         visual.alpha,
       );
-      if (ap !== undefined) {
-        for (let i = 0; i < ap.front.length; i++)
-          this._drawLayer(
-            ap.front[i],
-            visual,
-            rp,
-            tiltDeg,
-            (i + 1) * BB_LAYER_DY,
-          );
-      }
       matrix_set(matrix_world, ident);
     });
     // SKELETAL category: a Spine body poses in its own instance's scope, so it draws through

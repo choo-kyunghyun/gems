@@ -37,20 +37,13 @@ globalThis.FollowerSystem = {
         }
       }
 
-      // paper-doll drive (opt-in via Animator): idle/walk by velocity + facing flip. Flip by
-      // SIGN only — |xscale| carries the baked size factor (see the preset design scale).
-      const anim = entities.get(id, Animator);
-      if (anim !== undefined) {
-        AnimationSystem.set(
-          anim,
-          vel.x * vel.x + vel.y * vel.y > 1 ? "walk" : "idle",
-        );
-        const vis = entities.get(id, Visual);
-        if (vis !== undefined) {
-          if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
-          else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
-        }
-      }
+      // doll drive (opt-in via Skeleton): idle/walk by velocity, plus the facing flip
+      ColonyPlayer.setState(
+        entities,
+        id,
+        vel.x * vel.x + vel.y * vel.y > 1 ? "walk" : "idle",
+      );
+      ColonyPlayer.face(entities, id, vel.x);
     });
   },
 

@@ -299,7 +299,9 @@ globalThis.CombatAI = {
   _tint(entities, id, r, g, b, k) {
     const brain = entities.get(id, Brain);
     if (brain !== undefined && !brain.mobile) return;
-    const vis = entities.get(id, Visual);
+    // a doll tints through its Skeleton, a strip actor (the rat) through its Visual
+    const sk = entities.get(id, Skeleton);
+    const vis = sk !== undefined ? sk : entities.get(id, Visual);
     if (vis === undefined) return;
     const base =
       brain !== undefined && brain.baseColor !== undefined
@@ -309,22 +311,17 @@ globalThis.CombatAI = {
   },
 
   /**
-   * Drive the optional paper-doll Animator + facing from the actor's motion. A strip actor (rat)
-   * carries no Animator — no-op. Facing flips by SIGN only (|xscale| carries the baked size).
+   * Drive the optional doll animation + facing from the actor's motion. A strip actor (the rat)
+   * carries no Skeleton, so both calls no-op.
    */
   _animate(entities, id, attacking) {
-    const anim = entities.get(id, Animator);
-    if (anim === undefined) return;
     const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
     else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
       st = "walk";
-    AnimationSystem.set(anim, st);
-    const vis = entities.get(id, Visual);
-    if (vis === undefined || vel === undefined) return;
-    if (vel.x < -1) vis.xscale = -Math.abs(vis.xscale);
-    else if (vel.x > 1) vis.xscale = Math.abs(vis.xscale);
+    ColonyPlayer.setState(entities, id, st);
+    if (vel !== undefined) ColonyPlayer.face(entities, id, vel.x);
   },
 
   /**

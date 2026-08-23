@@ -1,5 +1,5 @@
 const MOVE_SPEED = 220; // world px/s (32px-cell scale)
-const PLAYER_SCALE = 1.5; // baked size factor over the 32px pixHuman sheet (bbox + Visual)
+const PLAYER_SCALE = 1.5; // baked size factor over the 32px design cell (bbox + Skeleton)
 const SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
@@ -96,7 +96,7 @@ globalThis.PlayerSystem = {
     }
   },
 
-  // build the colony player entity (ColonyPlayer.spawn adds Playable + Animator with the rest of the
+  // build the colony player entity (ColonyPlayer.spawn adds Playable + Skeleton with the rest of the
   // sheet) at this genre's tuning. Boot only — a portal arrival transfers the existing player.
   /** Returns the player entity id. */
   spawn(entities, spawn) {
@@ -240,22 +240,13 @@ globalThis.PlayerSystem = {
     }
 
     // animation tree: attack > walk > idle. attackCd read live off the component (no cached boolean — GMRT clobber)
-    const anim = entities.get(id, Animator);
-    if (anim !== undefined) {
-      let state = "idle";
-      if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
-      else if (len > 0) state = "walk";
-      AnimationSystem.set(anim, state);
-    }
+    let state = "idle";
+    if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
+    else if (len > 0) state = "walk";
+    ColonyPlayer.setState(entities, id, state);
 
-    // facing: flip the xscale SIGN toward the last horizontal move
-    const vis = entities.get(id, Visual);
-    if (vis !== undefined) {
-      // flip by SIGN only — |xscale| carries the baked size factor (PLAYER_SCALE), so a
-      // bare ±1 here would silently reset the player's size
-      if (dir.x < -0.01) vis.xscale = -Math.abs(vis.xscale);
-      else if (dir.x > 0.01) vis.xscale = Math.abs(vis.xscale);
-    }
+    // facing: flip toward the last horizontal move, at the aim's fine deadzone
+    ColonyPlayer.face(entities, id, dir.x, 0.01);
   },
 
   /**
