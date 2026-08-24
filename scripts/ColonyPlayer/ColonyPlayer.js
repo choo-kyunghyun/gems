@@ -124,23 +124,37 @@ globalThis.ColonyPlayer = {
   },
 
   /**
-   * Humanoid state -> the spineHuman animation that plays it. The unarmed swing alternates
-   * attack/kick (see PlayerSystem), which lands as the rig's two punches. The set also carries
-   * dodge / rush / run / sprint, which no brain drives yet.
+   * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name.
+   * The unarmed swing alternates attack/kick (see PlayerSystem), which lands as the human rig's
+   * two punches; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
+   * also carries dodge / rush / sprint and spineRat eat, which no brain drives yet.
    */
-  STATES: {
-    idle: { anim: "idle", loop: true },
-    walk: { anim: "walk", loop: true },
-    attack: { anim: "punchRight", loop: false },
-    kick: { anim: "punchLeft", loop: false },
+  RIGS: {
+    spineHuman: {
+      idle: { anim: "idle", loop: true },
+      walk: { anim: "walk", loop: true },
+      run: { anim: "run", loop: true },
+      attack: { anim: "punchRight", loop: false },
+      kick: { anim: "punchLeft", loop: false },
+    },
+    spineRat: {
+      idle: { anim: "idle", loop: true },
+      walk: { anim: "walk", loop: true },
+      run: { anim: "run", loop: true },
+      attack: { anim: "attack", loop: false },
+    },
   },
 
   /**
-   * Drive a humanoid's skeleton to a named state — the one place a gameplay state becomes an
-   * animation name. No-op for an actor that carries no Skeleton (the rat, a strip actor).
+   * Drive an actor's skeleton to a named state — the one place a gameplay state becomes an
+   * animation name. No-op for an actor that carries no Skeleton, or whose rig has no such state.
    */
   setState(entities, id, state) {
-    const st = ColonyPlayer.STATES[state];
+    const sk = entities.get(id, Skeleton);
+    if (sk === undefined) return;
+    const rig = ColonyPlayer.RIGS[sprite_get_name(sk.sprite)];
+    if (rig === undefined) return;
+    const st = rig[state];
     if (st === undefined) return;
     SkeletonSystem.set(entities, id, st.anim, st.loop);
   },

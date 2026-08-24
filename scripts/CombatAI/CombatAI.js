@@ -99,7 +99,7 @@ globalThis.CombatAI = {
               );
             }
           }
-          CombatAI._animate(entities, id, false); // doll actors: idle/walk (drift-home) + facing
+          CombatAI._animate(entities, id, false, false); // rigged actors: idle/walk (drift-home) + facing
         },
       },
 
@@ -150,7 +150,7 @@ globalThis.CombatAI = {
             PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
             CombatAI._seek(entities, id, tp.x, tp.y, brain.speed);
-            CombatAI._animate(entities, id, false);
+            CombatAI._animate(entities, id, false, true);
             return;
           }
           // wall in the way: steer at the path walker's movement point (waypoint, or straight
@@ -165,7 +165,7 @@ globalThis.CombatAI = {
             tp.y,
           );
           CombatAI._seek(entities, id, mp.x, mp.y, brain.speed);
-          CombatAI._animate(entities, id, false);
+          CombatAI._animate(entities, id, false, true);
         },
         finish(entities, id) {
           PathFollow.clear(entities, id);
@@ -202,9 +202,14 @@ globalThis.CombatAI = {
               id,
               brain.mobile ? "combat.chase" : "combat.idle",
             );
-          // punch pose for a short window after each swing (cd counts DOWN from cdMax;
-          // 18 ticks = the 3-frame punch @ 10fps plays out)
-          CombatAI._animate(entities, id, brain.cd > brain.cdMax - 18);
+          // strike pose from the swing (cd just reset to cdMax) until the rig's one-shot attack
+          // set has played out — its own length, so a punch and a bite each finish
+          CombatAI._animate(
+            entities,
+            id,
+            brain.cd === brain.cdMax || !SkeletonSystem.finished(entities, id),
+            false,
+          );
         },
       },
     ]);
@@ -301,7 +306,7 @@ globalThis.CombatAI = {
   _tint(entities, id, r, g, b, k) {
     const brain = entities.get(id, Brain);
     if (brain !== undefined && !brain.mobile) return;
-    // a doll tints through its Skeleton, a strip actor (the rat) through its Visual
+    // a rigged actor tints through its Skeleton, a strip actor through its Visual
     const sk = entities.get(id, Skeleton);
     const vis = sk !== undefined ? sk : entities.get(id, Visual);
     if (vis === undefined) return;
@@ -313,15 +318,16 @@ globalThis.CombatAI = {
   },
 
   /**
-   * Drive the optional doll animation + facing from the actor's motion. A strip actor (the rat)
-   * carries no Skeleton, so both calls no-op.
+   * Drive the optional rig animation + facing from the actor's motion: `attacking` holds the
+   * strike, `running` plays motion as the run set instead of the walk (a chase, not the drift
+   * home). An actor without a Skeleton (a turret) no-ops both calls.
    */
-  _animate(entities, id, attacking) {
+  _animate(entities, id, attacking, running) {
     const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
     else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
-      st = "walk";
+      st = running ? "run" : "walk";
     ColonyPlayer.setState(entities, id, st);
     if (vel !== undefined) ColonyPlayer.face(entities, id, vel.x);
   },

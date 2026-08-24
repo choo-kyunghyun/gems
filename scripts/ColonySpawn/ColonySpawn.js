@@ -126,7 +126,7 @@ globalThis.ColonySpawn = {
           Faction: { id: "monster" },
           Name: { name: "Rat" },
           Inventory: { slots: [], capacity: 4 },
-          Visual: { sprite: pixRat, speed: 6 }, // looping scuttle cycle
+          Skeleton: { sprite: spineRat }, // the rat rig; its states are ColonyPlayer.RIGS
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction

@@ -46,6 +46,19 @@ globalThis.SkeletonSystem = {
     if (held !== undefined) held.inst.skeleton_animation_set(anim, sk.loop);
   },
 
+  /**
+   * Whether the entity's current set has played out: a one-shot (`loop` false) that reached its
+   * last frame. A looping set, a puppet not yet minted, or no Skeleton at all reads true, so a
+   * caller holding a pose "until finished" never waits on nothing.
+   */
+  finished(entities, id) {
+    const sk = entities.get(id, Skeleton);
+    if (sk === undefined || sk.loop) return true;
+    const held = entities.get(id, Instance);
+    if (held === undefined) return true;
+    return sk.frame >= held.inst.skeleton_animation_get_frames(sk.anim) - 1;
+  },
+
   /** The entity's first puppet — or the one a map transfer or a load left it without. */
   _mint(entities, id, sk) {
     const held = InstanceSystem.attach(entities, id);

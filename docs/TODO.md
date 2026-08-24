@@ -75,7 +75,7 @@ Names predating the naming rules are grandfathered — never rename as a sweep; 
 
 - Grandfathered: the UI glyphs/lobby art (`pixUiCheck`/`vecPlay`/`pixUiBox`/…), spare icons (`pixApple`), the `pixFenceSquare`/`pixFenceRound` sheets, and the `pixTile16`/`pixTileCornerRough` autotile sets
 - Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile)
-- Unwired spares: `pixFenceRound`, `wooden_bed_simple`
+- Unwired spares: `pixFenceRound`, `wooden_bed_simple`, `pixRat` (the strip rat the `spineRat` rig replaced)
 - A dedicated plan-view TOP pattern per wall material, if the shared face texture ever reads wrong
 
 ## Verification
