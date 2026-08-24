@@ -15,7 +15,6 @@ globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
  * @property {{x:number,y:number}} home  spawn point a MOBILE actor drifts back to when idle
- * @property {number} baseColor   authored/skin Visual color the aggro wash blends FROM (packed int)
  * @property {number} target      entity id this actor is chasing/attacking (-1 = none)
  * @property {boolean} mobile     true = chase the target (enemy); false = stationary (turret)
  * @property {boolean} ranged     true = fire a hitscan shot (turret); false = melee contact (enemy)
@@ -53,9 +52,6 @@ globalThis.CombatAI = {
     StateSystem.register([
       {
         id: "combat.idle",
-        enter(entities, id) {
-          CombatAI._tint(entities, id, 255, 255, 255, 0); // no wash — back to the base/skin color
-        },
         update(entities, id) {
           const brain = entities.get(id, Brain);
           const pos = entities.get(id, Position);
@@ -107,7 +103,6 @@ globalThis.CombatAI = {
       {
         id: "combat.chase",
         enter(entities, id) {
-          CombatAI._tint(entities, id, 230, 170, 70, 0.35); // alert orange flush
           entities.get(id, Brain).losCd = 0; // raycast LOS immediately on entering the chase
         },
         update(entities, id) {
@@ -175,7 +170,6 @@ globalThis.CombatAI = {
       {
         id: "combat.attack",
         enter(entities, id) {
-          CombatAI._tint(entities, id, 235, 90, 90, 0.35); // hostile red flush
           CombatAI._stop(entities, id);
         },
         update(entities, id) {
@@ -220,15 +214,9 @@ globalThis.CombatAI = {
   attach(entities, id, grid, opt = {}) {
     this._grid = grid;
     const pos = entities.get(id, Position);
-    // authored/base color captured for the aggro wash (a doll actor's color is its SKIN tint, so
-    // the wash must blend FROM it, not from white). Read the same pair _tint writes back to — a
-    // doll carries Skeleton and no Visual. Flat int — snapshot-safe.
-    const sk = entities.get(id, Skeleton);
-    const vis = sk !== undefined ? sk : entities.get(id, Visual);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
     entities.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
-      baseColor: vis !== undefined ? vis.color : c_white,
       target: -1,
       mobile: opt.mobile ?? true,
       ranged: opt.ranged ?? false,
@@ -295,26 +283,6 @@ globalThis.CombatAI = {
     const vel = entities.get(id, Velocity);
     vel.x = 0;
     vel.y = 0;
-  },
-
-  /**
-   * Per-state aggro cue: a light wash from the actor's BASE color (its skin tint on a doll,
-   * authored color otherwise) toward the state color — reads as an angry flush on skin. `k` = 0
-   * restores the base exactly (idle). One-shot Color.merge on a state edge is GMRT-safe (only
-   * per-frame re-merging drifts — see the packed-color idiom). Turrets keep their color.
-   */
-  _tint(entities, id, r, g, b, k) {
-    const brain = entities.get(id, Brain);
-    if (brain !== undefined && !brain.mobile) return;
-    // a rigged actor tints through its Skeleton, a strip actor through its Visual
-    const sk = entities.get(id, Skeleton);
-    const vis = sk !== undefined ? sk : entities.get(id, Visual);
-    if (vis === undefined) return;
-    const base =
-      brain !== undefined && brain.baseColor !== undefined
-        ? brain.baseColor
-        : c_white;
-    vis.color = k > 0 ? Color.merge(base, make_colour_rgb(r, g, b), k) : base;
   },
 
   /**
