@@ -9,6 +9,13 @@
  * correctly (docs/GMRT.md).
  */
 globalThis.SkeletonSystem = {
+  /**
+   * Playback rate that plays a set in the seconds Spine shows for it: a skeletal frame is 1/120 s
+   * on the runtime whatever rate the rig was exported at — a 0.4 s set reports 48 frames, and
+   * `skeleton_animation_set_frame(0, 24)` on it reads back `skeleton_animation_get_position` 0.5.
+   */
+  FPS: 120,
+
   update(entities) {
     entities.forEach([Skeleton], (id, sk) => {
       let held = entities.get(id, Instance);

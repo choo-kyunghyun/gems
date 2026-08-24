@@ -13,7 +13,8 @@
  * @property {Asset.GMSprite} sprite  skeletal (Spine) sheet, bound to the puppet when it is minted
  * @property {string} anim            animation set playing now (SkeletonSystem.set to change)
  * @property {boolean} loop           wrap past the last frame, else hold it
- * @property {number} fps             playback rate in skeleton frames/sec (0 = hold `frame`)
+ * @property {number} fps             playback rate in skeleton frames/sec (0 = hold `frame`); a frame
+ *                                   is 1/120 s, so SkeletonSystem.FPS plays authored time
  * @property {number} frame           playback position in frames, fractional
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale

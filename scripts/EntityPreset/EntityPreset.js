@@ -143,13 +143,12 @@ globalThis.EntityPreset = {
 
   /**
    * Normalize an authored Skeleton (sprite + optional overrides) and bake the same size split a
-   * Visual gets. No strip fields — SkeletonSystem owns `frame`, and 30 fps is the rate Spine
-   * authors at.
+   * Visual gets. No strip fields — SkeletonSystem owns `frame`, and its FPS is authored time.
    */
   _bakeSkeleton(sk, k) {
     sk.anim = sk.anim ?? "idle";
     sk.loop = sk.loop ?? true;
-    sk.fps = sk.fps ?? 30;
+    sk.fps = sk.fps ?? SkeletonSystem.FPS;
     sk.frame = sk.frame ?? 0;
     sk.color = sk.color ?? c_white;
     sk.alpha = sk.alpha ?? 1;

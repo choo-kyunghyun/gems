@@ -7,9 +7,6 @@ globalThis.ColonyPlayer = {
   // colour, so garments are authored in their own colours and take this as a warm wash.
   SKIN: 0x90b8e8,
 
-  // spineHuman is authored at 30 fps (its 1.0 s walk is 30 keyframed frames)
-  FPS: 30,
-
   /**
    * create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
    * factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
@@ -89,7 +86,7 @@ globalThis.ColonyPlayer = {
       sprite: spineHuman,
       anim: "idle",
       loop: true,
-      fps: ColonyPlayer.FPS,
+      fps: SkeletonSystem.FPS, // authored time — the runtime's frame is 1/120 s (SkeletonSystem)
       frame: 0,
       xscale: SpriteMeta.fit(k, spineHuman),
       yscale: SpriteMeta.fit(k, spineHuman),
