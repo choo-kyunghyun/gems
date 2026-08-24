@@ -24,6 +24,8 @@ const BB_NORMAL_Z = -0.866;
  * upright sprites to sin(pitch) of their height — the accepted look of the art rework.
  * Only geometry that writes depth — z-write on for this loop only so overlapping bodies
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
+ * A Spine puppet is the one body that can z-fight ITSELF — its attachments are coplanar —
+ * so it draws twice: colour without depth, then depth without colour (see the loop).
  * requires hard-alpha sprites: soft edges write depth on transparent pixels and occlude
  * what's behind them.
  * Sprites draw under shMeshlit (textured + texel cutout, bent normal via u_normal) — ONE
@@ -130,13 +132,25 @@ globalThis.RenderBillboard = class RenderBillboard {
     // (GMRT.md), and it beats draw_skeleton ~4x (PERF.md). A separate scan rather than a branch
     // inside the loop above: the pair is rare, so the scan is nearly free, and a skeletal entity
     // carries no Visual — one that did would draw its body twice.
+    // Two passes per puppet: its attachments share one plane, and two overlapping quads on a
+    // plane interpolate depths a bit apart, so one depth-writing draw makes each dress piece
+    // win or lose the test against the body part under it WHOLE — a hat swallowed by the
+    // head, flipping as the doll moves. Colour first with z-write off (tested against the
+    // scene, never against itself), then depth only, so what draws later still sorts against
+    // the silhouette. Depth first would keep the lower of the two coplanar depths, and the
+    // colour pass would lose the same lottery against it.
     entities.forEach([Skeleton, Instance, Position], (entity, sk, held) => {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
       );
+      gpu_set_zwriteenable(false);
       held.inst.draw_self();
+      gpu_set_zwriteenable(true);
+      gpu_set_colourwriteenable(false, false, false, false);
+      held.inst.draw_self();
+      gpu_set_colourwriteenable(true, true, true, true);
     });
     matrix_set(matrix_world, ident);
     if (this._litOk) shader_reset();
