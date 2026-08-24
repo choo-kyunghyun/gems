@@ -215,9 +215,11 @@ globalThis.CombatAI = {
   attach(entities, id, grid, opt = {}) {
     this._grid = grid;
     const pos = entities.get(id, Position);
-    // authored/base Visual color captured for the aggro wash (a doll actor's color is its SKIN
-    // tint, so the wash must blend FROM it, not from white). Flat int — snapshot-safe.
-    const vis = entities.get(id, Visual);
+    // authored/base color captured for the aggro wash (a doll actor's color is its SKIN tint, so
+    // the wash must blend FROM it, not from white). Read the same pair _tint writes back to — a
+    // doll carries Skeleton and no Visual. Flat int — snapshot-safe.
+    const sk = entities.get(id, Skeleton);
+    const vis = sk !== undefined ? sk : entities.get(id, Visual);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
     entities.add(id, Brain, {
       home: { x: pos.x, y: pos.y },
