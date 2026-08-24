@@ -7,7 +7,7 @@
  *
  * Playback is SkeletonSystem's: it mints the puppet, binds `sprite`, and advances `frame`
  * itself. Change animation through SkeletonSystem.set — writing `anim` here leaves the puppet
- * playing the old set.
+ * playing the old set — and a slot tint through SkeletonSystem.tint, for the same reason.
  *
  * @typedef {Object} Skeleton
  * @property {Asset.GMSprite} sprite  skeletal (Spine) sheet, bound to the puppet when it is minted
@@ -18,7 +18,10 @@
  * @property {number} frame           playback position in frames, fractional
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale
- * @property {number} color           tint (image_blend)
+ * @property {number} color           tint (image_blend) over the whole rig
+ * @property {Object} tints           slot name -> colour on that slot alone (a variant's coat), multiplied
+ *                                   under `color`; a slot absent here draws its art as authored. Per-puppet
+ *                                   state like an attachment (docs/GMRT.md), so it is replayed at each mint
  * @property {number} alpha
  */
 globalThis.Skeleton = "Skeleton";

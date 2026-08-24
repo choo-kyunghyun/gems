@@ -54,6 +54,19 @@ globalThis.SkeletonSystem = {
   },
 
   /**
+   * Tint one slot of the rig, written to the component and onto the live puppet if there is one —
+   * slot colour is per-instance (docs/GMRT.md), so a later mint replays the map. `color` is the
+   * other axis: the two multiply. No-op for an entity carrying no Skeleton.
+   */
+  tint(entities, id, slot, color) {
+    const sk = entities.get(id, Skeleton);
+    if (sk === undefined) return;
+    sk.tints[slot] = color;
+    const held = entities.get(id, Instance);
+    if (held !== undefined) held.inst.skeleton_slot_colour_set(slot, color, 1);
+  },
+
+  /**
    * Whether the entity's current set has played out: a one-shot (`loop` false) that reached its
    * last frame. A looping set, a puppet not yet minted, or no Skeleton at all reads true, so a
    * caller holding a pose "until finished" never waits on nothing.
@@ -72,6 +85,10 @@ globalThis.SkeletonSystem = {
     held.inst.sprite_index = sk.sprite;
     held.inst.image_speed = 0; // SkeletonSystem owns the clock (docs/GMRT.md)
     held.inst.skeleton_animation_set(sk.anim, sk.loop);
+    // slot colours are per-instance like attachments (docs/GMRT.md): replayed on every mint
+    const slots = Object.keys(sk.tints);
+    for (let i = 0; i < slots.length; i++)
+      held.inst.skeleton_slot_colour_set(slots[i], sk.tints[slots[i]], 1);
     // a fresh puppet wears nothing: attachments are per-instance (docs/GMRT.md), so a doll that
     // just crossed a map or came back from a save has to be re-dressed by its Appearance owner
     const ap = entities.get(id, Appearance);

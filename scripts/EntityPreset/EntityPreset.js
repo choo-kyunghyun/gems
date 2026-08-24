@@ -151,6 +151,7 @@ globalThis.EntityPreset = {
     sk.fps = sk.fps ?? SkeletonSystem.FPS;
     sk.frame = sk.frame ?? 0;
     sk.color = sk.color ?? c_white;
+    sk.tints = sk.tints ?? {};
     sk.alpha = sk.alpha ?? 1;
     const f = SpriteMeta.fit(k, sk.sprite);
     sk.xscale = f;

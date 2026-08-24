@@ -91,6 +91,7 @@ globalThis.ColonyPlayer = {
       xscale: SpriteMeta.fit(k, spineHuman),
       yscale: SpriteMeta.fit(k, spineHuman),
       color: ColonyPlayer.SKIN,
+      tints: {},
       alpha: 1,
     });
     // the doll: worn gear attached to the skeleton's equipment slots (rebuilt from Equipment by

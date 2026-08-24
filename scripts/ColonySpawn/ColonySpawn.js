@@ -341,18 +341,18 @@ globalThis.ColonySpawn = {
         over.Stats = { maxHp: s.hp };
       }
       if (s.loot !== undefined) over.Inventory = { slots: s.loot };
-      // deterministic skin over the white doll template (rat keeps its own art untinted)
+      // deterministic skin over the white doll template; a rat's coat the same way, per slot
       if (s.preset === "raider") {
         over.Skeleton = { color: ColonySpawn._skin(s) };
         over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
-      }
+      } else over.Skeleton = { tints: ColonySpawn._coat(s) };
     } else if (s.preset === "npc") {
       over.Name = { name: s.label };
       over.NPC = { name: s.nameKey, questId: s.questId };
       over.Skeleton = { color: ColonySpawn._skin(s) };
       over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
-      // TODO: the descriptor's `color` no longer reaches the outfit — a Spine slot has no colour
-      // of its own (docs/GMRT.md), so garment variety needs authored sprites, not a tint.
+      // TODO: the descriptor's `color` no longer reaches the outfit — route it through
+      // Skeleton.tints on the garment slots (a slot colour composes under the skin `color`).
     } else if (s.preset === "chest") {
       const inv = {};
       if (s.items !== undefined) inv.slots = s.items;
@@ -483,7 +483,7 @@ globalThis.ColonySpawn = {
   // descriptor + the scene's programmatic party seed.
   spawnFollower(entities, wx, wy, opt = {}) {
     // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot — it
-    // washes the WHOLE doll, garments included, since a Spine slot carries no colour of its own.
+    // washes the WHOLE doll, garments included (Skeleton.tints is the per-slot axis).
     const spot = { gx: Math.round(wx), gy: Math.round(wy) };
     const over = {
       Skeleton: { color: ColonySpawn._skin(spot) },
@@ -525,6 +525,23 @@ globalThis.ColonySpawn = {
     const gy = s.gy ?? 0;
     const i = Math.abs(gx * 7 + gy * 13) % ColonySpawn.SKINS.length;
     return Color.parse(ColonySpawn.SKINS[i]);
+  },
+
+  // Coat colours for rats (Skeleton.tints over the white spineRat body art; white = as authored).
+  COATS: ["#ffffff", "#b4b4b4", "#a06a3c", "#585858"],
+  // the slots a coat covers: every body part but `ear` (pink art of its own) and `tail` (outline only)
+  COAT_SLOTS: ["body", "head", "footFront", "footBack"],
+
+  /** deterministic coat pick, cell-hashed like _skin — the slot -> colour map for Skeleton.tints */
+  _coat(s) {
+    const gx = s.gx ?? 0;
+    const gy = s.gy ?? 0;
+    const i = Math.abs(gx * 11 + gy * 17) % ColonySpawn.COATS.length;
+    const color = Color.parse(ColonySpawn.COATS[i]);
+    const tints = {};
+    for (let j = 0; j < ColonySpawn.COAT_SLOTS.length; j++)
+      tints[ColonySpawn.COAT_SLOTS[j]] = color;
+    return tints;
   },
 
   /**
