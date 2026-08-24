@@ -24,8 +24,9 @@ globalThis.SaveGame = {
   // visited map's residents and builds don't come back fresh from file). mapId -> saved map entry.
   _pendingMaps: {},
   // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
-  // are re-derived each tick; dropping them shrinks the save and avoids a cyclic runtime ref).
-  _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse"],
+  // are re-derived each tick, a puppet Instance is re-minted by SkeletonSystem — a restored handle
+  // would be dead; dropping them shrinks the save and avoids a cyclic runtime ref).
+  _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse", "Instance"],
 
   /**
    * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
@@ -279,12 +280,14 @@ globalThis.SaveGame = {
         // Trader ids only against the ACTIVE map: a trader is embodied in exactly one map (parking
         // dehydrates it), and an entity INDEX is per-store — matching one against another map's
         // store would drop an unrelated entity from that map's save.
-        SaveGame._excludeRebuilt(
-          exp,
-          src.colliders,
+        const rebuilt = [
           src.statics,
           mapId === activeId ? Trader.entityIds() : undefined,
-        );
+        ];
+        for (let l = 0; l < contentTiles.LAYERS.length; l++)
+          if (contentTiles.LAYERS[l].solid === true)
+            rebuilt.push(src[contentTiles.LAYERS[l].key + "Colliders"]);
+        SaveGame._excludeRebuilt(exp, rebuilt);
         maps.push({
           id: mapId,
           generated: src._generated === true,
@@ -479,12 +482,12 @@ globalThis.SaveGame = {
 
   /**
    * Drop from a store export every entity the next BOOT re-creates by itself, so restoreResidents
-   * can bring back all the rest without landing a duplicate. Takes any number of id lists (see the
+   * can bring back all the rest without landing a duplicate. Takes an array of id lists (see the
    * capture site for what each is). Filters each component's sparse entry list by entity INDEX; the
    * id-pool export is left as-is (restore reads specific entities out, never re-imports the whole
    * export).
    */
-  _excludeRebuilt(exp, ...lists) {
+  _excludeRebuilt(exp, lists) {
     const excl = {}; // index -> true (numeric-keyed plain object, not a Map — GMRT)
     let n = 0;
     for (let l = 0; l < lists.length; l++) {

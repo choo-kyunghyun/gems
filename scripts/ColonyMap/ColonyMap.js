@@ -27,7 +27,6 @@ globalThis.ColonyMap = {
     "entries",
     "_generated",
     "_indoor",
-    "colliders",
     "statics",
     "terrainMats",
     "_built",
@@ -160,8 +159,8 @@ globalThis.ColonyMap = {
 
   /**
    * Full bundle key list: BUNDLE_KEYS + the per-layer handles from contentTiles.LAYERS
-   * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer). Rebuilt per call
-   * (portal-rate, tiny).
+   * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer and <key>Colliders for a
+   * solid one). Rebuilt per call (portal-rate, tiny).
    */
   _bundleKeys() {
     const keys = ColonyMap.BUNDLE_KEYS.slice();
@@ -170,6 +169,7 @@ globalThis.ColonyMap = {
       keys.push(cfg.key + "Layer");
       keys.push(cfg.key + "Type");
       if (cfg.materials !== undefined) keys.push(cfg.key + "Types");
+      if (cfg.solid === true) keys.push(cfg.key + "Colliders");
     }
     return keys;
   },
@@ -326,16 +326,18 @@ globalThis.ColonyMap = {
     scene.spawn = built.spawn; // for player respawn on death
     scene.entries = ColonyMap._entryTable(scene.level.grid, data); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
-    // plus <key>Types for a materials-bearing layer (wall). Bundled via _bundleKeys.
+    // plus <key>Types for a materials-bearing layer (wall) and <key>Colliders for a solid one
+    // (wall, fence — BuildMode remeshes exactly these). Bundled via _bundleKeys.
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const key = contentTiles.LAYERS[i].key;
       scene[key + "Layer"] = built[key + "Layer"];
       scene[key + "Type"] = built[key + "Type"];
       if (built[key + "Types"] !== undefined)
         scene[key + "Types"] = built[key + "Types"];
+      if (built[key + "Colliders"] !== undefined)
+        scene[key + "Colliders"] = built[key + "Colliders"];
     }
-    scene.colliders = built.colliders; // the wall layer's — BuildMode remeshes exactly these
-    // level-geometry colliders that are NOT the wall layer's (impassable terrain, the level edge):
+    // level-geometry colliders that are NOT a tile layer's (impassable terrain, the level edge):
     // held apart so a build-mode remesh can't free them, and excluded from the save (they rebuild)
     scene.statics = built.statics;
     scene.terrainMats = built.terrainMats; // generated maps only — the stacked ground passes' table
@@ -480,15 +482,16 @@ globalThis.ColonyMap = {
         scene._terrainPasses.push(pass);
         scene.renderer.insert(pass);
       }
-    // Resident tile layers (terrain/floor/fence) as real tilemaps — bottom→top per
-    // contentTiles.LAYERS; the wall layer joins below as the lit RenderWalls pass on pitched maps
-    // (flat fallback keeps its "corner" RenderTileMap). VBO-cached + keyed by layer so a
-    // BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence layers
-    // EMPTY until the player builds — an empty layer emits no quads, so they are free there.
+    // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
+    // on pitched maps the wall and fence layers join below as the lit RenderWalls/RenderFence
+    // passes (the flat fallback keeps their autotile RenderTileMaps). VBO-cached + keyed by layer
+    // so a BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence
+    // layers EMPTY until the player builds — an empty layer emits no quads, so they are free there.
     scene._tilePasses = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
+      if (cfg.key === "fence" && pitch > 0) continue; // RenderFence (post-and-rail boxes) below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
       const spr = asset_get_index(cfg.sprite);
       if (!sprite_exists(spr)) {
@@ -589,6 +592,17 @@ globalThis.ColonyMap = {
         materials: wallMats,
       });
       scene.renderer.insert(scene._tilePasses.wall);
+      // the fence layer as lit post-and-rail boxes in the same depth pool — its occupancy read
+      // is the autotiling (RenderFence); the flat blob4 config stays for the editor like the wall's
+      scene._tilePasses.fence = new RenderFence(
+        scene.level.grid,
+        scene.fenceLayer,
+        {
+          color: Color.parse(contentTiles.get("fence").color),
+          lights: scene._meshPass,
+        },
+      );
+      scene.renderer.insert(scene._tilePasses.fence);
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
     // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).

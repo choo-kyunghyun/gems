@@ -283,6 +283,7 @@
     {"id":{"name":"RenderEntity","path":"scripts/RenderEntity/RenderEntity.yy",},},
     {"id":{"name":"RenderEntityShadow","path":"scripts/RenderEntityShadow/RenderEntityShadow.yy",},},
     {"id":{"name":"Renderer","path":"scripts/Renderer/Renderer.yy",},},
+    {"id":{"name":"RenderFence","path":"scripts/RenderFence/RenderFence.yy",},},
     {"id":{"name":"RenderGrid","path":"scripts/RenderGrid/RenderGrid.yy",},},
     {"id":{"name":"RenderLighting","path":"scripts/RenderLighting/RenderLighting.yy",},},
     {"id":{"name":"RenderMesh","path":"scripts/RenderMesh/RenderMesh.yy",},},

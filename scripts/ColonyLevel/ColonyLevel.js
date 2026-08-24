@@ -2,9 +2,9 @@ const CELL = 32; // fallback cell size when a level omits `cell` (32px conventio
 
 /**
  * The colony's level builder: the map graph (id → file) plus build(), which paints a level FILE into
- * a store + grid and returns { grid, spawn, colliders, <key>Layer/<key>Type per layer } for the
- * caller to hang on its Level (ColonyMap._buildWorld does; the Level owns the grid's lifecycle from
- * there). Wall colliders are greedy-meshed by TileEdit.
+ * a store + grid and returns { grid, spawn, statics, <key>Layer/<key>Type per layer, <key>Colliders
+ * per solid layer } for the caller to hang on its Level (ColonyMap._buildWorld does; the Level owns
+ * the grid's lifecycle from there). Solid-layer colliders are greedy-meshed by TileEdit.
  *
  * A level is fully resident: everything it holds is built here, once, and simulated for the map's
  * lifetime. `meta.generated` swaps the file's hand-painted grid for a procedural one (_generate) —
@@ -87,17 +87,18 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Build a Level: paint the grid + mesh kinematic wall colliders. Returns the built handles; the
-   * caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
+   * Build a Level: paint the grid + mesh each solid layer's kinematic colliders. Returns the built
+   * handles; the caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
    * `meta.entries` (the matching side of a portal), falling back to entries.default → legacy
    * meta.playerSpawn.
    *
    * `spawns` comes back on every path — the descriptors the caller feeds ColonySpawn, translated
    * but not spawned. `terrainMats` (the material table the render passes stack) is generated-only.
    *
-   * TWO collider lists, because they have different lifetimes: `colliders` is the wall layer's
-   * greedy mesh, which BuildMode remeshes wholesale on every tile edit, while `statics` is the
-   * geometry that has no tile layer to remesh from (impassable terrain, the level edge).
+   * TWO kinds of collider list, because they have different lifetimes: a solid layer's
+   * `<key>Colliders` is its greedy mesh, which BuildMode remeshes wholesale on every edit of that
+   * layer, while `statics` is the geometry that has no tile layer to remesh from (impassable
+   * terrain, the level edge).
    */
   build(entities, data, entryId = "default") {
     const cell = data.cell ?? CELL;
@@ -125,14 +126,20 @@ globalThis.ColonyLevel = {
     }
     const painted = LevelData.paint(content, { grid: grid, layers: h });
 
-    const colliders = [];
-    TileEdit.meshSolid(entities, grid, h.wallLayer, colliders);
+    // one collider list per SOLID layer, each remeshed on its own (a wall edit never touches the
+    // fence's)
+    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
+      const cfg = contentTiles.LAYERS[i];
+      if (cfg.solid !== true) continue;
+      const colliders = [];
+      TileEdit.meshSolid(entities, grid, h[cfg.key + "Layer"], colliders);
+      h[cfg.key + "Colliders"] = colliders;
+    }
 
     const spawn = this._resolveSpawn(grid, data, entryId);
     return {
       grid,
       spawn,
-      colliders,
       statics,
       spawns: painted.spawns,
       terrainMats: mats,

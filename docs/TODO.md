@@ -74,8 +74,7 @@ The level file, a `Prefab`, and a generator's output are now one shape (`LevelDa
 Names predating the naming rules are grandfathered — never rename as a sweep; migrate one only when already touching it.
 
 - Grandfathered: the UI glyphs/lobby art (`pixUiCheck`/`vecPlay`/`pixUiBox`/…), spare icons (`pixApple`), the `pixFenceSquare`/`pixFenceRound` sheets, and the `pixTile16`/`pixTileCornerRough` autotile sets
-- Redraw the 16 px fence sheet at 32 (hand-drawn, no generator; `SpriteMeta density: 0.5` carries it meanwhile)
-- Unwired spares: `pixFenceRound`, `wooden_bed_simple`
+- Unwired spares: `pixFenceSquare`/`pixFenceRound` (the blob4 fence sheets — the fence is `RenderFence` geometry now), `wooden_bed_simple`
 - A dedicated plan-view TOP pattern per wall material, if the shared face texture ever reads wrong
 
 ## Verification

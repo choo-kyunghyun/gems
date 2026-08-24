@@ -122,6 +122,8 @@ globalThis.contentTiles = {
       ],
     },
     {
+      // a pitched map draws this layer as lit post-and-rail boxes (RenderFence — the same
+      // occupancy read blob4 keys a frame by); the sheet + tint stay the flat-map fallback
       key: "fence",
       id: 1,
       name: "BUILD_FENCE",

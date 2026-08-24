@@ -12,7 +12,7 @@ const BB_NORMAL_Z = -0.866;
  * reaches the pitched 2.5D screen, so everything shares one depth model:
  *   STANDING  upright sprites (here) — pawns, props with no volume
  *   VOLUME    baked vox meshes (RenderMesh over the `Mesh` component) — deep furniture
- *   WALLS     tile-layer boxes (RenderWalls) — the built environment
+ *   WALLS     tile-layer boxes (RenderWalls; RenderFence's post-and-rail boxes) — the built environment
  * All three write depth and light through shMeshlit; the ground stays painter-order.
  *
  * 2.5D STANDING pass: draws each foot-anchored sprite UPRIGHT (90° off the ground, Don't

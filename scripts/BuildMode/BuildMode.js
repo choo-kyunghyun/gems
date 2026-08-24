@@ -8,8 +8,8 @@
  * frame so drawWorld can gate the cursor highlight to "build context owns input".
  *
  * scene contract (create()/ColonyMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
- * contentTiles.LAYERS entry (+ wallTypes: material key → TileType), colliders (the wall layer's),
- * _tilePasses (render pass per layer key).
+ * contentTiles.LAYERS entry (+ wallTypes: material key → TileType), <key>Colliders per solid
+ * layer, _tilePasses (render pass per layer key).
  */
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
@@ -56,6 +56,16 @@ globalThis.BuildMode = {
           kind: "tile",
           layer: "wall",
           mat: "plank",
+        },
+        {
+          // the fence layer — solid like a wall (own colliders + nav block), drawn by RenderFence
+          // as post-and-rail boxes joined to their 4-neighbors. The id predates the tile form: an
+          // old save's built-entity record carrying it lands as this tile (Blueprint.stamp).
+          id: "fence",
+          labelKey: "BUILD_FENCE",
+          cost: 1,
+          kind: "tile",
+          layer: "fence",
         },
         {
           id: "floor",
@@ -115,19 +125,6 @@ globalThis.BuildMode = {
             gy,
             label: I18n.text("BUILD_BARREL"),
             furn: "barrel",
-          }),
-        },
-        {
-          id: "fence",
-          labelKey: "BUILD_FENCE",
-          cost: 1,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_FENCE"),
-            furn: "fence",
           }),
         },
         {
@@ -632,13 +629,13 @@ globalThis.BuildMode = {
   //                    damage) instead of a fresh make(); Position is overridden to this cell.
   //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
   // Updates _built / _builtEnts. Returns the entity id (entity) or whether a solid tile was placed
-  // (so a deferred caller knows a wall remesh is pending).
+  // (so a deferred caller knows that layer's remesh is pending).
   applyItem(scene, gx, gy, item, opts = {}) {
     const grid = scene.level.grid;
     const key = gx + "," + gy;
     if (item.kind === "tile") {
       // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
-      // wall materials). Only the solid layer (wall) has colliders to remesh (scene.colliders).
+      // wall materials). A solid layer (wall/fence) has its own colliders to remesh (<key>Colliders).
       const layer = scene[item.layer + "Layer"];
       const type =
         item.mat !== undefined
@@ -646,8 +643,17 @@ globalThis.BuildMode = {
           : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
       const solid = contentTiles.get(item.layer).solid === true;
-      if (solid && opts.deferRemesh !== true)
-        TileEdit.remesh(scene.level.entities, grid, layer, scene.colliders);
+      // nested, not `solid && …`: the short-circuit corrupts its left operand (docs/GMRT.md
+      // #15549) and the return below would read false for a deferred solid tile
+      if (opts.deferRemesh !== true) {
+        if (solid)
+          TileEdit.remesh(
+            scene.level.entities,
+            grid,
+            layer,
+            scene[item.layer + "Colliders"],
+          );
+      }
       BuildMode._markTileDirty(scene, item.layer);
       scene._built[key] = item.id;
       return solid;
@@ -702,7 +708,7 @@ globalThis.BuildMode = {
         scene.level.entities,
         grid,
         scene[lkey + "Layer"],
-        scene.colliders,
+        scene[lkey + "Colliders"],
       );
     BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);

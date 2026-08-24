@@ -41,13 +41,13 @@ globalThis.Blueprint = {
 
   /**
    * Stamp a plan with its origin at cell (ox, oy). Tiles go down first (so a door reads its
-   * finished neighboring walls), then entities; the single solid (wall) layer is remeshed once at
-   * the end rather than per tile. Ungated — the caller decides validity/cost.
+   * finished neighboring walls), then entities; each solid layer touched is remeshed once at the
+   * end rather than per tile. Ungated — the caller decides validity/cost.
    */
   stamp(scene, ox, oy, plan) {
     if (plan === null || plan === undefined) return 0;
     let n = 0;
-    let remeshWall = false;
+    const remesh = {}; // solid layer key -> true (remeshed once at the end)
     const tiles = plan.tiles !== undefined ? plan.tiles : [];
     for (let i = 0; i < tiles.length; i++) {
       const t = tiles[i];
@@ -56,7 +56,7 @@ globalThis.Blueprint = {
       const solid = BuildMode.applyItem(scene, ox + t.dx, oy + t.dy, item, {
         deferRemesh: true,
       });
-      if (solid === true) remeshWall = true;
+      if (solid === true) remesh[item.layer] = true;
       n++;
     }
     const ents = plan.ents !== undefined ? plan.ents : [];
@@ -64,18 +64,21 @@ globalThis.Blueprint = {
       const e = ents[i];
       const item = BuildMode.item(e.item);
       if (item === undefined) continue;
+      // an id that has since become a TILE item (the fence) lands as that tile — applyItem's tile
+      // branch ignores the snapshot, which is how an old save's fence entities migrate
       BuildMode.applyItem(scene, ox + e.dx, oy + e.dy, item, {
         snapshot: e.snapshot,
       });
       n++;
     }
-    // one remesh for the whole batch (the wall layer is the only solid one)
-    if (remeshWall)
+    // one remesh per touched solid layer for the whole batch
+    const rk = Object.keys(remesh);
+    for (let i = 0; i < rk.length; i++)
       TileEdit.remesh(
         scene.level.entities,
         scene.level.grid,
-        scene.wallLayer,
-        scene.colliders,
+        scene[rk[i] + "Layer"],
+        scene[rk[i] + "Colliders"],
       );
     return n;
   },

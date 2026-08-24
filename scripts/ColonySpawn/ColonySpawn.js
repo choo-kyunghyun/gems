@@ -13,7 +13,7 @@
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
  *   npc      label nameKey questId merchant?
  *   chest    capacity items[]
- *   prop     label color material? kind? furn?  (kind/furn picks a vox MESH where one exists, else a sprite; material → tint over color (sprites only); kind → Interaction, else furniture)
+ *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture)
  *   torch    label? color?        (decorative light prop — small solid post; carries a Light)
  *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
@@ -46,8 +46,8 @@ globalThis.ColonySpawn = {
   },
 
   // Furniture `furn` → vox model for the prop adapter; an unknown/absent furn falls back to
-  // the crate (matching the old behavior). "fence" is the one sprite prop; "cot" rides the
-  // kind:"bed" branch.
+  // the crate (matching the old behavior). "cot" rides the kind:"bed" branch; the fence is a tile
+  // layer, not a prop (BuildMode).
   FURN_MODELS: {
     barrel: "wooden_barrel",
     crate: "wooden_crate",
@@ -68,16 +68,6 @@ globalThis.ColonySpawn = {
    * through by reference — see EntityPreset._clone).
    */
   register() {
-    // the fence keeps 16px sprite art in the 32px world: density 0.5 → draw scale ×2, BBox
-    // untouched (SpriteMeta.fit). Code-registered — no manifest file/gems.yyp entry needed.
-    SpriteMeta.register([
-      {
-        sprite: "pixFenceSquare",
-        kind: "entity",
-        density: 0.5,
-        cell: [16, 16],
-      },
-    ]);
     EntityPreset.register([
       {
         id: "raider",
@@ -370,9 +360,8 @@ globalThis.ColonySpawn = {
       if (Object.keys(inv).length > 0) over.Inventory = inv;
     } else if (s.preset === "prop") {
       // Vox MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
-      // "cot" picks the cot bunk) or furniture `furn` where a model exists — vertex-colored,
-      // so color/material don't apply. Only the fence keeps a sprite (tintable via the
-      // descriptor's color/material).
+      // "cot" picks the cot bunk) or furniture `furn` (FURN_MODELS, crate fallback) —
+      // vertex-colored, so color/material don't apply.
       let model;
       if (s.kind === "workbench") model = "wooden_workbench";
       else if (s.kind === "bed")
@@ -382,34 +371,23 @@ globalThis.ColonySpawn = {
       else if (s.kind === "hydrate") model = "wooden_tub";
       else if (s.kind === "feed") model = "wooden_bin";
       else if (s.kind === "buff") model = "wooden_altar";
-      else if (s.furn !== "fence")
-        model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
-      if (model !== undefined) {
-        over.Mesh = { model };
-        // collider matched to the model's voxel footprint (big furniture is multi-cell)
-        const fp = ColonySpawn.footprint(model);
+      else model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
+      over.Mesh = { model };
+      // collider matched to the model's voxel footprint (big furniture is multi-cell)
+      const fp = ColonySpawn.footprint(model);
+      if (fp !== undefined)
+        over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
+      // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
+      // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
+      if (s.kind === "door" && s.vertical === true) {
+        over.Mesh.yaw = 90;
         if (fp !== undefined)
-          over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
-        // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
-        // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
-        if (s.kind === "door" && s.vertical === true) {
-          over.Mesh.yaw = 90;
-          if (fp !== undefined)
-            over.BBox = {
-              x: -fp.h / 2,
-              y: -fp.w / 2,
-              width: fp.h,
-              height: fp.w,
-            };
-        }
-      } else {
-        let color;
-        if (s.color !== undefined || s.material !== undefined)
-          color = ColonySpawn._tint(s);
-        over.Visual =
-          color !== undefined
-            ? { sprite: pixFenceSquare, color }
-            : { sprite: pixFenceSquare };
+          over.BBox = {
+            x: -fp.h / 2,
+            y: -fp.w / 2,
+            width: fp.h,
+            height: fp.w,
+          };
       }
       over.Name = { name: s.label };
       if (s.kind !== undefined)
@@ -533,20 +511,6 @@ globalThis.ColonySpawn = {
       size: opt.size,
       components: over,
     });
-  },
-
-  /**
-   * Resolve a spawn's tint: a `material` id's Item.Material color wins (per-material tinting, one
-   * source of truth), else `color` (#hex), else `fallback`, else white. Returns a colour int.
-   */
-  _tint(s, fallback) {
-    if (s.material !== undefined) {
-      const item = Item.get(s.material);
-      const mat = item !== undefined ? item.getComponent(Material) : undefined;
-      if (mat !== undefined) return mat.color;
-    }
-    const hex = s.color ?? fallback;
-    return hex !== undefined ? Color.parse(hex) : c_white;
   },
 
   // Skin tones for doll humanoids (Skeleton.color over the white spineHuman body art).
