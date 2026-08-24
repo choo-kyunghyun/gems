@@ -1,0 +1,8 @@
+[
+  {
+    "sprite": "spineRat",
+    "kind": "entity",
+    "density": 1.875,
+    "cell": [34, 22]
+  }
+]
