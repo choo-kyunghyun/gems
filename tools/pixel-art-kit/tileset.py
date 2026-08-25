@@ -32,7 +32,7 @@ Usage:
     --mode        which set(s) to emit (default both).
     --heal        wrap-offset + seam-blur the patch to force tileability (a real tiling node
                   upstream is better; this is the stdlib safety net).
-    --palette F   lock the output to the palette in file F (hex-per-line); omit = keep source colors.
+    --palette F   lock the output to the palette in file F (.gpl or hex-per-line); omit = keep source colors.
 """
 import os, sys, random
 import pixlib as P

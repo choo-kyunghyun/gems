@@ -3,12 +3,12 @@
 Use it to pull any generator's / externally-produced art onto the project's palette so a sprite
 sits in the existing set.
 
-The kit bakes in NO palette — pass a hex-per-line palette file (`rrggbb`, optional `#`; e.g. a
-Lospec `.hex` export). Alpha is preserved as a hard cutout (a < threshold -> transparent).
+Pass a palette file — `palettes/aap-64.gpl` for the project, or any GIMP `.gpl` / bare hex-per-line
+file. Alpha is preserved as a hard cutout (a < threshold -> transparent).
 
 Usage:
-  python quantize.py in.png  out.png  palette.hex
-  python quantize.py in_dir  out_dir  palette.hex        # all *.png (skips *_x16 / sheet)
+  python quantize.py in.png  out.png  palette.gpl
+  python quantize.py in_dir  out_dir  palette.gpl        # all *.png (skips *_x16 / sheet)
 """
 import sys, os
 import pixlib as P
@@ -28,7 +28,7 @@ def main():
     src, dst, pal_path = sys.argv[1], sys.argv[2], sys.argv[3]
     palette = P.load_palette(pal_path)
     if not palette:
-        print(f"  ! no colors loaded from {pal_path} (expect hex-per-line: rrggbb)")
+        print(f"  ! no colors loaded from {pal_path} (expect a GIMP .gpl or hex-per-line rrggbb)")
         return
     if os.path.isdir(src):
         os.makedirs(dst, exist_ok=True)

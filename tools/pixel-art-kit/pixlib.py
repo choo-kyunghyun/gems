@@ -255,15 +255,18 @@ def quantize_to_palette(pixels, palette, alpha_thresh=128):
 
 
 def load_palette(path):
-    """Load an RGB palette from a hex-per-line file (`rrggbb`, optional leading `#`; `#`-comment and
-    blank lines ignored). The kit ships NO built-in palette — provide the project's. Common `.hex`
-    exports (e.g. Lospec) parse directly. Line N (0-based, comments skipped) = palette index N."""
+    """Load an RGB palette from a GIMP `.gpl` (`GIMP Palette` header, `#` comments, then `R G B [...]`
+    per line — the form Aseprite's bundled palettes ship in) or, as a fallback, a bare hex-per-line
+    file (`rrggbb`, optional leading `#`, e.g. an Aseprite *Save Palette* export). Entry N (0-based)
+    = palette index N."""
     pal = []
     for line in open(path, encoding="utf-8"):
-        s = line.strip()
-        if not s or s.startswith("#"):
+        f = line.split()
+        if not f:
             continue
-        s = s.lstrip("#")
-        if len(s) >= 6 and all(c in "0123456789abcdefABCDEF" for c in s[:6]):
-            pal.append((int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)))
+        if len(f) >= 3 and all(t.isdigit() for t in f[:3]):
+            pal.append((int(f[0]), int(f[1]), int(f[2])))
+        elif len(f) == 1 and re.fullmatch(r"#?[0-9a-fA-F]{6}", f[0]):
+            h = f[0].lstrip("#")
+            pal.append((int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
     return pal
