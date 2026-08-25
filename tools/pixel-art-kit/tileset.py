@@ -18,14 +18,22 @@ C0-continuous across a shared edge, so adjacent display tiles connect with no se
            cover all 256 masks; material necessarily repeats every half-cell (inherent to the
            method — pieces are shared across quadrant positions).
 
+Variants (dual only): extra materials (`--variant`, repeatable; e.g. material.py re-rolls or
+decorated copies of the same recipe) are appended after the 16 masks as FULL-tile frames 16.., so
+a runtime can pick among frame 15 and 16.. per cell and a wide field doesn't tile visibly. They
+sit next to the base without a seam as long as the recipe is the same (statistically continuous)
+and any decoration keeps off the border.
+
 Outputs (under out/<subdir>/), per mode:
   <mode>_strip<N>.png   the runtime sprite, N = frame count (GameMaker `_stripN` auto-slices it
-                        into N frames on import: dual_strip16, corner_strip13)
+                        into N frames on import: dual_strip16 (+variants), corner_strip13)
   preview_<mode>.png    upscaled frames on a checker, to eyeball
-  seamless_<mode>.png   a demo blob rendered through the tiles — proves it tiles
+  seamless_<mode>.png   a demo blob rendered through the tiles — proves it tiles (dual picks the
+                        full-tile variants by position hash, so the alternates are exercised too)
 
 Usage:
-  python tileset.py [material.png] [size] [out_subdir] [--mode dual|corner|both] [--heal] [--raw]
+  python tileset.py [material.png] [size] [out_subdir] [--mode dual|corner|both] [--heal]
+                    [--palette F] [--variant V.png ...]
     material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural demo grass.
     size          tile pixels (default 32). corner pieces are size/2.
     out_subdir    under out/ (default tiles/<material-stem>).
@@ -33,8 +41,9 @@ Usage:
     --heal        wrap-offset + seam-blur the patch to force tileability (a real tiling node
                   upstream is better; this is the stdlib safety net).
     --palette F   lock the output to the palette in file F (.gpl or hex-per-line); omit = keep source colors.
+    --variant V   a full-tile variant material to append to the dual set (repeat per variant).
 """
-import os, sys, random
+import os, sys, random, argparse
 import pixlib as P
 
 TRANSPARENT = (0, 0, 0, 0)
@@ -140,6 +149,21 @@ def synth(patch, S, masks):
             for cov in (coverage(m, S) for m in masks)]
 
 
+def dual_set(patch, S, variants=()):
+    """The dual-grid sheet: 16 mask frames cut from `patch`, then each variant patch as a
+    full-tile frame (16..). Frame index == corner mask for the first 16."""
+    return synth(patch, S, range(16)) + [list(v) for v in variants]
+
+
+def pick_variant(frames, tx, ty):
+    """The full-tile frame for a mask-15 cell at (tx, ty): frame 15 or one of the variants,
+    by a deterministic position hash — what a runtime's per-cell pick looks like."""
+    n = len(frames) - 15
+    if n <= 1:
+        return frames[15]
+    return frames[15 + ((tx * 73856093) ^ (ty * 19349663)) % n]
+
+
 # ---- engine corner selectors (standard corner-autotile selectors) ----------
 # neighbor bits: N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128
 
@@ -236,7 +260,8 @@ def write_seamless_dual(out, frames, S, scale=3):
         for tx in range(txn):
             mask = (grid[ty][tx] + grid[ty][tx + 1] * 2
                     + grid[ty + 1][tx + 1] * 4 + grid[ty + 1][tx] * 8)
-            _blit_flat(img, w, tx * S, ty * S, frames[mask], S)
+            fr = pick_variant(frames, tx, ty) if mask == 15 else frames[mask]
+            _blit_flat(img, w, tx * S, ty * S, fr, S)
     uw, uh, up = _upscale(img, w, h, scale)
     P.write_png(os.path.join(out, "seamless_dual.png"), uw, uh, up)
 
@@ -277,35 +302,42 @@ def resolve(path):
 
 
 def main():
-    args = sys.argv[1:]
-    heal = "--heal" in args
-    mode = args[args.index("--mode") + 1] if "--mode" in args else "both"
-    pal_val = args[args.index("--palette") + 1] if "--palette" in args else None
-    palette = P.load_palette(pal_val) if pal_val else None
-    pos = [a for a in args if not a.startswith("--")
-           and a not in ("dual", "corner", "both") and a != pal_val]
-
-    material = pos[0] if pos else None
-    S = int(pos[1]) if len(pos) > 1 else 32
+    ap = argparse.ArgumentParser(add_help=False)
+    ap.add_argument("material", nargs="?")
+    ap.add_argument("size", nargs="?", type=int, default=32)
+    ap.add_argument("out_subdir", nargs="?")
+    ap.add_argument("--mode", choices=("dual", "corner", "both"), default="both")
+    ap.add_argument("--heal", action="store_true")
+    ap.add_argument("--palette")
+    ap.add_argument("--variant", action="append", default=[])
+    a = ap.parse_args()
+    material, S, heal = a.material, a.size, a.heal
+    palette = P.load_palette(a.palette) if a.palette else None
     Q = S // 2
-    if len(pos) > 2:
-        sub = pos[2]
+    if a.out_subdir:
+        sub = a.out_subdir
     else:
         stem = os.path.splitext(os.path.basename(material))[0] if material else "grass"
         sub = os.path.join("tiles", stem)
     out = P.out_dir(sub)
 
     did = []
-    if mode in ("dual", "both"):
+    if a.mode in ("dual", "both"):
         patch, label = prep_patch(material, S, heal, palette)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return
-        frames = synth(patch, S, range(16))
+        variants = []
+        for v in a.variant:
+            vp, _ = prep_patch(v, S, heal, palette)
+            if vp is None:
+                print(f"  ! variant not found: {v} (also tried under out/)"); return
+            variants.append(vp)
+        frames = dual_set(patch, S, variants)
         write_strip(out, "dual", frames, S)
         write_preview(out, "dual", frames, S, cols=4)
         write_seamless_dual(out, frames, S)
-        did.append(f"dual (16x{S})")
-    if mode in ("corner", "both"):
+        did.append(f"dual (16x{S}" + (f" + {len(variants)} variants)" if variants else ")"))
+    if a.mode in ("corner", "both"):
         patch, label = prep_patch(material, Q, heal, palette)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return

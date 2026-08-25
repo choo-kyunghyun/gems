@@ -13,6 +13,7 @@ primitives you import from a script written for the sprite in front of you, and 
 pixel-art-kit/
 ├── raster.py      drawing: Canvas (hard alpha) + Soft (anti-aliased)
 ├── pixlib.py      I/O: PNG encode/decode, animated GIF, compositing, quantize, paths
+├── material.py    procedural tileable textures (noise / ripple / blades / grain) + decor stamps
 ├── tileset.py     synthesize an autotile set from one material (seamless by construction)
 ├── spritesize.py  measure a candidate's silhouette -> a grid-snapped frame size
 ├── quantize.py    remap a PNG/folder onto a palette
@@ -68,6 +69,29 @@ The sprite origin is set in the IDE on import; which one a frame wants follows f
 | `center` | middle-center | item icons, drawn centered in a UI slot |
 | `topleft` | 0,0 | tiles, wall/floor textures |
 
+## Materials
+
+`material.py` generates tileable texture patches — the input an autotile set is cut from. Four
+recipes, each seamless by construction, colors chosen by the caller:
+
+| recipe | look | for |
+|---|---|---|
+| `noise` | coarse value-noise thresholded dark / base / light | stone, mud, humus |
+| `ripple` | warped sine bands over a tone ramp | water |
+| `blades` | fine vertical strokes over a base | grass, fur |
+| `grain` | isolated 1 px specks over a base | sand, gravel, plaster |
+
+```python
+import material as M
+grass = M.blades(32, base=(50, 132, 100), dark=(35, 103, 78), light=(93, 175, 141), seed=7)
+rolls = M.variants(lambda s: M.blades(32, base=..., dark=..., light=..., seed=s), 4, seed=7)
+bloom = M.decorate(rolls[1], 32, "flowers", seed=99, petals=[(228, 210, 170)], core=(219, 164, 99))
+```
+
+`variants` re-rolls one recipe for full-tile alternates (a `ripple` must stay one tile — a phase jump
+seams); `decorate` scatters `flowers` / `pebbles` stamps clear of the border so a decorated cell
+still abuts plain neighbors. `python material.py [algo|all] [size]` writes a demo of each recipe.
+
 ## Autotile sets
 
 `tileset.py` synthesizes a full autotile set from one material texture. Every piece is cut from the
@@ -75,14 +99,17 @@ same patch, so the edges match by construction; an autotile set assembled from i
 cells never tiles.
 
 ```sh
-python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--palette F]
+python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--palette F] [--variant V.png ...]
 #   dual_strip16.png  = 16 corner-keyed frames     corner_strip13.png = 13 quarter pieces
+#   dual_strip20.png  = the 16 + 4 --variant full tiles appended as frames 16..19
 ```
 
 `--mode dual` → 16 corner-keyed frames (A-over-B transitions); `--mode corner` → 13 quarter-tile
-pieces (the blob8 look; good for walls). Each mode also writes a `preview_<mode>` and a
-`seamless_<mode>` tiling test. `--heal` forces tileability on a non-seamless input. Omit the input for
-the built-in procedural demo material.
+pieces (the blob8 look; good for walls). `--variant` (dual only, repeatable) appends full-tile
+alternates after the 16 masks so a runtime can vary a wide field per cell. Each mode also writes a
+`preview_<mode>` and a `seamless_<mode>` tiling test (dual picks the alternates by position hash).
+`--heal` forces tileability on a non-seamless input. Omit the input for the built-in procedural demo
+material.
 
 ## Other tools
 
