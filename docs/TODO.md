@@ -49,6 +49,14 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Gamepad reloading
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 
+## Pathfinding
+
+Every agent now plans over one level-sized `NavGrid`, so a request can span the whole map; the costs it exposed are in PERF.md → Known Remaining Costs.
+
+- Budget `PathfindingSystem.update` — serve N `PathRequest`s per tick and carry the rest over, so a burst of far requests (a colony's worth of workers re-planning after a wall goes up) is spread across ticks instead of landing in one frame.
+- Bound a far plan — a heuristic weight (bounded suboptimality) is the one-line knob; a coarse planner over the fine grid (region graph → refine within the corridor) is the real fix once workers routinely cross the map.
+- `LevelGrid.costAt` builds a `NavData` literal per layer per cell — the whole-level resample at a map's first `NavGrid.sync` is mostly that allocation. Have `getNavData` answer a number (undefined = pass through) and the literal goes.
+
 ## UI
 
 - Killfeed
