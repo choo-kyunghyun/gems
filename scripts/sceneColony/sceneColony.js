@@ -80,7 +80,7 @@ class _SceneColonyClass {
     this.dialogueLine = "";
     this.dialogueAction = "";
 
-    // flag gameplay so SystemMenu suspends nav while playing; can't be a field initializer (GMRT)
+    // flag gameplay so GameOverlay suspends nav while playing; can't be a field initializer (GMRT)
     this.gameplay = true;
 
     // RadarArrows component→color rules (first match wins); built here (not top level) so Color is
@@ -284,7 +284,7 @@ class _SceneColonyClass {
    * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
    */
   update() {
-    // no pause gate — Game skips scene.update() while the SystemMenu is open
+    // no pause gate — Game skips scene.update() while the GameOverlay is open
 
     // re-latch the player id from the live Playable query (derived, not stored — ColonyMap.go's
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
@@ -865,7 +865,7 @@ class _SceneColonyClass {
   }
 
   /**
-   * Esc back-out (SystemMenu calls this before pausing): close the active context — window, then
+   * Esc back-out (GameOverlay calls this before pausing): close the active context — window, then
    * build. Returns true if consumed; false falls through to the pause menu. window > build priority.
    */
   handleEscape() {

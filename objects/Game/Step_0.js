@@ -3,7 +3,7 @@ Music.update(); // reap a finished BGM cross-fade (wall clock — runs even whil
 UIPointer.poll(); // latch this frame's pointer edges before any widget reads them
 UI.update();
 SlotDrag.update();
-SystemMenu.update(this); // global F1 system overlay; before UINav so it's same-frame nav-reachable
+GameOverlay.update(this); // global F1 system overlay; before UINav so it's same-frame nav-reachable
 UINav.update();
 Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-box)
 // dev-only: F2 returns to lobby without a restart
@@ -17,12 +17,12 @@ if (this._pending !== null && !SceneTransition.isBusy()) {
 }
 SceneTransition.update();
 
-// THE sim tick, pause-gated two ways: the SystemMenu overlay and the Debug "Sim" toggle.
-if (SystemMenu.isOpen()) {
+// THE sim tick, pause-gated two ways: the GameOverlay sheet and the Debug "Sim" toggle.
+if (GameOverlay.isOpen()) {
   // Menu forces Time.scale = 0; a step must restore a non-zero delta (the sim advances off
   // Time.delta) then re-freeze.
   if (this._takeStep()) {
-    Time.scale = SystemMenu.scale();
+    Time.scale = GameOverlay.scale();
     Time.delta = Time.raw * Time.scale;
     this.scene.update();
     Time.delta = 0;

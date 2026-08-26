@@ -1,5 +1,5 @@
 // Display / window management — applies the saved display Settings (fullscreen + windowed resolution
-// + fps cap) to the OS window + application_surface. Used at boot and on a SystemMenu display change.
+// + fps cap) to the OS window + application_surface. Used at boot and on a GameOverlay display change.
 globalThis.Display = {
   // frames to defer a resize after leaving fullscreen — the manual warns window_set_size right after
   // fullscreen→windowed "may not work correctly" unless ≥10 steps later. The caveat does NOT reproduce
@@ -65,7 +65,7 @@ globalThis.Display = {
   // forced AA level overriding the saved setting while a subsystem can't tolerate it (null = use
   // Settings). Owned here, not by the requester, so EVERY applyVideo honors it: Debug pins 0 for the
   // lifetime of the native ImGui overlay (single-sampled — an AA>0 back buffer is a fatal WebGPU
-  // sampleCount mismatch), which a later SystemMenu vsync/AA change would otherwise restore under it.
+  // sampleCount mismatch), which a later GameOverlay vsync/AA change would otherwise restore under it.
   aaOverride: null,
 
   /**

@@ -4,7 +4,7 @@
  *
  * 1. THE CONTRACT (duck-typed): the Game object drives any object shaped like this class —
  *      create(openScene) / update() / draw() / destroy()   required (called unconditionally)
- *      handleEscape()         optional — SystemMenu gives it first refusal on Esc/B
+ *      handleEscape()         optional — GameOverlay gives it first refusal on Esc/B
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
  *    A scene is LIVE or GONE, never frozen: a switch destroys it, so it carries no state across
  *    one. `openScene(factory)` is the ONLY handle a scene gets on the switch — there is no

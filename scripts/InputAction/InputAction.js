@@ -96,7 +96,7 @@ globalThis.InputAction = class InputAction {
   }
 
   /**
-   * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam SystemMenu keeps UINav.suspended=true.
+   * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam GameOverlay keeps UINav.suspended=true.
    */
   static _gamepadMuted() {
     return !UINav.suspended;

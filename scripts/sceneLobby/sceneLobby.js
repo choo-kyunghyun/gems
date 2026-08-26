@@ -1,5 +1,5 @@
 // boot level + dev launcher (F2). flat button list of all registered scenes, then
-// global actions (Credits/Settings/Quit via SystemMenu). no separate title/credits level.
+// global actions (Credits/Settings/Quit via GameOverlay). no separate title/credits level.
 
 globalThis.SCENES = {
   lobby: () =>
@@ -64,12 +64,12 @@ globalThis.SCENES = {
           );
         }
 
-        // Credits opens SystemMenu About tab (index 2)
+        // Credits opens GameOverlay About tab (index 2)
         col.insertChild(
-          gemsButton(I18n.textRef("TITLE_CREDITS"), () => SystemMenu.open(2)),
+          gemsButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
         );
         col.insertChild(
-          gemsButton(I18n.textRef("TITLE_SETTINGS"), () => SystemMenu.open()),
+          gemsButton(I18n.textRef("TITLE_SETTINGS"), () => GameOverlay.open()),
         );
         col.insertChild(
           gemsButton(I18n.textRef("TITLE_QUIT"), () =>

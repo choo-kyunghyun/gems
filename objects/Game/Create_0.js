@@ -151,7 +151,7 @@ this._takeStep = () => {
 this._apply = (factory) => {
   this._destroyScene();
   UINav.reset(); // drop focus held on the outgoing scene's UI
-  SystemMenu.reset(); // close the pause overlay + restore time scale
+  GameOverlay.reset(); // close the pause overlay + restore time scale
   Dialogue.clear();
   FloatingText.clear(); // world coords are map-local
   ParticleFx.clear(); // world coords are map-local
@@ -173,8 +173,8 @@ this._destroyScene = () => {
   this._label = null;
 };
 
-SystemMenu.quitTo = SCENES.lobby;
-SystemMenu.settingsFile = SETTINGS_FILE;
+GameOverlay.quitTo = SCENES.lobby;
+GameOverlay.settingsFile = SETTINGS_FILE;
 // lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
 // nothing to fade out from, so the boot fades IN from black instead.
 this._apply(SCENES.lobby);
@@ -182,11 +182,11 @@ SceneTransition.reveal();
 
 // register built-in debug sections; they read this.scene live, so bindings track it across swaps
 DebugGeneral.register(this);
-DebugRender.register(this); // per-pass overlay toggles (formerly the SystemMenu Debug tab)
+DebugRender.register(this); // per-pass overlay toggles (formerly the GameOverlay Debug tab)
 DebugInspector.register(this); // the click-to-pick "Entity" section (Step_0 drives the picking)
 
-// Inject the Save/Load tab into the Core SystemMenu (the injection seam keeps SystemMenu free of
+// Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of
 // the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
-SystemMenu.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
+GameOverlay.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
   SaveGame.buildMenuTab(this),
 );

@@ -366,7 +366,7 @@ globalThis.SaveGame = {
     return zones;
   },
 
-  // ── menu UI (injected into SystemMenu as an extra tab; see Game Create_0) ──
+  // ── menu UI (injected into GameOverlay as an extra tab; see Game Create_0) ──
   SLOTS: 3, // fixed named save slots shown in the menu
 
   /**
@@ -474,7 +474,7 @@ globalThis.SaveGame = {
       Toast.push(I18n.text("SAVE_TOAST_LOADFAIL"), { type: "warn" });
       return;
     }
-    SystemMenu.close();
+    GameOverlay.close();
     game.switchTo(SceneColony); // fresh colony boot → create() load-branch → restore
   },
 

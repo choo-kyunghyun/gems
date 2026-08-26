@@ -39,7 +39,7 @@ globalThis.DebugGeneral = {
         dbg_button("Clear", () => Log.clear());
       },
     });
-    // sim controls relocated from SystemMenu; Pause gates scene.update()
+    // sim controls relocated from GameOverlay; Pause gates scene.update()
     Debug.add({
       name: "Sim",
       build() {

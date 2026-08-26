@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"SystemMenu",
+  "%Name":"GameOverlay",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"SystemMenu",
+  "name":"GameOverlay",
   "parent":{
     "name":"UI",
     "path":"folders/Game/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"SystemMenu.js",
+  "scriptSource":"GameOverlay.js",
 }

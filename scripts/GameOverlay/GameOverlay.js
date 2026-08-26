@@ -1,11 +1,13 @@
 /**
- * Pause is global: the Game object skips scene.update() while isOpen(), and the menu forces
- * Time.scale=0 each frame (the menu itself runs on Time.raw).
+ * The app's pause overlay: a side sheet filling the RIGHT half of the screen (edge to edge, sliding
+ * in from the right) over a dimmed, still-visible scene.
+ * Pause is global: the Game object skips scene.update() while isOpen(), and the overlay forces
+ * Time.scale=0 each frame (the overlay itself runs on Time.raw).
  * UIModal blocks the underlying UI. Open triggers: F1 anywhere, gamepad Start during gameplay; Esc
  * during gameplay is context-aware (scene.handleEscape() gets first refusal). A scene opts into
  * gameplay pause/nav via this.gameplay.
  */
-globalThis.SystemMenu = {
+globalThis.GameOverlay = {
   _modal: null, // open UIModal handle, or null
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
   _game: null, // the Game object, re-latched each update() — owner of the scene pointer + backdrop
@@ -22,20 +24,20 @@ globalThis.SystemMenu = {
 
   /** Register an extra tab. `build` is called each open (so it reads live state). */
   addTab(label, build) {
-    SystemMenu._extraTabs.push({ label, build });
+    GameOverlay._extraTabs.push({ label, build });
   },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
   // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
   /** game: the Game controller (its `background` re-themes) */
   update(game) {
-    SystemMenu._game = game;
+    GameOverlay._game = game;
     const scene = game.scene;
 
-    if (SystemMenu._modal !== null) {
+    if (GameOverlay._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
-      if (keyboard_check_pressed(vk_f1) || SystemMenu._startPressed()) {
-        SystemMenu.close();
+      if (keyboard_check_pressed(vk_f1) || GameOverlay._startPressed()) {
+        GameOverlay.close();
       }
       UINav.suspended = false; // overlay must stay nav-reachable over any scene
       Time.scale = 0; // freeze Time.delta consumers behind the overlay
@@ -45,7 +47,7 @@ globalThis.SystemMenu = {
 
     // closed. F1 opens anywhere (even a non-gameplay scene)
     if (keyboard_check_pressed(vk_f1)) {
-      SystemMenu.open();
+      GameOverlay.open();
       return;
     }
 
@@ -54,8 +56,8 @@ globalThis.SystemMenu = {
     if (scene === null || scene.gameplay !== true) return;
 
     // gamepad Start opens the pause menu directly
-    if (SystemMenu._startPressed()) {
-      SystemMenu.open();
+    if (GameOverlay._startPressed()) {
+      GameOverlay.open();
       return;
     }
 
@@ -65,7 +67,7 @@ globalThis.SystemMenu = {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
       } else {
-        SystemMenu.open();
+        GameOverlay.open();
       }
       return;
     }
@@ -90,54 +92,49 @@ globalThis.SystemMenu = {
 
   isOpen() {
     // METHOD not a getter — house style, not a runtime dodge.
-    return SystemMenu._modal !== null;
+    return GameOverlay._modal !== null;
   },
 
   /** Time.scale to restore on resume. */
   scale() {
-    return SystemMenu._scale;
+    return GameOverlay._scale;
   },
 
   /** Open + pause (idempotent). tabIndex: 0 System, 1 Settings, 2 About. */
   open(tabIndex = 0) {
-    if (SystemMenu._modal !== null) return;
-    SystemMenu._scale = Time.scale; // remember live speed to restore on resume
+    if (GameOverlay._modal !== null) return;
+    GameOverlay._scale = Time.scale; // remember live speed to restore on resume
     Time.scale = 0;
     Time.delta = 0;
 
-    // flex-grow throughout (not a snapshot of display_get_gui_height()) so the menu reflows on a
-    // live uiScale resize.
-    const margin = 28;
-
+    // percentages throughout (not a snapshot of display_get_gui_*()) so the sheet reflows on a
+    // live uiScale resize. The root is the dim backdrop; the sheet is its right-aligned child.
     const root = new UIElement({
       width: "100%",
       height: "100%",
-      padding: margin,
-      alignItems: "center",
+      flexDirection: "row",
+      justifyContent: "flex-end",
     });
     root.addComponent(
-      new UIPanel({ color: gemsColor("#000000"), alpha: 0.72 }),
+      new UIPanel({ color: gemsColor("#000000"), alpha: 0.55 }),
     );
     const modal = new UIModal({
       root,
+      slide: 0, // no vertical rise —
+      slideX: 48, // — the sheet enters from the right edge
       onClose: () => {
-        SystemMenu._modal = null;
-        Time.scale = SystemMenu._scale; // resume at the chosen speed
+        GameOverlay._modal = null;
+        Time.scale = GameOverlay._scale; // resume at the chosen speed
       },
     });
     root.addComponent(modal);
 
-    // full-height card, capped on ultra-wide displays
-    const inner = new UIElement({
-      width: "100%",
-      maxWidth: 1040,
-      height: "100%",
-    });
+    // the sheet: the right half, full height, square (it meets three screen edges)
     const card = gemsCard({
-      width: "100%",
-      flexGrow: 1,
+      width: "50%",
       padding: GemsTheme.pad,
       gap: GemsTheme.gapSm,
+      rad: 0,
       shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused scene
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
@@ -166,22 +163,22 @@ globalThis.SystemMenu = {
     const tabDefs = [
       {
         label: I18n.textRef("SYS_TAB_SYSTEM"),
-        content: SystemMenu._systemTab(),
+        content: GameOverlay._systemTab(),
       },
       {
         label: I18n.textRef("SYS_TAB_SETTINGS"),
-        content: SystemMenu._settingsTab(),
+        content: GameOverlay._settingsTab(),
       },
       {
         label: I18n.textRef("SYS_TAB_ABOUT"),
-        content: SystemMenu._aboutTab(),
+        content: GameOverlay._aboutTab(),
       },
     ];
     // Boot-injected tabs (Save/Load) after the built-ins; built fresh each open so they read live state
-    for (let i = 0; i < SystemMenu._extraTabs.length; i++)
+    for (let i = 0; i < GameOverlay._extraTabs.length; i++)
       tabDefs.push({
-        label: SystemMenu._extraTabs[i].label,
-        content: SystemMenu._extraTabs[i].build(),
+        label: GameOverlay._extraTabs[i].label,
+        content: GameOverlay._extraTabs[i].build(),
       });
     const tabsRoot = gemsTabs(tabDefs, { grow: true });
     card.insertChild(tabsRoot);
@@ -196,52 +193,51 @@ globalThis.SystemMenu = {
       justifyContent: "flex-end",
     });
     footer.insertChild(
-      gemsButton(I18n.textRef("SETTINGS_CLOSE"), () => SystemMenu.close(), {
+      gemsButton(I18n.textRef("SETTINGS_CLOSE"), () => GameOverlay.close(), {
         primary: true,
         width: 160,
       }),
     );
     card.insertChild(footer);
 
-    inner.insertChild(card);
-    root.insertChild(inner);
+    root.insertChild(card);
     UI.insert(root); // top of the stack → blocks lower roots, draws last
-    SystemMenu._modal = modal;
-    SystemMenu._root = root;
+    GameOverlay._modal = modal;
+    GameOverlay._root = root;
     UINav.suspended = false;
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
   },
 
   /** UIModal animates out, then restores Time.scale via onClose. */
   close() {
-    if (SystemMenu._modal !== null) SystemMenu._modal.close();
+    if (GameOverlay._modal !== null) GameOverlay._modal.close();
   },
 
   /** force-close + restore time scale on a scene swap. */
   reset() {
-    if (SystemMenu._modal !== null) {
-      SystemMenu._modal.close();
-      Time.scale = SystemMenu._scale;
+    if (GameOverlay._modal !== null) {
+      GameOverlay._modal.close();
+      Time.scale = GameOverlay._scale;
     }
-    SystemMenu._modal = null;
-    SystemMenu._root = null;
+    GameOverlay._modal = null;
+    GameOverlay._root = null;
   },
 
   // Rebuild the overlay in place (after a live theme swap) so it bakes the new palette. Removes the
   // current root SYNCHRONOUSLY — not the animated close(), whose deferred onClose would null the
   // fresh modal + recapture the (frozen) time scale — then reopens on the same tab, staying paused.
   reopen(tabIndex = 0) {
-    if (SystemMenu._modal === null) {
-      SystemMenu.open(tabIndex);
+    if (GameOverlay._modal === null) {
+      GameOverlay.open(tabIndex);
       return;
     }
-    const resume = SystemMenu._scale; // preserve the real resume speed across the rebuild
-    UI.remove(SystemMenu._root);
-    SystemMenu._root.destroy();
-    SystemMenu._modal = null;
-    SystemMenu._root = null;
-    SystemMenu.open(tabIndex); // re-captures _scale from the now-frozen live scale…
-    SystemMenu._scale = resume; // …so restore the pre-open value
+    const resume = GameOverlay._scale; // preserve the real resume speed across the rebuild
+    UI.remove(GameOverlay._root);
+    GameOverlay._root.destroy();
+    GameOverlay._modal = null;
+    GameOverlay._root = null;
+    GameOverlay.open(tabIndex); // re-captures _scale from the now-frozen live scale…
+    GameOverlay._scale = resume; // …so restore the pre-open value
   },
 
   /**
@@ -255,13 +251,13 @@ globalThis.SystemMenu = {
     SceneTransition.start(() => {
       GemsTheme.setMode(mode);
       UINav.color = Color.parse(GemsTheme.accent);
-      const game = SystemMenu._game;
+      const game = GameOverlay._game;
       if (game !== null) {
         game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
         game.retheme(); // rebuild active scene UI in place
       }
       UINav.reset(); // focus was on now-destroyed elements
-      SystemMenu.reopen(1); // reopen on the Settings tab, recolored
+      GameOverlay.reopen(1); // reopen on the Settings tab, recolored
     });
   },
 
@@ -274,19 +270,19 @@ globalThis.SystemMenu = {
     const controls = gemsSection(I18n.textRef("SYS_CONTROLS"));
     const bar = gemsGrid();
     bar.insertChild(
-      gemsButton(I18n.textRef("SYS_RESUME"), () => SystemMenu.close(), {
+      gemsButton(I18n.textRef("SYS_RESUME"), () => GameOverlay.close(), {
         width: 200,
         primary: true,
       }),
     );
     // Step Frame + Restart Scene live in the Debug overlay's "Sim" section
-    if (SystemMenu.quitTo !== null)
+    if (GameOverlay.quitTo !== null)
       bar.insertChild(
         gemsButton(
           I18n.textRef("SYS_QUIT"),
           () => {
-            SystemMenu._game.switchTo(SystemMenu.quitTo);
-            SystemMenu.close();
+            GameOverlay._game.switchTo(GameOverlay.quitTo);
+            GameOverlay.close();
           },
           { width: 200 },
         ),
@@ -447,7 +443,7 @@ globalThis.SystemMenu = {
       gemsRow(
         I18n.textRef("SETTINGS_THEME_LABEL"),
         gemsSelectCustom(themeItems, themeIdx, (_i, value) =>
-          SystemMenu._applyTheme(value),
+          GameOverlay._applyTheme(value),
         ),
         { key: "theme" },
       ),
@@ -478,7 +474,7 @@ globalThis.SystemMenu = {
     scroll.scrollBody.insertChild(langSection);
 
     // settings persist only on explicit Save (Settings.set updates live in memory)
-    if (SystemMenu.settingsFile !== null) {
+    if (GameOverlay.settingsFile !== null) {
       const saveRow = new UIElement({
         width: "100%",
         height: 44,
@@ -489,7 +485,7 @@ globalThis.SystemMenu = {
       saveRow.insertChild(
         gemsButton(
           I18n.textRef("SETTINGS_SAVE"),
-          () => Settings.save(SystemMenu.settingsFile),
+          () => Settings.save(GameOverlay.settingsFile),
           { width: 160 },
         ),
       );
