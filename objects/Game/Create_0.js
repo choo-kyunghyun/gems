@@ -187,6 +187,8 @@ DebugInspector.register(this); // the click-to-pick "Entity" section (Step_0 dri
 
 // Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of
 // the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
-GameOverlay.addTab(I18n.textRef("SYS_TAB_SAVELOAD"), () =>
-  SaveGame.buildMenuTab(this),
+GameOverlay.addTab(
+  I18n.textRef("SYS_TAB_SAVELOAD"),
+  I18n.textRef("SYS_TAB_SAVELOAD_ABBR"),
+  () => SaveGame.buildMenuTab(this),
 );

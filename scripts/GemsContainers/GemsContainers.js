@@ -414,34 +414,48 @@ globalThis.gemsWindow = function gemsWindow(title, opts = {}) {
 };
 
 /**
- * Tabbed view: tab strip over a content host. `tabs` is [{ label, content }]. Pages
- * stack as absolute overlays in one rect; selecting toggles `enabled` (no reflow).
- * Pass `opts.height` to fix the host, or `opts.grow: true` to flex-fill (reflows on a
- * GUI resize — pair with `gemsScroll({ grow: true })`). UITabs is on `root.tabs`.
+ * Tabbed view: tab strip over a content host — or, with `opts.vertical`, a narrow strip
+ * down its left (the VSCode activity-bar shape; `stripWidth`/`segment` size it). `tabs` is
+ * [{ label, content, short }] — a `short` abbreviation is drawn in the strip and the full
+ * label becomes its hover tooltip (see UITabs). Pages stack as absolute overlays in one
+ * rect; selecting toggles `enabled` (no reflow). Pass `opts.height` to fix the host, or
+ * `opts.grow: true` to flex-fill (reflows on a GUI resize — pair with
+ * `gemsScroll({ grow: true })`). UITabs is on `root.tabs`.
  */
 globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
-  const root = new UIElement(
-    opts.grow
-      ? {
-          width: opts.width ?? "100%",
-          flexGrow: 1,
-          flexBasis: 0,
-          gap: opts.gap ?? GemsTheme.gapSm,
-        }
-      : { width: opts.width ?? "100%", gap: opts.gap ?? GemsTheme.gapSm },
+  const vertical = opts.vertical ?? false;
+  const rootStyle = opts.grow
+    ? {
+        width: opts.width ?? "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+        gap: opts.gap ?? GemsTheme.gapSm,
+      }
+    : { width: opts.width ?? "100%", gap: opts.gap ?? GemsTheme.gapSm };
+  if (vertical) rootStyle.flexDirection = "row"; // strip | pages
+  const root = new UIElement(rootStyle);
+
+  const strip = new UIElement(
+    vertical
+      ? { width: opts.stripWidth ?? 64, height: "100%", flexShrink: 0 }
+      : { width: "100%", height: opts.stripHeight ?? 40, flexShrink: 0 },
   );
 
-  const strip = new UIElement({
-    width: "100%",
-    height: opts.stripHeight ?? 40,
-    flexShrink: 0,
-  });
-
-  const host = new UIElement(
-    opts.grow
-      ? { width: "100%", flexGrow: 1, flexBasis: 0 }
-      : { width: "100%", height: opts.height ?? 360, flexShrink: 0 },
-  );
+  // vertical: the pages take the remaining width; a fixed `opts.height` still applies
+  const hostStyle = vertical
+    ? { flexGrow: 1, flexBasis: 0 }
+    : { width: "100%" };
+  if (opts.grow) {
+    if (vertical) hostStyle.height = "100%";
+    else {
+      hostStyle.flexGrow = 1;
+      hostStyle.flexBasis = 0;
+    }
+  } else {
+    hostStyle.height = opts.height ?? 360;
+    hostStyle.flexShrink = 0;
+  }
+  const host = new UIElement(hostStyle);
 
   // wrap each page in an absolute overlay so they stack (no reflow on switch)
   const items = [];
@@ -455,13 +469,16 @@ globalThis.gemsTabs = function gemsTabs(tabs, opts = {}) {
     });
     overlay.insertChild(tabs[i].content);
     host.insertChild(overlay);
-    items.push({ label: tabs[i].label, content: overlay });
+    items.push({ label: tabs[i].label, short: tabs[i].short, content: overlay });
   }
 
   const tabsComp = new UITabs({
     tabs: items,
     index: opts.index ?? 0,
     onChange: opts.onChange,
+    vertical,
+    segment: opts.segment,
+    tipDelay: opts.tooltipDelay,
     font: opts.font ?? "header",
     color: gemsColor(GemsTheme.text),
     colorIdle: gemsColor(GemsTheme.textMuted),

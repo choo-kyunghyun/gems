@@ -12,8 +12,9 @@ globalThis.GameOverlay = {
   _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
   _game: null, // the Game object, re-latched each update() — owner of the scene pointer + backdrop
   _scale: 1, // Time.scale to restore on resume
-  // Boot-injected extra tabs { label, build } appended after the built-ins — the seam that keeps
-  // this menu free of scene/save concerns (SaveGame/sceneColony). Wired once at boot via addTab().
+  // Boot-injected extra tabs { label, short, build } appended after the built-ins — the seam that
+  // keeps this overlay free of scene/save concerns (SaveGame/sceneColony). Wired once at boot via
+  // addTab().
   _extraTabs: [],
   // Boot-wired quit-target scene factory (the app's lobby) — null hides the Quit button, so the
   // menu names no specific scene.
@@ -22,9 +23,12 @@ globalThis.GameOverlay = {
   // so the kit names no app file.
   settingsFile: null,
 
-  /** Register an extra tab. `build` is called each open (so it reads live state). */
-  addTab(label, build) {
-    GameOverlay._extraTabs.push({ label, build });
+  /**
+   * Register an extra tab. `short` is the abbreviation the vertical strip draws (`label` is its
+   * tooltip); `build` is called each open (so it reads live state).
+   */
+  addTab(label, short, build) {
+    GameOverlay._extraTabs.push({ label, short, build });
   },
 
   // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
@@ -160,17 +164,21 @@ globalThis.GameOverlay = {
     card.insertChild(titleRow);
     card.insertChild(gemsDivider());
 
+    // icon-less activity bar: each tab draws its abbreviation, the full label is its tooltip
     const tabDefs = [
       {
         label: I18n.textRef("SYS_TAB_SYSTEM"),
+        short: I18n.textRef("SYS_TAB_SYSTEM_ABBR"),
         content: GameOverlay._systemTab(),
       },
       {
         label: I18n.textRef("SYS_TAB_SETTINGS"),
+        short: I18n.textRef("SYS_TAB_SETTINGS_ABBR"),
         content: GameOverlay._settingsTab(),
       },
       {
         label: I18n.textRef("SYS_TAB_ABOUT"),
+        short: I18n.textRef("SYS_TAB_ABOUT_ABBR"),
         content: GameOverlay._aboutTab(),
       },
     ];
@@ -178,9 +186,10 @@ globalThis.GameOverlay = {
     for (let i = 0; i < GameOverlay._extraTabs.length; i++)
       tabDefs.push({
         label: GameOverlay._extraTabs[i].label,
+        short: GameOverlay._extraTabs[i].short,
         content: GameOverlay._extraTabs[i].build(),
       });
-    const tabsRoot = gemsTabs(tabDefs, { grow: true });
+    const tabsRoot = gemsTabs(tabDefs, { grow: true, vertical: true });
     card.insertChild(tabsRoot);
 
     // footer: a universal Close (Esc / backdrop also close)
