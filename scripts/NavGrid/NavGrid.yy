@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"NavGrid",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"Nav",
+    "path":"folders/Core/Nav.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

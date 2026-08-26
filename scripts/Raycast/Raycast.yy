@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Raycast",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
