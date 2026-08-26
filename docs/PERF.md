@@ -31,6 +31,7 @@ Per operation, net of the enclosing loop (n=4000):
 | `AABB.edges` (allocating) | 586 ns | `AABB.edgesInto` a reused rect: 166 ns |
 | `Map.get(string)` | 167 ns | resolve once per tick, not per entity |
 | `Array.push` | 152 ns | write through a reused buffer + `length =` |
+| `fill()` over a buffer, per element — JS Array and typed array alike | ~200 ns | never reset a level-sized scratch: a generation stamp marks what is live (`MotionPlanner._stamp`) |
 
 A static method call and an object literal are each worth roughly a hundred plain reads: those two
 facts explain most of what the table says. What a single READ costs is Member Access, below.
@@ -226,6 +227,15 @@ Unfixed, in the order their size was measured:
   nothing spawns in bulk.
 - 14 `RenderTileMap` passes cost ~60 us each in submission overhead alone — a consequence of one
   pass per terrain material, not of anything per-entity.
+- An A* expansion is ~6 us (four neighbours: `inBounds`/`get`/`toIndex` calls, a heuristic, a
+  heap push), and over the weighted 128² overworld the unit heuristic is weak enough that a
+  corner-to-corner plan expands ~90% of the cells: ~80–100 ms per far plan, against ~2 ms for a
+  40-cell one. `PathfindingSystem.update` serves every `PathRequest` in one tick, so a few far
+  requests landing together are a frame hitch. The fixes, in order of reach: a per-tick request
+  budget, a heuristic weight (suboptimal but bounded), a coarse planner over the fine one.
+- The nav grid's whole-level cost mirror (`NavGrid.sync` on a first sync or bulk paint) is ~50 ms —
+  `LevelGrid.costAt` is ~3 us per cell (a layer loop + a `NavData` literal each); a single-cell
+  edit resamples one cell and recomposes (~2 ms, the same cost as a collider change's re-stamp).
 
 ## Runtime-Contingent Costs
 

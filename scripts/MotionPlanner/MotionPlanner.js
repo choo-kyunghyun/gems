@@ -44,14 +44,25 @@ globalThis.MotionPlanner = {
   _from: undefined,
   _closed: undefined,
   _scratch: undefined,
+  // per-plan reset by generation: a cell's g/from/closed are live only while `_stamp[i]` equals
+  // this plan's `_gen`, so nothing is cleared between plans — a fill over the level is a VM loop
+  // even on a typed array, ~10 ms per plan on a 128² level (PERF.md → Measured Costs).
+  _stamp: undefined,
+  _gen: 0,
+  // the open set: a binary min-heap as parallel node/f arrays, reset per plan. In JS rather than
+  // ds_priority so a plan holds no GML resource and pays no boundary crossing per op — worth ~5%
+  // of a long plan; the expansions themselves are the cost (PERF.md → Known Remaining Costs).
+  _hn: [],
+  _hf: [],
 
   setGrid(grid) {
     this.grid = grid;
     const count = grid.size();
-    this._g = new Array(count);
+    this._g = new Float64Array(count);
     this._from = new Int32Array(count);
     this._closed = new Uint8Array(count);
     this._scratch = new Int32Array(count);
+    this._stamp = new Int32Array(count); // zeroed; `_gen` starts above 0 so nothing reads live
   },
 
   plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
@@ -62,6 +73,52 @@ globalThis.MotionPlanner = {
       default:
         return [];
     }
+  },
+
+  _push(n, f) {
+    const hn = this._hn;
+    const hf = this._hf;
+    let i = hn.length;
+    hn.push(n);
+    hf.push(f);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (hf[p] <= f) break;
+      hn[i] = hn[p];
+      hf[i] = hf[p];
+      i = p;
+    }
+    hn[i] = n;
+    hf[i] = f;
+  },
+
+  /** min-f node; the caller checks the heap is non-empty */
+  _pop() {
+    const hn = this._hn;
+    const hf = this._hf;
+    const top = hn[0];
+    const last = hn.length - 1;
+    const n = hn[last];
+    const f = hf[last];
+    hn.length = last;
+    hf.length = last;
+    if (last > 0) {
+      let i = 0;
+      while (true) {
+        const l = 2 * i + 1;
+        if (l >= last) break;
+        const r = l + 1;
+        let c = l;
+        if (r < last) if (hf[r] < hf[l]) c = r;
+        if (hf[c] >= f) break;
+        hn[i] = hn[c];
+        hf[i] = hf[c];
+        i = c;
+      }
+      hn[i] = n;
+      hf[i] = f;
+    }
+    return top;
   },
 
   _reconstructPath(startIdx, goalIdx) {
@@ -111,19 +168,19 @@ globalThis.MotionPlanner = {
     const goalIdx = grid.toIndex(gx, gy);
     if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
-    this._g.fill(Infinity);
-    // Ranges are explicit: a typed array's fill() is a silent no-op without them (GMRT.md).
-    this._from.fill(-1, 0, this._from.length);
-    this._closed.fill(0, 0, this._closed.length);
-
     const g = this._g;
     const from = this._from;
     const closed = this._closed;
-    const pq = ds_priority_create();
+    const stamp = this._stamp;
+    const gen = ++this._gen;
+    this._hn.length = 0;
+    this._hf.length = 0;
 
+    stamp[startIdx] = gen;
     g[startIdx] = 0;
-    ds_priority_add(
-      pq,
+    from[startIdx] = -1;
+    closed[startIdx] = 0;
+    this._push(
       startIdx,
       this._heuristic(sx, sy, gx, gy, allowDiag) * heuristicWeight,
     );
@@ -133,18 +190,14 @@ globalThis.MotionPlanner = {
       : MotionPlanner.DIRS_CARDINAL;
     let iter = 0;
 
-    while (!ds_priority_empty(pq)) {
+    while (this._hn.length > 0) {
       if (++iter > maxIter) break;
 
-      const node = ds_priority_delete_min(pq);
-      if (closed[node]) continue;
+      const node = this._pop();
+      if (closed[node]) continue; // pushed ⇒ stamped this plan, so closed is live
       closed[node] = 1;
 
-      if (node === goalIdx) {
-        const path = this._reconstructPath(startIdx, goalIdx);
-        ds_priority_destroy(pq);
-        return path;
-      }
+      if (node === goalIdx) return this._reconstructPath(startIdx, goalIdx);
 
       const xy = grid.toPosition(node);
       const node_x = xy.x;
@@ -174,22 +227,26 @@ globalThis.MotionPlanner = {
         }
 
         const ni = grid.toIndex(nx, ny);
-        if (closed[ni]) continue;
+        // nested, not `touched && …`: the short-circuit corrupts its left operand (GMRT.md #15549)
+        const touched = stamp[ni] === gen;
+        if (touched) if (closed[ni]) continue;
 
         const tg = g[node] + cellCost * step_dist;
-        if (tg >= g[ni]) continue;
+        if (touched) if (tg >= g[ni]) continue;
 
+        if (!touched) {
+          stamp[ni] = gen;
+          closed[ni] = 0;
+        }
         from[ni] = node;
         g[ni] = tg;
-        ds_priority_add(
-          pq,
+        this._push(
           ni,
           tg + this._heuristic(nx, ny, gx, gy, allowDiag) * heuristicWeight,
         );
       }
     }
 
-    ds_priority_destroy(pq);
     return [];
   },
 };
