@@ -1,127 +1,114 @@
 /**
- * A small fixed window re-centered on the agent each frame, in ABSOLUTE level-cell coords.
+ * The level-sized cost grid every planner query shares, one cell per LevelGrid cell: ≥ 1 =
+ * walkable (terrain-weighted — MotionPlanner multiplies step distance by cell cost, so a wade is
+ * chosen only when shorter than walking around), Infinity = blocked. `grid` is the plain Grid
+ * MotionPlanner.setGrid points at; its size is the level's, so setGrid runs once per map.
  *
- * Why a window: obstacles aren't tile data — walls, water, and the level border block as
- * kinematic-solid collider ENTITIES, and a level can be far larger than any agent needs to see. One
- * bounded grid unifies every obstacle source and keeps size() constant, so MotionPlanner.setGrid
- * runs ONCE while only occupancy/origin change per frame. This is the ONE live BLOCKING source; the
- * tile layers supply only the weights, through the cost sampler the level hands in.
- *
- * Coords: inBounds/get/toIndex/toPosition speak ABSOLUTE cells; the window origin maps to a local
- * buffer, so paths come back in absolute cells. GMRT-safe: for-of over the entities.query ARRAY is
- * fine (only Map/Set iterators break).
+ * Two sources, each with its own refresh signal, composed base-then-stamp so neither re-reads the
+ * other's input:
+ *   - the tile layers' cost (LevelGrid.costAt) is the BASE, cached and resampled by `sync` only
+ *     when the level's edit counter moves (a tile paint);
+ *   - the kinematic-solid colliders (walls, water, the level border, a closed door) are STAMPED
+ *     over a copy of the base by `stamp`, fed the static snapshot SolidSystem already keeps —
+ *     it fires `onStatics` only when that set actually changes, so this is the ONE live blocking
+ *     source and there is no polling. Dynamic bodies never enter (agents don't block each
+ *     other's planning; SeparationSystem keeps them apart).
  */
 globalThis.NavGrid = class NavGrid {
-  // `costAt` (optional): (wx, wy) → terrain movement cost (1 = easy, >1 = rough, Infinity =
-  // impassable) sampled per cell so MotionPlanner weights routes (it multiplies step distance by
-  // cell cost — a wade is chosen only when shorter than walking around). null → every cell costs 1.
-  constructor(cols, rows, cellW, cellH, costAt = null) {
-    this.cols = cols;
-    this.rows = rows;
-    this.cellW = cellW;
-    this.cellH = cellH;
-    this.grid = new Grid(cols, rows); // costs: ≥1 = walkable (weighted), Infinity = blocked
-    this.originX = 0; // absolute cell of the window's top-left
-    this.originY = 0;
-    this.costAt = costAt;
-    this._terrain = null; // cached per-window terrain costs; resampled only when the origin moves
-    this._rect = AABB.rect(); // reused by rebuild's collider stamp
+  /** @param {LevelGrid} tiles the level this grid mirrors (dims, cell size, and the cost source) */
+  constructor(tiles) {
+    this.tiles = tiles;
+    this.cols = tiles.cols;
+    this.rows = tiles.rows;
+    this.cellW = tiles.cellWidth;
+    this.cellH = tiles.cellHeight;
+    this.grid = new Grid(this.cols, this.rows); // the composed costs the planner reads
+    this._base = new Grid(this.cols, this.rows); // terrain costs alone
+    this._edits = -1; // tiles.edits() the base was sampled at; -1 = never
+    this._statics = []; // the last stamped snapshot, re-applied when the base resamples
   }
 
   destroy() {
     this.grid.destroy();
+    this._base.destroy();
     this.grid = undefined;
-  }
-
-  /** CONSTANT (window dims) so the planner's setGrid scratch arrays stay valid across rebuilds. */
-  size() {
-    return this.cols * this.rows;
+    this._base = undefined;
+    this.tiles = undefined;
   }
 
   /**
-   * re-center, fill with terrain costs (or 1), stamp each kinematic-solid collider's footprint as
-   * blocked. walls only — dynamic bodies are non-kinematic so agents don't block each other's
-   * planning. call once per frame OUTSIDE the tick loop.
+   * Mirror the tile layers' cost into the base when they have been edited since the last sample,
+   * then recompose. Only the cells the layers report dirty are resampled (a paint is one cell; a
+   * whole-level costAt pass is ~50 ms) — everything on the first sync or after a bulk paint. Once
+   * per frame, outside the tick loop (SimClock). Returns whether it resampled.
    */
-  rebuild(entities, centerGx, centerGy) {
-    const ox = centerGx - (this.cols >> 1);
-    const oy = centerGy - (this.rows >> 1);
-    const moved =
-      ox !== this.originX || oy !== this.originY || this._terrain === null;
-    this.originX = ox;
-    this.originY = oy;
+  sync() {
+    const tiles = this.tiles;
+    const edits = tiles.edits();
+    if (edits === this._edits) return false;
+    const layers = tiles.layers;
+    let all = this._edits === -1;
+    this._edits = edits;
+    for (let i = 0; i < layers.length; i++) if (layers[i].dirtyAll) all = true;
 
-    // whole-window refill over Grid's public `data` buffer (its contract blesses bulk direct
-    // access); clear() fills in place, so the cached reference survives it
-    const d = this.grid.data;
-    if (this.costAt === null) {
-      this.grid.clear(1);
+    // a layer's cell index is this grid's index (every layer spans the level's cols×rows)
+    const b = this._base.data;
+    const cols = this.cols;
+    if (all) {
+      for (let y = 0; y < this.rows; y++)
+        for (let x = 0; x < cols; x++) b[y * cols + x] = tiles.costAt(x, y);
     } else {
-      // terrain is static per cell — resample only when the window moves; colliders re-stamp
-      // every rebuild on top of a copy of the cached base
-      if (moved) this._sampleTerrain();
-      const t = this._terrain;
-      for (let i = 0; i < d.length; i++) d[i] = t[i];
+      for (let i = 0; i < layers.length; i++) {
+        const dirty = layers[i].dirty;
+        for (let k = 0; k < dirty.length; k++) {
+          const idx = dirty[k];
+          b[idx] = tiles.costAt(idx % cols, Math.floor(idx / cols));
+        }
+      }
     }
+    for (let i = 0; i < layers.length; i++) {
+      layers[i].dirty.length = 0;
+      layers[i].dirtyAll = false;
+    }
+    this._compose();
+    return true;
+  }
+
+  /**
+   * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px each, x2/y2 exclusive) as the
+   * blocking set and recompose. The array is kept by reference — SolidSystem replaces it, never
+   * mutates it in place.
+   */
+  stamp(statics) {
+    this._statics = statics;
+    this._compose();
+  }
+
+  /** base copy, then every static's footprint (clipped to the level) → Infinity */
+  _compose() {
+    // whole-grid refill over Grid's public `data` buffer (its contract blesses bulk direct access)
+    const d = this.grid.data;
+    const b = this._base.data;
+    for (let i = 0; i < d.length; i++) d[i] = b[i];
 
     const cw = this.cellW;
     const ch = this.cellH;
     const cols = this.cols;
-    const ox2 = this.originX;
-    const oy2 = this.originY;
-    const e = this._rect; // reused: one stamp per collider, every frame
-    entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
-      if (!col.solid || !col.kinematic) return;
-      AABB.edgesInto(pos, box, e);
+    const rows = this.rows;
+    const statics = this._statics;
+    for (let i = 0; i < statics.length; i++) {
+      const s = statics[i];
       // inclusive cell range (x2/y2 are exclusive edges, so -1)
-      let gx0 = Math.floor(e.x1 / cw);
-      let gy0 = Math.floor(e.y1 / ch);
-      let gx1 = Math.floor((e.x2 - 1) / cw);
-      let gy1 = Math.floor((e.y2 - 1) / ch);
-      if (gx0 < ox2) gx0 = ox2;
-      if (gy0 < oy2) gy0 = oy2;
-      if (gx1 > ox2 + cols - 1) gx1 = ox2 + cols - 1;
-      if (gy1 > oy2 + this.rows - 1) gy1 = oy2 + this.rows - 1;
-      for (let ay = gy0; ay <= gy1; ay++)
-        for (let ax = gx0; ax <= gx1; ax++)
-          d[(ay - oy2) * cols + (ax - ox2)] = Infinity;
-    });
-  }
-
-  /** sample the injected terrain cost at each window cell's center (world coords) */
-  _sampleTerrain() {
-    if (this._terrain === null)
-      this._terrain = new Array(this.cols * this.rows);
-    const t = this._terrain;
-    const cw = this.cellW;
-    const ch = this.cellH;
-    for (let ly = 0; ly < this.rows; ly++)
-      for (let lx = 0; lx < this.cols; lx++)
-        t[ly * this.cols + lx] = this.costAt(
-          (this.originX + lx + 0.5) * cw,
-          (this.originY + ly + 0.5) * ch,
-        );
-  }
-
-  inBounds(ax, ay) {
-    const lx = ax - this.originX;
-    const ly = ay - this.originY;
-    return lx >= 0 && lx < this.cols && ly >= 0 && ly < this.rows;
-  }
-
-  toIndex(ax, ay) {
-    return (ay - this.originY) * this.cols + (ax - this.originX);
-  }
-
-  toPosition(index) {
-    return {
-      x: this.originX + (index % this.cols),
-      y: this.originY + Math.floor(index / this.cols),
-    };
-  }
-
-  get(ax, ay) {
-    if (!this.inBounds(ax, ay)) return Infinity;
-    return this.grid.data[this.toIndex(ax, ay)];
+      let gx0 = Math.floor(s.x1 / cw);
+      let gy0 = Math.floor(s.y1 / ch);
+      let gx1 = Math.floor((s.x2 - 1) / cw);
+      let gy1 = Math.floor((s.y2 - 1) / ch);
+      if (gx0 < 0) gx0 = 0;
+      if (gy0 < 0) gy0 = 0;
+      if (gx1 > cols - 1) gx1 = cols - 1;
+      if (gy1 > rows - 1) gy1 = rows - 1;
+      for (let gy = gy0; gy <= gy1; gy++)
+        for (let gx = gx0; gx <= gx1; gx++) d[gy * cols + gx] = Infinity;
+    }
   }
 };

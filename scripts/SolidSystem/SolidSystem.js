@@ -22,6 +22,12 @@ globalThis.SolidSystem = {
   _rows: 0,
   _buckets: [],
 
+  // Injected: `(entities, statics)` fired when the static set CHANGES (not on every snapshot — a
+  // body spawn refreshes the fingerprint without touching a wall). The one place the kinematic
+  // solids are known to have moved, so anything mirroring them (NavGrid) refreshes here, not by
+  // polling. Wired by the scene that owns the nav grid; null = nobody listening.
+  onStatics: null,
+
   // cache: the store it was taken from, the id set it was taken from (the fingerprint), and the
   // baked records _resolve reads
   _store: null,
@@ -42,7 +48,7 @@ globalThis.SolidSystem = {
    * THE bare static collider (world px), the form every wall, water rect and level edge takes:
    * Position at the box's TOP-LEFT, BBox anchored (0,0) spanning w×h, and nothing else — no
    * Visual, so the caller either draws it as tiles or leaves it invisible (water, the border).
-   * Kinematic, so bodies collide against it here and NavGrid rasterizes it as blocked; made by
+   * Kinematic, so bodies collide against it here and NavGrid stamps it as blocked; made by
    * replacement, never moved or resized (the cache premise above).
    */
   box(entities, x, y, w, h) {
@@ -188,10 +194,31 @@ globalThis.SolidSystem = {
         y2: e.y2,
       });
     }
+    // A refresh on a changed candidate set is usually a dynamic body coming or going, with the
+    // statics themselves identical — then the buckets (indexes into an equal-by-index list)
+    // still hold and no listener needs telling. A store swap always counts as a change.
+    const changed = this._store !== entities || !this._same(statics);
     this._store = entities;
     this._ids = ids.slice(); // query()'s array is fresh, but the fingerprint must outlive this tick
     this._statics = statics;
+    if (!changed) return;
     this._gridRebuild(statics);
+    if (this.onStatics !== null) this.onStatics(entities, statics);
+  },
+
+  /** Same rects at the same indexes as the current snapshot (ids ascend, so order is stable). */
+  _same(statics) {
+    const prev = this._statics;
+    if (prev.length !== statics.length) return false;
+    for (let i = 0; i < statics.length; i++) {
+      const a = prev[i];
+      const b = statics[i];
+      if (a.x1 !== b.x1) return false;
+      if (a.y1 !== b.y1) return false;
+      if (a.x2 !== b.x2) return false;
+      if (a.y2 !== b.y2) return false;
+    }
+    return true;
   },
 
   _clampCol(g) {

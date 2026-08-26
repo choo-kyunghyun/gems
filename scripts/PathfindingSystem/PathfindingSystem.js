@@ -1,4 +1,4 @@
-// Grid wired via MotionPlanner.setGrid (ColonyMap points it at the per-map NavGrid).
+// Grid wired via MotionPlanner.setGrid (ColonyMap points it at the per-map NavGrid's grid).
 globalThis.PathfindingSystem = {
   /** Drop all responses so stale paths re-plan after a grid change. */
   invalidate(entities) {

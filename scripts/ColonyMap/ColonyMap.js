@@ -129,7 +129,7 @@ globalThis.ColonyMap = {
     scene.level = World.get(mapId); // the pooled data, exactly as it parked
     ColonyMap._restore(scene, ColonyMap._parked[mapId]);
     World.activeId = mapId;
-    MotionPlanner.setGrid(scene.nav);
+    MotionPlanner.setGrid(scene.nav.grid);
     if (scene.camera) scene.camera.assign(0);
 
     const sp = scene.entries[entryId] ?? scene.spawn;
@@ -200,10 +200,6 @@ globalThis.ColonyMap = {
     scene.nearNpc = false;
     scene._climateZone = 0;
     scene._npcId = -1;
-    // nav-rebuild gate (sceneColony.step): force a rebuild on the first frame of a (re)activated map
-    scene._navGx = undefined;
-    scene._navGy = undefined;
-    scene._navTick = 0;
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
@@ -214,9 +210,10 @@ globalThis.ColonyMap = {
 
   /**
    * Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
-   * NavGrid's route weights and PathFollow's speed pricing. The ground is tile data on every map
-   * now — generated biome materials or the authored fill — so this is one grid lookup: the topmost
-   * layer's TileType cost, which TileType already normalizes (`pathCost: null` → Infinity).
+   * PathFollow's speed pricing (NavGrid reads the same LevelGrid.costAt itself, in cells). The
+   * ground is tile data on every map — generated biome materials or the authored fill — so this
+   * is one grid lookup: the topmost layer's TileType cost, which TileType already normalizes
+   * (`pathCost: null` → Infinity).
    */
   _terrainCost(scene) {
     const grid = scene.level.grid;
@@ -274,7 +271,7 @@ globalThis.ColonyMap = {
     // residents: a loaded map restores its saved store, everything else spawns fresh
     ColonyMap._spawnWorld(scene, data, built, mapState);
     ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
-    ColonyMap._buildSpatial(scene); // broadphase + nav window
+    ColonyMap._buildSpatial(scene); // broadphase + nav grid
     ColonyMap._buildRenderer(scene, data); // render pass stack
     ColonyMap._buildCamera(scene, data); // follow camera + view culling + debug
     ColonyMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
@@ -414,9 +411,10 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The map's two spatial indexes: the store's broadphase + the pathfinding nav window.
-   * NavGrid.size() is constant, so MotionPlanner.setGrid runs once here per map
-   * (sceneColony.step rebuilds occupancy around the player each frame).
+   * The map's two spatial indexes: the store's broadphase + the level-sized pathfinding grid.
+   * The nav grid's size is the level's, so MotionPlanner.setGrid runs once here per map; its
+   * contents refresh on their own signals (sceneColony.step syncs tile costs, SolidSystem.onStatics
+   * re-stamps colliders).
    */
   _buildSpatial(scene) {
     // O(n) broadphase for SeparationSystem, the one symmetric-pair sweep left (it rebuilds the grid
@@ -433,14 +431,8 @@ globalThis.ColonyMap = {
       96,
     );
 
-    scene.nav = new NavGrid(
-      32,
-      32,
-      scene.level.grid.cellWidth,
-      scene.level.grid.cellHeight,
-      ColonyMap._terrainCost(scene), // weight routes by terrain (wade only when it beats going around)
-    );
-    MotionPlanner.setGrid(scene.nav);
+    scene.nav = new NavGrid(scene.level.grid);
+    MotionPlanner.setGrid(scene.nav.grid);
   },
 
   /**

@@ -1,6 +1,6 @@
 /**
- * `data` is PUBLIC: a bulk consumer walks the row-major buffer directly (NavGrid refills its
- * whole window every frame — a per-cell set() there would be a call per cell); single-cell
+ * `data` is PUBLIC: a bulk consumer walks the row-major buffer directly (NavGrid recomposes its
+ * whole level on a change — a per-cell set() there would be a call per cell); single-cell
  * access still goes through get/set. clear() fills IN PLACE, so a held `data` reference stays
  * valid across it.
  */

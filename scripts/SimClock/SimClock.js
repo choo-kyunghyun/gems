@@ -22,7 +22,7 @@ globalThis.SimClock = {
    *                         <the genre's system sequence>                   positions
    *                         entities.flush() }                        LAST — commits the tick's
    *                                                                          queued removals
-   * Once-per-FRAME work (edge-triggered input latching, NavGrid.rebuild) sits outside the loop:
+   * Once-per-FRAME work (edge-triggered input latching, NavGrid.sync) sits outside the loop:
    * a frame can run 0 ticks (dropping a press) or several (double-counting one).
    */
   advance() {

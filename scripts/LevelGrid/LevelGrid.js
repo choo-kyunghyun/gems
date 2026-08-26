@@ -8,14 +8,18 @@
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
  * @property {function(number, number): NavData} getNavData
+ * @property {number} edits  count of cell writes so far (a consumer mirroring the layer diffs it)
+ * @property {number[]} dirty  cell indexes written since the mirror last drained them
+ * @property {boolean} dirtyAll  the writes outran `dirty` — the mirror resamples every cell
  * @property {function(): Object} export
  * @property {function(Object): void} import
  * @property {function(): void} destroy
  */
 
 /**
- * Live pathfinding does NOT read the tile layers — NavGrid (colliders + streamed-terrain costs) is the
- * one nav source. `costAt` is on-demand layer cost, for debug/inspection.
+ * Live pathfinding does NOT read the tile layers — NavGrid (colliders + tile costs) is the one nav
+ * source; it mirrors `costAt` into its base whenever `edits` moves. `costAt` itself is on-demand
+ * layer cost, for that mirror and for debug/inspection.
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
@@ -69,6 +73,13 @@ globalThis.LevelGrid = class LevelGrid {
       if (nav.cost !== undefined) return nav.cost;
     }
     return Infinity;
+  }
+
+  /** Sum of the layers' edit counts — moves on any tile write, so a mirror knows to resample. */
+  edits() {
+    let n = 0;
+    for (let i = 0; i < this.layers.length; i++) n += this.layers[i].edits;
+    return n;
   }
 
   worldToGrid(wx, wy) {

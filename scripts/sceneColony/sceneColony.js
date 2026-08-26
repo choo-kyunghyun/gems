@@ -7,7 +7,6 @@ const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
 const HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
-const NAV_REBUILD_EVERY = 6; // frames between forced nav rebuilds (safety net for in-place collider edits)
 
 /**
  * factory so the scene editor's Test Play can open this scene; same ref SceneRegistry labels use
@@ -53,6 +52,13 @@ class _SceneColonyClass {
     // dot/hot + live `mult` (encumbrance/speed) need no recompute — read directly / live
     StatusSystem.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
+    };
+    // the static-collider change signal → re-stamp the active map's nav grid and drop every
+    // planned path (a new wall may cut one; the walkers re-request on their own throttle).
+    // `this.nav` is read live, so the one hook serves every map the scene activates.
+    SolidSystem.onStatics = (entities, statics) => {
+      this.nav.stamp(statics);
+      PathfindingSystem.invalidate(entities);
     };
 
     // the world (its level pool is the map pool — every visited map stays alive/suspended there
@@ -336,18 +342,10 @@ class _SceneColonyClass {
     this._hotbarBar.dragY = (1 - this._hotbarSlide) * HOTBAR_SLIDE;
     this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
 
-    // recenter the nav window on the player BEFORE the tick loop (PathfindingSystem plans over it);
-    // same NavGrid MotionPlanner points at, only occupancy/origin change → cheap. Rebuild only when
-    // the player changed cell (window + occupancy are otherwise stable), with a periodic safety
-    // rebuild to pick up in-place collider edits (build mode) that don't move the player a cell.
-    const np = this.level.entities.get(this.playerId, Position);
-    const nc = this.level.grid.worldToGrid(np.x, np.y);
-    this._navTick = (this._navTick + 1) % NAV_REBUILD_EVERY;
-    if (nc.x !== this._navGx || nc.y !== this._navGy || this._navTick === 0) {
-      this.nav.rebuild(this.level.entities, nc.x, nc.y);
-      this._navGx = nc.x;
-      this._navGy = nc.y;
-    }
+    // mirror any tile-cost edits into the nav grid BEFORE the tick loop (PathfindingSystem plans
+    // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
+    // SolidSystem.onStatics instead (create).
+    this.nav.sync();
 
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
@@ -920,6 +918,7 @@ class _SceneColonyClass {
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     Weather.exitRegion();
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
+    SolidSystem.onStatics = null; // the nav grids go with the maps below
     // park the active map first (its runtime lives flat on `this`), so ColonyMap.reset can reclaim
     // every map's runtime + pooled Level in one pass
     ColonyMap.suspend(this);

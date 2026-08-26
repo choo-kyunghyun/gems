@@ -1,7 +1,8 @@
 /**
- * There is no nav resync — live pathfinding reads NavGrid, and the debug cost shading computes
- * grid.costAt on demand. Cells store TileType objects (or 0 for empty — Grid.get returns 0, not
- * undefined), so occupancy is a truthy test, never `!== undefined`.
+ * There is no nav resync call — a cell write bumps the layer's `edits`, which NavGrid resamples
+ * on, and the remeshed colliders reach it through SolidSystem.onStatics; the debug cost shading
+ * computes grid.costAt on demand. Cells store TileType objects (or 0 for empty — Grid.get returns
+ * 0, not undefined), so occupancy is a truthy test, never `!== undefined`.
  */
 globalThis.TileEdit = {
   occupied(layer, gx, gy) {
