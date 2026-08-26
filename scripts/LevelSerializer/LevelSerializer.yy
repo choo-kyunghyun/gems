@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"LevelSerializer",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
