@@ -4,9 +4,8 @@
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
   constructor() {
-    // overlay scenes insert this disabled and toggle it live from
-    // DebugRender's "Render" section; RTS keeps it enabled as its only
-    // entity renderer.
+    // overlay scenes insert this disabled and flip it to inspect; RTS keeps it
+    // enabled as its only entity renderer.
     this.enabled = true;
     this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }

@@ -62,21 +62,12 @@ globalThis.Display = {
     return out;
   },
 
-  // forced AA level overriding the saved setting while a subsystem can't tolerate it (null = use
-  // Settings). Owned here, not by the requester, so EVERY applyVideo honors it: Debug pins 0 for the
-  // lifetime of the native ImGui overlay (single-sampled — an AA>0 back buffer is a fatal WebGPU
-  // sampleCount mismatch), which a later GameOverlay vsync/AA change would otherwise restore under it.
-  aaOverride: null,
-
   /**
-   * apply the saved vsync + the effective AA (aaOverride, else Settings). display_reset also RESETS
+   * apply the saved vsync + AA. display_reset also RESETS
    * resolution/window to startup, so re-impose window + fps via apply().
    */
   applyVideo() {
-    display_reset(
-      Display.aaOverride ?? Settings.get("antialias"),
-      Settings.get("vsync"),
-    );
+    display_reset(Settings.get("antialias"), Settings.get("vsync"));
     Display.apply();
   },
 

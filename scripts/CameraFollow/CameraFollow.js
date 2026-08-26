@@ -25,7 +25,7 @@ globalThis.CameraFollow = class CameraFollow {
     this.eyeDist = Math.abs(opt.eyeDist ?? 100);
 
     /**
-     * Authored tilt in DEGREES — this control's config and Debug-slider unit. `pitchCurve`
+     * Authored tilt in DEGREES — this control's config unit. `pitchCurve`
      * overwrites it every update when installed (so the slider is inert until the curve is
      * cleared), and _tilt converts it into the camera's radian `pitch`, which is what the render
      * culls and overlays read.
@@ -66,7 +66,6 @@ globalThis.CameraFollow = class CameraFollow {
    * `CameraFocus` wins, else the raw `target` id fallback for stores that don't use the marker.
    * So the camera can never dangle a stored id — a map transfer re-mints the player's entity
    * id, but the marker rides the EntitySnapshot into the new level and the query just finds it.
-   * Public because the Debug "recenter" button needs the same answer this control uses.
    */
   targetId() {
     if (this.entities === undefined) return -1;

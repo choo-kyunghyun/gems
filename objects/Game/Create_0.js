@@ -92,12 +92,8 @@ UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
 // target builds, so nothing of a scene survives the swap — no stack, no frozen scene.
 // ─────────────────────────────────────────────────────────────────────────────
 this.scene = null; // the live Scene — stepped + drawn
-this._factory = null; // its factory (restart re-opens it)
 this._label = null; // its resolved display label (localized), or null
 this._pending = null; // queued switch factory, applied next Step_0
-// Sim pause + frame-step, driven by the Debug overlay's "Sim" section.
-this.paused = false;
-this._stepRequested = false; // one-shot: lets exactly one frame through
 
 /**
  * THE transition: queue a scene switch, applied next Step (after UI.update, so the UI tree isn't
@@ -109,15 +105,10 @@ this.switchTo = (factory) => {
   this._pending = factory;
 };
 
-/** Re-open the active scene from scratch (Debug "Restart Scene"). */
-this.restart = () => {
-  if (this._factory !== null) this.switchTo(this._factory);
-};
-
 /**
  * Live theme swap: rebuild the active scene's UI in place (colors are baked at build, so a
  * palette change only shows after a rebuild). Delegates to the scene's optional retheme() — a
- * UI-only rebuild that never regenerates world/gameplay state, unlike restart(). A scene that
+ * UI-only rebuild that never regenerates world/gameplay state. A scene that
  * doesn't implement it keeps its old-palette UI until its next natural rebuild.
  */
 this.retheme = () => {
@@ -131,17 +122,6 @@ this.label = () => {
   if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
   const s = this.scene;
   return s !== null && s.label != null && s.label !== "" ? s.label : "-";
-};
-
-/** Request a one-frame sim advance while paused (Debug "Step Frame"). */
-this.requestStep = () => {
-  this._stepRequested = true;
-};
-
-this._takeStep = () => {
-  if (!this._stepRequested) return false;
-  this._stepRequested = false;
-  return true;
 };
 
 /**
@@ -159,7 +139,6 @@ this._apply = (factory) => {
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
   // registered label (localized) is the reliable source; built-ins fall back to their instance one.
   this.scene = factory();
-  this._factory = factory;
   this._label = SceneRegistry.labelOf(factory);
   this.scene.create((f) => this.switchTo(f));
 };
@@ -167,9 +146,7 @@ this._apply = (factory) => {
 this._destroyScene = () => {
   if (this.scene !== null) this.scene.destroy();
   InstanceSystem.update(); // the outgoing scene's stores are gone — its puppets reap here
-  Debug.clearScoped(); // whatever sections it registered (the colony's Camera/Achievements)
   this.scene = null;
-  this._factory = null;
   this._label = null;
 };
 
@@ -179,11 +156,6 @@ GameOverlay.settingsFile = SETTINGS_FILE;
 // nothing to fade out from, so the boot fades IN from black instead.
 this._apply(SCENES.lobby);
 SceneTransition.reveal();
-
-// register built-in debug sections; they read this.scene live, so bindings track it across swaps
-DebugGeneral.register(this);
-DebugRender.register(this); // per-pass overlay toggles (formerly the GameOverlay Debug tab)
-DebugInspector.register(this); // the click-to-pick "Entity" section (Step_0 drives the picking)
 
 // Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of
 // the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.

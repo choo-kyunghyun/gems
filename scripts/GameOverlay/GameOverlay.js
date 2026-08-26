@@ -99,11 +99,6 @@ globalThis.GameOverlay = {
     return GameOverlay._modal !== null;
   },
 
-  /** Time.scale to restore on resume. */
-  scale() {
-    return GameOverlay._scale;
-  },
-
   /** Open + pause (idempotent). tabIndex: 0 System, 1 Settings, 2 About. */
   open(tabIndex = 0) {
     if (GameOverlay._modal !== null) return;
@@ -272,7 +267,7 @@ globalThis.GameOverlay = {
 
   // tabs
 
-  /** System controls: Resume + Quit to Lobby (sim readouts live in the Debug overlay instead) */
+  /** System controls: Resume + Quit to Lobby */
   _systemTab() {
     const scroll = gemsScroll({ grow: true });
 
@@ -284,7 +279,6 @@ globalThis.GameOverlay = {
         primary: true,
       }),
     );
-    // Step Frame + Restart Scene live in the Debug overlay's "Sim" section
     if (GameOverlay.quitTo !== null)
       bar.insertChild(
         gemsButton(

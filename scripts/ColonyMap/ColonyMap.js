@@ -509,7 +509,7 @@ globalThis.ColonyMap = {
       scene._tilePasses[cfg.key] = pass;
       scene.renderer.insert(pass);
     }
-    // the sprite-free cost fill stays as a debug overlay — Debug → Render → Tiles
+    // the sprite-free cost fill stays as an inspection overlay, inserted off
     scene._tilePass = new RenderDebugTileMap(scene.level.grid, {
       cost: true,
       tiles: false,
@@ -518,7 +518,7 @@ globalThis.ColonyMap = {
     scene._tilePass.enabled = false;
     scene.renderer.insert(scene._tilePass);
     scene._gridPass = new RenderGrid(scene.level.grid); // cell boundary lines
-    scene._gridPass.enabled = false; // off in normal play; toggle via Debug → Render → Grid
+    scene._gridPass.enabled = false; // off in normal play
     scene.renderer.insert(scene._gridPass);
     scene.renderer.insert(new RenderZone(scene.level.grid, "settlement"));
     scene.renderer.insert(
@@ -608,7 +608,7 @@ globalThis.ColonyMap = {
       scene.renderer.insert(scene._tilePasses.fence);
     }
     // Entities via the production sprite pass (per-entity data — name/facing/animator state —
-    // is inspected by clicking the entity in the Debug overlay, not by world-space label passes).
+    // is inspected with entities.dump(), not by world-space label passes).
     // Pitched maps hand the billboard pass the mesh pass as its light source (sprite sun
     // response: sprites dim/warm with the sun + catch torchlight like the mesh faces).
     const entityPass =
@@ -661,7 +661,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Follow camera on the new player + view culling + the live Debug camera section.
+   * Follow camera on the new player + view culling.
    * 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
    * old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
    */
@@ -705,58 +705,6 @@ globalThis.ColonyMap = {
     scene._lighting.camera = scene.camera;
     // (sprites are UPRIGHT constants now — the entity pass no longer tracks camera pitch)
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
-    ColonyMap._registerCameraDebug(scene); // Debug/ImGui live camera controls (pitch/zoom)
-  },
-
-  /**
-   * Register the Debug "Camera" section bound to the LIVE scene camera (pitch + zoom) for runtime
-   * render inspection. Re-added on each build/resume (Debug.add replaces by name) so the sliders
-   * drive the ACTIVE map's camera. colony-owned (pitch is a Game concern).
-   */
-  _registerCameraDebug(scene) {
-    const cam = scene.camera;
-    const follow = scene.cameraFollow;
-    if (cam === undefined || follow === undefined) return;
-    // A map can park while free cam is flying. This section is rebuilt with a FRESH fly control, so
-    // put the follow control back rather than leave the camera on an orphaned one.
-    if (cam.control !== follow) cam.setControl(follow);
-    const fly = new CameraFly();
-    Debug.add({
-      name: "Camera",
-      scoped: true, // bound to THIS scene's camera — Game drops it at the scene boundary
-      // pitchCurve and freeCam are computed toggles — staged (contract: Debug); the plain
-      // control fields below ref live, two-way
-      build() {
-        // pitch is normally the zoom curve's — uncheck to hand-tune with the slider below
-        Debug.checkbox(
-          "Pitch by zoom",
-          () => follow.pitchCurve !== undefined,
-          (v) => (follow.pitchCurve = v ? ColonyMap._pitchCurve : undefined),
-        );
-        dbg_slider(ref_create(follow, "pitchDeg"), 0, 85, "Pitch (deg)", 1);
-        dbg_slider(ref_create(follow, "zoomTarget"), 0.5, 4, "Zoom", 0.1);
-        // 6DOF free-fly noclip camera (on Time.raw so it works while the sim is paused) — detach
-        // from the player to inspect the render from any angle. Swaps in the perspective control.
-        // setControl (never a bare assignment) runs the incoming control's enter() seed, which is
-        // what makes the fly camera pick up the live view instead of a stale pose.
-        Debug.checkbox(
-          "Free cam (WASD/RMB)",
-          () => cam.control === fly,
-          (v) => cam.setControl(v ? fly : follow),
-        );
-        dbg_slider(ref_create(fly, "speed"), 60, 2400, "Fly speed", 10);
-        dbg_button("Recenter on player", () => {
-          if (follow.entities === undefined) return;
-          const pos = follow.entities.get(follow.targetId(), Position);
-          if (pos !== undefined) {
-            cam.toX = pos.x;
-            cam.toY = pos.y;
-          }
-        });
-        Debug.watch("Zoom (live)", () => follow.zoom);
-        Debug.watch("Pitch (rad)", () => cam.pitch);
-      },
-    });
   },
 
   /**
@@ -834,7 +782,6 @@ ColonyMap.BB_PITCH = 42;
 // a 1920 surface) easing to 58° at max zoom-in (2.625) — "look further = flatter".
 // Thresholds are the spike values HALVED for the 32px-cell world (zoom seeds halved, same
 // screen framing); the 42–58° outputs are angles, unchanged.
-// Shared with the Debug Camera section's "Pitch by zoom" toggle.
 ColonyMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);
 // Hours a trip across one whole world-map chart unit takes — the travelHours scale (corner to
 // corner is ~1.4 units). Assigned after the literal like BB_PITCH.

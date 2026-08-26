@@ -85,17 +85,6 @@ globalThis.InputAction = class InputAction {
   }
 
   /**
-   * debug overlay: MOUSE always muted (pick-click can't fire weapon); KEYBOARD only while overlay owns it so WASD still roams.
-   */
-  static _debugMuted(button) {
-    if (!Debug.isOpen()) return false;
-    if (button.source === INPUT_SOURCE.MOUSE) return true;
-    if (button.source === INPUT_SOURCE.KEYBOARD)
-      return is_keyboard_used_debug_overlay();
-    return false;
-  }
-
-  /**
    * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam GameOverlay keeps UINav.suspended=true.
    */
   static _gamepadMuted() {
@@ -106,7 +95,6 @@ globalThis.InputAction = class InputAction {
    * avoids caching the bool across .some() callbacks — GMRT can clobber primitive bools in closures.
    */
   static _buttonMuted(button) {
-    if (InputAction._debugMuted(button)) return true;
     return (
       button.source === INPUT_SOURCE.GAMEPAD && InputAction._gamepadMuted()
     );

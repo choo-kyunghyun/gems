@@ -1,6 +1,5 @@
 /**
- * Ring radius is entity[component][field]. colony wires Brain ranges (see ColonyMap). Inserted disabled,
- * toggled via the Debug Render section.
+ * Ring radius is entity[component][field]. colony wires Brain ranges (see ColonyMap). Inserted disabled.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugRange = class RenderDebugRange {

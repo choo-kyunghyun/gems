@@ -17,26 +17,7 @@ if (this._pending !== null && !SceneTransition.isBusy()) {
 }
 SceneTransition.update();
 
-// THE sim tick, pause-gated two ways: the GameOverlay sheet and the Debug "Sim" toggle.
-if (GameOverlay.isOpen()) {
-  // Menu forces Time.scale = 0; a step must restore a non-zero delta (the sim advances off
-  // Time.delta) then re-freeze.
-  if (this._takeStep()) {
-    Time.scale = GameOverlay.scale();
-    Time.delta = Time.raw * Time.scale;
-    this.scene.update();
-    Time.delta = 0;
-    Time.scale = 0;
-  }
-} else if (this.paused) {
-  // Debug pause leaves Time.scale untouched (so it doesn't fight the Time panel's Scale slider)
-  // and just gates the sim — a step lets one frame through at live delta.
-  if (this._takeStep()) this.scene.update();
-} else {
-  this._stepRequested = false; // don't carry a stale step into normal play
-  this.scene.update();
-}
+// THE sim tick, held while the GameOverlay sheet is open.
+if (!GameOverlay.isOpen()) this.scene.update();
 
-Debug.update(); // F3: human-facing native ImGui overlay over the panel registry
-DebugInspector.update(); // click-to-pick entity inspector (overlay open)
 Log.flush();

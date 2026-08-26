@@ -183,30 +183,6 @@ class _SceneColonyClass {
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
 
-    // dev controls for the Achievements tab (F3 overlay): unlock or relock the whole set. The
-    // tab's status labels read Achievement live, so no rebuild is needed.
-    Debug.add({
-      name: "Achievements",
-      scoped: true, // colony-only — Game drops it at the scene boundary
-      build() {
-        Debug.watch("unlocked", () => {
-          const all = Achievement.all();
-          let n = 0;
-          for (let i = 0; i < all.length; i++)
-            if (Tracker.isUnlocked(all[i].id)) n++;
-          return `${n}/${all.length}`;
-        });
-        dbg_button("Unlock All", () => {
-          Tracker.unlockAll();
-          Log.info("debug: all achievements unlocked");
-        });
-        dbg_button("Clear All", () => {
-          Tracker.clear();
-          Log.info("debug: all achievements cleared");
-        });
-      },
-    });
-
     Log.info(
       `colony ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
         `achievements=${Achievement.all().length} kills=${Tracker.count("enemiesKilled")}`,

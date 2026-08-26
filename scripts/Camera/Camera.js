@@ -55,7 +55,7 @@ globalThis.Camera = class Camera {
     /**
      * Ground tilt in RADIANS — 0 = top-down, >0 = the eye lifted out of the ground plane (2.5D).
      * THE camera-side pitch, and the one groundRect() reads. A control that tilts the view writes
-     * it each update (CameraFollow authors the angle in degrees — its config and Debug unit — and
+     * it each update (CameraFollow authors the angle in degrees — its config unit — and
      * converts here; radians are the engine unit). A control that does not tilt leaves the last
      * value standing, so an ortho overlay keeps reading the framing it was drawn under.
      */
@@ -76,8 +76,8 @@ globalThis.Camera = class Camera {
   /**
    * Install the control that drives this camera, seeding it through its enter() hook. THE write
    * path for `control` — a bare assignment skips the seed (a fly camera would inherit a stale pose,
-   * a pan camera an unseeded center). Swapping controls is how the free-fly debug camera takes
-   * over and hands back.
+   * a pan camera an unseeded center). Swapping controls is how a fly camera takes over and hands
+   * back.
    */
   setControl(control) {
     this.control = control;

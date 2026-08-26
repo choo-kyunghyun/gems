@@ -80,17 +80,6 @@ globalThis.Tracker = {
     return true;
   },
 
-  /** debug: unlock everything (Debug overlay "Achievements" section) */
-  unlockAll() {
-    const all = Achievement.all();
-    for (let i = 0; i < all.length; i++) this._unlocked[all[i].id] = true;
-  },
-
-  /** debug: relock everything */
-  clear() {
-    this._unlocked = {};
-  },
-
   // ── quests (defs live in the QuestLog registry) ──
 
   accept(id) {

@@ -500,8 +500,8 @@ globalThis.InventoryUI = {
 
   /**
    * Achievements: one card per registered def. Built ONCE (the set is static after registration,
-   * which precedes the window build); the status label reads Tracker live, so unlocks — or the
-   * Debug section's Unlock/Clear All — show with no rebuild.
+   * which precedes the window build); the status label reads Tracker live, so an unlock shows
+   * with no rebuild.
    */
   _buildAchievementsTab(_level) {
     const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
