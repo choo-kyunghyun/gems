@@ -454,10 +454,14 @@ class _SceneColonyClass {
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
     // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
     if (!this.camera.control.raw) this.camera.update();
-    // ears on the PLAYER's body, not the view: CameraFollow clamps its look-at at map edges
-    // (and debug free-cam flies away entirely), parking the view center off the player — spatial
-    // SFX pan/attenuate from where the player stands; camera center is the no-player fallback
-    const ep = this.level.entities.get(this.playerId, Position);
+    // ears on the body of the entity the camera TRACKS (the CameraFocus marker, live-queried),
+    // not the view: CameraFollow clamps its look-at at map edges (and debug free-cam flies away
+    // entirely), parking the view center off the tracked body — spatial SFX pan/attenuate from
+    // where it stands; camera center is the no-marker fallback
+    const ep = this.level.entities.get(
+      this.level.entities.first(CameraFocus),
+      Position,
+    );
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
