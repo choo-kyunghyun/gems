@@ -26,15 +26,7 @@
     }
   ],
   "spawns": [
-    {
-      "preset": "portal",
-      "gx": 8,
-      "gy": 10,
-      "label": "Exit",
-      "color": "#7c6fd0",
-      "toMap": "overworld",
-      "toEntry": "from_interior"
-    },
+    { "preset": "prop", "gx": 8, "gy": 10, "kind": "travel", "label": "Beacon" },
 
     {
       "preset": "raider",

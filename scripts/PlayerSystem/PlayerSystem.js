@@ -97,7 +97,7 @@ globalThis.PlayerSystem = {
   },
 
   // build the colony player entity (ColonyPlayer.spawn adds Playable + Skeleton with the rest of the
-  // sheet) at this genre's tuning. Boot only — a portal arrival transfers the existing player.
+  // sheet) at this genre's tuning. Boot only — a trip arrival transfers the existing player.
   /** Returns the player entity id. */
   spawn(entities, spawn) {
     return ColonyPlayer.spawn(entities, spawn, {

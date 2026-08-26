@@ -13,7 +13,7 @@
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
  *   npc      label nameKey questId merchant?
  *   chest    capacity items[]
- *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture)
+ *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON — the world map opens on it)
  *   torch    label? color?        (decorative light prop — small solid post; carries a Light)
  *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
@@ -21,7 +21,6 @@
  *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
  *   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
  *   reach    half?                (quest zone marker — no entity)
- *   portal   toMap toEntry? label? color?  (walk-onto door → ColonyMap.go; non-solid sensor)
  *   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
  * Every descriptor also takes `size?` — the per-spawn SCALAR (Alpha/boss knob) multiplying the def's
  * `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta density divides the DRAW
@@ -259,17 +258,6 @@ globalThis.ColonySpawn = {
         },
       },
       {
-        // A doorway: a non-solid sensor the player walks onto to travel. The destination rides on
-        // the entity (Portal component), so a streamed portal resolves via a live entities.query(Portal).
-        id: "portal",
-        components: {
-          BBox: { x: -14, y: -14, width: 28, height: 28 }, // walk-onto sensor under the 32×32 gate mesh
-          Name: { name: "Door" },
-          Mesh: { model: "portal" }, // vox mesh — no Visual, billboard/shadow passes skip it
-          Portal: { toMap: "", toEntry: "default" },
-        },
-      },
-      {
         // Companion (a dynamic solid body). Spawns UNHIRED — a map resident with a "rehire"
         // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + drops the
         // Interaction). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
@@ -371,6 +359,8 @@ globalThis.ColonySpawn = {
       else if (s.kind === "hydrate") model = "wooden_tub";
       else if (s.kind === "feed") model = "wooden_bin";
       else if (s.kind === "buff") model = "wooden_altar";
+      else if (s.kind === "travel")
+        model = "portal"; // the gate mesh as the site's beacon
       else model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
       over.Mesh = { model };
       // collider matched to the model's voxel footprint (big furniture is multi-cell)
@@ -425,9 +415,6 @@ globalThis.ColonySpawn = {
       };
     } else if (s.preset === "turret") {
       if (s.label !== undefined) over.Name = { name: s.label };
-    } else if (s.preset === "portal") {
-      if (s.label !== undefined) over.Name = { name: s.label };
-      over.Portal = { toMap: s.toMap, toEntry: s.toEntry ?? "default" };
     }
 
     // visual yaw for any mesh look (`yaw?`, degrees — vox meshes carry all four sides, so any

@@ -90,19 +90,24 @@ class _SceneColonyClass {
       { has: Raider, color: Color.parse("#e0584f") },
       { has: Rat, color: Color.parse("#e0584f") },
       { has: NPC, color: gemsColor("warn") },
-      { has: Portal, color: Color.parse("#9b8cff") },
+      // the site's travel beacon (the extraction point) — one kind of the shared Interaction
+      {
+        has: Interaction,
+        where: (c) => c.kind === "travel",
+        color: Color.parse("#9b8cff"),
+      },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
     // persistent UI (key-hints bar + HUD/inventory/interaction/trade/build managers) — extracted to
     // _buildUI() so retheme() can rebuild it in place on a live theme swap, no world regen.
     this._buildUI();
 
-    // boot at the overworld hub; the editor's Test Play overrides with a portal-less playtest file
+    // boot at the colony's home site; the editor's Test Play overrides with its playtest file
     let bootMap = ColonyLevel.START;
     if (ColonyLevel.playtestFile !== undefined) {
-      ColonyLevel.MAPS._playtest = ColonyLevel.playtestFile;
+      ColonyLevel.playtest = ColonyLevel.playtestFile;
       ColonyLevel.playtestFile = undefined;
-      bootMap = "_playtest";
+      bootMap = ColonyLevel.PLAYTEST;
     }
     WorldClock.reset(); // once — survives map changes below
     Weather.reset(); // once — survives map changes, like the clock
@@ -125,7 +130,11 @@ class _SceneColonyClass {
       // equipped so the attack is item-driven from frame one; travels with the carried inventory
       const startInv = this.level.entities.get(this.playerId, Inventory);
       InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
-      EquipmentSystem.equipFirst(this.level.entities, this.playerId, "lead_pipe"); // equip that instance by uid
+      EquipmentSystem.equipFirst(
+        this.level.entities,
+        this.playerId,
+        "lead_pipe",
+      ); // equip that instance by uid
       InventorySystem.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
@@ -145,15 +154,15 @@ class _SceneColonyClass {
       FollowerSystem.hire(this.level.entities, this.playerId, companion);
     }
 
-    // a wandering trader (Trader/WorldEvents/Universe): crosses overworld <-> interior_01 off-focus on
-    // the WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
+    // a wandering trader (Trader/WorldEvents/Universe): crosses hub <-> cave off-focus on the
+    // WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
     Trader.register(this, {
       id: "peddler",
       name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
       travelH: 2, // in-game hours in transit between stops
       route: [
-        { map: "overworld", dwellH: 6 },
-        { map: "interior_01", dwellH: 6 },
+        { map: "hub", dwellH: 6 },
+        { map: "cave", dwellH: 6 },
       ],
       merchant: {
         infinite: true,
@@ -280,8 +289,9 @@ class _SceneColonyClass {
    *   per tick         snapshot -> the physics sequence (headed by the player brain) -> damage,
    *                    death, drops, quest/achievement checks -> flush
    *   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
-   *   LAST             portals — a door swaps the store out from under everything above
-   * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule).
+   * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule). A
+   * map swap (a world-map trip) never runs in here — it fires at SceneTransition's cover, between
+   * frames, so nothing in this frame touches a swapped-out map.
    */
   update() {
     // no pause gate — Game skips scene.update() while the GameOverlay is open
@@ -403,8 +413,7 @@ class _SceneColonyClass {
             });
           // by species so only raiders advance the "Raider Cull" quest (rats have no target); the
           // kill counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
-          const kind =
-            this.level.entities.has(id, Rat) ? "rat" : "raider";
+          const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
           this._track("kill", kind, 1);
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
@@ -523,8 +532,7 @@ class _SceneColonyClass {
       if (
         mp === undefined ||
         tp === undefined ||
-        (mp.x - tp.x) ** 2 + (mp.y - tp.y) ** 2 >
-          TRADE_RANGE * TRADE_RANGE
+        (mp.x - tp.x) ** 2 + (mp.y - tp.y) ** 2 > TRADE_RANGE * TRADE_RANGE
       ) {
         TradeUI.close(this);
       } else if (this._tradeDirty) {
@@ -532,9 +540,6 @@ class _SceneColonyClass {
         this._tradeDirty = false;
       }
     }
-
-    // door check LAST — ColonyMap.go() swaps entities/grid/renderer/camera, so nothing below may touch the old map
-    ColonyMap.checkPortals(this);
   }
 
   /**
@@ -590,7 +595,7 @@ class _SceneColonyClass {
 
   /**
    * F: toggle the nearest in-reach SQUAD companion between follow and wait. Waiting is map-local
-   * ("hold here for now") — a portal forces every member back to follow (see ColonyMap.go).
+   * ("hold here for now") — a trip forces every member back to follow (see ColonyMap.go).
    */
   _toggleFollower() {
     if (!Input.get("follow").pressed()) return;
@@ -620,7 +625,12 @@ class _SceneColonyClass {
       FollowerSystem.setState(this.level.entities, this.playerId, best, "wait");
       Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
     } else {
-      FollowerSystem.setState(this.level.entities, this.playerId, best, "follow");
+      FollowerSystem.setState(
+        this.level.entities,
+        this.playerId,
+        best,
+        "follow",
+      );
       Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
     }
   }
@@ -797,7 +807,13 @@ class _SceneColonyClass {
   /** derive this frame's input context: window > build > play (a window pauses build) */
   _resolveContext() {
     let ctx = "play";
-    if (this.invOpen || this._storeOpen || this._craftOpen || this._tradeOpen)
+    if (
+      this.invOpen ||
+      this._storeOpen ||
+      this._craftOpen ||
+      this._tradeOpen ||
+      this._mapOpen
+    )
       ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
@@ -814,7 +830,7 @@ class _SceneColonyClass {
       TradeUI.close(this); // E closes the merchant shop
       return;
     }
-    if (this._storeOpen || this._craftOpen) {
+    if (this._storeOpen || this._craftOpen || this._mapOpen) {
       Interactable.closeAll(this); // E closes an open station window
       return;
     }
@@ -891,7 +907,7 @@ class _SceneColonyClass {
       TradeUI.close(this); // close the merchant shop
       return true;
     }
-    if (this._storeOpen || this._craftOpen) {
+    if (this._storeOpen || this._craftOpen || this._mapOpen) {
       Interactable.closeAll(this); // closes whichever station window is open
       return true;
     }

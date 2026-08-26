@@ -1,14 +1,16 @@
 /**
  * The four passes: the AuthoredStamp overlay (the hand-built hub, procedural-free inside its claim), a
- * PrefabStamp carrying the colony spawn policy, and two scatter passes (rocks + rats). A different world
- * (cave/desert/…) is a different composition of the same Core pieces, not a rewrite; a variant
- * overworld overrides the policy hooks via opts.
+ * PrefabStamp carrying the colony spawn policy, and three scatter passes (rocks, trees, rats). A
+ * level's CHARACTER is a biome profile (contentBiomes.BIOMES) — the terrain gradient the field
+ * samples, the noise scale, every scatter density and the prefab set all come off it, so a frozen
+ * basin and a marsh are two data entries over the same composition, not two generators; a variant
+ * further overrides the policy hooks via opts.
  *
  * Contract: `create` returns a LevelGen the level builder holds directly — generate(cols, rows) →
- * { walls, spawns, solid } (grid coords, deterministic from (seed, pass salt): the same seed MUST
- * rebuild the same level, since a save stores only entity state and the ground comes back from the
- * seed; each pass draws from its OWN salted stream, so adding/removing a pass never reshuffles the
- * others' output) — plus the `palette` field and paint().
+ * { tiles, zones, spawns, solid } (grid coords, deterministic from (seed, pass salt): the same seed
+ * MUST rebuild the same level, since a save stores only entity state and the ground comes back from
+ * the seed; each pass draws from its OWN salted stream, so adding/removing a pass never reshuffles
+ * the others' output) — plus the `palette` field and paint().
  *
  * Scatter DENSITY is per 1000 cells, so a pass covers whatever level it is handed. Every scatter
  * respects ctx.claimed, so nothing lands inside the hub, a stamped prefab, or an earlier boulder.
@@ -17,35 +19,31 @@
 
 globalThis.OverworldGen = {
   /**
-   * Build the overworld generator. opts: { seed, authored, prefabDensity, prefabTag, spawnFilter,
-   * defaultLoot } — `authored` is the level-file data whose walls/spawns overlay the hub (see
-   * AuthoredStamp); the last two override the colony spawn policy (see PrefabStamp). Register prefabs
-   * before calling (PrefabStamp resolves Prefab.byTag in its constructor).
+   * Build a level generator. opts: { seed, authored, clear, biome, spawnFilter, defaultLoot } —
+   * `biome` is the contentBiomes.BIOMES profile (default steppe); `authored` is the level-file data
+   * whose tiles/spawns overlay the hub (see AuthoredStamp), `clear` the cells claimed around it
+   * (default 0); the last two override the colony spawn policy
+   * (see PrefabStamp). Register prefabs before calling (PrefabStamp resolves Prefab.byTag in its
+   * constructor).
    */
   create(opts = {}) {
     const seed = (opts.seed ?? 1337) | 0;
-    // the generic terrain sampler (Core) over the colony's biome data; its palette is what the
-    // terrain layer's TileTypes and the stacked dual-grid passes are built from (order = painter order)
-    const field = new TerrainField(contentBiomes.TERRAIN, {
-      seed: seed,
-      lattice: contentBiomes.LATTICE,
-      groundLattice: contentBiomes.GROUND_LATTICE,
-      groundSalt: contentBiomes.GROUND_SALT,
-    });
+    const biome = opts.biome ?? contentBiomes.BIOMES.steppe;
     return new LevelGen({
       seed: seed,
-      field: field,
+      field: OverworldGen.field(seed, biome),
       passes: [
         // hand-built hub laid down FIRST — it claims its extent, so the procedural passes below
         // leave the hub area alone
         new AuthoredStamp({
           data: opts.authored,
+          margin: opts.clear ?? 0,
           salt: 4,
         }),
         new PrefabStamp({
-          tag: opts.prefabTag ?? "overworld",
+          tag: biome.prefabs.tag,
           salt: 1,
-          density: opts.prefabDensity ?? 1.76,
+          density: biome.prefabs.density,
           // Colony spawn policy: mobile combatants (raider) stay off water — nothing spawns
           // swimming, and deep water's collider would snag a dynamic body
           spawnFilter:
@@ -60,11 +58,61 @@ globalThis.OverworldGen = {
                 ? OverworldGen.rollLoot(rng)
                 : undefined),
         }),
-        OverworldGen.rocks(),
-        OverworldGen.trees(),
-        OverworldGen.rats(),
+        OverworldGen.rocks(biome.rocks),
+        OverworldGen.trees(biome.trees),
+        OverworldGen.rats(biome.rats),
       ],
     });
+  },
+
+  /**
+   * The biome's terrain sampler (Core TerrainField over the profile's palette + noise scale) — pure
+   * in (seed, biome), so the level builder can probe it before the generator runs (the landing pad
+   * of a synthesized site, ColonyLevel._siteData) and get the same ground the build paints.
+   */
+  field(seed, biome) {
+    return new TerrainField(OverworldGen.palette(biome), {
+      seed: seed,
+      lattice: biome.lattice,
+      groundLattice: biome.groundLattice,
+      groundSalt: contentBiomes.GROUND_SALT,
+    });
+  },
+
+  /**
+   * The TerrainField palette a biome profile describes: its elevation entries (threshold) then its
+   * ground entries (ground), each a MATERIALS row placed on the gradient. Index = material id =
+   * painter order (the terrain layer's TileTypes and the stacked dual-grid passes are built from it).
+   */
+  palette(biome) {
+    const out = [];
+    for (let i = 0; i < biome.elevation.length; i++) {
+      const e = OverworldGen._material(biome.elevation[i][0]);
+      e.threshold = biome.elevation[i][1];
+      out.push(e);
+    }
+    for (let i = 0; i < biome.ground.length; i++) {
+      const e = OverworldGen._material(biome.ground[i][0]);
+      e.ground = biome.ground[i][1];
+      out.push(e);
+    }
+    return out;
+  },
+
+  /** a fresh palette entry for a MATERIALS id (no gradient position yet); unknown id throws */
+  _material(id) {
+    const m = contentBiomes.MATERIALS[id];
+    if (m === undefined)
+      throw new Error(`OverworldGen: unknown terrain material "${id}"`);
+    const e = {
+      id: id,
+      name: m.name,
+      sprite: m.sprite,
+      color: m.color,
+      pathCost: m.pathCost,
+    };
+    if (m.spawnable !== undefined) e.spawnable = m.spawnable;
+    return e;
   },
 
   /**
@@ -72,10 +120,10 @@ globalThis.OverworldGen = {
    * mesh); off water like the wildlife, with a position-hashed quarter-turn + size so the one
    * model doesn't visibly repeat (hashes draw nothing from the pass stream)
    */
-  trees() {
+  trees(density) {
     return {
       salt: 5,
-      density: 6.8,
+      density: density,
       apply(ctx) {
         const rng = ctx.rng;
         const trees = OverworldGen.count(ctx, this.density);
@@ -103,10 +151,10 @@ globalThis.OverworldGen = {
    * off the 1-cell level border so a cluster never merges into the world-border wall or blocks an
    * entrance, and claimed so later scatters don't stand inside the boulder
    */
-  rocks() {
+  rocks(density) {
     return {
       salt: 2,
-      density: 5.9,
+      density: density,
       apply(ctx) {
         const rng = ctx.rng;
         const rocks = OverworldGen.count(ctx, this.density);
@@ -139,10 +187,10 @@ globalThis.OverworldGen = {
   /**
    * wandering rats are the ambient wildlife; raiders stay the camp/quest enemy (raider_camp prefab)
    */
-  rats() {
+  rats(density) {
     return {
       salt: 3,
-      density: 3.9,
+      density: density,
       apply(ctx) {
         const rng = ctx.rng;
         const rats = OverworldGen.count(ctx, this.density);

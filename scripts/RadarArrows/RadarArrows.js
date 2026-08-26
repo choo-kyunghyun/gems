@@ -1,7 +1,9 @@
 /**
- * A rule is { has, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that color) when
- * the entity has that component. World-space immediate-mode; draw() from a scene's draw() after
- * renderer.draw(). Reads entities live, so no rebuild across a map swap. Rule colors must be GM colour ints.
+ * A rule is { has, where?, color }: `has` is a COMPONENT TOKEN — the arrow shows (and takes that
+ * color) when the entity has that component, and, with `where(comp)`, only when the predicate
+ * accepts its data (a rule over one `kind` of a shared component). World-space immediate-mode;
+ * draw() from a scene's draw() after renderer.draw(). Reads entities live, so no rebuild across a
+ * map swap. Rule colors must be GM colour ints.
  */
 globalThis.RadarArrows = {
   /**
@@ -82,8 +84,13 @@ globalThis.RadarArrows = {
   },
 
   _color(entities, id, rules) {
-    for (let r = 0; r < rules.length; r++)
-      if (entities.has(id, rules[r].has)) return rules[r].color;
+    for (let r = 0; r < rules.length; r++) {
+      const rule = rules[r];
+      if (!entities.has(id, rule.has)) continue;
+      if (rule.where !== undefined && !rule.where(entities.get(id, rule.has)))
+        continue;
+      return rule.color;
+    }
     return null;
   },
 };

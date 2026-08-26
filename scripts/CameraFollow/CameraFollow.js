@@ -64,7 +64,7 @@ globalThis.CameraFollow = class CameraFollow {
   /**
    * The tracked entity, resolved LIVE (the live-query rule — ARCHITECTURE): an entity carrying
    * `CameraFocus` wins, else the raw `target` id fallback for stores that don't use the marker.
-   * So the camera can never dangle a stored id — a portal transfer re-mints the player's entity
+   * So the camera can never dangle a stored id — a map transfer re-mints the player's entity
    * id, but the marker rides the EntitySnapshot into the new level and the query just finds it.
    * Public because the Debug "recenter" button needs the same answer this control uses.
    */

@@ -7,10 +7,10 @@
   "meta": {
     "generated": true,
     "seed": 1337,
+    "biome": "steppe",
     "playerSpawn": { "gx": 2, "gy": 2 },
     "entries": {
-      "default": { "gx": 2, "gy": 2 },
-      "from_interior": { "gx": 24, "gy": 8 }
+      "default": { "gx": 2, "gy": 2 }
     },
     "climate": [
       {
@@ -72,15 +72,7 @@
 
     { "preset": "radio", "gx": 2, "gy": 5 },
 
-    {
-      "preset": "portal",
-      "gx": 24,
-      "gy": 6,
-      "label": "Cave",
-      "color": "#7c6fd0",
-      "toMap": "interior_01",
-      "toEntry": "default"
-    },
+    { "preset": "prop", "gx": 2, "gy": 3, "kind": "travel", "label": "Beacon" },
 
     {
       "preset": "raider",

@@ -47,6 +47,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Gacha capsule with new UI
 - Radio
 - Gamepad reloading
+- World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 
 ## UI
 
@@ -64,7 +65,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 The level file, a `Prefab`, and a generator's output are now one shape (`LevelData`); the editor is the half still on its own parallel model.
 
 - Paint the real `contentTiles` stack instead of the editor's two hardcoded layers, so the brush palette comes from `LAYERS` (+ the wall materials) and an entry the editor can't model stops being parked and re-emitted blind (`sceneEditor._loadTiles`).
-- Author `meta.entries` (named spawn points) — only the legacy `playerSpawn` is editable today, so an edited level can't be a portal target.
+- Author `meta.entries` (named spawn points) — only the legacy `playerSpawn` is editable today, so an edited level can't place its arrival entry beside a travel beacon.
 - Draw with the real render passes instead of `RenderDebugTileMap` + hand-drawn markers, so what the editor shows is what plays. Whole-level residency is what makes this affordable.
 - Prefabs: capture a selected rect into a `PrefabDef`, stamp a registered one back. Both are plain `LevelData` ops, so only the export is new — a JS literal for `contentPrefabs`, mirroring the level export → `datafiles/levels/` workflow.
 - Zone authoring, if it earns its way back: the editor edits no channel at all now, so a level's `settlement`/`climate` regions are only reachable by hand-editing `meta`.

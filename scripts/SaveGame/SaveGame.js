@@ -20,7 +20,7 @@ globalThis.SaveGame = {
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch
   // per-map saved state awaiting each map's first build after a load — the active map consumes its
-  // entry immediately; a parked map consumes its entry when the player first portals to it (so a
+  // entry immediately; a parked map consumes its entry when the player first travels to it (so a
   // visited map's residents and builds don't come back fresh from file). mapId -> saved map entry.
   _pendingMaps: {},
   // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
@@ -142,7 +142,7 @@ globalThis.SaveGame = {
   },
 
   /**
-   * stash every saved map so each map's build consumes its own state (active now, others on portal).
+   * stash every saved map so each map's build consumes its own state (active now, others on first visit).
    */
   _stashPending(maps) {
     SaveGame._pendingMaps = {};
@@ -304,9 +304,9 @@ globalThis.SaveGame = {
     /**
      * v1 (Full-session): rebuild the ACTIVE map's GRID fresh from its file/seed, restore its saved
      * residents in place of the spawn pass, and re-arrive the SAVED squad (player + companions)
-     * through the existing portal-transfer machinery, then drop the player back at its saved
+     * through the existing map-transfer machinery, then drop the player back at its saved
      * position. Non-active maps are stashed (_stashPending) and applied on that map's first build,
-     * so a parked map restores when first portaled to rather than up front.
+     * so a parked map restores when first travelled to rather than up front.
      */
     restore(ctx) {
       const scene = ctx.scene;
@@ -314,7 +314,7 @@ globalThis.SaveGame = {
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
       // Stash EVERY saved map. The active one is applied by the build() below (ColonyMap.build consults
-      // takePendingMap for its residents + applyMapState); parked maps apply on their first portal.
+      // takePendingMap for its residents + applyMapState); parked maps apply on their first visit.
       SaveGame._stashPending(maps);
       let active = null;
       for (let i = 0; i < maps.length; i++)
@@ -607,7 +607,7 @@ globalThis.SaveGame = {
 
   /**
    * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
-   * ColonyMap.build as its `squad`, so the exact portal-transfer path re-lands the character intact.
+   * ColonyMap.build as its `squad`, so the exact map-transfer path re-lands the character intact.
    */
   _extractSquad(exp) {
     const idxs = SaveGame._squadIndexes(exp);

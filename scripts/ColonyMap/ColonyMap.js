@@ -1,16 +1,17 @@
-// Map-graph engine for the colony scene — portal travel, map pool, and persistence.
+// Map engine for the colony scene — world-map travel, map pool, and persistence.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
  * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid +
  * entities) and `_parked` below holds the per-map RUNTIME the colony builds over it (renderer,
- * camera, physics, nav, render-pass handles), so a door trip never destroys/rebuilds. Only the
- * SQUAD migrates:
- * every entity sharing the player's Squad id (player included) moves as a WHOLE entity through
- * World.take/put — a portal forces a "wait" member back to "follow" first, so the squad
- * always travels together. There is no per-map player and no carried component subset; kicked/unhired
- * companions are plain map residents. Everything is persistent for the session: a map builds from
- * file exactly ONCE (first visit), then only freezes/thaws — no eviction, cold serialize, or
- * respawn-from-file reconcile. Disk saves are the follow-up seam.
+ * camera, physics, nav, render-pass handles), so a trip never destroys/rebuilds. Only the SQUAD
+ * migrates: every entity sharing the player's Squad id (player included) moves as a WHOLE entity
+ * through World.take/put — a trip forces a "wait" member back to "follow" first, so the squad
+ * always travels together. Travel is by WORLD MAP (travel(), below): the squad deploys from a
+ * site's beacon to any other site (contentSites), the crossing costing in-game hours. There is
+ * no per-map player and no carried component subset; kicked/unhired companions are plain map
+ * residents. Everything is persistent for the session: a map builds from its data exactly ONCE
+ * (first visit), then only freezes/thaws — no eviction, cold serialize, or respawn-from-file
+ * reconcile. Disk saves are the follow-up seam.
  */
 globalThis.ColonyMap = {
   _parked: {}, // mapId -> the park bundle below. The map's DATA is its pooled Level, not this.
@@ -50,11 +51,11 @@ globalThis.ColonyMap = {
   ],
 
   /**
-   * Take the SQUAD through a portal: every member (player FIRST) leaves the current world as a
+   * Take the SQUAD to another map: every member (player FIRST) leaves the current world as a
    * whole entity via World.take, the map parks, and the members land in the target via
-   * World.put with entry-position overrides (_arriveSquad). "wait" is map-local — the
-   * portal forces it back to "follow" (re-applying its carry bonus) so the squad always travels
-   * together; only kicked/unhired companions stay behind. Called from create() + checkPortals.
+   * World.put with entry-position overrides (_arriveSquad). "wait" is map-local — the trip
+   * forces it back to "follow" (re-applying its carry bonus) so the squad always travels
+   * together; only kicked/unhired companions stay behind. Called from create() + travel().
    */
   go(scene, mapId, entryId) {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
@@ -122,7 +123,7 @@ globalThis.ColonyMap = {
 
   /**
    * Resume a parked map: restore its fields, re-claim the viewport, and land the traveling squad
-   * at the entry (the parked store has no player — the squad left through the portal).
+   * at the entry (the parked store has no player — the squad left on a trip).
    */
   resume(scene, mapId, entryId, squad) {
     scene.level = World.get(mapId); // the pooled data, exactly as it parked
@@ -160,7 +161,7 @@ globalThis.ColonyMap = {
   /**
    * Full bundle key list: BUNDLE_KEYS + the per-layer handles from contentTiles.LAYERS
    * (<key>Layer/<key>Type, plus <key>Types for a materials-bearing layer and <key>Colliders for a
-   * solid one). Rebuilt per call (portal-rate, tiny).
+   * solid one). Rebuilt per call (trip-rate, tiny).
    */
   _bundleKeys() {
     const keys = ColonyMap.BUNDLE_KEYS.slice();
@@ -203,9 +204,6 @@ globalThis.ColonyMap = {
     scene._navGx = undefined;
     scene._navGy = undefined;
     scene._navTick = 0;
-    // portal re-entry guard: an arrival entry may overlap a portal, so lock travel until the player
-    // has stepped clear of every portal once (checkPortals arms it). Prevents door ping-pong.
-    scene._portalLock = true;
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
@@ -289,27 +287,23 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Load a map file, falling back to the start map if it's bad. Returns resolved ids + parsed data.
+   * A map's level data (ColonyLevel.load — its file, or its synthesized site), falling back to
+   * the home site if it's bad. Returns resolved ids + data.
    */
   _loadData(mapId, entryId) {
-    const file = ColonyLevel.mapFile(mapId);
-    let data = LevelSerializer.load(file, { genre: "topdown" });
+    let data = ColonyLevel.load(mapId);
     if (data === null) {
-      Log.error(
-        `map "${mapId}" (${file}) failed — falling back to ${ColonyLevel.START}`,
-      );
+      Log.error(`map "${mapId}" failed — falling back to ${ColonyLevel.START}`);
       mapId = ColonyLevel.START;
       entryId = "default";
-      data = LevelSerializer.load(ColonyLevel.mapFile(mapId), {
-        genre: "topdown",
-      });
+      data = ColonyLevel.load(mapId);
     }
     return { data, mapId, entryId };
   },
 
   /**
    * Entity store + LevelGrid + the settlement/climate zone channels. The player spawns here ONLY on boot
-   * (squad === null) — portal arrivals transfer the whole player entity in via _arriveSquad,
+   * (squad === null) — trip arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
    * to _spawnWorld. A generated map is fully resident (scatter entities + terrain/wall colliders all
    * live at once), so its cap scales with the grid rather than sitting at the authored-map default.
@@ -341,7 +335,7 @@ globalThis.ColonyMap = {
     // held apart so a build-mode remesh can't free them, and excluded from the save (they rebuild)
     scene.statics = built.statics;
     scene.terrainMats = built.terrainMats; // generated maps only — the stacked ground passes' table
-    // boot only: bind the keymap + spawn the player (mints the Squad id). A portal arrival
+    // boot only: bind the keymap + spawn the player (mints the Squad id). A trip arrival
     // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
       PlayerSystem.bindKeys();
@@ -473,12 +467,17 @@ globalThis.ColonyMap = {
           Log.warn(`terrain sprite missing: ${mats[i].sprite}`); // GMRT: sprite_exists, not >=0
           continue;
         }
-        const pass = new RenderTileMap(scene.terrainLayer, scene.level.grid, spr, {
-          autotile: "dual",
-          minId: mats[i].type.id,
-          skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
-          variants: true, // weighted full-tile picks so a wide field doesn't tile visibly
-        });
+        const pass = new RenderTileMap(
+          scene.terrainLayer,
+          scene.level.grid,
+          spr,
+          {
+            autotile: "dual",
+            minId: mats[i].type.id,
+            skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
+            variants: true, // weighted full-tile picks so a wide field doesn't tile visibly
+          },
+        );
         scene._terrainPasses.push(pass);
         scene.renderer.insert(pass);
       }
@@ -584,13 +583,17 @@ globalThis.ColonyMap = {
           color: Color.parse(m.color),
         });
       }
-      scene._tilePasses.wall = new RenderWalls(scene.level.grid, scene.wallLayer, {
-        color: wallMats[0].color,
-        sprite: wallMats[0].sprite,
-        frame: 0,
-        lights: scene._meshPass,
-        materials: wallMats,
-      });
+      scene._tilePasses.wall = new RenderWalls(
+        scene.level.grid,
+        scene.wallLayer,
+        {
+          color: wallMats[0].color,
+          sprite: wallMats[0].sprite,
+          frame: 0,
+          lights: scene._meshPass,
+          materials: wallMats,
+        },
+      );
       scene.renderer.insert(scene._tilePasses.wall);
       // the fence layer as lit post-and-rail boxes in the same depth pool — its occupancy read
       // is the autotiling (RenderFence); the flat blob4 config stays for the editor like the wall's
@@ -775,30 +778,36 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Walk-onto door: travel to the first portal the player overlaps. Runs after physics; on a hit,
-   * go() swaps the store out so we return immediately.
+   * The world-map trip (WorldMapUI's Travel): the crossing's in-game hours pass on the world
+   * timeline FIRST — the clock and the sky roll on, so a due WorldEvent (a trader's leg) fires on
+   * arrival — then the squad lands at the site's default entry through go(). A same-site request
+   * is a no-op.
    */
-  checkPortals(scene) {
-    const p = AABB.of(scene.level.entities, scene.playerId);
-    // live query every doorway (Portal component) — no stored list to dangle across a map swap
-    const ids = scene.level.entities.query(Portal);
-    let over = -1;
-    for (let i = 0; i < ids.length; i++) {
-      const z = AABB.of(scene.level.entities, ids[i]);
-      if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
-        over = ids[i];
-        break;
-      }
-    }
-    // clear of all portals → arm; standing on one while locked (just arrived) → don't re-trigger
-    if (over === -1) {
-      scene._portalLock = false;
-      return;
-    }
-    if (scene._portalLock) return;
-    const portal = scene.level.entities.get(over, Portal);
-    Log.info(`portal → ${portal.toMap} (${portal.toEntry})`);
-    ColonyMap.go(scene, portal.toMap, portal.toEntry);
+  travel(scene, siteId) {
+    if (siteId === scene.level.id) return;
+    const hours = ColonyMap.travelHours(scene.level.id, siteId);
+    const secs = (hours / 24) * WorldClock.dayLength;
+    WorldClock.update(secs);
+    Weather.update(secs);
+    Log.info(`travel → ${siteId} (${hours} h)`);
+    ColonyMap.go(scene, siteId, "default");
+  },
+
+  /**
+   * In-game hours a trip takes: the two sites' chart distance (contentSites `pos`, in [0,1]
+   * chart space) × HOURS_PER_CHART, at least 1. An endpoint that is no site (the editor's
+   * playtest map) reads 1.
+   */
+  travelHours(fromId, toId) {
+    const a = contentSites.get(fromId);
+    const b = contentSites.get(toId);
+    if (a === undefined || b === undefined) return 1;
+    const dx = a.pos.x - b.pos.x;
+    const dy = a.pos.y - b.pos.y;
+    return Math.max(
+      1,
+      Math.round(Math.sqrt(dx * dx + dy * dy) * ColonyMap.HOURS_PER_CHART),
+    );
   },
 
   /**
@@ -827,3 +836,6 @@ ColonyMap.BB_PITCH = 42;
 // screen framing); the 42–58° outputs are angles, unchanged.
 // Shared with the Debug Camera section's "Pitch by zoom" toggle.
 ColonyMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);
+// Hours a trip across one whole world-map chart unit takes — the travelHours scale (corner to
+// corner is ~1.4 units). Assigned after the literal like BB_PITCH.
+ColonyMap.HOURS_PER_CHART = 20;

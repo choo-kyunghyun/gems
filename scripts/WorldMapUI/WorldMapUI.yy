@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Portal",
+  "%Name":"WorldMapUI",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Portal",
+  "name":"WorldMapUI",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"UI",
+    "path":"folders/Game/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Portal.js",
+  "scriptSource":"WorldMapUI.js",
 }

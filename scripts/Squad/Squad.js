@@ -1,4 +1,4 @@
-// Squad MEMBERSHIP — entities sharing a squad id travel together (a portal transfers every member,
+// Squad MEMBERSHIP — entities sharing a squad id travel together (a trip transfers every member,
 // player included, via World.transfer). Minted at ColonyPlayer.spawn; FollowerSystem.hire/kick attach/detach.
 /**
  * @typedef {Object} Squad

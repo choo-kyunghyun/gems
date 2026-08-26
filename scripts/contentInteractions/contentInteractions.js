@@ -44,6 +44,16 @@ globalThis.contentInteractions = {
           CraftingUI.open(ctx.scene, ctx.id);
         },
       },
+      {
+        // travel beacon (prop kind "travel") — a site's departure point: the world map, from which
+        // the squad deploys to another site (WorldMapUI.travel → ColonyMap.travel)
+        id: "travel",
+        prompt: "TRAVEL_PROMPT",
+        run(ctx) {
+          ctx.scene._interOpenId = ctx.id;
+          WorldMapUI.open(ctx.scene);
+        },
+      },
 
       // ── instant actions ──
       {

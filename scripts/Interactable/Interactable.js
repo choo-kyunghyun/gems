@@ -60,6 +60,7 @@ globalThis.Interactable = {
 
     StorageUI.build(scene);
     CraftingUI.build(scene); // the workbench window — also hosts the weapon-mod panel (Toolkit module)
+    WorldMapUI.build(scene); // the travel beacon's site picker
   },
 
   _promptText(scene) {
@@ -77,14 +78,17 @@ globalThis.Interactable = {
 
     // opened station left range → close
     if (
-      (scene._storeOpen || scene._craftOpen) &&
+      (scene._storeOpen || scene._craftOpen || scene._mapOpen) &&
       !Interactable._inRange(scene, scene._interOpenId)
     ) {
       Interactable._closeAll(scene);
     }
 
     scene._interPrompt.enabled =
-      scene._interTarget !== -1 && !scene._storeOpen && !scene._craftOpen;
+      scene._interTarget !== -1 &&
+      !scene._storeOpen &&
+      !scene._craftOpen &&
+      !scene._mapOpen;
 
     if (scene._storeOpen && scene._storeDirty) {
       StorageUI.refresh(scene);
@@ -93,6 +97,10 @@ globalThis.Interactable = {
     if (scene._craftOpen && scene._craftDirty) {
       CraftingUI.refresh(scene); // refreshes the active panel (recipes OR the weapon-mod view)
       scene._craftDirty = false;
+    }
+    if (scene._mapOpen && scene._mapDirty) {
+      WorldMapUI.refresh(scene); // re-lays the chart's nodes after a pick
+      scene._mapDirty = false;
     }
   },
 
@@ -210,6 +218,7 @@ globalThis.Interactable = {
   _closeAll(scene) {
     if (scene._storeOpen) StorageUI.close(scene);
     if (scene._craftOpen) CraftingUI.close(scene);
+    if (scene._mapOpen) WorldMapUI.close(scene);
     scene._interOpenId = -1;
   },
 

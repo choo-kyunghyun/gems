@@ -524,7 +524,7 @@ globalThis.UIInput = class UIInput {
       keyboard_string = "";
     }
     // must clear UIInput.active on destroy — a focused field torn down mid-typing
-    // (level change / portal) would strand the capture and keep gameplay + UINav muted forever.
+    // (level change / trip) would strand the capture and keep gameplay + UINav muted forever.
     if (UIInput.active === this) UIInput.active = null;
   }
 };

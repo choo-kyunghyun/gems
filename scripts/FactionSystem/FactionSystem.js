@@ -95,7 +95,7 @@ globalThis.FactionSystem = {
   },
 
   /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
-   *  attackable bodies, so AI targets combatants not props/portals. CombatAI's aggro acquisition.
+   *  attackable bodies, so AI targets combatants not props/beacons. CombatAI's aggro acquisition.
    */
   nearestHostile(entities, id, x, y, range, opt = {}) {
     const fa = this.factionOf(entities, id);

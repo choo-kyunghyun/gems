@@ -5,7 +5,7 @@
  *
  * A pooled level stays ALIVE for the session: a map is built from file exactly ONCE, then only
  * parks and thaws, so a door trip never rebuilds it. take/put/transfer move a WHOLE entity (all
- * components, via EntitySnapshot) between two resident levels' stores — the portal-squad and
+ * components, via EntitySnapshot) between two resident levels' stores — the travelling-squad and
  * wandering-trader path. `reset()` drops the index and the timeline; the owner frees the levels
  * first (their stores are its to destroy).
  *
@@ -42,12 +42,22 @@ globalThis.World = {
    * Capture a WHOLE entity (all components) out of a resident level's store and remove it. Returns
    * the snapshot (the caller now owns it), or null if the level isn't resident. EntitySnapshot
    * references the component data objects, so they survive the remove/flush (see EntitySnapshot).
+   *
+   * The one component that does NOT travel is `Instance`: a puppet belongs to the source store's
+   * roster, which reaps it once the entity leaves (InstanceSystem), so a carried handle would go
+   * dead — the destination mints its own puppet on its first SkeletonSystem pass and re-dresses it.
    */
   take(mapId, id) {
     const lv = World.get(mapId);
     if (lv === null) return null;
     const snap = EntitySnapshot.capture(lv.entities, id); // no component list → every component
     lv.entities.remove(id);
+    if (snap.components[Instance] !== undefined) {
+      const comps = {};
+      for (const token in snap.components)
+        if (token !== Instance) comps[token] = snap.components[token];
+      snap.components = comps;
+    }
     return snap;
   },
 
