@@ -49,12 +49,13 @@ globalThis.UIElement = class UIElement {
     /** Shared component blackboard — see the UIState typedef. */
     this.state = {};
     this.dirty = true;
-    // clip: children scissored to this rect. scrollY shifts descendants (not self) at draw+hit-test.
-    // clipInsetRight reserves a right gutter (e.g. scrollbar) outside the clip.
+    // clip: children scissored to this rect. scrollX/scrollY shift descendants (not self) at
+    // draw+hit-test. clipInsetRight reserves a right gutter (e.g. scrollbar) outside the clip.
     this.clip = false;
+    this.scrollX = 0;
     this.scrollY = 0;
     this.clipInsetRight = 0;
-    // dragX/Y offsets THIS element + subtree (vs scrollY which offsets only descendants).
+    // dragX/Y offsets THIS element + subtree (vs scrollX/Y which offset only descendants).
     // Applied in getLayoutPosition — not via flexpanel mutation (bug #15065).
     this.dragX = 0;
     this.dragY = 0;
@@ -255,6 +256,7 @@ globalThis.UIElement = class UIElement {
     // accumulate ancestor scroll/drag so this chokepoint applies them without flex mutation.
     let p = this.parent;
     while (p !== null) {
+      if (p.scrollX) pos.left -= p.scrollX;
       if (p.scrollY) pos.top -= p.scrollY;
       if (p.dragX) pos.left += p.dragX;
       if (p.dragY) pos.top += p.dragY;

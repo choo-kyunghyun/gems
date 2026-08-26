@@ -3,12 +3,12 @@
  * Exclusive modal controller on a full-screen root (gemsModal). Returns `true` every
  * frame to block all pointer input beneath it. Closes on Escape or a backdrop click (a
  * press no card child captured). Enter/exit animates: backdrop dim fades + card slides
- * via `root.scrollY` (offsets the subtree = the card) — no flex mutation. `.close()`
+ * via `root.scrollY`/`scrollX` (offsets the subtree = the card) — no flex mutation. `.close()`
  * starts the exit (idempotent); root is removed + onClose fires once it completes —
  * safe to call mid-update (destroy happens later, UIElement `_destroyed` guards the unwind).
  */
 globalThis.UIModal = class UIModal {
-  /** modal: { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide } */
+  /** modal: { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide, slideX } */
   constructor(modal = {}) {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
@@ -17,6 +17,7 @@ globalThis.UIModal = class UIModal {
 
     this.duration = modal.duration ?? 0.18; // s per direction (Time.raw)
     this.slide = modal.slide ?? 28; // px the card rises
+    this.slideX = modal.slideX ?? 0; // px the card enters from the right (a side sheet)
 
     // capture the backdrop UIPanel's target alpha so the enter/exit fade scales to it.
     this._backdrop =
@@ -38,7 +39,10 @@ globalThis.UIModal = class UIModal {
     if (this._backdrop !== undefined && this._backdrop !== null) {
       this._backdrop.alpha = this._dim * f;
     }
-    if (this._root !== null) this._root.scrollY = -this.slide * (1 - f);
+    if (this._root !== null) {
+      this._root.scrollY = -this.slide * (1 - f);
+      this._root.scrollX = -this.slideX * (1 - f);
+    }
   }
 
   /** Begin the exit animation (idempotent). */
