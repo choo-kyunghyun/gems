@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"WorldEvents",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"World",
+    "path":"folders/Core/World.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
