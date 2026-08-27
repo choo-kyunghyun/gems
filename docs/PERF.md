@@ -140,10 +140,12 @@ The colony scene (~500 entities, generated 128x128 map) after the idioms above, 
 zone passes off and the fps cap lifted: ~4.2 ms/frame — sim ~1.3, renderer ~1.8, GUI ~0.2, the rest
 present/driver. Against a 16.7 ms frame that is roughly 4x headroom.
 
-The two zone render passes are excluded from that figure and are the largest single cost in the
-scene when on (~6.2 ms/frame): both sweep the WHOLE zone grid (16,384 cells) every frame to find
-~50 painted ones, because `ZoneMap` keeps no record of what is painted. Left alone pending the zone
-refactor.
+The two zone render passes are excluded from that figure. Drawn live they were the largest single
+cost in the scene (~6 ms/frame, renderer 7.9 → 1.95 ms in one same-session before/after): each
+swept the WHOLE zone grid (16,384 cells) every frame to find the ~50 painted ones, because `ZoneMap`
+keeps no record of what is painted. They now bake — `RenderZone` a VertexBuffer, `RenderZoneLabel`
+its centroids — and re-sweep only when the channel's `edits` moves, so a frame with the passes on
+costs one submit; the sweep is paid once per paint, on the same signal shape as `NavGrid.sync`.
 
 `SimClock` converts frame time into whole ticks, so a frame over budget runs MORE ticks and gets
 slower still. Crossing 16.7 ms is therefore a cliff, not a slope: measure `ticks/frame` alongside

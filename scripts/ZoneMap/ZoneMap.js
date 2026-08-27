@@ -7,6 +7,9 @@
  * cursor cell, `Settlement.ownerAt` a placement, `sceneColony._updateClimate` the player's cell. It
  * holds no per-entity membership, so a consumer wanting a border-cross EDGE caches the last id it
  * read and compares (what _updateClimate does).
+ *
+ * `edits` counts every write — a cell paint, a define, an import — the signal a consumer mirroring
+ * the channel (RenderZone's bake, RenderZoneLabel's centroids) polls, as NavGrid does TileLayer.edits.
  */
 globalThis.ZoneMap = class ZoneMap {
   constructor(cols, rows) {
@@ -14,6 +17,7 @@ globalThis.ZoneMap = class ZoneMap {
     // plain object — for...in is GMRT-safe; Map iteration is not
     this.zones = {};
     this._nextId = 1;
+    this.edits = 0;
   }
 
   define(opt = {}) {
@@ -32,6 +36,7 @@ globalThis.ZoneMap = class ZoneMap {
     });
     this.zones[id] = zone;
     if (id >= this._nextId) this._nextId = id + 1;
+    this.edits++;
     return zone;
   }
 
@@ -49,7 +54,10 @@ globalThis.ZoneMap = class ZoneMap {
   }
 
   paint(id, gx, gy) {
-    if (this.grid.inBounds(gx, gy)) this.grid.set(gx, gy, id);
+    if (this.grid.inBounds(gx, gy)) {
+      this.grid.set(gx, gy, id);
+      this.edits++;
+    }
     return this;
   }
 
@@ -59,6 +67,7 @@ globalThis.ZoneMap = class ZoneMap {
         if (this.grid.inBounds(x, y)) this.grid.set(x, y, id);
       }
     }
+    this.edits++;
     return this;
   }
 
@@ -115,6 +124,7 @@ globalThis.ZoneMap = class ZoneMap {
       this.zones[z.id] = new Zone(z);
     }
     this._nextId = data.nextId;
+    this.edits++;
     return this;
   }
 
