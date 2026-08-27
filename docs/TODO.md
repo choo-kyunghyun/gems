@@ -12,7 +12,7 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
 - `World.update` is unwired scaffolding — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`), and `update` carries the engine → gameplay-kit edge. Wire the phase-2 routing (clock injected, not named) or drop it.
-- `EntityStore.import`/`register` — saves store `entities.export()` but restore reads entities out, and `add` auto-registers. `ComponentStore.import` also silently drops snapshot tokens the store never registered — keep the pair only with that guard.
+- `Blueprint` — caller-less since a save restores each map's store whole (nothing replays builds); `capture`/`stamp` are the Blueprint UI's seam (Build Mode below), kept as a deliberate spare.
 - `InputPreset` — `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold hardcoded defaults and `input.json` is never written. Load at boot, or drop the module.
 - `InputAction.unbindButton`/`unbindAxis` — `UIRebind` remaps by assigning `action.buttons[0]` directly.
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
@@ -24,6 +24,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 
 - `File.saveAsync`/`loadAsync` break the verb family — rename to `writeBufferAsync`/`readBufferAsync` beside `read`/`readBuffer`. Both are caller-free (parked on GMRT #15223), so the rename is free. `writeBuffer` also returns an unconditional `true` it never verifies.
 - Drop `Query.hasCollision` (duplicates `has: Collision`) and migrate its one caller, `contentInteractions`.
+- `EntityStore.query()` with no tokens answers every index below `next`, freed ones included (their recycled ids even pass `isValid`) — `dump(this.query())` leans on it, but a "live entities" read wants a presence test; give the no-token form a defined meaning or reject it.
 - `MotionPlanner.plan` — fold the speculative `MP_ALGORITHM` selector to `plan(start, goal, opt)` until a second algorithm exists. Planning with no grid bound should `Log.error`, not return the `[]` that also means unreachable.
 - `World`'s transfer family returns three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. One family, three failure signals a caller must know apart.
 - `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.

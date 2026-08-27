@@ -8,9 +8,9 @@
  *
  * Contract: `create` returns a LevelGen the level builder holds directly — generate(cols, rows) →
  * { tiles, zones, spawns, solid } (grid coords, deterministic from (seed, pass salt): the same seed
- * MUST rebuild the same level, since a save stores only entity state and the ground comes back from
- * the seed; each pass draws from its OWN salted stream, so adding/removing a pass never reshuffles
- * the others' output) — plus the `palette` field and paint().
+ * rebuilds the same level, and each pass draws from its OWN salted stream, so adding/removing a
+ * pass never reshuffles the others' output) — plus the `palette` field and paint(). A generator
+ * runs at a map's FIRST build only; a save keeps the grid it painted, never the seed.
  *
  * Scatter DENSITY is per 1000 cells, so a pass covers whatever level it is handed. Every scatter
  * respects ctx.claimed, so nothing lands inside the hub, a stamped prefab, or an earlier boulder.

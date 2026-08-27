@@ -59,8 +59,8 @@ globalThis.BuildMode = {
         },
         {
           // the fence layer — solid like a wall (own colliders + nav block), drawn by RenderFence
-          // as post-and-rail boxes joined to their 4-neighbors. The id predates the tile form: an
-          // old save's built-entity record carrying it lands as this tile (Blueprint.stamp).
+          // as post-and-rail boxes joined to their 4-neighbors. The id predates the tile form: a
+          // blueprint's built-entity record carrying it lands as this tile (Blueprint.stamp).
           id: "fence",
           labelKey: "BUILD_FENCE",
           cost: 1,
@@ -430,10 +430,10 @@ globalThis.BuildMode = {
 
   /** build the HUD + init per-scene state. call once from create(). */
   build(scene) {
-    // Player builds are SCENE-tracked, apart from the level's own geometry: a save rebuilds the
-    // grid from its file/seed, so what the player put there has to replay separately (SaveGame's
-    // `built`/`builtEnts` → Blueprint). They persist across map changes by construction — a
-    // visited map is parked whole in the pool, not rebuilt from file.
+    // Player builds are SCENE-tracked, apart from the level's own geometry: the tables say which
+    // cells are deconstructable (and what to refund). They persist across map changes by
+    // construction — a visited map is parked whole in the pool, not rebuilt — and a save keeps
+    // them beside the grid and store they index (the ids stay valid: a restore keeps every id).
     scene._built = {}; // "gx,gy" -> tile item id (wall/floor): deconstructable tiles
     scene._builtEnts = {}; // "gx,gy" -> { ent, itemId }: deconstructable built entities
     scene._buildActive = false;
@@ -622,8 +622,8 @@ globalThis.BuildMode = {
     Log.info(`built ${item.id} at ${gx},${gy}`);
   },
 
-  // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement,
-  // Blueprint.stamp, and save-restore. It does NOT gate on cost/validity (the caller decides) or
+  // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement
+  // and Blueprint.stamp. It does NOT gate on cost/validity (the caller decides) or
   // touch inventory. Options:
   //   opts.snapshot    restore an EXACT entity from an EntitySnapshot (chest contents, turret
   //                    damage) instead of a fresh make(); Position is overridden to this cell.

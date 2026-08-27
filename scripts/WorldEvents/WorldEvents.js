@@ -66,6 +66,17 @@ globalThis.WorldEvents = {
     return n;
   },
 
+  /** The queue as save data (flat scalar payloads — see schedule). */
+  export() {
+    return { q: WorldEvents._q.slice() };
+  },
+
+  /** Replace the queue with a saved one (already in `at` order). Handlers are untouched. */
+  import(data) {
+    WorldEvents._q =
+      data !== undefined && data.q !== undefined ? data.q.slice() : [];
+  },
+
   /** Handlers are kept — re-register per scene. */
   reset() {
     WorldEvents._q = [];

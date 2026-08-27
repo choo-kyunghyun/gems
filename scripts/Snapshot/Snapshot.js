@@ -17,10 +17,13 @@
  *   ctx.scene     the live scene (read live state on capture; write it on restore)
  *   ctx.manifest  the JSON tree — write on capture, read on restore
  *   ctx.putBlob(name, buffer)  capture: hand a binary blob to the bundle (buffer ownership moves to the bundle)
- *   ctx.getBlob(name)          restore: the loaded buffer for `name`, or undefined
+ *   ctx.getBlob(name)          restore: the loaded buffer for `name`, or undefined (the caller still owns it)
+ *   ctx.takeBlob(name)         restore: the same buffer, OWNERSHIP MOVED to the pass — for a blob applied
+ *                              later than the restore itself (a parked map's grid, unpacked on first visit);
+ *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 1; // bump when the manifest/blob layout changes incompatibly
+  static VERSION = 2; // bump when the manifest/blob layout changes incompatibly
 
   constructor() {
     this.passes = [];
@@ -63,6 +66,7 @@ globalThis.Snapshot = class Snapshot {
         blobs.push({ name, buffer });
       },
       getBlob: (_name) => undefined,
+      takeBlob: (_name) => undefined,
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].capture(ctx);
     return { manifest, blobs };
@@ -71,7 +75,9 @@ globalThis.Snapshot = class Snapshot {
   /**
    * RESTORE: run each pass in order against a loaded bundle. `manifest` is the parsed JSON
    * manifest (already ref-revived by Json.decode); `blobs` maps name -> buffer (owned by the
-   * caller; passes read but must not delete). Passes reconstruct scene state in place.
+   * caller; a pass reads through getBlob, or takes ownership through takeBlob — a taken name is
+   * deleted from `blobs`, so the caller's sweep afterwards frees only what no pass claimed).
+   * Passes reconstruct scene state in place.
    */
   restore(scene, manifest, blobs) {
     const ctx = {
@@ -80,6 +86,11 @@ globalThis.Snapshot = class Snapshot {
       manifest,
       putBlob: (_name, _buffer) => {},
       getBlob: (name) => blobs[name],
+      takeBlob: (name) => {
+        const b = blobs[name];
+        delete blobs[name];
+        return b;
+      },
     };
     for (let i = 0; i < this.passes.length; i++) this.passes[i].restore(ctx);
   }

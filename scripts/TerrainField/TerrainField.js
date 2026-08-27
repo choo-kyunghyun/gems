@@ -22,7 +22,7 @@ function _noise2(x, y, seed, lattice) {
 
 /**
  * Every query is a PURE function of cell coords + the seed, so the same seed paints the same level
- * every build — which is what lets a save store only the entity state and rebuild the ground.
+ * every build — a build is the generator's one run; from there the ground is tile data.
  *
  * The PALETTE is an ordered array of material entries — material id = index = painter order (the
  * terrain layer's TileType ids are `index + 1`, and the render stacks one dual-grid pass per

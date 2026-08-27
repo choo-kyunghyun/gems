@@ -1,27 +1,34 @@
 // SaveGame — the colony's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
 // with the colony's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
+ * A save is the session AS IT STANDS: every resident map's grid cell for cell and its entity
+ * store whole (each entity under its saved id — colliders, statics, builds and residents alike),
+ * the world-sim, and the wandering traders' records + schedule. A load rebuilds nothing from a
+ * level file or a seed, spawns nothing and re-meshes nothing — those are a map's FIRST-visit
+ * path (ColonyMap.build); a saved map comes back through ColonyMap.restore, so the entity set
+ * after a load is exactly the one that was saved.
+ *
  * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
  * default/ path, see docs/GMRT.md):
  *   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS
  *                            (file_find_first scans the build dir, NOT the save area, so a directory
  *                            scan can't see saves — the index is the source of truth).
- *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle (metadata, world-sim, and each
- *                            map's component export).
- *   saves/<slot>/<blob>.bin      the binary half, for dense data. NOTHING emits one today: the
- *                            level's grid rebuilds from its file or its seed, and the player's own
- *                            edits replay from `built`.
+ *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle: metadata, world-sim, and one
+ *                            entry per map — its store export, its id lists, its zone channels,
+ *                            and what its grid's packed ids mean (see _mapsPass).
+ *   saves/<slot>/map_<id>.bin    the binary half: that map's tile layers (LevelGrid.pack).
  * Passes run in insert order both ways; capture and restore live on the same pass object so they
- * can't drift.
+ * can't drift. A manifest from another Snapshot.VERSION is refused at load — no migration.
  */
 globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch
-  // per-map saved state awaiting each map's first build after a load — the active map consumes its
-  // entry immediately; a parked map consumes its entry when the player first travels to it (so a
-  // visited map's residents and builds don't come back fresh from file). mapId -> saved map entry.
+  // per-map saved state awaiting each map's first visit after a load — the active map's is taken
+  // by the load boot, a parked map's when the player first travels to it (ColonyMap.go), so no
+  // map comes back fresh from file. mapId -> { map: the manifest entry, buf: its grid blob }.
+  // The buffer is owned here until taken (clearPending frees the rest).
   _pendingMaps: {},
   // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
   // are re-derived each tick, a puppet Instance is re-minted by SkeletonSystem — a restored handle
@@ -51,9 +58,7 @@ globalThis.SaveGame = {
     const bundle = SaveGame.frame().capture(scene);
     const dir = SaveGame.DIR + slot + "/";
     // binary blobs first — the bundle owns them; write, RECORD the name (so load is self-describing
-    // for any pass's blobs, not hard-coded to one), then free. Currently no pass emits a blob (the
-    // dense tile grid proved reproducible from the build log), so this is the hybrid channel kept
-    // ready for future dense data.
+    // for any pass's blobs, not hard-coded to one), then free.
     bundle.manifest._blobs = [];
     for (let i = 0; i < bundle.blobs.length; i++) {
       const b = bundle.blobs[i];
@@ -110,7 +115,19 @@ globalThis.SaveGame = {
       Log.error("SaveGame: manifest for '" + slot + "' is corrupt");
       return false;
     }
-    // load every blob the manifest recorded (name -> buffer; freed after restore runs)
+    if (manifest.version !== Snapshot.VERSION) {
+      Log.error(
+        "SaveGame: slot '" +
+          slot +
+          "' is save version " +
+          manifest.version +
+          ", this build reads " +
+          Snapshot.VERSION,
+      );
+      return false;
+    }
+    // load every blob the manifest recorded (name -> buffer; a pass takes what it applies later,
+    // the rest is freed after restore runs)
     const blobs = {};
     const names = manifest._blobs !== undefined ? manifest._blobs : [];
     for (let i = 0; i < names.length; i++) {
@@ -129,7 +146,8 @@ globalThis.SaveGame = {
   /**
    * Reconstruct the session into a FRESH colony scene — called from sceneColony.create()'s load-branch
    * in place of the new-game map+player seeding. Runs the frame's restore passes, then frees the
-   * loaded blobs. Clears the pending bundle.
+   * loaded blobs no pass took (a map's grid blob is taken into its stash — see _pendingMaps).
+   * Clears the pending bundle.
    */
   restore(scene) {
     const p = SaveGame._pending;
@@ -142,43 +160,45 @@ globalThis.SaveGame = {
   },
 
   /**
-   * stash every saved map so each map's build consumes its own state (active now, others on first visit).
+   * Stash every saved map with its grid blob (taken out of the bundle — the stash owns it now),
+   * so each map's first visit restores its own state (the active map now, the rest on travel).
+   * A map whose blob is missing is not stashed: its first visit builds fresh, which the log says.
    */
-  _stashPending(maps) {
-    SaveGame._pendingMaps = {};
-    for (let i = 0; i < maps.length; i++)
-      SaveGame._pendingMaps[maps[i].id] = maps[i];
+  _stashPending(maps, ctx) {
+    SaveGame.clearPending();
+    for (let i = 0; i < maps.length; i++) {
+      const m = maps[i];
+      const buf = ctx.takeBlob(m.blob);
+      if (buf === undefined) {
+        Log.error(
+          "SaveGame: map '" + m.id + "' has no grid blob — it will build fresh",
+        );
+        continue;
+      }
+      SaveGame._pendingMaps[m.id] = { map: m, buf: buf };
+    }
   },
 
-  /** Drop any stashed per-map state — a NEW game must not inherit a prior load's maps. */
+  /**
+   * Drop any stashed per-map state and free its blobs — a NEW game must not inherit a prior
+   * load's maps, and a scene teardown must not leak the maps never visited.
+   */
   clearPending() {
+    const ids = Object.keys(SaveGame._pendingMaps);
+    for (let i = 0; i < ids.length; i++)
+      buffer_delete(SaveGame._pendingMaps[ids[i]].buf);
     SaveGame._pendingMaps = {};
   },
 
   /**
-   * Consume a map's stashed state (applied once, at its first build after a load).
+   * Consume a map's stashed state — { map, buf }, the caller now owning the buffer — or null when
+   * none is stashed (a new game, or a map never saved). Applied once, at the map's first visit.
    */
   takePendingMap(mapId) {
-    const m = SaveGame._pendingMaps[mapId];
-    if (m === undefined) return null;
+    const p = SaveGame._pendingMaps[mapId];
+    if (p === undefined) return null;
     delete SaveGame._pendingMaps[mapId];
-    return m;
-  },
-
-  /**
-   * Apply a saved map's build state onto a freshly-built map: the founded settlements, then the
-   * tiles + built entities via Blueprint.stamp (each built entity carries its exact snapshot from
-   * the store export, so a chest keeps its contents). Shared by the active-map restore and every
-   * parked map's first build. The map's residents are restored earlier, inside build().
-   * `savedMap` is a manifest maps[] entry.
-   */
-  applyMapState(scene, savedMap) {
-    const zones = savedMap.zones;
-    if (zones !== undefined && zones.settlement !== undefined) {
-      const zm = scene.level.grid.zoneMap("settlement");
-      if (zm !== undefined) zm.import(zones.settlement);
-    }
-    Blueprint.stamp(scene, 0, 0, SaveGame._buildPlan(savedMap));
+    return p;
   },
 
   /**
@@ -229,7 +249,8 @@ globalThis.SaveGame = {
     restore(_ctx) {}, // header is informational — nothing to apply
   },
 
-  // world-scope singletons: clock, weather, and the whole progression (counters, unlocks, quests).
+  // world-scope singletons: clock, weather, the whole progression (counters, unlocks, quests), and
+  // the off-focus world — the event queue and the trader records it drives.
   _simPass: {
     id: "sim",
     capture(ctx) {
@@ -237,6 +258,8 @@ globalThis.SaveGame = {
         clock: { hour: WorldClock.hour, day: WorldClock.day },
         weather: Weather.export(),
         tracker: Tracker.export(),
+        events: WorldEvents.export(),
+        traders: Trader.export(),
       };
     },
     restore(ctx) {
@@ -248,10 +271,27 @@ globalThis.SaveGame = {
       // the progression REPLACES the session's — a load is not a merge, so whatever the previous
       // slot left in memory can't survive into this one.
       Tracker.import(sim.tracker);
+      // the queue and the records before the maps: a trader embodied in the active map is in that
+      // map's store, and its record re-links to it by id once the map is up (Trader.onActivate)
+      WorldEvents.import(sim.events);
+      Trader.import(sim.traders);
     },
   },
 
-  // per-map state: entities (JSON component export) + tile grids (binary blob) + build state + zones.
+  /**
+   * Per-map state, one entry per resident map (active or parked) — everything ColonyMap.restore
+   * needs to stand the map up without its file:
+   *   world        the store export whole (minus _TRANSIENT) — every entity under its index +
+   *                generation; on-disk manifest key, renaming it orphans existing saves
+   *   blob         the grid blob's name (map_<id>) — the tile layers, LevelGrid.pack
+   *   layers       the LAYERS keys in pack order; terrainMats a generated map's palette rows, so
+   *                the packed ids mean the same TileTypes on the way back (ColonyLevel.restore)
+   *   cell/cols/rows/capacity   the grid's shape and the store's size
+   *   statics / colliders       the scene's collider id lists (level edge + terrain / per solid
+   *                layer) — ids into `world`, kept so a build-mode remesh still frees the right ones
+   *   spawn / entries / reachZone / reachDone / built / builtEnts   the per-map scene fields
+   *   zones        every zone channel, registry + cells (ZoneMap.export)
+   */
   _mapsPass: {
     id: "maps",
     capture(ctx) {
@@ -262,89 +302,93 @@ globalThis.SaveGame = {
         const mapId = ids[m];
         const level = World.get(mapId); // the map's data — pooled whether it's active or parked
         // its per-map colony state lives flat on the scene while active, in the park bundle once parked
-        const src =
-          mapId === activeId ? ctx.scene : ColonyMap._parked[mapId];
+        const src = mapId === activeId ? ctx.scene : ColonyMap._parked[mapId];
         if (level === null || src === undefined) continue;
         const entities = level.entities;
         const grid = level.grid;
-        // component export → JSON, minus transient/rebuilt components (interpolation + pathfinding
-        // are re-derived each tick; dropping them also shrinks the save and dodges any cyclic
-        // reference a runtime component might carry — see Json's cycle guard).
+        // component export → JSON, minus the transient components (re-derived each tick or
+        // re-minted; dropping them also shrinks the save and dodges any cyclic reference a
+        // runtime component might carry — see Json's cycle guard).
         const exp = entities.export();
         for (let t = 0; t < SaveGame._TRANSIENT.length; t++)
           delete exp.components[SaveGame._TRANSIENT[t]];
-        // WHAT THE BOOT REBUILDS IS NOT SAVED, so restoring the rest can't double it: the level's
-        // geometry (the grid comes back from the file or the seed, and its colliders are re-meshed
-        // with it) and the scene's own re-created entities (Trader.register re-embodies its
-        // wandering vendor).
-        // Trader ids only against the ACTIVE map: a trader is embodied in exactly one map (parking
-        // dehydrates it), and an entity INDEX is per-store — matching one against another map's
-        // store would drop an unrelated entity from that map's save.
-        const rebuilt = [
-          src.statics,
-          mapId === activeId ? Trader.entityIds() : undefined,
-        ];
-        for (let l = 0; l < contentTiles.LAYERS.length; l++)
-          if (contentTiles.LAYERS[l].solid === true)
-            rebuilt.push(src[contentTiles.LAYERS[l].key + "Colliders"]);
-        SaveGame._excludeRebuilt(exp, rebuilt);
+        const layers = [];
+        const colliders = {};
+        for (let l = 0; l < contentTiles.LAYERS.length; l++) {
+          const cfg = contentTiles.LAYERS[l];
+          layers.push(cfg.key);
+          if (cfg.solid === true)
+            colliders[cfg.key] = src[cfg.key + "Colliders"];
+        }
+        const blob = "map_" + mapId;
+        ctx.putBlob(blob, grid.pack());
         maps.push({
           id: mapId,
           generated: src._generated === true,
           indoor: src._indoor === true,
+          cell: grid.cellWidth,
+          cols: grid.cols,
+          rows: grid.rows,
+          capacity: entities.maxEntities,
+          blob: blob,
+          layers: layers,
+          terrainMats: SaveGame._terrainRows(src.terrainMats),
+          spawn: src.spawn,
+          entries: src.entries,
+          reachZone: src.reachZone,
           reachDone: src.reachDone === true,
           built: src._built !== undefined ? src._built : {},
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
-          world: exp, // on-disk manifest key — renaming it orphans existing saves
-          zones: SaveGame._zonesOf(grid), // founded settlements (tiles come from `built` via Blueprint)
+          statics: src.statics,
+          colliders: colliders,
+          zones: SaveGame._zonesOf(grid),
+          world: exp,
         });
       }
       ctx.manifest.maps = maps;
     },
     /**
-     * v1 (Full-session): rebuild the ACTIVE map's GRID fresh from its file/seed, restore its saved
-     * residents in place of the spawn pass, and re-arrive the SAVED squad (player + companions)
-     * through the existing map-transfer machinery, then drop the player back at its saved
-     * position. Non-active maps are stashed (_stashPending) and applied on that map's first build,
-     * so a parked map restores when first travelled to rather than up front.
+     * Stash every saved map with its blob, then stand the ACTIVE one up through ColonyMap.restore
+     * — the player is in its store, so no squad lands and nothing moves. The other maps restore
+     * on their first visit (ColonyMap.go), not up front. A map that can't be restored is built
+     * fresh, loudly — the only path on which a load makes anything.
      */
     restore(ctx) {
       const scene = ctx.scene;
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
-      // Stash EVERY saved map. The active one is applied by the build() below (ColonyMap.build consults
-      // takePendingMap for its residents + applyMapState); parked maps apply on their first visit.
-      SaveGame._stashPending(maps);
-      let active = null;
-      for (let i = 0; i < maps.length; i++)
-        if (maps[i].id === activeMap) active = maps[i];
-      if (active === null) {
-        Log.error("SaveGame: active map '" + activeMap + "' missing from save");
-        return;
-      }
-      const squad = SaveGame._extractSquad(active.world);
-      if (squad === null) {
-        Log.error("SaveGame: no player in save — cannot restore");
-        return;
-      }
+      SaveGame._stashPending(maps, ctx);
       // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
       PlayerSystem.bindKeys();
-      // Build the active map, arriving the restored squad at its default entry. build() consumes the
-      // active map's stashed state (residents + builds + claimed zone).
-      ColonyMap.build(scene, activeMap, "default", squad);
-      // then move the player from the entry back to where it was saved
-      const pinfo = SaveGame._playerPos(active.world);
-      if (pinfo !== null && scene.playerId !== undefined) {
+      const pending = SaveGame.takePendingMap(activeMap);
+      let restored = false;
+      if (pending !== null)
+        restored = ColonyMap.restore(
+          scene,
+          activeMap,
+          "default",
+          null,
+          pending,
+        );
+      if (!restored) {
+        Log.error(
+          "SaveGame: active map '" +
+            activeMap +
+            "' could not be restored — building it fresh",
+        );
+        ColonyMap.build(scene, activeMap, "default", null);
+      }
+      if (scene.playerId === undefined)
+        Log.error("SaveGame: no player in the restored map");
+      Trader.onActivate(scene); // re-link (or embody) the traders settled here
+      // aim the camera at the player straight away (the follow control eases in from wherever
+      // the view sits — see CameraFollow.enter)
+      if (scene.camera !== undefined && scene.playerId !== undefined) {
         const pos = scene.level.entities.get(scene.playerId, Position);
         if (pos !== undefined) {
-          pos.x = pinfo.x;
-          pos.y = pinfo.y;
-          pos.z = pinfo.z !== undefined ? pinfo.z : 0;
-        }
-        if (scene.camera !== undefined) {
-          scene.camera.toX = pinfo.x;
-          scene.camera.toY = pinfo.y;
+          scene.camera.toX = pos.x;
+          scene.camera.toY = pos.y;
         }
       }
     },
@@ -353,10 +397,25 @@ globalThis.SaveGame = {
   // ── helpers ──
 
   /**
-   * Zone channels (JSON — zones are sparse regions, and zoneMap.export() is the disk-safe form the
-   * scene editor already writes). The resident TILE grid is NOT captured: it holds player builds
-   * only, and those replay exactly from `built` via Blueprint.stamp on restore (file tiles come back
-   * from the file), so a raw grid blob would be dead weight.
+   * A generated map's terrain material table as save rows — what its packed terrain ids mean
+   * (ColonyLevel._terrainTypes rebuilds the TileTypes from these, in the same order, so id =
+   * index + 1 holds). undefined on an authored map (its terrain is the one fill type).
+   */
+  _terrainRows(mats) {
+    if (mats === undefined) return undefined;
+    const rows = [];
+    for (let i = 0; i < mats.length; i++)
+      rows.push({
+        name: mats[i].type.name,
+        pathCost: mats[i].type.pathCost, // Infinity encodes as null, which TileType reads back as blocking
+        sprite: mats[i].sprite,
+      });
+    return rows;
+  },
+
+  /**
+   * Every zone channel, registry + cells (ZoneMap.export — JSON: a channel's cell grid is ints,
+   * and there is one channel or two per map).
    */
   _zonesOf(grid) {
     const zones = {};
@@ -476,182 +535,6 @@ globalThis.SaveGame = {
     }
     GameOverlay.close();
     game.switchTo(SceneColony); // fresh colony boot → create() load-branch → restore
-  },
-
-  // ── restore helpers: pull entities back out of a store export ──
-
-  /**
-   * Drop from a store export every entity the next BOOT re-creates by itself, so restoreResidents
-   * can bring back all the rest without landing a duplicate. Takes an array of id lists (see the
-   * capture site for what each is). Filters each component's sparse entry list by entity INDEX; the
-   * id-pool export is left as-is (restore reads specific entities out, never re-imports the whole
-   * export).
-   */
-  _excludeRebuilt(exp, lists) {
-    const excl = {}; // index -> true (numeric-keyed plain object, not a Map — GMRT)
-    let n = 0;
-    for (let l = 0; l < lists.length; l++) {
-      const ids = lists[l];
-      if (ids === undefined) continue;
-      for (let i = 0; i < ids.length; i++, n++)
-        excl[EntityID.index(ids[i])] = true;
-    }
-    if (n === 0) return;
-    const toks = Object.keys(exp.components);
-    for (let t = 0; t < toks.length; t++) {
-      const entries = exp.components[toks[t]];
-      const kept = [];
-      for (let e = 0; e < entries.length; e++)
-        if (excl[entries[e][0]] !== true) kept.push(entries[e]);
-      exp.components[toks[t]] = kept;
-    }
-  },
-
-  /**
-   * Re-create a loaded map's residents into a freshly-built store, in place of its spawn pass —
-   * which is what makes a killed mob stay dead, a moved one stay moved, and dropped loot stay on
-   * the ground. Everything in the export is restored EXCEPT the two sets another step owns: the
-   * SQUAD (ColonyMap._arriveSquad lands those as whole entities) and the player's BUILDS (Blueprint
-   * replays those from `builtEnts`, each with its own snapshot). Level geometry was never in the
-   * export — _excludeRebuilt dropped it on capture. Returns how many were restored.
-   */
-  restoreResidents(entities, savedMap) {
-    const exp = savedMap.world;
-    if (exp === undefined) return 0;
-    const skip = {}; // entity INDEX -> true
-    const squad = SaveGame._squadIndexes(exp);
-    if (squad !== null) for (let i = 0; i < squad.length; i++) skip[squad[i]] = true;
-    const be = savedMap.builtEnts !== undefined ? savedMap.builtEnts : {};
-    const bk = Object.keys(be);
-    for (let i = 0; i < bk.length; i++)
-      skip[EntityID.index(be[bk[i]].ent)] = true;
-
-    const idxs = SaveGame._indexes(exp);
-    let n = 0;
-    for (let i = 0; i < idxs.length; i++) {
-      if (skip[idxs[i]] === true) continue;
-      EntitySnapshot.restore(entities, SaveGame._recordAt(exp, idxs[i]));
-      n++;
-    }
-    return n;
-  },
-
-  /**
-   * Every entity index the export mentions, ascending — the restore order, so a reload lays the
-   * store out the same way twice.
-   */
-  _indexes(exp) {
-    const seen = {};
-    const out = [];
-    const toks = Object.keys(exp.components);
-    for (let t = 0; t < toks.length; t++) {
-      const entries = exp.components[toks[t]];
-      for (let e = 0; e < entries.length; e++) {
-        const idx = entries[e][0];
-        if (seen[idx] === true) continue;
-        seen[idx] = true;
-        out.push(idx);
-      }
-    }
-    // GMRT #15593: comparators must return a SIGN (a fractional difference shuffles ties)
-    out.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    return out;
-  },
-
-  /**
-   * the [index, data] entry for entity index `idx` in a component's sparse entry list, or undefined.
-   */
-  _entryAt(entries, idx) {
-    if (entries === undefined) return undefined;
-    for (let i = 0; i < entries.length; i++)
-      if (entries[i][0] === idx) return entries[i][1];
-    return undefined;
-  },
-
-  /**
-   * rebuild an EntitySnapshot record ({ components: {token:data} }) for one entity index — the shape
-   * EntitySnapshot.apply/restore (and ColonyMap._arriveSquad via World.put) consume.
-   */
-  _recordAt(exp, idx) {
-    const comps = {};
-    const toks = Object.keys(exp.components);
-    for (let i = 0; i < toks.length; i++) {
-      const data = SaveGame._entryAt(exp.components[toks[i]], idx);
-      if (data !== undefined) comps[toks[i]] = data;
-    }
-    return { components: comps };
-  },
-
-  /**
-   * the SQUAD's entity indexes (player FIRST, then companions sharing its Squad id), or null when
-   * the export holds no player. Two readers: the records handed to ColonyMap.build, and the skip set
-   * restoreResidents needs so the squad isn't landed twice.
-   */
-  _squadIndexes(exp) {
-    const players = exp.components["Playable"];
-    if (players === undefined || players.length === 0) return null;
-    const pidx = players[0][0]; // the player's entity index
-    const squads = exp.components["Squad"];
-    let sid = null;
-    if (squads !== undefined) {
-      const pd = SaveGame._entryAt(squads, pidx);
-      if (pd !== undefined) sid = pd.id;
-    }
-    const idxs = [pidx];
-    if (sid !== null && squads !== undefined)
-      for (let i = 0; i < squads.length; i++)
-        if (squads[i][0] !== pidx && squads[i][1].id === sid)
-          idxs.push(squads[i][0]);
-    return idxs;
-  },
-
-  /**
-   * the SQUAD (player first, then companions sharing its Squad id) as whole-entity records — fed to
-   * ColonyMap.build as its `squad`, so the exact map-transfer path re-lands the character intact.
-   */
-  _extractSquad(exp) {
-    const idxs = SaveGame._squadIndexes(exp);
-    if (idxs === null) return null;
-    const out = [];
-    for (let i = 0; i < idxs.length; i++)
-      out.push(SaveGame._recordAt(exp, idxs[i]));
-    return out;
-  },
-
-  /**
-   * Turn a saved map's build state into a Blueprint plan: _built tiles + _builtEnts entities, each
-   * entity carrying its EXACT snapshot pulled from the store export (so a built chest keeps its
-   * contents, a turret its damage) — a stale/empty snapshot degrades to a fresh make() at stamp.
-   */
-  _buildPlan(active) {
-    const built = active.built !== undefined ? active.built : {};
-    const be = active.builtEnts !== undefined ? active.builtEnts : {};
-    const tiles = [];
-    const bk = Object.keys(built);
-    for (let i = 0; i < bk.length; i++) {
-      const c = bk[i].split(",");
-      tiles.push({ dx: Number(c[0]), dy: Number(c[1]), item: built[bk[i]] });
-    }
-    const ents = [];
-    const ek = Object.keys(be);
-    for (let i = 0; i < ek.length; i++) {
-      const c = ek[i].split(",");
-      const rec = be[ek[i]];
-      const ent = { dx: Number(c[0]), dy: Number(c[1]), item: rec.itemId };
-      const snap = SaveGame._recordAt(active.world, EntityID.index(rec.ent));
-      if (Object.keys(snap.components).length > 0) ent.snapshot = snap;
-      ents.push(ent);
-    }
-    return { w: 0, h: 0, tiles, ents };
-  },
-
-  /**
-   * the player's saved Position, for repositioning after the entry arrival.
-   */
-  _playerPos(exp) {
-    const players = exp.components["Playable"];
-    if (players === undefined || players.length === 0) return null;
-    return SaveGame._entryAt(exp.components["Position"], players[0][0]) ?? null;
   },
 
   /**

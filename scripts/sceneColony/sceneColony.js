@@ -162,29 +162,32 @@ class _SceneColonyClass {
 
     // a wandering trader (Trader/WorldEvents/Universe): crosses hub <-> cave off-focus on the
     // WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
-    Trader.register(this, {
-      id: "peddler",
-      name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
-      travelH: 2, // in-game hours in transit between stops
-      route: [
-        { map: "hub", dwellH: 6 },
-        { map: "cave", dwellH: 6 },
-      ],
-      merchant: {
-        infinite: true,
-        currencyId: "coin",
-        buyMargin: 1.2,
-        sellMargin: 0.5,
-        stock: [
-          { itemId: "medkit", qty: 1 },
-          { itemId: "water_bottle", qty: 1 },
-          { itemId: "ration_pack", qty: 1 },
-          { itemId: "ammo_light", qty: 1 },
-          { itemId: "wood", qty: 1 },
-          { itemId: "scrap_metal", qty: 1 },
+    // NEW GAME only — a load brings back its records + schedule (and its embodied entity with the
+    // active map's store), so registering again would land a second peddler.
+    if (!loaded)
+      Trader.register(this, {
+        id: "peddler",
+        name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
+        travelH: 2, // in-game hours in transit between stops
+        route: [
+          { map: "hub", dwellH: 6 },
+          { map: "cave", dwellH: 6 },
         ],
-      },
-    });
+        merchant: {
+          infinite: true,
+          currencyId: "coin",
+          buyMargin: 1.2,
+          sellMargin: 0.5,
+          stock: [
+            { itemId: "medkit", qty: 1 },
+            { itemId: "water_bottle", qty: 1 },
+            { itemId: "ration_pack", qty: 1 },
+            { itemId: "ammo_light", qty: 1 },
+            { itemId: "wood", qty: 1 },
+            { itemId: "scrap_metal", qty: 1 },
+          ],
+        },
+      });
 
     // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
     InputContext.push("play");
@@ -929,6 +932,7 @@ class _SceneColonyClass {
     ColonyMap.reset();
     World.reset(); // drop the level pool + world timeline (every Level freed above)
     Trader.reset(); // drop trader records + queued trader events
+    SaveGame.clearPending(); // free the grid blobs of loaded maps never visited
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();

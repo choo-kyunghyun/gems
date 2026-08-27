@@ -65,7 +65,7 @@ globalThis.Blueprint = {
       const item = BuildMode.item(e.item);
       if (item === undefined) continue;
       // an id that has since become a TILE item (the fence) lands as that tile — applyItem's tile
-      // branch ignores the snapshot, which is how an old save's fence entities migrate
+      // branch ignores the snapshot, which is how an old plan's fence entities migrate
       BuildMode.applyItem(scene, ox + e.dx, oy + e.dy, item, {
         snapshot: e.snapshot,
       });

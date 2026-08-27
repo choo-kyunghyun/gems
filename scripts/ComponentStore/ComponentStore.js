@@ -195,8 +195,14 @@ globalThis.ComponentStore = class ComponentStore {
     return components;
   }
 
-  /** Unknown component keys are ignored. */
+  /**
+   * Replace every column with the snapshot's. A token the snapshot names that this store never
+   * registered is registered on the way in (a fresh store restoring a whole export), so nothing
+   * an export held is dropped.
+   */
   import(components) {
+    const toks = Object.keys(components);
+    for (let t = 0; t < toks.length; t++) this.register(toks[t]);
     for (let k = 0; k < this._tokens.length; k++) {
       const column = this._columns[k];
       column.fill(undefined);

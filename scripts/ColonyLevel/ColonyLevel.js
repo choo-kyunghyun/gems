@@ -12,7 +12,9 @@ const PAD_CLEAR = 6; // cells around the apron kept procedural-free (meta.clear)
  * A level is fully resident: everything it holds is built here, once, and simulated for the map's
  * lifetime. `meta.generated` swaps the file's hand-painted grid for a procedural one (_generate),
  * tuned by the biome profile `meta.biome` names — the ground is still ordinary tile data either way,
- * so nothing downstream knows the difference.
+ * so nothing downstream knows the difference. The file, the seed and the painter are the FIRST
+ * build only: a saved map comes back through restore() — its grid cell for cell and its store
+ * whole — and never sees them again.
  *
  * File shape is a LevelData plus `meta` — one painter (LevelData.paint) writes it whether it came
  * off disk or out of a generator, so the two branches below differ only in the terrain BASE. Grid
@@ -289,21 +291,8 @@ globalThis.ColonyLevel = {
       biome: biome,
     });
     const out = gen.generate(grid.cols, grid.rows);
-    // one TileType per palette material, id = index + 1 (a 0 id reads as an empty cell). The order
-    // IS the painter order, which is what lets the stacked render passes threshold on the id.
-    const mats = [];
-    const types = [];
-    for (let i = 0; i < gen.palette.length; i++) {
-      const p = gen.palette[i];
-      const type = new TileType({
-        id: i + 1,
-        name: p.name,
-        pathCost: p.pathCost,
-      });
-      types.push(type);
-      mats.push({ type: type, sprite: p.sprite });
-    }
-    gen.paint(h.terrainLayer, types, grid.cols, grid.rows);
+    const terrain = ColonyLevel._terrainTypes(gen.palette);
+    gen.paint(h.terrainLayer, terrain.types, grid.cols, grid.rows);
     SolidSystem.boxes(
       entities,
       out.solid,
@@ -319,7 +308,95 @@ globalThis.ColonyLevel = {
       `ColonyLevel: generated ${grid.cols}x${grid.rows} ${biomeId} in ${current_time - t0}ms — ` +
         `${rects} tile rect(s), ${out.spawns.length} spawn(s)`,
     );
-    return { out: out, mats: mats };
+    return { out: out, mats: terrain.mats };
+  },
+
+  /**
+   * The terrain layer's TileTypes for a material table — one per entry, id = index + 1 (a 0 id
+   * reads as an empty cell). The order IS the painter order, which is what lets the stacked render
+   * passes threshold on the id. `defs` is a generator palette, or the same rows read back from a
+   * save (name / pathCost / sprite — a null pathCost is blocking, TileType's convention). Returns
+   * { types, mats }: the types in order, and the { type, sprite } table the render passes stack.
+   */
+  _terrainTypes(defs) {
+    const types = [];
+    const mats = [];
+    for (let i = 0; i < defs.length; i++) {
+      const d = defs[i];
+      const type = new TileType({
+        id: i + 1,
+        name: d.name,
+        pathCost: d.pathCost,
+      });
+      types.push(type);
+      mats.push({ type: type, sprite: d.sprite });
+    }
+    return { types: types, mats: mats };
+  },
+
+  /**
+   * Rebuild a Level from a SAVE — build()'s counterpart for a map that already exists, with no
+   * file, seed or painter: the grid and its layers/types come up empty exactly as build() makes
+   * them, the cells fill from the saved LevelGrid.pack buffer, and the store imports the saved
+   * export whole — every entity under its saved id and generation, colliders and statics included,
+   * so nothing is spawned or re-meshed. `saved` is a SaveGame map entry: { cell, cols, rows, layers
+   * (the LAYERS keys the buffer was packed in), terrainMats? (a generated map's palette rows —
+   * _terrainTypes), world (the store export) }. Returns { grid, terrainMats, <key>Layer/<key>Type
+   * (+Types) } — build()'s bag minus what the scene saved for itself — or null when the buffer or
+   * the layer stack doesn't fit (Log.error'd, nothing written).
+   */
+  restore(entities, saved, buf) {
+    const keys = saved.layers ?? [];
+    let same = keys.length === contentTiles.LAYERS.length;
+    let k = 0;
+    while (same) {
+      if (k >= keys.length) break;
+      if (keys[k] !== contentTiles.LAYERS[k].key) same = false;
+      k++;
+    }
+    if (!same) {
+      Log.error(
+        `ColonyLevel.restore: saved layer stack [${keys.join(",")}] is not the LAYERS stack`,
+      );
+      return null;
+    }
+    const grid = new LevelGrid({
+      cellWidth: saved.cell,
+      cellHeight: saved.cell,
+      cols: saved.cols,
+      rows: saved.rows,
+    });
+    const h = ColonyLevel._makeLayers(grid);
+    // per layer, the TileType a packed id means: the terrain palette on a generated map, the
+    // material types on a materials-bearing layer, else the layer's one type
+    let mats;
+    const tables = [];
+    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
+      const cfg = contentTiles.LAYERS[i];
+      const table = [];
+      if (cfg.key === "terrain" && saved.terrainMats !== undefined) {
+        const terrain = ColonyLevel._terrainTypes(saved.terrainMats);
+        mats = terrain.mats;
+        for (let t = 0; t < terrain.types.length; t++)
+          table[terrain.types[t].id] = terrain.types[t];
+      } else if (cfg.materials !== undefined) {
+        const types = h[cfg.key + "Types"];
+        for (let m = 0; m < cfg.materials.length; m++) {
+          const t = types[cfg.materials[m].key];
+          table[t.id] = t;
+        }
+      } else {
+        const t = h[cfg.key + "Type"];
+        table[t.id] = t;
+      }
+      tables.push(table);
+    }
+    if (!grid.unpack(buf, (l, id) => tables[l][id])) {
+      grid.destroy();
+      return null;
+    }
+    entities.import(saved.world);
+    return { grid, terrainMats: mats, ...h };
   },
 
   /**

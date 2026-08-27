@@ -118,6 +118,69 @@ globalThis.LevelGrid = class LevelGrid {
     };
   }
 
+  /**
+   * The tile layers' cells as one binary buffer — the dense half of a level save (the JSON half
+   * is what a cell can't say: which TileType an id means, and the zone channels' registries).
+   * Layout, little-endian: u32 cols, u32 rows, u32 layer count, then per layer in `layers` order
+   * cols×rows u16 TileType ids row-major (0 = empty). Returns the buffer; the caller owns it.
+   */
+  pack() {
+    const cols = this.cols;
+    const rows = this.rows;
+    const n = this.layers.length;
+    const buf = buffer_create(12 + n * cols * rows * 2, buffer_fixed, 1);
+    buffer_write(buf, buffer_u32, cols);
+    buffer_write(buf, buffer_u32, rows);
+    buffer_write(buf, buffer_u32, n);
+    for (let l = 0; l < n; l++) {
+      const layer = this.layers[l];
+      for (let y = 0; y < rows; y++)
+        for (let x = 0; x < cols; x++) {
+          const t = layer.get(x, y);
+          buffer_write(buf, buffer_u16, t ? t.id : 0);
+        }
+    }
+    return buf;
+  }
+
+  /**
+   * Fill the tile layers from a pack() buffer. `typeOf(layerIndex, id)` maps a cell's stored id
+   * back to the TileType the layer holds (an unknown id → undefined leaves the cell empty, and is
+   * counted in the error the caller sees). The buffer must describe this grid — same cols/rows
+   * and layer count — else nothing is written and false is returned (Log.error'd). The buffer
+   * stays the caller's to free.
+   */
+  unpack(buf, typeOf) {
+    buffer_seek(buf, buffer_seek_start, 0);
+    const cols = buffer_read(buf, buffer_u32);
+    const rows = buffer_read(buf, buffer_u32);
+    const n = buffer_read(buf, buffer_u32);
+    if (cols !== this.cols || rows !== this.rows || n !== this.layers.length) {
+      Log.error(
+        `LevelGrid.unpack: buffer is ${cols}x${rows}/${n} layer(s), grid is ` +
+          `${this.cols}x${this.rows}/${this.layers.length}`,
+      );
+      return false;
+    }
+    let unknown = 0;
+    for (let l = 0; l < n; l++) {
+      const layer = this.layers[l];
+      for (let y = 0; y < rows; y++)
+        for (let x = 0; x < cols; x++) {
+          const id = buffer_read(buf, buffer_u16);
+          if (id === 0) continue;
+          const t = typeOf(l, id);
+          if (t === undefined) unknown++;
+          else layer.set(x, y, t);
+        }
+    }
+    if (unknown > 0)
+      Log.error(
+        `LevelGrid.unpack: ${unknown} cell(s) name a TileType id no layer knows`,
+      );
+    return true;
+  }
+
   export() {
     const data = {
       cellWidth: this.cellWidth,

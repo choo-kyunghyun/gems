@@ -56,15 +56,18 @@ globalThis.Trader = {
   },
 
   /**
-   * Every trader entity currently EMBODIED (at most one per registered trader, in the active map).
-   * A save excludes these: register() re-embodies each trader from its record on every boot, so
-   * saving the entity too would land a second copy on load.
+   * The records as save data. An embodied trader's `entId` stays meaningful: a save restores the
+   * active map's store whole (ids included), so the entity comes back under the same id and the
+   * record re-links to it instead of hydrating a second copy. A loaded game imports this in place
+   * of register() — the schedule is in the saved WorldEvents queue.
    */
-  entityIds() {
-    const out = [];
-    for (const id in Trader._recs)
-      if (Trader._recs[id].entId !== -1) out.push(Trader._recs[id].entId);
-    return out;
+  export() {
+    return { recs: Trader._recs };
+  },
+
+  import(data) {
+    Trader._recs =
+      data !== undefined && data.recs !== undefined ? data.recs : {};
   },
 
   /**
