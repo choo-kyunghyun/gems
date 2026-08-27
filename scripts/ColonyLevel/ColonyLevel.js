@@ -1,65 +1,49 @@
 const CELL = 32; // fallback cell size when a level omits `cell` (32px convention — the 2026-07 media set is authored 1:1 at 32px/cell)
-const PAD_REACH = 2; // cells the landing pad keeps clear of a synthesized level's edge (the 3×3 apron + the border wall)
-const PAD_CLEAR = 6; // cells around the apron kept procedural-free (meta.clear) — no camp on the doorstep
+const ANCHOR_CLEAR = 6; // cells around a site's anchor prefab kept procedural-free (meta.clear) — no camp on the doorstep
 
 /**
  * The colony's level builder: load(), which turns a world-map SITE (contentSites) into level data —
- * its authored file, or a LevelData synthesized from its biome — and build(), which paints that
- * data into a store + grid and returns { grid, spawn, statics, <key>Layer/<key>Type per layer,
- * <key>Colliders per solid layer } for the caller to hang on its Level (ColonyMap._buildWorld does;
- * the Level owns the grid's lifecycle from there). Solid-layer colliders are greedy-meshed by TileEdit.
+ * a LevelData whose `meta` carries the site's generator inputs — and build(), which paints that
+ * data into a store + grid and returns { grid, spawn, entries, statics, spawns, <key>Layer/<key>Type
+ * per layer, <key>Colliders per solid layer } for the caller to hang on its Level
+ * (ColonyMap._buildWorld does; the Level owns the grid's lifecycle from there). Solid-layer
+ * colliders are greedy-meshed by TileEdit.
  *
  * A level is fully resident: everything it holds is built here, once, and simulated for the map's
- * lifetime. `meta.generated` swaps the file's hand-painted grid for a procedural one (_generate),
- * tuned by the biome profile `meta.biome` names — the ground is still ordinary tile data either way,
- * so nothing downstream knows the difference. The file, the seed and the painter are the FIRST
- * build only: a saved map comes back through restore() — its grid cell for cell and its store
- * whole — and never sees them again.
+ * lifetime. Every level is PROCEDURAL — there is no level file: the biome-profiled generator
+ * (_generate) runs over the site's seed, and the site's anchor prefab fixes its one hand-built
+ * structure — so the ground is ordinary tile data from the first frame and nothing downstream
+ * knows how it came to be. The seed and the generator are the FIRST build only: a saved map comes
+ * back through restore() — its grid cell for cell and its store whole — and never sees them again.
  *
- * File shape is a LevelData plus `meta` — one painter (LevelData.paint) writes it whether it came
- * off disk or out of a generator, so the two branches below differ only in the terrain BASE. Grid
- * size is cols/rows, NOT the room, so a level can exceed the view and the follow camera scrolls
- * across it.
+ * Level data is a LevelData plus `meta` (the site's generator inputs and whole-map flags); the
+ * generator's accumulated LevelData is written by the one painter (LevelData.paint) over the
+ * terrain base it also produced. Grid size is cols/rows, NOT the room, so a level can exceed the
+ * view and the follow camera scrolls across it.
  */
 globalThis.ColonyLevel = {
   // The boot site — the colony's home level, and the world map's hub (contentSites.SITES[0]).
   START: "hub",
-  // The editor's Test Play map id: load() serves `playtest` for it (sceneColony latches the one-shot
-  // playtestFile into it on create), so the file is never a site.
-  PLAYTEST: "_playtest",
-  playtest: undefined,
-
-  // one-shot editor→play hand-off: the level editor's Test Play sets a save-dir level file;
-  // sceneColony consumes it once on create, then clears it
-  playtestFile: undefined,
 
   /**
-   * Level data for a map id: the site's authored file where it has one, else a LevelData
-   * synthesized from its biome (_siteData). Returns null for an unknown id or a bad file — the
-   * caller falls back to START.
+   * Level data for a map id (the site's — _siteData). Returns null for an unknown id or an unknown
+   * biome — the caller falls back to START.
    */
   load(id) {
-    if (id === ColonyLevel.PLAYTEST)
-      return ColonyLevel.playtest === undefined
-        ? null
-        : LevelSerializer.load(ColonyLevel.playtest, { genre: "topdown" });
     const site = contentSites.get(id);
     if (site === undefined) {
       Log.error(`ColonyLevel: no site "${id}"`);
       return null;
     }
-    if (site.file !== undefined)
-      return LevelSerializer.load(site.file, { genre: "topdown" });
     return ColonyLevel._siteData(site);
   },
 
   /**
-   * A generated site's level data, synthesized from its def: the biome's climate over the whole
-   * level, and the LANDING PAD — the travel beacon on a 3×3 tile apron, a Survey Post beside it (the
-   * site is unsettled until the player founds an outpost there — BuildMode.claim), and the default
-   * entry a cell below — probed off the biome's field (the same seed the build paints from) so it
-   * lands on spawnable ground. The apron is authored content, so AuthoredStamp's claim (widened by
-   * meta.clear) keeps the procedural passes off the arrival area. Returns null for an unknown biome.
+   * A site's level data: an empty LevelData at the site's size whose `meta` carries what the
+   * generator and the map runtime read — the seed, the biome profile, the anchor prefab and its
+   * clear margin, and, off the profile and the site, the whole-map indoor flag, climate and
+   * settlement. The arrival points come out of the generator (the anchor's `entry` marker), not
+   * the data. Returns null for an unknown biome.
    */
   _siteData(site) {
     const biome = contentBiomes.BIOMES[site.biome];
@@ -67,81 +51,23 @@ globalThis.ColonyLevel = {
       Log.error(`ColonyLevel: site "${site.id}" names no biome profile`);
       return null;
     }
-    const cols = site.cols;
-    const rows = site.rows;
-    const pad = ColonyLevel._padSpot(
-      OverworldGen.field(site.seed, biome),
-      cols,
-      rows,
-    );
-    const data = {
-      version: LevelSerializer.CURRENT_VERSION,
-      genre: "topdown",
-      cell: CELL,
-      cols: cols,
-      rows: rows,
-      meta: {
-        generated: true,
-        seed: site.seed,
-        biome: site.biome,
-        clear: PAD_CLEAR,
-        entries: { default: { gx: pad.x, gy: pad.y + 1 } },
-      },
-      tiles: [{ layer: "floorTile", rects: [[pad.x - 1, pad.y - 1, 3, 3]] }],
-      spawns: [
-        {
-          preset: "prop",
-          gx: pad.x,
-          gy: pad.y,
-          kind: "travel",
-          label: "Beacon",
-        },
-        {
-          preset: "prop",
-          gx: pad.x + 1,
-          gy: pad.y,
-          kind: "claim",
-          label: "Survey Post",
-        },
-      ],
+    const meta = {
+      seed: site.seed,
+      biome: site.biome,
+      anchor: site.anchor,
+      clear: site.clear ?? ANCHOR_CLEAR,
     };
-    if (biome.climate !== undefined) data.meta.climate = biome.climate;
-    return data;
-  },
-
-  /**
-   * The landing pad cell: the cell nearest the level center whose 3×3 block is all spawnable
-   * ground (ring scan outward), so the beacon, its apron and the arrival cell never sit in water.
-   * Falls back to the center when no such block exists (a level that is all water — a data error).
-   */
-  _padSpot(field, cols, rows) {
-    const cx = Math.floor(cols / 2);
-    const cy = Math.floor(rows / 2);
-    const rMax = Math.max(cols, rows);
-    for (let r = 0; r < rMax; r++)
-      for (let dy = -r; dy <= r; dy++)
-        for (let dx = -r; dx <= r; dx++) {
-          if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue; // ring cells only
-          const x = cx + dx;
-          const y = cy + dy;
-          if (
-            x < PAD_REACH ||
-            y < PAD_REACH ||
-            x >= cols - PAD_REACH ||
-            y >= rows - PAD_REACH
-          )
-            continue;
-          if (ColonyLevel._clear3(field, x, y)) return { x: x, y: y };
-        }
-    Log.warn("ColonyLevel: no spawnable landing pad — using the level center");
-    return { x: cx, y: cy };
-  },
-
-  _clear3(field, x, y) {
-    for (let dy = -1; dy <= 1; dy++)
-      for (let dx = -1; dx <= 1; dx++)
-        if (!field.spawnable(x + dx, y + dy)) return false;
-    return true;
+    if (biome.indoor === true) meta.indoor = true;
+    if (biome.climate !== undefined) meta.climate = biome.climate;
+    if (site.settlement !== undefined) meta.settlement = site.settlement;
+    return {
+      cell: CELL,
+      cols: site.cols,
+      rows: site.rows,
+      meta: meta,
+      tiles: [],
+      spawns: [],
+    };
   },
 
   /**
@@ -183,28 +109,13 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Auto-fill each `fill` layer's grid with its material (the walkable base). Authored maps only —
-   * a generated map paints the same layer from its biome palette instead.
-   */
-  _fillLayers(grid, h) {
-    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
-      const cfg = contentTiles.LAYERS[i];
-      if (!cfg.fill) continue;
-      const layer = h[cfg.key + "Layer"];
-      const type = h[cfg.key + "Type"];
-      for (let y = 0; y < grid.rows; y++)
-        for (let x = 0; x < grid.cols; x++) layer.set(x, y, type);
-    }
-  },
-
-  /**
-   * Build a Level: paint the grid + mesh each solid layer's kinematic colliders. Returns the built
-   * handles; the caller owns grid.destroy() and the colliders. `entryId` selects the player spawn from
-   * `meta.entries` (the arrival point of a trip), falling back to entries.default → legacy
-   * meta.playerSpawn.
+   * Build a Level: generate, paint the grid + mesh each solid layer's kinematic colliders. Returns
+   * the built handles; the caller owns grid.destroy() and the colliders. `entryId` selects the
+   * player spawn from the level's entries (the arrival point of a trip), falling back to `default`.
    *
-   * `spawns` comes back on every path — the descriptors the caller feeds ColonySpawn, translated
-   * but not spawned. `terrainMats` (the material table the render passes stack) is generated-only.
+   * `spawns` are the descriptors the caller feeds ColonySpawn, translated but not spawned;
+   * `entries` the named arrival points in grid coords (_entries); `terrainMats` the material
+   * table the render passes stack.
    *
    * TWO kinds of collider list, because they have different lifetimes: a solid layer's
    * `<key>Colliders` is its greedy mesh, which BuildMode remeshes wholesale on every edit of that
@@ -222,20 +133,10 @@ globalThis.ColonyLevel = {
     const h = ColonyLevel._makeLayers(grid);
     const statics = [];
 
-    // The CONTENT is one shape either way: a generated level's passes ACCUMULATE a LevelData (the
-    // file's own content among them, via AuthoredStamp), an authored level IS one. Only the terrain
-    // BASE forks — the biome field paints it per cell, a hand-painted map auto-fills the walkable
-    // material.
-    let content = data;
-    let mats;
-    if (data.meta.generated === true) {
-      const gen = ColonyLevel._generate(entities, grid, h, data, statics);
-      content = gen.out;
-      mats = gen.mats;
-    } else {
-      ColonyLevel._fillLayers(grid, h);
-    }
-    const painted = LevelData.paint(content, { grid: grid, layers: h });
+    // the generator's passes ACCUMULATE the level's LevelData (the anchor prefab's content among
+    // them) over the terrain base _generate paints; the one painter then writes that content
+    const gen = ColonyLevel._generate(entities, grid, h, data, statics);
+    const painted = LevelData.paint(gen.out, { grid: grid, layers: h });
 
     // one collider list per SOLID layer, each remeshed on its own (a wall edit never touches the
     // fence's)
@@ -247,13 +148,15 @@ globalThis.ColonyLevel = {
       h[cfg.key + "Colliders"] = colliders;
     }
 
-    const spawn = this._resolveSpawn(grid, data, entryId);
+    const entries = ColonyLevel._entries(gen.out.spawns);
+    const spawn = ColonyLevel._resolveSpawn(grid, entries, entryId);
     return {
       grid,
       spawn,
+      entries,
       statics,
       spawns: painted.spawns,
-      terrainMats: mats,
+      terrainMats: gen.mats,
       ...h,
     };
   },
@@ -261,36 +164,29 @@ globalThis.ColonyLevel = {
   /**
    * Run the generator and lay down everything that is NOT LevelData: the biome terrain base, and
    * the collide-only geometry that has no tile layer behind it. Returns `{ out, mats }` — `out` the
-   * accumulated LevelData for the caller's painter (the file's authored content is already merged
-   * into it by AuthoredStamp), `mats` the palette table the stacked render passes threshold on.
+   * accumulated LevelData for the caller's painter (the anchor prefab's content is already merged
+   * into it), `mats` the palette table the stacked render passes threshold on.
    *
-   * The profile is `meta.biome` (contentBiomes.BIOMES; an unknown name is a data error, logged and
-   * generated as steppe so the map still opens); `meta.clear` widens the authored content's claim
-   * by that many cells. The terrain lands as per-cell TileTypes on the
+   * The profile is `meta.biome` (contentBiomes.BIOMES — load() already rejected an unknown one),
+   * the fixed structure `meta.anchor` (a Prefab id), and `meta.clear` the cells claimed around it.
+   * The terrain lands as per-cell TileTypes on the
    * terrain layer, so it is ordinary tile data from here on — LevelGrid.costAt prices nav from it
-   * and the stacked dual-grid passes render it, with no sampler left running at play time.
+   * and the stacked dual-grid passes render it, with no generator left running at play time.
    * Impassable terrain and the level edge become COLLIDE-ONLY boxes collected into `statics`, apart
    * from the wall layer's mesh so a build-mode remesh can't free them.
    */
   _generate(entities, grid, h, data, statics) {
     const t0 = current_time;
-    const biomeId = data.meta.biome ?? "steppe";
-    let biome = contentBiomes.BIOMES[biomeId];
-    if (biome === undefined) {
-      Log.error(
-        `ColonyLevel: unknown biome "${biomeId}" — generating as steppe`,
-      );
-      biome = contentBiomes.BIOMES.steppe;
-    }
+    const biomeId = data.meta.biome;
     const gen = OverworldGen.create({
-      seed: data.meta.seed ?? 1337,
-      authored: data, // hand-built hub laid over the generated ground (AuthoredStamp)
-      clear: data.meta.clear ?? 0,
-      biome: biome,
+      seed: data.meta.seed,
+      biome: contentBiomes.BIOMES[biomeId],
+      anchor: data.meta.anchor,
+      clear: data.meta.clear,
     });
     const out = gen.generate(grid.cols, grid.rows);
     const terrain = ColonyLevel._terrainTypes(gen.palette);
-    gen.paint(h.terrainLayer, terrain.types, grid.cols, grid.rows);
+    gen.paint(out, h.terrainLayer, terrain.types);
     SolidSystem.boxes(
       entities,
       out.solid,
@@ -333,11 +229,27 @@ globalThis.ColonyLevel = {
   },
 
   /**
+   * The level's named arrival points (grid coords) off the content's `entry` markers — the anchor
+   * prefab's `{ preset: "entry", id?, gx, gy }`, id default "default". A level with no default
+   * entry has nowhere to arrive, so it is a data error: thrown, not defaulted.
+   */
+  _entries(spawns) {
+    const out = {};
+    for (let i = 0; i < spawns.length; i++) {
+      const s = spawns[i];
+      if (s.preset === "entry") out[s.id ?? "default"] = { gx: s.gx, gy: s.gy };
+    }
+    if (out.default === undefined)
+      throw new Error("ColonyLevel: the level has no default entry");
+    return out;
+  },
+
+  /**
    * Rebuild a Level from a SAVE — build()'s counterpart for a map that already exists, with no
-   * file, seed or painter: the grid and its layers/types come up empty exactly as build() makes
-   * them, the cells fill from the saved LevelGrid.pack buffer, and the store imports the saved
-   * export whole — every entity under its saved id and generation, colliders and statics included,
-   * so nothing is spawned or re-meshed. `saved` is a SaveGame map entry: { cell, cols, rows, layers
+   * seed or painter: the grid and its layers/types come up empty exactly as build() makes them,
+   * the cells fill from the saved LevelGrid.pack buffer, and the store imports the saved export
+   * whole — every entity under its saved id and generation, colliders and statics included, so
+   * nothing is spawned or re-meshed. `saved` is a SaveGame map entry: { cell, cols, rows, layers
    * (the LAYERS keys the buffer was packed in), terrainMats? (a generated map's palette rows —
    * _terrainTypes), world (the store export) }. Returns { grid, terrainMats, <key>Layer/<key>Type
    * (+Types) } — build()'s bag minus what the scene saved for itself — or null when the buffer or
@@ -414,14 +326,9 @@ globalThis.ColonyLevel = {
     out.push(SolidSystem.box(entities, W, -ch, cw, H + 2 * ch)); // right
   },
 
-  /**
-   * Resolve the player spawn (world coords): named entry → entries.default → legacy meta.playerSpawn.
-   */
-  _resolveSpawn(grid, data, entryId) {
-    const entries = data.meta.entries;
-    let entry = data.meta.playerSpawn;
-    if (entries !== undefined)
-      entry = entries[entryId] ?? entries.default ?? entry;
-    return grid.gridToWorld(entry.gx, entry.gy);
+  /** Resolve the player spawn (world coords): the named entry, falling back to `default`. */
+  _resolveSpawn(grid, entries, entryId) {
+    const e = entries[entryId] ?? entries.default;
+    return grid.gridToWorld(e.gx, e.gy);
   },
 };

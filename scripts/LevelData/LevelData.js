@@ -35,8 +35,8 @@
  * THE ONE SHAPE authored map content takes: a cols×rows footprint plus three optional channels —
  * `tiles` into named tile layers, `zones` into named ZoneMap channels, `spawns` as opaque entity
  * descriptors. Every coordinate is LOCAL to the data's own origin, which is what makes the shape
- * scale-free: a whole level file is a LevelData whose origin is (0,0), a Prefab one whose origin is
- * wherever it gets stamped. There is no separate fragment type.
+ * scale-free: a whole level (a generator's output) is a LevelData whose origin is (0,0), a Prefab
+ * one whose origin is wherever it gets stamped. There is no separate fragment type.
  *
  * Two ops, and between them every consumer: translate() moves data to another coordinate space
  * (data → data, for a generator accumulating content it paints later), paint() writes the two

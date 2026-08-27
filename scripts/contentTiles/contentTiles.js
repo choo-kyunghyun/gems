@@ -9,9 +9,8 @@
  * fence=blob16) CAN'T share a TileLayer — each gets its own layer + pass. `type`: "dual"
  * corner-grid, "corner" 13-piece sub-tile, 0 raw single-frame, 16 blob4, 47 blob8. For a
  * type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
- * frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed. `fill` auto-fills the
- * grid (walkable base) on authored maps; a generated map paints the terrain layer per cell from
- * its biome palette instead (ColonyLevel._generate). Order = nav priority (top wins).
+ * frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed; the terrain layer is
+ * painted per cell from the biome palette (ColonyLevel._generate). Order = nav priority (top wins).
  * `name` is an I18n key (resolved at build in ColonyLevel._makeLayers — top level runs before the
  * locale loads).
  */
@@ -28,7 +27,6 @@ globalThis.contentTiles = {
       solid: false,
       pathCost: 1,
       emptyCost: 1,
-      fill: true,
     },
     {
       key: "floor",
@@ -45,7 +43,7 @@ globalThis.contentTiles = {
     },
     // Floor VARIANTS — one type-0 layer per material (the LAYERS design rule: one material
     // per layer + pass; the spare near-white pixTex* sheets each get their own tint).
-    // Build-Mode-only surfaces: level files paint only `floor`, generated maps hold them empty.
+    // Build-Mode-only surfaces: a generated map holds them empty until the player builds.
     {
       key: "floorTile",
       id: 1,
@@ -79,7 +77,7 @@ globalThis.contentTiles = {
     {
       key: "wall",
       id: 1,
-      name: "EDITOR_WALL",
+      name: "BUILD_WALL",
       type: "corner",
       sprite: "pixTileCorner",
       color: "#707888",
@@ -89,7 +87,7 @@ globalThis.contentTiles = {
       // variants above, walls stay a single layer so colliders/remesh/nav are untouched —
       // TileEdit meshes by occupancy). Each material = a near-white face texture + tint;
       // RenderWalls buckets cells by TileType id and submits per material (ColonyMap wires it).
-      // materials[0] is the default (file walls, the editor, streamed occupancy views).
+      // materials[0] is the default (generated walls, streamed occupancy views).
       materials: [
         {
           key: "brick",

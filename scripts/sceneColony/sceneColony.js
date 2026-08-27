@@ -108,13 +108,7 @@ class _SceneColonyClass {
     // _buildUI() so retheme() can rebuild it in place on a live theme swap, no world regen.
     this._buildUI();
 
-    // boot at the colony's home site; the editor's Test Play overrides with its playtest file
-    let bootMap = ColonyLevel.START;
-    if (ColonyLevel.playtestFile !== undefined) {
-      ColonyLevel.playtest = ColonyLevel.playtestFile;
-      ColonyLevel.playtestFile = undefined;
-      bootMap = ColonyLevel.PLAYTEST;
-    }
+    const bootMap = ColonyLevel.START; // the colony's home site
     WorldClock.reset(); // once — survives map changes below
     Weather.reset(); // once — survives map changes, like the clock
     // LOAD vs NEW GAME: a parked SaveGame bundle rebuilds the saved active map + character +

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"TerrainField",
+  "%Name":"GenLakes",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"TerrainField",
+  "name":"GenLakes",
   "parent":{
     "name":"Level",
     "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"TerrainField.js",
+  "scriptSource":"GenLakes.js",
 }

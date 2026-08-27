@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"AuthoredStamp",
+  "%Name":"GenScatter",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"AuthoredStamp",
+  "name":"GenScatter",
   "parent":{
     "name":"Level",
     "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"AuthoredStamp.js",
+  "scriptSource":"GenScatter.js",
 }

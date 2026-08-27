@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GenAnchor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GenAnchor",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"GenAnchor.js",
+}

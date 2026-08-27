@@ -260,25 +260,22 @@ globalThis.WorldMapUI = {
     return s === undefined ? "" : I18n.text(s[key]);
   },
 
-  /** the biome's name for a generated site; an authored site with no biome is indoor */
+  /** the site's biome name */
   _terrainText(scene) {
     const s = contentSites.get(scene._mapSel);
     if (s === undefined) return "";
-    const biome =
-      s.biome !== undefined ? contentBiomes.BIOMES[s.biome] : undefined;
-    return I18n.text(biome !== undefined ? biome.name : "BIOME_INDOOR");
+    const biome = contentBiomes.BIOMES[s.biome];
+    return biome === undefined ? "" : I18n.text(biome.name);
   },
 
-  /** a resident site's grid, a synthesized site's def size; an unbuilt file site reads "-" */
+  /** a resident site's grid, else its def size */
   _sizeText(scene) {
     const s = contentSites.get(scene._mapSel);
     if (s === undefined) return "";
     const lv = World.get(s.id);
     if (lv !== null && lv.grid !== null)
       return I18n.text("WORLDMAP_SIZE_VAL", lv.grid.cols, lv.grid.rows);
-    if (s.cols !== undefined)
-      return I18n.text("WORLDMAP_SIZE_VAL", s.cols, s.rows);
-    return "-";
+    return I18n.text("WORLDMAP_SIZE_VAL", s.cols, s.rows);
   },
 
   _threatText(scene) {

@@ -13,7 +13,7 @@
  * A REUSABLE LEVEL FRAGMENT: a registered, tagged, weighted LevelData — the def body IS a LevelData
  * (footprint + tiles/zones/spawns in origin-local coords), so a prefab carries no ops of its own.
  * `LevelData.translate(prefab, ox, oy)` stamps it into a generator's output and `LevelData.paint`
- * writes it into a level, the same two calls a whole level file goes through.
+ * writes it into a level, the same two calls a generator's whole output goes through.
  *
  * register() fail-fast validates every channel against the footprint — an out-of-footprint rect
  * would silently break a generator's seam-margin guarantee. The def store is a `Registry` facade.

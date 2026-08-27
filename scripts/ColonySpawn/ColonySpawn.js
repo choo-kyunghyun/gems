@@ -21,6 +21,7 @@
  *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
  *   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
  *   reach    half?                (quest zone marker — no entity)
+ *   entry    id?                  (arrival-point marker, id default "default" — no entity; ColonyLevel._entries reads it)
  *   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
  * Every descriptor also takes `size?` — the per-spawn SCALAR (Alpha/boss knob) multiplying the def's
  * `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta density divides the DRAW

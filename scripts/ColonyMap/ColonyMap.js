@@ -13,8 +13,8 @@
  * (first visit), then only freezes/thaws — no eviction, cold serialize, or respawn-from-file
  * reconcile.
  *
- * Three ways into a map, one runtime after: build() is the FIRST visit — the level file or the
- * seed, the painter, the spawn pass (the only place procedural content is ever made); restore()
+ * Three ways into a map, one runtime after: build() is the FIRST visit — the site's seed, the
+ * generator, the painter, the spawn pass (the only place procedural content is ever made); restore()
  * is a SAVED map's first visit since the load — its grid and store come back exactly as captured
  * and nothing is made; resume() is a live parked bundle. go() picks between them.
  */
@@ -31,7 +31,6 @@ globalThis.ColonyMap = {
   BUNDLE_KEYS: [
     "spawn",
     "entries",
-    "_generated",
     "_indoor",
     "_climate",
     "settlement",
@@ -245,40 +244,30 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * World-coord entry points by name, for repositioning the player on a resume (no file reload).
-   * Mirrors _resolveSpawn's sources: meta.entries, plus legacy meta.playerSpawn as "default".
+   * World-coord entry points by name — the builder's grid-coord table (ColonyLevel._entries)
+   * converted, for repositioning the player on a resume without rebuilding.
    */
-  _entryTable(grid, data) {
+  _entryTable(grid, entries) {
     const out = {};
-    const e = data.meta.entries;
-    if (e !== undefined)
-      for (const k in e) out[k] = grid.gridToWorld(e[k].gx, e[k].gy);
-    if (data.meta.playerSpawn !== undefined && out.default === undefined)
-      out.default = grid.gridToWorld(
-        data.meta.playerSpawn.gx,
-        data.meta.playerSpawn.gy,
-      );
+    for (const k in entries)
+      out[k] = grid.gridToWorld(entries[k].gx, entries[k].gy);
     return out;
   },
 
   // Build a map fresh from its data — the FIRST visit ONLY (a revisit resumes its live parked
-  // bundle, a saved map restores; nothing is ever rebuilt). The one place the level file, the
-  // seed and the spawn pass are read. `squad` is handed in by go() (null on boot → spawn a fresh
+  // bundle, a saved map restores; nothing is ever rebuilt). The one place the site's seed, the
+  // generator and the spawn pass are read. `squad` is handed in by go() (null on boot → spawn a fresh
   // player). Orchestrates the helpers below.
   build(scene, mapId, entryId, squad = null) {
     const loaded = ColonyMap._loadData(mapId, entryId);
     const data = loaded.data;
     mapId = loaded.mapId;
     entryId = loaded.entryId;
-    // generated maps (meta.generated) build their grid from a seed instead of the file's rects
-    scene._generated = data.meta.generated === true;
     // indoor maps (meta.indoor): no sky passes, and the cozy interior BGM below
     scene._indoor = data.meta.indoor === true;
     // the level's climate (meta.climate), pinned over the whole map by _applyClimate on arrival
     scene._climate = data.meta.climate;
-    Log.info(
-      `colony map: ${mapId} (entry ${entryId})${scene._generated ? " [generated]" : ""}`,
-    );
+    Log.info(`colony map: ${mapId} (entry ${entryId})`);
 
     const built = ColonyMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + its settlement
     // pool it BEFORE the squad lands — World.put resolves the destination through the pool
@@ -306,7 +295,6 @@ globalThis.ColonyMap = {
    */
   restore(scene, mapId, entryId, squad, pending) {
     const m = pending.map;
-    scene._generated = m.generated === true;
     scene._indoor = m.indoor === true;
     scene._climate = m.climate;
     scene.settlement = m.settlement;
@@ -392,20 +380,18 @@ globalThis.ColonyMap = {
    * Entity store + LevelGrid + the level's settlement record. The player spawns here ONLY on boot
    * (squad === null) — trip arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
-   * to _spawnWorld. A generated map is fully resident (scatter entities + terrain/wall colliders all
-   * live at once), so its cap scales with the grid rather than sitting at the authored-map default.
+   * to _spawnWorld. A map is fully resident (scatter entities + terrain/wall colliders all live at
+   * once), so its cap scales with the grid.
    */
   _buildWorld(scene, data, mapId, entryId, squad) {
     scene.level = new Level({
       id: mapId,
-      capacity: scene._generated
-        ? Math.max(1024, Math.ceil((data.cols * data.rows) / 4))
-        : 256,
+      capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),
     });
     const built = ColonyLevel.build(scene.level.entities, data, entryId);
     scene.level.grid = built.grid;
     scene.spawn = built.spawn; // for player respawn on death
-    scene.entries = ColonyMap._entryTable(scene.level.grid, data); // named entries → world coords (resume)
+    scene.entries = ColonyMap._entryTable(scene.level.grid, built.entries); // named entries → world coords (resume)
     // tilemap handles (render passes + build mode) — one Layer/Type pair per LAYERS entry,
     // plus <key>Types for a materials-bearing layer (wall) and <key>Colliders for a solid one
     // (wall, fence — BuildMode remeshes exactly these). Bundled via _bundleKeys.
@@ -458,8 +444,8 @@ globalThis.ColonyMap = {
     const grid = scene.level.grid;
     for (let i = 0; i < built.spawns.length; i++)
       ColonySpawn.spawnEntity(entities, grid, built.spawns[i]);
-    // A region, not an entity, so it is read off the file here (and saved as a rect thereafter).
-    scene.reachZone = ColonyMap._fileReach(scene, data);
+    // A region, not an entity, so it is read off the descriptors here (and saved as a rect thereafter).
+    scene.reachZone = ColonyMap._reach(scene, built.spawns);
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
     scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
   },
@@ -606,11 +592,11 @@ globalThis.ColonyMap = {
       // WALLS category (art projection contract): the resident wall layer as lit boxes
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
-      // markDirty reaches it (the flat "corner" autotile config stays for the editor).
-      // ONE pass covers every wall on the map — the file's, the generator's, and the player's all
-      // paint the same layer. PER-CELL MATERIALS from the wall cfg (near-white face texture × tint
-      // per material, bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as
-      // the default bucket for file and generated walls.
+      // markDirty reaches it (the flat "corner" autotile config stays as the flat-map fallback).
+      // ONE pass covers every wall on the map — the generator's and the player's both paint the
+      // same layer. PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per
+      // material, bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
+      // default bucket for generated walls.
       const wallCfg = contentTiles.get("wall");
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
@@ -783,8 +769,7 @@ globalThis.ColonyMap = {
 
   /**
    * In-game hours a trip takes: the two sites' chart distance (contentSites `pos`, in [0,1]
-   * chart space) × HOURS_PER_CHART, at least 1. An endpoint that is no site (the editor's
-   * playtest map) reads 1.
+   * chart space) × HOURS_PER_CHART, at least 1. An endpoint that is no site reads 1.
    */
   travelHours(fromId, toId) {
     const a = contentSites.get(fromId);
@@ -799,12 +784,11 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Reach-quest zone from the level file's "reach" spawn (undefined when the map has no marker).
-   * A region, not an entity — so it is resolved from the file rather than spawned, which is also
-   * what makes it come back on a load without being saved.
+   * Reach-quest zone from the level's "reach" spawn descriptor (undefined when the map has no
+   * marker). A region, not an entity — so it is resolved from the descriptor rather than spawned,
+   * and kept as a rect from there on.
    */
-  _fileReach(scene, data) {
-    const spawns = data.spawns ?? [];
+  _reach(scene, spawns) {
     for (let i = 0; i < spawns.length; i++)
       if (spawns[i].preset === "reach")
         return ColonySpawn.reachZone(scene.level.grid, spawns[i]);

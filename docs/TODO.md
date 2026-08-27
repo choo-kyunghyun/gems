@@ -4,7 +4,6 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 ## Chores
 
-- Remove unused levels in datafiles
 - Consider adopting Spine2d and removing SpriteMeta
 
 ## Dead Code
@@ -18,7 +17,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - `gemsWindow` and the `UIDrag`/`UIResize` pair it is the sole constructor of — the colony windows use `gemsOverlay`. A three-module spare chain like `UIMinimap`/`gemsMinimap`.
 - The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
-- `RenderZone`/`RenderZoneLabel` — caller-less since a settlement became a whole level (the `settlement` channel was their one target), and no level file or prefab authors a `zones` channel, so no zone overlay draws anywhere. Keep as the engine's zone passes, or drop with the next zone-consumer decision.
+- `RenderZone`/`RenderZoneLabel` — caller-less since a settlement became a whole level (the `settlement` channel was their one target), and no prefab authors a `zones` channel, so no zone overlay draws anywhere. Keep as the engine's zone passes, or drop with the next zone-consumer decision.
 
 ## API Shape
 
@@ -68,16 +67,6 @@ Every agent now plans over one level-sized `NavGrid`, so a request can span the 
 
 - Blueprint UI
 - Drag to select
-
-## Editor
-
-The level file, a `Prefab`, and a generator's output are now one shape (`LevelData`); the editor is the half still on its own parallel model.
-
-- Paint the real `contentTiles` stack instead of the editor's two hardcoded layers, so the brush palette comes from `LAYERS` (+ the wall materials) and an entry the editor can't model stops being parked and re-emitted blind (`sceneEditor._loadTiles`).
-- Author `meta.entries` (named spawn points) — only the legacy `playerSpawn` is editable today, so an edited level can't place its arrival entry beside a travel beacon.
-- Draw with the real render passes instead of `RenderDebugTileMap` + hand-drawn markers, so what the editor shows is what plays. Whole-level residency is what makes this affordable.
-- Prefabs: capture a selected rect into a `PrefabDef`, stamp a registered one back. Both are plain `LevelData` ops, so only the export is new — a JS literal for `contentPrefabs`, mirroring the level export → `datafiles/levels/` workflow.
-- `meta.settlement` authoring: the editor round-trips a level's settlement whole, so it is only reachable by hand-editing `meta` (zone authoring itself has no consumer left — no channel is authored anywhere).
 
 ## Media
 

@@ -39,7 +39,7 @@ globalThis.Json = {
    * it dodges the native nested-value fault, the O(n²) big-array cost, AND any infinite
    * recursion from a cyclic reference in the input.
    * `opt.pretty` switches to the hand-editable form for files a human reads and diffs
-   * (LevelSerializer's level files): 2-space indent, one object key per line, and pure-scalar
+   * (a LevelData exported as a literal): 2-space indent, one object key per line, and pure-scalar
    * arrays kept INLINE so a `[x, y, w, h]` rect stays one line. Save games stay compact.
    * Returns undefined after a step-cap abort (Log.error'd) — truncated output is never
    * handed back for a caller to persist as if complete.

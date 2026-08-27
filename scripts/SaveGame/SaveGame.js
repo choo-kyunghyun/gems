@@ -4,7 +4,7 @@
  * A save is the session AS IT STANDS: every resident map's grid cell for cell and its entity
  * store whole (each entity under its saved id — colliders, statics, builds and residents alike),
  * the world-sim, and the wandering traders' records + schedule. A load rebuilds nothing from a
- * level file or a seed, spawns nothing and re-meshes nothing — those are a map's FIRST-visit
+ * seed, spawns nothing and re-meshes nothing — those are a map's FIRST-visit
  * path (ColonyMap.build); a saved map comes back through ColonyMap.restore, so the entity set
  * after a load is exactly the one that was saved.
  *
@@ -326,7 +326,6 @@ globalThis.SaveGame = {
         ctx.putBlob(blob, grid.pack());
         maps.push({
           id: mapId,
-          generated: src._generated === true,
           indoor: src._indoor === true,
           climate: src._climate,
           settlement: src.settlement,

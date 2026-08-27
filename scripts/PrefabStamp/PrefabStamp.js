@@ -1,10 +1,10 @@
 /**
- * Scatters prefabs across the whole level at a per-area DENSITY, rejecting any placement that
- * overlaps an existing claim (the authored hub, or an earlier stamp) and claiming its own footprint
- * so nothing lands on top of it. Policy enters via two hooks (the colony's policy lives in
- * OverworldGen.create):
- *   spawnFilter(s, field) -> keep this stamped spawn? (default: keep all)
- *   defaultLoot(s, rng)   -> loot array for a spawn that authored none, or undefined to leave it.
+ * The STRUCTURES stage: prefabs scattered across the whole level at a per-area DENSITY, rejecting
+ * any placement that overlaps an existing claim (the anchor, a wall, an earlier stamp) and claiming
+ * its own footprint so nothing lands on top of it. Policy enters via two hooks (the colony's policy
+ * lives in OverworldGen.create):
+ *   spawnFilter(s, ctx) -> keep this stamped spawn? (default: keep all)
+ *   defaultLoot(s, rng) -> loot array for a spawn that authored none, or undefined to leave it.
  *     Drawn BEFORE the spawnFilter verdict so a filtered-out spawn consumes the same rng draws — the
  *     level's remaining placements must not shift.
  * A prefab is a LevelData, so every channel it carries reaches the level unchanged — the stamp
@@ -26,7 +26,7 @@ globalThis.PrefabStamp = class PrefabStamp {
     this.tries = opts.tries ?? 8;
     // resolved once — register prefabs BEFORE composing the generator (like OverworldGen's note)
     this.prefabs = Prefab.byTag(opts.tag);
-    this.spawnFilter = opts.spawnFilter ?? ((s, field) => true);
+    this.spawnFilter = opts.spawnFilter ?? ((s, ctx) => true);
     this.defaultLoot = opts.defaultLoot ?? ((s, rng) => undefined);
   }
 
@@ -56,12 +56,7 @@ globalThis.PrefabStamp = class PrefabStamp {
       ctx.claim(ox, oy, p.cols, p.rows);
 
       const st = LevelData.translate(p, ox, oy);
-      for (let i = 0; i < st.tiles.length; i++) {
-        const t = st.tiles[i];
-        const dst = ctx.rects(t.layer, t.material);
-        for (let j = 0; j < t.rects.length; j++) dst.push(t.rects[j]);
-      }
-      for (let i = 0; i < st.zones.length; i++) ctx.out.zones.push(st.zones[i]);
+      const kept = [];
       for (let i = 0; i < st.spawns.length; i++) {
         const s = st.spawns[i];
         // translate's spawn copy is shallow — deep-copy item arrays so stamped instances never
@@ -70,9 +65,11 @@ globalThis.PrefabStamp = class PrefabStamp {
         if (s.items !== undefined) s.items = this._cloneItems(s.items);
         const extra = this.defaultLoot(s, rng); // before the filter verdict — see header
         if (extra !== undefined) s.loot = extra;
-        if (!this.spawnFilter(s, ctx.field)) continue;
-        ctx.out.spawns.push(s);
+        if (!this.spawnFilter(s, ctx)) continue;
+        kept.push(s);
       }
+      st.spawns = kept;
+      ctx.merge(st);
     }
   }
 

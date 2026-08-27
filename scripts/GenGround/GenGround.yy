@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"LevelSerializer",
+  "%Name":"GenGround",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"LevelSerializer",
+  "name":"GenGround",
   "parent":{
     "name":"Level",
     "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"LevelSerializer.js",
+  "scriptSource":"GenGround.js",
 }

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GenWalls",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GenWalls",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"GenWalls.js",
+}

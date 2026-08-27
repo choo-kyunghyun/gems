@@ -9,7 +9,7 @@
  *    A scene is LIVE or GONE, never frozen: a switch destroys it, so it carries no state across
  *    one. `openScene(factory)` is the ONLY handle a scene gets on the switch — there is no
  *    back-ref to the Game object.
- *    Genre screens (sceneColony / sceneEditor / sceneUIKit) are STANDALONE classes
+ *    Genre screens (sceneColony / sceneUIKit) are STANDALONE classes
  *    satisfying it — composition, never `extends Scene`.
  *
  * 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need (the lobby:
