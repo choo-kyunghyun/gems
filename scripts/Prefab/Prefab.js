@@ -104,7 +104,7 @@ globalThis.Prefab = class Prefab {
     return Registry.all(Prefab);
   }
 
-  /** In registration order — PrefabStamp's weighted pick relies on it being stable. */
+  /** In registration order — a weighted pick over the set relies on it being stable. */
   static byTag(tag) {
     const all = Prefab.all();
     const out = [];

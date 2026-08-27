@@ -45,7 +45,7 @@
  * since only the consumer knows the descriptor shape.
  *
  * Both ops copy spawn records SHALLOWLY: a record's nested arrays are still SHARED with the source,
- * so a consumer deep-copies what it mutates (PrefabStamp clones loot/items). Tiles/zones entries
+ * so a consumer deep-copies what it mutates (a stamping pass clones loot/items). Tiles/zones entries
  * likewise share the source's `type`/`data` and carry fresh translated `rects`.
  */
 globalThis.LevelData = {

@@ -64,7 +64,7 @@ globalThis.Grid = class Grid {
    * Greedy-mesh a solid/empty cell field into the fewest [gx, gy, wCells, hCells] rects: a caller
    * makes one collider per rect, where per-cell boxes leave seams that snag the AABB resolver.
    * Static and predicate-driven because the field need not be a Grid — TileEdit meshes a tile
-   * layer, LevelGen/GenWalls a sampled array. `isSolid(x, y)` is asked only about in-bounds cells, and
+   * layer, LevelGen and a wall pass a sampled array. `isSolid(x, y)` is asked only about in-bounds cells, and
    * repeatedly per cell, so it must be a cheap read (sample an expensive source into an array
    * first).
    */

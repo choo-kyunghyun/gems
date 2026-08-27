@@ -6,7 +6,7 @@
   "name":"GenWalls",
   "parent":{
     "name":"Level",
-    "path":"folders/Core/Level.yy",
+    "path":"folders/Game/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"OverworldGen",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Level",
+    "path":"folders/Game/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

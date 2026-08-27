@@ -26,8 +26,8 @@ function _stream(seed) {
  * context, each stage reading what the stages before it laid down — ground, then the lakes carved
  * into it, then the fixed structure, walls, stamped structures, and last the entities strewn over
  * whatever is still open. A PASS is `{ salt?, apply(ctx) }` (a GenPass) or a bare `function(ctx)`
- * (wrapped on insert, like Snapshot); the stock stages are Gen* (GenGround/GenLakes/GenAnchor/
- * GenWalls/GenScatter) and PrefabStamp, and a consumer composes the list its level kind needs.
+ * (wrapped on insert, like Snapshot). The stages themselves are the consumer's — this class ships
+ * none: a level kind is a pass list composed over this context (the colony's is Game/Level).
  *
  * The context (built per generate) is what makes a stage's output the next stage's input:
  *   terrain   Uint8Array of PALETTE indices, one per cell — the ground the level paints; written
