@@ -14,7 +14,7 @@
  * new stage is one more Gen* pass slotted in here.
  *
  * Contract: `create` returns the LevelGen the level builder holds — generate(cols, rows) →
- * { tiles, zones, spawns, terrain, solid } (grid coords, deterministic from (seed, pass salt): the
+ * { tiles, spawns, terrain, solid } (grid coords, deterministic from (seed, pass salt): the
  * same seed rebuilds the same level, and each pass draws from its OWN salted stream, so adding/
  * removing a pass never reshuffles the others' output) — plus the `palette` the terrain layer is
  * typed by and paint(). A generator runs at a map's FIRST build only; a save keeps the grid it

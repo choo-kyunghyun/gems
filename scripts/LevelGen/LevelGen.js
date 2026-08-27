@@ -40,7 +40,7 @@ function _stream(seed) {
  *   out       the accumulating LevelData (grid coords) — tile rects through `rects(layer,
  *             material)`, which merges by channel so the output stays one entry per (layer,
  *             material) however many passes drew into it; a whole translated LevelData through
- *             `merge`; zones/spawns also directly onto out.zones/out.spawns
+ *             `merge`; spawns also directly onto out.spawns
  *   seed/rng  this pass's own folded seed and its stream (below)
  * plus gen, cols, rows, palette and material(id) (the id → index lookup; unknown throws).
  *
@@ -89,7 +89,7 @@ globalThis.LevelGen = class LevelGen {
    */
   generate(cols, rows) {
     const palette = this.palette;
-    const out = { cols: cols, rows: rows, tiles: [], zones: [], spawns: [] };
+    const out = { cols: cols, rows: rows, tiles: [], spawns: [] };
     const ctx = {
       gen: this,
       cols: cols,
@@ -172,8 +172,6 @@ globalThis.LevelGen = class LevelGen {
           const dst = this.rects(t.layer, t.material);
           for (let j = 0; j < t.rects.length; j++) dst.push(t.rects[j]);
         }
-        const zones = data.zones ?? [];
-        for (let i = 0; i < zones.length; i++) this.out.zones.push(zones[i]);
         const spawns = data.spawns ?? [];
         for (let i = 0; i < spawns.length; i++) this.out.spawns.push(spawns[i]);
       },

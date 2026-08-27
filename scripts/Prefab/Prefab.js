@@ -6,12 +6,11 @@
  * @property {number} cols       footprint width in cells
  * @property {number} rows       footprint height in cells
  * @property {LevelTiles[]} [tiles]
- * @property {LevelZones[]} [zones]
  * @property {Object[]} [spawns]
  */
 /**
  * A REUSABLE LEVEL FRAGMENT: a registered, tagged, weighted LevelData — the def body IS a LevelData
- * (footprint + tiles/zones/spawns in origin-local coords), so a prefab carries no ops of its own.
+ * (footprint + tiles/spawns in origin-local coords), so a prefab carries no ops of its own.
  * `LevelData.translate(prefab, ox, oy)` stamps it into a generator's output and `LevelData.paint`
  * writes it into a level, the same two calls a generator's whole output goes through.
  *
@@ -26,7 +25,6 @@ globalThis.Prefab = class Prefab {
     this.cols = def.cols;
     this.rows = def.rows;
     this.tiles = def.tiles ?? [];
-    this.zones = def.zones ?? [];
     this.spawns = def.spawns ?? [];
   }
 
@@ -61,13 +59,6 @@ globalThis.Prefab = class Prefab {
         throw new Error(`Prefab '${p.id}': tiles[${i}] needs a layer name`);
       for (let j = 0; j < t.rects.length; j++)
         Prefab._checkRect(p, "tiles", t.rects[j]);
-    }
-    for (let i = 0; i < p.zones.length; i++) {
-      const z = p.zones[i];
-      if (typeof z.channel !== "string")
-        throw new Error(`Prefab '${p.id}': zones[${i}] needs a channel name`);
-      for (let j = 0; j < z.rects.length; j++)
-        Prefab._checkRect(p, "zones", z.rects[j]);
     }
     for (let i = 0; i < p.spawns.length; i++) {
       const s = p.spawns[i];

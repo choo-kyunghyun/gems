@@ -14,8 +14,8 @@
  *                            (file_find_first scans the build dir, NOT the save area, so a directory
  *                            scan can't see saves — the index is the source of truth).
  *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle: metadata, world-sim, and one
- *                            entry per map — its store export, its id lists, its zone channels,
- *                            and what its grid's packed ids mean (see _mapsPass).
+ *                            entry per map — its store export, its id lists, and what its grid's
+ *                            packed ids mean (see _mapsPass).
  *   saves/<slot>/map_<id>.bin    the binary half: that map's tile layers (LevelGrid.pack).
  * Passes run in insert order both ways; capture and restore live on the same pass object so they
  * can't drift. A manifest from another Snapshot.VERSION is refused at load — no migration.
@@ -292,7 +292,6 @@ globalThis.SaveGame = {
    *   spawn / entries / reachZone / reachDone / built / builtEnts   the per-map scene fields
    *   climate      the level's whole-map sky (meta.climate); absent on an open-sky map
    *   settlement   the level's settlement record (Settlement); absent on an unsettled map
-   *   zones        every zone channel, registry + cells (ZoneMap.export)
    */
   _mapsPass: {
     id: "maps",
@@ -344,7 +343,6 @@ globalThis.SaveGame = {
           builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
           statics: src.statics,
           colliders: colliders,
-          zones: SaveGame._zonesOf(grid),
           world: exp,
         });
       }
@@ -414,18 +412,6 @@ globalThis.SaveGame = {
         sprite: mats[i].sprite,
       });
     return rows;
-  },
-
-  /**
-   * Every zone channel, registry + cells (ZoneMap.export — JSON: a channel's cell grid is ints,
-   * and there is one channel or two per map).
-   */
-  _zonesOf(grid) {
-    const zones = {};
-    const keys = Object.keys(grid.zoneMaps);
-    for (let i = 0; i < keys.length; i++)
-      zones[keys[i]] = grid.zoneMaps[keys[i]].export();
-    return zones;
   },
 
   // ── menu UI (injected into GameOverlay as an extra tab; see Game Create_0) ──

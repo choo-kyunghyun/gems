@@ -320,15 +320,6 @@ globalThis.ColonyMap = {
     }
     scene.statics = m.statics;
     scene.terrainMats = h.terrainMats;
-    // every zone channel the map had (any the file's `zones` painted) — registry + cells
-    const grid = scene.level.grid;
-    const zk = Object.keys(m.zones);
-    for (let i = 0; i < zk.length; i++) {
-      const key = zk[i];
-      let zm = grid.zoneMap(key);
-      if (zm === undefined) zm = grid.addZoneMap(key);
-      zm.import(m.zones[key]);
-    }
     World.add(mapId, scene.level);
     World.activeId = mapId;
     ColonyMap._arriveSquad(scene, squad, scene.entries[entryId] ?? scene.spawn);

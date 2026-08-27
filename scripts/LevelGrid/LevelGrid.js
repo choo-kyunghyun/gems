@@ -29,25 +29,6 @@ globalThis.LevelGrid = class LevelGrid {
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
 
     this.layers = [];
-
-    // plain object — for...in is GMRT-safe, Map iteration is not
-    this.zoneMaps = {};
-  }
-
-  addZoneMap(key, map = new ZoneMap(this.cols, this.rows)) {
-    this.zoneMaps[key] = map;
-    return map;
-  }
-
-  zoneMap(key) {
-    return this.zoneMaps[key];
-  }
-
-  zoneAt(key, wx, wy) {
-    const map = this.zoneMaps[key];
-    if (map === undefined) return undefined;
-    const g = this.worldToGrid(wx, wy);
-    return map.at(g.x, g.y);
   }
 
   /** Top by default; higher index = higher nav priority. */
@@ -120,7 +101,7 @@ globalThis.LevelGrid = class LevelGrid {
 
   /**
    * The tile layers' cells as one binary buffer — the dense half of a level save (the JSON half
-   * is what a cell can't say: which TileType an id means, and the zone channels' registries).
+   * is what a cell can't say: which TileType an id means).
    * Layout, little-endian: u32 cols, u32 rows, u32 layer count, then per layer in `layers` order
    * cols×rows u16 TileType ids row-major (0 = empty). Returns the buffer; the caller owns it.
    */
@@ -182,37 +163,19 @@ globalThis.LevelGrid = class LevelGrid {
   }
 
   export() {
-    const data = {
+    return {
       cellWidth: this.cellWidth,
       cellHeight: this.cellHeight,
       cols: this.cols,
       rows: this.rows,
       layers: this.layers.map((layer) => layer.export()),
     };
-    // omit zoneMaps when absent so existing saved levels are unaffected
-    const keys = Object.keys(this.zoneMaps);
-    if (keys.length > 0) {
-      const zoneMaps = {};
-      for (let i = 0; i < keys.length; i++) {
-        zoneMaps[keys[i]] = this.zoneMaps[keys[i]].export();
-      }
-      data.zoneMaps = zoneMaps;
-    }
-    return data;
   }
 
   import(data) {
     for (let i = 0; i < this.layers.length; i++) {
       if (data.layers[i] !== undefined) {
         this.layers[i].import(data.layers[i]);
-      }
-    }
-    if (data.zoneMaps !== undefined) {
-      const keys = Object.keys(data.zoneMaps);
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        const map = this.zoneMaps[key] ?? this.addZoneMap(key);
-        map.import(data.zoneMaps[key]);
       }
     }
     return this;
@@ -222,11 +185,6 @@ globalThis.LevelGrid = class LevelGrid {
     for (const layer of this.layers) {
       layer.destroy();
     }
-    const keys = Object.keys(this.zoneMaps);
-    for (let i = 0; i < keys.length; i++) {
-      this.zoneMaps[keys[i]].destroy();
-    }
-    this.zoneMaps = {};
     this.layers = [];
   }
 };

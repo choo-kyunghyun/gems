@@ -11,7 +11,7 @@ globalThis.Level = class Level {
   /**
    * @param {Object} [opt]
    * @param {string} [opt.id]        map id — the key it pools under in World
-   * @param {LevelGrid} [opt.grid]   tile layers + zone channels; null for a grid-less level
+   * @param {LevelGrid} [opt.grid]   tile layers; null for a grid-less level
    * @param {number} [opt.capacity]  entity store size (a streamed map wants a bigger one)
    */
   constructor(opt = {}) {
@@ -20,7 +20,7 @@ globalThis.Level = class Level {
     this.entities = new EntityStore(opt.capacity ?? 256);
   }
 
-  /** Frees the store and the grid (which destroys its inserted layers + zone maps). */
+  /** Frees the store and the grid (which destroys its inserted layers). */
   destroy() {
     this.entities.destroy();
     if (this.grid !== null) this.grid.destroy();

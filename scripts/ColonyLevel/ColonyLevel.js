@@ -136,7 +136,7 @@ globalThis.ColonyLevel = {
     // the generator's passes ACCUMULATE the level's LevelData (the anchor prefab's content among
     // them) over the terrain base _generate paints; the one painter then writes that content
     const gen = ColonyLevel._generate(entities, grid, h, data, statics);
-    const painted = LevelData.paint(gen.out, { grid: grid, layers: h });
+    const painted = LevelData.paint(gen.out, { layers: h });
 
     // one collider list per SOLID layer, each remeshed on its own (a wall edit never touches the
     // fence's)

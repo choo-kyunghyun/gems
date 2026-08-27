@@ -17,7 +17,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - `gemsWindow` and the `UIDrag`/`UIResize` pair it is the sole constructor of — the colony windows use `gemsOverlay`. A three-module spare chain like `UIMinimap`/`gemsMinimap`.
 - The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
-- `RenderZone`/`RenderZoneLabel` — caller-less since a settlement became a whole level (the `settlement` channel was their one target), and no prefab authors a `zones` channel, so no zone overlay draws anywhere. Keep as the engine's zone passes, or drop with the next zone-consumer decision.
 
 ## API Shape
 
