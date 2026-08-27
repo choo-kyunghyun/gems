@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 3; // bump when the manifest/blob layout changes incompatibly
+  static VERSION = 4; // bump when the manifest/blob layout changes incompatibly
 
   constructor() {
     this.passes = [];

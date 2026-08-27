@@ -18,7 +18,8 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - `gemsWindow` and the `UIDrag`/`UIResize` pair it is the sole constructor of — the colony windows use `gemsOverlay`. A three-module spare chain like `UIMinimap`/`gemsMinimap`.
 - `Projectile`/`ProjectileSystem` run with zero spawn sites, yet `sceneColony` ticks the system and `WorldOverlay` queries bullets every frame. Unregister the pair until a spawner exists, or accept the idle queries explicitly at the tick-loop site.
-- The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent`/`expand` are seeds for Farming/raid. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The lands half (`found`/`at`/`ownerAt`/`all`/`centroidWorld`) is live.
+- The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
+- `RenderZone`/`RenderZoneLabel` — caller-less since a settlement became a whole level (the `settlement` channel was their one target), and no level file or prefab authors a `zones` channel, so no zone overlay draws anywhere. Keep as the engine's zone passes, or drop with the next zone-consumer decision.
 
 ## API Shape
 
@@ -42,8 +43,8 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
     - Mountable turrets
 - Explosives: grenade and mine (`sndExplosionLarge` is the reserved SFX)
 - Minify furnitures
-- Settlement and outpost — foundation done (`Settlement`: player-owned territory with Name/Faction, build mode gated to owned land); outpost variant + settlement-management UI remain
-- Farming and fishing (farming layers on a settlement's lands)
+- Settlement and outpost — foundation done (`Settlement`: a level is one settlement with Name/Faction — the authored colony hub, or an outpost the player founds at a wild site's Survey Post; build mode gated to allied maps); settlement-management UI remains
+- Farming and fishing (farming layers on a settlement's level)
 - Raid event: defend the settlement (`musAmbientEmergency` is the reserved BGM)
 - Gacha capsule with new UI
 - Radio
@@ -77,7 +78,7 @@ The level file, a `Prefab`, and a generator's output are now one shape (`LevelDa
 - Author `meta.entries` (named spawn points) — only the legacy `playerSpawn` is editable today, so an edited level can't place its arrival entry beside a travel beacon.
 - Draw with the real render passes instead of `RenderDebugTileMap` + hand-drawn markers, so what the editor shows is what plays. Whole-level residency is what makes this affordable.
 - Prefabs: capture a selected rect into a `PrefabDef`, stamp a registered one back. Both are plain `LevelData` ops, so only the export is new — a JS literal for `contentPrefabs`, mirroring the level export → `datafiles/levels/` workflow.
-- Zone authoring, if it earns its way back: the editor edits no channel at all now, so a level's `settlement` regions are only reachable by hand-editing `meta`.
+- `meta.settlement` authoring: the editor round-trips a level's settlement whole, so it is only reachable by hand-editing `meta` (zone authoring itself has no consumer left — no channel is authored anywhere).
 
 ## Media
 

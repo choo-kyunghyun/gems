@@ -1,8 +1,8 @@
 /**
- * Gated to a PLAYER-OWNED Settlement (a Zone in the "settlement" ZoneMap channel, owner faction
- * "player") — founded by pressing E at a Survey Post (Interactable routes to BuildMode.claim →
- * Settlement.found). Build mode only OPENS while the player stands in an owned settlement, and
- * placement is gated cell-by-cell to owned land. The palette (a bottom-center gemsCatBar) item is a
+ * Gated to an ALLIED Settlement — the level's (a settlement is a whole map), owned by the player's
+ * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
+ * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
+ * on an allied map, and placement is gated to it too. The palette (a bottom-center gemsCatBar) item is a
  * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places at the hovered
  * cell, RMB deconstructs. State on the scene (`_build*`); the static `active` flag is mirrored each
  * frame so drawWorld can gate the cursor highlight to "build context owns input".
@@ -14,7 +14,8 @@
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   RESOURCE: "wood",
-  OWNER: "player", // the Settlement owner faction id that gates building (Game policy)
+  // the player's faction: a map builds when its Settlement's owner is it or an ally (Game policy)
+  FACTION: "player",
 
   // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
   // spawns via make()'s ColonySpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
@@ -413,8 +414,6 @@ globalThis.BuildMode = {
       ],
     },
   ],
-  CLAIM_HALF_W: 3, // claimed rect half-extent in cells (so 7×5 around the post)
-  CLAIM_HALF_H: 2,
 
   /**
    * resolve a catalog item by id (turns a persisted _built / _builtEnts entry back into its layer/cost).
@@ -505,11 +504,11 @@ globalThis.BuildMode = {
    * RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
    */
   update(scene) {
-    // B toggles build mode, but it only OPENS while the player stands on land they OWN (a
-    // player-owned Settlement) — "you can only build in your own settlement". Closing is free.
+    // B toggles build mode, but it only OPENS on an allied map (the level's Settlement owned by
+    // the player's faction or an ally) — "you can only build in an allied settlement". Closing is free.
     if (Input.get("build").pressed()) {
       if (scene._buildActive) scene._buildActive = false;
-      else if (BuildMode._playerOwnsHere(scene)) scene._buildActive = true;
+      else if (BuildMode._allied(scene)) scene._buildActive = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
     // active only when toggled on AND the build context owns input — an open window makes the
@@ -572,22 +571,20 @@ globalThis.BuildMode = {
     return keys;
   },
 
-  /** does the player currently stand on land of a settlement they OWN? gates opening build mode. */
-  _playerOwnsHere(scene) {
-    const pp = scene.level.entities.get(scene.playerId, Position);
-    if (pp === undefined) return false;
-    const c = scene.level.grid.worldToGrid(pp.x, pp.y);
-    return Settlement.ownerAt(scene.level.grid, c.x, c.y) === BuildMode.OWNER;
+  /** is the level an allied settlement — owned by the player's faction or an ally? gates build mode. */
+  _allied(scene) {
+    const owner = Settlement.owner(scene);
+    return owner !== undefined && FactionSystem.isAlly(owner, BuildMode.FACTION);
   },
 
   /**
-   * can the selected item be placed at (gx, gy): on land of a settlement the player OWNS, cell empty
-   * (across every buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a
-   * floor) isn't on the player's own cell. shared by place + cursor highlight.
+   * can the selected item be placed at (gx, gy): on an allied map, cell empty (across every
+   * buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a floor) isn't
+   * on the player's own cell. shared by place + cursor highlight.
    */
   _canBuild(scene, gx, gy) {
     const grid = scene.level.grid;
-    if (Settlement.ownerAt(grid, gx, gy) !== BuildMode.OWNER) return false;
+    if (!BuildMode._allied(scene)) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
@@ -761,28 +758,19 @@ globalThis.BuildMode = {
   },
 
   /**
-   * Found the player's settlement around a Survey Post: a player-owned Settlement zone over a rect,
+   * Found the player's settlement at a Survey Post: the whole level, owned by the player's faction,
    * then *spend* the post (detach its Interaction). The founded settlement is the stored state
-   * (round-trips persistence via the "settlement" channel), so a post re-spawned over already-settled
-   * land is still spent — no re-founding.
+   * (the map's `settlement` record, parked and saved with it), so a post on an already-settled
+   * level is still spent — no re-founding.
    */
   claim(scene, postId) {
-    const grid = scene.level.grid;
-    const pos = scene.level.entities.get(postId, Position);
-    if (pos === undefined) return;
-    const c = grid.worldToGrid(pos.x, pos.y);
-    if (Settlement.at(grid, c.x, c.y) === undefined) {
-      const x1 = Math.max(0, c.x - BuildMode.CLAIM_HALF_W);
-      const y1 = Math.max(0, c.y - BuildMode.CLAIM_HALF_H);
-      const x2 = Math.min(grid.cols - 1, c.x + BuildMode.CLAIM_HALF_W);
-      const y2 = Math.min(grid.rows - 1, c.y + BuildMode.CLAIM_HALF_H);
-      Settlement.found(grid, x1, y1, x2, y2, {
-        name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
-        factionId: BuildMode.OWNER,
-        color: "#55aa55",
-      });
+    const s = Settlement.found(scene, {
+      name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
+      factionId: BuildMode.FACTION,
+    });
+    if (s !== undefined) {
       Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
-      Log.info(`founded settlement (${x1},${y1})-(${x2},${y2})`);
+      Log.info(`founded settlement over ${scene.level.id}`);
     }
     scene.level.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
   },

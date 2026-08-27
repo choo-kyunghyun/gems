@@ -1,5 +1,5 @@
 // SettlementSystem — the entity↔settlement glue: resolves a settlement's residents (Resident with a
-// matching sid) by LIVE query, never a stored roster. Settlement owns the lands; this owns the inhabitants.
+// matching level id) by LIVE query, never a stored roster. Settlement owns the record; this owns the inhabitants.
 globalThis.SettlementSystem = {
   residents(entities, sid) {
     const out = [];

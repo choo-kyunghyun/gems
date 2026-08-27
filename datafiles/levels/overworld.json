@@ -12,16 +12,12 @@
     "entries": {
       "default": { "gx": 2, "gy": 2 }
     },
-    "settlements": [
-      {
-        "id": "hub",
-        "name": "SETTLEMENT_HUB_NAME",
-        "faction": "colony",
-        "comp": "market,depot",
-        "rect": [3, 1, 12, 5],
-        "color": "#5a86d0"
-      }
-    ]
+    "settlement": {
+      "name": "SETTLEMENT_HUB_NAME",
+      "faction": "colony",
+      "comp": ["market", "depot"],
+      "color": "#5a86d0"
+    }
   },
   "tiles": [
     {
@@ -127,14 +123,6 @@
       "label": "Workbench",
       "color": "#966e46",
       "kind": "workbench"
-    },
-    {
-      "preset": "prop",
-      "gx": 6,
-      "gy": 9,
-      "label": "Survey Post",
-      "color": "#50965a",
-      "kind": "claim"
     },
 
     {

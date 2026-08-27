@@ -3,9 +3,9 @@
  * (faction / event) use separate ZoneMaps.
  *
  * A channel is a pure SPATIAL INDEX, queried POINT-WISE: `idAt`/`at` answer "which zone owns this
- * cell" in one array read, which is the question every consumer actually asks — BuildMode gates a
- * cursor cell, `Settlement.ownerAt` a placement. It holds no per-entity membership, so a consumer
- * wanting a border-cross EDGE caches the last id it read and compares.
+ * cell" in one array read — the question a consumer asks of it (a cursor cell, a placement). It
+ * holds no per-entity membership, so a consumer wanting a border-cross EDGE caches the last id it
+ * read and compares.
  *
  * `edits` counts every write — a cell paint, a define, an import — the signal a consumer mirroring
  * the channel (RenderZone's bake, RenderZoneLabel's centroids) polls, as NavGrid does TileLayer.edits.

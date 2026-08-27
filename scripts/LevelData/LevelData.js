@@ -21,7 +21,7 @@
  * @property {LevelZones[]} [zones]
  * @property {Object[]} [spawns]  entity descriptors at gx/gy; the shape is consumer-defined and Core
  *                                never reads past those two keys
- * @property {Object} [meta]      whole levels only — spawn entries, climate, settlements, seed
+ * @property {Object} [meta]      whole levels only — spawn entries, climate, settlement, seed
  */
 /**
  * @typedef {Object} LevelPaintOpts

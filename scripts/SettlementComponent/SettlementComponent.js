@@ -1,5 +1,5 @@
 /**
- * The "just like faction" layer: a settlement carries a SettlementComponent id array in its Zone data
+ * The "just like faction" layer: a settlement carries a SettlementComponent id array in its record
  * (Settlement.components/hasComponent/addComponent), and this registry describes each id. Behavior (a
  * system acting on "settlements that have X") layers on later.
  */

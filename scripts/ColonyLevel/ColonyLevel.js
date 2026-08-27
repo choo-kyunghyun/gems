@@ -55,9 +55,10 @@ globalThis.ColonyLevel = {
 
   /**
    * A generated site's level data, synthesized from its def: the biome's climate over the whole
-   * level, and the LANDING PAD — the travel beacon on a 3×3 tile apron, with the default entry a
-   * cell below it — probed off the biome's field (the same seed the build paints from) so it lands
-   * on spawnable ground. The apron is authored content, so AuthoredStamp's claim (widened by
+   * level, and the LANDING PAD — the travel beacon on a 3×3 tile apron, a Survey Post beside it (the
+   * site is unsettled until the player founds an outpost there — BuildMode.claim), and the default
+   * entry a cell below — probed off the biome's field (the same seed the build paints from) so it
+   * lands on spawnable ground. The apron is authored content, so AuthoredStamp's claim (widened by
    * meta.clear) keeps the procedural passes off the arrival area. Returns null for an unknown biome.
    */
   _siteData(site) {
@@ -94,6 +95,13 @@ globalThis.ColonyLevel = {
           gy: pad.y,
           kind: "travel",
           label: "Beacon",
+        },
+        {
+          preset: "prop",
+          gx: pad.x + 1,
+          gy: pad.y,
+          kind: "claim",
+          label: "Survey Post",
         },
       ],
     };

@@ -20,14 +20,16 @@ globalThis.content = {
     ColonySpawn.register(); // entity presets (raider/rat/npc/chest/prop/torch/turret/follower) as EntityPreset defs
 
     // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
-    // just one register + setRelation here. "colony" is the neutral settler faction that owns the
-    // hub settlement (neutral to the player by default, so its land isn't player-buildable).
+    // just one register + setRelation here. "colony" is the settler faction that owns the hub
+    // settlement — allied with the player, whose commander builds there (BuildMode gates on the ally
+    // relation); a raider camp's owner stays hostile, so its level is not player-buildable.
     FactionSystem.register([
       { id: "player", name: "Player", color: "#5aa0ff" },
       { id: "monster", name: "Hostiles", color: "#e65a5a" },
       { id: "colony", name: "Colony", color: "#5a86d0" },
     ]);
     FactionSystem.setRelation("player", "monster", "hostile");
+    FactionSystem.setRelation("player", "colony", "ally");
 
     // Settlement capability defs (the faction-style component layer): a settlement carries a
     // SettlementComponent id array; a system acting on "settlements that have X" layers on later.

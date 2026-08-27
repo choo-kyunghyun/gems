@@ -430,8 +430,8 @@ globalThis.ColonySpawn = {
         over.Mesh = { ...(over.Mesh ?? {}), yaw: s.yaw };
     }
 
-    // Settlement membership (any preset): `settlement: <sid>` tags the entity a Resident of that
-    // settlement (SettlementSystem resolves inhabitants by live query). Explicit — no auto-by-location.
+    // Settlement membership (any preset): `settlement: <map id>` tags the entity a Resident of that
+    // level's settlement (SettlementSystem resolves inhabitants by live query). Explicit — no auto-by-location.
     if (s.settlement !== undefined)
       over.Resident = { settlementId: s.settlement };
 

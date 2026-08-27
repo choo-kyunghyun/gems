@@ -1,7 +1,7 @@
 // In-engine level editor: paint tiles/entities/spawn, export to save dir, Test Play in
 // sceneColony. No World — entities are spawns records (data only), not live AI.
-// No zone authoring: the settlement channel a level carries is built by ColonyMap from `meta`,
-// which the editor round-trips whole (see _loadData) but doesn't edit.
+// No zone authoring: a level's settlement is its `meta.settlement`, which the editor round-trips
+// whole (see _loadData) but doesn't edit.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level file loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root
@@ -59,7 +59,7 @@ class _SceneEditorClass {
     this._loadTiles(data.tiles);
 
     this._spawns = (data.spawns ?? []).slice(); // copy so add/remove don't mutate the data obj
-    // meta is level-scope data the editor doesn't author (entries, climate, settlements, the
+    // meta is level-scope data the editor doesn't author (entries, climate, the settlement, the
     // generator seed) — held whole so export writes it back instead of dropping it
     this._meta = { ...data.meta };
     this._spawnPoint = {
@@ -618,7 +618,7 @@ class _SceneEditorClass {
   /**
    * Assemble the level FILE: a LevelData (tile layers greedy-meshed back into rects) plus the
    * level-scope keys. `meta` is the loaded one with the edited player spawn written over it, so a
-   * level's entries/climate/settlements survive a round trip through the editor.
+   * level's entries/climate/settlement survive a round trip through the editor.
    */
   _buildData() {
     const tiles = [];

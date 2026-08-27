@@ -103,8 +103,8 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // Survey Post — founds the player's Settlement (its buildable land). Keeps the "claim"
-        // id so existing scene JSON (kind:"claim") is unchanged; the prompt reads as founding.
+        // Survey Post — founds the player's Settlement over the level (its buildable map). Keeps
+        // the "claim" id so existing scene JSON (kind:"claim") is unchanged; the prompt reads as founding.
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {

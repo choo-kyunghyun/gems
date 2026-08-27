@@ -1,7 +1,7 @@
 /**
  * Level FILE i/o. A file is a LevelData (its content channels, in grid coords) plus the level-scope
  * keys LevelData has no opinion on: `version`/`genre` for the load guards and `meta` for spawn
- * entries, climate, settlements and the generator seed.
+ * entries, climate, the settlement and the generator seed.
  */
 globalThis.LevelSerializer = {
   CURRENT_VERSION: 1,

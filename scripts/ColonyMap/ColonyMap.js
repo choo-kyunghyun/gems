@@ -34,6 +34,7 @@ globalThis.ColonyMap = {
     "_generated",
     "_indoor",
     "_climate",
+    "settlement",
     "statics",
     "terrainMats",
     "_built",
@@ -279,7 +280,7 @@ globalThis.ColonyMap = {
       `colony map: ${mapId} (entry ${entryId})${scene._generated ? " [generated]" : ""}`,
     );
 
-    const built = ColonyMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + zones
+    const built = ColonyMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + its settlement
     // pool it BEFORE the squad lands — World.put resolves the destination through the pool
     World.add(mapId, scene.level);
     World.activeId = mapId; // building a map activates it
@@ -308,6 +309,7 @@ globalThis.ColonyMap = {
     scene._generated = m.generated === true;
     scene._indoor = m.indoor === true;
     scene._climate = m.climate;
+    scene.settlement = m.settlement;
     Log.info(`colony map: ${mapId} (entry ${entryId}) [restored]`);
     scene.level = new Level({ id: mapId, capacity: m.capacity });
     const h = ColonyLevel.restore(scene.level.entities, m, pending.buf);
@@ -330,8 +332,7 @@ globalThis.ColonyMap = {
     }
     scene.statics = m.statics;
     scene.terrainMats = h.terrainMats;
-    // every zone channel the map had (the settlement channel, any the file's `zones` painted) —
-    // registry + cells; the settlement channel is ensured even so, as RenderZone's target
+    // every zone channel the map had (any the file's `zones` painted) — registry + cells
     const grid = scene.level.grid;
     const zk = Object.keys(m.zones);
     for (let i = 0; i < zk.length; i++) {
@@ -340,7 +341,6 @@ globalThis.ColonyMap = {
       if (zm === undefined) zm = grid.addZoneMap(key);
       zm.import(m.zones[key]);
     }
-    Settlement.channel(grid);
     World.add(mapId, scene.level);
     World.activeId = mapId;
     ColonyMap._arriveSquad(scene, squad, scene.entries[entryId] ?? scene.spawn);
@@ -389,7 +389,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Entity store + LevelGrid + the settlement zone channel. The player spawns here ONLY on boot
+   * Entity store + LevelGrid + the level's settlement record. The player spawns here ONLY on boot
    * (squad === null) — trip arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
    * to _spawnWorld. A generated map is fully resident (scatter entities + terrain/wall colliders all
@@ -430,28 +430,20 @@ globalThis.ColonyMap = {
       scene.playerId = PlayerSystem.spawn(scene.level.entities, built.spawn);
     }
 
-    // settlement channel (one per map) — Survey Posts found player-owned Settlements into it, build
-    // mode gates placement to owned land, RenderZone visualizes every settlement's territory. Created
-    // empty up front so the persistence import + RenderZone have a target before anything is founded.
-    Settlement.channel(scene.level.grid);
-    // Authored non-player settlements (optional meta.settlements):
-    // faction hubs / raider camps. The overworld authors one — the colony "hub", whose NPCs and
-    // stockpile chest are its Residents — so the player's own founded settlement and an authored
-    // faction's coexist on one map, which is the case the sid-keyed model exists to support.
-    const settlements = data.meta.settlements;
-    if (settlements !== undefined)
-      for (let i = 0; i < settlements.length; i++) {
-        const s = settlements[i];
-        const r = s.rect;
-        Settlement.found(scene.level.grid, r[0], r[1], r[2], r[3], {
-          id: s.id, // stable authored sid (residents reference it)
-          // name is an i18n key — the label renders in-world (RenderZoneLabel), so localize it
-          name: s.name !== undefined ? I18n.text(s.name) : "",
-          factionId: s.faction ?? "",
-          color: s.color,
-          comp: s.comp, // SettlementComponent id array
-        });
-      }
+    // The level's settlement (optional meta.settlement), whole-map like its climate: an authored
+    // faction hub / raider camp — the overworld is the colony's "hub", whose NPCs and stockpile
+    // chest are its Residents (their settlementId is this map's id). Reset first: the scene field
+    // outlives a map swap, and a level without one stays unsettled until a Survey Post founds it
+    // (BuildMode.claim).
+    scene.settlement = undefined;
+    const s = data.meta.settlement;
+    if (s !== undefined)
+      Settlement.found(scene, {
+        name: s.name !== undefined ? I18n.text(s.name) : "", // an i18n key
+        factionId: s.faction,
+        color: s.color,
+        comp: s.comp, // SettlementComponent id array
+      });
     return built;
   },
 
@@ -498,7 +490,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Assemble the renderer pass stack (ground → tiles → zones → shadows → entities → debug →
+   * Assemble the renderer pass stack (ground → tiles → shadows → entities → debug →
    * weather → lighting).
    *
    * The GROUND is the terrain layer either way — the difference is only how many passes read it. A
@@ -574,12 +566,6 @@ globalThis.ColonyMap = {
     scene._gridPass = new RenderGrid(scene.level.grid); // cell boundary lines
     scene._gridPass.enabled = false; // off in normal play
     scene.renderer.insert(scene._gridPass);
-    scene.renderer.insert(new RenderZone(scene.level.grid, "settlement"));
-    scene.renderer.insert(
-      new RenderZoneLabel(scene.level.grid, "settlement", {
-        font: I18n.font("default"),
-      }),
-    );
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
     scene.renderer.insert(new RenderEntityShadow());
     // Deep-furniture meshes (VOLUME category of the projection contract — see RenderBillboard):

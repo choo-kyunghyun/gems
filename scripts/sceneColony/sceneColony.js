@@ -420,9 +420,9 @@ class _SceneColonyClass {
           });
         },
       });
-      // revive a downed companion at the recovery spot (player's settlement, else map spawn)
+      // revive a downed companion at the map's spawn (inside the settlement when the map is one)
       ColonyCombat.updateDowned(this, {
-        downSpot: () => this._recoverSpot(),
+        downSpot: () => ({ x: this.spawn.x, y: this.spawn.y }),
         onRecover: (id) => {
           Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
             type: "success",
@@ -628,18 +628,6 @@ class _SceneColonyClass {
   }
 
   /**
-   * world-coord centroid of the player's OWN settlement on this map, or null if none founded yet
-   * (rect settlement → centroid lands inside). The downed-companion recovery anchor.
-   */
-  _settlementSpot() {
-    const owned = Settlement.all(this.level.grid);
-    for (let i = 0; i < owned.length; i++)
-      if (owned[i].data.factionId === BuildMode.OWNER)
-        return Settlement.centroidWorld(this.level.grid, owned[i]);
-    return null;
-  }
-
-  /**
    * start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
    * _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
    */
@@ -660,13 +648,6 @@ class _SceneColonyClass {
       gamepad_button_check_pressed(0, gp_face1) ||
       gamepad_button_check_pressed(0, gp_face2)
     );
-  }
-
-  /**
-   * where a downed companion revives: the player's settlement, else map spawn
-   */
-  _recoverSpot() {
-    return this._settlementSpot() ?? { x: this.spawn.x, y: this.spawn.y };
   }
 
   /**
@@ -885,7 +866,7 @@ class _SceneColonyClass {
     // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
     // is skipped then); apply before the renderer reads it
     if (this.camera.control.raw) this.camera.update();
-    this.renderer.draw(this.level.entities); // tilemap + zone + player / enemies / elder: boxes + labels
+    this.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
     // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     WorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("hudRadar"))

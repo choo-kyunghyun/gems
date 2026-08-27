@@ -79,7 +79,7 @@
   "SETTLEMENT_DEFAULT_NAME": "Home",
   "SETTLEMENT_HUB_NAME": "Colony Outpost",
   "SETTLEMENT_FOUNDED": "Settlement founded",
-  "BUILD_NEED_SETTLEMENT": "You can only build in your own settlement",
+  "BUILD_NEED_SETTLEMENT": "You can only build in an allied settlement",
   "BUILT_DESTROYED": "{0} destroyed!",
   "TOAST_DRINK": "Thirst quenched",
   "TOAST_EAT": "Hunger sated",

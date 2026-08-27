@@ -79,7 +79,7 @@
   "SETTLEMENT_DEFAULT_NAME": "우리 정착지",
   "SETTLEMENT_HUB_NAME": "식민지 전초기지",
   "SETTLEMENT_FOUNDED": "정착지를 건설했습니다",
-  "BUILD_NEED_SETTLEMENT": "자신의 정착지에서만 건설할 수 있습니다",
+  "BUILD_NEED_SETTLEMENT": "우호 정착지에서만 건설할 수 있습니다",
   "BUILT_DESTROYED": "{0}이(가) 파괴되었습니다!",
   "TOAST_DRINK": "갈증이 해소되었습니다",
   "TOAST_EAT": "허기가 채워졌습니다",
