@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Fuse",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Fuse",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Fuse.js",
+}

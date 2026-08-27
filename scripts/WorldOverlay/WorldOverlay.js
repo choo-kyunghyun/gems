@@ -58,11 +58,13 @@ globalThis.WorldOverlay = {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
     }
-    // Projectile entities (lobbed/grenade) as round dots — none while only hitscan guns fire, but
-    // the path stays for the kept ProjectileSystem.
+    // Projectile entities: a fused charge (grenade) as its icon, a bullet as a round dot (none while
+    // guns are hitscan — the path stays for ProjectileSystem).
     draw_set_color(make_colour_rgb(255, 230, 90));
     entities.forEach([Projectile, Position], (id, _proj, p) => {
-      draw_circle(p.x, p.y, 4, false);
+      if (entities.has(id, Fuse))
+        draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, 1, 1, 0, c_white, 1);
+      else draw_circle(p.x, p.y, 4, false);
     });
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw.
     const tracers = this._tracers;

@@ -219,6 +219,11 @@ class _SceneColonyClass {
             contexts: ["play", "build"],
           },
           { actions: ["fire"], label: "RPG_HINT_ATTACK", contexts: ["play"] },
+          {
+            actions: ["grenade"],
+            label: "RPG_HINT_GRENADE",
+            contexts: ["play"],
+          },
           { text: "LMB", label: "RPG_HINT_PLACE", contexts: ["build"] },
           { text: "RMB", label: "RPG_HINT_REMOVE", contexts: ["build"] },
           {
@@ -367,13 +372,14 @@ class _SceneColonyClass {
       else DrowsinessSystem.update(this.level.entities);
       FollowerSystem.update(this.level.entities, this.playerId); // seek, by live Follower query (before physics)
       // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
-      // crowders apart → projectiles → expire.
+      // crowders apart → projectiles → fuses → expire.
       PlayerSystem.update(this.level.entities); // the player brain: input → Velocity/fire
       StateSystem.update(this.level.entities); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
       PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.nav
       SolidSystem.update(this.level.entities);
       SeparationSystem.update(this.level.entities); // unstack dynamic bodies (crowding), after SolidSystem
       ProjectileSystem.update(this.level.entities);
+      FuseSystem.update(this.level.entities); // fused charges count down and detonate where they lie
       LifetimeSystem.update(this.level.entities);
 
       ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick

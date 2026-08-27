@@ -17,7 +17,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `InputAction.unbindButton`/`unbindAxis` — `UIRebind` remaps by assigning `action.buttons[0]` directly.
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
 - `gemsWindow` and the `UIDrag`/`UIResize` pair it is the sole constructor of — the colony windows use `gemsOverlay`. A three-module spare chain like `UIMinimap`/`gemsMinimap`.
-- `Projectile`/`ProjectileSystem` run with zero spawn sites, yet `sceneColony` ticks the system and `WorldOverlay` queries bullets every frame. Unregister the pair until a spawner exists, or accept the idle queries explicitly at the tick-loop site.
 - The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
 - `RenderZone`/`RenderZoneLabel` — caller-less since a settlement became a whole level (the `settlement` channel was their one target), and no level file or prefab authors a `zones` channel, so no zone overlay draws anywhere. Keep as the engine's zone passes, or drop with the next zone-consumer decision.
 
@@ -41,7 +40,7 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)
     - Auto turrets fire mounted weapons
     - Mountable turrets
-- Explosives: grenade and mine (`sndExplosionLarge` is the reserved SFX)
+- Explosives — the grenade is in (G / LT lobs a `Fuse` charge through `FuseSystem.lob`; unlimited, no item yet); remaining: a grenade item with a `Throwable` capability gating the throw on the bag, and the mine
 - Minify furnitures
 - Settlement and outpost — foundation done (`Settlement`: a level is one settlement with Name/Faction — the authored colony hub, or an outpost the player founds at a wild site's Survey Post; build mode gated to allied maps); settlement-management UI remains
 - Farming and fishing (farming layers on a settlement's level)

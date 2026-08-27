@@ -9,6 +9,15 @@ const KICK_ANIM = 23; // ticks the kick plays (5 frames @ 13fps — fits the fis
 const MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
 const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
+// grenade (G / LT): a fused charge lobbed at the cursor (FuseSystem.lob)
+// TODO: a grenade item (a Throwable capability) gates the throw on the bag; until then it is unlimited
+const GRENADE_SPEED = 320; // world px/s — flight speed of the lobbed charge
+const GRENADE_FUSE = 90; // ticks from the throw to the blast (1.5 s at 60 Hz)
+const GRENADE_RADIUS = 96; // blast radius (px) — three 32px cells
+const GRENADE_DAMAGE = 6; // blast damage at the centre (halves toward the edge)
+const THROW_RANGE = 320; // max throw distance (px); the pad's fixed reach along the aim
+const THROW_CD = 30; // ticks before the next shot/throw after a throw
+
 // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
 const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
@@ -43,6 +52,7 @@ globalThis.PlayerSystem = {
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
       follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
+      grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]], // lob a grenade at the cursor
     });
 
     // gamepad (device 0) added alongside the keyboard bindings (InputAction OR-combines). Twin-stick:
@@ -58,6 +68,7 @@ globalThis.PlayerSystem = {
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
     Input.get("follow").bindButton(GP, gp_shoulderr); // RB
+    Input.get("grenade").bindButton(GP, gp_shoulderlb); // LT
     // analog axes: left stick = movement (everywhere), right stick = aim ("play" only)
     Input.register(
       "moveX",
@@ -239,6 +250,10 @@ globalThis.PlayerSystem = {
       }
     }
 
+    // grenade is "play"-only like fire; shares fireCd so a throw never overlaps a shot
+    if (Input.get("grenade").pressed() && pl.fireCd === 0)
+      PlayerSystem._throwGrenade(entities, id, pl, dir);
+
     // animation tree: attack > walk > idle. attackCd read live off the component (no cached boolean — GMRT clobber)
     let state = "idle";
     if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
@@ -307,6 +322,44 @@ globalThis.PlayerSystem = {
     pl.attackCd = ATTACK_ANIM;
   },
 
+  /**
+   * lob a grenade: at the scene-latched world cursor for KBM (clamped to THROW_RANGE), or
+   * THROW_RANGE along the aim while the right stick is deflected (a pad has no cursor). A KBM
+   * throw turns the player toward its target, as a shot does.
+   */
+  _throwGrenade(entities, id, pl, dir) {
+    const pos = entities.get(id, Position);
+    const rx = Input.get("aimX").value();
+    const ry = Input.get("aimY").value();
+    let tx;
+    let ty;
+    if (Math.abs(rx) > STICK_DEADZONE || Math.abs(ry) > STICK_DEADZONE) {
+      tx = pos.x + dir.x * THROW_RANGE;
+      ty = pos.y + dir.y * THROW_RANGE;
+    } else {
+      // scene-latched ground-plane cursor, as the gun aims (Camera.unproject)
+      const dx = pl.cursorX - pos.x;
+      const dy = pl.cursorY - pos.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const k = d > THROW_RANGE ? THROW_RANGE / d : 1;
+      tx = pos.x + dx * k;
+      ty = pos.y + dy * k;
+      if (d > 0) {
+        dir.x = dx / d;
+        dir.y = dy / d;
+      }
+    }
+    FuseSystem.lob(entities, id, tx, ty, {
+      speed: GRENADE_SPEED,
+      ticks: GRENADE_FUSE,
+      radius: GRENADE_RADIUS,
+      damage: GRENADE_DAMAGE,
+    });
+    pl.fireCd = THROW_CD;
+    pl.attackAnim = "attack"; // the punch thrust reads as the throw
+    pl.attackCd = ATTACK_ANIM;
+  },
+
   /** drop the keymap (scene destroy) */
   unbind() {
     const keys = [
@@ -321,6 +374,7 @@ globalThis.PlayerSystem = {
       "build",
       "follow",
       "reload",
+      "grenade",
       "moveX",
       "moveY",
       "aimX",

@@ -1,0 +1,26 @@
+{
+  "$GMParticleSystem":"",
+  "%Name":"psExplosion",
+  "backdropHeight":768,
+  "backdropImageOpacity":0.5,
+  "backdropImagePath":"",
+  "backdropWidth":1366,
+  "backdropXOffset":0.0,
+  "backdropYOffset":0.0,
+  "drawOrder":0,
+  "emitters":[
+    {"$GMPSEmitter":"","%Name":"Fire","additiveBlend":true,"directionIncrease":0.0,"directionMax":360.0,"directionMin":0.0,"directionWiggle":0.0,"distribution":0,"editorColour":1090519039,"editorDrawShape":true,"emitCount":40,"emitDelayMax":0.0,"emitDelayMin":0.0,"emitDelayUnits":0,"emitIntervalMax":0.0,"emitIntervalMin":0.0,"emitIntervalUnits":0,"enabled":true,"endColour":660600,"GMPresetName":null,"gravityDirection":270.0,"gravityForce":0.0,"headPosition":0.0,"lifetimeMax":30.0,"lifetimeMin":18.0,"linkedEmitter":null,"locked":false,"midColour":4280184575,"mode":1,"name":"Fire","orientationIncrease":0.0,"orientationMax":0.0,"orientationMin":0.0,"orientationRelative":false,"orientationWiggle":0.0,"regionH":24.0,"regionW":24.0,"regionX":0.0,"regionY":0.0,"resourceType":"GMPSEmitter","resourceVersion":"2.0","scaleX":1.0,"scaleY":1.0,"shape":1,"sizeIncrease":-0.015,"sizeMax":0.7,"sizeMin":0.35,"sizeWiggle":0.0,"spawnOnDeathCount":1,"spawnOnDeathGMPreset":null,"spawnOnDeathId":null,"spawnOnUpdateCount":1,"spawnOnUpdateGMPreset":null,"spawnOnUpdateId":null,"speedIncrease":-3.0,"speedMax":140.0,"speedMin":40.0,"speedWiggle":0.0,"spriteAnimate":false,"spriteId":null,"spriteRandom":false,"spriteStretch":true,"startColour":4283484415,"texture":8,},
+    {"$GMPSEmitter":"","%Name":"Smoke","additiveBlend":false,"directionIncrease":0.0,"directionMax":360.0,"directionMin":0.0,"directionWiggle":0.0,"distribution":0,"editorColour":1090519039,"editorDrawShape":true,"emitCount":14,"emitDelayMax":0.0,"emitDelayMin":0.0,"emitDelayUnits":0,"emitIntervalMax":0.0,"emitIntervalMin":0.0,"emitIntervalUnits":0,"enabled":true,"endColour":2631720,"GMPresetName":null,"gravityDirection":270.0,"gravityForce":0.0,"headPosition":0.0,"lifetimeMax":70.0,"lifetimeMin":40.0,"linkedEmitter":null,"locked":false,"midColour":1613903676,"mode":1,"name":"Smoke","orientationIncrease":0.0,"orientationMax":0.0,"orientationMin":0.0,"orientationRelative":false,"orientationWiggle":0.0,"regionH":32.0,"regionW":32.0,"regionX":0.0,"regionY":0.0,"resourceType":"GMPSEmitter","resourceVersion":"2.0","scaleX":1.0,"scaleY":1.0,"shape":1,"sizeIncrease":0.01,"sizeMax":0.9,"sizeMin":0.5,"sizeWiggle":0.0,"spawnOnDeathCount":1,"spawnOnDeathGMPreset":null,"spawnOnDeathId":null,"spawnOnUpdateCount":1,"spawnOnUpdateGMPreset":null,"spawnOnUpdateId":null,"speedIncrease":-0.5,"speedMax":45.0,"speedMin":15.0,"speedWiggle":0.0,"spriteAnimate":false,"spriteId":null,"spriteRandom":false,"spriteStretch":true,"startColour":2957725786,"texture":12,},
+  ],
+  "name":"psExplosion",
+  "parent":{
+    "name":"Particles",
+    "path":"folders/Game/Media/Particles.yy",
+  },
+  "resourceType":"GMParticleSystem",
+  "resourceVersion":"2.0",
+  "showBackdrop":true,
+  "showBackdropImage":false,
+  "xorigin":0,
+  "yorigin":0,
+}
