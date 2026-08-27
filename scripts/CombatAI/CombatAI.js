@@ -29,7 +29,7 @@ globalThis.Brain = "Brain";
  * @property {number} pathRate    ticks between A* replans during a blocked chase
  * @property {number} aggroRate   ticks between idle target-acquisition scans (nearestHostile is O(n))
  * @property {number} aggroCd     acquisition throttle countdown (ticks)
- * @property {number} losRate     ticks between chase LOS raycasts (Raycast.cast is O(colliders))
+ * @property {number} losRate     ticks between chase LOS raycasts (a cast walks cells + scans bodies)
  * @property {number} losCd       LOS throttle countdown (ticks)
  * @property {boolean} losBlocked cached "a wall blocks the shot" decision between LOS raycasts
  */
@@ -128,8 +128,9 @@ globalThis.CombatAI = {
 
           // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
           // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
-          // THROTTLED: Raycast.cast is O(all colliders); re-cast every losRate ticks and cache the
-          // decision (a moving target's occlusion shifts slowly — ~0.13s staleness is imperceptible).
+          // THROTTLED: a cast still walks the cells to the target and scans the bodies; re-cast
+          // every losRate ticks and cache the decision (a moving target's occlusion shifts slowly —
+          // ~0.13s staleness is imperceptible).
           if (brain.losCd > 0) {
             brain.losCd--;
           } else {

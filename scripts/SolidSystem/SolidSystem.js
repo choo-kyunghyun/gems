@@ -10,6 +10,10 @@
  * or a prop spawn, and each of those replaces entities rather than moving them — so a changed id set
  * is the whole signal, and it is checked every tick. Give a solid a Velocity (MovementSystem's job)
  * and this would go stale; call invalidate() if you must mutate one in place.
+ *
+ * The snapshot + grid also serve segment queries: Raycast reads the statics through `statics`/`walk`
+ * and the dynamic bodies through `eachBody`, so a cast costs the cells it crosses plus the movers,
+ * not the map's collider count.
  */
 globalThis.SolidSystem = {
   maxStep: 8, // keep below thinnest collider to prevent tunneling
@@ -21,6 +25,10 @@ globalThis.SolidSystem = {
   _cols: 0,
   _rows: 0,
   _buckets: [],
+  // how far the statics overhang below the grid's origin (the border boxes sit at -cell..0);
+  // a static there is clamped into the edge cell, and walk's clip reaches down to it
+  _minX: 0,
+  _minY: 0,
 
   // Injected: `(entities, statics)` fired when the static set CHANGES (not on every snapshot — a
   // body spawn refreshes the fingerprint without touching a wall). The one place the kinematic
@@ -38,6 +46,14 @@ globalThis.SolidSystem = {
   // mover's rect (_resolve runs twice per sub-step per body — docs/PERF.md).
   _candidates: [],
   _rect: AABB.rect(),
+
+  // the dynamic solid bodies as of the last refresh — parallel arrays of the component objects
+  // themselves, reused (a stale tail past _bodyCount is never read) — for eachBody
+  _bodyIds: [],
+  _bodyCols: [],
+  _bodyPos: [],
+  _bodyBoxes: [],
+  _bodyCount: 0,
 
   /** Force the next update to re-derive the static snapshot (see the class doc's premise). */
   invalidate() {
@@ -79,40 +95,182 @@ globalThis.SolidSystem = {
     return out;
   },
 
+  /**
+   * The static snapshot for a reader outside update() (Raycast): `{ id, x1, y1, x2, y2 }` records,
+   * indexed by the bucket grid `walk` visits. As of the last update() on this store — at most one
+   * tick stale, since a tick's brains fire before update() (sceneColony.update's order), so a static
+   * removed this frame may linger with a freed id: validate a hit's id. A store this system has not
+   * updated yet (a map swap's first tick) is snapshotted here.
+   */
+  statics(entities) {
+    if (this._store !== entities) this._refresh(entities);
+    return this._statics;
+  },
+
+  /**
+   * Visit the bucket grid's cells along a segment in entry order — `fn(bucket, t)` gets a cell's
+   * static indexes and the segment parameter where it enters the cell; return false to stop early.
+   * The segment is clipped to the statics' extent — the grid rect plus the overhang below 0 the
+   * edge cells absorb (_minX/_minY), where the walk pins to the edge cell — so nothing is missed;
+   * a multi-cell static appears in every cell it spans (and an edge cell may be visited twice), so
+   * the caller dedupes.
+   */
+  walk(x0, y0, x1, y1, fn) {
+    const cell = this._cell;
+    const cols = this._cols;
+    const rows = this._rows;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    // clip the segment's parameter range to the statics' extent
+    let t0 = 0;
+    let t1 = 1;
+    if (dx !== 0) {
+      let ta = (this._minX - x0) / dx;
+      let tb = (cols * cell - x0) / dx;
+      if (ta > tb) {
+        const s = ta;
+        ta = tb;
+        tb = s;
+      }
+      if (ta > t0) t0 = ta;
+      if (tb < t1) t1 = tb;
+    } else if (x0 < this._minX || x0 >= cols * cell) return;
+    if (dy !== 0) {
+      let ta = (this._minY - y0) / dy;
+      let tb = (rows * cell - y0) / dy;
+      if (ta > tb) {
+        const s = ta;
+        ta = tb;
+        tb = s;
+      }
+      if (ta > t0) t0 = ta;
+      if (tb < t1) t1 = tb;
+    } else if (y0 < this._minY || y0 >= rows * cell) return;
+    if (t0 > t1) return;
+
+    let gx = this._clampCol(Math.floor((x0 + dx * t0) / cell));
+    let gy = this._clampRow(Math.floor((y0 + dy * t0) / cell));
+    const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+    const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+    // parameter at the next x / y cell boundary, and the parameter width of one cell
+    let tMaxX =
+      dx > 0
+        ? ((gx + 1) * cell - x0) / dx
+        : dx < 0
+          ? (gx * cell - x0) / dx
+          : Infinity;
+    let tMaxY =
+      dy > 0
+        ? ((gy + 1) * cell - y0) / dy
+        : dy < 0
+          ? (gy * cell - y0) / dy
+          : Infinity;
+    const tDeltaX = dx !== 0 ? cell / Math.abs(dx) : Infinity;
+    const tDeltaY = dy !== 0 ? cell / Math.abs(dy) : Infinity;
+
+    let t = t0;
+    while (true) {
+      // (no `for (;;)` — an empty for initializer fails the build, GMRT.md #15566)
+      if (fn(this._buckets[gy * cols + gx], t) === false) return;
+      if (tMaxX < tMaxY) {
+        if (tMaxX > t1) return;
+        t = tMaxX;
+        tMaxX += tDeltaX;
+        gx += stepX;
+        if (gx >= cols) return;
+        if (gx < 0) {
+          // below the origin everything is the edge column's: pin, and step only in y from here
+          gx = 0;
+          tMaxX = Infinity;
+        }
+      } else {
+        if (tMaxY > t1) return;
+        t = tMaxY;
+        tMaxY += tDeltaY;
+        gy += stepY;
+        if (gy >= rows) return;
+        if (gy < 0) {
+          gy = 0;
+          tMaxY = Infinity;
+        }
+      }
+    }
+  },
+
+  /**
+   * Visit the dynamic solid bodies — every non-kinematic collider — as `fn(id, col, pos, box)`,
+   * the component objects themselves so `solid` reads live (a corpse drops out of the hits the
+   * frame it dies). As of the last refresh, like `statics`: a body removed since may linger
+   * (validate the id), one spawned since is not listed until the next update().
+   */
+  eachBody(entities, fn) {
+    if (this._store !== entities) this._refresh(entities);
+    const ids = this._bodyIds;
+    const cols = this._bodyCols;
+    const pos = this._bodyPos;
+    const boxes = this._bodyBoxes;
+    const n = this._bodyCount;
+    for (let i = 0; i < n; i++) fn(ids[i], cols[i], pos[i], boxes[i]);
+  },
+
+  /**
+   * Re-fingerprint the store's colliders and re-snapshot if the set moved; the same pass lists the
+   * dynamic bodies for eachBody.
+   */
+  _refresh(entities) {
+    const ids = SolidSystem._candidates;
+    const bIds = this._bodyIds;
+    const bCols = this._bodyCols;
+    const bPos = this._bodyPos;
+    const bBoxes = this._bodyBoxes;
+    let w = 0;
+    let b = 0;
+    entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
+      ids[w++] = id;
+      if (col.kinematic) return;
+      bIds[b] = id;
+      bCols[b] = col;
+      bPos[b] = pos;
+      bBoxes[b] = box;
+      b++;
+    });
+    ids.length = w;
+    this._bodyCount = b;
+    if (!this._fresh(entities, ids)) this._snapshot(entities, ids);
+  },
+
   update(entities) {
     const dt = SimClock.tickDuration;
 
-    const ids = SolidSystem._candidates;
-    let w = 0;
-    entities.forEach([Collision, Position, BBox], (id) => {
-      ids[w++] = id;
-    });
-    ids.length = w;
-    if (!this._fresh(entities, ids)) this._snapshot(entities, ids);
+    this._refresh(entities);
     const statics = this._statics;
 
-    entities.forEach([Collision, Position, BBox, Velocity], (id, col, pos, box, vel) => {
-      if (!col.solid || col.kinematic) return;
+    entities.forEach(
+      [Collision, Position, BBox, Velocity],
+      (id, col, pos, box, vel) => {
+        if (!col.solid || col.kinematic) return;
 
-      const dx = vel.x * dt;
-      const dy = vel.y * dt;
-      const steps = Math.max(
-        1,
-        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
-      );
-      const sx = dx / steps;
-      const sy = dy / steps;
+        const dx = vel.x * dt;
+        const dy = vel.y * dt;
+        const steps = Math.max(
+          1,
+          Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
+        );
+        const sx = dx / steps;
+        const sy = dy / steps;
 
-      for (let s = 0; s < steps; s++) {
-        pos.x += sx;
-        if (SolidSystem._resolve(pos, box, statics, sx, true) !== 0)
-          vel.x = 0;
+        for (let s = 0; s < steps; s++) {
+          pos.x += sx;
+          if (SolidSystem._resolve(pos, box, statics, sx, true) !== 0)
+            vel.x = 0;
 
-        pos.y += sy;
-        if (SolidSystem._resolve(pos, box, statics, sy, false) !== 0)
-          vel.y = 0;
-      }
-    });
+          pos.y += sy;
+          if (SolidSystem._resolve(pos, box, statics, sy, false) !== 0)
+            vel.y = 0;
+        }
+      },
+    );
   },
 
   /**
@@ -177,9 +335,9 @@ globalThis.SolidSystem = {
   },
 
   /**
-   * Bake the kinematic solids into flat records: edges only, so the body×static resolve loop
-   * reads plain fields — no AABB.of / entities.get per test. Those per-test Map lookups + edge
-   * allocs were ~70% of the colony's tick cost before the snapshot existed.
+   * Bake the kinematic solids into flat records: edges (plus the id, for a raycast's hit) so the
+   * body×static resolve loop reads plain fields — no AABB.of / entities.get per test. Those per-test
+   * Map lookups + edge allocs were ~70% of the colony's tick cost before the snapshot existed.
    */
   _snapshot(entities, ids) {
     const statics = [];
@@ -188,6 +346,7 @@ globalThis.SolidSystem = {
       if (!col.solid || !col.kinematic) continue;
       const e = AABB.of(entities, ids[i]);
       statics.push({
+        id: ids[i],
         x1: e.x1,
         y1: e.y1,
         x2: e.x2,
@@ -237,10 +396,16 @@ globalThis.SolidSystem = {
   _gridRebuild(statics) {
     let maxX = 0;
     let maxY = 0;
+    let minX = 0;
+    let minY = 0;
     for (let i = 0; i < statics.length; i++) {
       if (statics[i].x2 > maxX) maxX = statics[i].x2;
       if (statics[i].y2 > maxY) maxY = statics[i].y2;
+      if (statics[i].x1 < minX) minX = statics[i].x1;
+      if (statics[i].y1 < minY) minY = statics[i].y1;
     }
+    this._minX = minX;
+    this._minY = minY;
     const cols = Math.max(1, Math.ceil(maxX / this._cell));
     const rows = Math.max(1, Math.ceil(maxY / this._cell));
     if (cols !== this._cols || rows !== this._rows) {

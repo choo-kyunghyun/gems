@@ -133,6 +133,10 @@ An instance is worth holding for what its scope unlocks (Data Layout), never as 
   static.
 - A GML built-in costs the boundary (~40 ns) whatever it does: reach for one only when it replaces
   more JS than that — bulk work inside a single call, never a scalar helper.
+- A segment query never scans the store: `Raycast` walks `SolidSystem`'s static buckets (the cells
+  the segment crosses, ~9 for a typical shot) and its per-tick body list. On the colony map (~400
+  colliders, 71 bodies) that is ~60 us a cast against ~360 us for a slab test per collider,
+  same-session — a cast is then bounded by the movers, not the map.
 
 ## Where The Frame Goes
 
@@ -221,9 +225,10 @@ Unfixed, in the order their size was measured:
   Goes) — at ~100% selectivity a dense list is the same length plus an indirection and loses.
   Dense-list upkeep also costs ~75% more per component add/detach, so it must be opt-in, not
   blanket.
-- `SolidSystem` scans `Collision, Position, BBox` twice per tick (the static-cache fingerprint, then
-  the body loop with `Velocity`) and `SeparationSystem` scans it again; one shared pass would serve
-  them.
+- `SolidSystem` scans `Collision, Position, BBox` twice per tick (the static-cache fingerprint, which
+  now also lists the dynamic bodies for `eachBody`, then the body loop with `Velocity`) and
+  `SeparationSystem` scans it again; one shared pass would serve them — `eachBody` is that pass's
+  seed, and `SeparationSystem` could collect from it.
 - `ids.next` is a high-water mark that never shrinks, so a spawn spike permanently raises every
   query's cost for that map's lifetime. Latent today: the colony sits at `next == alive`, and
   nothing spawns in bulk.
