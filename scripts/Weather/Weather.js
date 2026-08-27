@@ -2,8 +2,8 @@
  * On Time.delta, everything — transitions, rain/snow fall, cloud drift — freezes when the game pauses
  * and dilates with Time.scale (the bed fast-forward races the sky). Conditions are a fixed literal
  * table (clear/cloudy/rain/storm/snow), each with a render look + a Kelvin tempMod. A change CROSS-
- * FADES over _fadeTime (lerped by blend()). A CLIMATE ZONE can override the open sky (enterRegion/
- * exitRegion); the displayed condition is the effective one (override ?? ambient).
+ * FADES over _fadeTime (lerped by blend()). The active MAP's climate can pin the open sky map-wide
+ * (setClimate); the displayed condition is the effective one (climate ?? ambient).
  */
 globalThis.Weather = {
   // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, cloud the
@@ -74,11 +74,11 @@ globalThis.Weather = {
   _maxHold: 70,
   _fadeTime: 2.5, // cross-fade seconds when the condition changes
 
-  // ambient (season-rolled) sky vs. an optional climate-zone override; the displayed condition is
-  // the effective one (override ?? ambient), cross-faded into _cur/_prev/_blend by _sync()
+  // ambient (season-rolled) sky vs. the active map's optional climate; the displayed condition is
+  // the effective one (climate ?? ambient), cross-faded into _cur/_prev/_blend by _sync()
   _ambient: "clear", // season-rolled open-sky condition
-  _override: null, // forced condition id from a climate zone (or null)
-  _regionTemp: 0, // additive Kelvin offset from a climate zone
+  _climate: null, // condition id the active map's climate forces (or null)
+  _climateTemp: 0, // additive Kelvin offset from the active map's climate
 
   _cur: "clear", // displayed effective condition
   _prev: "clear",
@@ -93,8 +93,8 @@ globalThis.Weather = {
   export() {
     return {
       ambient: Weather._ambient,
-      override: Weather._override,
-      regionTemp: Weather._regionTemp,
+      climate: Weather._climate,
+      climateTemp: Weather._climateTemp,
       cur: Weather._cur,
       prev: Weather._prev,
       blend: Weather._blend,
@@ -106,8 +106,8 @@ globalThis.Weather = {
   import(d) {
     if (d === undefined) return;
     Weather._ambient = d.ambient;
-    Weather._override = d.override;
-    Weather._regionTemp = d.regionTemp;
+    Weather._climate = d.climate;
+    Weather._climateTemp = d.climateTemp;
     Weather._cur = d.cur;
     Weather._prev = d.prev;
     Weather._blend = d.blend;
@@ -115,11 +115,11 @@ globalThis.Weather = {
     Weather._time = d.time;
   },
 
-  /** reset to a settled clear sky, no region override (scene create() once) */
+  /** reset to a settled clear sky, no map climate (scene create() once) */
   reset() {
     Weather._ambient = "clear";
-    Weather._override = null;
-    Weather._regionTemp = 0;
+    Weather._climate = null;
+    Weather._climateTemp = 0;
     Weather._cur = "clear";
     Weather._prev = "clear";
     Weather._blend = 1;
@@ -141,23 +141,22 @@ globalThis.Weather = {
     }
   },
 
-  enterRegion(zone) {
-    const d = zone.data;
-    Weather._override =
-      d.weather !== undefined && d.weather !== null ? d.weather : null;
-    Weather._regionTemp = d.tempMod !== undefined ? d.tempMod : 0;
-    Weather._sync();
-  },
-
-  exitRegion() {
-    Weather._override = null;
-    Weather._regionTemp = 0;
+  /**
+   * The active map's climate, applied on every arrival (ColonyMap._applyClimate): `c` is the
+   * level's `meta.climate` — { weather?, tempMod? }, pinning the sky map-wide — or undefined for
+   * an open sky. Either way the change cross-fades like a re-roll.
+   */
+  setClimate(c) {
+    const has = c !== undefined && c !== null;
+    const w = has ? c.weather : undefined;
+    Weather._climate = w !== undefined && w !== null ? w : null;
+    Weather._climateTemp = has ? (c.tempMod !== undefined ? c.tempMod : 0) : 0;
     Weather._sync();
   },
 
   _sync() {
     const eff =
-      Weather._override !== null ? Weather._override : Weather._ambient;
+      Weather._climate !== null ? Weather._climate : Weather._ambient;
     if (eff !== Weather._cur) {
       Weather._prev = Weather._cur;
       Weather._cur = eff;
@@ -216,10 +215,10 @@ globalThis.Weather = {
     return Weather._blend;
   }, // 0..1 incoming weight
 
-  /** Blended Kelvin temp delta (outgoing → incoming) + the climate-zone offset; folded into Temperature.now(). */
+  /** Blended Kelvin temp delta (outgoing → incoming) + the map's climate offset; folded into Temperature.now(). */
   tempMod() {
     const p = Weather._COND[Weather._prev].temp;
     const c = Weather._COND[Weather._cur].temp;
-    return p + (c - p) * Weather._blend + Weather._regionTemp;
+    return p + (c - p) * Weather._blend + Weather._climateTemp;
   },
 };

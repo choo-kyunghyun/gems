@@ -1,13 +1,13 @@
 // Ambient world temperature in KELVIN (canonical unit — toCelsius/toFahrenheit to display).
 /**
- * Read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + region
- * modifiers fold into now() here. The diurnal swing is a cosine of the hour.
+ * Read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + map
+ * climate modifiers fold into now() here. The diurnal swing is a cosine of the hour.
  */
 globalThis.Temperature = {
   ZERO_C: 273.15, // Kelvin at 0 °C — the offset between the Kelvin and Celsius scales
 
   // Season baseline in °C — authored human-readably; now() adds ZERO_C for Kelvin. Kelvin/Celsius
-  // share an increment, so the diurnal/weather/region deltas are unit-agnostic (no offset).
+  // share an increment, so the diurnal/weather/climate deltas are unit-agnostic (no offset).
   _BASE: { spring: 14, summer: 26, autumn: 12, winter: 0 },
 
   // Time-of-day delta, a cosine of the hour: peak = MEAN + AMP at DIURNAL_PEAK, trough = MEAN − AMP.
@@ -16,8 +16,8 @@ globalThis.Temperature = {
   DIURNAL_AMP: 5.5, // °C half-swing amplitude
 
   /**
-   * Kelvin: ZERO_C + season baseline + diurnal swing + live weather modifier (climate-zone region
-   * offset folds in via Weather.tempMod)
+   * Kelvin: ZERO_C + season baseline + diurnal swing + live weather modifier (the active map's
+   * climate offset folds in via Weather.tempMod)
    */
   now() {
     return (

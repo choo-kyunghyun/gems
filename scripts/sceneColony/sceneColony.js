@@ -453,7 +453,6 @@ class _SceneColonyClass {
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
-    this._updateClimate(); // climate-zone enter/exit → Weather region override
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
     // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
     if (!this.camera.control.raw) this.camera.update();
@@ -690,23 +689,6 @@ class _SceneColonyClass {
   }
 
   /**
-   * Track the player's climate cell and push/clear the Weather override on a border cross. The
-   * cached last id IS the edge detector — a zone channel is a point-wise index with no per-entity
-   * membership (ZoneMap). No-op without a "climate" channel.
-   */
-  _updateClimate() {
-    const cmap = this.level.grid.zoneMap("climate");
-    if (cmap === undefined) return;
-    const pos = this.level.entities.get(this.playerId, Position);
-    const g = this.level.grid.worldToGrid(pos.x, pos.y);
-    const id = cmap.idAt(g.x, g.y);
-    if (id === this._climateZone) return; // no border crossed this frame
-    this._climateZone = id;
-    if (id === 0) Weather.exitRegion();
-    else Weather.enterRegion(cmap.zone(id));
-  }
-
-  /**
    * THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
    * close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
    * Caller checks isReady first; complete() is what marks it done.
@@ -923,7 +905,6 @@ class _SceneColonyClass {
     InputContext.reset(); // hand input back to "default" for the next scene
     PlayerSystem.unbind();
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
-    Weather.exitRegion();
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below
     // park the active map first (its runtime lives flat on `this`), so ColonyMap.reset can reclaim

@@ -12,15 +12,6 @@
     "entries": {
       "default": { "gx": 2, "gy": 2 }
     },
-    "climate": [
-      {
-        "name": "Frostlands",
-        "rect": [36, 0, 90, 60],
-        "weather": "snow",
-        "tempMod": -15,
-        "color": "#bcd4e8"
-      }
-    ],
     "settlements": [
       {
         "id": "hub",

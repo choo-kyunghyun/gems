@@ -97,17 +97,7 @@ globalThis.ColonyLevel = {
         },
       ],
     };
-    const c = biome.climate;
-    if (c !== undefined)
-      data.meta.climate = [
-        {
-          name: site.id,
-          rect: [0, 0, cols, rows],
-          weather: c.weather,
-          tempMod: c.tempMod,
-          color: c.color,
-        },
-      ];
+    if (biome.climate !== undefined) data.meta.climate = biome.climate;
     return data;
   },
 

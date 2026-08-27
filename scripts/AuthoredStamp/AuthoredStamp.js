@@ -49,7 +49,7 @@ globalThis.AuthoredStamp = class AuthoredStamp {
   /**
    * Collect the file's channels and grow the bbox over them. "reach" spawns stay in — the spawn
    * adapter skips them; the scene resolves the reach zone separately. Zones are re-emitted but do
-   * NOT grow the bbox: a climate region spans open wilderness the procedural passes must still fill.
+   * NOT grow the bbox: a region may span open wilderness the procedural passes must still fill.
    */
   _index(data) {
     const tiles = data.tiles ?? [];

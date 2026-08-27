@@ -33,6 +33,7 @@ globalThis.ColonyMap = {
     "entries",
     "_generated",
     "_indoor",
+    "_climate",
     "statics",
     "terrainMats",
     "_built",
@@ -127,12 +128,10 @@ globalThis.ColonyMap = {
   /**
    * Park the live map: its runtime moves to _parked; its Level is already pooled and stays there
    * untouched. Unassign (not destroy) the camera — the parked map keeps it for resume; without
-   * the unassign its later destroy() would tear down the live view. exitRegion so the next map
-   * re-detects its climate.
+   * the unassign its later destroy() would tear down the live view.
    */
   suspend(scene) {
     if (scene.camera) scene.camera.unassign();
-    Weather.exitRegion();
     ColonyMap._parked[scene.level.id] = ColonyMap._stash(scene);
   },
 
@@ -159,6 +158,7 @@ globalThis.ColonyMap = {
 
     ColonyMap._activateReset(scene);
     ColonyMap._applyBgm(scene); // crossfade to the resumed map's ambient (indoor ⇄ overworld)
+    ColonyMap._applyClimate(scene);
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
   },
@@ -170,6 +170,14 @@ globalThis.ColonyMap = {
    */
   _applyBgm(scene) {
     Music.play(scene._indoor === true ? musAmbientCozy : musAmbientTense);
+  },
+
+  /**
+   * The map's climate (meta.climate — a forced sky condition + Kelvin offset, whole-map) or the
+   * open sky when it has none. Called on every arrival like _applyBgm; Weather cross-fades either way.
+   */
+  _applyClimate(scene) {
+    Weather.setClimate(scene._climate);
   },
 
   /**
@@ -212,7 +220,6 @@ globalThis.ColonyMap = {
     scene._buildActive = false;
     BuildMode.active = false;
     scene.nearNpc = false;
-    scene._climateZone = 0;
     scene._npcId = -1;
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
@@ -266,6 +273,8 @@ globalThis.ColonyMap = {
     scene._generated = data.meta.generated === true;
     // indoor maps (meta.indoor): no sky passes, and the cozy interior BGM below
     scene._indoor = data.meta.indoor === true;
+    // the level's climate (meta.climate), pinned over the whole map by _applyClimate on arrival
+    scene._climate = data.meta.climate;
     Log.info(
       `colony map: ${mapId} (entry ${entryId})${scene._generated ? " [generated]" : ""}`,
     );
@@ -298,6 +307,7 @@ globalThis.ColonyMap = {
     const m = pending.map;
     scene._generated = m.generated === true;
     scene._indoor = m.indoor === true;
+    scene._climate = m.climate;
     Log.info(`colony map: ${mapId} (entry ${entryId}) [restored]`);
     scene.level = new Level({ id: mapId, capacity: m.capacity });
     const h = ColonyLevel.restore(scene.level.entities, m, pending.buf);
@@ -320,7 +330,7 @@ globalThis.ColonyMap = {
     }
     scene.statics = m.statics;
     scene.terrainMats = h.terrainMats;
-    // every zone channel the map had (the settlement channel, the file's climate regions) —
+    // every zone channel the map had (the settlement channel, any the file's `zones` painted) —
     // registry + cells; the settlement channel is ensured even so, as RenderZone's target
     const grid = scene.level.grid;
     const zk = Object.keys(m.zones);
@@ -353,11 +363,12 @@ globalThis.ColonyMap = {
    * follow camera, the map's ambient, and a clean effects slate.
    */
   _activate(scene) {
-    ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, climate, inv)
+    ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, inv)
     ColonyMap._buildSpatial(scene); // broadphase + nav grid
     ColonyMap._buildRenderer(scene); // render pass stack
     ColonyMap._buildCamera(scene); // follow camera + view culling + debug
     ColonyMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
+    ColonyMap._applyClimate(scene); // the map's sky (meta.climate) or the open one
     FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
     ParticleFx.clear();
   },
@@ -378,7 +389,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Entity store + LevelGrid + the settlement/climate zone channels. The player spawns here ONLY on boot
+   * Entity store + LevelGrid + the settlement zone channel. The player spawns here ONLY on boot
    * (squad === null) — trip arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
    * to _spawnWorld. A generated map is fully resident (scatter entities + terrain/wall colliders all
@@ -423,7 +434,7 @@ globalThis.ColonyMap = {
     // mode gates placement to owned land, RenderZone visualizes every settlement's territory. Created
     // empty up front so the persistence import + RenderZone have a target before anything is founded.
     Settlement.channel(scene.level.grid);
-    // Authored non-player settlements (optional meta.settlements, mirroring meta.climate below):
+    // Authored non-player settlements (optional meta.settlements):
     // faction hubs / raider camps. The overworld authors one — the colony "hub", whose NPCs and
     // stockpile chest are its Residents — so the player's own founded settlement and an authored
     // faction's coexist on one map, which is the case the sid-keyed model exists to support.
@@ -441,28 +452,6 @@ globalThis.ColonyMap = {
           comp: s.comp, // SettlementComponent id array
         });
       }
-
-    // Climate zones (optional, from meta.climate): regions that override the open sky (forced
-    // Weather condition + Kelvin temp offset) while the player is inside. Built before the
-    // persistence import so it round-trips like the settlement channel.
-    const climate = data.meta.climate;
-    if (climate !== undefined) {
-      const cmap = scene.level.grid.addZoneMap("climate");
-      for (let i = 0; i < climate.length; i++) {
-        const c = climate[i];
-        const z = cmap.define({
-          name: c.name,
-          tags: ["climate"],
-          data: {
-            weather: c.weather ?? null,
-            tempMod: c.tempMod ?? 0,
-            color: c.color ?? "#88aaff",
-          },
-        });
-        const r = c.rect;
-        cmap.paintRect(z.id, r[0], r[1], r[2], r[3]);
-      }
-    }
     return built;
   },
 

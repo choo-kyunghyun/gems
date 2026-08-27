@@ -290,6 +290,7 @@ globalThis.SaveGame = {
    *   statics / colliders       the scene's collider id lists (level edge + terrain / per solid
    *                layer) — ids into `world`, kept so a build-mode remesh still frees the right ones
    *   spawn / entries / reachZone / reachDone / built / builtEnts   the per-map scene fields
+   *   climate      the level's whole-map sky (meta.climate); absent on an open-sky map
    *   zones        every zone channel, registry + cells (ZoneMap.export)
    */
   _mapsPass: {
@@ -326,6 +327,7 @@ globalThis.SaveGame = {
           id: mapId,
           generated: src._generated === true,
           indoor: src._indoor === true,
+          climate: src._climate,
           cell: grid.cellWidth,
           cols: grid.cols,
           rows: grid.rows,

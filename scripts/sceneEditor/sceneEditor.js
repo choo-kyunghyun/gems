@@ -1,7 +1,7 @@
 // In-engine level editor: paint tiles/entities/spawn, export to save dir, Test Play in
 // sceneColony. No World — entities are spawns records (data only), not live AI.
-// No zone authoring: the channels a level actually carries (settlement/climate) are built by
-// ColonyMap from `meta`, which the editor round-trips whole (see _loadData) but doesn't edit.
+// No zone authoring: the settlement channel a level carries is built by ColonyMap from `meta`,
+// which the editor round-trips whole (see _loadData) but doesn't edit.
 
 const EDITOR_SOURCE_FILE = "levels/topdown_1.json"; // level file loaded for editing
 const EDITOR_EXPORT_FILE = "topdown_export.json"; // flat name → save dir root

@@ -77,7 +77,7 @@ The level file, a `Prefab`, and a generator's output are now one shape (`LevelDa
 - Author `meta.entries` (named spawn points) — only the legacy `playerSpawn` is editable today, so an edited level can't place its arrival entry beside a travel beacon.
 - Draw with the real render passes instead of `RenderDebugTileMap` + hand-drawn markers, so what the editor shows is what plays. Whole-level residency is what makes this affordable.
 - Prefabs: capture a selected rect into a `PrefabDef`, stamp a registered one back. Both are plain `LevelData` ops, so only the export is new — a JS literal for `contentPrefabs`, mirroring the level export → `datafiles/levels/` workflow.
-- Zone authoring, if it earns its way back: the editor edits no channel at all now, so a level's `settlement`/`climate` regions are only reachable by hand-editing `meta`.
+- Zone authoring, if it earns its way back: the editor edits no channel at all now, so a level's `settlement` regions are only reachable by hand-editing `meta`.
 
 ## Media
 

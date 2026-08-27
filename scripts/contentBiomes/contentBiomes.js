@@ -86,9 +86,8 @@ globalThis.contentBiomes = {
   //   groundLattice  the same for the ground-detail channel (smaller = smaller patches)
   //   rocks/trees/rats  scatter densities per 1000 cells (OverworldGen's scatter passes)
   //   prefabs        { tag, density } — the Prefab scope tag PrefabStamp stamps + its per-1000 density
-  //   climate?       { weather, tempMod, color } — the whole-level climate zone a SYNTHESIZED site
-  //                  carries (ColonyLevel._siteData); an authored level file paints its own
-  //                  meta.climate regions instead
+  //   climate?       { weather, tempMod } — the whole-map sky a SYNTHESIZED site's level carries as
+  //                  its meta.climate (ColonyLevel._siteData); an authored level file authors its own
   BIOMES: {
     // the colony's home ground: temperate steppe, lakes and wet depressions, pine scatter
     steppe: {
@@ -134,7 +133,7 @@ globalThis.contentBiomes = {
       trees: 2.5,
       rats: 1.5,
       prefabs: { tag: "overworld", density: 2.2 },
-      climate: { weather: "snow", tempMod: -20, color: "#bcd4e8" },
+      climate: { weather: "snow", tempMod: -20 },
     },
     // flooded crater floor: broad shallows, mud flats and rich soil between grassy hummocks,
     // swarming with vermin — under rain
@@ -157,7 +156,7 @@ globalThis.contentBiomes = {
       trees: 5,
       rats: 7,
       prefabs: { tag: "overworld", density: 1.4 },
-      climate: { weather: "rain", tempMod: 4, color: "#6f9a7a" },
+      climate: { weather: "rain", tempMod: 4 },
     },
     // dry ejecta plain: no standing water, sand and gravel under rocky outcrops, dense camps —
     // clear and hot
@@ -179,7 +178,7 @@ globalThis.contentBiomes = {
       trees: 0.6,
       rats: 2.5,
       prefabs: { tag: "overworld", density: 3 },
-      climate: { weather: "clear", tempMod: 12, color: "#d9a066" },
+      climate: { weather: "clear", tempMod: 12 },
     },
   },
 
