@@ -158,7 +158,6 @@ globalThis.ColonyMap = {
     }
 
     ColonyMap._activateReset(scene);
-    ColonyMap._registerCameraDebug(scene);
     ColonyMap._applyBgm(scene); // crossfade to the resumed map's ambient (indoor ⇄ overworld)
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
