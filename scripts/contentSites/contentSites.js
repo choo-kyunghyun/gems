@@ -17,6 +17,8 @@
  *   clear?      cells kept procedural-free around the anchor (default ColonyLevel's)
  *   settlement? the level's settlement record (meta.settlement — Settlement.found on arrival):
  *               { name (i18n key), faction, comp (SettlementComponent ids), color }
+ *   dev?        true keeps the site off the chart outside DEV_MODE (WorldMapUI) — an authoring
+ *               site, not a place in the world
  * The first entry is the HOME site (ColonyLevel.START): the chart's routes fan out from it.
  */
 globalThis.contentSites = {
@@ -87,6 +89,21 @@ globalThis.contentSites = {
       rows: 112,
       seed: 4409,
       anchor: "landing_pad",
+    },
+    // DEV: the scratch pad — a flat canvas to build prefabs on under free build (BuildMode F6)
+    // and capture them off (the build bar's capture shape)
+    {
+      id: "scratch",
+      name: "SITE_SCRATCH",
+      desc: "SITE_SCRATCH_DESC",
+      biome: "flat",
+      danger: 0,
+      pos: { x: 0.5, y: 0.92 },
+      cols: 64,
+      rows: 64,
+      seed: 1,
+      anchor: "landing_pad",
+      dev: true,
     },
   ],
 

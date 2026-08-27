@@ -3,9 +3,16 @@
  * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
  * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
  * on an allied map, and placement is gated to it too. The palette (a bottom-center gemsCatBar) item is a
- * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places at the hovered
- * cell, RMB deconstructs. State on the scene (`_build*`); the static `active` flag is mirrored each
- * frame so drawWorld can gate the cursor highlight to "build context owns input".
+ * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places, RMB
+ * deconstructs. The SHAPE row above the bar sets the brush's footprint: `cell` acts on the hovered
+ * cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every cell the
+ * shape spans as ONE build (the whole cost paid up front, solid layers remeshed once); an entity
+ * item is always single-cell. State on the scene (`_build*`); the static `active` flag is mirrored
+ * each frame so drawWorld can gate the cursor highlight to "build context owns input".
+ *
+ * DEV authoring: F6 toggles FREE build (no settlement gate, no wood) and the shape row gains
+ * `capture` — drag a rect and Blueprint.capture writes what stands there out as the prefab literal
+ * contentPrefabs takes (the scratch site is the canvas for it — contentSites).
  *
  * scene contract (create()/ColonyMap.build): entities, playerId, grid, ui, a <key>Layer/<key>Type per
  * contentTiles.LAYERS entry (+ wallTypes: material key → TileType), <key>Colliders per solid
@@ -13,6 +20,17 @@
  */
 globalThis.BuildMode = {
   active: false, // mirror of (scene._buildActive && build context), read by drawWorld
+  // DEV free build (F6): no settlement gate, no wood, no refund — the authoring mode, where a
+  // structure is built to be captured (Blueprint), not paid for. Never reachable in release.
+  free: false,
+  // the brush shapes, in the shape row's order; `dev` rows only show in DEV_MODE
+  SHAPES: [
+    { id: "cell", labelKey: "BUILD_SHAPE_CELL" },
+    { id: "rect", labelKey: "BUILD_SHAPE_RECT" },
+    { id: "frame", labelKey: "BUILD_SHAPE_FRAME" },
+    { id: "line", labelKey: "BUILD_SHAPE_LINE" },
+    { id: "capture", labelKey: "BUILD_SHAPE_CAPTURE", dev: true },
+  ],
   RESOURCE: "wood",
   // the player's faction: a map builds when its Settlement's owner is it or an ally (Game policy)
   FACTION: "player",
@@ -438,6 +456,8 @@ globalThis.BuildMode = {
     scene._buildActive = false;
     scene._buildItem = BuildMode.CATALOG[0].items[0]; // selected catalog item (default Wall)
     scene._buildCell = undefined; // last hovered cell, for drawWorld
+    scene._buildShape = "cell"; // the brush footprint (SHAPES id)
+    scene._buildDrag = undefined; // { x, y, remove } — the anchor cell while a shape drag is held
     BuildMode.active = false;
 
     // bottom-center HUD: status line over the build bar. placement (LMB/RMB) is on the world
@@ -454,6 +474,32 @@ globalThis.BuildMode = {
       gap: GemsTheme.gapSm,
       alignItems: "center",
     });
+
+    // shape row: one button per brush footprint (the DEV capture tool among them in DEV_MODE).
+    // Topmost — the catbar's open flyout reaches up over the row right above the bar, which
+    // stays the status line as before.
+    const shapeRow = new UIElement({
+      width: "100%",
+      height: 30,
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: GemsTheme.gapSm,
+    });
+    for (let i = 0; i < BuildMode.SHAPES.length; i++) {
+      const sh = BuildMode.SHAPES[i];
+      if (sh.dev === true && !DEV_MODE) continue;
+      shapeRow.insertChild(
+        gemsButton(
+          I18n.textRef(sh.labelKey),
+          () => {
+            scene._buildShape = sh.id;
+            scene._buildDrag = undefined;
+          },
+          { width: 110, height: 28 },
+        ),
+      );
+    }
+    col.insertChild(shapeRow);
 
     const statusRow = new UIElement({ width: "100%", height: 22 });
     statusRow.insertChild(
@@ -496,7 +542,21 @@ globalThis.BuildMode = {
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
     const it = scene._buildItem;
-    return I18n.text("BUILD_STATUS", wood, I18n.text(it.labelKey), it.cost);
+    const text = I18n.text(
+      "BUILD_STATUS",
+      wood,
+      I18n.text(it.labelKey),
+      it.cost,
+      I18n.text(BuildMode._shape(scene._buildShape).labelKey),
+    );
+    return BuildMode.free ? I18n.text("BUILD_FREE") + "   ·   " + text : text;
+  },
+
+  /** a SHAPES row by id */
+  _shape(id) {
+    for (let i = 0; i < BuildMode.SHAPES.length; i++)
+      if (BuildMode.SHAPES[i].id === id) return BuildMode.SHAPES[i];
+    return BuildMode.SHAPES[0];
   },
 
   /**
@@ -504,11 +564,21 @@ globalThis.BuildMode = {
    * RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
    */
   update(scene) {
+    // DEV: F6 toggles free build (no settlement gate, no wood)
+    if (DEV_MODE && keyboard_check_pressed(vk_f6)) {
+      BuildMode.free = !BuildMode.free;
+      Toast.push(
+        I18n.text(BuildMode.free ? "BUILD_FREE_ON" : "BUILD_FREE_OFF"),
+        { type: "info" },
+      );
+    }
     // B toggles build mode, but it only OPENS on an allied map (the level's Settlement owned by
-    // the player's faction or an ally) — "you can only build in an allied settlement". Closing is free.
+    // the player's faction or an ally) — "you can only build in an allied settlement" — or under
+    // free build. Closing is free.
     if (Input.get("build").pressed()) {
       if (scene._buildActive) scene._buildActive = false;
-      else if (BuildMode._allied(scene)) scene._buildActive = true;
+      else if (BuildMode.free || BuildMode._allied(scene))
+        scene._buildActive = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
     // active only when toggled on AND the build context owns input — an open window makes the
@@ -518,27 +588,191 @@ globalThis.BuildMode = {
     scene._buildHud.enabled = on;
     if (!on) {
       scene._buildBar.catbar.close(); // collapse any open flyout when leaving build mode
+      scene._buildDrag = undefined;
       return;
     }
 
     const grid = scene.level.grid;
+    const drag = scene._buildDrag;
 
-    // skip world edits while the cursor is over the build HUD (a bar click must not place behind it).
+    // skip world edits while the cursor is over the build HUD (a bar click must not place behind
+    // it); a drag let go over it is cancelled, never applied
     if (BuildMode._overHud(scene)) {
       scene._buildCell = undefined;
+      if (drag !== undefined && !BuildMode._dragHeld(drag))
+        scene._buildDrag = undefined;
       return;
     }
 
     // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
     const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     scene._buildCell = cell;
-    if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
+    if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows) {
+      if (drag !== undefined && !BuildMode._dragHeld(drag))
+        scene._buildDrag = undefined; // let go off the grid: cancelled
       return;
+    }
 
-    // reuse the LMB edge latched by UIPointer.poll (the poll-once rule — UIPointer). RMB is unread elsewhere, single query safe.
-    if (UIPointer.pressed) BuildMode._tryPlace(scene, cell.x, cell.y);
-    else if (mouse_check_button_pressed(mb_right))
-      BuildMode._tryRemove(scene, cell.x, cell.y);
+    if (drag === undefined) {
+      // a press: a single-cell brush acts at once, a shape anchors a drag. LMB reuses the edge
+      // latched by UIPointer.poll (the poll-once rule — UIPointer); RMB is unread elsewhere, so
+      // its single live query is safe.
+      if (UIPointer.pressed) {
+        if (BuildMode._single(scene)) BuildMode._tryPlace(scene, cell.x, cell.y);
+        else scene._buildDrag = { x: cell.x, y: cell.y, remove: false };
+      } else if (mouse_check_button_pressed(mb_right)) {
+        if (scene._buildShape === "cell")
+          BuildMode._tryRemove(scene, cell.x, cell.y);
+        else scene._buildDrag = { x: cell.x, y: cell.y, remove: true };
+      }
+      return;
+    }
+    if (BuildMode._dragHeld(drag)) return; // still dragging — drawWorld previews the shape
+
+    // the release: act on every cell the shape spans between the anchor and this cell
+    scene._buildDrag = undefined;
+    const shape = scene._buildShape;
+    const cells = BuildMode._shapeCells(shape, drag.x, drag.y, cell.x, cell.y);
+    if (drag.remove) BuildMode._removeCells(scene, cells);
+    else if (shape === "capture")
+      BuildMode._capture(scene, drag.x, drag.y, cell.x, cell.y);
+    else BuildMode._placeCells(scene, cells);
+  },
+
+  /** is the button a drag started on still held (RMB polled live — one query per frame) */
+  _dragHeld(drag) {
+    return drag.remove ? mouse_check_button(mb_right) : UIPointer.down;
+  },
+
+  /**
+   * does the brush act on one cell at once: the cell shape, or an entity item under any brush
+   * but capture (an entity never tiles a shape)
+   */
+  _single(scene) {
+    const shape = scene._buildShape;
+    if (shape === "cell") return true;
+    if (shape === "capture") return false;
+    return scene._buildItem.kind === "entity";
+  },
+
+  /**
+   * The cells a shape spans between two corner cells (inclusive), as [gx, gy] pairs: a filled
+   * rect, its `frame` (the perimeter — a wall run around a room), or a Bresenham `line`.
+   */
+  _shapeCells(shape, x0, y0, x1, y1) {
+    const out = [];
+    if (shape === "line") {
+      let x = x0;
+      let y = y0;
+      const dx = Math.abs(x1 - x0);
+      const dy = -Math.abs(y1 - y0);
+      const sx = x0 < x1 ? 1 : -1;
+      const sy = y0 < y1 ? 1 : -1;
+      let err = dx + dy;
+      let more = true;
+      while (more) {
+        out.push([x, y]);
+        if (x === x1 && y === y1) more = false;
+        else {
+          const e2 = 2 * err;
+          if (e2 >= dy) {
+            err += dy;
+            x += sx;
+          }
+          if (e2 <= dx) {
+            err += dx;
+            y += sy;
+          }
+        }
+      }
+      return out;
+    }
+    const ax = Math.min(x0, x1);
+    const bx = Math.max(x0, x1);
+    const ay = Math.min(y0, y1);
+    const by = Math.max(y0, y1);
+    for (let y = ay; y <= by; y++)
+      for (let x = ax; x <= bx; x++) {
+        if (shape === "frame")
+          if (x !== ax && x !== bx && y !== ay && y !== by) continue;
+        out.push([x, y]);
+      }
+    return out;
+  },
+
+  /**
+   * Place the selected TILE item over `cells` as ONE build: only the placeable cells count, the
+   * whole wood cost is paid up front (nothing partial — half a wall is worse than none), and each
+   * solid layer touched is remeshed once at the end.
+   */
+  _placeCells(scene, cells) {
+    const item = scene._buildItem;
+    if (item.kind !== "tile") return; // an entity item never reaches here (_single)
+    const todo = [];
+    for (let i = 0; i < cells.length; i++)
+      if (BuildMode._cellFree(scene, cells[i][0], cells[i][1]))
+        todo.push(cells[i]);
+    if (todo.length === 0) return;
+    const cost = todo.length * item.cost;
+    if (!BuildMode.free) {
+      const inv = scene.level.entities.get(scene.playerId, Inventory);
+      if (inv === undefined || !InventorySystem.has(inv, BuildMode.RESOURCE, cost)) {
+        Toast.push(I18n.text("BUILD_NO_WOOD", cost), { type: "warn" });
+        return;
+      }
+      InventorySystem.remove(inv, BuildMode.RESOURCE, cost);
+    }
+    const remesh = {};
+    for (let i = 0; i < todo.length; i++) {
+      const solid = BuildMode.applyItem(scene, todo[i][0], todo[i][1], item, {
+        deferRemesh: true,
+      });
+      if (solid === true) remesh[item.layer] = true;
+    }
+    BuildMode.remeshLayers(scene, remesh);
+    scene._invDirty = true;
+    Log.info(`built ${todo.length}x ${item.id} (${scene._buildShape})`);
+  },
+
+  /** deconstruct over `cells` as one batch — each solid layer touched remeshed once */
+  _removeCells(scene, cells) {
+    const remesh = {};
+    let n = 0;
+    for (let i = 0; i < cells.length; i++)
+      if (BuildMode._tryRemove(scene, cells[i][0], cells[i][1], remesh)) n++;
+    BuildMode.remeshLayers(scene, remesh);
+    if (n > 0) Log.info(`removed ${n} (${scene._buildShape})`);
+  },
+
+  /** remesh the colliders of every solid layer keyed true in `remesh` — a batch's one remesh */
+  remeshLayers(scene, remesh) {
+    const keys = Object.keys(remesh);
+    for (let i = 0; i < keys.length; i++)
+      TileEdit.remesh(
+        scene.level.entities,
+        scene.level.grid,
+        scene[keys[i] + "Layer"],
+        scene[keys[i] + "Colliders"],
+      );
+  },
+
+  /**
+   * DEV: capture the dragged rect as a prefab body (Blueprint.capture) and write it to the save
+   * dir as the pretty literal contentPrefabs takes — the authoring exit of the scratch site.
+   */
+  _capture(scene, x0, y0, x1, y1) {
+    const ax = Math.min(x0, x1);
+    const ay = Math.min(y0, y1);
+    const plan = Blueprint.capture(scene, ax, ay, Math.max(x0, x1), Math.max(y0, y1));
+    const name = `prefab_${scene.level.id}_${ax}_${ay}.json`;
+    if (Blueprint.export(plan, name))
+      Toast.push(I18n.text("BUILD_CAPTURED", plan.cols, plan.rows, name), {
+        type: "success",
+      });
+    else Toast.push(I18n.text("BUILD_CAPTURE_FAIL"), { type: "error" });
+    Log.info(
+      `captured ${plan.cols}x${plan.rows} → ${name} — ${plan.tiles.length} channel(s), ${plan.spawns.length} spawn(s)`,
+    );
   },
 
   /**
@@ -578,24 +812,19 @@ globalThis.BuildMode = {
   },
 
   /**
-   * can the selected item be placed at (gx, gy): on an allied map, cell empty (across every
-   * buildable tile layer), enough wood, and a SOLID item (a wall / any entity — not a floor) isn't
-   * on the player's own cell. shared by place + cursor highlight.
+   * can the selected item stand at (gx, gy) at all: an allied map (or free build), the cell empty
+   * across every buildable tile layer and the built entities, and a SOLID item (a wall / any
+   * entity — not a floor) not on the player's own cell. The per-cell test a shape runs; wood is
+   * the batch's business.
    */
-  _canBuild(scene, gx, gy) {
+  _cellFree(scene, gx, gy) {
     const grid = scene.level.grid;
-    if (!BuildMode._allied(scene)) return false;
+    if (!BuildMode.free && !BuildMode._allied(scene)) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (
-      inv === undefined ||
-      !InventorySystem.has(inv, BuildMode.RESOURCE, item.cost)
-    )
-      return false;
     const solid = !(
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
@@ -609,11 +838,22 @@ globalThis.BuildMode = {
     return true;
   },
 
+  /** _cellFree plus the wood for ONE placement — shared by the single place + cursor highlight */
+  _canBuild(scene, gx, gy) {
+    if (!BuildMode._cellFree(scene, gx, gy)) return false;
+    if (BuildMode.free) return true;
+    const inv = scene.level.entities.get(scene.playerId, Inventory);
+    if (inv === undefined) return false;
+    return InventorySystem.has(inv, BuildMode.RESOURCE, scene._buildItem.cost);
+  },
+
   _tryPlace(scene, gx, gy) {
     if (!BuildMode._canBuild(scene, gx, gy)) return;
     const item = scene._buildItem;
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
+    if (!BuildMode.free) {
+      const inv = scene.level.entities.get(scene.playerId, Inventory);
+      InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
+    }
     BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
     scene._invDirty = true;
     Log.info(`built ${item.id} at ${gx},${gy}`);
@@ -671,7 +911,12 @@ globalThis.BuildMode = {
     return id;
   },
 
-  _tryRemove(scene, gx, gy) {
+  /**
+   * Deconstruct whatever the player built at (gx, gy) — a built entity first, else a built tile.
+   * Returns whether anything was removed. With `remesh` (a solid-layer-key → true map) given, a
+   * solid tile's collider remesh is recorded there instead of run at once (a batch's one remesh).
+   */
+  _tryRemove(scene, gx, gy, remesh) {
     const key = gx + "," + gy;
     const grid = scene.level.grid;
     // built entities sit on top of tiles — remove one first if present.
@@ -693,25 +938,29 @@ globalThis.BuildMode = {
       delete scene._builtEnts[key];
       scene._invDirty = true;
       Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
-      return;
+      return true;
     }
     const tileId = scene._built[key];
-    if (tileId === undefined) return; // only player-built cells are deconstructable
+    if (tileId === undefined) return false; // only player-built cells are deconstructable
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(scene[lkey + "Layer"], gx, gy);
-    if (contentTiles.get(lkey).solid === true)
-      TileEdit.remesh(
-        scene.level.entities,
-        grid,
-        scene[lkey + "Layer"],
-        scene[lkey + "Colliders"],
-      );
+    if (contentTiles.get(lkey).solid === true) {
+      if (remesh !== undefined) remesh[lkey] = true;
+      else
+        TileEdit.remesh(
+          scene.level.entities,
+          grid,
+          scene[lkey + "Layer"],
+          scene[lkey + "Colliders"],
+        );
+    }
     BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
     delete scene._built[key];
     scene._invDirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
+    return true;
   },
 
   /**
@@ -724,6 +973,7 @@ globalThis.BuildMode = {
   },
 
   _refund(scene, itemId) {
+    if (BuildMode.free) return; // nothing was paid
     const item = BuildMode.item(itemId);
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (item !== undefined && inv !== undefined)
@@ -776,14 +1026,45 @@ globalThis.BuildMode = {
   },
 
   /**
-   * world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid.
-   * call from scene.draw().
+   * world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid;
+   * while a shape drag is held, the cells it would act on instead (yellow = remove, cyan =
+   * capture, green = place). call from scene.draw().
    */
   drawWorld(scene) {
     if (!BuildMode.active) return;
     const cell = scene._buildCell;
     if (cell === undefined) return;
     const grid = scene.level.grid;
+    const cw = grid.cellWidth;
+    const ch = grid.cellHeight;
+
+    const drag = scene._buildDrag;
+    if (drag !== undefined) {
+      // the hovered cell clamped onto the grid, so a drag past the edge previews to the edge
+      const cx = Math.min(Math.max(cell.x, 0), grid.cols - 1);
+      const cy = Math.min(Math.max(cell.y, 0), grid.rows - 1);
+      const shape = scene._buildShape;
+      const cells = BuildMode._shapeCells(shape, drag.x, drag.y, cx, cy);
+      let col = c_lime;
+      if (drag.remove) col = c_yellow;
+      else if (shape === "capture") col = c_aqua;
+      draw_set_color(col);
+      draw_set_alpha(0.25);
+      for (let i = 0; i < cells.length; i++) {
+        const wx = cells[i][0] * cw;
+        const wy = cells[i][1] * ch;
+        draw_rectangle(wx, wy, wx + cw, wy + ch, false);
+      }
+      draw_set_alpha(1);
+      const x1 = Math.min(drag.x, cx) * cw;
+      const y1 = Math.min(drag.y, cy) * ch;
+      const x2 = (Math.max(drag.x, cx) + 1) * cw;
+      const y2 = (Math.max(drag.y, cy) + 1) * ch;
+      draw_rectangle(x1, y1, x2, y2, true);
+      draw_set_color(c_white);
+      return;
+    }
+
     if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 

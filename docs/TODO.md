@@ -11,7 +11,7 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
 - `World.update` is unwired scaffolding — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`), and `update` carries the engine → gameplay-kit edge. Wire the phase-2 routing (clock injected, not named) or drop it.
-- `Blueprint` — caller-less since a save restores each map's store whole (nothing replays builds); `capture`/`stamp` are the Blueprint UI's seam (Build Mode below), kept as a deliberate spare.
+- `Blueprint.stamp` — caller-less until the Blueprint UI (Build Mode below) puts a plan down for wood; `capture` is live as the DEV capture tool's exit.
 - `InputPreset` — `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold hardcoded defaults and `input.json` is never written. Load at boot, or drop the module.
 - `InputAction.unbindButton`/`unbindAxis` — `UIRebind` remaps by assigning `action.buttons[0]` directly.
 - `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
@@ -65,8 +65,8 @@ Every agent now plans over one level-sized `NavGrid`, so a request can span the 
 
 ## Build Mode
 
-- Blueprint UI
-- Drag to select
+- Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
+- Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
 
 ## Media
 

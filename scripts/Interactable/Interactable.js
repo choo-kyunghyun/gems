@@ -84,11 +84,14 @@ globalThis.Interactable = {
       Interactable._closeAll(scene);
     }
 
+    // hidden under build mode too: E is not bound in the build context, and the build HUD
+    // stands where the prompt does
     scene._interPrompt.enabled =
       scene._interTarget !== -1 &&
       !scene._storeOpen &&
       !scene._craftOpen &&
-      !scene._mapOpen;
+      !scene._mapOpen &&
+      !BuildMode.active;
 
     if (scene._storeOpen && scene._storeDirty) {
       StorageUI.refresh(scene);

@@ -214,6 +214,12 @@ globalThis.contentBiomes = {
       prefabs: { tag: "cave", density: 1.6, tries: 32 },
       scatter: { rat: 6 },
     },
+    // DEV: the scratch pad's canvas — one flat material and nothing else, so what stands on it
+    // is only what was built there (contentSites `scratch`)
+    flat: {
+      name: "BIOME_FLAT",
+      ground: { lattice: 8, bands: [["grass", Infinity]] },
+    },
   },
 
   // Design-reference material palette (full set by id + name + intended tint). MATERIALS above is

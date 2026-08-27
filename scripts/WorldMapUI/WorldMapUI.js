@@ -89,6 +89,7 @@ globalThis.WorldMapUI = {
     const h = WorldMapUI.NODE_H;
     for (let i = 0; i < sites.length; i++) {
       const s = sites[i];
+      if (s.dev === true && !DEV_MODE) continue; // an authoring site — off the chart in release
       const here = s.id === scene.level.id;
       const picked = s.id === scene._mapSel;
       // a zero-size anchor at the site's chart position; the node holder hangs centered on it
