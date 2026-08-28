@@ -389,7 +389,13 @@ globalThis.InventoryUI = {
    * PERMANENTLY, in place — rehire by walking up and talking)
    */
   _followerRow(scene, fid) {
-    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
+    // a well, not a card — the row sits inside the window's card
+    const card = facetPanel({
+      color: FacetTheme.panelLo,
+      rad: FacetTheme.radiusSm,
+      padding: FacetTheme.padSm,
+      gap: FacetTheme.gapSm,
+    });
 
     const head = new UIElement({ width: "100%", height: 22 });
     head.insertChild(
@@ -517,7 +523,13 @@ globalThis.InventoryUI = {
    * one achievement card: name + live unlock status on the head row, description under
    */
   _achievementRow(a) {
-    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
+    // a well, not a card — the row sits inside the window's card
+    const card = facetPanel({
+      color: FacetTheme.panelLo,
+      rad: FacetTheme.radiusSm,
+      padding: FacetTheme.padSm,
+      gap: FacetTheme.gapSm,
+    });
 
     const head = new UIElement({
       width: "100%",

@@ -72,7 +72,9 @@ class _SceneFacetClass {
     // Table tab — table self-scrolls, no enclosing facetScroll needed
     const table = this._tableTab();
 
-    this.ui.insertChild(
+    // the tabs sit on one card, the sections inside it boxless (the kit's one-pane rule)
+    const card = facetCard({ flexGrow: 1, gap: FacetTheme.gapSm });
+    card.insertChild(
       facetTabs(
         [
           { label: I18n.textRef("UIKIT_TAB_WIDGETS"), content: widgets },
@@ -84,6 +86,7 @@ class _SceneFacetClass {
         { grow: true },
       ),
     );
+    this.ui.insertChild(card);
 
     this.ui.insertChild(
       facetButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
@@ -474,7 +477,6 @@ class _SceneFacetClass {
         thumb: {
           color: facetColor(FacetTheme.text),
           borderColor: facetColor(FacetTheme.accentHi),
-          shadowAlpha: 0.35,
         },
       }),
     );

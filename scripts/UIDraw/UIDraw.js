@@ -168,8 +168,7 @@ globalThis.drawUIPanel = function drawUIPanel(
  * empty bar; the CALLER clamps fillTo so the rounded caps can't invert), and the 1px
  * border when `track.border` is set. `borderOver` picks the stacking: UIProgress strokes
  * the border OVER the fill (frames the whole track); UISlider strokes it under (the fill
- * covers its left span). Styles: track { color, border?, borderColor? },
- * fill { color, color2? } (color2 = roundrect's center→edge tint, not a gradient).
+ * covers its left span). Styles: track { color, border?, borderColor? }, fill { color }.
  */
 globalThis.drawUIBar = function drawUIBar(
   x1,
@@ -189,8 +188,7 @@ globalThis.drawUIBar = function drawUIBar(
     draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, bc, bc, true);
   if (fillTo > x1) {
     const fc = fill.color ?? c_white;
-    const fc2 = fill.color2 ?? fc;
-    draw_roundrect_color_ext(x1, y1, fillTo, y2, rad, rad, fc, fc2, false);
+    draw_roundrect_color_ext(x1, y1, fillTo, y2, rad, rad, fc, fc, false);
   }
   if (track.border && borderOver)
     draw_roundrect_color_ext(x1, y1, x2, y2, rad, rad, bc, bc, true);

@@ -2,7 +2,7 @@
 
 /**
  * `opts.primary: true` paints the button accent (highlighted CTA). Centered label;
- * hover eases fill + border glow + shadow lift, press sinks it (see UIButton).
+ * hover eases fill + border, press darkens it (see UIButton).
  */
 globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
   const primary = opts.primary ?? false;
@@ -39,10 +39,6 @@ globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
       rad: opts.rad ?? FacetTheme.radiusSm,
       border: opts.border ?? 1,
       borderColor: facetColor(bdr),
-      shadow: opts.shadow ?? 5,
-      shadowAlpha: 0.3,
-      highlight: 1,
-      highlightAlpha: primary ? 0.16 : 0.07,
     }),
   );
   const labelEl = facetLabel(label, {
@@ -105,10 +101,6 @@ globalThis.facetIconButton = function facetIconButton(
       rad: opts.rad ?? FacetTheme.radiusSm,
       border: 1,
       borderColor: facetColor(FacetTheme.border),
-      shadow: opts.shadow ?? 5,
-      shadowAlpha: 0.3,
-      highlight: 1,
-      highlightAlpha: 0.07,
     }),
   );
   btn.addComponent(
@@ -232,7 +224,6 @@ globalThis.facetSlider = function facetSlider(opts = {}) {
       thumb: {
         color: facetColor(FacetTheme.text),
         borderColor: facetColor(FacetTheme.accentHi),
-        shadowAlpha: 0.35,
       },
     }),
   );
@@ -242,7 +233,7 @@ globalThis.facetSlider = function facetSlider(opts = {}) {
 /**
  * Framed field chassis shared by the boxed controls (select/dropdown/stepper/rebind/input):
  * a fixed-size element carrying the themed field UIPanel; the caller adds its control
- * component on top. `opts`: { width, height, color, rad, highlightAlpha }.
+ * component on top. `opts`: { width, height, color, rad }.
  */
 globalThis.facetFieldPanel = function facetFieldPanel(opts = {}) {
   const el = new UIElement({
@@ -255,8 +246,6 @@ globalThis.facetFieldPanel = function facetFieldPanel(opts = {}) {
       rad: opts.rad ?? FacetTheme.radiusSm,
       border: 1,
       borderColor: facetColor(FacetTheme.border),
-      highlight: 1,
-      highlightAlpha: opts.highlightAlpha ?? 0.07,
     }),
   );
   return el;
@@ -355,7 +344,7 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
     top,
     width: pos.width,
   });
-  const card = facetCard({ width: "100%", padding: pad, gap });
+  const card = facetCard({ width: "100%", padding: pad, gap, alpha: 1 }); // floats over other UI
   // long lists scroll in a fixed-height viewport; short ones list directly
   const scroll = n > maxVisible ? facetScroll({ height: listH }) : null;
   const host = scroll !== null ? scroll.scrollBody : card;
@@ -376,7 +365,6 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
           height: rowH,
           width: "100%",
           border: 0,
-          shadow: 0,
           primary: selected,
         },
       ),
@@ -424,7 +412,6 @@ globalThis.facetInput = function facetInput(opts = {}) {
     width: opts.width,
     color: opts.color ?? FacetTheme.btnPress, // input field sits a shade deeper than a button
     rad: opts.rad,
-    highlightAlpha: 0.05,
   });
   el.addComponent(
     new UIInput({

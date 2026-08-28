@@ -54,7 +54,7 @@ globalThis.facetGrid = function facetGrid(opts = {}) {
   });
 };
 
-/** Bare rounded panel. facetCard adds shadow + border. */
+/** Bare rounded panel — an opaque, borderless fill (a well, with `color: panelLo`). */
 globalThis.facetPanel = function facetPanel(opts = {}) {
   const el = new UIElement({
     width: opts.width ?? "100%",
@@ -65,18 +65,20 @@ globalThis.facetPanel = function facetPanel(opts = {}) {
   el.addComponent(
     new UIPanel({
       color: facetColor(opts.color ?? FacetTheme.panel),
-      color2: opts.color2 != null ? facetColor(opts.color2) : undefined,
+      alpha: opts.alpha ?? 1,
       rad: opts.rad ?? FacetTheme.radius,
       border: opts.border ?? 0,
       borderColor: facetColor(opts.borderColor ?? FacetTheme.border),
-      shadow: opts.shadow ?? 0,
-      highlight: opts.highlight ?? 0,
     }),
   );
   return el;
 };
 
-/** Raised panel: vignette edge + inner top bevel + 1px border + soft shadow. */
+/**
+ * Card: the bordered, translucent pane (cardAlpha) that fronts the world — HUD blocks, overlay
+ * windows, modals. Never nest one in another (the kit overview, FacetTheme); `opts.alpha: 1`
+ * for a card that floats over other UI (a popup).
+ */
 globalThis.facetCard = function facetCard(opts = {}) {
   return facetPanel({
     width: opts.width,
@@ -84,12 +86,10 @@ globalThis.facetCard = function facetCard(opts = {}) {
     padding: opts.padding,
     gap: opts.gap,
     color: opts.color,
-    color2: opts.color2 ?? FacetTheme.panelLo,
+    alpha: opts.alpha ?? FacetTheme.cardAlpha,
     rad: opts.rad,
     border: opts.border ?? 1,
     borderColor: opts.borderColor,
-    shadow: opts.shadow ?? 10,
-    highlight: opts.highlight ?? 1,
   });
 };
 
@@ -255,7 +255,8 @@ globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
     padding: 28,
     alignItems: "center",
   });
-  host.addComponent(new UIPanel({ color: facetColor("#000000"), alpha: 0.72 }));
+  // a light veil: the card is translucent, so the world stays legible behind the window
+  host.addComponent(new UIPanel({ color: facetColor("#000000"), alpha: 0.45 }));
   host.addComponent(new UITrigger({})); // swallow backdrop clicks so they don't reach the world
   host.enabled = false; // owner shows/hides via .enabled
 
@@ -375,7 +376,7 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
     color: facetColor(FacetTheme.text),
     colorIdle: facetColor(FacetTheme.textMuted),
     colorHover: facetColor(FacetTheme.text),
-    activeBg: facetColor(FacetTheme.panel),
+    activeBg: facetColor(FacetTheme.btn), // a step up from the card it sits on
     accent: facetColor(FacetTheme.accent),
     border: facetColor(FacetTheme.border),
   });
@@ -576,13 +577,10 @@ globalThis.facetHeader = function facetHeader(title, opts = {}) {
   bar.addComponent(
     new UIPanel({
       color: facetColor(FacetTheme.panel),
-      color2: facetColor(FacetTheme.panelLo),
+      alpha: FacetTheme.cardAlpha,
       rad: FacetTheme.radius,
       border: 1,
       borderColor: facetColor(FacetTheme.border),
-      shadow: opts.shadow ?? 8,
-      highlight: 1,
-      highlightAlpha: 0.08,
     }),
   );
   bar.insertChild(
@@ -596,14 +594,16 @@ globalThis.facetHeader = function facetHeader(title, opts = {}) {
 };
 
 /**
- * Titled card section with a divider under the title. The title self-sizes (UIText sets
- * height in onUpdate, applied by flexpanel on GMRT 0.20), so it's inserted directly.
+ * Titled section: a muted title over a rule, then the content — no box of its own, so it
+ * groups rows inside a card (or on the scene backdrop) without nesting a surface. The title
+ * self-sizes (UIText sets height in onUpdate, applied by flexpanel on GMRT 0.20), so it's
+ * inserted directly. Top padding spaces stacked sections apart.
  */
 globalThis.facetSection = function facetSection(title, opts = {}) {
-  const section = facetCard({
-    padding: FacetTheme.padSm,
-    gap: FacetTheme.gapSm,
-    shadow: opts.shadow ?? 4,
+  const section = new UIElement({
+    width: "100%",
+    paddingTop: opts.paddingTop ?? FacetTheme.padSm,
+    gap: opts.gap ?? FacetTheme.gapSm,
   });
   if (title != null) {
     section.insertChild(facetLabel(title, { color: FacetTheme.textMuted }));

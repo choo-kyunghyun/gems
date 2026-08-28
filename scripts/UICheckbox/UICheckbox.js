@@ -68,9 +68,6 @@ globalThis.UICheckbox = class UICheckbox {
       const margin = Math.max(2, h * 0.14);
       const kr = rad - margin;
       const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers
-      draw_set_alpha(0.22);
-      draw_circle_color(kx, cy + 1, kr, c_black, c_black, false);
-      draw_set_alpha(1);
       const knobCol = element.state.hover
         ? merge_color(this.colorKnob, c_white, 0.35)
         : this.colorKnob;

@@ -14,17 +14,23 @@
  * frame; color opts take a theme key, hex string, or color int (facetColor). Hover/press easing
  * runs on Time.raw (the clock split, ARCHITECTURE.md).
  *
- * Theme modes: every COLOR key lives in two palettes (dark = the original look, light).
- * `setMode(mode)` copies the active palette's colors onto the flat FacetTheme keys the factories
- * read, so each `FacetTheme.<colorKey>` resolves to the current mode. Factories bake those colors
- * into UI components at BUILD time, so a LIVE swap must rebuild the UI afterwards
- * (the Game object's retheme() → each scene's retheme()); it is NOT read live per frame. Geometry/motion
- * are theme-independent and stay flat on the object.
+ * The look is FLAT: a surface is a solid fill + a 1px border, never a shadow, sheen or radial
+ * tint. A card (facetCard — the HUD, overlay and modal chrome) is translucent (`cardAlpha`) so the
+ * world reads through it; everything inside a card is opaque and never nests another card — a
+ * section is a title over a rule, a well (`panelLo`) an inset, a control a solid fill — so one
+ * card is one pane of glass. Feedback is color only (hover/press/selected fills + border).
+ *
+ * Theme modes: every COLOR key (and `cardAlpha`) lives in two palettes (dark, light).
+ * `setMode(mode)` copies the active palette onto the flat FacetTheme keys the factories read, so
+ * each `FacetTheme.<key>` resolves to the current mode. Factories bake those values into UI
+ * components at BUILD time, so a LIVE swap must rebuild the UI afterwards (the Game object's
+ * retheme() → each scene's retheme()); it is NOT read live per frame. Geometry/motion are
+ * theme-independent and stay flat on the object.
  */
 globalThis.FacetTheme = {
   // ── Geometry ──
-  radius: 14,
-  radiusSm: 9,
+  radius: 10,
+  radiusSm: 6,
   // bumped to breathe under the 16px body font (12px values read cramped)
   pad: 20,
   padSm: 14,
@@ -38,12 +44,13 @@ globalThis.FacetTheme = {
   // ── Motion ──
   animSpeed: 16, // hover/press easing rate
 
-  // ── Color palettes — ONLY colors differ between modes (geometry/motion are shared) ──
+  // ── Palettes — colors + the card alpha differ between modes (geometry/motion are shared) ──
   palettes: {
     dark: {
       // Surfaces
-      panel: "#272b34", // section / card fill (roundrect center)
-      panelLo: "#1f222a", // card edge — darker, reads as depth
+      panel: "#272b34", // card fill
+      panelLo: "#1f222a", // well — the inset surface (tracks, slots, list rows) inside a card
+      cardAlpha: 0.84, // a card over the world: the world reads through, the text still holds
       bg: "#222222", // scene backdrop (draw_clear)
       // Buttons
       btn: "#323845",
@@ -58,10 +65,9 @@ globalThis.FacetTheme = {
       text: "#f1f4fa",
       textMuted: "#9aa3b2",
       textDim: "#6c7585",
-      // Lines & bevels
+      // Lines
       border: "#3c4350",
-      borderHi: "#566173", // hover/active outline glow
-      highlight: "#ffffff", // inner top sheen (drawn at low alpha)
+      borderHi: "#566173", // hover/active outline
       // Semantic status (readouts/quest states/dialogue prompts)
       good: "#54c98a", // positive / met / confirm
       warn: "#ffd166", // caution / ready / attention — the kit's gold
@@ -71,6 +77,7 @@ globalThis.FacetTheme = {
       // Surfaces
       panel: "#f4f6fa",
       panelLo: "#e7ebf1",
+      cardAlpha: 0.94, // a light card goes milky over a green world — nearly opaque
       bg: "#e7eaef",
       // Buttons
       btn: "#e9edf3",
@@ -85,10 +92,9 @@ globalThis.FacetTheme = {
       text: "#1b2230",
       textMuted: "#55606f",
       textDim: "#8792a1",
-      // Lines & bevels
+      // Lines
       border: "#cfd6e0",
       borderHi: "#9aa6b6", // darker = a visible outline over a light card
-      highlight: "#ffffff",
       // Semantic status — darkened so they read on light surfaces
       good: "#2f9e6a",
       warn: "#b8790a",
@@ -142,6 +148,7 @@ globalThis.FacetTheme = {
     Toast.accents.error = facetColor("bad");
 
     Dialogue.panelColor = panel;
+    Dialogue.panelAlpha = FacetTheme.cardAlpha; // a card over the world (Tooltip/Toast sit over UI: opaque)
     Dialogue.borderColor = border;
     Dialogue.textColor = text;
     Dialogue.plateColor = facetColor("panel");

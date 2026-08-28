@@ -19,7 +19,7 @@ globalThis.UISlider = class UISlider {
     this.valueColor = slider.valueColor ?? c_white;
     this.valueFont = slider.font ?? -1; // -1 → current draw font
 
-    // style structs: { color, rad?, border?, borderColor?, shadowAlpha? }
+    // style structs: { color, rad?, border?, borderColor? }
     this._trackStyle = slider.track ?? {};
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
@@ -141,19 +141,6 @@ globalThis.UISlider = class UISlider {
 
     // thumb grows slightly while hovered/dragged for feedback.
     const tr = m.r * (element.state.held || element.state.hover ? 1.12 : 1);
-    draw_set_alpha(this._thumbStyle.shadowAlpha ?? 0.3);
-    draw_roundrect_color_ext(
-      m.thumbX - tr,
-      m.cy - tr + 2,
-      m.thumbX + tr,
-      m.cy + tr + 2,
-      tr,
-      tr,
-      c_black,
-      c_black,
-      false,
-    );
-    draw_set_alpha(1);
     const thumbCol = this._thumbStyle.color ?? c_white;
     draw_roundrect_color_ext(
       m.thumbX - tr,

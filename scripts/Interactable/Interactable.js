@@ -39,12 +39,10 @@ globalThis.Interactable = {
     pill.addComponent(
       new UIPanel({
         color: facetColor(FacetTheme.panel),
-        color2: facetColor(FacetTheme.panelLo),
+        alpha: FacetTheme.cardAlpha,
         rad: FacetTheme.radius,
         border: 1,
         borderColor: facetColor(FacetTheme.border),
-        shadow: 8,
-        highlight: 1,
       }),
     );
     pill.insertChild(

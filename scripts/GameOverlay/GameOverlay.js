@@ -119,7 +119,7 @@ globalThis.GameOverlay = {
       justifyContent: "flex-end",
     });
     root.addComponent(
-      new UIPanel({ color: facetColor("#000000"), alpha: 0.55 }),
+      new UIPanel({ color: facetColor("#000000"), alpha: 0.4 }),
     );
     const modal = new UIModal({
       root,
@@ -132,13 +132,14 @@ globalThis.GameOverlay = {
     });
     root.addComponent(modal);
 
-    // the sheet: the right half, full height, square (it meets three screen edges)
+    // the sheet: the right half, full height, square (it meets three screen edges). Opaque — it
+    // fronts the scene's own UI (lobby / kit), whose text would ghost through a translucent card.
     const card = facetCard({
       width: "50%",
       padding: FacetTheme.pad,
       gap: FacetTheme.gapSm,
       rad: 0,
-      shadow: 12, // a touch deeper than the facetCard default — it floats over a paused scene
+      alpha: 1,
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
@@ -539,7 +540,7 @@ globalThis.GameOverlay = {
   /** About — static project + engine info (reuses the credits strings) */
   _aboutTab() {
     const scroll = facetScroll({ grow: true });
-    const card = facetCard({ gap: FacetTheme.gapSm });
+    const card = facetSection(null); // inside the sheet — no card of its own
     const lines = [
       [I18n.textRef("CREDITS_NAME"), FacetTheme.text],
       [I18n.textRef("CREDITS_TAGLINE"), FacetTheme.textMuted],

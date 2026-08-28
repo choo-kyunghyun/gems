@@ -1,5 +1,5 @@
 /**
- * Eases panel color/border/shadow on Time.raw (the clock split), greys the label, and supports live
+ * Eases panel color/border on Time.raw (the clock split), greys the label, and supports live
  * disabled + selected predicates (written to element.state.disabled/selected for any sibling reader).
  * @implements {UIComponent}
  */
@@ -49,8 +49,6 @@ globalThis.UIButton = class UIButton {
     // undefined until first seeded so there's no fade-in from black.
     this._colorCh = [undefined, 0, 0];
     this._borderCh = [undefined, 0, 0];
-    this._shadow = undefined;
-    this._shadowBase = undefined;
   }
 
   // live predicate wins over static flag — callers can gate on changing state without polling.
@@ -141,21 +139,6 @@ globalThis.UIButton = class UIButton {
                 : this.borderColorNormal
               : this.borderColorNormal;
         panel.borderColor = this._easeColor(this._borderCh, targetBorder);
-      }
-
-      // lift on hover, sink on press — only when the panel has a shadow.
-      if (this._shadowBase === undefined) this._shadowBase = panel.shadow;
-      if (this._shadowBase > 0) {
-        const targetShadow = held
-          ? this._shadowBase * 0.25
-          : hover
-            ? this._shadowBase * 1.4
-            : this._shadowBase;
-        this._shadow =
-          this._shadow === undefined
-            ? targetShadow
-            : Tween.approach(this._shadow, targetShadow, this.animSpeed);
-        panel.shadow = this._shadow;
       }
     }
 

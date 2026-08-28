@@ -85,7 +85,7 @@ globalThis.facetQuestTracker = function facetQuestTracker(opts = {}) {
 /**
  * Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
  * `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
- * accept a theme key/hex/int; `opts.fillColor2` is an optional radial edge tint.
+ * accept a theme key/hex/int.
  */
 globalThis.facetProgress = function facetProgress(getValue, opts = {}) {
   const el = new UIElement({
@@ -104,11 +104,7 @@ globalThis.facetProgress = function facetProgress(getValue, opts = {}) {
         border: 1,
         borderColor: facetColor(FacetTheme.border),
       },
-      fill: {
-        color: facetColor(opts.fillColor ?? FacetTheme.accent),
-        color2:
-          opts.fillColor2 != null ? facetColor(opts.fillColor2) : undefined,
-      },
+      fill: { color: facetColor(opts.fillColor ?? FacetTheme.accent) },
     }),
   );
   return facetAttachTooltip(el, opts);
