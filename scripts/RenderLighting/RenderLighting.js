@@ -111,7 +111,7 @@ globalThis.RenderLighting = class RenderLighting {
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
     // SCREEN-SPACE OVERLAY ORIENTATION — the contract for any pass that resets view/projection to
-    // surface-pixel ortho (RenderWeather, RenderCloudShadow cite this): up +1 AND a NEGATIVE ortho
+    // surface-pixel ortho (RenderOverlay cites this): up +1 AND a NEGATIVE ortho
     // height. The overlay path carries an inherent Y-flip vs the world camera, which the negative
     // height cancels. Negating the UP vector instead is a 180° ROLL: it X-MIRRORS the content about
     // screen center — invisible for symmetric content (ambient fill, vignette, a centered blob), so

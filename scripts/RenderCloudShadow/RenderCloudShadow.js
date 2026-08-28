@@ -1,19 +1,19 @@
 /**
- * Inserted before RenderWeather (outdoor only).
+ * A layer of the sky overlay (RenderOverlay hosts it under RenderWeather, outdoor maps only; the
+ * overlay cuts it out over every roof — no cloud on a floor under one).
  * Coverage follows the current Weather condition (each _COND carries a `cloud` fraction, cross-faded
  * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
  * value-noise texture (baked ONCE into a surface from hash2 on a PERIODIC lattice, so it tiles)
- * is drawn as ONE world-space quad on the ground plane (z=0) via a VertexBuffer under the LIVE camera
- * matrices — so the field foreshortens with the pitched 2.5D camera (a screen-space overlay would
- * not). UVs come from world position + wind*time drift, wrapped (gpu_set_tex_repeat); drift runs on
- * Weather.time() (cumulative SIM seconds), so clouds freeze on pause and race under Time.scale.
+ * is drawn as ONE quad over the visible ground: the ground AABB the camera sees, projected to
+ * surface pixels (Camera.project — the pitched ortho is affine, so a world rect is a screen rect
+ * and the field still foreshortens with the 2.5D camera). UVs come from world position + wind*time
+ * drift, wrapped (gpu_set_tex_repeat); drift runs on Weather.time() (cumulative SIM seconds), so
+ * clouds freeze on pause and race under Time.scale.
  *
- * Blend: colour dst*(1 - src) (bm_zero, bm_inv_src_colour), a fade-able multiply darken with src =
- * texel density × the grey strength colour; at density 0 or strength 0 src is 0, so the ground is
- * untouched. Alpha is blended SEPARATELY as dst*1: the field bakes alpha 255, so the same factors on
- * alpha would zero the back buffer under every cloud — invisible on screen, but screen_save keeps
- * that alpha and a capture of the whole outdoors reads blank. Depth test off so the shadow lands on
- * entities too.
+ * Darkening: the field bakes density into ALPHA (colour white) and the quad draws BLACK at alpha =
+ * strength, so under the host's normal blend a texel darkens what is under it by density ×
+ * strength — the dst×(1−src) a multiply gave, in a form that composes on the overlay's transparent
+ * surface and erases under a roof; at density 0 or strength 0 nothing lands.
  * @implements {RenderPass}
  */
 globalThis.RenderCloudShadow = class RenderCloudShadow {
@@ -77,22 +77,19 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const v0 = (y0 + this.windY * t) / s;
     const v1 = (y1 + this.windY * t) / s;
 
-    const gv = Math.floor(eff * 255); // grey strength: src = texel density × this
-    const grey = make_colour_rgb(gv, gv, gv);
+    // the ground rect on the overlay surface (two corners suffice under the pitch-only ortho)
+    const p0 = this.camera.project(x0, y0, 0);
+    const p1 = this.camera.project(x1, y1, 0);
 
-    gpu_set_ztestenable(false);
     gpu_set_tex_repeat(true);
     gpu_set_tex_filter(true); // bilinear: the field is soft, so magnified texels must interpolate
-    gpu_set_blendmode_ext_sepalpha(bm_zero, bm_inv_src_colour, bm_zero, bm_one);
     this._vb
       .begin()
-      .addQuad(x0, y0, x1 - x0, y1 - y0, u0, v0, u1, v1, grey, 1)
+      .addQuad(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y, u0, v0, u1, v1, c_black, eff)
       .end(false)
       .submit(tex);
-    gpu_set_blendmode(bm_normal);
     gpu_set_tex_filter(false);
     gpu_set_tex_repeat(false);
-    gpu_set_ztestenable(true);
   }
 
   /**
@@ -109,7 +106,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
   }
 
   /**
-   * Bake the seamless cloud-density field into an RGBA buffer (grey = density, alpha = 255). fbm of
+   * Bake the seamless cloud-density field into an RGBA buffer (white, alpha = density). fbm of
    * periodic value noise (each octave wraps at its own frequency → the tile is seamless), then a
    * smooth threshold so the field is soft PATCHES with clear gaps, not uniform dapple.
    */
@@ -141,10 +138,10 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
         d = d < 0 ? 0 : d > 1 ? 1 : d;
         d = d * d * (3 - 2 * d);
         const g = Math.floor(d * 255);
-        buffer_write(buf, buffer_u8, g);
-        buffer_write(buf, buffer_u8, g);
-        buffer_write(buf, buffer_u8, g);
         buffer_write(buf, buffer_u8, 255);
+        buffer_write(buf, buffer_u8, 255);
+        buffer_write(buf, buffer_u8, 255);
+        buffer_write(buf, buffer_u8, g);
       }
     return buf;
   }

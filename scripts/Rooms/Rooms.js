@@ -6,7 +6,8 @@
  * consumer reads (`at`/`atWorld`); `rooms[id]` — `{ id, first, cells }` — describes each region,
  * `first` its lowest cell index in scan order: the stable handle a per-room record keys by (a
  * wall edit that leaves a room's top-left cell in place keeps its record; anything else is a new
- * room). `rooms[0]` is the outside.
+ * room). `rooms[0]` is the outside. `rects()` is the rooms as world rects — the roofs a sky
+ * overlay is cut out over.
  *
  * Two sources, each with its own refresh signal, like NavGrid: the bounding tile layers (their
  * `edits` counters — `sync` re-derives when one moves) and the stamped footprints (`stamp` — the
@@ -30,7 +31,8 @@ globalThis.Rooms = class Rooms {
     this.grid = new Grid(this.cols, this.rows);
     this.rooms = [{ id: 0, first: -1, cells: 0 }];
     this._edits = -1; // the layers' summed edits the grid was derived at; -1 = never
-    this._rects = []; // the stamped footprints ({x1,y1,x2,y2} world px, x2/y2 exclusive), own copies
+    this._stamps = []; // the stamped footprints ({x1,y1,x2,y2} world px, x2/y2 exclusive), own copies
+    this._roofs = null; // rects() cache, dropped by a derivation
     this._queue = []; // flood-fill scratch, kept across derivations
   }
 
@@ -56,7 +58,7 @@ globalThis.Rooms = class Rooms {
    * (compared by value, so a caller may hand the same scratch every frame). Returns whether it did.
    */
   stamp(rects) {
-    const held = this._rects;
+    const held = this._stamps;
     let same = held.length === rects.length;
     if (same) {
       for (let i = 0; i < rects.length; i++) {
@@ -89,10 +91,36 @@ globalThis.Rooms = class Rooms {
   }
 
   /**
+   * The rooms' cells greedy-meshed into the fewest world-px rects ({x1,y1,x2,y2}, x2/y2
+   * exclusive), cached until the next derivation — the roofs a sky overlay is cut out over.
+   */
+  rects() {
+    if (this._roofs !== null) return this._roofs;
+    const d = this.grid.data;
+    const cols = this.cols;
+    const cw = this.cellW;
+    const ch = this.cellH;
+    const cells = Grid.meshRects(cols, this.rows, (x, y) => d[y * cols + x] > 0);
+    const out = [];
+    for (let i = 0; i < cells.length; i++) {
+      const c = cells[i];
+      out.push({
+        x1: c[0] * cw,
+        y1: c[1] * ch,
+        x2: (c[0] + c[2]) * cw,
+        y2: (c[1] + c[3]) * ch,
+      });
+    }
+    this._roofs = out;
+    return out;
+  }
+
+  /**
    * Walls from the layers and the stamped rects, then the outside flooded from every border
    * cell, then each pocket left over as a room in scan order.
    */
   _derive() {
+    this._roofs = null;
     const cols = this.cols;
     const rows = this.rows;
     const d = this.grid.data;
@@ -105,7 +133,7 @@ globalThis.Rooms = class Rooms {
           if (layers[i].get(x, y)) wall = true; // occupancy, as TileEdit reads it (0 = empty)
         d[y * cols + x] = wall ? -1 : -2;
       }
-    const rects = this._rects;
+    const rects = this._stamps;
     const cw = this.cellW;
     const ch = this.cellH;
     for (let i = 0; i < rects.length; i++) {

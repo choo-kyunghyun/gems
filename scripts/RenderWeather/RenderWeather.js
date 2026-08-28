@@ -1,13 +1,13 @@
 /**
- * Inserted before RenderLighting so the night tint darkens the rain.
- * Particles are screen-space and scroll on Weather.time() — a cumulative SIM-second clock (advanced
- * by Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
+ * A layer of the sky overlay (RenderOverlay hosts it under the day/night tint, so night darkens the
+ * rain, and cuts it out over every roof). Draws in surface pixels: the condition's screen tint, then
+ * its particles, which scroll on Weather.time() — a cumulative SIM-second clock (advanced by
+ * Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
  * Time.scale (bed fast-forward). It must be a cumulative CLOCK, not a per-frame delta × fall speed
  * (which pins every particle near a constant offset). Snow sways via Math.sin; streaks use draw_line,
  * snow uses draw_rectangle.
  *
- * View rect from the held Camera's own fields, NOT camera_get_view_* (returns 0 for the matrix-driven
- * Camera). The level assigns pass.camera after building the camera.
+ * The level assigns pass.camera after building the camera.
  * @implements {RenderPass}
  */
 globalThis.RenderWeather = class RenderWeather {
@@ -37,9 +37,8 @@ globalThis.RenderWeather = class RenderWeather {
 
   draw(_entities) {
     if (this.camera === undefined) return;
-    // Screen-space: cover the application surface in pixel coords so the tint fills the screen
-    // regardless of camera pitch (a world-rect draw would foreshorten under a 2.5D pitched camera).
-    // Reset view/projection to a flat surface-pixel ortho here, restored below.
+    // Surface pixels: the host's surface is the application surface's size, so the tint covers the
+    // screen regardless of camera pitch (a world-rect draw would foreshorten under a 2.5D pitched camera).
     const w = surface_get_width(application_surface);
     const h = surface_get_height(application_surface);
     if (!(w > 0)) return; // NaN-safe (NaN > 0 is false)
@@ -47,25 +46,10 @@ globalThis.RenderWeather = class RenderWeather {
     const blend = Weather.blend();
     const color = draw_get_color();
     const alpha = draw_get_alpha();
-    const sv = matrix_get(matrix_view);
-    const sp = matrix_get(matrix_projection);
-    // up +1, NEGATIVE ortho height — the screen-space overlay orientation contract (RenderLighting).
-    matrix_set(
-      matrix_view,
-      matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),
-    );
-    matrix_set(matrix_projection, matrix_build_projection_ortho(w, -h, 0, 2));
-    // Disable the depth TEST: entities wrote near depth in the world projection, so with the test on
-    // this screen-ortho tint is rejected over every opaque entity pixel (skipping all sprites). The
-    // overlay must cover everything; restore the default (on) after.
-    gpu_set_ztestenable(false);
 
     this._layer(Weather.previous(), 1 - blend, 0, 0, w, h);
     this._layer(Weather.current(), blend, 0, 0, w, h);
 
-    gpu_set_ztestenable(true);
-    matrix_set(matrix_view, sv);
-    matrix_set(matrix_projection, sp);
     draw_set_color(color);
     draw_set_alpha(alpha);
   }

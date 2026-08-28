@@ -60,6 +60,7 @@ globalThis.ColonyMap = {
     "_gridPass",
     "_clouds",
     "_weather",
+    "_sky",
     "_lighting",
   ],
 
@@ -478,7 +479,7 @@ globalThis.ColonyMap = {
 
   /**
    * Assemble the renderer pass stack (ground → tiles → shadows → entities → debug →
-   * weather → lighting).
+   * sky overlay → lighting).
    *
    * The GROUND is the terrain layer either way — the difference is only how many passes read it. A
    * generated map's biome materials stack as one dual-grid pass per material, lowest first, each
@@ -671,15 +672,25 @@ globalThis.ColonyMap = {
       ],
     });
     scene.renderer.insert(ranges);
-    // Cloud shadows under the weather tint, weather (tint + rain/snow) just under the day/night
-    // tint, so night darkens the rain. Skipped indoors (meta.indoor) — no open sky inside a cave.
+    // The sky overlay just under the day/night tint, so night darkens the rain: cloud shadows
+    // under the weather (tint + rain/snow), both layers of one RenderOverlay that is cut out over
+    // every room (Rooms.rects, the boxes a wall tall) — no rain, tint or cloud on a floor under a
+    // roof. Skipped indoors (meta.indoor) — no open sky inside a cave.
     scene._clouds = undefined;
     scene._weather = undefined;
+    scene._sky = undefined;
     if (scene.level.meta.get(ColonyMap.INDOOR) !== true) {
       scene._clouds = new RenderCloudShadow();
-      scene.renderer.insert(scene._clouds);
       scene._weather = new RenderWeather();
-      scene.renderer.insert(scene._weather);
+      const wall = scene._tilePasses.wall; // RenderWalls on a pitched map (its height); flat: a tilemap
+      const roofH =
+        wall !== undefined && wall.height !== undefined ? wall.height : 0;
+      scene._sky = new RenderOverlay({
+        layers: [scene._clouds, scene._weather],
+        cutout: () => scene.rooms.rects(),
+        height: roofH,
+      });
+      scene.renderer.insert(scene._sky);
     }
     // Lighting LAST — a per-frame light map composited over everything. Day/night is its ambient
     // term ("lighting with no lights"); Light entities + a night vignette layer on top.
@@ -729,6 +740,7 @@ globalThis.ColonyMap = {
     scene._tilePass.camera = scene.camera; // view-cull the placeholder tile fill
     if (scene._clouds !== undefined) scene._clouds.camera = scene.camera;
     if (scene._weather !== undefined) scene._weather.camera = scene.camera;
+    if (scene._sky !== undefined) scene._sky.camera = scene.camera;
     scene._lighting.camera = scene.camera;
     // (sprites are UPRIGHT constants now — the entity pass no longer tracks camera pitch)
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;

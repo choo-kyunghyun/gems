@@ -297,6 +297,7 @@
     {"id":{"name":"RenderGrid","path":"scripts/RenderGrid/RenderGrid.yy",},},
     {"id":{"name":"RenderLighting","path":"scripts/RenderLighting/RenderLighting.yy",},},
     {"id":{"name":"RenderMesh","path":"scripts/RenderMesh/RenderMesh.yy",},},
+    {"id":{"name":"RenderOverlay","path":"scripts/RenderOverlay/RenderOverlay.yy",},},
     {"id":{"name":"RenderTileMap","path":"scripts/RenderTileMap/RenderTileMap.yy",},},
     {"id":{"name":"RenderWalls","path":"scripts/RenderWalls/RenderWalls.yy",},},
     {"id":{"name":"RenderWeather","path":"scripts/RenderWeather/RenderWeather.yy",},},
