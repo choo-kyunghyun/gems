@@ -34,6 +34,9 @@
   "SETTINGS_THEME_LIGHT": "라이트",
   "SETTINGS_LANG_TITLE": "언어",
   "SETTINGS_LANG_LABEL": "언어",
+  "SETTINGS_KEYS_TITLE": "키 바인딩",
+  "SETTINGS_KEYS_PROMPT": "키를 누르세요…",
+  "SETTINGS_KEYS_RESET": "기본값으로 초기화",
 
   "CREDITS_NAME": "G.E.M.S.",
   "CREDITS_TAGLINE": "GameMaker Entity & Map System",

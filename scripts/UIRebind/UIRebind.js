@@ -1,5 +1,6 @@
-// Key-rebind row: click → "press a key…" capture → next press rebinds the action's first button
-// (Esc/click cancels). Mutates the InputAction in place so every consumer picks up the new key.
+// Key-rebind row: click → "press a key…" capture → next press rebinds the action's keyboard key
+// through Input.rebind (Esc/click cancels), so every consumer reads the new key and the rebind
+// is recorded for persistence.
 /**
  * Keyboard only; mouse/gamepad bindings show read-only via label(). GMRT: capture state is an instance
  * field read live (no cached bool — clobber, see CLAUDE.md).
@@ -28,7 +29,10 @@ globalThis.UIRebind = class UIRebind {
   onUpdate(element, block) {
     if (this._capturing) {
       // Esc checked first — the scan below would otherwise pick it up.
-      if (keyboard_check_pressed(vk_escape) || UIPointer.pressed) {
+      if (keyboard_check_pressed(vk_escape)) {
+        this._capturing = false;
+        UI.consumeKey(vk_escape); // an enclosing UIModal reads Esc after its children
+      } else if (UIPointer.pressed) {
         this._capturing = false;
       } else {
         // scan for the live pressed-edge keycode, NOT keyboard_lastkey — on GMRT lastkey
@@ -104,11 +108,7 @@ globalThis.UIRebind = class UIRebind {
   }
 
   _rebind(code) {
-    const action = Input.get(this.actionKey);
-    if (!action) return;
-    const btn = new InputButton(INPUT_SOURCE.KEYBOARD, code);
-    if (action.buttons.length > 0) action.buttons[0] = btn;
-    else action.buttons.push(btn);
+    Input.rebind(this.actionKey, code);
     this.onRebind(code);
   }
 };

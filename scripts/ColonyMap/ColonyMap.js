@@ -400,10 +400,9 @@ globalThis.ColonyMap = {
     // per-layer ones)
     scene.statics = built.statics;
     scene.terrainMats = built.terrainMats; // generated maps only — the stacked ground passes' table
-    // boot only: bind the keymap + spawn the player (mints the Squad id). A trip arrival
+    // boot only: spawn the player (mints the Squad id). A trip arrival
     // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
-      PlayerSystem.bindKeys();
       scene.playerId = PlayerSystem.spawn(scene.level.entities, built.spawn);
     }
 

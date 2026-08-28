@@ -34,6 +34,9 @@
   "SETTINGS_THEME_LIGHT": "Light",
   "SETTINGS_LANG_TITLE": "Language",
   "SETTINGS_LANG_LABEL": "Language",
+  "SETTINGS_KEYS_TITLE": "Key Bindings",
+  "SETTINGS_KEYS_PROMPT": "Press a key…",
+  "SETTINGS_KEYS_RESET": "Reset to Defaults",
 
   "CREDITS_NAME": "G.E.M.S.",
   "CREDITS_TAGLINE": "GameMaker Entity & Map System",

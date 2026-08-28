@@ -360,8 +360,6 @@ globalThis.SaveGame = {
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
       SaveGame._stashPending(maps, ctx);
-      // a load boot never ran the new-game go(null) that binds the keymap; do it explicitly.
-      PlayerSystem.bindKeys();
       const pending = SaveGame.takePendingMap(activeMap);
       let restored = false;
       if (pending !== null)

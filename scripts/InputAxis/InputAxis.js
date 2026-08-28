@@ -15,18 +15,6 @@ globalThis.InputAxis = class InputAxis {
     this.device = device;
   }
 
-  static import(data) {
-    return new InputAxis(data.mode, data.axis, data.device);
-  }
-
-  export() {
-    return {
-      mode: this.mode,
-      axis: this.axis,
-      device: this.device,
-    };
-  }
-
   value() {
     switch (this.mode) {
       case INPUT_AXIS_MODE.STICK:

@@ -75,7 +75,8 @@ globalThis.UIModal = class UIModal {
       return true; // exiting: swallow input, skip dismiss triggers
     }
 
-    if (this.closeOnEscape && keyboard_check_pressed(vk_escape)) {
+    // UI.keyPressed, not the raw edge: a child may have consumed this Esc (UIRebind's cancel)
+    if (this.closeOnEscape && UI.keyPressed(vk_escape)) {
       this.close();
       return true;
     }

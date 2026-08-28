@@ -382,8 +382,9 @@ globalThis.gemsSlots = function gemsSlots(items, opts = {}) {
 
 /**
  * Key-rebinding row (UIRebind): shows an action's current binding; click to arm capture,
- * next key rebinds its first button (Esc / mouse-click cancels). `actionKey` must already
- * be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on rebind.
+ * next key rebinds its keyboard key through Input.rebind (Esc / mouse-click cancels). `actionKey`
+ * must already be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on
+ * rebind.
  */
 globalThis.gemsRebind = function gemsRebind(actionKey, opts = {}) {
   const el = gemsFieldPanel({

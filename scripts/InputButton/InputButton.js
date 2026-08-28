@@ -12,18 +12,6 @@ globalThis.InputButton = class InputButton {
     this.device = device;
   }
 
-  static import(data) {
-    return new InputButton(data.source, data.button, data.device);
-  }
-
-  export() {
-    return {
-      source: this.source,
-      button: this.button,
-      device: this.device,
-    };
-  }
-
   down() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:

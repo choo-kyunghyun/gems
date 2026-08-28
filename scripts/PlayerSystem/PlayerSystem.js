@@ -26,13 +26,13 @@ const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
 // every Playable entity once per tick — it runs at the HEAD of the scene's physics sequence, before
 // SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
-// player. bindKeys()/unbind() are input LIFECYCLE, not simulation — bound at map boot
-// (ColonyMap.build, and SaveGame on a load boot), unbound in sceneColony.destroy().
+// player. bindKeys() is input LIFECYCLE, not simulation — the app registers the keymap once at
+// boot (Game Create_0) and it stays for the run: the settings key-binding list (keymap()) rebinds
+// it live, and InputPreset persists the rebinds over it.
 
 globalThis.PlayerSystem = {
   /**
-   * register the colony keymap + InputContext tags. Split out so a load boot can apply it without
-   * going through the new-game path. Idempotent.
+   * register the colony keymap + InputContext tags (boot; idempotent).
    *
    * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
    * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
@@ -360,27 +360,30 @@ globalThis.PlayerSystem = {
     pl.attackCd = ATTACK_ANIM;
   },
 
-  /** drop the keymap (scene destroy) */
-  unbind() {
-    const keys = [
-      "moveLeft",
-      "moveRight",
-      "moveUp",
-      "moveDown",
-      "sprint",
-      "fire",
-      "inventory",
-      "interact",
-      "build",
-      "follow",
-      "reload",
-      "grenade",
-      "moveX",
-      "moveY",
-      "aimX",
-      "aimY",
-    ];
-    for (let i = 0; i < HOTBAR_SIZE; i++) keys.push("hotbar" + (i + 1));
-    Input.unbindAll(keys);
+  /**
+   * The rebindable keymap in display order — `{ action, label }` rows (label a live textRef) for
+   * a settings key-binding list (GameOverlay.keymap). The stick axes are gamepad-only and stay out.
+   */
+  keymap() {
+    const rows = [
+      ["moveUp", "RPG_KEY_MOVE_UP"],
+      ["moveLeft", "RPG_KEY_MOVE_LEFT"],
+      ["moveDown", "RPG_KEY_MOVE_DOWN"],
+      ["moveRight", "RPG_KEY_MOVE_RIGHT"],
+      ["sprint", "RPG_KEY_SPRINT"],
+      ["fire", "RPG_KEY_FIRE"],
+      ["reload", "RPG_KEY_RELOAD"],
+      ["grenade", "RPG_KEY_GRENADE"],
+      ["interact", "RPG_KEY_INTERACT"],
+      ["inventory", "RPG_KEY_INVENTORY"],
+      ["build", "RPG_KEY_BUILD"],
+      ["follow", "RPG_KEY_FOLLOW"],
+    ].map((r) => ({ action: r[0], label: I18n.textRef(r[1]) }));
+    for (let i = 0; i < HOTBAR_SIZE; i++)
+      rows.push({
+        action: "hotbar" + (i + 1),
+        label: I18n.textRef("RPG_KEY_HOTBAR", i + 1),
+      });
+    return rows;
   },
 };

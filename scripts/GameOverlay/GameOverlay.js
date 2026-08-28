@@ -22,6 +22,9 @@ globalThis.GameOverlay = {
   // Boot-wired filename the Settings tab's Save passes to Settings.save — null hides the button,
   // so the kit names no app file.
   settingsFile: null,
+  // Boot-wired rebindable keymap the Settings tab lists — `{ action, label }` rows in display
+  // order (PlayerSystem.keymap) — null hides the section, so the kit names no action.
+  keymap: null,
 
   /**
    * Register an extra tab. `short` is the abbreviation the vertical strip draws (`label` is its
@@ -476,6 +479,36 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(langSection);
 
+    // key bindings: a rebind row per keymap action, applied live through Input.rebind (the
+    // key-hint bar reads the same binding); Save persists them with the rest (InputPreset)
+    if (GameOverlay.keymap !== null) {
+      const keySection = gemsSection(I18n.textRef("SETTINGS_KEYS_TITLE"));
+      const prompt = I18n.textRef("SETTINGS_KEYS_PROMPT");
+      GameOverlay.keymap.forEach((row) => {
+        keySection.insertChild(
+          gemsRow(row.label, gemsRebind(row.action, { prompt }), {
+            key: () => Input.rebinds[row.action] !== undefined,
+          }),
+        );
+      });
+      const resetRow = new UIElement({
+        width: "100%",
+        height: 44,
+        flexShrink: 0,
+        flexDirection: "row",
+        justifyContent: "flex-end",
+      });
+      resetRow.insertChild(
+        gemsButton(
+          I18n.textRef("SETTINGS_KEYS_RESET"),
+          () => Input.restoreAll(),
+          { width: 200 },
+        ),
+      );
+      keySection.insertChild(resetRow);
+      scroll.scrollBody.insertChild(keySection);
+    }
+
     // settings persist only on explicit Save (Settings.set updates live in memory)
     if (GameOverlay.settingsFile !== null) {
       const saveRow = new UIElement({
@@ -488,7 +521,10 @@ globalThis.GameOverlay = {
       saveRow.insertChild(
         gemsButton(
           I18n.textRef("SETTINGS_SAVE"),
-          () => Settings.save(GameOverlay.settingsFile),
+          () => {
+            Settings.save(GameOverlay.settingsFile);
+            InputPreset.save();
+          },
           { width: 160 },
         ),
       );

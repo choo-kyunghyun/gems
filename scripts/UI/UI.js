@@ -65,8 +65,26 @@ globalThis.UI = {
    */
   captured: false,
 
+  /**
+   * Keycodes a widget consumed this frame (consumeKey), cleared as update() starts, so a press
+   * one widget acted on doesn't also reach a reader later in the same pass — UIRebind's
+   * capture-cancel Esc against the enclosing UIModal's Esc-close. Not keyboard_clear, which
+   * leaves the pressed edge standing (docs/GMRT.md).
+   */
+  _consumed: [],
+
+  consumeKey(code) {
+    UI._consumed.push(code);
+  },
+
+  /** keyboard_check_pressed, minus the presses consumed this frame. */
+  keyPressed(code) {
+    return UI._consumed.indexOf(code) === -1 && keyboard_check_pressed(code);
+  },
+
   /** later roots block earlier from the pointer. */
   update() {
+    UI._consumed = [];
     let block = false;
     [...UI.roots].reverse().forEach((root) => {
       if (root.enabled) block = root.update(block) || block;

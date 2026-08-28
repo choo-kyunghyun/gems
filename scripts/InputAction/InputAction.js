@@ -19,29 +19,6 @@ globalThis.InputAction = class InputAction {
     return this.contexts !== null && !InputContext.allows(this.contexts);
   }
 
-  static import(data) {
-    const action = new InputAction();
-    const buttons = data.buttons ?? [];
-    const axes = data.axes ?? [];
-
-    for (const button of buttons) {
-      action.buttons.push(InputButton.import(button));
-    }
-
-    for (const axis of axes) {
-      action.axes.push(InputAxis.import(axis));
-    }
-
-    return action;
-  }
-
-  export() {
-    return {
-      buttons: this.buttons.map((button) => button.export()),
-      axes: this.axes.map((axis) => axis.export()),
-    };
-  }
-
   bindButton(source, button, device = 0) {
     this.buttons.push(new InputButton(source, button, device));
     return this;
@@ -50,6 +27,13 @@ globalThis.InputAction = class InputAction {
   bindAxis(mode, axis, device = 0) {
     this.axes.push(new InputAxis(mode, axis, device));
     return this;
+  }
+
+  /** Index of the first keyboard button, -1 when none — the slot a rebind edits (Input._setKey). */
+  keyIndex() {
+    for (let i = 0; i < this.buttons.length; i++)
+      if (this.buttons[i].source === INPUT_SOURCE.KEYBOARD) return i;
+    return -1;
   }
 
   // single source of truth for binding→display text; reads live so a remap updates UIRebind + gemsKeyHints automatically.

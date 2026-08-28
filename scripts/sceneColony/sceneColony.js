@@ -884,7 +884,6 @@ class _SceneColonyClass {
 
   destroy() {
     InputContext.reset(); // hand input back to "default" for the next scene
-    PlayerSystem.unbind();
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below
