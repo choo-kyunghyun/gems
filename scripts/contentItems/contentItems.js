@@ -73,6 +73,7 @@ globalThis.contentItems = {
     agility_serum: "pixItemSerum",
     endurance_serum: "pixItemSerum",
     ration_pack: "pixItemCannedFood",
+    berries: "pixItemApple",
     blaster: "pixItemPistol",
     adrenal_implant: "pixItemEnergy",
     // one shared round icon for all three calibers (the only ammo art in the new set)
@@ -177,6 +178,25 @@ globalThis.contentItems = {
         value: 12,
         rarity: "uncommon",
         components: [new Consumable({ hunger: 60, heal: 3 })],
+      },
+      // produce — what a plant yields (contentFlora), eaten raw
+      {
+        id: "berries",
+        name: "ITEM_BERRIES",
+        description: "ITEM_BERRIES_DESC",
+        weight: 1,
+        value: 3,
+        rarity: "common",
+        components: [new Consumable({ hunger: 20, thirst: 5 })],
+      },
+      {
+        id: "grain",
+        name: "ITEM_GRAIN",
+        description: "ITEM_GRAIN_DESC",
+        weight: 1,
+        value: 2,
+        rarity: "common",
+        components: [new Consumable({ hunger: 25 })],
       },
       // permanent +1 to one attribute — item-driven progression instead of XP leveling
       {

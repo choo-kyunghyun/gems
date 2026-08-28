@@ -451,6 +451,7 @@ class _SceneColonyClass {
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
+    FloraSystem.update(this, WorldClock.absHours()); // grow + spread the map's plants over the in-game hours since its last tick
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in

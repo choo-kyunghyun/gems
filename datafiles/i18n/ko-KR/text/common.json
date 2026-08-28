@@ -282,5 +282,8 @@
 
   "HYDRATE_PROMPT": "[E] 마시기",
   "FEED_PROMPT": "[E] 먹기",
-  "BUFF_PROMPT": "[E] 기도하기"
+  "BUFF_PROMPT": "[E] 기도하기",
+
+  "HARVEST_PROMPT": "[E] 수확하기",
+  "CHOP_PROMPT": "[E] 벌목하기"
 }

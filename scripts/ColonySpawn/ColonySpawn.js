@@ -19,7 +19,9 @@
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
  *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
  *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
- *   tree     size?                (wilderness pine — trunk collider under an overhanging canopy mesh)
+ *   tree     species? progress? wild? size?  (wilderness pine — trunk collider under an overhanging canopy mesh; with a
+ *            contentFlora `species` it GROWS — Growth via _flora, FloraSystem from there)
+ *   plant    species progress? wild?         (a crop or shrub — walk-through, grown and harvested by FloraSystem)
  *   reach    half?                (quest zone marker — no entity)
  *   entry    id?                  (arrival-point marker, id default "default" — no entity; ColonyLevel._entries reads it)
  *   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
@@ -247,6 +249,16 @@ globalThis.ColonySpawn = {
         },
       },
       {
+        // A crop or shrub (a contentFlora species with preset "plant"): walk-through — no
+        // Collision — with a pick box for the cursor; the model, name and Growth come off the
+        // species (_flora), the harvest Interaction from FloraSystem once ripe.
+        id: "plant",
+        components: {
+          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          Name: { name: "" },
+        },
+      },
+      {
         // Wilderness boulder (OverworldGen scatter): an immovable solid the rock mesh is drawn
         // over. One entity per cluster — the adapter stretches Mesh + BBox to the w×h cell rect,
         // so the collider matches the old scatter wall rect exactly (NavGrid/pathing unchanged).
@@ -418,6 +430,9 @@ globalThis.ColonySpawn = {
       if (s.label !== undefined) over.Name = { name: s.label };
     }
 
+    // a flora species (contentFlora) on a tree/plant spawn: its model, name and Growth record
+    if (s.species !== undefined) ColonySpawn._flora(s, over);
+
     // visual yaw for any mesh look (`yaw?`, degrees — vox meshes carry all four sides, so any
     // facing is solid). Gated to mesh-bearing spawns: on a sprite entity (fence) a bare
     // Mesh {yaw} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
@@ -442,6 +457,9 @@ globalThis.ColonySpawn = {
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
     });
 
+    // a plant's stage, base size and (if ripe) Interaction, off the spawned components
+    if (s.species !== undefined) FloraSystem.attach(entities, id);
+
     // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
     // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
     // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
@@ -465,6 +483,26 @@ globalThis.ColonySpawn = {
     }
 
     return id;
+  },
+
+  /**
+   * A flora species' per-spawn overrides: the species' vox model and name, and its Growth record
+   * (progress as authored, default a seedling; `wild` marks the generator's and the spread's).
+   * Stage, base size and the ripe Interaction are FloraSystem.attach's, after the spawn.
+   */
+  _flora(s, over) {
+    const def = contentFlora.get(s.species);
+    if (def === undefined)
+      throw new Error(`ColonySpawn: unknown flora species "${s.species}"`);
+    over.Mesh = { model: def.model };
+    over.Name = { name: I18n.text(def.name) };
+    over.Growth = {
+      species: s.species,
+      progress: s.progress ?? 0,
+      stage: -1,
+      base: 1,
+      wild: s.wild === true,
+    };
   },
 
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`

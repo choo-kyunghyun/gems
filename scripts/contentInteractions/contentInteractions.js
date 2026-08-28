@@ -119,6 +119,23 @@ globalThis.contentInteractions = {
         },
       },
       {
+        // a ripe plant (FloraSystem adds the Interaction at ripeness): the yield to the bag,
+        // then the plant regrows or goes — one action under two prompts (a crop is picked, a
+        // tree felled)
+        id: "harvest",
+        prompt: "HARVEST_PROMPT",
+        run(ctx) {
+          FloraSystem.harvest(ctx.scene, ctx.id);
+        },
+      },
+      {
+        id: "chop",
+        prompt: "CHOP_PROMPT",
+        run(ctx) {
+          FloraSystem.harvest(ctx.scene, ctx.id);
+        },
+      },
+      {
         // unhired/kicked companion — talking recruits it into the player's squad
         // (FollowerSystem.hire adds Squad + follow + carry bonus and drops this Interaction)
         id: "rehire",

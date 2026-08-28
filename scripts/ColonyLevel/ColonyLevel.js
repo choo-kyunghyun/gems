@@ -209,8 +209,10 @@ globalThis.ColonyLevel = {
    * The terrain layer's TileTypes for a material table — one per entry, id = index + 1 (a 0 id
    * reads as an empty cell). The order IS the painter order, which is what lets the stacked render
    * passes threshold on the id. `defs` is a generator palette, or the same rows read back from a
-   * save (name / pathCost / sprite — a null pathCost is blocking, TileType's convention). Returns
-   * { types, mats }: the types in order, and the { type, sprite } table the render passes stack.
+   * save (name / pathCost / sprite / material — a null pathCost is blocking, TileType's
+   * convention). Returns { types, mats }: the types in order, and the { type, sprite, material }
+   * table the render passes stack — `material` the contentBiomes id (a palette row's `id`, a
+   * saved row's `material`; absent on a save predating it), the cell's ground for FloraSystem.
    */
   _terrainTypes(defs) {
     const types = [];
@@ -223,7 +225,7 @@ globalThis.ColonyLevel = {
         pathCost: d.pathCost,
       });
       types.push(type);
-      mats.push({ type: type, sprite: d.sprite });
+      mats.push({ type: type, sprite: d.sprite, material: d.material ?? d.id });
     }
     return { types: types, mats: mats };
   },

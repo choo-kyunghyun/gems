@@ -405,6 +405,7 @@ globalThis.SaveGame = {
         name: mats[i].type.name,
         pathCost: mats[i].type.pathCost, // Infinity encodes as null, which TileType reads back as blocking
         sprite: mats[i].sprite,
+        material: mats[i].material,
       });
     return rows;
   },

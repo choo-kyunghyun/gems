@@ -92,8 +92,11 @@ globalThis.contentBiomes = {
   //              cell; border rings the level
   //   prefabs?   { tag, density, tries? } — PrefabStamp: the Prefab scope tag stamped + its per-1000
   //              density (+ placement tries per stamp, for a level where open room is scarce)
-  //   scatter?   { rock?, tree?, rat? } — one GenScatter per key (OverworldGen.SCATTER) at that
+  //   scatter?   { rock?, rat? } — one GenScatter per key (OverworldGen.SCATTER) at that
   //              per-1000-cell density
+  //   flora?     { density, pool } — OverworldGen.flora: the plant species (contentFlora) strewn
+  //              at that per-1000 density, `pool` the [species, weight] roll; FloraSystem keeps
+  //              spreading the same pool afterwards, season-weighted, up to its cap
   //   climate?   { weather, tempMod } — the whole-map sky the site's level carries as its
   //              meta.climate (ColonyLevel._siteData)
   BIOMES: {
@@ -120,7 +123,15 @@ globalThis.contentBiomes = {
         ],
       },
       prefabs: { tag: "overworld", density: 1.76 },
-      scatter: { rock: 5.9, tree: 6.8, rat: 3.9 },
+      scatter: { rock: 5.9, rat: 3.9 },
+      flora: {
+        density: 6.8,
+        pool: [
+          ["pine", 6],
+          ["berry_bush", 2],
+          ["wheat", 0.5],
+        ],
+      },
     },
     // frozen impact basin: scarce open water, gravel-and-rock ground with thin soil pockets, few
     // trees, little game — under constant snow
@@ -144,7 +155,14 @@ globalThis.contentBiomes = {
         ],
       },
       prefabs: { tag: "overworld", density: 2.2 },
-      scatter: { rock: 8, tree: 2.5, rat: 1.5 },
+      scatter: { rock: 8, rat: 1.5 },
+      flora: {
+        density: 2.5,
+        pool: [
+          ["pine", 5],
+          ["berry_bush", 1],
+        ],
+      },
       climate: { weather: "snow", tempMod: -20 },
     },
     // flooded crater floor: broad shallows, mud flats and rich soil between grassy hummocks,
@@ -169,7 +187,15 @@ globalThis.contentBiomes = {
         ],
       },
       prefabs: { tag: "overworld", density: 1.4 },
-      scatter: { rock: 2, tree: 5, rat: 7 },
+      scatter: { rock: 2, rat: 7 },
+      flora: {
+        density: 5,
+        pool: [
+          ["pine", 4],
+          ["berry_bush", 3],
+          ["wheat", 1],
+        ],
+      },
       climate: { weather: "rain", tempMod: 4 },
     },
     // dry ejecta plain: no standing water, sand and gravel under rocky outcrops, dense camps —
@@ -193,7 +219,14 @@ globalThis.contentBiomes = {
         ],
       },
       prefabs: { tag: "overworld", density: 3 },
-      scatter: { rock: 10, tree: 0.6, rat: 2.5 },
+      scatter: { rock: 10, rat: 2.5 },
+      flora: {
+        density: 0.6,
+        pool: [
+          ["pine", 1],
+          ["berry_bush", 1],
+        ],
+      },
       climate: { weather: "clear", tempMod: 12 },
     },
     // sealed lava tube: a noise-carved rock shell over mud and gravel, no water, no sky — raider

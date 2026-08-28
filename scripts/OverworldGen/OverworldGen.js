@@ -9,6 +9,7 @@
  *   STRUCTURES  PrefabStamp over `prefabs` (the tag's prefab set at its density — when present),
  *               carrying the colony spawn policy below
  *   ENTITIES    one GenScatter per `scatter` key, each placing what SCATTER's entry describes
+ *   FLORA       flora() over `flora` — the biome's plant pool at its density (when present)
  * A frozen basin, a marsh and a lava tube are profile entries over this one composition — a stage
  * is present exactly when its profile section is, so a new kind of level is data, and a genuinely
  * new stage is one more Gen* pass slotted in here.
@@ -97,6 +98,7 @@ globalThis.OverworldGen = {
         throw new Error(`OverworldGen: unknown scatter "${keys[i]}"`);
       passes.push(make(scatter[keys[i]]));
     }
+    if (biome.flora !== undefined) passes.push(OverworldGen.flora(biome.flora));
     return new LevelGen({
       seed: seed,
       palette: OverworldGen.palette(biome),
@@ -181,27 +183,6 @@ globalThis.OverworldGen = {
       });
     },
 
-    /**
-     * scattered pines — one solid `tree` preset entity each (trunk collider, overhanging canopy
-     * mesh), with a position-hashed quarter-turn + size so the one model doesn't visibly repeat
-     */
-    tree(density) {
-      return new GenScatter({
-        salt: 7,
-        density: density,
-        spawn(ctx, gx, gy) {
-          const q = Math.floor(hash2(gx, gy, ctx.seed) * 2147483647);
-          return {
-            preset: "tree",
-            gx: gx,
-            gy: gy,
-            yaw: (q % 4) * 90,
-            size: 0.8 + (q % 5) * 0.15, // 0.8..1.4 specimen variety
-          };
-        },
-      });
-    },
-
     /** wandering rats, the ambient wildlife; raiders stay the camp/quest enemy (prefabs) */
     rat(density) {
       return new GenScatter({
@@ -218,6 +199,52 @@ globalThis.OverworldGen = {
         },
       });
     },
+  },
+
+  /**
+   * The FLORA stage: the biome's plant pool (contentFlora species) strewn at its per-1000 density
+   * — one weighted species roll per try, rooted only where the species' ground allows, at a
+   * random maturity (a share already ripe) so a first-visit map carries a grown stand. Each
+   * plant gets the position-hashed quarter-turn + size the tree scatter gave (the one model per
+   * species doesn't visibly repeat). The season is deliberately NOT read here — a seed must rebuild the same
+   * level (LevelGen); it weights the spread and growth FloraSystem runs from then on. Salt 7 —
+   * the retired tree scatter's, so existing seeds keep their stands where the pool allows.
+   */
+  flora(section) {
+    const pool = section.pool;
+    let total = 0;
+    for (let i = 0; i < pool.length; i++) total += pool[i][1];
+    return new GenScatter({
+      salt: 7,
+      density: section.density,
+      spawn(ctx, gx, gy) {
+        let roll = ctx.rng() * total;
+        let species = pool[pool.length - 1][0];
+        for (let i = 0; i < pool.length; i++) {
+          roll -= pool[i][1];
+          if (roll < 0) {
+            species = pool[i][0];
+            break;
+          }
+        }
+        const def = contentFlora.get(species);
+        if (def === undefined)
+          throw new Error(`OverworldGen: unknown flora species "${species}"`);
+        const mat = ctx.palette[ctx.materialAt(gx, gy)].id;
+        if (def.ground.indexOf(mat) < 0) return undefined;
+        const q = Math.floor(hash2(gx, gy, ctx.seed) * 2147483647);
+        return {
+          preset: def.preset,
+          species: species,
+          gx: gx,
+          gy: gy,
+          wild: true,
+          progress: Math.min(1, ctx.rng() * 1.3), // ~a quarter ripe on arrival
+          yaw: (q % 4) * 90,
+          size: 0.8 + (q % 5) * 0.15, // 0.8..1.4 specimen variety
+        };
+      },
+    });
   },
 
   /** wilderness raider loot table (the PrefabStamp defaultLoot policy) */

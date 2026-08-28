@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentFlora",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentFlora",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentFlora.js",
+}

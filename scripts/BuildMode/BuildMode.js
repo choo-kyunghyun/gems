@@ -38,6 +38,7 @@ globalThis.BuildMode = {
   // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
   // spawns via make()'s ColonySpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
+  // `species` marks a crop (a contentFlora id): its ground gates the cell (_cellFree).
   CATALOG: [
     {
       // tile items: `layer` names the contentTiles.LAYERS key (scene[layer+"Layer"]/[layer+"Type"]);
@@ -427,6 +428,41 @@ globalThis.BuildMode = {
             gy,
             label: I18n.text("BUILD_SHRINE"),
             kind: "buff",
+          }),
+        },
+      ],
+    },
+    {
+      // crops — a `plant` species (contentFlora) put down as a seedling; FloraSystem grows it and
+      // serves its harvest. Rooted only where the species' ground allows (_cellFree).
+      labelKey: "BUILD_CAT_FARMING",
+      items: [
+        {
+          id: "wheat",
+          labelKey: "BUILD_WHEAT",
+          cost: 1,
+          kind: "entity",
+          species: "wheat",
+          make: (gx, gy) => ({
+            preset: "plant",
+            gx,
+            gy,
+            species: "wheat",
+            progress: 0,
+          }),
+        },
+        {
+          id: "berry_bush",
+          labelKey: "BUILD_BERRY_BUSH",
+          cost: 2,
+          kind: "entity",
+          species: "berry_bush",
+          make: (gx, gy) => ({
+            preset: "plant",
+            gx,
+            gy,
+            species: "berry_bush",
+            progress: 0,
           }),
         },
       ],
@@ -825,6 +861,11 @@ globalThis.BuildMode = {
       if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
     const item = scene._buildItem;
+    // a crop roots only on its species' ground, and never over a standing body or prop
+    if (item.species !== undefined) {
+      if (!FloraSystem.canRoot(scene, contentFlora.get(item.species), gx, gy))
+        return false;
+    }
     const solid = !(
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );

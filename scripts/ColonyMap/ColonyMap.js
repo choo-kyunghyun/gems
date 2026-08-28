@@ -20,11 +20,13 @@
  */
 globalThis.ColonyMap = {
   _parked: {}, // mapId -> the park bundle below. The map's DATA is its pooled Level, not this.
-  // the LevelMeta keys of the whole-map records this engine reads (data keys — a save holds
+  // the LevelMeta keys of the whole-map records this engine writes (data keys — a save holds
   // them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate` the pinned sky
-  // (Weather.setClimate's record). A Settlement record sits under Settlement.KEY.
+  // (Weather.setClimate's record), `biome` the profile id (contentBiomes — FloraSystem's spread
+  // pool). A Settlement record sits under Settlement.KEY, the flora clock under FloraSystem.KEY.
   INDOOR: "indoor",
   CLIMATE: "climate",
+  BIOME: "biome",
 
   // fields _stash/_unstash copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open). NOT listed: the Level
@@ -411,6 +413,7 @@ globalThis.ColonyMap = {
     // Residents, their settlementId this map's id). A level without one stays unsettled until a
     // Survey Post founds it (BuildMode.claim).
     const meta = scene.level.meta;
+    meta.set(ColonyMap.BIOME, data.meta.biome);
     if (data.meta.indoor === true) meta.set(ColonyMap.INDOOR, true);
     if (data.meta.climate !== undefined)
       meta.set(ColonyMap.CLIMATE, data.meta.climate);

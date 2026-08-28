@@ -8,7 +8,8 @@
  * @typedef {Object} Interaction
  * @property {string} kind      registered InteractAction id. The colony's set: "storage" |
  *   "workbench" | "corpse" (a stripped body, looted over its own Inventory) | "door" | "rehire"
- *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff"
+ *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
+ *   "chop" (a ripe plant — FloraSystem)
  * @property {string} [module]  workbench only: slotted WorkbenchModule itemId ("" / absent = empty)
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing

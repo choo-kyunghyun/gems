@@ -70,7 +70,13 @@ globalThis.WorldClock = {
   },
 
   season() {
-    const i = Math.floor((WorldClock.day - 1) / WorldClock.daysPerSeason) % 4;
+    return WorldClock.seasonAt(WorldClock.absHours());
+  },
+
+  /** the season of an absolute in-game hour (absHours' timeline) — season() of any day, not just today */
+  seasonAt(hours) {
+    const day = Math.floor(hours / 24) + 1;
+    const i = Math.floor((day - 1) / WorldClock.daysPerSeason) % 4;
     return WorldClock._SEASONS[i];
   },
 

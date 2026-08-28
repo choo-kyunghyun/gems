@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FloraSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FloraSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FloraSystem.js",
+}

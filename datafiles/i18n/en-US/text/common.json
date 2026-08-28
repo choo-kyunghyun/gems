@@ -282,5 +282,8 @@
 
   "HYDRATE_PROMPT": "[E] Drink",
   "FEED_PROMPT": "[E] Eat",
-  "BUFF_PROMPT": "[E] Pray"
+  "BUFF_PROMPT": "[E] Pray",
+
+  "HARVEST_PROMPT": "[E] Harvest",
+  "CHOP_PROMPT": "[E] Chop"
 }
