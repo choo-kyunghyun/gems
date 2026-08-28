@@ -231,6 +231,7 @@
     {"id":{"name":"LevelData","path":"scripts/LevelData/LevelData.yy",},},
     {"id":{"name":"LevelGen","path":"scripts/LevelGen/LevelGen.yy",},},
     {"id":{"name":"LevelGrid","path":"scripts/LevelGrid/LevelGrid.yy",},},
+    {"id":{"name":"LevelMeta","path":"scripts/LevelMeta/LevelMeta.yy",},},
     {"id":{"name":"Lifetime","path":"scripts/Lifetime/Lifetime.yy",},},
     {"id":{"name":"LifetimeSystem","path":"scripts/LifetimeSystem/LifetimeSystem.yy",},},
     {"id":{"name":"Light","path":"scripts/Light/Light.yy",},},

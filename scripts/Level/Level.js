@@ -1,11 +1,13 @@
 /**
- * ONE map's data, and nothing else: the grid it is laid out on and the entities standing on it
- * (CONCEPT.md — a Level is grid-based and owns its entities). PURE DATA — a Level never updates
- * or draws; the Scene does that, and the World pools Levels by map id.
+ * ONE map's data, and nothing else: the grid it is laid out on, the entities standing on it
+ * (CONCEPT.md — a Level is grid-based and owns its entities), and its whole-map records (LevelMeta
+ * — what is the map's as a whole, keyed by the consumer that owns each). PURE DATA — a Level never
+ * updates or draws; the Scene does that, and the World pools Levels by map id.
  *
- * Both halves are optional in practice: a side-scroller has entities and no grid, the level
- * editor a grid it edits and no entities. `grid` is assigned after construction when the builder
- * needs the store first (ColonyLevel.build fills a store, then hands back the grid it painted).
+ * The grid and the store are optional in practice: a side-scroller has entities and no grid,
+ * the level editor a grid it edits and no entities. `grid` is assigned after construction when
+ * the builder needs the store first (ColonyLevel.build fills a store, then hands back the grid
+ * it painted).
  */
 globalThis.Level = class Level {
   /**
@@ -18,6 +20,7 @@ globalThis.Level = class Level {
     this.id = opt.id ?? "";
     this.grid = opt.grid ?? null;
     this.entities = new EntityStore(opt.capacity ?? 256);
+    this.meta = new LevelMeta();
   }
 
   /** Frees the store and the grid (which destroys its inserted layers). */

@@ -1,10 +1,10 @@
 // Map engine for the colony scene — world-map travel, map pool, and persistence.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
- * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid +
- * entities) and `_parked` below holds the per-map RUNTIME the colony builds over it (renderer,
- * camera, physics, nav, render-pass handles), so a trip never destroys/rebuilds. Only the SQUAD
- * migrates: every entity sharing the player's Squad id (player included) moves as a WHOLE entity
+ * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid,
+ * entities, whole-map records) and `_parked` below holds the per-map RUNTIME the colony builds
+ * over it (renderer, camera, physics, nav, render-pass handles), so a trip never
+ * destroys/rebuilds. Only the SQUAD migrates: every entity sharing the player's Squad id (player included) moves as a WHOLE entity
  * through World.take/put — a trip forces a "wait" member back to "follow" first, so the squad
  * always travels together. Travel is by WORLD MAP (travel(), below): the squad deploys from a
  * site's beacon to any other site (contentSites), the crossing costing in-game hours. There is
@@ -20,10 +20,16 @@
  */
 globalThis.ColonyMap = {
   _parked: {}, // mapId -> the park bundle below. The map's DATA is its pooled Level, not this.
+  // the LevelMeta keys of the whole-map records this engine reads (data keys — a save holds
+  // them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate` the pinned sky
+  // (Weather.setClimate's record). A Settlement record sits under Settlement.KEY.
+  INDOOR: "indoor",
+  CLIMATE: "climate",
 
   // fields _stash/_unstash copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open). NOT listed: the Level
-  // itself (the pool holds it — a resume re-points scene.level at it) and the per-layer tilemap
+  // itself (the pool holds it, its whole-map records on its meta — a resume re-points scene.level
+  // at it) and the per-layer tilemap
   // handles (<key>Layer/<key>Type/<key>Types), which _bundleKeys derives from contentTiles.LAYERS so a
   // new LAYERS entry can't silently miss the bundle.
   // (playerId is NOT bundled — it's DERIVED: set on boot spawn/arrival and re-latched per frame
@@ -31,9 +37,6 @@ globalThis.ColonyMap = {
   BUNDLE_KEYS: [
     "spawn",
     "entries",
-    "_indoor",
-    "_climate",
-    "settlement",
     "statics",
     "terrainMats",
     "_built",
@@ -169,7 +172,8 @@ globalThis.ColonyMap = {
    * a same-track re-request as a no-op, so this is safe to call unconditionally.
    */
   _applyBgm(scene) {
-    Music.play(scene._indoor === true ? musAmbientCozy : musAmbientTense);
+    const indoor = scene.level.meta.get(ColonyMap.INDOOR) === true;
+    Music.play(indoor ? musAmbientCozy : musAmbientTense);
   },
 
   /**
@@ -177,7 +181,7 @@ globalThis.ColonyMap = {
    * open sky when it has none. Called on every arrival like _applyBgm; Weather cross-fades either way.
    */
   _applyClimate(scene) {
-    Weather.setClimate(scene._climate);
+    Weather.setClimate(scene.level.meta.get(ColonyMap.CLIMATE));
   },
 
   /**
@@ -263,13 +267,9 @@ globalThis.ColonyMap = {
     const data = loaded.data;
     mapId = loaded.mapId;
     entryId = loaded.entryId;
-    // indoor maps (meta.indoor): no sky passes, and the cozy interior BGM below
-    scene._indoor = data.meta.indoor === true;
-    // the level's climate (meta.climate), pinned over the whole map by _applyClimate on arrival
-    scene._climate = data.meta.climate;
     Log.info(`colony map: ${mapId} (entry ${entryId})`);
 
-    const built = ColonyMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + its settlement
+    const built = ColonyMap._buildWorld(scene, data, mapId, entryId, squad); // the Level (+ player on boot) + its records
     // pool it BEFORE the squad lands — World.put resolves the destination through the pool
     World.add(mapId, scene.level);
     World.activeId = mapId; // building a map activates it
@@ -295,11 +295,9 @@ globalThis.ColonyMap = {
    */
   restore(scene, mapId, entryId, squad, pending) {
     const m = pending.map;
-    scene._indoor = m.indoor === true;
-    scene._climate = m.climate;
-    scene.settlement = m.settlement;
     Log.info(`colony map: ${mapId} (entry ${entryId}) [restored]`);
     scene.level = new Level({ id: mapId, capacity: m.capacity });
+    scene.level.meta.import(m.meta); // the whole-map records, as captured
     const h = ColonyLevel.restore(scene.level.entities, m, pending.buf);
     buffer_delete(pending.buf);
     if (h === null) {
@@ -368,7 +366,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Entity store + LevelGrid + the level's settlement record. The player spawns here ONLY on boot
+   * Entity store + LevelGrid + the level's whole-map records. The player spawns here ONLY on boot
    * (squad === null) — trip arrivals transfer the whole player entity in via _arriveSquad,
    * which re-latches scene.playerId. Returns ColonyLevel's built handles, which the caller threads on
    * to _spawnWorld. A map is fully resident (scatter entities + terrain/wall colliders all live at
@@ -406,15 +404,19 @@ globalThis.ColonyMap = {
       scene.playerId = PlayerSystem.spawn(scene.level.entities, built.spawn);
     }
 
-    // The level's settlement (optional meta.settlement), whole-map like its climate: an authored
-    // faction hub / raider camp — the overworld is the colony's "hub", whose NPCs and stockpile
-    // chest are its Residents (their settlementId is this map's id). Reset first: the scene field
-    // outlives a map swap, and a level without one stays unsettled until a Survey Post founds it
-    // (BuildMode.claim).
-    scene.settlement = undefined;
+    // The level's whole-map records (LevelMeta), off the data's meta: the indoor flag (no sky
+    // passes, the cozy interior BGM), the climate (pinned over the map by _applyClimate on every
+    // arrival), and the settlement (optional meta.settlement — an authored faction hub / raider
+    // camp; the overworld is the colony's "hub", whose NPCs and stockpile chest are its
+    // Residents, their settlementId this map's id). A level without one stays unsettled until a
+    // Survey Post founds it (BuildMode.claim).
+    const meta = scene.level.meta;
+    if (data.meta.indoor === true) meta.set(ColonyMap.INDOOR, true);
+    if (data.meta.climate !== undefined)
+      meta.set(ColonyMap.CLIMATE, data.meta.climate);
     const s = data.meta.settlement;
     if (s !== undefined)
-      Settlement.found(scene, {
+      Settlement.found(scene.level, {
         name: s.name !== undefined ? I18n.text(s.name) : "", // an i18n key
         factionId: s.faction,
         color: s.color,
@@ -664,7 +666,7 @@ globalThis.ColonyMap = {
     // tint, so night darkens the rain. Skipped indoors (meta.indoor) — no open sky inside a cave.
     scene._clouds = undefined;
     scene._weather = undefined;
-    if (!scene._indoor) {
+    if (scene.level.meta.get(ColonyMap.INDOOR) !== true) {
       scene._clouds = new RenderCloudShadow();
       scene.renderer.insert(scene._clouds);
       scene._weather = new RenderWeather();

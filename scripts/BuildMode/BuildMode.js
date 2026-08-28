@@ -807,7 +807,7 @@ globalThis.BuildMode = {
 
   /** is the level an allied settlement — owned by the player's faction or an ally? gates build mode. */
   _allied(scene) {
-    const owner = Settlement.owner(scene);
+    const owner = Settlement.owner(scene.level);
     return owner !== undefined && FactionSystem.isAlly(owner, BuildMode.FACTION);
   },
 
@@ -1010,11 +1010,11 @@ globalThis.BuildMode = {
   /**
    * Found the player's settlement at a Survey Post: the whole level, owned by the player's faction,
    * then *spend* the post (detach its Interaction). The founded settlement is the stored state
-   * (the map's `settlement` record, parked and saved with it), so a post on an already-settled
+   * (the level's LevelMeta record, pooled and saved with it), so a post on an already-settled
    * level is still spent — no re-founding.
    */
   claim(scene, postId) {
-    const s = Settlement.found(scene, {
+    const s = Settlement.found(scene.level, {
       name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
       factionId: BuildMode.FACTION,
     });

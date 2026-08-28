@@ -1,12 +1,12 @@
 // SaveGame — the colony's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
 // with the colony's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
- * A save is the session AS IT STANDS: every resident map's grid cell for cell and its entity
- * store whole (each entity under its saved id — colliders, statics, builds and residents alike),
- * the world-sim, and the wandering traders' records + schedule. A load rebuilds nothing from a
- * seed, spawns nothing and re-meshes nothing — those are a map's FIRST-visit
- * path (ColonyMap.build); a saved map comes back through ColonyMap.restore, so the entity set
- * after a load is exactly the one that was saved.
+ * A save is the session AS IT STANDS: every resident map's grid cell for cell, its entity
+ * store whole (each entity under its saved id — colliders, statics, builds and residents alike)
+ * and its whole-map records, the world-sim, and the wandering traders' records + schedule. A
+ * load rebuilds nothing from a seed, spawns nothing and re-meshes nothing — those are a map's
+ * FIRST-visit path (ColonyMap.build); a saved map comes back through ColonyMap.restore, so the
+ * entity set after a load is exactly the one that was saved.
  *
  * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
  * default/ path, see docs/GMRT.md):
@@ -290,8 +290,7 @@ globalThis.SaveGame = {
    *   statics / colliders       the scene's collider id lists (level edge + terrain / per solid
    *                layer) — ids into `world`, kept so a build-mode remesh still frees the right ones
    *   spawn / entries / reachZone / reachDone / built / builtEnts   the per-map scene fields
-   *   climate      the level's whole-map sky (meta.climate); absent on an open-sky map
-   *   settlement   the level's settlement record (Settlement); absent on an unsettled map
+   *   meta         the level's whole-map records (LevelMeta.export — indoor, climate, settlement)
    */
   _mapsPass: {
     id: "maps",
@@ -325,9 +324,7 @@ globalThis.SaveGame = {
         ctx.putBlob(blob, grid.pack());
         maps.push({
           id: mapId,
-          indoor: src._indoor === true,
-          climate: src._climate,
-          settlement: src.settlement,
+          meta: level.meta.export(),
           cell: grid.cellWidth,
           cols: grid.cols,
           rows: grid.rows,
