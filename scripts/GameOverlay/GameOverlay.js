@@ -195,7 +195,7 @@ globalThis.GameOverlay = {
     // footer: a universal Close (Esc / backdrop also close)
     const footer = new UIElement({
       width: "100%",
-      height: 44,
+      height: FacetTheme.rowH,
       flexShrink: 0,
       flexDirection: "row",
       alignItems: "center",
@@ -496,7 +496,7 @@ globalThis.GameOverlay = {
       });
       const resetRow = new UIElement({
         width: "100%",
-        height: 44,
+        height: FacetTheme.rowH,
         flexShrink: 0,
         flexDirection: "row",
         justifyContent: "flex-end",
@@ -516,7 +516,7 @@ globalThis.GameOverlay = {
     if (GameOverlay.settingsFile !== null) {
       const saveRow = new UIElement({
         width: "100%",
-        height: 44,
+        height: FacetTheme.rowH,
         flexShrink: 0,
         flexDirection: "row",
         justifyContent: "flex-end",
@@ -550,7 +550,11 @@ globalThis.GameOverlay = {
       [I18n.textRef("CREDITS_LIBS"), FacetTheme.textMuted],
     ];
     for (let i = 0; i < lines.length; i++) {
-      const row = new UIElement({ width: "100%", height: 22, flexShrink: 0 });
+      const row = new UIElement({
+        width: "100%",
+        height: FacetTheme.lineH,
+        flexShrink: 0,
+      });
       row.insertChild(facetLabel(lines[i][0], { color: lines[i][1] }));
       card.insertChild(row);
     }

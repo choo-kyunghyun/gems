@@ -460,7 +460,7 @@ class _SceneFacetClass {
   _controlsSection() {
     const controls = facetSection(I18n.textRef("UIKIT_CONTROLS"));
 
-    const slider = new UIElement({ height: 28, width: "100%" });
+    const slider = new UIElement({ height: FacetTheme.sliderH, width: "100%" });
     slider.addComponent(
       new UISlider({
         min: 0,

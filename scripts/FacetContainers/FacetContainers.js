@@ -331,7 +331,11 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
   const strip = new UIElement(
     vertical
       ? { width: opts.stripWidth ?? 64, height: "100%", flexShrink: 0 }
-      : { width: "100%", height: opts.stripHeight ?? 40, flexShrink: 0 },
+      : {
+          width: "100%",
+          height: opts.stripHeight ?? FacetTheme.tabH,
+          flexShrink: 0,
+        },
   );
 
   // vertical: the pages take the remaining width; a fixed `opts.height` still applies
@@ -456,7 +460,7 @@ globalThis.facetAccordion = function facetAccordion(sections, opts = {}) {
  */
 globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
   const itemW = opts.itemWidth ?? 130;
-  const itemH = opts.itemHeight ?? 40;
+  const itemH = opts.itemHeight ?? FacetTheme.rowHSm;
   const state = {
     open: -1,
     selCat: opts.selCat ?? 0,

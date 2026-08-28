@@ -36,9 +36,14 @@ globalThis.FacetTheme = {
   padSm: 14,
   gap: 14,
   gapSm: 10,
-  rowH: 50, // button / control height
+  // Row heights — every kit item is one of these, so a size change is a theme edit, not a sweep
+  rowH: 56, // button / input / checkbox row / accordion header
+  rowHSm: 40, // compact list button (facetFillList, quick-set rows, category items)
+  fieldH: 44, // boxed field chassis (select / dropdown / stepper)
+  sliderH: 36, // slider row (the thumb/track scale from it — UISlider)
+  lineH: 30, // text row (facetKeyValueRow, table header, plain label rows)
+  tabH: 44, // horizontal tab strip
   rowLabelW: 160, // facetRow label column width (label | control)
-  titleH: 26, // facetSection title host height (keeps it off the card border)
   menuWidth: 760, // centered max-width for menu scenes (lobby/settings/…)
   headerH: 64,
   // ── Motion ──

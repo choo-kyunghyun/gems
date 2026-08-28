@@ -129,7 +129,7 @@ globalThis.facetHint = function facetHint(label, opts = {}) {
 /**
  * label:value row — label in a growing left cell, value pushed to the right edge by flex.
  * `label`/`value` are strings or live () => string (facetLabel normalizes). `opts`:
- *   { height (26), gap (0), labelColor (textMuted), valueColor (text),
+ *   { height (lineH), gap (0), labelColor (textMuted), valueColor (text),
  *     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
  *     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
  */
@@ -145,7 +145,7 @@ globalThis.facetKeyValueRow = function facetKeyValueRow(label, value, opts = {})
         }
       : {
           width: "100%",
-          height: opts.height ?? 26,
+          height: opts.height ?? FacetTheme.lineH,
           flexDirection: "row",
           alignItems: "center",
           gap: opts.gap ?? 0,
@@ -178,7 +178,7 @@ globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
     const e = entries[i];
     host.insertChild(
       facetButton(e.label, e.onPick, {
-        height: 32,
+        height: FacetTheme.rowHSm,
         selected: e.selected,
         textColor: e.textColor,
         icon: e.icon,

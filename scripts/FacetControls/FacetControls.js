@@ -204,7 +204,7 @@ globalThis.facetCheckbox = function facetCheckbox(
 globalThis.facetSlider = function facetSlider(opts = {}) {
   const min = opts.min ?? 0;
   const bind = facetBindValue(opts, min);
-  const el = new UIElement({ height: 28, width: "100%" });
+  const el = new UIElement({ height: FacetTheme.sliderH, width: "100%" });
   el.addComponent(
     new UISlider({
       min,
@@ -237,7 +237,7 @@ globalThis.facetSlider = function facetSlider(opts = {}) {
  */
 globalThis.facetFieldPanel = function facetFieldPanel(opts = {}) {
   const el = new UIElement({
-    height: opts.height ?? 36,
+    height: opts.height ?? FacetTheme.fieldH,
     width: opts.width ?? "100%",
   });
   el.addComponent(
@@ -505,7 +505,7 @@ globalThis.facetRebind = function facetRebind(actionKey, opts = {}) {
  */
 globalThis.facetTable = function facetTable(columns, opts = {}) {
   const rowH = opts.rowH ?? FacetTheme.rowH;
-  const headerH = opts.headerH ?? 30;
+  const headerH = opts.headerH ?? FacetTheme.lineH;
   const visible = opts.rows ?? 8;
   const pad = FacetTheme.padSm;
   // `grow` flex-fills instead of fixing a row count; UITable derives its visible-row count
@@ -589,7 +589,9 @@ globalThis.facetAmountPicker = function facetAmountPicker(opts = {}) {
   // equal-width quick-set row; each button snaps the stepper.
   const quickBtn = (label, onClick) => {
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    cell.insertChild(facetButton(label, onClick, { height: 30 }));
+    cell.insertChild(
+      facetButton(label, onClick, { height: FacetTheme.rowHSm }),
+    );
     return cell;
   };
   const quick = new UIElement({
