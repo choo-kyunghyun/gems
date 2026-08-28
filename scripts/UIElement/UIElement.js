@@ -200,6 +200,12 @@ globalThis.UIElement = class UIElement {
     // draw_flush is debug-flagged but is the only batch-flush primitive; runs once per clip per frame.
     // Must precede the scissor restore so the flush is still inside this clip rect.
     draw_flush();
+    // re-arm the pipeline with an untextured primitive while still inside this clip rect — a text
+    // run as the first draw after the flush is dropped whole (docs/GMRT.md → gpu_set_scissor, 5).
+    const a0 = draw_get_alpha();
+    draw_set_alpha(0);
+    draw_rectangle_color(0, 0, 1, 1, c_black, c_black, c_black, c_black, false);
+    draw_set_alpha(a0);
     // replaying {0,0,0,0} (the unset sentinel) does NOT restore full drawing on GMRT — it clips
     // everything after to an empty rect. at top level, reset to the full target explicitly.
     if (nested) gpu_set_scissor(prev);
