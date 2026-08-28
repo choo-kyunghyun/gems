@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ExposureSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ExposureSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ExposureSystem.js",
+}

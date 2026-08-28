@@ -14,8 +14,8 @@
  *   npc      label nameKey questId merchant?
  *   chest    capacity items[]
  *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON — the world map opens on it)
- *   torch    label? color?        (decorative light prop — small solid post; carries a Light)
- *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh)
+ *   torch    label? color?        (decorative light prop — small solid post; carries a Light and a Heat)
+ *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh; a Heat)
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
  *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
  *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
@@ -177,6 +177,7 @@ globalThis.ColonySpawn = {
             intensity: 0.9,
             flicker: 0.18,
           },
+          Heat: { power: 300 }, // warms the room it stands in (RoomSystem)
         },
       },
       {
@@ -193,6 +194,7 @@ globalThis.ColonySpawn = {
             intensity: 0.95,
             flicker: 0.04,
           },
+          Heat: { power: 400 },
         },
       },
       {

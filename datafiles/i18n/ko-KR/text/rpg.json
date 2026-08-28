@@ -109,10 +109,14 @@
   "STATUS_DEHYDRATED": "탈수",
   "STATUS_STARVING": "굶주림",
   "STATUS_DROWSY": "졸림",
+  "STATUS_HYPOXIC": "저산소",
+  "STATUS_HYPOTHERMIC": "저체온",
 
   "RPG_THIRST": "갈증",
   "RPG_HUNGER": "허기",
   "RPG_DROWSY": "휴식",
+  "RPG_EXPOSURE": "공기",
+  "RPG_COLD": "체온",
   "RPG_SLEEPING": "자는 중…  (아무 키나 눌러 깨어나기)",
 
   "RPG_INVENTORY": "가방",
@@ -229,6 +233,8 @@
   "ITEM_BLASTER_DESC": "탄약을 장전하는 권총. 탄종을 넣고 부착물을 달 수 있다.",
   "ITEM_ARMORED_VEST": "방탄 조끼",
   "ITEM_ARMORED_VEST_DESC": "가벼운 보호구. 받는 피해를 줄여준다.",
+  "ITEM_FILTER_MASK": "필터 마스크",
+  "ITEM_FILTER_MASK_DESC": "희박한 대기를 걸러낸다. 노천에서의 노출을 늦춘다.",
   "ITEM_ADRENAL_IMPLANT": "아드레날린 임플란트",
   "ITEM_BACKPACK": "배낭",
   "ITEM_WOOD": "목재",

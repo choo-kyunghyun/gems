@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Exposure",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Exposure",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Exposure.js",
+}

@@ -71,6 +71,26 @@ globalThis.ColonyPlayer = {
       critical: 0.85,
       status: "drowsy",
     });
+    // the environmental needs — rise under the open sky / in the cold, recover in a room (or a
+    // suited body, for exposure); the same core, the rate signed by where the body stands
+    entities.add(id, Exposure, {
+      value: 0,
+      max: 100,
+      rate: 1.2,
+      recover: 4,
+      critical: 0.8,
+      status: "hypoxic",
+    });
+    entities.add(id, Cold, {
+      value: 0,
+      max: 100,
+      rate: 1.0,
+      recover: 3,
+      critical: 0.8,
+      status: "hypothermic",
+      comfort: Temperature.ZERO_C + 5,
+      span: 15,
+    });
     entities.add(id, Equipment, {
       slots: { weapon: "", armor: "", trinket: "", backpack: "" },
     });

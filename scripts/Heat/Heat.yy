@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Heat",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Heat",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Heat.js",
+}

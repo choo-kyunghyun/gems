@@ -1,5 +1,5 @@
-// Shared "rising meter + critical debuff" core the three per-need systems (Thirst/Hunger/Drowsiness)
-// delegate to. Stat-model-agnostic: a critical need's consequence is a Status (dot/mult, no recompute).
+// Shared "rising meter + critical debuff" core the per-need systems (Thirst/Hunger/Drowsiness, and the
+// environmental Exposure/Cold through step) delegate to. Stat-model-agnostic: a critical need's consequence is a Status (dot/mult, no recompute).
 globalThis.Survival = {
   /**
    * Per tick: raise every `token`-carrying entity's `value` by rate*dt (clamped), then refresh its debuff.
@@ -22,6 +22,17 @@ globalThis.Survival = {
     comp.value -= amount;
     if (comp.value < 0) comp.value = 0;
     return true;
+  },
+
+  /**
+   * Per tick for an ENVIRONMENTAL need (Exposure/Cold): move `value` by a signed `rate` — rising in
+   * a hostile place, recovering in a safe one — clamped 0..max, then refresh the debuff.
+   */
+  step(entities, id, comp, rate) {
+    comp.value += rate * SimClock.tickDuration;
+    if (comp.value > comp.max) comp.value = comp.max;
+    else if (comp.value < 0) comp.value = 0;
+    Survival.refresh(entities, id, comp);
   },
 
   /**

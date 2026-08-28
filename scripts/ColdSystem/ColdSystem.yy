@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColdSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColdSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColdSystem.js",
+}

@@ -54,6 +54,25 @@ globalThis.contentStatuses = {
         beneficial: false,
         mult: { speed: 0.6 },
       },
+      // the environmental needs' critical debuffs (ExposureSystem / ColdSystem)
+      {
+        id: "hypoxic",
+        name: "STATUS_HYPOXIC",
+        color: "#7fb8c8",
+        beneficial: false,
+        dot: 1,
+        interval: 2,
+        mult: { speed: 0.8 },
+      },
+      {
+        id: "hypothermic",
+        name: "STATUS_HYPOTHERMIC",
+        color: "#9fc4e8",
+        beneficial: false,
+        dot: 1,
+        interval: 3,
+        mult: { speed: 0.7 },
+      },
     ]);
   },
 };

@@ -108,10 +108,14 @@
   "STATUS_DEHYDRATED": "Dehydrated",
   "STATUS_STARVING": "Starving",
   "STATUS_DROWSY": "Drowsy",
+  "STATUS_HYPOXIC": "Hypoxic",
+  "STATUS_HYPOTHERMIC": "Hypothermic",
 
   "RPG_THIRST": "Thirst",
   "RPG_HUNGER": "Hunger",
   "RPG_DROWSY": "Rest",
+  "RPG_EXPOSURE": "Air",
+  "RPG_COLD": "Warmth",
   "RPG_SLEEPING": "Sleeping…  (press a key to wake)",
 
   "RPG_INVENTORY": "Bag",
@@ -228,6 +232,8 @@
   "ITEM_BLASTER_DESC": "An ammo-fed sidearm. Load a round type and bolt on attachments.",
   "ITEM_ARMORED_VEST": "Armored Vest",
   "ITEM_ARMORED_VEST_DESC": "Light protection. Reduces damage taken.",
+  "ITEM_FILTER_MASK": "Filter Mask",
+  "ITEM_FILTER_MASK_DESC": "Scrubs the thin air. Slows exposure under the open sky.",
   "ITEM_ADRENAL_IMPLANT": "Adrenal Implant",
   "ITEM_BACKPACK": "Backpack",
   "ITEM_WOOD": "Wood",

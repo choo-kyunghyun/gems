@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Rooms",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Rooms",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Rooms.js",
+}

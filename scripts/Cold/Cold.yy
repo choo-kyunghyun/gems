@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Cold",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Cold",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Cold.js",
+}

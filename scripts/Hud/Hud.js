@@ -184,13 +184,16 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(staRow);
-    // survival needs — Thirst / Hunger / Drowsiness as reserve bars; the critical debuff
-    // (dehydrated/starving/drowsy) shows in the status row below
+    // survival needs — Thirst / Hunger / Drowsiness, then the environmental Exposure / Cold, as
+    // reserve bars; the critical debuff (dehydrated/starving/drowsy/hypoxic/hypothermic) shows in
+    // the status row below
     card.insertChild(Hud._needBar(scene, Thirst, "RPG_THIRST", "#4aa3d6"));
     card.insertChild(Hud._needBar(scene, Hunger, "RPG_HUNGER", "#c98a3a"));
     card.insertChild(
       Hud._needBar(scene, Drowsiness, "RPG_DROWSY", "#8a7ec0"),
     );
+    card.insertChild(Hud._needBar(scene, Exposure, "RPG_EXPOSURE", "#7fb8c8"));
+    card.insertChild(Hud._needBar(scene, Cold, "RPG_COLD", "#9fc4e8"));
     // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(
@@ -206,16 +209,23 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(timeRow);
-    // weather condition + ambient temperature, both derived live
+    // weather condition + the temperature where the player stands (the room's, or the sky's),
+    // both derived live
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
       facetLabel(
-        () =>
-          I18n.text(
+        () => {
+          const pos = scene.level.entities.get(scene.playerId, Position);
+          const k =
+            pos === undefined
+              ? Temperature.now()
+              : RoomSystem.tempAt(scene, pos.x, pos.y);
+          return I18n.text(
             "RPG_COND",
             I18n.text(Weather.current().name),
-            Temperature.display(),
-          ),
+            Temperature.format(k),
+          );
+        },
         { color: FacetTheme.textMuted },
       ),
     );

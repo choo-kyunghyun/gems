@@ -47,12 +47,16 @@ globalThis.Temperature = {
     return ((k - Temperature.ZERO_C) * 9) / 5 + 32;
   },
 
-  /**
-   * HUD string in the player's tempUnit Setting ("K"|"C"|"F", default "K"). Owns the unit suffix;
-   * the locale fonts carry the ° glyph so °C/°F render.
-   */
+  /** The ambient temperature as a HUD string (format). */
   display() {
-    const k = Temperature.now();
+    return Temperature.format(Temperature.now());
+  },
+
+  /**
+   * A Kelvin value as a HUD string in the player's tempUnit Setting ("K"|"C"|"F", default "K").
+   * Owns the unit suffix; the locale fonts carry the ° glyph so °C/°F render.
+   */
+  format(k) {
     const unit = Settings.get("tempUnit");
     if (unit === "C") return Math.round(Temperature.toCelsius(k)) + " °C";
     if (unit === "F") return Math.round(Temperature.toFahrenheit(k)) + " °F";

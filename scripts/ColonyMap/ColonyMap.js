@@ -23,7 +23,8 @@ globalThis.ColonyMap = {
   // the LevelMeta keys of the whole-map records this engine writes (data keys — a save holds
   // them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate` the pinned sky
   // (Weather.setClimate's record), `biome` the profile id (contentBiomes — FloraSystem's spread
-  // pool). A Settlement record sits under Settlement.KEY, the flora clock under FloraSystem.KEY.
+  // pool). A Settlement record sits under Settlement.KEY, the flora clock under FloraSystem.KEY,
+  // the room temperatures under RoomSystem.KEY.
   INDOOR: "indoor",
   CLIMATE: "climate",
   BIOME: "biome",
@@ -46,6 +47,7 @@ globalThis.ColonyMap = {
     "reachZone",
     "reachDone",
     "nav",
+    "rooms",
     "physics",
     "renderer",
     "camera",
@@ -343,7 +345,7 @@ globalThis.ColonyMap = {
    */
   _activate(scene) {
     ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, inv)
-    ColonyMap._buildSpatial(scene); // broadphase + nav grid
+    ColonyMap._buildSpatial(scene); // broadphase + nav grid + room mirror
     ColonyMap._buildRenderer(scene); // render pass stack
     ColonyMap._buildCamera(scene); // follow camera + view culling + debug
     ColonyMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
@@ -468,6 +470,10 @@ globalThis.ColonyMap = {
 
     scene.nav = new NavGrid(scene.level.grid);
     MotionPlanner.setGrid(scene.nav.grid);
+
+    // the enclosure mirror: the wall layer bounds a room (a fence has no roof). RoomSystem feeds it
+    // the doors and reads it for the environmental needs; parks with the map like the nav grid.
+    scene.rooms = new Rooms(scene.level.grid, [scene.wallLayer]);
   },
 
   /**

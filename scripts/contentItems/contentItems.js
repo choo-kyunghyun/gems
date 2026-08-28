@@ -314,6 +314,17 @@ globalThis.contentItems = {
         rarity: "rare",
         components: [new Equippable({ slot: "trinket", mods: { speed: 80 } })],
       },
+      // the thin air's filter: worn on the trinket slot it spares the wearer its seal's share of
+      // the open sky's exposure (ExposureSystem); a room shelters wholly
+      {
+        id: "filter_mask",
+        name: "ITEM_FILTER_MASK",
+        description: "ITEM_FILTER_MASK_DESC",
+        weight: 1,
+        value: 25,
+        rarity: "uncommon",
+        components: [new Equippable({ slot: "trinket", seal: 0.75 })],
+      },
       // backpack: Equippable + Container (expands inventory slots)
       {
         id: "backpack",

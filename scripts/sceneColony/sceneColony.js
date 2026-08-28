@@ -135,6 +135,13 @@ class _SceneColonyClass {
         this.playerId,
         "lead_pipe",
       ); // equip that instance by uid
+      // the thin air's filter, worn from frame one (its seal slows Exposure under the open sky)
+      InventorySystem.add(startInv, "filter_mask", 1);
+      EquipmentSystem.equipFirst(
+        this.level.entities,
+        this.playerId,
+        "filter_mask",
+      );
       InventorySystem.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
@@ -348,6 +355,7 @@ class _SceneColonyClass {
     // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
     // SolidSystem.onStatics instead (create).
     this.nav.sync();
+    RoomSystem.sync(this); // the doors + any wall edit into the room mirror (shelter for the needs below)
 
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
@@ -357,6 +365,8 @@ class _SceneColonyClass {
       // survival needs rise; drowsiness DRAINS while sleeping (else rises)
       ThirstSystem.update(this.level.entities);
       HungerSystem.update(this.level.entities);
+      ExposureSystem.update(this); // the thin air: by shelter + the worn seal
+      ColdSystem.update(this); // by the temperature where each body stands
       if (this._sleeping)
         DrowsinessSystem.restore(
           this.level.entities,
@@ -405,10 +415,10 @@ class _SceneColonyClass {
           pos.y = this.spawn.y;
           vel.x = 0;
           vel.y = 0;
-          // respawn half-hydrated/-fed/-slept: each need to mid-meter, refresh so a
-          // critical debuff (dehydrated/starving/drowsy) clears at once
-          for (const token of [Thirst, Hunger, Drowsiness]) {
+          // respawn with each need at mid-meter, refreshed so a critical debuff clears at once
+          for (const token of [Thirst, Hunger, Drowsiness, Exposure, Cold]) {
             const need = this.level.entities.get(id, token);
+            if (need === undefined) continue; // a save from before the need
             need.value = need.max * 0.5;
             Survival.refresh(this.level.entities, id, need);
           }
@@ -452,6 +462,7 @@ class _SceneColonyClass {
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     FloraSystem.update(this, WorldClock.absHours()); // grow + spread the map's plants over the in-game hours since its last tick
+    RoomSystem.update(this, WorldClock.absHours()); // step every room's temperature over the same span
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
