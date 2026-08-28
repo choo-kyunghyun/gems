@@ -2,20 +2,13 @@
 
 Intent only — contracts live in the code. A sweep applies one mechanical rule across all of `scripts/`, sized so one session can finish and verify it; a sweep too large splits by pillar (Core → Game), never by mixing concerns.
 
-## Chores
-
-- Consider adopting Spine2d and removing SpriteMeta
-
 ## Dead Code
 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
-- `World.update` is unwired scaffolding — `sceneColony` drives `WorldClock`/`WorldEvents` directly (it does call `World.reset`), and `update` carries the engine → gameplay-kit edge. Wire the phase-2 routing (clock injected, not named) or drop it.
 - `Blueprint.stamp` — caller-less until the Blueprint UI (Build Mode below) puts a plan down for wood; `capture` is live as the DEV capture tool's exit.
 - `InputPreset` — `save`/`load` are never invoked, so the keymap and `Input.deadzone` only ever hold hardcoded defaults and `input.json` is never written. Load at boot, or drop the module.
 - `InputAction.unbindButton`/`unbindAxis` — `UIRebind` remaps by assigning `action.buttons[0]` directly.
-- `UIMinimap`/`gemsMinimap` — `RadarArrows` is the shipped radar, and the factory is `UIMinimap`'s only constructor site. If kept as a spare, its fixed `target` id also predates the live-queries invariant (take a getter, or resolve `CameraFocus`).
-- `gemsWindow` and the `UIDrag`/`UIResize` pair it is the sole constructor of — the colony windows use `gemsOverlay`. A three-module spare chain like `UIMinimap`/`gemsMinimap`.
 - The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
 
 ## API Shape

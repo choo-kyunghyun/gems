@@ -11,10 +11,12 @@
  *
  * The world-scope singletons it delegates to are reached by their own global, never mirrored into
  * a member here (a member would be a second name for one object plus a boot-wiring dependency):
- *   • WorldClock   — in-game time-of-day / calendar, advanced by update() below.
+ *   • WorldClock   — in-game time-of-day / calendar. The active scene's update() advances it
+ *                    (sceneColony: `WorldClock.update`, then `WorldEvents.update` on its
+ *                    timeline); this file only resets it.
  *   • WorldEvents  — cross-level scheduled events (off-focus world state, e.g. a wandering trader).
- * SimClock — the fixed-step engine TICK RATE, distinct from WorldClock — is world-scope too, but
- * the active scene's update() drives it, not this file.
+ * SimClock — the fixed-step engine TICK RATE, distinct from WorldClock — is world-scope too, and
+ * likewise the active scene's to drive.
  */
 globalThis.World = {
   levels: {}, // mapId -> Level. plain object — for...in is GMRT-safe, Map iteration is not
@@ -80,13 +82,6 @@ globalThis.World = {
     if (snap === null) return null;
     if (World.has(toMapId)) return World.put(toMapId, snap, overrides);
     return snap;
-  },
-
-  // Advance world-scope time by `dt` sim seconds, then fire every event now due on that timeline.
-  // NOT yet wired: sceneColony still calls WorldClock.update / WorldEvents.update directly.
-  update(dt) {
-    WorldClock.update(dt);
-    WorldEvents.update(WorldClock.absHours());
   },
 
   /** New game / world teardown: drop the pool (the owner freed the levels) and the timeline. */

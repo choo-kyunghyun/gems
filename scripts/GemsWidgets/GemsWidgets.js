@@ -83,42 +83,6 @@ globalThis.gemsQuestTracker = function gemsQuestTracker(opts = {}) {
 };
 
 /**
- * Minimap / radar: a framed UINineSlice + a UIMinimap plotting a store's tagged entities
- * around a target. `opts`: { entities, target, range, size, rules ([{ tag, color }]),
- * frameSprite, frameColor, blipSize, playerColor }.
- */
-globalThis.gemsMinimap = function gemsMinimap(opts = {}) {
-  const size = opts.size ?? 160;
-  const rules = [];
-  const src = opts.rules ?? []; // [{ has: <component token>, color }] — presence rule per blip type
-  for (let i = 0; i < src.length; i++)
-    rules.push({ has: src[i].has, color: gemsColor(src[i].color) });
-
-  const el = new UIElement({ width: size, height: size, flexShrink: 0 });
-  el.addComponent(
-    new UINineSlice({
-      sprite: opts.frameSprite ?? asset_get_index("pixUiBox"),
-      subimg: 0,
-      color: opts.frameColor != null ? gemsColor(opts.frameColor) : c_white,
-      alpha: opts.frameAlpha ?? 1,
-    }),
-  );
-  el.addComponent(
-    new UIMinimap({
-      entities: opts.entities,
-      target: opts.target,
-      range: opts.range,
-      rules,
-      inset: opts.inset ?? GemsTheme.padSm,
-      blipSize: opts.blipSize,
-      playerColor:
-        opts.playerColor != null ? gemsColor(opts.playerColor) : undefined,
-    }),
-  );
-  return gemsAttachTooltip(el, opts);
-};
-
-/**
  * One-line hint text on a card backdrop — for overlays where a bare gemsLabel would
  * float as low-contrast text over the scene's render.
  */
