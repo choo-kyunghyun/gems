@@ -39,7 +39,7 @@ VS Code users can run these via the bundled tasks (`.vscode/tasks.json`): **Run*
 
 - G.E.M.S.
   - Core — the pure engine: ECS, systems, level, render, UI, input, utilities
-  - Game — the integrated demo consuming Core: the gameplay model (`Component`/`System`), the item vocabulary (`Item`), content, the themed UI factory kit over the Core UI system, and the scenes — the action-RPG, and the app shell / lobby
+  - Game — the integrated demo consuming Core: the gameplay model (`Component`/`System`), the item vocabulary (`Item`), content, the Facet kit (themed UI factories over the Core UI system), and the scenes — the action-RPG, and the app shell / lobby
 
 ## License
 

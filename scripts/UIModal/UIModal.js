@@ -1,6 +1,6 @@
 /**
  * @implements {UIComponent}
- * Exclusive modal controller on a full-screen root (gemsModal). Returns `true` every
+ * Exclusive modal controller on a full-screen root (facetModal). Returns `true` every
  * frame to block all pointer input beneath it. Closes on Escape or a backdrop click (a
  * press no card child captured). Enter/exit animates: backdrop dim fades + card slides
  * via `root.scrollY`/`scrollX` (offsets the subtree = the card) — no flex mutation. `.close()`
@@ -13,7 +13,7 @@ globalThis.UIModal = class UIModal {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
     this.closeOnEscape = modal.closeOnEscape ?? true;
-    this._root = modal.root ?? null; // full-screen root, set by gemsModal
+    this._root = modal.root ?? null; // full-screen root, set by facetModal
 
     this.duration = modal.duration ?? 0.18; // s per direction (Time.raw)
     this.slide = modal.slide ?? 28; // px the card rises

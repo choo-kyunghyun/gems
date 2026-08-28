@@ -150,7 +150,7 @@ globalThis.UIElement = class UIElement {
    * gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
    * no off-screen surface (see the gpu_set_scissor GMRT-Safe Idiom): save/restore
    * does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
-   * Intersect with the current scissor so nested clips (gemsScroll within gemsScroll) both apply.
+   * Intersect with the current scissor so nested clips (facetScroll within facetScroll) both apply.
    */
   _drawClipped() {
     const pos = this.getLayoutPosition();

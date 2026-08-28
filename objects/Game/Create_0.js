@@ -49,14 +49,14 @@ Settings.register({
   tempUnit: "K",
   // colony HUD directional radar (RadarArrows; toggled in inventory Settings tab)
   hudRadar: false,
-  // GemsUI color theme ("dark"|"light"; switched live in the Settings tab)
+  // Facet color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",
 });
 globalThis.SETTINGS_FILE = "settings.json"; // the app-owned settings filename — Settings stores none; every load/save passes it
 Settings.load(SETTINGS_FILE);
 
-// apply the saved GemsUI color theme before any UI (or the backdrop) reads GemsTheme colors
-GemsTheme.setMode(Settings.get("theme"));
+// apply the saved Facet color theme before any UI (or the backdrop) reads FacetTheme colors
+FacetTheme.setMode(Settings.get("theme"));
 
 // restore saved display state (vsync, AA, fps cap, fullscreen/resolution); GUI sized by UI.applyScale
 Display.applyVideo();
@@ -83,9 +83,9 @@ UI.applyScale(Settings.get("uiScale"));
 // importers) — before any level spawns entities, so the density bake reads declared values
 SpriteMeta.load();
 
-this.background = Color.parse(GemsTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
+this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 
-UINav.color = Color.parse(GemsTheme.accent); // focus ring from kit theme
+UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THE SCENE. Game owns the active Scene outright — there is no scene manager: this pointer IS

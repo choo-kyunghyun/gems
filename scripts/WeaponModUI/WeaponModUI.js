@@ -75,7 +75,7 @@ globalThis.WeaponModUI = {
 
   /**
    * Left: one selectable button per weapon instance (name "+N", "[E]" when equipped),
-   * refilled via the shared gemsFillList.
+   * refilled via the shared facetFillList.
    */
   _fillList(scene, inv, weapons) {
     const eq = scene.level.entities.get(scene.playerId, Equipment);
@@ -100,7 +100,7 @@ globalThis.WeaponModUI = {
         icon: it !== undefined ? it.sprite : -1,
       });
     }
-    gemsFillList(scene._modList, entries, I18n.textRef("MOD_EMPTY"));
+    facetFillList(scene._modList, entries, I18n.textRef("MOD_EMPTY"));
   },
 
   /**
@@ -114,7 +114,7 @@ globalThis.WeaponModUI = {
 
     if (weapons.length === 0) {
       host.insertChild(
-        gemsLabel(I18n.textRef("MOD_SELECT"), { color: GemsTheme.textDim }),
+        facetLabel(I18n.textRef("MOD_SELECT"), { color: FacetTheme.textDim }),
       );
       return;
     }
@@ -131,7 +131,7 @@ globalThis.WeaponModUI = {
     const prof = EquipmentSystem.composeWeapon(slot);
 
     host.insertChild(
-      gemsRichText(
+      facetRichText(
         WorldOverlay.iconTag(slot.itemId) +
           (it !== undefined ? I18n.text(it.name) : slot.itemId),
         {
@@ -144,12 +144,12 @@ globalThis.WeaponModUI = {
     const maker = it !== undefined ? Manufacturer.get(it.maker) : undefined;
     if (maker !== undefined)
       host.insertChild(
-        gemsLabel(I18n.textRef(maker.name), {
+        facetLabel(I18n.textRef(maker.name), {
           font: "description",
           color: maker.color,
         }),
       );
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
 
     // Composed stats, laid out 2-up to stay compact.
     if (gun !== undefined) {
@@ -188,27 +188,27 @@ globalThis.WeaponModUI = {
       );
       host.insertChild(WeaponModUI._statRow2("MOD_REACH", prof.reach, null, 0));
     }
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
 
     // Ammo section (gun only).
     if (gun !== undefined) WeaponModUI._fillAmmo(scene, inv, slot, gun, prof);
 
     // Named attachment slots — one row each.
     host.insertChild(
-      gemsLabel(I18n.textRef("MOD_SLOTS"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("MOD_SLOTS"), { color: FacetTheme.textMuted }),
     );
     for (let i = 0; i < wpn.slots.length; i++)
       host.insertChild(WeaponModUI._slotRow(scene, slot, wpn.slots[i]));
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
 
     // owned compatible attachments, each Install into the first matching empty slot.
     host.insertChild(
-      gemsLabel(I18n.textRef("MOD_AVAILABLE"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("MOD_AVAILABLE"), { color: FacetTheme.textMuted }),
     );
     const owned = WeaponModUI._compatibleMods(inv, wpn);
     if (owned.length === 0) {
       host.insertChild(
-        gemsLabel(I18n.textRef("MOD_NOMODS"), { color: GemsTheme.textDim }),
+        facetLabel(I18n.textRef("MOD_NOMODS"), { color: FacetTheme.textDim }),
       );
     } else {
       for (let i = 0; i < owned.length; i++)
@@ -224,11 +224,11 @@ globalThis.WeaponModUI = {
   _fillAmmo(scene, inv, slot, gun, prof) {
     const host = scene._modDetail;
     host.insertChild(
-      gemsLabel(I18n.textRef("MOD_AMMO"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("MOD_AMMO"), { color: FacetTheme.textMuted }),
     );
     if (prof.noAmmo) {
       host.insertChild(
-        gemsLabel(I18n.textRef("MOD_UNLOADED"), { color: GemsTheme.textDim }),
+        facetLabel(I18n.textRef("MOD_UNLOADED"), { color: FacetTheme.textDim }),
       );
     } else {
       const ammoIt = Item.get(slot.ammo);
@@ -242,7 +242,7 @@ globalThis.WeaponModUI = {
       );
     }
     host.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("MOD_RELOAD"),
         () => {
           EquipmentSystem.reloadSlot(inv, slot);
@@ -262,13 +262,13 @@ globalThis.WeaponModUI = {
     const ammo = WeaponModUI._ownedAmmo(inv, gun.caliber);
     if (ammo.length === 0) {
       host.insertChild(
-        gemsLabel(I18n.textRef("MOD_NO_AMMO"), { color: GemsTheme.textDim }),
+        facetLabel(I18n.textRef("MOD_NO_AMMO"), { color: FacetTheme.textDim }),
       );
     } else {
       for (let i = 0; i < ammo.length; i++)
         host.insertChild(WeaponModUI._ammoRow(scene, inv, slot, ammo[i]));
     }
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
   },
 
   /**
@@ -281,13 +281,13 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsRichText(WorldOverlay.iconTag(ammoId) + nm + " x" + count, {
+      facetRichText(WorldOverlay.iconTag(ammoId) + nm + " x" + count, {
         color: InvTable.rarityColor(ammoId),
       }),
     );
     row.insertChild(cell);
     row.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("MOD_LOAD"),
         () => {
           EquipmentSystem.loadAmmoSlot(inv, slot, ammoId);
@@ -322,7 +322,7 @@ globalThis.WeaponModUI = {
       const it = Item.get(installed);
       const nm = it !== undefined ? I18n.text(it.name) : installed;
       cell.insertChild(
-        gemsRichText(
+        facetRichText(
           WorldOverlay.iconTag(installed) + catLabel + ": " + nm,
           {
             color: InvTable.rarityColor(installed),
@@ -331,7 +331,7 @@ globalThis.WeaponModUI = {
       );
       row.insertChild(cell);
       row.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef("MOD_REMOVE"),
           () => WeaponModUI._removeFrom(scene, slot, slotDef.id),
           { width: 90, height: 24 },
@@ -339,8 +339,8 @@ globalThis.WeaponModUI = {
       );
     } else {
       cell.insertChild(
-        gemsLabel(catLabel + ": " + I18n.text("MOD_EMPTY_SLOT"), {
-          color: GemsTheme.textDim,
+        facetLabel(catLabel + ": " + I18n.text("MOD_EMPTY_SLOT"), {
+          color: FacetTheme.textDim,
         }),
       );
       row.insertChild(cell);
@@ -358,13 +358,13 @@ globalThis.WeaponModUI = {
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
-      gemsRichText(WorldOverlay.iconTag(modId) + nm + " x" + count, {
+      facetRichText(WorldOverlay.iconTag(modId) + nm + " x" + count, {
         color: InvTable.rarityColor(modId),
       }),
     );
     row.insertChild(cell);
     row.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("MOD_INSTALL"),
         () => WeaponModUI._installFirst(scene, slot, wpn, modId),
         {
@@ -493,7 +493,7 @@ globalThis.WeaponModUI = {
       height: h,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
   },
 
@@ -506,7 +506,7 @@ globalThis.WeaponModUI = {
       height: 20,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     row.insertChild(WeaponModUI._statCell(lk, lv));
     row.insertChild(
@@ -518,13 +518,13 @@ globalThis.WeaponModUI = {
   },
 
   /**
-   * one label:value CELL (two pack side-by-side per _statRow2) — gemsKeyValueRow grow mode.
+   * one label:value CELL (two pack side-by-side per _statRow2) — facetKeyValueRow grow mode.
    */
   _statCell(labelKey, value) {
-    return gemsKeyValueRow(
+    return facetKeyValueRow(
       I18n.textRef(labelKey),
       string(value === undefined ? "-" : value),
-      { grow: true, labelColor: GemsTheme.text },
+      { grow: true, labelColor: FacetTheme.text },
     );
   },
 
@@ -532,10 +532,10 @@ globalThis.WeaponModUI = {
    * label:value row with a literal left string (e.g. a loaded-ammo name) + its color.
    */
   _kvRow(left, right, leftColor) {
-    return gemsKeyValueRow(left, string(right), {
+    return facetKeyValueRow(left, string(right), {
       height: 20,
-      gap: GemsTheme.gapSm,
-      labelColor: leftColor === undefined ? GemsTheme.text : leftColor,
+      gap: FacetTheme.gapSm,
+      labelColor: leftColor === undefined ? FacetTheme.text : leftColor,
     });
   },
 };

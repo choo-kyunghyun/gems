@@ -419,8 +419,8 @@ globalThis.SaveGame = {
    * object — Save reads its live scene, Load switches it.
    */
   buildMenuTab(game) {
-    const scroll = gemsScroll({ grow: true });
-    const sec = gemsSection(I18n.textRef("SAVE_TITLE"));
+    const scroll = facetScroll({ grow: true });
+    const sec = facetSection(I18n.textRef("SAVE_TITLE"));
     for (let i = 1; i <= SaveGame.SLOTS; i++)
       sec.insertChild(SaveGame._slotRow(game, "slot" + i, i));
     scroll.scrollBody.insertChild(sec);
@@ -430,11 +430,11 @@ globalThis.SaveGame = {
   _slotRow(game, slot, n) {
     const row = new UIElement({
       width: "100%",
-      height: GemsTheme.rowH,
+      height: FacetTheme.rowH,
       flexShrink: 0,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     // live label (function ref re-reads the index each frame → updates in place after a save)
     const wrap = new UIElement({
@@ -443,13 +443,13 @@ globalThis.SaveGame = {
       justifyContent: "center",
     });
     wrap.insertChild(
-      gemsLabel(() => SaveGame._slotText(slot, n), {
-        color: GemsTheme.text,
+      facetLabel(() => SaveGame._slotText(slot, n), {
+        color: FacetTheme.text,
       }),
     );
     row.insertChild(wrap);
     row.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("SAVE_ACTION"),
         () => SaveGame._menuSave(game, slot, n),
         {
@@ -459,7 +459,7 @@ globalThis.SaveGame = {
       ),
     );
     row.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("LOAD_ACTION"),
         () => SaveGame._menuLoad(game, slot, n),
         {

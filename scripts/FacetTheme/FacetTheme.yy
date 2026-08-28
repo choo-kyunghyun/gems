@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"GemsWidgets",
+  "%Name":"FacetTheme",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"GemsWidgets",
+  "name":"FacetTheme",
   "parent":{
-    "name":"Kit",
-    "path":"folders/Game/UI/Kit.yy",
+    "name":"Facet",
+    "path":"folders/Game/UI/Facet.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"GemsWidgets.js",
+  "scriptSource":"FacetTheme.js",
 }

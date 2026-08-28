@@ -2,7 +2,7 @@
  * Gated to an ALLIED Settlement — the level's (a settlement is a whole map), owned by the player's
  * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
  * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
- * on an allied map, and placement is gated to it too. The palette (a bottom-center gemsCatBar) item is a
+ * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) item is a
  * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places, RMB
  * deconstructs. The SHAPE row above the bar sets the brush's footprint: `cell` acts on the hovered
  * cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every cell the
@@ -35,7 +35,7 @@ globalThis.BuildMode = {
   // the player's faction: a map builds when its Settlement's owner is it or an ally (Game policy)
   FACTION: "player",
 
-  // build catalog driving the gemsCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
+  // build catalog driving the facetCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
   // spawns via make()'s ColonySpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
   // token persisted in _built / _builtEnts + the map cache, so it MUST be unique across the catalog.
   // `species` marks a crop (a contentFlora id): its ground gates the cell (_cellFree).
@@ -507,7 +507,7 @@ globalThis.BuildMode = {
     });
     const col = new UIElement({
       width: 760,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
       alignItems: "center",
     });
 
@@ -519,13 +519,13 @@ globalThis.BuildMode = {
       height: 30,
       flexDirection: "row",
       justifyContent: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     for (let i = 0; i < BuildMode.SHAPES.length; i++) {
       const sh = BuildMode.SHAPES[i];
       if (sh.dev === true && !DEV_MODE) continue;
       shapeRow.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef(sh.labelKey),
           () => {
             scene._buildShape = sh.id;
@@ -539,14 +539,14 @@ globalThis.BuildMode = {
 
     const statusRow = new UIElement({ width: "100%", height: 22 });
     statusRow.insertChild(
-      gemsLabel(() => BuildMode._statusText(scene), {
+      facetLabel(() => BuildMode._statusText(scene), {
         halign: fa_center,
-        color: GemsTheme.text,
+        color: FacetTheme.text,
       }),
     );
     col.insertChild(statusRow);
 
-    // map the catalog to gemsCatBar's shape; each item's onSelect sets the active brush.
+    // map the catalog to facetCatBar's shape; each item's onSelect sets the active brush.
     const cats = [];
     for (let c = 0; c < BuildMode.CATALOG.length; c++) {
       const cat = BuildMode.CATALOG[c];
@@ -562,7 +562,7 @@ globalThis.BuildMode = {
       }
       cats.push({ label: I18n.textRef(cat.labelKey), items });
     }
-    const bar = gemsCatBar(cats, { width: 760, selCat: 0, selItem: 0 });
+    const bar = facetCatBar(cats, { width: 760, selCat: 0, selItem: 0 });
     col.insertChild(bar);
     scene._buildBar = bar;
 

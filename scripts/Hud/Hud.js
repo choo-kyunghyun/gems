@@ -1,5 +1,5 @@
 // HUD + overlay panels for the colony scene — free functions taking the scene (mirrors ColonyCombat/ColonyMap).
-// Panels read scene.level.entities/playerId LIVE via gemsLabel callbacks, surviving the map-change store swap.
+// Panels read scene.level.entities/playerId LIVE via facetLabel callbacks, surviving the map-change store swap.
 globalThis.Hud = {
   /**
    * build the persistent panels once (scene create)
@@ -24,7 +24,7 @@ globalThis.Hud = {
       bottom: 64, // clear of the dialogue box (bottom:24); above the key-hint footer
       flexDirection: "row",
       justifyContent: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     for (let i = 0; i < HOTBAR_SIZE; i++)
       wrap.insertChild(Hud._hotbarSlot(scene, i));
@@ -33,7 +33,7 @@ globalThis.Hud = {
   },
 
   _hotbarSlot(scene, i) {
-    const card = gemsCard({ width: 140, padding: GemsTheme.padSm });
+    const card = facetCard({ width: 140, padding: FacetTheme.padSm });
     const row = new UIElement({
       width: "100%",
       flexDirection: "row",
@@ -41,7 +41,7 @@ globalThis.Hud = {
     });
     // live item icon left of the label; "" (→ 0 width, no gap) when the slot is empty
     row.insertChild(
-      gemsRichText(
+      facetRichText(
         () => {
           if (scene.playerId === undefined) return "";
           const hb = scene.level.entities.get(scene.playerId, Hotbar);
@@ -52,7 +52,7 @@ globalThis.Hud = {
       ),
     );
     row.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           const key = i + 1;
           if (scene.playerId === undefined) return "[" + key + "]";
@@ -65,7 +65,7 @@ globalThis.Hud = {
           const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
           return "[" + key + "]  " + name + " (" + n + ")";
         },
-        { color: GemsTheme.text, font: "description" },
+        { color: FacetTheme.text, font: "description" },
       ),
     );
     card.insertChild(row);
@@ -73,12 +73,12 @@ globalThis.Hud = {
   },
 
   /**
-   * one survival-need RESERVE bar: gemsProgress of (1 - value/max), so full = satiated, read live
+   * one survival-need RESERVE bar: facetProgress of (1 - value/max), so full = satiated, read live
    */
   _needBar(scene, token, labelKey, fillColor) {
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
-      gemsProgress(
+      facetProgress(
         () => 1 - Survival.fraction(scene.level.entities.get(scene.playerId, token)),
         {
           label: I18n.textRef(labelKey),
@@ -104,10 +104,10 @@ globalThis.Hud = {
       justifyContent: "center",
       alignItems: "center",
     });
-    const card = gemsCard({ padding: GemsTheme.pad });
+    const card = facetCard({ padding: FacetTheme.pad });
     card.insertChild(
-      gemsLabel(I18n.textRef("RPG_SLEEPING"), {
-        color: GemsTheme.text,
+      facetLabel(I18n.textRef("RPG_SLEEPING"), {
+        color: FacetTheme.text,
         font: "header",
         halign: fa_center,
       }),
@@ -128,17 +128,17 @@ globalThis.Hud = {
       right: 16,
       width: 300,
     });
-    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
     const hpRow = new UIElement({ width: "100%", height: 24 });
     hpRow.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           const st = scene.level.entities.get(scene.playerId, Stats);
           const hpC = scene.level.entities.get(scene.playerId, Health);
           const hp = hpC !== undefined ? hpC.hp : 0;
           return I18n.text("RPG_HUD", hp, st.maxHp);
         },
-        { color: GemsTheme.text, font: "header" },
+        { color: FacetTheme.text, font: "header" },
       ),
     );
     card.insertChild(hpRow);
@@ -146,7 +146,7 @@ globalThis.Hud = {
     // unarmed (the row self-sizes, so it collapses to ~0 height then)
     const ammoRow = new UIElement({ width: "100%" });
     ammoRow.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           if (scene.playerId === undefined) return "";
           const prof = EquipmentSystem.weaponProfile(
@@ -159,7 +159,7 @@ globalThis.Hud = {
           const nm = it !== undefined ? I18n.text(it.name) : prof.ammo;
           return nm + "  " + prof.rounds + "/" + prof.magazine;
         },
-        { color: GemsTheme.warn, font: "description" },
+        { color: FacetTheme.warn, font: "description" },
       ),
     );
     card.insertChild(ammoRow);
@@ -167,7 +167,7 @@ globalThis.Hud = {
     // centered "description"-font label inside the bar.
     const staRow = new UIElement({ width: "100%", height: 20 });
     staRow.insertChild(
-      gemsProgress(
+      facetProgress(
         () => {
           const sta = scene.level.entities.get(scene.playerId, Stamina);
           const st = scene.level.entities.get(scene.playerId, Stats);
@@ -194,7 +194,7 @@ globalThis.Hud = {
     // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           I18n.text(
             "RPG_TIME",
@@ -202,21 +202,21 @@ globalThis.Hud = {
             WorldClock.seasonDay(),
             WorldClock.clockText(),
           ),
-        { color: GemsTheme.textMuted },
+        { color: FacetTheme.textMuted },
       ),
     );
     card.insertChild(timeRow);
     // weather condition + ambient temperature, both derived live
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           I18n.text(
             "RPG_COND",
             I18n.text(Weather.current().name),
             Temperature.display(),
           ),
-        { color: GemsTheme.textMuted },
+        { color: FacetTheme.textMuted },
       ),
     );
     card.insertChild(tempRow);
@@ -224,7 +224,7 @@ globalThis.Hud = {
     // so several statuses tint independently ("" when none)
     const statusRow = new UIElement({ width: "100%", height: 20 });
     statusRow.insertChild(
-      gemsRichText(
+      facetRichText(
         () => {
           const list = StatusSystem.list(scene.level.entities, scene.playerId);
           let s = "";
@@ -240,9 +240,9 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(statusRow);
-    card.insertChild(gemsDivider());
+    card.insertChild(facetDivider());
     card.insertChild(
-      gemsQuestTracker({
+      facetQuestTracker({
         source: Tracker,
         emptyText: I18n.textRef("RPG_NO_QUEST"),
       }),
@@ -262,26 +262,26 @@ globalThis.Hud = {
       bottom: 24,
       alignItems: "center",
     });
-    const card = gemsCard({ width: 640, padding: GemsTheme.pad });
+    const card = facetCard({ width: 640, padding: FacetTheme.pad });
     const name = new UIElement({ width: "100%", height: 26 });
     name.insertChild(
-      gemsLabel(() => I18n.text(scene.dialogueName), {
-        color: GemsTheme.warn,
+      facetLabel(() => I18n.text(scene.dialogueName), {
+        color: FacetTheme.warn,
         font: "header",
       }),
     );
     const line = new UIElement({ width: "100%", height: 26 });
     line.insertChild(
-      gemsLabel(() => I18n.text(scene.dialogueLine), { color: GemsTheme.text }),
+      facetLabel(() => I18n.text(scene.dialogueLine), { color: FacetTheme.text }),
     );
     const action = new UIElement({ width: "100%", height: 22 });
     action.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           scene.dialogueAction !== ""
             ? "[E] " + I18n.text(scene.dialogueAction)
             : "",
-        { color: GemsTheme.good },
+        { color: FacetTheme.good },
       ),
     );
     card.insertChild(name);

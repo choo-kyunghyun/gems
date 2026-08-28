@@ -1,6 +1,6 @@
 /**
  * The popup is built by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic
- * (gemsDropdown supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
+ * (facetDropdown supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
  * @implements {UIComponent}
  */
 globalThis.UIDropdown = class UIDropdown {

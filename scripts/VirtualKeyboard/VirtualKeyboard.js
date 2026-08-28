@@ -1,5 +1,5 @@
 // On-screen keyboard for gamepad/mouse text entry into a UIInput — standalone singleton. Keys are
-// gemsButtons (UINav-navigable); edits an in-memory buffer — Done commits, Cancel/Esc/backdrop discard.
+// facetButton keys (UINav-navigable); edits an in-memory buffer — Done commits, Cancel/Esc/backdrop discard.
 globalThis.VirtualKeyboard = {
   _modal: null,
   _input: null,
@@ -20,7 +20,7 @@ globalThis.VirtualKeyboard = {
     VirtualKeyboard._buffer = input.value;
     VirtualKeyboard._shift = false;
 
-    VirtualKeyboard._modal = gemsModal({
+    VirtualKeyboard._modal = facetModal({
       title: I18n.text("VK_TITLE"),
       body: VirtualKeyboard._buildBody(),
       width: 580,
@@ -91,26 +91,26 @@ globalThis.VirtualKeyboard = {
    * body layout
    */
   _buildBody() {
-    const body = gemsList({ gap: GemsTheme.gapSm });
+    const body = facetList({ gap: FacetTheme.gapSm });
 
     // preview line: buffer on a sunken panel
     const preview = new UIElement({
       height: 40,
       justifyContent: "center",
-      paddingHorizontal: GemsTheme.pad,
+      paddingHorizontal: FacetTheme.pad,
     });
     preview.addComponent(
       new UIPanel({
-        color: gemsColor(GemsTheme.btnPress),
-        rad: GemsTheme.radiusSm,
+        color: facetColor(FacetTheme.btnPress),
+        rad: FacetTheme.radiusSm,
         border: 1,
-        borderColor: gemsColor(GemsTheme.border),
+        borderColor: facetColor(FacetTheme.border),
       }),
     );
     preview.insertChild(
-      gemsLabel(() => VirtualKeyboard._displayText(), {
+      facetLabel(() => VirtualKeyboard._displayText(), {
         halign: fa_center,
-        color: GemsTheme.text,
+        color: FacetTheme.text,
       }),
     );
     body.insertChild(preview);
@@ -127,20 +127,20 @@ globalThis.VirtualKeyboard = {
       gap: 6,
     });
     special.insertChild(
-      gemsButton(
+      facetButton(
         () => I18n.text("VK_SHIFT") + (VirtualKeyboard._shift ? " *" : ""),
         () => VirtualKeyboard.toggleShift(),
         { width: 120, height: 46 },
       ),
     );
     special.insertChild(
-      gemsButton(I18n.textRef("VK_SPACE"), () => VirtualKeyboard.type(" "), {
+      facetButton(I18n.textRef("VK_SPACE"), () => VirtualKeyboard.type(" "), {
         width: 230,
         height: 46,
       }),
     );
     special.insertChild(
-      gemsButton(I18n.textRef("VK_BACK"), () => VirtualKeyboard.backspace(), {
+      facetButton(I18n.textRef("VK_BACK"), () => VirtualKeyboard.backspace(), {
         width: 120,
         height: 46,
       }),
@@ -175,7 +175,7 @@ globalThis.VirtualKeyboard = {
    */
   _key(ch) {
     const isLetter = ch >= "a" && ch <= "z";
-    return gemsButton(
+    return facetButton(
       isLetter
         ? () => (VirtualKeyboard._shift ? VirtualKeyboard._upper(ch) : ch)
         : ch,

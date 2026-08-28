@@ -204,7 +204,7 @@ globalThis.UITabs = class UITabs {
 
     // re-stroke the rule as a trailing UNTEXTURED draw to force a texture swap that flushes
     // the last label out of the pending batch — else a clip container drawn right after (a
-    // gemsScroll) captures it under gpu_set_scissor and clips it away ("About" tab vanished).
+    // facetScroll) captures it under gpu_set_scissor and clips it away ("About" tab vanished).
     // CAN'T fix with draw_flush(): flushing before a clip's gpu_set_scissor corrupts the clip
     // on GMRT 0.20 ("No pipeline set"). redundant with the rule above, so free.
     draw_set_alpha(1);

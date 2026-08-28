@@ -11,10 +11,10 @@ globalThis.InventoryUI = {
    * uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
    */
   build(scene) {
-    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
     // Inserted AFTER the HUD so the backdrop veils it; Esc / the inventory key also close
     // (sceneColony.handleEscape + step() toggle). Tabs (built below) flex-grow in host.body.
-    const host = gemsOverlay(I18n.textRef("INV_TITLE"), {
+    const host = facetOverlay(I18n.textRef("INV_TITLE"), {
       onClose: () => {
         scene.invOpen = false;
         scene._invWin.enabled = false;
@@ -27,7 +27,7 @@ globalThis.InventoryUI = {
     scene._invClick = { key: "", time: 0 }; // InvTable.reclick latch (double-click-to-use)
     scene._invCat = ""; // active category filter code ("" = all)
 
-    const tabs = gemsTabs(
+    const tabs = facetTabs(
       [
         {
           label: I18n.textRef("INV_TAB_ITEMS"),
@@ -86,7 +86,7 @@ globalThis.InventoryUI = {
       width: "100%",
       flexGrow: 1,
       flexBasis: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
 
     const top = new UIElement({
@@ -94,13 +94,13 @@ globalThis.InventoryUI = {
       height: 30,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
       // read scene.level.entities LIVE (not a captured const): ColonyMap.go swaps scene.level.entities on a map
       // change while the window is open, so a captured ref would read the parked old store.
-      gemsLabel(
+      facetLabel(
         () => {
           const v = scene.level.entities.get(scene.playerId, Inventory);
           let s =
@@ -115,7 +115,7 @@ globalThis.InventoryUI = {
               v.maxWeight;
           return s;
         },
-        { color: GemsTheme.textMuted },
+        { color: FacetTheme.textMuted },
       ),
     );
     top.insertChild(usageCell);
@@ -127,19 +127,21 @@ globalThis.InventoryUI = {
       { name: I18n.text("INV_CAT_CONSUMABLE"), value: "consumable" },
       { name: I18n.text("INV_CAT_MISC"), value: "misc" },
     ];
-    // fixed-width wrapper — gemsSelectCustom is width:100% and would else squish the usage label
+    // fixed-width wrapper — facetSelect is width:100% and would else squish the usage label
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(
-      gemsSelectCustom(cats, 0, (_i, code) => {
-        scene._invCat = code;
-        InventoryUI._refreshGrid(scene);
-        InventoryUI._refreshDetail(scene); // the selection may have filtered away
+      facetSelect(cats, {
+        onChange: (_i, code) => {
+          scene._invCat = code;
+          InventoryUI._refreshGrid(scene);
+          InventoryUI._refreshDetail(scene); // the selection may have filtered away
+        },
       }),
     );
     top.insertChild(filterCell);
     // tidy the REAL bag order (merge stacks, category → rarer-first); the grid mirrors it
     top.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("INV_SORT"),
         () => {
           InventorySystem.sort(scene.level.entities.get(scene.playerId, Inventory));
@@ -151,16 +153,16 @@ globalThis.InventoryUI = {
     page.insertChild(top);
 
     // grid (left, sized to the bag) + detail pane (right, fills the rest & stretches).
-    // No gemsScroll around the grid — a clipped scroll beside a non-clipped sibling is the
+    // No facetScroll around the grid — a clipped scroll beside a non-clipped sibling is the
     // GMRT batch-flush trap (see CraftingUI); the grid fits the tall card instead.
     const content = new UIElement({
       width: "100%",
       flexGrow: 1,
       flexBasis: 0,
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
-    const grid = gemsSlots([], {
+    const grid = facetSlots([], {
       cols: InventoryUI.GRID_COLS,
       cellSize: InventoryUI.GRID_CELL,
       gap: InventoryUI.GRID_GAP,
@@ -181,15 +183,15 @@ globalThis.InventoryUI = {
     const detail = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
-      padding: GemsTheme.padSm,
+      padding: FacetTheme.padSm,
       gap: 4,
     });
     detail.addComponent(
       new UIPanel({
-        color: gemsColor(GemsTheme.panel),
-        rad: GemsTheme.radius,
+        color: facetColor(FacetTheme.panel),
+        rad: FacetTheme.radius,
         border: 1,
-        borderColor: gemsColor(GemsTheme.border),
+        borderColor: facetColor(FacetTheme.border),
       }),
     );
     scene._invDetailHost = detail;
@@ -202,28 +204,28 @@ globalThis.InventoryUI = {
       height: 32,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const selCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     selCell.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           scene._invSel === null
             ? I18n.text("INV_SELECT_NONE")
             : scene._invSel.name,
-        { color: GemsTheme.text },
+        { color: FacetTheme.text },
       ),
     );
     action.insertChild(selCell);
     action.insertChild(
-      gemsButton(
+      facetButton(
         () => InventoryUI._favLabel(scene),
         () => InventoryUI._toggleFav(scene),
         { width: 110, height: 28, disabled: () => scene._invSel === null },
       ),
     );
     action.insertChild(
-      gemsButton(
+      facetButton(
         () => InventoryUI._actionLabel(scene),
         () => {
           if (scene._invSel !== null)
@@ -239,7 +241,7 @@ globalThis.InventoryUI = {
     // sceneColony._useHotbar). Labels read the live Hotbar.
     const hbTitle = new UIElement({ width: "100%", height: 20 });
     hbTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
     );
     page.insertChild(hbTitle);
     const hbRow = new UIElement({
@@ -247,7 +249,7 @@ globalThis.InventoryUI = {
       height: 34,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
@@ -262,7 +264,7 @@ globalThis.InventoryUI = {
    * one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
    */
   _hotbarBtn(scene, i) {
-    return gemsButton(
+    return facetButton(
       () => {
         const hb = scene.level.entities.get(scene.playerId, Hotbar);
         const itemId = hb !== undefined ? hb.slots[i] : "";
@@ -311,15 +313,15 @@ globalThis.InventoryUI = {
    * Equipment: worn-slot rows, repopulated per rebuild into this host.
    */
   _buildEquipTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
+      facetLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
     );
     page.insertChild(title);
     scene._invEquipHost = new UIElement({
       width: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     page.insertChild(scene._invEquipHost);
     return page;
@@ -330,25 +332,25 @@ globalThis.InventoryUI = {
    * (present companions change across maps); per-row text + Dismiss state read the live Follower.
    */
   _buildFollowerTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("INV_FOLLOWERS"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_FOLLOWERS"), { color: "warn" }),
     );
     page.insertChild(title);
     scene._invFollowerHost = new UIElement({
       width: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     page.insertChild(scene._invFollowerHost);
 
-    // recall hint, binding-aware (reads the follow action's live key, like gemsKeyHints)
-    page.insertChild(gemsDivider());
+    // recall hint, binding-aware (reads the follow action's live key, like facetKeyHints)
+    page.insertChild(facetDivider());
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
-      gemsLabel(
+      facetLabel(
         () => I18n.text("FOLLOWER_RECALL_HINT", Input.get("interact").label()),
-        { color: GemsTheme.textDim },
+        { color: FacetTheme.textDim },
       ),
     );
     page.insertChild(hint);
@@ -369,8 +371,8 @@ globalThis.InventoryUI = {
       // [0] is the player
       const empty = new UIElement({ width: "100%", height: 24 });
       empty.insertChild(
-        gemsLabel(I18n.textRef("INV_NO_FOLLOWERS"), {
-          color: GemsTheme.textDim,
+        facetLabel(I18n.textRef("INV_NO_FOLLOWERS"), {
+          color: FacetTheme.textDim,
         }),
       );
       host.insertChild(empty);
@@ -387,23 +389,23 @@ globalThis.InventoryUI = {
    * PERMANENTLY, in place — rehire by walking up and talking)
    */
   _followerRow(scene, fid) {
-    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
 
     const head = new UIElement({ width: "100%", height: 22 });
     head.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           const nm = scene.level.entities.get(fid, Name);
           return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
         },
-        { color: GemsTheme.text, font: "header" },
+        { color: FacetTheme.text, font: "header" },
       ),
     );
     card.insertChild(head);
 
     const status = new UIElement({ width: "100%", height: 20 });
     status.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           const f = scene.level.entities.get(fid, Follower);
           if (f === undefined) return "";
@@ -423,13 +425,13 @@ globalThis.InventoryUI = {
             )
           );
         },
-        { color: GemsTheme.textMuted },
+        { color: FacetTheme.textMuted },
       ),
     );
     card.insertChild(status);
 
     card.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("FOLLOWER_DISMISS"),
         () => scene._kickFollower(fid),
         {
@@ -450,9 +452,9 @@ globalThis.InventoryUI = {
    * Stats: live character sheet + the genre's extra records (the Tracker's line) host.
    */
   _buildStatsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const statRow = (labelKey, getter) =>
-      gemsKeyValueRow(I18n.textRef(labelKey), () => {
+      facetKeyValueRow(I18n.textRef(labelKey), () => {
         const st = scene.level.entities.get(scene.playerId, Stats);
         return st === undefined ? "" : String(getter(st));
       });
@@ -462,12 +464,12 @@ globalThis.InventoryUI = {
 
     // primary attributes — the inputs the derived stats come from. Data-driven from
     // StatModel.ATTRS, reading the live Attributes bag, so a *_shard grant shows on next rebuild.
-    page.insertChild(gemsDivider());
+    page.insertChild(facetDivider());
     page.insertChild(
-      gemsLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
     );
     const attrRow = (def) =>
-      gemsKeyValueRow(I18n.textRef(def.name), () => {
+      facetKeyValueRow(I18n.textRef(def.name), () => {
         const at = scene.level.entities.get(scene.playerId, Attributes);
         return at === undefined ? "" : String(at[def.id]);
       });
@@ -475,10 +477,10 @@ globalThis.InventoryUI = {
       page.insertChild(attrRow(StatModel.ATTRS[i]));
     }
 
-    page.insertChild(gemsDivider());
+    page.insertChild(facetDivider());
     scene._invExtraHost = new UIElement({
       width: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     page.insertChild(scene._invExtraHost);
     return page;
@@ -488,9 +490,9 @@ globalThis.InventoryUI = {
    * Quests: live tracker bound to the global Tracker (defs come from QuestLog behind it).
    */
   _buildQuestsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     page.insertChild(
-      gemsQuestTracker({
+      facetQuestTracker({
         source: Tracker,
         emptyText: I18n.text("INV_NO_QUESTS"),
       }),
@@ -504,7 +506,7 @@ globalThis.InventoryUI = {
    * with no rebuild.
    */
   _buildAchievementsTab(_level) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const all = Achievement.all();
     for (let i = 0; i < all.length; i++)
       page.insertChild(InventoryUI._achievementRow(all[i]));
@@ -515,7 +517,7 @@ globalThis.InventoryUI = {
    * one achievement card: name + live unlock status on the head row, description under
    */
   _achievementRow(a) {
-    const card = gemsCard({ padding: GemsTheme.padSm, gap: GemsTheme.gapSm });
+    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
 
     const head = new UIElement({
       width: "100%",
@@ -525,14 +527,14 @@ globalThis.InventoryUI = {
     });
     const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     nameCell.insertChild(
-      gemsLabel(I18n.textRef(a.name), {
-        color: GemsTheme.text,
+      facetLabel(I18n.textRef(a.name), {
+        color: FacetTheme.text,
         font: "header",
       }),
     );
     head.insertChild(nameCell);
     head.insertChild(
-      gemsRichText(() =>
+      facetRichText(() =>
         Tracker.isUnlocked(a.id)
           ? "[c=accent]" + I18n.text("ACH_UNLOCKED") + "[/c]"
           : "[c=dim]" + I18n.text("ACH_LOCKED") + "[/c]",
@@ -542,7 +544,7 @@ globalThis.InventoryUI = {
 
     const desc = new UIElement({ width: "100%", height: 20 });
     desc.insertChild(
-      gemsLabel(I18n.textRef(a.desc), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef(a.desc), { color: FacetTheme.textMuted }),
     );
     card.insertChild(desc);
     return card;
@@ -553,16 +555,16 @@ globalThis.InventoryUI = {
    * the current sort by column key.
    */
   _buildSettingsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: GemsTheme.gapSm });
+    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
     );
     page.insertChild(title);
     // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
     // would be undefined and made the toggles one-way: disable but never re-enable).
     const toggle = (labelKey, settingKey) =>
-      gemsCheckbox(
+      facetCheckbox(
         I18n.textRef(labelKey),
         () => Settings.get(settingKey),
         () => {
@@ -580,10 +582,10 @@ globalThis.InventoryUI = {
 
     // Units: ambient-temperature display unit. The HUD reads Temperature.display() live, so
     // persisting updates it next frame — no rebuild.
-    page.insertChild(gemsDivider());
+    page.insertChild(facetDivider());
     const unitsTitle = new UIElement({ width: "100%", height: 22 });
     unitsTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_UNITS"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_SET_UNITS"), { color: "warn" }),
     );
     page.insertChild(unitsTitle);
     const units = [
@@ -591,15 +593,12 @@ globalThis.InventoryUI = {
       { name: "°C", value: "C" },
       { name: "°F", value: "F" },
     ];
-    let unitIdx = 0;
-    for (let i = 0; i < units.length; i++)
-      if (units[i].value === Settings.get("tempUnit")) unitIdx = i;
     page.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("INV_SET_TEMP"),
-        gemsSelectCustom(units, unitIdx, (_i, code) => {
-          Settings.set("tempUnit", code);
-          Settings.save(SETTINGS_FILE);
+        facetSelect(units, {
+          key: "tempUnit",
+          onChange: () => Settings.save(SETTINGS_FILE),
         }),
         { key: "tempUnit" },
       ),
@@ -607,14 +606,14 @@ globalThis.InventoryUI = {
 
     // HUD: player-centered radar (RadarArrows, drawn live in sceneColony.draw, reads the setting
     // each frame) — just flip + persist, no _applyColumns like the column toggles.
-    page.insertChild(gemsDivider());
+    page.insertChild(facetDivider());
     const hudTitle = new UIElement({ width: "100%", height: 22 });
     hudTitle.insertChild(
-      gemsLabel(I18n.textRef("INV_SET_HUD"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_SET_HUD"), { color: "warn" }),
     );
     page.insertChild(hudTitle);
     page.insertChild(
-      gemsCheckbox(
+      facetCheckbox(
         I18n.textRef("INV_RADAR"),
         () => Settings.get("hudRadar"),
         () => {
@@ -717,8 +716,8 @@ globalThis.InventoryUI = {
     }
     scene._invView = view;
 
-    const gold = gemsColor("warn");
-    const accent = gemsColor(GemsTheme.accent);
+    const gold = facetColor("warn");
+    const accent = facetColor(FacetTheme.accent);
     const items = [];
     for (let i = 0; i < view.length; i++) {
       const r = view[i];
@@ -796,8 +795,8 @@ globalThis.InventoryUI = {
     const row = scene._invSel;
     if (row === null) {
       host.insertChild(
-        gemsLabel(I18n.textRef("INV_SELECT_NONE"), {
-          color: GemsTheme.textDim,
+        facetLabel(I18n.textRef("INV_SELECT_NONE"), {
+          color: FacetTheme.textDim,
         }),
       );
       return;
@@ -814,7 +813,7 @@ globalThis.InventoryUI = {
       width: "100%",
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     if (it !== undefined && sprite_exists(it.sprite)) {
       const ic = new UIElement({ width: 48, height: 48, flexShrink: 0 });
@@ -824,11 +823,11 @@ globalThis.InventoryUI = {
       head.insertChild(ic);
     }
     const hcol = new UIElement({ flexGrow: 1, flexBasis: 0, gap: 2 });
-    hcol.insertChild(gemsLabel(row.name, { font: "header", color: row.color }));
+    hcol.insertChild(facetLabel(row.name, { font: "header", color: row.color }));
     const rar = it !== undefined ? Rarity.get(it.rarity) : undefined;
     if (rar !== undefined)
       hcol.insertChild(
-        gemsLabel(I18n.textRef(rar.name), {
+        facetLabel(I18n.textRef(rar.name), {
           font: "description",
           color: rar.color,
         }),
@@ -839,12 +838,12 @@ globalThis.InventoryUI = {
     // maker: company name in brand color + its lore line
     const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
     if (mk !== undefined) {
-      host.insertChild(gemsLabel(I18n.textRef(mk.name), { color: mk.color }));
+      host.insertChild(facetLabel(I18n.textRef(mk.name), { color: mk.color }));
       if (mk.lore !== "")
         host.insertChild(
-          gemsLabel(I18n.textRef(mk.lore), {
+          facetLabel(I18n.textRef(mk.lore), {
             font: "description",
-            color: GemsTheme.textDim,
+            color: FacetTheme.textDim,
             wrap: InventoryUI.DETAIL_WRAP,
           }),
         );
@@ -852,15 +851,15 @@ globalThis.InventoryUI = {
 
     if (it !== undefined && it.description !== "")
       host.insertChild(
-        gemsLabel(I18n.textRef(it.description), {
-          color: GemsTheme.textMuted,
+        facetLabel(I18n.textRef(it.description), {
+          color: FacetTheme.textMuted,
           wrap: InventoryUI.DETAIL_WRAP,
         }),
       );
 
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
     const statLine = (key, v) =>
-      gemsLabel(I18n.text(key) + ": " + v, { color: GemsTheme.textMuted });
+      facetLabel(I18n.text(key) + ": " + v, { color: FacetTheme.textMuted });
 
     // weapon: this INSTANCE's composed profile (maker ops + installed attachments applied)
     const prof =
@@ -912,12 +911,12 @@ globalThis.InventoryUI = {
         const key = InventoryUI.STAT_KEYS[k];
         const v = eqp.mods[k];
         host.insertChild(
-          gemsLabel(
+          facetLabel(
             (key !== undefined ? I18n.text(key) : k) +
               " " +
               (v >= 0 ? "+" : "") +
               v,
-            { color: GemsTheme.accent },
+            { color: FacetTheme.accent },
           ),
         );
       }
@@ -929,7 +928,7 @@ globalThis.InventoryUI = {
         const m = Item.get(inst.mods[sid]);
         if (m !== undefined)
           host.insertChild(
-            gemsLabel("+ " + I18n.text(m.name), {
+            facetLabel("+ " + I18n.text(m.name), {
               font: "description",
               color: InvTable.rarityColor(m.id),
             }),
@@ -937,9 +936,9 @@ globalThis.InventoryUI = {
       }
     }
 
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
     host.insertChild(
-      gemsLabel(
+      facetLabel(
         I18n.text("INV_COL_QTY") +
           " " +
           row.qty +
@@ -1002,7 +1001,7 @@ globalThis.InventoryUI = {
       if (inst !== undefined && inst.mods !== undefined)
         for (const slotId in inst.mods) modCount++;
       const nm = modCount > 0 ? base + " +" + modCount : base;
-      return gemsButton(
+      return facetButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
           EquipmentSystem.unequip(scene.level.entities, scene.playerId, slot);
@@ -1018,8 +1017,8 @@ globalThis.InventoryUI = {
     }
     const row = new UIElement({ width: "100%", height: 26 });
     row.insertChild(
-      gemsLabel(I18n.text(labelKey) + ": " + I18n.text("SLOT_EMPTY"), {
-        color: GemsTheme.textDim,
+      facetLabel(I18n.text(labelKey) + ": " + I18n.text("SLOT_EMPTY"), {
+        color: FacetTheme.textDim,
       }),
     );
     return row;

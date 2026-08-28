@@ -1,25 +1,27 @@
-// The overview the GemsContainers / GemsWidgets / GemsControls buckets cite.
+// The overview the FacetContainers / FacetWidgets / FacetControls / FacetSettings buckets cite.
 
 /**
- * Themed factory library: gems* factories compose UIElement + UI* components, and EVERY visual
+ * Themed factory library: facet* factories compose UIElement + UI* components, and EVERY visual
  * constant lives here — a factory composes these keys, never a literal color or spacing number.
  * Colors are stored as hex and parsed lazily (Color may not be loaded at module scope). The kit
- * is split across small files, each declaring factories as `globalThis.X = function X(…)` per the
- * GMRT large-file hoisting rule (#15564).
+ * is split by what a factory does — FacetContainers hold children, FacetWidgets show a value,
+ * FacetControls edit one or fire an action, FacetSettings bind them to Settings — each file
+ * declaring factories as `globalThis.X = function X(…)` per the GMRT large-file hoisting rule
+ * (#15564).
  *
  * Opt conventions (kit-wide): `label`/`onText`/`offText` take a string OR a live `() => string`
- * (I18n.textRef); `gemsButton`'s `disabled`/`selected` take a live `() => bool` re-read each
- * frame; color opts take a theme key, hex string, or color int (gemsColor). Hover/press easing
+ * (I18n.textRef); `facetButton`'s `disabled`/`selected` take a live `() => bool` re-read each
+ * frame; color opts take a theme key, hex string, or color int (facetColor). Hover/press easing
  * runs on Time.raw (the clock split, ARCHITECTURE.md).
  *
  * Theme modes: every COLOR key lives in two palettes (dark = the original look, light).
- * `setMode(mode)` copies the active palette's colors onto the flat GemsTheme keys the factories
- * read, so each `GemsTheme.<colorKey>` resolves to the current mode. Factories bake those colors
+ * `setMode(mode)` copies the active palette's colors onto the flat FacetTheme keys the factories
+ * read, so each `FacetTheme.<colorKey>` resolves to the current mode. Factories bake those colors
  * into UI components at BUILD time, so a LIVE swap must rebuild the UI afterwards
  * (the Game object's retheme() → each scene's retheme()); it is NOT read live per frame. Geometry/motion
  * are theme-independent and stay flat on the object.
  */
-globalThis.GemsTheme = {
+globalThis.FacetTheme = {
   // ── Geometry ──
   radius: 14,
   radiusSm: 9,
@@ -29,8 +31,8 @@ globalThis.GemsTheme = {
   gap: 14,
   gapSm: 10,
   rowH: 50, // button / control height
-  rowLabelW: 160, // gemsRow label column width (label | control)
-  titleH: 26, // gemsSection title host height (keeps it off the card border)
+  rowLabelW: 160, // facetRow label column width (label | control)
+  titleH: 26, // facetSection title host height (keeps it off the card border)
   menuWidth: 760, // centered max-width for menu scenes (lobby/settings/…)
   headerH: 64,
   // ── Motion ──
@@ -97,17 +99,17 @@ globalThis.GemsTheme = {
 
   /** Swap the active color palette ("dark"|"light"; no-op on an unknown mode). Rebuild the UI after — colors are baked at build. */
   setMode: function setMode(mode) {
-    const p = GemsTheme.palettes[mode];
+    const p = FacetTheme.palettes[mode];
     if (p === undefined) return;
-    GemsTheme.mode = mode;
-    for (const k in p) GemsTheme[k] = p[k]; // for..in over a plain object is GMRT-safe
-    GemsTheme._applyCore();
+    FacetTheme.mode = mode;
+    for (const k in p) FacetTheme[k] = p[k]; // for..in over a plain object is GMRT-safe
+    FacetTheme._applyCore();
   },
 
   /**
    * THE seam that carries a palette swap to the Core singletons that draw themselves outside the
    * UIElement tree — Tooltip/Toast/Dialogue (GUI chrome) and FloatingText (world-space numbers).
-   * No gems* factory can reach them, so the kit pushes instead (the injection idiom,
+   * No facet* factory can reach them, so the kit pushes instead (the injection idiom,
    * ARCHITECTURE.md); their own field defaults are only what shows before the first setMode.
    * No-op while the globals are still loading: the seeding setMode below runs at script load,
    * where neither Color nor the singletons exist yet (GMRT load order) — the boot call in
@@ -122,10 +124,10 @@ globalThis.GemsTheme = {
       globalThis.FloatingText === undefined
     )
       return;
-    const panel = gemsColor("panelLo"); // the darkest surface — an overlay sits above the cards
-    const border = gemsColor("border");
-    const text = gemsColor("text");
-    const accent = gemsColor("accent");
+    const panel = facetColor("panelLo"); // the darkest surface — an overlay sits above the cards
+    const border = facetColor("border");
+    const text = facetColor("text");
+    const accent = facetColor("accent");
 
     Tooltip.panelColor = panel;
     Tooltip.borderColor = border;
@@ -135,49 +137,36 @@ globalThis.GemsTheme = {
     Toast.borderColor = border;
     Toast.textColor = text;
     Toast.accents.info = accent;
-    Toast.accents.success = gemsColor("good");
-    Toast.accents.warn = gemsColor("warn");
-    Toast.accents.error = gemsColor("bad");
+    Toast.accents.success = facetColor("good");
+    Toast.accents.warn = facetColor("warn");
+    Toast.accents.error = facetColor("bad");
 
     Dialogue.panelColor = panel;
     Dialogue.borderColor = border;
     Dialogue.textColor = text;
-    Dialogue.plateColor = gemsColor("panel");
+    Dialogue.plateColor = facetColor("panel");
     Dialogue.plateBorder = accent;
-    Dialogue.speakerColor = gemsColor("accentHi");
-    Dialogue.chevronColor = gemsColor("accentHi");
+    Dialogue.speakerColor = facetColor("accentHi");
+    Dialogue.chevronColor = facetColor("accentHi");
 
     FloatingText.colors.damage = text;
-    FloatingText.colors.hurt = gemsColor("bad");
-    FloatingText.colors.heal = gemsColor("good");
-    FloatingText.colors.crit = gemsColor("warn");
+    FloatingText.colors.hurt = facetColor("bad");
+    FloatingText.colors.heal = facetColor("good");
+    FloatingText.colors.crit = facetColor("warn");
     FloatingText.colors.mana = accent;
   },
 };
-GemsTheme.setMode("dark"); // seed the flat color keys with the default palette
+FacetTheme.setMode("dark"); // seed the flat color keys with the default palette
 
 /** Resolve a theme key, hex string, or raw color int into a GameMaker color int. */
-globalThis.gemsColor = function gemsColor(c) {
+globalThis.facetColor = function facetColor(c) {
   if (typeof c === "number") return c;
-  if (GemsTheme[c] !== undefined) return Color.parse(GemsTheme[c]);
+  if (FacetTheme[c] !== undefined) return Color.parse(FacetTheme[c]);
   return Color.parse(c);
 };
 
 /** Normalize a string or () => string into a live textRef — kit-facing alias of Core's uiTextRef. */
-globalThis.gemsTextRef = function gemsTextRef(label) {
+globalThis.facetTextRef = function facetTextRef(label) {
   return uiTextRef(label);
 };
 
-/**
- * Live textRef for a Settings-bound label: suffixed with `*` while `key` (one key, or an
- * array of them for a row that writes several) differs from its default. Resolved per draw,
- * so a set or a reset shows without a rebuild. Pass no key and it is gemsTextRef; pass a
- * `() => boolean` for a control bound elsewhere than Settings (a key rebind) and it decides.
- */
-globalThis.gemsSettingsRef = function gemsSettingsRef(label, key) {
-  const base = gemsTextRef(label);
-  if (key === undefined) return base;
-  const modified =
-    typeof key === "function" ? key : () => Settings.isModified(key);
-  return () => (modified() ? base() + " *" : base());
-};

@@ -3,7 +3,7 @@
 // prefab set, scatter densities, climate). Split out of OverworldGen so the generator file is
 // logic-only.
 /**
- * Pure data, no registration step (a plain top-level literal, like the design tables on GemsTheme).
+ * Pure data, no registration step (a plain top-level literal, like the design tables on FacetTheme).
  * A site names its profile in `biome` (ColonyLevel._siteData carries it as meta.biome), so a
  * site's character is one entry below — the generator machinery never changes for a new biome.
  */

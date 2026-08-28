@@ -23,14 +23,14 @@ globalThis.SCENES = {
 
       _buildUI() {
         const openScene = this._openScene;
-        this.ui = gemsRoot({ maxWidth: 720 });
+        this.ui = facetRoot({ maxWidth: 720 });
         UI.insert(this.ui);
 
         this.ui.insertChild(
-          gemsHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
+          facetHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
         );
 
-        const col = gemsList();
+        const col = facetList();
 
         // fixed display priority so the list is stable regardless of resource load order
         const CAT_ORDER = [
@@ -59,19 +59,19 @@ globalThis.SCENES = {
         for (let i = 0; i < order.length; i++) {
           const entry = entries[order[i]];
           col.insertChild(
-            gemsButton(entry.label, () => openScene(entry.factory)),
+            facetButton(entry.label, () => openScene(entry.factory)),
           );
         }
 
         // Credits opens GameOverlay About tab (index 2)
         col.insertChild(
-          gemsButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
+          facetButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
         );
         col.insertChild(
-          gemsButton(I18n.textRef("TITLE_SETTINGS"), () => GameOverlay.open()),
+          facetButton(I18n.textRef("TITLE_SETTINGS"), () => GameOverlay.open()),
         );
         col.insertChild(
-          gemsButton(I18n.textRef("TITLE_QUIT"), () =>
+          facetButton(I18n.textRef("TITLE_QUIT"), () =>
             openScene(() =>
               Object.assign(new Scene(), {
                 create() {

@@ -1,14 +1,14 @@
-// Gems kit widget showcase. pure UI — no entities/renderer/step/draw.
-// tab host flex-grows; each page is a gemsScroll({ grow:true }) to reflow at any GUI size.
+// Facet kit widget showcase. pure UI — no entities/renderer/step/draw.
+// tab host flex-grows; each page is a facetScroll({ grow:true }) to reflow at any GUI size.
 
-SceneRegistry.add(() => new _SceneUIKitClass(), {
+SceneRegistry.add(() => new _SceneFacetClass(), {
   label: I18n.textRef("UIKIT_NAME"),
   category: "SCENE_CAT_UI",
 });
 
 /** standalone SCREEN class — duck-typed contract, see Scene. */
-class _SceneUIKitClass {
-  label = "UIKit";
+class _SceneFacetClass {
+  label = "Facet";
 
   create(openScene) {
     // widget state — echoed live via textRefs
@@ -37,15 +37,15 @@ class _SceneUIKitClass {
     // the tracker widget, which reads it at construction
     this._setupQuests();
 
-    this.ui = gemsRoot();
+    this.ui = facetRoot();
     UI.insert(this.ui);
 
-    this.ui.insertChild(gemsHeader(I18n.textRef("UIKIT_NAME")));
-    this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_HINT")));
-    this.ui.insertChild(gemsHint(I18n.textRef("UIKIT_NAV_HINT")));
+    this.ui.insertChild(facetHeader(I18n.textRef("UIKIT_NAME")));
+    this.ui.insertChild(facetHint(I18n.textRef("UIKIT_HINT")));
+    this.ui.insertChild(facetHint(I18n.textRef("UIKIT_NAV_HINT")));
 
     // Widgets tab
-    const widgets = gemsScroll({ grow: true });
+    const widgets = facetScroll({ grow: true });
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
     widgets.scrollBody.insertChild(this._richTextSection());
@@ -53,27 +53,27 @@ class _SceneUIKitClass {
     widgets.scrollBody.insertChild(this._questSection());
 
     // Inputs & Values tab
-    const values = gemsScroll({ grow: true });
+    const values = facetScroll({ grow: true });
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
     values.scrollBody.insertChild(this._vkSection());
 
     // Containers tab — left column scrolls so accordion sections can't overflow
-    const left = gemsScroll({ grow: true });
+    const left = facetScroll({ grow: true });
     left.scrollBody.insertChild(this._skinSection());
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
     // Inventory tab
-    const inventory = gemsScroll({ grow: true });
+    const inventory = facetScroll({ grow: true });
     inventory.scrollBody.insertChild(this._inventorySection());
 
-    // Table tab — table self-scrolls, no enclosing gemsScroll needed
+    // Table tab — table self-scrolls, no enclosing facetScroll needed
     const table = this._tableTab();
 
     this.ui.insertChild(
-      gemsTabs(
+      facetTabs(
         [
           { label: I18n.textRef("UIKIT_TAB_WIDGETS"), content: widgets },
           { label: I18n.textRef("UIKIT_TAB_VALUES"), content: values },
@@ -86,7 +86,7 @@ class _SceneUIKitClass {
     );
 
     this.ui.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
+      facetButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
         tooltip: I18n.textRef("UIKIT_TIP_BACK"),
       }),
     );
@@ -101,17 +101,17 @@ class _SceneUIKitClass {
       flexGrow: 1,
       flexBasis: 0,
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const left = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const right = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     left.insertChild(leftChild);
     right.insertChild(rightChild);
@@ -121,26 +121,26 @@ class _SceneUIKitClass {
   }
 
   _buttonsSection() {
-    const buttons = gemsSection(I18n.textRef("UIKIT_BUTTONS"));
-    const bar = gemsGrid();
+    const buttons = facetSection(I18n.textRef("UIKIT_BUTTONS"));
+    const bar = facetGrid();
     bar.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BTN_NORMAL"), () => this.clicks++, {
+      facetButton(I18n.textRef("UIKIT_BTN_NORMAL"), () => this.clicks++, {
         width: 150,
         tooltip: I18n.textRef("UIKIT_TIP_NORMAL"),
       }),
     );
     bar.insertChild(
-      gemsButton(I18n.textRef("UIKIT_BTN_PRIMARY"), () => this.clicks++, {
+      facetButton(I18n.textRef("UIKIT_BTN_PRIMARY"), () => this.clicks++, {
         width: 150,
         primary: true,
         tooltip: I18n.textRef("UIKIT_TIP_PRIMARY"),
       }),
     );
     bar.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("UIKIT_BTN_DIALOG"),
         () =>
-          gemsModal({
+          facetModal({
             title: I18n.text("UIKIT_DIALOG_TITLE"),
             body: I18n.text("UIKIT_DIALOG_BODY"),
             buttons: [
@@ -157,7 +157,7 @@ class _SceneUIKitClass {
     );
     const toastTypes = ["info", "success", "warn", "error"];
     bar.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("UIKIT_BTN_TOAST"),
         () => {
           const type = toastTypes[this.toastN % toastTypes.length];
@@ -170,7 +170,7 @@ class _SceneUIKitClass {
       ),
     );
     bar.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("UIKIT_BTN_SAY"),
         () =>
           Dialogue.start([
@@ -189,17 +189,17 @@ class _SceneUIKitClass {
     );
     buttons.insertChild(bar);
     buttons.insertChild(
-      gemsLabel(() => I18n.text("UIKIT_CLICKS") + " " + this.clicks, {
-        color: GemsTheme.textMuted,
+      facetLabel(() => I18n.text("UIKIT_CLICKS") + " " + this.clicks, {
+        color: FacetTheme.textMuted,
       }),
     );
     return buttons;
   }
 
   _togglesSection() {
-    const toggles = gemsSection(I18n.textRef("UIKIT_TOGGLES"));
+    const toggles = facetSection(I18n.textRef("UIKIT_TOGGLES"));
     toggles.insertChild(
-      gemsToggle(
+      facetToggle(
         I18n.textRef("UIKIT_TOGGLE"),
         () => this.toggleOn,
         () => (this.toggleOn = !this.toggleOn),
@@ -211,7 +211,7 @@ class _SceneUIKitClass {
       ),
     );
     toggles.insertChild(
-      gemsCheckbox(
+      facetCheckbox(
         I18n.textRef("UIKIT_CHECK"),
         () => this.checkOn,
         () => (this.checkOn = !this.checkOn),
@@ -219,7 +219,7 @@ class _SceneUIKitClass {
       ),
     );
     toggles.insertChild(
-      gemsCheckbox(
+      facetCheckbox(
         I18n.textRef("UIKIT_SWITCH"),
         () => this.switchOn,
         () => (this.switchOn = !this.switchOn),
@@ -234,20 +234,20 @@ class _SceneUIKitClass {
    * fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
    */
   _richTextSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_RICH"));
+    const sec = facetSection(I18n.textRef("UIKIT_RICH"));
     sec.insertChild(
       this._richRow(40, I18n.textRef("UIKIT_RICH_LOOT"), {
         iconSize: 20,
         palette: {
           legendary: "#ff9f43",
-          rare: GemsTheme.accent,
+          rare: FacetTheme.accent,
           dmg: "#ff5555",
         },
       }),
     );
     sec.insertChild(
       this._richRow(24, I18n.textRef("UIKIT_RICH_HELP"), {
-        color: GemsTheme.textMuted,
+        color: FacetTheme.textMuted,
         palette: { key: "#ffd86b" },
       }),
     );
@@ -258,28 +258,28 @@ class _SceneUIKitClass {
    * same ping-pong clock through different easing curves to show Tween curve differences
    */
   _motionSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_MOTION"));
+    const sec = facetSection(I18n.textRef("UIKIT_MOTION"));
     // wall-clock ping-pong [0,1] over ~3.6 s
     const clock = () => {
       const t = (current_time % 3600) / 1800; // 0..2
       return t < 1 ? t : 2 - t; // fold to 0..1..0
     };
     sec.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_MOTION_LINEAR"),
-        gemsProgress(() => Tween.linear(clock())),
+        facetProgress(() => Tween.linear(clock())),
       ),
     );
     sec.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_MOTION_OUT"),
-        gemsProgress(() => Tween.easeOutCubic(clock())),
+        facetProgress(() => Tween.easeOutCubic(clock())),
       ),
     );
     sec.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_MOTION_INOUT"),
-        gemsProgress(() => Tween.easeInOutQuad(clock())),
+        facetProgress(() => Tween.easeInOutQuad(clock())),
       ),
     );
     return sec;
@@ -331,9 +331,9 @@ class _SceneUIKitClass {
    * would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
    */
   _questSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_QUESTS"));
+    const sec = facetSection(I18n.textRef("UIKIT_QUESTS"));
     sec.insertChild(
-      gemsQuestTracker({
+      facetQuestTracker({
         source: Tracker,
         emptyText: I18n.textRef("UIKIT_QUEST_EMPTY"),
         tooltip: I18n.textRef("UIKIT_TIP_QUESTS"),
@@ -344,16 +344,16 @@ class _SceneUIKitClass {
 
   _richRow(height, markup, opts) {
     const row = new UIElement({ width: "100%", height });
-    row.insertChild(gemsRichText(markup, opts));
+    row.insertChild(facetRichText(markup, opts));
     return row;
   }
 
   _fieldsSection() {
-    const fields = gemsSection(I18n.textRef("UIKIT_FIELDS"));
+    const fields = facetSection(I18n.textRef("UIKIT_FIELDS"));
     fields.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_FIELD_NAME"),
-        gemsInput({
+        facetInput({
           placeholder: I18n.text("UIKIT_FIELD_NAME_PH"),
           maxLength: 24,
           onChange: (v) => (this.typed = v),
@@ -361,9 +361,9 @@ class _SceneUIKitClass {
       ),
     );
     fields.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_FIELD_PASS"),
-        gemsInput({
+        facetInput({
           placeholder: I18n.text("UIKIT_FIELD_PASS_PH"),
           mask: true,
           maxLength: 16,
@@ -371,9 +371,9 @@ class _SceneUIKitClass {
       ),
     );
     fields.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_FIELD_RO"),
-        gemsInput({
+        facetInput({
           value: I18n.text("UIKIT_FIELD_RO_VAL"),
           readOnly: true,
           tooltip: I18n.textRef("UIKIT_TIP_RO"),
@@ -381,30 +381,30 @@ class _SceneUIKitClass {
       ),
     );
     fields.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           I18n.text("UIKIT_ECHO") +
           " " +
           (this.typed === "" ? "—" : this.typed),
-        { color: GemsTheme.accentHi },
+        { color: FacetTheme.accentHi },
       ),
     );
     return fields;
   }
 
   /**
-   * VirtualKeyboard: gemsButton keys → UINav navigable with dpad; Done commits to field
+   * VirtualKeyboard: facetButton keys → UINav navigable with dpad; Done commits to field
    */
   _vkSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_VK"));
-    const field = gemsInput({
+    const sec = facetSection(I18n.textRef("UIKIT_VK"));
+    const field = facetInput({
       placeholder: I18n.text("UIKIT_VK_FIELD"),
       maxLength: 24,
     });
     const input = field.getComponent(UIInput);
-    sec.insertChild(gemsRow(I18n.textRef("UIKIT_VK_FIELD"), field));
+    sec.insertChild(facetRow(I18n.textRef("UIKIT_VK_FIELD"), field));
     sec.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("UIKIT_VK_OPEN"),
         () => VirtualKeyboard.open(input),
         { tooltip: I18n.textRef("UIKIT_TIP_VK") },
@@ -417,25 +417,25 @@ class _SceneUIKitClass {
    * UIRebind: click to arm, next key rebinds. readout shows live held state.
    */
   _rebindSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_REBIND"));
+    const sec = facetSection(I18n.textRef("UIKIT_REBIND"));
     const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
     sec.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_REBIND_JUMP"),
-        gemsRebind("uikit_jump", {
+        facetRebind("uikit_jump", {
           prompt,
           tooltip: I18n.textRef("UIKIT_TIP_REBIND"),
         }),
       ),
     );
     sec.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_REBIND_FIRE"),
-        gemsRebind("uikit_fire", { prompt }),
+        facetRebind("uikit_fire", { prompt }),
       ),
     );
     sec.insertChild(
-      gemsLabel(
+      facetLabel(
         () => {
           const held = [];
           if (Input.get("uikit_jump").down())
@@ -448,14 +448,14 @@ class _SceneUIKitClass {
             (held.length === 0 ? "—" : held.join(", "))
           );
         },
-        { color: GemsTheme.accentHi },
+        { color: FacetTheme.accentHi },
       ),
     );
     return sec;
   }
 
   _controlsSection() {
-    const controls = gemsSection(I18n.textRef("UIKIT_CONTROLS"));
+    const controls = facetSection(I18n.textRef("UIKIT_CONTROLS"));
 
     const slider = new UIElement({ height: 28, width: "100%" });
     slider.addComponent(
@@ -466,20 +466,20 @@ class _SceneUIKitClass {
         step: 1,
         onChange: (v) => (this.sliderVal = v),
         track: {
-          color: gemsColor(GemsTheme.btnPress),
+          color: facetColor(FacetTheme.btnPress),
           border: 1,
-          borderColor: gemsColor(GemsTheme.border),
+          borderColor: facetColor(FacetTheme.border),
         },
-        fill: { color: gemsColor(GemsTheme.accent) },
+        fill: { color: facetColor(FacetTheme.accent) },
         thumb: {
-          color: gemsColor(GemsTheme.text),
-          borderColor: gemsColor(GemsTheme.accentHi),
+          color: facetColor(FacetTheme.text),
+          borderColor: facetColor(FacetTheme.accentHi),
           shadowAlpha: 0.35,
         },
       }),
     );
     controls.insertChild(
-      gemsRow(
+      facetRow(
         () => I18n.text("UIKIT_SLIDER") + ": " + Math.round(this.sliderVal),
         slider,
       ),
@@ -491,9 +491,9 @@ class _SceneUIKitClass {
       { name: I18n.text("UIKIT_OPT_C"), value: 2 },
     ];
     controls.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_SELECT"),
-        gemsSelectCustom(options, 0, noop, {
+        facetSelect(options, {
           tooltip: I18n.textRef("UIKIT_TIP_SELECT"),
         }),
       ),
@@ -509,17 +509,18 @@ class _SceneUIKitClass {
       { name: "3840 x 2160", value: 5 },
     ];
     controls.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_DROPDOWN"),
-        gemsDropdownCustom(resolutions, 3, noop, {
+        facetDropdown(resolutions, {
+          index: 3,
           tooltip: I18n.textRef("UIKIT_TIP_DROPDOWN"),
         }),
       ),
     );
     controls.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_STEPPER"),
-        gemsStepper(this.qty, (v) => (this.qty = v), {
+        facetStepper(this.qty, (v) => (this.qty = v), {
           min: 0,
           max: 10,
           step: 1,
@@ -528,9 +529,9 @@ class _SceneUIKitClass {
       ),
     );
     controls.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_PROGRESS"),
-        gemsProgress(() => this.sliderVal / 100, {
+        facetProgress(() => this.sliderVal / 100, {
           label: () => Math.round(this.sliderVal) + "%",
           tooltip: I18n.textRef("UIKIT_TIP_PROGRESS"),
         }),
@@ -543,10 +544,10 @@ class _SceneUIKitClass {
    * nine-sliced border stays crisp while the body stretches
    */
   _skinSection() {
-    const skin = gemsSection(I18n.textRef("UIKIT_SKIN"));
-    const box = gemsNineSlice();
+    const skin = facetSection(I18n.textRef("UIKIT_SKIN"));
+    const box = facetNineSlice();
     box.insertChild(
-      gemsLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: GemsTheme.text }),
+      facetLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: FacetTheme.text }),
     );
     skin.insertChild(box);
     return skin;
@@ -556,7 +557,7 @@ class _SceneUIKitClass {
    * sortable+filterable table; Type select drives setFilter; confirm enters browse mode
    */
   _tableTab() {
-    const gold = gemsColor("warn");
+    const gold = facetColor("warn");
     const cols = [
       { label: "", width: 34, sortable: false, sprite: (r) => r.icon },
       {
@@ -597,7 +598,7 @@ class _SceneUIKitClass {
       },
     ];
 
-    const table = gemsTable(cols, {
+    const table = facetTable(cols, {
       data: this._items(),
       rows: 4,
       rowH: 24,
@@ -621,24 +622,25 @@ class _SceneUIKitClass {
       { name: I18n.text("UIKIT_TABLE_MATERIAL"), value: "Material" },
     ];
 
-    const tab = gemsList();
-    tab.insertChild(gemsHint(I18n.textRef("UIKIT_TABLE_HINT")));
+    const tab = facetList();
+    tab.insertChild(facetHint(I18n.textRef("UIKIT_TABLE_HINT")));
     tab.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("UIKIT_TABLE_FILTER"),
-        gemsSelectCustom(types, 0, (_i, v) =>
-          comp.setFilter(v === "" ? null : (r) => r.type === v),
-        ),
+        facetSelect(types, {
+          onChange: (_i, v) =>
+            comp.setFilter(v === "" ? null : (r) => r.type === v),
+        }),
       ),
     );
     tab.insertChild(table);
     tab.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           I18n.text("UIKIT_TABLE_SELECTED") +
           " " +
           (this.tableSel === null ? "—" : this.tableSel.name),
-        { color: GemsTheme.accentHi },
+        { color: FacetTheme.accentHi },
       ),
     );
     return tab;
@@ -650,11 +652,11 @@ class _SceneUIKitClass {
   _items() {
     const spr = asset_get_index("pixTile16");
     const R = {
-      common: { name: "Common", color: gemsColor("#9aa4b2"), rank: 0 },
-      uncommon: { name: "Uncommon", color: gemsColor("#54c98a"), rank: 1 },
-      rare: { name: "Rare", color: gemsColor(GemsTheme.accent), rank: 2 },
-      epic: { name: "Epic", color: gemsColor("#b072ff"), rank: 3 },
-      legend: { name: "Legendary", color: gemsColor("#ff9f43"), rank: 4 },
+      common: { name: "Common", color: facetColor("#9aa4b2"), rank: 0 },
+      uncommon: { name: "Uncommon", color: facetColor("#54c98a"), rank: 1 },
+      rare: { name: "Rare", color: facetColor(FacetTheme.accent), rank: 2 },
+      epic: { name: "Epic", color: facetColor("#b072ff"), rank: 3 },
+      legend: { name: "Legendary", color: facetColor("#ff9f43"), rank: 4 },
     };
     const mk = (name, type, rarity, qty, weight, value, sub) => ({
       name,
@@ -687,20 +689,20 @@ class _SceneUIKitClass {
    * two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
    */
   _inventorySection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_INV_TITLE"));
+    const sec = facetSection(I18n.textRef("UIKIT_INV_TITLE"));
     const grids = new UIElement({
       width: "100%",
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
-    const elA = gemsSlots(this._bag(0), {
+    const elA = facetSlots(this._bag(0), {
       cols: 3,
       cellSize: 60,
       draggable: true,
       onSelect: (i) => (this.selSlot = i),
       tooltip: I18n.textRef("UIKIT_TIP_INV"),
     });
-    const elB = gemsSlots(this._bag(1), {
+    const elB = facetSlots(this._bag(1), {
       cols: 3,
       cellSize: 60,
       draggable: true,
@@ -711,12 +713,12 @@ class _SceneUIKitClass {
     grids.insertChild(elB);
     sec.insertChild(grids);
     sec.insertChild(
-      gemsLabel(
+      facetLabel(
         () =>
           I18n.text("UIKIT_INV_SELECTED") +
           " " +
           (this.selSlot < 0 ? "—" : this.selSlot + 1),
-        { color: GemsTheme.accentHi },
+        { color: FacetTheme.accentHi },
       ),
     );
     return sec;
@@ -741,9 +743,9 @@ class _SceneUIKitClass {
   }
 
   _accordionSection() {
-    const sec = gemsSection(I18n.textRef("UIKIT_ACCORDION"));
+    const sec = facetSection(I18n.textRef("UIKIT_ACCORDION"));
     sec.insertChild(
-      gemsAccordion([
+      facetAccordion([
         {
           title: I18n.textRef("UIKIT_ACC_DISPLAY"),
           open: true,
@@ -760,10 +762,10 @@ class _SceneUIKitClass {
    * A fresh body element per section (the same element can't live in two places).
    */
   _accBody() {
-    const body = gemsList();
+    const body = facetList();
     body.insertChild(
-      gemsLabel(I18n.textRef("UIKIT_ACC_BODY"), {
-        color: GemsTheme.textMuted,
+      facetLabel(I18n.textRef("UIKIT_ACC_BODY"), {
+        color: FacetTheme.textMuted,
       }),
     );
     return body;
@@ -774,11 +776,11 @@ class _SceneUIKitClass {
    * tab page.
    */
   _scrollSection() {
-    const scrollSec = gemsSection(I18n.textRef("UIKIT_SCROLL"));
-    const sc = gemsScroll({ height: 160 });
+    const scrollSec = facetSection(I18n.textRef("UIKIT_SCROLL"));
+    const sc = facetScroll({ height: 160 });
     for (let i = 1; i <= 12; i++) {
       sc.scrollBody.insertChild(
-        gemsButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
+        facetButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
           width: "100%",
         }),
       );

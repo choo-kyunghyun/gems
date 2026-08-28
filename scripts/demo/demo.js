@@ -1,5 +1,5 @@
 // scene catalogue (SceneRegistry) + teardown helper.
-// Gems factories split to separate files to avoid GMRT's large-file hoisting fault.
+// Facet factories split to separate files to avoid GMRT's large-file hoisting fault.
 
 /**
  * Release the `camera`/`renderer`/`level`/`ui` a Scene holds on `this`, in dependency order

@@ -122,7 +122,7 @@ globalThis.drawUIOutline = function drawUIOutline(
 
 /**
  * rounded panel + 1px border — the chrome the GUI singletons (Tooltip/Toast/Dialogue) draw
- * around themselves, outside the UIElement tree where a gems* factory can't reach. `style`
+ * around themselves, outside the UIElement tree where a facet* factory can't reach. `style`
  * supplies the four fields the singletons already hold ({ panelColor, panelAlpha, borderColor,
  * borderAlpha? }), so each can pass itself; `a` scales BOTH alphas (Toast's fade). Leaves the
  * draw alpha at the border's — every caller restores its own draw state.
@@ -236,7 +236,7 @@ globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
 
 /**
  * normalize a `string | () => string` label into a live textRef fn — the Core twin of
- * gemsTextRef (which delegates here), reachable by Core widgets (UITooltip/UIProgress/
+ * facetTextRef (which delegates here), reachable by Core widgets (UITooltip/UIProgress/
  * UIRebind). Normalize once at construction; don't call per frame (it allocates).
  */
 globalThis.uiTextRef = function uiTextRef(label) {
@@ -289,7 +289,7 @@ globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
  * resolve a widget font option at DRAW time: an I18n font KEY (string) resolves live
  * (a cached handle dangles after a locale reload — I18n.load deletes the old handles);
  * a raw handle (or -1 = inherit) passes through. Every font-taking widget routes through
- * this, so the Gems kit convention of passing key strings works uniformly. NEVER cache the
+ * this, so the Facet kit convention of passing key strings works uniformly. NEVER cache the
  * handle at construction: besides the dangle, I18n.font falls back to draw_get_font() for an
  * undeclared key, so a construction-time resolve can freeze whatever font happened to be set.
  * (World-space render passes are the deliberate exception — they take a handle and rebuild on

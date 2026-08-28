@@ -119,7 +119,7 @@ globalThis.GameOverlay = {
       justifyContent: "flex-end",
     });
     root.addComponent(
-      new UIPanel({ color: gemsColor("#000000"), alpha: 0.55 }),
+      new UIPanel({ color: facetColor("#000000"), alpha: 0.55 }),
     );
     const modal = new UIModal({
       root,
@@ -133,12 +133,12 @@ globalThis.GameOverlay = {
     root.addComponent(modal);
 
     // the sheet: the right half, full height, square (it meets three screen edges)
-    const card = gemsCard({
+    const card = facetCard({
       width: "50%",
-      padding: GemsTheme.pad,
-      gap: GemsTheme.gapSm,
+      padding: FacetTheme.pad,
+      gap: FacetTheme.gapSm,
       rad: 0,
-      shadow: 12, // a touch deeper than the gemsCard default — it floats over a paused scene
+      shadow: 12, // a touch deeper than the facetCard default — it floats over a paused scene
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
@@ -152,16 +152,16 @@ globalThis.GameOverlay = {
       justifyContent: "space-between",
     });
     titleRow.insertChild(
-      gemsLabel(I18n.textRef("SYS_TITLE"), {
+      facetLabel(I18n.textRef("SYS_TITLE"), {
         font: "header",
-        color: GemsTheme.text,
+        color: FacetTheme.text,
       }),
     );
     titleRow.insertChild(
-      gemsLabel(I18n.textRef("SYS_PAUSED"), { color: GemsTheme.accent }),
+      facetLabel(I18n.textRef("SYS_PAUSED"), { color: FacetTheme.accent }),
     );
     card.insertChild(titleRow);
-    card.insertChild(gemsDivider());
+    card.insertChild(facetDivider());
 
     // icon-less activity bar: each tab draws its abbreviation, the full label is its tooltip
     const tabDefs = [
@@ -188,7 +188,7 @@ globalThis.GameOverlay = {
         short: GameOverlay._extraTabs[i].short,
         content: GameOverlay._extraTabs[i].build(),
       });
-    const tabsRoot = gemsTabs(tabDefs, { grow: true, vertical: true });
+    const tabsRoot = facetTabs(tabDefs, { grow: true, vertical: true });
     card.insertChild(tabsRoot);
 
     // footer: a universal Close (Esc / backdrop also close)
@@ -201,7 +201,7 @@ globalThis.GameOverlay = {
       justifyContent: "flex-end",
     });
     footer.insertChild(
-      gemsButton(I18n.textRef("SETTINGS_CLOSE"), () => GameOverlay.close(), {
+      facetButton(I18n.textRef("SETTINGS_CLOSE"), () => GameOverlay.close(), {
         primary: true,
         width: 160,
       }),
@@ -254,14 +254,13 @@ globalThis.GameOverlay = {
    * build time) and this overlay, and fade back. No-op when the mode is unchanged.
    */
   _applyTheme(mode) {
-    if (mode === GemsTheme.mode) return;
-    Settings.set("theme", mode);
+    if (mode === FacetTheme.mode) return;
     SceneTransition.start(() => {
-      GemsTheme.setMode(mode);
-      UINav.color = Color.parse(GemsTheme.accent);
+      FacetTheme.setMode(mode);
+      UINav.color = Color.parse(FacetTheme.accent);
       const game = GameOverlay._game;
       if (game !== null) {
-        game.background = Color.parse(GemsTheme.bg); // themed draw_clear backdrop
+        game.background = Color.parse(FacetTheme.bg); // themed draw_clear backdrop
         game.retheme(); // rebuild active scene UI in place
       }
       UINav.reset(); // focus was on now-destroyed elements
@@ -273,19 +272,19 @@ globalThis.GameOverlay = {
 
   /** System controls: Resume + Quit to Lobby */
   _systemTab() {
-    const scroll = gemsScroll({ grow: true });
+    const scroll = facetScroll({ grow: true });
 
-    const controls = gemsSection(I18n.textRef("SYS_CONTROLS"));
-    const bar = gemsGrid();
+    const controls = facetSection(I18n.textRef("SYS_CONTROLS"));
+    const bar = facetGrid();
     bar.insertChild(
-      gemsButton(I18n.textRef("SYS_RESUME"), () => GameOverlay.close(), {
+      facetButton(I18n.textRef("SYS_RESUME"), () => GameOverlay.close(), {
         width: 200,
         primary: true,
       }),
     );
     if (GameOverlay.quitTo !== null)
       bar.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef("SYS_QUIT"),
           () => {
             GameOverlay._game.switchTo(GameOverlay.quitTo);
@@ -302,29 +301,29 @@ globalThis.GameOverlay = {
 
   /** Settings form: audio / display / UI scale / language */
   _settingsTab() {
-    const scroll = gemsScroll({ grow: true });
+    const scroll = facetScroll({ grow: true });
 
-    const volSection = gemsSection(I18n.textRef("SETTINGS_VOL_TITLE"));
+    const volSection = facetSection(I18n.textRef("SETTINGS_VOL_TITLE"));
     // volumes shown as %. `apply` updates live audio as the slider drags; Save persists.
     const volFmt = (v) => string_format(v * 100, 0, 0) + "%";
     const volSlider = (key, apply) =>
-      gemsSlider(key, 0, 1, undefined, { format: volFmt, onChange: apply });
+      facetSlider({ key, min: 0, max: 1, format: volFmt, onChange: apply });
     volSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_VOL_MASTER"),
         volSlider("volMaster", (v) => Audio.setMasterGain(v)),
         { key: "volMaster" },
       ),
     );
     volSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_VOL_MUSIC"),
         volSlider("volMusic", (v) => Music.setGain(v)),
         { key: "volMusic" },
       ),
     );
     volSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_VOL_SFX"),
         volSlider("volSfx", (v) => Audio.setDefaultGain(v)),
         { key: "volSfx" },
@@ -332,9 +331,9 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(volSection);
 
-    const dispSection = gemsSection(I18n.textRef("SETTINGS_DISP_TITLE"));
+    const dispSection = facetSection(I18n.textRef("SETTINGS_DISP_TITLE"));
     dispSection.insertChild(
-      gemsToggle(
+      facetToggle(
         I18n.textRef("SETTINGS_DISP_FULLSCREEN"),
         () => Settings.get("fullscreen"),
         () => {
@@ -363,36 +362,38 @@ globalThis.GameOverlay = {
       resItems.findIndex((r) => r.value.w === curResW),
     );
     dispSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_DISP_RESOLUTION"),
         // dropdown not a < > cycler — scales as more presets are added
-        gemsDropdownCustom(resItems, resIdx, (_i, res) => {
-          Settings.set("resolutionW", res.w);
-          Settings.set("resolutionH", res.h);
-          Display.apply();
+        facetDropdown(resItems, {
+          index: resIdx,
+          onChange: (_i, res) => {
+            Settings.set("resolutionW", res.w);
+            Settings.set("resolutionH", res.h);
+            Display.apply();
+          },
         }),
         { key: ["resolutionW", "resolutionH"] },
       ),
     );
     dispSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_DISP_FPS"),
-        gemsSelect(
-          "fpsLimit",
+        facetSelect(
           [
             { name: "30", value: 30 },
             { name: "60", value: 60 },
             { name: "120", value: 120 },
             { name: I18n.text("SETTINGS_DISP_FPS_UNLIMITED"), value: 0 },
           ],
-          { onChange: () => Display.applyFps() },
+          { key: "fpsLimit", onChange: () => Display.applyFps() },
         ),
         { key: "fpsLimit" },
       ),
     );
     // V-Sync + AA go through display_reset (Display.applyVideo), which re-imposes the reset window/fps
     dispSection.insertChild(
-      gemsToggle(
+      facetToggle(
         I18n.textRef("SETTINGS_DISP_VSYNC"),
         () => Settings.get("vsync"),
         () => {
@@ -412,9 +413,10 @@ globalThis.GameOverlay = {
       value: lvl,
     }));
     dispSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_DISP_AA"),
-        gemsSelect("antialias", aaItems, {
+        facetSelect(aaItems, {
+          key: "antialias",
           onChange: () => Display.applyVideo(),
         }),
         { key: "antialias" },
@@ -422,12 +424,16 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(dispSection);
 
-    const uiSection = gemsSection(I18n.textRef("SETTINGS_UI_TITLE"));
+    const uiSection = facetSection(I18n.textRef("SETTINGS_UI_TITLE"));
     uiSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_UI_SCALE"),
         // live: resize the GUI layer + reflow all roots (this menu included) as it moves
-        gemsSlider("uiScale", 0.5, 2, 0.1, {
+        facetSlider({
+          key: "uiScale",
+          min: 0.5,
+          max: 2,
+          step: 0.1,
           onChange: (v) => UI.applyScale(v),
         }),
         { key: "uiScale" },
@@ -437,43 +443,38 @@ globalThis.GameOverlay = {
 
     // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds
     // the scene UI + this menu under cover (colors are baked at build, so a rebuild is required)
-    const themeSection = gemsSection(I18n.textRef("SETTINGS_THEME_TITLE"));
+    const themeSection = facetSection(I18n.textRef("SETTINGS_THEME_TITLE"));
     const themeItems = [
       { name: I18n.text("SETTINGS_THEME_DARK"), value: "dark" },
       { name: I18n.text("SETTINGS_THEME_LIGHT"), value: "light" },
     ];
-    const themeIdx = Math.max(
-      0,
-      themeItems.findIndex((it) => it.value === Settings.get("theme")),
-    );
     themeSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_THEME_LABEL"),
-        gemsSelectCustom(themeItems, themeIdx, (_i, value) =>
-          GameOverlay._applyTheme(value),
-        ),
+        facetSelect(themeItems, {
+          key: "theme",
+          onChange: (_i, value) => GameOverlay._applyTheme(value),
+        }),
         { key: "theme" },
       ),
     );
     scroll.scrollBody.insertChild(themeSection);
 
-    const langSection = gemsSection(I18n.textRef("SETTINGS_LANG_TITLE"));
+    const langSection = facetSection(I18n.textRef("SETTINGS_LANG_TITLE"));
     const langItems = [
       { name: I18n.text("LANG_EN_US"), value: "en-US" },
       { name: I18n.text("LANG_KO_KR"), value: "ko-KR" },
     ];
-    const langIdx = Math.max(
-      0,
-      langItems.findIndex((it) => it.value === Settings.get("language")),
-    );
     langSection.insertChild(
-      gemsRow(
+      facetRow(
         I18n.textRef("SETTINGS_LANG_LABEL"),
         // language switch reloads I18n + re-adopts the locale font; live-textRef UI updates in place
-        gemsSelectCustom(langItems, langIdx, (_i, value) => {
-          Settings.set("language", value);
-          I18n.load("i18n/" + value + "/manifest.json");
-          draw_set_font(I18n.font("default"));
+        facetSelect(langItems, {
+          key: "language",
+          onChange: (_i, value) => {
+            I18n.load("i18n/" + value + "/manifest.json");
+            draw_set_font(I18n.font("default"));
+          },
         }),
         { key: "language" },
       ),
@@ -483,11 +484,11 @@ globalThis.GameOverlay = {
     // key bindings: a rebind row per keymap action, applied live through Input.rebind (the
     // key-hint bar reads the same binding); Save persists them with the rest (InputPreset)
     if (GameOverlay.keymap !== null) {
-      const keySection = gemsSection(I18n.textRef("SETTINGS_KEYS_TITLE"));
+      const keySection = facetSection(I18n.textRef("SETTINGS_KEYS_TITLE"));
       const prompt = I18n.textRef("SETTINGS_KEYS_PROMPT");
       GameOverlay.keymap.forEach((row) => {
         keySection.insertChild(
-          gemsRow(row.label, gemsRebind(row.action, { prompt }), {
+          facetRow(row.label, facetRebind(row.action, { prompt }), {
             key: () => Input.rebinds[row.action] !== undefined,
           }),
         );
@@ -500,7 +501,7 @@ globalThis.GameOverlay = {
         justifyContent: "flex-end",
       });
       resetRow.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef("SETTINGS_KEYS_RESET"),
           () => Input.restoreAll(),
           { width: 200 },
@@ -520,7 +521,7 @@ globalThis.GameOverlay = {
         justifyContent: "flex-end",
       });
       saveRow.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef("SETTINGS_SAVE"),
           () => {
             Settings.save(GameOverlay.settingsFile);
@@ -537,19 +538,19 @@ globalThis.GameOverlay = {
 
   /** About — static project + engine info (reuses the credits strings) */
   _aboutTab() {
-    const scroll = gemsScroll({ grow: true });
-    const card = gemsCard({ gap: GemsTheme.gapSm });
+    const scroll = facetScroll({ grow: true });
+    const card = facetCard({ gap: FacetTheme.gapSm });
     const lines = [
-      [I18n.textRef("CREDITS_NAME"), GemsTheme.text],
-      [I18n.textRef("CREDITS_TAGLINE"), GemsTheme.textMuted],
+      [I18n.textRef("CREDITS_NAME"), FacetTheme.text],
+      [I18n.textRef("CREDITS_TAGLINE"), FacetTheme.textMuted],
       [() => "", "#000000"],
-      [I18n.textRef("CREDITS_DEV"), GemsTheme.textMuted],
-      [I18n.textRef("CREDITS_ENGINE"), GemsTheme.textMuted],
-      [I18n.textRef("CREDITS_LIBS"), GemsTheme.textMuted],
+      [I18n.textRef("CREDITS_DEV"), FacetTheme.textMuted],
+      [I18n.textRef("CREDITS_ENGINE"), FacetTheme.textMuted],
+      [I18n.textRef("CREDITS_LIBS"), FacetTheme.textMuted],
     ];
     for (let i = 0; i < lines.length; i++) {
       const row = new UIElement({ width: "100%", height: 22, flexShrink: 0 });
-      row.insertChild(gemsLabel(lines[i][0], { color: lines[i][1] }));
+      row.insertChild(facetLabel(lines[i][0], { color: lines[i][1] }));
       card.insertChild(row);
     }
     scroll.scrollBody.insertChild(card);

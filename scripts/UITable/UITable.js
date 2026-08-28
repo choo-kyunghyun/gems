@@ -3,7 +3,7 @@
  * UITable — sortable/filterable data table with row selection, sticky header, row-based
  * scroll, and keyboard/gamepad browse mode. Drawn entirely in onDraw over ONE element
  * (like UISlots), so re-sort/filter never reflows the layout. The element is FIXED-height
- * to a whole row count (gemsTable does this), so the body shows full rows, no surface.
+ * to a whole row count (facetTable does this), so the body shows full rows, no surface.
  *
  * Columns are declarative:
  *   { label, width?, flex?, align?, text(row)->string, color?(row)->int,

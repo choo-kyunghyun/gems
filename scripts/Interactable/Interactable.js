@@ -38,19 +38,19 @@ globalThis.Interactable = {
     });
     pill.addComponent(
       new UIPanel({
-        color: gemsColor(GemsTheme.panel),
-        color2: gemsColor(GemsTheme.panelLo),
-        rad: GemsTheme.radius,
+        color: facetColor(FacetTheme.panel),
+        color2: facetColor(FacetTheme.panelLo),
+        rad: FacetTheme.radius,
         border: 1,
-        borderColor: gemsColor(GemsTheme.border),
+        borderColor: facetColor(FacetTheme.border),
         shadow: 8,
         highlight: 1,
       }),
     );
     pill.insertChild(
-      gemsLabel(() => Interactable._promptText(scene), {
+      facetLabel(() => Interactable._promptText(scene), {
         halign: fa_center,
-        color: GemsTheme.text,
+        color: FacetTheme.text,
       }),
     );
     prompt.insertChild(pill);

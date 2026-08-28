@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"sceneUIKit",
+  "%Name":"sceneFacet",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"sceneUIKit",
+  "name":"sceneFacet",
   "parent":{
     "name":"Lobby",
     "path":"folders/Game/Lobby.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"sceneUIKit.js",
+  "scriptSource":"sceneFacet.js",
 }

@@ -11,7 +11,7 @@ globalThis.FloatingText = {
   shadowColor: Color.parse("#0a0c10"),
 
   // type → color; `info` is the unknown-type fallback. These are only the pre-theme defaults —
-  // GemsTheme._applyCore overwrites all but `info` from the active palette on every mode switch.
+  // FacetTheme._applyCore overwrites all but `info` from the active palette on every mode switch.
   colors: {
     damage: Color.parse("#f1f4fa"), // enemy hit — white
     hurt: Color.parse("#e0584f"), // player hit — red

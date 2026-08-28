@@ -16,9 +16,9 @@ globalThis.TradeUI = {
     scene._tradeClick = { key: "", time: 0 }; // InvTable.reclick latch
     scene._tradeQtyModal = null; // open amount-picker modal, else null
 
-    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
     // Title reads the ACTIVE merchant live; Esc / E also close.
-    const host = gemsOverlay(
+    const host = facetOverlay(
       () => {
         const npc = scene.level.entities.get(scene._tradeMerchantId, NPC);
         return npc !== undefined
@@ -33,7 +33,7 @@ globalThis.TradeUI = {
 
     // player credits, live, right-aligned just before the close button.
     host.titleRow.insertChild(
-      gemsLabel(() => TradeUI._balanceText(scene), {
+      facetLabel(() => TradeUI._balanceText(scene), {
         font: "header",
         color: "warn",
       }),
@@ -46,7 +46,7 @@ globalThis.TradeUI = {
       flexGrow: 1,
       flexBasis: 0,
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const buyTable = TradeUI._table(scene, "buy");
     const sellTable = TradeUI._table(scene, "sell");
@@ -68,7 +68,7 @@ globalThis.TradeUI = {
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
-      gemsLabel(I18n.textRef("TRADE_HINT"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("TRADE_HINT"), { color: FacetTheme.textMuted }),
     );
     card.insertChild(hint);
   },
@@ -101,19 +101,19 @@ globalThis.TradeUI = {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const header = new UIElement({
       width: "100%",
       height: 26,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(gemsLabel(titleRef, { color: "warn" }));
+    titleCell.insertChild(facetLabel(titleRef, { color: "warn" }));
     header.insertChild(titleCell);
-    header.insertChild(gemsLabel(subFn, { color: GemsTheme.textMuted }));
+    header.insertChild(facetLabel(subFn, { color: FacetTheme.textMuted }));
     col.insertChild(header);
     col.insertChild(tableEl);
     return col;
@@ -123,7 +123,7 @@ globalThis.TradeUI = {
    * per-side table. `side` ("buy"/"sell") routes the transaction direction.
    */
   _table(scene, side) {
-    return gemsTable(TradeUI._columns(side), {
+    return facetTable(TradeUI._columns(side), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
@@ -140,7 +140,7 @@ globalThis.TradeUI = {
    * Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
    */
   _columns(side) {
-    const gold = gemsColor("warn");
+    const gold = facetColor("warn");
     return [
       {
         key: "name",
@@ -296,11 +296,11 @@ globalThis.TradeUI = {
   },
 
   /**
-   * amount picker (gemsAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
+   * amount picker (facetAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
    * closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
    */
   _promptAmount(scene, side, row, maxQty) {
-    scene._tradeQtyModal = gemsAmountPicker({
+    scene._tradeQtyModal = facetAmountPicker({
       title: row.name,
       max: maxQty,
       prompt: I18n.text("STORAGE_QTY_PROMPT"),

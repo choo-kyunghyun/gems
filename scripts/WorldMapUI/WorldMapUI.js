@@ -21,7 +21,7 @@ globalThis.WorldMapUI = {
     scene._mapSel = ""; // selected site id
     scene._mapNodes = {}; // site id -> node element (the routes pass reads their centers)
 
-    const host = gemsOverlay(I18n.textRef("WORLDMAP_TITLE"), {
+    const host = facetOverlay(I18n.textRef("WORLDMAP_TITLE"), {
       onClose: () => WorldMapUI.close(scene),
     });
     scene._mapWin = host;
@@ -33,7 +33,7 @@ globalThis.WorldMapUI = {
       flexGrow: 1,
       flexBasis: 0,
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     // the chart: the nodes hang off it by percentage position (refilled per open — see refresh)
     const chart = new UIElement({
@@ -43,10 +43,10 @@ globalThis.WorldMapUI = {
     });
     chart.addComponent(
       new UIPanel({
-        color: gemsColor(GemsTheme.panelLo),
-        rad: GemsTheme.radiusSm,
+        color: facetColor(FacetTheme.panelLo),
+        rad: FacetTheme.radiusSm,
         border: 1,
-        borderColor: gemsColor(GemsTheme.border),
+        borderColor: facetColor(FacetTheme.border),
       }),
     );
     chart.addComponent(WorldMapUI._routes(scene)); // under the nodes (components draw first)
@@ -57,7 +57,7 @@ globalThis.WorldMapUI = {
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
-      gemsLabel(I18n.textRef("WORLDMAP_HINT"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("WORLDMAP_HINT"), { color: FacetTheme.textMuted }),
     );
     card.insertChild(hint);
   },
@@ -93,7 +93,7 @@ globalThis.WorldMapUI = {
       const here = s.id === scene.level.id;
       const picked = s.id === scene._mapSel;
       // a zero-size anchor at the site's chart position; the node holder hangs centered on it
-      // (a gemsButton takes no position style of its own)
+      // (a facetButton takes no position style of its own)
       const anchor = new UIElement({
         positionType: "absolute",
         left: Math.round(s.pos.x * 100) + "%",
@@ -111,11 +111,11 @@ globalThis.WorldMapUI = {
       const opts = { width: "100%", height: h };
       if (here) opts.primary = true;
       else if (picked) {
-        opts.color = GemsTheme.btnHover;
-        opts.borderColor = GemsTheme.warn;
+        opts.color = FacetTheme.btnHover;
+        opts.borderColor = FacetTheme.warn;
       }
       holder.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef(s.name),
           () => {
             scene._mapSel = s.id;
@@ -134,9 +134,9 @@ globalThis.WorldMapUI = {
           alignItems: "center",
         });
         tag.insertChild(
-          gemsLabel(I18n.textRef("WORLDMAP_HERE"), {
+          facetLabel(I18n.textRef("WORLDMAP_HERE"), {
             font: "description",
-            color: GemsTheme.accent,
+            color: FacetTheme.accent,
           }),
         );
         anchor.insertChild(tag);
@@ -169,8 +169,8 @@ globalThis.WorldMapUI = {
             c.x,
             c.y,
             2,
-            gemsColor(GemsTheme.border),
-            gemsColor(GemsTheme.border),
+            facetColor(FacetTheme.border),
+            facetColor(FacetTheme.border),
           );
         }
         const cur = nodes[scene.level.id];
@@ -184,8 +184,8 @@ globalThis.WorldMapUI = {
             b.x,
             b.y,
             3,
-            gemsColor(GemsTheme.accent),
-            gemsColor(GemsTheme.accent),
+            facetColor(FacetTheme.accent),
+            facetColor(FacetTheme.accent),
           );
         }
         draw_set_alpha(alpha);
@@ -207,44 +207,44 @@ globalThis.WorldMapUI = {
     const col = new UIElement({
       width: 340,
       height: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     col.insertChild(
-      gemsLabel(() => WorldMapUI._siteText(scene, "name"), {
+      facetLabel(() => WorldMapUI._siteText(scene, "name"), {
         font: "header",
-        color: GemsTheme.text,
+        color: FacetTheme.text,
       }),
     );
     col.insertChild(
-      gemsLabel(() => WorldMapUI._siteText(scene, "desc"), {
-        color: GemsTheme.textMuted,
+      facetLabel(() => WorldMapUI._siteText(scene, "desc"), {
+        color: FacetTheme.textMuted,
         wrap: 320,
       }),
     );
-    col.insertChild(gemsDivider());
+    col.insertChild(facetDivider());
     col.insertChild(
-      gemsKeyValueRow(I18n.textRef("WORLDMAP_TERRAIN"), () =>
+      facetKeyValueRow(I18n.textRef("WORLDMAP_TERRAIN"), () =>
         WorldMapUI._terrainText(scene),
       ),
     );
     col.insertChild(
-      gemsKeyValueRow(I18n.textRef("WORLDMAP_SIZE"), () =>
+      facetKeyValueRow(I18n.textRef("WORLDMAP_SIZE"), () =>
         WorldMapUI._sizeText(scene),
       ),
     );
     col.insertChild(
-      gemsKeyValueRow(I18n.textRef("WORLDMAP_THREAT"), () =>
+      facetKeyValueRow(I18n.textRef("WORLDMAP_THREAT"), () =>
         WorldMapUI._threatText(scene),
       ),
     );
     col.insertChild(
-      gemsKeyValueRow(I18n.textRef("WORLDMAP_TRIP"), () =>
+      facetKeyValueRow(I18n.textRef("WORLDMAP_TRIP"), () =>
         WorldMapUI._tripText(scene),
       ),
     );
     col.insertChild(new UIElement({ flexGrow: 1 })); // push the button to the bottom
     col.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("WORLDMAP_TRAVEL"),
         () => WorldMapUI.travel(scene),
         {

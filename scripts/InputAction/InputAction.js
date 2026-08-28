@@ -36,7 +36,7 @@ globalThis.InputAction = class InputAction {
     return -1;
   }
 
-  // single source of truth for binding→display text; reads live so a remap updates UIRebind + gemsKeyHints automatically.
+  // single source of truth for binding→display text; reads live so a remap updates UIRebind + facetKeyHints automatically.
   /** E.g. "W" / "Shift" / "LMB", or "—" when unbound. */
   label() {
     return this.buttons.length > 0 ? this.buttons[0].label() : "—";

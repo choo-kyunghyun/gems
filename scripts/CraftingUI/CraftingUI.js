@@ -23,9 +23,9 @@ globalThis.CraftingUI = {
     scene._craftSel = ""; // selected recipe id (defaulted to the first on refresh)
     scene._craftMode = ""; // "craft" | "mod" — which content row is currently mounted
 
-    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
     // Esc / E also close (handleEscape / _dispatchInteract).
-    const host = gemsOverlay(I18n.textRef("CRAFT_TITLE"), {
+    const host = facetOverlay(I18n.textRef("CRAFT_TITLE"), {
       onClose: () => CraftingUI.close(scene),
     });
     scene._craftWin = host;
@@ -36,11 +36,11 @@ globalThis.CraftingUI = {
     const bar = new UIElement({
       width: "100%",
       flexShrink: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     scene._craftModuleBar = bar;
     card.insertChild(bar);
-    card.insertChild(gemsDivider());
+    card.insertChild(facetDivider());
 
     // content host: holds exactly one content row at a time (swapped structurally). grows to fill
     // the near-fullscreen card.
@@ -57,13 +57,13 @@ globalThis.CraftingUI = {
       width: "100%",
       height: "100%",
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const left = new UIElement({
       width: 210,
       height: "100%",
       flexShrink: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     scene._craftList = left;
     craftRow.insertChild(left);
@@ -71,7 +71,7 @@ globalThis.CraftingUI = {
       flexGrow: 1,
       flexBasis: 0,
       height: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     scene._craftDetail = detail;
     craftRow.insertChild(detail);
@@ -82,20 +82,20 @@ globalThis.CraftingUI = {
       width: "100%",
       height: "100%",
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const modLeft = new UIElement({
       width: 210,
       height: "100%",
       flexShrink: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     modRow.insertChild(modLeft);
     const modDetail = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
       height: "100%",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     modRow.insertChild(modDetail);
     scene._craftModRow = modRow;
@@ -193,7 +193,7 @@ globalThis.CraftingUI = {
       height: 28,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     const installed = module !== "" ? Item.get(module) : undefined;
@@ -202,15 +202,15 @@ globalThis.CraftingUI = {
         ? I18n.text(installed.name)
         : I18n.text("WB_SLOT_EMPTY");
     nameCell.insertChild(
-      gemsLabel(I18n.text("WB_MODULE") + " " + modName, {
+      facetLabel(I18n.text("WB_MODULE") + " " + modName, {
         color:
-          module !== "" ? InvTable.rarityColor(module) : GemsTheme.textMuted,
+          module !== "" ? InvTable.rarityColor(module) : FacetTheme.textMuted,
       }),
     );
     line1.insertChild(nameCell);
     if (module !== "") {
       line1.insertChild(
-        gemsButton(
+        facetButton(
           I18n.textRef("WB_REMOVE"),
           () => CraftingUI._removeModule(scene),
           { width: 90, height: 24 },
@@ -224,8 +224,8 @@ globalThis.CraftingUI = {
     if (owned.length === 0) {
       if (module === "")
         bar.insertChild(
-          gemsLabel(I18n.textRef("WB_NO_MODULES"), {
-            color: GemsTheme.textDim,
+          facetLabel(I18n.textRef("WB_NO_MODULES"), {
+            color: FacetTheme.textDim,
           }),
         );
       return;
@@ -235,14 +235,14 @@ globalThis.CraftingUI = {
       flexDirection: "row",
       flexWrap: "wrap",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     for (let i = 0; i < owned.length; i++) {
       const id = owned[i];
       const it = Item.get(id);
       const nm = it !== undefined ? I18n.text(it.name) : id;
       line2.insertChild(
-        gemsButton(
+        facetButton(
           I18n.text("WB_INSTALL") + " " + nm,
           () => CraftingUI._installModule(scene, id),
           { height: 24, textColor: InvTable.rarityColor(id) },
@@ -311,7 +311,7 @@ globalThis.CraftingUI = {
 
   /**
    * Craft panel — left: one selectable button per recipe (dimmed when uncraftable),
-   * refilled via the shared gemsFillList.
+   * refilled via the shared facetFillList.
    */
   _fillList(scene, inv, recipes) {
     const entries = [];
@@ -331,11 +331,11 @@ globalThis.CraftingUI = {
             scene._craftDirty = true; // repopulate the detail
           },
           selected: () => scene._craftSel === id,
-          textColor: can ? InvTable.rarityColor(out.itemId) : GemsTheme.textDim,
+          textColor: can ? InvTable.rarityColor(out.itemId) : FacetTheme.textDim,
         });
       }
     }
-    gemsFillList(scene._craftList, entries, I18n.textRef("CRAFT_EMPTY"));
+    facetFillList(scene._craftList, entries, I18n.textRef("CRAFT_EMPTY"));
   },
 
   /** Craft panel — right: selected recipe's name, description, ingredients, Craft button. */
@@ -346,7 +346,7 @@ globalThis.CraftingUI = {
 
     if (inv === undefined || recipes.length === 0) {
       host.insertChild(
-        gemsLabel(I18n.textRef("CRAFT_SELECT"), { color: GemsTheme.textDim }),
+        facetLabel(I18n.textRef("CRAFT_SELECT"), { color: FacetTheme.textDim }),
       );
       return;
     }
@@ -360,24 +360,24 @@ globalThis.CraftingUI = {
     const name = def !== undefined ? I18n.text(def.name) : out.itemId;
 
     host.insertChild(
-      gemsLabel(name + " x" + out.qty, {
+      facetLabel(name + " x" + out.qty, {
         font: "header",
         color: InvTable.rarityColor(out.itemId),
       }),
     );
-    host.insertChild(gemsDivider());
+    host.insertChild(facetDivider());
     if (def !== undefined && def.description !== "") {
       host.insertChild(
-        gemsLabel(I18n.textRef(def.description), {
-          color: GemsTheme.textMuted,
+        facetLabel(I18n.textRef(def.description), {
+          color: FacetTheme.textMuted,
           wrap: CraftingUI.WRAP,
         }),
       );
     }
 
     host.insertChild(
-      gemsLabel(I18n.textRef("CRAFT_INGREDIENTS"), {
-        color: GemsTheme.textMuted,
+      facetLabel(I18n.textRef("CRAFT_INGREDIENTS"), {
+        color: FacetTheme.textMuted,
       }),
     );
     for (let i = 0; i < recipe.inputs.length; i++) {
@@ -389,7 +389,7 @@ globalThis.CraftingUI = {
       new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 }),
     );
     host.insertChild(
-      gemsButton(
+      facetButton(
         I18n.textRef("CRAFT_DO"),
         () => {
           if (
@@ -424,12 +424,12 @@ globalThis.CraftingUI = {
     });
     const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     nameCell.insertChild(
-      gemsLabel(name, { color: ok ? GemsTheme.text : short }),
+      facetLabel(name, { color: ok ? FacetTheme.text : short }),
     );
     row.insertChild(nameCell);
     row.insertChild(
-      gemsLabel(have + "/" + inp.qty, {
-        color: ok ? GemsTheme.textMuted : short,
+      facetLabel(have + "/" + inp.qty, {
+        color: ok ? FacetTheme.textMuted : short,
       }),
     );
     return row;

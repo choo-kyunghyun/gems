@@ -13,9 +13,9 @@ globalThis.StorageUI = {
     scene._storeClick = { key: "", time: 0 }; // InvTable.reclick latch
     scene._storeQtyModal = null; // open amount-picker modal, else null
 
-    // near-fullscreen shell (dim host + centered card + title/close) — gemsOverlay.
+    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
     // Esc / E also close (handleEscape / _dispatchInteract).
-    const host = gemsOverlay(I18n.textRef("STORAGE_TITLE"), {
+    const host = facetOverlay(I18n.textRef("STORAGE_TITLE"), {
       onClose: () => StorageUI.close(scene),
     });
     scene._storeWin = host;
@@ -27,7 +27,7 @@ globalThis.StorageUI = {
       flexGrow: 1, // tables grow to fill the card height
       flexBasis: 0,
       flexDirection: "row",
-      gap: GemsTheme.gap,
+      gap: FacetTheme.gap,
     });
     const bagTable = StorageUI._table(scene, "bag");
     const boxTable = StorageUI._table(scene, "box");
@@ -55,7 +55,7 @@ globalThis.StorageUI = {
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
-      gemsLabel(I18n.textRef("STORAGE_HINT"), { color: GemsTheme.textMuted }),
+      facetLabel(I18n.textRef("STORAGE_HINT"), { color: FacetTheme.textMuted }),
     );
     card.insertChild(hint);
   },
@@ -68,20 +68,20 @@ globalThis.StorageUI = {
     const col = new UIElement({
       flexGrow: 1,
       flexBasis: 0,
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const header = new UIElement({
       width: "100%",
       height: 26,
       flexDirection: "row",
       alignItems: "center",
-      gap: GemsTheme.gapSm,
+      gap: FacetTheme.gapSm,
     });
     const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(gemsLabel(titleRef, { color: "warn" }));
+    titleCell.insertChild(facetLabel(titleRef, { color: "warn" }));
     header.insertChild(titleCell);
     header.insertChild(
-      gemsButton(allLabelRef, onAll, {
+      facetButton(allLabelRef, onAll, {
         width: 100,
         height: 24,
         disabled: () => StorageUI._empty(invFn()),
@@ -91,8 +91,8 @@ globalThis.StorageUI = {
 
     const usage = new UIElement({ width: "100%", height: 20 });
     usage.insertChild(
-      gemsLabel(() => StorageUI._usageText(invFn()), {
-        color: GemsTheme.textMuted,
+      facetLabel(() => StorageUI._usageText(invFn()), {
+        color: FacetTheme.textMuted,
       }),
     );
     col.insertChild(usage);
@@ -124,7 +124,7 @@ globalThis.StorageUI = {
    * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
    */
   _table(scene, side) {
-    return gemsTable(InvTable.columns({ fav: true }), {
+    return facetTable(InvTable.columns({ fav: true }), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
@@ -224,12 +224,12 @@ globalThis.StorageUI = {
   },
 
   /**
-   * amount picker (gemsAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
+   * amount picker (facetAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
    * Esc is owned by the scene's handleEscape (closeOnEscape:false in the factory), so it
    * cancels the picker before the window.
    */
   _promptAmount(scene, side, row, maxQty) {
-    scene._storeQtyModal = gemsAmountPicker({
+    scene._storeQtyModal = facetAmountPicker({
       title: row.name,
       max: maxQty,
       prompt: I18n.text("STORAGE_QTY_PROMPT"),

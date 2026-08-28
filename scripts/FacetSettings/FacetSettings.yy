@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FacetSettings",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FacetSettings",
+  "parent":{
+    "name":"Facet",
+    "path":"folders/Game/UI/Facet.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"FacetSettings.js",
+}

@@ -51,7 +51,7 @@ globalThis.InputButton = class InputButton {
     }
   }
 
-  // single source of truth for binding→UI text (UIRebind + gemsKeyHints), so a remap reads the same everywhere.
+  // single source of truth for binding→UI text (UIRebind + facetKeyHints), so a remap reads the same everywhere.
   label() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:

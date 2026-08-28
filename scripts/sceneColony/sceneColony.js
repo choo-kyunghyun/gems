@@ -95,7 +95,7 @@ class _SceneColonyClass {
     this._radarRules = [
       { has: Raider, color: Color.parse("#e0584f") },
       { has: Rat, color: Color.parse("#e0584f") },
-      { has: NPC, color: gemsColor("warn") },
+      { has: NPC, color: facetColor("warn") },
       // the site's travel beacon (the extraction point) — one kind of the shared Interaction
       {
         has: Interaction,
@@ -197,10 +197,10 @@ class _SceneColonyClass {
    * holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
    */
   _buildUI() {
-    this.ui = gemsRoot();
+    this.ui = facetRoot();
     UI.insert(this.ui);
     this.ui.insertChild(
-      gemsKeyHints(
+      facetKeyHints(
         [
           {
             actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
@@ -484,7 +484,7 @@ class _SceneColonyClass {
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
-            gemsLabel(
+            facetLabel(
               () =>
                 I18n.text("REC_KILLS") +
                 ": " +
@@ -497,7 +497,7 @@ class _SceneColonyClass {
                 I18n.text("REC_QUESTS") +
                 ": " +
                 Tracker.count("questsCompleted"),
-              { color: GemsTheme.textMuted },
+              { color: FacetTheme.textMuted },
             ),
           );
           body.insertChild(rec);
