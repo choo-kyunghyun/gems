@@ -69,8 +69,9 @@ globalThis.GameOverlay = {
     }
 
     // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
-    // opens the menu only if unconsumed (so F1/Start stay the always-on pause)
-    if (keyboard_check_pressed(vk_escape)) {
+    // opens the menu only if unconsumed (so F1/Start stay the always-on pause). UI.keyPressed,
+    // not the raw edge — this runs after UI.update, so a widget's own Esc (a field blur) is spent.
+    if (UI.keyPressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         UINav.suspended = true; // consumed; menu stays closed
       } else {

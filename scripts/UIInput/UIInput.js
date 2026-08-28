@@ -408,6 +408,9 @@ globalThis.UIInput = class UIInput {
     if (keyboard_check_pressed(vk_escape)) {
       this.onCancel(this.value);
       this.blur();
+      // a blur is not a dismiss: the enclosing UIModal (and the Game object's gameplay Esc)
+      // read Esc after this and would close the window the field sits in
+      UI.consumeKey(vk_escape);
       keyboard_string = "";
       return;
     }
