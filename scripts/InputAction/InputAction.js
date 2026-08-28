@@ -42,24 +42,6 @@ globalThis.InputAction = class InputAction {
     return this.buttons.length > 0 ? this.buttons[0].label() : "—";
   }
 
-  unbindButton(button) {
-    const index = this.buttons.indexOf(button);
-    if (index > -1) {
-      this.buttons.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-
-  unbindAxis(axis) {
-    const index = this.axes.indexOf(axis);
-    if (index > -1) {
-      this.axes.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-
   /**
    * mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
    * UIInput.active is a plain static field, read live each call.

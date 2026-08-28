@@ -7,7 +7,6 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 Noticed in passing, deliberately left unfixed until scheduled. Each: wire a consumer, or drop.
 
 - `Blueprint.stamp` — caller-less until the Blueprint UI (Build Mode below) puts a plan down for wood; `capture` is live as the DEV capture tool's exit.
-- `InputAction.unbindButton`/`unbindAxis` — caller-less; `Input._setKey` edits the button list by index.
 - The settlement inhabitant/capability layer — `SettlementSystem` is caller-less (`ColonySpawn` attaches `Resident` directly), the `SettlementComponent` registry has no reader, and `Settlement.addComponent`/`removeComponent` (and the record's `color`) are seeds for Farming/raid and the management UI. Route `ColonySpawn` through `SettlementSystem.assign` so the seam is real; keep the rest as deliberate spares. The record half (`found`/`owner`) is live.
 
 ## API Shape
