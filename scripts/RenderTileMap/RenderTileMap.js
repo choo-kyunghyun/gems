@@ -41,6 +41,9 @@ const _BLOB8 = [
  * @property {boolean} [variants] - "dual" only: pick a weighted full-tile variant for mask 15 from
  *   the sheet's SpriteMeta `variants["15"]`, hashed by position, so a wide field of one material
  *   doesn't tile visibly. An undeclared sheet falls back to uniform weights past frame 15.
+ * @property {{r: number, g: number, b: number, time: function(): number}} [wave] - a FLOWING
+ *   material (water): shMeshlit's wave mode paints crest bands in this tone (0..1 floats) over
+ *   the sheet, drifting on `time()` — a SIM clock, so they freeze on pause. Lit maps only.
  */
 
 /** @implements {RenderPass} */
@@ -58,6 +61,9 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._vbuf = new VertexBuffer();
     this._tex = undefined;
     this.lights = opt.lights; // host RenderMesh pass → lit ground (see draw); unset = unlit
+    // a flowing material: { r, g, b, time } — crest tone (0..1 floats) + the clock the crests
+    // drift on (a SIM clock, so they freeze on pause); lit maps only, unset = still ground
+    this.wave = opt.wave;
     // "dual" material-stack options (see the typedef); minId 0 accepts any TileType, so an
     // ordinary single-material dual layer behaves exactly as plain occupancy.
     this.minId = opt.minId ?? 0;
@@ -420,6 +426,12 @@ globalThis.RenderTileMap = class RenderTileMap {
       this.lights.setupLights(entities);
       shader_set_uniform_f(this.lights.uUseTex, 1);
       shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
+      const wave = this.wave;
+      if (wave !== undefined) {
+        shader_set_uniform_f(this.lights.uWave, 1);
+        shader_set_uniform_f(this.lights.uWaveColor, wave.r, wave.g, wave.b);
+        shader_set_uniform_f(this.lights.uTime, wave.time());
+      }
     }
     this._vbuf.submit(this._tex);
     if (lit) shader_reset();

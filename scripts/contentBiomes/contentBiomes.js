@@ -19,16 +19,20 @@ globalThis.contentBiomes = {
   // but `spawnable: false` (travel yes, homes no); only deep water is null → collide-only colliders
   // greedy-meshed by LevelGen into the level's `solid` rects.
   MATERIALS: {
+    // `wave` marks a FLOWING material: the crest tone shMeshlit's wave mode paints over the
+    // flat sheet, drifting on the sim clock (ColonyMap wires it into the material's pass)
     deepwater: {
       name: "Deep Water",
       color: "#3e5870",
       sprite: "pixTerrainDeepWaterFlat",
+      wave: "#285cc4",
       pathCost: null,
     },
     water: {
       name: "Water",
       color: "#2e6b8f",
       sprite: "pixTerrainWaterFlat",
+      wave: "#249fde",
       pathCost: 3,
       spawnable: false,
     },
@@ -56,16 +60,20 @@ globalThis.contentBiomes = {
       sprite: "pixTerrainRichSoilFlat",
       pathCost: 1,
     },
+    // `decor` strews identity pieces over the material's interior cells (RenderDecor, wired by
+    // ColonyMap): { sprite, density (share of cells), upright? } — a tuft stands, a stone lies
     grass: {
       name: "Grass",
       color: "#5d8a46",
       sprite: "pixTerrainGrassFlat",
+      decor: [{ sprite: "pixDecorGrass", density: 0.16, upright: true }],
       pathCost: 1,
     },
     gravel: {
       name: "Gravel",
       color: "#858178",
       sprite: "pixTerrainGravelFlat",
+      decor: [{ sprite: "pixDecorStones", density: 0.05 }],
       pathCost: 1.5,
     },
     rocky: {

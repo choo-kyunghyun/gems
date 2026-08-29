@@ -56,6 +56,7 @@ globalThis.ColonyMap = {
 
     "_tilePasses",
     "_terrainPasses",
+    "_decorPass",
     "_tilePass",
     "_gridPass",
     "_clouds",
@@ -478,6 +479,53 @@ globalThis.ColonyMap = {
   },
 
   /**
+   * The RenderDecor defs of a generated map's material table: every `decor` entry of a
+   * material row, keyed by the row's TileType id, its sprite resolved (a missing one is
+   * warned and skipped, like a missing terrain sheet).
+   */
+  _decorDefs(mats) {
+    const defs = [];
+    for (let i = 0; i < mats.length; i++) {
+      const mat = mats[i].material;
+      const def = mat !== undefined ? contentBiomes.MATERIALS[mat] : undefined;
+      if (def === undefined || def.decor === undefined) continue;
+      for (let k = 0; k < def.decor.length; k++) {
+        const d = def.decor[k];
+        const spr = asset_get_index(d.sprite);
+        if (!sprite_exists(spr)) {
+          Log.warn(`decor sprite missing: ${d.sprite}`); // GMRT: sprite_exists, not >=0
+          continue;
+        }
+        defs.push({
+          id: mats[i].type.id,
+          sprite: spr,
+          density: d.density,
+          upright: d.upright === true,
+        });
+      }
+    }
+    return defs;
+  },
+
+  /**
+   * A terrain pass's `wave` option for a contentBiomes material id: its crest tone as 0..1
+   * floats over the weather's sim clock (the crests freeze on pause with the rain), or
+   * undefined for still ground (and for a saved row predating material ids).
+   */
+  _wave(materialId) {
+    const def =
+      materialId !== undefined ? contentBiomes.MATERIALS[materialId] : undefined;
+    if (def === undefined || def.wave === undefined) return undefined;
+    const c = Color.parse(def.wave);
+    return {
+      r: colour_get_red(c) / 255,
+      g: colour_get_green(c) / 255,
+      b: colour_get_blue(c) / 255,
+      time: () => Weather.time(),
+    };
+  },
+
+  /**
    * Assemble the renderer pass stack (ground → tiles → shadows → entities → debug →
    * sky overlay → lighting).
    *
@@ -510,11 +558,26 @@ globalThis.ColonyMap = {
             minId: mats[i].type.id,
             skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
             variants: true, // weighted full-tile picks so a wide field doesn't tile visibly
+            wave: ColonyMap._wave(mats[i].material),
           },
         );
         scene._terrainPasses.push(pass);
         scene.renderer.insert(pass);
       }
+    // the materials' identity pieces over the finished ground (RenderDecor) — flat decals in
+    // painter order here, the upright ones entering the depth pool before the entities
+    scene._decorPass = undefined;
+    if (mats !== undefined) {
+      const defs = ColonyMap._decorDefs(mats);
+      if (defs.length > 0) {
+        scene._decorPass = new RenderDecor(
+          scene.terrainLayer,
+          scene.level.grid,
+          defs,
+        );
+        scene.renderer.insert(scene._decorPass);
+      }
+    }
     // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
     // on pitched maps the wall and fence layers join below as the lit RenderWalls/RenderFence
     // passes (the flat fallback keeps their autotile RenderTileMaps). VBO-cached + keyed by layer
@@ -589,6 +652,8 @@ globalThis.ColonyMap = {
       // passes below take it at construction. Flat maps (pitch 0) stay unlit.
       for (let i = 0; i < scene._terrainPasses.length; i++)
         scene._terrainPasses[i].lights = scene._meshPass;
+      if (scene._decorPass !== undefined)
+        scene._decorPass.lights = scene._meshPass;
       const tileKeys = Object.keys(scene._tilePasses);
       for (let i = 0; i < tileKeys.length; i++)
         scene._tilePasses[tileKeys[i]].lights = scene._meshPass;

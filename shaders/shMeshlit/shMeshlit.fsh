@@ -60,6 +60,13 @@ uniform vec3 u_sunColor; // sun tint (warm at dawn/dusk, white at noon)
 // the ALBEDO before the light multiply, so the sun's warmth, the night blue and the torch
 // pools keep their own colour over the calmer ground. Skipped at exactly 1.
 uniform float u_chroma;
+// WAVE mode (a ground pass whose material flows — water): crest bands computed from the
+// world position, drifting on u_time (the SIM clock, so they freeze on pause), painted in
+// u_waveColor over the albedo as one more flat tone — no texture, no distortion. u_wave is
+// exactly 0 or 1; RenderMesh.setupLights pins 0 so only the pass that asks gets it.
+uniform float u_wave;
+uniform vec3 u_waveColor;
+uniform float u_time;
 
 vec3 toLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
@@ -112,6 +119,12 @@ void main() {
   vec4 tex = texture2D(gm_BaseTexture, v_texcoord);
   if (u_alphaRef > 0.0 && tex.a < u_alphaRef) discard;
   vec3 albedo = mix(v_vColour.rgb, v_vColour.rgb * tex.rgb, u_useTex);
+  if (u_wave > 0.5) {
+    // one sine along y, its phase warped by a slower one along x: thin crest LINES that
+    // drift down-screen and sway, ~1/8 of the surface
+    float w = sin(v_worldPos.y * 0.14 + sin(v_worldPos.x * 0.05 + u_time * 0.4) * 2.0 - u_time * 0.7);
+    albedo = mix(albedo, u_waveColor, step(0.86, w));
+  }
   if (u_chroma < 1.0) albedo = chromaScale(albedo, u_chroma);
   float alpha = v_vColour.a * mix(1.0, tex.a, u_useTex);
   gl_FragColor = vec4(albedo * light, alpha);

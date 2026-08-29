@@ -52,6 +52,34 @@ globalThis.VertexBuffer = class VertexBuffer {
     return this;
   }
 
+  /**
+   * An UPRIGHT quad standing on the ground line y: its top edge at z0 (up = -z), rising h px
+   * down to z0 + h — the STANDING category's static form (RenderDecor), which the pitched
+   * camera foreshortens like a billboard. Same winding as addQuad.
+   */
+  addUpright(x, y, z0, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
+    const b = this._buf;
+    vertex_position_3d(b, x, y, z0);
+    vertex_texcoord(b, u0, v0);
+    vertex_colour(b, color, alpha);
+    vertex_position_3d(b, x + w, y, z0);
+    vertex_texcoord(b, u1, v0);
+    vertex_colour(b, color, alpha);
+    vertex_position_3d(b, x, y, z0 + h);
+    vertex_texcoord(b, u0, v1);
+    vertex_colour(b, color, alpha);
+    vertex_position_3d(b, x + w, y, z0);
+    vertex_texcoord(b, u1, v0);
+    vertex_colour(b, color, alpha);
+    vertex_position_3d(b, x + w, y, z0 + h);
+    vertex_texcoord(b, u1, v1);
+    vertex_colour(b, color, alpha);
+    vertex_position_3d(b, x, y, z0 + h);
+    vertex_texcoord(b, u0, v1);
+    vertex_colour(b, color, alpha);
+    return this;
+  }
+
   /** Per-vertex alpha quad. Corner order: TL, TR, BL, BR. */
   addQuadV(x, y, w, h, u0, v0, u1, v1, color, aTL, aTR, aBL, aBR) {
     const b = this._buf;

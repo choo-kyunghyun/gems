@@ -63,6 +63,13 @@ globalThis.RenderMesh = class RenderMesh {
       ? shader_get_uniform(this._lit, "u_sunColor")
       : -1;
     this._uChroma = this.litOk ? shader_get_uniform(this._lit, "u_chroma") : -1;
+    // wave mode — public like uUseTex/uNormal: a ground pass whose material flows sets them
+    // after setupLights (which pins u_wave 0)
+    this.uWave = this.litOk ? shader_get_uniform(this._lit, "u_wave") : -1;
+    this.uWaveColor = this.litOk
+      ? shader_get_uniform(this._lit, "u_waveColor")
+      : -1;
+    this.uTime = this.litOk ? shader_get_uniform(this._lit, "u_time") : -1;
     this._uLightCount = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCount")
       : -1;
@@ -153,6 +160,7 @@ globalThis.RenderMesh = class RenderMesh {
       this._uChroma,
       this.chroma !== undefined ? this.chroma() : 1,
     );
+    shader_set_uniform_f(this.uWave, 0); // no crests; a flowing ground pass raises it
 
     const max = RenderMesh.MAX_LIGHTS;
     let recs = this.pointLights !== undefined ? this.pointLights(entities) : [];
@@ -235,6 +243,7 @@ globalThis.RenderMesh = class RenderMesh {
         shader_set_uniform_f(this._uSunDir, 0, 0, -1, 0);
         shader_set_uniform_f(this._uSunColor, 1, 1, 1);
         shader_set_uniform_f(this._uChroma, 1);
+        shader_set_uniform_f(this.uWave, 0);
         shader_set_uniform_f(this._uLightCount, 0);
         shader_set_uniform_f(this.uUseTex, 1);
         shader_set_uniform_f(this.uNormal, 0, 0, -1);
