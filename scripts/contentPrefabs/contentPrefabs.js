@@ -55,7 +55,7 @@ globalThis.contentPrefabs = {
           { preset: "entry", gx: 2, gy: 2 },
           {
             preset: "npc",
-            gx: 5,
+            gx: 7,
             gy: 2,
             label: "Elder",
             nameKey: "NPC_ELDER_NAME",
