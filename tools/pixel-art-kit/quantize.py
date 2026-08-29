@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""Remap a PNG (or folder of PNGs) to a PROVIDED palette by nearest RGB — the style-match lever.
-Use it to pull any generator's / externally-produced art onto the project's palette so a sprite
-sits in the existing set.
-
-Pass a palette file — `palettes/aap-64.gpl` for the project, or any GIMP `.gpl` / bare hex-per-line
-file. Alpha is preserved as a hard cutout (a < threshold -> transparent).
+"""Remap a PNG (or folder of PNGs) onto a palette by nearest color (OKLab) — the style-match lever.
+Use it to pull any generator's / externally-produced art onto AAP-64 so a sprite sits in the
+existing set. Alpha becomes a hard cutout (a < threshold -> transparent).
 
 Usage:
-  python quantize.py in.png  out.png  palette.gpl
-  python quantize.py in_dir  out_dir  palette.gpl        # all *.png (skips *_x16 / sheet)
+  python quantize.py in.png  out.png  [palette.gpl]     # default: the project's AAP-64
+  python quantize.py in_dir  out_dir  [palette.gpl]     # all *.png (skips *_x16 / sheet)
 """
 import sys, os
 import pixlib as P
+import palette as PAL
 
 
 def quantize_file(inp, outp, palette, alpha_thresh=128):
@@ -22,10 +20,11 @@ def quantize_file(inp, outp, palette, alpha_thresh=128):
 
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in (3, 4):
         print(__doc__)
         return
-    src, dst, pal_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    src, dst = sys.argv[1], sys.argv[2]
+    pal_path = sys.argv[3] if len(sys.argv) == 4 else PAL.GPL
     palette = P.load_palette(pal_path)
     if not palette:
         print(f"  ! no colors loaded from {pal_path} (expect a GIMP .gpl or hex-per-line rrggbb)")

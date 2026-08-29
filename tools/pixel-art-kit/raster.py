@@ -1,44 +1,56 @@
 #!/usr/bin/env python3
 """raster — drawing primitives for prototype sprite scripts (pure Python stdlib).
 
-Two buffers, two idioms. Both hold their own size, so a script can mix frame sizes freely:
+The project's pixel art is hard: a 32 px world cell, every pixel fully opaque or fully clear
+(entities are alpha-tested billboards), colors from AAP-64 (`palette`), and a 1 px ink outline
+around each silhouette. Two buffers get there:
 
-  Canvas  hard-alpha, 1 unit = 1 pixel. Every pixel is fully opaque or fully clear —
-          the classic pixel-art constraint. Good for small cells (16-32 px) where a
-          soft edge just reads as mud.
-  Soft    supersampled shapes composited into a float buffer, box-downsampled at the
-          end. Anti-aliased curves and rotated quads at the cost of partial alpha.
-          This is what the project's committed 32 px entity art was drawn with.
+  Canvas  hard-alpha, 1 unit = 1 pixel. Draw in palette tones, `shade` a rim along the ramps,
+          `outline` last. The native idiom for 16-32 px cells.
+  Soft    shapes composited at `ss`x and box-downsampled, for curves and rotated quads that are
+          a pain to place by hand. It never leaves the kit soft: `harden` thresholds the alpha,
+          snaps every color to the palette and returns a Canvas, which is then shaded and
+          outlined like any other. `soft_frame` does draw -> harden -> outline in one call.
 
-Both finish the same way — a flat list of (r, g, b, a) tuples, row-major, which is what
-`pixlib.write_png` takes.
+Both finish as a flat list of (r, g, b, a) tuples, row-major, which `pixlib.write_png` takes.
 
-    import os, raster as R, pixlib as P
+    import os, raster as R, pixlib as P, palette as PAL
 
-    c = R.Canvas(16, 16)
-    c.rect(5, 6, 10, 15, (122, 96, 62, 255))
-    c.outline((38, 34, 24, 255))
-    P.write_png(os.path.join(P.out_dir("crate"), "pixCrate.png"), 16, 16, c.px)
+    c = R.Canvas(32, 32)
+    c.rect(4, 12, 27, 31, PAL.tone("leather", 3))
+    c.shade()                      # lit from above: top rim a tone lighter, bottom a tone darker
+    c.outline()                    # ink the silhouette — run last
+    P.write_png(os.path.join(P.out_dir("crate"), "pixCrate.png"), 32, 32, c.px)
 """
-import math
+import math, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pixlib as P
+import palette as PAL
 
 TRANSPARENT = (0, 0, 0, 0)
-INK = (38, 34, 24)          # a dark WARM brown outline — reads better than cold near-black
+INK = PAL.INK
+
+
+def _rgba(c):
+    return c if len(c) == 4 else (c[0], c[1], c[2], 255)
 
 
 # ---- hard-alpha raster ------------------------------------------------------
 
 class Canvas:
-    """A w x h hard-alpha pixel buffer. Colors are (r, g, b, a) tuples; `None` is a no-op
-    so a drawing routine can switch a detail off without branching at the call site."""
+    """A w x h hard-alpha pixel buffer. Colors are (r, g, b) or (r, g, b, a) tuples; `None` is a
+    no-op so a drawing routine can switch a detail off without branching at the call site."""
 
     def __init__(self, w, h):
         self.w, self.h = w, h
         self.px = [TRANSPARENT] * (w * h)
 
+    def get(self, x, y):
+        return self.px[y * self.w + x] if 0 <= x < self.w and 0 <= y < self.h else TRANSPARENT
+
     def set(self, x, y, c):
         if c is not None and 0 <= x < self.w and 0 <= y < self.h:
-            self.px[y * self.w + x] = c
+            self.px[y * self.w + x] = _rgba(c)
 
     def rect(self, x0, y0, x1, y1, c):
         for y in range(y0, y1 + 1):
@@ -59,11 +71,44 @@ class Canvas:
                 if (x - cx) ** 2 + (y - cy) ** 2 <= rr:
                     self.set(x, y, c)
 
-    def outline(self, c=INK + (255,)):
-        """Ink every transparent pixel that touches an opaque one (4-connected, so corners stay
-        clean). Run last. A subject flush with an edge gets no outline there — which is what
-        foot-anchored art wants at the bottom row."""
+    def paste(self, other, ox, oy):
+        """Composite the opaque pixels of another Canvas at (ox, oy) — a held item, a garment."""
+        for y in range(other.h):
+            for x in range(other.w):
+                c = other.px[y * other.w + x]
+                if c[3]:
+                    self.set(ox + x, oy + y, c)
+
+    def quantize(self, palette=PAL.PALETTE):
+        """Snap every opaque pixel to its nearest palette entry (OKLab)."""
+        self.px = [(P.nearest_color(c, palette) + (255,)) if c[3] else TRANSPARENT for c in self.px]
+
+    def shade(self, lit=(0, -1), n=1):
+        """Rim-shade along the palette ramps: an opaque pixel whose neighbor toward `lit` is clear
+        steps n tones lighter, one whose neighbor away from it is clear steps n darker. Off the frame
+        counts as covered, so a foot-anchored subject keeps its bottom row flat. Run before outline."""
         src = self.px[:]
+        lx, ly = lit
+
+        def clear(x, y):
+            return 0 <= x < self.w and 0 <= y < self.h and src[y * self.w + x][3] == 0
+
+        for y in range(self.h):
+            for x in range(self.w):
+                c = src[y * self.w + x]
+                if not c[3]:
+                    continue
+                if clear(x + lx, y + ly):
+                    self.px[y * self.w + x] = PAL.step(c, n) + (255,)
+                elif clear(x - lx, y - ly):
+                    self.px[y * self.w + x] = PAL.step(c, -n) + (255,)
+
+    def outline(self, c=INK):
+        """Ink every transparent pixel that touches an opaque one (4-connected, so corners stay
+        clean) — the 1 px outline. Run last. A subject flush with an edge gets no outline there,
+        which is what foot-anchored art wants at the bottom row."""
+        src = self.px[:]
+        c = _rgba(c)
         for y in range(self.h):
             for x in range(self.w):
                 if src[y * self.w + x][3] != 0:
@@ -78,8 +123,8 @@ class Canvas:
 # ---- supersampled soft-shape raster ----------------------------------------
 
 class Soft:
-    """A w x h frame rendered at `ss`x internally, then box-downsampled. Shape coordinates are
-    in OUTPUT pixels (0..w, 0..h) and may be fractional — the supersampling is internal."""
+    """A w x h frame rendered at `ss`x internally. Shape coordinates are in OUTPUT pixels
+    (0..w, 0..h) and may be fractional — the supersampling is internal. Finish with `harden`."""
 
     def __init__(self, w, h, ss=4):
         self.ow, self.oh, self.ss = w, h, ss
@@ -143,28 +188,8 @@ class Soft:
         self.tri([p[0], p[1], p[2]], col, a)
         self.tri([p[0], p[2], p[3]], col, a)
 
-    def outline(self, ink=INK, width=1.6, a=0.9):
-        """Darken a rim where opaque meets transparent. Run last, before resolve()."""
-        src = [px[:] for px in self.d]
-        rad = int(width * self.ss)
-        for y in range(self.bh):
-            for x in range(self.bw):
-                if src[y * self.bw + x][3] > 0.5:
-                    continue
-                hit = False
-                for dy in range(-rad, rad + 1):
-                    for dx in range(-rad, rad + 1):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < self.bw and 0 <= ny < self.bh and src[ny * self.bw + nx][3] > 0.5:
-                            hit = True
-                            break
-                    if hit:
-                        break
-                if hit:
-                    self.over(x, y, ink, a)
-
     def resolve(self):
-        """Box-downsample to a flat list of RGBA tuples — the anti-aliasing happens here."""
+        """Box-downsample to a flat list of RGBA tuples, anti-aliased — a preview, not a sprite."""
         s = self.ss
         n = s * s
         out = [TRANSPARENT] * (self.ow * self.oh)
@@ -182,11 +207,26 @@ class Soft:
                                         int(255 * a / n)) if a > 0 else TRANSPARENT
         return out
 
+    def harden(self, palette=PAL.PALETTE, cover=0.5):
+        """The hard-alpha Canvas of this frame: a pixel is opaque when at least `cover` of its
+        supersamples are, and takes the nearest palette entry to its mean color."""
+        c = Canvas(self.ow, self.oh)
+        for i, (r, g, b, a) in enumerate(self.resolve()):
+            if a >= cover * 255:
+                c.px[i] = P.nearest_color((r, g, b), palette) + (255,)
+        return c
 
-def soft_frame(drawfn, w, h, ink=INK, ss=4):
-    """Render `drawfn(soft)` into a fresh w x h frame: draw -> outline -> downsample."""
+
+def soft_canvas(drawfn, w, h, ss=4, palette=PAL.PALETTE):
+    """`drawfn(soft)` into a fresh w x h frame, hardened — a Canvas to shade / detail / outline."""
     s = Soft(w, h, ss)
     drawfn(s)
+    return s.harden(palette)
+
+
+def soft_frame(drawfn, w, h, ink=INK, ss=4, palette=PAL.PALETTE):
+    """draw -> harden -> outline, as a flat pixel list. `ink=None` skips the outline."""
+    c = soft_canvas(drawfn, w, h, ss, palette)
     if ink is not None:
-        s.outline(ink)
-    return s.resolve()
+        c.outline(ink)
+    return c.px

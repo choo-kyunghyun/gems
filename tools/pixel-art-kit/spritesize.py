@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""spritesize — pick a grid-snapped frame size from a sprite's silhouette (style-agnostic, stdlib only).
+"""spritesize — pick a grid-snapped frame size from a sprite's silhouette (stdlib only).
 
 Turns "what aspect ratio should this be?" into a calculation instead of a guess. The frame is a bounding
 box; the rule is two steps: (1) MEASURE the subject's opaque alpha bbox, (2) SNAP each dimension UP to the
@@ -7,7 +7,8 @@ size MENU (multiples of the 16px half-unit) with a little margin so the outline 
 the smallest grid-friendly W x H that contains the subject — which naturally yields 1:2 for a standing
 biped, ~1.5:1 for a pistol, ~3:1 for a long rifle, etc.
 
-Carries NO project sizes — only the menu + the snap logic.
+The menu is the project's: the world cell is 32 px, so frames are multiples of its 16 px half-unit — a
+32x32 icon or prop, a 32x64 standing pawn, 48x32 / 64x32 / 96x32 for sidearm / long gun / rifle icons.
 
   python spritesize.py <image.png> [foot|center]   # prints the measured bbox + recommended W x H
 """

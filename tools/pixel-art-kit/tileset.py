@@ -33,18 +33,20 @@ Outputs (under out/<subdir>/), per mode:
 
 Usage:
   python tileset.py [material.png] [size] [out_subdir] [--mode dual|corner|both] [--heal]
-                    [--palette F] [--variant V.png ...]
-    material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural demo grass.
+                    [--palette F | --raw] [--variant V.png ...]
+    material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural demo regolith.
     size          tile pixels (default 32). corner pieces are size/2.
     out_subdir    under out/ (default tiles/<material-stem>).
     --mode        which set(s) to emit (default both).
     --heal        wrap-offset + seam-blur the patch to force tileability (a real tiling node
                   upstream is better; this is the stdlib safety net).
-    --palette F   lock the output to the palette in file F (.gpl or hex-per-line); omit = keep source colors.
+    --palette F   lock the output to the palette in file F (.gpl or hex-per-line); default AAP-64.
+    --raw         keep the source colors instead.
     --variant V   a full-tile variant material to append to the dual set (repeat per variant).
 """
 import os, sys, random, argparse
 import pixlib as P
+import palette as PAL
 
 TRANSPARENT = (0, 0, 0, 0)
 
@@ -61,8 +63,8 @@ CORNER_MASKS = [15,           # 0  fill
 
 
 def demo_material(S, seed=7):
-    """Procedural tileable demo grass: seeded noise, wrap box-blurred to smooth blobs (tileable
-    by construction), banded into a few greens. Lets it run with no input material."""
+    """Procedural tileable demo regolith: seeded noise, wrap box-blurred to smooth blobs
+    (tileable by construction), banded into the rust ramp. Lets it run with no input material."""
     rng = random.Random(seed)
     field = [rng.random() for _ in range(S * S)]
     for _ in range(3):
@@ -77,8 +79,8 @@ def demo_material(S, seed=7):
         field = nxt
     lo, hi = min(field), max(field)
     span = (hi - lo) or 1.0
-    greens = [(75, 105, 47), (55, 148, 110), (106, 190, 48), (153, 229, 80)]  # demo greens
-    return [greens[min(len(greens) - 1, int((v - lo) / span * len(greens)))] + (255,) for v in field]
+    tones = PAL.RAMP["rust"][1:4]
+    return [tones[min(len(tones) - 1, int((v - lo) / span * len(tones)))] + (255,) for v in field]
 
 
 def load_patch(path, S):
@@ -115,7 +117,7 @@ def prep_patch(material, S, heal=False, palette=None):
             return None, None
         patch, label = load_patch(src, S), src
     else:
-        patch, label = demo_material(S), "procedural grass"
+        patch, label = demo_material(S), "procedural regolith"
     if heal:
         patch = make_tileable(patch, S)
     if palette:
@@ -308,16 +310,17 @@ def main():
     ap.add_argument("out_subdir", nargs="?")
     ap.add_argument("--mode", choices=("dual", "corner", "both"), default="both")
     ap.add_argument("--heal", action="store_true")
-    ap.add_argument("--palette")
+    ap.add_argument("--palette", default=PAL.GPL)
+    ap.add_argument("--raw", action="store_true")
     ap.add_argument("--variant", action="append", default=[])
     a = ap.parse_args()
     material, S, heal = a.material, a.size, a.heal
-    palette = P.load_palette(a.palette) if a.palette else None
+    palette = None if a.raw else P.load_palette(a.palette)
     Q = S // 2
     if a.out_subdir:
         sub = a.out_subdir
     else:
-        stem = os.path.splitext(os.path.basename(material))[0] if material else "grass"
+        stem = os.path.splitext(os.path.basename(material))[0] if material else "regolith"
         sub = os.path.join("tiles", stem)
     out = P.out_dir(sub)
 

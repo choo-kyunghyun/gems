@@ -5,19 +5,20 @@ Stage 1 of the tile loop (material -> tileset): a generator here writes an SxS p
 cuts an autotile set from it. Every algorithm wraps by construction (wrapping lattice / integer
 wave cycles / strokes that wrap / specks that never span a seam), so nothing needs healing.
 
-  noise   coarse value-noise thresholded into dark/base/light — calm blobs (stone, mud, humus)
-  ripple  a vertical sine warped by a horizontal one, over a tone ramp — water surfaces
-  blades  fine vertical strokes over a base — grass, fur, straw
-  grain   isolated 1 px specks over a base — sand, gravel, plaster
+  noise   coarse value-noise thresholded into dark/base/light — calm blobs (basalt, mud, humus)
+  ripple  a vertical sine warped by a horizontal one, over a tone ramp — water, ice sheets
+  blades  fine vertical strokes over a base — moss, grass, fur
+  grain   isolated 1 px specks over a base — regolith, dust, gravel, plaster
 
-Colors are (r, g, b) tuples the caller picks (a palette entry, typically); output is the flat
+Colors are (r, g, b) tuples the caller picks (`palette` tones — `PAL.dbl` hands a recipe its
+dark / base / light triple); output is the flat
 (r, g, b, a) list `pixlib.write_png` takes. The same seed always yields the same patch, so a
 material is reproducible from its call.
 
-    import os, material as M, pixlib as P
+    import os, material as M, pixlib as P, palette as PAL
 
-    px = M.blades(32, base=(50, 132, 100), dark=(35, 103, 78), light=(93, 175, 141), seed=7)
-    P.write_png(os.path.join(P.out_dir("materials"), "grass_0.png"), 32, 32, px)
+    px = M.grain(32, **PAL.dbl("rust", 2), seed=7)
+    P.write_png(os.path.join(P.out_dir("materials"), "regolith_0.png"), 32, 32, px)
 
 Variants: `variants(draw, n, seed)` re-rolls one recipe n times (frame 0 is the one an autotile
 set is cut from; the rest become full-tile alternates — see tileset.py `--variant`). A `ripple`
@@ -32,6 +33,7 @@ Usage:  python material.py [algo|all] [size]   # -> out/materials/demo_<algo>.pn
 import os, sys, math, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pixlib as P
+import palette as PAL
 
 
 def _rgba(c):
@@ -193,11 +195,11 @@ def decorate(patch, S, stamp_fn, seed, **kw):
 
 # ---- cli --------------------------------------------------------------------
 
-DEMO = {  # one recipe per algorithm, in demo colors
-    "noise":  dict(base=(109, 117, 141), dark=(74, 84, 98), light=(139, 147, 175), L=6),
-    "ripple": dict(tones=[(71, 125, 133)] * 3 + [(88, 141, 190)], cyc_y=2, cyc_x=2),
-    "blades": dict(base=(50, 132, 100), dark=(35, 103, 78), light=(93, 175, 141), density=0.10),
-    "grain":  dict(base=(199, 176, 139), dark=(160, 134, 98), light=(228, 210, 170), density=0.09),
+DEMO = {  # one recipe per algorithm, in palette tones: basalt, water, lichen, regolith
+    "noise":  dict(**PAL.dbl("steel", 1), L=6),
+    "ripple": dict(tones=[PAL.tone("sky", 1)] * 2 + [PAL.tone("sky", 2), PAL.tone("sky", 3)], cyc_y=2, cyc_x=2),
+    "blades": dict(**PAL.dbl("bio", 1), density=0.10),
+    "grain":  dict(**PAL.dbl("rust", 2), density=0.12),
 }
 
 

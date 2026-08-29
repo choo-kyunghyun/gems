@@ -227,14 +227,77 @@ def blit(dst, dw, ox, oy, src, sw, sh, scale, ck=12):
             X, Y = ox + i, oy + j
             dst[Y * dw + X] = over(src[sy * sw + sx], checker(X, Y, ck))
 
+
+# ---- OKLab -----------------------------------------------------------------
+# Perceptual color space for ramp building and nearest-color matching (Euclidean RGB pairs a
+# dark red with a dark green long before a human would). Pure math, no tables.
+
+
+def _lin(c):
+    c /= 255.0
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def _gam(c):
+    c = min(1.0, max(0.0, c))
+    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+
+def oklab(rgb):
+    """sRGB (0-255) -> (L, a, b)."""
+    r, g, b = (_lin(c) for c in rgb[:3])
+    l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
+
+
+def oklab_rgb(lab):
+    """(L, a, b) -> sRGB (0-255); out-of-gamut components clip."""
+    L, a, b = lab
+    l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
+    g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
+    bb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+    return tuple(int(round(_gam(c) * 255)) for c in (r, g, bb))
+
+
+def in_gamut(lab, tol=0.002):
+    L, a, b = lab
+    l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    for c in (4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+              -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+              -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s):
+        if c < -tol or c > 1 + tol:
+            return False
+    return True
+
 # ---- palette quantize ------------------------------------------------------
+
+_LAB_CACHE = {}
+
+
+def _lab_of(palette):
+    key = id(palette)
+    hit = _LAB_CACHE.get(key)
+    if hit is None or hit[0] is not palette:
+        hit = (palette, [oklab(p) for p in palette])
+        _LAB_CACHE[key] = hit
+    return hit[1]
 
 
 def nearest_color(rgb, palette):
-    r, g, b = rgb
-    best, bd = palette[0], 1 << 30
-    for p in palette:
-        d = (r - p[0]) ** 2 + (g - p[1]) ** 2 + (b - p[2]) ** 2
+    """The palette entry nearest to rgb in OKLab."""
+    L, a, b = oklab(rgb)
+    best, bd = palette[0], 1e30
+    for p, (pL, pa, pb) in zip(palette, _lab_of(palette)):
+        d = (L - pL) ** 2 + (a - pa) ** 2 + (b - pb) ** 2
         if d < bd:
             bd, best = d, p
     return best
