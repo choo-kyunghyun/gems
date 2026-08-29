@@ -12,8 +12,11 @@ globalThis.contentPrefabs = {
       // ---- anchors ----
 
       // the colony compound — the home site's whole hand-built ground: the Elder's quest post with
-      // the landing beacon and radio, the trader row with the stockpile chest and workbench, the
-      // tutorial raider pack, and the "reach" quest marker on the ruin walls
+      // the landing beacon and radio, the trader row outside the DEPOT (a closed room around the
+      // stockpile chest and workbench, its door to the south), the QUARTERS (the walled ruin, its
+      // door to the north, two cots and a lantern — the only safe beds on the planet), and the
+      // "reach" quest marker on the ruin walls. Both buildings are rooms (Rooms): a roof over the
+      // air and the cold, warmed by their lanterns. No raider — the site is safe (danger 0).
       {
         id: "colony_hub",
         cols: 45,
@@ -23,9 +26,14 @@ globalThis.contentPrefabs = {
             layer: "wall",
             rects: [
               [4, 4, 3, 3],
-              [10, 4, 1, 5],
-              [10, 8, 5, 1],
               [16, 3, 1, 1],
+
+              // depot: x 9..15, y 7..12; interior x 10..14, y 8..11; door at (12, 12)
+              [9, 7, 7, 1],
+              [9, 8, 1, 4],
+              [15, 8, 1, 4],
+              [9, 12, 3, 1],
+              [13, 12, 3, 1],
 
               [38, 6, 1, 8],
 
@@ -34,7 +42,8 @@ globalThis.contentPrefabs = {
               [22, 16, 1, 1],
               [25, 16, 1, 1],
 
-              [30, 20, 6, 1],
+              // quarters: x 30..44, y 20..29; interior x 31..43, y 21..28; door at (37, 20)
+              [30, 20, 7, 1],
               [38, 20, 7, 1],
               [30, 29, 15, 1],
               [30, 20, 1, 10],
@@ -57,45 +66,15 @@ globalThis.contentPrefabs = {
           { preset: "reach", gx: 17, gy: 2, half: 88 },
           { preset: "radio", gx: 2, gy: 5 },
           { preset: "prop", gx: 2, gy: 3, kind: "travel", label: "Beacon" },
-          {
-            preset: "raider",
-            gx: 8,
-            gy: 3,
-            loot: [
-              { itemId: "rags", qty: 2 },
-              { itemId: "lead_pipe", qty: 1 },
-              { itemId: "backpack", qty: 1 },
-            ],
-          },
-          {
-            preset: "raider",
-            gx: 14,
-            gy: 3,
-            loot: [
-              { itemId: "rags", qty: 1 },
-              { itemId: "medkit", qty: 1 },
-              { itemId: "armored_vest", qty: 1 },
-            ],
-          },
-          {
-            preset: "raider",
-            gx: 3,
-            gy: 11,
-            loot: [
-              { itemId: "circuitry", qty: 1 },
-              { itemId: "blaster", qty: 1 },
-            ],
-          },
-          {
-            preset: "raider",
-            gx: 17,
-            gy: 11,
-            loot: [
-              { itemId: "rags", qty: 1 },
-              { itemId: "keycard", qty: 1 },
-              { itemId: "adrenal_implant", qty: 1 },
-            ],
-          },
+          // the depot's door (an E-W wall run: walls left and right, so the leaf lies flat) and
+          // lantern
+          { preset: "prop", gx: 12, gy: 12, kind: "door", label: "Door" },
+          { preset: "lantern", gx: 14, gy: 11 },
+          // the quarters: door, two cots, lantern
+          { preset: "prop", gx: 37, gy: 20, kind: "door", label: "Door" },
+          { preset: "prop", gx: 32, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
+          { preset: "prop", gx: 35, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
+          { preset: "lantern", gx: 42, gy: 27 },
           {
             preset: "chest",
             gx: 10,

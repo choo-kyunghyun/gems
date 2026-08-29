@@ -7,7 +7,8 @@
  *   name        i18n key; `desc` the i18n key of the world map's one-line brief
  *   pos         { x, y } in [0,1] chart space — the world map's node placement AND the travel-time
  *               metric (ColonyMap.travelHours)
- *   danger      0..3 threat tier, the world map's readout (the generator reads the biome, not this)
+ *   danger      0..3 threat tier, the world map's readout; 0 is a SAFE site — the generator stamps
+ *               no raider on it (ColonyLevel._generate's spawn filter; the biome tunes the rest)
  *   biome       contentBiomes.BIOMES profile id — the generator's stage tuning, and the world map's
  *               terrain readout
  *   cols/rows   the level's size in cells; `seed` the generator seed (the same seed lays the same

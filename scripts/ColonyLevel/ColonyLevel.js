@@ -41,8 +41,8 @@ globalThis.ColonyLevel = {
   /**
    * A site's level data: an empty LevelData at the site's size whose `meta` carries what the
    * generator and the map runtime read — the seed, the biome profile, the anchor prefab and its
-   * clear margin, and, off the profile and the site, the whole-map indoor flag, climate and
-   * settlement. The arrival points come out of the generator (the anchor's `entry` marker), not
+   * clear margin and threat tier, and, off the profile and the site, the whole-map indoor flag,
+   * climate and settlement. The arrival points come out of the generator (the anchor's `entry` marker), not
    * the data. Returns null for an unknown biome.
    */
   _siteData(site) {
@@ -56,6 +56,7 @@ globalThis.ColonyLevel = {
       biome: site.biome,
       anchor: site.anchor,
       clear: site.clear ?? ANCHOR_CLEAR,
+      danger: site.danger,
     };
     if (biome.indoor === true) meta.indoor = true;
     if (biome.climate !== undefined) meta.climate = biome.climate;
@@ -168,7 +169,9 @@ globalThis.ColonyLevel = {
    * into it), `mats` the palette table the stacked render passes threshold on.
    *
    * The profile is `meta.biome` (contentBiomes.BIOMES — load() already rejected an unknown one),
-   * the fixed structure `meta.anchor` (a Prefab id), and `meta.clear` the cells claimed around it.
+   * the fixed structure `meta.anchor` (a Prefab id), `meta.clear` the cells claimed around it, and
+   * `meta.danger` the site's threat tier — 0 keeps every stamped raider off the level (a safe
+   * site: the home outpost), otherwise the colony's default spawn policy stands.
    * The terrain lands as per-cell TileTypes on the
    * terrain layer, so it is ordinary tile data from here on — LevelGrid.costAt prices nav from it
    * and the stacked dual-grid passes render it, with no generator left running at play time.
@@ -183,6 +186,8 @@ globalThis.ColonyLevel = {
       biome: contentBiomes.BIOMES[biomeId],
       anchor: data.meta.anchor,
       clear: data.meta.clear,
+      spawnFilter:
+        data.meta.danger === 0 ? (s) => s.preset !== "raider" : undefined,
     });
     const out = gen.generate(grid.cols, grid.rows);
     const terrain = ColonyLevel._terrainTypes(gen.palette);
