@@ -681,6 +681,7 @@ globalThis.ColonyMap = {
     scene._sky = undefined;
     if (scene.level.meta.get(ColonyMap.INDOOR) !== true) {
       scene._clouds = new RenderCloudShadow();
+      scene._clouds.enabled = false; // the flat look: no noise field drifting over the ground
       scene._weather = new RenderWeather();
       const wall = scene._tilePasses.wall; // RenderWalls on a pitched map (its height); flat: a tilemap
       const roofH =
@@ -694,18 +695,23 @@ globalThis.ColonyMap = {
     }
     // Lighting LAST — a per-frame light map composited over everything. Day/night is its ambient
     // term ("lighting with no lights"); Light entities + a night vignette layer on top.
-    scene._lighting = new RenderLighting({ ambient: () => WorldClock.tint() });
+    scene._lighting = new RenderLighting({
+      ambient: () => WorldClock.tint(),
+      vignette: 0, // the flat look: night is one even multiply, no corner gradient
+    });
     scene.renderer.insert(scene._lighting);
   },
 
   /**
    * Follow camera on the new player + view culling.
-   * 32px-cell world: base zoom 1.75 for the pitched 2.5D framing (flat fallback 1) — half the
-   * old 16px-cell seeds, so the on-screen framing is unchanged (view shows 2× the world px).
+   * 32px-cell world: base zoom 2 for the pitched 2.5D framing (flat fallback 1) and the wheel
+   * snaps through integer stops — a whole number of screen px per world px keeps every texel
+   * the same size across the screen (a fractional zoom draws them 1 px and 2 px wide by turns).
+   * The pitch still foreshortens rows by cos(pitch); only the horizontal scale is exact.
    */
   _buildCamera(scene) {
     const pitch = ColonyMap.BB_PITCH;
-    const baseZoom = pitch > 0 ? 1.75 : 1;
+    const baseZoom = pitch > 0 ? 2 : 1;
     // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the control derives its live
     // zoom floor from it + the current surface each frame. Horizontal is the binding axis on a
     // landscape surface.
@@ -723,7 +729,8 @@ globalThis.ColonyMap = {
       eyeDist: 2000,
       zoom: baseZoom,
       viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the map)
-      zoomMax: baseZoom * 1.5, // modest zoom-in headroom
+      zoomMax: 3, // one integer stop of zoom-in headroom
+      zoomSteps: [0.5, 1, 2, 3],
       // Edge-clamp the look-at to the finite world so the pitched view never shows past a map
       // edge. gridToWorld anchors cell 0 at world (0,0).
       bounds: {

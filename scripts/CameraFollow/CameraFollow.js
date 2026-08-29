@@ -42,6 +42,9 @@ globalThis.CameraFollow = class CameraFollow {
     this.zoomMin = opt.zoomMin ?? 0.5;
     this.zoomMax = opt.zoomMax ?? 4;
     this.zoomStep = opt.zoomStep ?? 0.1;
+    // ascending zoom STOPS the wheel snaps through (integer stops keep every texel the same
+    // screen size); undefined = the continuous zoomStep ratio
+    this.zoomSteps = opt.zoomSteps;
     this.zoomLerp = opt.zoomLerp ?? 0.2;
     this.zoomButton = opt.zoomButton ?? mb_middle;
   }
@@ -77,16 +80,8 @@ globalThis.CameraFollow = class CameraFollow {
   _zoom(camera) {
     // zoom input yields to the UI: a wheel over a hovered list scrolls it, never the world
     if (!UI.captured) {
-      if (mouse_wheel_up())
-        this.zoomTarget = Math.min(
-          this.zoomMax,
-          this.zoomTarget * (1 + this.zoomStep),
-        );
-      if (mouse_wheel_down())
-        this.zoomTarget = Math.max(
-          this.zoomMin,
-          this.zoomTarget * (1 - this.zoomStep),
-        );
+      if (mouse_wheel_up()) this.zoomTarget = this._stepTo(1);
+      if (mouse_wheel_down()) this.zoomTarget = this._stepTo(-1);
       if (mouse_check_button_pressed(this.zoomButton))
         this.zoomTarget = this.zoomHome;
     }
@@ -106,6 +101,32 @@ globalThis.CameraFollow = class CameraFollow {
       sw / this.zoom,
       surface_get_height(application_surface) / this.zoom,
     );
+  }
+
+  /**
+   * The wheel's next zoom in `dir` (+1 in, -1 out): the next stop of `zoomSteps` when given, else
+   * the zoomStep ratio — clamped to [zoomMin, zoomMax]. The last stop holds.
+   */
+  _stepTo(dir) {
+    const s = this.zoomSteps;
+    let z = this.zoomTarget;
+    if (s === undefined) z = z * (1 + dir * this.zoomStep);
+    else if (dir > 0) {
+      let i = 0;
+      while (i < s.length) {
+        if (s[i] > this.zoomTarget + 1e-6) break;
+        i++;
+      }
+      if (i < s.length) z = s[i];
+    } else {
+      let i = s.length - 1;
+      while (i >= 0) {
+        if (s[i] < this.zoomTarget - 1e-6) break;
+        i--;
+      }
+      if (i >= 0) z = s[i];
+    }
+    return clamp(z, this.zoomMin, this.zoomMax);
   }
 
   /** Authored degrees (or the zoom curve) → the camera's radian ground tilt. */
