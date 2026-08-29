@@ -235,5 +235,170 @@
         ]
       ]
     }
+  },
+  {
+    "sprite": "pixTerrainDeepWaterFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ]
+  },
+  {
+    "sprite": "pixTerrainWaterFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ]
+  },
+  {
+    "sprite": "pixTerrainSandFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ],
+        [
+          17,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "pixTerrainMudFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "pixTerrainSoilFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "pixTerrainRichSoilFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "pixTerrainGrassFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ]
+  },
+  {
+    "sprite": "pixTerrainGravelFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ],
+        [
+          17,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "sprite": "pixTerrainRockyFlat",
+    "kind": "tileset",
+    "autotile": "dual",
+    "cell": [
+      32,
+      32
+    ],
+    "variants": {
+      "15": [
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          1
+        ],
+        [
+          17,
+          1
+        ]
+      ]
+    }
   }
 ]

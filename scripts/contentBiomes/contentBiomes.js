@@ -9,8 +9,9 @@
  */
 globalThis.contentBiomes = {
   // Terrain MATERIALS by id — a generator palette entry minus its band position (a biome profile
-  // supplies that). `sprite` is the untinted dual-grid tileset the material's pass renders with;
-  // `color` is the design-reference tint (not drawn — real colored art now). `pathCost` is the
+  // supplies that). `sprite` is the untinted dual-grid tileset the material's pass renders with —
+  // the one-tone `*Flat` sets (the textured pixTerrain<Material> sets stay in the project as
+  // spares); `color` is the design-reference tint (not drawn — real colored art now). `pathCost` is the
   // WEIGHTED movement cost (TileType convention: null → impassable): it prices both pathfinding
   // (NavGrid samples it, MotionPlanner multiplies step distance by it) and movement-point
   // consumption (PathFollow.speedScale — a mover's speed × 1/cost). Easy ground 1, loose 1.5,
@@ -21,56 +22,56 @@ globalThis.contentBiomes = {
     deepwater: {
       name: "Deep Water",
       color: "#3e5870",
-      sprite: "pixTerrainDeepWater",
+      sprite: "pixTerrainDeepWaterFlat",
       pathCost: null,
     },
     water: {
       name: "Water",
       color: "#2e6b8f",
-      sprite: "pixTerrainWater",
+      sprite: "pixTerrainWaterFlat",
       pathCost: 3,
       spawnable: false,
     },
     sand: {
       name: "Sand",
       color: "#c2a878",
-      sprite: "pixTerrainSand",
+      sprite: "pixTerrainSandFlat",
       pathCost: 1.5,
     },
     mud: {
       name: "Mud",
       color: "#605444",
-      sprite: "pixTerrainMud",
+      sprite: "pixTerrainMudFlat",
       pathCost: 2,
     },
     soil: {
       name: "Soil",
       color: "#8c7558",
-      sprite: "pixTerrainSoil",
+      sprite: "pixTerrainSoilFlat",
       pathCost: 1,
     },
     richsoil: {
       name: "Rich Soil",
       color: "#6e5840",
-      sprite: "pixTerrainRichSoil",
+      sprite: "pixTerrainRichSoilFlat",
       pathCost: 1,
     },
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      sprite: "pixTerrainGrass",
+      sprite: "pixTerrainGrassFlat",
       pathCost: 1,
     },
     gravel: {
       name: "Gravel",
       color: "#858178",
-      sprite: "pixTerrainGravel",
+      sprite: "pixTerrainGravelFlat",
       pathCost: 1.5,
     },
     rocky: {
       name: "Rocky",
       color: "#76746e",
-      sprite: "pixTerrainRocky",
+      sprite: "pixTerrainRockyFlat",
       pathCost: 2,
     },
   },
