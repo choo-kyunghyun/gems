@@ -9,8 +9,8 @@
  *
  * Growth: progress advances by dh / growHours × the species' season weight (0 halts it, and on a
  * non-hardy crop is the frost that kills it); the stage is floor(progress × (stages−1)), drawn as
- * a Mesh.scale factor over the specimen's base (one model per species, no per-stage art); a tree
- * turns solid from `solidFrom`; a ripe plant (progress ≥ 1) carries its species' Interaction
+ * the sprite FRAME (one sheet per species, a frame per stage — Visual.subimg; the specimen's size
+ * variety is the spawn's `size`, baked once); a tree turns solid from `solidFrom`; a ripe plant (progress ≥ 1) carries its species' Interaction
  * (harvest/chop — contentInteractions), which harvest() serves: the yield to the bag, then
  * progress falls back to `regrow` or the plant goes.
  *
@@ -27,7 +27,6 @@
  */
 globalThis.FloraSystem = {
   KEY: "flora", // its LevelMeta key — a data key (a save holds it)
-  MIN_SCALE: 0.25, // a seedling's Mesh.scale factor; the last stage draws at 1
   CAP: 1.5, // the flora cap, as a multiple of the biome's generation density
   SPREAD_RATE: 0.4, // expected seedings per in-game hour off mature wild plants (season weight 1)
   POOL_RATE: 0.05, // expected biome-pool rolls per in-game hour
@@ -79,7 +78,7 @@ globalThis.FloraSystem = {
     let d = 0;
     let wild = 0;
     FloraSystem._solidDirty = false;
-    entities.forEach([Growth, Mesh], (id, g, mesh) => {
+    entities.forEach([Growth, Visual], (id, g, vis) => {
       const def = FloraSystem.species(g.species);
       const mul = def.season[season] ?? 1;
       if (mul === 0) {
@@ -97,7 +96,7 @@ globalThis.FloraSystem = {
         if (was < 1) ripe[r++] = id;
         if (g.wild) mature[m++] = id;
       }
-      FloraSystem._stage(entities, id, g, mesh, def);
+      FloraSystem._stage(entities, id, g, vis, def);
     });
     for (let i = 0; i < r; i++) FloraSystem._ripen(entities, ripe[i]);
     ripe.length = 0;
@@ -111,16 +110,14 @@ globalThis.FloraSystem = {
     mature.length = 0;
   },
 
-  /** Apply the stage progress implies: the model's scale step, and a trunk turning solid. */
-  _stage(entities, id, g, mesh, def) {
+  /** Apply the stage progress implies: the sheet's frame, and a trunk turning solid. */
+  _stage(entities, id, g, vis, def) {
     const last = def.stages - 1;
     let stage = Math.floor(g.progress * last);
     if (stage > last) stage = last;
     if (stage === g.stage) return;
     g.stage = stage;
-    mesh.scale =
-      g.base *
-      (FloraSystem.MIN_SCALE + (1 - FloraSystem.MIN_SCALE) * (stage / last));
+    vis.subimg = stage;
     if (def.solidFrom === undefined) return;
     const col = entities.get(id, Collision);
     if (col === undefined) return;
@@ -138,16 +135,14 @@ globalThis.FloraSystem = {
   },
 
   /**
-   * A freshly spawned plant (ColonySpawn, for any `species` descriptor): the specimen's base size
-   * is the Mesh.scale the preset baked (its size variety), then its stage and, if already ripe,
-   * its Interaction. A trunk set solid here needs no invalidate — the spawn is a new collider.
+   * A freshly spawned plant (ColonySpawn, for any `species` descriptor): its stage frame and, if
+   * already ripe, its Interaction. A trunk set solid here needs no invalidate — the spawn is a
+   * new collider.
    */
   attach(entities, id) {
     const g = entities.get(id, Growth);
-    const mesh = entities.get(id, Mesh);
     const def = FloraSystem.species(g.species);
-    g.base = mesh.scale ?? 1;
-    FloraSystem._stage(entities, id, g, mesh, def);
+    FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
     if (g.progress >= 1) FloraSystem._ripen(entities, id);
   },
 
@@ -320,7 +315,7 @@ globalThis.FloraSystem = {
       g.progress = def.regrow;
       entities.detach(id, Interaction);
       FloraSystem._solidDirty = false;
-      FloraSystem._stage(entities, id, g, entities.get(id, Mesh), def);
+      FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
       if (FloraSystem._solidDirty) SolidSystem.invalidate();
     } else entities.remove(id);
     return true;

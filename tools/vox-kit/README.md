@@ -1,7 +1,8 @@
 # Vox Kit
 
-A toolkit for the voxel props (the VOLUME category: furniture, machines, rocks, flora, ruins) in the
-project's style: build a model in a throwaway script or MagicaVoxel, lock it onto AAP-64, check it
+A toolkit for the voxel props (the VOLUME category: furniture, machines, ruins — the boxy props whose
+top face and facing read; organic props — trees, crops, boulders — are STANDING sprites, drawn with
+pixel-art-kit) in the project's style: build a model in a throwaway script or MagicaVoxel, lock it onto AAP-64, check it
 against the runtime's contract, and see it under the game camera without a game run. Pure Python
 stdlib, nothing to install.
 

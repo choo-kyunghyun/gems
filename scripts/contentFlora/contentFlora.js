@@ -1,4 +1,4 @@
-// The colony's plant SPECIES — what a tree or crop is: its model, how long it takes to ripen, the
+// The colony's plant SPECIES — what a tree or crop is: its sprite, how long it takes to ripen, the
 // seasons it grows in, the ground it roots on and what it yields. FloraSystem drives the rules,
 // contentBiomes names which species a biome carries (its `flora` pool), and BuildMode plants the
 // `plant` ones. Split like contentBiomes so the system file is logic-only.
@@ -7,7 +7,8 @@
  *   name       i18n key (the entity's Name)
  *   preset     the ColonySpawn preset it spawns as — "tree" (a solid trunk under a canopy) or
  *              "plant" (walk-through)
- *   model      vox model NAME (Mesh.model) — one model per species, drawn at a stage scale
+ *   sprite     sprite NAME (Visual.sprite, a STANDING upright sprite) — one sheet per species,
+ *              its frames the stages in order (frame = stage)
  *   growHours  in-game hours from seedling to ripe at season weight 1
  *   stages     visual steps seedling→ripe (≥ 2); the stage is floor(progress × (stages−1))
  *   season     growth weight per WorldClock season id — 0 halts growth (and, on a non-`hardy`
@@ -27,7 +28,7 @@ globalThis.contentFlora = {
     pine: {
       name: "FLORA_PINE",
       preset: "tree",
-      model: "tree_pine",
+      sprite: "pixPine",
       growHours: 480,
       stages: 4,
       season: { spring: 1.2, summer: 1, autumn: 0.6, winter: 0.1 },
@@ -40,7 +41,7 @@ globalThis.contentFlora = {
     berry_bush: {
       name: "FLORA_BERRY_BUSH",
       preset: "plant",
-      model: "bush_berry",
+      sprite: "pixBerryBush",
       growHours: 96,
       stages: 3,
       season: { spring: 1.5, summer: 1, autumn: 0.7, winter: 0 },
@@ -53,7 +54,7 @@ globalThis.contentFlora = {
     wheat: {
       name: "FLORA_WHEAT",
       preset: "plant",
-      model: "crop_wheat",
+      sprite: "pixWheat",
       growHours: 48,
       stages: 3,
       season: { spring: 1.2, summer: 1, autumn: 0.8, winter: 0 },

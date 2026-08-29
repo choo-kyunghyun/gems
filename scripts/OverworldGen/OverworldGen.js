@@ -167,18 +167,8 @@ globalThis.OverworldGen = {
           return { w: 1 + Math.floor(rng() * 2), h: 1 + Math.floor(rng() * 2) };
         },
         spawn(ctx, gx, gy, w, h) {
-          // quarter-turn facing so the one boulder mesh doesn't visibly repeat. A stretched
-          // oblong cluster only takes 0/180: the per-cluster scale is model-space before the
-          // yaw, so 90/270 would swing the long axis out of the cell-rect BBox.
-          const q = Math.floor(hash2(gx, gy, ctx.seed) * 2147483647);
-          return {
-            preset: "rock",
-            gx: gx,
-            gy: gy,
-            w: w,
-            h: h,
-            yaw: w === h ? (q % 4) * 90 : (q % 2) * 180,
-          };
+          // the cluster shape picks the boulder's frame and the cell hash its facing (ColonySpawn)
+          return { preset: "rock", gx: gx, gy: gy, w: w, h: h };
         },
       });
     },

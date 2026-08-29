@@ -13,13 +13,13 @@
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
  *   npc      label nameKey questId merchant?
  *   chest    capacity items[]
- *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON — the world map opens on it)
+ *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON — an animated STANDING sprite; the world map opens on it)
  *   torch    label? color?        (decorative light prop — small solid post; carries a Light and a Heat)
  *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh; a Heat)
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
  *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
- *   rock     w? h?                (wilderness boulder — kinematic solid, mesh stretched over its w×h cell cluster)
- *   tree     species? progress? wild? size?  (wilderness pine — trunk collider under an overhanging canopy mesh; with a
+ *   rock     w? h?                (wilderness boulder — kinematic solid over its w×h cell cluster, the sprite frame by that shape)
+ *   tree     species? progress? wild? size?  (wilderness pine — trunk collider under an overhanging canopy sprite; with a
  *            contentFlora `species` it GROWS — Growth via _flora, FloraSystem from there)
  *   plant    species progress? wild?         (a crop or shrub — walk-through, grown and harvested by FloraSystem)
  *   reach    half?                (quest zone marker — no entity)
@@ -240,14 +240,15 @@ globalThis.ColonySpawn = {
       },
       {
         // Wilderness pine (OverworldGen scatter): a solid TRUNK collider under a canopy that
-        // visually overhangs it (Mesh is visual-only) — the tree reads big while bodies path
-        // around the trunk; a spawn descriptor's `size` scalar varies specimens.
+        // visually overhangs it (the sprite is visual-only) — the tree reads big while bodies
+        // path around the trunk; a spawn descriptor's `size` scalar varies specimens. The
+        // mature frame by default; a species swaps the sheet and FloraSystem sets the frame.
         id: "tree",
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48×48 canopy
+          BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48-wide canopy
           Collision: { solid: true, kinematic: true },
           Name: { name: "Pine" },
-          Mesh: { model: "tree_pine" },
+          Visual: { sprite: pixPine, subimg: 3 },
         },
       },
       {
@@ -261,15 +262,16 @@ globalThis.ColonySpawn = {
         },
       },
       {
-        // Wilderness boulder (OverworldGen scatter): an immovable solid the rock mesh is drawn
-        // over. One entity per cluster — the adapter stretches Mesh + BBox to the w×h cell rect,
-        // so the collider matches the old scatter wall rect exactly (NavGrid/pathing unchanged).
+        // Wilderness boulder (OverworldGen scatter): an immovable solid the rock sprite stands
+        // on. One entity per cluster — the adapter sizes the BBox to the w×h cell rect (the
+        // collider matches the old scatter wall rect exactly, NavGrid/pathing unchanged) and
+        // picks the frame drawn for that shape.
         id: "rock",
         components: {
           BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per-cluster (adapter)
           Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
-          Mesh: { model: "rock" },
+          Visual: { sprite: pixRock },
         },
       },
       {
@@ -365,34 +367,38 @@ globalThis.ColonySpawn = {
       // Vox MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
       // "cot" picks the cot bunk) or furniture `furn` (FURN_MODELS, crate fallback) —
       // vertex-colored, so color/material don't apply.
-      let model;
-      if (s.kind === "workbench") model = "wooden_workbench";
-      else if (s.kind === "bed")
-        model = s.furn === "cot" ? "prison_bed" : "wooden_bed";
-      else if (s.kind === "claim") model = "wooden_sign";
-      else if (s.kind === "door") model = "wooden_door";
-      else if (s.kind === "hydrate") model = "wooden_tub";
-      else if (s.kind === "feed") model = "wooden_bin";
-      else if (s.kind === "buff") model = "wooden_altar";
-      else if (s.kind === "travel")
-        model = "portal"; // the gate mesh as the site's beacon
-      else model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
-      over.Mesh = { model };
-      // collider matched to the model's voxel footprint (big furniture is multi-cell)
-      const fp = ColonySpawn.footprint(model);
-      if (fp !== undefined)
-        over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
-      // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
-      // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
-      if (s.kind === "door" && s.vertical === true) {
-        over.Mesh.yaw = 90;
+      if (s.kind === "travel") {
+        // the site's beacon: the one prop with no volume to read — an animated STANDING
+        // sprite over the preset's one-cell box
+        over.Visual = { sprite: pixPortal, speed: 4 };
+      } else {
+        let model;
+        if (s.kind === "workbench") model = "wooden_workbench";
+        else if (s.kind === "bed")
+          model = s.furn === "cot" ? "prison_bed" : "wooden_bed";
+        else if (s.kind === "claim") model = "wooden_sign";
+        else if (s.kind === "door") model = "wooden_door";
+        else if (s.kind === "hydrate") model = "wooden_tub";
+        else if (s.kind === "feed") model = "wooden_bin";
+        else if (s.kind === "buff") model = "wooden_altar";
+        else model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
+        over.Mesh = { model };
+        // collider matched to the model's voxel footprint (big furniture is multi-cell)
+        const fp = ColonySpawn.footprint(model);
         if (fp !== undefined)
-          over.BBox = {
-            x: -fp.h / 2,
-            y: -fp.w / 2,
-            width: fp.h,
-            height: fp.w,
-          };
+          over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
+        // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
+        // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
+        if (s.kind === "door" && s.vertical === true) {
+          over.Mesh.yaw = 90;
+          if (fp !== undefined)
+            over.BBox = {
+              x: -fp.h / 2,
+              y: -fp.w / 2,
+              width: fp.h,
+              height: fp.w,
+            };
+        }
       }
       over.Name = { name: s.label };
       if (s.kind !== undefined)
@@ -411,7 +417,9 @@ globalThis.ColonySpawn = {
       if (Object.keys(se).length > 0) over.SoundEmitter = se;
     } else if (s.preset === "rock") {
       // cluster footprint (w×h cells, from the overworld scatter): center the entity on the
-      // rect and stretch Mesh + BBox over it — the collider equals the old scatter wall rect
+      // rect and size the BBox to it — the collider equals the old scatter wall rect; the
+      // sprite carries one frame per cluster shape (1×1, 2×1, 1×2, 2×2 — a deeper cluster
+      // reads as a taller boulder)
       const cw = s.w ?? 1;
       const ch = s.h ?? 1;
       w.x += ((cw - 1) * grid.cellWidth) / 2;
@@ -422,12 +430,7 @@ globalThis.ColonySpawn = {
         width: cw * grid.cellWidth,
         height: ch * grid.cellHeight,
       };
-      over.Mesh = {
-        model: "rock",
-        xscale: cw,
-        yscale: ch,
-        zscale: (cw + ch) / 2, // bigger clusters read as taller boulders
-      };
+      over.Visual = { sprite: pixRock, subimg: cw - 1 + (ch - 1) * 2 };
     } else if (s.preset === "turret") {
       if (s.label !== undefined) over.Name = { name: s.label };
     }
@@ -459,8 +462,17 @@ globalThis.ColonySpawn = {
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
     });
 
-    // a plant's stage, base size and (if ripe) Interaction, off the spawned components
+    // a plant's stage frame and (if ripe) Interaction, off the spawned components
     if (s.species !== undefined) FloraSystem.attach(entities, id);
+
+    // a strewn prop's facing: a boulder or plant mirrors by cell hash so one sheet doesn't
+    // visibly repeat — the sign of Visual.xscale, the same facing knob a mover turns
+    if (s.preset === "rock" || s.species !== undefined) {
+      if (hash2(s.gx, s.gy, 11) < 0.5) {
+        const vis = entities.get(id, Visual);
+        vis.xscale = -vis.xscale;
+      }
+    }
 
     // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
     // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
@@ -488,21 +500,20 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * A flora species' per-spawn overrides: the species' vox model and name, and its Growth record
-   * (progress as authored, default a seedling; `wild` marks the generator's and the spread's).
-   * Stage, base size and the ripe Interaction are FloraSystem.attach's, after the spawn.
+   * A flora species' per-spawn overrides: the species' sprite sheet and name, and its Growth
+   * record (progress as authored, default a seedling; `wild` marks the generator's and the
+   * spread's). The stage frame and the ripe Interaction are FloraSystem.attach's, after the spawn.
    */
   _flora(s, over) {
     const def = contentFlora.get(s.species);
     if (def === undefined)
       throw new Error(`ColonySpawn: unknown flora species "${s.species}"`);
-    over.Mesh = { model: def.model };
+    over.Visual = { sprite: asset_get_index(def.sprite) };
     over.Name = { name: I18n.text(def.name) };
     over.Growth = {
       species: s.species,
       progress: s.progress ?? 0,
       stage: -1,
-      base: 1,
       wild: s.wild === true,
     };
   },

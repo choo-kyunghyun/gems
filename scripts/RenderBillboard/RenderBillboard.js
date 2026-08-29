@@ -10,7 +10,8 @@ const BB_NORMAL_Z = -0.866;
 /**
  * THE ART PROJECTION CONTRACT, of which this is the STANDING pass — how each category of art
  * reaches the pitched 2.5D screen, so everything shares one depth model:
- *   STANDING  upright sprites (here) — pawns, props with no volume
+ *   STANDING  upright sprites (here) — pawns, and the organic props (trees, crops, boulders,
+ *             the beacon): anything whose silhouette reads and whose top face doesn't
  *   VOLUME    baked vox meshes (RenderMesh over the `Mesh` component) — deep furniture
  *   WALLS     tile-layer boxes (RenderWalls; RenderFence's post-and-rail boxes) — the built environment
  * All three write depth and light through shMeshlit; the ground stays painter-order.

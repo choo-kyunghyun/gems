@@ -8,8 +8,6 @@
  *   below 1 on harvest
  * @property {number} stage      the visual step last applied (0..stages−1), cached off progress so a
  *   tick redraws only on a change; −1 before the first apply
- * @property {number} base       the specimen's full-size Mesh.scale (the preset's size variety) —
- *   the stage factor multiplies it
  * @property {boolean} wild      the generator's or a spread seedling (counts toward the biome's flora
  *   cap and seeds neighbours), as against a built crop
  */
