@@ -79,9 +79,9 @@ class Canvas:
                 if c[3]:
                     self.set(ox + x, oy + y, c)
 
-    def quantize(self, palette=PAL.PALETTE):
+    def quantize(self):
         """Snap every opaque pixel to its nearest palette entry (OKLab)."""
-        self.px = [(P.nearest_color(c, palette) + (255,)) if c[3] else TRANSPARENT for c in self.px]
+        self.px = [(PAL.nearest(c) + (255,)) if c[3] else TRANSPARENT for c in self.px]
 
     def shade(self, lit=(0, -1), n=1):
         """Rim-shade along the palette ramps: an opaque pixel whose neighbor toward `lit` is clear
@@ -207,26 +207,26 @@ class Soft:
                                         int(255 * a / n)) if a > 0 else TRANSPARENT
         return out
 
-    def harden(self, palette=PAL.PALETTE, cover=0.5):
+    def harden(self, cover=0.5):
         """The hard-alpha Canvas of this frame: a pixel is opaque when at least `cover` of its
         supersamples are, and takes the nearest palette entry to its mean color."""
         c = Canvas(self.ow, self.oh)
         for i, (r, g, b, a) in enumerate(self.resolve()):
             if a >= cover * 255:
-                c.px[i] = P.nearest_color((r, g, b), palette) + (255,)
+                c.px[i] = PAL.nearest((r, g, b)) + (255,)
         return c
 
 
-def soft_canvas(drawfn, w, h, ss=4, palette=PAL.PALETTE):
+def soft_canvas(drawfn, w, h, ss=4):
     """`drawfn(soft)` into a fresh w x h frame, hardened — a Canvas to shade / detail / outline."""
     s = Soft(w, h, ss)
     drawfn(s)
-    return s.harden(palette)
+    return s.harden()
 
 
-def soft_frame(drawfn, w, h, ink=INK, ss=4, palette=PAL.PALETTE):
+def soft_frame(drawfn, w, h, ink=INK, ss=4):
     """draw -> harden -> outline, as a flat pixel list. `ink=None` skips the outline."""
-    c = soft_canvas(drawfn, w, h, ss, palette)
+    c = soft_canvas(drawfn, w, h, ss)
     if ink is not None:
         c.outline(ink)
     return c.px

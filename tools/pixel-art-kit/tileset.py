@@ -33,15 +33,13 @@ Outputs (under out/<subdir>/), per mode:
 
 Usage:
   python tileset.py [material.png] [size] [out_subdir] [--mode dual|corner|both] [--heal]
-                    [--palette F | --raw] [--variant V.png ...]
+                    [--variant V.png ...]
     material.png  texture (absolute, cwd-relative, or under out/). Omit -> procedural demo regolith.
     size          tile pixels (default 32). corner pieces are size/2.
     out_subdir    under out/ (default tiles/<material-stem>).
     --mode        which set(s) to emit (default both).
     --heal        wrap-offset + seam-blur the patch to force tileability (a real tiling node
                   upstream is better; this is the stdlib safety net).
-    --palette F   lock the output to the palette in file F (.gpl or hex-per-line); default AAP-64.
-    --raw         keep the source colors instead.
     --variant V   a full-tile variant material to append to the dual set (repeat per variant).
 """
 import os, sys, random, argparse
@@ -110,7 +108,7 @@ def make_tileable(patch, S, band=3):
     return out
 
 
-def prep_patch(material, S, heal=False, palette=None):
+def prep_patch(material, S, heal=False):
     if material:
         src = resolve(material)
         if not src:
@@ -120,9 +118,7 @@ def prep_patch(material, S, heal=False, palette=None):
         patch, label = demo_material(S), "procedural regolith"
     if heal:
         patch = make_tileable(patch, S)
-    if palette:
-        patch = P.quantize_to_palette(patch, palette)
-    return patch, label
+    return PAL.snap(patch), label
 
 
 # ---- coverage + frame synthesis --------------------------------------------
@@ -310,12 +306,9 @@ def main():
     ap.add_argument("out_subdir", nargs="?")
     ap.add_argument("--mode", choices=("dual", "corner", "both"), default="both")
     ap.add_argument("--heal", action="store_true")
-    ap.add_argument("--palette", default=PAL.GPL)
-    ap.add_argument("--raw", action="store_true")
     ap.add_argument("--variant", action="append", default=[])
     a = ap.parse_args()
     material, S, heal = a.material, a.size, a.heal
-    palette = None if a.raw else P.load_palette(a.palette)
     Q = S // 2
     if a.out_subdir:
         sub = a.out_subdir
@@ -326,12 +319,12 @@ def main():
 
     did = []
     if a.mode in ("dual", "both"):
-        patch, label = prep_patch(material, S, heal, palette)
+        patch, label = prep_patch(material, S, heal)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return
         variants = []
         for v in a.variant:
-            vp, _ = prep_patch(v, S, heal, palette)
+            vp, _ = prep_patch(v, S, heal)
             if vp is None:
                 print(f"  ! variant not found: {v} (also tried under out/)"); return
             variants.append(vp)
@@ -341,7 +334,7 @@ def main():
         write_seamless_dual(out, frames, S)
         did.append(f"dual (16x{S}" + (f" + {len(variants)} variants)" if variants else ")"))
     if a.mode in ("corner", "both"):
-        patch, label = prep_patch(material, Q, heal, palette)
+        patch, label = prep_patch(material, Q, heal)
         if patch is None:
             print(f"  ! material not found: {material} (also tried under out/)"); return
         pieces = synth(patch, Q, CORNER_MASKS)
@@ -350,8 +343,7 @@ def main():
         write_seamless_corner(out, pieces, Q)
         did.append(f"corner (13x{Q})")
 
-    tag = "palette" if palette else "raw"
-    print(f"tileset from {label} ({tag}{', healed' if heal else ''}) -> out/{sub}")
+    print(f"tileset from {label}{' (healed)' if heal else ''} -> out/{sub}")
     print(f"  modes: {', '.join(did)}  (<mode>_strip<N>.png + preview_/seamless_ per mode)")
 
 

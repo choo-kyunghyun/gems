@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """pixlib — shared pixel primitives for the kit (pure Python stdlib, no PIL).
 
-PNG decode/encode, an animated-GIF writer, nearest-neighbor compositing, and a
-palette-quantize helper — the I/O half of the kit (`raster` is the drawing half).
-Path helpers (KIT/OUT) resolve the toolkit root so every script writes to the one
-shared out/.
+PNG decode/encode, an animated-GIF writer and nearest-neighbor compositing — the I/O half
+of the kit (`raster` is the drawing half; colors are `palette`'s, the project module beside the
+kit). Path helpers (KIT/OUT) resolve the toolkit root so every script writes to the one shared
+out/.
 """
-import zlib, struct, binascii, os, json, re
+import zlib, struct, binascii, os, sys
 
 KIT = os.path.dirname(os.path.abspath(__file__))    # toolkit root
 OUT = os.path.join(KIT, "out")                       # shared output root (gitignored)
+sys.path.insert(0, os.path.join(os.path.dirname(KIT), "palette"))   # `import palette` — tools/palette
 
 
 def out_dir(*parts):
@@ -227,109 +228,3 @@ def blit(dst, dw, ox, oy, src, sw, sh, scale, ck=12):
             X, Y = ox + i, oy + j
             dst[Y * dw + X] = over(src[sy * sw + sx], checker(X, Y, ck))
 
-
-# ---- OKLab -----------------------------------------------------------------
-# Perceptual color space for ramp building and nearest-color matching (Euclidean RGB pairs a
-# dark red with a dark green long before a human would). Pure math, no tables.
-
-
-def _lin(c):
-    c /= 255.0
-    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
-
-def _gam(c):
-    c = min(1.0, max(0.0, c))
-    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
-
-
-def oklab(rgb):
-    """sRGB (0-255) -> (L, a, b)."""
-    r, g, b = (_lin(c) for c in rgb[:3])
-    l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
-    m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
-    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
-    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
-
-
-def oklab_rgb(lab):
-    """(L, a, b) -> sRGB (0-255); out-of-gamut components clip."""
-    L, a, b = lab
-    l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-    m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-    s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
-    r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
-    g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
-    bb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
-    return tuple(int(round(_gam(c) * 255)) for c in (r, g, bb))
-
-
-def in_gamut(lab, tol=0.002):
-    L, a, b = lab
-    l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-    m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-    s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
-    for c in (4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-              -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-              -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s):
-        if c < -tol or c > 1 + tol:
-            return False
-    return True
-
-# ---- palette quantize ------------------------------------------------------
-
-_LAB_CACHE = {}
-
-
-def _lab_of(palette):
-    key = id(palette)
-    hit = _LAB_CACHE.get(key)
-    if hit is None or hit[0] is not palette:
-        hit = (palette, [oklab(p) for p in palette])
-        _LAB_CACHE[key] = hit
-    return hit[1]
-
-
-def nearest_color(rgb, palette):
-    """The palette entry nearest to rgb in OKLab."""
-    L, a, b = oklab(rgb)
-    best, bd = palette[0], 1e30
-    for p, (pL, pa, pb) in zip(palette, _lab_of(palette)):
-        d = (L - pL) ** 2 + (a - pa) ** 2 + (b - pb) ** 2
-        if d < bd:
-            bd, best = d, p
-    return best
-
-
-def quantize_to_palette(pixels, palette, alpha_thresh=128):
-    """Map each pixel to the nearest palette RGB; alpha becomes a hard cutout."""
-    out = []
-    for (r, g, b, a) in pixels:
-        if a < alpha_thresh:
-            out.append((0, 0, 0, 0))
-        else:
-            nr, ng, nb = nearest_color((r, g, b), palette)
-            out.append((nr, ng, nb, 255))
-    return out
-
-# ---- palette loading -------------------------------------------------------
-
-
-def load_palette(path):
-    """Load an RGB palette from a GIMP `.gpl` (`GIMP Palette` header, `#` comments, then `R G B [...]`
-    per line — the form Aseprite's bundled palettes ship in) or, as a fallback, a bare hex-per-line
-    file (`rrggbb`, optional leading `#`, e.g. an Aseprite *Save Palette* export). Entry N (0-based)
-    = palette index N."""
-    pal = []
-    for line in open(path, encoding="utf-8"):
-        f = line.split()
-        if not f:
-            continue
-        if len(f) >= 3 and all(t.isdigit() for t in f[:3]):
-            pal.append((int(f[0]), int(f[1]), int(f[2])))
-        elif len(f) == 1 and re.fullmatch(r"#?[0-9a-fA-F]{6}", f[0]):
-            h = f[0].lstrip("#")
-            pal.append((int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
-    return pal

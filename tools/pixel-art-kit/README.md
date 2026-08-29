@@ -11,21 +11,20 @@ primitives you import from a script written for the sprite in front of you, and 
 
 ```
 pixel-art-kit/
-├── palette.py     AAP-64 indexed by ramp: tone / base / step / dbl
 ├── raster.py      drawing: Canvas (hard alpha) + Soft (supersampled, hardened on the way out)
-├── pixlib.py      I/O: PNG encode/decode, animated GIF, compositing, OKLab, quantize, paths
+├── pixlib.py      I/O: PNG encode/decode, animated GIF, compositing, paths
 ├── material.py    procedural tileable textures (noise / ripple / blades / grain) + decor stamps
 ├── tileset.py     synthesize an autotile set from one material (seamless by construction)
 ├── style.py       the reference board — one of everything, through the kit's own pipeline
 ├── spritesize.py  measure a candidate's silhouette -> a grid-snapped frame size
-├── quantize.py    remap a PNG/folder onto the palette
+├── quantize.py    lock a PNG/folder onto the palette
 ├── preview.py     nearest-neighbor previews + a contact sheet
-├── palettes/      aap-64.gpl, the project palette
 └── out/           everything generated (gitignored)
 ```
 
-Flat on purpose: one `sys.path` entry imports the whole kit. The `.aseprite` sources under `art/`
-embed the same palette as `palettes/aap-64.gpl`; when the two disagree, Aseprite's copy wins.
+Flat on purpose: one `sys.path` entry imports the whole kit (`pixlib` puts `tools/palette` on the
+path too, so `import palette` resolves everywhere). The palette is the project's, not the kit's:
+`tools/palette` owns AAP-64, its ramps and the OKLab matching every snap in the kit goes through.
 
 ## The style
 
@@ -47,24 +46,8 @@ against.
 
 ### Ramps
 
-`palette.py` names AAP-64 as 14 ramps, dark -> light, each of the 64 entries in exactly one:
-
-| ramp | tones | for |
-|---|---|---|
-| `void` | 1 | the one absolute black: vacuum, a cast shadow |
-| `ink` | 1 | the outline |
-| `blood` | 4 | red: flags, blood, red paint, a health bar |
-| `hazard` | 4 | safety orange -> amber -> yellow: warning paint, fire, muzzle flash |
-| `moss` | 7 | dark green -> lime: moss, grass, go-lights, acid |
-| `sky` | 5 | navy -> blue -> cyan -> mint: thin sky, water, ice, holo, energy |
-| `bone` | 3 | peach -> cream -> white: bone, paper, glare, skin highlight |
-| `viol` | 6 | violet -> magenta -> salmon: illegal mods, the unnatural, neon |
-| `leather` | 6 | warm brown -> tan -> sand: raider leather, wood, plywood, skin |
-| `steel` | 6 | cold grey: Union steel, concrete, asphalt, basalt |
-| `rust` | 5 | dusty red-brown: regolith, oxide, brick, dried blood |
-| `slate` | 5 | teal -> periwinkle -> lavender: Union fatigues, painted panels, ice shadow |
-| `bio` | 5 | sickly teal-green: lichen, the engineered ecology, medical, coolant |
-| `ochre` | 6 | khaki -> bone: dust, sand, plaster, drab canvas |
+`tools/palette` names AAP-64 as 14 ramps, dark -> light, each of the 64 entries in exactly one —
+the table is in its README. A script reaches for tones by role:
 
 ```python
 import palette as PAL
@@ -144,7 +127,7 @@ same patch, so the edges match by construction; an autotile set assembled from i
 cells never tiles.
 
 ```sh
-python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--palette F | --raw] [--variant V.png ...]
+python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--variant V.png ...]
 #   dual_strip16.png  = 16 corner-keyed frames     corner_strip13.png = 13 quarter pieces
 #   dual_strip20.png  = the 16 + 4 --variant full tiles appended as frames 16..19
 ```
@@ -153,7 +136,7 @@ python tileset.py <material.png> <cell> --mode dual|corner|both [--heal] [--pale
 pieces (the blob8 look; good for walls). `--variant` (dual only, repeatable) appends full-tile
 alternates after the 16 masks so a runtime can vary a wide field per cell. Each mode also writes a
 `preview_<mode>` and a `seamless_<mode>` tiling test (dual picks the alternates by position hash).
-Output is locked to AAP-64 unless `--raw`; `--heal` forces tileability on a non-seamless input.
+Output is locked to AAP-64; `--heal` forces tileability on a non-seamless input.
 `corner` cuts its pieces from a half-cell patch, so author a wall material at `cell/2` (a larger
 one is cropped, and a crop of a seamless patch is not seamless). Omit the input for the built-in
 procedural regolith.
@@ -161,13 +144,13 @@ procedural regolith.
 ## Other tools
 
 ```sh
-python quantize.py <in> <out> [pal.gpl]           # lock art onto the palette (default AAP-64)
+python quantize.py <in> <out>                     # lock art onto AAP-64
 python preview.py [dir ...]                       # NN previews + contact sheet from out/<dir> (default style)
 python spritesize.py <image.png> [foot|center]    # measure -> grid-snapped W x H
 ```
 
 `spritesize.py` measures the silhouette, snaps it to the size menu (`16,32,48,64,80,96,128`), and
-prints the `write` call to paste. `quantize` and every palette snap in the kit match in OKLab, so a
+prints the `write` call to paste. `quantize` and every palette snap in the kit match in OKLab (`palette.nearest`), so a
 dark red does not land on a dark green the way a nearest-RGB match would.
 
 ## Registration
