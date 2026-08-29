@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""audiolib — signal representation, levels, and the 16-bit PCM WAV encoder.
+"""audiolib — signal representation, levels, and the 16-bit PCM WAV codec.
 
 A signal is a float64 numpy array, shaped by its channel count:
 
@@ -110,6 +110,13 @@ def normalize(x, peak_db=-0.5):
     return x if p < 1e-9 else x * (db2lin(peak_db) / p)
 
 
+def at_rms(x, db):
+    """Scale so the RMS lands on `db` dBFS — how continuous layers are balanced against
+    each other. A sparse layer wants `normalize` instead: RMS on mostly-silence measures
+    the silence."""
+    return x * db2lin(db - rms_db(x))
+
+
 def fade(x, fin=0.0, fout=0.0, sr=SR):
     """Linear fade in/out (seconds). A tiny out-fade kills the click an abrupt cut leaves on a
     non-zero last sample. Never fade a loop — there the fade becomes the seam."""
@@ -124,7 +131,7 @@ def fade(x, fin=0.0, fout=0.0, sr=SR):
     return y
 
 
-# ---- WAV encode (16-bit PCM, little-endian; mono or interleaved stereo) -----
+# ---- WAV encode / decode (16-bit PCM, little-endian; mono or interleaved stereo) -----
 
 def write_wav(path, x, sr=SR):
     """Write one signal as a 16-bit PCM WAV. Returns the duration in seconds.
@@ -143,3 +150,27 @@ def write_wav(path, x, sr=SR):
         f.write(b"fmt " + struct.pack("<IHHIIHH", 16, 1, nch, sr, sr * nch * 2, nch * 2, 16))
         f.write(b"data" + struct.pack("<I", len(data)) + data)
     return n / sr if sr else 0.0
+
+
+def read_wav(path):
+    """Read a 16-bit PCM WAV back into a signal: `(x, sr)`, x shaped like the kit's own —
+    (n,) mono, (n, 2) stereo. The one decoder the kit needs, to measure what it wrote (or
+    what the project already ships). Any other sample format raises rather than guesses."""
+    b = open(path, "rb").read()
+    if b[:4] != b"RIFF" or b[8:12] != b"WAVE":
+        raise ValueError(f"not a RIFF/WAVE file: {path}")
+    i, fmt = 12, None
+    while i + 8 <= len(b):
+        cid, sz = b[i:i + 4], struct.unpack("<I", b[i + 4:i + 8])[0]
+        if cid == b"fmt ":
+            fmt = struct.unpack("<HHIIHH", b[i + 8:i + 24])
+        elif cid == b"data":
+            if fmt is None:
+                raise ValueError(f"data before fmt: {path}")
+            tag, nch, sr, _, _, bits = fmt
+            if tag != 1 or bits != 16:
+                raise ValueError(f"not 16-bit PCM (format {tag}, {bits} bits): {path}")
+            x = np.frombuffer(b[i + 8:i + 8 + sz], dtype="<i2").astype(np.float64) / 32767.0
+            return (x if nch == 1 else x.reshape(-1, nch)), sr
+        i += 8 + sz + (sz & 1)
+    raise ValueError(f"no data chunk in {path}")

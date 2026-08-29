@@ -8,6 +8,10 @@ rather than one object mixed two ways. Reach here before reaching for a new wave
 `make_ir` synthesizes an impulse response rather than loading one: bands of decaying noise
 plus a scatter of early reflections. Each band decays at its own rate (`hf_damp`), so the tail
 darkens as it falls — a uniformly-decaying tail sounds like a hall no matter how long it is.
+A plate has no early reflections and keeps its top end (`early=0`, `hf_damp` near 0.9): that
+is the bright, wide tail of electronic ambient, which is a surface and not a room.
+
+`pingpong` is the delay of the same idiom: repeats that alternate sides and darken.
 """
 import numpy as np
 import scipy.signal as sps
@@ -17,21 +21,25 @@ import synth as S
 
 _IR_CACHE = {}
 
-# Named spaces — the name is the character, the numbers are the implementation.
+# Named spaces — the name is the character, the numbers are the implementation. tight, room
+# and cavern are rooms; plate and wash are surfaces; hall sits between.
 SPACES = {
     "tight":  dict(dur=0.45, decay=0.35, hf_damp=0.62, predelay=0.004, width=0.50),
     "room":   dict(dur=1.20, decay=0.90, hf_damp=0.68, predelay=0.008, width=0.70),
-    "hall":   dict(dur=3.20, decay=2.60, hf_damp=0.72, predelay=0.018, width=0.85),
+    "plate":  dict(dur=2.60, decay=2.20, hf_damp=0.86, predelay=0.020, width=0.95, early=0),
+    "hall":   dict(dur=3.60, decay=3.00, hf_damp=0.80, predelay=0.025, width=0.95),
     "cavern": dict(dur=6.00, decay=5.00, hf_damp=0.66, predelay=0.030, width=0.92),
+    "wash":   dict(dur=9.00, decay=7.50, hf_damp=0.90, predelay=0.040, width=1.00, early=0),
 }
 
 _BANDS = [(40, 140), (140, 400), (400, 1100), (1100, 3000), (3000, 8000), (8000, 15000)]
 
 
-def make_ir(dur=2.5, decay=2.0, hf_damp=0.72, predelay=0.012, width=0.85, seed=0, sr=A.SR):
+def make_ir(dur=2.5, decay=2.0, hf_damp=0.72, predelay=0.012, width=0.85, early=14, seed=0,
+            sr=A.SR):
     """Synthesize a stereo impulse response, (n, 2). Cached: building one costs six band-pass
     passes per channel, and a scratch script tends to ask for the same space repeatedly."""
-    key = (dur, decay, hf_damp, predelay, width, seed, sr)
+    key = (dur, decay, hf_damp, predelay, width, early, seed, sr)
     if key in _IR_CACHE:
         return _IR_CACHE[key]
 
@@ -48,7 +56,7 @@ def make_ir(dur=2.5, decay=2.0, hf_damp=0.72, predelay=0.012, width=0.85, seed=0
             nz = S.bandpass(rng.standard_normal(n), lo, min(hi, sr / 2 * 0.98), sr=sr)
             ir += nz * np.exp(-t / (band_decay / 6.908))
         # Early reflections. The diffuse tail says "large"; these say what shape and how far.
-        for _ in range(14):
+        for _ in range(early):
             pos = int(rng.uniform(0.004, 0.075) * sr)
             if pos < n:
                 ir[pos] += rng.choice([-1.0, 1.0]) * rng.uniform(0.2, 0.7) * np.exp(-pos / sr / 0.03)
@@ -106,6 +114,24 @@ def delay(x, time, fb=0.35, wet=0.3, taps=12, sr=A.SR):
         if g < 1e-4 or off >= len(out):
             break
         out[off:] += x[:len(x) - off] * g
+    return out
+
+
+def pingpong(x, time, fb=0.45, wet=0.35, damp=3500.0, taps=12, sr=A.SR):
+    """Feedback delay whose repeats alternate sides, each one darker than the last (`damp`
+    is a one-pole low-pass in the feedback path). Always returns stereo. For a loop, run it
+    through `loop.cyclic` with `time` a division of the beat."""
+    m = x.mean(axis=1) if x.ndim == 2 else x
+    d = A.seconds(time, sr)
+    out = A.as_stereo(x).astype(float).copy()
+    tap = m
+    for i in range(1, taps + 1):
+        g = wet * (fb ** (i - 1))
+        off = d * i
+        if g < 1e-4 or off >= len(m):
+            break
+        tap = S.lowpass(tap, damp, 1, sr=sr)
+        out[off:, i % 2] += tap[:len(m) - off] * g
     return out
 
 

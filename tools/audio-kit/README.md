@@ -12,10 +12,12 @@ then usually delete.
 
 ```
 audio-kit/
-├── audiolib.py  signals, levels, 16-bit PCM WAV encode, paths
-├── synth.py     oscillators + noise + envelopes + filters + modal bodies + drums
+├── audiolib.py  signals, levels, 16-bit PCM WAV encode/decode, paths
+├── synth.py     oscillators + unison + noise + envelopes + filters + modal/FM bodies + drums
 ├── space.py     synthetic impulse responses, convolution reverb, delay, pan
 ├── loop.py      the three rules that make a buffer repeat, and the seam metric
+├── meter.py     A-weighted loudness, and levelling to it
+├── view.py      spectrogram sheets as PNG, for reading a track instead of hearing it
 └── out/         everything generated (gitignored)
 ```
 
@@ -53,11 +55,28 @@ with `voice()` renders a note from a named preset. Note names parse with `note_f
 `tone` is not band-limited, so a fast sweep through the high register aliases audibly in the
 opposite direction. `bl_saw` and `bl_square` are band-limited alternatives for when that shows up.
 
+The electronic voice is `unison`: band-limited saws detuned across a few cents and spread across
+the field, which is what a pad or a lead is made of, and what `PATCHES["pad"]` and `"supersaw"`
+render. Shape it with `lowpass_q` — the resonant two-pole, the filter sound a Butterworth cannot
+make — or sweep that with `sweep(..., q=)`. `pump` is the sidechain envelope, a dip on every beat
+with no drum in it; `chorus` widens and moves; `saturate` warms a sub; `bitcrush` and `crackle`
+are the lo-fi grit and the vinyl.
+
+An instrument can also be written as its spectrum. `harmonics(f, amps, decay=, damp=, stretch=)`
+turns a table of harmonic levels into partials for `modal` — the upper ones dying first, the series
+stretched sharp for a stiff string — and `fm(n, f, ratio, index)` is two-operator FM, where a
+decaying index is the electric piano and a non-integer ratio a bell. `PATCHES["organ"]`,
+`"epiano"` and `"bell"` are those two in preset form. A hand-written harmonic table sounds like an
+organ, which is what it is; these are colours for keys, pads and bells, not a piano.
+
 ## Space
 
 Reverb is not a finishing touch — it is what tells the ear how big the room is, so it changes what a
-sound is more than another waveform would. `space("tight"|"room"|"hall"|"cavern")` synthesizes an
-impulse response, `reverb(x, ir, wet=)` convolves it, and `delay` and `pan` sit next to it.
+sound is more than another waveform would. `space("tight"|"room"|"plate"|"hall"|"cavern"|"wash")`
+synthesizes an impulse response, `reverb(x, ir, wet=)` convolves it, and `delay`, `pingpong` and
+`pan` sit next to it. The rooms darken as they decay; `plate` and `wash` are surfaces, not rooms —
+no early reflections, the top end kept — which is the bright, wide tail of electronic ambient.
+`pingpong` is that idiom's delay: repeats that alternate sides and darken.
 
 `reverb` always returns stereo. An SFX the engine positions in the world has to stay mono, so use
 `mono_reverb` on those.
@@ -65,6 +84,22 @@ impulse response, `reverb(x, ir, wet=)` convolves it, and `delay` and `pan` sit 
 Finish before writing: `normalize(buf, peak_db=)` sets the peak — there is no limiter and none is
 needed — `fade` kills clicks at the ends, and `trim_tail` cuts the silence convolution leaves on the
 end of a one-shot.
+
+## Levels
+
+Inside one sound, layers are balanced by measured level, not by guessed coefficients: `at_rms`
+sets a continuous layer's RMS, `normalize` sets a sparse layer's peak (RMS on mostly-silence
+measures the silence). Pink and brown noise are 1/f and 1/f² in power, so a bed mixed by eye puts
+nearly all of its energy under 20 Hz — inaudible, and it eats the headroom the audible band needed.
+
+Across sounds, the number that makes a set sit on one ladder is A-weighted. `meter.dba` reads a
+whole buffer — a bed, a loop — and `meter.loudness` the loudest 200 ms, which is what a one-shot
+needs: whole-buffer energy makes a 300 ms cue read ten dB under a 100 ms one at the same loudness.
+`meter.level(x, peak, loud)` applies a peak ceiling and a loudness ceiling and lets whichever
+binds first win, so under one rule an impulse ends up governed by peak and a sustain by loudness.
+
+`read_wav` reads a 16-bit WAV back as a signal, so a rendered file — or one the project already
+ships — can be put on the same meter.
 
 ## Loops
 
@@ -82,6 +117,14 @@ below 0 dB the seam is indistinguishable from any other sample step, and a perfe
 measures exactly 0.0. Check it after touching anything above; it is the one loop defect an ear
 always catches and a spectrogram never shows.
 
+The rest of the module keeps material periodic while it is shaped. `drift` wobbles a pitch — by
+default a tape's wow and flutter — and `wander` a level, a curve that never repeats inside the loop
+yet lands on its own start (whole-cycle LFOs multiplied; slow and shallow by default, gusts by
+argument). `widen` makes a stereo track out of a mono loop by rolling it against itself — a Haas
+spread for tonal material, a third of the loop for a noise bed. `smooth` rounds a gate's edges
+across the seam, and `desub` takes the sub out with two cyclic passes — a brown bed keeps most of
+its energy under 30 Hz, where it owns the peak and buys no loudness.
+
 ```python
 import loop as L
 n = A.seconds(8.0)
@@ -93,6 +136,21 @@ A.write_wav(os.path.join(A.out_dir("bgm"), "musDrone.wav"), A.normalize(bed, -6.
 ```
 
 Never fade a loop. On a one-shot a fade hides the discontinuity; on a loop the fade is one.
+
+## Viewing
+
+The meters say how loud a buffer is and whether its seam clicks; they say nothing about what
+happens across it. `view.sheet([(name, x), ...], path)` writes a PNG of log-frequency
+spectrograms, one track over the next, each with its ends butted together under it — whether
+events clump or spread, whether a tail dies before the next event or is cut, whether a bed
+breathes or stalls, whether a fast sweep aliases (a line reflected off the top). Pixels are the
+axes: `px_per_s` and `px_per_oct` are fixed by the caller, so a position is a time and a
+frequency. `python view.py out/bgm/*.wav` renders a sheet of files.
+
+It is a diagnostic, not a meter. Colour is dB below the picture's own peak, so read a level from
+`meter` and never from a shade; and the seam is invisible in a spectrogram — the ends strip
+carries `seam_db` for that. The PNG encoder is hand-rolled like the WAV one, so the dependency
+list below stays where it is.
 
 ## Gotchas
 

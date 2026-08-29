@@ -5,10 +5,16 @@
                 and vibrato. Not band-limited: this is the kit's chiptune voice.
   bl_saw() / bl_square()   band-limited via additive synthesis — reach for these only when a
                 fast sweep through the high register aliases audibly.
+  unison()      a detuned stack of band-limited saws across the stereo field — the pad voice.
   noise()       white / pink / brown, spectrally shaped through the FFT.
-  adsr() perc() ar() breakpoints() lfo()   envelopes and modulation curves.
+  crackle()     vinyl clicks.
+  adsr() perc() ar() breakpoints() lfo() pump()   envelopes and modulation curves.
   lowpass() highpass() bandpass() sweep() resonate()   Butterworth filters, fixed or moving.
+  lowpass_q()   the resonant two-pole — the filter sound Butterworth cannot make.
+  chorus() saturate() bitcrush()   movement, warmth, grit.
   modal()       decaying-sine partials — bells, glass, struck metal.
+  harmonics()   a harmonic recipe for `modal`: an instrument written as its spectrum.
+  fm()          two-operator FM — e-piano, bells, basses, from two numbers.
   drum()        kick / snare / hat one-shots.
   note_freq() / note_midi()   parse "C4" / "A#3" / "Bb2".
   PATCHES / voice()   named instrument presets, and one note rendered from one.
@@ -97,6 +103,31 @@ def bl_square(n, f, nharm=24, sr=A.SR):
     return out * (4.0 / math.pi)
 
 
+def unison(n, f, voices=7, cents=12.0, nharm=24, tilt=1.0, width=1.0, grid=False, seed=0,
+           sr=A.SR):
+    """A stack of band-limited saws detuned across `cents` and spread across the stereo field
+    by `width` — the pad and lead voice of electronic music. Returns (n, 2). Each voice starts
+    at its own phase, so the stack never adds up to one loud saw.
+
+    `grid=True` snaps every voice to the n-sample loop's frequency grid (scalar `f` only), so
+    the beating between voices repeats with the loop instead of stepping at the seam."""
+    f = np.asarray(f, dtype=float)
+    rng = np.random.default_rng(seed)
+    out = np.zeros((n, 2))
+    for i in range(voices):
+        u = (i / (voices - 1) - 0.5) if voices > 1 else 0.0
+        fi = f * 2.0 ** (u * cents / 1200.0)
+        if grid and fi.ndim == 0:
+            fi = np.round(fi * n / sr) * sr / n
+        s = int(rng.integers(0, 2048))                  # a phase offset, by rendering early
+        track = np.concatenate([np.repeat(fi[:1], s), fi]) if fi.ndim else fi
+        v = bl_saw(n + s, track, nharm, tilt, sr)[s:]
+        a = (u * width + 1.0) * math.pi / 4.0
+        out[:, 0] += v * math.cos(a)
+        out[:, 1] += v * math.sin(a)
+    return out / math.sqrt(voices)
+
+
 def noise(n, kind="white", seed=0):
     """white / pink (-3 dB per octave) / brown (-6 dB), shaped in the frequency domain.
 
@@ -116,6 +147,20 @@ def noise(n, kind="white", seed=0):
     return out / np.max(np.abs(out))
 
 
+def crackle(n, density=6.0, decay=0.003, seed=0, sr=A.SR):
+    """Vinyl: `density` clicks per second, each a few milliseconds of decaying noise at a
+    random level. Peak-normalized; sit it far down with `audiolib.normalize`."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros(n)
+    m = max(2, int(decay * 5 * sr))
+    kernel = np.exp(-np.arange(m) / (decay * sr))
+    for at in rng.uniform(0, n, int(density * n / sr)).astype(int):
+        seg = min(m, n - at)
+        out[at:at + seg] += rng.uniform(0.05, 1.0) ** 2 * kernel[:seg] * rng.standard_normal(seg)
+    out = highpass(out, 1200.0, 2, sr=sr)
+    return out / (np.max(np.abs(out)) + 1e-12)
+
+
 # ---- envelopes --------------------------------------------------------------
 
 def adsr(buf, a=0.005, d=0.05, s=0.7, r=0.05, sr=A.SR):
@@ -131,7 +176,7 @@ def adsr(buf, a=0.005, d=0.05, s=0.7, r=0.05, sr=A.SR):
          1.0 - (1.0 - s) * ((i - na) / nd if nd else 1.0),
          np.full(n, s)],
         default=s * (1.0 - (i - rel) / nr) if nr else 0.0)
-    return buf * env
+    return buf * (env[:, None] if buf.ndim == 2 else env)
 
 
 def perc(n, attack=0.002, decay=0.25, curve=1.0, sr=A.SR):
@@ -168,6 +213,18 @@ def lfo(n, rate, lo=0.0, hi=1.0, phase=0.0, sr=A.SR):
     return lo + (hi - lo) * 0.5 * (1.0 + np.sin(_TWO_PI * rate * A.taxis(n, sr) + phase))
 
 
+def pump(n, bpm=80.0, depth=0.6, attack=0.012, recover=0.55, sr=A.SR):
+    """Sidechain envelope: on every beat the level drops by `depth` over `attack` seconds and
+    climbs back (raised cosine) over `recover` of the beat — the pulse of electronic music
+    with no drum in it. For a loop, snap the tempo to the grid first:
+    `bpm = loop.qf(bpm / 60, n) * 60`."""
+    beat = 60.0 / bpm
+    t = A.taxis(n, sr) % beat
+    r = np.clip((t - attack) / (recover * beat), 0.0, 1.0)
+    dip = np.where(t < attack, t / attack, 0.5 * (1.0 + np.cos(math.pi * r)))
+    return 1.0 - depth * dip
+
+
 # ---- filters ----------------------------------------------------------------
 
 def _wn(cutoff, btype, sr):
@@ -201,8 +258,27 @@ def bandpass(x, lo, hi, order=2, zero_phase=False, sr=A.SR):
     return _filt(x, (lo, hi), "band", order, zero_phase, sr)
 
 
-def sweep(x, cutoff_env, btype="low", order=4, blk=192, sr=A.SR):
+def _rbj_low(cutoff, q, sr):
+    """Two-pole resonant low-pass coefficients (the audio-EQ cookbook form)."""
+    w0 = _TWO_PI * float(np.clip(cutoff, 10.0, sr * 0.45)) / sr
+    alpha = math.sin(w0) / (2.0 * q)
+    c = math.cos(w0)
+    b = np.array([(1.0 - c) / 2.0, 1.0 - c, (1.0 - c) / 2.0])
+    a = np.array([1.0 + alpha, -2.0 * c, 1.0 - alpha])
+    return b / a[0], a / a[0]
+
+
+def lowpass_q(x, cutoff, q=0.707, sr=A.SR):
+    """Resonant two-pole low-pass. q = 0.707 is flat; 2-8 rings the cutoff, which is the
+    filter sound of electronic music and the one thing `lowpass` (Butterworth: flat by
+    definition) cannot make. Cascade twice for a ladder-like 24 dB/oct."""
+    b, a = _rbj_low(cutoff, q, sr)
+    return sps.lfilter(b, a, x, axis=0)
+
+
+def sweep(x, cutoff_env, btype="low", order=4, blk=192, sr=A.SR, q=None):
     """Low/high-pass with a moving cutoff (a per-sample Hz array, e.g. from `breakpoints`).
+    With `q`, the resonant low-pass (`lowpass_q`) sweeps instead of the Butterworth.
 
     Redesigning the filter every sample is far too slow, so coefficients are refreshed per
     block — but the filter state `zi` carries across block boundaries. Without that carry
@@ -213,7 +289,11 @@ def sweep(x, cutoff_env, btype="low", order=4, blk=192, sr=A.SR):
     nch = x.shape[1] if x.ndim == 2 else 0
     zi = None
     for i in range(0, len(x), blk):
-        b, a = sps.butter(order, _wn(float(np.mean(cutoff_env[i:i + blk])), btype, sr), btype=btype)
+        hz = float(np.mean(cutoff_env[i:i + blk]))
+        if q is not None and btype == "low":
+            b, a = _rbj_low(hz, q, sr)
+        else:
+            b, a = sps.butter(order, _wn(hz, btype, sr), btype=btype)
         if zi is None:
             nz = max(len(a), len(b)) - 1
             zi = np.zeros((nz, nch)) if nch else np.zeros(nz)
@@ -226,6 +306,40 @@ def resonate(x, freq, q=12.0, gain=1.0):
     noise is how metal groans and wind whistles are made."""
     b, a = sps.iirpeak(float(np.clip(freq / (A.SR / 2.0), 1e-5, 0.99)), q)
     return sps.lfilter(b, a, x, axis=0) * gain
+
+
+def chorus(x, rate=0.3, depth=0.003, base=0.012, mix=0.5, sr=A.SR):
+    """Two modulated delays on a mono signal, in opposite phase left and right: the width and
+    slow movement of an ensemble. Returns (n, 2). The delay line is read modulo n, so with
+    `rate` from `loop.cyc` a loop stays a loop."""
+    n = len(x)
+    t = A.taxis(n, sr)
+    idx = np.arange(n)
+    out = np.zeros((n, 2))
+    for ch, ph in enumerate((0.0, math.pi)):
+        d = (base + depth * 0.5 * (1.0 + np.sin(_TWO_PI * rate * t + ph))) * sr
+        pos = (idx - d) % n
+        i0 = np.floor(pos).astype(int)
+        fr = pos - i0
+        wet = x[i0] * (1.0 - fr) + x[(i0 + 1) % n] * fr
+        out[:, ch] = x * (1.0 - mix) + wet * mix
+    return out
+
+
+def saturate(x, drive=2.0):
+    """tanh soft clip, scaled so full scale stays full scale. Warmth on a sub, edge on a
+    pad; past drive 4 it is distortion."""
+    return np.tanh(x * drive) / math.tanh(drive)
+
+
+def bitcrush(x, bits=8, hold=1):
+    """Quantize to `bits` and hold each sample `hold` times (a sample-rate divider). Lo-fi
+    grit; `hold` above 4 starts to alias on purpose."""
+    q = 2.0 ** (bits - 1)
+    y = np.round(x * q) / q
+    if hold > 1:
+        y = np.repeat(y[::hold], hold, axis=0)[:len(x)]
+    return y
 
 
 # ---- modal + percussion -----------------------------------------------------
@@ -244,6 +358,27 @@ def modal(n, partials, seed=0, sr=A.SR):
             continue
         out += amp * np.sin(_TWO_PI * f * t + rng.uniform(0, _TWO_PI)) * np.exp(-t / (decay / 6.908))
     return out
+
+
+def harmonics(f, amps, decay=1.0, damp=0.5, stretch=0.0):
+    """Partials for `modal` from a harmonic recipe: `amps[k-1]` is the level of harmonic k at
+    k·f, decaying to -60 dB in `decay / k**damp` seconds — the upper harmonics of anything
+    struck or plucked die first, and `damp` says how much first. `stretch` bends the series
+    sharp the way a stiff string does (0.0005-0.002 for a piano; 0 is an organ pipe).
+
+    A hand-written table sounds like an organ; that is what a hand-written table is. The
+    recipe is for organ, pad and bell colours, not for a piano."""
+    return [(k * f * math.sqrt(1.0 + stretch * k * k), decay / k ** damp, a)
+            for k, a in enumerate(amps, 1) if a]
+
+
+def fm(n, f, ratio=1.0, index=2.0, sr=A.SR):
+    """Two-operator FM: a sine carrier at f, phase-modulated by a sine at `ratio`·f with depth
+    `index` (a scalar, or a per-sample track). Integer ratios give a harmonic timbre, others
+    a bell; an index that decays over the note is the electric piano — bright under the
+    hammer, nearly a sine in the sustain."""
+    ph = _radians(n, _freq_track(n, f, None, "lin", 0.0, 0.0, sr), sr)
+    return np.sin(ph + index * np.sin(ratio * ph))
 
 
 def drum(kind, seed=0, sr=A.SR):
@@ -291,18 +426,31 @@ def note_freq(name):
 
 
 # ---- instrument patches -----------------------------------------------------
-# A patch is a flat dict: wave + duty + ADSR (a/d/s/r) + optional vibrato, or a `drum` one-shot.
+# A patch is a flat dict with ADSR (a/d/s/r) and one voice: a `wave` (+ duty, vibrato), a
+# `unison` voice count (+ cents; renders stereo), a `partials` recipe for `harmonics` (+ decay,
+# damp, stretch), an `fm_ratio` (+ fm_index, and fm_decay for an index that falls over the
+# note), or a `drum` one-shot.
 PATCHES = {
-    "lead":   {"wave": "pulse", "duty": 0.50, "a": 0.005, "d": 0.06, "s": 0.60, "r": 0.06,
-               "vib_rate": 5.5, "vib_depth": 0.12},
-    "lead2":  {"wave": "pulse", "duty": 0.25, "a": 0.005, "d": 0.05, "s": 0.55, "r": 0.06},
-    "bass":   {"wave": "triangle", "a": 0.004, "d": 0.04, "s": 0.85, "r": 0.05},
-    "pluck":  {"wave": "saw", "a": 0.002, "d": 0.10, "s": 0.00, "r": 0.04},
-    "pad":    {"wave": "square", "duty": 0.5, "a": 0.04, "d": 0.20, "s": 0.60, "r": 0.16},
-    "sine":   {"wave": "sine", "a": 0.005, "d": 0.05, "s": 0.80, "r": 0.06},
-    "kick":   {"drum": "kick"},
-    "snare":  {"drum": "snare"},
-    "hat":    {"drum": "hat"},
+    "pad":      {"unison": 5, "cents": 10.0, "a": 0.60, "d": 0.40, "s": 0.80, "r": 1.00},
+    "supersaw": {"unison": 7, "cents": 18.0, "a": 0.02, "d": 0.20, "s": 0.70, "r": 0.40},
+    "sub":      {"wave": "sine", "a": 0.020, "d": 0.05, "s": 0.90, "r": 0.25},
+    "keys":     {"wave": "triangle", "a": 0.004, "d": 0.35, "s": 0.25, "r": 0.30,
+                 "vib_rate": 4.5, "vib_depth": 0.05},
+    "epiano":   {"fm_ratio": 1.0, "fm_index": 1.6, "fm_decay": 0.9,
+                 "a": 0.003, "d": 0.50, "s": 0.35, "r": 0.35},
+    "bell":     {"fm_ratio": 3.5, "fm_index": 3.0, "fm_decay": 1.8,
+                 "a": 0.002, "d": 1.60, "s": 0.00, "r": 0.30},
+    "organ":    {"partials": [1.0, 0.7, 0.45, 0.5, 0.25, 0.2, 0.1, 0.15], "decay": 30.0,
+                 "damp": 0.0, "a": 0.012, "d": 0.05, "s": 0.95, "r": 0.06},
+    "pluck":    {"wave": "saw", "a": 0.002, "d": 0.10, "s": 0.00, "r": 0.04},
+    "lead":     {"wave": "pulse", "duty": 0.50, "a": 0.005, "d": 0.06, "s": 0.60, "r": 0.06,
+                 "vib_rate": 5.5, "vib_depth": 0.12},
+    "lead2":    {"wave": "pulse", "duty": 0.25, "a": 0.005, "d": 0.05, "s": 0.55, "r": 0.06},
+    "bass":     {"wave": "triangle", "a": 0.004, "d": 0.04, "s": 0.85, "r": 0.05},
+    "sine":     {"wave": "sine", "a": 0.005, "d": 0.05, "s": 0.80, "r": 0.06},
+    "kick":     {"drum": "kick"},
+    "snare":    {"drum": "snare"},
+    "hat":      {"drum": "hat"},
 }
 
 
@@ -312,7 +460,20 @@ def voice(patch, n, f0=440.0, seed=0, sr=A.SR, **over):
     p = dict(PATCHES[patch] if isinstance(patch, str) else patch, **over)
     if "drum" in p:
         return drum(p["drum"], seed=seed, sr=sr)
-    buf = tone(n, wave=p.get("wave", "square"), f0=f0, duty=p.get("duty", 0.5),
-               vib_rate=p.get("vib_rate", 0.0), vib_depth=p.get("vib_depth", 0.0), sr=sr)
+    if "partials" in p:
+        parts = harmonics(f0, p["partials"], p.get("decay", 1.0), p.get("damp", 0.5),
+                          p.get("stretch", 0.0))
+        buf = modal(n, parts, seed, sr) / sum(abs(a) for _, _, a in parts)   # a note, not a sum
+    elif "fm_ratio" in p:
+        index = p.get("fm_index", 2.0)
+        if p.get("fm_decay"):
+            index = index * np.exp(-A.taxis(n, sr) / (p["fm_decay"] / 6.908))
+        buf = fm(n, f0, p["fm_ratio"], index, sr)
+    elif "unison" in p:
+        buf = unison(n, f0, p["unison"], p.get("cents", 12.0), grid=p.get("grid", False),
+                     seed=seed, sr=sr)
+    else:
+        buf = tone(n, wave=p.get("wave", "square"), f0=f0, duty=p.get("duty", 0.5),
+                   vib_rate=p.get("vib_rate", 0.0), vib_depth=p.get("vib_depth", 0.0), sr=sr)
     return adsr(buf, a=p.get("a", 0.005), d=p.get("d", 0.05),
                 s=p.get("s", 0.7), r=p.get("r", 0.05), sr=sr)
