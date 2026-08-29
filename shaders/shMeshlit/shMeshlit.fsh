@@ -53,6 +53,43 @@ uniform float u_alphaRef;
 uniform float u_ambient;
 uniform vec4 u_sunDir; // xyz = unit vector TOWARD the sun, w = strength (0 at night)
 uniform vec3 u_sunColor; // sun tint (warm at dawn/dusk, white at noon)
+// Albedo CHROMA scale in OKLab — lightness and hue kept, a colour only moves toward its own
+// grey — the world's saturation as an atmosphere dial the scene drives per hour, season and
+// sky (the demo injects ColonyMap.chroma through RenderMesh's `chroma` provider); 1 = the
+// authored colours, and a caller that sets neutral light uniforms sets 1 here too. Applied to
+// the ALBEDO before the light multiply, so the sun's warmth, the night blue and the torch
+// pools keep their own colour over the calmer ground. Skipped at exactly 1.
+uniform float u_chroma;
+
+vec3 toLinear(vec3 c) {
+  return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
+}
+
+vec3 toSrgb(vec3 c) {
+  return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+}
+
+vec3 chromaScale(vec3 srgb, float k) {
+  vec3 c = toLinear(srgb);
+  vec3 lms = vec3(
+    0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b,
+    0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b,
+    0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
+  lms = pow(max(lms, vec3(0.0)), vec3(1.0 / 3.0)); // pow is undefined below 0
+  float L = 0.2104542553 * lms.x + 0.7936177850 * lms.y - 0.0040720468 * lms.z;
+  float a = (1.9779984951 * lms.x - 2.4285922050 * lms.y + 0.4505937099 * lms.z) * k;
+  float b = (0.0259040371 * lms.x + 0.7827717662 * lms.y - 0.8086757660 * lms.z) * k;
+  vec3 l = vec3(
+    L + 0.3963377774 * a + 0.2158037573 * b,
+    L - 0.1055613458 * a - 0.0638541728 * b,
+    L - 0.0894841775 * a - 1.2914855480 * b);
+  l = l * l * l;
+  vec3 lin = vec3(
+    4.0767416621 * l.x - 3.3077115913 * l.y + 0.2309699292 * l.z,
+    -1.2684380046 * l.x + 2.6097574011 * l.y - 0.3413193965 * l.z,
+    -0.0041960863 * l.x - 0.7034186147 * l.y + 1.7076147010 * l.z);
+  return toSrgb(clamp(lin, 0.0, 1.0));
+}
 uniform float u_lightCount;
 uniform vec4 u_lightPos[MAX_LIGHTS]; // xyz world pos (up = -z), w = radius
 uniform vec4 u_lightCol[MAX_LIGHTS]; // rgb color, w = intensity (flicker pre-applied)
@@ -75,6 +112,7 @@ void main() {
   vec4 tex = texture2D(gm_BaseTexture, v_texcoord);
   if (u_alphaRef > 0.0 && tex.a < u_alphaRef) discard;
   vec3 albedo = mix(v_vColour.rgb, v_vColour.rgb * tex.rgb, u_useTex);
+  if (u_chroma < 1.0) albedo = chromaScale(albedo, u_chroma);
   float alpha = v_vColour.a * mix(1.0, tex.a, u_useTex);
   gl_FragColor = vec4(albedo * light, alpha);
 }

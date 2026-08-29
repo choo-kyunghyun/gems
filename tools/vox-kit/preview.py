@@ -19,6 +19,7 @@ Usage:  python preview.py [file.vox | dir ...] [--scale N] [--pitch DEG] [--yaw 
 import os, sys, math, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import voxlib as V
+import palette as PAL
 
 MESHES = os.path.join(os.path.dirname(os.path.dirname(V.KIT)), "datafiles", "meshes")
 SUN = (0.0, 0.33, -0.94)          # RenderMesh.SUN_DEFAULT: toward the sun, up = -z
@@ -128,13 +129,18 @@ def main():
     ap.add_argument("--pitch", type=float, default=50)
     ap.add_argument("--yaw", type=int, default=0, choices=(0, 90, 180, 270))
     ap.add_argument("--out", default="preview")
+    ap.add_argument("--chroma", type=float, default=1.0,
+                    help="scale every palette color's OKLab chroma — the runtime's atmosphere dial (0.55 = a dusty noon)")
     a = ap.parse_args()
     paths = V.files(a.paths, MESHES)
     out = V.out_dir(a.out)
     images, names = [], []
     for p in paths:
         name = os.path.splitext(os.path.basename(p))[0]
-        w, h, px = render(V.read(p), a.scale, a.pitch, a.yaw)
+        m = V.read(p)
+        if a.chroma != 1.0 and m.pal is not None:
+            m = V.Model(m.size, m.vox, [PAL.chroma(c, a.chroma) for c in m.pal])
+        w, h, px = render(m, a.scale, a.pitch, a.yaw)
         V.write_png(os.path.join(out, name + ".png"), w, h, px)
         images.append((w, h, px))
         names.append(name)

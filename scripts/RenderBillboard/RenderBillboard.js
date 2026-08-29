@@ -56,6 +56,9 @@ globalThis.RenderBillboard = class RenderBillboard {
     this._uSunColor = this._litOk
       ? shader_get_uniform(this._lit, "u_sunColor")
       : -1;
+    this._uChroma = this._litOk
+      ? shader_get_uniform(this._lit, "u_chroma")
+      : -1;
     this._uLightCount = this._litOk
       ? shader_get_uniform(this._lit, "u_lightCount")
       : -1;
@@ -93,6 +96,7 @@ globalThis.RenderBillboard = class RenderBillboard {
         shader_set_uniform_f(this._uAmbient, 1);
         shader_set_uniform_f(this._uSunDir, 0, 0, -1, 0);
         shader_set_uniform_f(this._uSunColor, 1, 1, 1);
+        shader_set_uniform_f(this._uChroma, 1);
         shader_set_uniform_f(this._uLightCount, 0);
       }
       shader_set_uniform_f(this._uUseTex, 1); // sprites: real UVs, tint via the draw colour

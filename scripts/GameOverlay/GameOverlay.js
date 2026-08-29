@@ -440,6 +440,14 @@ globalThis.GameOverlay = {
         { key: "uiScale" },
       ),
     );
+    // world chroma strength — read live by the colony's shader provider every frame, so no onChange
+    uiSection.insertChild(
+      facetRow(
+        I18n.textRef("SETTINGS_WORLD_CHROMA"),
+        facetSlider({ key: "worldChroma", min: 0, max: 1, step: 0.05 }),
+        { key: "worldChroma" },
+      ),
+    );
     scroll.scrollBody.insertChild(uiSection);
 
     // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds

@@ -565,6 +565,7 @@ globalThis.ColonyMap = {
     if (pitch > 0) {
       scene._meshPass = new RenderMesh({
         sun: () => WorldClock.sunDir(),
+        chroma: () => ColonyMap.chroma(), // the atmosphere dial (hour × season × sky × setting)
         pointLights: (entities) => {
           const out = [];
           entities.forEach([Light, Position], (id, lt, p) => {
@@ -830,3 +831,10 @@ ColonyMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);
 // Hours a trip across one whole world-map chart unit takes — the travelHours scale (corner to
 // corner is ~1.4 units). Assigned after the literal like BB_PITCH.
 ColonyMap.HOURS_PER_CHART = 20;
+// The world's albedo chroma this frame (shMeshlit's u_chroma, through RenderMesh's provider):
+// the clock's hour/season schedule times the sky's factor, pulled toward 1 (the authored
+// colours) by the `worldChroma` setting — 0 turns the atmosphere off, 1 is the full schedule.
+ColonyMap.chroma = () => {
+  const k = WorldClock.chroma() * Weather.chromaMod();
+  return 1 - (1 - k) * Settings.get("worldChroma");
+};

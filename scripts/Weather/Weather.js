@@ -7,8 +7,8 @@
  */
 globalThis.Weather = {
   // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, cloud the
-  // cloud-shadow coverage for RenderCloudShadow, temp a scale-agnostic Kelvin delta. A literal — no
-  // class self-reference.
+  // cloud-shadow coverage for RenderCloudShadow, temp a scale-agnostic Kelvin delta, chroma the
+  // sky's factor on the world's colour (chromaMod). A literal — no class self-reference.
   _COND: {
     clear: {
       id: "clear",
@@ -19,6 +19,7 @@ globalThis.Weather = {
       density: 0,
       cloud: 0.12,
       temp: 0,
+      chroma: 1,
     },
     cloudy: {
       id: "cloudy",
@@ -29,6 +30,7 @@ globalThis.Weather = {
       density: 0,
       cloud: 0.9,
       temp: -2,
+      chroma: 0.92,
     },
     rain: {
       id: "rain",
@@ -39,6 +41,7 @@ globalThis.Weather = {
       density: 0.6,
       cloud: 0.55,
       temp: -4,
+      chroma: 0.85,
     },
     storm: {
       id: "storm",
@@ -49,6 +52,7 @@ globalThis.Weather = {
       density: 1.0,
       cloud: 0.85,
       temp: -6,
+      chroma: 0.8,
     },
     snow: {
       id: "snow",
@@ -59,6 +63,7 @@ globalThis.Weather = {
       density: 0.5,
       cloud: 0.45,
       temp: -8,
+      chroma: 0.85,
     },
   },
 
@@ -214,6 +219,13 @@ globalThis.Weather = {
   blend() {
     return Weather._blend;
   }, // 0..1 incoming weight
+
+  /** Blended chroma factor (outgoing → incoming) of the sky — an overcast or snowing sky drains the world's colour a little further (ColonyMap.chroma multiplies it in). */
+  chromaMod() {
+    const p = Weather._COND[Weather._prev].chroma;
+    const c = Weather._COND[Weather._cur].chroma;
+    return p + (c - p) * Weather._blend;
+  },
 
   /** Blended Kelvin temp delta (outgoing → incoming) + the map's climate offset; folded into Temperature.now(). */
   tempMod() {

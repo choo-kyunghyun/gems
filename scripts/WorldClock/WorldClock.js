@@ -115,6 +115,40 @@ globalThis.WorldClock = {
     };
   },
 
+  // Hand-authored albedo CHROMA keyframes { h, k } (shMeshlit's u_chroma through the scene's
+  // provider), sorted by hour and wrapping like _KF: a dusty noon flattens the world's colour
+  // most, the low sun at dawn and dusk lets it back, night sits between (the blue multiply
+  // owns the night look). A literal (an initializer can't self-reference).
+  _CHROMA: [
+    { h: 0, k: 0.8 },
+    { h: 5, k: 0.8 },
+    { h: 6.5, k: 0.85 },
+    { h: 9, k: 0.55 },
+    { h: 16, k: 0.55 },
+    { h: 18.5, k: 0.85 },
+    { h: 20, k: 0.8 },
+    { h: 24, k: 0.8 },
+  ],
+  // per-season offset on the keyframed chroma: winter drains it a little further
+  _CHROMA_SEASON: { spring: 0, summer: 0.05, autumn: -0.05, winter: -0.1 },
+
+  /**
+   * world chroma 0..1 for the current hour and season — _CHROMA lerped between bracketing
+   * keyframes, plus the season's offset, clamped. The SKY's share (weather) is the scene's to
+   * multiply in (Weather is not Core's to read).
+   */
+  chroma() {
+    const kf = WorldClock._CHROMA;
+    const h = WorldClock.hour;
+    let i = 0;
+    while (i < kf.length - 2 && h >= kf[i + 1].h) i++;
+    const a = kf[i];
+    const b = kf[i + 1];
+    const t = (h - a.h) / (b.h - a.h);
+    const k = a.k + (b.k - a.k) * t + WorldClock._CHROMA_SEASON[WorldClock.season().id];
+    return Math.min(1, Math.max(0, k));
+  },
+
   /**
    * day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
    * Color.parse/merge from a method is fine — a field initializer would be load-order-sensitive.

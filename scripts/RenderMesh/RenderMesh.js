@@ -62,6 +62,7 @@ globalThis.RenderMesh = class RenderMesh {
     this._uSunColor = this.litOk
       ? shader_get_uniform(this._lit, "u_sunColor")
       : -1;
+    this._uChroma = this.litOk ? shader_get_uniform(this._lit, "u_chroma") : -1;
     this._uLightCount = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCount")
       : -1;
@@ -84,6 +85,10 @@ globalThis.RenderMesh = class RenderMesh {
     // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a bare
     // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
     this.sun = opt.sun;
+    // albedo chroma provider, injected like `sun`: () => 0..1 (shMeshlit's u_chroma — the
+    // world's saturation as an atmosphere dial; the demo injects ColonyMap.chroma). Unset = 1,
+    // the authored colours.
+    this.chroma = opt.chroma;
     this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
     // point-light provider, injected like `sun` (this pass takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
     // flicker?, seed? }] — color a GM color int, seed the flicker phase offset (the demo passes
@@ -144,6 +149,10 @@ globalThis.RenderMesh = class RenderMesh {
     shader_set_uniform_f(this._uAmbient, 1 - 0.9 * sun.strength);
     shader_set_uniform_f(this._uSunDir, sun.x, sun.y, sun.z, sun.strength);
     shader_set_uniform_f(this._uSunColor, sun.r, sun.g, sun.b);
+    shader_set_uniform_f(
+      this._uChroma,
+      this.chroma !== undefined ? this.chroma() : 1,
+    );
 
     const max = RenderMesh.MAX_LIGHTS;
     let recs = this.pointLights !== undefined ? this.pointLights(entities) : [];
@@ -225,6 +234,7 @@ globalThis.RenderMesh = class RenderMesh {
         shader_set_uniform_f(this._uAmbient, 1);
         shader_set_uniform_f(this._uSunDir, 0, 0, -1, 0);
         shader_set_uniform_f(this._uSunColor, 1, 1, 1);
+        shader_set_uniform_f(this._uChroma, 1);
         shader_set_uniform_f(this._uLightCount, 0);
         shader_set_uniform_f(this.uUseTex, 1);
         shader_set_uniform_f(this.uNormal, 0, 0, -1);

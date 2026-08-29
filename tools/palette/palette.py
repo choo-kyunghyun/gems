@@ -108,6 +108,31 @@ def oklab(rgb):
             0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
 
 
+def _unlin(c):
+    c = max(0.0, min(1.0, c))
+    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+
+def srgb(lab):
+    """(L, a, b) -> sRGB (0-255): the inverse of oklab."""
+    L, a, b = lab
+    l_ = L + 0.3963377774 * a + 0.2158037573 * b
+    m_ = L - 0.1055613458 * a - 0.0638541728 * b
+    s_ = L - 0.0894841775 * a - 1.2914855480 * b
+    l, m, s = l_ ** 3, m_ ** 3, s_ ** 3
+    return tuple(int(round(255 * _unlin(c))) for c in (
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s))
+
+
+def chroma(rgb, k):
+    """`rgb` with its OKLab chroma scaled by k, lightness and hue kept — the runtime's atmosphere
+    dial (shMeshlit's u_chroma) reproduced for a preview; k = 1 is the color itself."""
+    L, a, b = oklab(rgb)
+    return srgb((L, a * k, b * k))
+
+
 _LAB = [oklab(c) for c in PALETTE]
 _NEAR = {c: c for c in PALETTE}   # memo: foreign rgb -> palette entry (a palette color is its own)
 

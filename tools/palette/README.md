@@ -49,6 +49,8 @@ PAL.dbl("moss", 2)         # {dark, base, light} around a tone — what the mate
 PAL.INK, PAL.VOID          # the outline ink and the absolute black
 PAL.nearest(rgb)           # the entry nearest a foreign color
 PAL.snap(pixels)           # a flat (r, g, b, a) list locked onto the palette, alpha a hard cutout
+PAL.chroma(rgb, 0.55)      # the color at 0.55 of its OKLab chroma — what the game's atmosphere dial
+                           # (shMeshlit u_chroma) shows at a dusty noon; a preview aid, never an asset color
 ```
 
 `nearest` matches in OKLab, so a dark red never lands on a dark green the way a nearest-RGB match
