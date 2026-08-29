@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.15514739,
+  "duration":0.13668934,
   "exportDir":"",
   "name":"sndGunUncocked",
   "parent":{

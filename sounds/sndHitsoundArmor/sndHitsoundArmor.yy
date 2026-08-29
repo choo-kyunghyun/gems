@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.3384127,
+  "duration":0.07795919,
   "exportDir":"",
   "name":"sndHitsoundArmor",
   "parent":{

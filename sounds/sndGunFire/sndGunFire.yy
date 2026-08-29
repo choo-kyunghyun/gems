@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.38555557,
+  "duration":0.15399092,
   "exportDir":"",
   "name":"sndGunFire",
   "parent":{

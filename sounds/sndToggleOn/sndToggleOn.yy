@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.1253288,
+  "duration":0.12909298,
   "exportDir":"",
   "name":"sndToggleOn",
   "parent":{

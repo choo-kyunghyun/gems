@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":1.6472563,
+  "duration":0.9888662,
   "exportDir":"",
   "name":"sndExplosionLarge",
   "parent":{

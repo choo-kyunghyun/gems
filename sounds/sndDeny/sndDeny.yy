@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.28827664,
+  "duration":0.30621314,
   "exportDir":"",
   "name":"sndDeny",
   "parent":{

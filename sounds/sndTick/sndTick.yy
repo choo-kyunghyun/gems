@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.052879818,
+  "duration":0.055668935,
   "exportDir":"",
   "name":"sndTick",
   "parent":{

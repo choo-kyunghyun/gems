@@ -10,7 +10,7 @@
   "compression":0,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.39741495,
+  "duration":0.42095238,
   "exportDir":"",
   "name":"sndPanelClose",
   "parent":{
