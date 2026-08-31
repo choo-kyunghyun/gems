@@ -115,18 +115,20 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * model lookup: meshes/<name>.vox (included file) -> Vox-meshed frozen vertex buffer,
-   * cached; a missing file caches vb -1 so the warning fires once, not per frame
+   * model lookup: meshes/<name>.mesh (poly-kit bake, Poly) first, else meshes/<name>.vox
+   * (Vox-meshed) -> frozen vertex buffer, cached; a name missing BOTH caches vb -1 so the
+   * warning fires once, not per frame
    */
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
-    m = { vb: Vox.mesh(name, this._format) };
+    m = { vb: Poly.mesh(name, this._format) };
+    if (m.vb === -1) m.vb = Vox.mesh(name, this._format);
     if (m.vb !== -1) {
       vertex_freeze(m.vb);
       this._vbs.push(m.vb);
     } else {
-      Log.warn(`RenderMesh: missing model meshes/${name}.vox`);
+      Log.warn(`RenderMesh: missing model meshes/${name}.mesh|.vox`);
     }
     this._models.set(name, m);
     return m;

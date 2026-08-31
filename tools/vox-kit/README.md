@@ -8,6 +8,8 @@ stdlib, nothing to install.
 
 It is not an asset pipeline. The game reads `datafiles/meshes/<name>.vox` directly (`Vox` parses and
 greedy-meshes it at load), so there is nothing to bake; the kit reads and writes that same file.
+A poly-kit bake of the same name (`<name>.mesh` — see `tools/poly-kit`) SHADOWS the `.vox`, which
+then stays in place as the spare.
 
 ## Layout
 

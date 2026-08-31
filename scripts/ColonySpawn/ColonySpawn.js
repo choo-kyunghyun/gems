@@ -31,19 +31,26 @@
  */
 globalThis.ColonySpawn = {
   /**
-   * Collider footprint for a vox model, derived from its tight voxel content dims (Vox):
-   * max(8, content − 2) per axis — BBox ≤ voxel content, erring small for walkability
+   * Collider footprint for a mesh model, derived from its tight content dims — a poly bake's
+   * header (Poly) or the vox extent (Vox), the same shadowing order RenderMesh draws by:
+   * max(8, content − 2) per axis — BBox ≤ content, erring small for walkability
    * (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
-   * 4px plank robustly solid). 1 vox = 1 world px; big furniture is genuinely multi-cell
+   * 4px plank robustly solid). 1 unit = 1 world px; big furniture is genuinely multi-cell
    * (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
    * the one-size prop preset box. Returns undefined for an unknown model.
    */
   footprint(model) {
-    const m = Vox.load(model);
-    if (m === undefined) return undefined;
+    let content;
+    const p = Poly.load(model);
+    if (p !== undefined) content = p.content;
+    else {
+      const m = Vox.load(model);
+      if (m !== undefined) content = m.content;
+    }
+    if (content === undefined) return undefined;
     return {
-      w: Math.max(8, m.content[0] - 2),
-      h: Math.max(8, m.content[1] - 2),
+      w: Math.max(8, content[0] - 2),
+      h: Math.max(8, content[1] - 2),
     };
   },
 
