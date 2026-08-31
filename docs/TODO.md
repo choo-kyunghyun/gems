@@ -62,6 +62,7 @@ Names predating the naming rules are grandfathered — never rename as a sweep; 
 - Grandfathered: the UI glyphs/lobby art (`vecCheck`/`vecPlay`/`pixUiBox`/…), spare icons (`pixApple`), and the `pixTile16`/`pixTileCornerRough` autotile sets
 - Unwired spares: `pixTileFenceSquare`/`pixTileFenceRound` (the blob4 fence sheets kept for debugging — the fence is `RenderFence` geometry now), `wooden_bed_simple`
 - A dedicated plan-view TOP pattern per wall material, if the shared face texture ever reads wrong
+- New rule for sprites:  128 px per cell · AAP-64 · binary texel alpha · outline for creatures only · shaders do mixing
 
 ## Verification
 
