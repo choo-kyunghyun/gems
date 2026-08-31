@@ -2,7 +2,7 @@
   {
     "sprite": "spineRat",
     "kind": "entity",
-    "density": 1.875,
+    "density": 1.4,
     "cell": [34, 22]
   }
 ]

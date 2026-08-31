@@ -21,8 +21,13 @@ const BB_NORMAL_Z = -0.866;
  * (CameraFollow's `pitchCurve`). Upright — NOT perpendicular-to-view: a
  * camera-facing billboard under a mostly-top-down pitch reclines ~cos(pitch) of its height
  * along the ground, so at wall contact the body crosses the wall mesh's depth and buries
- * itself; an upright sprite's top is always camera-side of geometry it stands in front of. The camera pitch foreshortens
- * upright sprites to sin(pitch) of their height — the accepted look of the art rework.
+ * itself; an upright sprite's top is always camera-side of geometry it stands in front of.
+ * PITCH COMPENSATION: the ortho pitch projects an upright quad to sin(pitch) of its height,
+ * which resamples every sprite row at a non-integer step (1.32 screen px per source px at
+ * zoom 2 — the "dirty" doll). The quad is drawn 1/sin(pitch) TALL instead, so the screen
+ * height is exactly source × zoom and the texel grid stays whole; the foot stays put, and the
+ * quad stands ~1.3× taller in world space (it occludes a little more of what's behind it).
+ * `opt.camera` supplies the live pitch (ColonyMap._buildCamera assigns it).
  * Only geometry that writes depth — z-write on for this loop only so overlapping bodies
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
  * A Spine puppet is the one body that can z-fight ITSELF — its attachments are coplanar —
@@ -79,6 +84,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     // diverge). Unset (flat maps, the default) → neutral uniforms: full-bright albedo with
     // the cutout only.
     this.lights = opt.lights;
+    this.camera = opt.camera; // a Camera instance: its pitch drives the height compensation
   }
 
   destroy() {}
@@ -86,6 +92,10 @@ globalThis.RenderBillboard = class RenderBillboard {
   draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
+    const pitch = this.camera !== undefined ? this.camera.pitch : 0;
+    // the pitch compensation (header) — on the world z (matrix_build scales on the WORLD
+    // axes, and the tilt has already stood the sprite's height along z)
+    const tall = pitch > 0 ? 1 / Math.sin(pitch) : 1;
     // only pass that writes depth; global default is off (Game Create_0) to avoid z-fighting
     // in coplanar ground passes — restore after
     gpu_set_zwriteenable(true);
@@ -119,7 +129,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       if (visual.speed !== 0) subimg = AnimationSystem.advance(visual, sprite);
       matrix_set(
         matrix_world,
-        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
+        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
       );
       draw_sprite_ext(
         sprite,
@@ -150,7 +160,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       const rp = InterpolationSystem.lerp(entities, entity, this._rp);
       matrix_set(
         matrix_world,
-        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, 1),
+        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
       );
       gpu_set_zwriteenable(false);
       held.inst.draw_self();

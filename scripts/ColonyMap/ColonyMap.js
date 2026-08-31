@@ -57,6 +57,7 @@ globalThis.ColonyMap = {
     "_tilePasses",
     "_terrainPasses",
     "_decorPass",
+    "_entityPass",
     "_tilePass",
     "_gridPass",
     "_clouds",
@@ -705,11 +706,11 @@ globalThis.ColonyMap = {
     // is inspected with entities.dump(), not by world-space label passes).
     // Pitched maps hand the billboard pass the mesh pass as its light source (sprite sun
     // response: sprites dim/warm with the sun + catch torchlight like the mesh faces).
-    const entityPass =
+    scene._entityPass =
       pitch > 0
         ? new RenderBillboard({ lights: scene._meshPass })
         : new RenderEntity();
-    scene.renderer.insert(entityPass);
+    scene.renderer.insert(scene._entityPass);
     const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
     bbox.enabled = false;
     scene.renderer.insert(bbox);
@@ -815,7 +816,10 @@ globalThis.ColonyMap = {
     if (scene._weather !== undefined) scene._weather.camera = scene.camera;
     if (scene._sky !== undefined) scene._sky.camera = scene.camera;
     scene._lighting.camera = scene.camera;
-    // (sprites are UPRIGHT constants now — the entity pass no longer tracks camera pitch)
+    // the STANDING passes read the live pitch for their height compensation (RenderBillboard)
+    if (scene._entityPass instanceof RenderBillboard)
+      scene._entityPass.camera = scene.camera;
+    if (scene._decorPass !== undefined) scene._decorPass.camera = scene.camera;
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
   },
 

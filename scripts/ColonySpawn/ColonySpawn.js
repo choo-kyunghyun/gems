@@ -73,9 +73,9 @@ globalThis.ColonySpawn = {
     EntityPreset.register([
       {
         id: "raider",
-        scale: 1.7,
+        scale: 1.5,
         components: {
-          // 16 design × 1.7 ≈ 27.2 world px — near the doll's visual body (mob bboxes were
+          // 16 design × 1.5 = 24 world px — near the doll's visual body (mob bboxes were
           // ~2/3 of the visual, letting sprites bury into walls/each other); < 32px cell
           BBox: { x: -8, y: -8, width: 16, height: 16 },
           // dynamic (non-kinematic) so SolidSystem integrates CombatAI's velocity + collides vs walls
@@ -126,9 +126,9 @@ globalThis.ColonySpawn = {
       },
       {
         id: "npc",
-        scale: 1.6,
+        scale: 1.5,
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.6 = 25.6 world px (visual-match bump)
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — the doll draws 1:1 (scale = the rig density, SpriteMeta)
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
           Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)

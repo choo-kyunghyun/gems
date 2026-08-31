@@ -20,8 +20,10 @@ globalThis.RenderDecor = class RenderDecor {
    * upright? }] — `id` the TileType id a piece belongs to, `sprite` a GMSprite (its origin is
    * the piece's anchor — the foot of an upright piece, the centre of a flat one; the packer's
    * trim is read back like RenderTileMap), `density` the share of interior cells that carry a
-   * piece (0..1), `upright` default false. opt: `lights` the host RenderMesh pass, `seed` the
-   * placement hash seed, `alphaRef` the upright cutout (default 0.5).
+   * piece (0..1), `upright` default false. opt: `lights` the host RenderMesh pass, `camera` the
+   * Camera whose pitch the upright pieces compensate (RenderBillboard's rule — drawn 1/sin(pitch)
+   * tall so their rows sample whole), `seed` the placement hash seed, `alphaRef` the upright
+   * cutout (default 0.5).
    */
   constructor(layer, grid, defs, opt = {}) {
     this.enabled = true;
@@ -29,6 +31,7 @@ globalThis.RenderDecor = class RenderDecor {
     this.grid = grid;
     this.defs = defs;
     this.lights = opt.lights;
+    this.camera = opt.camera;
     this.seed = opt.seed ?? 7;
     this.alphaRef = opt.alphaRef ?? 0.5;
     this._vbs = []; // parallel to defs: { vb, tex } or undefined when a def placed nothing
@@ -137,8 +140,14 @@ globalThis.RenderDecor = class RenderDecor {
       e.vb.submit(e.tex);
       if (lit) shader_reset();
     }
-    // UPRIGHT pieces: in the depth pool, cut on the texel alpha, the billboards' bent normal
+    // UPRIGHT pieces: in the depth pool, cut on the texel alpha, the billboards' bent normal,
+    // and the billboards' pitch compensation — a z-scale about the ground plane, so every
+    // piece grows from its own foot
+    const pitch = this.camera !== undefined ? this.camera.pitch : 0;
+    const tall = pitch > 0 ? 1 / Math.sin(pitch) : 1;
+    const ident = matrix_build_identity();
     gpu_set_zwriteenable(true);
+    matrix_set(matrix_world, matrix_build(0, 0, 0, 0, 0, 0, 1, 1, tall));
     for (let k = 0; k < this.defs.length; k++) {
       const e = this._vbs[k];
       if (e === undefined || this.defs[k].upright !== true) continue;
@@ -151,6 +160,7 @@ globalThis.RenderDecor = class RenderDecor {
       e.vb.submit(e.tex);
       if (lit) shader_reset();
     }
+    matrix_set(matrix_world, ident);
     gpu_set_zwriteenable(false);
   }
 };
