@@ -1,5 +1,5 @@
 // Sprite METADATA registry — the semantic layer GameMaker doesn't store on a GMSprite (kind, art
-// density, cell size), DECLARED per sprite. Def shape + storage on the SpriteMeta declaration below.
+// density), DECLARED per sprite. Def shape + storage on the SpriteMeta declaration below.
 /**
  * A sprite asset carries frames/trim/origin and nothing else; the facts game code needs live here as
  * DECLARED data, keyed by sprite. Declarations are authored by the tool that GENERATED the art (the
@@ -7,14 +7,13 @@
  * sheets; hand-authored sprites get hand entries.
  *
  * Def shape (JSON-manifest-safe):
- *   { sprite: "<name>", kind, density?, cell?, variants? }
+ *   { sprite: "<name>", kind, density?, variants? }
  *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
  *            FIELDS, never switch on kind (its value is tooling/validation).
  *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a
  *            denser subject OR a taller one — only the art's author knows. Divides the DRAW scale only
  *            (xscale/yscale = design scale / density); never touches the BBox. Bake sites:
  *            EntityPreset.spawn / ColonyPlayer.spawn.
- *   cell     [w, h] frame size in source px (doc/validation; no runtime consumer yet).
  *   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate frames for
  *            one neighbor mask, so a large field of one terrain doesn't tile visibly. Only the
  *            dual-grid full-cell mask "15" is emitted today, and only RenderTileMap's dual path picks

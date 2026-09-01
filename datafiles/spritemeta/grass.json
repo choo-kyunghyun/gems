@@ -2,10 +2,6 @@
   {
     "sprite": "pixGrassClump",
     "kind": "decor",
-    "density": 4,
-    "cell": [
-      128,
-      128
-    ]
+    "density": 4
   }
 ]

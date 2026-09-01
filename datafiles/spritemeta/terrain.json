@@ -2,29 +2,17 @@
   {
     "sprite": "pixTerrainWater",
     "kind": "tileset",
-    "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ]
+    "autotile": "dual"
   },
   {
     "sprite": "pixTerrainDeepWater",
     "kind": "tileset",
-    "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ]
+    "autotile": "dual"
   },
   {
     "sprite": "pixTerrainSand",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -54,10 +42,6 @@
     "sprite": "pixTerrainMud",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -83,10 +67,6 @@
     "sprite": "pixTerrainSoil",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -112,10 +92,6 @@
     "sprite": "pixTerrainRichSoil",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -141,10 +117,6 @@
     "sprite": "pixTerrainGrass",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -182,10 +154,6 @@
     "sprite": "pixTerrainGravel",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -211,10 +179,6 @@
     "sprite": "pixTerrainRocky",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -239,29 +203,17 @@
   {
     "sprite": "pixTerrainDeepWaterFlat",
     "kind": "tileset",
-    "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ]
+    "autotile": "dual"
   },
   {
     "sprite": "pixTerrainWaterFlat",
     "kind": "tileset",
-    "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ]
+    "autotile": "dual"
   },
   {
     "sprite": "pixTerrainSandFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -283,10 +235,6 @@
     "sprite": "pixTerrainMudFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -304,10 +252,6 @@
     "sprite": "pixTerrainSoilFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -325,10 +269,6 @@
     "sprite": "pixTerrainRichSoilFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -345,20 +285,12 @@
   {
     "sprite": "pixTerrainLawnFlat",
     "kind": "tileset",
-    "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ]
+    "autotile": "dual"
   },
   {
     "sprite": "pixTerrainGravelFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [
@@ -380,10 +312,6 @@
     "sprite": "pixTerrainRockyFlat",
     "kind": "tileset",
     "autotile": "dual",
-    "cell": [
-      32,
-      32
-    ],
     "variants": {
       "15": [
         [

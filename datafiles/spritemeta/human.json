@@ -2,7 +2,6 @@
   {
     "sprite": "spineHuman",
     "kind": "entity",
-    "density": 1.5,
-    "cell": [32, 60]
+    "density": 1.5
   }
 ]
