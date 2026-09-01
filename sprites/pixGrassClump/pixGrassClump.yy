@@ -28,7 +28,7 @@
   ],
   "name":"pixGrassClump",
   "nineSlice":null,
-  "origin":9,
+  "origin":7,
   "parent":{
     "name":"Decor",
     "path":"folders/Game/Media/Sprites/Decor.yy",
@@ -96,7 +96,7 @@
     "visibleRange":null,
     "volume":1.0,
     "xorigin":64,
-    "yorigin":127,
+    "yorigin":128,
   },
   "swatchColours":null,
   "swfPrecision":0.5,
