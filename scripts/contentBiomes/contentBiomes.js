@@ -113,6 +113,8 @@ globalThis.contentBiomes = {
   //              paints but a prefab stamps onto the terrain layer (lawn)
   //   clumpTint? "#hex" (an AAP-64 entry) — the biome's grass color: overrides the grass
   //              material's clump.tint on the white clump mask (one sheet, every biome)
+  //   wind?      0..1 — the level's CONSTANT wind strength (LevelMeta), the grass sway
+  //              amplitude (shMeshlit.vsh u_sway); absent = still (an indoor map)
   //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
   //              ground noise (the last one Infinity) splitting the land into patchy features;
   //              lattice = value-noise blob spacing in cells (smaller = smaller patches). The
@@ -137,6 +139,7 @@ globalThis.contentBiomes = {
     // the colony's home ground: temperate steppe, lakes and wet depressions, pine scatter
     steppe: {
       name: "BIOME_STEPPE",
+      wind: 0.6,
       extras: ["lawn"], // stamped by the colony compound's yards, no band paints it
       ground: {
         lattice: 6,
@@ -173,6 +176,7 @@ globalThis.contentBiomes = {
     frost: {
       name: "BIOME_FROST",
       clumpTint: "#477d85", // slate 0 — grass gone cold
+      wind: 0.9,
       ground: {
         lattice: 5,
         bands: [
@@ -205,6 +209,7 @@ globalThis.contentBiomes = {
     // swarming with vermin — under rain
     marsh: {
       name: "BIOME_MARSH",
+      wind: 0.35,
       ground: {
         lattice: 5,
         bands: [
@@ -238,6 +243,7 @@ globalThis.contentBiomes = {
     // clear and hot
     badlands: {
       name: "BIOME_BADLANDS",
+      wind: 1,
       ground: {
         lattice: 7,
         bands: [

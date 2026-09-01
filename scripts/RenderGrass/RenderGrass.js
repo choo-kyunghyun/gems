@@ -25,7 +25,9 @@ globalThis.RenderGrass = class RenderGrass {
    * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
    * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
    * c_white), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
-   * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5).
+   * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5),
+   * `wind` the level's sway strength (0 = rigid — shMeshlit.vsh's u_sway) and `time` the sim
+   * clock closure its phase runs on (the wave crests' clock, frozen on pause).
    */
   constructor(layer, grid, defs, opt = {}) {
     this.enabled = true;
@@ -36,12 +38,18 @@ globalThis.RenderGrass = class RenderGrass {
     this.camera = opt.camera;
     this.seed = opt.seed ?? 19;
     this.alphaRef = opt.alphaRef ?? 0.5;
+    this.wind = opt.wind ?? 0;
+    this.time = opt.time;
     this._vbs = []; // parallel to defs: { vb, tex } or undefined when a def placed nothing
     this._dirty = true;
     this._lit = asset_get_index("shMeshlit");
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAlphaRef = this._litOk
       ? shader_get_uniform(this._lit, "u_alphaRef")
+      : -1;
+    this._uSway = this._litOk ? shader_get_uniform(this._lit, "u_sway") : -1;
+    this._uSwayTime = this._litOk
+      ? shader_get_uniform(this._lit, "u_swayTime")
       : -1;
   }
 
@@ -166,6 +174,11 @@ globalThis.RenderGrass = class RenderGrass {
         shader_set_uniform_f(this.lights.uUseTex, 1);
         shader_set_uniform_f(this.lights.uNormal, 0, 0.5, -0.866);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
+        shader_set_uniform_f(this._uSway, this.wind);
+        shader_set_uniform_f(
+          this._uSwayTime,
+          this.time !== undefined ? this.time() : 0,
+        );
       }
       e.vb.submit(e.tex);
       if (lit) shader_reset();

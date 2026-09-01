@@ -70,6 +70,7 @@ globalThis.RenderMesh = class RenderMesh {
       ? shader_get_uniform(this._lit, "u_waveColor")
       : -1;
     this.uTime = this.litOk ? shader_get_uniform(this._lit, "u_time") : -1;
+    this._uSway = this.litOk ? shader_get_uniform(this._lit, "u_sway") : -1;
     this._uLightCount = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCount")
       : -1;
@@ -163,6 +164,7 @@ globalThis.RenderMesh = class RenderMesh {
       this.chroma !== undefined ? this.chroma() : 1,
     );
     shader_set_uniform_f(this.uWave, 0); // no crests; a flowing ground pass raises it
+    shader_set_uniform_f(this._uSway, 0); // rigid; the grass pass raises it (shMeshlit.vsh)
 
     const max = RenderMesh.MAX_LIGHTS;
     let recs = this.pointLights !== undefined ? this.pointLights(entities) : [];

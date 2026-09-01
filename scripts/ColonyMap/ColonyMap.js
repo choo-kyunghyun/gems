@@ -28,6 +28,7 @@ globalThis.ColonyMap = {
   INDOOR: "indoor",
   CLIMATE: "climate",
   BIOME: "biome",
+  WIND: "wind", // the level's constant wind strength (biome profile `wind`) — grass sway
 
   // fields _stash/_unstash copy between scene and a parked bundle (excludes scene-shell +
   // per-activate transients reset by _activateReset on each map open). NOT listed: the Level
@@ -420,6 +421,9 @@ globalThis.ColonyMap = {
     // Survey Post founds it (BuildMode.claim).
     const meta = scene.level.meta;
     meta.set(ColonyMap.BIOME, data.meta.biome);
+    const prof = contentBiomes.BIOMES[data.meta.biome];
+    if (prof !== undefined && prof.wind !== undefined)
+      meta.set(ColonyMap.WIND, prof.wind);
     if (data.meta.indoor === true) meta.set(ColonyMap.INDOOR, true);
     if (data.meta.climate !== undefined)
       meta.set(ColonyMap.CLIMATE, data.meta.climate);
@@ -623,10 +627,15 @@ globalThis.ColonyMap = {
         profile !== undefined ? profile.clumpTint : undefined,
       );
       if (cdefs.length > 0) {
+        // wind: the meta constant; a save predating it falls back to the biome profile
+        let wind = scene.level.meta.get(ColonyMap.WIND);
+        if (wind === undefined)
+          wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
         scene._grassPass = new RenderGrass(
           scene.terrainLayer,
           scene.level.grid,
           cdefs,
+          { wind: wind, time: () => Weather.time() },
         );
         scene.renderer.insert(scene._grassPass);
       }
