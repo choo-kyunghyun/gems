@@ -529,6 +529,8 @@ globalThis.ColonyMap = {
         sprite: spr,
         min: def.clump.min,
         max: def.clump.max,
+        scaleMin: def.clump.scaleMin,
+        scaleMax: def.clump.scaleMax,
         edge: def.clump.edge,
       });
     }

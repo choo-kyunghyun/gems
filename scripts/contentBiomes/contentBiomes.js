@@ -70,7 +70,14 @@ globalThis.contentBiomes = {
       name: "Grass",
       color: "#5d8a46",
       sprite: "pixTerrainSoilFlat",
-      clump: { sprite: "pixGrassClump", min: 3, max: 5, edge: true },
+      clump: {
+        sprite: "pixGrassClump",
+        min: 4,
+        max: 6,
+        scaleMin: 0.7,
+        scaleMax: 1.35,
+        edge: true,
+      },
       pathCost: 1,
     },
     gravel: {

@@ -19,8 +19,9 @@ globalThis.RenderGrass = class RenderGrass {
    * `layer.get(gx, gy)` must answer a TileType (or nothing). defs: [{ id, sprite, min?,
    * max?, edge? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
    * VARIANTS (origin at the foot; half are mirrored), `min`..`max` the per-cell count the
-   * hash rolls (default 1..2), `edge` true to include transition cells (tileset-free
-   * fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
+   * hash rolls (default 1..2), `scaleMin`..`scaleMax` the per-clump size the hash rolls
+   * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
+   * one-tone art), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
    * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5).
    */
   constructor(layer, grid, defs, opt = {}) {
@@ -92,6 +93,8 @@ globalThis.RenderGrass = class RenderGrass {
       const yoff = sprite_get_yoffset(spr);
       const minC = def.min !== undefined ? def.min : 1;
       const maxC = def.max !== undefined ? def.max : 2;
+      const sMin = def.scaleMin !== undefined ? def.scaleMin : 1;
+      const sMax = def.scaleMax !== undefined ? def.scaleMax : 1;
       const salt = this.seed + k * 131;
       const vb = new VertexBuffer().begin();
       let n = 0;
@@ -118,11 +121,12 @@ globalThis.RenderGrass = class RenderGrass {
             );
             // the packer-trimmed rect over the sheet density, foot on the anchor; a
             // mirrored clump swaps u and anchors from its right edge
+            const sc = sMin + hash2(gx, gy, s2 + 4) * (sMax - sMin);
             const uv = sprite_get_uvs(spr, frame);
-            const w = (sw * uv[6]) / dens;
-            const h = (sh * uv[7]) / dens;
-            const a = (xoff - uv[4]) / dens;
-            const z0 = -(yoff - uv[5]) / dens;
+            const w = (sw * uv[6] * sc) / dens;
+            const h = (sh * uv[7] * sc) / dens;
+            const a = ((xoff - uv[4]) * sc) / dens;
+            const z0 = (-(yoff - uv[5]) * sc) / dens;
             if (hash2(gx, gy, s2 + 3) < 0.5)
               vb.addUpright(px - a, py, z0, w, h, uv[0], uv[1], uv[2], uv[3]);
             else
