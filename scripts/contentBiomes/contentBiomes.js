@@ -62,11 +62,15 @@ globalThis.contentBiomes = {
     },
     // `decor` strews identity pieces over the material's interior cells (RenderDecor, wired by
     // ColonyMap): { sprite, density (share of cells), upright? } — a tuft stands, a stone lies
+    // `clump` grows a material's VOLUME layer (RenderGrass): HD clump variants stood on
+    // every cell, dense enough to carry the green itself — the ground underneath is the
+    // soil sheet, and the field's border is the scatter's own feather (edge), so grass
+    // needs no tileset of its own (pixTerrainGrassFlat stays in the project as the spare)
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      sprite: "pixTerrainGrassFlat",
-      decor: [{ sprite: "pixDecorGrass", density: 0.16, upright: true }],
+      sprite: "pixTerrainSoilFlat",
+      clump: { sprite: "pixGrassClump", min: 3, max: 5, edge: true },
       pathCost: 1,
     },
     gravel: {

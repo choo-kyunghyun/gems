@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderGrass",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderGrass",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderGrass.js",
+}

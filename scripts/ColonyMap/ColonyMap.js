@@ -57,6 +57,7 @@ globalThis.ColonyMap = {
     "_tilePasses",
     "_terrainPasses",
     "_decorPass",
+    "_grassPass",
     "_entityPass",
     "_tilePass",
     "_gridPass",
@@ -509,6 +510,32 @@ globalThis.ColonyMap = {
   },
 
   /**
+   * The RenderGrass defs of a material table: every `clump` entry of a material row, keyed
+   * by the row's TileType id — _decorDefs' shape for the volume layer.
+   */
+  _clumpDefs(mats) {
+    const defs = [];
+    for (let i = 0; i < mats.length; i++) {
+      const mat = mats[i].material;
+      const def = mat !== undefined ? contentBiomes.MATERIALS[mat] : undefined;
+      if (def === undefined || def.clump === undefined) continue;
+      const spr = asset_get_index(def.clump.sprite);
+      if (!sprite_exists(spr)) {
+        Log.warn(`clump sprite missing: ${def.clump.sprite}`); // GMRT: sprite_exists, not >=0
+        continue;
+      }
+      defs.push({
+        id: mats[i].type.id,
+        sprite: spr,
+        min: def.clump.min,
+        max: def.clump.max,
+        edge: def.clump.edge,
+      });
+    }
+    return defs;
+  },
+
+  /**
    * A terrain pass's `wave` option for a contentBiomes material id: its crest tone as 0..1
    * floats over the weather's sim clock (the crests freeze on pause with the rain), or
    * undefined for still ground (and for a saved row predating material ids).
@@ -577,6 +604,20 @@ globalThis.ColonyMap = {
           defs,
         );
         scene.renderer.insert(scene._decorPass);
+      }
+    }
+    // the grass materials' volume layer (RenderGrass) — upright clumps in the depth pool,
+    // over the decor pieces
+    scene._grassPass = undefined;
+    if (mats !== undefined) {
+      const cdefs = ColonyMap._clumpDefs(mats);
+      if (cdefs.length > 0) {
+        scene._grassPass = new RenderGrass(
+          scene.terrainLayer,
+          scene.level.grid,
+          cdefs,
+        );
+        scene.renderer.insert(scene._grassPass);
       }
     }
     // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
@@ -655,6 +696,8 @@ globalThis.ColonyMap = {
         scene._terrainPasses[i].lights = scene._meshPass;
       if (scene._decorPass !== undefined)
         scene._decorPass.lights = scene._meshPass;
+      if (scene._grassPass !== undefined)
+        scene._grassPass.lights = scene._meshPass;
       const tileKeys = Object.keys(scene._tilePasses);
       for (let i = 0; i < tileKeys.length; i++)
         scene._tilePasses[tileKeys[i]].lights = scene._meshPass;
@@ -820,6 +863,7 @@ globalThis.ColonyMap = {
     if (scene._entityPass instanceof RenderBillboard)
       scene._entityPass.camera = scene.camera;
     if (scene._decorPass !== undefined) scene._decorPass.camera = scene.camera;
+    if (scene._grassPass !== undefined) scene._grassPass.camera = scene.camera;
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
   },
 
