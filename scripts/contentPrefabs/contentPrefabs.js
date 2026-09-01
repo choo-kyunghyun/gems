@@ -22,6 +22,16 @@ globalThis.contentPrefabs = {
         cols: 45,
         rows: 30,
         tiles: [
+          // the compound's LAWNS — the post yard and the quarters' front pad: maintained
+          // ground, so the flat lawn sheet and no grass clumps (contentBiomes `lawn`)
+          {
+            layer: "terrain",
+            material: "lawn",
+            rects: [
+              [1, 1, 8, 6],
+              [33, 16, 9, 4],
+            ],
+          },
           {
             layer: "wall",
             rects: [

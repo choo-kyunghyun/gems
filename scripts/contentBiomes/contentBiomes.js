@@ -65,7 +65,7 @@ globalThis.contentBiomes = {
     // `clump` grows a material's VOLUME layer (RenderGrass): HD clump variants stood on
     // every cell, dense enough to carry the green itself — the ground underneath is the
     // soil sheet, and the field's border is the scatter's own feather (edge), so grass
-    // needs no tileset of its own (pixTerrainGrassFlat stays in the project as the spare)
+    // needs no tileset of its own (the old flat sheet is `lawn`'s now)
     grass: {
       name: "Grass",
       color: "#5d8a46",
@@ -78,6 +78,15 @@ globalThis.contentBiomes = {
         scaleMax: 1.35,
         edge: true,
       },
+      pathCost: 1,
+    },
+    // grass's MAINTAINED counterpart — the solid one-tone sheet reads as artificial ground
+    // (Union-standard lawn), so it takes no clumps and no decor: flat = designed, volume =
+    // alive. Never a biome band; a prefab stamps it (palette `extras`), later a buildable floor
+    lawn: {
+      name: "Lawn",
+      color: "#328464",
+      sprite: "pixTerrainLawnFlat",
       pathCost: 1,
     },
     gravel: {
@@ -99,6 +108,8 @@ globalThis.contentBiomes = {
   // when the stage is:
   //   name       i18n key (the world map's terrain readout)
   //   indoor?    true for a sealed map — no sky passes, the interior BGM (meta.indoor)
+  //   extras?    [material] — palette-only additions painted ABOVE the bands: materials no band
+  //              paints but a prefab stamps onto the terrain layer (lawn)
   //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
   //              ground noise (the last one Infinity) splitting the land into patchy features;
   //              lattice = value-noise blob spacing in cells (smaller = smaller patches). The
@@ -123,6 +134,7 @@ globalThis.contentBiomes = {
     // the colony's home ground: temperate steppe, lakes and wet depressions, pine scatter
     steppe: {
       name: "BIOME_STEPPE",
+      extras: ["lawn"], // stamped by the colony compound's yards, no band paints it
       ground: {
         lattice: 6,
         bands: [
@@ -289,6 +301,7 @@ globalThis.contentBiomes = {
     { id: "barren", name: "Barren", color: "#d9a066" },
     { id: "richsoil", name: "Rich Soil", color: "#663931" },
     { id: "grass", name: "Grass", color: "#6abe30" },
+    { id: "lawn", name: "Lawn", color: "#328464" },
     { id: "jungle", name: "Jungle", color: "#37946e" },
     { id: "gravel", name: "Gravel", color: "#9badb7" },
     { id: "rocky", name: "Rocky", color: "#847e87" },

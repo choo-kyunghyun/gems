@@ -192,6 +192,11 @@ globalThis.ColonyLevel = {
     const out = gen.generate(grid.cols, grid.rows);
     const terrain = ColonyLevel._terrainTypes(gen.palette);
     gen.paint(out, h.terrainLayer, terrain.types);
+    // the palette's types by material id — what lets a prefab tiles row paint the terrain
+    // layer (LevelData._type reads layers.terrainTypes; a band material or an `extras` one)
+    h.terrainTypes = {};
+    for (let i = 0; i < terrain.mats.length; i++)
+      h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
     SolidSystem.boxes(
       entities,
       out.solid,

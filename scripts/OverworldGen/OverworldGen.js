@@ -121,6 +121,9 @@ globalThis.OverworldGen = {
         bands.push(biome.lakes.bands[i][0]);
     for (let i = 0; i < biome.ground.bands.length; i++)
       bands.push(biome.ground.bands[i][0]);
+    // extras: materials no band paints (a prefab stamps them) — on top of the painter stack
+    if (biome.extras !== undefined)
+      for (let i = 0; i < biome.extras.length; i++) bands.push(biome.extras[i]);
     for (let i = 0; i < bands.length; i++) {
       if (bands.indexOf(bands[i]) !== i)
         throw new Error(

@@ -343,7 +343,7 @@
     }
   },
   {
-    "sprite": "pixTerrainGrassFlat",
+    "sprite": "pixTerrainLawnFlat",
     "kind": "tileset",
     "autotile": "dual",
     "cell": [
