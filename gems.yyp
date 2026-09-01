@@ -217,6 +217,7 @@
     {"id":{"name":"GenLakes","path":"scripts/GenLakes/GenLakes.yy",},},
     {"id":{"name":"GenScatter","path":"scripts/GenScatter/GenScatter.yy",},},
     {"id":{"name":"GenWalls","path":"scripts/GenWalls/GenWalls.yy",},},
+    {"id":{"name":"GrassSystem","path":"scripts/GrassSystem/GrassSystem.yy",},},
     {"id":{"name":"Grid","path":"scripts/Grid/Grid.yy",},},
     {"id":{"name":"Growth","path":"scripts/Growth/Growth.yy",},},
     {"id":{"name":"Gun","path":"scripts/Gun/Gun.yy",},},

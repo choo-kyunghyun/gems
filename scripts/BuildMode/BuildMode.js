@@ -920,6 +920,7 @@ globalThis.BuildMode = {
           ? scene[item.layer + "Types"][item.mat]
           : scene[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
+      GrassSystem.cut(scene, gx, gy); // built ground kills the grass under it
       const solid = contentTiles.get(item.layer).solid === true;
       // nested, not `solid && …`: the short-circuit corrupts its left operand (docs/GMRT.md
       // #15549) and the return below would read false for a deferred solid tile
@@ -949,6 +950,7 @@ globalThis.BuildMode = {
       id = ColonySpawn.spawnEntity(scene.level.entities, grid, item.make(gx, gy, scene));
     }
     scene._builtEnts[key] = { ent: id, itemId: item.id };
+    GrassSystem.cut(scene, gx, gy); // a built prop's pad kills the grass under it too
     return id;
   },
 

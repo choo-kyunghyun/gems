@@ -462,6 +462,7 @@ class _SceneColonyClass {
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     FloraSystem.update(this, WorldClock.absHours()); // grow + spread the map's plants over the in-game hours since its last tick
+    GrassSystem.update(this, WorldClock.absHours()); // creep + consumption flush of the grass ground itself (tile-state, no entities)
     RoomSystem.update(this, WorldClock.absHours()); // step every room's temperature over the same span
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)

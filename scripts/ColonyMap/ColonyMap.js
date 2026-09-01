@@ -572,6 +572,7 @@ globalThis.ColonyMap = {
    */
   _buildRenderer(scene) {
     const pitch = ColonyMap.BB_PITCH;
+    GrassSystem.clearBuilt(scene); // prefab-built ground sheds its grass before the VBOs bake
     scene.renderer = new Renderer();
     // Generated ground UNDER everything (the LAYERS loop below skips `terrain` when this ran).
     scene._terrainPasses = [];
