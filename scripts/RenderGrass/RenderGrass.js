@@ -11,6 +11,8 @@
  * stands on regenerates from its seed the same way. One VBO per def, whole-layer, rebuilt
  * on markDirty(); clumps are depth-written alpha-cut uprights under the billboards' bent
  * normal and pitch compensation (RenderDecor's rules). Insert right after the decor pass.
+ * The sheet is a white TINT MASK: a def's `tint` (a GM color) is baked into the vertices,
+ * so one sheet colors every biome's grass — vertex color x white texel = exactly the tint.
  * Sway hooks in later as a shMeshlit vertex animation on the sim clock, wave-mode style.
  * @implements {RenderPass}
  */
@@ -21,7 +23,8 @@ globalThis.RenderGrass = class RenderGrass {
    * VARIANTS (origin at the foot; half are mirrored), `min`..`max` the per-cell count the
    * hash rolls (default 1..2), `scaleMin`..`scaleMax` the per-clump size the hash rolls
    * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
-   * one-tone art), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
+   * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
+   * c_white), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
    * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5).
    */
   constructor(layer, grid, defs, opt = {}) {
@@ -95,6 +98,7 @@ globalThis.RenderGrass = class RenderGrass {
       const maxC = def.max !== undefined ? def.max : 2;
       const sMin = def.scaleMin !== undefined ? def.scaleMin : 1;
       const sMax = def.scaleMax !== undefined ? def.scaleMax : 1;
+      const tint = def.tint !== undefined ? def.tint : c_white;
       const salt = this.seed + k * 131;
       const vb = new VertexBuffer().begin();
       let n = 0;
@@ -128,9 +132,9 @@ globalThis.RenderGrass = class RenderGrass {
             const a = ((xoff - uv[4]) * sc) / dens;
             const z0 = (-(yoff - uv[5]) * sc) / dens;
             if (hash2(gx, gy, s2 + 3) < 0.5)
-              vb.addUpright(px - a, py, z0, w, h, uv[0], uv[1], uv[2], uv[3]);
+              vb.addUpright(px - a, py, z0, w, h, uv[0], uv[1], uv[2], uv[3], tint);
             else
-              vb.addUpright(px - (w - a), py, z0, w, h, uv[2], uv[1], uv[0], uv[3]);
+              vb.addUpright(px - (w - a), py, z0, w, h, uv[2], uv[1], uv[0], uv[3], tint);
             n++;
           }
         }

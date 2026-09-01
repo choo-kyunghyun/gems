@@ -511,9 +511,11 @@ globalThis.ColonyMap = {
 
   /**
    * The RenderGrass defs of a material table: every `clump` entry of a material row, keyed
-   * by the row's TileType id — _decorDefs' shape for the volume layer.
+   * by the row's TileType id — _decorDefs' shape for the volume layer. `tintHex` is the
+   * biome profile's clumpTint — it overrides every def's own `clump.tint` (the sheet is a
+   * white mask, so the resolved color IS the field's color).
    */
-  _clumpDefs(mats) {
+  _clumpDefs(mats, tintHex) {
     const defs = [];
     for (let i = 0; i < mats.length; i++) {
       const mat = mats[i].material;
@@ -524,6 +526,7 @@ globalThis.ColonyMap = {
         Log.warn(`clump sprite missing: ${def.clump.sprite}`); // GMRT: sprite_exists, not >=0
         continue;
       }
+      const hex = tintHex !== undefined ? tintHex : def.clump.tint;
       defs.push({
         id: mats[i].type.id,
         sprite: spr,
@@ -531,6 +534,7 @@ globalThis.ColonyMap = {
         max: def.clump.max,
         scaleMin: def.clump.scaleMin,
         scaleMax: def.clump.scaleMax,
+        tint: hex !== undefined ? Color.parse(hex) : undefined,
         edge: def.clump.edge,
       });
     }
@@ -612,7 +616,11 @@ globalThis.ColonyMap = {
     // over the decor pieces
     scene._grassPass = undefined;
     if (mats !== undefined) {
-      const cdefs = ColonyMap._clumpDefs(mats);
+      const profile = contentBiomes.BIOMES[scene.level.meta.get(ColonyMap.BIOME)];
+      const cdefs = ColonyMap._clumpDefs(
+        mats,
+        profile !== undefined ? profile.clumpTint : undefined,
+      );
       if (cdefs.length > 0) {
         scene._grassPass = new RenderGrass(
           scene.terrainLayer,

@@ -72,6 +72,7 @@ globalThis.contentBiomes = {
       sprite: "pixTerrainSoilFlat",
       clump: {
         sprite: "pixGrassClump",
+        tint: "#328464", // bio 1 — the sheet is a white mask, this IS the field's green
         min: 4,
         max: 6,
         scaleMin: 0.7,
@@ -110,6 +111,8 @@ globalThis.contentBiomes = {
   //   indoor?    true for a sealed map — no sky passes, the interior BGM (meta.indoor)
   //   extras?    [material] — palette-only additions painted ABOVE the bands: materials no band
   //              paints but a prefab stamps onto the terrain layer (lawn)
+  //   clumpTint? "#hex" (an AAP-64 entry) — the biome's grass color: overrides the grass
+  //              material's clump.tint on the white clump mask (one sheet, every biome)
   //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
   //              ground noise (the last one Infinity) splitting the land into patchy features;
   //              lattice = value-noise blob spacing in cells (smaller = smaller patches). The
@@ -169,6 +172,7 @@ globalThis.contentBiomes = {
     // trees, little game — under constant snow
     frost: {
       name: "BIOME_FROST",
+      clumpTint: "#477d85", // slate 0 — grass gone cold
       ground: {
         lattice: 5,
         bands: [
