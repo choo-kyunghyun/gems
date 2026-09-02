@@ -2,11 +2,10 @@
 // density), DECLARED per sprite. Def shape + storage on the SpriteMeta declaration below.
 /**
  * A sprite asset carries frames/trim/origin and nothing else; the facts game code needs live here as
- * DECLARED data, keyed by sprite. Declarations are authored by the tool that GENERATED the art (the
- * pixel-art-kit importers emit datafiles/spritemeta/*.json manifests), so they cannot drift from the
- * sheets; hand-authored sprites get hand entries.
+ * DECLARED data, keyed by sprite. Declarations are code — contentSprites registers them at boot;
+ * only a sprite departing from the defaults needs an entry.
  *
- * Def shape (JSON-manifest-safe):
+ * Def shape:
  *   { sprite: "<name>", kind, density? }
  *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
  *            FIELDS, never switch on kind (its value is tooling/validation).
@@ -26,7 +25,7 @@ globalThis.SpriteMeta = {
   _defs: [],
 
   /**
-   * Register defs (an array — from a manifest or code). Re-registering a name replaces.
+   * Register defs (an array). Re-registering a name replaces.
    */
   register(defs) {
     for (const def of defs) {
@@ -49,23 +48,6 @@ globalThis.SpriteMeta = {
         SpriteMeta._defs.push(def);
       }
     }
-  },
-
-  /** Load every generated manifest (spritemeta/*.json included files). Boot-time, once. */
-  load() {
-    const files = File.find("spritemeta/*.json");
-    let n = 0;
-    for (const fname of files) {
-      const text = File.read("spritemeta/" + fname);
-      if (text === undefined) {
-        Log.warn(`SpriteMeta: unreadable manifest ${fname}`);
-        continue;
-      }
-      const defs = JSON.parse(text);
-      SpriteMeta.register(defs);
-      n += defs.length;
-    }
-    Log.info(`SpriteMeta: ${n} defs from ${files.length} manifest(s)`);
   },
 
   /**

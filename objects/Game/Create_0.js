@@ -82,9 +82,7 @@ I18n.load("i18n/" + Settings.get("language") + "/manifest.json");
 draw_set_font(I18n.font("default"));
 UI.applyScale(Settings.get("uiScale"));
 
-// sprite metadata manifests (kind/density/cell per sheet, emitted by the pixel-art-kit
-// importers) — before any level spawns entities, so the density bake reads declared values
-SpriteMeta.load();
+contentSprites.register(); // sprite metadata (density per sheet) before any level spawns entities
 
 this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 
