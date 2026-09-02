@@ -39,25 +39,25 @@ globalThis.contentBiomes = {
     sand: {
       name: "Sand",
       color: "#c2a878",
-      sprite: "pixTerrainSandFlat",
+      sprite: "pixTerrainSand",
       pathCost: 1.5,
     },
     mud: {
       name: "Mud",
       color: "#605444",
-      sprite: "pixTerrainMudFlat",
+      sprite: "pixTerrainMud",
       pathCost: 2,
     },
     soil: {
       name: "Soil",
       color: "#8c7558",
-      sprite: "pixTerrainSoilFlat",
+      sprite: "pixTerrainSoil",
       pathCost: 1,
     },
     richsoil: {
       name: "Rich Soil",
       color: "#6e5840",
-      sprite: "pixTerrainRichSoilFlat",
+      sprite: "pixTerrainRichSoil",
       pathCost: 1,
     },
     // `decor` strews identity pieces over the material's interior cells (RenderDecor, wired by
@@ -69,7 +69,7 @@ globalThis.contentBiomes = {
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      sprite: "pixTerrainSoilFlat",
+      sprite: "pixTerrainSoil",
       clump: {
         sprite: "pixGrassClump",
         tint: "#328464", // bio 1 — the sheet is a white mask, this IS the field's green
