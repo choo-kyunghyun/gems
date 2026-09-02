@@ -514,33 +514,47 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The RenderGrass defs of a material table: every `clump` entry of a material row, keyed
-   * by the row's TileType id — _decorDefs' shape for the volume layer. `tintHex` is the
-   * biome profile's clumpTint — it overrides every def's own `clump.tint` (the sheet is a
-   * white mask, so the resolved color IS the field's color).
+   * The RenderGrass defs of a material table — the standing layer: every material's `clump`
+   * entry (the field's coverage) plus its `clutter` entries (sparse chance-gated accents),
+   * keyed by the row's TileType id. `tintHex` is the biome profile's clumpTint — it
+   * overrides the `clump.tint` only (the sheet is a white mask, so the resolved color IS
+   * the field's color); a clutter entry keeps its own `tint`, and none at all lets a
+   * colored sheet pass through white.
    */
   _clumpDefs(mats, tintHex) {
     const defs = [];
     for (let i = 0; i < mats.length; i++) {
       const mat = mats[i].material;
       const def = mat !== undefined ? contentBiomes.MATERIALS[mat] : undefined;
-      if (def === undefined || def.clump === undefined) continue;
-      const spr = asset_get_index(def.clump.sprite);
-      if (!sprite_exists(spr)) {
-        Log.warn(`clump sprite missing: ${def.clump.sprite}`); // GMRT: sprite_exists, not >=0
-        continue;
+      if (def === undefined) continue;
+      const rows = [];
+      if (def.clump !== undefined)
+        rows.push({
+          src: def.clump,
+          tint: tintHex !== undefined ? tintHex : def.clump.tint,
+        });
+      if (def.clutter !== undefined)
+        for (let k = 0; k < def.clutter.length; k++)
+          rows.push({ src: def.clutter[k], tint: def.clutter[k].tint });
+      for (let k = 0; k < rows.length; k++) {
+        const src = rows[k].src;
+        const spr = asset_get_index(src.sprite);
+        if (!sprite_exists(spr)) {
+          Log.warn(`clump sprite missing: ${src.sprite}`); // GMRT: sprite_exists, not >=0
+          continue;
+        }
+        defs.push({
+          id: mats[i].type.id,
+          sprite: spr,
+          min: src.min,
+          max: src.max,
+          chance: src.chance,
+          scaleMin: src.scaleMin,
+          scaleMax: src.scaleMax,
+          tint: rows[k].tint !== undefined ? Color.parse(rows[k].tint) : undefined,
+          edge: src.edge,
+        });
       }
-      const hex = tintHex !== undefined ? tintHex : def.clump.tint;
-      defs.push({
-        id: mats[i].type.id,
-        sprite: spr,
-        min: def.clump.min,
-        max: def.clump.max,
-        scaleMin: def.clump.scaleMin,
-        scaleMax: def.clump.scaleMax,
-        tint: hex !== undefined ? Color.parse(hex) : undefined,
-        edge: def.clump.edge,
-      });
     }
     return defs;
   },

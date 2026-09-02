@@ -3,5 +3,15 @@
     "sprite": "pixGrassClump",
     "kind": "decor",
     "density": 4
+  },
+  {
+    "sprite": "pixGrassFlowers",
+    "kind": "decor",
+    "density": 4
+  },
+  {
+    "sprite": "pixGrassWeeds",
+    "kind": "decor",
+    "density": 4
   }
 ]

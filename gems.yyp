@@ -496,6 +496,8 @@
     {"id":{"name":"pixFlower","path":"sprites/pixFlower/pixFlower.yy",},},
     {"id":{"name":"pixGrass","path":"sprites/pixGrass/pixGrass.yy",},},
     {"id":{"name":"pixGrassClump","path":"sprites/pixGrassClump/pixGrassClump.yy",},},
+    {"id":{"name":"pixGrassFlowers","path":"sprites/pixGrassFlowers/pixGrassFlowers.yy",},},
+    {"id":{"name":"pixGrassWeeds","path":"sprites/pixGrassWeeds/pixGrassWeeds.yy",},},
     {"id":{"name":"pixHatRedBandana","path":"sprites/pixHatRedBandana/pixHatRedBandana.yy",},},
     {"id":{"name":"pixItemApple","path":"sprites/pixItemApple/pixItemApple.yy",},},
     {"id":{"name":"pixItemArmoredVest","path":"sprites/pixItemArmoredVest/pixItemArmoredVest.yy",},},

@@ -52,6 +52,17 @@ globalThis.contentBiomes = {
       name: "Soil",
       color: "#8c7558",
       sprite: "pixTerrainSoil",
+      clutter: [
+        {
+          sprite: "pixGrassWeeds",
+          tint: "#a08662", // ochre 3 — dry scrub, apart from the living field's green
+          chance: 0.1,
+          min: 1,
+          max: 1,
+          scaleMin: 0.7,
+          scaleMax: 1.2,
+        },
+      ],
       pathCost: 1,
     },
     richsoil: {
@@ -66,6 +77,9 @@ globalThis.contentBiomes = {
     // every cell, dense enough to carry the green itself — the ground underneath is the
     // soil sheet, and the field's border is the scatter's own feather (edge), so grass
     // needs no tileset of its own (the old flat sheet is `lawn`'s now)
+    // `clutter` rides the same pass as sparse standing accents: clump's def shape plus
+    // `chance` (share of cells that carry any), each entry its own `tint` — a white-mask
+    // sheet takes one, a colored sheet (flowers) goes untinted
     grass: {
       name: "Grass",
       color: "#5d8a46",
@@ -79,6 +93,16 @@ globalThis.contentBiomes = {
         scaleMax: 1.35,
         edge: true,
       },
+      clutter: [
+        {
+          sprite: "pixGrassFlowers",
+          chance: 0.06,
+          min: 1,
+          max: 1,
+          scaleMin: 0.8,
+          scaleMax: 1.15,
+        },
+      ],
       pathCost: 1,
     },
     // grass's MAINTAINED counterpart — the solid one-tone sheet reads as artificial ground
@@ -94,6 +118,7 @@ globalThis.contentBiomes = {
       name: "Gravel",
       color: "#858178",
       sprite: "pixTerrainGravel",
+      decor: [{ sprite: "pixDecorStones", density: 0.05 }],
       pathCost: 1.5,
     },
     rocky: {

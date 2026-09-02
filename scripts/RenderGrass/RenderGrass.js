@@ -19,9 +19,10 @@
 globalThis.RenderGrass = class RenderGrass {
   /**
    * `layer.get(gx, gy)` must answer a TileType (or nothing). defs: [{ id, sprite, min?,
-   * max?, edge? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
+   * max?, chance?, edge? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
    * VARIANTS (origin at the foot; half are mirrored), `min`..`max` the per-cell count the
-   * hash rolls (default 1..2), `scaleMin`..`scaleMax` the per-clump size the hash rolls
+   * hash rolls (default 1..2), `chance` the share of eligible cells that carry any at all
+   * (default 1 — sparse clutter gates here), `scaleMin`..`scaleMax` the per-clump size the hash rolls
    * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
    * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
    * c_white), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
@@ -106,6 +107,7 @@ globalThis.RenderGrass = class RenderGrass {
       const maxC = def.max !== undefined ? def.max : 2;
       const sMin = def.scaleMin !== undefined ? def.scaleMin : 1;
       const sMax = def.scaleMax !== undefined ? def.scaleMax : 1;
+      const chance = def.chance !== undefined ? def.chance : 1;
       const tint = def.tint !== undefined ? def.tint : c_white;
       const salt = this.seed + k * 131;
       const vb = new VertexBuffer().begin();
@@ -117,6 +119,7 @@ globalThis.RenderGrass = class RenderGrass {
               ? this._idAt(gx, gy) === def.id
               : this._interior(gx, gy, def.id);
           if (!on) continue;
+          if (chance < 1 && hash2(gx, gy, salt + 1) >= chance) continue;
           const count =
             minC + Math.floor(hash2(gx, gy, salt) * (maxC - minC + 1));
           for (let c = 0; c < count; c++) {
