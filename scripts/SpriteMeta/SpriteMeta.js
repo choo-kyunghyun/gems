@@ -7,18 +7,13 @@
  * sheets; hand-authored sprites get hand entries.
  *
  * Def shape (JSON-manifest-safe):
- *   { sprite: "<name>", kind, density?, variants? }
+ *   { sprite: "<name>", kind, density? }
  *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
  *            FIELDS, never switch on kind (its value is tooling/validation).
  *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a
  *            denser subject OR a taller one — only the art's author knows. Divides the DRAW scale only
  *            (xscale/yscale = design scale / density); never touches the BBox. Bake sites:
  *            EntityPreset.spawn / ColonyPlayer.spawn.
- *   variants { "<mask>": [[frame, weight], ...] } — an autotile sheet's weighted alternate frames for
- *            one neighbor mask, so a large field of one terrain doesn't tile visibly. Only the
- *            dual-grid full-cell mask "15" is emitted today, and only RenderTileMap's dual path picks
- *            from it (position-hashed, so a rebuilt layer re-picks the same frame); an undeclared
- *            sheet falls back to uniform weights past frame 15.
  *
  * Storage: defs are authored by sprite NAME (string-keyed Map — safe), resolved to asset refs at
  * registration; the draw-time ref lookup is PARALLEL ARRAYS via === identity — a Map keyed by a sprite

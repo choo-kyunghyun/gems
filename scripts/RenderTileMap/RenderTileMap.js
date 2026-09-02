@@ -38,9 +38,6 @@ const _BLOB8 = [
  * @property {number} [skipAbove] - "dual" only: skip a display tile the NEXT material covers whole
  *   (its mask at this threshold is 15). Without it every lower material draws its full extent
  *   under the ones above it; with it a stack costs about one grid's quads, not one per material.
- * @property {boolean} [variants] - "dual" only: pick a weighted full-tile variant for mask 15 from
- *   the sheet's SpriteMeta `variants["15"]`, hashed by position, so a wide field of one material
- *   doesn't tile visibly. An undeclared sheet falls back to uniform weights past frame 15.
  * @property {{r: number, g: number, b: number, time: function(): number}} [wave] - a FLOWING
  *   material (water): shMeshlit's wave mode paints crest bands in this tone (0..1 floats) over
  *   the sheet, drifting on `time()` — a SIM clock, so they freeze on pause. Lit maps only.
@@ -72,29 +69,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
     this._corner = mode === "corner";
-    // weighted full-tile variant table [[frame, weight], ...] for mask 15. Frames 0..15 are the
-    // dual-grid corner masks; frames past 15 are extra full-tile variants — the sheet's SpriteMeta
-    // def declares their weights (plain re-rolls heavy, decorated frames light).
-    this._variants = undefined;
-    if (this._dual && opt.variants === true) {
-      const def = SpriteMeta.of(sprite);
-      let table =
-        def !== undefined && def.variants !== undefined
-          ? def.variants["15"]
-          : undefined;
-      if (table === undefined) {
-        table = [];
-        const n = Math.max(1, sprite_get_number(sprite) - 15);
-        let v = 0;
-        while (v < n) {
-          table.push([15 + v, 1]);
-          v++;
-        }
-      }
-      let total = 0;
-      for (let k = 0; k < table.length; k++) total += table[k][1];
-      if (table.length > 1) this._variants = { table, total };
-    }
     if (mode === 16) {
       this._frameOf = (x, y) => this._blob4(x, y);
     } else if (mode === 47) {
@@ -268,9 +242,7 @@ globalThis.RenderTileMap = class RenderTileMap {
         if (this.skipAbove !== undefined && this._dualMask(i, j, this.skipAbove) === 15)
           continue;
         const q = this._quad(
-          mask === 15 && this._variants !== undefined
-            ? this._variant(i, j)
-            : mask,
+          mask,
           i * cellWidth - hw,
           j * cellHeight - hh,
           cellWidth,
@@ -312,22 +284,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
     const t = this.layer.get(x, y); // Grid.get returns 0 for empty, not undefined
     return t ? t.id >= minId : false;
-  }
-
-  /**
-   * deterministic per-cell WEIGHTED variant frame: sine position hash walked down the cumulative
-   * [[frame, weight]] table. Pure in (gx, gy), so a rebuild re-picks the same frame.
-   */
-  _variant(gx, gy) {
-    const v = this._variants;
-    let r = Math.floor(hash2(gx, gy, 374761393) * v.total);
-    let k = 0;
-    while (k < v.table.length) {
-      r -= v.table[k][1];
-      if (r < 0) return v.table[k][0];
-      k++;
-    }
-    return v.table[0][0];
   }
 
   /**

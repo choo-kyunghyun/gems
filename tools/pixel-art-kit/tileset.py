@@ -155,7 +155,7 @@ def dual_set(patch, S, variants=()):
 
 def pick_variant(frames, tx, ty):
     """The full-tile frame for a mask-15 cell at (tx, ty): frame 15 or one of the variants,
-    by a deterministic position hash — what a runtime's per-cell pick looks like."""
+    by a deterministic position hash — preview-only spice; the runtime always draws frame 15."""
     n = len(frames) - 15
     if n <= 1:
         return frames[15]

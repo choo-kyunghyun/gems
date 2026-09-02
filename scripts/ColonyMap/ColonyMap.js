@@ -596,7 +596,6 @@ globalThis.ColonyMap = {
             autotile: "dual",
             minId: mats[i].type.id,
             skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
-            variants: true, // weighted full-tile picks so a wide field doesn't tile visibly
             wave: ColonyMap._wave(mats[i].material),
           },
         );
