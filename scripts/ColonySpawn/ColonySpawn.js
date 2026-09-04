@@ -99,7 +99,7 @@ globalThis.ColonySpawn = {
           Inventory: { slots: [], capacity: 8 },
           // doll bandit: the white humanoid body — color = per-spawn skin (adapter)
           Skeleton: { sprite: spineHuman },
-          // AUTHORED outfit (no Equipment, so AppearanceSystem.rebuild leaves it alone)
+          // AUTHORED outfit — the doll's base layer (no Equipment, so no gear overlay either)
           Appearance: ColonySpawn._outfit(
             pixShirtRedwine,
             pixShoeDarkBrown,

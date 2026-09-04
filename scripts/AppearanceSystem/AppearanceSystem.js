@@ -1,8 +1,14 @@
 /**
- * The doll: derives a humanoid's Appearance from its Equipment (`rebuild`, called by
+ * The doll: derives a humanoid's gear overlay from its Equipment (`rebuild`, called by
  * EquipmentSystem and after a carried sheet lands via EntitySnapshot.apply) and pushes any
  * Appearance onto that entity's Spine puppet (`update`, once per frame after SkeletonSystem has
  * minted). No-op for entities without an Appearance — opt-in, skeletal humanoids only.
+ *
+ * Two layers compose per dress slot (Appearance): the authored base `slots`, which rebuild never
+ * touches, under the `gear` overlay it re-derives WHOLESALE from the equipped items — so a slot
+ * whose claim goes away falls back to the base with no memory. WHICH slots an item claims is the
+ * item's own to say (`Equippable.worn` as an object — a one-piece occupying shirt AND pants);
+ * a plain string lands on its gear slot's default in SLOT.
  *
  * Everything about WHERE gear goes is read, never declared: the rig says which slots are
  * dressable (the ones its setup pose leaves empty) and which bone each rides, the bone's setup
@@ -14,8 +20,9 @@
  * so every weapon gets a held visual with zero dedicated art.
  */
 globalThis.AppearanceSystem = {
-  // Equipment slot -> spineHuman slot. ONLY these are derived; every other dress slot is
-  // authored by a preset and rebuild leaves it alone.
+  // Equipment slot -> its DEFAULT spineHuman slot: where a plain-string `worn` lands. An object
+  // `worn` names its slots itself and ignores this. Declaration order is also the overlay merge
+  // order — on a claim conflict the later gear slot wins.
   SLOT: {
     weapon: "primary",
     armor: "outer",
@@ -32,16 +39,16 @@ globalThis.AppearanceSystem = {
   // skeleton sprite name -> its dress slots (see _rig); rig data never changes within a run
   _rigs: {},
 
-  /** Re-derive the equipment-owned slots. Authored outfits (no Equipment) are left untouched. */
+  /** Re-derive the gear overlay from scratch. Authored base outfits are never touched. */
   rebuild(entities, id) {
     const ap = entities.get(id, Appearance);
     if (ap === undefined) return;
     const eq = entities.get(id, Equipment);
     const inv = entities.get(id, Inventory);
     if (eq === undefined || inv === undefined) return;
+    ap.gear = {};
     for (const gear in AppearanceSystem.SLOT) {
-      const slot = AppearanceSystem.SLOT[gear];
-      ap.slots[slot] = AppearanceSystem._worn(inv, eq.slots[gear], gear);
+      AppearanceSystem._claims(inv, eq.slots[gear], gear, ap.gear);
     }
     ap.dirty = true;
   },
@@ -55,16 +62,18 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * Push the whole map onto one puppet. EVERY dress slot is written: a slot that lost its item
-   * has to be cleared, and re-creating an attachment just redefines it.
+   * Push the composed look onto one puppet. EVERY dress slot is written: a slot that lost its
+   * claim has to fall back (base art, or bare), and re-creating an attachment just redefines it.
    */
   apply(entities, id, inst) {
     const ap = entities.get(id, Appearance);
     if (ap === undefined) return;
     const rig = AppearanceSystem._rig(inst);
+    const gear = ap.gear ?? {}; // an authored doll carries no overlay
     for (let i = 0; i < rig.length; i++) {
       const slot = rig[i];
-      const spr = ap.slots[slot.name];
+      let spr = gear[slot.name];
+      if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed — the base layer shows
       if (spr === undefined || !sprite_exists(spr)) {
         inst.skeleton_attachment_set(slot.name, AppearanceSystem.BARE);
         continue;
@@ -158,22 +167,39 @@ globalThis.AppearanceSystem = {
     inst.skeleton_attachment_set(slot.name, name);
   },
 
-  /** The sprite an equipped uid shows in its slot — -1 when empty, missing, or invisible. */
-  _worn(inv, uid, gear) {
-    if (uid === undefined || uid === "") return -1;
+  /**
+   * Merge one equipped uid's doll claims into `out` (spine slot -> sprite, -1 = occupied bare).
+   * No item / no worn art = no claims — the base layer shows through. An object `worn` claims a
+   * slot the rig doesn't have harmlessly: apply only reads the rig's own slots back out.
+   */
+  _claims(inv, uid, gear, out) {
+    if (uid === undefined || uid === "") return;
     const s = InventorySystem.findByUid(inv, uid);
-    if (s === undefined) return -1;
+    if (s === undefined) return;
     const item = Item.get(s.itemId);
-    if (item === undefined) return -1;
+    if (item === undefined) return;
     const eqp = item.getComponent(Equippable);
-    if (eqp === undefined) return -1;
+    if (eqp === undefined) return;
+    if (typeof eqp.worn === "object") {
+      for (const slot in eqp.worn) {
+        out[slot] = AppearanceSystem._sprite(eqp.worn[slot]);
+      }
+      return;
+    }
     if (eqp.worn !== "") {
-      // asset_get_index returns an opaque ref (not a number) — validate via sprite_exists
-      const spr = asset_get_index(eqp.worn);
-      return sprite_exists(spr) ? spr : -1;
+      out[AppearanceSystem.SLOT[gear]] = AppearanceSystem._sprite(eqp.worn);
+      return;
     }
     // held-icon fallback (item.sprite is contentItems' pixItem<Id> auto-wire; -1 = none)
-    if (gear === "weapon" && sprite_exists(item.sprite)) return item.sprite;
-    return -1;
+    if (gear === "weapon" && sprite_exists(item.sprite))
+      out[AppearanceSystem.SLOT[gear]] = item.sprite;
+  },
+
+  /** A worn NAME resolved to its sprite — -1 (occupied bare) for null or a missing sprite. */
+  _sprite(name) {
+    if (name === null || name === "") return -1;
+    // asset_get_index returns an opaque ref (not a number) — validate via sprite_exists
+    const spr = asset_get_index(name);
+    return sprite_exists(spr) ? spr : -1;
   },
 };
