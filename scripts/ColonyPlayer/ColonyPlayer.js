@@ -145,15 +145,15 @@ globalThis.ColonyPlayer = {
    * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name.
    * The unarmed swing alternates attack/kick (see PlayerSystem), which lands as the human rig's
    * two punches; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
-   * also carries dodge / rush / sprint and spineRat eat, which no brain drives yet.
+   * also carries dodge / idle1 / punch2 and spineRat eat, which no brain drives yet.
    */
   RIGS: {
     spineHuman: {
-      idle: { anim: "idle", loop: true },
+      idle: { anim: "idle0", loop: true },
       walk: { anim: "walk", loop: true },
       run: { anim: "run", loop: true },
-      attack: { anim: "punchRight", loop: false },
-      kick: { anim: "punchLeft", loop: false },
+      attack: { anim: "punch0", loop: false },
+      kick: { anim: "punch1", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },

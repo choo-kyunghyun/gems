@@ -129,7 +129,11 @@ globalThis.AppearanceSystem = {
     // no-op we can skip rather than a correctness risk
     const name = "a_" + slot.name + "_" + sprite_get_name(spr);
     if (inst.skeleton_attachment_get(slot.name) === name) return;
-    const k = AppearanceSystem.HELD[slot.name] ?? 1;
+    // attachment scale is rig-pixel space, so the density RATIO keeps the art's world size:
+    // a denser rig would otherwise shrink every worn piece with it
+    const k =
+      (AppearanceSystem.HELD[slot.name] ?? 1) *
+      (SpriteMeta.density(inst.sprite_index) / SpriteMeta.density(spr));
     const uv = sprite_get_uvs(spr, 0);
     const dx = (uv[4] + (sprite_get_width(spr) * uv[6]) / 2 - sprite_get_xoffset(spr)) * k;
     const dy = (uv[5] + (sprite_get_height(spr) * uv[7]) / 2 - sprite_get_yoffset(spr)) * k;

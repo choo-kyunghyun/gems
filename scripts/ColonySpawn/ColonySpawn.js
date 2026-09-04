@@ -610,7 +610,7 @@ globalThis.ColonySpawn = {
    * both shoes take the one sprite, mirrored by their bones.
    */
   _outfit(shirt, shoe, hat) {
-    const slots = { shirt: shirt, shoeLeft: shoe, shoeRight: shoe };
+    const slots = { shirt: shirt, shoeL: shoe, shoeR: shoe };
     if (hat !== undefined) slots.hat = hat;
     return { slots: slots, dirty: true };
   },
