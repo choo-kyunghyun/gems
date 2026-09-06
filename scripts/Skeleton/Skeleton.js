@@ -18,10 +18,12 @@
  * @property {number} frame           playback position in frames, fractional
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale
- * @property {number} color           tint (image_blend) over the whole rig
- * @property {Object} tints           slot name -> colour on that slot alone (a variant's coat), multiplied
- *                                   under `color`; a slot absent here draws its art as authored. Per-puppet
- *                                   state like an attachment (docs/GMRT.md), so it is replayed at each mint
+ * @property {number} color           tint (image_blend) over the WHOLE rig, worn gear included
+ *                                   (docs/GMRT.md) — whole-body effects only; a skin or coat goes on `tints`
+ * @property {Object} tints           slot name -> colour on that slot alone (a humanoid's skin, a rat's
+ *                                   coat), multiplied under `color`; a slot absent here draws its art as
+ *                                   authored. Per-puppet state like an attachment (docs/GMRT.md), so it is
+ *                                   replayed at each mint
  * @property {number} alpha
  */
 globalThis.Skeleton = "Skeleton";

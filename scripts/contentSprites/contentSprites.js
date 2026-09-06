@@ -17,7 +17,12 @@ globalThis.contentSprites = {
       { sprite: "pixGrassWeeds", kind: "decor", density: 4 },
       // entity dolls drawn finer than world scale
       { sprite: "spineHuman", kind: "entity", density: 4 },
-      { sprite: "spineRat", kind: "entity", density: 1.4 },
+      { sprite: "spineRat", kind: "entity", density: 4 },
+      { sprite: "pixShoeBrown", kind: "overlay", density: 4 },
+      { sprite: "pixShoeDarkBrown", kind: "overlay", density: 4 },
+      { sprite: "pixShirtWhite", kind: "overlay", density: 4 },
+      { sprite: "pixShirtRedwine", kind: "overlay", density: 4 },
+      { sprite: "pixHatRedBandana", kind: "overlay", density: 4 },
     ]);
   },
 };

@@ -1,0 +1,17 @@
+rat.png
+size:126,43
+filter:Linear,Linear
+pma:true
+ear
+bounds:102,19,22,22
+feet
+bounds:102,3,20,14
+head
+bounds:68,9,32,32
+leg
+bounds:73,4,3,23
+rotate:90
+tail
+bounds:2,2,69,3
+torso
+bounds:2,7,64,34

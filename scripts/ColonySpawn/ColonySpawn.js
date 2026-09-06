@@ -97,7 +97,7 @@ globalThis.ColonySpawn = {
           Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
-          // doll bandit: the white humanoid body — color = per-spawn skin (adapter)
+          // doll bandit: the white humanoid body — per-spawn skin lands as body-slot tints (adapter)
           Skeleton: { sprite: spineHuman },
           // AUTHORED outfit — the doll's base layer (no Equipment, so no gear overlay either)
           Appearance: ColonySpawn._outfit(
@@ -142,7 +142,7 @@ globalThis.ColonySpawn = {
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // doll civilian: skin tint over the shared civilian outfit; static, so idle just loops
           Skeleton: { sprite: spineHuman },
-          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrownSneakers),
+          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrown),
         },
       },
       {
@@ -301,7 +301,7 @@ globalThis.ColonySpawn = {
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
           Skeleton: { sprite: spineHuman },
-          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrownSneakers),
+          Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrown),
           Follower: {
             state: "wait", // unhired residents hold still; hire() flips to follow
             speed: 260, // > player speed (220) so it can catch up when it lags
@@ -353,18 +353,19 @@ globalThis.ColonySpawn = {
         over.Stats = { maxHp: s.hp };
       }
       if (s.loot !== undefined) over.Inventory = { slots: s.loot };
-      // deterministic skin over the white doll template; a rat's coat the same way, per slot
+      // deterministic skin over the white doll template — body-slot tints, so garments keep
+      // their authored colours; a rat's coat rides the same per-slot axis
       if (s.preset === "raider") {
-        over.Skeleton = { color: ColonySpawn._skin(s) };
+        over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
         over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
       } else over.Skeleton = { tints: ColonySpawn._coat(s) };
     } else if (s.preset === "npc") {
       over.Name = { name: s.label };
       over.NPC = { name: s.nameKey, questId: s.questId };
-      over.Skeleton = { color: ColonySpawn._skin(s) };
+      over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
       over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
       // TODO: the descriptor's `color` no longer reaches the outfit — route it through
-      // Skeleton.tints on the garment slots (a slot colour composes under the skin `color`).
+      // Skeleton.tints on the garment slots (free now that skin sits on the body slots alone).
     } else if (s.preset === "chest") {
       const inv = {};
       if (s.items !== undefined) inv.slots = s.items;
@@ -528,11 +529,11 @@ globalThis.ColonySpawn = {
   // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
   // descriptor + the scene's programmatic party seed.
   spawnFollower(entities, wx, wy, opt = {}) {
-    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot — it
-    // washes the WHOLE doll, garments included (Skeleton.tints is the per-slot axis).
+    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot,
+    // tinting the body slots alone — garments keep their authored colours.
     const spot = { gx: Math.round(wx), gy: Math.round(wy) };
     const over = {
-      Skeleton: { color: ColonySpawn._skin(spot) },
+      Skeleton: { tints: ColonySpawn.skinTints(ColonySpawn._skin(spot)) },
       Persona: ColonySpawn._persona(spot, 20, 45), // able-bodied party members
     };
     if (opt.hp !== undefined) {
@@ -559,8 +560,20 @@ globalThis.ColonySpawn = {
     });
   },
 
-  // Skin tones for doll humanoids (Skeleton.color over the white spineHuman body art).
+  // Skin tones for doll humanoids (slot tints over the white spineHuman body art).
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
+
+  // the slots skin shows through: spineHuman's authored body parts. A garment or gear slot is
+  // NOT here, so it keeps its authored colours — whole-rig `color` would wash it (docs/GMRT.md).
+  SKIN_SLOTS: ["head", "eyes", "mouth", "neck", "torso", "armL", "armR", "handL", "handR", "legL", "legR", "footLB", "footLF", "footRB", "footRF"],
+
+  /** one skin tone over every SKIN_SLOT — the slot -> colour map for Skeleton.tints */
+  skinTints(color) {
+    const tints = {};
+    for (let j = 0; j < ColonySpawn.SKIN_SLOTS.length; j++)
+      tints[ColonySpawn.SKIN_SLOTS[j]] = color;
+    return tints;
+  },
 
   /**
    * deterministic skin pick — hashed from the spawn CELL so a regenerated level's humanoid
@@ -575,8 +588,9 @@ globalThis.ColonySpawn = {
 
   // Coat colours for rats (Skeleton.tints over the white spineRat body art; white = as authored).
   COATS: ["#ffffff", "#b4b4b4", "#a06a3c", "#585858"],
-  // the slots a coat covers: every body part but `ear` (pink art of its own) and `tail` (outline only)
-  COAT_SLOTS: ["body", "head", "footFront", "footBack"],
+  // the slots a coat covers: the furred parts — not `ear`/`feetF`/`feetB` (pink art of their
+  // own) and not `tail` (outline only)
+  COAT_SLOTS: ["torso", "head", "legF", "legB"],
 
   /** deterministic coat pick, cell-hashed like _skin — the slot -> colour map for Skeleton.tints */
   _coat(s) {

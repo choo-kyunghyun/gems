@@ -203,13 +203,19 @@ globalThis.ColonyCombat = {
       vis.subimg = 0; // neutral contact pose
       vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
     }
-    // a doll dies the same way, one component over: fps 0 holds the pose SkeletonSystem last
-    // wrote, and the alpha carries the worn attachments with it (one blend, whole skeleton)
+    // a doll with an authored `down` set dies through it: the one-shot plays and holds its
+    // last frame (SkeletonSystem), leaving a full-colour lootable body — no crumple, no ghost
+    // alpha. A rig without one falls back to the crumple, like a plain Visual above.
     const sk = entities.get(id, Skeleton);
     if (sk !== undefined) {
-      sk.alpha = 0.4;
-      sk.fps = 0;
-      sk.yscale = Math.abs(sk.yscale) * 0.45;
+      const rig = ColonyPlayer.RIGS[sprite_get_name(sk.sprite)];
+      if (rig !== undefined && rig.down !== undefined) {
+        ColonyPlayer.setState(entities, id, "down");
+      } else {
+        sk.alpha = 0.4;
+        sk.fps = 0;
+        sk.yscale = Math.abs(sk.yscale) * 0.45;
+      }
     }
     entities.add(id, Interaction, { kind: "corpse" });
     delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline

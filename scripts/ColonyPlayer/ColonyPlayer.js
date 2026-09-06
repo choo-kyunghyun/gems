@@ -3,8 +3,8 @@
 globalThis.ColonyPlayer = {
   // default skin tint for the white spineHuman body art — "#e8b890" as a GM BGR color int
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT). One blend
-  // covers the WHOLE skeleton, worn attachments included (docs/GMRT.md) — there is no per-slot
-  // colour, so garments are authored in their own colours and take this as a warm wash.
+  // the player's skin tone, worn as body-slot tints (ColonySpawn.skinTints) — whole-rig `color`
+  // would wash the garments with it (docs/GMRT.md).
   SKIN: 0x90b8e8,
 
   /**
@@ -101,7 +101,7 @@ globalThis.ColonyPlayer = {
     entities.add(id, Favorites, { ids: [] });
     // skeletal body (SkeletonSystem mints the puppet and owns playback); xscale/yscale persist
     // as facing flip + baked size, so a flip must preserve |xscale| — see ColonyPlayer.face.
-    // The body art is a WHITE template, so colour IS the skin tint.
+    // The body art is a WHITE template, so the skin is a tint over its body slots.
     entities.add(id, Skeleton, {
       sprite: spineHuman,
       anim: "idle",
@@ -110,8 +110,8 @@ globalThis.ColonyPlayer = {
       frame: 0,
       xscale: SpriteMeta.fit(k, spineHuman),
       yscale: SpriteMeta.fit(k, spineHuman),
-      color: ColonyPlayer.SKIN,
-      tints: {},
+      color: c_white,
+      tints: ColonySpawn.skinTints(ColonyPlayer.SKIN),
       alpha: 1,
     });
     // the doll: worn gear attached to the skeleton's equipment slots (rebuilt from Equipment by
@@ -145,7 +145,9 @@ globalThis.ColonyPlayer = {
    * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name.
    * The unarmed swing alternates attack/kick (see PlayerSystem), which lands as the human rig's
    * two attacks; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
-   * also carries dodge0 / idle1 / attack2 and spineRat eat, which no brain drives yet.
+   * also carries dodge0 / idle1 / attack2, which no brain drives yet. `down` is the authored
+   * death fall — a one-shot that holds its last frame — played by ColonyCombat._toCorpse.
+   * TODO: the reworked rat has no run set yet — run rides walk until one is authored.
    */
   RIGS: {
     spineHuman: {
@@ -154,12 +156,14 @@ globalThis.ColonyPlayer = {
       run: { anim: "run0", loop: true },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
+      down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
       walk: { anim: "walk", loop: true },
-      run: { anim: "run", loop: true },
+      run: { anim: "walk", loop: true },
       attack: { anim: "attack", loop: false },
+      down: { anim: "down", loop: false },
     },
   },
 
