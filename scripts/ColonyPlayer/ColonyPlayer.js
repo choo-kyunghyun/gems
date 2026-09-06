@@ -147,21 +147,23 @@ globalThis.ColonyPlayer = {
    * two attacks; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
    * also carries dodge0 / idle1 / attack2, which no brain drives yet. `down` is the authored
    * death fall — a one-shot that holds its last frame — played by ColonyCombat._toCorpse.
-   * TODO: the reworked rat has no run set yet — run rides walk until one is authored.
+   * `pace` marks a locomotion set: the world speed (px/s) its cycle was authored for — `pace`
+   * (below) scales playback to the doll's ACTUAL speed against it, so one set serves every
+   * gait and stat (the rat runs on its walk set, a drifting raider shuffles it slow).
    */
   RIGS: {
     spineHuman: {
       idle: { anim: "idle0", loop: true },
-      walk: { anim: "walk0", loop: true },
-      run: { anim: "run0", loop: true },
+      walk: { anim: "walk0", loop: true, pace: 220 },
+      run: { anim: "run0", loop: true, pace: 90 },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
       down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
-      walk: { anim: "walk", loop: true },
-      run: { anim: "walk", loop: true },
+      walk: { anim: "walk", loop: true, pace: 120 },
+      run: { anim: "walk", loop: true, pace: 120 },
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
@@ -179,6 +181,37 @@ globalThis.ColonyPlayer = {
     const st = rig[state];
     if (st === undefined) return;
     SkeletonSystem.set(entities, id, st.anim, st.loop);
+  },
+
+  // pace clamp: a blocked walker still shuffles, a hasted one never blurs
+  PACE_MIN: 0.3,
+  PACE_MAX: 2.5,
+
+  /**
+   * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame before
+   * SkeletonSystem.update: fps = authored rate x |velocity| / the set's RIGS `pace`. Any other
+   * set plays authored time. A corpse sheds Velocity (ColonyCombat._toCorpse), so its held
+   * `down` frame is never touched.
+   */
+  pace(entities) {
+    entities.forEach([Skeleton, Velocity], (id, sk, vel) => {
+      const rig = ColonyPlayer.RIGS[sprite_get_name(sk.sprite)];
+      if (rig === undefined) return;
+      let pace = 0;
+      for (const state in rig) {
+        const st = rig[state];
+        if (st.anim === sk.anim) {
+          if (st.pace !== undefined) pace = st.pace;
+        }
+      }
+      if (pace > 0) {
+        const v = Math.sqrt(vel.x * vel.x + vel.y * vel.y) / pace;
+        const r = Math.min(Math.max(v, ColonyPlayer.PACE_MIN), ColonyPlayer.PACE_MAX);
+        sk.fps = SkeletonSystem.FPS * r;
+      } else {
+        sk.fps = SkeletonSystem.FPS;
+      }
+    });
   },
 
   /**
