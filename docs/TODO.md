@@ -36,6 +36,16 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Gamepad reloading
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 
+## Doll
+
+Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
+
+- Rat run set — `run` rides `walk` (ColonyPlayer.RIGS) until one is authored.
+- Foot tilt — the foot-follows-chain transform constraints are inert on GMRT (docs/GMRT.md), so feet stay flat through every set on both rigs; bake the tilt into each set's foot keys if the flat feet start to read wrong.
+- `hair` slot art — the dress slot is live on spineHuman with no sprites to wear in it.
+- Downed companions keep standing — the "down" Mortal path only dims a `Visual`; a skeletal doll should play `down0` while `Downed` and restore its state on recover, now that the set exists.
+- The spawn-default animation `"idle"` exists on neither rig — every doll spawn logs a "Could not find animation" to stderr before its first setState; point the default at a real set (or key it per rig).
+
 ## Pathfinding
 
 Every agent now plans over one level-sized `NavGrid`, so a request can span the whole map; the costs it exposed are in PERF.md → Known Remaining Costs.
