@@ -26,7 +26,7 @@
   ],
   "name":"pixGrassFlowers",
   "nineSlice":null,
-  "origin":9,
+  "origin":7,
   "parent":{
     "name":"Decor",
     "path":"folders/Game/Media/Sprites/Decor.yy",
