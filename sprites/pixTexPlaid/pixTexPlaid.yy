@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTexPlaid",
   "bboxMode":0,
-  "bbox_bottom":31,
+  "bbox_bottom":127,
   "bbox_left":0,
-  "bbox_right":31,
+  "bbox_right":127,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -12,14 +12,14 @@
   "edgeFiltering":false,
   "For3D":false,
   "frames":[
-    {"$GMSpriteFrame":"v1","%Name":"18cb73ef-2dce-45e5-9a97-89a4a5c6d79a","name":"18cb73ef-2dce-45e5-9a97-89a4a5c6d79a","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"c36deda5-8c68-4e1c-8274-4e40433f80a9","name":"c36deda5-8c68-4e1c-8274-4e40433f80a9","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
   ],
   "gridX":0,
   "gridY":0,
-  "height":32,
+  "height":128,
   "HTile":false,
   "layers":[
-    {"$GMImageLayer":"","%Name":"ef30da17-0e87-41a3-aaff-3567049db380","blendMode":0,"displayName":"default","isLocked":false,"name":"ef30da17-0e87-41a3-aaff-3567049db380","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
+    {"$GMImageLayer":"","%Name":"a18ba35c-4892-4785-aa47-fdfcb41d3885","blendMode":0,"displayName":"default","isLocked":false,"name":"a18ba35c-4892-4785-aa47-fdfcb41d3885","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
   ],
   "name":"pixTexPlaid",
   "nineSlice":null,
@@ -69,8 +69,8 @@
     "tracks":[
       {"$GMSpriteFramesTrack":"","builtinName":0,"events":[],"inheritsTrackColour":true,"interpolation":1,"isCreationTrack":false,"keyframes":{"$KeyframeStore<SpriteFrameKeyframe>":"","Keyframes":[
             {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"18cb73ef-2dce-45e5-9a97-89a4a5c6d79a","path":"sprites/pixTexPlaid/pixTexPlaid.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"2bd8ddc1-02ed-4fb5-96a9-e610499d49c9","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"c36deda5-8c68-4e1c-8274-4e40433f80a9","path":"sprites/pixTexPlaid/pixTexPlaid.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"f2d6edd9-89f5-4131-8006-dd7c4bfaff99","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
           ],"resourceType":"KeyframeStore<SpriteFrameKeyframe>","resourceVersion":"2.0",},"modifiers":[],"name":"frames","resourceType":"GMSpriteFramesTrack","resourceVersion":"2.0","spriteId":null,"trackColour":0,"tracks":[],"traits":0,},
     ],
     "visibleRange":null,
@@ -86,5 +86,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":32,
+  "width":128,
 }
