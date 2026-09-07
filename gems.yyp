@@ -370,7 +370,6 @@
     {"id":{"name":"UIInput","path":"scripts/UIInput/UIInput.yy",},},
     {"id":{"name":"UIModal","path":"scripts/UIModal/UIModal.yy",},},
     {"id":{"name":"UINav","path":"scripts/UINav/UINav.yy",},},
-    {"id":{"name":"UINineSlice","path":"scripts/UINineSlice/UINineSlice.yy",},},
     {"id":{"name":"UIPanel","path":"scripts/UIPanel/UIPanel.yy",},},
     {"id":{"name":"UIPointer","path":"scripts/UIPointer/UIPointer.yy",},},
     {"id":{"name":"UIProgress","path":"scripts/UIProgress/UIProgress.yy",},},
