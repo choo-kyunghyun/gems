@@ -12,9 +12,9 @@ globalThis.contentSprites = {
     this.registered = true;
     SpriteMeta.register([
       // the RenderGrass sheets: 128 px art over a 32 px cell
-      { sprite: "pixGrassClump", kind: "decor", density: 4 },
-      { sprite: "pixGrassFlowers", kind: "decor", density: 4 },
-      { sprite: "pixGrassWeeds", kind: "decor", density: 4 },
+      { sprite: "pixGrassClump", kind: "grass", density: 4 },
+      { sprite: "pixGrassFlowers", kind: "grass", density: 4 },
+      { sprite: "pixGrassWeeds", kind: "grass", density: 4 },
       // entity dolls drawn finer than world scale
       { sprite: "spineHuman", kind: "entity", density: 4 },
       { sprite: "spineRat", kind: "entity", density: 4 },

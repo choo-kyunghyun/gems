@@ -57,7 +57,6 @@ globalThis.ColonyMap = {
 
     "_tilePasses",
     "_terrainPasses",
-    "_decorPass",
     "_grassPass",
     "_entityPass",
     "_tilePass",
@@ -485,35 +484,6 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The RenderDecor defs of a generated map's material table: every `decor` entry of a
-   * material row, keyed by the row's TileType id, its sprite resolved (a missing one is
-   * warned and skipped, like a missing terrain sheet).
-   */
-  _decorDefs(mats) {
-    const defs = [];
-    for (let i = 0; i < mats.length; i++) {
-      const mat = mats[i].material;
-      const def = mat !== undefined ? contentBiomes.MATERIALS[mat] : undefined;
-      if (def === undefined || def.decor === undefined) continue;
-      for (let k = 0; k < def.decor.length; k++) {
-        const d = def.decor[k];
-        const spr = asset_get_index(d.sprite);
-        if (!sprite_exists(spr)) {
-          Log.warn(`decor sprite missing: ${d.sprite}`); // GMRT: sprite_exists, not >=0
-          continue;
-        }
-        defs.push({
-          id: mats[i].type.id,
-          sprite: spr,
-          density: d.density,
-          upright: d.upright === true,
-        });
-      }
-    }
-    return defs;
-  },
-
-  /**
    * The RenderGrass defs of a material table — the standing layer: every material's `clump`
    * entry (the field's coverage) plus its `clutter` entries (sparse chance-gated accents),
    * keyed by the row's TileType id. `tintHex` is the biome profile's clumpTint — it
@@ -616,22 +586,8 @@ globalThis.ColonyMap = {
         scene._terrainPasses.push(pass);
         scene.renderer.insert(pass);
       }
-    // the materials' identity pieces over the finished ground (RenderDecor) — flat decals in
-    // painter order here, the upright ones entering the depth pool before the entities
-    scene._decorPass = undefined;
-    if (mats !== undefined) {
-      const defs = ColonyMap._decorDefs(mats);
-      if (defs.length > 0) {
-        scene._decorPass = new RenderDecor(
-          scene.terrainLayer,
-          scene.level.grid,
-          defs,
-        );
-        scene.renderer.insert(scene._decorPass);
-      }
-    }
-    // the grass materials' volume layer (RenderGrass) — upright clumps in the depth pool,
-    // over the decor pieces
+    // the grass materials' volume layer (RenderGrass) — upright clumps entering the depth
+    // pool over the finished ground, before the entities
     scene._grassPass = undefined;
     if (mats !== undefined) {
       const profile = contentBiomes.BIOMES[scene.level.meta.get(ColonyMap.BIOME)];
@@ -737,8 +693,6 @@ globalThis.ColonyMap = {
       // passes below take it at construction. Flat maps (pitch 0) stay unlit.
       for (let i = 0; i < scene._terrainPasses.length; i++)
         scene._terrainPasses[i].lights = scene._meshPass;
-      if (scene._decorPass !== undefined)
-        scene._decorPass.lights = scene._meshPass;
       if (scene._grassPass !== undefined)
         scene._grassPass.lights = scene._meshPass;
       const tileKeys = Object.keys(scene._tilePasses);
@@ -905,7 +859,6 @@ globalThis.ColonyMap = {
     // the STANDING passes read the live pitch for their height compensation (RenderBillboard)
     if (scene._entityPass instanceof RenderBillboard)
       scene._entityPass.camera = scene.camera;
-    if (scene._decorPass !== undefined) scene._decorPass.camera = scene.camera;
     if (scene._grassPass !== undefined) scene._grassPass.camera = scene.camera;
     if (scene._meshPass !== undefined) scene._meshPass.camera = scene.camera;
   },

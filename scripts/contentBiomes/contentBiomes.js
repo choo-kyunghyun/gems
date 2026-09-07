@@ -71,8 +71,6 @@ globalThis.contentBiomes = {
       sprite: "pixTerrainRichSoil",
       pathCost: 1,
     },
-    // `decor` strews identity pieces over the material's interior cells (RenderDecor, wired by
-    // ColonyMap): { sprite, density (share of cells), upright? } — a tuft stands, a stone lies
     // `clump` grows a material's VOLUME layer (RenderGrass): HD clump variants stood on
     // every cell, dense enough to carry the green itself — the ground underneath is the
     // soil sheet, and the field's border is the scatter's own feather (edge), so grass
@@ -106,8 +104,8 @@ globalThis.contentBiomes = {
       pathCost: 1,
     },
     // grass's MAINTAINED counterpart — the solid one-tone sheet reads as artificial ground
-    // (Union-standard lawn), so it takes no clumps and no decor: flat = designed, volume =
-    // alive. Never a biome band; a prefab stamps it (palette `extras`), later a buildable floor
+    // (Union-standard lawn), so it takes no clumps: flat = designed, volume = alive.
+    // Never a biome band; a prefab stamps it (palette `extras`), later a buildable floor
     lawn: {
       name: "Lawn",
       color: "#328464",
@@ -118,7 +116,6 @@ globalThis.contentBiomes = {
       name: "Gravel",
       color: "#858178",
       sprite: "pixTerrainGravel",
-      decor: [{ sprite: "pixDecorStones", density: 0.05 }],
       pathCost: 1.5,
     },
     rocky: {

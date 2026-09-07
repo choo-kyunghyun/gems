@@ -10,7 +10,8 @@
  * reloaded layer strews the same field with no entity and no save state — the terrain it
  * stands on regenerates from its seed the same way. One VBO per def, whole-layer, rebuilt
  * on markDirty(); clumps are depth-written alpha-cut uprights under the billboards' bent
- * normal and pitch compensation (RenderDecor's rules). Insert right after the decor pass.
+ * normal and pitch compensation (RenderBillboard's rules). Insert right after the terrain
+ * passes, so the clumps are in the depth pool before the entities draw.
  * The sheet is a white TINT MASK: a def's `tint` (a GM color) is baked into the vertices,
  * so one sheet colors every biome's grass — vertex color x white texel = exactly the tint.
  * Sway hooks in later as a shMeshlit vertex animation on the sim clock, wave-mode style.

@@ -54,7 +54,7 @@ globalThis.VertexBuffer = class VertexBuffer {
 
   /**
    * An UPRIGHT quad standing on the ground line y: its top edge at z0 (up = -z), rising h px
-   * down to z0 + h — the STANDING category's static form (RenderDecor), which the pitched
+   * down to z0 + h — the STANDING category's static form (RenderGrass), which the pitched
    * camera foreshortens like a billboard. Same winding as addQuad.
    */
   addUpright(x, y, z0, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
