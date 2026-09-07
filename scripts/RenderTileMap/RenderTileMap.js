@@ -22,13 +22,10 @@ const _BLOB8 = [
 
 /**
  * @typedef {Object} RenderTileMapOptions
- * @property {0|16|47|"dual"|"corner"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
+ * @property {0|16|47|"dual"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
  *   "dual": half-cell-offset grid; samples 4 cells per display corner (TL=1 TR=2 BR=4 BL=8 →
  *   frame); transparent corners let lower terrain show through — stack dual passes per terrain
  *   for RPG-Maker-style A-over-B transitions.
- *   "corner": sub-tile; each filled cell drawn as 4 half-cell quads from a 13-piece sprite picked
- *   by the 3 neighbors at that corner (0 fill, 1-4 outer TL/TR/BR/BL, 5-6 edge top/bottom,
- *   7-8 edge left/right, 9-12 inner TL/TR/BR/BL). covers all 256 masks without _BLOB8.
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {boolean} [softEdge] - per-vertex alpha at tile edges; per-cell modes only, ignored for "dual".
@@ -68,13 +65,12 @@ globalThis.RenderTileMap = class RenderTileMap {
 
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
-    this._corner = mode === "corner";
     if (mode === 16) {
       this._frameOf = (x, y) => this._blob4(x, y);
     } else if (mode === 47) {
       this._frameOf = (x, y) => this._blob8(x, y);
-    } else if (mode === "dual" || mode === "corner") {
-      this._frameOf = undefined; // dual/corner use their own rebuild path, not _frameOf
+    } else if (mode === "dual") {
+      this._frameOf = undefined; // dual uses its own rebuild path, not _frameOf
     } else {
       this._frameOf = (x, y) => {
         const t = layer.get(x, y);
@@ -157,10 +153,6 @@ globalThis.RenderTileMap = class RenderTileMap {
   _rebuild() {
     if (this._dual) {
       this._rebuildDual();
-      return;
-    }
-    if (this._corner) {
-      this._rebuildCorner();
       return;
     }
     const { layer, grid, sprite } = this;
@@ -284,91 +276,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
     const t = this.layer.get(x, y); // Grid.get returns 0 for empty, not undefined
     return t ? t.id >= minId : false;
-  }
-
-  /**
-   * corner sub-tile: each filled cell as 4 half-cell quads, each piece picked by 3 neighbors.
-   * 13-piece set covers all 256 masks without _BLOB8. N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
-   */
-  _rebuildCorner() {
-    const { layer, grid, sprite } = this;
-    const { cols, rows, cellWidth, cellHeight } = grid;
-    const hw = cellWidth * 0.5;
-    const hh = cellHeight * 0.5;
-
-    this._vbuf.destroy();
-    this._vbuf = new VertexBuffer();
-    this._tex = sprite_get_texture(sprite, 0);
-
-    this._vbuf.begin();
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (!layer.get(x, y)) continue;
-        // one int mask of all 8 neighbors — no cached bool locals (GMRT miscompiles; see _blob8)
-        let m = 0;
-        if (this._isSolid(x, y - 1)) m |= 1;
-        if (this._isSolid(x + 1, y)) m |= 2;
-        if (this._isSolid(x, y + 1)) m |= 4;
-        if (this._isSolid(x - 1, y)) m |= 8;
-        if (this._isSolid(x + 1, y - 1)) m |= 16;
-        if (this._isSolid(x + 1, y + 1)) m |= 32;
-        if (this._isSolid(x - 1, y + 1)) m |= 64;
-        if (this._isSolid(x - 1, y - 1)) m |= 128;
-        const wx = x * cellWidth;
-        const wy = y * cellHeight;
-        this._addCorner(this._cornerTL(m), wx, wy, hw, hh);
-        this._addCorner(this._cornerTR(m), wx + hw, wy, hw, hh);
-        this._addCorner(this._cornerBR(m), wx + hw, wy + hh, hw, hh);
-        this._addCorner(this._cornerBL(m), wx, wy + hh, hw, hh);
-      }
-    }
-    this._vbuf.end();
-    this.dirty = false;
-  }
-
-  _addCorner(frame, qx, qy, qw, qh) {
-    const q = this._quad(frame, qx, qy, qw, qh);
-    this._vbuf.addQuad(
-      q[0],
-      q[1],
-      q[2],
-      q[3],
-      q[4],
-      q[5],
-      q[6],
-      q[7],
-      this.color,
-      this.alpha,
-    );
-  }
-
-  /**
-   * per corner: both cardinals empty → outer, one → edge, both with diagonal empty → inner, all → fill.
-   * BUG: [#15549] bits read INLINE each test (no `const N = m&1`). See _blob8.
-   */
-  _cornerTL(m) {
-    if (!(m & 1) && !(m & 8)) return 1; // N,W empty → outer
-    if (m & 1 && !(m & 8)) return 7; // N solid → left edge
-    if (!(m & 1) && m & 8) return 5; // W solid → top edge
-    return m & 128 ? 0 : 9; // NW solid → fill, else inner
-  }
-  _cornerTR(m) {
-    if (!(m & 1) && !(m & 2)) return 2;
-    if (m & 1 && !(m & 2)) return 8;
-    if (!(m & 1) && m & 2) return 5;
-    return m & 16 ? 0 : 10;
-  }
-  _cornerBR(m) {
-    if (!(m & 4) && !(m & 2)) return 3;
-    if (m & 4 && !(m & 2)) return 8;
-    if (!(m & 4) && m & 2) return 6;
-    return m & 32 ? 0 : 11;
-  }
-  _cornerBL(m) {
-    if (!(m & 4) && !(m & 8)) return 4;
-    if (m & 4 && !(m & 8)) return 7;
-    if (!(m & 4) && m & 8) return 6;
-    return m & 64 ? 0 : 12;
   }
 
   draw(entities) {

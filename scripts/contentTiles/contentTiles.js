@@ -5,9 +5,9 @@
  * contentBiomes' palette); a sibling stack authors its own table and the builder never changes.
  *
  * LAYERS is the layer stack, bottom→top — one material each. RenderTileMap autotiles by
- * OCCUPANCY (not tile-type), so materials with different autotile modes (wall=corner,
+ * OCCUPANCY (not tile-type), so materials with different autotile modes (floor=raw,
  * fence=blob16) CAN'T share a TileLayer — each gets its own layer + pass. `type`: "dual"
- * corner-grid, "corner" 13-piece sub-tile, 0 raw single-frame, 16 blob4, 47 blob8. For a
+ * corner-grid, 0 raw single-frame, 16 blob4, 47 blob8. For a
  * type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
  * frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed; the terrain layer is
  * painted per cell from the biome palette (ColonyLevel._generate). Order = nav priority (top wins).
@@ -75,11 +75,11 @@ globalThis.contentTiles = {
       pathCost: 1,
     },
     {
+      // drawn ONLY by RenderWalls (lit boxes, pitched maps — ColonyMap skips the tile-pass
+      // loop for this layer), so no `type`/`sprite`: there is no flat tilemap fallback
       key: "wall",
       id: 1,
       name: "BUILD_WALL",
-      type: "corner",
-      sprite: "pixTileCorner",
       color: "#707888",
       solid: true,
       pathCost: null,

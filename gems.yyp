@@ -580,8 +580,6 @@
     {"id":{"name":"pixTexTile","path":"sprites/pixTexTile/pixTexTile.yy",},},
     {"id":{"name":"pixTile16","path":"sprites/pixTile16/pixTile16.yy",},},
     {"id":{"name":"pixTile47","path":"sprites/pixTile47/pixTile47.yy",},},
-    {"id":{"name":"pixTileCorner","path":"sprites/pixTileCorner/pixTileCorner.yy",},},
-    {"id":{"name":"pixTileCornerRough","path":"sprites/pixTileCornerRough/pixTileCornerRough.yy",},},
     {"id":{"name":"pixTileDual","path":"sprites/pixTileDual/pixTileDual.yy",},},
     {"id":{"name":"pixTileFenceRound","path":"sprites/pixTileFenceRound/pixTileFenceRound.yy",},},
     {"id":{"name":"pixTileFenceSquare","path":"sprites/pixTileFenceSquare/pixTileFenceSquare.yy",},},

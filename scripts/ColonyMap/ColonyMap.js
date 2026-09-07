@@ -610,14 +610,15 @@ globalThis.ColonyMap = {
       }
     }
     // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
-    // on pitched maps the wall and fence layers join below as the lit RenderWalls/RenderFence
-    // passes (the flat fallback keeps their autotile RenderTileMaps). VBO-cached + keyed by layer
+    // the wall layer draws only as the lit RenderWalls pass below (pitched maps — no flat
+    // fallback); on pitched maps the fence layer joins as RenderFence (its flat fallback
+    // keeps the autotile RenderTileMap). VBO-cached + keyed by layer
     // so a BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence
     // layers EMPTY until the player builds — an empty layer emits no quads, so they are free there.
     scene._tilePasses = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
-      if (cfg.key === "wall" && pitch > 0) continue; // RenderWalls (lit boxes) below
+      if (cfg.key === "wall") continue; // RenderWalls (lit boxes) below — no flat fallback
       if (cfg.key === "fence" && pitch > 0) continue; // RenderFence (post-and-rail boxes) below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
       const spr = asset_get_index(cfg.sprite);
@@ -701,7 +702,7 @@ globalThis.ColonyMap = {
       // WALLS category (art projection contract): the resident wall layer as lit boxes
       // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
       // sun + culled point lights. Keyed into _tilePasses so BuildMode's edit
-      // markDirty reaches it (the flat "corner" autotile config stays as the flat-map fallback).
+      // markDirty reaches it.
       // ONE pass covers every wall on the map — the generator's and the player's both paint the
       // same layer. PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per
       // material, bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
@@ -731,7 +732,7 @@ globalThis.ColonyMap = {
       );
       scene.renderer.insert(scene._tilePasses.wall);
       // the fence layer as lit post-and-rail boxes in the same depth pool — its occupancy read
-      // is the autotiling (RenderFence); the flat blob4 config stays for the editor like the wall's
+      // is the autotiling (RenderFence); the flat blob4 config stays for the editor
       scene._tilePasses.fence = new RenderFence(
         scene.level.grid,
         scene.fenceLayer,
@@ -790,7 +791,7 @@ globalThis.ColonyMap = {
       scene._clouds = new RenderCloudShadow();
       scene._clouds.enabled = false; // the flat look: no noise field drifting over the ground
       scene._weather = new RenderWeather();
-      const wall = scene._tilePasses.wall; // RenderWalls on a pitched map (its height); flat: a tilemap
+      const wall = scene._tilePasses.wall; // RenderWalls on a pitched map (its height); flat: absent
       const roofH =
         wall !== undefined && wall.height !== undefined ? wall.height : 0;
       scene._sky = new RenderOverlay({
