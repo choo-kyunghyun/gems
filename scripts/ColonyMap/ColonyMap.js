@@ -693,7 +693,17 @@ globalThis.ColonyMap = {
     scene._gridPass.enabled = false; // off in normal play
     scene.renderer.insert(scene._gridPass);
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
-    scene.renderer.insert(new RenderEntityShadow());
+    // A body lying FLAT casts none: a corpse (Interaction "corpse" — ColonyCombat._toCorpse; NPCs
+    // carry no Health, so Health can't be the living test) or a downed companion (Downed).
+    scene.renderer.insert(
+      new RenderEntityShadow({
+        filter: (entities, id) => {
+          if (entities.has(id, Downed)) return false;
+          const it = entities.get(id, Interaction);
+          return it !== undefined ? it.kind !== "corpse" : true; // `?:` not `||` (docs/GMRT.md)
+        },
+      }),
+    );
     // Deep-furniture meshes (VOLUME category of the projection contract — see RenderBillboard):
     // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
     // a flat map has no depth-writing entity pass to sort against. Sun + point lights injected
