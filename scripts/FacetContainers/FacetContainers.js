@@ -97,8 +97,9 @@ globalThis.facetCard = function facetCard(opts = {}) {
  * Sprite-skinned panel — facetPanel's content box over a nine-slice sprite frame
  * (pixUiBox default) instead of a drawn roundrect, so the kit can wear hand-drawn
  * skins. The corner-safe stretch comes from the sprite's IDE nine-slice data
- * (pixUiBox insets 3px); UIImage FILL just draws it. `color` tints the frame
- * (theme key / hex / int); `speed` (frames/sec) animates a multi-frame skin.
+ * (pixUiBox insets 12px); UIImage FILL just draws it. `color` tints the frame
+ * (theme key / hex / int); the sprite's IDE playback speed animates a multi-frame
+ * skin, `speed` (frames/sec) overrides it.
  */
 globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
   const el = new UIElement({
@@ -112,8 +113,7 @@ globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
       subimg: opts.subimg ?? 0,
       color: opts.color != null ? facetColor(opts.color) : c_white,
       alpha: opts.alpha ?? 1,
-      // default 0 pins the skin static — never the sprite's IDE speed (new sprites carry 30)
-      speed: opts.speed ?? 0,
+      speed: opts.speed, // undefined defers to the sprite's IDE playback speed
     }),
   );
   return el;
