@@ -28,7 +28,6 @@ const _BLOB8 = [
  *   for RPG-Maker-style A-over-B transitions.
  * @property {number} [alpha]
  * @property {number} [color]
- * @property {boolean} [softEdge] - per-vertex alpha at tile edges; per-cell modes only, ignored for "dual".
  * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
  *   this. Ordered ids make ONE layer render as a cumulative material stack — pass m takes
  *   minId = m + 1 — instead of one layer per material (the terrain palette, see ColonyLevel).
@@ -50,7 +49,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.sprite = sprite;
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
-    this.softEdge = opt.softEdge ?? false;
     this.dirty = true;
     this._vbuf = new VertexBuffer();
     this._tex = undefined;
@@ -88,21 +86,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
     return !!this.layer.get(x, y);
-  }
-
-  /** OOB counts as solid so map edges don't produce soft-edge bleeds. */
-  _isSolidOrOOB(x, y) {
-    const { cols, rows } = this.grid;
-    if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
-    return !!this.layer.get(x, y);
-  }
-
-  _cornerAlpha(x, y, dx, dy) {
-    return this._isSolidOrOOB(x + dx, y) &&
-      this._isSolidOrOOB(x, y + dy) &&
-      this._isSolidOrOOB(x + dx, y + dy)
-      ? 1
-      : 0;
   }
 
   /**
@@ -174,36 +157,18 @@ globalThis.RenderTileMap = class RenderTileMap {
           cellWidth,
           cellHeight,
         );
-        if (this.softEdge) {
-          this._vbuf.addQuadV(
-            q[0],
-            q[1],
-            q[2],
-            q[3],
-            q[4],
-            q[5],
-            q[6],
-            q[7],
-            this.color,
-            this._cornerAlpha(x, y, -1, -1),
-            this._cornerAlpha(x, y, 1, -1),
-            this._cornerAlpha(x, y, -1, 1),
-            this._cornerAlpha(x, y, 1, 1),
-          );
-        } else {
-          this._vbuf.addQuad(
-            q[0],
-            q[1],
-            q[2],
-            q[3],
-            q[4],
-            q[5],
-            q[6],
-            q[7],
-            this.color,
-            this.alpha,
-          );
-        }
+        this._vbuf.addQuad(
+          q[0],
+          q[1],
+          q[2],
+          q[3],
+          q[4],
+          q[5],
+          q[6],
+          q[7],
+          this.color,
+          this.alpha,
+        );
       }
     }
     this._vbuf.end();

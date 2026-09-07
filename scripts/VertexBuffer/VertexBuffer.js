@@ -80,30 +80,6 @@ globalThis.VertexBuffer = class VertexBuffer {
     return this;
   }
 
-  /** Per-vertex alpha quad. Corner order: TL, TR, BL, BR. */
-  addQuadV(x, y, w, h, u0, v0, u1, v1, color, aTL, aTR, aBL, aBR) {
-    const b = this._buf;
-    vertex_position_3d(b, x, y, 0);
-    vertex_texcoord(b, u0, v0);
-    vertex_colour(b, color, aTL);
-    vertex_position_3d(b, x + w, y, 0);
-    vertex_texcoord(b, u1, v0);
-    vertex_colour(b, color, aTR);
-    vertex_position_3d(b, x, y + h, 0);
-    vertex_texcoord(b, u0, v1);
-    vertex_colour(b, color, aBL);
-    vertex_position_3d(b, x + w, y, 0);
-    vertex_texcoord(b, u1, v0);
-    vertex_colour(b, color, aTR);
-    vertex_position_3d(b, x + w, y + h, 0);
-    vertex_texcoord(b, u1, v1);
-    vertex_colour(b, color, aBR);
-    vertex_position_3d(b, x, y + h, 0);
-    vertex_texcoord(b, u0, v1);
-    vertex_colour(b, color, aBL);
-    return this;
-  }
-
   /** `freeze` uploads to VRAM for static meshes. */
   end(freeze = true) {
     vertex_end(this._buf);
