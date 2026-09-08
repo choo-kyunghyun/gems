@@ -23,6 +23,28 @@ globalThis.contentSprites = {
       { sprite: "pixShirtWhite", kind: "overlay", density: 4 },
       { sprite: "pixShirtRedwine", kind: "overlay", density: 4 },
       { sprite: "pixHatRedBandana", kind: "overlay", density: 4 },
+      // the site beacon: 128 px art over its one-cell box
+      { sprite: "pixPortal", kind: "entity", density: 4 },
+      // the 128 px dual-grid terrain sets and the wall/floor face textures — declared for the
+      // record: RenderTileMap and RenderWalls map a frame onto its cell by UV and read no
+      // density, so these lines change no draw
+      { sprite: "pixTerrainDeepWater", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainGravel", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainLawn", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainMud", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainRichSoil", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainRocky", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainSand", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainSoil", kind: "terrain", density: 4 },
+      { sprite: "pixTerrainWater", kind: "terrain", density: 4 },
+      { sprite: "pixTexBrick", kind: "tex", density: 4 },
+      { sprite: "pixTexCarpet", kind: "tex", density: 4 },
+      { sprite: "pixTexConcrete", kind: "tex", density: 4 },
+      { sprite: "pixTexMetal", kind: "tex", density: 4 },
+      { sprite: "pixTexMosaic", kind: "tex", density: 4 },
+      { sprite: "pixTexPlaid", kind: "tex", density: 4 },
+      { sprite: "pixTexPlank", kind: "tex", density: 4 },
+      { sprite: "pixTexTile", kind: "tex", density: 4 },
     ]);
   },
 };
