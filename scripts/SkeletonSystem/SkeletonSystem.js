@@ -80,17 +80,39 @@ globalThis.SkeletonSystem = {
   },
 
   /**
-   * Bind the puppet to `sk.anim`, refusing a set the sheet lacks: the runtime's only signal is
-   * get_frames reading 0 for the name (docs/GMRT.md), else the doll would pass as standing still.
-   * A single-pose set (every key at t=0) reads 0 frames too and is refused alike, so a held pose
-   * is authored as a short move into it (the rigs' `down` sets).
+   * The set names a sheet carries, read once per sprite (fixed for the build) — the one sound
+   * missing-name check: get_frames and get_duration read 0 for a missing name AND for a
+   * single-key set (docs/GMRT.md). Keyed by sprite name — a Map keyed by an asset ref crashes
+   * (docs/GMRT.md).
+   */
+  _names: {},
+  _list(inst, sprite) {
+    const key = sprite_get_name(sprite);
+    let names = SkeletonSystem._names[key];
+    if (names === undefined) {
+      const list = ds_list_create();
+      inst.skeleton_animation_list(sprite, list);
+      names = [];
+      for (let i = 0; i < ds_list_size(list); i++)
+        names.push(ds_list_find_value(list, i));
+      ds_list_destroy(list);
+      SkeletonSystem._names[key] = names;
+    }
+    return names;
+  },
+
+  /**
+   * Bind the puppet to `sk.anim`, refusing a set the sheet lacks — the runtime binds a missing
+   * name silently (docs/GMRT.md), so the doll would pass as standing still. A single-key set (the
+   * rigs' `down`) is a pose: it reads 0 frames, so update never advances it and it holds its
+   * only frame.
    */
   _play(inst, sk) {
-    inst.skeleton_animation_set(sk.anim, sk.loop);
-    if (inst.skeleton_animation_get_frames(sk.anim) <= 0)
+    if (SkeletonSystem._list(inst, sk.sprite).indexOf(sk.anim) < 0)
       throw new Error(
         `SkeletonSystem: ${sprite_get_name(sk.sprite)} has no animation "${sk.anim}"`,
       );
+    inst.skeleton_animation_set(sk.anim, sk.loop);
   },
 
   /** The entity's first puppet — or the one a map transfer or a load left it without. */

@@ -42,6 +42,7 @@ Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
 
 - Foot tilt — the foot-follows-chain transform constraints are inert on GMRT (docs/GMRT.md), so feet stay flat through every set on both rigs; bake the tilt into each set's foot keys if the flat feet start to read wrong.
 - `hair` slot art — the dress slot is live on spineHuman with no sprites to wear in it.
+- `down` is a single-key pose on both rigs, so a doll snaps into the fallen pose; author the fall as a second key in `art/human/human.spine` / `art/rat/rat.spine` if the snap reads wrong — a `skeleton_animation_mix` crossfade is no shortcut, it is inert on GMRT (docs/GMRT.md).
 
 ## Pathfinding
 

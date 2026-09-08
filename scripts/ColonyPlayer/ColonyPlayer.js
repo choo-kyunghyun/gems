@@ -146,8 +146,9 @@ globalThis.ColonyPlayer = {
    * The unarmed swing alternates attack/kick (see PlayerSystem), which lands as the human rig's
    * two attacks; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
    * also carries dodge0 / idle1 / attack2, which no brain drives yet. `down` is the authored
-   * fall — a one-shot that holds its last frame — played by ColonyCombat for a corpse (_toCorpse)
-   * and for a Downed companion (_goDown), which stands back up into idle on recovery.
+   * fallen pose — a one-shot holding its last frame (a single-key set, so the doll snaps into it)
+   * — played by ColonyCombat for a corpse (_toCorpse) and for a Downed companion (_goDown), which
+   * stands back up into idle on recovery.
    * `pace` marks a locomotion set: the world speed (px/s) its cycle was authored for — `pace`
    * (below) scales playback to the doll's ACTUAL speed against it, so one set serves every
    * gait and stat (the rat runs on its walk set, a drifting raider shuffles it slow).
