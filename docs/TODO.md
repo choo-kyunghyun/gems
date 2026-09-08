@@ -32,7 +32,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Farming and fishing — the flora foundation is in (`FloraSystem` over `Growth`: biome pools, season-weighted growth and spread, built crops, harvest); remaining: fishing, seeds and soil as inputs, a farm plot tied to the settlement's `farm` component
 - Raid event: defend the settlement (`musAmbientEmergency` is the reserved BGM)
 - Gacha capsule with new UI
-- Radio
 - Gamepad reloading
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 

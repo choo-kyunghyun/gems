@@ -175,13 +175,22 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Map-appropriate ambient: interiors (meta.indoor) get the cozy loop, the open world the
-   * tense one. Called on every map arrival (build + resume); Music.play cross-fades and treats
-   * a same-track re-request as a no-op, so this is safe to call unconditionally.
+   * The map's ambient bed: interiors (meta.indoor) the cozy loop, the open world the tense one —
+   * what plays whenever the player's Radio is off (its `ambient` hook is wired to this).
+   */
+  bed(scene) {
+    const indoor = scene.level.meta.get(ColonyMap.INDOOR) === true;
+    return indoor ? musAmbientCozy : musAmbientTense;
+  },
+
+  /**
+   * Cross-fade to the map's bed on every arrival (build + resume) — unless the Radio is tuned:
+   * its station plays through arrivals, the bed returning when the dial goes off (Radio.off).
+   * Music.play treats a same-track re-request as a no-op, so this is safe to call unconditionally.
    */
   _applyBgm(scene) {
-    const indoor = scene.level.meta.get(ColonyMap.INDOOR) === true;
-    Music.play(indoor ? musAmbientCozy : musAmbientTense);
+    if (Radio.on()) return;
+    Music.play(ColonyMap.bed(scene));
   },
 
   /**

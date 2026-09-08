@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RadioUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RadioUI",
+  "parent":{
+    "name":"UI",
+    "path":"folders/Game/UI.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RadioUI.js",
+}

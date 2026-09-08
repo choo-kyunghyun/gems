@@ -7,7 +7,8 @@ globalThis.Time = {
    * The music's factor on sim time (1 = none), composed with `scale` so a pause or the bed
    * fast-forward stays orthogonal to it: a timed BGM runs the WHOLE world at its beat — the tick
    * rate follows, since SimClock drains `delta`. The scene that plays the music writes it
-   * (sceneColony.update, from SoundMeta.bpm over Music.track) and resets it on destroy.
+   * (sceneColony.update, its `tempo` rule over Music.track) and resets it on destroy; the
+   * player's Radio picks the track, and with it the rate.
    */
   tempo: 1,
   /** `raw * scale * tempo` — sim time. */

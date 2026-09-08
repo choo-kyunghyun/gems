@@ -1,4 +1,5 @@
-// Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests / Settings).
+// Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests /
+// Achievements / Radio / Settings).
 // Built ONCE; rebuild() only swaps data so filter/selection/active tab survive every equip or use.
 /**
  * The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the pane
@@ -50,8 +51,16 @@ globalThis.InventoryUI = {
           content: InventoryUI._buildQuestsTab(scene),
         },
         {
+          // eight equal segments: the long label overran its neighbour, so the strip draws the
+          // abbreviation and the full name is its hover tooltip (UITabs.short)
           label: I18n.textRef("INV_TAB_ACH"),
+          short: I18n.textRef("INV_TAB_ACH_ABBR"),
           content: InventoryUI._buildAchievementsTab(scene),
+        },
+        {
+          // the BGM dial — the player's tempo knob (RadioUI owns the page; all-live, no rebuild)
+          label: I18n.textRef("INV_TAB_RADIO"),
+          content: RadioUI.build(scene),
         },
         {
           label: I18n.textRef("INV_TAB_SETTINGS"),

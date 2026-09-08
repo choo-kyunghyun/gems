@@ -6,7 +6,7 @@
  * at boot; only a sound departing from the defaults needs an entry.
  *
  * Def shape:
- *   { sound, kind, bpm? }
+ *   { sound, kind, bpm?, name? }
  *   sound  the asset (a bare identifier, so a track that is gone fails at load)
  *   kind   "music" | "cue" | ... — descriptive; consumers read specific FIELDS, never switch on
  *          kind (its value is tooling/validation).
@@ -14,6 +14,8 @@
  *          never measured: the runtime exposes no PCM to detect it from, and every track is
  *          synthesized at a stated tempo (tools/audio-kit). A timed track sets the sim tempo while
  *          it plays (Time.tempo, written by sceneColony.update over Music.track).
+ *   name   the track's display name, an i18n key; default "" = unlisted. A named track is a
+ *          station on the player's Radio dial, in declaration order.
  *
  * Storage: PARALLEL ARRAYS scanned by === identity — a Map keyed by an asset ref crashes GMRT
  * natively (docs/GMRT.md). A handful of tracks, so the linear scan is nothing.
@@ -40,6 +42,13 @@ globalThis.SoundMeta = {
         SoundMeta._defs.push(def);
       }
     }
+  },
+
+  /**
+   * Every def in declaration order — the store's own array, so read it, never reorder it.
+   */
+  all() {
+    return SoundMeta._defs;
   },
 
   /**

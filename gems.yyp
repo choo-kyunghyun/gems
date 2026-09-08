@@ -289,6 +289,8 @@
     {"id":{"name":"Query","path":"scripts/Query/Query.yy",},},
     {"id":{"name":"QuestLog","path":"scripts/QuestLog/QuestLog.yy",},},
     {"id":{"name":"RadarArrows","path":"scripts/RadarArrows/RadarArrows.yy",},},
+    {"id":{"name":"Radio","path":"scripts/Radio/Radio.yy",},},
+    {"id":{"name":"RadioUI","path":"scripts/RadioUI/RadioUI.yy",},},
     {"id":{"name":"Raider","path":"scripts/Raider/Raider.yy",},},
     {"id":{"name":"Rarity","path":"scripts/Rarity/Rarity.yy",},},
     {"id":{"name":"Rat","path":"scripts/Rat/Rat.yy",},},

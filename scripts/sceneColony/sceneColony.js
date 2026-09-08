@@ -68,6 +68,10 @@ class _SceneColonyClass {
     // re-installs handlers).
     World.reset();
     Trader.reset();
+    // the player's BGM dial starts off, its fall-back bed the ACTIVE map's own (indoor ⇄
+    // overworld) — read live through `this`, so the one hook serves every map the scene activates
+    Radio.reset();
+    Radio.ambient = () => ColonyMap.bed(this);
 
     // quests that close themselves the instant their objectives are met — what the report seam's
     // `ready` is filtered through. td_humans is absent: its giver turns it in (see _interactNpc).
@@ -327,10 +331,9 @@ class _SceneColonyClass {
     }
     this._sleepOverlay.enabled = this._sleeping;
 
-    // the sim tempo: a timed BGM (SoundMeta.bpm) runs the whole world at its beat, an untimed bed
-    // or no BGM at 1. Lands on the next frame's Time.update (which precedes this update).
-    const bpm = SoundMeta.bpm(Music.track());
-    Time.tempo = bpm > 0 ? bpm / TEMPO_BPM : 1;
+    // the sim tempo: a timed BGM runs the whole world at its beat (the player's Radio is the
+    // dial). Lands on the next frame's Time.update (which precedes this update).
+    Time.tempo = this.tempo(Music.track());
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
     // unprojection (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
@@ -767,6 +770,16 @@ class _SceneColonyClass {
     }
   }
 
+  /**
+   * The sim tempo a track sets while it plays: its declared BPM (SoundMeta) over TEMPO_BPM, 1 for
+   * an untimed bed or no track. update() writes it to Time.tempo each frame; RadioUI previews it
+   * per station.
+   */
+  tempo(sound) {
+    const bpm = SoundMeta.bpm(sound);
+    return bpm > 0 ? bpm / TEMPO_BPM : 1;
+  }
+
   /** derive this frame's input context: window > build > play (a window pauses build) */
   _resolveContext() {
     let ctx = "play";
@@ -904,6 +917,7 @@ class _SceneColonyClass {
   destroy() {
     InputContext.reset(); // hand input back to "default" for the next scene
     Time.tempo = 1; // the BGM stops with the scene (Audio.restart), so its tempo goes too
+    Radio.reset(); // and the dial with it — the next colony session starts on its map's bed
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below
