@@ -83,6 +83,7 @@ draw_set_font(I18n.font("default"));
 UI.applyScale(Settings.get("uiScale"));
 
 contentSprites.register(); // sprite metadata (density per sheet) before any level spawns entities
+contentSounds.register(); // sound metadata (tempo per track) — the sim tempo reads it (sceneColony.update)
 
 this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 

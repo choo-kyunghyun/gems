@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentSounds",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentSounds",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentSounds.js",
+}

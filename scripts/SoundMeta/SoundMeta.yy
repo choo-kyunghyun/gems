@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SoundMeta",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SoundMeta",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SoundMeta.js",
+}

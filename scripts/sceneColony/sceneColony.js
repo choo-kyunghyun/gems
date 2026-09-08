@@ -4,6 +4,7 @@ const START_CREDITS = 1000; // coins the player starts with (carried across maps
 const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
 const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
+const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rate then reads as the BPM (120 BPM = 2x)
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
 const HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
@@ -325,6 +326,11 @@ class _SceneColonyClass {
       }
     }
     this._sleepOverlay.enabled = this._sleeping;
+
+    // the sim tempo: a timed BGM (SoundMeta.bpm) runs the whole world at its beat, an untimed bed
+    // or no BGM at 1. Lands on the next frame's Time.update (which precedes this update).
+    const bpm = SoundMeta.bpm(Music.track());
+    Time.tempo = bpm > 0 ? bpm / TEMPO_BPM : 1;
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
     // unprojection (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
@@ -897,6 +903,7 @@ class _SceneColonyClass {
 
   destroy() {
     InputContext.reset(); // hand input back to "default" for the next scene
+    Time.tempo = 1; // the BGM stops with the scene (Audio.restart), so its tempo goes too
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below

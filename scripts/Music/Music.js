@@ -46,6 +46,15 @@ globalThis.Music = {
   },
 
   /**
+   * The BGM asset now playing (looping, or fading in), or -1 — the same-track check `play` runs
+   * on. Cleared the moment stop/reset begins the fade-out, so a consumer keyed on it (the sim
+   * tempo) lets go with the track, not with its tail.
+   */
+  track() {
+    return Music._bgmAsset;
+  },
+
+  /**
    * Fade the BGM out and stop it. fadeMs default 400.
    */
   stop(fadeMs) {
