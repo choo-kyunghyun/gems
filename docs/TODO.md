@@ -42,7 +42,6 @@ Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
 
 - Foot tilt — the foot-follows-chain transform constraints are inert on GMRT (docs/GMRT.md), so feet stay flat through every set on both rigs; bake the tilt into each set's foot keys if the flat feet start to read wrong.
 - `hair` slot art — the dress slot is live on spineHuman with no sprites to wear in it.
-- Downed companions keep standing — the "down" Mortal path only dims a `Visual`; a skeletal doll should play `down0` while `Downed` and restore its state on recover, now that the set exists.
 
 ## Pathfinding
 

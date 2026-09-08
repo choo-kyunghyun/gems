@@ -82,6 +82,8 @@ globalThis.SkeletonSystem = {
   /**
    * Bind the puppet to `sk.anim`, refusing a set the sheet lacks: the runtime's only signal is
    * get_frames reading 0 for the name (docs/GMRT.md), else the doll would pass as standing still.
+   * A single-pose set (every key at t=0) reads 0 frames too and is refused alike, so a held pose
+   * is authored as a short move into it (the rigs' `down` sets).
    */
   _play(inst, sk) {
     inst.skeleton_animation_set(sk.anim, sk.loop);

@@ -123,7 +123,9 @@ globalThis.ColonyCombat = {
 
   /**
    * incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
-   * it), stop + dim it, start the recovery timer.
+   * it), stop it, start the recovery timer. A plain Visual dims; a doll falls through its rig's
+   * `down` set and lies in its last frame until updateDowned stands it back up (FollowerSystem
+   * leaves a Downed doll's set alone).
    * Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
    * its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
    * so being knocked out can't silently shrink the player's bag.
@@ -138,13 +140,15 @@ globalThis.ColonyCombat = {
     }
     const vis = entities.get(id, Visual);
     if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
+    ColonyPlayer.setState(entities, id, "down"); // the doll's fall (no-op without a Skeleton)
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
     delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
     if (h.onDown !== undefined) h.onDown(id);
   },
 
   /**
-   * down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim, teleport to h.downSpot, drop Downed
+   * down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim / stand the doll back up in
+   * its idle set, teleport to h.downSpot, drop Downed
    */
   updateDowned(scene, h) {
     h = h ?? {};
@@ -157,6 +161,7 @@ globalThis.ColonyCombat = {
       entities.add(id, Health, { hp: reviveHp });
       const vis = entities.get(id, Visual);
       if (vis !== undefined) vis.alpha = 1;
+      ColonyPlayer.setState(entities, id, "idle"); // up off the ground — its brain drives it from here
       const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
       if (spot !== undefined) {
         const pos = entities.get(id, Position);

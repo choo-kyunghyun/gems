@@ -2,8 +2,8 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
 
 /**
  * A "follow" member steers toward the player, easing to a stop near `range` so it settles instead of
- * jittering; "wait" (and any non-member) holds still. Only sets Velocity (SolidSystem integrates/
- * collides). Player id passed in, not stored — no re-link on transfer.
+ * jittering; "wait" (and any non-member) holds still; a Downed one lies where it fell. Only sets
+ * Velocity (SolidSystem integrates/collides). Player id passed in, not stored — no re-link on transfer.
  *
  * Membership (the Squad component) is owned here too: hire() joins the player's squad (+carry bonus,
  * drops the "rehire" Interaction), kick() leaves it PERMANENTLY in place (the companion becomes a map
@@ -16,8 +16,15 @@ globalThis.FollowerSystem = {
     if (pp === undefined) return;
     entities.forEach([Follower, Velocity], (id, f, vel) => {
       if (id === playerId) return;
-      // downed or stationed → hold still; only "follow" seeks.
-      if (f.state !== "follow" || entities.has(id, Downed)) {
+      // downed → hold still AND leave the doll in its `down` set (ColonyCombat._goDown owns that
+      // pose until recovery) — the idle/walk drive below would stand it back up.
+      if (entities.has(id, Downed)) {
+        vel.x = 0;
+        vel.y = 0;
+        return;
+      }
+      // stationed → hold still; only "follow" seeks.
+      if (f.state !== "follow") {
         vel.x = 0;
         vel.y = 0;
       } else {
