@@ -15,6 +15,7 @@ globalThis.contentSprites = {
       { sprite: "pixGrass", kind: "grass", density: 4 },
       { sprite: "pixGrassFlowers", kind: "grass", density: 4 },
       { sprite: "pixGrassWeeds", kind: "grass", density: 4 },
+      { sprite: "pixGrassLotus", kind: "grass", density: 4 },
       // entity dolls drawn finer than world scale
       { sprite: "spineHuman", kind: "entity", density: 4 },
       { sprite: "spineRat", kind: "entity", density: 4 },

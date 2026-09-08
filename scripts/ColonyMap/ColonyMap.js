@@ -484,14 +484,17 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The RenderGrass defs of a material table — the standing layer: every material's `clump`
+   * The RenderGrass defs of a material table — the grass layer: every material's `clump`
    * entry (the field's coverage) plus its `clutter` entries (sparse chance-gated accents),
-   * keyed by the row's TileType id. `tintHex` is the biome profile's clumpTint — it
-   * overrides the `clump.tint` only (the sheet is a white mask, so the resolved color IS
-   * the field's color); a clutter entry keeps its own `tint`, and none at all lets a
-   * colored sheet pass through white.
+   * then the biome `profile`'s own `clutter` rows for that material (an accent one biome
+   * grows and the others don't — the marsh's lotus pads on its shallows), keyed by the
+   * row's TileType id. The profile's `clumpTint` overrides the `clump.tint` only (the sheet
+   * is a white mask, so the resolved color IS the field's color); a clutter entry keeps its
+   * own `tint`, and none at all lets a colored sheet pass through white.
    */
-  _clumpDefs(mats, tintHex) {
+  _clumpDefs(mats, profile) {
+    const tintHex = profile !== undefined ? profile.clumpTint : undefined;
+    const extra = profile !== undefined ? profile.clutter : undefined;
     const defs = [];
     for (let i = 0; i < mats.length; i++) {
       const mat = mats[i].material;
@@ -506,6 +509,10 @@ globalThis.ColonyMap = {
       if (def.clutter !== undefined)
         for (let k = 0; k < def.clutter.length; k++)
           rows.push({ src: def.clutter[k], tint: def.clutter[k].tint });
+      const own = extra !== undefined ? extra[mat] : undefined;
+      if (own !== undefined)
+        for (let k = 0; k < own.length; k++)
+          rows.push({ src: own[k], tint: own[k].tint });
       for (let k = 0; k < rows.length; k++) {
         const src = rows[k].src;
         const spr = asset_get_index(src.sprite);
@@ -523,6 +530,7 @@ globalThis.ColonyMap = {
           scaleMax: src.scaleMax,
           tint: rows[k].tint !== undefined ? Color.parse(rows[k].tint) : undefined,
           edge: src.edge,
+          flat: src.flat,
         });
       }
     }
@@ -591,10 +599,7 @@ globalThis.ColonyMap = {
     scene._grassPass = undefined;
     if (mats !== undefined) {
       const profile = contentBiomes.BIOMES[scene.level.meta.get(ColonyMap.BIOME)];
-      const cdefs = ColonyMap._clumpDefs(
-        mats,
-        profile !== undefined ? profile.clumpTint : undefined,
-      );
+      const cdefs = ColonyMap._clumpDefs(mats, profile);
       if (cdefs.length > 0) {
         // wind: the meta constant; a save predating it falls back to the biome profile
         let wind = scene.level.meta.get(ColonyMap.WIND);

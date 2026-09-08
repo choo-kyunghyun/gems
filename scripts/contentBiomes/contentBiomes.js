@@ -77,7 +77,8 @@ globalThis.contentBiomes = {
     // needs no tileset of its own (the old flat sheet is `lawn`'s now)
     // `clutter` rides the same pass as sparse standing accents: clump's def shape plus
     // `chance` (share of cells that carry any), each entry its own `tint` — a white-mask
-    // sheet takes one, a colored sheet (flowers) goes untinted
+    // sheet takes one, a colored sheet (flowers) goes untinted — and `flat` lays an entry
+    // on the ground plane instead of standing it (a pad afloat on water)
     grass: {
       name: "Grass",
       color: "#5d8a46",
@@ -134,6 +135,9 @@ globalThis.contentBiomes = {
   //              paints but a prefab stamps onto the terrain layer (lawn)
   //   clumpTint? "#hex" (an AAP-64 entry) — the biome's grass color: overrides the grass
   //              material's clump.tint on the white clump mask (one sheet, every biome)
+  //   clutter?   { <material>: [entry] } — the biome's OWN accents on a material's cells, appended
+  //              to that material's `clutter` (the same entry shape): an accent one biome grows
+  //              and the others don't (the marsh's lotus pads on its shallows)
   //   wind?      0..1 — the level's CONSTANT wind strength (LevelMeta), the grass sway
   //              amplitude (shMeshlit.vsh u_sway); absent = still (an indoor map)
   //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
@@ -231,6 +235,20 @@ globalThis.contentBiomes = {
     marsh: {
       name: "BIOME_MARSH",
       wind: 0.35,
+      // lotus pads afloat on the shallows — flat on the water, and never on the deep
+      clutter: {
+        water: [
+          {
+            sprite: "pixGrassLotus",
+            flat: true,
+            chance: 0.22,
+            min: 1,
+            max: 2,
+            scaleMin: 0.55,
+            scaleMax: 0.95,
+          },
+        ],
+      },
       ground: {
         lattice: 5,
         bands: [

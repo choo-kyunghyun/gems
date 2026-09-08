@@ -10,8 +10,11 @@
  * reloaded layer strews the same field with no entity and no save state — the terrain it
  * stands on regenerates from its seed the same way. One VBO per def, whole-layer, rebuilt
  * on markDirty(); clumps are depth-written alpha-cut uprights under the billboards' bent
- * normal and pitch compensation (RenderBillboard's rules). Insert right after the terrain
- * passes, so the clumps are in the depth pool before the entities draw.
+ * normal and pitch compensation (RenderBillboard's rules); a `flat` def LIES on the ground
+ * plane instead — a decal the pitch foreshortens like the terrain under it (a lotus pad on
+ * water), lit as flat ground and still in the wind (the sway is proportional to height).
+ * Insert right after the terrain passes, so the clumps are in the depth pool before the
+ * entities draw.
  * The sheet is a white TINT MASK: a def's `tint` (a GM color) is baked into the vertices,
  * so one sheet colors every biome's grass — vertex color x white texel = exactly the tint.
  * Sway hooks in later as a shMeshlit vertex animation on the sim clock, wave-mode style.
@@ -20,13 +23,15 @@
 globalThis.RenderGrass = class RenderGrass {
   /**
    * `layer.get(gx, gy)` must answer a TileType (or nothing). defs: [{ id, sprite, min?,
-   * max?, chance?, edge? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
+   * max?, chance?, edge?, flat? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
    * VARIANTS (origin at the foot; half are mirrored), `min`..`max` the per-cell count the
    * hash rolls (default 1..2), `chance` the share of eligible cells that carry any at all
    * (default 1 — sparse clutter gates here), `scaleMin`..`scaleMax` the per-clump size the hash rolls
    * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
    * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
-   * c_white), `edge` true to include transition cells (tileset-free fields). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
+   * c_white), `edge` true to include transition cells (tileset-free fields), `flat` true to
+   * lay the variants on the ground plane instead of standing them (the origin still at the
+   * anchor, sprite-up = map north). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
    * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5),
    * `wind` the level's sway strength (0 = rigid — shMeshlit.vsh's u_sway) and `time` the sim
    * clock closure its phase runs on (the wave crests' clock, frozen on pause).
@@ -110,6 +115,7 @@ globalThis.RenderGrass = class RenderGrass {
       const sMax = def.scaleMax !== undefined ? def.scaleMax : 1;
       const chance = def.chance !== undefined ? def.chance : 1;
       const tint = def.tint !== undefined ? def.tint : c_white;
+      const flat = def.flat === true;
       const salt = this.seed + k * 131;
       const vb = new VertexBuffer().begin();
       let n = 0;
@@ -143,10 +149,13 @@ globalThis.RenderGrass = class RenderGrass {
             const h = (sh * uv[7] * sc) / dens;
             const a = ((xoff - uv[4]) * sc) / dens;
             const z0 = (-(yoff - uv[5]) * sc) / dens;
-            if (hash2(gx, gy, s2 + 3) < 0.5)
-              vb.addUpright(px - a, py, z0, w, h, uv[0], uv[1], uv[2], uv[3], tint);
-            else
-              vb.addUpright(px - (w - a), py, z0, w, h, uv[2], uv[1], uv[0], uv[3], tint);
+            const mirror = hash2(gx, gy, s2 + 3) >= 0.5;
+            const x0 = mirror ? px - (w - a) : px - a;
+            const u0 = mirror ? uv[2] : uv[0];
+            const u1 = mirror ? uv[0] : uv[2];
+            // a flat variant lies on the ground: its up (-z) becomes map north (-y)
+            if (flat) vb.addQuad(x0, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
+            else vb.addUpright(x0, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
             n++;
           }
         }
@@ -163,7 +172,7 @@ globalThis.RenderGrass = class RenderGrass {
     if (this._dirty) this._rebuild();
     // in the depth pool, cut on the texel alpha, the billboards' bent normal, and the
     // billboards' pitch compensation — a z-scale about the ground plane, so every clump
-    // grows from its own foot
+    // grows from its own foot (a flat def's z = 0 is untouched by it)
     const lit = this.lights !== undefined && this.lights.litOk && this._litOk;
     const pitch = this.camera !== undefined ? this.camera.pitch : 0;
     const tall = pitch > 0 ? 1 / Math.sin(pitch) : 1;
@@ -176,7 +185,10 @@ globalThis.RenderGrass = class RenderGrass {
       if (lit) {
         this.lights.setupLights(entities);
         shader_set_uniform_f(this.lights.uUseTex, 1);
-        shader_set_uniform_f(this.lights.uNormal, 0, 0.5, -0.866);
+        // a flat def is lit as ground (straight up), a standing one as a billboard
+        if (this.defs[k].flat === true)
+          shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
+        else shader_set_uniform_f(this.lights.uNormal, 0, 0.5, -0.866);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
         shader_set_uniform_f(this._uSway, this.wind);
         shader_set_uniform_f(
