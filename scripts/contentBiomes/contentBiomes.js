@@ -83,7 +83,7 @@ globalThis.contentBiomes = {
       color: "#5d8a46",
       sprite: "pixTerrainSoil",
       clump: {
-        sprite: "pixGrassClump",
+        sprite: "pixGrass",
         tint: "#328464", // bio 1 — the sheet is a white mask, this IS the field's green
         min: 4,
         max: 6,
