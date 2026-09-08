@@ -1,8 +1,8 @@
 /**
  * Named-context stack over Input; active = top of stack, "default" is the permanent base.
  * An action tagged via inContext goes falsy when the active context isn't listed; untagged =
- * live everywhere (so plain keymaps are unaffected). Generalizes captured() to gameplay
- * contexts ("play"/"build"/"window" — fire self-mutes while building); captured() still wins.
+ * live everywhere (so plain keymaps are unaffected). The scene-level gate ("play"/"build"/"window" —
+ * fire self-mutes while building), orthogonal to the per-device claims Input distributes by.
  */
 globalThis.InputContext = {
   // Plain array (index-looped, never a Set/iterator — see GMRT-Safe Idioms).

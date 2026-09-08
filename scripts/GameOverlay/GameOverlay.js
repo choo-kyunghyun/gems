@@ -43,7 +43,7 @@ globalThis.GameOverlay = {
 
     if (GameOverlay._modal !== null) {
       // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
-      if (keyboard_check_pressed(vk_f1) || GameOverlay._startPressed()) {
+      if (Input.keyPressed(vk_f1) || Input.padPressed(gp_start)) {
         GameOverlay.close();
       }
       UINav.suspended = false; // overlay must stay nav-reachable over any scene
@@ -53,7 +53,7 @@ globalThis.GameOverlay = {
     }
 
     // closed. F1 opens anywhere (even a non-gameplay scene)
-    if (keyboard_check_pressed(vk_f1)) {
+    if (Input.keyPressed(vk_f1)) {
       GameOverlay.open();
       return;
     }
@@ -63,16 +63,18 @@ globalThis.GameOverlay = {
     if (scene === null || scene.gameplay !== true) return;
 
     // gamepad Start opens the pause menu directly
-    if (GameOverlay._startPressed()) {
+    if (Input.padPressed(gp_start)) {
       GameOverlay.open();
       return;
     }
 
     // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
-    // opens the menu only if unconsumed (so F1/Start stay the always-on pause). UI.keyPressed,
-    // not the raw edge — this runs after UI.update, so a widget's own Esc (a field blur) is spent.
-    if (UI.keyPressed(vk_escape)) {
+    // opens the menu only if unconsumed (so F1/Start stay the always-on pause). Input.keyPressed,
+    // not the raw edge — this runs after UI.update, so a widget's own Esc (a field blur, a modal
+    // close) is spent; a press the scene takes is spent here in turn (the distribution contract).
+    if (Input.keyPressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
+        Input.consumeKey(vk_escape);
         UINav.suspended = true; // consumed; menu stays closed
       } else {
         GameOverlay.open();
@@ -80,22 +82,19 @@ globalThis.GameOverlay = {
       return;
     }
 
-    // gamepad B = back: same handleEscape hook as Esc but never opens the menu. B is also UINav's
-    // cancel, so in a window it disengages focus AND closes it.
-    if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face2)) {
+    // gamepad B = back: same handleEscape hook as Esc but never opens the menu
+    if (Input.padPressed(gp_face2)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
+        Input.consumePad(gp_face2);
         UINav.suspended = true; // consumed
         return;
       }
     }
 
     // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
-    // stick moves the player), un-suspend when a window is open so the controller can navigate it.
+    // stick moves the player), un-suspend when a window is open so the controller can navigate it
+    // (a live UINav claims the pad — Input).
     UINav.suspended = !InputContext.is("window");
-  },
-
-  _startPressed() {
-    return gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_start);
   },
 
   isOpen() {

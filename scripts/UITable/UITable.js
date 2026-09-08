@@ -21,7 +21,7 @@
  * lapses and nav resumes. Edge reads come from the shared `UINav.readEdge()`.
  *
  * GMRT: hit-test/hover live in instance fields (cached primitive bool gets clobbered — see
- * CLAUDE.md); no Map/Set iteration; pointer edges via UIPointer (frame-latched), never a
+ * CLAUDE.md); no Map/Set iteration; pointer edges via Input.pointer (frame-latched), never a
  * re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {
@@ -284,8 +284,8 @@ globalThis.UITable = class UITable {
     // window (subtree inserted into a not-yet-traversed branch) — never let NaN into _top.
     this._top = maxTop > 0 ? clamp(this._top, 0, maxTop) : 0;
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
     this._inside = !block && element.positionMeeting(mx, my);
     const moved = mx !== this._mx || my !== this._my;
     this._mx = mx;
@@ -295,7 +295,7 @@ globalThis.UITable = class UITable {
     // it re-requests nav suspension each frame and absorbs that frame's keys (incl. the exit
     // Esc, so Esc doesn't also disengage the focus ring underneath).
     if (this._browsing) {
-      if (moved || (this._inside && UIPointer.pressed)) {
+      if (moved || (this._inside && Input.pointer.left.pressed)) {
         this._browsing = false; // pointer takes over → fall through to mouse handling
       } else {
         this._browseKeys(pos);
@@ -317,20 +317,20 @@ globalThis.UITable = class UITable {
           break;
         }
       }
-      if (this._hoverCol >= 0 && UIPointer.pressed) this.sortBy(this._hoverCol);
+      if (this._hoverCol >= 0 && Input.pointer.left.pressed) this.sortBy(this._hoverCol);
     }
 
     // Body: wheel scroll, row hover + click-to-select.
     const bodyH = bodyRows * this.rowH;
     if (this._inside) {
-      const wheel = UIPointer.wheel;
+      const wheel = Input.pointer.wheel;
       if (wheel !== 0) this._top = clamp(this._top + wheel, 0, maxTop);
     }
     if (my >= bodyTop && my < bodyTop + bodyH && this._inside) {
       const r = this._top + Math.floor((my - bodyTop) / this.rowH);
       if (r >= 0 && r < this._view.length) {
         this._hoverRow = r;
-        if (UIPointer.pressed) {
+        if (Input.pointer.left.pressed) {
           this._selRow = this._view[r];
           this._cursor = r;
           this.onSelect(this._selRow, r);

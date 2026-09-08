@@ -29,10 +29,10 @@ globalThis.UIRebind = class UIRebind {
   onUpdate(element, block) {
     if (this._capturing) {
       // Esc checked first — the scan below would otherwise pick it up.
-      if (keyboard_check_pressed(vk_escape)) {
+      if (Input.keyPressed(vk_escape)) {
         this._capturing = false;
-        UI.consumeKey(vk_escape); // an enclosing UIModal reads Esc after its children
-      } else if (UIPointer.pressed) {
+        Input.consumeKey(vk_escape); // an enclosing UIModal reads Esc after its children
+      } else if (Input.pointer.left.pressed) {
         this._capturing = false;
       } else {
         // scan for the live pressed-edge keycode, NOT keyboard_lastkey — on GMRT lastkey
@@ -40,6 +40,7 @@ globalThis.UIRebind = class UIRebind {
         const code = this._scanKey();
         if (code > 0) {
           this._rebind(code);
+          Input.consumeKey(code); // spent here: the action it now binds must not fire on the same press
           this._capturing = false;
         }
       }
@@ -101,7 +102,7 @@ globalThis.UIRebind = class UIRebind {
   _scanKey() {
     let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases
     while (code <= 255) {
-      if (code !== vk_escape && keyboard_check_pressed(code)) return code;
+      if (code !== vk_escape && Input.keyPressed(code)) return code;
       code++;
     }
     return 0;

@@ -7,8 +7,10 @@ const _INPUT_BLINK = 0.53; // s per caret blink half-cycle
 const _INPUT_DBLCLICK = 300; // ms window for double-click word-select
 
 /**
- * GMRT: modifier flags (shift/ctrl) read live via keyboard_check, never cached — a cached primitive
- * bool can be clobbered mid-call.
+ * GMRT: modifier flags (shift/ctrl) read live via Input.keyDown, never cached — a cached primitive
+ * bool can be clobbered mid-call. Keys and the typed text come through Input (its latched
+ * `typed` is this frame's keyboard_string), and the field claims the keyboard each frame it is
+ * focused, so no later reader acts on what it typed.
  * @implements {UIComponent}
  */
 globalThis.UIInput = class UIInput {
@@ -54,19 +56,19 @@ globalThis.UIInput = class UIInput {
   }
 
   /**
-   * Claim UIInput.active — mutes gameplay input + UINav.
+   * Take UIInput.active: while focused the field claims the keyboard every frame (onUpdate), so
+   * gameplay keys and UINav go quiet.
    */
   focus() {
     if (this._focused) return this;
     this._focused = true;
     UIInput.active = this;
     this._setCursor(this.value.length, false);
-    keyboard_string = "";
     return this;
   }
 
   /**
-   * Release global keyboard capture.
+   * Release UIInput.active (the per-frame keyboard claim lapses with it).
    */
   blur() {
     if (!this._focused) return this;
@@ -204,12 +206,12 @@ globalThis.UIInput = class UIInput {
    * edge-then-interval repeat for one key at a time; true on press and each interval.
    */
   _repeat(key) {
-    if (keyboard_check_pressed(key)) {
+    if (Input.keyPressed(key)) {
       this._repKey = key;
       this._repTime = _INPUT_REPEAT_DELAY;
       return true;
     }
-    if (this._repKey === key && keyboard_check(key)) {
+    if (this._repKey === key && Input.keyDown(key)) {
       this._repTime -= Time.raw;
       if (this._repTime <= 0) {
         this._repTime = _INPUT_REPEAT_RATE;
@@ -255,8 +257,8 @@ globalThis.UIInput = class UIInput {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
     const over = !block && element.positionMeeting(mx, my);
 
     // set field font so string_width calls below match render width; resolve an I18n key
@@ -265,7 +267,7 @@ globalThis.UIInput = class UIInput {
     const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
 
-    if (UIPointer.pressed) {
+    if (Input.pointer.left.pressed) {
       if (over) {
         this.focus();
         const i = this._indexAtX(pos, mx);
@@ -276,7 +278,7 @@ globalThis.UIInput = class UIInput {
           this._anchor = this._wordStart(i);
           this._setCursor(this._wordEnd(i), true);
         } else {
-          this._setCursor(i, keyboard_check(vk_shift));
+          this._setCursor(i, Input.keyDown(vk_shift));
           this._dragging = true;
         }
         this._lastClickTime = current_time;
@@ -287,12 +289,15 @@ globalThis.UIInput = class UIInput {
     }
 
     if (this._dragging) {
-      if (UIPointer.down) this._setCursor(this._indexAtX(pos, mx), true);
+      if (Input.pointer.left.down) this._setCursor(this._indexAtX(pos, mx), true);
       else this._dragging = false;
     }
 
     if (this._focused) {
       this._processKeyboard();
+      // the field holds the keyboard this frame: the keys it read (and the Enter/Esc that may
+      // just have blurred it) reach no later reader — UINav, the enclosing modal, gameplay
+      Input.claimKeys();
       this._blinkTimer += Time.raw;
       if (this._blinkTimer >= _INPUT_BLINK) {
         this._blinkTimer -= _INPUT_BLINK;
@@ -306,36 +311,32 @@ globalThis.UIInput = class UIInput {
 
   _processKeyboard() {
     const len = this.value.length;
-    const ctrl = keyboard_check(vk_control);
+    const ctrl = Input.keyDown(vk_control);
 
-    // clipboard + select-all: swallow keyboard_string so the key doesn't also type.
+    // clipboard + select-all: return before the insert below so the key doesn't also type.
     if (ctrl) {
-      if (keyboard_check_pressed(ord("A"))) {
+      if (Input.keyPressed(ord("A"))) {
         this._anchor = 0;
         this._setCursor(len, true);
-        keyboard_string = "";
         return;
       }
-      if (keyboard_check_pressed(ord("C"))) {
+      if (Input.keyPressed(ord("C"))) {
         this._copy();
-        keyboard_string = "";
         return;
       }
-      if (keyboard_check_pressed(ord("X"))) {
+      if (Input.keyPressed(ord("X"))) {
         this._cut();
-        keyboard_string = "";
         return;
       }
-      if (keyboard_check_pressed(ord("V"))) {
+      if (Input.keyPressed(ord("V"))) {
         this._paste();
-        keyboard_string = "";
         return;
       }
     }
 
     // caret navigation (ctrl = word jump, shift = extend selection).
     if (this._repeat(vk_left)) {
-      if (keyboard_check(vk_shift))
+      if (Input.keyDown(vk_shift))
         this._setCursor(
           ctrl ? this._wordLeft(this._cursor) : this._cursor - 1,
           true,
@@ -346,11 +347,10 @@ globalThis.UIInput = class UIInput {
           ctrl ? this._wordLeft(this._cursor) : this._cursor - 1,
           false,
         );
-      keyboard_string = "";
       return;
     }
     if (this._repeat(vk_right)) {
-      if (keyboard_check(vk_shift))
+      if (Input.keyDown(vk_shift))
         this._setCursor(
           ctrl ? this._wordRight(this._cursor) : this._cursor + 1,
           true,
@@ -361,17 +361,14 @@ globalThis.UIInput = class UIInput {
           ctrl ? this._wordRight(this._cursor) : this._cursor + 1,
           false,
         );
-      keyboard_string = "";
       return;
     }
     if (this._repeat(vk_home)) {
-      this._setCursor(0, keyboard_check(vk_shift));
-      keyboard_string = "";
+      this._setCursor(0, Input.keyDown(vk_shift));
       return;
     }
     if (this._repeat(vk_end)) {
-      this._setCursor(len, keyboard_check(vk_shift));
-      keyboard_string = "";
+      this._setCursor(len, Input.keyDown(vk_shift));
       return;
     }
 
@@ -384,7 +381,6 @@ globalThis.UIInput = class UIInput {
         this._setCursor(to, false);
         this.onChange(this.value);
       }
-      keyboard_string = "";
       return;
     }
     if (!this.readOnly && this._repeat(vk_delete)) {
@@ -395,33 +391,27 @@ globalThis.UIInput = class UIInput {
         this._setCursor(this._cursor, false);
         this.onChange(this.value);
       }
-      keyboard_string = "";
       return;
     }
 
-    if (keyboard_check_pressed(vk_enter)) {
+    if (Input.keyPressed(vk_enter)) {
       this.onConfirm(this.value);
       this.blur();
-      keyboard_string = "";
       return;
     }
-    if (keyboard_check_pressed(vk_escape)) {
+    if (Input.keyPressed(vk_escape)) {
       this.onCancel(this.value);
       this.blur();
-      // a blur is not a dismiss: the enclosing UIModal (and the Game object's gameplay Esc)
-      // read Esc after this and would close the window the field sits in
-      UI.consumeKey(vk_escape);
-      keyboard_string = "";
+      // a blur is not a dismiss: the keyboard claim (onUpdate) keeps this Esc from the enclosing
+      // UIModal and the Game object's gameplay Esc, which read after this
       return;
     }
 
     // plain text entry (not while ctrl is held — those are shortcuts).
     if (ctrl) {
-      keyboard_string = "";
       return;
     }
-    const typed = keyboard_string;
-    keyboard_string = "";
+    const typed = Input.typed;
     if (typed !== "") this._insert(typed);
   }
 
@@ -522,10 +512,7 @@ globalThis.UIInput = class UIInput {
   }
 
   onDestroy(element) {
-    if (this._focused) {
-      this._focused = false;
-      keyboard_string = "";
-    }
+    this._focused = false;
     // must clear UIInput.active on destroy — a focused field torn down mid-typing
     // (level change / trip) would strand the capture and keep gameplay + UINav muted forever.
     if (UIInput.active === this) UIInput.active = null;

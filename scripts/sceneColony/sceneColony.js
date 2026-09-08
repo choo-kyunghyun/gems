@@ -225,8 +225,16 @@ class _SceneColonyClass {
             label: "RPG_HINT_GRENADE",
             contexts: ["play"],
           },
-          { text: "LMB", label: "RPG_HINT_PLACE", contexts: ["build"] },
-          { text: "RMB", label: "RPG_HINT_REMOVE", contexts: ["build"] },
+          {
+            actions: ["buildPlace"],
+            label: "RPG_HINT_PLACE",
+            contexts: ["build"],
+          },
+          {
+            actions: ["buildRemove"],
+            label: "RPG_HINT_REMOVE",
+            contexts: ["build"],
+          },
           {
             actions: ["inventory"],
             label: "RPG_HINT_BAG",
@@ -650,18 +658,9 @@ class _SceneColonyClass {
     this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
   }
 
-  /**
-   * any input wakes the sleeper. Raw queries (not InputAction) so it fires regardless of context;
-   * UIPointer.pressed is the latched LMB edge for the frame.
-   */
+  /** any input wakes the sleeper — the claim-blind "press anything" read, not an action (Input.anyPressed) */
   _wakeInput() {
-    return (
-      keyboard_check_pressed(vk_anykey) ||
-      UIPointer.pressed ||
-      mouse_check_button_pressed(mb_right) ||
-      gamepad_button_check_pressed(0, gp_face1) ||
-      gamepad_button_check_pressed(0, gp_face2)
-    );
+    return Input.anyPressed();
   }
 
   /**

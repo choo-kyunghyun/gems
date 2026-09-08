@@ -1,6 +1,6 @@
 /**
  * The target is PERSISTED, so a small drift off the slot at button-up still drops. Pointer edges come
- * from UIPointer (frame-latched) — never mouse_check_button* directly (the poll-once rule — UIPointer).
+ * from Input.pointer (frame-latched) — never mouse_check_button* directly (the poll-once rule — Input.poll).
  */
 globalThis.SlotDrag = {
   active: false,
@@ -74,7 +74,7 @@ globalThis.SlotDrag = {
   /** Resolve on the release edge (Step_0, after UI.update): drop onto the last hovered slot, else cancel. */
   update() {
     if (!SlotDrag.active) return;
-    if (!UIPointer.released) return;
+    if (!Input.pointer.left.released) return;
     if (SlotDrag.hoverGrid !== null) {
       SlotDrag.drop(SlotDrag.hoverGrid, SlotDrag.hoverSlot);
     } else {
@@ -88,8 +88,8 @@ globalThis.SlotDrag = {
     const it = SlotDrag.item;
     if (it == null || it.sprite == null || !sprite_exists(it.sprite)) return;
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
     const sz = SlotDrag.iconSize;
     const sub = it.subimg ?? 0;
     draw_sprite_stretched_ext(

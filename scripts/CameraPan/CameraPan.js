@@ -1,7 +1,8 @@
 /**
  * 2D pan + zoom inspector camera — a Camera CONTROL (the contract is Camera's JSDoc). Drag
  * `button` to pan, wheel zooms toward the cursor. At zoom 1 with the default center, world coords
- * equal screen pixels, which is what lets the editor keep working in plain mouse_x/mouse_y.
+ * equal screen pixels, which is what lets the editor keep working in the plain room cursor
+ * (Input.pointer.roomX/roomY).
  *
  * Unlike CameraFollow's eased, screen-centred zoom, this one is instant and CURSOR-anchored: the
  * world point under the pointer stays put. That anchor is the whole difference between the two —
@@ -59,14 +60,14 @@ globalThis.CameraPan = class CameraPan {
 
   /** Hold `button` to drag the world: the center moves opposite the pointer (delta / zoom). */
   _drag(mx, my) {
-    if (mouse_check_button_pressed(this.button)) {
+    if (Input.pointerPressed(this.button)) {
       this.dragging = true;
       this.mx = mx;
       this.my = my;
     }
     if (!this.dragging) return;
 
-    if (mouse_check_button(this.button)) {
+    if (Input.pointerDown(this.button)) {
       this.x -= (mx - this.mx) / this.zoom;
       this.y -= (my - this.my) / this.zoom;
       this.mx = mx;
@@ -77,7 +78,8 @@ globalThis.CameraPan = class CameraPan {
   }
 
   _wheel(mx, my, sw, sh) {
-    if (mouse_wheel_up())
+    const wheel = Input.wheel();
+    if (wheel < 0)
       this._zoomTo(
         Math.min(this.zoomMax, this.zoom * (1 + this.zoomStep)),
         mx,
@@ -85,7 +87,7 @@ globalThis.CameraPan = class CameraPan {
         sw,
         sh,
       );
-    if (mouse_wheel_down())
+    if (wheel > 0)
       this._zoomTo(
         Math.max(this.zoomMin, this.zoom * (1 - this.zoomStep)),
         mx,

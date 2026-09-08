@@ -39,12 +39,12 @@ globalThis.UIScroll = class UIScroll {
     // reserve the gutter only when scrollable, so a short list uses full width.
     element.clipInsetRight = max > 0 ? barW + this.barPad * 2 : 0;
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
 
     // positionMeeting read live each use, never cached in a local (the &&-clobber quirk, #15549).
     if (max > 0) {
-      const wheel = UIPointer.wheel;
+      const wheel = Input.pointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))
         this.scroll += wheel * this.wheelStep;
     }

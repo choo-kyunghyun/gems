@@ -1,4 +1,9 @@
-/** OR-combined button/axis bindings gated by InputContext; queries go falsy when captured or blocked. */
+/**
+ * OR-combined button/axis bindings gated by InputContext. Each binding reads through the Input
+ * queries, so an action is already muted wherever the frame's claims mute its device (a hovered
+ * widget takes the mouse, a focused text field the keyboard, live menu nav the pad — Input);
+ * the context gate here is the orthogonal scene-level one (play/build/window).
+ */
 globalThis.InputAction = class InputAction {
   constructor() {
     this.buttons = [];
@@ -42,58 +47,23 @@ globalThis.InputAction = class InputAction {
     return this.buttons.length > 0 ? this.buttons[0].label() : "—";
   }
 
-  /**
-   * mutes gameplay while a text field owns the keyboard — typing can't also trigger hotkeys.
-   * UIInput.active is a plain static field, read live each call.
-   */
-  static captured() {
-    return UIInput.active !== null;
-  }
-
-  /**
-   * mutes gamepad gameplay when UINav owns the controller (window open); during free-roam GameOverlay keeps UINav.suspended=true.
-   */
-  static _gamepadMuted() {
-    return !UINav.suspended;
-  }
-
-  /**
-   * avoids caching the bool across .some() callbacks — GMRT can clobber primitive bools in closures.
-   */
-  static _buttonMuted(button) {
-    return (
-      button.source === INPUT_SOURCE.GAMEPAD && InputAction._gamepadMuted()
-    );
-  }
-
   down() {
-    if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some(
-      (button) => !InputAction._buttonMuted(button) && button.down(),
-    );
+    if (this._blocked()) return false;
+    return this.buttons.some((button) => button.down());
   }
 
   pressed() {
-    if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some(
-      (button) => !InputAction._buttonMuted(button) && button.pressed(),
-    );
+    if (this._blocked()) return false;
+    return this.buttons.some((button) => button.pressed());
   }
 
   released() {
-    if (InputAction.captured() || this._blocked()) return false;
-    return this.buttons.some(
-      (button) => !InputAction._buttonMuted(button) && button.released(),
-    );
+    if (this._blocked()) return false;
+    return this.buttons.some((button) => button.released());
   }
 
   value() {
-    if (
-      InputAction.captured() ||
-      this._blocked() ||
-      InputAction._gamepadMuted()
-    )
-      return 0;
+    if (this._blocked()) return 0;
     let val = 0;
     for (const axis of this.axes) {
       const v = axis.value();

@@ -29,7 +29,7 @@ globalThis.UIScrollbar = class UIScrollbar {
 
   /**
    * pointer step: thumb hover + press latch + drag tracking. Reads the frame-latched
-   * UIPointer edges (poll-once rule). `hoverGate` = extra hit-test condition the host
+   * Input.pointer edges (the poll-once rule — Input.poll). `hoverGate` = extra hit-test condition the host
    * imposes (UIScroll also requires the pointer inside its viewport; pass true otherwise).
    * Returns the dragged position t ∈ [0,1], or -1 when not dragging.
    */
@@ -41,12 +41,12 @@ globalThis.UIScrollbar = class UIScrollbar {
       mx <= m.x + this.barW &&
       my >= m.thumbY &&
       my <= m.thumbY + m.thumbH;
-    if (this.over && UIPointer.pressed) {
+    if (this.over && Input.pointer.left.pressed) {
       this.dragging = true;
       this._dragDY = my - m.thumbY;
     }
     if (this.dragging) {
-      if (UIPointer.down) {
+      if (Input.pointer.left.down) {
         const travel = m.h - m.thumbH;
         const t = travel > 0 ? (my - this._dragDY - m.y) / travel : 0;
         return clamp(t, 0, 1);

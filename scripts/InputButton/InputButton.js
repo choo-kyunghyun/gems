@@ -4,7 +4,11 @@ globalThis.INPUT_SOURCE = Object.freeze({
   GAMEPAD: 2,
 });
 
-/** One physical button binding: a keyboard key, mouse button, or gamepad button. */
+/**
+ * One physical button binding: a keyboard key, mouse button, or gamepad button. Reads through
+ * the Input queries, never a device built-in, so a binding sees exactly what the frame's
+ * claims leave it (the distribution contract — Input).
+ */
 globalThis.InputButton = class InputButton {
   constructor(source, button, device = 0) {
     this.source = source;
@@ -15,11 +19,11 @@ globalThis.InputButton = class InputButton {
   down() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
-        return keyboard_check(this.button);
+        return Input.keyDown(this.button);
       case INPUT_SOURCE.MOUSE:
-        return mouse_check_button(this.button);
+        return Input.pointerDown(this.button);
       case INPUT_SOURCE.GAMEPAD:
-        return gamepad_button_check(this.device, this.button);
+        return Input.padDown(this.button, this.device);
       default:
         return false;
     }
@@ -28,11 +32,11 @@ globalThis.InputButton = class InputButton {
   pressed() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
-        return keyboard_check_pressed(this.button);
+        return Input.keyPressed(this.button);
       case INPUT_SOURCE.MOUSE:
-        return mouse_check_button_pressed(this.button);
+        return Input.pointerPressed(this.button);
       case INPUT_SOURCE.GAMEPAD:
-        return gamepad_button_check_pressed(this.device, this.button);
+        return Input.padPressed(this.button, this.device);
       default:
         return false;
     }
@@ -41,11 +45,11 @@ globalThis.InputButton = class InputButton {
   released() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
-        return keyboard_check_released(this.button);
+        return Input.keyReleased(this.button);
       case INPUT_SOURCE.MOUSE:
-        return mouse_check_button_released(this.button);
+        return Input.pointerReleased(this.button);
       case INPUT_SOURCE.GAMEPAD:
-        return gamepad_button_check_released(this.device, this.button);
+        return Input.padReleased(this.button, this.device);
       default:
         return false;
     }

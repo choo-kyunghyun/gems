@@ -36,8 +36,8 @@ globalThis.Tooltip = {
 
     if (Tooltip.font !== -1) draw_set_font(Tooltip.font);
 
-    let x = device_mouse_x_to_gui(0) + Tooltip.offsetX;
-    let y = device_mouse_y_to_gui(0) + Tooltip.offsetY;
+    let x = Input.pointer.x + Tooltip.offsetX;
+    let y = Input.pointer.y + Tooltip.offsetY;
     const width =
       string_width_ext(Tooltip.text, Tooltip.sep, Tooltip.w) +
       Tooltip.paddingX * 2;

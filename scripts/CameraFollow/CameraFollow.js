@@ -78,13 +78,12 @@ globalThis.CameraFollow = class CameraFollow {
 
   /** Wheel/reset input → eased zoom → the view extent, tracked off the live surface. */
   _zoom(camera) {
-    // zoom input yields to the UI: a wheel over a hovered list scrolls it, never the world
-    if (!UI.captured) {
-      if (mouse_wheel_up()) this.zoomTarget = this._stepTo(1);
-      if (mouse_wheel_down()) this.zoomTarget = this._stepTo(-1);
-      if (mouse_check_button_pressed(this.zoomButton))
-        this.zoomTarget = this.zoomHome;
-    }
+    // zoom input yields to the UI: the Input queries read 0 / false while a hovered list holds
+    // the pointer (the distribution contract — Input), so a wheel over it scrolls it, never the world
+    const wheel = Input.wheel();
+    if (wheel < 0) this.zoomTarget = this._stepTo(1);
+    if (wheel > 0) this.zoomTarget = this._stepTo(-1);
+    if (Input.pointerPressed(this.zoomButton)) this.zoomTarget = this.zoomHome;
 
     const sw = surface_get_width(application_surface);
     // cap zoom-out to the renderable world width — derived live from the current surface so a

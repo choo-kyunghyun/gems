@@ -105,7 +105,7 @@ globalThis.UISlider = class UISlider {
     // drag: the FSM latches hold on the press frame (value jumps immediately) and clears it
     // during the release-frame update (no set on release) — same order as before delegation.
     if (this._fsm.hold) {
-      const mx = device_mouse_x_to_gui(0);
+      const mx = Input.pointer.x;
       const m = this._metrics(pos);
       const t = clamp((mx - pos.left - m.r) / m.inner, 0, 1);
       this.setValue(this.min + t * (this.max - this.min));

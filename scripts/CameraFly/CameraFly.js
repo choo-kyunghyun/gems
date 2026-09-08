@@ -86,7 +86,7 @@ globalThis.CameraFly = class CameraFly {
   /** RMB mouse-look + Q/E roll, and the pole clamp that keeps the basis well-defined. */
   _look() {
     // mouse look while RMB held: recenter the cursor each frame, apply the pixel delta
-    if (mouse_check_button(mb_right)) {
+    if (Input.pointerDown(mb_right)) {
       const cx = Math.floor(window_get_width() / 2);
       const cy = Math.floor(window_get_height() / 2);
       if (this.looking) {
@@ -94,8 +94,8 @@ globalThis.CameraFly = class CameraFly {
         // same frame. NOT Time-scaled (unlike move/roll): a mouse delta is already a distance
         // moved, so scaling it by frame time would make look speed depend on framerate.
         const s = this.sens * Input.sensitivity;
-        this.yaw += (window_mouse_get_x() - cx) * s;
-        this.pitch += (window_mouse_get_y() - cy) * s;
+        this.yaw += (Input.pointer.winX - cx) * s;
+        this.pitch += (Input.pointer.winY - cy) * s;
       }
       this.looking = true; // the first held frame only recenters (no delta jump)
       window_mouse_set(cx, cy);
@@ -107,8 +107,8 @@ globalThis.CameraFly = class CameraFly {
     if (this.pitch < -1.55) this.pitch = -1.55;
 
     const rollStep = 1.6 * Time.raw;
-    if (keyboard_check(ord("Q"))) this.roll -= rollStep;
-    if (keyboard_check(ord("E"))) this.roll += rollStep;
+    if (Input.keyDown(ord("Q"))) this.roll -= rollStep;
+    if (Input.keyDown(ord("E"))) this.roll += rollStep;
   }
 
   /**
@@ -118,25 +118,25 @@ globalThis.CameraFly = class CameraFly {
   _move(fx, fy, fz, rx, ry) {
     const spd = this.speed * Time.raw;
 
-    if (keyboard_check(ord("W"))) {
+    if (Input.keyDown(ord("W"))) {
       this.x += fx * spd;
       this.y += fy * spd;
       this.z += fz * spd;
     }
-    if (keyboard_check(ord("S"))) {
+    if (Input.keyDown(ord("S"))) {
       this.x -= fx * spd;
       this.y -= fy * spd;
       this.z -= fz * spd;
     }
-    if (keyboard_check(ord("D"))) {
+    if (Input.keyDown(ord("D"))) {
       this.x += rx * spd;
       this.y += ry * spd;
     }
-    if (keyboard_check(ord("A"))) {
+    if (Input.keyDown(ord("A"))) {
       this.x -= rx * spd;
       this.y -= ry * spd;
     }
-    if (keyboard_check(vk_space)) this.z -= spd;
-    if (keyboard_check(vk_shift)) this.z += spd;
+    if (Input.keyDown(vk_space)) this.z -= spd;
+    if (Input.keyDown(vk_shift)) this.z += spd;
   }
 };

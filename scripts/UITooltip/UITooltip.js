@@ -11,8 +11,8 @@ globalThis.UITooltip = class UITooltip {
   }
 
   onUpdate(element, block) {
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
     const over = !block && element.positionMeeting(mx, my);
     if (!over) {
       this._elapsed = 0;

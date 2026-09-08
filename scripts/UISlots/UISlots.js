@@ -56,8 +56,8 @@ globalThis.UISlots = class UISlots {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
 
     // hit-test into INSTANCE fields, not boolean local consts — on GMRT a local bool
     // can flip true→false mid-function (see CLAUDE.md).
@@ -70,7 +70,7 @@ globalThis.UISlots = class UISlots {
     // mouse. Re-requests nav suspension each frame and absorbs that frame's keys (incl. the
     // exit Esc) — same contract as UITable browse mode.
     if (this._browsing) {
-      if (moved || (this._inside && UIPointer.pressed)) {
+      if (moved || (this._inside && Input.pointer.left.pressed)) {
         this._browsing = false; // pointer takes over → fall through to mouse handling
       } else {
         this._hover = -1; // no stale mouse hover under the key cursor
@@ -102,7 +102,7 @@ globalThis.UISlots = class UISlots {
 
     if (this.draggable) {
       // filled slot → pick up; empty slot → select.
-      if (this._inside && this._hover >= 0 && UIPointer.pressed) {
+      if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
         if (this.items[this._hover] != null) {
           SlotDrag.begin(this, this._hover);
         } else {
@@ -116,7 +116,7 @@ globalThis.UISlots = class UISlots {
         SlotDrag.hover(this, this._hover);
         return true;
       }
-    } else if (this._inside && this._hover >= 0 && UIPointer.pressed) {
+    } else if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
       this._select(this._hover);
       return true;
     }

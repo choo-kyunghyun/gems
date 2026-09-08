@@ -245,8 +245,8 @@ globalThis.ColonyPlayer = {
       // flat-camera fallback ONLY — mouse_x/mouse_y are wrong under the pitched matrix camera,
       // so callers there must resolve the aim themselves (PlayerSystem passes nx/ny from the
       // level-latched world cursor; see Camera.unproject)
-      const dx = mouse_x - pos.x;
-      const dy = mouse_y - muzzleY;
+      const dx = Input.pointer.roomX - pos.x;
+      const dy = Input.pointer.roomY - muzzleY;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
       nx = dx / dist;
       ny = dy / dist;

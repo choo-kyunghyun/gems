@@ -35,8 +35,10 @@ globalThis.PlayerSystem = {
    * register the colony keymap + InputContext tags (boot; idempotent).
    *
    * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
-   * while building/window (no per-frame BuildMode check); interact opens in play / closes a window;
-   * build/follow inert with a window open. See InputContext / inContext.
+   * while building/window (no per-frame BuildMode check); the build brush "build"-only, on the same
+   * mouse buttons (the context splits them — and Input mutes both while the build bar holds the
+   * pointer); interact opens in play / closes a window; build/follow inert with a window open. See
+   * InputContext / inContext.
    */
   bindKeys() {
     const ANYWHERE = ["play", "build", "window"];
@@ -47,6 +49,8 @@ globalThis.PlayerSystem = {
       moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
       sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE], // hold to sprint (drains Stamina)
       fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
+      buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]], // place the brush (BuildMode)
+      buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]], // deconstruct under the brush (BuildMode)
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],

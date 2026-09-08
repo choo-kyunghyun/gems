@@ -11,8 +11,6 @@ globalThis.UINav = {
   color: c_aqua, // focus-ring color (overridden by demo theme)
   debugKey: vk_tab, // hold to show traversal overlay (-1 disables)
 
-  _mx: 0, // last mouse pos — movement disengages
-  _my: 0,
   _stickX: 0, // left-stick re-arm latches (0 = armed)
   _stickY: 0,
 
@@ -43,8 +41,17 @@ globalThis.UINav = {
     UINav._claimed = null;
   },
 
-  /** Per-frame nav tick (Step_0, after UI.update). */
+  /**
+   * Per-frame nav tick (Step_0, after UI.update): read + act, then, while live, claim the
+   * gamepad — the sticks and face buttons drive the menu, so the scene's pad bindings read idle
+   * (the distribution contract — Input). Claimed AFTER the reads, never before.
+   */
   update() {
+    UINav._tick();
+    if (!UINav.suspended) Input.claimPad();
+  },
+
+  _tick() {
     // gameplay owns the keys while suspended — don't collect or act
     if (UINav.suspended) {
       UINav.engaged = false;
@@ -64,13 +71,7 @@ globalThis.UINav = {
     }
 
     // mouse movement disengages (ring hidden)
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
-    if (mx !== UINav._mx || my !== UINav._my) {
-      UINav._mx = mx;
-      UINav._my = my;
-      UINav.engaged = false;
-    }
+    if (Input.pointer.moved) UINav.engaged = false;
 
     if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
     if (UINav._claimed !== null) {
@@ -121,7 +122,7 @@ globalThis.UINav = {
 
   /** Draw the focus ring (Draw_75); Tab debug overlay when held. */
   draw() {
-    if (UINav.debugKey !== -1 && keyboard_check(UINav.debugKey)) {
+    if (UINav.debugKey !== -1 && Input.keyDown(UINav.debugKey)) {
       UINav._drawDebug();
     }
 
@@ -365,42 +366,37 @@ globalThis.UINav = {
     let confirm = false;
     let cancel = false;
 
-    if (keyboard_check_pressed(vk_left)) dx = -1;
-    else if (keyboard_check_pressed(vk_right)) dx = 1;
-    if (keyboard_check_pressed(vk_up)) dy = -1;
-    else if (keyboard_check_pressed(vk_down)) dy = 1;
-    if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space))
-      confirm = true;
-    if (keyboard_check_pressed(vk_escape)) cancel = true;
+    if (Input.keyPressed(vk_left)) dx = -1;
+    else if (Input.keyPressed(vk_right)) dx = 1;
+    if (Input.keyPressed(vk_up)) dy = -1;
+    else if (Input.keyPressed(vk_down)) dy = 1;
+    if (Input.keyPressed(vk_enter) || Input.keyPressed(vk_space)) confirm = true;
+    if (Input.keyPressed(vk_escape)) cancel = true;
 
-    if (gamepad_is_connected(0)) {
-      if (gamepad_button_check_pressed(0, gp_padl)) dx = -1;
-      else if (gamepad_button_check_pressed(0, gp_padr)) dx = 1;
-      if (gamepad_button_check_pressed(0, gp_padu)) dy = -1;
-      else if (gamepad_button_check_pressed(0, gp_padd)) dy = 1;
-      if (gamepad_button_check_pressed(0, gp_face1)) confirm = true;
-      if (gamepad_button_check_pressed(0, gp_face2)) cancel = true;
-    }
+    if (Input.padPressed(gp_padl)) dx = -1;
+    else if (Input.padPressed(gp_padr)) dx = 1;
+    if (Input.padPressed(gp_padu)) dy = -1;
+    else if (Input.padPressed(gp_padd)) dy = 1;
+    if (Input.padPressed(gp_face1)) confirm = true;
+    if (Input.padPressed(gp_face2)) cancel = true;
 
     return { dx, dy, confirm, cancel };
   },
 
   _readInput() {
     const e = UINav.readEdge();
-    if (gamepad_is_connected(0)) {
-      // Left stick → debounced edges: re-arm under 0.4, fire over 0.6.
-      const ax = gamepad_axis_value(0, gp_axislh);
-      const ay = gamepad_axis_value(0, gp_axislv);
-      if (abs(ax) < 0.4) UINav._stickX = 0;
-      else if (UINav._stickX === 0 && abs(ax) > 0.6) {
-        e.dx = ax < 0 ? -1 : 1;
-        UINav._stickX = e.dx;
-      }
-      if (abs(ay) < 0.4) UINav._stickY = 0;
-      else if (UINav._stickY === 0 && abs(ay) > 0.6) {
-        e.dy = ay < 0 ? -1 : 1;
-        UINav._stickY = e.dy;
-      }
+    // Left stick → debounced edges: re-arm under 0.4, fire over 0.6.
+    const ax = Input.padAxis(gp_axislh);
+    const ay = Input.padAxis(gp_axislv);
+    if (abs(ax) < 0.4) UINav._stickX = 0;
+    else if (UINav._stickX === 0 && abs(ax) > 0.6) {
+      e.dx = ax < 0 ? -1 : 1;
+      UINav._stickX = e.dx;
+    }
+    if (abs(ay) < 0.4) UINav._stickY = 0;
+    else if (UINav._stickY === 0 && abs(ay) > 0.6) {
+      e.dy = ay < 0 ? -1 : 1;
+      UINav._stickY = e.dy;
     }
     return e;
   },

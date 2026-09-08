@@ -75,15 +75,28 @@ globalThis.Dialogue = {
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
     // keyboard/gamepad advance anywhere; LMB only inside the box (so a click on background UI
-    // doesn't page too). UIPointer-latched edge, not re-queried — the poll-once rule (UIPointer).
-    let advance =
-      keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space);
-    if (gamepad_is_connected(0) && gamepad_button_check_pressed(0, gp_face1))
+    // doesn't page too). Read through the Input queries, and what advances is consumed, so the
+    // scene after this never acts on the same press (the distribution contract — Input).
+    let advance = false;
+    if (Input.keyPressed(vk_enter)) {
+      Input.consumeKey(vk_enter);
       advance = true;
-    if (UIPointer.pressed) {
-      const mx = device_mouse_x_to_gui(0);
-      const my = device_mouse_y_to_gui(0);
-      if (mx >= g.x1 && mx <= g.x2 && my >= g.y1 && my <= g.y2) advance = true;
+    }
+    if (Input.keyPressed(vk_space)) {
+      Input.consumeKey(vk_space);
+      advance = true;
+    }
+    if (Input.padPressed(gp_face1)) {
+      Input.consumePad(gp_face1);
+      advance = true;
+    }
+    if (Input.pointerPressed(mb_left)) {
+      const mx = Input.pointer.x;
+      const my = Input.pointer.y;
+      if (mx >= g.x1 && mx <= g.x2 && my >= g.y1 && my <= g.y2) {
+        Input.claimPointer();
+        advance = true;
+      }
     }
     if (advance) Dialogue._advance();
   },

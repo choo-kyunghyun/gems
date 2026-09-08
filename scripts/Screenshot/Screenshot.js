@@ -11,7 +11,7 @@
  * (ms since boot) de-dupes same-second shots.
  */
 globalThis.Screenshot = {
-  /** Key polled by keyboard_check_pressed for a manual shot. */
+  /** Key polled through Input.keyPressed for a manual shot. */
   hotkey: vk_f5,
   /** Filenames to save this frame; null = autoname. */
   _pending: [],
@@ -24,7 +24,7 @@ globalThis.Screenshot = {
   },
 
   update() {
-    if (keyboard_check_pressed(Screenshot.hotkey)) Screenshot.take();
+    if (Input.keyPressed(Screenshot.hotkey)) Screenshot.take();
     for (let i = 0; i < Screenshot._pending.length; i++) {
       const path =
         game_save_id +

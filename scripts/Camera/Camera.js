@@ -250,22 +250,23 @@ globalThis.Camera = class Camera {
   mouseSurface() {
     return {
       x:
-        (device_mouse_x_to_gui(0) / display_get_gui_width()) *
+        (Input.pointer.x / display_get_gui_width()) *
         surface_get_width(application_surface),
       y:
-        (device_mouse_y_to_gui(0) / display_get_gui_height()) *
+        (Input.pointer.y / display_get_gui_height()) *
         surface_get_height(application_surface),
     };
   }
 
   /**
    * The mouse cursor as a ground-plane world point under this camera (mouseSurface → unproject).
-   * Latch ONCE per frame and share (the poll-once rule — UIPointer).
+   * Latch ONCE per frame and share (the poll-once rule — Input.poll).
    * THE world cursor under a PITCHED camera: mouse_x/mouse_y are the flat-camera answer and are
    * simply wrong once the view tilts, so aim/build/interact all read the latched value instead
    * (sceneColony.update → scene.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
-   * mouse_x/y remain valid (CameraPan uses them). The result is a GROUND-plane
-   * point — an entity's FEET — so pointing at a tall billboard's upper body lands behind it.
+   * the plain room cursor stays valid (Input.pointer.roomX/roomY, the space CameraPan works
+   * in). The result is a GROUND-plane point — an entity's FEET — so pointing at a tall
+   * billboard's upper body lands behind it.
    * ORTHO only (see project).
    */
   cursorWorld() {

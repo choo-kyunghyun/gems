@@ -83,8 +83,8 @@ globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
  */
 globalThis.uiPointerSide = function uiPointerSide(element, block) {
   if (block) return 0;
-  const mx = device_mouse_x_to_gui(0);
-  if (!element.positionMeeting(mx, device_mouse_y_to_gui(0))) return 0;
+  const mx = Input.pointer.x;
+  if (!element.positionMeeting(mx, Input.pointer.y)) return 0;
   const pos = element.getLayoutPosition();
   return mx < pos.left + pos.width * 0.5 ? -1 : 1;
 };

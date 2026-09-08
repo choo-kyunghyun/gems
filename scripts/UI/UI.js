@@ -59,37 +59,17 @@ globalThis.UI = {
   },
 
   /**
-   * True while a widget under the cursor captures the pointer, latched by update() each frame.
-   * The gate for world input that must yield to the UI (CameraFollow's wheel zoom); world
-   * consumers run after UI.update in Game Step_0, so the read is same-frame fresh.
+   * The tree's frame: later roots block earlier from the pointer (a widget reads the raw
+   * Input.pointer and arbitrates through `block`), then a tree that took the pointer — a
+   * hovered or held widget, an exclusive modal — CLAIMS it, so no consumer after the tree
+   * (the scene's world clicks above all) sees the press (the distribution contract — Input).
    */
-  captured: false,
-
-  /**
-   * Keycodes a widget consumed this frame (consumeKey), cleared as update() starts, so a press
-   * one widget acted on doesn't also reach a reader later in the same pass — UIRebind's
-   * capture-cancel Esc against the enclosing UIModal's Esc-close. Not keyboard_clear, which
-   * leaves the pressed edge standing (docs/GMRT.md).
-   */
-  _consumed: [],
-
-  consumeKey(code) {
-    UI._consumed.push(code);
-  },
-
-  /** keyboard_check_pressed, minus the presses consumed this frame. */
-  keyPressed(code) {
-    return UI._consumed.indexOf(code) === -1 && keyboard_check_pressed(code);
-  },
-
-  /** later roots block earlier from the pointer. */
   update() {
-    UI._consumed = [];
     let block = false;
     [...UI.roots].reverse().forEach((root) => {
       if (root.enabled) block = root.update(block) || block;
     });
-    UI.captured = block;
+    if (block) Input.claimPointer();
   },
 
   draw() {

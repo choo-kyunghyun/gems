@@ -108,8 +108,8 @@ globalThis.UIElement = class UIElement {
     let childBlock = block;
     let insideClip = true;
     if (this.clip) {
-      const mx = device_mouse_x_to_gui(0);
-      const my = device_mouse_y_to_gui(0);
+      const mx = Input.pointer.x;
+      const my = Input.pointer.y;
       insideClip = this.positionMeeting(mx, my);
       if (!insideClip) childBlock = true;
     }

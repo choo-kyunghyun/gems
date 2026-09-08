@@ -88,8 +88,8 @@ globalThis.UITabs = class UITabs {
     const n = this.tabs.length;
     if (n === 0) return block;
 
-    const mx = device_mouse_x_to_gui(0);
-    const my = device_mouse_y_to_gui(0);
+    const mx = Input.pointer.x;
+    const my = Input.pointer.y;
     const inside = !block && element.positionMeeting(mx, my);
 
     const prev = this._hover;
@@ -103,7 +103,7 @@ globalThis.UITabs = class UITabs {
         if (this._dwell >= this.tipDelay) Tooltip.set(this._label(this._hover));
       }
       // selects on PRESS — deliberately snappier than the FSM widgets' release-inside commit
-      if (UIPointer.pressed) {
+      if (Input.pointer.left.pressed) {
         this.select(this._hover);
         return true;
       }

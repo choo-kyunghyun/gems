@@ -3,12 +3,17 @@
  * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
  * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
  * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) item is a
- * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); LMB places, RMB
- * deconstructs. The SHAPE row above the bar sets the brush's footprint: `cell` acts on the hovered
- * cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every cell the
- * shape spans as ONE build (the whole cost paid up front, solid layers remeshed once); an entity
- * item is always single-cell. State on the scene (`_build*`); the static `active` flag is mirrored
- * each frame so drawWorld can gate the cursor highlight to "build context owns input".
+ * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); the `buildPlace`
+ * (LMB) action places, `buildRemove` (RMB) deconstructs — "build"-context actions from the app
+ * keymap (PlayerSystem.bindKeys), read through Input, which mutes them while the bar (or any
+ * widget) holds the pointer: a click on the palette never reaches the grid behind it, with no
+ * rect guard of its own. The SHAPE row above the bar sets the brush's footprint: `cell` acts on
+ * the hovered cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every
+ * cell the shape spans as ONE build (the whole cost paid up front, solid layers remeshed once) —
+ * a drag pressed on the grid stays the grid's until its release wherever the cursor goes (Input's
+ * pointer ownership); an entity item is always single-cell. State on the scene (`_build*`); the
+ * static `active` flag is mirrored each frame so drawWorld can gate the cursor highlight to
+ * "build context owns input".
  *
  * DEV authoring: F6 toggles FREE build (no settlement gate, no wood) and the shape row gains
  * `capture` — drag a rect and Blueprint.capture writes what stands there out as the prefab literal
@@ -496,8 +501,8 @@ globalThis.BuildMode = {
     scene._buildDrag = undefined; // { x, y, remove } — the anchor cell while a shape drag is held
     BuildMode.active = false;
 
-    // bottom-center HUD: status line over the build bar. placement (LMB/RMB) is on the world
-    // grid, guarded against the HUD's own rect (_overHud) so clicking the bar can't also edit behind it.
+    // bottom-center HUD: status line over the build bar. Placement is on the world grid through
+    // the build actions, which Input mutes while the bar holds the pointer (see the header).
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -569,7 +574,6 @@ globalThis.BuildMode = {
     wrap.insertChild(col);
     wrap.enabled = false;
     scene._buildHud = wrap;
-    scene._buildHudBox = col; // rect for the placement guard
     scene.ui.insertChild(wrap);
   },
 
@@ -596,12 +600,12 @@ globalThis.BuildMode = {
   },
 
   /**
-   * per-frame: toggle on B, then (while active + not over the HUD) place on LMB / deconstruct on
-   * RMB at the hovered cell. call from step() after Interactable.update, outside the tick loop.
+   * per-frame: toggle on B, then (while active) place on buildPlace / deconstruct on buildRemove
+   * at the hovered cell. call from step() after Interactable.update, outside the tick loop.
    */
   update(scene) {
     // DEV: F6 toggles free build (no settlement gate, no wood)
-    if (DEV_MODE && keyboard_check_pressed(vk_f6)) {
+    if (DEV_MODE && Input.keyPressed(vk_f6)) {
       BuildMode.free = !BuildMode.free;
       Toast.push(
         I18n.text(BuildMode.free ? "BUILD_FREE_ON" : "BUILD_FREE_OFF"),
@@ -631,15 +635,6 @@ globalThis.BuildMode = {
     const grid = scene.level.grid;
     const drag = scene._buildDrag;
 
-    // skip world edits while the cursor is over the build HUD (a bar click must not place behind
-    // it); a drag let go over it is cancelled, never applied
-    if (BuildMode._overHud(scene)) {
-      scene._buildCell = undefined;
-      if (drag !== undefined && !BuildMode._dragHeld(drag))
-        scene._buildDrag = undefined;
-      return;
-    }
-
     // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
     const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     scene._buildCell = cell;
@@ -650,13 +645,12 @@ globalThis.BuildMode = {
     }
 
     if (drag === undefined) {
-      // a press: a single-cell brush acts at once, a shape anchors a drag. LMB reuses the edge
-      // latched by UIPointer.poll (the poll-once rule — UIPointer); RMB is unread elsewhere, so
-      // its single live query is safe.
-      if (UIPointer.pressed) {
+      // a press: a single-cell brush acts at once, a shape anchors a drag. A press the UI took
+      // (the bar, its flyout, any hovered widget) reads false here — Input muted it.
+      if (Input.get("buildPlace").pressed()) {
         if (BuildMode._single(scene)) BuildMode._tryPlace(scene, cell.x, cell.y);
         else scene._buildDrag = { x: cell.x, y: cell.y, remove: false };
-      } else if (mouse_check_button_pressed(mb_right)) {
+      } else if (Input.get("buildRemove").pressed()) {
         if (scene._buildShape === "cell")
           BuildMode._tryRemove(scene, cell.x, cell.y);
         else scene._buildDrag = { x: cell.x, y: cell.y, remove: true };
@@ -675,9 +669,11 @@ globalThis.BuildMode = {
     else BuildMode._placeCells(scene, cells);
   },
 
-  /** is the button a drag started on still held (RMB polled live — one query per frame) */
+  /** is the button a drag started on still held — the grid's press, so it reads true over the HUD too */
   _dragHeld(drag) {
-    return drag.remove ? mouse_check_button(mb_right) : UIPointer.down;
+    return drag.remove
+      ? Input.get("buildRemove").down()
+      : Input.get("buildPlace").down();
   },
 
   /**
@@ -808,20 +804,6 @@ globalThis.BuildMode = {
     else Toast.push(I18n.text("BUILD_CAPTURE_FAIL"), { type: "error" });
     Log.info(
       `captured ${plan.cols}x${plan.rows} → ${name} — ${plan.tiles.length} channel(s), ${plan.spawns.length} spawn(s)`,
-    );
-  },
-
-  /**
-   * cursor over the HUD column's rect (`width > 0` dodges the first-frame NaN rect; the column
-   * grows to include an open flyout, so this covers it).
-   */
-  _overHud(scene) {
-    const p = scene._buildHudBox.getLayoutPosition();
-    if (!(p.width > 0)) return false;
-    const gmx = device_mouse_x_to_gui(0);
-    const gmy = device_mouse_y_to_gui(0);
-    return (
-      gmx >= p.x && gmx <= p.x + p.width && gmy >= p.y && gmy <= p.y + p.height
     );
   },
 

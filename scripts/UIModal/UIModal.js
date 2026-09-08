@@ -75,13 +75,16 @@ globalThis.UIModal = class UIModal {
       return true; // exiting: swallow input, skip dismiss triggers
     }
 
-    // UI.keyPressed, not the raw edge: a child may have consumed this Esc (UIRebind's cancel)
-    if (this.closeOnEscape && UI.keyPressed(vk_escape)) {
+    // Input.keyPressed, not the raw edge: a child may have consumed this Esc (UIRebind's cancel)
+    // or hold the keyboard (a focused UIInput); consumed here in turn so the Game object's
+    // gameplay Esc, read after the tree, doesn't also act on it
+    if (this.closeOnEscape && Input.keyPressed(vk_escape)) {
+      Input.consumeKey(vk_escape);
       this.close();
       return true;
     }
     // backdrop click: a press the card didn't capture (block still false).
-    if (this.closeOnBackdrop && !block && UIPointer.pressed) {
+    if (this.closeOnBackdrop && !block && Input.pointer.left.pressed) {
       this.close();
       return true;
     }
