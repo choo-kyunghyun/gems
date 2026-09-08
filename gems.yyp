@@ -127,6 +127,7 @@
     {"id":{"name":"psDrop","path":"particles/psDrop/psDrop.yy",},},
     {"id":{"name":"psExplosion","path":"particles/psExplosion/psExplosion.yy",},},
     {"id":{"name":"psMuzzle","path":"particles/psMuzzle/psMuzzle.yy",},},
+    {"id":{"name":"psPortal","path":"particles/psPortal/psPortal.yy",},},
     {"id":{"name":"Room","path":"rooms/Room/Room.yy",},},
     {"id":{"name":"AABB","path":"scripts/AABB/AABB.yy",},},
     {"id":{"name":"Achievement","path":"scripts/Achievement/Achievement.yy",},},

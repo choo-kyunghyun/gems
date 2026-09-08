@@ -1,4 +1,5 @@
-// World-space gameplay overlay for the colony scene — item drops (icon + a rarity-tinted psDrop stream), projectile dots,
+// World-space gameplay overlay for the colony scene — item drops (icon + a rarity-tinted psDrop stream), the travel
+// beacon's psPortal stream, projectile dots,
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneColony.draw() AFTER renderer.draw().
 /**
  * Drawn after renderer.draw() because the ground passes paint an opaque fill that would hide it.
@@ -62,7 +63,23 @@ globalThis.WorldOverlay = {
       part_system_drawit(fx);
       matrix_set(matrix_world, ident);
     });
-    ParticleFx.sweep((id) => entities.has(id, ItemDrop));
+    // Beacons: the site's travel prop streams psPortal for as long as it stands, held by entity
+    // id like a drop. The asset is authored over the beacon sprite's SOURCE frame (128 px), so it
+    // draws at the sprite's baked scale, on the same camera-facing plane.
+    entities.forEach([Interaction, Visual, Position], (id, it, vis, p) => {
+      if (it.kind !== "travel") return;
+      const fx = ParticleFx.hold(id, psPortal);
+      const k = Math.abs(vis.xscale);
+      matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, k, k, 1));
+      part_system_drawit(fx);
+      matrix_set(matrix_world, ident);
+    });
+    ParticleFx.sweep((id) => {
+      if (entities.has(id, ItemDrop)) return true;
+      const it = entities.get(id, Interaction);
+      if (it === undefined) return false;
+      return it.kind === "travel";
+    });
 
     // 2.5D: lift in-air cues (projectile dots + tracers) off the ground via a world-z offset so they
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
