@@ -84,9 +84,12 @@ globalThis.contentItems = {
     aeon_pistol: "pixItemPistol",
     vekt_pistol: "pixItemPistol",
     aeon_cutter: "pixItemEnergy",
-    helios_vest: "pixItemArmoredVest",
     helios_ration: "pixItemCannedFood",
     aeon_rounds: "pixItemRounds",
+    // the vests have no 32 px icon of their own: the bag shows their worn Outer garment sheet,
+    // which every icon site draws fit-scaled (UIImage CONTAIN, SlotDrag's iconSize)
+    armored_vest: "pixOuterArmoredVest",
+    helios_vest: "pixOuterArmoredVest",
   },
 
   register() {
@@ -297,12 +300,12 @@ globalThis.contentItems = {
         value: 20,
         rarity: "uncommon",
         components: [
-          // worn: the sprite this shows in its doll slot (see Appearance); "" = the slot stays
-          // bare. TODO: no armour art survived the Spine move — authoring one fills the `outer` slot.
+          // worn: the sprite this shows in its doll slot (see Appearance) — the vest sheet lands
+          // on the rig's `outer` slot over the authored shirt
           new Equippable({
             slot: "armor",
             mods: { defense: 2, maxHp: 5 },
-            worn: "",
+            worn: "pixOuterArmoredVest",
           }),
         ],
       },
@@ -662,7 +665,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 3, maxHp: 8 },
-            worn: "",
+            worn: "pixOuterArmoredVest", // the branded vest reuses the base garment art
           }),
         ],
       },
