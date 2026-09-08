@@ -1,4 +1,4 @@
-// World-space gameplay overlay for the colony scene — item drops (rarity squares), projectile dots,
+// World-space gameplay overlay for the colony scene — item drops (icon + a rarity-tinted psDrop stream), projectile dots,
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneColony.draw() AFTER renderer.draw().
 /**
  * Drawn after renderer.draw() because the ground passes paint an opaque fill that would hide it.
@@ -34,20 +34,35 @@ globalThis.WorldOverlay = {
   drawWorld(scene) {
     const entities = scene.level.entities;
 
+    // Drops: the icon flat at its declared density, plus a psDrop stream HELD per drop entity
+    // (ParticleFx.hold; the sweep below releases it once the entity is gone) tinted with the
+    // item's rarity color — the visibility cue. 2.5D: the stream draws on a camera-facing plane
+    // at the drop's foot (the FloatingText tilt) so its drift rises on screen; a flat top-down
+    // camera (pitch 0) leaves it on the ground.
+    const tilt =
+      scene.camera !== undefined ? (-scene.camera.pitch * 180) / Math.PI : 0;
+    const ident = matrix_build_identity();
     entities.forEach([ItemDrop, Position], (id, d, p) => {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
+      const color = InvTable.rarityColor(d.itemId);
       if (sprite_exists(spr)) {
-        // centered-origin 16px icon drawn ×2 (32 world px on the 32px-cell world)
-        draw_sprite_ext(spr, 0, p.x, p.y, 2, 2, 0, c_white, 1);
+        const f = SpriteMeta.fit(1, spr);
+        draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, c_white, 1);
       } else {
         // no icon — fall back to the rarity-colored square
-        draw_set_color(InvTable.rarityColor(d.itemId));
+        draw_set_color(color);
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, false);
         draw_set_color(c_black);
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);
       }
+      const fx = ParticleFx.hold(id, psDrop);
+      part_system_colour(fx, color, 1);
+      matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, 1, 1, 1));
+      part_system_drawit(fx);
+      matrix_set(matrix_world, ident);
     });
+    ParticleFx.sweep((id) => entities.has(id, ItemDrop));
 
     // 2.5D: lift in-air cues (projectile dots + tracers) off the ground via a world-z offset so they
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).

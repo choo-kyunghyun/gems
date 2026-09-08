@@ -59,7 +59,9 @@
     {"$GMFolder":"","%Name":"UI","folderPath":"folders/Game/UI.yy","name":"UI","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Facet","folderPath":"folders/Game/UI/Facet.yy","name":"Facet","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
-  "ForcedPrefabProjectReferences":[],
+  "ForcedPrefabProjectReferences":[
+    {"link":"io.gamemaker.gmparticlepresets-1.0.0","name":"io.gamemaker.gmparticlepresets-1.0.0","path":"io.gamemaker.gmparticlepresets-1.0.0.yyp",},
+  ],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"OFL.txt","CopyToMask":-1,"filePath":"datafiles/i18n/en-US/fonts/Noto_Sans","name":"OFL.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"README.txt","CopyToMask":-1,"filePath":"datafiles/i18n/en-US/fonts/Noto_Sans","name":"README.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -122,6 +124,7 @@
   "resources":[
     {"id":{"name":"Game","path":"objects/Game/Game.yy",},},
     {"id":{"name":"Puppet","path":"objects/Puppet/Puppet.yy",},},
+    {"id":{"name":"psDrop","path":"particles/psDrop/psDrop.yy",},},
     {"id":{"name":"psExplosion","path":"particles/psExplosion/psExplosion.yy",},},
     {"id":{"name":"psMuzzle","path":"particles/psMuzzle/psMuzzle.yy",},},
     {"id":{"name":"Room","path":"rooms/Room/Room.yy",},},

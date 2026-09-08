@@ -270,7 +270,7 @@ globalThis.ColonyCombat = {
     const entities = scene.level.entities;
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y, z: 0 });
-    // match the ×2-drawn 16px icon sprite WorldOverlay draws so the pickup box lines up with the drop
+    // the 32px icon WorldOverlay draws 1:1 — the pickup box lines up with the drop
     entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
