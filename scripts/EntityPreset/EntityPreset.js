@@ -142,11 +142,15 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Normalize an authored Skeleton (sprite + optional overrides) and bake the same size split a
-   * Visual gets. No strip fields — SkeletonSystem owns `frame`, and its FPS is authored time.
+   * Normalize an authored Skeleton (sprite + anim + optional overrides) and bake the same size
+   * split a Visual gets. No strip fields — SkeletonSystem owns `frame`, and its FPS is authored
+   * time. `anim` has no default — Core knows no rig's set names — so the preset authors it per rig.
    */
   _bakeSkeleton(sk, k) {
-    sk.anim = sk.anim ?? "idle";
+    if (sk.anim === undefined)
+      throw new Error(
+        `EntityPreset: Skeleton ${sprite_get_name(sk.sprite)} authors no anim`,
+      );
     sk.loop = sk.loop ?? true;
     sk.fps = sk.fps ?? SkeletonSystem.FPS;
     sk.frame = sk.frame ?? 0;

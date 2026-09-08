@@ -50,7 +50,7 @@ globalThis.SkeletonSystem = {
     sk.loop = loop ?? sk.loop;
     sk.frame = 0;
     const held = entities.get(id, Instance);
-    if (held !== undefined) held.inst.skeleton_animation_set(anim, sk.loop);
+    if (held !== undefined) SkeletonSystem._play(held.inst, sk);
   },
 
   /**
@@ -79,12 +79,24 @@ globalThis.SkeletonSystem = {
     return sk.frame >= held.inst.skeleton_animation_get_frames(sk.anim) - 1;
   },
 
+  /**
+   * Bind the puppet to `sk.anim`, refusing a set the sheet lacks: the runtime's only signal is
+   * get_frames reading 0 for the name (docs/GMRT.md), else the doll would pass as standing still.
+   */
+  _play(inst, sk) {
+    inst.skeleton_animation_set(sk.anim, sk.loop);
+    if (inst.skeleton_animation_get_frames(sk.anim) <= 0)
+      throw new Error(
+        `SkeletonSystem: ${sprite_get_name(sk.sprite)} has no animation "${sk.anim}"`,
+      );
+  },
+
   /** The entity's first puppet — or the one a map transfer or a load left it without. */
   _mint(entities, id, sk) {
     const held = InstanceSystem.attach(entities, id);
     held.inst.sprite_index = sk.sprite;
     held.inst.image_speed = 0; // SkeletonSystem owns the clock (docs/GMRT.md)
-    held.inst.skeleton_animation_set(sk.anim, sk.loop);
+    SkeletonSystem._play(held.inst, sk);
     // slot colours are per-instance like attachments (docs/GMRT.md): replayed on every mint
     const slots = Object.keys(sk.tints);
     for (let i = 0; i < slots.length; i++)

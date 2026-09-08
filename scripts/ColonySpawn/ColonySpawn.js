@@ -98,7 +98,10 @@ globalThis.ColonySpawn = {
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
           // doll bandit: the white humanoid body — per-spawn skin lands as body-slot tints (adapter)
-          Skeleton: { sprite: spineHuman },
+          Skeleton: {
+            sprite: spineHuman,
+            anim: ColonyPlayer.rest(spineHuman),
+          },
           // AUTHORED outfit — the doll's base layer (no Equipment, so no gear overlay either)
           Appearance: ColonySpawn._outfit(
             pixShirtRedwine,
@@ -125,7 +128,8 @@ globalThis.ColonySpawn = {
           Faction: { id: "monster" },
           Name: { name: "Rat" },
           Inventory: { slots: [], capacity: 4 },
-          Skeleton: { sprite: spineRat }, // the rat rig; its states are ColonyPlayer.RIGS
+          // the rat rig; its states are ColonyPlayer.RIGS
+          Skeleton: { sprite: spineRat, anim: ColonyPlayer.rest(spineRat) },
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction
@@ -141,7 +145,10 @@ globalThis.ColonySpawn = {
           Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // doll civilian: skin tint over the shared civilian outfit; static, so idle just loops
-          Skeleton: { sprite: spineHuman },
+          Skeleton: {
+            sprite: spineHuman,
+            anim: ColonyPlayer.rest(spineHuman),
+          },
           Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrown),
         },
       },
@@ -300,7 +307,10 @@ globalThis.ColonySpawn = {
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
-          Skeleton: { sprite: spineHuman },
+          Skeleton: {
+            sprite: spineHuman,
+            anim: ColonyPlayer.rest(spineHuman),
+          },
           Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrown),
           Follower: {
             state: "wait", // unhired residents hold still; hire() flips to follow

@@ -104,7 +104,7 @@ globalThis.ColonyPlayer = {
     // The body art is a WHITE template, so the skin is a tint over its body slots.
     entities.add(id, Skeleton, {
       sprite: spineHuman,
-      anim: "idle",
+      anim: ColonyPlayer.rest(spineHuman),
       loop: true,
       fps: SkeletonSystem.FPS, // authored time — the runtime's frame is 1/120 s (SkeletonSystem)
       frame: 0,
@@ -167,6 +167,18 @@ globalThis.ColonyPlayer = {
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
+  },
+
+  /**
+   * The set a rig rests in — the `anim` a Skeleton is authored with at spawn (EntityPreset
+   * defaults none: Core knows no rig's names), so a doll no brain drives, an NPC, plays it from
+   * its first frame. Throws for a sprite that is no rig: an authoring error, not a runtime state.
+   */
+  rest(sprite) {
+    const rig = ColonyPlayer.RIGS[sprite_get_name(sprite)];
+    if (rig === undefined)
+      throw new Error(`ColonyPlayer: ${sprite_get_name(sprite)} is no rig`);
+    return rig.idle.anim;
   },
 
   /**
