@@ -26,8 +26,8 @@
   "nineSlice":null,
   "origin":7,
   "parent":{
-    "name":"MIsc",
-    "path":"folders/Game/Media/Sprites/MIsc.yy",
+    "name":"Decor",
+    "path":"folders/Game/Media/Sprites/Decor.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

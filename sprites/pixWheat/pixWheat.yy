@@ -25,7 +25,7 @@
   ],
   "name":"pixWheat",
   "nineSlice":null,
-  "origin":9,
+  "origin":7,
   "parent":{
     "name":"Props",
     "path":"folders/Game/Media/Sprites/Props.yy",
@@ -84,7 +84,7 @@
     "visibleRange":null,
     "volume":1.0,
     "xorigin":16,
-    "yorigin":39,
+    "yorigin":40,
   },
   "swatchColours":null,
   "swfPrecision":0.5,

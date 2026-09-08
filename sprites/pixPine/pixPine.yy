@@ -26,7 +26,7 @@
   ],
   "name":"pixPine",
   "nineSlice":null,
-  "origin":9,
+  "origin":7,
   "parent":{
     "name":"Props",
     "path":"folders/Game/Media/Sprites/Props.yy",
@@ -88,7 +88,7 @@
     "visibleRange":null,
     "volume":1.0,
     "xorigin":32,
-    "yorigin":95,
+    "yorigin":96,
   },
   "swatchColours":null,
   "swfPrecision":0.5,
