@@ -12,8 +12,9 @@
  *
  * Everything about WHERE gear goes is read, never declared: the rig says which slots are
  * dressable (the ones its setup pose leaves empty) and which bone each rides, the bone's setup
- * rotation comes off the skeleton, and a garment sits with its own SPRITE ORIGIN on that bone —
- * so placing a piece is an origin edit in the sprite editor, and a new rig or slot is nothing here.
+ * rotation comes off the sheet (SkeletonSystem.info), and a garment sits with its own SPRITE
+ * ORIGIN on that bone — so placing a piece is an origin edit in the sprite editor, and a new rig
+ * or slot is nothing here.
  *
  * An Equippable shows on the doll when its `worn` names an existing sprite, and the WEAPON slot
  * needs no worn art at all: an unset `worn` falls back to the item's own icon in the hand slot,
@@ -65,7 +66,7 @@ globalThis.AppearanceSystem = {
   apply(entities, id, inst) {
     const ap = entities.get(id, Appearance);
     if (ap === undefined) return;
-    const rig = AppearanceSystem._rig(inst);
+    const rig = AppearanceSystem._rig(inst.sprite_index);
     const gear = ap.gear ?? {}; // an authored doll carries no overlay
     for (let i = 0; i < rig.length; i++) {
       const slot = rig[i];
@@ -81,45 +82,45 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * The dress slots of the puppet's rig, read off the skeleton once per sprite: every slot the
-   * setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus the setup
-   * world rotation of the bone it rides — which every attachment on that bone carries to draw
-   * upright (docs/GMRT.md).
+   * The dress slots of a rig, derived once per sprite off its sheet (SkeletonSystem.info): every
+   * slot the setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus
+   * the setup world rotation of the bone it rides — which every attachment on that bone carries
+   * to draw upright (docs/GMRT.md).
    *
    * @returns {{name: string, rot: number}[]}
    */
-  _rig(inst) {
-    const key = sprite_get_name(inst.sprite_index);
+  _rig(sprite) {
+    const key = sprite_get_name(sprite);
     let rig = AppearanceSystem._rigs[key];
     if (rig !== undefined) return rig;
     rig = [];
-    const list = ds_list_create();
-    inst.skeleton_slot_data(inst.sprite_index, list);
-    for (let i = 0; i < ds_list_size(list); i++) {
-      const m = ds_list_find_value(list, i);
-      if (ds_map_find_value(m, "attachment") === "(none)") {
-        const bone = ds_map_find_value(m, "bone");
-        rig.push({ name: ds_map_find_value(m, "name"), rot: -AppearanceSystem._angle(inst, bone) });
-      }
-      ds_map_destroy(m); // the manual: the per-slot maps are the caller's to free
+    const info = SkeletonSystem.info(sprite);
+    for (let i = 0; i < info.slots.length; i++) {
+      const slot = info.slots[i];
+      if (slot.attachment !== "") continue;
+      rig.push({ name: slot.name, rot: -AppearanceSystem._angle(info, slot.bone) });
     }
-    ds_list_destroy(list);
     AppearanceSystem._rigs[key] = rig;
     return rig;
   },
 
-  /** A bone's setup world rotation: its local angle plus every ancestor's, up to the root. */
-  _angle(inst, bone) {
+  /** A bone's setup world rotation: its local rotation plus every ancestor's, up to the root. */
+  _angle(info, bone) {
     let sum = 0;
-    const m = ds_map_create();
-    while (bone !== undefined && bone !== "") {
-      ds_map_clear(m); // the root writes no `parent` — a stale one would loop forever
-      inst.skeleton_bone_data_get(bone, m);
-      sum += ds_map_find_value(m, "angle");
-      bone = ds_map_find_value(m, "parent");
+    while (bone != null) {
+      // the root's parent reads null
+      const b = AppearanceSystem._bone(info, bone);
+      sum += b.rotation;
+      bone = b.parent;
     }
-    ds_map_destroy(m);
     return sum;
+  },
+
+  /** A bone's setup record off the sheet, by name. */
+  _bone(info, name) {
+    for (let i = 0; i < info.bones.length; i++)
+      if (info.bones[i].name === name) return info.bones[i];
+    throw new Error(`AppearanceSystem: ${info.name} has no bone "${name}"`);
   },
 
   /**

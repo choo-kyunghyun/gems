@@ -80,25 +80,22 @@ globalThis.SkeletonSystem = {
   },
 
   /**
-   * The set names a sheet carries, read once per sprite (fixed for the build) — the one sound
-   * missing-name check: get_frames and get_duration read 0 for a missing name AND for a
-   * single-key set (docs/GMRT.md). Keyed by sprite name — a Map keyed by an asset ref crashes
-   * (docs/GMRT.md).
+   * A sheet's `sprite_get_info` struct, read once per sprite (fixed for the build): the sound,
+   * puppet-free read of a rig — `animation_names` (the one missing-name check: get_frames and
+   * get_duration read 0 for a missing name AND for a single-key set), `bones` with the setup
+   * pose, `slots` with their bone and setup attachment (docs/GMRT.md). Keyed by sprite name — a
+   * Map keyed by an asset ref crashes (docs/GMRT.md).
    */
-  _names: {},
-  _list(inst, sprite) {
+  _info: {},
+  info(sprite) {
     const key = sprite_get_name(sprite);
-    let names = SkeletonSystem._names[key];
-    if (names === undefined) {
-      const list = ds_list_create();
-      inst.skeleton_animation_list(sprite, list);
-      names = [];
-      for (let i = 0; i < ds_list_size(list); i++)
-        names.push(ds_list_find_value(list, i));
-      ds_list_destroy(list);
-      SkeletonSystem._names[key] = names;
+    let info = SkeletonSystem._info[key];
+    if (info === undefined) {
+      // the struct's nested arrays reach JS opaque — a JSON round-trip lands plain data (docs/GMRT.md)
+      info = JSON.parse(json_stringify(sprite_get_info(sprite)));
+      SkeletonSystem._info[key] = info;
     }
-    return names;
+    return info;
   },
 
   /**
@@ -108,7 +105,7 @@ globalThis.SkeletonSystem = {
    * only frame.
    */
   _play(inst, sk) {
-    if (SkeletonSystem._list(inst, sk.sprite).indexOf(sk.anim) < 0)
+    if (SkeletonSystem.info(sk.sprite).animation_names.indexOf(sk.anim) < 0)
       throw new Error(
         `SkeletonSystem: ${sprite_get_name(sk.sprite)} has no animation "${sk.anim}"`,
       );
