@@ -6,7 +6,8 @@
  * only a sprite departing from the defaults needs an entry.
  *
  * Def shape:
- *   { sprite: "<name>", kind, density? }
+ *   { sprite, kind, density? }
+ *   sprite   the asset (a bare identifier, so a sheet that is gone fails at load)
  *   kind     "entity" | "overlay" | "tileset" | "atlas" | ... — descriptive; consumers read specific
  *            FIELDS, never switch on kind (its value is tooling/validation).
  *   density  source px per world px, default 1. DECLARED, never inferred: a 32px cell can mean a
@@ -14,47 +15,37 @@
  *            (xscale/yscale = design scale / density); never touches the BBox. Bake sites:
  *            EntityPreset.spawn / ColonyPlayer.spawn.
  *
- * Storage: defs are authored by sprite NAME (string-keyed Map — safe), resolved to asset refs at
- * registration; the draw-time ref lookup is PARALLEL ARRAYS via === identity — a Map keyed by a sprite
- * ref crashes GMRT 0.20 natively at .get ("Bad optional access"). A handful of sheets, so the linear
- * scan is nothing.
+ * Storage: PARALLEL ARRAYS scanned by === identity — a Map keyed by a sprite ref crashes GMRT
+ * natively (docs/GMRT.md). A handful of sheets, so the linear scan is nothing.
  */
 globalThis.SpriteMeta = {
-  _byName: new Map(), // sprite name -> def
-  _sprites: [], // resolved refs, parallel to _defs
+  _sprites: [], // refs, parallel to _defs
   _defs: [],
 
   /**
-   * Register defs (an array). Re-registering a name replaces.
+   * Register defs (an array). Re-registering a sprite replaces.
    */
   register(defs) {
     for (const def of defs) {
-      const ref = asset_get_index(def.sprite);
-      if (!sprite_exists(ref)) {
-        Log.warn(`SpriteMeta: unknown sprite "${def.sprite}" (entry skipped)`);
-        continue;
-      }
-      SpriteMeta._byName.set(def.sprite, def);
       let i = 0;
       while (i < SpriteMeta._sprites.length) {
-        if (SpriteMeta._sprites[i] === ref) {
+        if (SpriteMeta._sprites[i] === def.sprite) {
           SpriteMeta._defs[i] = def;
           break;
         }
         i++;
       }
       if (i === SpriteMeta._sprites.length) {
-        SpriteMeta._sprites.push(ref);
+        SpriteMeta._sprites.push(def.sprite);
         SpriteMeta._defs.push(def);
       }
     }
   },
 
   /**
-   * Def for a sprite ref or name — or undefined (an undeclared sprite is legal).
+   * Def for a sprite — or undefined (an undeclared sprite is legal).
    */
   of(sprite) {
-    if (typeof sprite === "string") return SpriteMeta._byName.get(sprite);
     let i = 0;
     while (i < SpriteMeta._sprites.length) {
       if (SpriteMeta._sprites[i] === sprite) return SpriteMeta._defs[i];

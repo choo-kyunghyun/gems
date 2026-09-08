@@ -24,14 +24,14 @@ globalThis.contentBiomes = {
     deepwater: {
       name: "Deep Water",
       color: "#3e5870",
-      sprite: "pixTerrainDeepWater",
+      sprite: pixTerrainDeepWater,
       wave: "#285cc4",
       pathCost: null,
     },
     water: {
       name: "Water",
       color: "#2e6b8f",
-      sprite: "pixTerrainWater",
+      sprite: pixTerrainWater,
       wave: "#249fde",
       pathCost: 3,
       spawnable: false,
@@ -39,22 +39,22 @@ globalThis.contentBiomes = {
     sand: {
       name: "Sand",
       color: "#c2a878",
-      sprite: "pixTerrainSand",
+      sprite: pixTerrainSand,
       pathCost: 1.5,
     },
     mud: {
       name: "Mud",
       color: "#605444",
-      sprite: "pixTerrainMud",
+      sprite: pixTerrainMud,
       pathCost: 2,
     },
     soil: {
       name: "Soil",
       color: "#8c7558",
-      sprite: "pixTerrainSoil",
+      sprite: pixTerrainSoil,
       clutter: [
         {
-          sprite: "pixGrassWeeds",
+          sprite: pixGrassWeeds,
           tint: "#a08662", // ochre 3 — dry scrub, apart from the living field's green
           chance: 0.1,
           min: 1,
@@ -68,7 +68,7 @@ globalThis.contentBiomes = {
     richsoil: {
       name: "Rich Soil",
       color: "#6e5840",
-      sprite: "pixTerrainRichSoil",
+      sprite: pixTerrainRichSoil,
       pathCost: 1,
     },
     // `clump` grows a material's VOLUME layer (RenderGrass): HD clump variants stood on
@@ -82,9 +82,9 @@ globalThis.contentBiomes = {
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      sprite: "pixTerrainSoil",
+      sprite: pixTerrainSoil,
       clump: {
-        sprite: "pixGrass",
+        sprite: pixGrass,
         tint: "#328464", // bio 1 — the sheet is a white mask, this IS the field's green
         min: 4,
         max: 6,
@@ -94,7 +94,7 @@ globalThis.contentBiomes = {
       },
       clutter: [
         {
-          sprite: "pixGrassFlowers",
+          sprite: pixGrassFlowers,
           chance: 0.06,
           min: 1,
           max: 1,
@@ -110,19 +110,19 @@ globalThis.contentBiomes = {
     lawn: {
       name: "Lawn",
       color: "#328464",
-      sprite: "pixTerrainLawn",
+      sprite: pixTerrainLawn,
       pathCost: 1,
     },
     gravel: {
       name: "Gravel",
       color: "#858178",
-      sprite: "pixTerrainGravel",
+      sprite: pixTerrainGravel,
       pathCost: 1.5,
     },
     rocky: {
       name: "Rocky",
       color: "#76746e",
-      sprite: "pixTerrainRocky",
+      sprite: pixTerrainRocky,
       pathCost: 2,
     },
   },
@@ -239,7 +239,7 @@ globalThis.contentBiomes = {
       clutter: {
         water: [
           {
-            sprite: "pixGrassLotus",
+            sprite: pixGrassLotus,
             flat: true,
             chance: 0.22,
             min: 1,

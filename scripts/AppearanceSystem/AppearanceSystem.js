@@ -175,14 +175,14 @@ globalThis.AppearanceSystem = {
     if (item === undefined) return;
     const eqp = item.getComponent(Equippable);
     if (eqp === undefined) return;
-    if (typeof eqp.worn === "object") {
-      for (const slot in eqp.worn) {
-        out[slot] = AppearanceSystem._sprite(eqp.worn[slot]);
-      }
+    const worn = eqp.worn;
+    // a slot map, not a sprite — an asset ref is typeof "object" too (docs/GMRT.md)
+    if (worn !== undefined && worn.constructor === Object) {
+      for (const slot in worn) out[slot] = AppearanceSystem._sprite(worn[slot]);
       return;
     }
-    if (eqp.worn !== "") {
-      out[AppearanceSystem.SLOT[gear]] = AppearanceSystem._sprite(eqp.worn);
+    if (worn !== undefined) {
+      out[AppearanceSystem.SLOT[gear]] = worn;
       return;
     }
     // held-icon fallback (item.sprite is contentItems' pixItem<Id> auto-wire; -1 = none)
@@ -190,11 +190,8 @@ globalThis.AppearanceSystem = {
       out[AppearanceSystem.SLOT[gear]] = item.sprite;
   },
 
-  /** A worn NAME resolved to its sprite — -1 (occupied bare) for null or a missing sprite. */
-  _sprite(name) {
-    if (name === null || name === "") return -1;
-    // asset_get_index returns an opaque ref (not a number) — validate via sprite_exists
-    const spr = asset_get_index(name);
-    return sprite_exists(spr) ? spr : -1;
+  /** A slot map entry's sprite — -1 (occupied bare) for null. */
+  _sprite(spr) {
+    return spr === null ? -1 : spr;
   },
 };

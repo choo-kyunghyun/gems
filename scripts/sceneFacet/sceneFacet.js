@@ -652,7 +652,7 @@ class _SceneFacetClass {
    * demo data spread across types/rarities to exercise sort + filter
    */
   _items() {
-    const spr = asset_get_index("pixTile16");
+    const spr = pixTile16;
     const R = {
       common: { name: "Common", color: facetColor("#9aa4b2"), rank: 0 },
       uncommon: { name: "Uncommon", color: facetColor("#54c98a"), rank: 1 },
@@ -730,7 +730,7 @@ class _SceneFacetClass {
    * alternating filled/empty; offset per bag so the two grids differ
    */
   _bag(which) {
-    const icon = asset_get_index("pixTile16");
+    const icon = pixTile16;
     const items = [];
     for (let i = 0; i < 9; i++) {
       if ((i + which) % 2 === 0)

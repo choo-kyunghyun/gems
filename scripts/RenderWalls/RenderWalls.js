@@ -35,8 +35,8 @@
 globalThis.RenderWalls = class RenderWalls {
   /**
    * `layer`: only `get(gx, gy)` is read (truthy cell = wall), so any occupancy view satisfies
-   * it, not just a TileLayer. opt: `sprite` is an asset REF (validated via sprite_exists —
-   * asset_get_index refs never compare >= 0 on GMRT); `frame` picks the subimage (default 0);
+   * it, not just a TileLayer. opt: `sprite` is an asset REF (validated via sprite_exists);
+   * `frame` picks the subimage (default 0);
    * `materials` buckets cells by TileType id (see the class doc), id-less/unmatched cells
    * using the top-level defaults.
    */

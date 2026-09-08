@@ -37,8 +37,8 @@
  * @property {number} height      vertical extent (world px)
  * @property {number} topColor    plan-view top face fill / sprite tint
  * @property {number} frontColor  elevation front face fill / sprite tint
- * @property {string} [topSprite]   sprite NAME stretched over the top face ("" = flat fill)
- * @property {string} [frontSprite] sprite NAME stretched over the front face ("" = flat fill)
+ * @property {Asset.GMSprite} [topSprite]   sprite stretched over the top face (absent = flat fill)
+ * @property {Asset.GMSprite} [frontSprite] sprite stretched over the front face (absent = flat fill)
  * @property {number} [alpha]     whole-box alpha (default 1; keep faces opaque — see RenderMesh)
  */
 globalThis.Mesh = "Mesh";

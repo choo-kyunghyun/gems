@@ -515,14 +515,9 @@ globalThis.ColonyMap = {
           rows.push({ src: own[k], tint: own[k].tint });
       for (let k = 0; k < rows.length; k++) {
         const src = rows[k].src;
-        const spr = asset_get_index(src.sprite);
-        if (!sprite_exists(spr)) {
-          Log.warn(`clump sprite missing: ${src.sprite}`); // GMRT: sprite_exists, not >=0
-          continue;
-        }
         defs.push({
           id: mats[i].type.id,
-          sprite: spr,
+          sprite: src.sprite,
           min: src.min,
           max: src.max,
           chance: src.chance,
@@ -575,9 +570,10 @@ globalThis.ColonyMap = {
     const mats = scene.terrainMats;
     if (mats !== undefined)
       for (let i = 0; i < mats.length; i++) {
-        const spr = asset_get_index(mats[i].sprite);
+        const spr = mats[i].sprite;
         if (!sprite_exists(spr)) {
-          Log.warn(`terrain sprite missing: ${mats[i].sprite}`); // GMRT: sprite_exists, not >=0
+          // a saved row's revived ref whose art is gone since (Json._revive)
+          Log.warn(`terrain sprite missing: ${mats[i].material}`);
           continue;
         }
         const pass = new RenderTileMap(
@@ -626,15 +622,10 @@ globalThis.ColonyMap = {
       if (cfg.key === "wall") continue; // RenderWalls (lit boxes) below — no flat fallback
       if (cfg.key === "fence" && pitch > 0) continue; // RenderFence (post-and-rail boxes) below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
-      const spr = asset_get_index(cfg.sprite);
-      if (!sprite_exists(spr)) {
-        Log.warn(`tile sprite missing: ${cfg.sprite}`); // GMRT: validate via sprite_exists, not >=0
-        continue;
-      }
       const pass = new RenderTileMap(
         scene[cfg.key + "Layer"],
         scene.level.grid,
-        spr,
+        cfg.sprite,
         {
           autotile: cfg.type,
           color: Color.parse(cfg.color),
@@ -716,10 +707,9 @@ globalThis.ColonyMap = {
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
         const m = wallCfg.materials[i];
-        const ms = asset_get_index(m.sprite);
         wallMats.push({
           id: m.id,
-          sprite: sprite_exists(ms) ? ms : undefined, // GMRT: validate via sprite_exists
+          sprite: m.sprite,
           frame: 0,
           color: Color.parse(m.color),
         });

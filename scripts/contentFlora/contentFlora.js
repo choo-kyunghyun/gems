@@ -7,7 +7,7 @@
  *   name       i18n key (the entity's Name)
  *   preset     the ColonySpawn preset it spawns as — "tree" (a solid trunk under a canopy) or
  *              "plant" (walk-through)
- *   sprite     sprite NAME (Visual.sprite, a STANDING upright sprite) — one sheet per species,
+ *   sprite     the sprite (Visual.sprite, a STANDING upright sprite) — one sheet per species,
  *              its frames the stages in order (frame = stage)
  *   growHours  in-game hours from seedling to ripe at season weight 1
  *   stages     visual steps seedling→ripe (≥ 2); the stage is floor(progress × (stages−1))
@@ -28,7 +28,7 @@ globalThis.contentFlora = {
     pine: {
       name: "FLORA_PINE",
       preset: "tree",
-      sprite: "pixPine",
+      sprite: pixPine,
       growHours: 480,
       stages: 4,
       season: { spring: 1.2, summer: 1, autumn: 0.6, winter: 0.1 },
@@ -41,7 +41,7 @@ globalThis.contentFlora = {
     berry_bush: {
       name: "FLORA_BERRY_BUSH",
       preset: "plant",
-      sprite: "pixBerryBush",
+      sprite: pixBerryBush,
       growHours: 96,
       stages: 3,
       season: { spring: 1.5, summer: 1, autumn: 0.7, winter: 0 },
@@ -54,7 +54,7 @@ globalThis.contentFlora = {
     wheat: {
       name: "FLORA_WHEAT",
       preset: "plant",
-      sprite: "pixWheat",
+      sprite: pixWheat,
       growHours: 48,
       stages: 3,
       season: { spring: 1.2, summer: 1, autumn: 0.8, winter: 0 },

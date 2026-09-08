@@ -235,7 +235,10 @@ globalThis.ColonyLevel = {
         pathCost: d.pathCost,
       });
       types.push(type);
-      mats.push({ type: type, sprite: d.sprite, material: d.material ?? d.id });
+      // TODO: a row from a save predating bare refs holds the sprite NAME
+      const sprite =
+        typeof d.sprite === "string" ? asset_get_index(d.sprite) : d.sprite;
+      mats.push({ type: type, sprite: sprite, material: d.material ?? d.id });
     }
     return { types: types, mats: mats };
   },

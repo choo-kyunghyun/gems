@@ -109,7 +109,7 @@ globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
   });
   el.addComponent(
     new UIImage({
-      sprite: opts.sprite ?? asset_get_index("pixUiBox"),
+      sprite: opts.sprite ?? pixUiBox,
       subimg: opts.subimg ?? 0,
       color: opts.color != null ? facetColor(opts.color) : c_white,
       alpha: opts.alpha ?? 1,

@@ -51,7 +51,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     // this replaced the retired sh_alphatest), and the mesh lighting model shades each
     // sprite per-pixel at the bent normal. Guarded: without it sprites draw plain
     // fixed-function (unlit, no cutout — the same degradation as RenderMesh).
-    this._lit = asset_get_index("shMeshlit");
+    this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this._litOk
       ? shader_get_uniform(this._lit, "u_ambient")

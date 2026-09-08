@@ -516,7 +516,7 @@ globalThis.ColonySpawn = {
     const def = contentFlora.get(s.species);
     if (def === undefined)
       throw new Error(`ColonySpawn: unknown flora species "${s.species}"`);
-    over.Visual = { sprite: asset_get_index(def.sprite) };
+    over.Visual = { sprite: def.sprite };
     over.Name = { name: I18n.text(def.name) };
     over.Growth = {
       species: s.species,

@@ -49,7 +49,7 @@ globalThis.RenderGrass = class RenderGrass {
     this.time = opt.time;
     this._vbs = []; // parallel to defs: { vb, tex } or undefined when a def placed nothing
     this._dirty = true;
-    this._lit = asset_get_index("shMeshlit");
+    this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAlphaRef = this._litOk
       ? shader_get_uniform(this._lit, "u_alphaRef")

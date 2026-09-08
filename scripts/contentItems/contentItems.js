@@ -63,33 +63,33 @@ globalThis.contentItems = {
   },
 
   // Icon aliases for ids SHARING one sprite — 1:1 art auto-wires by the pixItem<Id> naming
-  // convention, so only many-to-one entries live here. Resolved by NAME +
-  // sprite_exists in register()'s auto-wire, so a missing asset keeps the colored-box fallback.
+  // convention, so only many-to-one entries live here. Bare refs: an alias to art that is gone
+  // fails at load, where the convention's NAME lookup keeps the colored-box fallback.
   // (circuitry art was retired with the media overhaul — colored-box fallback until new art)
   ICONS: {
     // one serum icon for all four attribute shards
-    power_serum: "pixItemSerum",
-    vitality_serum: "pixItemSerum",
-    agility_serum: "pixItemSerum",
-    endurance_serum: "pixItemSerum",
-    ration_pack: "pixItemCannedFood",
-    berries: "pixItemApple",
-    blaster: "pixItemPistol",
-    adrenal_implant: "pixItemEnergy",
+    power_serum: pixItemSerum,
+    vitality_serum: pixItemSerum,
+    agility_serum: pixItemSerum,
+    endurance_serum: pixItemSerum,
+    ration_pack: pixItemCannedFood,
+    berries: pixItemApple,
+    blaster: pixItemPistol,
+    adrenal_implant: pixItemEnergy,
     // one shared round icon for all three calibers (the only ammo art in the new set)
-    ammo_light: "pixItemRounds",
-    ammo_heavy: "pixItemRounds",
-    ammo_ap: "pixItemRounds",
+    ammo_light: pixItemRounds,
+    ammo_heavy: pixItemRounds,
+    ammo_ap: pixItemRounds,
     // branded gear reuses base art (dedicated icons are a follow-up)
-    aeon_pistol: "pixItemPistol",
-    vekt_pistol: "pixItemPistol",
-    aeon_cutter: "pixItemEnergy",
-    helios_ration: "pixItemCannedFood",
-    aeon_rounds: "pixItemRounds",
+    aeon_pistol: pixItemPistol,
+    vekt_pistol: pixItemPistol,
+    aeon_cutter: pixItemEnergy,
+    helios_ration: pixItemCannedFood,
+    aeon_rounds: pixItemRounds,
     // the vests have no 32 px icon of their own: the bag shows their worn Outer garment sheet,
     // which every icon site draws fit-scaled (UIImage CONTAIN, SlotDrag's iconSize)
-    armored_vest: "pixOuterArmoredVest",
-    helios_vest: "pixOuterArmoredVest",
+    armored_vest: pixOuterArmoredVest,
+    helios_vest: pixOuterArmoredVest,
   },
 
   register() {
@@ -305,7 +305,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 2, maxHp: 5 },
-            worn: "pixOuterArmoredVest",
+            worn: pixOuterArmoredVest,
           }),
         ],
       },
@@ -665,7 +665,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 3, maxHp: 8 },
-            worn: "pixOuterArmoredVest", // the branded vest reuses the base garment art
+            worn: pixOuterArmoredVest, // the branded vest reuses the base garment art
           }),
         ],
       },
@@ -709,16 +709,16 @@ globalThis.contentItems = {
       },
     ]);
 
-    // auto-wire icon sprites by naming convention pixItem<Id>, falling back to the ICONS alias
-    // table (legacy-named art); asset_get_index returns an opaque ref so validate with
-    // sprite_exists, not >=0 (GMRT — see CLAUDE.md). defs with explicit sprites untouched.
+    // auto-wire icon sprites by naming convention pixItem<Id> — the one COMPUTED name (the id
+    // camelised; asset_get_index returns a handle, so validate with sprite_exists — docs/GMRT.md)
+    // — falling back to the ICONS alias table. defs with explicit sprites untouched.
     const items = Item.all();
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (it.sprite !== -1) continue;
       let spr = asset_get_index("pixItem" + contentItems._subject(it.id));
       if (!sprite_exists(spr) && contentItems.ICONS[it.id] !== undefined)
-        spr = asset_get_index(contentItems.ICONS[it.id]);
+        spr = contentItems.ICONS[it.id];
       if (sprite_exists(spr)) it.sprite = spr;
     }
   },

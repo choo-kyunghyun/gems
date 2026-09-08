@@ -53,7 +53,7 @@ globalThis.RenderMesh = class RenderMesh {
     this._models = new Map(); // name -> { vb } (string keys only — ref-keyed Maps crash GMRT)
     this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
     // THE world shader (guarded — without it models draw flat unlit albedo)
-    this._lit = asset_get_index("shMeshlit");
+    this._lit = shMeshlit;
     this.litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this.litOk
       ? shader_get_uniform(this._lit, "u_ambient")
@@ -231,16 +231,14 @@ globalThis.RenderMesh = class RenderMesh {
 
   /**
    * one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
-   * over it when the NAME resolves (asset_get_index returns an opaque ref — validate with
-   * sprite_exists, never >= 0), else a flat color fill. A sprite face runs under shMeshlit
+   * over it when one is set, else a flat color fill. A sprite face runs under shMeshlit
    * in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
    * stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
    * depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
    * black on an untextured primitive and would blacken it).
    */
-  _face(name, color, alpha, w, h) {
-    const spr = name ? asset_get_index(name) : -1;
-    if (name && sprite_exists(spr)) {
+  _face(spr, color, alpha, w, h) {
+    if (spr !== undefined && sprite_exists(spr)) {
       if (this.litOk) {
         shader_set(this._lit);
         shader_set_uniform_f(this._uAmbient, 1);
