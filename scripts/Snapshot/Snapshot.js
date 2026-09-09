@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 7; // bump when the manifest/blob layout changes incompatibly (7: a hired companion carries a "companion" Interaction)
+  static VERSION = 8; // bump when the manifest/blob layout changes incompatibly (8: Mesh.model keys are camelCase)
 
   constructor() {
     this.passes = [];

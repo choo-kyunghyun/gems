@@ -39,7 +39,7 @@ What `scripts/Poly` reads and how `RenderMesh` places it; `lint` checks all of i
 | **Palette** | AAP-64, nothing outside it — the bake refuses a foreign color. |
 | **Facets** | Deliberately LOW `n` (default 8): the flat-shaded facet is the style, not an approximation error. `lathe`'s default phase centers one flat face due south — the face the camera reads — and an even `n` keeps the ring symmetric for the engine's mirror flip. |
 | **Placement** | Same as Vox: content centered on the footprint, feet at z = 0; `ColonySpawn.footprint` derives the collider from the header's content dims. |
-| **Name** | `<material>_<object>[_<variant>]`, the data key shared with the `.vox` spare it shadows (`docs/NAMING.md`). |
+| **Name** | camelCase `<material><Object>[<Variant>]`, shared with the `.vox` spare it shadows (`docs/NAMING.md`). |
 
 `python style.py` builds the reference board (`out/style/board.png`): a plywood crate, a wooden
 drum and a pedestal — what a new prop is judged against.
@@ -55,7 +55,7 @@ m = P.Mesh()
 S.lathe(m, [(8.5, 0), (10, 4, PAL.tone("leather", 0)), (10, 20), (8.5, 24)],
         n=8, color=PAL.tone("leather", 2))          # drum: hoop band + staves
 S.box(m, -1, 3, 10, 1, 8, 12, PAL.tone("steel", 1))  # a spout due south
-m.write(os.path.join(P.MESHES, "steel_drum.mesh"))
+m.write(os.path.join(P.MESHES, "steelDrum.mesh"))
 ```
 
 `lathe` takes a profile of `(r, z[, color])` points ascending z — the band up to a point takes

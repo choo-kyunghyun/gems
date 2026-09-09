@@ -41,7 +41,7 @@ What `scripts/Vox` reads and how `RenderMesh` places it; `lint` checks all of it
 | **Faces** | Top + four sides; never a bottom. The fixed-yaw camera sees the top and the south face. |
 | **Palette** | AAP-64, nothing outside it. The kit writes slots 1..64 = entries 0..63 (`palette.magica` exports the same order for MagicaVoxel); `quantize` snaps anything foreign. |
 | **Shading** | Live, never authored: `shMeshlit` lights the flat albedo per frame (sun + torches). A voxel carries its base tone; `speckle` is the one surface treatment. |
-| **Name** | `<material>_<object>[_<variant>]`, a data key shared by the file and `Mesh.model` (`docs/NAMING.md`). |
+| **Name** | camelCase `<material><Object>[<Variant>]`, shared by the file and `Mesh.model` (`docs/NAMING.md`). |
 
 `python style.py` builds the reference board (`out/style/board.png`): a plywood crate, a steel drum and
 a basalt boulder — what a new prop is judged against.
@@ -57,7 +57,7 @@ v.box(4, 4, 0, 27, 27, 23, PAL.tone("leather", 3))       # body (inclusive corne
 v.box(4, 4, 10, 27, 27, 11, PAL.tone("steel", 2))         # strapping band
 v.box(12, 27, 14, 19, 27, 17, PAL.tone("hazard", 1))      # label on the south face
 v.speckle(PAL.tone("leather", 3), 0.06, seed=7)           # plywood grain, a step darker
-v.write(os.path.join(V.out_dir("crate"), "plywood_crate.vox"))
+v.write(os.path.join(V.out_dir("crate"), "plywoodCrate.vox"))
 ```
 
 `Volume` is a 3D canvas of palette tones: `box`, `cyl` (vertical, center + radius in voxel units),

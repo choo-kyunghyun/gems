@@ -83,7 +83,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // built door (wooden_door prop): toggles passability. Closed = a solid slab (blocks
+        // built door (woodenDoor prop): toggles passability. Closed = a solid slab (blocks
         // bodies AND pathing — NavGrid rasterizes the kinematic collider live); open = non-solid
         // with the slab swung 80° on its center. State (`open`) + yaw are component data, so a
         // door round-trips map parking/EntitySnapshot as-is.

@@ -58,16 +58,16 @@ globalThis.ColonySpawn = {
   // the crate (matching the old behavior). "cot" rides the kind:"bed" branch; the fence is a tile
   // layer, not a prop (BuildMode).
   FURN_MODELS: {
-    barrel: "wooden_barrel",
-    crate: "wooden_crate",
-    table: "wooden_table",
-    table_small: "wooden_table_small",
-    table_coffee: "wooden_table_coffee",
-    dresser: "wooden_dresser_single",
-    dresser_double: "wooden_dresser_double",
-    stool: "wooden_stool_square",
-    stool_round: "wooden_stool_round",
-    nightstand: "wooden_night_stand",
+    barrel: "woodenBarrel",
+    crate: "woodenCrate",
+    table: "woodenTable",
+    table_small: "woodenTableSmall",
+    table_coffee: "woodenTableCoffee",
+    dresser: "woodenDresserSingle",
+    dresser_double: "woodenDresserDouble",
+    stool: "woodenStoolSquare",
+    stool_round: "woodenStoolRound",
+    nightstand: "woodenNightStand",
   },
 
   /**
@@ -155,12 +155,12 @@ globalThis.ColonySpawn = {
       {
         id: "chest",
         components: {
-          BBox: { x: -11, y: -9, width: 22, height: 18 }, // military_crate content 22×18
+          BBox: { x: -11, y: -9, width: 22, height: 18 }, // militaryCrate content 22×18
           Collision: { solid: true, kinematic: true },
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
           Inventory: { slots: [], capacity: 12 },
-          Mesh: { model: "military_crate" }, // vox mesh — no Visual, billboard/shadow passes skip it
+          Mesh: { model: "militaryCrate" }, // vox mesh — no Visual, billboard/shadow passes skip it
         },
       },
       {
@@ -198,10 +198,10 @@ globalThis.ColonySpawn = {
         // Standing lamp: the lantern mesh with a steadier, wider, whiter light than the torch.
         id: "lantern",
         components: {
-          BBox: { x: -5, y: -5, width: 10, height: 10 }, // lantern_floor content 10×10
+          BBox: { x: -5, y: -5, width: 10, height: 10 }, // lanternFloor content 10×10
           Collision: { solid: true, kinematic: true },
           Name: { name: "Lantern" },
-          Mesh: { model: "lantern_floor" },
+          Mesh: { model: "lanternFloor" },
           Light: {
             radius: 190,
             color: Color.parse("#ffedc9"),
@@ -229,14 +229,14 @@ globalThis.ColonySpawn = {
         // faction so enemies target/damage it (two-sided combat). Built-only today (BuildMode).
         id: "turret",
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // military_turret content 16×16
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // militaryTurret content 16×16
           Collision: { solid: true, kinematic: true },
           Health: { hp: 8 },
           // shot damage is Stats.attack
           Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
           Faction: { id: "player" }, // player ally; a hostile target for enemies
           Name: { name: "Turret" },
-          Mesh: { model: "military_turret" }, // vox mesh (CombatAI's Visual reads are all guarded)
+          Mesh: { model: "militaryTurret" }, // vox mesh (CombatAI's Visual reads are all guarded)
         },
         post(entities, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
@@ -394,15 +394,15 @@ globalThis.ColonySpawn = {
         over.Visual = { sprite: pixPortal, speed: 4 };
       } else {
         let model;
-        if (s.kind === "workbench") model = "wooden_workbench";
+        if (s.kind === "workbench") model = "woodenWorkbench";
         else if (s.kind === "bed")
-          model = s.furn === "cot" ? "prison_bed" : "wooden_bed";
-        else if (s.kind === "claim") model = "wooden_sign";
-        else if (s.kind === "door") model = "wooden_door";
-        else if (s.kind === "hydrate") model = "wooden_tub";
-        else if (s.kind === "feed") model = "wooden_bin";
-        else if (s.kind === "buff") model = "wooden_altar";
-        else model = ColonySpawn.FURN_MODELS[s.furn] ?? "wooden_crate";
+          model = s.furn === "cot" ? "prisonBed" : "woodenBed";
+        else if (s.kind === "claim") model = "woodenSign";
+        else if (s.kind === "door") model = "woodenDoor";
+        else if (s.kind === "hydrate") model = "woodenTub";
+        else if (s.kind === "feed") model = "woodenBin";
+        else if (s.kind === "buff") model = "woodenAltar";
+        else model = ColonySpawn.FURN_MODELS[s.furn] ?? "woodenCrate";
         over.Mesh = { model };
         // collider matched to the model's voxel footprint (big furniture is multi-cell)
         const fp = ColonySpawn.footprint(model);

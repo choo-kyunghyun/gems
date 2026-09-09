@@ -5,7 +5,7 @@ A plywood crate (box), a steel drum (cylinder) and a basalt boulder (spheres), a
 with `speckle` grain, written as .vox and rendered under the game camera onto one board — what a
 new voxel prop should sit beside. The models also land as .vox in out/style/ for `lint.py`.
 
-Usage:  python style.py   # -> out/style/board.png + plywood_crate.vox, steel_drum.vox, basalt_boulder.vox
+Usage:  python style.py   # -> out/style/board.png + plywoodCrate.vox, steelDrum.vox, basaltBoulder.vox
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -52,9 +52,9 @@ def basalt_boulder():
 
 
 PROPS = {
-    "plywood_crate": plywood_crate,
-    "steel_drum": steel_drum,
-    "basalt_boulder": basalt_boulder,
+    "plywoodCrate": plywood_crate,
+    "steelDrum": steel_drum,
+    "basaltBoulder": basalt_boulder,
 }
 
 

@@ -13,7 +13,7 @@ surface treatment, the grain that keeps a wide flat face from reading as plastic
     v.box(4, 4, 0, 27, 27, 23, PAL.tone("leather", 3))     # body (inclusive corners)
     v.box(4, 4, 10, 27, 27, 11, PAL.tone("steel", 2))       # strapping band
     v.speckle(PAL.tone("leather", 3), 0.06, seed=7)         # plywood grain
-    V.write(os.path.join(V.out_dir("crate"), "plywood_crate.vox"), v.model())
+    V.write(os.path.join(V.out_dir("crate"), "plywoodCrate.vox"), v.model())
 """
 import os, sys, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

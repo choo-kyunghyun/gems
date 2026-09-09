@@ -130,7 +130,7 @@ globalThis.BuildMode = {
           labelKey: "BUILD_CRATE",
           cost: 2,
           kind: "entity",
-          /** furn sub-type picks the vox mesh (ColonySpawn prop branch, wooden_crate). */
+          /** furn sub-type picks the vox mesh (ColonySpawn prop branch, woodenCrate). */
           make: (gx, gy) => ({
             preset: "prop",
             gx,
@@ -153,7 +153,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // openable door (wooden_door slab; the "door" InteractAction toggles Collision.solid).
+          // openable door (woodenDoor slab; the "door" InteractAction toggles Collision.solid).
           // auto-oriented at placement: walls above+below → a vertical door in a N-S wall run
           // (make's optional 3rd arg is the scene — only this item reads it).
           id: "door",
@@ -188,7 +188,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // cheaper cot: the same "bed" sleep Interaction, the prison_bed bunk mesh (furn "cot")
+          // cheaper cot: the same "bed" sleep Interaction, the prisonBed bunk mesh (furn "cot")
           id: "cot",
           labelKey: "BUILD_COT",
           cost: 4,

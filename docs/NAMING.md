@@ -29,6 +29,6 @@ Casing follows word boundaries. Where a name is COMPUTED from a snake_case key t
 
 ## Data Keys
 
-An asset name is an IDENTIFIER — GameMaker binds it in global scope and code reads it bare, so it is cased like one. A data key is not: item ids, `.vox` model strings, i18n keys, and anything a save file holds are strings the engine compares, and they stay lowercase snake_case (`lead_pipe`, `wooden_altar`). The line matters where the two meet — `contentItems` builds a sprite name out of an item id, so the id keeps the form a save already holds and the camel transform happens at the lookup, never in the data. Renaming an asset is a rename; renaming a key is a migration.
+An asset name is an IDENTIFIER — GameMaker binds it in global scope and code reads it bare, so it is cased like one. A data key is not: item ids, i18n keys, and anything a save file holds are strings the engine compares, and they stay lowercase snake_case (`lead_pipe`, `td_gather`). The line matters where the two meet — `contentItems` builds a sprite name out of an item id, so the id keeps the form a save already holds and the camel transform happens at the lookup, never in the data. Renaming an asset is a rename; renaming a key is a migration.
 
-Vox meshes are keys, not assets (plain files, not GM resources): the `.vox` model in `datafiles/meshes/` and its `Mesh.model` string share one `<material>_<object>[_<variant>]` name.
+Meshes are included files, not GM resources, and take a media-style name with no kind prefix (the extension is the kind): the `.vox`/`.mesh` file in `datafiles/meshes/` and its `Mesh.model` string share one camelCase `<material><Object>[<Variant>]` name (`woodenTableSmall`, `militaryTurret`). The string reaches a save, so renaming a mesh bumps `Snapshot.VERSION`.
