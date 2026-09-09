@@ -146,7 +146,7 @@ this._apply = (factory) => {
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
   // registered label (localized) is the reliable source; built-ins fall back to their instance one.
   this.scene = factory();
-  this._label = SceneRegistry.labelOf(factory);
+  this._label = Scene.labelOf(factory);
   this.scene.create((f) => this.switchTo(f));
 };
 
@@ -157,16 +157,16 @@ this._destroyScene = () => {
   this._label = null;
 };
 
-GameOverlay.quitTo = SCENES.lobby;
+GameOverlay.quitTo = sceneLobby;
 GameOverlay.settingsFile = SETTINGS_FILE;
 GameOverlay.keymap = PlayerSystem.keymap(); // the Settings tab's key-binding list
 // lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
 // nothing to fade out from, so the boot fades IN from black instead.
-this._apply(SCENES.lobby);
+this._apply(sceneLobby);
 SceneTransition.reveal();
 
 // Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of
-// the Demo's SaveGame/SceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
+// SaveGame/sceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
 GameOverlay.addTab(
   I18n.textRef("SYS_TAB_SAVELOAD"),
   I18n.textRef("SYS_TAB_SAVELOAD_ABBR"),

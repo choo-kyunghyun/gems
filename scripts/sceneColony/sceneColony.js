@@ -8,10 +8,10 @@ const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom e
 const HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
 
 /**
- * factory so the scene editor's Test Play can open this scene; same ref SceneRegistry labels use
+ * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
  */
-globalThis.SceneColony = () => new _SceneColonyClass();
-SceneRegistry.add(SceneColony, {
+globalThis.sceneColony = () => new _SceneColonyClass();
+Scene.register(sceneColony, {
   label: I18n.textRef("RPG_NAME"),
   category: "SCENE_CAT_RPG",
 });

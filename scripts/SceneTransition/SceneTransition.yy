@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SceneTransition",
   "parent":{
-    "name":"UI",
-    "path":"folders/Core/UI.yy",
+    "name":"Scene",
+    "path":"folders/Core/Scene.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

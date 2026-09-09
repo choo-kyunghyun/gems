@@ -178,7 +178,6 @@
     {"id":{"name":"contentTiles","path":"scripts/contentTiles/contentTiles.yy",},},
     {"id":{"name":"CraftingUI","path":"scripts/CraftingUI/CraftingUI.yy",},},
     {"id":{"name":"CraftSystem","path":"scripts/CraftSystem/CraftSystem.yy",},},
-    {"id":{"name":"demo","path":"scripts/demo/demo.yy",},},
     {"id":{"name":"Dialogue","path":"scripts/Dialogue/Dialogue.yy",},},
     {"id":{"name":"Direction","path":"scripts/Direction/Direction.yy",},},
     {"id":{"name":"Display","path":"scripts/Display/Display.yy",},},

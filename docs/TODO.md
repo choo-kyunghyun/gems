@@ -54,7 +54,6 @@ Every agent now plans over one level-sized `NavGrid`, so a request can span the 
 
 - Killfeed
 - Click cue on non-button widgets — only `UIButton`/`UINav` activation cues today, so a click on a slider/checkbox/list is silent
-- Smart HUD (concept)
 
 ## Build Mode
 

@@ -100,7 +100,7 @@ globalThis.SaveGame = {
 
   /**
    * Read a slot's bundle off disk and PARK it for the colony scene's create() load-branch (the
-   * actual reconstruction needs a fresh scene). The caller then boots/switches to SceneColony.
+   * actual reconstruction needs a fresh scene). The caller then boots/switches to sceneColony.
    * Returns false if the slot can't be read.
    */
   load(slot) {
@@ -519,7 +519,7 @@ globalThis.SaveGame = {
       return;
     }
     GameOverlay.close();
-    game.switchTo(SceneColony); // fresh colony boot → create() load-branch → restore
+    game.switchTo(sceneColony); // fresh colony boot → create() load-branch → restore
   },
 
   /**

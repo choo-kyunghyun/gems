@@ -7,7 +7,7 @@ GameOverlay.update(this); // global F1 system overlay; before UINav so it's same
 UINav.update();
 Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-box)
 // dev-only: F2 returns to lobby without a restart
-if (DEV_MODE && Input.keyPressed(vk_f2)) this.switchTo(SCENES.lobby);
+if (DEV_MODE && Input.keyPressed(vk_f2)) this.switchTo(sceneLobby);
 
 // flush a queued scene swap: it applies at full fade cover; then advance the fade timer.
 if (this._pending !== null && !SceneTransition.isBusy()) {

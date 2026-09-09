@@ -1,7 +1,8 @@
 // Facet kit widget showcase. pure UI — no entities/renderer/step/draw.
 // tab host flex-grows; each page is a facetScroll({ grow:true }) to reflow at any GUI size.
 
-SceneRegistry.add(() => new _SceneFacetClass(), {
+globalThis.sceneFacet = () => new _SceneFacetClass();
+Scene.register(sceneFacet, {
   label: I18n.textRef("UIKIT_NAME"),
   category: "SCENE_CAT_UI",
 });
@@ -89,7 +90,7 @@ class _SceneFacetClass {
     this.ui.insertChild(card);
 
     this.ui.insertChild(
-      facetButton(I18n.textRef("UIKIT_BACK"), () => openScene(SCENES.lobby), {
+      facetButton(I18n.textRef("UIKIT_BACK"), () => openScene(sceneLobby), {
         tooltip: I18n.textRef("UIKIT_TIP_BACK"),
       }),
     );
