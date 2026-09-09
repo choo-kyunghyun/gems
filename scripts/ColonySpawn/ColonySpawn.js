@@ -372,6 +372,9 @@ globalThis.ColonySpawn = {
     } else if (s.preset === "npc") {
       over.Name = { name: s.label };
       over.NPC = { name: s.nameKey, questId: s.questId };
+      // the E action — a merchant trades, any other NPC talks — so the scene's one pick
+      // (Interactable) sees an NPC beside the stations
+      over.Interaction = { kind: s.merchant !== undefined ? "trade" : "talk" };
       over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
       over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
       // TODO: the descriptor's `color` no longer reaches the outfit — route it through
@@ -493,7 +496,7 @@ globalThis.ColonySpawn = {
     }
 
     // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
-    // Inventory (its OWN goods); the scene opens TradeUI on E. Stock built via InventorySystem.add
+    // Inventory (its OWN goods); its `trade` Interaction opens TradeUI on E. Stock built via InventorySystem.add
     // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
     if (s.preset === "npc" && s.merchant !== undefined) {
       const mc = s.merchant;

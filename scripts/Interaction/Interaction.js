@@ -9,7 +9,8 @@
  * @property {string} kind      registered InteractAction id. The colony's set: "storage" |
  *   "workbench" | "corpse" (a stripped body, looted over its own Inventory) | "door" | "rehire"
  *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
- *   "chop" (a ripe plant — FloraSystem)
+ *   "chop" (a ripe plant — FloraSystem) | "talk" (a quest NPC: offer / turn-in) | "trade" (a
+ *   merchant NPC: its shop) — the NPC pair is ColonySpawn's, so an NPC is picked beside a station
  * @property {string} [module]  workbench only: slotted WorkbenchModule itemId ("" / absent = empty)
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing

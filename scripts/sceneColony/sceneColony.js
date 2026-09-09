@@ -1,5 +1,3 @@
-const NPC_RADIUS = 60; // interact range to the elder NPC (32px-cell scale)
-const TRADE_RANGE = 128; // a merchant's TradeUI stays open within this range; auto-closes if you walk off
 const START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
 const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
@@ -265,8 +263,7 @@ class _SceneColonyClass {
     );
     Hud.build(this); // top-right HP/quest card + bottom-center dialogue box
     InventoryUI.build(this);
-    Interactable.build(this); // station prompt + storage + crafting windows
-    TradeUI.build(this); // near-fullscreen merchant shop (opened on a merchant NPC)
+    Interactable.build(this); // the pick's prompt + every station window (storage / crafting / map / trade)
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
   }
 
@@ -469,10 +466,10 @@ class _SceneColonyClass {
     SkeletonSystem.update(this.level.entities); // pose skeletal bodies into their puppets (per frame)
     AppearanceSystem.update(this.level.entities); // dress the puppets SkeletonSystem just minted
     InstanceSystem.update(); // reap the puppets of entities that died this frame
-    this._updateNpc(); // proximity + dialogue text (no input here)
+    Interactable.update(this); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
+    this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
-    Interactable.update(this); // station select + range-close + transfers/crafting (no E here)
-    this._dispatchInteract(); // single E press → station OR NPC (cursor, else nearest)
+    this._dispatchInteract(); // single E press → close an open window, else activate the pick
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
     this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
@@ -534,22 +531,6 @@ class _SceneColonyClass {
         },
       });
       this._invDirty = false;
-    }
-
-    // merchant shop: refresh when dirty; auto-close if the player walked out of range (no station range-close)
-    if (this._tradeOpen) {
-      const mp = this.level.entities.get(this._tradeMerchantId, Position);
-      const tp = this.level.entities.get(this.playerId, Position);
-      if (
-        mp === undefined ||
-        tp === undefined ||
-        (mp.x - tp.x) ** 2 + (mp.y - tp.y) ** 2 > TRADE_RANGE * TRADE_RANGE
-      ) {
-        TradeUI.close(this);
-      } else if (this._tradeDirty) {
-        TradeUI.refresh(this);
-        this._tradeDirty = false;
-      }
     }
   }
 
@@ -730,23 +711,17 @@ class _SceneColonyClass {
   }
 
   /**
-   * proximity to an NPC + dialogue text for accept/turn-in; target resolved live each frame (this._npcId)
+   * the dialogue panel's text (name / line / this press's E action) when the frame's pick is an
+   * NPC — the panel IS an NPC's prompt (its `talk`/`trade` defs draw no pill). Reads the pick,
+   * never a proximity query of its own, so the panel can only describe the entity E activates.
    */
   _updateNpc() {
-    this._npcId = -1;
     this.nearNpc = false;
-    const p = this.level.entities.get(this.playerId, Position);
-    if (p === undefined) return;
-    // nearest in-reach NPC (streamed or up-front); none → no dialogue this frame
-    const id = Query.nearest(this.level.entities, p.x, p.y, {
-      has: NPC,
-      maxDist: NPC_RADIUS,
-    });
-    if (id === -1) return;
-    this._npcId = id;
+    const id = this._interTarget;
+    const npc = id !== -1 ? this.level.entities.get(id, NPC) : undefined;
+    if (npc === undefined) return;
     this.nearNpc = true;
 
-    const npc = this.level.entities.get(id, NPC);
     this.dialogueName = npc.name;
     // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
     if (this.level.entities.has(id, Merchant)) {
@@ -783,77 +758,21 @@ class _SceneColonyClass {
   /** derive this frame's input context: window > build > play (a window pauses build) */
   _resolveContext() {
     let ctx = "play";
-    if (
-      this.invOpen ||
-      this._storeOpen ||
-      this._craftOpen ||
-      this._tradeOpen ||
-      this._mapOpen
-    )
-      ctx = "window";
+    if (this.invOpen || Interactable.isOpen(this)) ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
   }
 
   /**
-   * single E dispatch: an open station window → E closes it; else pick station-vs-NPC by
-   * cursor-then-distance and activate. interact is muted in "build", so this runs only in play/window.
+   * single E dispatch: an open station window → E closes it; else activate the frame's pick — the
+   * one Interactable made, so E can only ever act on what is highlighted. interact is muted in
+   * "build", so this runs only in play/window.
    */
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
-    if (this._tradeOpen) {
-      TradeUI.close(this); // E closes the merchant shop
-      return;
-    }
-    if (this._storeOpen || this._craftOpen || this._mapOpen) {
-      Interactable.closeAll(this); // E closes an open station window
-      return;
-    }
-    const stationId = this._interTarget; // -1 when no station in range
-    const npcId = this._npcId; // -1 when no NPC nearby (resolved live in _updateNpc)
-    if (stationId === -1 && npcId === -1) return;
-
-    let toStation;
-    if (npcId === -1) toStation = true;
-    else if (stationId === -1) toStation = false;
-    else {
-      // Both in reach: the one under the cursor wins; on a tie, the nearer to the player.
-      const sCur = Interactable.isCursorOver(this, stationId);
-      const nCur = Interactable.isCursorOver(this, npcId);
-      if (sCur !== nCur) {
-        toStation = sCur;
-      } else {
-        const p = this.level.entities.get(this.playerId, Position);
-        const sp = this.level.entities.get(stationId, Position);
-        const np = this.level.entities.get(npcId, Position);
-        toStation =
-          (sp.x - p.x) ** 2 + (sp.y - p.y) ** 2 <=
-          (np.x - p.x) ** 2 + (np.y - p.y) ** 2;
-      }
-    }
-    if (toStation) Interactable.activate(this);
-    else this._npcActivate();
-  }
-
-  /**
-   * NPC side of the interact dispatch: accept/turn-in the quest (called by _dispatchInteract only)
-   */
-  _npcActivate() {
-    if (this._npcId === -1 || !this.nearNpc) return;
-    // a merchant NPC opens its shop instead of the quest flow
-    if (this.level.entities.has(this._npcId, Merchant)) {
-      TradeUI.open(this, this._npcId);
-      return;
-    }
-    const npc = this.level.entities.get(this._npcId, NPC);
-    const qid = npc.questId;
-    if (Tracker.isReady(qid)) {
-      this._completeQuest(qid);
-    } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
-      Tracker.accept(qid);
-      Log.info(`accepted ${qid}`);
-    }
+    if (Interactable.isOpen(this)) Interactable.closeAll(this);
+    else Interactable.activate(this);
   }
 
   /**
@@ -879,11 +798,7 @@ class _SceneColonyClass {
       this._invWin.enabled = false;
       return true;
     }
-    if (this._tradeOpen) {
-      TradeUI.close(this); // close the merchant shop
-      return true;
-    }
-    if (this._storeOpen || this._craftOpen || this._mapOpen) {
+    if (Interactable.isOpen(this)) {
       Interactable.closeAll(this); // closes whichever station window is open
       return true;
     }
@@ -906,7 +821,7 @@ class _SceneColonyClass {
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
         lift: this.camera !== undefined && this.camera.pitch !== 0 ? 32 : 0,
       });
-    Interactable.drawTarget(this); // highlight the targeted station (world space)
+    Interactable.drawTarget(this); // highlight the pick (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
     // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D

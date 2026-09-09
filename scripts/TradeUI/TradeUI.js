@@ -3,10 +3,9 @@
 /**
  * This file is presentation + the double-click/amount gesture, plus the sell-side worn/favorited
  * guard (it reads the player's Equipment/Favorites). Each column is a sortable UITable with a Price
- * column. State on the scene (_trade*). Opened by sceneColony._npcActivate when the targeted NPC carries
- * a Merchant; it closes itself past TRADE_RANGE (Interactable's range-close covers only windows
- * opened from an Interaction, and a merchant NPC has none — so without this, walking away would leave
- * the shop open).
+ * column. State on the scene (_trade*). Opened by the `trade` InteractAction (a merchant NPC's
+ * Interaction) and driven like every station window: Interactable builds it, range-closes it and
+ * refreshes it when _tradeDirty is set.
  */
 globalThis.TradeUI = {
   build(scene) {

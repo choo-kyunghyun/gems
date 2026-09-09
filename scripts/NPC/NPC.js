@@ -1,5 +1,6 @@
 /**
- * Interactable non-player entity. Scene opens a dialogue panel on interact that can offer/turn in a quest.
+ * Non-player entity: the dialogue panel's name/lines and its quest. Its E behaviour is its Interaction
+ * (`talk` / `trade`, set by ColonySpawn), picked by Interactable beside every station.
  *
  * @typedef {Object} NPC
  * @property {string} name        i18n key for the display name

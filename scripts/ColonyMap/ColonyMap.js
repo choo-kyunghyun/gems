@@ -241,7 +241,6 @@ globalThis.ColonyMap = {
     scene._buildActive = false;
     BuildMode.active = false;
     scene.nearNpc = false;
-    scene._npcId = -1;
     if (scene.invOpen) scene._invDirty = true;
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
@@ -346,7 +345,6 @@ globalThis.ColonyMap = {
     scene._builtEnts = m.builtEnts;
     scene.reachZone = m.reachZone;
     scene.reachDone = m.reachDone === true;
-    scene._npcId = -1;
     ColonyMap._activate(scene);
     return true;
   },
@@ -460,7 +458,6 @@ globalThis.ColonyMap = {
     // A region, not an entity, so it is read off the descriptors here (and saved as a rect thereafter).
     scene.reachZone = ColonyMap._reach(scene, built.spawns);
     scene.reachDone = scene.reachZone === undefined; // nothing to reach on this map
-    scene._npcId = -1; // resolved live each frame by _updateNpc (nearest "npc" in range)
   },
 
   /**

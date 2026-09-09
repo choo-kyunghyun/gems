@@ -5,6 +5,7 @@
  * refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/buff) act on
  * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
  * something to the player, not just open a panel". The entity just carries { kind: <id> }.
+ * The NPC pair (talk/trade) carries `prompt: ""`: no pill, the dialogue panel prompts for them.
  */
 globalThis.contentInteractions = {
   registered: false,
@@ -54,8 +55,34 @@ globalThis.contentInteractions = {
           WorldMapUI.open(ctx.scene);
         },
       },
+      {
+        // a merchant NPC (ColonySpawn's `merchant` descriptor): the shop over its own stock
+        id: "trade",
+        prompt: "",
+        run(ctx) {
+          ctx.scene._interOpenId = ctx.id;
+          TradeUI.open(ctx.scene, ctx.id);
+        },
+      },
 
       // ── instant actions ──
+      {
+        // a quest NPC: accept its quest, or turn it in once ready; inert in between (the dialogue
+        // panel names this press's action, RPG_ACCEPT / RPG_TURNIN, or nothing)
+        id: "talk",
+        prompt: "",
+        run(ctx) {
+          const npc = ctx.entities.get(ctx.id, NPC);
+          if (npc === undefined) return;
+          const qid = npc.questId;
+          if (Tracker.isReady(qid)) {
+            ctx.scene._completeQuest(qid);
+          } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
+            Tracker.accept(qid);
+            Log.info(`accepted ${qid}`);
+          }
+        },
+      },
       {
         // built door (wooden_door prop): toggles passability. Closed = a solid slab (blocks
         // bodies AND pathing — NavGrid rasterizes the kinematic collider live); open = non-solid

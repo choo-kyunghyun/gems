@@ -1,6 +1,13 @@
 // Interaction engine for the colony scene: each frame it picks one `Interaction`-carrying target
 // (under the cursor if in range, else nearest), prompts it, and runs its action on E.
 /**
+ * THE ONE-PICK INVARIANT: everything E can act on — a station, a ripe plant, a quest NPC, a
+ * merchant, an unhired companion — carries `Interaction`, so there is exactly one candidate set
+ * and one pick per frame (scene._interTarget), and the highlight, the prompt (the pill, or an
+ * NPC's dialogue panel) and the E activation all derive from it. Never add a second picker over
+ * another channel (an NPC query beside this one, say): the moment a press arbitrates between two
+ * picks, what is highlighted and what E does can disagree.
+ *
  * The action itself is data (InteractAction registry, colony set in contentInteractions), so this engine is
  * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
  * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
@@ -10,8 +17,9 @@
  *
  * THE STATION-WINDOW DRIVER: update() also owns the open windows' lifecycle — it range-closes the one
  * recorded in scene._interOpenId and sets its _*Dirty flag when the target's contents change. The
- * protocol every station window shares: the manager refreshes only when its flag is set, so gameplay
- * code that mutates an inventory elsewhere must set the flag (e.g. scene._storeDirty).
+ * protocol every station window shares (storage / crafting / world map / trade): the manager
+ * refreshes only when its flag is set, so gameplay code that mutates an inventory elsewhere must
+ * set the flag (e.g. scene._storeDirty).
  */
 globalThis.Interactable = {
   RADIUS: 72, // interact range (px); 32px-cell scale
@@ -59,36 +67,37 @@ globalThis.Interactable = {
     StorageUI.build(scene);
     CraftingUI.build(scene); // the workbench window — also hosts the weapon-mod panel (Toolkit module)
     WorldMapUI.build(scene); // the travel beacon's site picker
+    TradeUI.build(scene); // a merchant NPC's shop
   },
 
+  /** the pill's text: the picked def's prompt, "" for none (no def, or a def that prompts through its own UI) */
   _promptText(scene) {
     const def = InteractAction.get(scene._interKind);
-    return def === undefined ? "" : I18n.text(def.prompt);
+    return def === undefined || def.prompt === "" ? "" : I18n.text(def.prompt);
   },
 
   /**
    * Per-frame: pick target, drive prompt/highlight, refresh the open+dirty window. E is NOT read
-   * here — the scene's arbiter (sceneColony._dispatchInteract) decides station-vs-NPC and calls
-   * activate()/closeAll(), so one E press can't fire two handlers.
+   * here — the scene reads it after this and calls closeAll() (a window open) or activate(), so
+   * the press always lands on the pick this frame made.
    */
   update(scene) {
     Interactable._pick(scene);
 
-    // opened station left range → close
+    // the opened window's target left range (or is gone) → close
     if (
-      (scene._storeOpen || scene._craftOpen || scene._mapOpen) &&
+      Interactable.isOpen(scene) &&
       !Interactable._inRange(scene, scene._interOpenId)
     ) {
       Interactable._closeAll(scene);
     }
 
     // hidden under build mode too: E is not bound in the build context, and the build HUD
-    // stands where the prompt does
+    // stands where the prompt does. A def without a prompt draws no pill — its target prompts
+    // through its own UI (an NPC's dialogue panel).
     scene._interPrompt.enabled =
-      scene._interTarget !== -1 &&
-      !scene._storeOpen &&
-      !scene._craftOpen &&
-      !scene._mapOpen &&
+      Interactable._promptText(scene) !== "" &&
+      !Interactable.isOpen(scene) &&
       !BuildMode.active;
 
     if (scene._storeOpen && scene._storeDirty) {
@@ -103,10 +112,14 @@ globalThis.Interactable = {
       WorldMapUI.refresh(scene); // re-lays the chart's nodes after a pick
       scene._mapDirty = false;
     }
+    if (scene._tradeOpen && scene._tradeDirty) {
+      TradeUI.refresh(scene);
+      scene._tradeDirty = false;
+    }
   },
 
-  // ── Arbiter hooks (called by the scene's interact dispatcher)
-  // open/claim the current target; the scene calls this when the station wins this E press
+  // ── Scene hooks (the scene's E dispatch: a window open → closeAll, else activate)
+  /** run the pick's action — THE E press; a no-op with nothing picked */
   activate(scene) {
     Interactable._open(scene);
   },
@@ -116,19 +129,20 @@ globalThis.Interactable = {
     Interactable._closeAll(scene);
   },
 
-  /** true when the cursor is over entity `id`'s BBox — lets the scene break a station-vs-NPC tie */
-  isCursorOver(scene, id) {
-    if (id === -1) return false;
-    const pos = scene.level.entities.get(id, Position);
-    if (pos === undefined) return false;
-    return Interactable._mouseInside(
-      pos,
-      scene.level.entities.get(id, BBox),
-      scene.mouseWorld,
+  /** is a station window open (storage / crafting / world map / trade) */
+  isOpen(scene) {
+    return (
+      scene._storeOpen === true ||
+      scene._craftOpen === true ||
+      scene._mapOpen === true ||
+      scene._tradeOpen === true
     );
   },
 
-  /** pick target = station under the mouse (if in range), else nearest in range */
+  /**
+   * THE pick over every Interaction-carrying entity in range: the one under the cursor, else the
+   * nearest. NPCs are candidates like any station (their Interaction is ColonySpawn's).
+   */
   _pick(scene) {
     const entities = scene.level.entities;
     const p = entities.get(scene.playerId, Position);
@@ -220,6 +234,7 @@ globalThis.Interactable = {
     if (scene._storeOpen) StorageUI.close(scene);
     if (scene._craftOpen) CraftingUI.close(scene);
     if (scene._mapOpen) WorldMapUI.close(scene);
+    if (scene._tradeOpen) TradeUI.close(scene);
     scene._interOpenId = -1;
   },
 
