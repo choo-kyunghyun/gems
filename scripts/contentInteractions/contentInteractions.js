@@ -35,7 +35,7 @@ globalThis.contentInteractions = {
         run(ctx) {
           ctx.scene.window.open("storage", {
             target: ctx.id,
-            onTake: (itemId, qty) => ctx.scene._onCollect(itemId, qty),
+            onTake: (itemId, qty) => ctx.scene.onCollect(itemId, qty),
           });
         },
       },
@@ -75,7 +75,7 @@ globalThis.contentInteractions = {
           if (npc === undefined) return;
           const qid = npc.questId;
           if (Tracker.isReady(qid)) {
-            ctx.scene._completeQuest(qid);
+            ctx.scene.completeQuest(qid);
           } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
             Tracker.accept(qid);
             Log.info(`accepted ${qid}`);
@@ -141,7 +141,7 @@ globalThis.contentInteractions = {
         id: "bed",
         prompt: "BED_PROMPT",
         run(ctx) {
-          ctx.scene._sleep();
+          ctx.scene.sleep();
         },
       },
       {

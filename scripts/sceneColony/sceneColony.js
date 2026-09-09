@@ -80,7 +80,7 @@ class _SceneColonyClass {
 
     this._hotbarTimer = HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
     this._hotbarSlide = 0; // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
-    this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see _sleep)
+    this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see sleep)
     this._sleepPeaked = false; // this sleep session already hit the Time.scale ceiling (td_time_skip)
     this.nearNpc = false;
     this.dialogueName = "";
@@ -362,7 +362,7 @@ class _SceneColonyClass {
           // hitting the ceiling IS the td_time_skip trigger — once per sleep session
           if (!this._sleepPeaked) {
             this._sleepPeaked = true;
-            this._track("sleepSkip", "", 1);
+            this.track("sleepSkip", "", 1);
           }
         } else {
           Time.scale = s;
@@ -458,7 +458,7 @@ class _SceneColonyClass {
           // by species so only raiders advance the "Raider Cull" quest (rats have no target); the
           // kill counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
           const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
-          this._track("kill", kind, 1);
+          this.track("kill", kind, 1);
           // the "corpse" kind leaves the body in the world — drop its species marker so the
           // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
           this.level.entities.detach(id, Raider);
@@ -498,7 +498,7 @@ class _SceneColonyClass {
       });
       ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
       ColonyCombat.collectDrops(this, (itemId, got) =>
-        this._onCollect(itemId, got),
+        this.onCollect(itemId, got),
       );
       this._checkReach(); // reach-quest zone
 
@@ -551,7 +551,7 @@ class _SceneColonyClass {
     if (hb === undefined) return;
     for (let i = 0; i < hb.size; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
-      this._showHotbar(); // any hotbar keypress reveals the bar (even an empty slot)
+      this.showHotbar(); // any hotbar keypress reveals the bar (even an empty slot)
       const itemId = hb.slots[i];
       if (itemId === "") continue;
       InventoryUI.useItem(this, itemId, this._itemWorn(itemId));
@@ -559,7 +559,7 @@ class _SceneColonyClass {
   }
 
   /** reveal the hotbar HUD and refresh its auto-hide countdown */
-  _showHotbar() {
+  showHotbar() {
     this._hotbarTimer = HOTBAR_HUD_SECS;
   }
 
@@ -583,12 +583,12 @@ class _SceneColonyClass {
    * pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
    * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
    */
-  _onCollect(itemId, got) {
+  onCollect(itemId, got) {
     const pp = this.level.entities.get(this.playerId, Position);
     // pickup blip (spatial, ~centred)
     if (pp !== undefined)
       Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
-    this._track("collect", itemId, got);
+    this.track("collect", itemId, got);
     Log.info(
       `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,
     );
@@ -598,7 +598,7 @@ class _SceneColonyClass {
    * Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
    * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
    */
-  _kickFollower(fid) {
+  kickFollower(fid) {
     if (!this.level.entities.has(fid, Squad)) return; // not a member
     if (this.level.entities.has(fid, Downed)) return; // recovering — can't kick mid-revive
     FollowerSystem.kick(this.level.entities, this.playerId, fid);
@@ -610,7 +610,7 @@ class _SceneColonyClass {
    * start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
    * _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
    */
-  _sleep() {
+  sleep() {
     this._sleeping = true;
     this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
   }
@@ -635,7 +635,7 @@ class _SceneColonyClass {
     const z = map.reachZone;
     if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
       map.reachDone = true;
-      this._track("reach", "ruins", 1);
+      this.track("reach", "ruins", 1);
       Log.info("reached the ruins");
     }
   }
@@ -645,9 +645,9 @@ class _SceneColonyClass {
    * close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
    * Caller checks isReady first; complete() is what marks it done.
    */
-  _completeQuest(qid) {
+  completeQuest(qid) {
     Progression.applyReward(this, Tracker.complete(qid));
-    this._track("quest", qid, 1);
+    this.track("quest", qid, 1);
     Log.info(
       `quest complete: ${qid} — questsCompleted=${Tracker.count("questsCompleted")}`,
     );
@@ -663,7 +663,7 @@ class _SceneColonyClass {
    * quest); that terminates because Tracker.complete marks a quest done BEFORE handing over its
    * rewards, so a quest can never re-fire itself.
    */
-  _track(kind, target, n = 1) {
+  track(kind, target, n = 1) {
     const r = Tracker.report(kind, target, n);
     for (let i = 0; i < r.unlocked.length; i++) {
       const a = Achievement.get(r.unlocked[i]);
@@ -674,7 +674,7 @@ class _SceneColonyClass {
     }
     for (let i = 0; i < r.ready.length; i++)
       if (this._passiveQuests.indexOf(r.ready[i]) !== -1)
-        this._completeQuest(r.ready[i]);
+        this.completeQuest(r.ready[i]);
     return r;
   }
 

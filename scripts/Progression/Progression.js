@@ -9,7 +9,7 @@ globalThis.Progression = {
       const it = reward.items[i];
       InventorySystem.add(inv, it.itemId, it.qty);
       // through the seam, so reward items count toward the collect rules like any other pickup
-      scene._track("collect", it.itemId, it.qty);
+      scene.track("collect", it.itemId, it.qty);
     }
     scene.window.dirty = true;
   },

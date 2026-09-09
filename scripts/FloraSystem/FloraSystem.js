@@ -301,7 +301,7 @@ globalThis.FloraSystem = {
       Toast.push(I18n.text("WB_BAG_FULL"), { type: "info" });
       return false;
     }
-    scene._onCollect(def.yield.itemId, qty); // quest/achievement credit + the pickup blip
+    scene.onCollect(def.yield.itemId, qty); // quest/achievement credit + the pickup blip
     scene.window.dirty = true;
     Toast.push(
       I18n.text(

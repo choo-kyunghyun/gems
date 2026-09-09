@@ -305,7 +305,7 @@ globalThis.InventoryUI = {
     if (hb === undefined) return;
     if (page.sel !== null) HotbarSystem.set(hb, i, page.sel.itemId);
     else HotbarSystem.clear(hb, i);
-    scene._showHotbar(); // pop the HUD bar so the change is visible
+    scene.showHotbar(); // pop the HUD bar so the change is visible
   },
 
   /**
@@ -457,7 +457,7 @@ globalThis.InventoryUI = {
     card.insertChild(
       facetButton(
         I18n.textRef("FOLLOWER_DISMISS"),
-        () => scene._kickFollower(fid),
+        () => scene.kickFollower(fid),
         {
           height: 30,
           disabled: () => {

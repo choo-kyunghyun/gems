@@ -173,7 +173,7 @@ globalThis.BuildMode = {
           }),
         },
         {
-          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene._sleep (fast-forward + drain Drowsiness).
+          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene.sleep (fast-forward + drain Drowsiness).
           id: "bed",
           labelKey: "BUILD_BED",
           cost: 6,

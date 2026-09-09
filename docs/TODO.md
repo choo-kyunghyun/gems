@@ -21,12 +21,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - Singleton method style is split in Core/Util: `Log`/`Settings`/`Tracker` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
 - `facetRoot` monkey-patches `insertChild` to the inner column instead of exposing it as a named content property (`facetScroll.scrollBody`, `facetOverlay.body`) — `removeChild` stays un-redirected, so a remove targets the wrapper and silently misses, and the assigned `.content` has no reader.
 
-## Scene
-
-Left by the scene review that folded the catalogue into `Scene`.
-
-- The colony scene is a blackboard — 30 files read `scene.*`, 78 members (49 `_`-private), six `_` methods are called from outside, and fields are initialised in three places (`create`, `ColonyMap._activateReset`, the HUD modules' `build`: `Hud`/`Interactable`/`BuildMode`).
-
 ## Gameplay
 
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)
