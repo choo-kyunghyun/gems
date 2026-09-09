@@ -186,7 +186,7 @@ globalThis.AppearanceSystem = {
       out[AppearanceSystem.SLOT[gear]] = worn;
       return;
     }
-    // held-icon fallback (item.sprite is contentItems' pixItem<Id> auto-wire; -1 = none)
+    // held-icon fallback (item.sprite is the def's bag icon; -1 = none)
     if (gear === "weapon" && sprite_exists(item.sprite))
       out[AppearanceSystem.SLOT[gear]] = item.sprite;
   },

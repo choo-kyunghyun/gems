@@ -45,62 +45,19 @@ const MAKERS = [
 ];
 
 globalThis.contentItems = {
-  /**
-   * An item id (a snake_case data KEY — docs/NAMING.md) to the Subject half of its sprite
-   * name, so the icon convention stays a rule instead of a lookup table. Cased by char code:
-   * toUpperCase returns garbage on this runtime (docs/GMRT.md).
-   */
-  _subject(id) {
-    const parts = id.split("_");
-    let out = "";
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      if (p === "") continue;
-      const code = p.charCodeAt(0);
-      out += (code >= 97 ? String.fromCharCode(code - 32) : p.charAt(0)) + p.slice(1);
-    }
-    return out;
-  },
-
-  // Icon aliases for ids SHARING one sprite — 1:1 art auto-wires by the pixItem<Id> naming
-  // convention, so only many-to-one entries live here. Bare refs: an alias to art that is gone
-  // fails at load, where the convention's NAME lookup keeps the colored-box fallback.
-  // (circuitry art was retired with the media overhaul — colored-box fallback until new art)
-  ICONS: {
-    // one serum icon for all four attribute shards
-    power_serum: pixItemSerum,
-    vitality_serum: pixItemSerum,
-    agility_serum: pixItemSerum,
-    endurance_serum: pixItemSerum,
-    ration_pack: pixItemCannedFood,
-    berries: pixItemApple,
-    blaster: pixItemPistol,
-    adrenal_implant: pixItemEnergy,
-    // one shared round icon for all three calibers (the only ammo art in the new set)
-    ammo_light: pixItemRounds,
-    ammo_heavy: pixItemRounds,
-    ammo_ap: pixItemRounds,
-    // branded gear reuses base art (dedicated icons are a follow-up)
-    aeon_pistol: pixItemPistol,
-    vekt_pistol: pixItemPistol,
-    aeon_cutter: pixItemEnergy,
-    helios_ration: pixItemCannedFood,
-    aeon_rounds: pixItemRounds,
-    // the vests have no 32 px icon of their own: the bag shows their worn Outer garment sheet,
-    // which every icon site draws fit-scaled (UIImage CONTAIN, SlotDrag's iconSize)
-    armored_vest: pixOuterArmoredVest,
-    helios_vest: pixOuterArmoredVest,
-  },
-
   register() {
     Rarity.register(RARITIES);
     Manufacturer.register(MAKERS);
 
+    // `sprite` is the bag icon, a bare asset ref shared freely between ids (the serums, the
+    // calibers); a def without one has no icon art yet. A misspelt ref is an undeclared read,
+    // which kills the runner without a log (docs/GMRT.md) — verify by running the game.
     Item.register([
       // loot trash
       {
         id: "rags",
         name: "ITEM_RAGS",
+        sprite: pixItemRags,
         weight: 1,
         value: 2,
         rarity: "common",
@@ -110,6 +67,7 @@ globalThis.contentItems = {
         id: "medkit",
         name: "ITEM_MEDKIT",
         description: "ITEM_MEDKIT_DESC",
+        sprite: pixItemMedkit,
         weight: 1,
         value: 10,
         rarity: "uncommon",
@@ -120,6 +78,7 @@ globalThis.contentItems = {
         id: "medgel",
         name: "ITEM_MEDGEL",
         description: "ITEM_MEDGEL_DESC",
+        sprite: pixItemMedgel,
         weight: 1,
         value: 15,
         rarity: "uncommon",
@@ -129,6 +88,7 @@ globalThis.contentItems = {
         id: "combat_stim",
         name: "ITEM_COMBAT_STIM",
         description: "ITEM_COMBAT_STIM_DESC",
+        sprite: pixItemCombatStim,
         weight: 1,
         value: 35,
         rarity: "rare",
@@ -139,6 +99,7 @@ globalThis.contentItems = {
         id: "water_bottle",
         name: "ITEM_WATER_BOTTLE",
         description: "ITEM_WATER_BOTTLE_DESC",
+        sprite: pixItemWaterBottle,
         weight: 1,
         value: 4,
         rarity: "common",
@@ -150,6 +111,7 @@ globalThis.contentItems = {
         id: "soda",
         name: "ITEM_SODA",
         description: "ITEM_SODA_DESC",
+        sprite: pixItemSoda,
         weight: 1,
         value: 6,
         rarity: "common",
@@ -160,6 +122,7 @@ globalThis.contentItems = {
         id: "soda_trash",
         name: "ITEM_SODA_TRASH",
         description: "ITEM_SODA_TRASH_DESC",
+        sprite: pixItemSodaTrash,
         weight: 1,
         value: 1,
         rarity: "common",
@@ -168,6 +131,7 @@ globalThis.contentItems = {
         id: "ration_pack",
         name: "ITEM_RATION_PACK",
         description: "ITEM_RATION_PACK_DESC",
+        sprite: pixItemCannedFood,
         weight: 1,
         value: 5,
         rarity: "common",
@@ -177,6 +141,7 @@ globalThis.contentItems = {
         id: "cooked_meat",
         name: "ITEM_COOKED_MEAT",
         description: "ITEM_COOKED_MEAT_DESC",
+        sprite: pixItemCookedMeat,
         weight: 1,
         value: 12,
         rarity: "uncommon",
@@ -187,6 +152,7 @@ globalThis.contentItems = {
         id: "berries",
         name: "ITEM_BERRIES",
         description: "ITEM_BERRIES_DESC",
+        sprite: pixItemApple,
         weight: 1,
         value: 3,
         rarity: "common",
@@ -206,6 +172,7 @@ globalThis.contentItems = {
         id: "power_serum",
         name: "ITEM_POWER_SERUM",
         description: "ITEM_POWER_SERUM_DESC",
+        sprite: pixItemSerum,
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -215,6 +182,7 @@ globalThis.contentItems = {
         id: "vitality_serum",
         name: "ITEM_VITALITY_SERUM",
         description: "ITEM_VITALITY_SERUM_DESC",
+        sprite: pixItemSerum,
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -224,6 +192,7 @@ globalThis.contentItems = {
         id: "agility_serum",
         name: "ITEM_AGILITY_SERUM",
         description: "ITEM_AGILITY_SERUM_DESC",
+        sprite: pixItemSerum,
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -233,6 +202,7 @@ globalThis.contentItems = {
         id: "endurance_serum",
         name: "ITEM_ENDURANCE_SERUM",
         description: "ITEM_ENDURANCE_SERUM_DESC",
+        sprite: pixItemSerum,
         weight: 1,
         value: 50,
         rarity: "epic",
@@ -243,6 +213,7 @@ globalThis.contentItems = {
         id: "lead_pipe",
         name: "ITEM_LEAD_PIPE",
         description: "ITEM_LEAD_PIPE_DESC",
+        sprite: pixItemLeadPipe,
         weight: 4,
         value: 8,
         rarity: "common",
@@ -269,6 +240,7 @@ globalThis.contentItems = {
         id: "blaster",
         name: "ITEM_BLASTER",
         description: "ITEM_BLASTER_DESC",
+        sprite: pixItemPistol,
         weight: 5,
         value: 60,
         rarity: "rare",
@@ -296,6 +268,9 @@ globalThis.contentItems = {
         id: "armored_vest",
         name: "ITEM_ARMORED_VEST",
         description: "ITEM_ARMORED_VEST_DESC",
+        // no 32 px icon of its own: the bag shows the worn Outer garment sheet, which every icon
+        // site draws fit-scaled (UIImage CONTAIN, SlotDrag's iconSize)
+        sprite: pixOuterArmoredVest,
         weight: 8,
         value: 20,
         rarity: "uncommon",
@@ -312,6 +287,7 @@ globalThis.contentItems = {
       {
         id: "adrenal_implant",
         name: "ITEM_ADRENAL_IMPLANT",
+        sprite: pixItemEnergy,
         weight: 1,
         value: 40,
         rarity: "rare",
@@ -332,6 +308,7 @@ globalThis.contentItems = {
       {
         id: "backpack",
         name: "ITEM_BACKPACK",
+        sprite: pixItemBackpack,
         weight: 3,
         value: 30,
         rarity: "uncommon",
@@ -344,6 +321,7 @@ globalThis.contentItems = {
       {
         id: "coin",
         name: "ITEM_COIN",
+        sprite: pixItemCoinGold,
         weight: 0,
         value: 1,
         rarity: "common",
@@ -359,6 +337,7 @@ globalThis.contentItems = {
       {
         id: "keycard",
         name: "ITEM_KEYCARD",
+        sprite: pixItemKeycard,
         weight: 0,
         value: 0,
         rarity: "epic",
@@ -367,6 +346,7 @@ globalThis.contentItems = {
       {
         id: "wood",
         name: "ITEM_WOOD",
+        sprite: pixItemWood,
         weight: 1,
         value: 1,
         rarity: "common",
@@ -375,6 +355,7 @@ globalThis.contentItems = {
       {
         id: "scrap_metal",
         name: "ITEM_SCRAP_METAL",
+        sprite: pixItemScrapMetal,
         weight: 2,
         value: 4,
         rarity: "common",
@@ -385,6 +366,7 @@ globalThis.contentItems = {
         id: "ammo_light",
         name: "ITEM_AMMO_LIGHT",
         description: "ITEM_AMMO_LIGHT_DESC",
+        sprite: pixItemRounds,
         weight: 0,
         value: 1,
         rarity: "common",
@@ -402,6 +384,7 @@ globalThis.contentItems = {
         id: "ammo_heavy",
         name: "ITEM_AMMO_HEAVY",
         description: "ITEM_AMMO_HEAVY_DESC",
+        sprite: pixItemRounds,
         weight: 0,
         value: 2,
         rarity: "uncommon",
@@ -419,6 +402,7 @@ globalThis.contentItems = {
         id: "ammo_ap",
         name: "ITEM_AMMO_AP",
         description: "ITEM_AMMO_AP_DESC",
+        sprite: pixItemRounds,
         weight: 0,
         value: 3,
         rarity: "uncommon",
@@ -438,6 +422,7 @@ globalThis.contentItems = {
         id: "mod_scope",
         name: "ITEM_MOD_SCOPE",
         description: "ITEM_MOD_SCOPE_DESC",
+        sprite: pixItemModScope,
         weight: 1,
         value: 40,
         rarity: "rare",
@@ -452,6 +437,7 @@ globalThis.contentItems = {
         id: "mod_long_barrel",
         name: "ITEM_MOD_LONG_BARREL",
         description: "ITEM_MOD_LONG_BARREL_DESC",
+        sprite: pixItemModLongBarrel,
         weight: 2,
         value: 35,
         rarity: "uncommon",
@@ -463,6 +449,7 @@ globalThis.contentItems = {
         id: "mod_extended_mag",
         name: "ITEM_MOD_EXTENDED_MAG",
         description: "ITEM_MOD_EXTENDED_MAG_DESC",
+        sprite: pixItemModExtendedMag,
         weight: 1,
         value: 30,
         rarity: "uncommon",
@@ -474,6 +461,7 @@ globalThis.contentItems = {
         id: "mod_grip",
         name: "ITEM_MOD_GRIP",
         description: "ITEM_MOD_GRIP_DESC",
+        sprite: pixItemModGrip,
         weight: 1,
         value: 30,
         rarity: "uncommon",
@@ -485,6 +473,7 @@ globalThis.contentItems = {
         id: "mod_suppressor",
         name: "ITEM_MOD_SUPPRESSOR",
         description: "ITEM_MOD_SUPPRESSOR_DESC",
+        sprite: pixItemModSuppressor,
         weight: 1,
         value: 45,
         rarity: "rare",
@@ -500,6 +489,7 @@ globalThis.contentItems = {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
         description: "ITEM_MOD_SHARP_DESC",
+        sprite: pixItemModSharp,
         weight: 1,
         value: 25,
         rarity: "uncommon",
@@ -515,6 +505,7 @@ globalThis.contentItems = {
         id: "mod_heavy",
         name: "ITEM_MOD_HEAVY",
         description: "ITEM_MOD_HEAVY_DESC",
+        sprite: pixItemModHeavy,
         weight: 2,
         value: 40,
         rarity: "rare",
@@ -530,6 +521,7 @@ globalThis.contentItems = {
         id: "machining_module",
         name: "ITEM_MACHINING_MODULE",
         description: "ITEM_MACHINING_MODULE_DESC",
+        sprite: pixItemMachiningModule,
         weight: 3,
         value: 30,
         rarity: "uncommon",
@@ -539,6 +531,7 @@ globalThis.contentItems = {
         id: "chem_module",
         name: "ITEM_CHEM_MODULE",
         description: "ITEM_CHEM_MODULE_DESC",
+        sprite: pixItemChemModule,
         weight: 2,
         value: 35,
         rarity: "uncommon",
@@ -548,6 +541,7 @@ globalThis.contentItems = {
         id: "cooking_module",
         name: "ITEM_COOKING_MODULE",
         description: "ITEM_COOKING_MODULE_DESC",
+        sprite: pixItemCookingModule,
         weight: 3,
         value: 25,
         rarity: "uncommon",
@@ -557,6 +551,7 @@ globalThis.contentItems = {
         id: "gunsmith_kit",
         name: "ITEM_GUNSMITH_KIT",
         description: "ITEM_GUNSMITH_KIT_DESC",
+        sprite: pixItemGunsmithKit,
         weight: 2,
         value: 40,
         rarity: "rare",
@@ -565,10 +560,13 @@ globalThis.contentItems = {
       // ── branded gear (maker → Manufacturer registry) ─────────────────────────────────────
       // a maker's signature ops fold into composeWeapon on top of the authored base, so two
       // companies' takes on the same weapon class genuinely play differently.
+      // TODO: the pistols, the cutter, the ration and the rounds reuse base icons until they
+      // get art of their own
       {
         id: "aeon_pistol",
         name: "ITEM_AEON_PISTOL",
         description: "ITEM_AEON_PISTOL_DESC",
+        sprite: pixItemPistol,
         weight: 4,
         value: 85,
         rarity: "rare",
@@ -592,6 +590,7 @@ globalThis.contentItems = {
         id: "vekt_pistol",
         name: "ITEM_VEKT_PISTOL",
         description: "ITEM_VEKT_PISTOL_DESC",
+        sprite: pixItemPistol,
         weight: 7,
         value: 85,
         rarity: "rare",
@@ -615,6 +614,7 @@ globalThis.contentItems = {
         id: "aeon_cutter",
         name: "ITEM_AEON_CUTTER",
         description: "ITEM_AEON_CUTTER_DESC",
+        sprite: pixItemEnergy,
         weight: 3,
         value: 70,
         rarity: "rare",
@@ -636,6 +636,7 @@ globalThis.contentItems = {
         id: "vekt_wrench",
         name: "ITEM_VEKT_WRENCH",
         description: "ITEM_VEKT_WRENCH_DESC",
+        sprite: pixItemVektWrench,
         weight: 6,
         value: 75,
         rarity: "rare",
@@ -657,6 +658,7 @@ globalThis.contentItems = {
         id: "helios_vest",
         name: "ITEM_HELIOS_VEST",
         description: "ITEM_HELIOS_VEST_DESC",
+        sprite: pixOuterArmoredVest,
         weight: 7,
         value: 45,
         rarity: "rare",
@@ -673,6 +675,7 @@ globalThis.contentItems = {
         id: "helios_trauma_kit",
         name: "ITEM_HELIOS_TRAUMA_KIT",
         description: "ITEM_HELIOS_TRAUMA_KIT_DESC",
+        sprite: pixItemHeliosTraumaKit,
         weight: 1,
         value: 25,
         rarity: "rare",
@@ -683,6 +686,7 @@ globalThis.contentItems = {
         id: "helios_ration",
         name: "ITEM_HELIOS_RATION",
         description: "ITEM_HELIOS_RATION_DESC",
+        sprite: pixItemCannedFood,
         weight: 1,
         value: 12,
         rarity: "uncommon",
@@ -693,6 +697,7 @@ globalThis.contentItems = {
         id: "aeon_rounds",
         name: "ITEM_AEON_ROUNDS",
         description: "ITEM_AEON_ROUNDS_DESC",
+        sprite: pixItemRounds,
         weight: 0,
         value: 4,
         rarity: "rare",
@@ -708,18 +713,5 @@ globalThis.contentItems = {
         ],
       },
     ]);
-
-    // auto-wire icon sprites by naming convention pixItem<Id> — the one COMPUTED name (the id
-    // camelised; asset_get_index returns a handle, so validate with sprite_exists — docs/GMRT.md)
-    // — falling back to the ICONS alias table. defs with explicit sprites untouched.
-    const items = Item.all();
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (it.sprite !== -1) continue;
-      let spr = asset_get_index("pixItem" + contentItems._subject(it.id));
-      if (!sprite_exists(spr) && contentItems.ICONS[it.id] !== undefined)
-        spr = contentItems.ICONS[it.id];
-      if (sprite_exists(spr)) it.sprite = spr;
-    }
   },
 };
