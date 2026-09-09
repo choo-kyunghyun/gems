@@ -12,7 +12,7 @@
  * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
  * that vanishes drops off the record on the next step.
  *
- * Takes the scene (the map's runtime: `rooms`, the layer handles, the level), like FloraSystem.
+ * Takes the scene (`map.rooms` — the map's runtime, ColonyMap — and the level), like FloraSystem.
  */
 globalThis.RoomSystem = {
   KEY: "rooms", // its LevelMeta key — a data key (a save holds it)
@@ -37,8 +37,8 @@ globalThis.RoomSystem = {
       n++;
     });
     rects.length = n;
-    scene.rooms.stamp(rects);
-    scene.rooms.sync();
+    scene.map.rooms.stamp(rects);
+    scene.map.rooms.sync();
   },
 
   /**
@@ -57,7 +57,7 @@ globalThis.RoomSystem = {
     if (dh <= 0) return;
     rec.lastHour = now;
 
-    const rooms = scene.rooms;
+    const rooms = scene.map.rooms;
     const list = rooms.rooms;
     const n = list.length;
     const power = RoomSystem._power;
@@ -106,16 +106,17 @@ globalThis.RoomSystem = {
   /** Whether a world point is under a roof: inside a room, or anywhere on an indoor map. */
   sheltered(scene, wx, wy) {
     if (scene.level.meta.get(ColonyMap.INDOOR) === true) return true;
-    return scene.rooms.atWorld(wx, wy) > 0;
+    return scene.map.rooms.atWorld(wx, wy) > 0;
   },
 
   /** The temperature at a world point in Kelvin: its room's, or the outside's. */
   tempAt(scene, wx, wy) {
-    const r = scene.rooms.atWorld(wx, wy);
+    const rooms = scene.map.rooms;
+    const r = rooms.atWorld(wx, wy);
     if (r <= 0) return Temperature.now();
     const rec = scene.level.meta.get(RoomSystem.KEY);
     if (rec === undefined) return Temperature.now();
-    const t = rec.temps[String(scene.rooms.rooms[r].first)];
+    const t = rec.temps[String(rooms.rooms[r].first)];
     return t !== undefined ? t : Temperature.now();
   },
 };

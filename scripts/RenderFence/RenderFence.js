@@ -16,7 +16,7 @@
  * it (or the shader) the buffer submits unlit.
  *
  * VBO-cached like RenderTileMap/RenderWalls: markDirty() after any tile edit — BuildMode's
- * _markTileDirty reaches it through scene._tilePasses. Coords are absolute world px.
+ * _markTileDirty reaches it through the map's tilePasses. Coords are absolute world px.
  * @implements {RenderPass}
  */
 globalThis.RenderFence = class RenderFence {

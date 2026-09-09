@@ -289,7 +289,7 @@ globalThis.SaveGame = {
    *   cell/cols/rows/capacity   the grid's shape and the store's size
    *   statics / colliders       the scene's collider id lists (level edge + terrain / per solid
    *                layer) — ids into `world`, kept so a build-mode remesh still frees the right ones
-   *   spawn / entries / reachZone / reachDone / built / builtEnts   the per-map scene fields
+   *   spawn / entries / reachZone / reachDone / built / builtEnts   the MapRuntime's data half (ColonyMap)
    *   meta         the level's whole-map records (LevelMeta.export — indoor, climate, settlement)
    */
   _mapsPass: {
@@ -301,8 +301,8 @@ globalThis.SaveGame = {
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
         const level = World.get(mapId); // the map's data — pooled whether it's active or parked
-        // its per-map colony state lives flat on the scene while active, in the park bundle once parked
-        const src = mapId === activeId ? ctx.scene : ColonyMap._parked[mapId];
+        // its runtime record: the scene's `map` while active, the park entry once parked
+        const src = mapId === activeId ? ctx.scene.map : ColonyMap._parked[mapId];
         if (level === null || src === undefined) continue;
         const entities = level.entities;
         const grid = level.grid;
@@ -335,9 +335,9 @@ globalThis.SaveGame = {
           spawn: src.spawn,
           entries: src.entries,
           reachZone: src.reachZone,
-          reachDone: src.reachDone === true,
-          built: src._built !== undefined ? src._built : {},
-          builtEnts: src._builtEnts !== undefined ? src._builtEnts : {},
+          reachDone: src.reachDone,
+          built: src.built,
+          builtEnts: src.builtEnts,
           statics: src.statics,
           colliders: colliders,
           world: exp,
@@ -380,11 +380,11 @@ globalThis.SaveGame = {
       Trader.onActivate(scene); // re-link (or embody) the traders settled here
       // aim the camera at the player straight away (the follow control eases in from wherever
       // the view sits — see CameraFollow.enter)
-      if (scene.camera !== undefined && scene.playerId !== undefined) {
+      if (scene.playerId !== undefined) {
         const pos = scene.level.entities.get(scene.playerId, Position);
         if (pos !== undefined) {
-          scene.camera.toX = pos.x;
-          scene.camera.toY = pos.y;
+          scene.map.camera.toX = pos.x;
+          scene.map.camera.toY = pos.y;
         }
       }
     },

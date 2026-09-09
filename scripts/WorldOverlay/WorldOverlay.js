@@ -40,8 +40,8 @@ globalThis.WorldOverlay = {
     // item's rarity color — the visibility cue. 2.5D: the stream draws on a camera-facing plane
     // at the drop's foot (the FloatingText tilt) so its drift rises on screen; a flat top-down
     // camera (pitch 0) leaves it on the ground.
-    const tilt =
-      scene.camera !== undefined ? (-scene.camera.pitch * 180) / Math.PI : 0;
+    const pitch = scene.map.camera.pitch;
+    const tilt = (-pitch * 180) / Math.PI;
     const ident = matrix_build_identity();
     entities.forEach([ItemDrop, Position], (id, d, p) => {
       const it = Item.get(d.itemId);
@@ -84,8 +84,7 @@ globalThis.WorldOverlay = {
     // 2.5D: lift in-air cues (projectile dots + tracers) off the ground via a world-z offset so they
     // read as flying. Depth-test off so a body they pass can't hide them (transient, always visible).
     // Flat top-down (pitch 0) lifts nothing.
-    const lift =
-      scene.camera !== undefined && scene.camera.pitch !== 0 ? 32 : 0;
+    const lift = pitch !== 0 ? 32 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -117,8 +116,8 @@ globalThis.WorldOverlay = {
     }
 
     // reach-quest zone, only when the scene defines one and it's unmet
-    if (scene.reachZone !== undefined && !scene.reachDone) {
-      const z = scene.reachZone;
+    if (scene.map.reachZone !== undefined && !scene.map.reachDone) {
+      const z = scene.map.reachZone;
       draw_set_alpha(0.35);
       draw_set_color(make_colour_rgb(120, 200, 255));
       draw_rectangle(z.x1, z.y1, z.x2, z.y2, false);

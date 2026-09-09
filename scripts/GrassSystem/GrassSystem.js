@@ -53,15 +53,16 @@ globalThis.GrassSystem = {
     const grass = GrassSystem._type(scene, "grass");
     const host = GrassSystem._type(scene, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return false;
-    if (scene.terrainLayer.get(gx, gy) !== grass) return false;
-    scene.terrainLayer.set(gx, gy, host);
+    const layer = scene.map.terrainLayer;
+    if (layer.get(gx, gy) !== grass) return false;
+    layer.set(gx, gy, host);
     GrassSystem._dirty = true;
     return true;
   },
 
-  /** The map's TileType for a contentBiomes material id, off scene.terrainMats; undefined off-palette. */
+  /** The map's TileType for a contentBiomes material id, off map.terrainMats; undefined off-palette. */
   _type(scene, material) {
-    const mats = scene.terrainMats;
+    const mats = scene.map.terrainMats;
     if (mats === undefined) return undefined;
     for (let i = 0; i < mats.length; i++)
       if (mats[i].material === material) return mats[i].type;
@@ -74,7 +75,8 @@ globalThis.GrassSystem = {
     const host = GrassSystem._type(scene, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return;
     const grid = scene.level.grid;
-    const layer = scene.terrainLayer;
+    const map = scene.map;
+    const layer = map.terrainLayer;
     const cap = Math.floor(grid.cols * grid.rows * GrassSystem.CAP_SHARE);
     let count = 0;
     for (let gy = 0; gy < grid.rows; gy++)
@@ -97,10 +99,9 @@ globalThis.GrassSystem = {
         layer.get(gx, gy - 1) === grass ||
         layer.get(gx, gy + 1) === grass;
       if (!front) continue;
-      let covered = scene._builtEnts !== undefined &&
-        scene._builtEnts[gx + "," + gy] !== undefined;
+      let covered = map.builtEnts[gx + "," + gy] !== undefined;
       for (let k = 0; k < lkeys.length; k++)
-        if (TileEdit.occupied(scene[lkeys[k] + "Layer"], gx, gy)) covered = true;
+        if (TileEdit.occupied(map[lkeys[k] + "Layer"], gx, gy)) covered = true;
       if (covered) continue;
       layer.set(gx, gy, grass);
       count++;
@@ -119,13 +120,14 @@ globalThis.GrassSystem = {
     const host = GrassSystem._type(scene, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return;
     const grid = scene.level.grid;
-    const layer = scene.terrainLayer;
+    const map = scene.map;
+    const layer = map.terrainLayer;
     const lkeys = BuildMode.tileLayerKeys();
     for (let gy = 0; gy < grid.rows; gy++)
       for (let gx = 0; gx < grid.cols; gx++) {
         if (layer.get(gx, gy) !== grass) continue;
         for (let k = 0; k < lkeys.length; k++)
-          if (TileEdit.occupied(scene[lkeys[k] + "Layer"], gx, gy)) {
+          if (TileEdit.occupied(map[lkeys[k] + "Layer"], gx, gy)) {
             layer.set(gx, gy, host);
             break;
           }
@@ -137,9 +139,9 @@ globalThis.GrassSystem = {
   _flush(scene) {
     if (!GrassSystem._dirty) return;
     GrassSystem._dirty = false;
-    if (scene._terrainPasses !== undefined)
-      for (let i = 0; i < scene._terrainPasses.length; i++)
-        scene._terrainPasses[i].markDirty();
-    if (scene._grassPass !== undefined) scene._grassPass.markDirty();
+    const map = scene.map;
+    for (let i = 0; i < map.terrainPasses.length; i++)
+      map.terrainPasses[i].markDirty();
+    if (map.grassPass !== undefined) map.grassPass.markDirty();
   },
 };

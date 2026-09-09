@@ -10,7 +10,7 @@
  * a plan as the pretty literal contentPrefabs takes — the DEV capture tool's exit (BuildMode).
  *
  * stamp() puts a plan down at (ox, oy) through BuildMode.applyItem, so a stamped build is
- * identical to a hand-placed one (colliders, _built / _builtEnts tracking, render dirty), the
+ * identical to a hand-placed one (colliders, built / builtEnts tracking, render dirty), the
  * solid layers remeshed once at the end. The build path only knows the catalog: a tiles entry no
  * catalog item paints, or a spawn without `item`, is skipped with a warning. Ungated — the caller
  * decides validity/cost.
@@ -27,10 +27,10 @@ globalThis.Blueprint = {
     for (let l = 0; l < contentTiles.LAYERS.length; l++) {
       const cfg = contentTiles.LAYERS[l];
       if (cfg.key === "terrain") continue; // the biome ground is the generator's, never content
-      const layer = scene[cfg.key + "Layer"];
+      const layer = scene.map[cfg.key + "Layer"];
       if (cfg.materials !== undefined) {
         // one entry per material present, so the rects carry the material key
-        const types = scene[cfg.key + "Types"];
+        const types = scene.map[cfg.key + "Types"];
         for (let m = 0; m < cfg.materials.length; m++) {
           const key = cfg.materials[m].key;
           const type = types[key];
@@ -52,13 +52,14 @@ globalThis.Blueprint = {
       }
     }
     const spawns = [];
-    const ek = Object.keys(scene._builtEnts);
+    const builtEnts = scene.map.builtEnts;
+    const ek = Object.keys(builtEnts);
     for (let i = 0; i < ek.length; i++) {
       const c = ek[i].split(",");
       const gx = Number(c[0]);
       const gy = Number(c[1]);
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
-      const e = scene._builtEnts[ek[i]];
+      const e = builtEnts[ek[i]];
       const item = BuildMode.item(e.itemId);
       if (item === undefined) continue; // stale/removed catalog id
       // make() at the LIVE cell (a door orients off its neighbours), then localise

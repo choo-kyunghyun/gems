@@ -123,7 +123,7 @@ globalThis.Trader = {
   },
   _hydrate(scene, rec) {
     // near the map's player spawn (each map's own "market point" — avoids per-map authored coords)
-    const sg = scene.level.grid.worldToGrid(scene.spawn.x, scene.spawn.y);
+    const sg = scene.level.grid.worldToGrid(scene.map.spawn.x, scene.map.spawn.y);
     const gx = sg.x + 3;
     const gy = sg.y;
     if (rec.snap !== undefined) {

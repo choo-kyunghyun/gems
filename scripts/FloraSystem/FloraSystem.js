@@ -22,7 +22,7 @@
  * and nothing stands on it (canRoot — the test a built crop passes too). A level without a biome
  * record (a pre-flora save) grows but never spreads.
  *
- * Takes the scene (the map's runtime: terrainMats and the layer handles), like BuildMode.
+ * Takes the scene (`map` — the map's runtime, ColonyMap: terrainMats and the layer handles), like BuildMode.
  * GMRT-safe: index loops, structural changes buffered past the scan (ComponentStore.forEach).
  */
 globalThis.FloraSystem = {
@@ -224,13 +224,13 @@ globalThis.FloraSystem = {
 
   /**
    * The terrain material id under a cell (contentBiomes.MATERIALS), read off the map's material
-   * table (scene.terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a map whose
+   * table (map.terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a map whose
    * saved rows predate the material column.
    */
   materialAt(scene, gx, gy) {
-    const mats = scene.terrainMats;
+    const mats = scene.map.terrainMats;
     if (mats === undefined) return undefined;
-    const t = scene.terrainLayer.get(gx, gy);
+    const t = scene.map.terrainLayer.get(gx, gy);
     for (let i = 0; i < mats.length; i++)
       if (mats[i].type === t) return mats[i].material;
     return undefined;
@@ -251,8 +251,8 @@ globalThis.FloraSystem = {
     if (def.ground.indexOf(mat) < 0) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(scene[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (scene._builtEnts[gx + "," + gy] !== undefined) return false;
+      if (TileEdit.occupied(scene.map[lkeys[i] + "Layer"], gx, gy)) return false;
+    if (scene.map.builtEnts[gx + "," + gy] !== undefined) return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;
     const hh = grid.cellHeight / 2;

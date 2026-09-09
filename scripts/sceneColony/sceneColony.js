@@ -54,9 +54,9 @@ class _SceneColonyClass {
     };
     // the static-collider change signal → re-stamp the active map's nav grid and drop every
     // planned path (a new wall may cut one; the walkers re-request on their own throttle).
-    // `this.nav` is read live, so the one hook serves every map the scene activates.
+    // `this.map` is read live, so the one hook serves every map the scene activates.
     SolidSystem.onStatics = (entities, statics) => {
-      this.nav.stamp(statics);
+      this.map.nav.stamp(statics);
       PathfindingSystem.invalidate(entities);
     };
 
@@ -377,7 +377,7 @@ class _SceneColonyClass {
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
     // unprojection (see Camera.unproject). Read by PlayerSystem (via Playable), BuildMode, Interactable.
-    this.mouseWorld = this.camera.cursorWorld();
+    this.mouseWorld = this.map.camera.cursorWorld();
     const pl = this.level.entities.get(this.playerId, Playable);
     pl.cursorX = this.mouseWorld.x;
     pl.cursorY = this.mouseWorld.y;
@@ -411,7 +411,7 @@ class _SceneColonyClass {
     // mirror any tile-cost edits into the nav grid BEFORE the tick loop (PathfindingSystem plans
     // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
     // SolidSystem.onStatics instead (create).
-    this.nav.sync();
+    this.map.nav.sync();
     RoomSystem.sync(this); // the doors + any wall edit into the room mirror (shelter for the needs below)
 
     const ticks = SimClock.advance();
@@ -436,7 +436,7 @@ class _SceneColonyClass {
       // crowders apart → projectiles → fuses → expire.
       PlayerSystem.update(this.level.entities); // the player brain: input → Velocity/fire
       StateSystem.update(this.level.entities); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
-      PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.nav
+      PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.map.nav
       SolidSystem.update(this.level.entities);
       SeparationSystem.update(this.level.entities); // unstack dynamic bodies (crowding), after SolidSystem
       ProjectileSystem.update(this.level.entities);
@@ -468,8 +468,8 @@ class _SceneColonyClass {
         onRespawn: (id) => {
           const pos = this.level.entities.get(id, Position);
           const vel = this.level.entities.get(id, Velocity);
-          pos.x = this.spawn.x;
-          pos.y = this.spawn.y;
+          pos.x = this.map.spawn.x;
+          pos.y = this.map.spawn.y;
           vel.x = 0;
           vel.y = 0;
           // respawn with each need at mid-meter, refreshed so a critical debuff clears at once
@@ -489,7 +489,7 @@ class _SceneColonyClass {
       });
       // revive a downed companion at the map's spawn (inside the settlement when the map is one)
       ColonyCombat.updateDowned(this, {
-        downSpot: () => ({ x: this.spawn.x, y: this.spawn.y }),
+        downSpot: () => ({ x: this.map.spawn.x, y: this.map.spawn.y }),
         onRecover: (id) => {
           Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
             type: "success",
@@ -525,7 +525,7 @@ class _SceneColonyClass {
     ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
     // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
-    if (!this.camera.control.raw) this.camera.update();
+    if (!this.map.camera.control.raw) this.map.camera.update();
     // ears on the body of the entity the camera TRACKS (the CameraFocus marker, live-queried),
     // not the view: CameraFollow clamps its look-at at map edges (and debug free-cam flies away
     // entirely), parking the view center off the tracked body — spatial SFX pan/attenuate from
@@ -535,7 +535,7 @@ class _SceneColonyClass {
       Position,
     );
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
-    else AudioListener.position(this.camera.toX, this.camera.toY);
+    else AudioListener.position(this.map.camera.toX, this.map.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
 
     // refresh the open window page when dirty — last, so every write above lands this frame
@@ -629,11 +629,12 @@ class _SceneColonyClass {
   }
 
   _checkReach() {
-    if (this.reachDone || this.reachZone === undefined) return;
+    const map = this.map;
+    if (map.reachDone || map.reachZone === undefined) return;
     const p = AABB.of(this.level.entities, this.playerId);
-    const z = this.reachZone;
+    const z = map.reachZone;
     if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
-      this.reachDone = true;
+      map.reachDone = true;
       this._track("reach", "ruins", 1);
       Log.info("reached the ruins");
     }
@@ -764,20 +765,21 @@ class _SceneColonyClass {
   draw() {
     // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
     // is skipped then); apply before the renderer reads it
-    if (this.camera.control.raw) this.camera.update();
-    this.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
+    const camera = this.map.camera;
+    if (camera.control.raw) camera.update();
+    this.map.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
     // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     WorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("hudRadar"))
       // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
-        lift: this.camera !== undefined && this.camera.pitch !== 0 ? 32 : 0,
+        lift: camera.pitch !== 0 ? 32 : 0,
       });
     Interactable.drawTarget(this); // highlight the pick (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
     // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D
-    FloatingText.draw(this.camera ? (this.camera.pitch * 180) / Math.PI : 0);
+    FloatingText.draw((camera.pitch * 180) / Math.PI);
     // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here
   }
 
@@ -788,8 +790,8 @@ class _SceneColonyClass {
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
     PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below
-    // park the active map first (its runtime lives flat on `this`), so ColonyMap.reset can reclaim
-    // every map's runtime + pooled Level in one pass
+    // park the active map first (`this.map`), so ColonyMap.reset can reclaim every map's
+    // runtime + pooled Level in one pass
     ColonyMap.suspend(this);
     ColonyMap.reset();
     World.reset(); // drop the level pool + world timeline (every Level freed above)
