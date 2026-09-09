@@ -237,9 +237,10 @@ Unfixed, in the order their size was measured:
 - An A* expansion is ~6 us (four neighbours: `inBounds`/`get`/`toIndex` calls, a heuristic, a
   heap push), and over the weighted 128² overworld the unit heuristic is weak enough that a
   corner-to-corner plan expands ~90% of the cells: ~80–100 ms per far plan, against ~2 ms for a
-  40-cell one. `PathfindingSystem.update` serves every `PathRequest` in one tick, so a few far
-  requests landing together are a frame hitch. The fixes, in order of reach: a per-tick request
-  budget, a heuristic weight (suboptimal but bounded), a coarse planner over the fine one.
+  40-cell one. `PathfindingSystem.update` serves at most `budget` requests per tick and carries
+  the rest over, which spreads a burst but bounds count, not time: one far plan is still a frame
+  hitch. The fixes, in order of reach: a heuristic weight (suboptimal but bounded), a coarse
+  planner over the fine one.
 - The nav grid's whole-level cost mirror (`NavGrid.sync` on a first sync or bulk paint) is ~50 ms —
   `LevelGrid.costAt` is ~3 us per cell (a layer loop + a `NavData` literal each); a single-cell
   edit resamples one cell and recomposes (~2 ms, the same cost as a collider change's re-stamp).
