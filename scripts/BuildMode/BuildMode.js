@@ -762,7 +762,7 @@ globalThis.BuildMode = {
       if (solid === true) remesh[item.layer] = true;
     }
     BuildMode.remeshLayers(scene, remesh);
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`built ${todo.length}x ${item.id} (${scene._buildShape})`);
   },
 
@@ -878,7 +878,7 @@ globalThis.BuildMode = {
       InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
     }
     BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`built ${item.id} at ${gx},${gy}`);
   },
 
@@ -961,7 +961,7 @@ globalThis.BuildMode = {
       }
       BuildMode._refund(scene, ent.itemId);
       delete scene._builtEnts[key];
-      scene._invDirty = true;
+      scene.window.dirty = true;
       Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
       return true;
     }
@@ -983,7 +983,7 @@ globalThis.BuildMode = {
     BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
     delete scene._built[key];
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
     return true;
   },

@@ -1,5 +1,5 @@
 // Weapon-attachment PANEL — the install/remove view of the WORKBENCH (the Toolkit module). Owns no
-// window: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh().
+// page: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh().
 /**
  * Master-detail over the player's WEAPON INSTANCES (each a unique slot with a uid + inline `mods` MAP
  * { slotId -> attachmentItemId }, plus, for a gun, a loaded `ammo` itemId + `rounds`):
@@ -7,32 +7,35 @@
  *   • RIGHT — composed stats (composeWeapon), an AMMO section for a gun (loaded type + clip + Reload +
  *             a Load picker), the weapon's named attachment slots (installed + Remove, or "(empty)"),
  *             and compatible owned attachments to Install.
- * Install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and mark the
- * workbench dirty. Ammo Load/Reload act on the SELECTED instance's slot (may not be equipped), via
- * *Slot. State on scene: _modSel, _modList / _modDetail. Columns are PLAIN (no gpu_set_scissor clip —
- * unreliable in a master-detail row on GMRT 0.20; see CraftingUI).
+ * Install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and set
+ * scene.window.dirty (the workbench page repopulates). Ammo Load/Reload act on the SELECTED
+ * instance's slot (may not be equipped), via *Slot. State on the panel object buildPanel returns:
+ * sel (the selected instance uid), list / detail (the hosts). Columns are PLAIN (no gpu_set_scissor
+ * clip — unreliable in a master-detail row on GMRT 0.20; see CraftingUI).
  */
 globalThis.WeaponModUI = {
   /**
-   * record the hosts CraftingUI built + init selection (the workbench owns open/close).
+   * the panel's state over the hosts CraftingUI built (the workbench page owns open/close)
    */
-  buildPanel(scene, listHost, detailHost) {
-    scene._modSel = ""; // selected weapon instance uid (defaulted to the first on refresh)
-    scene._modList = listHost;
-    scene._modDetail = detailHost;
+  buildPanel(listHost, detailHost) {
+    return {
+      sel: "", // selected weapon instance uid (defaulted to the first on refresh)
+      list: listHost,
+      detail: detailHost,
+    };
   },
 
   /**
    * rebuild both panels, ensuring a valid selection (default to the first weapon; reset if the
    * selected uid is no longer owned).
    */
-  refresh(scene) {
+  refresh(scene, panel) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const weapons = WeaponModUI._weaponInstances(inv);
-    if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, scene._modSel))
-      scene._modSel = weapons[0].uid;
-    WeaponModUI._fillList(scene, inv, weapons);
-    WeaponModUI._fillDetail(scene, inv, weapons);
+    if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, panel.sel))
+      panel.sel = weapons[0].uid;
+    WeaponModUI._fillList(scene, panel, inv, weapons);
+    WeaponModUI._fillDetail(scene, panel, inv, weapons);
   },
 
   /**
@@ -77,7 +80,7 @@ globalThis.WeaponModUI = {
    * Left: one selectable button per weapon instance (name "+N", "[E]" when equipped),
    * refilled via the shared facetFillList.
    */
-  _fillList(scene, inv, weapons) {
+  _fillList(scene, panel, inv, weapons) {
     const eq = scene.level.entities.get(scene.playerId, Equipment);
     const equippedUid = eq !== undefined ? eq.slots.weapon : "";
     const entries = [];
@@ -92,23 +95,23 @@ globalThis.WeaponModUI = {
       entries.push({
         label,
         onPick: () => {
-          scene._modSel = uid;
-          scene._craftDirty = true; // workbench repopulates the panel
+          panel.sel = uid;
+          scene.window.dirty = true; // workbench repopulates the panel
         },
-        selected: () => scene._modSel === uid,
+        selected: () => panel.sel === uid,
         textColor: InvTable.rarityColor(slot.itemId),
         icon: it !== undefined ? it.sprite : -1,
       });
     }
-    facetFillList(scene._modList, entries, I18n.textRef("MOD_EMPTY"));
+    facetFillList(panel.list, entries, I18n.textRef("MOD_EMPTY"));
   },
 
   /**
    * Right: composed stats, ammo (gun), named attachment slots, install picker. PLAIN (no clip);
    * the panel stacks within the near-fullscreen workbench card (ample room for a fully-stuffed gun).
    */
-  _fillDetail(scene, inv, weapons) {
-    const host = scene._modDetail;
+  _fillDetail(scene, panel, inv, weapons) {
+    const host = panel.detail;
     const kids = [...host.children];
     for (let i = 0; i < kids.length; i++) kids[i].destroy();
 
@@ -120,7 +123,7 @@ globalThis.WeaponModUI = {
     }
     let slot;
     for (let i = 0; i < weapons.length; i++)
-      if (weapons[i].uid === scene._modSel) slot = weapons[i];
+      if (weapons[i].uid === panel.sel) slot = weapons[i];
     if (slot === undefined) return;
     WeaponModUI._ensureMap(slot);
 
@@ -191,7 +194,8 @@ globalThis.WeaponModUI = {
     host.insertChild(facetDivider());
 
     // Ammo section (gun only).
-    if (gun !== undefined) WeaponModUI._fillAmmo(scene, inv, slot, gun, prof);
+    if (gun !== undefined)
+      WeaponModUI._fillAmmo(scene, panel, inv, slot, gun, prof);
 
     // Named attachment slots — one row each.
     host.insertChild(
@@ -203,7 +207,9 @@ globalThis.WeaponModUI = {
 
     // owned compatible attachments, each Install into the first matching empty slot.
     host.insertChild(
-      facetLabel(I18n.textRef("MOD_AVAILABLE"), { color: FacetTheme.textMuted }),
+      facetLabel(I18n.textRef("MOD_AVAILABLE"), {
+        color: FacetTheme.textMuted,
+      }),
     );
     const owned = WeaponModUI._compatibleMods(inv, wpn);
     if (owned.length === 0) {
@@ -221,8 +227,8 @@ globalThis.WeaponModUI = {
   /**
    * gun ammo block: loaded type + clip, a Reload button, a Load picker of compatible ammo.
    */
-  _fillAmmo(scene, inv, slot, gun, prof) {
-    const host = scene._modDetail;
+  _fillAmmo(scene, panel, inv, slot, gun, prof) {
+    const host = panel.detail;
     host.insertChild(
       facetLabel(I18n.textRef("MOD_AMMO"), { color: FacetTheme.textMuted }),
     );
@@ -246,8 +252,7 @@ globalThis.WeaponModUI = {
         I18n.textRef("MOD_RELOAD"),
         () => {
           EquipmentSystem.reloadSlot(inv, slot);
-          scene._craftDirty = true;
-          scene._invDirty = true;
+          scene.window.dirty = true;
         },
         {
           height: 26,
@@ -291,8 +296,7 @@ globalThis.WeaponModUI = {
         I18n.textRef("MOD_LOAD"),
         () => {
           EquipmentSystem.loadAmmoSlot(inv, slot, ammoId);
-          scene._craftDirty = true;
-          scene._invDirty = true;
+          scene.window.dirty = true;
         },
         {
           width: 90,
@@ -322,12 +326,9 @@ globalThis.WeaponModUI = {
       const it = Item.get(installed);
       const nm = it !== undefined ? I18n.text(it.name) : installed;
       cell.insertChild(
-        facetRichText(
-          WorldOverlay.iconTag(installed) + catLabel + ": " + nm,
-          {
-            color: InvTable.rarityColor(installed),
-          },
-        ),
+        facetRichText(WorldOverlay.iconTag(installed) + catLabel + ": " + nm, {
+          color: InvTable.rarityColor(installed),
+        }),
       );
       row.insertChild(cell);
       row.insertChild(
@@ -406,8 +407,7 @@ globalThis.WeaponModUI = {
     if (InventorySystem.remove(inv, modId, 1) < 1) return; // not owned
     slot.mods[slotId] = modId;
     StatModel.recompute(scene.level.entities, scene.playerId); // an attachment may grant Stats
-    scene._craftDirty = true;
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`installed ${modId} into ${slotId} on ${slot.itemId}`);
   },
 
@@ -421,8 +421,7 @@ globalThis.WeaponModUI = {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     InventorySystem.add(inv, modId, 1); // refund
     StatModel.recompute(scene.level.entities, scene.playerId);
-    scene._craftDirty = true;
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`removed ${modId} from ${slotId} on ${slot.itemId}`);
   },
 

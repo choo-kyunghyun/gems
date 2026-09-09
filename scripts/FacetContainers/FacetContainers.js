@@ -239,14 +239,14 @@ globalThis.facetModal = function facetModal(opts = {}) {
 };
 
 /**
- * Near-fullscreen overlay window — facetModal's non-modal sibling for the big gameplay
- * windows (bag / workbench / chest / trade). Absolute dim host that veils the HUD, a
+ * Near-fullscreen overlay window — facetModal's non-modal sibling for the gameplay Window
+ * shell (bag / workbench / chest / trade pages). Absolute dim host that veils the HUD, a
  * centered full-height card capped for ultra-wide, and a title row (title + close "x")
  * over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
  * content keeps sort/filter/selection; the caller inserts it into its scene root itself.
- * Content goes into the returned host's `.body` (the card, under the divider); callers
- * needing extra title-row items (TradeUI's credits) insert into `.titleRow` before its
- * close button. `opts`: { onClose, maxWidth }.
+ * Content goes into the returned host's `.body` (the card, under the divider); an extra
+ * title-row item (a page's `titleExtra`, the Window shell mounts it) goes into `.titleRow` before
+ * its close button. `opts`: { onClose, maxWidth }.
  */
 globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
   // absolute → fills the screen ignoring the scene root's padding; 28px margin around the card.

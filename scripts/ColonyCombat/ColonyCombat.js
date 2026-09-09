@@ -1,7 +1,8 @@
 // Combat/loot plumbing for the colony scene — free functions taking the scene (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 /**
- * Contract: the scene owns `entities`, `playerId`, `_hpTrack` (id → last hp), `_invDirty`. The enemy
+ * Contract: the scene owns `entities`, `playerId`, `_hpTrack` (id → last hp), `window` (its `dirty`
+ * is set on a bag change). The enemy
  * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower
  * component, so a save restore or squad transfer needs no bookkeeping — allegiance and membership
  * are component queries, not stored lists.
@@ -312,7 +313,7 @@ globalThis.ColonyCombat = {
         if (d.rounds !== undefined) slot.rounds = d.rounds;
         const ok = InventorySystem.addSlot(inv, slot) === 0;
         if (ok) {
-          scene._invDirty = true;
+          scene.window.dirty = true;
           if (onCollect !== undefined) onCollect(d.itemId, 1);
           entities.remove(id); // deferred — the tick's flush commits it
         }
@@ -321,7 +322,7 @@ globalThis.ColonyCombat = {
       const left = InventorySystem.add(inv, d.itemId, d.qty);
       const got = d.qty - left;
       if (got > 0) {
-        scene._invDirty = true; // bag changed — refresh the window if open
+        scene.window.dirty = true; // bag changed — refresh the open page
         if (onCollect !== undefined) onCollect(d.itemId, got);
       }
       if (left <= 0) entities.remove(id);

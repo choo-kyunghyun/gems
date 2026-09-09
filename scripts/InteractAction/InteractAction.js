@@ -14,8 +14,8 @@
  *             the nearest; the cursor overrides both (Interactable._pick). A companion is -1.
  *   run     invoked on E. ctx = { scene, entities, id, comp, playerId } (id = the station entity, comp
  *           = its Interaction data, playerId = the interacting player). An INSTANT action acts and
- *           returns; a WINDOW action opens its UI and sets scene._interOpenId = ctx.id so the engine
- *           range-closes / refreshes it.
+ *           returns; a WINDOW action opens its page through the scene's Window with the target
+ *           (`scene.window.open(id, { target: ctx.id })`) so the engine range-closes it.
  */
 globalThis.InteractAction = {
   // ── Registry facade (Registry owns the store's contract) ──

@@ -1,61 +1,71 @@
-// Near-fullscreen, tabbed character window (Items / Equipment / Party / Stats / Quests /
-// Achievements / Radio / Settings).
-// Built ONCE; rebuild() only swaps data so filter/selection/active tab survive every equip or use.
+// The bag page of the scene's Window — tabbed character window (Items / Equipment / Party / Stats /
+// Quests / Achievements / Radio / Settings). Built ONCE; rebuild() only swaps data so
+// filter/selection/active tab survive every equip or use.
 /**
  * The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the pane
  * carries the metadata a table would spread across columns (chest/trade keep their tables).
+ * Opened under "bag" with no target — the inventory key toggles it (sceneColony.update), it
+ * replaces any station page and a station opened over it replaces it back; Esc is the shell's.
+ * State on the page: sel (the selected row model), click (the InvTable.reclick latch), cat (the
+ * category filter code), grid / gridEl / view (the UISlots, its element, the filtered row models
+ * parallel to its items), and the rebuilt hosts detailHost / equipHost / extraHost / followerHost.
  */
 globalThis.InventoryUI = {
   /**
-   * Build the hidden overlay + persistent tabbed structure once. Fixed panel (not a UIModal):
-   * absolute host, dim backdrop toggled via .enabled, flex-grow tab host reflows on a live
-   * uiScale change. Build-once + toggle-.enabled is what lets a rebuild keep sort/filter/scroll.
+   * Build the page once: the persistent tabbed structure over the shell's card (build-once +
+   * the shell's `enabled` flip is what lets a rebuild keep sort/filter/scroll). `opts` are the
+   * genre's per-rebuild hooks: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }.
    */
-  build(scene) {
-    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
-    // Inserted AFTER the HUD so the backdrop veils it; Esc / the inventory key also close
-    // (sceneColony.handleEscape + step() toggle). Tabs (built below) flex-grow in host.body.
-    const host = facetOverlay(I18n.textRef("INV_TITLE"), {
-      onClose: () => {
-        scene.invOpen = false;
-        scene._invWin.enabled = false;
-      },
-    });
-    scene._invWin = host;
-    scene.ui.insertChild(host);
-
-    scene._invSel = null; // selected row model
-    scene._invClick = { key: "", time: 0 }; // InvTable.reclick latch (double-click-to-use)
-    scene._invCat = ""; // active category filter code ("" = all)
+  build(scene, opts) {
+    const page = {
+      title: I18n.textRef("INV_TITLE"),
+      el: new UIElement({
+        width: "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+        gap: FacetTheme.gapSm,
+      }),
+      sel: null, // selected row model
+      click: { key: "", time: 0 }, // InvTable.reclick latch (double-click-to-use)
+      cat: "", // active category filter code ("" = all)
+      grid: null, // UISlots
+      gridEl: null,
+      view: [], // filtered row models, parallel to the grid's items
+      detailHost: null,
+      equipHost: null,
+      extraHost: null,
+      followerHost: null,
+      refresh: () => InventoryUI.rebuild(scene, page, opts),
+    };
 
     const tabs = facetTabs(
       [
         {
           label: I18n.textRef("INV_TAB_ITEMS"),
-          content: InventoryUI._buildItemsTab(scene),
+          content: InventoryUI._buildItemsTab(scene, page),
         },
         {
           label: I18n.textRef("INV_TAB_EQUIP"),
-          content: InventoryUI._buildEquipTab(scene),
+          content: InventoryUI._buildEquipTab(page),
         },
         {
           label: I18n.textRef("INV_TAB_PARTY"),
-          content: InventoryUI._buildFollowerTab(scene),
+          content: InventoryUI._buildFollowerTab(page),
         },
         {
           label: I18n.textRef("INV_TAB_STATS"),
-          content: InventoryUI._buildStatsTab(scene),
+          content: InventoryUI._buildStatsTab(scene, page),
         },
         {
           label: I18n.textRef("INV_TAB_QUESTS"),
-          content: InventoryUI._buildQuestsTab(scene),
+          content: InventoryUI._buildQuestsTab(),
         },
         {
           // eight equal segments: the long label overran its neighbour, so the strip draws the
           // abbreviation and the full name is its hover tooltip (UITabs.short)
           label: I18n.textRef("INV_TAB_ACH"),
           short: I18n.textRef("INV_TAB_ACH_ABBR"),
-          content: InventoryUI._buildAchievementsTab(scene),
+          content: InventoryUI._buildAchievementsTab(),
         },
         {
           // the BGM dial — the player's tempo knob (RadioUI owns the page; all-live, no rebuild)
@@ -64,12 +74,13 @@ globalThis.InventoryUI = {
         },
         {
           label: I18n.textRef("INV_TAB_SETTINGS"),
-          content: InventoryUI._buildSettingsTab(scene),
+          content: InventoryUI._buildSettingsTab(),
         },
       ],
-      { grow: true }, // fill the card; the Items tab + bag table grow with it
+      { grow: true }, // fill the card; the Items tab + bag grid grow with it
     );
-    scene._invWin.body.insertChild(tabs);
+    page.el.insertChild(tabs);
+    return page;
   },
 
   // Items-tab grid geometry + detail-pane tuning (plain data on the namespace object)
@@ -89,9 +100,9 @@ globalThis.InventoryUI = {
   // ── tab pages
   // Items: usage + category filter + sort, the bag slot GRID (icons; rarity borders, worn/fav
   // badges) beside a detail pane (name, maker + lore, description, stats), select/action row.
-  _buildItemsTab(scene) {
+  _buildItemsTab(scene, page) {
     // fill the tab host so the grid+detail row takes the leftover height
-    const page = new UIElement({
+    const tab = new UIElement({
       width: "100%",
       flexGrow: 1,
       flexBasis: 0,
@@ -141,9 +152,9 @@ globalThis.InventoryUI = {
     filterCell.insertChild(
       facetSelect(cats, {
         onChange: (_i, code) => {
-          scene._invCat = code;
-          InventoryUI._refreshGrid(scene);
-          InventoryUI._refreshDetail(scene); // the selection may have filtered away
+          page.cat = code;
+          InventoryUI._refreshGrid(scene, page);
+          InventoryUI._refreshDetail(scene, page); // the selection may have filtered away
         },
       }),
     );
@@ -153,13 +164,15 @@ globalThis.InventoryUI = {
       facetButton(
         I18n.textRef("INV_SORT"),
         () => {
-          InventorySystem.sort(scene.level.entities.get(scene.playerId, Inventory));
-          scene._invDirty = true;
+          InventorySystem.sort(
+            scene.level.entities.get(scene.playerId, Inventory),
+          );
+          scene.window.dirty = true;
         },
         { width: 90, height: 28 },
       ),
     );
-    page.insertChild(top);
+    tab.insertChild(top);
 
     // grid (left, sized to the bag) + detail pane (right, fills the rest & stretches).
     // No facetScroll around the grid — a clipped scroll beside a non-clipped sibling is the
@@ -175,16 +188,15 @@ globalThis.InventoryUI = {
       cols: InventoryUI.GRID_COLS,
       cellSize: InventoryUI.GRID_CELL,
       gap: InventoryUI.GRID_GAP,
-      onSelect: (i) => InventoryUI._onGridSelect(scene, i),
+      onSelect: (i) => InventoryUI._onGridSelect(scene, page, i),
       onActivate: (i) => {
         // browse-mode confirm acts on the cursor slot (the mouse path double-clicks)
-        const row = scene._invView[i];
+        const row = page.view[i];
         if (row !== undefined) InventoryUI._activate(scene, row);
       },
     });
-    scene._invGrid = grid.getComponent(UISlots);
-    scene._invGridEl = grid;
-    scene._invView = []; // filtered row models, parallel to the grid's items
+    page.grid = grid.getComponent(UISlots);
+    page.gridEl = grid;
     const gridCell = new UIElement({ flexShrink: 0 });
     gridCell.insertChild(grid);
     content.insertChild(gridCell);
@@ -203,9 +215,9 @@ globalThis.InventoryUI = {
         borderColor: facetColor(FacetTheme.border),
       }),
     );
-    scene._invDetailHost = detail;
+    page.detailHost = detail;
     content.insertChild(detail);
-    page.insertChild(content);
+    tab.insertChild(content);
 
     // selected item name + a context action (Use/Equip/Unequip)
     const action = new UIElement({
@@ -219,31 +231,28 @@ globalThis.InventoryUI = {
     selCell.insertChild(
       facetLabel(
         () =>
-          scene._invSel === null
-            ? I18n.text("INV_SELECT_NONE")
-            : scene._invSel.name,
+          page.sel === null ? I18n.text("INV_SELECT_NONE") : page.sel.name,
         { color: FacetTheme.text },
       ),
     );
     action.insertChild(selCell);
     action.insertChild(
       facetButton(
-        () => InventoryUI._favLabel(scene),
-        () => InventoryUI._toggleFav(scene),
-        { width: 110, height: 28, disabled: () => scene._invSel === null },
+        () => InventoryUI._favLabel(scene, page),
+        () => InventoryUI._toggleFav(scene, page),
+        { width: 110, height: 28, disabled: () => page.sel === null },
       ),
     );
     action.insertChild(
       facetButton(
-        () => InventoryUI._actionLabel(scene),
+        () => InventoryUI._actionLabel(page),
         () => {
-          if (scene._invSel !== null)
-            InventoryUI._activate(scene, scene._invSel);
+          if (page.sel !== null) InventoryUI._activate(scene, page.sel);
         },
         { width: 120, height: 28 },
       ),
     );
-    page.insertChild(action);
+    tab.insertChild(action);
 
     // Hotbar manage strip: click a slot to bind the selected bag item, or clear when none selected.
     // The number keys 1..N USE the bound item in play (bound by PlayerSystem, dispatched by
@@ -252,7 +261,7 @@ globalThis.InventoryUI = {
     hbTitle.insertChild(
       facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
     );
-    page.insertChild(hbTitle);
+    tab.insertChild(hbTitle);
     const hbRow = new UIElement({
       width: "100%",
       height: 34,
@@ -262,17 +271,17 @@ globalThis.InventoryUI = {
     });
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-      cell.insertChild(InventoryUI._hotbarBtn(scene, i));
+      cell.insertChild(InventoryUI._hotbarBtn(scene, page, i));
       hbRow.insertChild(cell);
     }
-    page.insertChild(hbRow);
-    return page;
+    tab.insertChild(hbRow);
+    return tab;
   },
 
   /**
    * one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
    */
-  _hotbarBtn(scene, i) {
+  _hotbarBtn(scene, page, i) {
     return facetButton(
       () => {
         const hb = scene.level.entities.get(scene.playerId, Hotbar);
@@ -286,15 +295,15 @@ globalThis.InventoryUI = {
           (it !== undefined ? I18n.text(it.name) : itemId)
         );
       },
-      () => InventoryUI._assignHotbar(scene, i),
+      () => InventoryUI._assignHotbar(scene, page, i),
       { height: 30 },
     );
   },
 
-  _assignHotbar(scene, i) {
+  _assignHotbar(scene, page, i) {
     const hb = scene.level.entities.get(scene.playerId, Hotbar);
     if (hb === undefined) return;
-    if (scene._invSel !== null) HotbarSystem.set(hb, i, scene._invSel.itemId);
+    if (page.sel !== null) HotbarSystem.set(hb, i, page.sel.itemId);
     else HotbarSystem.clear(hb, i);
     scene._showHotbar(); // pop the HUD bar so the change is visible
   },
@@ -302,59 +311,59 @@ globalThis.InventoryUI = {
   /**
    * favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
    */
-  _favLabel(scene) {
-    if (scene._invSel === null) return I18n.text("INV_NOACTION");
+  _favLabel(scene, page) {
+    if (page.sel === null) return I18n.text("INV_NOACTION");
     const fav = scene.level.entities.get(scene.playerId, Favorites);
-    return fav !== undefined && FavoritesSystem.has(fav, scene._invSel.itemId)
+    return fav !== undefined && FavoritesSystem.has(fav, page.sel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
   },
 
-  _toggleFav(scene) {
-    if (scene._invSel === null) return;
+  _toggleFav(scene, page) {
+    if (page.sel === null) return;
     const fav = scene.level.entities.get(scene.playerId, Favorites);
     if (fav === undefined) return;
-    FavoritesSystem.toggle(fav, scene._invSel.itemId);
-    scene._invDirty = true;
+    FavoritesSystem.toggle(fav, page.sel.itemId);
+    scene.window.dirty = true;
   },
 
   /**
    * Equipment: worn-slot rows, repopulated per rebuild into this host.
    */
-  _buildEquipTab(scene) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+  _buildEquipTab(page) {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
       facetLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
     );
-    page.insertChild(title);
-    scene._invEquipHost = new UIElement({
+    tab.insertChild(title);
+    page.equipHost = new UIElement({
       width: "100%",
       gap: FacetTheme.gapSm,
     });
-    page.insertChild(scene._invEquipHost);
-    return page;
+    tab.insertChild(page.equipHost);
+    return tab;
   },
 
   /**
    * Party: companion roster host + a binding-aware recall hint. Roster repopulated per rebuild
    * (present companions change across maps); per-row text + Dismiss state read the live Follower.
    */
-  _buildFollowerTab(scene) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+  _buildFollowerTab(page) {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
       facetLabel(I18n.textRef("INV_FOLLOWERS"), { color: "warn" }),
     );
-    page.insertChild(title);
-    scene._invFollowerHost = new UIElement({
+    tab.insertChild(title);
+    page.followerHost = new UIElement({
       width: "100%",
       gap: FacetTheme.gapSm,
     });
-    page.insertChild(scene._invFollowerHost);
+    tab.insertChild(page.followerHost);
 
     // recall hint, binding-aware (reads the follow action's live key, like facetKeyHints)
-    page.insertChild(facetDivider());
+    tab.insertChild(facetDivider());
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       facetLabel(
@@ -362,8 +371,8 @@ globalThis.InventoryUI = {
         { color: FacetTheme.textDim },
       ),
     );
-    page.insertChild(hint);
-    return page;
+    tab.insertChild(hint);
+    return tab;
   },
 
   /**
@@ -466,21 +475,21 @@ globalThis.InventoryUI = {
   /**
    * Stats: live character sheet + the genre's extra records (the Tracker's line) host.
    */
-  _buildStatsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+  _buildStatsTab(scene, page) {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const statRow = (labelKey, getter) =>
       facetKeyValueRow(I18n.textRef(labelKey), () => {
         const st = scene.level.entities.get(scene.playerId, Stats);
         return st === undefined ? "" : String(getter(st));
       });
-    page.insertChild(statRow("STAT_ATK", (st) => st.attack));
-    page.insertChild(statRow("STAT_DEF", (st) => st.defense));
-    page.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
+    tab.insertChild(statRow("STAT_ATK", (st) => st.attack));
+    tab.insertChild(statRow("STAT_DEF", (st) => st.defense));
+    tab.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
 
     // primary attributes — the inputs the derived stats come from. Data-driven from
     // StatModel.ATTRS, reading the live Attributes bag, so a *_shard grant shows on next rebuild.
-    page.insertChild(facetDivider());
-    page.insertChild(
+    tab.insertChild(facetDivider());
+    tab.insertChild(
       facetLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
     );
     const attrRow = (def) =>
@@ -489,30 +498,30 @@ globalThis.InventoryUI = {
         return at === undefined ? "" : String(at[def.id]);
       });
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
-      page.insertChild(attrRow(StatModel.ATTRS[i]));
+      tab.insertChild(attrRow(StatModel.ATTRS[i]));
     }
 
-    page.insertChild(facetDivider());
-    scene._invExtraHost = new UIElement({
+    tab.insertChild(facetDivider());
+    page.extraHost = new UIElement({
       width: "100%",
       gap: FacetTheme.gapSm,
     });
-    page.insertChild(scene._invExtraHost);
-    return page;
+    tab.insertChild(page.extraHost);
+    return tab;
   },
 
   /**
    * Quests: live tracker bound to the global Tracker (defs come from QuestLog behind it).
    */
-  _buildQuestsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
-    page.insertChild(
+  _buildQuestsTab() {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+    tab.insertChild(
       facetQuestTracker({
         source: Tracker,
         emptyText: I18n.text("INV_NO_QUESTS"),
       }),
     );
-    return page;
+    return tab;
   },
 
   /**
@@ -520,12 +529,12 @@ globalThis.InventoryUI = {
    * which precedes the window build); the status label reads Tracker live, so an unlock shows
    * with no rebuild.
    */
-  _buildAchievementsTab(_level) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+  _buildAchievementsTab() {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const all = Achievement.all();
     for (let i = 0; i < all.length; i++)
-      page.insertChild(InventoryUI._achievementRow(all[i]));
-    return page;
+      tab.insertChild(InventoryUI._achievementRow(all[i]));
+    return tab;
   },
 
   /**
@@ -572,16 +581,16 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Settings: per-column visibility toggles, persisted. Toggling calls setColumns, which keeps
-   * the current sort by column key.
+   * Settings: per-column visibility toggles, persisted. The chest page re-applies its columns on
+   * every open (StorageUI), and only one page shows at a time, so a toggle needs no sync here.
    */
-  _buildSettingsTab(scene) {
-    const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
+  _buildSettingsTab() {
+    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
       facetLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
     );
-    page.insertChild(title);
+    tab.insertChild(title);
     // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
     // would be undefined and made the toggles one-way: disable but never re-enable).
     const toggle = (labelKey, settingKey) =>
@@ -591,30 +600,29 @@ globalThis.InventoryUI = {
         () => {
           Settings.set(settingKey, !Settings.get(settingKey));
           Settings.save(SETTINGS_FILE);
-          InventoryUI._applyColumns(scene);
         },
         { style: "switch", key: settingKey },
       );
-    page.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
-    page.insertChild(toggle("INV_COL_MAKER", "invColMaker"));
-    page.insertChild(toggle("INV_COL_TYPE", "invColType"));
-    page.insertChild(toggle("INV_COL_WT", "invColWeight"));
-    page.insertChild(toggle("INV_COL_VAL", "invColValue"));
+    tab.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
+    tab.insertChild(toggle("INV_COL_MAKER", "invColMaker"));
+    tab.insertChild(toggle("INV_COL_TYPE", "invColType"));
+    tab.insertChild(toggle("INV_COL_WT", "invColWeight"));
+    tab.insertChild(toggle("INV_COL_VAL", "invColValue"));
 
     // Units: ambient-temperature display unit. The HUD reads Temperature.display() live, so
     // persisting updates it next frame — no rebuild.
-    page.insertChild(facetDivider());
+    tab.insertChild(facetDivider());
     const unitsTitle = new UIElement({ width: "100%", height: 22 });
     unitsTitle.insertChild(
       facetLabel(I18n.textRef("INV_SET_UNITS"), { color: "warn" }),
     );
-    page.insertChild(unitsTitle);
+    tab.insertChild(unitsTitle);
     const units = [
       { name: "K", value: "K" },
       { name: "°C", value: "C" },
       { name: "°F", value: "F" },
     ];
-    page.insertChild(
+    tab.insertChild(
       facetRow(
         I18n.textRef("INV_SET_TEMP"),
         facetSelect(units, {
@@ -626,14 +634,14 @@ globalThis.InventoryUI = {
     );
 
     // HUD: player-centered radar (RadarArrows, drawn live in sceneColony.draw, reads the setting
-    // each frame) — just flip + persist, no _applyColumns like the column toggles.
-    page.insertChild(facetDivider());
+    // each frame) — just flip + persist.
+    tab.insertChild(facetDivider());
     const hudTitle = new UIElement({ width: "100%", height: 22 });
     hudTitle.insertChild(
       facetLabel(I18n.textRef("INV_SET_HUD"), { color: "warn" }),
     );
-    page.insertChild(hudTitle);
-    page.insertChild(
+    tab.insertChild(hudTitle);
+    tab.insertChild(
       facetCheckbox(
         I18n.textRef("INV_RADAR"),
         () => Settings.get("hudRadar"),
@@ -644,7 +652,7 @@ globalThis.InventoryUI = {
         { style: "switch", key: "hudRadar" },
       ),
     );
-    return page;
+    return tab;
   },
 
   /**
@@ -652,12 +660,12 @@ globalThis.InventoryUI = {
    * re-map the selection, refresh the detail pane, rebuild equipment + extra + party sections.
    *   opts: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
    */
-  rebuild(scene, opts) {
-    InventoryUI._refreshGrid(scene);
-    InventoryUI._refreshDetail(scene);
+  rebuild(scene, page, opts) {
+    InventoryUI._refreshGrid(scene, page);
+    InventoryUI._refreshDetail(scene, page);
 
     // equipment rows: clear + re-add for the new contents
-    const eh = scene._invEquipHost;
+    const eh = page.equipHost;
     const ek = [...eh.children];
     for (let i = 0; i < ek.length; i++) ek[i].destroy();
     for (let i = 0; i < opts.equipSlots.length; i++)
@@ -670,27 +678,17 @@ globalThis.InventoryUI = {
       );
 
     // genre extra rows (the Tracker's records line) into the Stats tab
-    const xh = scene._invExtraHost;
+    const xh = page.extraHost;
     const xk = [...xh.children];
     for (let i = 0; i < xk.length; i++) xk[i].destroy();
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
 
     // party roster rebuilt here (not live) because present companions change across maps
     // (a "follow" one travels, a "wait" one is map-local). Per-row state is live off the Follower.
-    const fh = scene._invFollowerHost;
-    if (fh !== undefined) {
-      const fk = [...fh.children];
-      for (let i = 0; i < fk.length; i++) fk[i].destroy();
-      InventoryUI._buildFollowerRows(scene, fh);
-    }
-  },
-
-  /**
-   * The bag is a grid now (no columns), but the Settings toggles still govern the shared
-   * chest/trade tables — sync the chest window when it's open.
-   */
-  _applyColumns(scene) {
-    if (scene._storeBagTable !== undefined) StorageUI._applyColumns(scene);
+    const fh = page.followerHost;
+    const fk = [...fh.children];
+    for (let i = 0; i < fk.length; i++) fk[i].destroy();
+    InventoryUI._buildFollowerRows(scene, fh);
   },
 
   /**
@@ -726,16 +724,16 @@ globalThis.InventoryUI = {
    * items (icon + rarity border + worn/fav badge), pad the unfiltered view with empty cells up
    * to capacity (the bag's size reads at a glance), re-map the selection, resize the element.
    */
-  _refreshGrid(scene) {
+  _refreshGrid(scene, page) {
     const rows = InventoryUI._buildRows(scene);
-    const cat = scene._invCat;
+    const cat = page.cat;
     const view = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
       if (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) view.push(r);
     }
-    scene._invView = view;
+    page.view = view;
 
     const gold = facetColor("warn");
     const accent = facetColor(FacetTheme.accent);
@@ -756,26 +754,26 @@ globalThis.InventoryUI = {
       for (let i = view.length; i < inv.capacity; i++) items.push(null);
     }
 
-    const g = scene._invGrid;
+    const g = page.grid;
     g.items = items;
 
     // re-map the selection by uid/itemId (row models are fresh objects each refresh)
     let sel = -1;
-    if (scene._invSel !== null) {
+    if (page.sel !== null) {
       for (let i = 0; i < view.length; i++) {
-        if (InventoryUI._sameRow(view[i], scene._invSel)) {
+        if (InventoryUI._sameRow(view[i], page.sel)) {
           sel = i;
           break;
         }
       }
-      scene._invSel = sel >= 0 ? view[sel] : null;
+      page.sel = sel >= 0 ? view[sel] : null;
     }
     g.selected = sel;
 
     // fit the host element to the item count (flexpanel point mutation — the UIText idiom)
     const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
     uiResizeTo(
-      scene._invGridEl,
+      page.gridEl,
       g.cols * g.cellSize + (g.cols - 1) * g.gap,
       rowsN * g.cellSize + (rowsN - 1) * g.gap,
     );
@@ -785,20 +783,20 @@ globalThis.InventoryUI = {
    * Grid click → select the backing row model; a re-click acts on it (InvTable.reclick owns the
    * gesture). Clicking an empty/padding cell clears the selection.
    */
-  _onGridSelect(scene, i) {
-    const row = i >= 0 && i < scene._invView.length ? scene._invView[i] : null;
+  _onGridSelect(scene, page, i) {
+    const row = i >= 0 && i < page.view.length ? page.view[i] : null;
     if (row === null) {
-      scene._invSel = null;
-      scene._invGrid.selected = -1;
-      InventoryUI._refreshDetail(scene);
+      page.sel = null;
+      page.grid.selected = -1;
+      InventoryUI._refreshDetail(scene, page);
       return;
     }
-    if (InvTable.reclick(scene._invClick, row, "bag")) {
-      InventoryUI._activate(scene, row); // sets _invDirty → rebuild refreshes grid+detail
+    if (InvTable.reclick(page.click, row, "bag")) {
+      InventoryUI._activate(scene, row); // sets scene.window.dirty → rebuild refreshes grid+detail
       return;
     }
-    scene._invSel = row;
-    InventoryUI._refreshDetail(scene);
+    page.sel = row;
+    InventoryUI._refreshDetail(scene, page);
   },
 
   /**
@@ -807,13 +805,12 @@ globalThis.InventoryUI = {
    * ammo ballistics, equip bonuses, installed attachments, qty/weight/value. Rebuilt on
    * selection change + rebuild() — cheap (a dozen elements), same pattern as CraftingUI.
    */
-  _refreshDetail(scene) {
-    const host = scene._invDetailHost;
-    if (host === undefined) return;
+  _refreshDetail(scene, page) {
+    const host = page.detailHost;
     const kids = [...host.children];
     for (let i = 0; i < kids.length; i++) kids[i].destroy();
 
-    const row = scene._invSel;
+    const row = page.sel;
     if (row === null) {
       host.insertChild(
         facetLabel(I18n.textRef("INV_SELECT_NONE"), {
@@ -844,7 +841,9 @@ globalThis.InventoryUI = {
       head.insertChild(ic);
     }
     const hcol = new UIElement({ flexGrow: 1, flexBasis: 0, gap: 2 });
-    hcol.insertChild(facetLabel(row.name, { font: "header", color: row.color }));
+    hcol.insertChild(
+      facetLabel(row.name, { font: "header", color: row.color }),
+    );
     const rar = it !== undefined ? Rarity.get(it.rarity) : undefined;
     if (rar !== undefined)
       hcol.insertChild(
@@ -991,13 +990,11 @@ globalThis.InventoryUI = {
   /**
    * context action verb for the selected item ("-" when none)
    */
-  _actionLabel(scene) {
-    if (scene._invSel === null) return I18n.text("INV_NOACTION");
-    const it = Item.get(scene._invSel.itemId);
+  _actionLabel(page) {
+    if (page.sel === null) return I18n.text("INV_NOACTION");
+    const it = Item.get(page.sel.itemId);
     if (it !== undefined && it.hasComponent(Equippable))
-      return scene._invSel.worn
-        ? I18n.text("INV_UNEQUIP")
-        : I18n.text("INV_EQUIP");
+      return page.sel.worn ? I18n.text("INV_UNEQUIP") : I18n.text("INV_EQUIP");
     if (it !== undefined && it.hasComponent(Consumable))
       return I18n.text("INV_USE");
     return I18n.text("INV_NOACTION");
@@ -1026,7 +1023,7 @@ globalThis.InventoryUI = {
         I18n.text(labelKey) + ": " + nm,
         () => {
           EquipmentSystem.unequip(scene.level.entities, scene.playerId, slot);
-          scene._invDirty = true;
+          scene.window.dirty = true;
           Log.info(`unequipped ${itemId}`);
         },
         {
@@ -1080,6 +1077,6 @@ globalThis.InventoryUI = {
         Log.info(`used ${itemId}`);
       }
     }
-    scene._invDirty = true;
+    scene.window.dirty = true;
   },
 };

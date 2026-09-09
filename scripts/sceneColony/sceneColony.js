@@ -78,8 +78,6 @@ class _SceneColonyClass {
       contentQuests.QUEST_REACH,
     ];
 
-    this.invOpen = false;
-    this._invDirty = false; // rebuild the inventory window body next step when set
     this._hotbarTimer = HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
     this._hotbarSlide = 0; // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
     this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see _sleep)
@@ -107,8 +105,9 @@ class _SceneColonyClass {
       },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
-    // persistent UI (key-hints bar + HUD/inventory/interaction/trade/build managers) — extracted to
-    // _buildUI() so retheme() can rebuild it in place on a live theme swap, no world regen.
+    // persistent UI (key-hints bar + HUD, the window shell with its pages, the pick prompt, the
+    // build HUD) — extracted to _buildUI() so retheme() can rebuild it in place on a live theme
+    // swap, no world regen.
     this._buildUI();
 
     const bootMap = ColonyLevel.START; // the colony's home site
@@ -262,21 +261,65 @@ class _SceneColonyClass {
       ),
     );
     Hud.build(this); // top-right HP/quest card + bottom-center dialogue box
-    InventoryUI.build(this);
-    Interactable.build(this); // the pick's prompt + every station window (storage / crafting / map / trade)
+    // the gameplay window: ONE shell after the HUD (its veil covers it) holding every page the
+    // scene can show, each under the id that opens it — the bag's key toggle (update), a
+    // station's InteractAction (contentInteractions). See Window.
+    this.window = new Window(this.ui);
+    this.window.add(
+      "bag",
+      InventoryUI.build(this, {
+        equipSlots: [
+          { slot: "weapon", labelKey: "SLOT_WEAPON" },
+          { slot: "armor", labelKey: "SLOT_ARMOR" },
+          { slot: "trinket", labelKey: "SLOT_TRINKET" },
+          { slot: "backpack", labelKey: "SLOT_BACKPACK" },
+        ],
+        /**
+         * genre extraRows hook: a kills/items/quests records line below the stats
+         */
+        extraRows: (scene, body) => {
+          const rec = new UIElement({ width: "100%", height: 22 });
+          rec.insertChild(
+            facetLabel(
+              () =>
+                I18n.text("REC_KILLS") +
+                ": " +
+                Tracker.count("enemiesKilled") +
+                "   " +
+                I18n.text("REC_ITEMS") +
+                ": " +
+                Tracker.count("itemsCollected") +
+                "   " +
+                I18n.text("REC_QUESTS") +
+                ": " +
+                Tracker.count("questsCompleted"),
+              { color: FacetTheme.textMuted },
+            ),
+          );
+          body.insertChild(rec);
+        },
+      }),
+    );
+    this.window.add("storage", StorageUI.build(this)); // a chest, or a corpse's loot
+    this.window.add("workbench", CraftingUI.build(this)); // also hosts the weapon-mod panel (Toolkit module)
+    this.window.add("travel", WorldMapUI.build(this)); // the travel beacon's site picker
+    this.window.add("trade", TradeUI.build(this)); // a merchant NPC's shop
+    Interactable.build(this); // the pick's prompt (its update range-closes the station pages)
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
   }
 
   /**
-   * Live theme swap (the Game object's retheme): close any open transient window/build/sleep via the
-   * existing Esc chain — cheaper + safer than re-applying each window's state onto fresh elements —
+   * Live theme swap (the Game object's retheme): close what is transient — the window (its
+   * modal too), build mode, a sleep — rather than re-applying their state onto fresh elements,
    * then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
    */
   retheme() {
-    // BOUNDED: a qty-picker modal's close() doesn't null its field synchronously, so an unbounded
-    // loop could spin (GMRT hangs, no crash). 8 covers every stacked window type; close() is idempotent.
-    let guard = 8;
-    while (guard-- > 0 && this.handleEscape()) {} // window → build → sleep, until nothing is open
+    if (this._sleeping) {
+      this._sleeping = false;
+      Time.scale = 1;
+    }
+    this.window.close();
+    this._buildActive = false;
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();
@@ -339,11 +382,11 @@ class _SceneColonyClass {
     pl.cursorX = this.mouseWorld.x;
     pl.cursorY = this.mouseWorld.y;
 
-    // edge toggle — once per frame, outside the tick loop
+    // edge toggle — once per frame, outside the tick loop: the bag closes on its own key, and
+    // opens over (replacing) whatever page shows
     if (Input.get("inventory").pressed()) {
-      this.invOpen = !this.invOpen;
-      this._invWin.enabled = this.invOpen;
-      if (this.invOpen) this._invDirty = true;
+      if (this.window.is("bag")) this.window.close();
+      else this.window.open("bag");
     }
 
     // resolve input context BEFORE the tick loop so the tick's movement/fire reads see it.
@@ -495,42 +538,9 @@ class _SceneColonyClass {
     else AudioListener.position(this.camera.toX, this.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
 
-    // rebuild the inventory body only when open + dirty (UI.update already ran this frame)
-    if (this.invOpen && this._invDirty) {
-      InventoryUI.rebuild(this, {
-        equipSlots: [
-          { slot: "weapon", labelKey: "SLOT_WEAPON" },
-          { slot: "armor", labelKey: "SLOT_ARMOR" },
-          { slot: "trinket", labelKey: "SLOT_TRINKET" },
-          { slot: "backpack", labelKey: "SLOT_BACKPACK" },
-        ],
-        /**
-         * genre extraRows hook: a kills/items/quests records line below the stats
-         */
-        extraRows: (scene, body) => {
-          const rec = new UIElement({ width: "100%", height: 22 });
-          rec.insertChild(
-            facetLabel(
-              () =>
-                I18n.text("REC_KILLS") +
-                ": " +
-                Tracker.count("enemiesKilled") +
-                "   " +
-                I18n.text("REC_ITEMS") +
-                ": " +
-                Tracker.count("itemsCollected") +
-                "   " +
-                I18n.text("REC_QUESTS") +
-                ": " +
-                Tracker.count("questsCompleted"),
-              { color: FacetTheme.textMuted },
-            ),
-          );
-          body.insertChild(rec);
-        },
-      });
-      this._invDirty = false;
-    }
+    // refresh the open window page when dirty — last, so every write above lands this frame
+    // (UI.update already ran, so a rebuild never lands inside the click that requested it)
+    this.window.update();
   }
 
   /**
@@ -592,7 +602,7 @@ class _SceneColonyClass {
     if (!this.level.entities.has(fid, Squad)) return; // not a member
     if (this.level.entities.has(fid, Downed)) return; // recovering — can't kick mid-revive
     FollowerSystem.kick(this.level.entities, this.playerId, fid);
-    this._invDirty = true; // squad roster changed
+    this.window.dirty = true; // squad roster changed
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
@@ -715,26 +725,27 @@ class _SceneColonyClass {
   /** derive this frame's input context: window > build > play (a window pauses build) */
   _resolveContext() {
     let ctx = "play";
-    if (this.invOpen || Interactable.isOpen(this)) ctx = "window";
+    if (this.window.isOpen()) ctx = "window";
     else if (this._buildActive) ctx = "build";
     InputContext.set(ctx);
   }
 
   /**
-   * single E dispatch: an open station window → E closes it; else activate the frame's pick — the
-   * one Interactable made, so E can only ever act on what is highlighted. interact is muted in
-   * "build", so this runs only in play/window.
+   * single E dispatch: a station page open (one standing over a target entity) → E closes it;
+   * else activate the frame's pick — the one Interactable made, so E can only ever act on what
+   * is highlighted. The bag stands over nothing, so E under it activates the pick, whose page
+   * replaces the bag. interact is muted in "build", so this runs only in play/window.
    */
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
-    if (this.invOpen) return; // inventory owns the window; I toggles it, E is inert
-    if (Interactable.isOpen(this)) Interactable.closeAll(this);
+    if (this.window.target !== -1) this.window.close();
     else Interactable.activate(this);
   }
 
   /**
-   * Esc back-out (GameOverlay calls this before pausing): close the active context — window, then
-   * build. Returns true if consumed; false falls through to the pause menu. window > build priority.
+   * Esc back-out (GameOverlay calls this before pausing): close the active context — the window
+   * (its amount picker first, then the page), then build. Returns true if consumed; false falls
+   * through to the pause menu. window > build priority.
    */
   handleEscape() {
     if (this._sleeping) {
@@ -742,23 +753,7 @@ class _SceneColonyClass {
       Time.scale = 1;
       return true;
     }
-    if (this._storeQtyModal !== null && this._storeQtyModal !== undefined) {
-      this._storeQtyModal.close(); // first Esc cancels the storage amount picker only
-      return true;
-    }
-    if (this._tradeQtyModal !== null && this._tradeQtyModal !== undefined) {
-      this._tradeQtyModal.close(); // first Esc cancels the trade amount picker only
-      return true;
-    }
-    if (this.invOpen) {
-      this.invOpen = false;
-      this._invWin.enabled = false;
-      return true;
-    }
-    if (Interactable.isOpen(this)) {
-      Interactable.closeAll(this); // closes whichever station window is open
-      return true;
-    }
+    if (this.window.back()) return true;
     if (this._buildActive) {
       this._buildActive = false; // _resolveContext drops to "play" next frame; HUD hides
       return true;

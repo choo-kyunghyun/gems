@@ -302,7 +302,7 @@ globalThis.FloraSystem = {
       return false;
     }
     scene._onCollect(def.yield.itemId, qty); // quest/achievement credit + the pickup blip
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Toast.push(
       I18n.text(
         "TOAST_HARVEST",

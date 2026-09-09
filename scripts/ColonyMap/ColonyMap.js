@@ -241,7 +241,7 @@ globalThis.ColonyMap = {
     scene._buildActive = false;
     BuildMode.active = false;
     scene.nearNpc = false;
-    if (scene.invOpen) scene._invDirty = true;
+    scene.window.dirty = true; // the bag, if it shows, re-reads this map's squad + store
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
     // so bind explicitly — else enemies step against the previously-built store and fault.
     CombatAI.bind(scene.level.entities, scene.level.grid);

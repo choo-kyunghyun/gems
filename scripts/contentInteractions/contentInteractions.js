@@ -1,8 +1,9 @@
 // Registers the colony's concrete InteractAction defs — the data behind the generic Interactable engine.
 // Called once from content.register(); adding an interaction = one entry here + a prompt key.
 /**
- * Two families: WINDOW actions open a UI + set scene._interOpenId (so the engine range-closes /
- * refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/buff) act on
+ * Two families: WINDOW actions open their page through the scene's Window with the target
+ * (`scene.window.open(id, { target })` — so Interactable range-closes it and E closes it); INSTANT
+ * actions act once per E press. The survival ones (hydrate/feed/buff) act on
  * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
  * something to the player, not just open a panel". The entity just carries { kind: <id> }.
  * The NPC pair (talk/trade) carries `prompt: ""`: no pill, the dialogue panel prompts for them. A
@@ -17,34 +18,32 @@ globalThis.contentInteractions = {
     this.registered = true;
 
     InteractAction.register([
-      // ── window actions (open a UI; the engine tracks _interOpenId for range-close + refresh) ──
+      // ── window actions (open a page of the scene's Window over the target entity) ──
       {
         id: "storage",
         prompt: "STORAGE_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          StorageUI.open(ctx.scene, ctx.id);
+          ctx.scene.window.open("storage", { target: ctx.id });
         },
       },
       {
         // lootable body left by a "corpse"-kind Mortal (ColonyCombat._toCorpse) — the standard
-        // storage window over the body's Inventory, with takes counted as pickups (the same
-        // quest/achievement credit as ground drops; StorageUI.close clears the hook)
+        // storage page over the body's Inventory, with takes counted as pickups (the same
+        // quest/achievement credit as ground drops; the hook lasts the open — StorageUI)
         id: "corpse",
         prompt: "CORPSE_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          ctx.scene._storeOnTake = (itemId, qty) =>
-            ctx.scene._onCollect(itemId, qty);
-          StorageUI.open(ctx.scene, ctx.id);
+          ctx.scene.window.open("storage", {
+            target: ctx.id,
+            onTake: (itemId, qty) => ctx.scene._onCollect(itemId, qty),
+          });
         },
       },
       {
         id: "workbench",
         prompt: "CRAFT_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          CraftingUI.open(ctx.scene, ctx.id);
+          ctx.scene.window.open("workbench", { target: ctx.id });
         },
       },
       {
@@ -53,8 +52,7 @@ globalThis.contentInteractions = {
         id: "travel",
         prompt: "TRAVEL_PROMPT",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          WorldMapUI.open(ctx.scene);
+          ctx.scene.window.open("travel", { target: ctx.id });
         },
       },
       {
@@ -62,8 +60,7 @@ globalThis.contentInteractions = {
         id: "trade",
         prompt: "",
         run(ctx) {
-          ctx.scene._interOpenId = ctx.id;
-          TradeUI.open(ctx.scene, ctx.id);
+          ctx.scene.window.open("trade", { target: ctx.id });
         },
       },
 
@@ -171,7 +168,7 @@ globalThis.contentInteractions = {
         prompt: "REHIRE_PROMPT",
         run(ctx) {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
-          ctx.scene._invDirty = true; // squad roster changed
+          ctx.scene.window.dirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
       },

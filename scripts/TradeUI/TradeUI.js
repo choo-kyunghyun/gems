@@ -1,43 +1,41 @@
-// Merchant trade window — the shop counterpart to StorageUI (near-fullscreen shell over StorageUI's
-// two-column layout: LEFT = stock/BUY, RIGHT = bag/SELL). All logic is TradeSystem.
+// Merchant trade page of the scene's Window — the shop counterpart to StorageUI (its two-column
+// layout: LEFT = stock/BUY, RIGHT = bag/SELL). All logic is TradeSystem.
 /**
  * This file is presentation + the double-click/amount gesture, plus the sell-side worn/favorited
  * guard (it reads the player's Equipment/Favorites). Each column is a sortable UITable with a Price
- * column. State on the scene (_trade*). Opened by the `trade` InteractAction (a merchant NPC's
- * Interaction) and driven like every station window: Interactable builds it, range-closes it and
- * refreshes it when _tradeDirty is set.
+ * column. Opened by the `trade` InteractAction (a merchant NPC's Interaction) through the shell —
+ * `scene.window.open("trade", { target })`, the merchant read live off scene.window.target — and
+ * driven like every station page: the shell refreshes it when scene.window.dirty is set,
+ * Interactable range-closes it. State on the page: buyTable / sellTable (UITable), click (the
+ * InvTable.reclick latch); its titleExtra is the player's balance.
  */
 globalThis.TradeUI = {
+  /** build the page once; the scene adds it to its Window under "trade" */
   build(scene) {
-    scene._tradeMerchantId = -1;
-    scene._tradeOpen = false;
-    scene._tradeDirty = false;
-    scene._tradeClick = { key: "", time: 0 }; // InvTable.reclick latch
-    scene._tradeQtyModal = null; // open amount-picker modal, else null
-
-    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
-    // Title reads the ACTIVE merchant live; Esc / E also close.
-    const host = facetOverlay(
-      () => {
-        const npc = scene.level.entities.get(scene._tradeMerchantId, NPC);
+    const page = {
+      // the ACTIVE merchant's name, live
+      title: () => {
+        const npc = scene.level.entities.get(scene.window.target, NPC);
         return npc !== undefined
           ? I18n.text(npc.name)
           : I18n.text("TRADE_TITLE");
       },
-      { onClose: () => TradeUI.close(scene) },
-    );
-    scene._tradeWin = host;
-    scene.ui.insertChild(host);
-    const card = host.body;
-
-    // player credits, live, right-aligned just before the close button.
-    host.titleRow.insertChild(
-      facetLabel(() => TradeUI._balanceText(scene), {
+      el: new UIElement({
+        width: "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+        gap: FacetTheme.gapSm,
+      }),
+      // player credits, live, in the title row before the close button
+      titleExtra: facetLabel(() => TradeUI._balanceText(scene), {
         font: "header",
         color: "warn",
       }),
-      1,
-    );
+      buyTable: null,
+      sellTable: null,
+      click: { key: "", time: 0 }, // InvTable.reclick latch
+      refresh: () => TradeUI.refresh(scene, page),
+    };
 
     // BUY (merchant stock) | SELL (player bag); flexGrow so the tables fill the height.
     const cols = new UIElement({
@@ -47,14 +45,14 @@ globalThis.TradeUI = {
       flexDirection: "row",
       gap: FacetTheme.gap,
     });
-    const buyTable = TradeUI._table(scene, "buy");
-    const sellTable = TradeUI._table(scene, "sell");
-    scene._tradeBuyTable = buyTable.getComponent(UITable);
-    scene._tradeSellTable = sellTable.getComponent(UITable);
+    const buyTable = TradeUI._table(scene, page, "buy");
+    const sellTable = TradeUI._table(scene, page, "sell");
+    page.buyTable = buyTable.getComponent(UITable);
+    page.sellTable = sellTable.getComponent(UITable);
     cols.insertChild(
       // BUY column sub-label = the finite merchant's till (empty for an infinite one).
       TradeUI._column(I18n.textRef("TRADE_BUY"), buyTable, () => {
-        const m = scene.level.entities.get(scene._tradeMerchantId, Merchant);
+        const m = scene.level.entities.get(scene.window.target, Merchant);
         return m === undefined || m.infinite
           ? ""
           : I18n.text("TRADE_MERCHANT_TILL", m.credits);
@@ -63,13 +61,14 @@ globalThis.TradeUI = {
     cols.insertChild(
       TradeUI._column(I18n.textRef("TRADE_SELL"), sellTable, () => ""),
     );
-    card.insertChild(cols);
+    page.el.insertChild(cols);
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       facetLabel(I18n.textRef("TRADE_HINT"), { color: FacetTheme.textMuted }),
     );
-    card.insertChild(hint);
+    page.el.insertChild(hint);
+    return page;
   },
 
   /**
@@ -77,7 +76,7 @@ globalThis.TradeUI = {
    */
   _coins(scene) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
-    const m = scene.level.entities.get(scene._tradeMerchantId, Merchant);
+    const m = scene.level.entities.get(scene.window.target, Merchant);
     const cur = m !== undefined ? m.currencyId : "coin";
     return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
   },
@@ -86,7 +85,7 @@ globalThis.TradeUI = {
    * "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
    */
   _balanceText(scene) {
-    const m = scene.level.entities.get(scene._tradeMerchantId, Merchant);
+    const m = scene.level.entities.get(scene.window.target, Merchant);
     const cur = m !== undefined ? m.currencyId : "coin";
     const it = Item.get(cur);
     const nm = it !== undefined ? I18n.text(it.name) : cur;
@@ -121,7 +120,7 @@ globalThis.TradeUI = {
   /**
    * per-side table. `side` ("buy"/"sell") routes the transaction direction.
    */
-  _table(scene, side) {
+  _table(scene, page, side) {
     return facetTable(TradeUI._columns(side), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
@@ -130,7 +129,7 @@ globalThis.TradeUI = {
       emptyText: I18n.text(
         side === "buy" ? "TRADE_BUY_EMPTY" : "TRADE_SELL_EMPTY",
       ),
-      onSelect: (row) => TradeUI._click(scene, side, row),
+      onSelect: (row) => TradeUI._click(scene, page, side, row),
       onActivate: (row) => TradeUI._act(scene, side, row),
     });
   },
@@ -180,11 +179,11 @@ globalThis.TradeUI = {
    */
   _rows(scene, side) {
     const entities = scene.level.entities;
-    const m = entities.get(scene._tradeMerchantId, Merchant);
+    const m = entities.get(scene.window.target, Merchant);
     if (m === undefined) return [];
     const inv =
       side === "buy"
-        ? entities.get(scene._tradeMerchantId, Inventory)
+        ? entities.get(scene.window.target, Inventory)
         : entities.get(scene.playerId, Inventory);
     if (inv === undefined) return [];
     const fav =
@@ -222,33 +221,15 @@ globalThis.TradeUI = {
     return rows;
   },
 
-  open(scene, merchantId) {
-    scene._tradeMerchantId = merchantId;
-    scene._tradeOpen = true;
-    scene._tradeWin.enabled = true;
-    scene._tradeDirty = true;
-  },
-
-  close(scene) {
-    scene._tradeOpen = false;
-    scene._tradeWin.enabled = false;
-    scene._tradeMerchantId = -1;
-    if (scene._tradeQtyModal !== null && scene._tradeQtyModal !== undefined)
-      scene._tradeQtyModal.close();
-  },
-
-  refresh(scene) {
-    if (scene._tradeBuyTable !== undefined)
-      scene._tradeBuyTable.setRows(TradeUI._rows(scene, "buy"));
-    if (scene._tradeSellTable !== undefined)
-      scene._tradeSellTable.setRows(TradeUI._rows(scene, "sell"));
+  refresh(scene, page) {
+    page.buyTable.setRows(TradeUI._rows(scene, "buy"));
+    page.sellTable.setRows(TradeUI._rows(scene, "sell"));
   },
 
   /** single click selects; a re-click transacts (InvTable.reclick owns the gesture). */
-  _click(scene, side, row) {
+  _click(scene, page, side, row) {
     if (row === null || row === undefined) return;
-    if (InvTable.reclick(scene._tradeClick, row, side))
-      TradeUI._act(scene, side, row);
+    if (InvTable.reclick(page.click, row, side)) TradeUI._act(scene, side, row);
   },
 
   /**
@@ -268,7 +249,7 @@ globalThis.TradeUI = {
       }
     }
     const entities = scene.level.entities;
-    const m = entities.get(scene._tradeMerchantId, Merchant);
+    const m = entities.get(scene.window.target, Merchant);
     if (m === undefined) return;
     const def = Item.get(row.itemId);
     const instanced = def !== undefined && def.isInstanced();
@@ -295,31 +276,33 @@ globalThis.TradeUI = {
   },
 
   /**
-   * amount picker (facetAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts.
-   * closeOnEscape stays off in the factory — handleEscape cancels the picker first, then the window.
+   * amount picker (facetAmountPicker): stepper (default = full amount) + 1/Half/All shortcuts,
+   * held by the shell so Esc cancels the picker before the page (closeOnEscape stays off in the
+   * factory; the scene's handleEscape drives Window.back).
    */
   _promptAmount(scene, side, row, maxQty) {
-    scene._tradeQtyModal = facetAmountPicker({
-      title: row.name,
-      max: maxQty,
-      prompt: I18n.text("STORAGE_QTY_PROMPT"),
-      half: I18n.text("STORAGE_QTY_HALF"),
-      all: I18n.text("STORAGE_QTY_ALL"),
-      cancelLabel: I18n.text("STORAGE_CANCEL"),
-      confirmLabel: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
-      onConfirm: (amount) => {
-        if (side === "buy") TradeUI._doBuy(scene, row, amount);
-        else TradeUI._doSell(scene, row, amount);
-      },
-      onClose: () => (scene._tradeQtyModal = null),
-    });
+    scene.window.prompt(
+      facetAmountPicker({
+        title: row.name,
+        max: maxQty,
+        prompt: I18n.text("STORAGE_QTY_PROMPT"),
+        half: I18n.text("STORAGE_QTY_HALF"),
+        all: I18n.text("STORAGE_QTY_ALL"),
+        cancelLabel: I18n.text("STORAGE_CANCEL"),
+        confirmLabel: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
+        onConfirm: (amount) => {
+          if (side === "buy") TradeUI._doBuy(scene, row, amount);
+          else TradeUI._doSell(scene, row, amount);
+        },
+      }),
+    );
   },
 
   _doBuy(scene, row, amount) {
     const res = TradeSystem.buy(
       scene.level.entities,
       scene.playerId,
-      scene._tradeMerchantId,
+      scene.window.target,
       row.idx,
       amount,
     );
@@ -330,7 +313,7 @@ globalThis.TradeUI = {
     const res = TradeSystem.sell(
       scene.level.entities,
       scene.playerId,
-      scene._tradeMerchantId,
+      scene.window.target,
       row.idx,
       amount,
     );
@@ -341,8 +324,7 @@ globalThis.TradeUI = {
   _after(scene, res, verb, itemId) {
     if (res.amount > 0) {
       Audio.play({ sound: sndCoin });
-      scene._tradeDirty = true;
-      scene._invDirty = true; // keep the inventory window in sync
+      scene.window.dirty = true;
       Log.info(`${verb} ${res.amount}x ${itemId}`);
     } else if (res.reason !== "") {
       Toast.push(I18n.text(res.reason), { type: "warn" });

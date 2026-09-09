@@ -1,26 +1,39 @@
-// Bag↔Chest transfer window — near-fullscreen shell over a two-column UITable layout (like
-// TradeUI/InventoryUI). Open/close/prompt owned by Interactable; all state on scene (_store*).
+// Bag↔Chest transfer page of the scene's Window — a two-column UITable layout (like TradeUI).
 /**
- * Tables swap rows via setRows (not rebuilt) so column sort survives every transfer. Caller contract:
- * set scene._storeDirty whenever the bag changes from outside this file (a craft, a pickup, an equip)
- * — refresh is flag-driven and will otherwise show stale rows.
+ * Opened by the "storage" / "corpse" InteractActions through the shell —
+ * `scene.window.open("storage", { target, onTake })`: `target` is the chest entity (read live off
+ * scene.window.target), `onTake` an optional per-open hook fired per stack taken (a corpse's pickup
+ * credit; a plain chest sets none, so withdrawing can't farm collect quests). Open, close, Esc and
+ * the refresh are the shell's (Window). Tables swap rows via setRows (not rebuilt) so column sort
+ * survives every transfer. Caller contract: set scene.window.dirty whenever the bag changes from
+ * outside this file (a craft, a pickup, an equip) — the refresh is flag-driven and would otherwise
+ * show stale rows. State on the page: bagTable / boxTable (UITable), click (the InvTable.reclick
+ * latch), onTake.
  */
 globalThis.StorageUI = {
+  /** build the page once; the scene adds it to its Window under "storage" */
   build(scene) {
-    scene._storageId = -1;
-    scene._storeOpen = false;
-    scene._storeDirty = false;
-    scene._storeClick = { key: "", time: 0 }; // InvTable.reclick latch
-    scene._storeQtyModal = null; // open amount-picker modal, else null
-
-    // near-fullscreen shell (dim host + centered card + title/close) — facetOverlay.
-    // Esc / E also close (handleEscape / _dispatchInteract).
-    const host = facetOverlay(I18n.textRef("STORAGE_TITLE"), {
-      onClose: () => StorageUI.close(scene),
-    });
-    scene._storeWin = host;
-    scene.ui.insertChild(host);
-    const card = host.body;
+    const page = {
+      title: I18n.textRef("STORAGE_TITLE"),
+      el: new UIElement({
+        width: "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+        gap: FacetTheme.gapSm,
+      }),
+      bagTable: null,
+      boxTable: null,
+      click: { key: "", time: 0 }, // InvTable.reclick latch
+      onTake: undefined, // per-open take hook (corpse looting) — never outlives the open
+      refresh: () => StorageUI.refresh(scene, page),
+      onOpen: (opts) => {
+        page.onTake = opts.onTake;
+        StorageUI._applyColumns(page); // pick up any column-setting change since build
+      },
+      onClose: () => {
+        page.onTake = undefined;
+      },
+    };
 
     const cols = new UIElement({
       width: "100%",
@@ -29,16 +42,16 @@ globalThis.StorageUI = {
       flexDirection: "row",
       gap: FacetTheme.gap,
     });
-    const bagTable = StorageUI._table(scene, "bag");
-    const boxTable = StorageUI._table(scene, "box");
-    scene._storeBagTable = bagTable.getComponent(UITable);
-    scene._storeBoxTable = boxTable.getComponent(UITable);
+    const bagTable = StorageUI._table(scene, page, "bag");
+    const boxTable = StorageUI._table(scene, page, "box");
+    page.bagTable = bagTable.getComponent(UITable);
+    page.boxTable = boxTable.getComponent(UITable);
     cols.insertChild(
       StorageUI._column(
         I18n.textRef("STORAGE_BAG"),
         bagTable,
         I18n.textRef("STORAGE_STORE_ALL"),
-        () => StorageUI._allFrom(scene, "bag"),
+        () => StorageUI._allFrom(scene, page, "bag"),
         () => scene.level.entities.get(scene.playerId, Inventory),
       ),
     );
@@ -47,17 +60,18 @@ globalThis.StorageUI = {
         I18n.textRef("STORAGE_BOX"),
         boxTable,
         I18n.textRef("STORAGE_TAKE_ALL"),
-        () => StorageUI._allFrom(scene, "box"),
-        () => scene.level.entities.get(scene._storageId, Inventory),
+        () => StorageUI._allFrom(scene, page, "box"),
+        () => scene.level.entities.get(scene.window.target, Inventory),
       ),
     );
-    card.insertChild(cols);
+    page.el.insertChild(cols);
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
       facetLabel(I18n.textRef("STORAGE_HINT"), { color: FacetTheme.textMuted }),
     );
-    card.insertChild(hint);
+    page.el.insertChild(hint);
+    return page;
   },
 
   /**
@@ -123,24 +137,25 @@ globalThis.StorageUI = {
   /**
    * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
    */
-  _table(scene, side) {
+  _table(scene, page, side) {
     return facetTable(InvTable.columns({ fav: true }), {
       grow: true, // fill the column; reflows row count on resize
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
       emptyText: I18n.text("STORAGE_EMPTY"),
-      onSelect: (row) => StorageUI._click(scene, side, row),
-      onActivate: (row) => StorageUI._move(scene, side, row),
+      onSelect: (row) => StorageUI._click(scene, page, side, row),
+      onActivate: (row) => StorageUI._move(scene, page, side, row),
     });
   },
 
   /**
-   * re-apply the Settings-driven column set to both tables (toggle changed / chest opened).
+   * re-apply the Settings-driven column set to both tables (on every open, so a toggle made in
+   * the bag's Settings tab since the build lands).
    */
-  _applyColumns(scene) {
-    scene._storeBagTable.setColumns(InvTable.columns({ fav: true }));
-    scene._storeBoxTable.setColumns(InvTable.columns({ fav: true }));
+  _applyColumns(page) {
+    page.bagTable.setColumns(InvTable.columns({ fav: true }));
+    page.boxTable.setColumns(InvTable.columns({ fav: true }));
   },
 
   /**
@@ -162,40 +177,22 @@ globalThis.StorageUI = {
     return rows;
   },
 
-  open(scene, id) {
-    scene._storageId = id;
-    scene._storeOpen = true;
-    scene._storeWin.enabled = true;
-    StorageUI._applyColumns(scene); // pick up any column-setting change since build
-    scene._storeDirty = true;
-  },
-
-  close(scene) {
-    scene._storeOpen = false;
-    scene._storeWin.enabled = false;
-    scene._storageId = -1;
-    scene._storeOnTake = undefined; // per-open hook (corpse looting) never outlives the window
-    // dismiss a dangling amount picker if the window closed under it
-    if (scene._storeQtyModal !== null && scene._storeQtyModal !== undefined)
-      scene._storeQtyModal.close();
-  },
-
-  refresh(scene) {
+  refresh(scene, page) {
     const entities = scene.level.entities;
     const bagInv = entities.get(scene.playerId, Inventory);
-    const boxInv = entities.get(scene._storageId, Inventory);
+    const boxInv = entities.get(scene.window.target, Inventory);
     if (bagInv === undefined || boxInv === undefined) return;
-    scene._storeBagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
-    scene._storeBoxTable.setRows(StorageUI._rows(scene, boxInv));
+    page.bagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
+    page.boxTable.setRows(StorageUI._rows(scene, boxInv));
   },
 
   /**
    * single click selects; a re-click transfers (InvTable.reclick owns the gesture).
    */
-  _click(scene, side, row) {
+  _click(scene, page, side, row) {
     if (row === null || row === undefined) return;
-    if (InvTable.reclick(scene._storeClick, row, side))
-      StorageUI._move(scene, side, row);
+    if (InvTable.reclick(page.click, row, side))
+      StorageUI._move(scene, page, side, row);
   },
 
   /**
@@ -203,11 +200,11 @@ globalThis.StorageUI = {
    * a single unit or an instance transfers whole. storing a favorited item from the bag is
    * refused; taking from the chest is never protected.
    */
-  _move(scene, side, row) {
+  _move(scene, page, side, row) {
     if (row === null || row === undefined) return;
     const entities = scene.level.entities;
     const srcInv = entities.get(
-      side === "bag" ? scene.playerId : scene._storageId,
+      side === "bag" ? scene.playerId : scene.window.target,
       Inventory,
     );
     if (srcInv === undefined) return;
@@ -217,39 +214,41 @@ globalThis.StorageUI = {
     if (s === undefined) return;
     const def = Item.get(s.itemId);
     if ((def === undefined || !def.isInstanced()) && s.qty > 1) {
-      StorageUI._promptAmount(scene, side, row, s.qty);
+      StorageUI._promptAmount(scene, page, side, row, s.qty);
       return;
     }
-    StorageUI._doMove(scene, side, row, s.qty);
+    StorageUI._doMove(scene, page, side, row, s.qty);
   },
 
   /**
-   * amount picker (facetAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts.
-   * Esc is owned by the scene's handleEscape (closeOnEscape:false in the factory), so it
-   * cancels the picker before the window.
+   * amount picker (facetAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts,
+   * held by the shell so Esc cancels the picker before the page (closeOnEscape stays off in
+   * the factory; the scene's handleEscape drives Window.back).
    */
-  _promptAmount(scene, side, row, maxQty) {
-    scene._storeQtyModal = facetAmountPicker({
-      title: row.name,
-      max: maxQty,
-      prompt: I18n.text("STORAGE_QTY_PROMPT"),
-      half: I18n.text("STORAGE_QTY_HALF"),
-      all: I18n.text("STORAGE_QTY_ALL"),
-      cancelLabel: I18n.text("STORAGE_CANCEL"),
-      confirmLabel: I18n.text("STORAGE_TRANSFER"),
-      onConfirm: (amount) => StorageUI._doMove(scene, side, row, amount),
-      onClose: () => (scene._storeQtyModal = null),
-    });
+  _promptAmount(scene, page, side, row, maxQty) {
+    scene.window.prompt(
+      facetAmountPicker({
+        title: row.name,
+        max: maxQty,
+        prompt: I18n.text("STORAGE_QTY_PROMPT"),
+        half: I18n.text("STORAGE_QTY_HALF"),
+        all: I18n.text("STORAGE_QTY_ALL"),
+        cancelLabel: I18n.text("STORAGE_CANCEL"),
+        confirmLabel: I18n.text("STORAGE_TRANSFER"),
+        onConfirm: (amount) =>
+          StorageUI._doMove(scene, page, side, row, amount),
+      }),
+    );
   },
 
   /**
    * transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
    * its hotbar slot; a partial transfer keeps the binding usable.
    */
-  _doMove(scene, side, row, amount) {
+  _doMove(scene, page, side, row, amount) {
     const entities = scene.level.entities;
     const bag = entities.get(scene.playerId, Inventory);
-    const box = entities.get(scene._storageId, Inventory);
+    const box = entities.get(scene.window.target, Inventory);
     if (bag === undefined || box === undefined) return;
     if (side === "bag") {
       const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
@@ -259,10 +258,9 @@ globalThis.StorageUI = {
       }
     } else {
       const moved = StorageUI._transfer(scene, box, bag, row.idx, amount);
-      // optional take hook (set by the opener, e.g. corpse looting reports pickup credit);
-      // a plain chest never sets it, so withdrawing can't farm collect quests
-      if (moved > 0 && scene._storeOnTake !== undefined)
-        scene._storeOnTake(row.itemId, moved);
+      // the per-open take hook (corpse looting reports pickup credit)
+      if (moved > 0 && page.onTake !== undefined)
+        page.onTake(row.itemId, moved);
     }
   },
 
@@ -293,8 +291,7 @@ globalThis.StorageUI = {
     }
     StorageUI._reconcileEquip(scene, srcInv);
 
-    scene._storeDirty = true;
-    scene._invDirty = true; // keep the inventory window in sync
+    scene.window.dirty = true;
     Log.info(`transferred ${moved}x ${itemId}`);
     return moved;
   },
@@ -303,10 +300,10 @@ globalThis.StorageUI = {
    * bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
    * halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
    */
-  _allFrom(scene, side) {
+  _allFrom(scene, page, side) {
     const entities = scene.level.entities;
     const bag = entities.get(scene.playerId, Inventory);
-    const box = entities.get(scene._storageId, Inventory);
+    const box = entities.get(scene.window.target, Inventory);
     if (bag === undefined || box === undefined) return;
     // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
     // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
@@ -318,8 +315,7 @@ globalThis.StorageUI = {
         StorageUI._equipKeep(scene),
         StorageUI._storeBlocked(scene, true), // bulk store protects hotbar items too
       );
-    else
-      StorageUI._transferAll(scene, box, bag, null, null, scene._storeOnTake);
+    else StorageUI._transferAll(scene, box, bag, null, null, page.onTake);
   },
 
   /**
@@ -400,8 +396,7 @@ globalThis.StorageUI = {
       i++; // partial (dst full) or nothing fit — leave the stack and move on
     }
     if (total === 0) return;
-    scene._storeDirty = true;
-    scene._invDirty = true;
+    scene.window.dirty = true;
     Log.info(`transferred all (${total} items)`);
   },
 

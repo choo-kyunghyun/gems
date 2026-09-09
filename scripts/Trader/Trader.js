@@ -146,8 +146,8 @@ globalThis.Trader = {
     Log.info(`trader ${rec.id} hydrated in ${scene.level.id} as ent ${rec.entId}`);
   },
   _dehydrate(scene, rec) {
-    if (scene._tradeOpen && scene._tradeMerchantId === rec.entId)
-      TradeUI.close(scene); // its entity is leaving — close the shop if it's open on it
+    if (scene.window.target === rec.entId)
+      scene.window.close(); // its entity is leaving — close the page open on it
     rec.snap = World.take(scene.level.id, rec.entId); // whole entity → held snapshot
     rec.entId = -1;
     Log.info(`trader ${rec.id} dehydrated from ${scene.level.id}`);

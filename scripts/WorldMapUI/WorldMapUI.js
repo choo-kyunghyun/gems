@@ -1,5 +1,6 @@
-// The world map window — the colony's site picker, opened from a travel beacon (the "travel"
-// InteractAction). Open/close/range-close owned by Interactable; all state on scene (_map*).
+// The world map page of the scene's Window — the colony's site picker, opened from a travel
+// beacon (the "travel" InteractAction: `scene.window.open("travel", { target })`, the beacon
+// being what Interactable range-closes on).
 /**
  * A schematic chart: every contentSites site as a node placed at its chart-space `pos` over a dark
  * panel, the routes fanning out from the home site drawn under the nodes, and a brief for the
@@ -8,25 +9,32 @@
  *
  * The nodes are REBUILT on every open and on every pick (a handful of buttons), so the "you are
  * here" mark and the selection colors follow the live map with no per-frame color swaps; a pick
- * only flags _mapDirty, and the rebuild runs from Interactable.update — never inside the click
- * that would be destroying the button mid-traversal.
+ * only sets scene.window.dirty, and the rebuild runs from Window.update — never inside the click
+ * that would be destroying the button mid-traversal. State on the page: sel (the selected site
+ * id), nodes (site id -> node element, read by the routes pass), chart.
  */
 globalThis.WorldMapUI = {
   NODE_W: 150, // node button size (chart px at the design resolution)
   NODE_H: 36,
 
+  /** build the page once; the scene adds it to its Window under "travel" */
   build(scene) {
-    scene._mapOpen = false;
-    scene._mapDirty = false;
-    scene._mapSel = ""; // selected site id
-    scene._mapNodes = {}; // site id -> node element (the routes pass reads their centers)
-
-    const host = facetOverlay(I18n.textRef("WORLDMAP_TITLE"), {
-      onClose: () => WorldMapUI.close(scene),
-    });
-    scene._mapWin = host;
-    scene.ui.insertChild(host);
-    const card = host.body;
+    const page = {
+      title: I18n.textRef("WORLDMAP_TITLE"),
+      el: new UIElement({
+        width: "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+        gap: FacetTheme.gapSm,
+      }),
+      sel: "", // selected site id
+      nodes: {}, // site id -> node element (the routes pass reads their centers)
+      chart: null,
+      refresh: () => WorldMapUI.refresh(scene, page),
+      onOpen: () => {
+        page.sel = scene.level.id; // open on the current site
+      },
+    };
 
     const row = new UIElement({
       width: "100%",
@@ -49,30 +57,20 @@ globalThis.WorldMapUI = {
         borderColor: facetColor(FacetTheme.border),
       }),
     );
-    chart.addComponent(WorldMapUI._routes(scene)); // under the nodes (components draw first)
-    scene._mapChart = chart;
+    chart.addComponent(WorldMapUI._routes(scene, page)); // under the nodes (components draw first)
+    page.chart = chart;
     row.insertChild(chart);
-    row.insertChild(WorldMapUI._brief(scene));
-    card.insertChild(row);
+    row.insertChild(WorldMapUI._brief(scene, page));
+    page.el.insertChild(row);
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
-      facetLabel(I18n.textRef("WORLDMAP_HINT"), { color: FacetTheme.textMuted }),
+      facetLabel(I18n.textRef("WORLDMAP_HINT"), {
+        color: FacetTheme.textMuted,
+      }),
     );
-    card.insertChild(hint);
-  },
-
-  /** Open on the current site (selected) and lay the chart out. */
-  open(scene) {
-    scene._mapOpen = true;
-    scene._mapSel = scene.level.id;
-    scene._mapWin.enabled = true;
-    WorldMapUI.refresh(scene);
-  },
-
-  close(scene) {
-    scene._mapOpen = false;
-    scene._mapWin.enabled = false;
+    page.el.insertChild(hint);
+    return page;
   },
 
   /**
@@ -80,10 +78,10 @@ globalThis.WorldMapUI = {
    * the current site accent (primary), the selected one outlined gold, the rest plain — with the
    * "you are here" tag under the current one.
    */
-  refresh(scene) {
-    const chart = scene._mapChart;
+  refresh(scene, page) {
+    const chart = page.chart;
     while (chart.children.length > 0) chart.children[0].destroy(); // destroy() unlinks from the parent
-    scene._mapNodes = {};
+    page.nodes = {};
     const sites = contentSites.SITES;
     const w = WorldMapUI.NODE_W;
     const h = WorldMapUI.NODE_H;
@@ -91,7 +89,7 @@ globalThis.WorldMapUI = {
       const s = sites[i];
       if (s.dev === true && !DEV_MODE) continue; // an authoring site — off the chart in release
       const here = s.id === scene.level.id;
-      const picked = s.id === scene._mapSel;
+      const picked = s.id === page.sel;
       // a zero-size anchor at the site's chart position; the node holder hangs centered on it
       // (a facetButton takes no position style of its own)
       const anchor = new UIElement({
@@ -118,8 +116,8 @@ globalThis.WorldMapUI = {
         facetButton(
           I18n.textRef(s.name),
           () => {
-            scene._mapSel = s.id;
-            scene._mapDirty = true;
+            page.sel = s.id;
+            scene.window.dirty = true;
           },
           opts,
         ),
@@ -142,7 +140,7 @@ globalThis.WorldMapUI = {
         anchor.insertChild(tag);
       }
       chart.insertChild(anchor);
-      scene._mapNodes[s.id] = holder;
+      page.nodes[s.id] = holder;
     }
   },
 
@@ -151,10 +149,10 @@ globalThis.WorldMapUI = {
    * the trip on the table (current → selected) over it in accent. Reads node centers live off
    * their layout, so a resize or a rebuild needs no bookkeeping.
    */
-  _routes(scene) {
+  _routes(scene, page) {
     return {
       onDraw(_el) {
-        const nodes = scene._mapNodes;
+        const nodes = page.nodes;
         const home = nodes[ColonyLevel.START];
         if (home === undefined) return;
         const hc = WorldMapUI._center(home);
@@ -174,7 +172,7 @@ globalThis.WorldMapUI = {
           );
         }
         const cur = nodes[scene.level.id];
-        const sel = nodes[scene._mapSel];
+        const sel = nodes[page.sel];
         if (cur !== undefined && sel !== undefined && cur !== sel) {
           const a = WorldMapUI._center(cur);
           const b = WorldMapUI._center(sel);
@@ -201,22 +199,22 @@ globalThis.WorldMapUI = {
 
   /**
    * The brief column: the selected site's name + description, its readouts (live labels off
-   * scene._mapSel), and the Travel button (disabled on the site the squad already stands in).
+   * page.sel), and the Travel button (disabled on the site the squad already stands in).
    */
-  _brief(scene) {
+  _brief(scene, page) {
     const col = new UIElement({
       width: 340,
       height: "100%",
       gap: FacetTheme.gapSm,
     });
     col.insertChild(
-      facetLabel(() => WorldMapUI._siteText(scene, "name"), {
+      facetLabel(() => WorldMapUI._siteText(page, "name"), {
         font: "header",
         color: FacetTheme.text,
       }),
     );
     col.insertChild(
-      facetLabel(() => WorldMapUI._siteText(scene, "desc"), {
+      facetLabel(() => WorldMapUI._siteText(page, "desc"), {
         color: FacetTheme.textMuted,
         wrap: 320,
       }),
@@ -224,54 +222,54 @@ globalThis.WorldMapUI = {
     col.insertChild(facetDivider());
     col.insertChild(
       facetKeyValueRow(I18n.textRef("WORLDMAP_TERRAIN"), () =>
-        WorldMapUI._terrainText(scene),
+        WorldMapUI._terrainText(page),
       ),
     );
     col.insertChild(
       facetKeyValueRow(I18n.textRef("WORLDMAP_SIZE"), () =>
-        WorldMapUI._sizeText(scene),
+        WorldMapUI._sizeText(page),
       ),
     );
     col.insertChild(
       facetKeyValueRow(I18n.textRef("WORLDMAP_THREAT"), () =>
-        WorldMapUI._threatText(scene),
+        WorldMapUI._threatText(page),
       ),
     );
     col.insertChild(
       facetKeyValueRow(I18n.textRef("WORLDMAP_TRIP"), () =>
-        WorldMapUI._tripText(scene),
+        WorldMapUI._tripText(scene, page),
       ),
     );
     col.insertChild(new UIElement({ flexGrow: 1 })); // push the button to the bottom
     col.insertChild(
       facetButton(
         I18n.textRef("WORLDMAP_TRAVEL"),
-        () => WorldMapUI.travel(scene),
+        () => WorldMapUI.travel(scene, page),
         {
           primary: true,
-          disabled: () => scene._mapSel === scene.level.id,
+          disabled: () => page.sel === scene.level.id,
         },
       ),
     );
     return col;
   },
 
-  _siteText(scene, key) {
-    const s = contentSites.get(scene._mapSel);
+  _siteText(page, key) {
+    const s = contentSites.get(page.sel);
     return s === undefined ? "" : I18n.text(s[key]);
   },
 
   /** the site's biome name */
-  _terrainText(scene) {
-    const s = contentSites.get(scene._mapSel);
+  _terrainText(page) {
+    const s = contentSites.get(page.sel);
     if (s === undefined) return "";
     const biome = contentBiomes.BIOMES[s.biome];
     return biome === undefined ? "" : I18n.text(biome.name);
   },
 
   /** a resident site's grid, else its def size */
-  _sizeText(scene) {
-    const s = contentSites.get(scene._mapSel);
+  _sizeText(page) {
+    const s = contentSites.get(page.sel);
     if (s === undefined) return "";
     const lv = World.get(s.id);
     if (lv !== null && lv.grid !== null)
@@ -279,16 +277,16 @@ globalThis.WorldMapUI = {
     return I18n.text("WORLDMAP_SIZE_VAL", s.cols, s.rows);
   },
 
-  _threatText(scene) {
-    const s = contentSites.get(scene._mapSel);
+  _threatText(page) {
+    const s = contentSites.get(page.sel);
     return s === undefined ? "" : I18n.text("THREAT_" + s.danger);
   },
 
-  _tripText(scene) {
-    if (scene._mapSel === scene.level.id) return "-";
+  _tripText(scene, page) {
+    if (page.sel === scene.level.id) return "-";
     return I18n.text(
       "WORLDMAP_TRIP_VAL",
-      ColonyMap.travelHours(scene.level.id, scene._mapSel),
+      ColonyMap.travelHours(scene.level.id, page.sel),
     );
   },
 
@@ -296,11 +294,11 @@ globalThis.WorldMapUI = {
    * Deploy to the selected site: close the window, then make the trip at full fade cover (the
    * cover hides the map swap, like a scene switch) and toast the arrival.
    */
-  travel(scene) {
-    const to = scene._mapSel;
+  travel(scene, page) {
+    const to = page.sel;
     const site = contentSites.get(to);
     if (site === undefined || to === scene.level.id) return;
-    Interactable.closeAll(scene);
+    scene.window.close();
     const hours = ColonyMap.travelHours(scene.level.id, to);
     SceneTransition.start(() => {
       ColonyMap.travel(scene, to);
