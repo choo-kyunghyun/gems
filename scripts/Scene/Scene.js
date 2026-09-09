@@ -8,8 +8,11 @@
  *      retheme()              optional — the live theme swap rebuilds the scene's UI through it
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
  *    A scene is LIVE or GONE, never frozen: a switch destroys it, so it carries no state across
- *    one. `openScene(factory)` is the ONLY handle a scene gets on the switch — there is no
- *    back-ref to the Game object.
+ *    one. Navigation is ONE transition (the Game object's `switchTo`, Create_0) behind two doors:
+ *    a scene's is `openScene(factory)` — the only handle it gets on the switch, there is no
+ *    back-ref to the Game object — while the GUI singletons the Game object hands itself to
+ *    (`GameOverlay.update(game)`, `SaveGame.buildMenuTab(game)`) call `game.switchTo` and read
+ *    `game.scene` directly, since they outlive every scene.
  *    A scene script exposes ONE global: a factory function under the script's own name
  *    (`sceneLobby`, `sceneColony`, `sceneFacet`). That one ref is what the Game object boots,
  *    the catalogue labels and `openScene` takes — a scene is never reached through an alias.

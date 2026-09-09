@@ -23,9 +23,9 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 
 ## Scene
 
-Left by the scene review that folded the catalogue into `Scene`: the colony scene is a blackboard — 30 files read `scene.*`, 78 members (49 `_`-private), six `_` methods are called from outside, and fields are initialised in three places (`create`, `ColonyMap._activateReset`, the HUD modules' `build`: `Hud`/`Interactable`/`BuildMode`).
+Left by the scene review that folded the catalogue into `Scene`.
 
-- Small: `Tracker.js` still names `sceneUIKit` (now `sceneFacet`); `SCENE_CAT_ACTION` has an i18n key and a lobby rank but no scene; the two navigation paths (a scene's `openScene`, GameOverlay/SaveGame's `game.switchTo`/`game.scene`) are unstated in the `Scene` contract.
+- The colony scene is a blackboard — 30 files read `scene.*`, 78 members (49 `_`-private), six `_` methods are called from outside, and fields are initialised in three places (`create`, `ColonyMap._activateReset`, the HUD modules' `build`: `Hud`/`Interactable`/`BuildMode`).
 
 ## Gameplay
 

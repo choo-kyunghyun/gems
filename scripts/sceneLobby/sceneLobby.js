@@ -32,7 +32,7 @@ globalThis.sceneLobby = () =>
       const col = facetList();
 
       // fixed display priority so the list is stable regardless of resource load order
-      const CAT_ORDER = ["SCENE_CAT_RPG", "SCENE_CAT_ACTION", "SCENE_CAT_UI"];
+      const CAT_ORDER = ["SCENE_CAT_RPG", "SCENE_CAT_UI"];
       const entries = [];
       const groups = Scene.byCategory();
       for (let g = 0; g < groups.length; g++)

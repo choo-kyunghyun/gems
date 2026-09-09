@@ -8,7 +8,7 @@
  * stay pure def registries beside it, and the engine still never sweeps a condition.
  *
  * `rules` is OPTIONAL: with none wired the counter and achievement stages simply don't run and
- * quests still advance (sceneUIKit demos the tracker widget with no achievement content at all).
+ * quests still advance (sceneFacet demos the tracker widget with no achievement content at all).
  *
  * The whole struct is SESSION state whose only home is the save slot's bundle (SaveGame's sim
  * pass) — nothing here touches disk.
