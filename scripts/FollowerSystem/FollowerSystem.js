@@ -6,9 +6,10 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
  * Velocity (SolidSystem integrates/collides). Player id passed in, not stored — no re-link on transfer.
  *
  * Membership (the Squad component) is owned here too: hire() joins the player's squad (+carry bonus,
- * drops the "rehire" Interaction), kick() leaves it PERMANENTLY in place (the companion becomes a map
- * resident with a "rehire" Interaction — talk to re-hire; there is no dismiss-and-recall). setState()
- * is the ONE home for the wait/follow transition + its carry-bonus pairing.
+ * swaps the "rehire" Interaction for "companion" — E then flips it wait/follow), kick() leaves it
+ * PERMANENTLY in place (the companion becomes a map resident with a "rehire" Interaction — talk to
+ * re-hire; there is no dismiss-and-recall). setState() is the ONE home for the wait/follow
+ * transition + its carry-bonus pairing.
  */
 globalThis.FollowerSystem = {
   update(entities, playerId) {
@@ -86,8 +87,8 @@ globalThis.FollowerSystem = {
   },
 
   /**
-   * Join the player's squad: membership + follow (+bonus via setState) + drop the "rehire"
-   * Interaction (it's a squad member now, not a talk-to-hire resident).
+   * Join the player's squad: membership + follow (+bonus via setState) + the "companion"
+   * Interaction over the "rehire" one (it's a squad member now — E commands it, not recruits it).
    */
   hire(entities, playerId, fid) {
     const squad = entities.get(playerId, Squad);
@@ -95,12 +96,12 @@ globalThis.FollowerSystem = {
       return;
     entities.add(fid, Squad, { id: squad.id });
     FollowerSystem.setState(entities, playerId, fid, "follow");
-    entities.detach(fid, Interaction);
+    entities.add(fid, Interaction, { kind: "companion" });
   },
 
   /**
    * Kick from the squad PERMANENTLY, in place: bonus off (via setState), membership detached,
-   * and a "rehire" Interaction attached so walking up + talking (E) re-hires it.
+   * and the "rehire" Interaction back over "companion" so walking up + talking (E) re-hires it.
    */
   kick(entities, playerId, fid) {
     FollowerSystem.setState(entities, playerId, fid, "wait");

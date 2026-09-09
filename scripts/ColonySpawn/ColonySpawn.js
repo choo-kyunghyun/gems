@@ -290,8 +290,8 @@ globalThis.ColonySpawn = {
       },
       {
         // Companion (a dynamic solid body). Spawns UNHIRED — a map resident with a "rehire"
-        // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + drops the
-        // Interaction). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
+        // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + swaps it for
+        // "companion"). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
         // recovery spot (see ColonyCombat.resolveHealth/updateDowned). No AI attach — FollowerSystem
         // drives every Follower entity by query.
         id: "follower",
@@ -322,7 +322,7 @@ globalThis.ColonySpawn = {
             bonusCapacity: 0,
             bonusWeight: 0,
           },
-          Interaction: { kind: "rehire" }, // talk (E) to hire; hire() detaches this
+          Interaction: { kind: "rehire" }, // talk (E) to hire; hire() swaps it for "companion"
         },
       },
     ]);

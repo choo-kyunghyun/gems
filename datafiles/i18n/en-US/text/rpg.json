@@ -24,7 +24,6 @@
   "RPG_KEY_INTERACT": "Interact",
   "RPG_KEY_INVENTORY": "Bag",
   "RPG_KEY_BUILD": "Build",
-  "RPG_KEY_FOLLOW": "Companion",
   "RPG_KEY_HOTBAR": "Hotbar {0}",
 
 
@@ -352,6 +351,8 @@
 
   "FOLLOWER_WAIT": "Companion will wait here",
   "FOLLOWER_FOLLOW": "Companion follows you",
+  "FOLLOWER_WAIT_PROMPT": "Wait here",
+  "FOLLOWER_FOLLOW_PROMPT": "Follow me",
   "FOLLOWER_DEFAULT": "Companion",
   "FOLLOWER_STATE_FOLLOW": "Following",
   "FOLLOWER_STATE_WAIT": "Waiting",

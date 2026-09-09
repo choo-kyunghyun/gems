@@ -149,7 +149,7 @@ class _SceneColonyClass {
 
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
       // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
-      // follow + carry bonus in one call, balanced thereafter by the F-toggle / kick.
+      // follow + carry bonus in one call, balanced thereafter by its companion Interaction / kick.
       const pp = this.level.entities.get(this.playerId, Position);
       const companion = ColonySpawn.spawnFollower(
         this.level.entities,
@@ -472,7 +472,6 @@ class _SceneColonyClass {
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
     BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
-    this._toggleFollower(); // F: nearest companion wait <-> follow (outside tick loop)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
@@ -583,48 +582,6 @@ class _SceneColonyClass {
     Log.info(
       `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,
     );
-  }
-
-  /**
-   * F: toggle the nearest in-reach SQUAD companion between follow and wait. Waiting is map-local
-   * ("hold here for now") — a trip forces every member back to follow (see ColonyMap.go).
-   */
-  _toggleFollower() {
-    if (!Input.get("follow").pressed()) return;
-    const p = this.level.entities.get(this.playerId, Position);
-    const squad = this.level.entities.get(this.playerId, Squad);
-    if (p === undefined || squad === undefined) return;
-    const members = FollowerSystem.members(
-      this.level.entities,
-      squad.id,
-      this.playerId,
-    );
-    let best = -1;
-    let bestSq = 80 * 80; // reach to a companion (px)
-    for (let i = 1; i < members.length; i++) {
-      // [0] is the player
-      const pos = this.level.entities.get(members[i], Position);
-      if (pos === undefined) continue;
-      const d = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
-      if (d < bestSq) {
-        bestSq = d;
-        best = members[i];
-      }
-    }
-    if (best === -1) return;
-    const f = this.level.entities.get(best, Follower);
-    if (f.state === "follow") {
-      FollowerSystem.setState(this.level.entities, this.playerId, best, "wait");
-      Toast.push(I18n.text("FOLLOWER_WAIT"), { type: "info" });
-    } else {
-      FollowerSystem.setState(
-        this.level.entities,
-        this.playerId,
-        best,
-        "follow",
-      );
-      Toast.push(I18n.text("FOLLOWER_FOLLOW"), { type: "success" });
-    }
   }
 
   /**

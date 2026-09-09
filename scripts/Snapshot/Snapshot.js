@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 6; // bump when the manifest/blob layout changes incompatibly (6: flora + boulders carry Visual, not Mesh)
+  static VERSION = 7; // bump when the manifest/blob layout changes incompatibly (7: a hired companion carries a "companion" Interaction)
 
   constructor() {
     this.passes = [];

@@ -37,7 +37,7 @@ globalThis.PlayerSystem = {
    * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
    * while building/window (no per-frame BuildMode check); the build brush "build"-only, on the same
    * mouse buttons (the context splits them — and Input mutes both while the build bar holds the
-   * pointer); interact opens in play / closes a window; build/follow inert with a window open. See
+   * pointer); interact opens in play / closes a window; build inert with a window open. See
    * InputContext / inContext.
    */
   bindKeys() {
@@ -54,7 +54,6 @@ globalThis.PlayerSystem = {
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
-      follow: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]], // toggle companion wait/follow
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
       grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]], // lob a grenade at the cursor
     });
@@ -71,7 +70,6 @@ globalThis.PlayerSystem = {
     Input.get("inventory").bindButton(GP, gp_face4); // Y
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
-    Input.get("follow").bindButton(GP, gp_shoulderr); // RB
     Input.get("grenade").bindButton(GP, gp_shoulderlb); // LT
     // analog axes: left stick = movement (everywhere), right stick = aim ("play" only)
     Input.register(
@@ -381,7 +379,6 @@ globalThis.PlayerSystem = {
       ["interact", "RPG_KEY_INTERACT"],
       ["inventory", "RPG_KEY_INVENTORY"],
       ["build", "RPG_KEY_BUILD"],
-      ["follow", "RPG_KEY_FOLLOW"],
     ].map((r) => ({ action: r[0], label: I18n.textRef(r[1]) }));
     for (let i = 0; i < HOTBAR_SIZE; i++)
       rows.push({

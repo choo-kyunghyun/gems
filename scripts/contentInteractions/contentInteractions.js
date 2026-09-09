@@ -5,7 +5,9 @@
  * refreshes them); INSTANT actions act once per E press. The survival ones (hydrate/feed/buff) act on
  * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
  * something to the player, not just open a panel". The entity just carries { kind: <id> }.
- * The NPC pair (talk/trade) carries `prompt: ""`: no pill, the dialogue panel prompts for them.
+ * The NPC pair (talk/trade) carries `prompt: ""`: no pill, the dialogue panel prompts for them. A
+ * prompt may also be a function of the run() ctx, for a def whose action depends on the target's
+ * state (companion: the wait/follow flip it will make).
  */
 globalThis.contentInteractions = {
   registered: false,
@@ -171,6 +173,38 @@ globalThis.contentInteractions = {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
           ctx.scene._invDirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
+        },
+      },
+      {
+        // a squad member (FollowerSystem.hire swaps its "rehire" for this): E flips it between
+        // following and waiting here; the prompt names the flip. Waiting is map-local — a trip
+        // forces every member back to follow (ColonyMap.go). A Downed one is not commandable:
+        // no prompt, no-op (it lies where it fell until it recovers). Priority -1: a companion
+        // walks at your side, so by proximity it yields to any station you stopped at.
+        id: "companion",
+        priority: -1,
+        prompt(ctx) {
+          if (ctx.entities.has(ctx.id, Downed)) return "";
+          const f = ctx.entities.get(ctx.id, Follower);
+          if (f === undefined) return "";
+          return f.state === "follow"
+            ? "FOLLOWER_WAIT_PROMPT"
+            : "FOLLOWER_FOLLOW_PROMPT";
+        },
+        run(ctx) {
+          if (ctx.entities.has(ctx.id, Downed)) return;
+          const f = ctx.entities.get(ctx.id, Follower);
+          if (f === undefined) return;
+          const toWait = f.state === "follow";
+          FollowerSystem.setState(
+            ctx.entities,
+            ctx.playerId,
+            ctx.id,
+            toWait ? "wait" : "follow",
+          );
+          Toast.push(I18n.text(toWait ? "FOLLOWER_WAIT" : "FOLLOWER_FOLLOW"), {
+            type: toWait ? "info" : "success",
+          });
         },
       },
 

@@ -24,7 +24,6 @@
   "RPG_KEY_INTERACT": "상호작용",
   "RPG_KEY_INVENTORY": "가방",
   "RPG_KEY_BUILD": "건설",
-  "RPG_KEY_FOLLOW": "동료",
   "RPG_KEY_HOTBAR": "단축바 {0}",
 
 
@@ -353,6 +352,8 @@
 
   "FOLLOWER_WAIT": "동료가 여기서 기다립니다",
   "FOLLOWER_FOLLOW": "동료가 따라옵니다",
+  "FOLLOWER_WAIT_PROMPT": "여기서 대기",
+  "FOLLOWER_FOLLOW_PROMPT": "따라오기",
   "FOLLOWER_DEFAULT": "동료",
   "FOLLOWER_STATE_FOLLOW": "따라오는 중",
   "FOLLOWER_STATE_WAIT": "대기 중",

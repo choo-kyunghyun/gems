@@ -2,7 +2,7 @@
 // (under the cursor if in range, else nearest), prompts it, and runs its action on E.
 /**
  * THE ONE-PICK INVARIANT: everything E can act on — a station, a ripe plant, a quest NPC, a
- * merchant, an unhired companion — carries `Interaction`, so there is exactly one candidate set
+ * merchant, a companion hired or not — carries `Interaction`, so there is exactly one candidate set
  * and one pick per frame (scene._interTarget), and the highlight, the prompt (the pill, or an
  * NPC's dialogue panel) and the E activation all derive from it. Never add a second picker over
  * another channel (an NPC query beside this one, say): the moment a press arbitrates between two
@@ -28,6 +28,7 @@ globalThis.Interactable = {
     scene._interTarget = -1;
     scene._interKind = "";
     scene._interOpenId = -1;
+    scene._interPromptText = ""; // the pick's resolved pill text this frame ("" = no pill)
 
     // proximity prompt — shown only while a station is in range and no window is open;
     // label re-resolves each draw to track the target's kind
@@ -54,7 +55,7 @@ globalThis.Interactable = {
       }),
     );
     pill.insertChild(
-      facetLabel(() => Interactable._promptText(scene), {
+      facetLabel(() => scene._interPromptText, {
         halign: fa_center,
         color: FacetTheme.text,
       }),
@@ -70,10 +71,31 @@ globalThis.Interactable = {
     TradeUI.build(scene); // a merchant NPC's shop
   },
 
-  /** the pill's text: the picked def's prompt, "" for none (no def, or a def that prompts through its own UI) */
+  /**
+   * the pill's text for the pick: the def's prompt — an I18n key, or a function of the run()
+   * ctx returning one, resolved now — "" for none (no pick, or a def that prompts through its
+   * own UI). update() resolves it once per frame into scene._interPromptText.
+   */
   _promptText(scene) {
     const def = InteractAction.get(scene._interKind);
-    return def === undefined || def.prompt === "" ? "" : I18n.text(def.prompt);
+    if (def === undefined) return "";
+    const key =
+      typeof def.prompt === "function"
+        ? def.prompt(Interactable._ctx(scene))
+        : def.prompt;
+    return key === "" ? "" : I18n.text(key);
+  },
+
+  /** the ctx a def's prompt()/run() receives, over the frame's pick */
+  _ctx(scene) {
+    const entities = scene.level.entities;
+    return {
+      scene,
+      entities,
+      id: scene._interTarget,
+      comp: entities.get(scene._interTarget, Interaction),
+      playerId: scene.playerId,
+    };
   },
 
   /**
@@ -95,8 +117,9 @@ globalThis.Interactable = {
     // hidden under build mode too: E is not bound in the build context, and the build HUD
     // stands where the prompt does. A def without a prompt draws no pill — its target prompts
     // through its own UI (an NPC's dialogue panel).
+    scene._interPromptText = Interactable._promptText(scene);
     scene._interPrompt.enabled =
-      Interactable._promptText(scene) !== "" &&
+      scene._interPromptText !== "" &&
       !Interactable.isOpen(scene) &&
       !BuildMode.active;
 
@@ -140,8 +163,10 @@ globalThis.Interactable = {
   },
 
   /**
-   * THE pick over every Interaction-carrying entity in range: the one under the cursor, else the
-   * nearest. NPCs are candidates like any station (their Interaction is ColonySpawn's).
+   * THE pick over every Interaction-carrying entity in range: the one under the cursor, else by
+   * proximity — the highest def priority, then the nearest (a companion at your side, priority
+   * -1, never shadows the station you stopped at). NPCs are candidates like any station (their
+   * Interaction is ColonySpawn's).
    */
   _pick(scene) {
     const entities = scene.level.entities;
@@ -154,13 +179,21 @@ globalThis.Interactable = {
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
     let nearest = -1;
     let nearestSq = rSq;
+    let nearestPri = -Infinity;
     let mousePick = -1;
     let mouseSq = Infinity;
 
-    entities.forEach([Interaction, Position], (id, _it, pos) => {
+    entities.forEach([Interaction, Position], (id, it, pos) => {
       const dPlayer = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
       if (dPlayer >= rSq) return; // out of interact range
-      if (dPlayer < nearestSq) {
+      const def = InteractAction.get(it.kind);
+      const pri =
+        def !== undefined && def.priority !== undefined ? def.priority : 0;
+      if (pri > nearestPri) {
+        nearestPri = pri;
+        nearestSq = dPlayer;
+        nearest = id;
+      } else if (pri === nearestPri && dPlayer < nearestSq) {
         nearestSq = dPlayer;
         nearest = id;
       }
@@ -216,18 +249,11 @@ globalThis.Interactable = {
    * def's concern, not the engine's). New interactions are a data entry in InteractAction, not here.
    */
   _open(scene) {
-    const id = scene._interTarget;
-    const comp = scene.level.entities.get(id, Interaction);
-    if (comp === undefined) return;
-    const def = InteractAction.get(comp.kind);
+    const ctx = Interactable._ctx(scene);
+    if (ctx.comp === undefined) return;
+    const def = InteractAction.get(ctx.comp.kind);
     if (def === undefined) return;
-    def.run({
-      scene,
-      entities: scene.level.entities,
-      id,
-      comp,
-      playerId: scene.playerId,
-    });
+    def.run(ctx);
   },
 
   _closeAll(scene) {
