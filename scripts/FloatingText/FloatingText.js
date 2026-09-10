@@ -83,12 +83,12 @@ globalThis.FloatingText = {
       const t = live[i];
       const p = t.age / t.life; // 0..1 progress
 
-      const riseAmt = Tween.easeOutCubic(p) * t.rise; // decelerating rise
+      const riseAmt = curve(acEaseOutCubic, p) * t.rise; // decelerating rise
       // fade in fast, fade out over the last 35% of life
       const fadeIn = clamp(t.age / FloatingText.fadeIn, 0, 1);
       const fadeOut = clamp((t.life - t.age) / (t.life * 0.35), 0, 1);
       const a = Math.min(fadeIn, fadeOut);
-      const sc = t.scale * (0.6 + 0.4 * Tween.easeOutBack(fadeIn)); // entry pop overshoot
+      const sc = t.scale * (0.6 + 0.4 * curve(acEaseOutBack, fadeIn)); // entry pop overshoot
 
       // billboarded numbers sit at foot via the stood-up matrix, glyph origin local (0,0)
       let ox, oy;

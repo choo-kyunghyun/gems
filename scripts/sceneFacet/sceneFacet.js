@@ -259,7 +259,7 @@ class _SceneFacetClass {
   }
 
   /**
-   * same ping-pong clock through different easing curves to show Tween curve differences
+   * one ping-pong clock through three easing curves, side by side
    */
   _motionSection() {
     const sec = facetSection(I18n.textRef("FACET_MOTION"));
@@ -271,19 +271,19 @@ class _SceneFacetClass {
     sec.insertChild(
       facetRow(
         I18n.textRef("FACET_MOTION_LINEAR"),
-        facetProgress(() => Tween.linear(clock())),
+        facetProgress(() => curve(acLinear, clock())),
       ),
     );
     sec.insertChild(
       facetRow(
         I18n.textRef("FACET_MOTION_OUT"),
-        facetProgress(() => Tween.easeOutCubic(clock())),
+        facetProgress(() => curve(acEaseOutCubic, clock())),
       ),
     );
     sec.insertChild(
       facetRow(
         I18n.textRef("FACET_MOTION_INOUT"),
-        facetProgress(() => Tween.easeInOutQuad(clock())),
+        facetProgress(() => curve(acEaseInOut, clock())),
       ),
     );
     return sec;

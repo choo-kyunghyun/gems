@@ -37,7 +37,7 @@
   "FACET_RICH": "Rich text",
   "FACET_RICH_LOOT": "[spr=pixItemBlueprint] [c=legendary]Dragon Blade[/c]  [c=dmg]+42 DMG[/c]\n[spr=pixItemDiamond] [c=rare]Mana Ring[/c]  [c=rare]+15 INT[/c]",
   "FACET_RICH_HELP": "Press [c=key]Space[/c] to jump, [c=key]E[/c] to interact.",
-  "FACET_MOTION": "Motion (Tween)",
+  "FACET_MOTION": "Motion (Curves)",
   "FACET_MOTION_LINEAR": "Linear",
   "FACET_MOTION_OUT": "Ease out",
   "FACET_MOTION_INOUT": "Ease in-out",

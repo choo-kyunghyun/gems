@@ -30,12 +30,12 @@ globalThis.UICheckbox = class UICheckbox {
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const on = !!this._get();
-    // Tween.approach runs on Time.raw (the clock split).
+    // approach() runs on Time.raw (the clock split).
     const target = on ? 1 : 0;
     this._t =
       this._t === undefined
         ? target
-        : Tween.approach(this._t, target, this.animSpeed);
+        : approach(this._t, target, this.animSpeed);
     const t = this._t;
 
     const cy = pos.top + pos.height * 0.5;

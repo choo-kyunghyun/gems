@@ -5,7 +5,7 @@ const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rate then reads as the BPM (120 BPM = 2x)
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
-const HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = snappier pop)
+const HOTBAR_SLIDE_SPD = 16; // approach speed for the slide (higher = snappier pop)
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -400,7 +400,7 @@ class _SceneColonyClass {
     // ease on Time.raw (UI timing); dragY is offset-not-mutation (see UIElement.getLayoutPosition).
     if (this._hotbarTimer > 0) this._hotbarTimer -= Time.raw;
     const show = !this._buildActive && this._hotbarTimer > 0;
-    this._hotbarSlide = Tween.approach(
+    this._hotbarSlide = approach(
       this._hotbarSlide,
       show ? 1 : 0,
       HOTBAR_SLIDE_SPD,

@@ -16,7 +16,7 @@ Naming rules for API members, GameMaker assets, and the data keys they meet.
 - A script family keeps its conventional affix (`Render*`, `*System`).
 - Content and its scene take the game's name, never the genre, the layer, or the engine's name. The prefix is dropped wherever the folder and suffix already scope the name, and kept only where the bare name would collide with a Core script or read as engine.
 - An object or a room hosts code, so it follows the script rule: PascalCase, named for what it is, with no media prefix and no restated resource type.
-- A shader is `sh<Name>`, a particle system `ps<Name>`.
+- A shader is `sh<Name>`, a particle system `ps<Name>`, an animation curve `ac<Name>`.
 - A sprite is `<kind><Family><Subject>[<Variant>]`:
     - `kind` names what the art IS, never which resource holds it: `pix` (pixel art), `vec` (vector), `spine` (skeletal rig).
     - `Family` names the consumer that reads the asset, from a closed set: `Item` (bag icons), `Tex` (wall/floor textures), `Terrain` (dual-grid sets), `Tile` (autotile sets), `Grass` (ground sheets), `Ui` (widget chrome), `Fx` (particle art). A bare subject with no family is reserved for entity art and the garments its doll wears; a garment's kind leads, naming the slot it dresses.

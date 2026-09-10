@@ -66,9 +66,9 @@ globalThis.UIButton = class UIButton {
       ch[1] = tg;
       ch[2] = tb;
     } else {
-      ch[0] = Tween.approach(ch[0], tr, this.animSpeed);
-      ch[1] = Tween.approach(ch[1], tg, this.animSpeed);
-      ch[2] = Tween.approach(ch[2], tb, this.animSpeed);
+      ch[0] = approach(ch[0], tr, this.animSpeed);
+      ch[1] = approach(ch[1], tg, this.animSpeed);
+      ch[2] = approach(ch[2], tb, this.animSpeed);
     }
     return make_colour_rgb(round(ch[0]), round(ch[1]), round(ch[2]));
   }

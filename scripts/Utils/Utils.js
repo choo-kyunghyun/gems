@@ -44,3 +44,20 @@ globalThis.noise2 = function noise2(x, y, seed, lattice) {
   const b = v01 + (v11 - v01) * tx;
   return a + (b - a) * ty;
 };
+
+/**
+ * An animation-curve asset's channel (index or name) evaluated at `t`; the runtime clamps `t` to
+ * [0, 1], so a curve is the easing primitive. Nothing is cached: the per-call channel lookup is
+ * negligible, and a hot loop can hoist `animcurve_get_channel` itself.
+ */
+globalThis.curve = function curve(ac, t, channel = 0) {
+  return animcurve_channel_evaluate(animcurve_get_channel(ac, channel), t);
+};
+
+/**
+ * Exponential smoothing of `current` toward `target`; `dt` defaults to Time.raw (the clock split),
+ * so pass Time.delta for sim-space motion. The clamp prevents overshoot on a hitched frame.
+ */
+globalThis.approach = function approach(current, target, speed, dt = Time.raw) {
+  return lerp(current, target, clamp(dt * speed, 0, 1));
+};

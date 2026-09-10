@@ -60,12 +60,12 @@ globalThis.UIModal = class UIModal {
     if (this._phase === 0) {
       this._t += Time.raw;
       const p = clamp(this._t / this.duration, 0, 1);
-      this._apply(Tween.easeInOutQuad(p));
+      this._apply(curve(acEaseInOut, p));
       if (p >= 1) this._phase = 1;
     } else if (this._phase === 2) {
       this._t += Time.raw;
       const p = clamp(this._t / this.duration, 0, 1);
-      this._apply(1 - Tween.easeInOutQuad(p));
+      this._apply(1 - curve(acEaseInOut, p));
       if (p >= 1) {
         this._phase = 3;
         UI.remove(this._root);

@@ -10,7 +10,7 @@ globalThis.Color = {
 
   /**
    * One-shot lerp; #15546: don't ease a packed int per frame (floors to
-   * black) — ease r/g/b as floats, Tween.approach per channel.
+   * black) — ease r/g/b as floats, approach per channel.
    */
   merge(col1, col2, amount) {
     return merge_color(col1, col2, amount);

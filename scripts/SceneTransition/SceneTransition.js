@@ -32,7 +32,7 @@ globalThis.SceneTransition = {
     if (SceneTransition._phase === 0) return;
     SceneTransition._t += Time.raw;
     const p = clamp(SceneTransition._t / SceneTransition.duration, 0, 1);
-    const eased = Tween.easeInOutQuad(p);
+    const eased = curve(acEaseInOut, p);
 
     if (SceneTransition._phase === 1) {
       SceneTransition.alpha = eased;
