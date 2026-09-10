@@ -2,7 +2,7 @@
   "$GMAnimCurve":"",
   "%Name":"acLinear",
   "channels":[
-    {"$GMAnimCurveChannel":"","%Name":"ch0","colour":4290799884,"name":"ch0","points":[
+    {"$GMAnimCurveChannel":"","%Name":"value","colour":4290799884,"name":"value","points":[
         {"th0":-0.1,"th1":0.1,"tv0":0.0,"tv1":0.0,"x":0.0,"y":0.0,},
         {"th0":-0.1,"th1":0.1,"tv0":0.0,"tv1":0.0,"x":1.0,"y":1.0,},
       ],"resourceType":"GMAnimCurveChannel","resourceVersion":"2.0","visible":true,},
