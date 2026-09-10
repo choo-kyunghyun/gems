@@ -472,16 +472,16 @@ globalThis.ColonySpawn = {
         over.Mesh = { ...(over.Mesh ?? {}), yaw: s.yaw };
     }
 
-    // Settlement membership (any preset): `settlement: <map id>` tags the entity a Resident of that
-    // level's settlement (SettlementSystem resolves inhabitants by live query). Explicit — no auto-by-location.
-    if (s.settlement !== undefined)
-      over.Resident = { settlementId: s.settlement };
-
     const id = EntityPreset.spawn(entities, s.preset, w.x, w.y, 0, {
       size: s.size,
       components: over,
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
     });
+
+    // Settlement membership (any preset): `settlement: <map id>` makes the entity a Resident of that
+    // level's settlement through the inhabitant seam. Explicit — no auto-by-location.
+    if (s.settlement !== undefined)
+      SettlementSystem.assign(entities, id, s.settlement);
 
     // a plant's stage frame and (if ripe) Interaction, off the spawned components
     if (s.species !== undefined) FloraSystem.attach(entities, id);
