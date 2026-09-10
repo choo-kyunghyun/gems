@@ -25,7 +25,7 @@ globalThis.VirtualKeyboard = {
       body: VirtualKeyboard._buildBody(),
       width: 580,
       buttons: [
-        { label: I18n.text("VK_CANCEL") },
+        { label: I18n.text("COMMON_CANCEL") },
         {
           label: I18n.text("VK_DONE"),
           primary: true,

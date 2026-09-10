@@ -31,7 +31,7 @@ globalThis.contentInteractions = {
         // storage page over the body's Inventory, with takes counted as pickups (the same
         // quest/achievement credit as ground drops; the hook lasts the open — StorageUI)
         id: "corpse",
-        prompt: "CORPSE_PROMPT",
+        prompt: "STORAGE_CORPSE_PROMPT",
         run(ctx) {
           ctx.scene.window.open("storage", {
             target: ctx.id,
@@ -50,7 +50,7 @@ globalThis.contentInteractions = {
         // travel beacon (prop kind "travel") — a site's departure point: the world map, from which
         // the squad deploys to another site (WorldMapUI.travel → ColonyMap.travel)
         id: "travel",
-        prompt: "TRAVEL_PROMPT",
+        prompt: "WORLDMAP_PROMPT",
         run(ctx) {
           ctx.scene.window.open("travel", { target: ctx.id });
         },
@@ -67,7 +67,7 @@ globalThis.contentInteractions = {
       // ── instant actions ──
       {
         // a quest NPC: accept its quest, or turn it in once ready; inert in between (the dialogue
-        // panel names this press's action, RPG_ACCEPT / RPG_TURNIN, or nothing)
+        // panel names this press's action, QUEST_ACCEPT / QUEST_TURNIN, or nothing)
         id: "talk",
         prompt: "",
         run(ctx) {
@@ -88,7 +88,7 @@ globalThis.contentInteractions = {
         // with the slab swung 80° on its center. State (`open`) + yaw are component data, so a
         // door round-trips map parking/EntitySnapshot as-is.
         id: "door",
-        prompt: "DOOR_PROMPT",
+        prompt: "BUILD_DOOR_PROMPT",
         run(ctx) {
           const col = ctx.entities.get(ctx.id, Collision);
           const mesh = ctx.entities.get(ctx.id, Mesh);
@@ -112,7 +112,7 @@ globalThis.contentInteractions = {
                 c.solid === true &&
                 c.kinematic === false
               ) {
-                Toast.push(I18n.text("DOOR_BLOCKED"), { type: "info" });
+                Toast.push(I18n.text("BUILD_DOOR_BLOCKED"), { type: "info" });
                 return;
               }
             }
@@ -139,7 +139,7 @@ globalThis.contentInteractions = {
       },
       {
         id: "bed",
-        prompt: "BED_PROMPT",
+        prompt: "SURVIVAL_SLEEP_PROMPT",
         run(ctx) {
           ctx.scene.sleep();
         },
@@ -149,14 +149,14 @@ globalThis.contentInteractions = {
         // then the plant regrows or goes — one action under two prompts (a crop is picked, a
         // tree felled)
         id: "harvest",
-        prompt: "HARVEST_PROMPT",
+        prompt: "FLORA_HARVEST_PROMPT",
         run(ctx) {
           FloraSystem.harvest(ctx.scene, ctx.id);
         },
       },
       {
         id: "chop",
-        prompt: "CHOP_PROMPT",
+        prompt: "FLORA_CHOP_PROMPT",
         run(ctx) {
           FloraSystem.harvest(ctx.scene, ctx.id);
         },
@@ -165,7 +165,7 @@ globalThis.contentInteractions = {
         // unhired/kicked companion — talking recruits it into the player's squad
         // (FollowerSystem.hire adds Squad + follow + carry bonus and drops this Interaction)
         id: "rehire",
-        prompt: "REHIRE_PROMPT",
+        prompt: "SQUAD_RECRUIT_PROMPT",
         run(ctx) {
           FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
           ctx.scene.window.dirty = true; // squad roster changed
@@ -209,42 +209,42 @@ globalThis.contentInteractions = {
       // is already satisfied, so a full player gets a "no effect" cue instead of wasting the visit.
       {
         id: "hydrate",
-        prompt: "HYDRATE_PROMPT",
+        prompt: "SURVIVAL_DRINK_PROMPT",
         run(ctx) {
           const ok = ThirstSystem.restore(
             ctx.entities,
             ctx.playerId,
             ctx.comp.amount ?? 60,
           );
-          Toast.push(I18n.text(ok ? "TOAST_DRINK" : "TOAST_NO_NEED"), {
+          Toast.push(I18n.text(ok ? "SURVIVAL_DRINK_DONE" : "SURVIVAL_NO_NEED"), {
             type: ok ? "success" : "info",
           });
         },
       },
       {
         id: "feed",
-        prompt: "FEED_PROMPT",
+        prompt: "SURVIVAL_EAT_PROMPT",
         run(ctx) {
           const ok = HungerSystem.restore(
             ctx.entities,
             ctx.playerId,
             ctx.comp.amount ?? 60,
           );
-          Toast.push(I18n.text(ok ? "TOAST_EAT" : "TOAST_NO_NEED"), {
+          Toast.push(I18n.text(ok ? "SURVIVAL_EAT_DONE" : "SURVIVAL_NO_NEED"), {
             type: ok ? "success" : "info",
           });
         },
       },
       {
         id: "buff",
-        prompt: "BUFF_PROMPT",
+        prompt: "SURVIVAL_PRAY_PROMPT",
         run(ctx) {
           StatusSystem.apply(
             ctx.entities,
             ctx.playerId,
             ctx.comp.status ?? "regen",
           );
-          Toast.push(I18n.text("TOAST_BUFF"), { type: "success" });
+          Toast.push(I18n.text("SURVIVAL_PRAY_DONE"), { type: "success" });
         },
       },
     ]);

@@ -128,8 +128,8 @@ globalThis.StorageUI = {
   _usageText(inv) {
     if (inv === undefined) return "";
     let s =
-      I18n.text("RPG_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
-    s += "   " + I18n.text("RPG_WEIGHT") + " " + InventorySystem.weight(inv);
+      I18n.text("INV_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
+    s += "   " + I18n.text("INV_WEIGHT") + " " + InventorySystem.weight(inv);
     if (inv.maxWeight !== undefined) s += "/" + inv.maxWeight;
     return s;
   },
@@ -143,7 +143,7 @@ globalThis.StorageUI = {
       rowH: 26,
       headerH: 26,
       sortBy: 0, // Name
-      emptyText: I18n.text("STORAGE_EMPTY"),
+      emptyText: I18n.text("COMMON_EMPTY"),
       onSelect: (row) => StorageUI._click(scene, page, side, row),
       onActivate: (row) => StorageUI._move(scene, page, side, row),
     });
@@ -233,7 +233,7 @@ globalThis.StorageUI = {
         prompt: I18n.text("STORAGE_QTY_PROMPT"),
         half: I18n.text("STORAGE_QTY_HALF"),
         all: I18n.text("STORAGE_QTY_ALL"),
-        cancelLabel: I18n.text("STORAGE_CANCEL"),
+        cancelLabel: I18n.text("COMMON_CANCEL"),
         confirmLabel: I18n.text("STORAGE_TRANSFER"),
         onConfirm: (amount) =>
           StorageUI._doMove(scene, page, side, row, amount),

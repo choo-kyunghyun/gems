@@ -298,14 +298,14 @@ globalThis.FloraSystem = {
     const left = InventorySystem.add(inv, def.yield.itemId, qty);
     if (left > 0) {
       if (left < qty) InventorySystem.remove(inv, def.yield.itemId, qty - left);
-      Toast.push(I18n.text("WB_BAG_FULL"), { type: "info" });
+      Toast.push(I18n.text("INV_FULL"), { type: "info" });
       return false;
     }
     scene.onCollect(def.yield.itemId, qty); // quest/achievement credit + the pickup blip
     scene.window.dirty = true;
     Toast.push(
       I18n.text(
-        "TOAST_HARVEST",
+        "FLORA_HARVESTED",
         qty,
         I18n.text(Item.get(def.yield.itemId).name),
       ),

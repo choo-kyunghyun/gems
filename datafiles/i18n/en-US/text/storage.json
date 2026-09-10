@@ -1,0 +1,14 @@
+{
+  "STORAGE_TITLE": "Storage",
+  "STORAGE_BAG": "Bag",
+  "STORAGE_BOX": "Chest",
+  "STORAGE_PROMPT": "[E] Open chest",
+  "STORAGE_CORPSE_PROMPT": "[E] Loot corpse",
+  "STORAGE_HINT": "Double-click to transfer (pick an amount for stacks)",
+  "STORAGE_TAKE_ALL": "Take All",
+  "STORAGE_STORE_ALL": "Store All",
+  "STORAGE_TRANSFER": "Transfer",
+  "STORAGE_QTY_PROMPT": "Amount to transfer",
+  "STORAGE_QTY_HALF": "Half",
+  "STORAGE_QTY_ALL": "All"
+}

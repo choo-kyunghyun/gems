@@ -333,14 +333,14 @@ globalThis.WeaponModUI = {
       row.insertChild(cell);
       row.insertChild(
         facetButton(
-          I18n.textRef("MOD_REMOVE"),
+          I18n.textRef("COMMON_REMOVE"),
           () => WeaponModUI._removeFrom(scene, slot, slotDef.id),
           { width: 90, height: 24 },
         ),
       );
     } else {
       cell.insertChild(
-        facetLabel(catLabel + ": " + I18n.text("MOD_EMPTY_SLOT"), {
+        facetLabel(catLabel + ": " + I18n.text("COMMON_EMPTY"), {
           color: FacetTheme.textDim,
         }),
       );
@@ -366,7 +366,7 @@ globalThis.WeaponModUI = {
     row.insertChild(cell);
     row.insertChild(
       facetButton(
-        I18n.textRef("MOD_INSTALL"),
+        I18n.textRef("COMMON_INSTALL"),
         () => WeaponModUI._installFirst(scene, slot, wpn, modId),
         {
           width: 90,

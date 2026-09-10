@@ -12,7 +12,7 @@ globalThis.Weather = {
   _COND: {
     clear: {
       id: "clear",
-      name: "RPG_WX_CLEAR",
+      name: "WEATHER_CLEAR",
       c: "#ffffff",
       a: 0.0,
       particle: "none",
@@ -23,7 +23,7 @@ globalThis.Weather = {
     },
     cloudy: {
       id: "cloudy",
-      name: "RPG_WX_CLOUDY",
+      name: "WEATHER_CLOUDY",
       c: "#9fb0c0",
       a: 0.12,
       particle: "none",
@@ -34,7 +34,7 @@ globalThis.Weather = {
     },
     rain: {
       id: "rain",
-      name: "RPG_WX_RAIN",
+      name: "WEATHER_RAIN",
       c: "#5b6b80",
       a: 0.26,
       particle: "rain",
@@ -45,7 +45,7 @@ globalThis.Weather = {
     },
     storm: {
       id: "storm",
-      name: "RPG_WX_STORM",
+      name: "WEATHER_STORM",
       c: "#3a4252",
       a: 0.4,
       particle: "rain",
@@ -56,7 +56,7 @@ globalThis.Weather = {
     },
     snow: {
       id: "snow",
-      name: "RPG_WX_SNOW",
+      name: "WEATHER_SNOW",
       c: "#dfe8f2",
       a: 0.2,
       particle: "snow",

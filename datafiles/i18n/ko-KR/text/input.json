@@ -1,0 +1,27 @@
+{
+  "INPUT_MOVE_UP": "위로 이동",
+  "INPUT_MOVE_LEFT": "왼쪽으로 이동",
+  "INPUT_MOVE_DOWN": "아래로 이동",
+  "INPUT_MOVE_RIGHT": "오른쪽으로 이동",
+  "INPUT_SPRINT": "질주",
+  "INPUT_FIRE": "공격",
+  "INPUT_RELOAD": "재장전",
+  "INPUT_GRENADE": "수류탄",
+  "INPUT_INTERACT": "상호작용",
+  "INPUT_INVENTORY": "가방",
+  "INPUT_BUILD": "건설",
+  "INPUT_HOTBAR": "단축바 {0}",
+
+  "HINT_MOVE": "이동",
+  "HINT_SPRINT": "질주",
+  "HINT_ATTACK": "공격",
+  "HINT_GRENADE": "수류탄",
+  "HINT_BAG": "가방",
+  "HINT_HOTBAR": "단축바",
+  "HINT_TALK": "대화",
+  "HINT_BUILD": "건설",
+  "HINT_COMPANION": "동료",
+  "HINT_PLACE": "설치",
+  "HINT_REMOVE": "철거",
+  "HINT_EXIT_BUILD": "건설 종료"
+}

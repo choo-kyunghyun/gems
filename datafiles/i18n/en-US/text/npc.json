@@ -1,0 +1,28 @@
+{
+  "NPC_ELDER_NAME": "Settlement Elder",
+  "NPC_ELDER_OFFER": "Raiders are threatening the settlement. Will you take out 5 of them?",
+  "NPC_ELDER_WIP": "There are still raiders out there. I'm counting on you.",
+  "NPC_ELDER_DONE": "Thank you, survivor! Here is a small reward.",
+  "NPC_ELDER_THANKS": "The settlement can rest easy again. Truly grateful.",
+
+  "NPC_TRADER_NAME": "Trader",
+  "NPC_QUARTERMASTER_NAME": "Quartermaster",
+
+  "FOLLOWER_WAIT": "Companion will wait here",
+  "FOLLOWER_FOLLOW": "Companion follows you",
+  "FOLLOWER_WAIT_PROMPT": "Wait here",
+  "FOLLOWER_FOLLOW_PROMPT": "Follow me",
+  "FOLLOWER_DEFAULT": "Companion",
+  "FOLLOWER_STATE_FOLLOW": "Following",
+  "FOLLOWER_STATE_WAIT": "Waiting",
+  "FOLLOWER_STATE_DOWN": "Down (recovering)",
+  "FOLLOWER_DOWN": "{0} is down!",
+  "FOLLOWER_RECOVERED": "{0} recovered at base",
+  "FOLLOWER_BONUS": "Carry bonus: +{0} slots, +{1} weight",
+  "FOLLOWER_DISMISS": "Kick from squad",
+  "FOLLOWER_RECALL_HINT": "Rehire a kicked companion: walk up and press {0}",
+
+  "SQUAD_KICKED": "Kicked from the squad — talk to rehire",
+  "SQUAD_HIRED": "Joined your squad",
+  "SQUAD_RECRUIT_PROMPT": "Recruit"
+}

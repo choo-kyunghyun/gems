@@ -1023,7 +1023,7 @@ globalThis.BuildMode = {
         delete builtEnts[k];
         const item = BuildMode.item(e.itemId);
         const label = item !== undefined ? I18n.text(item.labelKey) : e.itemId;
-        Toast.push(I18n.text("BUILT_DESTROYED", label), { type: "warn" });
+        Toast.push(I18n.text("BUILD_DESTROYED", label), { type: "warn" });
         Log.info(`built ${e.itemId} destroyed at ${k}`);
       }
     }

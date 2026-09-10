@@ -124,11 +124,11 @@ globalThis.InventoryUI = {
         () => {
           const v = scene.level.entities.get(scene.playerId, Inventory);
           let s =
-            I18n.text("RPG_SLOTS") + " " + v.slots.length + "/" + v.capacity;
+            I18n.text("INV_SLOTS") + " " + v.slots.length + "/" + v.capacity;
           if (v.maxWeight !== undefined)
             s +=
               "   " +
-              I18n.text("RPG_WEIGHT") +
+              I18n.text("INV_WEIGHT") +
               " " +
               InventorySystem.weight(v) +
               "/" +
@@ -162,7 +162,7 @@ globalThis.InventoryUI = {
     // tidy the REAL bag order (merge stacks, category → rarer-first); the grid mirrors it
     top.insertChild(
       facetButton(
-        I18n.textRef("INV_SORT"),
+        I18n.textRef("COMMON_SORT"),
         () => {
           InventorySystem.sort(
             scene.level.entities.get(scene.playerId, Inventory),
@@ -334,7 +334,7 @@ globalThis.InventoryUI = {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
     title.insertChild(
-      facetLabel(I18n.textRef("RPG_EQUIPMENT"), { color: "warn" }),
+      facetLabel(I18n.textRef("INV_EQUIPMENT"), { color: "warn" }),
     );
     tab.insertChild(title);
     page.equipHost = new UIElement({
@@ -518,7 +518,7 @@ globalThis.InventoryUI = {
     tab.insertChild(
       facetQuestTracker({
         source: Tracker,
-        emptyText: I18n.text("INV_NO_QUESTS"),
+        emptyText: I18n.text("QUEST_NONE"),
       }),
     );
     return tab;
@@ -1035,7 +1035,7 @@ globalThis.InventoryUI = {
     }
     const row = new UIElement({ width: "100%", height: 26 });
     row.insertChild(
-      facetLabel(I18n.text(labelKey) + ": " + I18n.text("SLOT_EMPTY"), {
+      facetLabel(I18n.text(labelKey) + ": " + I18n.text("COMMON_EMPTY"), {
         color: FacetTheme.textDim,
       }),
     );

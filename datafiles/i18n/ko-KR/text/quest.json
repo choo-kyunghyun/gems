@@ -1,0 +1,12 @@
+{
+  "QUEST_HUMANS_NAME": "약탈자 퇴치",
+  "QUEST_HUMANS_OBJ": "약탈자 처치 {0}/{1}",
+  "QUEST_GATHER_NAME": "재료 수집",
+  "QUEST_GATHER_OBJ": "넝마 {0}/{1}",
+  "QUEST_REACH_NAME": "유적 탐사",
+  "QUEST_REACH_OBJ": "유적 도달 {0}/{1}",
+
+  "QUEST_ACCEPT": "수락",
+  "QUEST_TURNIN": "완료 보고",
+  "QUEST_NONE": "진행 중인 퀘스트 없음"
+}

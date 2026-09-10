@@ -368,22 +368,22 @@ globalThis.PlayerSystem = {
    */
   keymap() {
     const rows = [
-      ["moveUp", "RPG_KEY_MOVE_UP"],
-      ["moveLeft", "RPG_KEY_MOVE_LEFT"],
-      ["moveDown", "RPG_KEY_MOVE_DOWN"],
-      ["moveRight", "RPG_KEY_MOVE_RIGHT"],
-      ["sprint", "RPG_KEY_SPRINT"],
-      ["fire", "RPG_KEY_FIRE"],
-      ["reload", "RPG_KEY_RELOAD"],
-      ["grenade", "RPG_KEY_GRENADE"],
-      ["interact", "RPG_KEY_INTERACT"],
-      ["inventory", "RPG_KEY_INVENTORY"],
-      ["build", "RPG_KEY_BUILD"],
+      ["moveUp", "INPUT_MOVE_UP"],
+      ["moveLeft", "INPUT_MOVE_LEFT"],
+      ["moveDown", "INPUT_MOVE_DOWN"],
+      ["moveRight", "INPUT_MOVE_RIGHT"],
+      ["sprint", "INPUT_SPRINT"],
+      ["fire", "INPUT_FIRE"],
+      ["reload", "INPUT_RELOAD"],
+      ["grenade", "INPUT_GRENADE"],
+      ["interact", "INPUT_INTERACT"],
+      ["inventory", "INPUT_INVENTORY"],
+      ["build", "INPUT_BUILD"],
     ].map((r) => ({ action: r[0], label: I18n.textRef(r[1]) }));
     for (let i = 0; i < HOTBAR_SIZE; i++)
       rows.push({
         action: "hotbar" + (i + 1),
-        label: I18n.textRef("RPG_KEY_HOTBAR", i + 1),
+        label: I18n.textRef("INPUT_HOTBAR", i + 1),
       });
     return rows;
   },

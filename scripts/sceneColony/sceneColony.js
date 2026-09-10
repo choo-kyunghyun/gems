@@ -12,8 +12,8 @@ const HOTBAR_SLIDE_SPD = 16; // Tween.approach speed for the slide (higher = sna
  */
 globalThis.sceneColony = () => new _SceneColonyClass();
 Scene.register(sceneColony, {
-  label: I18n.textRef("RPG_NAME"),
-  category: "SCENE_CAT_RPG",
+  label: I18n.textRef("COLONY_NAME"),
+  category: "SCENE_CAT_GAME",
 });
 
 /**
@@ -213,49 +213,49 @@ class _SceneColonyClass {
         [
           {
             actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
-            label: "RPG_HINT_MOVE",
+            label: "HINT_MOVE",
             contexts: ["play", "build", "window"],
           },
           {
             actions: ["sprint"],
-            label: "RPG_HINT_SPRINT",
+            label: "HINT_SPRINT",
             contexts: ["play", "build"],
           },
-          { actions: ["fire"], label: "RPG_HINT_ATTACK", contexts: ["play"] },
+          { actions: ["fire"], label: "HINT_ATTACK", contexts: ["play"] },
           {
             actions: ["grenade"],
-            label: "RPG_HINT_GRENADE",
+            label: "HINT_GRENADE",
             contexts: ["play"],
           },
           {
             actions: ["buildPlace"],
-            label: "RPG_HINT_PLACE",
+            label: "HINT_PLACE",
             contexts: ["build"],
           },
           {
             actions: ["buildRemove"],
-            label: "RPG_HINT_REMOVE",
+            label: "HINT_REMOVE",
             contexts: ["build"],
           },
           {
             actions: ["inventory"],
-            label: "RPG_HINT_BAG",
+            label: "HINT_BAG",
             contexts: ["play", "build"],
           },
-          { text: "1-5", label: "RPG_HINT_HOTBAR", contexts: ["play"] },
-          { actions: ["interact"], label: "RPG_HINT_TALK", contexts: ["play"] },
-          { actions: ["build"], label: "RPG_HINT_BUILD", contexts: ["play"] },
+          { text: "1-5", label: "HINT_HOTBAR", contexts: ["play"] },
+          { actions: ["interact"], label: "HINT_TALK", contexts: ["play"] },
+          { actions: ["build"], label: "HINT_BUILD", contexts: ["play"] },
           {
             actions: ["build"],
-            label: "RPG_HINT_EXIT_BUILD",
+            label: "HINT_EXIT_BUILD",
             contexts: ["build"],
           },
           {
             actions: ["follow"],
-            label: "RPG_HINT_COMPANION",
+            label: "HINT_COMPANION",
             contexts: ["play", "build"],
           },
-          { text: "Esc", label: "RPG_HINT_CLOSE", contexts: ["window"] },
+          { text: "Esc", label: "COMMON_CLOSE", contexts: ["window"] },
         ],
         { color: "#888888" },
       ),
@@ -667,7 +667,7 @@ class _SceneColonyClass {
     const r = Tracker.report(kind, target, n);
     for (let i = 0; i < r.unlocked.length; i++) {
       const a = Achievement.get(r.unlocked[i]);
-      Toast.push(I18n.text("RPG_UNLOCKED", I18n.text(a.name)), {
+      Toast.push(I18n.text("ACH_TOAST", I18n.text(a.name)), {
         type: "success",
       });
       Log.info(`achievement unlocked: ${r.unlocked[i]}`);
@@ -693,8 +693,8 @@ class _SceneColonyClass {
     this.dialogueName = npc.name;
     // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
     if (this.level.entities.has(id, Merchant)) {
-      this.dialogueLine = "NPC_MERCHANT_GREET";
-      this.dialogueAction = "MERCHANT_TRADE";
+      this.dialogueLine = "TRADE_GREET";
+      this.dialogueAction = "TRADE_ACTION";
       return;
     }
     const qid = npc.questId;
@@ -703,13 +703,13 @@ class _SceneColonyClass {
       this.dialogueAction = "";
     } else if (Tracker.isReady(qid)) {
       this.dialogueLine = "NPC_ELDER_DONE";
-      this.dialogueAction = "RPG_TURNIN";
+      this.dialogueAction = "QUEST_TURNIN";
     } else if (Tracker.isActive(qid)) {
       this.dialogueLine = "NPC_ELDER_WIP";
       this.dialogueAction = "";
     } else {
       this.dialogueLine = "NPC_ELDER_OFFER";
-      this.dialogueAction = "RPG_ACCEPT";
+      this.dialogueAction = "QUEST_ACCEPT";
     }
   }
 

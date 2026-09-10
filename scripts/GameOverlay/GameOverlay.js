@@ -201,7 +201,7 @@ globalThis.GameOverlay = {
       justifyContent: "flex-end",
     });
     footer.insertChild(
-      facetButton(I18n.textRef("SETTINGS_CLOSE"), () => GameOverlay.close(), {
+      facetButton(I18n.textRef("COMMON_CLOSE"), () => GameOverlay.close(), {
         primary: true,
         width: 160,
       }),
@@ -342,8 +342,8 @@ globalThis.GameOverlay = {
         },
         {
           key: "fullscreen",
-          onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
-          offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
+          onText: I18n.textRef("COMMON_ON"),
+          offText: I18n.textRef("COMMON_OFF"),
         },
       ),
     );
@@ -402,14 +402,14 @@ globalThis.GameOverlay = {
         },
         {
           key: "vsync",
-          onText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_ON"),
-          offText: I18n.textRef("SETTINGS_DISP_FULLSCREEN_OFF"),
+          onText: I18n.textRef("COMMON_ON"),
+          offText: I18n.textRef("COMMON_OFF"),
         },
       ),
     );
     // only AA levels the GPU reports it can do
     const aaItems = Display.aaLevels().map((lvl) => ({
-      name: lvl === 0 ? I18n.text("SETTINGS_DISP_AA_OFF") : lvl + "x",
+      name: lvl === 0 ? I18n.text("COMMON_OFF") : lvl + "x",
       value: lvl,
     }));
     dispSection.insertChild(

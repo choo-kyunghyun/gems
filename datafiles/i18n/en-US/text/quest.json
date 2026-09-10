@@ -1,0 +1,12 @@
+{
+  "QUEST_HUMANS_NAME": "Raider Cull",
+  "QUEST_HUMANS_OBJ": "Raiders down {0}/{1}",
+  "QUEST_GATHER_NAME": "Gather Materials",
+  "QUEST_GATHER_OBJ": "Rags {0}/{1}",
+  "QUEST_REACH_NAME": "Explore Ruins",
+  "QUEST_REACH_OBJ": "Reach ruins {0}/{1}",
+
+  "QUEST_ACCEPT": "Accept",
+  "QUEST_TURNIN": "Turn In",
+  "QUEST_NONE": "No active quests"
+}

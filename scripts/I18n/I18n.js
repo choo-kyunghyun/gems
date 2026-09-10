@@ -1,5 +1,7 @@
 // Localization registry — load(manifest) reads a locale's manifest.json (text masks + fonts/images/
 // sounds by role) into the Maps below; text()/textRef() resolve strings (textRef is a live () => string).
+// The text mask is one file per area (text/<area>.json), merged into ONE flat map — a key is unique
+// across the locale, and its prefix names the area's file (the key rule: docs/NAMING.md).
 globalThis.I18n = {
   texts: new Map(),
   fonts: new Map(),

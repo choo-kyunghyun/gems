@@ -288,7 +288,7 @@ globalThis.TradeUI = {
         prompt: I18n.text("STORAGE_QTY_PROMPT"),
         half: I18n.text("STORAGE_QTY_HALF"),
         all: I18n.text("STORAGE_QTY_ALL"),
-        cancelLabel: I18n.text("STORAGE_CANCEL"),
+        cancelLabel: I18n.text("COMMON_CANCEL"),
         confirmLabel: I18n.text(side === "buy" ? "TRADE_BUY" : "TRADE_SELL"),
         onConfirm: (amount) => {
           if (side === "buy") TradeUI._doBuy(scene, row, amount);

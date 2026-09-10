@@ -1,0 +1,28 @@
+{
+  "NPC_ELDER_NAME": "정착지 촌장",
+  "NPC_ELDER_OFFER": "약탈자들이 정착지를 위협하고 있네. 5명을 처치해 주겠나?",
+  "NPC_ELDER_WIP": "아직 약탈자가 남아 있네. 부탁하네.",
+  "NPC_ELDER_DONE": "고맙네, 생존자여! 이건 작은 보답일세.",
+  "NPC_ELDER_THANKS": "정착지가 다시 평온을 찾았네. 정말 고맙네.",
+
+  "NPC_TRADER_NAME": "상인",
+  "NPC_QUARTERMASTER_NAME": "보급관",
+
+  "FOLLOWER_WAIT": "동료가 여기서 기다립니다",
+  "FOLLOWER_FOLLOW": "동료가 따라옵니다",
+  "FOLLOWER_WAIT_PROMPT": "여기서 대기",
+  "FOLLOWER_FOLLOW_PROMPT": "따라오기",
+  "FOLLOWER_DEFAULT": "동료",
+  "FOLLOWER_STATE_FOLLOW": "따라오는 중",
+  "FOLLOWER_STATE_WAIT": "대기 중",
+  "FOLLOWER_STATE_DOWN": "쓰러짐 (회복 중)",
+  "FOLLOWER_DOWN": "{0}이(가) 쓰러졌습니다!",
+  "FOLLOWER_RECOVERED": "{0}이(가) 기지에서 회복했습니다",
+  "FOLLOWER_BONUS": "운반 보너스: 칸 +{0}, 무게 +{1}",
+  "FOLLOWER_DISMISS": "스쿼드에서 내보내기",
+  "FOLLOWER_RECALL_HINT": "내보낸 동료 재고용: 다가가 {0} 키를 누르세요",
+
+  "SQUAD_KICKED": "스쿼드에서 내보냈습니다 — 대화로 재고용할 수 있습니다",
+  "SQUAD_HIRED": "스쿼드에 합류했습니다",
+  "SQUAD_RECRUIT_PROMPT": "영입"
+}

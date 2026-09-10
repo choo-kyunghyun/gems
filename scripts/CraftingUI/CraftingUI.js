@@ -195,9 +195,9 @@ globalThis.CraftingUI = {
     const modName =
       installed !== undefined
         ? I18n.text(installed.name)
-        : I18n.text("WB_SLOT_EMPTY");
+        : I18n.text("COMMON_EMPTY");
     nameCell.insertChild(
-      facetLabel(I18n.text("WB_MODULE") + " " + modName, {
+      facetLabel(I18n.text("CRAFT_MODULE") + " " + modName, {
         color:
           module !== "" ? InvTable.rarityColor(module) : FacetTheme.textMuted,
       }),
@@ -206,7 +206,7 @@ globalThis.CraftingUI = {
     if (module !== "") {
       line1.insertChild(
         facetButton(
-          I18n.textRef("WB_REMOVE"),
+          I18n.textRef("COMMON_REMOVE"),
           () => CraftingUI._removeModule(scene),
           { width: 90, height: 24 },
         ),
@@ -219,7 +219,7 @@ globalThis.CraftingUI = {
     if (owned.length === 0) {
       if (module === "")
         bar.insertChild(
-          facetLabel(I18n.textRef("WB_NO_MODULES"), {
+          facetLabel(I18n.textRef("CRAFT_NO_MODULES"), {
             color: FacetTheme.textDim,
           }),
         );
@@ -238,7 +238,7 @@ globalThis.CraftingUI = {
       const nm = it !== undefined ? I18n.text(it.name) : id;
       line2.insertChild(
         facetButton(
-          I18n.text("WB_INSTALL") + " " + nm,
+          I18n.text("COMMON_INSTALL") + " " + nm,
           () => CraftingUI._installModule(scene, id),
           { height: 24, textColor: InvTable.rarityColor(id) },
         ),
@@ -278,7 +278,7 @@ globalThis.CraftingUI = {
     if (prev !== undefined && prev !== "") {
       if (InventorySystem.add(inv, prev, 1) !== 0) {
         InventorySystem.add(inv, id, 1); // bag full — undo the consume, keep the slot as-is
-        Toast.push(I18n.text("WB_BAG_FULL"), { type: "warn" });
+        Toast.push(I18n.text("INV_FULL"), { type: "warn" });
         return;
       }
     }
@@ -294,7 +294,7 @@ globalThis.CraftingUI = {
     if (st === undefined || inv === undefined) return;
     if (st.module === undefined || st.module === "") return;
     if (InventorySystem.add(inv, st.module, 1) !== 0) {
-      Toast.push(I18n.text("WB_BAG_FULL"), { type: "warn" });
+      Toast.push(I18n.text("INV_FULL"), { type: "warn" });
       return;
     }
     Log.info(`removed module ${st.module}`);

@@ -1,0 +1,18 @@
+{
+  "SURVIVAL_THIRST": "Thirst",
+  "SURVIVAL_HUNGER": "Hunger",
+  "SURVIVAL_DROWSINESS": "Rest",
+  "SURVIVAL_EXPOSURE": "Air",
+  "SURVIVAL_COLD": "Warmth",
+
+  "SURVIVAL_DRINK_PROMPT": "[E] Drink",
+  "SURVIVAL_DRINK_DONE": "Thirst quenched",
+  "SURVIVAL_EAT_PROMPT": "[E] Eat",
+  "SURVIVAL_EAT_DONE": "Hunger sated",
+  "SURVIVAL_PRAY_PROMPT": "[E] Pray",
+  "SURVIVAL_PRAY_DONE": "You feel restored",
+  "SURVIVAL_NO_NEED": "No need right now",
+
+  "SURVIVAL_SLEEP_PROMPT": "[E] Sleep",
+  "SURVIVAL_SLEEPING": "Sleeping…  (press a key to wake)"
+}

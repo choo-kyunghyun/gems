@@ -1,0 +1,18 @@
+{
+  "ACH_UNLOCKED": "Unlocked",
+  "ACH_LOCKED": "Locked",
+  "ACH_TOAST": "Achievement: {0}",
+
+  "ACH_FIRST_KILL_NAME": "First Hunt",
+  "ACH_FIRST_KILL_DESC": "Took down your first raider.",
+  "ACH_SLAYER_NAME": "Exterminator",
+  "ACH_SLAYER_DESC": "Defeated 10 enemies.",
+  "ACH_COLLECTOR_NAME": "Scavenger",
+  "ACH_COLLECTOR_DESC": "Collected 10 items.",
+  "ACH_QUESTER_NAME": "Survivor",
+  "ACH_QUESTER_DESC": "Completed your first quest.",
+  "ACH_TIME_SKIP_NAME": "Made in Heaven",
+  "ACH_TIME_SKIP_DESC": "Accelerated the world's time by sleeping in a bed.",
+  "ACH_HOME_BUILDER_NAME": "Galvanized Square Steel",
+  "ACH_HOME_BUILDER_DESC": "Built a room and placed a bed."
+}

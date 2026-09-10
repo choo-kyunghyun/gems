@@ -1,0 +1,27 @@
+{
+  "RADIO_NOW": "재생 중",
+  "RADIO_TRACK": "곡",
+  "RADIO_TEMPO": "시뮬레이션 템포",
+  "RADIO_HINT": "박자가 있는 방송은 시뮬레이션 전체를 그 박자로 돌립니다. BPM이 곧 틱 속도(TPS)이며, 박자 없는 곡은 기본 속도입니다.",
+  "RADIO_OFF": "끄기 (맵 배경음)",
+  "RADIO_BED": "(맵 배경음)",
+  "RADIO_SILENT": "-",
+  "RADIO_BPM": "{0} BPM",
+  "RADIO_TPS": "{0} TPS",
+  "RADIO_UNTIMED": "박자 없음",
+
+  "MUS_HIBERNATION": "동면",
+  "MUS_OUTPOST": "전초기지",
+  "MUS_RAID": "습격",
+  "MUS_AMBIENT_COZY": "아늑함",
+  "MUS_AMBIENT_TENSE": "긴장",
+  "MUS_AMBIENT_DANGER": "위험",
+  "MUS_AMBIENT_EMERGENCY": "비상",
+  "MUS_AMBIENT_DUST": "먼지",
+  "MUS_AMBIENT_STORM": "폭풍",
+  "MUS_AMBIENT_RUIN": "폐허",
+  "MUS_AMBIENT_HOLLOW": "공동",
+  "MUS_AMBIENT_REACTOR": "원자로",
+  "MUS_AMBIENT_ORBIT": "궤도",
+  "MUS_AMBIENT_PERIMETER": "경계선"
+}

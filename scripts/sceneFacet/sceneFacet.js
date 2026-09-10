@@ -3,7 +3,7 @@
 
 globalThis.sceneFacet = () => new _SceneFacetClass();
 Scene.register(sceneFacet, {
-  label: I18n.textRef("UIKIT_NAME"),
+  label: I18n.textRef("FACET_NAME"),
   category: "SCENE_CAT_UI",
 });
 
@@ -41,9 +41,9 @@ class _SceneFacetClass {
     this.ui = facetRoot();
     UI.insert(this.ui);
 
-    this.ui.insertChild(facetHeader(I18n.textRef("UIKIT_NAME")));
-    this.ui.insertChild(facetHint(I18n.textRef("UIKIT_HINT")));
-    this.ui.insertChild(facetHint(I18n.textRef("UIKIT_NAV_HINT")));
+    this.ui.insertChild(facetHeader(I18n.textRef("FACET_NAME")));
+    this.ui.insertChild(facetHint(I18n.textRef("FACET_HINT")));
+    this.ui.insertChild(facetHint(I18n.textRef("FACET_NAV_HINT")));
 
     // Widgets tab
     const widgets = facetScroll({ grow: true });
@@ -78,11 +78,11 @@ class _SceneFacetClass {
     card.insertChild(
       facetTabs(
         [
-          { label: I18n.textRef("UIKIT_TAB_WIDGETS"), content: widgets },
-          { label: I18n.textRef("UIKIT_TAB_VALUES"), content: values },
-          { label: I18n.textRef("UIKIT_TAB_CONTAINERS"), content: containers },
-          { label: I18n.textRef("UIKIT_TAB_INVENTORY"), content: inventory },
-          { label: I18n.textRef("UIKIT_TAB_TABLE"), content: table },
+          { label: I18n.textRef("FACET_TAB_WIDGETS"), content: widgets },
+          { label: I18n.textRef("FACET_TAB_VALUES"), content: values },
+          { label: I18n.textRef("FACET_TAB_CONTAINERS"), content: containers },
+          { label: I18n.textRef("FACET_TAB_INVENTORY"), content: inventory },
+          { label: I18n.textRef("FACET_TAB_TABLE"), content: table },
         ],
         { grow: true },
       ),
@@ -90,8 +90,8 @@ class _SceneFacetClass {
     this.ui.insertChild(card);
 
     this.ui.insertChild(
-      facetButton(I18n.textRef("UIKIT_BACK"), () => openScene(sceneLobby), {
-        tooltip: I18n.textRef("UIKIT_TIP_BACK"),
+      facetButton(I18n.textRef("FACET_BACK"), () => openScene(sceneLobby), {
+        tooltip: I18n.textRef("FACET_TIP_BACK"),
       }),
     );
   }
@@ -125,75 +125,75 @@ class _SceneFacetClass {
   }
 
   _buttonsSection() {
-    const buttons = facetSection(I18n.textRef("UIKIT_BUTTONS"));
+    const buttons = facetSection(I18n.textRef("FACET_BUTTONS"));
     const bar = facetGrid();
     bar.insertChild(
-      facetButton(I18n.textRef("UIKIT_BTN_NORMAL"), () => this.clicks++, {
+      facetButton(I18n.textRef("FACET_BTN_NORMAL"), () => this.clicks++, {
         width: 150,
-        tooltip: I18n.textRef("UIKIT_TIP_NORMAL"),
+        tooltip: I18n.textRef("FACET_TIP_NORMAL"),
       }),
     );
     bar.insertChild(
-      facetButton(I18n.textRef("UIKIT_BTN_PRIMARY"), () => this.clicks++, {
+      facetButton(I18n.textRef("FACET_BTN_PRIMARY"), () => this.clicks++, {
         width: 150,
         primary: true,
-        tooltip: I18n.textRef("UIKIT_TIP_PRIMARY"),
+        tooltip: I18n.textRef("FACET_TIP_PRIMARY"),
       }),
     );
     bar.insertChild(
       facetButton(
-        I18n.textRef("UIKIT_BTN_DIALOG"),
+        I18n.textRef("FACET_BTN_DIALOG"),
         () =>
           facetModal({
-            title: I18n.text("UIKIT_DIALOG_TITLE"),
-            body: I18n.text("UIKIT_DIALOG_BODY"),
+            title: I18n.text("FACET_DIALOG_TITLE"),
+            body: I18n.text("FACET_DIALOG_BODY"),
             buttons: [
-              { label: I18n.text("UIKIT_DIALOG_CANCEL") },
+              { label: I18n.text("COMMON_CANCEL") },
               {
-                label: I18n.text("UIKIT_DIALOG_OK"),
+                label: I18n.text("FACET_DIALOG_OK"),
                 primary: true,
                 onClick: () => this.clicks++,
               },
             ],
           }),
-        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_DIALOG") },
+        { width: 150, tooltip: I18n.textRef("FACET_TIP_DIALOG") },
       ),
     );
     const toastTypes = ["info", "success", "warn", "error"];
     bar.insertChild(
       facetButton(
-        I18n.textRef("UIKIT_BTN_TOAST"),
+        I18n.textRef("FACET_BTN_TOAST"),
         () => {
           const type = toastTypes[this.toastN % toastTypes.length];
           this.toastN++;
-          Toast.push(I18n.text("UIKIT_TOAST_MSG") + " #" + this.toastN, {
+          Toast.push(I18n.text("FACET_TOAST_MSG") + " #" + this.toastN, {
             type,
           });
         },
-        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_TOAST") },
+        { width: 150, tooltip: I18n.textRef("FACET_TIP_TOAST") },
       ),
     );
     bar.insertChild(
       facetButton(
-        I18n.textRef("UIKIT_BTN_SAY"),
+        I18n.textRef("FACET_BTN_SAY"),
         () =>
           Dialogue.start([
-            I18n.text("UIKIT_SAY_1"),
+            I18n.text("FACET_SAY_1"),
             {
-              speaker: I18n.text("UIKIT_SAY_SPEAKER"),
-              text: I18n.text("UIKIT_SAY_2"),
+              speaker: I18n.text("FACET_SAY_SPEAKER"),
+              text: I18n.text("FACET_SAY_2"),
             },
             {
-              speaker: I18n.text("UIKIT_SAY_SPEAKER"),
-              text: I18n.text("UIKIT_SAY_3"),
+              speaker: I18n.text("FACET_SAY_SPEAKER"),
+              text: I18n.text("FACET_SAY_3"),
             },
           ]),
-        { width: 150, tooltip: I18n.textRef("UIKIT_TIP_SAY") },
+        { width: 150, tooltip: I18n.textRef("FACET_TIP_SAY") },
       ),
     );
     buttons.insertChild(bar);
     buttons.insertChild(
-      facetLabel(() => I18n.text("UIKIT_CLICKS") + " " + this.clicks, {
+      facetLabel(() => I18n.text("FACET_CLICKS") + " " + this.clicks, {
         color: FacetTheme.textMuted,
       }),
     );
@@ -201,33 +201,33 @@ class _SceneFacetClass {
   }
 
   _togglesSection() {
-    const toggles = facetSection(I18n.textRef("UIKIT_TOGGLES"));
+    const toggles = facetSection(I18n.textRef("FACET_TOGGLES"));
     toggles.insertChild(
       facetToggle(
-        I18n.textRef("UIKIT_TOGGLE"),
+        I18n.textRef("FACET_TOGGLE"),
         () => this.toggleOn,
         () => (this.toggleOn = !this.toggleOn),
         {
-          onText: I18n.textRef("UIKIT_ON"),
-          offText: I18n.textRef("UIKIT_OFF"),
-          tooltip: I18n.textRef("UIKIT_TIP_TOGGLE"),
+          onText: I18n.textRef("COMMON_ON"),
+          offText: I18n.textRef("COMMON_OFF"),
+          tooltip: I18n.textRef("FACET_TIP_TOGGLE"),
         },
       ),
     );
     toggles.insertChild(
       facetCheckbox(
-        I18n.textRef("UIKIT_CHECK"),
+        I18n.textRef("FACET_CHECK"),
         () => this.checkOn,
         () => (this.checkOn = !this.checkOn),
-        { tooltip: I18n.textRef("UIKIT_TIP_CHECK") },
+        { tooltip: I18n.textRef("FACET_TIP_CHECK") },
       ),
     );
     toggles.insertChild(
       facetCheckbox(
-        I18n.textRef("UIKIT_SWITCH"),
+        I18n.textRef("FACET_SWITCH"),
         () => this.switchOn,
         () => (this.switchOn = !this.switchOn),
-        { style: "switch", tooltip: I18n.textRef("UIKIT_TIP_SWITCH") },
+        { style: "switch", tooltip: I18n.textRef("FACET_TIP_SWITCH") },
       ),
     );
     return toggles;
@@ -238,9 +238,9 @@ class _SceneFacetClass {
    * fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
    */
   _richTextSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_RICH"));
+    const sec = facetSection(I18n.textRef("FACET_RICH"));
     sec.insertChild(
-      this._richRow(40, I18n.textRef("UIKIT_RICH_LOOT"), {
+      this._richRow(40, I18n.textRef("FACET_RICH_LOOT"), {
         iconSize: 20,
         palette: {
           legendary: "#ff9f43",
@@ -250,7 +250,7 @@ class _SceneFacetClass {
       }),
     );
     sec.insertChild(
-      this._richRow(24, I18n.textRef("UIKIT_RICH_HELP"), {
+      this._richRow(24, I18n.textRef("FACET_RICH_HELP"), {
         color: FacetTheme.textMuted,
         palette: { key: "#ffd86b" },
       }),
@@ -262,7 +262,7 @@ class _SceneFacetClass {
    * same ping-pong clock through different easing curves to show Tween curve differences
    */
   _motionSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_MOTION"));
+    const sec = facetSection(I18n.textRef("FACET_MOTION"));
     // wall-clock ping-pong [0,1] over ~3.6 s
     const clock = () => {
       const t = (current_time % 3600) / 1800; // 0..2
@@ -270,19 +270,19 @@ class _SceneFacetClass {
     };
     sec.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_MOTION_LINEAR"),
+        I18n.textRef("FACET_MOTION_LINEAR"),
         facetProgress(() => Tween.linear(clock())),
       ),
     );
     sec.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_MOTION_OUT"),
+        I18n.textRef("FACET_MOTION_OUT"),
         facetProgress(() => Tween.easeOutCubic(clock())),
       ),
     );
     sec.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_MOTION_INOUT"),
+        I18n.textRef("FACET_MOTION_INOUT"),
         facetProgress(() => Tween.easeInOutQuad(clock())),
       ),
     );
@@ -294,26 +294,26 @@ class _SceneFacetClass {
     QuestLog.register([
       {
         id: "uikit_q1",
-        name: "UIKIT_Q1_NAME",
-        objLabel: "UIKIT_Q1_OBJ",
+        name: "FACET_Q1_NAME",
+        objLabel: "FACET_Q1_OBJ",
         objectives: [{ kind: "kill", target: "goblin", count: 5 }],
       },
       {
         id: "uikit_q2",
-        name: "UIKIT_Q2_NAME",
-        objLabel: "UIKIT_Q2_OBJ",
+        name: "FACET_Q2_NAME",
+        objLabel: "FACET_Q2_OBJ",
         objectives: [{ kind: "collect", target: "moonherb", count: 3 }],
       },
       {
         id: "uikit_q3",
-        name: "UIKIT_Q3_NAME",
-        objLabel: "UIKIT_Q3_OBJ",
+        name: "FACET_Q3_NAME",
+        objLabel: "FACET_Q3_OBJ",
         objectives: [{ kind: "reach", target: "tower", count: 1 }],
       },
       {
         id: "uikit_q4",
-        name: "UIKIT_Q4_NAME",
-        objLabel: "UIKIT_Q4_OBJ",
+        name: "FACET_Q4_NAME",
+        objLabel: "FACET_Q4_OBJ",
         objectives: [{ kind: "talk", target: "sage", count: 1 }],
       },
     ]);
@@ -335,12 +335,12 @@ class _SceneFacetClass {
    * would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
    */
   _questSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_QUESTS"));
+    const sec = facetSection(I18n.textRef("FACET_QUESTS"));
     sec.insertChild(
       facetQuestTracker({
         source: Tracker,
-        emptyText: I18n.textRef("UIKIT_QUEST_EMPTY"),
-        tooltip: I18n.textRef("UIKIT_TIP_QUESTS"),
+        emptyText: I18n.textRef("FACET_QUEST_EMPTY"),
+        tooltip: I18n.textRef("FACET_TIP_QUESTS"),
       }),
     );
     return sec;
@@ -353,12 +353,12 @@ class _SceneFacetClass {
   }
 
   _fieldsSection() {
-    const fields = facetSection(I18n.textRef("UIKIT_FIELDS"));
+    const fields = facetSection(I18n.textRef("FACET_FIELDS"));
     fields.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_FIELD_NAME"),
+        I18n.textRef("FACET_FIELD_NAME"),
         facetInput({
-          placeholder: I18n.text("UIKIT_FIELD_NAME_PH"),
+          placeholder: I18n.text("FACET_FIELD_NAME_PH"),
           maxLength: 24,
           onChange: (v) => (this.typed = v),
         }),
@@ -366,9 +366,9 @@ class _SceneFacetClass {
     );
     fields.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_FIELD_PASS"),
+        I18n.textRef("FACET_FIELD_PASS"),
         facetInput({
-          placeholder: I18n.text("UIKIT_FIELD_PASS_PH"),
+          placeholder: I18n.text("FACET_FIELD_PASS_PH"),
           mask: true,
           maxLength: 16,
         }),
@@ -376,18 +376,18 @@ class _SceneFacetClass {
     );
     fields.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_FIELD_RO"),
+        I18n.textRef("FACET_FIELD_RO"),
         facetInput({
-          value: I18n.text("UIKIT_FIELD_RO_VAL"),
+          value: I18n.text("FACET_FIELD_RO_VAL"),
           readOnly: true,
-          tooltip: I18n.textRef("UIKIT_TIP_RO"),
+          tooltip: I18n.textRef("FACET_TIP_RO"),
         }),
       ),
     );
     fields.insertChild(
       facetLabel(
         () =>
-          I18n.text("UIKIT_ECHO") +
+          I18n.text("FACET_ECHO") +
           " " +
           (this.typed === "" ? "—" : this.typed),
         { color: FacetTheme.accentHi },
@@ -400,18 +400,18 @@ class _SceneFacetClass {
    * VirtualKeyboard: facetButton keys → UINav navigable with dpad; Done commits to field
    */
   _vkSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_VK"));
+    const sec = facetSection(I18n.textRef("FACET_VK"));
     const field = facetInput({
-      placeholder: I18n.text("UIKIT_VK_FIELD"),
+      placeholder: I18n.text("FACET_VK_FIELD"),
       maxLength: 24,
     });
     const input = field.getComponent(UIInput);
-    sec.insertChild(facetRow(I18n.textRef("UIKIT_VK_FIELD"), field));
+    sec.insertChild(facetRow(I18n.textRef("FACET_VK_FIELD"), field));
     sec.insertChild(
       facetButton(
-        I18n.textRef("UIKIT_VK_OPEN"),
+        I18n.textRef("FACET_VK_OPEN"),
         () => VirtualKeyboard.open(input),
-        { tooltip: I18n.textRef("UIKIT_TIP_VK") },
+        { tooltip: I18n.textRef("FACET_TIP_VK") },
       ),
     );
     return sec;
@@ -421,20 +421,20 @@ class _SceneFacetClass {
    * UIRebind: click to arm, next key rebinds. readout shows live held state.
    */
   _rebindSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_REBIND"));
-    const prompt = I18n.textRef("UIKIT_REBIND_PROMPT");
+    const sec = facetSection(I18n.textRef("FACET_REBIND"));
+    const prompt = I18n.textRef("FACET_REBIND_PROMPT");
     sec.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_REBIND_JUMP"),
+        I18n.textRef("FACET_REBIND_JUMP"),
         facetRebind("uikit_jump", {
           prompt,
-          tooltip: I18n.textRef("UIKIT_TIP_REBIND"),
+          tooltip: I18n.textRef("FACET_TIP_REBIND"),
         }),
       ),
     );
     sec.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_REBIND_FIRE"),
+        I18n.textRef("FACET_REBIND_FIRE"),
         facetRebind("uikit_fire", { prompt }),
       ),
     );
@@ -443,11 +443,11 @@ class _SceneFacetClass {
         () => {
           const held = [];
           if (Input.get("uikit_jump").down())
-            held.push(I18n.text("UIKIT_REBIND_JUMP"));
+            held.push(I18n.text("FACET_REBIND_JUMP"));
           if (Input.get("uikit_fire").down())
-            held.push(I18n.text("UIKIT_REBIND_FIRE"));
+            held.push(I18n.text("FACET_REBIND_FIRE"));
           return (
-            I18n.text("UIKIT_REBIND_HELD") +
+            I18n.text("FACET_REBIND_HELD") +
             " " +
             (held.length === 0 ? "—" : held.join(", "))
           );
@@ -459,7 +459,7 @@ class _SceneFacetClass {
   }
 
   _controlsSection() {
-    const controls = facetSection(I18n.textRef("UIKIT_CONTROLS"));
+    const controls = facetSection(I18n.textRef("FACET_CONTROLS"));
 
     const slider = new UIElement({ height: FacetTheme.sliderH, width: "100%" });
     slider.addComponent(
@@ -483,21 +483,21 @@ class _SceneFacetClass {
     );
     controls.insertChild(
       facetRow(
-        () => I18n.text("UIKIT_SLIDER") + ": " + Math.round(this.sliderVal),
+        () => I18n.text("FACET_SLIDER") + ": " + Math.round(this.sliderVal),
         slider,
       ),
     );
 
     const options = [
-      { name: I18n.text("UIKIT_OPT_A"), value: 0 },
-      { name: I18n.text("UIKIT_OPT_B"), value: 1 },
-      { name: I18n.text("UIKIT_OPT_C"), value: 2 },
+      { name: I18n.text("FACET_OPT_A"), value: 0 },
+      { name: I18n.text("FACET_OPT_B"), value: 1 },
+      { name: I18n.text("FACET_OPT_C"), value: 2 },
     ];
     controls.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_SELECT"),
+        I18n.textRef("FACET_SELECT"),
         facetSelect(options, {
-          tooltip: I18n.textRef("UIKIT_TIP_SELECT"),
+          tooltip: I18n.textRef("FACET_TIP_SELECT"),
         }),
       ),
     );
@@ -513,30 +513,30 @@ class _SceneFacetClass {
     ];
     controls.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_DROPDOWN"),
+        I18n.textRef("FACET_DROPDOWN"),
         facetDropdown(resolutions, {
           index: 3,
-          tooltip: I18n.textRef("UIKIT_TIP_DROPDOWN"),
+          tooltip: I18n.textRef("FACET_TIP_DROPDOWN"),
         }),
       ),
     );
     controls.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_STEPPER"),
+        I18n.textRef("FACET_STEPPER"),
         facetStepper(this.qty, (v) => (this.qty = v), {
           min: 0,
           max: 10,
           step: 1,
-          tooltip: I18n.textRef("UIKIT_TIP_STEPPER"),
+          tooltip: I18n.textRef("FACET_TIP_STEPPER"),
         }),
       ),
     );
     controls.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_PROGRESS"),
+        I18n.textRef("FACET_PROGRESS"),
         facetProgress(() => this.sliderVal / 100, {
           label: () => Math.round(this.sliderVal) + "%",
-          tooltip: I18n.textRef("UIKIT_TIP_PROGRESS"),
+          tooltip: I18n.textRef("FACET_TIP_PROGRESS"),
         }),
       ),
     );
@@ -547,10 +547,10 @@ class _SceneFacetClass {
    * nine-sliced border stays crisp while the body stretches
    */
   _skinSection() {
-    const skin = facetSection(I18n.textRef("UIKIT_SKIN"));
+    const skin = facetSection(I18n.textRef("FACET_SKIN"));
     const box = facetNineSlice();
     box.insertChild(
-      facetLabel(I18n.textRef("UIKIT_SKIN_BODY"), { color: FacetTheme.text }),
+      facetLabel(I18n.textRef("FACET_SKIN_BODY"), { color: FacetTheme.text }),
     );
     skin.insertChild(box);
     return skin;
@@ -564,35 +564,35 @@ class _SceneFacetClass {
     const cols = [
       { label: "", width: 34, sortable: false, sprite: (r) => r.icon },
       {
-        label: I18n.text("UIKIT_TABLE_NAME"),
+        label: I18n.text("FACET_TABLE_NAME"),
         flex: 2,
         text: (r) => r.name,
         color: (r) => r.rarity.color,
       },
-      { label: I18n.text("UIKIT_TABLE_TYPE"), flex: 1, text: (r) => r.type },
+      { label: I18n.text("FACET_TABLE_TYPE"), flex: 1, text: (r) => r.type },
       {
-        label: I18n.text("UIKIT_TABLE_RARITY"),
+        label: I18n.text("FACET_TABLE_RARITY"),
         flex: 1,
         text: (r) => r.rarity.name,
         color: (r) => r.rarity.color,
         sortValue: (r) => r.rarity.rank,
       },
       {
-        label: I18n.text("UIKIT_TABLE_QTY"),
+        label: I18n.text("FACET_TABLE_QTY"),
         width: 50,
         align: fa_right,
         text: (r) => string(r.qty),
         sortValue: (r) => r.qty,
       },
       {
-        label: I18n.text("UIKIT_TABLE_WT"),
+        label: I18n.text("FACET_TABLE_WT"),
         width: 60,
         align: fa_right,
         text: (r) => string_format(r.weight, 0, 1),
         sortValue: (r) => r.weight,
       },
       {
-        label: I18n.text("UIKIT_TABLE_VAL"),
+        label: I18n.text("FACET_TABLE_VAL"),
         width: 76,
         align: fa_right,
         text: (r) => string(r.value),
@@ -609,27 +609,27 @@ class _SceneFacetClass {
       sortBy: 1, // start sorted by Name
       onSelect: (row) => (this.tableSel = row),
       onActivate: (row) =>
-        Toast.push(I18n.text("UIKIT_TABLE_USE") + " " + row.name, {
+        Toast.push(I18n.text("FACET_TABLE_USE") + " " + row.name, {
           type: "success",
         }),
-      emptyText: I18n.text("UIKIT_TABLE_EMPTY"),
-      tooltip: I18n.textRef("UIKIT_TIP_TABLE"),
+      emptyText: I18n.text("FACET_TABLE_EMPTY"),
+      tooltip: I18n.textRef("FACET_TIP_TABLE"),
     });
     const comp = table.getComponent(UITable);
 
     const types = [
-      { name: I18n.text("UIKIT_TABLE_ALL"), value: "" },
-      { name: I18n.text("UIKIT_TABLE_WEAPON"), value: "Weapon" },
-      { name: I18n.text("UIKIT_TABLE_ARMOR"), value: "Armor" },
-      { name: I18n.text("UIKIT_TABLE_POTION"), value: "Potion" },
-      { name: I18n.text("UIKIT_TABLE_MATERIAL"), value: "Material" },
+      { name: I18n.text("FACET_TABLE_ALL"), value: "" },
+      { name: I18n.text("FACET_TABLE_WEAPON"), value: "Weapon" },
+      { name: I18n.text("FACET_TABLE_ARMOR"), value: "Armor" },
+      { name: I18n.text("FACET_TABLE_POTION"), value: "Potion" },
+      { name: I18n.text("FACET_TABLE_MATERIAL"), value: "Material" },
     ];
 
     const tab = facetList();
-    tab.insertChild(facetHint(I18n.textRef("UIKIT_TABLE_HINT")));
+    tab.insertChild(facetHint(I18n.textRef("FACET_TABLE_HINT")));
     tab.insertChild(
       facetRow(
-        I18n.textRef("UIKIT_TABLE_FILTER"),
+        I18n.textRef("FACET_TABLE_FILTER"),
         facetSelect(types, {
           onChange: (_i, v) =>
             comp.setFilter(v === "" ? null : (r) => r.type === v),
@@ -640,7 +640,7 @@ class _SceneFacetClass {
     tab.insertChild(
       facetLabel(
         () =>
-          I18n.text("UIKIT_TABLE_SELECTED") +
+          I18n.text("FACET_TABLE_SELECTED") +
           " " +
           (this.tableSel === null ? "—" : this.tableSel.name),
         { color: FacetTheme.accentHi },
@@ -692,7 +692,7 @@ class _SceneFacetClass {
    * two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
    */
   _inventorySection() {
-    const sec = facetSection(I18n.textRef("UIKIT_INV_TITLE"));
+    const sec = facetSection(I18n.textRef("FACET_INV_TITLE"));
     const grids = new UIElement({
       width: "100%",
       flexDirection: "row",
@@ -703,14 +703,14 @@ class _SceneFacetClass {
       cellSize: 60,
       draggable: true,
       onSelect: (i) => (this.selSlot = i),
-      tooltip: I18n.textRef("UIKIT_TIP_INV"),
+      tooltip: I18n.textRef("FACET_TIP_INV"),
     });
     const elB = facetSlots(this._bag(1), {
       cols: 3,
       cellSize: 60,
       draggable: true,
       onSelect: (i) => (this.selSlot = i),
-      tooltip: I18n.textRef("UIKIT_TIP_INV"),
+      tooltip: I18n.textRef("FACET_TIP_INV"),
     });
     grids.insertChild(elA);
     grids.insertChild(elB);
@@ -718,7 +718,7 @@ class _SceneFacetClass {
     sec.insertChild(
       facetLabel(
         () =>
-          I18n.text("UIKIT_INV_SELECTED") +
+          I18n.text("FACET_INV_SELECTED") +
           " " +
           (this.selSlot < 0 ? "—" : this.selSlot + 1),
         { color: FacetTheme.accentHi },
@@ -746,16 +746,16 @@ class _SceneFacetClass {
   }
 
   _accordionSection() {
-    const sec = facetSection(I18n.textRef("UIKIT_ACCORDION"));
+    const sec = facetSection(I18n.textRef("FACET_ACCORDION"));
     sec.insertChild(
       facetAccordion([
         {
-          title: I18n.textRef("UIKIT_ACC_DISPLAY"),
+          title: I18n.textRef("FACET_ACC_DISPLAY"),
           open: true,
           content: this._accBody(),
         },
-        { title: I18n.textRef("UIKIT_ACC_AUDIO"), content: this._accBody() },
-        { title: I18n.textRef("UIKIT_ACC_GAME"), content: this._accBody() },
+        { title: I18n.textRef("FACET_ACC_AUDIO"), content: this._accBody() },
+        { title: I18n.textRef("FACET_ACC_GAME"), content: this._accBody() },
       ]),
     );
     return sec;
@@ -767,7 +767,7 @@ class _SceneFacetClass {
   _accBody() {
     const body = facetList();
     body.insertChild(
-      facetLabel(I18n.textRef("UIKIT_ACC_BODY"), {
+      facetLabel(I18n.textRef("FACET_ACC_BODY"), {
         color: FacetTheme.textMuted,
       }),
     );
@@ -779,11 +779,11 @@ class _SceneFacetClass {
    * tab page.
    */
   _scrollSection() {
-    const scrollSec = facetSection(I18n.textRef("UIKIT_SCROLL"));
+    const scrollSec = facetSection(I18n.textRef("FACET_SCROLL"));
     const sc = facetScroll({ height: 160 });
     for (let i = 1; i <= 12; i++) {
       sc.scrollBody.insertChild(
-        facetButton(I18n.text("UIKIT_SCROLL_ITEM") + " " + i, noop, {
+        facetButton(I18n.text("FACET_SCROLL_ITEM") + " " + i, noop, {
           width: "100%",
         }),
       );

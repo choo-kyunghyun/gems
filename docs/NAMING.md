@@ -29,5 +29,6 @@ Naming rules for API members, GameMaker assets, and the data keys they meet.
 ## Included Files & Data Keys
 
 - An included file, an item id, an i18n key, and anything a save file holds are strings the engine compares, not identifiers: ids and keys are lowercase snake_case, i18n keys ALL_UPPER. Renaming an asset is a rename; renaming a key is a migration.
+- An i18n key is `<AREA>_<SUBJECT>`, the area naming the consumer that reads it (`INV_` the bag, `BUILD_` build mode, `FACET_` the kit showcase, `SURVIVAL_` the needs) — never a genre, a layer, or the widget that shows it (`TOAST_`, `KEY_`). A locale's `text/<area>.json` holds one area's keys and nothing else; the loader merges the files into one flat map, so a key is unique across the locale and its prefix says which file holds it. A word every page shares (`COMMON_CANCEL`, `COMMON_EMPTY`) lives in `common.json` once, never re-keyed per page.
 - Where the two meet, each keeps its own casing: an item def carries its id as a string and its icon as a bare ref side by side.
 - A mesh (`.vox`/`.mesh` under `datafiles/meshes/`) follows the sprite rule with no kind prefix, since the directory and extension are the kind: the file and its `Mesh.model` string share one camelCase `<material><Object>[<Variant>]` name. The string reaches a save, so renaming a mesh bumps `Snapshot.VERSION`.

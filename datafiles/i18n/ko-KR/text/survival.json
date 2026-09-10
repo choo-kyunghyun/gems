@@ -1,0 +1,18 @@
+{
+  "SURVIVAL_THIRST": "갈증",
+  "SURVIVAL_HUNGER": "허기",
+  "SURVIVAL_DROWSINESS": "휴식",
+  "SURVIVAL_EXPOSURE": "공기",
+  "SURVIVAL_COLD": "체온",
+
+  "SURVIVAL_DRINK_PROMPT": "[E] 마시기",
+  "SURVIVAL_DRINK_DONE": "갈증이 해소되었습니다",
+  "SURVIVAL_EAT_PROMPT": "[E] 먹기",
+  "SURVIVAL_EAT_DONE": "허기가 채워졌습니다",
+  "SURVIVAL_PRAY_PROMPT": "[E] 기도하기",
+  "SURVIVAL_PRAY_DONE": "기운이 회복되었습니다",
+  "SURVIVAL_NO_NEED": "지금은 필요하지 않습니다",
+
+  "SURVIVAL_SLEEP_PROMPT": "[E] 잠자기",
+  "SURVIVAL_SLEEPING": "자는 중…  (아무 키나 눌러 깨어나기)"
+}
