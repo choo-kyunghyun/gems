@@ -1,13 +1,7 @@
-// TODO: mp_linear_step
-
-/** @enum {number} planning algorithm selector for `MotionPlanner.plan`. */
-globalThis.MP_ALGORITHM = Object.freeze({
-  ASTAR: 0,
-});
-
 /**
- * Static A* planner over a `MotionPlanningGrid` (cost Infinity = blocked). `setGrid` allocates
- * reusable scratch arrays once per grid; `plan` reuses them. Consumer: `PathfindingSystem`.
+ * Static A* planner over a `Grid` of cell costs (≥ 1 = walkable, weighted; Infinity = blocked).
+ * `setGrid` allocates reusable scratch arrays once per grid; `plan` reuses them. Consumer:
+ * `PathfindingSystem`.
  */
 globalThis.MotionPlanner = {
   SQRT_2: Math.sqrt(2),
@@ -65,96 +59,24 @@ globalThis.MotionPlanner = {
     this._stamp = new Int32Array(count); // zeroed; `_gen` starts above 0 so nothing reads live
   },
 
-  plan(start, goal, algorithm = MP_ALGORITHM.ASTAR, opt = {}) {
-    if (this.grid === undefined) return [];
-    switch (algorithm) {
-      case MP_ALGORITHM.ASTAR:
-        return this._astar(start, goal, opt);
-      default:
-        return [];
+  /**
+   * The cells from `start` to `goal` inclusive (grid coords), or `[]` when either end is out of
+   * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
+   * `allowDiag` (octile moves; with `cornerCutting` a diagonal may pass between two blocked
+   * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan —
+   * PERF.md → Known Remaining Costs), `maxIter`. Planning before `setGrid` is a wiring error.
+   */
+  plan(start, goal, opt = {}) {
+    const grid = this.grid;
+    if (grid === undefined) {
+      Log.error("MotionPlanner.plan: no grid bound");
+      return [];
     }
-  },
-
-  _push(n, f) {
-    const hn = this._hn;
-    const hf = this._hf;
-    let i = hn.length;
-    hn.push(n);
-    hf.push(f);
-    while (i > 0) {
-      const p = (i - 1) >> 1;
-      if (hf[p] <= f) break;
-      hn[i] = hn[p];
-      hf[i] = hf[p];
-      i = p;
-    }
-    hn[i] = n;
-    hf[i] = f;
-  },
-
-  /** min-f node; the caller checks the heap is non-empty */
-  _pop() {
-    const hn = this._hn;
-    const hf = this._hf;
-    const top = hn[0];
-    const last = hn.length - 1;
-    const n = hn[last];
-    const f = hf[last];
-    hn.length = last;
-    hf.length = last;
-    if (last > 0) {
-      let i = 0;
-      while (true) {
-        const l = 2 * i + 1;
-        if (l >= last) break;
-        const r = l + 1;
-        let c = l;
-        if (r < last) if (hf[r] < hf[l]) c = r;
-        if (hf[c] >= f) break;
-        hn[i] = hn[c];
-        hf[i] = hf[c];
-        i = c;
-      }
-      hn[i] = n;
-      hf[i] = f;
-    }
-    return top;
-  },
-
-  _reconstructPath(startIdx, goalIdx) {
-    let len = 0;
-    let node = goalIdx;
-    while (node !== -1) {
-      this._scratch[len++] = node;
-      if (node === startIdx) break;
-      node = this._from[node];
-    }
-
-    if (len === 0 || this._scratch[len - 1] !== startIdx) return [];
-
-    const path = [];
-    for (let i = len - 1; i >= 0; i--) {
-      path.push(this.grid.toPosition(this._scratch[i]));
-    }
-    return path;
-  },
-
-  _heuristic(x0, y0, x1, y1, allowDiag) {
-    const dx = Math.abs(x1 - x0);
-    const dy = Math.abs(y1 - y0);
-    if (allowDiag) {
-      return dx + dy + (MotionPlanner.SQRT_2 - 2) * Math.min(dx, dy);
-    }
-    return dx + dy;
-  },
-
-  _astar(start, goal, opt) {
     const allowDiag = opt.allowDiag ?? false;
     const cornerCutting = opt.cornerCutting ?? false;
     const heuristicWeight = opt.heuristicWeight ?? 1;
     const maxIter = opt.maxIter ?? 100000;
 
-    const grid = this.grid;
     const sx = start.x;
     const sy = start.y;
     const gx = goal.x;
@@ -248,5 +170,78 @@ globalThis.MotionPlanner = {
     }
 
     return [];
+  },
+
+  _push(n, f) {
+    const hn = this._hn;
+    const hf = this._hf;
+    let i = hn.length;
+    hn.push(n);
+    hf.push(f);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (hf[p] <= f) break;
+      hn[i] = hn[p];
+      hf[i] = hf[p];
+      i = p;
+    }
+    hn[i] = n;
+    hf[i] = f;
+  },
+
+  /** min-f node; the caller checks the heap is non-empty */
+  _pop() {
+    const hn = this._hn;
+    const hf = this._hf;
+    const top = hn[0];
+    const last = hn.length - 1;
+    const n = hn[last];
+    const f = hf[last];
+    hn.length = last;
+    hf.length = last;
+    if (last > 0) {
+      let i = 0;
+      while (true) {
+        const l = 2 * i + 1;
+        if (l >= last) break;
+        const r = l + 1;
+        let c = l;
+        if (r < last) if (hf[r] < hf[l]) c = r;
+        if (hf[c] >= f) break;
+        hn[i] = hn[c];
+        hf[i] = hf[c];
+        i = c;
+      }
+      hn[i] = n;
+      hf[i] = f;
+    }
+    return top;
+  },
+
+  _reconstructPath(startIdx, goalIdx) {
+    let len = 0;
+    let node = goalIdx;
+    while (node !== -1) {
+      this._scratch[len++] = node;
+      if (node === startIdx) break;
+      node = this._from[node];
+    }
+
+    if (len === 0 || this._scratch[len - 1] !== startIdx) return [];
+
+    const path = [];
+    for (let i = len - 1; i >= 0; i--) {
+      path.push(this.grid.toPosition(this._scratch[i]));
+    }
+    return path;
+  },
+
+  _heuristic(x0, y0, x1, y1, allowDiag) {
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    if (allowDiag) {
+      return dx + dy + (MotionPlanner.SQRT_2 - 2) * Math.min(dx, dy);
+    }
+    return dx + dy;
   },
 };

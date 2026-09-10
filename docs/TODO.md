@@ -14,7 +14,6 @@ Noticed in passing, deliberately left unfixed until scheduled. Each: wire a cons
 - `File.saveAsync`/`loadAsync` break the verb family — rename to `writeBufferAsync`/`readBufferAsync` beside `read`/`readBuffer`. Both are caller-free (parked on GMRT #15223), so the rename is free. `writeBuffer` also returns an unconditional `true` it never verifies.
 - Drop `Query.hasCollision` (duplicates `has: Collision`) and migrate its one caller, `contentInteractions`.
 - `EntityStore.query()` with no tokens answers every index below `next`, freed ones included (their recycled ids even pass `isValid`) — `dump(this.query())` leans on it, but a "live entities" read wants a presence test; give the no-token form a defined meaning or reject it.
-- `MotionPlanner.plan` — fold the speculative `MP_ALGORITHM` selector to `plan(start, goal, opt)` until a second algorithm exists. Planning with no grid bound should `Log.error`, not return the `[]` that also means unreachable.
 - `World`'s transfer family returns three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. One family, three failure signals a caller must know apart.
 - `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.
 - `SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order of its siblings `density`/`anchor`; five call sites to swap.
