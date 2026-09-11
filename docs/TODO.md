@@ -4,14 +4,22 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 ## API Shape
 
-- `File.saveAsync`/`loadAsync` break the verb family — rename to `writeBufferAsync`/`readBufferAsync` beside `read`/`readBuffer`. Both are caller-free (parked on GMRT #15223), so the rename is free. `writeBuffer` also returns an unconditional `true` it never verifies.
-- Drop `Query.hasCollision` (duplicates `has: Collision`) and migrate its one caller, `contentInteractions`.
-- `EntityStore.query()` with no tokens answers every index below `next`, freed ones included (their recycled ids even pass `isValid`) — `dump(this.query())` leans on it, but a "live entities" read wants a presence test; give the no-token form a defined meaning or reject it.
-- `World`'s transfer family returns three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. One family, three failure signals a caller must know apart.
-- `UIInput.get focused()` is the kit's lone getter where `UISelect`/`UIDropdown`/`UITable` document "methods, not accessors" — convert it or soften the note.
-- `SpriteMeta.fit(scale, sprite)` inverts the sprite-first parameter order of its siblings `density`/`anchor`; five call sites to swap.
-- Singleton method style is split in Core/Util: `Log`/`Settings`/`Tracker` self-reference via `this`, the rest via their global name — normalize as a mechanical pass.
-- `facetRoot` monkey-patches `insertChild` to the inner column instead of exposing it as a named content property (`facetScroll.scrollBody`, `facetOverlay.body`) — `removeChild` stays un-redirected, so a remove targets the wrapper and silently misses, and the assigned `.content` has no reader.
+Free — no caller, or the callers fit one commit:
+
+- `File.saveAsync`/`loadAsync` break the read/write verb family — rename to `readBufferAsync`/`writeBufferAsync` beside `readBuffer`/`writeBuffer`. Both are caller-free (parked on GMRT #15223, which `File` explains inline — the quirk moves to GMRT.md and `File` cites it). `writeBuffer` also returns a `true` it cannot check (`buffer_save_ext` reports nothing) — return nothing, or `file_exists` after.
+- `Query.hasCollision` duplicates `has: Collision` (the same join in `_each`) — drop it and migrate its one caller, the door-close guard in `contentInteractions`.
+- `UIInput.get focused()` is the kit's lone accessor where `UISelect`/`UIDropdown`/`UITable` state the methods-not-accessors house style, and nothing reads it — drop it, or make it `isFocused()`.
+- `SpriteMeta.fit(scale, sprite)` inverts the sprite-first order of its siblings `of`/`density`; five call sites to swap (`ColonyPlayer` ×2, `EntityPreset` ×2, `WorldOverlay`).
+
+Contract — the meaning changes, so the callers move with it:
+
+- `EntityStore.query()` with no tokens answers every index below `next`, freed slots included (a freed index holds its next owner's id, which passes `isValid`); no code calls it, only `dump`'s JSDoc offers `dump(this.query())` as the whole-store form. Give the no-token form a defined meaning (the live ids) or reject it, and point `dump` at whichever wins.
+- `World`'s transfer family answers three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. `transfer` has no caller (`ColonyMap`/`Trader` pair `take`/`put` themselves) — drop it, then settle `take`/`put` on one failure signal.
+- `facetRoot({ maxWidth })` monkey-patches `insertChild` through to the inner column, leaves `removeChild` on the wrapper (a remove of a column child misses silently), and assigns a `.content` nothing reads; the bare form has no column at all. Give both forms one named content element the way `facetScroll.scrollBody`/`facetOverlay.body` do, and drop the patch — one live site, `sceneLobby`.
+
+Sweep — one mechanical rule over `scripts/`, by pillar:
+
+- Singleton self-reference is split: some thirty plain-object singletons reach their own members through `this` (`Log`/`Settings`/`Tracker`/`InventorySystem`/… throughout, `SolidSystem`/`MotionPlanner`/`EquipmentSystem`/… mixing both in one file), the rest through their global name (`World.get` inside `World`). Normalize to the global name.
 
 ## Gameplay
 
