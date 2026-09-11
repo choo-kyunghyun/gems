@@ -177,6 +177,7 @@
     {"id":{"name":"Puppet","path":"objects/Puppet/Puppet.yy",},},
     {"id":{"name":"psDrop","path":"particles/psDrop/psDrop.yy",},},
     {"id":{"name":"psExplosion","path":"particles/psExplosion/psExplosion.yy",},},
+    {"id":{"name":"psGone","path":"particles/psGone/psGone.yy",},},
     {"id":{"name":"psMuzzle","path":"particles/psMuzzle/psMuzzle.yy",},},
     {"id":{"name":"psPortal","path":"particles/psPortal/psPortal.yy",},},
     {"id":{"name":"Room","path":"rooms/Room/Room.yy",},},
