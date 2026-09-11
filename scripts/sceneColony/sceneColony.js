@@ -208,7 +208,7 @@ class _SceneColonyClass {
   _buildUI() {
     this.ui = facetRoot();
     UI.insert(this.ui);
-    this.ui.insertChild(
+    this.ui.body.insertChild(
       facetKeyHints(
         [
           {

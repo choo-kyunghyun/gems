@@ -81,7 +81,9 @@ globalThis.EntityStore = class EntityStore {
     return this.components.componentsOf(id);
   }
 
+  /** Ids carrying every token — contract at ComponentStore.query. No tokens → every live id. */
   query(...tokens) {
+    if (tokens.length === 0) return this.ids.live();
     return this.components.query(tokens);
   }
 
@@ -107,7 +109,8 @@ globalThis.EntityStore = class EntityStore {
   /**
    * Agent state dump: component data of `idOrIds` as JSON, written to `file`
    * in the save dir AND returned. A single id → a `{id, components}` record;
-   * an id array → an array of records (whole store via `dump(this.query())`).
+   * an id array → an array of records (whole store via `dump(this.query())`, the
+   * token-less query being every live id).
    * On-demand — call from a temp harness when needed. Uses the Json codec:
    * native JSON.stringify faults on nested data (GMRT.md #15565), and Json's
    * cycle/ref guards make dumping raw runtime state safe.

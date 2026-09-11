@@ -4,10 +4,11 @@
  * it holds no screen state and never draws — the Game object owns the active Scene.
  *
  * A pooled level stays ALIVE for the session: a map is built from file exactly ONCE, then only
- * parks and thaws, so a door trip never rebuilds it. take/put/transfer move a WHOLE entity (all
- * components, via EntitySnapshot) between two resident levels' stores — the travelling-squad and
- * wandering-trader path. `reset()` drops the index and the timeline; the owner frees the levels
- * first (their stores are its to destroy).
+ * parks and thaws, so a door trip never rebuilds it. take/put move a WHOLE entity (all components,
+ * via EntitySnapshot) between two resident levels' stores — the travelling-squad and
+ * wandering-trader path; a map id with no resident level THROWS from either, since the caller
+ * names a pooled map it owns. `reset()` drops the index and the timeline; the owner frees the
+ * levels first (their stores are its to destroy).
  *
  * The world-scope singletons it delegates to are reached by their own global, never mirrored into
  * a member here (a member would be a second name for one object plus a boot-wiring dependency):
@@ -32,18 +33,14 @@ globalThis.World = {
     return lv !== undefined ? lv : null;
   },
 
-  has(mapId) {
-    return World.levels[mapId] !== undefined;
-  },
-
   ids() {
     return Object.keys(World.levels);
   },
 
   /**
    * Capture a WHOLE entity (all components) out of a resident level's store and remove it. Returns
-   * the snapshot (the caller now owns it), or null if the level isn't resident. EntitySnapshot
-   * references the component data objects, so they survive the remove/flush (see EntitySnapshot).
+   * the snapshot (the caller now owns it). EntitySnapshot references the component data objects,
+   * so they survive the remove/flush (see EntitySnapshot).
    *
    * The one component that does NOT travel is `Instance`: a puppet belongs to the source store's
    * roster, which reaps it once the entity leaves (InstanceSystem), so a carried handle would go
@@ -51,7 +48,7 @@ globalThis.World = {
    */
   take(mapId, id) {
     const lv = World.get(mapId);
-    if (lv === null) return null;
+    if (lv === null) throw new Error(`World.take: map "${mapId}" is not resident`);
     const snap = EntitySnapshot.capture(lv.entities, id); // no component list → every component
     lv.entities.remove(id);
     if (snap.components[Instance] !== undefined) {
@@ -65,23 +62,12 @@ globalThis.World = {
 
   /**
    * Restore a whole-entity snapshot into a resident level's store; `overrides` apply after (e.g. a
-   * fresh Position for the destination). Returns the new id, or -1 if the level isn't resident.
+   * fresh Position for the destination). Returns the new id.
    */
   put(mapId, snap, overrides) {
     const lv = World.get(mapId);
-    if (lv === null) return -1;
+    if (lv === null) throw new Error(`World.put: map "${mapId}" is not resident`);
     return EntitySnapshot.restore(lv.entities, snap, overrides);
-  },
-
-  /**
-   * Move a whole entity from one level to another. Destination resident → it lands there (new id);
-   * not resident → the snapshot is returned for the caller to hold until it loads.
-   */
-  transfer(fromMapId, toMapId, id, overrides) {
-    const snap = World.take(fromMapId, id);
-    if (snap === null) return null;
-    if (World.has(toMapId)) return World.put(toMapId, snap, overrides);
-    return snap;
   },
 
   /** New game / world teardown: drop the pool (the owner freed the levels) and the timeline. */

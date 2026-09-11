@@ -66,6 +66,21 @@ globalThis.EntityID = class EntityID {
     return this.generations[index] === generation;
   }
 
+  /**
+   * Every live id, ascending by index — the token-less whole-store query. Liveness is the free
+   * list, not a generation test: a freed index's `packed` entry is its NEXT owner's id, which
+   * passes `isValid`.
+   */
+  live() {
+    const hi = this.next;
+    const free = new Array(hi).fill(false);
+    const fi = this.freeIndices;
+    for (let k = 0; k < fi.length; k++) free[fi[k]] = true;
+    const out = [];
+    for (let i = 0; i < hi; i++) if (!free[i]) out.push(this.packed[i]);
+    return out;
+  }
+
   reset() {
     // Range is explicit: a typed array's fill() is a silent no-op without it (GMRT.md).
     this.generations.fill(0, 0, this.generations.length);

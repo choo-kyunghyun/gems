@@ -41,9 +41,10 @@ class _SceneFacetClass {
     this.ui = facetRoot();
     UI.insert(this.ui);
 
-    this.ui.insertChild(facetHeader(I18n.textRef("FACET_NAME")));
-    this.ui.insertChild(facetHint(I18n.textRef("FACET_HINT")));
-    this.ui.insertChild(facetHint(I18n.textRef("FACET_NAV_HINT")));
+    const body = this.ui.body;
+    body.insertChild(facetHeader(I18n.textRef("FACET_NAME")));
+    body.insertChild(facetHint(I18n.textRef("FACET_HINT")));
+    body.insertChild(facetHint(I18n.textRef("FACET_NAV_HINT")));
 
     // Widgets tab
     const widgets = facetScroll({ grow: true });
@@ -87,9 +88,9 @@ class _SceneFacetClass {
         { grow: true },
       ),
     );
-    this.ui.insertChild(card);
+    body.insertChild(card);
 
-    this.ui.insertChild(
+    body.insertChild(
       facetButton(I18n.textRef("FACET_BACK"), () => openScene(sceneLobby), {
         tooltip: I18n.textRef("FACET_TIP_BACK"),
       }),

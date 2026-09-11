@@ -1,38 +1,28 @@
 // See FacetTheme.js for the kit overview + the GMRT globalThis-assignment rule.
 
 /**
- * Full-screen scene root. With `opts.maxWidth`, content is centered in a capped column
- * (menu look); `insertChild` is redirected to the inner column so callers are unaffected.
- * Without `maxWidth`, plain full-bleed — for HUDs that must anchor to the whole screen.
+ * Full-screen scene root. Flow content goes into the returned element's `.body` — a full-bleed
+ * column inside the screen padding, or with `opts.maxWidth` a centered capped column (the menu
+ * look). A HUD overlay that anchors to the whole screen (`positionType: "absolute"`) is
+ * inserted into the root itself, where the padding does not reach it (sceneColony's HUD).
  */
 globalThis.facetRoot = function facetRoot(opts = {}) {
-  if (opts.maxWidth == null) {
-    return new UIElement({
-      width: "100%",
-      height: "100%",
-      padding: opts.padding ?? FacetTheme.pad,
-      gap: opts.gap ?? FacetTheme.gap,
-    });
-  }
-  const wrap = new UIElement({
+  const root = new UIElement({
     width: "100%",
     height: "100%",
     padding: opts.padding ?? FacetTheme.pad,
     alignItems: "center",
   });
-  const col = new UIElement({
+  const style = {
     width: "100%",
-    maxWidth: opts.maxWidth,
     height: "100%",
     gap: opts.gap ?? FacetTheme.gap,
-  });
-  wrap.insertChild(col);
-  wrap.content = col;
-  // redirect inserts so callers treat the wrapper as the root
-  wrap.insertChild = function (child, index) {
-    return col.insertChild(child, index);
   };
-  return wrap;
+  if (opts.maxWidth != null) style.maxWidth = opts.maxWidth;
+  const body = new UIElement(style);
+  root.insertChild(body);
+  root.body = body; // flow content lands here
+  return root;
 };
 
 /** Vertical stack. */

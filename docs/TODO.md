@@ -2,14 +2,6 @@
 
 Intent only — contracts live in the code. A sweep applies one mechanical rule across all of `scripts/`, sized so one session can finish and verify it; a sweep too large splits by pillar (Core → Game), never by mixing concerns.
 
-## API Shape
-
-Contract — the meaning changes, so the callers move with it:
-
-- `EntityStore.query()` with no tokens answers every index below `next`, freed slots included (a freed index holds its next owner's id, which passes `isValid`); no code calls it, only `dump`'s JSDoc offers `dump(this.query())` as the whole-store form. Give the no-token form a defined meaning (the live ids) or reject it, and point `dump` at whichever wins.
-- `World`'s transfer family answers three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. `transfer` has no caller (`ColonyMap`/`Trader` pair `take`/`put` themselves) — drop it, then settle `take`/`put` on one failure signal.
-- `facetRoot({ maxWidth })` monkey-patches `insertChild` through to the inner column, leaves `removeChild` on the wrapper (a remove of a column child misses silently), and assigns a `.content` nothing reads; the bare form has no column at all. Give both forms one named content element the way `facetScroll.scrollBody`/`facetOverlay.body` do, and drop the patch — one live site, `sceneLobby`.
-
 ## Gameplay
 
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)

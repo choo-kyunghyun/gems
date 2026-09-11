@@ -25,7 +25,7 @@ globalThis.sceneLobby = () =>
       this.ui = facetRoot({ maxWidth: 720 });
       UI.insert(this.ui);
 
-      this.ui.insertChild(
+      this.ui.body.insertChild(
         facetHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
       );
 
@@ -77,7 +77,7 @@ globalThis.sceneLobby = () =>
         ),
       );
 
-      this.ui.insertChild(col);
+      this.ui.body.insertChild(col);
     },
 
     destroy() {
