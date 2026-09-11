@@ -522,7 +522,7 @@ class _SceneColonyClass {
     GrassSystem.update(this, WorldClock.absHours()); // creep + consumption flush of the grass ground itself (tile-state, no entities)
     RoomSystem.update(this, WorldClock.absHours()); // step every room's temperature over the same span
     TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
-    ParticleFx.update(); // advance muzzle-flash particles (once per frame; freezes when paused)
+    ParticleFx.update(); // advance the live bursts (once per frame; freezes when paused)
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
     // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
     if (!this.map.camera.control.raw) this.map.camera.update();
@@ -537,6 +537,7 @@ class _SceneColonyClass {
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(this.map.camera.toX, this.map.camera.toY);
     SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
+    ParticleEmitterSystem.update(this.level.entities); // mint/step/reap the attached particle streams (drops, beacons)
 
     // refresh the open window page when dirty — last, so every write above lands this frame
     // (UI.update already ran, so a rebuild never lands inside the click that requested it)
@@ -777,7 +778,12 @@ class _SceneColonyClass {
       });
     Interactable.drawTarget(this); // highlight the pick (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
-    ParticleFx.draw(); // muzzle flash (world space, additive — bright over the day/night tint)
+    // attached streams then bursts (world space, additive — bright over the day/night tint)
+    ParticleEmitterSystem.draw(
+      this.level.entities,
+      (camera.pitch * 180) / Math.PI,
+    );
+    ParticleFx.draw();
     // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D
     FloatingText.draw((camera.pitch * 180) / Math.PI);
     // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here

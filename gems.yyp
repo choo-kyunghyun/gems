@@ -318,6 +318,8 @@
     {"id":{"name":"NavGrid","path":"scripts/NavGrid/NavGrid.yy",},},
     {"id":{"name":"NPC","path":"scripts/NPC/NPC.yy",},},
     {"id":{"name":"OverworldGen","path":"scripts/OverworldGen/OverworldGen.yy",},},
+    {"id":{"name":"ParticleEmitter","path":"scripts/ParticleEmitter/ParticleEmitter.yy",},},
+    {"id":{"name":"ParticleEmitterSystem","path":"scripts/ParticleEmitterSystem/ParticleEmitterSystem.yy",},},
     {"id":{"name":"ParticleFx","path":"scripts/ParticleFx/ParticleFx.yy",},},
     {"id":{"name":"PathfindingSystem","path":"scripts/PathfindingSystem/PathfindingSystem.yy",},},
     {"id":{"name":"PathFollow","path":"scripts/PathFollow/PathFollow.yy",},},

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ParticleEmitterSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ParticleEmitterSystem",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ParticleEmitterSystem.js",
+}

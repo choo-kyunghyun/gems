@@ -421,6 +421,11 @@ globalThis.ColonySpawn = {
           s.kind === "door"
             ? { kind: "door", open: 0 } // toggle state rides the component (EntitySnapshot-safe)
             : { kind: s.kind };
+      // a site beacon rises psPortal for as long as it stands. The emitter region is authored
+      // over a 128 px frame and the beacon is one 32 px cell, so the stream runs at a quarter —
+      // a constant, not a Visual read: the beacon is a mesh and carries no sprite scale.
+      if (s.kind === "travel")
+        over.ParticleEmitter = { asset: "psPortal", scale: 0.25 };
     } else if (s.preset === "torch" || s.preset === "lantern") {
       if (s.label !== undefined) over.Name = { name: s.label };
     } else if (s.preset === "radio") {

@@ -1,10 +1,7 @@
-// World-space gameplay overlay for the colony scene — item drops (icon + a rarity-tinted psDrop stream), the travel
-// beacon's psPortal stream, projectile dots,
-// fading hitscan tracers, and the reach-quest zone. Drawn from sceneColony.draw() AFTER renderer.draw().
-// psPortal's emitter region is authored over a 128 px frame; the beacon it rises from is one
-// 32 px cell, so the stream draws at a quarter. A constant, not a Visual read: the beacon is a
-// mesh (ColonySpawn's `travel` model) and carries no sprite scale to divide by.
-const PORTAL_FX_SCALE = 0.25;
+// World-space gameplay overlay for the colony scene — item drop icons, projectile dots, fading
+// hitscan tracers, and the reach-quest zone. Drawn from sceneColony.draw() AFTER renderer.draw().
+// The sparkle over a drop and the rise off a travel beacon are those entities' own
+// ParticleEmitter components — ParticleEmitterSystem draws them, not this.
 
 /**
  * Drawn after renderer.draw() because the ground passes paint an opaque fill that would hide it.
@@ -40,15 +37,10 @@ globalThis.WorldOverlay = {
   drawWorld(scene) {
     const entities = scene.level.entities;
 
-    // Drops: the icon flat at its declared density, plus a psDrop stream HELD per drop entity
-    // (ParticleFx.hold; the sweep below releases it once the entity is gone) tinted with the
-    // item's rarity color — the visibility cue. 2.5D: the stream draws on a camera-facing plane
-    // at the drop's foot (the FloatingText tilt) so its drift rises on screen; a flat top-down
-    // camera (pitch 0) leaves it on the ground.
+    // Drops: the icon flat at its declared density, the rarity color standing in where the item
+    // has none. The sparkle that makes one visible is the drop's own ParticleEmitter.
     const pitch = scene.map.camera.pitch;
-    const tilt = (-pitch * 180) / Math.PI;
-    const ident = matrix_build_identity();
-    entities.forEach([ItemDrop, Position], (id, d, p) => {
+    entities.forEach([ItemDrop, Position], (_id, d, p) => {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
       const color = InvTable.rarityColor(d.itemId);
@@ -62,39 +54,6 @@ globalThis.WorldOverlay = {
         draw_set_color(c_black);
         draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);
       }
-      const fx = ParticleFx.hold(id, psDrop);
-      part_system_colour(fx, color, 1);
-      matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, 1, 1, 1));
-      part_system_drawit(fx);
-      matrix_set(matrix_world, ident);
-    });
-    // Beacons: the site's travel prop streams psPortal for as long as it stands, held by entity
-    // id like a drop, on the same camera-facing plane (PORTAL_FX_SCALE sizes it).
-    entities.forEach([Interaction, Position], (id, it, p) => {
-      if (it.kind !== "travel") return;
-      const fx = ParticleFx.hold(id, psPortal);
-      matrix_set(
-        matrix_world,
-        matrix_build(
-          p.x,
-          p.y,
-          0,
-          tilt,
-          0,
-          0,
-          PORTAL_FX_SCALE,
-          PORTAL_FX_SCALE,
-          1,
-        ),
-      );
-      part_system_drawit(fx);
-      matrix_set(matrix_world, ident);
-    });
-    ParticleFx.sweep((id) => {
-      if (entities.has(id, ItemDrop)) return true;
-      const it = entities.get(id, Interaction);
-      if (it === undefined) return false;
-      return it.kind === "travel";
     });
 
     // 2.5D: lift in-air cues (projectile dots + tracers) off the ground via a world-z offset so they

@@ -188,6 +188,7 @@ globalThis.ColonyMap = {
     ColonyMap._applyClimate(scene);
     FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
     ParticleFx.clear();
+    ParticleEmitterSystem.clear();
   },
 
   /**
@@ -345,6 +346,7 @@ globalThis.ColonyMap = {
     ColonyMap._applyClimate(scene); // the map's sky (meta.climate) or the open one
     FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
     ParticleFx.clear();
+    ParticleEmitterSystem.clear();
   },
 
   /**

@@ -310,12 +310,12 @@ globalThis.PlayerSystem = {
     // muzzle flash at the barrel (~18px along the aim); psMuzzle emits up (90°), ParticleFx rotates it to the shot
     const pos = entities.get(id, Position);
     const ang = point_direction(0, 0, aim.nx, aim.ny);
-    ParticleFx.spawnAsset(
-      psMuzzle,
-      pos.x + aim.nx * 18,
-      pos.y + aim.ny * 18,
-      ang,
-    );
+    ParticleFx.burst({
+      asset: psMuzzle,
+      x: pos.x + aim.nx * 18,
+      y: pos.y + aim.ny * 18,
+      angle: ang,
+    });
     // gunshot (spatial); the hit plays a hitsound later
     Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
 

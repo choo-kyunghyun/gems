@@ -287,6 +287,11 @@ globalThis.ColonyCombat = {
       if (src.rounds !== undefined) drop.rounds = src.rounds;
     }
     entities.add(id, ItemDrop, drop);
+    // the visibility cue: a sparkle in the item's rarity color, rising for as long as it lies there
+    entities.add(id, ParticleEmitter, {
+      asset: "psDrop",
+      color: InvTable.rarityColor(itemId),
+    });
   },
 
   /**

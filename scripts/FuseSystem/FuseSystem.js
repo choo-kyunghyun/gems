@@ -11,7 +11,7 @@ globalThis.FuseSystem = {
         damage: fuse.damage,
         penetration: fuse.penetration ?? 0,
       });
-      ParticleFx.spawnAsset(psExplosion, pos.x, pos.y);
+      ParticleFx.burst({ asset: psExplosion, x: pos.x, y: pos.y });
       Audio.play({
         sound: sndExplosionLarge,
         position: { x: pos.x, y: pos.y },

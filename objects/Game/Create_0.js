@@ -142,6 +142,7 @@ this._apply = (factory) => {
   Dialogue.clear();
   FloatingText.clear(); // world coords are map-local
   ParticleFx.clear(); // world coords are map-local
+  ParticleEmitterSystem.clear();
   Audio.restart(); // one scene's BGM/SFX must not bleed into the next
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
   // registered label (localized) is the reliable source; built-ins fall back to their instance one.
