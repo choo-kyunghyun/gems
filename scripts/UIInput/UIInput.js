@@ -51,10 +51,6 @@ globalThis.UIInput = class UIInput {
     this._lastClickX = 0;
   }
 
-  get focused() {
-    return this._focused;
-  }
-
   /**
    * Take UIInput.active: while focused the field claims the keyboard every frame (onUpdate), so
    * gameplay keys and UINav go quiet.

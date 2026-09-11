@@ -45,7 +45,7 @@ globalThis.WorldOverlay = {
       const spr = it !== undefined ? it.sprite : -1;
       const color = InvTable.rarityColor(d.itemId);
       if (sprite_exists(spr)) {
-        const f = SpriteMeta.fit(1, spr);
+        const f = SpriteMeta.fit(spr, 1);
         draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, c_white, 1);
       } else {
         // no icon — fall back to the rarity-colored square

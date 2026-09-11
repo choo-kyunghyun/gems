@@ -66,7 +66,7 @@ globalThis.SpriteMeta = {
   /**
    * Final draw scale for a design scale on a sheet: scale / density.
    */
-  fit(scale, sprite) {
+  fit(sprite, scale) {
     return scale / SpriteMeta.density(sprite);
   },
 };

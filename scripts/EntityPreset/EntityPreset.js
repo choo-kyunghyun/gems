@@ -136,7 +136,7 @@ globalThis.EntityPreset = {
     vis.speed = vis.speed ?? 0;
     vis.time = vis.time ?? 0;
     vis.scale = k;
-    const f = SpriteMeta.fit(k, vis.sprite);
+    const f = SpriteMeta.fit(vis.sprite, k);
     vis.xscale = f;
     vis.yscale = f;
   },
@@ -157,7 +157,7 @@ globalThis.EntityPreset = {
     sk.color = sk.color ?? c_white;
     sk.tints = sk.tints ?? {};
     sk.alpha = sk.alpha ?? 1;
-    const f = SpriteMeta.fit(k, sk.sprite);
+    const f = SpriteMeta.fit(sk.sprite, k);
     sk.xscale = f;
     sk.yscale = f;
   },

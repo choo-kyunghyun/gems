@@ -102,7 +102,7 @@ globalThis.contentInteractions = {
               box.y1 - 4,
               box.x2 + 4,
               box.y2 + 4,
-              { hasCollision: true },
+              { has: Collision },
             );
             for (let i = 0; i < ids.length; i++) {
               if (ids[i] === ctx.id) continue;

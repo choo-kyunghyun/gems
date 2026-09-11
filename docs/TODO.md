@@ -4,12 +4,6 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 ## API Shape
 
-Free — no caller, or the callers fit one commit:
-
-- `Query.hasCollision` duplicates `has: Collision` (the same join in `_each`) — drop it and migrate its one caller, the door-close guard in `contentInteractions`.
-- `UIInput.get focused()` is the kit's lone accessor where `UISelect`/`UIDropdown`/`UITable` state the methods-not-accessors house style, and nothing reads it — drop it, or make it `isFocused()`.
-- `SpriteMeta.fit(scale, sprite)` inverts the sprite-first order of its siblings `of`/`density`; five call sites to swap (`ColonyPlayer` ×2, `EntityPreset` ×2, `WorldOverlay`).
-
 Contract — the meaning changes, so the callers move with it:
 
 - `EntityStore.query()` with no tokens answers every index below `next`, freed slots included (a freed index holds its next owner's id, which passes `isValid`); no code calls it, only `dump`'s JSDoc offers `dump(this.query())` as the whole-store form. Give the no-token form a defined meaning (the live ids) or reject it, and point `dump` at whichever wins.

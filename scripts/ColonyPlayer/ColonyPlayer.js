@@ -108,8 +108,8 @@ globalThis.ColonyPlayer = {
       loop: true,
       fps: SkeletonSystem.FPS, // authored time — the runtime's frame is 1/120 s (SkeletonSystem)
       frame: 0,
-      xscale: SpriteMeta.fit(k, spineHuman),
-      yscale: SpriteMeta.fit(k, spineHuman),
+      xscale: SpriteMeta.fit(spineHuman, k),
+      yscale: SpriteMeta.fit(spineHuman, k),
       color: c_white,
       tints: ColonySpawn.skinTints(ColonyPlayer.SKIN),
       alpha: 1,
