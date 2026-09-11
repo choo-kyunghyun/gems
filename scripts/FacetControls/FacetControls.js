@@ -196,10 +196,11 @@ globalThis.facetCheckbox = function facetCheckbox(
 };
 
 /**
- * Slider with an always-visible value readout (UISlider). `opts`: { key | value, min (0),
+ * Slider with a value readout at its right end (UISlider). `opts`: { key | value, min (0),
  * max (1), step, onChange(value), format(value) — the readout string (a percentage, say),
- * valueColor, tooltip }. `opts.key` binds it to Settings (facetBindValue); without a key it
- * starts at `opts.value` (else `min`).
+ * valueColor, showValue (true; false gives the whole width to the track, for a caller that
+ * shows the value itself), tooltip }. `opts.key` binds it to Settings (facetBindValue);
+ * without a key it starts at `opts.value` (else `min`).
  */
 globalThis.facetSlider = function facetSlider(opts = {}) {
   const min = opts.min ?? 0;
@@ -213,6 +214,7 @@ globalThis.facetSlider = function facetSlider(opts = {}) {
       step: opts.step,
       onChange: bind.onChange,
       format: opts.format,
+      showValue: opts.showValue,
       valueColor: facetColor(opts.valueColor ?? FacetTheme.text),
       font: "default",
       track: {

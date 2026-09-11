@@ -1,4 +1,4 @@
-// Bag↔Chest transfer page of the scene's Window — a two-column UITable layout (like TradeUI).
+// Bag↔Chest transfer page of the scene's Window — a two-column UITable layout.
 /**
  * Opened by the "storage" / "corpse" InteractActions through the shell —
  * `scene.window.open("storage", { target, onTake })`: `target` is the chest entity (read live off
