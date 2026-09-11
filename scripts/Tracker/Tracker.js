@@ -26,10 +26,10 @@ globalThis.Tracker = {
 
   /** start blank — a new game inherits no prior session's progression (scene create() once) */
   reset() {
-    this._counters = {};
-    this._unlocked = {};
-    this._quests = {};
-    return this;
+    Tracker._counters = {};
+    Tracker._unlocked = {};
+    Tracker._quests = {};
+    return Tracker;
   },
 
   // ── THE seam ──
@@ -45,28 +45,28 @@ globalThis.Tracker = {
    * normal — each stage skips independently.
    */
   report(kind, target, n = 1) {
-    const rules = this.rules;
+    const rules = Tracker.rules;
     let unlocked = [];
     if (rules !== null) {
       const key = rules.counterOf(kind);
       if (key !== undefined) {
-        this._counters[key] = (this._counters[key] ?? 0) + n;
-        unlocked = rules.report(key, this._counters[key]);
+        Tracker._counters[key] = (Tracker._counters[key] ?? 0) + n;
+        unlocked = rules.report(key, Tracker._counters[key]);
       }
     }
-    return { unlocked: unlocked, ready: this._advance(kind, target, n) };
+    return { unlocked: unlocked, ready: Tracker._advance(kind, target, n) };
   },
 
   // ── counters ──
 
   count(key) {
-    return this._counters[key] ?? 0;
+    return Tracker._counters[key] ?? 0;
   },
 
   // ── achievements (defs live in the Achievement registry) ──
 
   isUnlocked(id) {
-    return this._unlocked[id] === true;
+    return Tracker._unlocked[id] === true;
   },
 
   /**
@@ -74,9 +74,9 @@ globalThis.Tracker = {
    * newly unlocked (dedup — safe to request repeatedly).
    */
   unlock(id) {
-    if (!Registry.has(Achievement, id) || this._unlocked[id] === true)
+    if (!Registry.has(Achievement, id) || Tracker._unlocked[id] === true)
       return false;
-    this._unlocked[id] = true;
+    Tracker._unlocked[id] = true;
     return true;
   },
 
@@ -84,10 +84,10 @@ globalThis.Tracker = {
 
   accept(id) {
     const def = QuestLog.def(id);
-    if (def === undefined || this._quests[id] !== undefined) return false;
+    if (def === undefined || Tracker._quests[id] !== undefined) return false;
     const progress = [];
     for (let i = 0; i < def.objectives.length; i++) progress.push(0);
-    this._quests[id] = { progress: progress, ready: false, done: false };
+    Tracker._quests[id] = { progress: progress, ready: false, done: false };
     return true;
   },
 
@@ -96,31 +96,31 @@ globalThis.Tracker = {
    * BEFORE the rewards go out, so applying them can re-enter report() without the quest re-firing.
    */
   complete(id) {
-    const st = this._quests[id];
+    const st = Tracker._quests[id];
     if (st === undefined || !st.ready || st.done) return undefined;
     st.done = true;
     return QuestLog.def(id).rewards ?? {};
   },
 
   isActive(id) {
-    const st = this._quests[id];
+    const st = Tracker._quests[id];
     return st !== undefined && !st.done;
   },
 
   isReady(id) {
-    const st = this._quests[id];
+    const st = Tracker._quests[id];
     return st !== undefined && st.ready && !st.done;
   },
 
   isDone(id) {
-    const st = this._quests[id];
+    const st = Tracker._quests[id];
     return st !== undefined && st.done;
   },
 
   // ── the UIQuestTracker source contract (status/def/activeIds — see UIQuestTracker) ──
 
   status(id) {
-    return this._quests[id];
+    return Tracker._quests[id];
   },
 
   def(id) {
@@ -132,7 +132,7 @@ globalThis.Tracker = {
     const order = QuestLog.ids();
     const out = [];
     for (let i = 0; i < order.length; i++) {
-      const st = this._quests[order[i]];
+      const st = Tracker._quests[order[i]];
       if (st !== undefined && !st.done) out.push(order[i]);
     }
     return out;
@@ -147,11 +147,11 @@ globalThis.Tracker = {
     const unlocked = [];
     const order = Achievement.all();
     for (let i = 0; i < order.length; i++)
-      if (this._unlocked[order[i].id]) unlocked.push(order[i].id);
+      if (Tracker._unlocked[order[i].id]) unlocked.push(order[i].id);
     return {
-      counters: this._counters,
+      counters: Tracker._counters,
       unlocked: unlocked,
-      quests: this._quests,
+      quests: Tracker._quests,
     };
   },
 
@@ -160,18 +160,18 @@ globalThis.Tracker = {
    * object (a legacy blob, a missing key) restores blank.
    */
   import(d) {
-    this.reset();
-    if (d === null || typeof d !== "object" || Array.isArray(d)) return this;
+    Tracker.reset();
+    if (d === null || typeof d !== "object" || Array.isArray(d)) return Tracker;
     const c = d.counters;
     if (c !== null && typeof c === "object" && !Array.isArray(c))
-      for (const k in c) this._counters[k] = c[k];
+      for (const k in c) Tracker._counters[k] = c[k];
     if (Array.isArray(d.unlocked))
       for (let i = 0; i < d.unlocked.length; i++)
-        this._unlocked[d.unlocked[i]] = true;
+        Tracker._unlocked[d.unlocked[i]] = true;
     const q = d.quests;
     if (q !== null && typeof q === "object" && !Array.isArray(q))
-      for (const k in q) this._quests[k] = q[k];
-    return this;
+      for (const k in q) Tracker._quests[k] = q[k];
+    return Tracker;
   },
 
   // ── internals ──
@@ -185,7 +185,7 @@ globalThis.Tracker = {
     const became = [];
     for (let i = 0; i < order.length; i++) {
       const id = order[i];
-      const st = this._quests[id];
+      const st = Tracker._quests[id];
       if (st === undefined || st.ready || st.done) continue;
       const def = QuestLog.def(id);
       let advanced = false;
@@ -201,7 +201,7 @@ globalThis.Tracker = {
           advanced = true;
         }
       }
-      if (advanced && this._allMet(def, st)) {
+      if (advanced && Tracker._allMet(def, st)) {
         st.ready = true;
         became.push(id);
       }

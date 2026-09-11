@@ -14,8 +14,8 @@ globalThis.contentInteractions = {
   registered: false,
 
   register() {
-    if (this.registered) return;
-    this.registered = true;
+    if (contentInteractions.registered) return;
+    contentInteractions.registered = true;
 
     InteractAction.register([
       // ── window actions (open a page of the scene's Window over the target entity) ──

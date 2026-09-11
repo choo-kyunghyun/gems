@@ -8,7 +8,7 @@ globalThis.Achievement = {
 
   register(defs) {
     Registry.register(Achievement, defs);
-    return this;
+    return Achievement;
   },
 
   get(id) {

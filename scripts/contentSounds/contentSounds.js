@@ -9,8 +9,8 @@ globalThis.contentSounds = {
   registered: false,
 
   register() {
-    if (this.registered) return;
-    this.registered = true;
+    if (contentSounds.registered) return;
+    contentSounds.registered = true;
     SoundMeta.register([
       // the timed pieces first — the dial's tempo choices, slowest to fastest
       { sound: musHibernation, kind: "music", bpm: 60, name: "MUS_HIBERNATION" },

@@ -28,7 +28,7 @@ globalThis.TileEdit = {
   meshSolid(entities, grid, layer, out) {
     SolidSystem.boxes(
       entities,
-      this.meshRects(grid, layer),
+      TileEdit.meshRects(grid, layer),
       grid.cellWidth,
       grid.cellHeight,
       out,
@@ -40,6 +40,6 @@ globalThis.TileEdit = {
     for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
     entities.flush();
     colliders.length = 0;
-    this.meshSolid(entities, grid, layer, colliders);
+    TileEdit.meshSolid(entities, grid, layer, colliders);
   },
 };

@@ -19,7 +19,7 @@ globalThis.SeparationSystem = {
 
     const bp = entities.broadphase;
     const sep = (a, b) => SeparationSystem._separate(entities, a, b);
-    for (let it = 0; it < this.iterations; it++) {
+    for (let it = 0; it < SeparationSystem.iterations; it++) {
       if (bp !== undefined) {
         bp.rebuild(entities, bodies);
         bp.pairs(sep);

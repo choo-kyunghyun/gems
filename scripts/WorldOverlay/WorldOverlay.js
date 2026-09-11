@@ -15,11 +15,11 @@ globalThis.WorldOverlay = {
    * record a fading muzzle->impact gunshot tracer (see Combat.hitscan)
    */
   pushTracer(x0, y0, x1, y1) {
-    this._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
+    WorldOverlay._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
   },
 
   clearTracers() {
-    this._tracers = [];
+    WorldOverlay._tracers = [];
   },
 
   /**
@@ -73,7 +73,7 @@ globalThis.WorldOverlay = {
       else draw_circle(p.x, p.y, 4, false);
     });
     // Hitscan tracers: a fading muzzle->impact streak aged on Time.raw.
-    const tracers = this._tracers;
+    const tracers = WorldOverlay._tracers;
     for (let i = tracers.length - 1; i >= 0; i--) {
       const tr = tracers[i];
       tr.age += Time.raw;

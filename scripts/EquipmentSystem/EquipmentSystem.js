@@ -25,11 +25,11 @@ globalThis.EquipmentSystem = {
     if (eqp === undefined) return false; // not equippable
     if (eq.slots[eqp.slot] === uid) return false; // already equipped
 
-    if (eq.slots[eqp.slot] !== "") this.unequip(entities, id, eqp.slot);
+    if (eq.slots[eqp.slot] !== "") EquipmentSystem.unequip(entities, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
     StatModel.recompute(entities, id); // re-derive with the equipped mods folded in
     AppearanceSystem.rebuild(entities, id); // worn gear shows on the doll (no-op sans Appearance)
-    this._applyContainer(entities, id, item, 1);
+    EquipmentSystem._applyContainer(entities, id, item, 1);
     return true;
   },
 
@@ -42,7 +42,7 @@ globalThis.EquipmentSystem = {
     if (inv === undefined) return false;
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].itemId === itemId && inv.slots[i].uid !== undefined)
-        return this.equip(entities, id, inv.slots[i].uid);
+        return EquipmentSystem.equip(entities, id, inv.slots[i].uid);
     }
     return false;
   },
@@ -64,7 +64,7 @@ globalThis.EquipmentSystem = {
     const s =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
-    if (item !== undefined) this._applyContainer(entities, id, item, -1); // capacity stays a direct delta
+    if (item !== undefined) EquipmentSystem._applyContainer(entities, id, item, -1); // capacity stays a direct delta
     return uid;
   },
 
@@ -93,8 +93,8 @@ globalThis.EquipmentSystem = {
    * unarmed defaults. Convenience over weaponSlot + composeWeapon.
    */
   weaponProfile(entities, id) {
-    const slot = this.weaponSlot(entities, id);
-    return slot !== null ? this.composeWeapon(slot) : null;
+    const slot = EquipmentSystem.weaponSlot(entities, id);
+    return slot !== null ? EquipmentSystem.composeWeapon(slot) : null;
   },
 
   /**
@@ -108,19 +108,19 @@ globalThis.EquipmentSystem = {
     const wpn = item.getComponent(Weapon);
     if (wpn === undefined) return null;
     const gun = item.getComponent(Gun);
-    if (gun !== undefined) return this._composeGun(slot, wpn, gun);
-    return this._composeMelee(slot, wpn);
+    if (gun !== undefined) return EquipmentSystem._composeGun(slot, wpn, gun);
+    return EquipmentSystem._composeMelee(slot, wpn);
   },
 
   /**
    * Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
    */
   reload(entities, id) {
-    const slot = this.weaponSlot(entities, id);
+    const slot = EquipmentSystem.weaponSlot(entities, id);
     if (slot === null) return 0;
     const inv = entities.get(id, Inventory);
     if (inv === undefined) return 0;
-    return this.reloadSlot(inv, slot);
+    return EquipmentSystem.reloadSlot(inv, slot);
   },
 
   /**
@@ -134,10 +134,10 @@ globalThis.EquipmentSystem = {
     // fresh gun (no ammo TYPE chosen yet): auto-load the first caliber-compatible ammo in the
     // bag, so R fires a new gun without the Toolkit panel (deliberate type switching stays there).
     if (slot.ammo === undefined || slot.ammo === "")
-      slot.ammo = this._firstAmmo(inv, gun.caliber);
+      slot.ammo = EquipmentSystem._firstAmmo(inv, gun.caliber);
     if (slot.ammo === "") return 0;
     if (slot.rounds === undefined) slot.rounds = 0;
-    const cap = this.composeWeapon(slot).magazine; // composed clip (incl. extended-mag attachment)
+    const cap = EquipmentSystem.composeWeapon(slot).magazine; // composed clip (incl. extended-mag attachment)
     const need = cap - slot.rounds;
     if (need <= 0) return 0;
     const have = InventorySystem.count(inv, slot.ammo);
@@ -152,11 +152,11 @@ globalThis.EquipmentSystem = {
    * Load an ammo type into the equipped gun (caliber-gated), then top up.
    */
   loadAmmo(entities, id, ammoItemId) {
-    const slot = this.weaponSlot(entities, id);
+    const slot = EquipmentSystem.weaponSlot(entities, id);
     if (slot === null) return false;
     const inv = entities.get(id, Inventory);
     if (inv === undefined) return false;
-    return this.loadAmmoSlot(inv, slot, ammoItemId);
+    return EquipmentSystem.loadAmmoSlot(inv, slot, ammoItemId);
   },
 
   /**
@@ -185,7 +185,7 @@ globalThis.EquipmentSystem = {
       slot.ammo = ammoItemId;
       slot.rounds = 0;
     }
-    this.reloadSlot(inv, slot);
+    EquipmentSystem.reloadSlot(inv, slot);
     return true;
   },
 
@@ -223,7 +223,7 @@ globalThis.EquipmentSystem = {
 
   _composeMelee(slot, wpn) {
     const base = { damage: wpn.damage, reach: wpn.reach, fireCd: wpn.fireCd };
-    const c = this._applyOps(base, this._modLayers(slot), [
+    const c = EquipmentSystem._applyOps(base, EquipmentSystem._modLayers(slot), [
       "damage",
       "reach",
       "fireCd",
@@ -253,9 +253,9 @@ globalThis.EquipmentSystem = {
       fireCd: wpn.fireCd,
       magazine: gun.magazine,
     };
-    const layers = this._modLayers(slot);
+    const layers = EquipmentSystem._modLayers(slot);
     layers.unshift(gun.ops); // gun-base ops first (before attachments; order-independent anyway)
-    const c = this._applyOps(base, layers, [
+    const c = EquipmentSystem._applyOps(base, layers, [
       "mass",
       "velocity",
       "power",

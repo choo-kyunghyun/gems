@@ -20,7 +20,7 @@ globalThis.QuestLog = {
 
   register(defs) {
     Registry.register(QuestLog, defs);
-    return this;
+    return QuestLog;
   },
 
   def(id) {
@@ -38,6 +38,6 @@ globalThis.QuestLog = {
    * the registered ids in order — Tracker walks these to match objectives and list active quests.
    */
   ids() {
-    return this._order;
+    return QuestLog._order;
   },
 };

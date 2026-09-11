@@ -22,7 +22,7 @@ globalThis.ConsumableSystem = {
     const inv = entities.get(id, Inventory);
     if (inv === undefined || !InventorySystem.has(inv, itemId, 1)) return false;
 
-    if (!this._apply(entities, id, con)) return false; // nothing to do — don't waste it
+    if (!ConsumableSystem._apply(entities, id, con)) return false; // nothing to do — don't waste it
     InventorySystem.remove(inv, itemId, 1);
     // leftover container (an empty can) — best-effort: a full bag just loses the trash
     if (con.yields !== "") InventorySystem.add(inv, con.yields, 1);

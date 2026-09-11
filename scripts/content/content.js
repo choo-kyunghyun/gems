@@ -9,8 +9,8 @@ globalThis.content = {
   registered: false,
 
   register() {
-    if (this.registered) return;
-    this.registered = true;
+    if (content.registered) return;
+    content.registered = true;
     contentItems.register(); // rarity tiers + the full item set
     contentStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
     contentRecipes.register(); // workbench recipes

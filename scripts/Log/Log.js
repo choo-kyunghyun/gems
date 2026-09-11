@@ -7,43 +7,43 @@ globalThis.Log = {
   _dirty: false,
 
   write(msg, level = "INFO") {
-    this._lines.push(`[${current_time} ${level}] ${msg}`);
-    if (this._lines.length > this.max) this._lines.shift();
-    this._dirty = true;
+    Log._lines.push(`[${current_time} ${level}] ${msg}`);
+    if (Log._lines.length > Log.max) Log._lines.shift();
+    Log._dirty = true;
   },
 
   info(msg) {
-    this.write(msg, "INFO");
+    Log.write(msg, "INFO");
   },
   warn(msg) {
-    this.write(msg, "WARN");
+    Log.write(msg, "WARN");
   },
   error(msg) {
-    this.write(msg, "ERROR");
+    Log.write(msg, "ERROR");
   },
   debug(msg) {
-    this.write(msg, "DEBUG");
+    Log.write(msg, "DEBUG");
   },
 
   /**
    * buffered lines, capped at max (the oldest have already dropped).
    */
   count() {
-    return this._lines.length;
+    return Log._lines.length;
   },
 
   /** rewrite the file only if dirty since last flush. */
   flush() {
-    if (!this._dirty) return;
-    File.write(this.PATH, this._lines.join("\n"));
-    this._dirty = false;
+    if (!Log._dirty) return;
+    File.write(Log.PATH, Log._lines.join("\n"));
+    Log._dirty = false;
   },
 
   /** reset buffer + truncate file — call at startup so each run starts fresh. */
   clear() {
-    this._lines = [];
-    this._dirty = false;
-    File.write(this.PATH, "");
+    Log._lines = [];
+    Log._dirty = false;
+    File.write(Log.PATH, "");
   },
 
   /**
@@ -52,15 +52,15 @@ globalThis.Log = {
    * Returns the runner's exit code (non-zero = crashed).
    */
   exception(ex) {
-    this.error("UNHANDLED EXCEPTION: " + ex.message);
+    Log.error("UNHANDLED EXCEPTION: " + ex.message);
     // GMRT 0.19 leaves longMessage/script/line/stacktrace empty for JS faults — only emit when populated.
     if (ex.longMessage && ex.longMessage !== ex.message)
-      this.error("  " + ex.longMessage);
-    if (ex.script) this.error("  at " + ex.script + " line " + ex.line);
+      Log.error("  " + ex.longMessage);
+    if (ex.script) Log.error("  at " + ex.script + " line " + ex.line);
     const stack = ex.stacktrace;
     if (stack !== undefined)
-      for (let i = 0; i < stack.length; i++) this.error("    " + stack[i]);
-    this.flush();
+      for (let i = 0; i < stack.length; i++) Log.error("    " + stack[i]);
+    Log.flush();
     return 1;
   },
 };

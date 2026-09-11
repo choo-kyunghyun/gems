@@ -50,13 +50,13 @@ globalThis.MotionPlanner = {
   _hf: [],
 
   setGrid(grid) {
-    this.grid = grid;
+    MotionPlanner.grid = grid;
     const count = grid.size();
-    this._g = new Float64Array(count);
-    this._from = new Int32Array(count);
-    this._closed = new Uint8Array(count);
-    this._scratch = new Int32Array(count);
-    this._stamp = new Int32Array(count); // zeroed; `_gen` starts above 0 so nothing reads live
+    MotionPlanner._g = new Float64Array(count);
+    MotionPlanner._from = new Int32Array(count);
+    MotionPlanner._closed = new Uint8Array(count);
+    MotionPlanner._scratch = new Int32Array(count);
+    MotionPlanner._stamp = new Int32Array(count); // zeroed; `_gen` starts above 0 so nothing reads live
   },
 
   /**
@@ -67,7 +67,7 @@ globalThis.MotionPlanner = {
    * PERF.md → Known Remaining Costs), `maxIter`. Planning before `setGrid` is a wiring error.
    */
   plan(start, goal, opt = {}) {
-    const grid = this.grid;
+    const grid = MotionPlanner.grid;
     if (grid === undefined) {
       Log.error("MotionPlanner.plan: no grid bound");
       return [];
@@ -90,21 +90,21 @@ globalThis.MotionPlanner = {
     const goalIdx = grid.toIndex(gx, gy);
     if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
-    const g = this._g;
-    const from = this._from;
-    const closed = this._closed;
-    const stamp = this._stamp;
-    const gen = ++this._gen;
-    this._hn.length = 0;
-    this._hf.length = 0;
+    const g = MotionPlanner._g;
+    const from = MotionPlanner._from;
+    const closed = MotionPlanner._closed;
+    const stamp = MotionPlanner._stamp;
+    const gen = ++MotionPlanner._gen;
+    MotionPlanner._hn.length = 0;
+    MotionPlanner._hf.length = 0;
 
     stamp[startIdx] = gen;
     g[startIdx] = 0;
     from[startIdx] = -1;
     closed[startIdx] = 0;
-    this._push(
+    MotionPlanner._push(
       startIdx,
-      this._heuristic(sx, sy, gx, gy, allowDiag) * heuristicWeight,
+      MotionPlanner._heuristic(sx, sy, gx, gy, allowDiag) * heuristicWeight,
     );
 
     const dirs = allowDiag
@@ -112,14 +112,14 @@ globalThis.MotionPlanner = {
       : MotionPlanner.DIRS_CARDINAL;
     let iter = 0;
 
-    while (this._hn.length > 0) {
+    while (MotionPlanner._hn.length > 0) {
       if (++iter > maxIter) break;
 
-      const node = this._pop();
+      const node = MotionPlanner._pop();
       if (closed[node]) continue; // pushed ⇒ stamped this plan, so closed is live
       closed[node] = 1;
 
-      if (node === goalIdx) return this._reconstructPath(startIdx, goalIdx);
+      if (node === goalIdx) return MotionPlanner._reconstructPath(startIdx, goalIdx);
 
       const xy = grid.toPosition(node);
       const node_x = xy.x;
@@ -162,9 +162,9 @@ globalThis.MotionPlanner = {
         }
         from[ni] = node;
         g[ni] = tg;
-        this._push(
+        MotionPlanner._push(
           ni,
-          tg + this._heuristic(nx, ny, gx, gy, allowDiag) * heuristicWeight,
+          tg + MotionPlanner._heuristic(nx, ny, gx, gy, allowDiag) * heuristicWeight,
         );
       }
     }
@@ -173,8 +173,8 @@ globalThis.MotionPlanner = {
   },
 
   _push(n, f) {
-    const hn = this._hn;
-    const hf = this._hf;
+    const hn = MotionPlanner._hn;
+    const hf = MotionPlanner._hf;
     let i = hn.length;
     hn.push(n);
     hf.push(f);
@@ -191,8 +191,8 @@ globalThis.MotionPlanner = {
 
   /** min-f node; the caller checks the heap is non-empty */
   _pop() {
-    const hn = this._hn;
-    const hf = this._hf;
+    const hn = MotionPlanner._hn;
+    const hf = MotionPlanner._hf;
     const top = hn[0];
     const last = hn.length - 1;
     const n = hn[last];
@@ -222,16 +222,16 @@ globalThis.MotionPlanner = {
     let len = 0;
     let node = goalIdx;
     while (node !== -1) {
-      this._scratch[len++] = node;
+      MotionPlanner._scratch[len++] = node;
       if (node === startIdx) break;
-      node = this._from[node];
+      node = MotionPlanner._from[node];
     }
 
-    if (len === 0 || this._scratch[len - 1] !== startIdx) return [];
+    if (len === 0 || MotionPlanner._scratch[len - 1] !== startIdx) return [];
 
     const path = [];
     for (let i = len - 1; i >= 0; i--) {
-      path.push(this.grid.toPosition(this._scratch[i]));
+      path.push(MotionPlanner.grid.toPosition(MotionPlanner._scratch[i]));
     }
     return path;
   },

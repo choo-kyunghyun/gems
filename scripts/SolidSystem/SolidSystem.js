@@ -103,8 +103,8 @@ globalThis.SolidSystem = {
    * updated yet (a map swap's first tick) is snapshotted here.
    */
   statics(entities) {
-    if (this._store !== entities) this._refresh(entities);
-    return this._statics;
+    if (SolidSystem._store !== entities) SolidSystem._refresh(entities);
+    return SolidSystem._statics;
   },
 
   /**
@@ -116,9 +116,9 @@ globalThis.SolidSystem = {
    * the caller dedupes.
    */
   walk(x0, y0, x1, y1, fn) {
-    const cell = this._cell;
-    const cols = this._cols;
-    const rows = this._rows;
+    const cell = SolidSystem._cell;
+    const cols = SolidSystem._cols;
+    const rows = SolidSystem._rows;
     const dx = x1 - x0;
     const dy = y1 - y0;
 
@@ -126,7 +126,7 @@ globalThis.SolidSystem = {
     let t0 = 0;
     let t1 = 1;
     if (dx !== 0) {
-      let ta = (this._minX - x0) / dx;
+      let ta = (SolidSystem._minX - x0) / dx;
       let tb = (cols * cell - x0) / dx;
       if (ta > tb) {
         const s = ta;
@@ -135,9 +135,9 @@ globalThis.SolidSystem = {
       }
       if (ta > t0) t0 = ta;
       if (tb < t1) t1 = tb;
-    } else if (x0 < this._minX || x0 >= cols * cell) return;
+    } else if (x0 < SolidSystem._minX || x0 >= cols * cell) return;
     if (dy !== 0) {
-      let ta = (this._minY - y0) / dy;
+      let ta = (SolidSystem._minY - y0) / dy;
       let tb = (rows * cell - y0) / dy;
       if (ta > tb) {
         const s = ta;
@@ -146,11 +146,11 @@ globalThis.SolidSystem = {
       }
       if (ta > t0) t0 = ta;
       if (tb < t1) t1 = tb;
-    } else if (y0 < this._minY || y0 >= rows * cell) return;
+    } else if (y0 < SolidSystem._minY || y0 >= rows * cell) return;
     if (t0 > t1) return;
 
-    let gx = this._clampCol(Math.floor((x0 + dx * t0) / cell));
-    let gy = this._clampRow(Math.floor((y0 + dy * t0) / cell));
+    let gx = SolidSystem._clampCol(Math.floor((x0 + dx * t0) / cell));
+    let gy = SolidSystem._clampRow(Math.floor((y0 + dy * t0) / cell));
     const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
     const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
     // parameter at the next x / y cell boundary, and the parameter width of one cell
@@ -172,7 +172,7 @@ globalThis.SolidSystem = {
     let t = t0;
     while (true) {
       // (no `for (;;)` — an empty for initializer fails the build, GMRT.md #15566)
-      if (fn(this._buckets[gy * cols + gx], t) === false) return;
+      if (fn(SolidSystem._buckets[gy * cols + gx], t) === false) return;
       if (tMaxX < tMaxY) {
         if (tMaxX > t1) return;
         t = tMaxX;
@@ -205,12 +205,12 @@ globalThis.SolidSystem = {
    * (validate the id), one spawned since is not listed until the next update().
    */
   eachBody(entities, fn) {
-    if (this._store !== entities) this._refresh(entities);
-    const ids = this._bodyIds;
-    const cols = this._bodyCols;
-    const pos = this._bodyPos;
-    const boxes = this._bodyBoxes;
-    const n = this._bodyCount;
+    if (SolidSystem._store !== entities) SolidSystem._refresh(entities);
+    const ids = SolidSystem._bodyIds;
+    const cols = SolidSystem._bodyCols;
+    const pos = SolidSystem._bodyPos;
+    const boxes = SolidSystem._bodyBoxes;
+    const n = SolidSystem._bodyCount;
     for (let i = 0; i < n; i++) fn(ids[i], cols[i], pos[i], boxes[i]);
   },
 
@@ -220,10 +220,10 @@ globalThis.SolidSystem = {
    */
   _refresh(entities) {
     const ids = SolidSystem._candidates;
-    const bIds = this._bodyIds;
-    const bCols = this._bodyCols;
-    const bPos = this._bodyPos;
-    const bBoxes = this._bodyBoxes;
+    const bIds = SolidSystem._bodyIds;
+    const bCols = SolidSystem._bodyCols;
+    const bPos = SolidSystem._bodyPos;
+    const bBoxes = SolidSystem._bodyBoxes;
     let w = 0;
     let b = 0;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
@@ -236,15 +236,15 @@ globalThis.SolidSystem = {
       b++;
     });
     ids.length = w;
-    this._bodyCount = b;
-    if (!this._fresh(entities, ids)) this._snapshot(entities, ids);
+    SolidSystem._bodyCount = b;
+    if (!SolidSystem._fresh(entities, ids)) SolidSystem._snapshot(entities, ids);
   },
 
   update(entities) {
     const dt = SimClock.tickDuration;
 
-    this._refresh(entities);
-    const statics = this._statics;
+    SolidSystem._refresh(entities);
+    const statics = SolidSystem._statics;
 
     entities.forEach(
       [Collision, Position, BBox, Velocity],
@@ -327,8 +327,8 @@ globalThis.SolidSystem = {
    * allocations and bucket inserts.
    */
   _fresh(entities, ids) {
-    if (this._store !== entities) return false;
-    const prev = this._ids;
+    if (SolidSystem._store !== entities) return false;
+    const prev = SolidSystem._ids;
     if (prev.length !== ids.length) return false;
     for (let i = 0; i < ids.length; i++) if (prev[i] !== ids[i]) return false;
     return true;
@@ -356,18 +356,18 @@ globalThis.SolidSystem = {
     // A refresh on a changed candidate set is usually a dynamic body coming or going, with the
     // statics themselves identical — then the buckets (indexes into an equal-by-index list)
     // still hold and no listener needs telling. A store swap always counts as a change.
-    const changed = this._store !== entities || !this._same(statics);
-    this._store = entities;
-    this._ids = ids.slice(); // query()'s array is fresh, but the fingerprint must outlive this tick
-    this._statics = statics;
+    const changed = SolidSystem._store !== entities || !SolidSystem._same(statics);
+    SolidSystem._store = entities;
+    SolidSystem._ids = ids.slice(); // query()'s array is fresh, but the fingerprint must outlive this tick
+    SolidSystem._statics = statics;
     if (!changed) return;
-    this._gridRebuild(statics);
-    if (this.onStatics !== null) this.onStatics(entities, statics);
+    SolidSystem._gridRebuild(statics);
+    if (SolidSystem.onStatics !== null) SolidSystem.onStatics(entities, statics);
   },
 
   /** Same rects at the same indexes as the current snapshot (ids ascend, so order is stable). */
   _same(statics) {
-    const prev = this._statics;
+    const prev = SolidSystem._statics;
     if (prev.length !== statics.length) return false;
     for (let i = 0; i < statics.length; i++) {
       const a = prev[i];
@@ -381,10 +381,10 @@ globalThis.SolidSystem = {
   },
 
   _clampCol(g) {
-    return g < 0 ? 0 : g >= this._cols ? this._cols - 1 : g;
+    return g < 0 ? 0 : g >= SolidSystem._cols ? SolidSystem._cols - 1 : g;
   },
   _clampRow(g) {
-    return g < 0 ? 0 : g >= this._rows ? this._rows - 1 : g;
+    return g < 0 ? 0 : g >= SolidSystem._rows ? SolidSystem._rows - 1 : g;
   },
 
   /**
@@ -404,30 +404,30 @@ globalThis.SolidSystem = {
       if (statics[i].x1 < minX) minX = statics[i].x1;
       if (statics[i].y1 < minY) minY = statics[i].y1;
     }
-    this._minX = minX;
-    this._minY = minY;
-    const cols = Math.max(1, Math.ceil(maxX / this._cell));
-    const rows = Math.max(1, Math.ceil(maxY / this._cell));
-    if (cols !== this._cols || rows !== this._rows) {
-      this._cols = cols;
-      this._rows = rows;
-      this._buckets = [];
-      for (let i = 0; i < cols * rows; i++) this._buckets.push([]);
+    SolidSystem._minX = minX;
+    SolidSystem._minY = minY;
+    const cols = Math.max(1, Math.ceil(maxX / SolidSystem._cell));
+    const rows = Math.max(1, Math.ceil(maxY / SolidSystem._cell));
+    if (cols !== SolidSystem._cols || rows !== SolidSystem._rows) {
+      SolidSystem._cols = cols;
+      SolidSystem._rows = rows;
+      SolidSystem._buckets = [];
+      for (let i = 0; i < cols * rows; i++) SolidSystem._buckets.push([]);
     } else {
-      for (let i = 0; i < this._buckets.length; i++)
-        this._buckets[i].length = 0;
+      for (let i = 0; i < SolidSystem._buckets.length; i++)
+        SolidSystem._buckets[i].length = 0;
     }
 
-    const cell = this._cell;
+    const cell = SolidSystem._cell;
     for (let i = 0; i < statics.length; i++) {
       const s = statics[i];
-      const gx0 = this._clampCol(Math.floor(s.x1 / cell));
-      const gy0 = this._clampRow(Math.floor(s.y1 / cell));
-      const gx1 = this._clampCol(Math.ceil(s.x2 / cell) - 1);
-      const gy1 = this._clampRow(Math.ceil(s.y2 / cell) - 1);
+      const gx0 = SolidSystem._clampCol(Math.floor(s.x1 / cell));
+      const gy0 = SolidSystem._clampRow(Math.floor(s.y1 / cell));
+      const gx1 = SolidSystem._clampCol(Math.ceil(s.x2 / cell) - 1);
+      const gy1 = SolidSystem._clampRow(Math.ceil(s.y2 / cell) - 1);
       for (let gy = gy0; gy <= gy1; gy++)
         for (let gx = gx0; gx <= gx1; gx++)
-          this._buckets[gy * this._cols + gx].push(i);
+          SolidSystem._buckets[gy * SolidSystem._cols + gx].push(i);
     }
   },
 };

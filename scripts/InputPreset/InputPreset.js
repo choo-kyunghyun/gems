@@ -12,12 +12,12 @@ globalThis.InputPreset = {
   PATH: "input.json",
 
   save() {
-    return File.write(this.PATH, json_stringify(Input.export()));
+    return File.write(InputPreset.PATH, json_stringify(Input.export()));
   },
 
   /** A missing file is a no-op; a malformed one is logged and skipped. */
   load() {
-    const raw = File.read(this.PATH);
+    const raw = File.read(InputPreset.PATH);
     if (raw === undefined) return false;
     let data = null;
     try {
@@ -37,7 +37,7 @@ globalThis.InputPreset = {
         (k) => typeof data.rebinds[k] !== "number",
       )
     ) {
-      Log.warn("InputPreset: bad shape in " + this.PATH);
+      Log.warn("InputPreset: bad shape in " + InputPreset.PATH);
       return false;
     }
     Input.import(data);

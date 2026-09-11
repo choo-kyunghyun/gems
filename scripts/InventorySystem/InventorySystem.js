@@ -22,7 +22,7 @@ globalThis.InventorySystem = {
     // weight gate: cap accepted qty to what maxWeight allows.
     let accept = qty;
     if (inv.maxWeight !== undefined && unitW > 0) {
-      const budget = inv.maxWeight - this.weight(inv);
+      const budget = inv.maxWeight - InventorySystem.weight(inv);
       const room = budget > 0 ? Math.floor(budget / unitW) : 0;
       if (room < accept) accept = room;
     }
@@ -66,12 +66,12 @@ globalThis.InventorySystem = {
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
     const instanced = def !== undefined && def.isInstanced();
-    if (!instanced) return this.add(inv, slot.itemId, slot.qty);
+    if (!instanced) return InventorySystem.add(inv, slot.itemId, slot.qty);
 
     // weight gate (one unit — instances are qty 1).
     const unitW = def !== undefined ? def.weight : 1;
     if (inv.maxWeight !== undefined && unitW > 0) {
-      if (this.weight(inv) + unitW > inv.maxWeight) return slot.qty;
+      if (InventorySystem.weight(inv) + unitW > inv.maxWeight) return slot.qty;
     }
     if (inv.slots.length >= inv.capacity) return slot.qty;
     if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid} (mods = slot map)
@@ -119,7 +119,7 @@ globalThis.InventorySystem = {
   },
 
   has(inv, itemId, qty = 1) {
-    return this.count(inv, itemId) >= qty;
+    return InventorySystem.count(inv, itemId) >= qty;
   },
 
   isEmpty(inv) {
@@ -154,7 +154,7 @@ globalThis.InventorySystem = {
     for (let i = 1; i < ids.length; i++) {
       const v = ids[i];
       let j = i - 1;
-      while (j >= 0 && this._cmp(ids[j], v) > 0) {
+      while (j >= 0 && InventorySystem._cmp(ids[j], v) > 0) {
         ids[j + 1] = ids[j];
         j--;
       }
@@ -186,11 +186,11 @@ globalThis.InventorySystem = {
    * Compare two itemIds for sort(): category, then rarity (rarer first), then id.
    */
   _cmp(a, b) {
-    const ca = this._category(a);
-    const cb = this._category(b);
+    const ca = InventorySystem._category(a);
+    const cb = InventorySystem._category(b);
     if (ca !== cb) return ca < cb ? -1 : 1;
-    const ra = this._rarityRank(a);
-    const rb = this._rarityRank(b);
+    const ra = InventorySystem._rarityRank(a);
+    const rb = InventorySystem._rarityRank(b);
     if (ra !== rb) return ra > rb ? -1 : 1; // higher tier index = rarer = first
     return a < b ? -1 : a > b ? 1 : 0;
   },

@@ -17,7 +17,7 @@ globalThis.SettlementComponent = {
           ? Color.parse(d.color)
           : (d.color ?? c_white),
     }));
-    return this;
+    return SettlementComponent;
   },
 
   get(id) {

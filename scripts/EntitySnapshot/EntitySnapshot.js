@@ -31,7 +31,7 @@ globalThis.EntitySnapshot = {
 
   /** `overrides` applied after the snapshot (e.g. fresh Position so a migrated entity drops old-map coords). */
   restore(entities, snapshot, overrides) {
-    const id = this.apply(entities, entities.create(), snapshot);
+    const id = EntitySnapshot.apply(entities, entities.create(), snapshot);
     if (overrides !== undefined)
       for (const token in overrides) entities.add(id, token, overrides[token]);
     return id;

@@ -19,7 +19,7 @@ globalThis.FactionSystem = {
           ? Color.parse(def.color)
           : (def.color ?? c_white),
     }));
-    return this;
+    return FactionSystem;
   },
 
   get(id) {
@@ -44,8 +44,8 @@ globalThis.FactionSystem = {
    * Set the (symmetric) relation between two factions. rel: "ally" | "neutral" | "hostile".
    */
   setRelation(a, b, rel) {
-    this._rel.set(this._key(a, b), rel);
-    return this;
+    FactionSystem._rel.set(FactionSystem._key(a, b), rel);
+    return FactionSystem;
   },
 
   /**
@@ -53,16 +53,16 @@ globalThis.FactionSystem = {
    */
   relation(a, b) {
     if (a === b) return "ally";
-    const r = this._rel.get(this._key(a, b));
+    const r = FactionSystem._rel.get(FactionSystem._key(a, b));
     return r === undefined ? "neutral" : r;
   },
 
   isHostile(a, b) {
-    return this.relation(a, b) === "hostile";
+    return FactionSystem.relation(a, b) === "hostile";
   },
 
   isAlly(a, b) {
-    return this.relation(a, b) === "ally";
+    return FactionSystem.relation(a, b) === "ally";
   },
 
   // ── Entity level (reads the Faction component)
@@ -78,27 +78,27 @@ globalThis.FactionSystem = {
    * true only when both have factions and they're hostile.
    */
   hostile(entities, a, b) {
-    const fa = this.factionOf(entities, a);
-    const fb = this.factionOf(entities, b);
+    const fa = FactionSystem.factionOf(entities, a);
+    const fb = FactionSystem.factionOf(entities, b);
     if (fa === undefined || fb === undefined) return false;
-    return this.isHostile(fa, fb);
+    return FactionSystem.isHostile(fa, fb);
   },
 
   /** true only when both have factions and they're allied. combat skips these (no friendly fire);
    *  a factionless entity is NOT allied, so it's still hit.
    */
   allied(entities, a, b) {
-    const fa = this.factionOf(entities, a);
-    const fb = this.factionOf(entities, b);
+    const fa = FactionSystem.factionOf(entities, a);
+    const fb = FactionSystem.factionOf(entities, b);
     if (fa === undefined || fb === undefined) return false;
-    return this.isAlly(fa, fb);
+    return FactionSystem.isAlly(fa, fb);
   },
 
   /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
    *  attackable bodies, so AI targets combatants not props/beacons. CombatAI's aggro acquisition.
    */
   nearestHostile(entities, id, x, y, range, opt = {}) {
-    const fa = this.factionOf(entities, id);
+    const fa = FactionSystem.factionOf(entities, id);
     if (fa === undefined) return -1;
     const needsHealth = opt.needsHealth !== false;
     let bestId = -1;

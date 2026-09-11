@@ -10,8 +10,8 @@ globalThis.contentAchievements = {
   registered: false,
 
   register() {
-    if (this.registered) return;
-    this.registered = true;
+    if (contentAchievements.registered) return;
+    contentAchievements.registered = true;
 
     Achievement.register([
       {
@@ -61,7 +61,7 @@ globalThis.contentAchievements = {
 
   /** Tracker.rules hook: the counter this event kind feeds, or undefined for none. */
   counterOf(kind) {
-    return this.COUNTERS[kind];
+    return contentAchievements.COUNTERS[kind];
   },
 
   // Threshold rules per lifetime counter: reaching `at` on that counter requests the unlock.
@@ -83,7 +83,7 @@ globalThis.contentAchievements = {
    */
   report(key, value) {
     const newly = [];
-    const rules = this.RULES[key];
+    const rules = contentAchievements.RULES[key];
     if (rules === undefined) return newly;
     for (let i = 0; i < rules.length; i++) {
       if (value >= rules[i].at && Tracker.unlock(rules[i].id))

@@ -16,20 +16,20 @@ globalThis.PathFollow = {
   maxCost: 4,
 
   bind(provider) {
-    this.costProvider = provider ?? null;
+    PathFollow.costProvider = provider ?? null;
   },
 
   /** Terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it). */
   costAt(wx, wy) {
-    if (this.costProvider === null) return 1;
-    const c = this.costProvider(wx, wy);
+    if (PathFollow.costProvider === null) return 1;
+    const c = PathFollow.costProvider(wx, wy);
     return c >= 1 ? c : 1;
   },
 
   /** Crossing a cost-c cell takes c× longer, so a mover multiplies its speed by 1/c. */
   speedScale(wx, wy) {
-    const c = this.costAt(wx, wy);
-    return 1 / (c < this.maxCost ? c : this.maxCost);
+    const c = PathFollow.costAt(wx, wy);
+    return 1 / (c < PathFollow.maxCost ? c : PathFollow.maxCost);
   },
 
   /**

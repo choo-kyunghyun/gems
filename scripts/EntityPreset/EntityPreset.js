@@ -21,7 +21,7 @@ globalThis.EntityPreset = {
   /** Register defs in order; `extends` flattens against the already-registered base, so a
    *  chain works top-down. Re-registering an id replaces it. */
   register(presets) {
-    Registry.register(this, presets, EntityPreset._flatten);
+    Registry.register(EntityPreset, presets, EntityPreset._flatten);
   },
 
   /** Registry `make` hook: resolve `extends` against what is already stored (defs land in list
@@ -78,11 +78,11 @@ globalThis.EntityPreset = {
   },
 
   has(presetId) {
-    return Registry.has(this, presetId);
+    return Registry.has(EntityPreset, presetId);
   },
 
   get(presetId) {
-    return Registry.get(this, presetId);
+    return Registry.get(EntityPreset, presetId);
   },
 
   /**

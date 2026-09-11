@@ -18,8 +18,8 @@ globalThis.PathfindingSystem = {
   },
 
   update(entities) {
-    const budget = this.budget;
-    const cursor = this._cursor;
+    const budget = PathfindingSystem.budget;
+    const cursor = PathfindingSystem._cursor;
     let served = 0;
     let skipped = 0; // pending below the cursor, left to the wrap pass
     let next = cursor;
@@ -30,7 +30,7 @@ globalThis.PathfindingSystem = {
         skipped++;
         return;
       }
-      this._serve(entities, id, req);
+      PathfindingSystem._serve(entities, id, req);
       served++;
       next = index + 1;
     });
@@ -39,11 +39,11 @@ globalThis.PathfindingSystem = {
       if (skipped > 0)
         entities.forEach([PathRequest], (id, req) => {
           if (served >= budget) return;
-          this._serve(entities, id, req);
+          PathfindingSystem._serve(entities, id, req);
           served++;
           next = EntityID.index(id) + 1;
         });
-    this._cursor = next;
+    PathfindingSystem._cursor = next;
   },
 
   _serve(entities, id, req) {

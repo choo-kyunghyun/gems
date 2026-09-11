@@ -13,23 +13,23 @@ globalThis.Settings = {
    * merge into the defaults allowlist (additive; call before load).
    */
   register(obj) {
-    Object.assign(this.defaults, obj);
-    return this;
+    Object.assign(Settings.defaults, obj);
+    return Settings;
   },
 
   /**
    * the set value, else the default.
    */
   get(key) {
-    return key in this.local ? this.local[key] : this.defaults[key];
+    return key in Settings.local ? Settings.local[key] : Settings.defaults[key];
   },
 
   /**
    * set in memory (persisted on save).
    */
   set(key, value) {
-    this.local[key] = value;
-    return this;
+    Settings.local[key] = value;
+    return Settings;
   },
 
   /**
@@ -40,7 +40,7 @@ globalThis.Settings = {
   isModified(keyOrKeys) {
     const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
     for (const key of keys) {
-      if (this.get(key) !== this.defaults[key]) return true;
+      if (Settings.get(key) !== Settings.defaults[key]) return true;
     }
     return false;
   },
@@ -49,8 +49,8 @@ globalThis.Settings = {
    * drop all set values (back to defaults).
    */
   reset() {
-    this.local = {};
-    return this;
+    Settings.local = {};
+    return Settings;
   },
 
   /**
@@ -58,16 +58,16 @@ globalThis.Settings = {
    */
   load(fname) {
     const raw = File.read(fname);
-    if (raw === undefined) return this;
+    if (raw === undefined) return Settings;
     try {
       const parsed = JSON.parse(raw);
-      for (const key of Object.keys(this.defaults)) {
-        if (key in parsed) this.local[key] = parsed[key];
+      for (const key of Object.keys(Settings.defaults)) {
+        if (key in parsed) Settings.local[key] = parsed[key];
       }
     } catch (_) {
       Log.warn("Settings: parse error in " + fname);
     }
-    return this;
+    return Settings;
   },
 
   /**
@@ -75,11 +75,11 @@ globalThis.Settings = {
    */
   save(fname) {
     const out = {};
-    for (const key of Object.keys(this.defaults)) {
-      if (key in this.local) out[key] = this.local[key];
+    for (const key of Object.keys(Settings.defaults)) {
+      if (key in Settings.local) out[key] = Settings.local[key];
     }
     // BUG: [#15565] json_stringify, not JSON.stringify
     File.write(fname, json_stringify(out));
-    return this;
+    return Settings;
   },
 };

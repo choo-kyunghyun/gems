@@ -21,11 +21,11 @@ globalThis.CraftSystem = {
     const recipe = Recipe.get(recipeId);
     const inv = entities.get(crafterId, Inventory);
     if (recipe === undefined || inv === undefined) return false;
-    if (!this.canCraft(inv, recipe, module)) return false;
+    if (!CraftSystem.canCraft(inv, recipe, module)) return false;
 
     // probe a clone so we don't mutate on a no-fit.
     const probe = {
-      slots: this._cloneSlots(inv.slots),
+      slots: CraftSystem._cloneSlots(inv.slots),
       capacity: inv.capacity,
     };
     if (inv.maxWeight !== undefined) probe.maxWeight = inv.maxWeight;

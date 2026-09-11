@@ -8,8 +8,8 @@ globalThis.contentSprites = {
   registered: false,
 
   register() {
-    if (this.registered) return;
-    this.registered = true;
+    if (contentSprites.registered) return;
+    contentSprites.registered = true;
     SpriteMeta.register([
       // the RenderGrass sheets: 128 px art over a 32 px cell
       { sprite: pixGrass, kind: "grass", density: 4 },

@@ -213,7 +213,7 @@ globalThis.CombatAI = {
   // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
   attach(entities, id, grid, opt = {}) {
-    this._grid = grid;
+    CombatAI._grid = grid;
     const pos = entities.get(id, Position);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
     entities.add(id, Brain, {
@@ -249,7 +249,7 @@ globalThis.CombatAI = {
    * is stored — the store reaches states through the StateSystem callbacks.
    */
   bind(entities, grid) {
-    this._grid = grid;
+    CombatAI._grid = grid;
   },
 
   /**

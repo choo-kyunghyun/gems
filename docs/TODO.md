@@ -17,10 +17,6 @@ Contract — the meaning changes, so the callers move with it:
 - `World`'s transfer family answers three shapes — `take` a snapshot or null, `put` an id or -1, `transfer` all three. `transfer` has no caller (`ColonyMap`/`Trader` pair `take`/`put` themselves) — drop it, then settle `take`/`put` on one failure signal.
 - `facetRoot({ maxWidth })` monkey-patches `insertChild` through to the inner column, leaves `removeChild` on the wrapper (a remove of a column child misses silently), and assigns a `.content` nothing reads; the bare form has no column at all. Give both forms one named content element the way `facetScroll.scrollBody`/`facetOverlay.body` do, and drop the patch — one live site, `sceneLobby`.
 
-Sweep — one mechanical rule over `scripts/`, by pillar:
-
-- Singleton self-reference is split: some thirty plain-object singletons reach their own members through `this` (`Log`/`Settings`/`Tracker`/`InventorySystem`/… throughout, `SolidSystem`/`MotionPlanner`/`EquipmentSystem`/… mixing both in one file), the rest through their global name (`World.get` inside `World`). Normalize to the global name.
-
 ## Gameplay
 
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)

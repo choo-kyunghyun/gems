@@ -135,8 +135,8 @@ globalThis.contentTiles = {
 
   /** LAYERS entry by key (BuildMode reads `solid`/`materials` off it). */
   get(key) {
-    for (let i = 0; i < this.LAYERS.length; i++)
-      if (this.LAYERS[i].key === key) return this.LAYERS[i];
+    for (let i = 0; i < contentTiles.LAYERS.length; i++)
+      if (contentTiles.LAYERS[i].key === key) return contentTiles.LAYERS[i];
     return undefined;
   },
 };

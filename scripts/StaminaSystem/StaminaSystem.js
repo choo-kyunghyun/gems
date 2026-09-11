@@ -17,7 +17,7 @@ globalThis.StaminaSystem = {
     const dt = SimClock.tickDuration;
 
     if (wantSprint && !sta.exhausted && sta.value > 0) {
-      sta.value -= this.DRAIN * dt;
+      sta.value -= StaminaSystem.DRAIN * dt;
       if (sta.value <= 0) {
         sta.value = 0;
         sta.exhausted = true; // lock out sprint until recovered to RECOVER * max
@@ -26,10 +26,10 @@ globalThis.StaminaSystem = {
     }
 
     if (sta.value < max) {
-      sta.value += this.REGEN * dt;
+      sta.value += StaminaSystem.REGEN * dt;
       if (sta.value > max) sta.value = max;
     }
-    if (sta.exhausted && sta.value >= max * this.RECOVER) sta.exhausted = false;
+    if (sta.exhausted && sta.value >= max * StaminaSystem.RECOVER) sta.exhausted = false;
     return false;
   },
 };
