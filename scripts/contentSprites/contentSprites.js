@@ -25,8 +25,6 @@ globalThis.contentSprites = {
       { sprite: pixShirtRedwine, kind: "overlay", density: 4 },
       { sprite: pixHatRedBandana, kind: "overlay", density: 4 },
       { sprite: pixOuterArmoredVest, kind: "overlay", density: 4 },
-      // the site beacon: 128 px art over its one-cell box
-      { sprite: pixPortal, kind: "entity", density: 4 },
       // the 128 px dual-grid terrain sets and the wall/floor face textures — declared for the
       // record: RenderTileMap and RenderWalls map a frame onto its cell by UV and read no
       // density, so these lines change no draw

@@ -1,6 +1,11 @@
 // World-space gameplay overlay for the colony scene — item drops (icon + a rarity-tinted psDrop stream), the travel
 // beacon's psPortal stream, projectile dots,
 // fading hitscan tracers, and the reach-quest zone. Drawn from sceneColony.draw() AFTER renderer.draw().
+// psPortal's emitter region is authored over a 128 px frame; the beacon it rises from is one
+// 32 px cell, so the stream draws at a quarter. A constant, not a Visual read: the beacon is a
+// mesh (ColonySpawn's `travel` model) and carries no sprite scale to divide by.
+const PORTAL_FX_SCALE = 0.25;
+
 /**
  * Drawn after renderer.draw() because the ground passes paint an opaque fill that would hide it.
  * (HUD/inventory/dialogue are GUI-layer panels, not here.)
@@ -64,13 +69,24 @@ globalThis.WorldOverlay = {
       matrix_set(matrix_world, ident);
     });
     // Beacons: the site's travel prop streams psPortal for as long as it stands, held by entity
-    // id like a drop. The asset is authored over the beacon sprite's SOURCE frame (128 px), so it
-    // draws at the sprite's baked scale, on the same camera-facing plane.
-    entities.forEach([Interaction, Visual, Position], (id, it, vis, p) => {
+    // id like a drop, on the same camera-facing plane (PORTAL_FX_SCALE sizes it).
+    entities.forEach([Interaction, Position], (id, it, p) => {
       if (it.kind !== "travel") return;
       const fx = ParticleFx.hold(id, psPortal);
-      const k = Math.abs(vis.xscale);
-      matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, k, k, 1));
+      matrix_set(
+        matrix_world,
+        matrix_build(
+          p.x,
+          p.y,
+          0,
+          tilt,
+          0,
+          0,
+          PORTAL_FX_SCALE,
+          PORTAL_FX_SCALE,
+          1,
+        ),
+      );
       part_system_drawit(fx);
       matrix_set(matrix_world, ident);
     });

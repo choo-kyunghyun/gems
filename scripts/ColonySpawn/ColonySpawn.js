@@ -13,7 +13,7 @@
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
  *   npc      label nameKey questId merchant?
  *   chest    capacity items[]
- *   prop     label kind? furn?  (kind/furn picks the vox MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON — an animated STANDING sprite; the world map opens on it)
+ *   prop     label kind? furn?  (kind/furn picks the MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON; the world map opens on it)
  *   torch    label? color?        (decorative light prop — small solid post; carries a Light and a Heat)
  *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh; a Heat)
  *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
@@ -164,10 +164,10 @@ globalThis.ColonySpawn = {
         },
       },
       {
-        // Solid kinematic prop. The adapter resolves the LOOK from the descriptor — a vox Mesh
-        // where kind/furn has a model (VOLUME category; RenderMesh draws it, the billboard/shadow
-        // passes skip the Visual-less entity), else a sprite (+ color/material tint) — plus the
-        // Interaction for a kind. No Visual/Mesh in the def: the adapter always adds one.
+        // Solid kinematic prop. The adapter resolves the LOOK from the descriptor — the Mesh
+        // kind/furn names (VOLUME category; RenderMesh draws it, the billboard/shadow passes
+        // skip the Visual-less entity) — plus the Interaction for a kind. No Mesh in the def:
+        // the adapter always adds one.
         id: "prop",
         components: {
           BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; footprint() overrides per mesh model
@@ -385,41 +385,35 @@ globalThis.ColonySpawn = {
       if (s.capacity !== undefined) inv.capacity = s.capacity;
       if (Object.keys(inv).length > 0) over.Inventory = inv;
     } else if (s.preset === "prop") {
-      // Vox MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
-      // "cot" picks the cot bunk) or furniture `furn` (FURN_MODELS, crate fallback) —
-      // vertex-colored, so color/material don't apply.
-      if (s.kind === "travel") {
-        // the site's beacon: the one prop with no volume to read — an animated STANDING
-        // sprite over the preset's one-cell box
-        over.Visual = { sprite: pixPortal, speed: 4 };
-      } else {
-        let model;
-        if (s.kind === "workbench") model = "woodenWorkbench";
-        else if (s.kind === "bed")
-          model = s.furn === "cot" ? "prisonBed" : "woodenBed";
-        else if (s.kind === "claim") model = "woodenSign";
-        else if (s.kind === "door") model = "woodenDoor";
-        else if (s.kind === "hydrate") model = "woodenTub";
-        else if (s.kind === "feed") model = "woodenBin";
-        else if (s.kind === "buff") model = "woodenAltar";
-        else model = ColonySpawn.FURN_MODELS[s.furn] ?? "woodenCrate";
-        over.Mesh = { model };
-        // collider matched to the model's voxel footprint (big furniture is multi-cell)
-        const fp = ColonySpawn.footprint(model);
+      // MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
+      // "cot" picks the cot bunk, travel the site beacon) or furniture `furn` (FURN_MODELS,
+      // crate fallback) — vertex-colored, so color/material don't apply.
+      let model;
+      if (s.kind === "workbench") model = "woodenWorkbench";
+      else if (s.kind === "bed") model = s.furn === "cot" ? "prisonBed" : "woodenBed";
+      else if (s.kind === "claim") model = "woodenSign";
+      else if (s.kind === "door") model = "woodenDoor";
+      else if (s.kind === "hydrate") model = "woodenTub";
+      else if (s.kind === "feed") model = "woodenBin";
+      else if (s.kind === "buff") model = "woodenAltar";
+      else if (s.kind === "travel") model = "portal";
+      else model = ColonySpawn.FURN_MODELS[s.furn] ?? "woodenCrate";
+      over.Mesh = { model };
+      // collider matched to the model's voxel footprint (big furniture is multi-cell)
+      const fp = ColonySpawn.footprint(model);
+      if (fp !== undefined)
+        over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
+      // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
+      // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
+      if (s.kind === "door" && s.vertical === true) {
+        over.Mesh.yaw = 90;
         if (fp !== undefined)
-          over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
-        // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
-        // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
-        if (s.kind === "door" && s.vertical === true) {
-          over.Mesh.yaw = 90;
-          if (fp !== undefined)
-            over.BBox = {
-              x: -fp.h / 2,
-              y: -fp.w / 2,
-              width: fp.h,
-              height: fp.w,
-            };
-        }
+          over.BBox = {
+            x: -fp.h / 2,
+            y: -fp.w / 2,
+            width: fp.h,
+            height: fp.w,
+          };
       }
       over.Name = { name: s.label };
       if (s.kind !== undefined)
