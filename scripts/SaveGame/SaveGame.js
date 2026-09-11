@@ -8,8 +8,7 @@
  * FIRST-visit path (ColonyMap.build); a saved map comes back through ColonyMap.restore, so the
  * entity set after a load is exactly the one that was saved.
  *
- * Layout (a slot is a directory — subdir writes auto-create on GMRT; #15223 only hits the async
- * default/ path, see docs/GMRT.md):
+ * Layout (a slot is a directory — a subdir write creates it):
  *   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS
  *                            (file_find_first scans the build dir, NOT the save area, so a directory
  *                            scan can't see saves — the index is the source of truth).
@@ -23,6 +22,7 @@
 globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
+  _index: null, // the index as last read or written (see _readIndex)
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch
   // per-map saved state awaiting each map's first visit after a load — the active map's is taken
@@ -202,22 +202,32 @@ globalThis.SaveGame = {
   },
 
   /**
-   * index read-modify-write. The index is the authoritative slot list (find can't scan the save area).
+   * index read-modify-write. The index is the authoritative slot list (find can't scan the save
+   * area); it is read from disk once and held (`_index`) — the menu label reads it every frame.
    */
   _writeIndex(slot, meta) {
     const idx = SaveGame._readIndex();
+    const prev = idx.slots[slot];
     idx.slots[slot] = meta;
     const json = Json.encode(idx);
-    if (json === undefined) return; // encode aborted (already Log.error'd) — keep the old index
+    if (json === undefined) {
+      // encode aborted (already Log.error'd) — keep the old index, on disk and in memory
+      if (prev === undefined) delete idx.slots[slot];
+      else idx.slots[slot] = prev;
+      return;
+    }
     File.write(SaveGame.INDEX, json);
   },
   _readIndex() {
-    const raw = File.read(SaveGame.INDEX);
-    if (raw !== undefined) {
-      const d = Json.decode(raw);
-      if (d !== undefined && d.slots !== undefined) return d;
+    if (SaveGame._index === null) {
+      SaveGame._index = { slots: {} };
+      const raw = File.read(SaveGame.INDEX);
+      if (raw !== undefined) {
+        const d = Json.decode(raw);
+        if (d !== undefined && d.slots !== undefined) SaveGame._index = d;
+      }
     }
-    return { slots: {} };
+    return SaveGame._index;
   },
 
   // ── PASSES ── plain { id, capture, restore } objects, defined here (content, not machinery) —

@@ -6,7 +6,6 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 
 Free — no caller, or the callers fit one commit:
 
-- `File.saveAsync`/`loadAsync` break the read/write verb family — rename to `readBufferAsync`/`writeBufferAsync` beside `readBuffer`/`writeBuffer`. Both are caller-free (parked on GMRT #15223, which `File` explains inline — the quirk moves to GMRT.md and `File` cites it). `writeBuffer` also returns a `true` it cannot check (`buffer_save_ext` reports nothing) — return nothing, or `file_exists` after.
 - `Query.hasCollision` duplicates `has: Collision` (the same join in `_each`) — drop it and migrate its one caller, the door-close guard in `contentInteractions`.
 - `UIInput.get focused()` is the kit's lone accessor where `UISelect`/`UIDropdown`/`UITable` state the methods-not-accessors house style, and nothing reads it — drop it, or make it `isFocused()`.
 - `SpriteMeta.fit(scale, sprite)` inverts the sprite-first order of its siblings `of`/`density`; five call sites to swap (`ColonyPlayer` ×2, `EntityPreset` ×2, `WorldOverlay`).
@@ -64,6 +63,14 @@ Names predating the naming rules are grandfathered — never rename as a sweep; 
 - Unwired spares: `pixTileFenceSquare`/`pixTileFenceRound` (the blob4 fence sheets kept for debugging — the fence is `RenderFence` geometry now), `woodenBedSimple`
 - A dedicated plan-view TOP pattern per wall material, if the shared face texture ever reads wrong
 - New rule for sprites:  128 px per cell · AAP-64 · binary texel alpha · outline for creatures only · shaders do mixing
+
+## Platform
+
+Console cert routes every player-owned file — the saves, `settings.json`, the input profile — through the async buffer family, which is inert on the pinned runtime (docs/GMRT.md); the path waits for a runtime that lands the write and a devkit to prove it on. The decisions already made:
+
+- Async save — `File` grows a group-unit async pair beside the sync one: one `buffer_async_group_*` request per group carrying the console options, one completion per group, a group name one path component. Two transports under one contract — native on console, `buffer_save_ext` into `<group>/<name>` elsewhere — and every completion lands on a later Step through a `File.update()` drain, never inside the request or the Async event, so a caller sees one order on both.
+- `SaveGame` over it — one group per slot, a small per-slot meta file in place of `index.json` (its read-modify-write cannot survive two in-flight saves), the buffers held until the completion frees them, a saving indicator with scene switch and quit gated while busy, and a two-phase load (the manifest, then the blobs it names).
+- `Settings`/`InputPreset` follow — writes fire-and-forget with a failure log; their boot-time reads need the boot to wait on them, so they go last. `Log`/`Blueprint`/`entities.dump`/`Screenshot` stay sync as dev tools, the log's file flush off on console.
 
 ## Verification
 

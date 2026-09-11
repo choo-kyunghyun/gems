@@ -1,9 +1,4 @@
-// TODO: exists(fname)
 globalThis.File = {
-  // pending async requests keyed by buffer_*_async id; Game's Async event (Other_72)
-  // calls _resolve(id, status) to dispatch each completion to its callback.
-  _pending: {},
-
   find(mask) {
     const files = [];
     let fname = file_find_first(mask, fa_none);
@@ -58,65 +53,9 @@ globalThis.File = {
   /**
    * Write a buffer to disk. Saves only the USED bytes via buffer_save_ext — a buffer_grow
    * buffer over-allocates, so a plain buffer_save would pad the file with trailing garbage.
+   * Answers nothing: buffer_save_ext reports no result, and file_exists is no check (docs/GMRT.md).
    */
   writeBuffer(fname, buffer) {
     buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
-    return true;
-  },
-
-  // Async binary I/O — off-thread so a huge save can't freeze the frame; console vendors
-  // (Xbox/PS/Switch) *require* it to pass cert. Completion arrives in Game's Async event,
-  // routed here via _resolve. NOTE: both auto-prefix a "default/" folder, so saveAsync round-trips
-  // through loadAsync — NOT the sync read/readBuffer, which look outside "default/".
-  //
-  // GMRT 0.20 CAVEAT (runtime bug #15223, open): buffer_save/_ext (and these async variants) fail
-  // to create the destination dir; the forced "default/" subfolder trips it, so the write never lands
-  // yet buffer_save_async reports status:true (false positive). On desktop use the sync writeBuffer/
-  // readBuffer (root files need no new dir). The plumbing (event → _resolve → callback) is sound, so
-  // async should work once #15223 is fixed and on console.
-
-  /**
-   * Async save of a buffer's used bytes. Caller still owns the buffer and MUST keep it alive
-   * until `callback(ok)` fires (the save reads it off-thread). Returns the async request id.
-   */
-  saveAsync(fname, buffer, callback) {
-    const id = buffer_save_async(
-      buffer,
-      fname,
-      0,
-      buffer_get_used_size(buffer),
-    );
-    File._pending[id] = { load: false, buffer: -1, callback };
-    return id;
-  },
-
-  /**
-   * Async load into a fresh buffer. On success `callback(buffer)` OWNS it (must buffer_delete);
-   * on failure it gets undefined (internal buffer released first). Returns the async request id.
-   */
-  loadAsync(fname, callback) {
-    const buffer = buffer_create(1, buffer_grow, 1);
-    const id = buffer_load_async(buffer, fname, 0, -1); // -1 = whole file
-    File._pending[id] = { load: true, buffer, callback };
-    return id;
-  },
-
-  /**
-   * dispatch an async completion to its callback (called by Game's Async event); unknown ids ignored.
-   */
-  _resolve(id, status) {
-    const req = File._pending[id];
-    if (req === undefined) return;
-    delete File._pending[id];
-    if (req.load) {
-      if (status) {
-        req.callback(req.buffer); // hand buffer ownership to the caller
-      } else {
-        buffer_delete(req.buffer);
-        req.callback(undefined);
-      }
-    } else if (req.callback !== undefined) {
-      req.callback(status);
-    }
   },
 };
