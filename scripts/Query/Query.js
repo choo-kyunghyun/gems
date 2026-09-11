@@ -52,7 +52,7 @@ globalThis.Query = {
   /**
    * Visit the candidate set as `(id, pos)`. `has` JOINs the query instead of filtering after
    * it, and the marker leads the token list so the scan gates on the RAREST column first —
-   * finding the one NPC among 475 entities stops costing a `has` per entity (docs/PERF.md).
+   * finding the one NPC among 475 entities stops costing a `has` per entity (docs/ARCHITECTURE.md → Hot-path idioms).
    */
   _each(entities, opts, fn) {
     const extra = opts.has;

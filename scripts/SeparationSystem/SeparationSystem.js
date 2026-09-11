@@ -3,7 +3,7 @@
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
-  // Scratch reused every tick — the body list and the two pair rects (docs/PERF.md).
+  // Scratch reused every tick — the body list and the two pair rects (docs/ARCHITECTURE.md → Hot-path idioms).
   _bodies: [],
   _a: AABB.rect(),
   _b: AABB.rect(),

@@ -8,6 +8,7 @@
   "SCENE_CAT_GAME": "게임",
   "SCENE_CAT_UI": "인터페이스",
   "SCENE_CAT_MISC": "기타",
+  "SCENE_CAT_DEV": "개발",
 
   "SYS_TITLE": "시스템 메뉴",
   "SYS_PAUSED": "일시정지됨",

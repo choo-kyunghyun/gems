@@ -109,7 +109,7 @@ globalThis.ComponentStore = class ComponentStore {
   /**
    * The allocation-free counterpart to `query`, and the form a per-tick system wants: no
    * result array, and the callback is handed the component data the scan ALREADY resolved,
-   * so the loop body pays no `get` per entity — together ~9x `query` + `get` (docs/PERF.md).
+   * so the loop body pays no `get` per entity — together ~9x `query` + `get` (testCore perf.layout).
    *
    * `fn(id, data0, data1, data2, data3)` — data in token order, up to the FOURTH token;
    * a match on a fifth or later token still gates the visit, but read its data with `get`

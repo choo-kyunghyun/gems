@@ -12,7 +12,7 @@
  * authority that removes/respawns/incapacitates/leaves a body.
  */
 globalThis.ColonyCombat = {
-  _rect: AABB.rect(), // reused by collectDrops per drop tested (docs/PERF.md)
+  _rect: AABB.rect(), // reused by collectDrops per drop tested (docs/ARCHITECTURE.md → Hot-path idioms)
 
   /**
    * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
@@ -21,7 +21,7 @@ globalThis.ColonyCombat = {
   _enemies(entities, playerId) {
     const out = [];
     // Faction JOINS the query: hostile() is false without one on both sides, so the same set
-    // for one fewer scan of the factionless majority (docs/PERF.md).
+    // for one fewer scan of the factionless majority (docs/ARCHITECTURE.md → Hot-path idioms).
     entities.forEach([Health, Faction], (id) => {
       if (FactionSystem.hostile(entities, playerId, id)) out.push(id);
     });

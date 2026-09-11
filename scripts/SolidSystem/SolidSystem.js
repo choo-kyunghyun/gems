@@ -43,7 +43,7 @@ globalThis.SolidSystem = {
   _statics: [],
 
   // Scratch reused every tick: the candidate list the cache fingerprints against, and the
-  // mover's rect (_resolve runs twice per sub-step per body — docs/PERF.md).
+  // mover's rect (_resolve runs twice per sub-step per body — docs/ARCHITECTURE.md → Hot-path idioms).
   _candidates: [],
   _rect: AABB.rect(),
 

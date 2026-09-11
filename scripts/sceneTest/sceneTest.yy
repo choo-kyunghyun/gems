@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"sceneTest",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"sceneTest",
+  "parent":{
+    "name":"Dev",
+    "path":"folders/Game/Dev.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"sceneTest.js",
+}

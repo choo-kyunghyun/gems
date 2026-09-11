@@ -6,6 +6,10 @@
  *
  * Distinct from WorldClock (in-game time-of-day / calendar): SimClock is the engine TICK RATE — "World
  * rules tickrate". A singleton (one sim clock), like WorldClock / Time.
+ *
+ * Crossing the frame budget is a CLIFF, not a slope: a frame over budget converts into MORE ticks
+ * and gets slower still (`maxTicks` only caps the spiral). So a per-tick cost is measured with
+ * ticks/frame beside it — a figure that looks flat per tick can be compounding per frame.
  */
 globalThis.SimClock = {
   tickDuration: 1 / 60, // seconds per fixed tick (60 Hz)

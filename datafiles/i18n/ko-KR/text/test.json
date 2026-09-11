@@ -1,0 +1,9 @@
+{
+  "TEST_NAME": "Core 테스트",
+  "TEST_HINT": "프레임마다 케이스 하나; 결과는 game.log에 [CHECK] / [BENCH] 한 줄씩.",
+  "TEST_HINT_RERUN": "같은 세션에서 다시 실행하면 전후 비교가 됩니다.",
+  "TEST_RUNNING": "실행 중 {0} / {1}",
+  "TEST_DONE": "완료: 통과 {0}, 실패 {1}",
+  "TEST_RERUN": "다시 실행",
+  "TEST_BACK": "← 뒤로"
+}

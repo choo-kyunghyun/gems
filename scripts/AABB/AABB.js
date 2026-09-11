@@ -19,7 +19,7 @@ globalThis.AABB = {
   /**
    * `edges` into a caller-owned rect (AABB.rect). A pair sweep reuses one or two instead of
    * allocating per test: the object literal, not the arithmetic, is the cost here — ~3.5x
-   * (docs/PERF.md). The rect is the caller's, so never hand one to something that outlives
+   * (testCore perf.measured). The rect is the caller's, so never hand one to something that outlives
    * the call.
    */
   edgesInto(pos, box, out) {

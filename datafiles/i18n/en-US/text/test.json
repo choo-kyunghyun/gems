@@ -1,0 +1,9 @@
+{
+  "TEST_NAME": "Core Tests",
+  "TEST_HINT": "One case per frame; each result is one [CHECK] / [BENCH] log line.",
+  "TEST_HINT_RERUN": "Rerun in the same session for a before/after.",
+  "TEST_RUNNING": "Running {0} / {1}",
+  "TEST_DONE": "Done: {0} pass, {1} fail",
+  "TEST_RERUN": "Rerun",
+  "TEST_BACK": "← Back"
+}

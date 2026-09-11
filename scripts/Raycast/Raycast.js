@@ -9,10 +9,10 @@
  *   opts: { ignore? (id) }
  */
 globalThis.Raycast = {
-  _rect: AABB.rect(), // reused per-candidate edges (docs/PERF.md)
+  _rect: AABB.rect(), // reused per-candidate edges (docs/ARCHITECTURE.md → Hot-path idioms)
   _hits: [], // cast()'s scratch — holds the one nearest hit while collecting
   // per static index, the cast that last tested it: a multi-cell static sits in every bucket it
-  // spans, and this is the dedupe (a generation stamp, never a fill — docs/PERF.md)
+  // spans, and this is the dedupe (a generation stamp, never a fill — docs/ARCHITECTURE.md → Hot-path idioms)
   _seen: [],
   _gen: 0,
 

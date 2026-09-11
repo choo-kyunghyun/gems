@@ -26,10 +26,21 @@ Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
 
 ## Pathfinding
 
-Every agent now plans over one level-sized `NavGrid`, so a request can span the whole map; the costs it exposed are in PERF.md → Known Remaining Costs.
+Every agent now plans over one level-sized `NavGrid`, so a request can span the whole map, and that exposed two costs.
 
-- Bound a far plan — a heuristic weight (bounded suboptimality) is the one-line knob; a coarse planner over the fine grid (region graph → refine within the corridor) is the real fix once workers routinely cross the map.
-- `LevelGrid.costAt` builds a `NavData` literal per layer per cell — the whole-level resample at a map's first `NavGrid.sync` is mostly that allocation. Have `getNavData` answer a number (undefined = pass through) and the literal goes.
+- Bound a far plan — an A* expansion is ~6 us (four neighbours: `inBounds`/`get`/`toIndex` calls, a heuristic, a heap push), and over the weighted 128² overworld the unit heuristic is weak enough that a corner-to-corner plan expands ~90% of the cells: ~80–100 ms per far plan against ~2 ms for a 40-cell one, and `PathfindingSystem`'s `budget` bounds count, not time, so one far plan is still a frame hitch. A heuristic weight (bounded suboptimality) is the one-line knob; a coarse planner over the fine grid (region graph → refine within the corridor) is the real fix once workers routinely cross the map.
+- `LevelGrid.costAt` builds a `NavData` literal per layer per cell (~3 us a cell) — the whole-level resample at a map's first `NavGrid.sync` or a bulk paint (~50 ms) is mostly that allocation. Have `getNavData` answer a number (undefined = pass through) and the literal goes.
+
+## Performance
+
+Unfixed per-frame costs on the colony scene (~500 entities, 128² map, ~4.2 ms/frame with the cap lifted: sim ~1.3, renderer ~1.8, GUI ~0.2), in the order their size was measured. A figure here is a same-session ratio from the run that found it; re-measure before acting.
+
+- A query still scans the whole index space (`ids.next`), so a sparse component pays for every live entity — ~1.5 ms/frame if every non-matching slot-visit were free. The fix is a per-column dense id list for the SPARSE tokens only (the scene's selectivity: 4 of 43 columns above 50%, 21 at or below 1.7%) — at ~100% selectivity a dense list is the same length plus an indirection and loses, and its upkeep costs ~75% more per component add/detach, so it is opt-in, never blanket.
+- `SolidSystem` scans `Collision, Position, BBox` twice per tick (the static-cache fingerprint, which also lists the dynamic bodies for `eachBody`, then the body loop with `Velocity`) and `SeparationSystem` scans it again; one shared pass would serve them — `eachBody` is that pass's seed, and `SeparationSystem` could collect from it.
+- `ids.next` is a high-water mark that never shrinks, so a spawn spike permanently raises every query's cost for that map's lifetime. Latent today: the colony sits at `next == alive`, and nothing spawns in bulk.
+- 14 `RenderTileMap` passes cost ~60 us each in submission overhead alone — one pass per terrain material, nothing per-entity.
+- Two unclaimed native wins, neither on a hot path: `array_sort` (~3x over `Array.sort`, no call site large enough to matter) and `point_distance` (~1.8x over the `Math.sqrt` distance in `CombatAI`).
+- The frame profile above is a hand probe; a `DEV_MODE` section timer around `sceneColony.update`'s phases would make it a `[BENCH]`-style log line instead.
 
 ## UI
 
@@ -60,5 +71,7 @@ Console cert routes every player-owned file — the saves, `settings.json`, the 
 
 ## Verification
 
-- Test scenes for fast debugging
-- Cover what only a running frame can catch (system ordering, grid/collider sync); leave one-off probes on the existing `Log`/`Screenshot`/`entities.dump` harness
+The Core tests are in (`sceneTest` over `testCore`, `GEMS_TEST=1 gm-cli run` for the one-command form); one-off probes stay on the `Log`/`Screenshot`/`entities.dump` harness.
+
+- A `testCore` case for what only a real frame boundary catches (`frames` is in, no case uses it beyond the self-test): the once-per-frame `NavGrid.sync` against a tick-loop edit, an `Input` edge across the frame poll
+- The `perf.*` cases measure Core only; a Game-side cost (the doll's draw path, the frame profile) wants a `testColony` or the section timer under Performance, not a Core case

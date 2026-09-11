@@ -146,7 +146,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     });
     // SKELETAL category: a Spine body poses in its own instance's scope, so it draws through
     // the stored handle — `draw_self` is the only path that BOTH poses and honours matrix_world
-    // (GMRT.md), and it beats draw_skeleton ~4x (PERF.md). A separate scan rather than a branch
+    // (GMRT.md), and it beats draw_skeleton ~4x on the pinned runtime. A separate scan rather than a branch
     // inside the loop above: the pair is rare, so the scan is nearly free, and a skeletal entity
     // carries no Visual — one that did would draw its body twice.
     // Two passes per puppet: its attachments share one plane, and two overlapping quads on a

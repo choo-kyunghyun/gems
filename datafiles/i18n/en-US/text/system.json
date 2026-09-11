@@ -8,6 +8,7 @@
   "SCENE_CAT_GAME": "Game",
   "SCENE_CAT_UI": "Interface",
   "SCENE_CAT_MISC": "Misc",
+  "SCENE_CAT_DEV": "Dev",
 
   "SYS_TITLE": "System Menu",
   "SYS_PAUSED": "Paused",

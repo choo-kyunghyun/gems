@@ -40,12 +40,12 @@ globalThis.MotionPlanner = {
   _scratch: undefined,
   // per-plan reset by generation: a cell's g/from/closed are live only while `_stamp[i]` equals
   // this plan's `_gen`, so nothing is cleared between plans — a fill over the level is a VM loop
-  // even on a typed array, ~10 ms per plan on a 128² level (PERF.md → Measured Costs).
+  // even on a typed array, ~10 ms per plan on a 128² level (testCore perf.measured, array.fill).
   _stamp: undefined,
   _gen: 0,
   // the open set: a binary min-heap as parallel node/f arrays, reset per plan. In JS rather than
   // ds_priority so a plan holds no GML resource and pays no boundary crossing per op — worth ~5%
-  // of a long plan; the expansions themselves are the cost (PERF.md → Known Remaining Costs).
+  // of a long plan; the expansions themselves are the cost (docs/TODO.md → Performance).
   _hn: [],
   _hf: [],
 
@@ -64,7 +64,7 @@ globalThis.MotionPlanner = {
    * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
    * `allowDiag` (octile moves; with `cornerCutting` a diagonal may pass between two blocked
    * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan —
-   * PERF.md → Known Remaining Costs), `maxIter`. Planning before `setGrid` is a wiring error.
+   * docs/TODO.md → Pathfinding), `maxIter`. Planning before `setGrid` is a wiring error.
    */
   plan(start, goal, opt = {}) {
     const grid = MotionPlanner.grid;

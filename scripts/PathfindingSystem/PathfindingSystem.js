@@ -4,7 +4,7 @@
  * rest stay pending for later ticks, taken round-robin by entity index from where the last tick
  * stopped, so a sustained overload starves no requester. A pending request its walker refreshes
  * first (`PathFollow.target`'s throttle) is replaced in place. A count bound is not a time bound:
- * one far plan still costs what PERF.md → Known Remaining Costs says.
+ * one far plan still costs what docs/TODO.md → Pathfinding says.
  */
 globalThis.PathfindingSystem = {
   budget: 4, // requests served per tick; the overflow carries over

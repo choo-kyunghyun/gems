@@ -1,7 +1,7 @@
 // Instant melee swing (no projectile): an AABB hitbox extends `reach` in the facing direction (snapped
 // to 4-way) and damages every overlapping Health except the attacker + faction allies. Subtracts hp only.
 globalThis.MeleeSystem = {
-  _rect: AABB.rect(), // reused candidate edges (docs/PERF.md)
+  _rect: AABB.rect(), // reused candidate edges (docs/ARCHITECTURE.md → Hot-path idioms)
 
   /**
    * dirX/dirY: facing (sign matters; the larger magnitude picks the axis). reach: hitbox length

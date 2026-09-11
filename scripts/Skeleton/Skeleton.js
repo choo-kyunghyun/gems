@@ -1,8 +1,8 @@
 /**
  * SKELETAL category of the art projection contract (RenderBillboard): a Spine sprite posed by
  * the runtime and drawn through its Puppet's `draw_self`, the one path that both poses and
- * honours matrix_world (docs/GMRT.md) — and ~4x cheaper than `draw_skeleton` (docs/PERF.md →
- * Skeletal Animation). The counterpart of Visual: an entity carries one or the other, never
+ * honours matrix_world (docs/GMRT.md) — and ~4x cheaper than `draw_skeleton` on the pinned
+ * runtime. The counterpart of Visual: an entity carries one or the other, never
  * both, since RenderBillboard scans the two separately and would draw the body twice.
  *
  * Playback is SkeletonSystem's: it mints the puppet, binds `sprite`, and advances `frame`

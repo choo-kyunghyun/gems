@@ -32,12 +32,16 @@ globalThis.sceneLobby = () =>
       const col = facetList();
 
       // fixed display priority so the list is stable regardless of resource load order
-      const CAT_ORDER = ["SCENE_CAT_GAME", "SCENE_CAT_UI"];
+      const CAT_ORDER = ["SCENE_CAT_GAME", "SCENE_CAT_UI", "SCENE_CAT_DEV"];
       const entries = [];
       const groups = Scene.byCategory();
-      for (let g = 0; g < groups.length; g++)
+      // the dev category is filtered HERE, not at registration: the catalogue fills at script
+      // load, before Create_0 sets DEV_MODE
+      for (let g = 0; g < groups.length; g++) {
+        if (groups[g].category === "SCENE_CAT_DEV" && !DEV_MODE) continue;
         for (let e = 0; e < groups[g].entries.length; e++)
           entries.push(groups[g].entries[e]);
+      }
       const rank = (cat) => {
         const i = CAT_ORDER.indexOf(cat);
         return i < 0 ? CAT_ORDER.length : i;
