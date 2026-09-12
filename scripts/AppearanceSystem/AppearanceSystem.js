@@ -31,9 +31,6 @@ globalThis.AppearanceSystem = {
     trinket: "hat",
   },
 
-  // setting a slot to an UNKNOWN attachment name clears it; setting "" does not (docs/SPINE.md)
-  BARE: "__bare",
-
   // skeleton sprite name -> its dress slots (see _rig); rig data never changes within a run
   _rigs: {},
 
@@ -73,7 +70,7 @@ globalThis.AppearanceSystem = {
       let spr = gear[slot.name];
       if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed — the base layer shows
       if (spr === undefined || !sprite_exists(spr)) {
-        inst.skeleton_attachment_set(slot.name, AppearanceSystem.BARE);
+        inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one (docs/SPINE.md)
         continue;
       }
       AppearanceSystem._attach(inst, slot, spr);
@@ -144,7 +141,9 @@ globalThis.AppearanceSystem = {
     const dy = (uv[5] + (sprite_get_height(spr) * uv[7]) / 2 - sprite_get_yoffset(spr)) * k;
     const c = Math.cos((slot.rot * Math.PI) / 180);
     const s = Math.sin((slot.rot * Math.PI) / 180);
-    try {
+    // a standing definition is identical (the name carries the sprite), so it is only pointed at;
+    // re-creating it would throw (docs/SPINE.md)
+    if (!inst.skeleton_attachment_exists(name))
       inst.skeleton_attachment_create(
         name,
         spr,
@@ -155,11 +154,6 @@ globalThis.AppearanceSystem = {
         k,
         slot.rot,
       );
-    } catch (e) {
-      // re-creating an EXISTING attachment name faults (docs/SPINE.md) and the runtime offers no
-      // way to ask whether one exists — the throw IS the "already defined" answer, and the
-      // standing definition is identical, so the slot can just be pointed at it
-    }
     inst.skeleton_attachment_set(slot.name, name);
   },
 
