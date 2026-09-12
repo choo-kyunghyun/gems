@@ -95,9 +95,8 @@ globalThis.ColonyCombat = {
   resolveHealth(scene, h) {
     h = h ?? {};
     const entities = scene.level.entities;
-    // Stays on query(), NOT forEach: the loop SPAWNS entities (spillLoot's drops), and a fresh
-    // id can land on a recycled index the scan has not passed yet. The materialised snapshot is
-    // load-bearing here — see ComponentStore.forEach on mid-iteration adds.
+    // Stays on query(), NOT forEach: the loop SPAWNS entities (spillLoot's drops) and strips
+    // components, and the materialised list keeps the pass independent of the walk's contract.
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];

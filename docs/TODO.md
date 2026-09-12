@@ -35,9 +35,7 @@ Every agent now plans over one level-sized `NavGrid`, so a request can span the 
 
 Unfixed per-frame costs on the colony scene (~500 entities, 128² map, ~4.2 ms/frame with the cap lifted: sim ~1.3, renderer ~1.8, GUI ~0.2), in the order their size was measured. A figure here is a same-session ratio from the run that found it; re-measure before acting.
 
-- A query still scans the whole index space (`ids.next`), so a sparse component pays for every live entity — ~1.5 ms/frame if every non-matching slot-visit were free. The fix is a per-column dense id list for the SPARSE tokens only (the scene's selectivity: 4 of 43 columns above 50%, 21 at or below 1.7%) — at ~100% selectivity a dense list is the same length plus an indirection and loses, and its upkeep costs ~75% more per component add/detach, so it is opt-in, never blanket.
 - `SolidSystem` scans `Collision, Position, BBox` twice per tick (the static-cache fingerprint, which also lists the dynamic bodies for `eachBody`, then the body loop with `Velocity`) and `SeparationSystem` scans it again; one shared pass would serve them — `eachBody` is that pass's seed, and `SeparationSystem` could collect from it.
-- `ids.next` is a high-water mark that never shrinks, so a spawn spike permanently raises every query's cost for that map's lifetime. Latent today: the colony sits at `next == alive`, and nothing spawns in bulk.
 - 14 `RenderTileMap` passes cost ~60 us each in submission overhead alone — one pass per terrain material, nothing per-entity.
 - Two unclaimed native wins, neither on a hot path: `array_sort` (~3x over `Array.sort`, no call site large enough to matter) and `point_distance` (~1.8x over the `Math.sqrt` distance in `CombatAI`).
 - The frame profile above is a hand probe; a `DEV_MODE` section timer around `sceneColony.update`'s phases would make it a `[BENCH]`-style log line instead.
@@ -74,5 +72,5 @@ Console cert routes every player-owned file — the saves, `settings.json`, the 
 The Core tests are in (`sceneTest` over `testCore` + the `testStress` scenarios, `GEMS_TEST=1 gm-cli run` for the one-command form); one-off probes stay on the `Log`/`Screenshot`/`entities.dump` harness.
 
 - A `testCore` case for what only a real frame boundary catches: the once-per-frame `NavGrid.sync` against a tick-loop edit, an `Input` edge across the frame poll
-- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (`ids.next` high-water mark, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + `onStatics` per frame)
+- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + `onStatics` per frame)
 - The `perf.*` cases measure Core only; a Game-side cost (the doll's draw path, the frame profile) wants a `testColony` or the section timer under Performance, not a Core case

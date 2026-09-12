@@ -103,9 +103,9 @@ globalThis.FactionSystem = {
     const needsHealth = opt.needsHealth !== false;
     let bestId = -1;
     let bestD = range * range;
-    // Faction JOINS the query: a factionless candidate was skipped by the old undefined check
-    // anyway, so matching on it is the same set for one fewer `get` per candidate. This scan is
-    // per idle actor (throttled by Brain.aggroRate), so it is the crowd's dominant cost.
+    // Faction LEADS the query: a factionless candidate was never a match, and the lead's carriers
+    // are what the walk visits (ComponentStore). This scan is per idle actor (throttled by
+    // Brain.aggroRate), so it is the crowd's dominant cost.
     const consider = (oid, pos, fac) => {
       if (oid === id) return;
       if (!FactionSystem.isHostile(fa, fac.id)) return;
@@ -116,11 +116,11 @@ globalThis.FactionSystem = {
       }
     };
     if (needsHealth) {
-      entities.forEach([Health, Position, Faction], (oid, hp, pos, fac) => {
+      entities.forEach([Faction, Health, Position], (oid, fac, hp, pos) => {
         consider(oid, pos, fac);
       });
     } else {
-      entities.forEach([Position, Faction], (oid, pos, fac) => {
+      entities.forEach([Faction, Position], (oid, fac, pos) => {
         consider(oid, pos, fac);
       });
     }

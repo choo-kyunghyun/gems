@@ -106,4 +106,4 @@ Part of what the code works around is GMRT's youth rather than physics, and a wo
 | the boundary falls below ~10 ns (`native.clamp` vs `js.clamp`) | re-test natives at scalar sites, and `tilemap_*` against `RenderTileMap`'s vertex buffers |
 | GMRT gains a JIT (~40–110x V8 today) | the hot-path idioms (ARCHITECTURE.md) become advisory — re-rank them by clarity, since the constant would no longer decide the frame |
 
-Two results are NOT on this list and will not move: the instance-scoped built-ins are an API contract, not a gap, and the selectivity argument for columns (`perf.layout`) is a property of the data layout.
+Two results are NOT on this list and will not move: the instance-scoped built-ins are an API contract, not a gap, and the selectivity argument for a walk over the lead token's carriers (`perf.layout`) is a property of the data layout.

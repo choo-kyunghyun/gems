@@ -54,9 +54,10 @@ function _testStore(ctx, count, n) {
     ctx.ids[i] = id;
     ctx.objs[i] = s.get(id, Position);
   }
-  // the column a system would hoist once per tick — read off the store's private mirror
-  const cs = s.components;
-  ctx.col = cs._columns[cs._tokens.indexOf(Position)];
+  // the column and dense list a walk hoists once per tick — read off the store's private set
+  const set = s.components._byToken.get(Position);
+  ctx.col = set.column;
+  ctx.dense = set.dense;
 }
 
 /** n floats in [-2, 2), no shared stream (docs/GMRT.md → Math.random). */
@@ -176,7 +177,7 @@ globalThis.testCore = {
         t.eq(visits, 2, "forEach visits the join");
         t.eq(sumVel, 40, "data arrives in token order (Velocity first)");
         t.eq(sumPos, 4, "data arrives in token order (Position second)");
-        t.eq(s.first(Velocity), ctx.a, "first() is the lowest matching index");
+        t.eq(s.first(Velocity), ctx.a, "first() is the earliest carrier");
         t.eq(
           s.first("TestNoSuch"),
           -1,
@@ -190,6 +191,86 @@ globalThis.testCore = {
         );
         s.detach(ctx.a, Velocity);
         t.eq(s.first(Velocity), ctx.c, "detach drops the entity from the join");
+      },
+      teardown(ctx) {
+        ctx.entities.destroy();
+      },
+    },
+    {
+      id: "entity.walk",
+      setup(ctx) {
+        const s = new EntityStore(16);
+        ctx.entities = s;
+        ctx.ids = [];
+        for (let k = 0; k < 6; k++) {
+          const id = s.create();
+          s.add(id, "TestWalk", { k });
+          ctx.ids.push(id);
+        }
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const ids = ctx.ids;
+        const set = s.components._byToken.get("TestWalk");
+        // self-detach of the lead: every carrier visited once, the list compacted at the end
+        let visits = 0;
+        let seen = 0;
+        s.forEach(["TestWalk"], (id, w) => {
+          visits += 1;
+          seen |= 1 << w.k;
+          s.detach(id, "TestWalk");
+          t.eq(s.has(id, "TestWalk"), false, "a detach reads absent inside the walk");
+          t.eq(set.dense.length, 6, "the swap-remove waits for the walk to end");
+        });
+        t.eq(visits, 6, "self-detach visits every carrier once");
+        t.eq(seen, 63, "self-detach visits each carrier");
+        t.eq(set.dense.length, 0, "the walk's end compacts the list");
+        t.eq(s.query("TestWalk").length, 0, "nothing is left carrying it");
+        for (let k = 0; k < 6; k++) s.add(ids[k], "TestWalk", { k });
+        // another carrier detached mid-walk is skipped, a re-add keeps its carrier, and a
+        // mid-walk add waits for the next walk
+        visits = 0;
+        seen = 0;
+        s.forEach(["TestWalk"], (id, w) => {
+          visits += 1;
+          seen |= 1 << w.k;
+          if (w.k === 0) {
+            s.detach(ids[5], "TestWalk"); // the last carrier, still ahead of the walk
+            s.detach(ids[2], "TestWalk");
+            s.detach(id, "TestWalk");
+            s.add(id, "TestWalk", w);
+            s.add(s.create(), "TestWalk", { k: 6 });
+          }
+        });
+        t.eq(visits, 4, "a carrier detached ahead of the walk is skipped");
+        t.eq(seen, 1 | 2 | 8 | 16, "the skipped carriers are the detached ones");
+        t.eq(s.has(ids[0], "TestWalk"), true, "a re-add during the walk keeps its carrier");
+        t.eq(s.query("TestWalk").length, 5, "the survivors plus the mid-walk add remain");
+        visits = 0;
+        s.forEach(["TestWalk"], () => {
+          visits += 1;
+        });
+        t.eq(visits, 5, "a carrier added mid-walk is visited from the next walk");
+        t.eq(set.dense.length, 5, "the dense list matches the query");
+        // nested walks on one lead: the inner detach compacts when the OUTER walk ends
+        visits = 0;
+        s.forEach(["TestWalk"], (id) => {
+          s.forEach(["TestWalk"], (oid) => {
+            if (oid === id) s.detach(oid, "TestWalk");
+          });
+          visits += 1;
+          t.eq(set.dense.length, 5, "an inner detach compacts at the outer walk's end");
+        });
+        t.eq(visits, 5, "the outer walk visits every carrier");
+        t.eq(set.dense.length, 0, "the outer walk's end compacts");
+        t.eq(set.walking, 0, "the walk depth returns to zero");
+        // order: a removal swap-fills its hole from the tail, and the rest keep their places
+        for (let k = 0; k < 3; k++) s.add(ids[k], "TestOrder", { k });
+        s.detach(ids[0], "TestOrder");
+        const q = s.query("TestOrder");
+        t.eq(q[0], ids[2], "the last carrier takes the hole");
+        t.eq(q[1], ids[1], "the rest keep their positions");
+        t.eq(s.first("TestOrder"), ids[2], "first() reads the dense order");
       },
       teardown(ctx) {
         ctx.entities.destroy();
@@ -220,6 +301,11 @@ globalThis.testCore = {
         t.ok(pos !== undefined, "component data restored");
         if (pos !== undefined) t.eq(pos.z, 7, "component fields restored");
         t.eq(d.query(Velocity).length, 1, "every column restored");
+        let visits = 0;
+        d.forEach([Position], () => {
+          visits += 1;
+        });
+        t.eq(visits, 1, "a walk after import runs the rebuilt list");
         const again = d.create();
         t.eq(
           EntityID.index(again),
@@ -898,12 +984,14 @@ globalThis.testCore = {
         });
       },
     },
-    // ── perf.layout: columns against instances, per slot-visit over 500 entities ─
-    // A column scan costs linearly with selectivity, an instance loop the same whether the
-    // entity matches or not (instance_find ~10x a matched column visit): they cross near ~58%
-    // selectivity, and the colony runs at ~9% over 43 columns with 4 above 50%, so columns win
-    // by a widening margin as a query gets rarer. forEach hands the scan's data to the callback
-    // where query + get pays a hash lookup per entity (~9x).
+    // ── perf.layout: a walk costs per lead carrier, never per index ────────────
+    // A walk runs down the lead token's dense list (ComponentStore), so its cost is the lead's
+    // carrier count: at 100% (`forEach.full`) it is the column scan plus an indirection, below
+    // that it is the slots never visited — `forEach.sparse` against `forEach.trail` is the same
+    // four matches led by the rare token and by Position, the lead-order rule measured (both gross
+    // per store entity — the loop they would net out IS the walk). forEach
+    // hands the walk's data to the callback where query + get pays a hash lookup per entity;
+    // `store.churn` is the upkeep a detach + add pair costs over two column writes.
     {
       id: "perf.layout",
       setup(ctx) {
@@ -911,12 +999,16 @@ globalThis.testCore = {
         const s = ctx.entities;
         for (let k = 0; k < 4; k++)
           s.add(ctx.ids[k * 100], "TestRare", { on: true });
+        for (let i = 0; i < ENTITIES; i++)
+          s.add(ctx.ids[i], "TestChurn", ctx.objs[i]);
+        ctx.scratch = new Array(ENTITIES).fill(undefined);
       },
       verify(ctx, t) {
         const n = ENTITIES;
         const empty = _testEmpty(n);
         const store = ctx.entities;
         const col = ctx.col;
+        const dense = ctx.dense;
 
         t.measure("forEach.full", n, empty, () => {
           let s = 0;
@@ -925,9 +1017,16 @@ globalThis.testCore = {
           });
           return s;
         });
-        t.measure("forEach.sparse", n, empty, () => {
+        t.measure("forEach.sparse", n, () => 0, () => {
           let s = 0;
           store.forEach(["TestRare", Position], (id, r, p) => {
+            s += p.x;
+          });
+          return s;
+        });
+        t.measure("forEach.trail", n, () => 0, () => {
+          let s = 0;
+          store.forEach([Position, "TestRare"], (id, p) => {
             s += p.x;
           });
           return s;
@@ -947,6 +1046,38 @@ globalThis.testCore = {
           }
           return s;
         });
+        t.measure("dense.loop", n, empty, () => {
+          let s = 0;
+          for (let k = 0; k < n; k++) {
+            const d = col[dense[k]];
+            if (d !== undefined) s += d.x;
+          }
+          return s;
+        });
+
+        const ids = ctx.ids;
+        const objs = ctx.objs;
+        const scratch = ctx.scratch;
+        const mask = EntityID.INDEX_MASK;
+        t.measure(
+          "store.churn",
+          n,
+          () => {
+            for (let i = 0; i < n; i++) {
+              const k = ids[i] & mask;
+              scratch[k] = undefined;
+              scratch[k] = objs[i];
+            }
+            return scratch[0];
+          },
+          () => {
+            for (let i = 0; i < n; i++) {
+              store.detach(ids[i], "TestChurn");
+              store.add(ids[i], "TestChurn", objs[i]);
+            }
+            return store.get(ids[0], "TestChurn");
+          },
+        );
       },
       teardown(ctx) {
         ctx.entities.destroy();
