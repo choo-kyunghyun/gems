@@ -768,6 +768,8 @@ class _SceneColonyClass {
     // is skipped then); apply before the renderer reads it
     const camera = this.map.camera;
     if (camera.control.raw) camera.update();
+    // dev BBox outlines (Settings toggle, default off) — read each frame like hudRadar below
+    this.map.bboxPass.enabled = Settings.get("debugBBox");
     this.map.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
     // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     WorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)

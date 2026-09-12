@@ -59,6 +59,9 @@ Settings.register({
   // strength of the world's atmospheric desaturation (ColonyMap.chroma): 0 = the authored
   // colours at every hour, 1 = the full hour/season/sky schedule
   worldChroma: 1.0,
+  // lime BBox outlines over the world (RenderDebugEntity) — dev toggle in the overlay's
+  // Settings tab, read live by the pass the colony mounts
+  debugBBox: false,
 });
 globalThis.SETTINGS_FILE = "settings.json"; // the app-owned settings filename — Settings stores none; every load/save passes it
 Settings.load(SETTINGS_FILE);

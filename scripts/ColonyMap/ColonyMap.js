@@ -26,6 +26,7 @@
  * @property {Object<string,RenderPass>} tilePasses  the tile pass per layer key — a BuildMode edit marks its layer's dirty
  * @property {RenderTileMap[]} terrainPasses  a generated map's ground stack, lowest material first — GrassSystem's flush marks them
  * @property {RenderGrass|undefined} grassPass  the grass volume layer — likewise
+ * @property {RenderDebugEntity} bboxPass  the lime BBox outlines — the `debugBBox` setting drives its `enabled`
  */
 /**
  * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid,
@@ -76,6 +77,7 @@ globalThis.ColonyMap = {
       tilePasses: {},
       terrainPasses: [],
       grassPass: undefined,
+      bboxPass: undefined,
     };
   },
 
@@ -730,9 +732,10 @@ globalThis.ColonyMap = {
         ? new RenderBillboard({ lights: meshPass, camera: camera })
         : new RenderEntity(),
     );
-    const bbox = new RenderDebugEntity(); // lime bbox outlines, off until toggled
-    bbox.enabled = false;
-    renderer.insert(bbox);
+    // lime bbox outlines — the debugBBox setting is the toggle (sceneColony.draw syncs it live)
+    map.bboxPass = new RenderDebugEntity();
+    map.bboxPass.enabled = Settings.get("debugBBox");
+    renderer.insert(map.bboxPass);
     const paths = new RenderDebugPath(scene.level.grid); // enemy A* paths, off until toggled
     paths.enabled = false;
     renderer.insert(paths);

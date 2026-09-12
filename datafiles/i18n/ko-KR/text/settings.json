@@ -25,6 +25,9 @@
   "SETTINGS_KEYS_PROMPT": "키를 누르세요…",
   "SETTINGS_KEYS_RESET": "기본값으로 초기화",
 
+  "SETTINGS_DEBUG_TITLE": "디버그",
+  "SETTINGS_DEBUG_BBOX": "BBox 외곽선",
+
   "LANG_EN_US": "English",
   "LANG_KO_KR": "한국어"
 }

@@ -25,6 +25,9 @@
   "SETTINGS_KEYS_PROMPT": "Press a key…",
   "SETTINGS_KEYS_RESET": "Reset to Defaults",
 
+  "SETTINGS_DEBUG_TITLE": "Debug",
+  "SETTINGS_DEBUG_BBOX": "BBox outlines",
+
   "LANG_EN_US": "English",
   "LANG_KO_KR": "Korean"
 }

@@ -519,6 +519,25 @@ globalThis.GameOverlay = {
       scroll.scrollBody.insertChild(keySection);
     }
 
+    // dev only: the debug draw passes read their key live each frame (sceneColony.draw), so a
+    // row here only flips the setting — the overlay reaches no scene and no pass.
+    if (DEV_MODE) {
+      const debugSection = facetSection(I18n.textRef("SETTINGS_DEBUG_TITLE"));
+      debugSection.insertChild(
+        facetToggle(
+          I18n.textRef("SETTINGS_DEBUG_BBOX"),
+          () => Settings.get("debugBBox"),
+          () => Settings.set("debugBBox", !Settings.get("debugBBox")),
+          {
+            key: "debugBBox",
+            onText: I18n.textRef("COMMON_ON"),
+            offText: I18n.textRef("COMMON_OFF"),
+          },
+        ),
+      );
+      scroll.scrollBody.insertChild(debugSection);
+    }
+
     // settings persist only on explicit Save (Settings.set updates live in memory)
     if (GameOverlay.settingsFile !== null) {
       const saveRow = new UIElement({
