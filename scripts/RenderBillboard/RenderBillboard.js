@@ -89,13 +89,22 @@ globalThis.RenderBillboard = class RenderBillboard {
 
   destroy() {}
 
+  /**
+   * THE pitch compensation of the standing pass (header) — also the silhouette→world-z rate a
+   * non-render caller needs: a body point `a` silhouette px up a standing sprite stands at
+   * world z = −a·tall(pitch), up being −z (Camera.cursorWorld's aim plane).
+   */
+  static tall(pitch) {
+    return pitch > 0 ? 1 / Math.sin(pitch) : 1;
+  }
+
   draw(entities) {
     const ident = matrix_build_identity();
     const tiltDeg = this.tiltDeg; // constant upright — no camera-pitch tracking
     const pitch = this.camera !== undefined ? this.camera.pitch : 0;
     // the pitch compensation (header) — on the world z (matrix_build scales on the WORLD
     // axes, and the tilt has already stood the sprite's height along z)
-    const tall = pitch > 0 ? 1 / Math.sin(pitch) : 1;
+    const tall = RenderBillboard.tall(pitch);
     // only pass that writes depth; global default is off (Game Create_0) to avoid z-fighting
     // in coplanar ground passes — restore after
     gpu_set_zwriteenable(true);

@@ -226,19 +226,21 @@ globalThis.Camera = class Camera {
   }
 
   /**
-   * Surface-pixel → world on the GROUND PLANE (wz = 0) — the exact inverse of project(), and
-   * ORTHO ONLY for the same reason. Pitch-aware via the up vector (a flat camera's upY=1/upZ=0
-   * reduces to the linear mapping). GMRT's own mouse_x/mouse_y are wrong under a pitched
+   * Surface-pixel → world on the `wz` PLANE (default the ground, wz = 0) — the exact inverse of
+   * project(), and ORTHO ONLY for the same reason. Pitch-aware via the up vector (a flat
+   * camera's upY=1/upZ=0 reduces to the linear mapping, and `wz` then moves nothing — a
+   * top-down view has no plane to choose). GMRT's own mouse_x/mouse_y are wrong under a pitched
    * matrix-driven camera, so world-cursor consumers must convert through this instead.
+   * Which plane a cursor MEANS is the question a pitched view forces — see cursorWorld.
    */
-  unproject(sx, sy) {
+  unproject(sx, sy, wz = 0) {
     const sw = surface_get_width(application_surface);
     const sh = surface_get_height(application_surface);
-    // project(): s = (wy−toY)·upY + (wz−toZ)·upZ — solve for wy at wz = 0
+    // project(): s = (wy−toY)·upY + (wz−toZ)·upZ — solve for wy on the wz plane
     const s = ((sy - sh / 2) * this.height) / sh;
     return {
       x: this.toX + ((sx - sw / 2) * this.width) / sw,
-      y: this.toY + (s + this.toZ * this.upZ) / this.upY,
+      y: this.toY + (s - (wz - this.toZ) * this.upZ) / this.upY,
     };
   }
 
@@ -265,12 +267,16 @@ globalThis.Camera = class Camera {
    * simply wrong once the view tilts, so aim/build/interact all read the latched value instead
    * (sceneColony.update → scene.mouseWorld + Playable.cursorX/Y). Under a flat matrix camera
    * the plain room cursor stays valid (Input.pointer.roomX/roomY, the space CameraPan works
-   * in). The result is a GROUND-plane point — an entity's FEET — so pointing at a tall
-   * billboard's upper body lands behind it.
+   * in).
+   * `wz` PICKS THE PLANE the cursor means, and a pitched view forces the choice: the default
+   * GROUND plane is where cells and footprints live (build, tiles), but a body is drawn
+   * STANDING off it (RenderBillboard), so a cursor over a visible torso unprojects to the
+   * ground BEHIND that body — off by the silhouette height aimed at, over cos(pitch). Aim and
+   * pick therefore read the plane the bodies occupy (sceneColony AIM_H).
    * ORTHO only (see project).
    */
-  cursorWorld() {
+  cursorWorld(wz = 0) {
     const m = this.mouseSurface();
-    return this.unproject(m.x, m.y);
+    return this.unproject(m.x, m.y, wz);
   }
 };

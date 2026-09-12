@@ -603,6 +603,58 @@ globalThis.testCore = {
       },
     },
     {
+      // The pitched view's PLANE CHOICE: project/unproject invert each other on any world-z
+      // plane, and reading one screen point on a raised plane instead of the ground shifts the
+      // answer h·tan(pitch) toward the eye — the correction that puts a cursor covering a
+      // standing body back onto that body's footprint (Camera.cursorWorld, sceneColony AIM_H).
+      id: "camera.unproject",
+      setup(ctx) {
+        const p = (42 * Math.PI) / 180; // the colony's shallow end (ColonyMap._pitchCurve)
+        ctx.pitch = p;
+        // the pitched ortho view CameraFollow builds: up swings out of the ground plane with it
+        ctx.camera = new Camera({
+          width: 1366,
+          height: 768,
+          toX: 100,
+          toY: 200,
+          upY: Math.cos(p),
+          upZ: Math.sin(p),
+        });
+        ctx.camera.pitch = p;
+        ctx.flat = new Camera({ width: 1366, height: 768 }); // upY 1 / upZ 0 — top-down
+      },
+      verify(ctx, t) {
+        const cam = ctx.camera;
+        const h = 30; // world px up off the ground (up is −z)
+        const foot = cam.project(140, 260);
+        const g = cam.unproject(foot.x, foot.y);
+        t.near(g.x, 140, 0.01, "ground round-trip x");
+        t.near(g.y, 260, 0.01, "ground round-trip y");
+        const head = cam.project(140, 260, -h);
+        t.ok(head.y < foot.y, "a raised point draws further up the screen");
+        const r = cam.unproject(head.x, head.y, -h);
+        t.near(r.x, 140, 0.01, "raised round-trip x");
+        t.near(r.y, 260, 0.01, "raised round-trip y");
+        const aim = cam.unproject(foot.x, foot.y, -h);
+        t.near(
+          aim.y - g.y,
+          h * Math.tan(ctx.pitch),
+          0.01,
+          "the raised plane reads h·tan(pitch) nearer the eye",
+        );
+        t.eq(aim.x, g.x, "the plane never moves x");
+        t.eq(
+          ctx.flat.unproject(foot.x, foot.y, -h).y,
+          ctx.flat.unproject(foot.x, foot.y).y,
+          "a top-down view has no plane to choose",
+        );
+      },
+      teardown(ctx) {
+        ctx.camera.destroy();
+        ctx.flat.destroy();
+      },
+    },
+    {
       id: "id.pack",
       setup() {},
       verify(ctx, t) {

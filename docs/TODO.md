@@ -12,6 +12,7 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 - Settlement and outpost — foundation done (`Settlement`: a level is one settlement with Name/Faction — the authored colony hub, or an outpost the player founds at a wild site's Survey Post; build mode gated to allied maps); settlement-management UI remains
 - Farming and fishing — the flora foundation is in (`FloraSystem` over `Growth`: biome pools, season-weighted growth and spread, built crops, harvest); remaining: fishing, seeds and soil as inputs, a farm plot tied to the settlement's `farm` component
 - Raid event: defend the settlement (`musAmbientEmergency` is the reserved BGM)
+- Silhouette pick — the cursor reaches the bodies' plane through one compromise height (`sceneColony` `AIM_H`), so a target much taller or shorter than that still reads off by its own silhouette. The per-target answer is a SCREEN-space hit test against the standing quad `RenderBillboard` draws (foot at `Position`, the drawn sprite height), picking the entity and then aiming at its `BBox` — which keeps every sim answer on the ground plane. Also fixes `Interactable`'s mouse pick and its highlight outline, both flat ground rects today.
 - Gacha capsule with new UI
 - Gamepad reloading
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
