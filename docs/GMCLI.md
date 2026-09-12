@@ -10,7 +10,7 @@ gm-cli compile gems.yyp  # compile only
 gm-cli package gems.yyp  # package a distributable build
 ```
 
-Optional flags: `--target`, `--runtime`, `--toolchain`, and `--errors-only`. The toolchain is already pinned by `gm-options.json`, so no `--toolchain` flag is needed.
+Optional flags: `--target`, `--runtime`, `--toolchain`, and `--errors-only`. The toolchain is already pinned by `gm-options.json`, so no `--toolchain` flag is needed. `--runtime native` builds with GMRT's ahead-of-time compiler instead of the default VM — faster, and not pinnable in `gm-options.json`, so the flag goes on every `run`/`compile` that should be native.
 
 ## Manual
 
