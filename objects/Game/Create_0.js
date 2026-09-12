@@ -13,7 +13,7 @@ globalThis.TEST_AUTORUN = DEV_MODE
 if (RELEASE_MODE) randomize();
 
 gpu_set_ztestenable(true);
-// GMRT quirk: fixed-function alpha test is INERT (see CLAUDE.md) — gpu_set_alphatestenable rounds-trips
+// GMRT quirk: fixed-function alpha test is INERT (docs/GMRT.md) — gpu_set_alphatestenable rounds-trips
 // its getters but never discards at draw time. shMeshlit's u_alphaRef does the cutout via
 // `discard` instead. left commented as a record of the dead end:
 // gpu_set_alphatestenable(true);

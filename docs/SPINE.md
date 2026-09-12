@@ -1,6 +1,6 @@
 # Spine
 
-The Spine (skeletal sprite) half of the GMRT deny-list, split out of `GMRT.md` because it bites only the skeletal area — `SkeletonSystem` (playback, sheet metadata), `AppearanceSystem` (dressing), `Skeleton` (the component), `RenderBillboard` (the draw). GMRT.md's rules apply here unchanged: an entry is the rule and the safe idiom, verified on the pinned 0.21, never a ticket's state. Every entry is [unreported] — #14773 reports GMRT Spine failing more broadly (sprite not drawing, texture group not fetched), so the cluster is a comment there, never a second ticket. Unless stated, an entry is not A/B-run against GMS2.
+The Spine (skeletal sprite) half of the GMRT deny-list, split out of `GMRT.md` because it bites only the skeletal area — `SkeletonSystem` (playback, sheet metadata), `AppearanceSystem` (dressing), `Skeleton` (the component), `RenderBillboard` (the draw). GMRT.md's rules apply here unchanged: an entry is the rule and the safe idiom, verified on the pinned 0.21, never a ticket's state. No entry here has a ticket of its own — #14773 reports GMRT Spine failing more broadly (sprite not drawing, texture group not fetched), so the cluster is a comment there, never a second ticket. Unless stated, an entry is not A/B-run against GMS2.
 
 ## Drawing and Playback
 
