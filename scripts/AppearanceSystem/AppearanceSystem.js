@@ -31,7 +31,7 @@ globalThis.AppearanceSystem = {
     trinket: "hat",
   },
 
-  // setting a slot to an UNKNOWN attachment name clears it; setting "" does not (docs/GMRT.md)
+  // setting a slot to an UNKNOWN attachment name clears it; setting "" does not (docs/SPINE.md)
   BARE: "__bare",
 
   // skeleton sprite name -> its dress slots (see _rig); rig data never changes within a run
@@ -85,7 +85,7 @@ globalThis.AppearanceSystem = {
    * The dress slots of a rig, derived once per sprite off its sheet (SkeletonSystem.info): every
    * slot the setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus
    * the setup world rotation of the bone it rides — which every attachment on that bone carries
-   * to draw upright (docs/GMRT.md).
+   * to draw upright (docs/SPINE.md).
    *
    * @returns {{name: string, rot: number}[]}
    */
@@ -126,7 +126,7 @@ globalThis.AppearanceSystem = {
   /**
    * Mount one sprite on one slot, its origin on the slot's bone. The origin args are bone-local
    * Spine coordinates, and the runtime centres the packer-TRIMMED rect there after subtracting
-   * the trim in that same frame (docs/GMRT.md) — so give the trim back, then move the trimmed
+   * the trim in that same frame (docs/SPINE.md) — so give the trim back, then move the trimmed
    * centre onto the sprite's origin: an image-space vector, y flipped and turned by `rot` into
    * the bone frame, shrunk with the art. Every term is read off the sprite, so the art's authored
    * framing and origin are what the doll shows, trimmed or not.
@@ -156,7 +156,7 @@ globalThis.AppearanceSystem = {
         slot.rot,
       );
     } catch (e) {
-      // re-creating an EXISTING attachment name faults (docs/GMRT.md) and the runtime offers no
+      // re-creating an EXISTING attachment name faults (docs/SPINE.md) and the runtime offers no
       // way to ask whether one exists — the throw IS the "already defined" answer, and the
       // standing definition is identical, so the slot can just be pointed at it
     }

@@ -6,7 +6,7 @@
  * `-1`, an occupied-bare claim: a one-piece covering `pants`); an unclaimed slot falls back to
  * the base — so unequipping restores the authored clothes with no memory of what was worn.
  *
- * `dirty` is what survives a re-mint: attachments are per-INSTANCE (docs/GMRT.md), so a map
+ * `dirty` is what survives a re-mint: attachments are per-INSTANCE (docs/SPINE.md), so a map
  * transfer or a load leaves a fresh puppet wearing nothing — SkeletonSystem raises the flag when
  * it mints and the next AppearanceSystem pass re-dresses it.
  *

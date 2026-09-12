@@ -6,7 +6,7 @@
  *
  * The clock is ours because the runtime never advances a skeletal one, and the frame count comes
  * from skeleton_animation_get_frames, the one piece of frame metadata a skeletal sprite reports
- * correctly (docs/GMRT.md).
+ * correctly (docs/SPINE.md).
  */
 globalThis.SkeletonSystem = {
   /**
@@ -55,7 +55,7 @@ globalThis.SkeletonSystem = {
 
   /**
    * Tint one slot of the rig, written to the component and onto the live puppet if there is one —
-   * slot colour is per-instance (docs/GMRT.md), so a later mint replays the map. `color` is the
+   * slot colour is per-instance (docs/SPINE.md), so a later mint replays the map. `color` is the
    * other axis: the two multiply. No-op for an entity carrying no Skeleton.
    */
   tint(entities, id, slot, color) {
@@ -83,7 +83,7 @@ globalThis.SkeletonSystem = {
    * A sheet's `sprite_get_info` struct, read once per sprite (fixed for the build): the sound,
    * puppet-free read of a rig — `animation_names` (the one missing-name check: get_frames and
    * get_duration read 0 for a missing name AND for a single-key set), `bones` with the setup
-   * pose, `slots` with their bone and setup attachment (docs/GMRT.md). Keyed by sprite name — a
+   * pose, `slots` with their bone and setup attachment (docs/SPINE.md). Keyed by sprite name — a
    * Map keyed by an asset ref crashes (docs/GMRT.md).
    */
   _info: {},
@@ -100,7 +100,7 @@ globalThis.SkeletonSystem = {
 
   /**
    * Bind the puppet to `sk.anim`, refusing a set the sheet lacks — the runtime binds a missing
-   * name silently (docs/GMRT.md), so the doll would pass as standing still. A single-key set (the
+   * name silently (docs/SPINE.md), so the doll would pass as standing still. A single-key set (the
    * rigs' `down`) is a pose: it reads 0 frames, so update never advances it and it holds its
    * only frame.
    */
@@ -116,13 +116,13 @@ globalThis.SkeletonSystem = {
   _mint(entities, id, sk) {
     const held = InstanceSystem.attach(entities, id);
     held.inst.sprite_index = sk.sprite;
-    held.inst.image_speed = 0; // SkeletonSystem owns the clock (docs/GMRT.md)
+    held.inst.image_speed = 0; // SkeletonSystem owns the clock (docs/SPINE.md)
     SkeletonSystem._play(held.inst, sk);
-    // slot colours are per-instance like attachments (docs/GMRT.md): replayed on every mint
+    // slot colours are per-instance like attachments (docs/SPINE.md): replayed on every mint
     const slots = Object.keys(sk.tints);
     for (let i = 0; i < slots.length; i++)
       held.inst.skeleton_slot_colour_set(slots[i], sk.tints[slots[i]], 1);
-    // a fresh puppet wears nothing: attachments are per-instance (docs/GMRT.md), so a doll that
+    // a fresh puppet wears nothing: attachments are per-instance (docs/SPINE.md), so a doll that
     // just crossed a map or came back from a save has to be re-dressed by its Appearance owner
     const ap = entities.get(id, Appearance);
     if (ap !== undefined) ap.dirty = true;

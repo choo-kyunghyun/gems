@@ -4,7 +4,7 @@ globalThis.ColonyPlayer = {
   // default skin tint for the white spineHuman body art — "#e8b890" as a GM BGR color int
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT). One blend
   // the player's skin tone, worn as body-slot tints (ColonySpawn.skinTints) — whole-rig `color`
-  // would wash the garments with it (docs/GMRT.md).
+  // would wash the garments with it (docs/SPINE.md).
   SKIN: 0x90b8e8,
 
   /**

@@ -29,7 +29,7 @@ Project guidelines for Claude Code.
 
 ## GMRT
 
-`docs/GMRT.md` is the deny-list of JS forms and built-ins the pinned runtime breaks — read it before writing or modifying any script. When verification reveals unexpected runtime behavior, check the doc and record the quirk there.
+`docs/GMRT.md` is the deny-list of JS forms and built-ins the pinned runtime breaks — read it before writing or modifying any script; `docs/SPINE.md` is its Spine half, read before touching the skeletal area. When verification reveals unexpected runtime behavior, check the doc and record the quirk there.
 
 ## Architecture
 
