@@ -1,5 +1,5 @@
 // Core test cases, handed to sceneTest's runner. A case:
-//   { id, frames?, setup(ctx), frame?(ctx, i), verify(ctx, t), teardown?(ctx) }
+//   { id, frames?, setup(ctx), frame?(ctx, i, t), draw?(ctx, t), verify(ctx, t), teardown?(ctx) }
 // setup fills ctx (a Level, a store, the ids); verify asserts through t.ok/eq/near — every miss
 // is one `[CHECK] FAIL <id>` line — and times through t.measure, one `[BENCH]` line per measure;
 // teardown frees what setup made. `frames` (default 1) spans a case over real

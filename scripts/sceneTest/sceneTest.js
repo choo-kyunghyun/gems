@@ -1,4 +1,5 @@
-// Core test harness. Runs the testCore cases one per Step so the window stays live, and reports
+// Core test harness. Runs the testCore cases, then the testStress scenarios, one per Step so the
+// window stays live (a scenario spans `frames` Steps and draws its level), and reports
 // through game.log lines under a prefix — `[TEST]` the run's banner + summary, `[CHECK]` a case's
 // PASS/FAIL, `[BENCH]` a ns/op figure a case measured — so a run is read with a grep and never
 // written into the repo. Re-run in the same session for a before/after: a timing compares only
@@ -72,7 +73,11 @@ class _SceneTestClass {
 
   /** Queue every case and log the banner; update() drains one case per frame. */
   _start() {
-    this._cases = testCore.CASES;
+    this._cases = [];
+    const core = testCore.CASES;
+    for (let i = 0; i < core.length; i++) this._cases.push(core[i]);
+    const stress = testStress.CASES; // the scenarios last: seconds each, and they draw
+    for (let i = 0; i < stress.length; i++) this._cases.push(stress[i]);
     this._cursor = 0;
     this._frame = 0;
     this._pass = 0;
@@ -91,7 +96,13 @@ class _SceneTestClass {
     this._step(this._cases[this._cursor]);
   }
 
-  draw() {}
+  /** A scenario case draws its own level: `draw(ctx)` is optional and runs while the case is live. */
+  draw() {
+    if (this._ctx === null) return;
+    const c = this._cases[this._cursor];
+    if (c !== undefined && c.draw !== undefined)
+      this._guard("draw", () => c.draw(this._ctx, this._t));
+  }
 
   _finish() {
     this._running = false;
@@ -114,8 +125,8 @@ class _SceneTestClass {
   }
 
   /**
-   * A case spans `frames` (default 1) frames: setup on its first, `frame(ctx, i)` on every one,
-   * then verify + teardown on its last. A phase that throws skips straight to teardown.
+   * A case spans `frames` (default 1) frames: setup on its first, `frame(ctx, i, t)` on every
+   * one, then verify + teardown on its last. A phase that throws skips straight to teardown.
    */
   _step(c) {
     const frames = c.frames ?? 1;
@@ -128,7 +139,7 @@ class _SceneTestClass {
     if (alive) {
       const i = this._frame;
       if (c.frame !== undefined)
-        alive = this._guard("frame " + i, () => c.frame(this._ctx, i));
+        alive = this._guard("frame " + i, () => c.frame(this._ctx, i, this._t));
     }
     this._frame += 1;
     if (alive) {
@@ -139,6 +150,7 @@ class _SceneTestClass {
       this._guard("teardown", () => c.teardown(this._ctx)); // a level left alive would leak
     this._ctx = null;
     SolidSystem.invalidate(); // the case's store is gone; the next one must not read its cache
+    this._t.report();
     const fails = this._t.fails;
     if (fails.length === 0) {
       this._pass += 1;
@@ -166,13 +178,45 @@ class _SceneTestClass {
 }
 
 /**
- * The collector a case's verify() is handed: the assertions (each miss is one FAIL line) and
- * `measure`, which times `run` against `base` — the SAME loop of n without the op — REPEATS
- * times each, keeps the minimum of each, and logs the difference per op as one `[BENCH]` line:
- * the per-op cost net of the loop. Returns the ns.
+ * The collector a case is handed: the assertions (each miss is one FAIL line); `measure`, which
+ * times `run` against `base` — the SAME loop of n without the op — REPEATS times each, keeps the
+ * minimum of each, and logs the difference per op as one `[BENCH]` line (the per-op cost net of
+ * the loop; returns the ns); and `sample`, which accumulates one value per frame of a scenario
+ * under an id, reported by the runner at the case's end as one `[BENCH] <id> p50 … p95 … max …`
+ * line — a distribution, since a scenario's cost is its spread, not a mean.
  */
 function _testCollector() {
-  const t = { fails: [] };
+  const t = { fails: [], _sampleIds: [], _samples: [] };
+  t.sample = (id, value) => {
+    let k = t._sampleIds.indexOf(id);
+    if (k < 0) {
+      k = t._sampleIds.length;
+      t._sampleIds.push(id);
+      t._samples.push([]);
+    }
+    t._samples[k].push(value);
+  };
+  t.report = () => {
+    for (let k = 0; k < t._sampleIds.length; k++) {
+      const v = t._samples[k];
+      v.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // a SIGN comparator (docs/GMRT.md #15593)
+      const n = v.length;
+      const at = (q) => v[Math.min(n - 1, Math.floor(q * n))];
+      Log.info(
+        "[BENCH] " +
+          t._sampleIds[k] +
+          " p50 " +
+          at(0.5) +
+          " p95 " +
+          at(0.95) +
+          " max " +
+          v[n - 1] +
+          " (n=" +
+          n +
+          ")",
+      );
+    }
+  };
   t.ok = (cond, msg) => {
     if (!cond) t.fails.push(msg);
   };

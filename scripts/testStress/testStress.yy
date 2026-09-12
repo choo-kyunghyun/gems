@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"testStress",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"testStress",
+  "parent":{
+    "name":"Dev",
+    "path":"folders/Game/Dev.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"testStress.js",
+}

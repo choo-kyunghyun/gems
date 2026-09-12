@@ -71,7 +71,8 @@ Console cert routes every player-owned file — the saves, `settings.json`, the 
 
 ## Verification
 
-The Core tests are in (`sceneTest` over `testCore`, `GEMS_TEST=1 gm-cli run` for the one-command form); one-off probes stay on the `Log`/`Screenshot`/`entities.dump` harness.
+The Core tests are in (`sceneTest` over `testCore` + the `testStress` scenarios, `GEMS_TEST=1 gm-cli run` for the one-command form); one-off probes stay on the `Log`/`Screenshot`/`entities.dump` harness.
 
-- A `testCore` case for what only a real frame boundary catches (`frames` is in, no case uses it beyond the self-test): the once-per-frame `NavGrid.sync` against a tick-loop edit, an `Input` edge across the frame poll
+- A `testCore` case for what only a real frame boundary catches: the once-per-frame `NavGrid.sync` against a tick-loop edit, an `Input` edge across the frame poll
+- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (`ids.next` high-water mark, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + `onStatics` per frame)
 - The `perf.*` cases measure Core only; a Game-side cost (the doll's draw path, the frame profile) wants a `testColony` or the section timer under Performance, not a Core case
