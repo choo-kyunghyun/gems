@@ -45,7 +45,7 @@ globalThis.MotionPlanner = {
   _gen: 0,
   // the open set: a binary min-heap as parallel node/f arrays, reset per plan. In JS rather than
   // ds_priority so a plan holds no GML resource and pays no boundary crossing per op — worth ~5%
-  // of a long plan; the expansions themselves are the cost (docs/TODO.md → Performance).
+  // of a long plan; the expansions themselves are the cost (docs/TODO.md → Pathfinding).
   _hn: [],
   _hf: [],
 

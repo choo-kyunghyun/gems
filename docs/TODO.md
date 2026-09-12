@@ -26,10 +26,7 @@ Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
 
 ## Pathfinding
 
-Every agent now plans over one level-sized `NavGrid`, so a request can span the whole map, and that exposed two costs.
-
-- Bound a far plan — an A* expansion is ~6 us (four neighbours: `inBounds`/`get`/`toIndex` calls, a heuristic, a heap push), and over the weighted 128² overworld the unit heuristic is weak enough that a corner-to-corner plan expands ~90% of the cells: ~80–100 ms per far plan against ~2 ms for a 40-cell one, and `PathfindingSystem`'s `budget` bounds count, not time, so one far plan is still a frame hitch. A heuristic weight (bounded suboptimality) is the one-line knob; a coarse planner over the fine grid (region graph → refine within the corridor) is the real fix once workers routinely cross the map.
-- `LevelGrid.costAt` builds a `NavData` literal per layer per cell (~3 us a cell) — the whole-level resample at a map's first `NavGrid.sync` or a bulk paint (~50 ms) is mostly that allocation. Have `getNavData` answer a number (undefined = pass through) and the literal goes.
+- Bound a far plan — waits on a mover that crosses the map (the settlement's workers, under Gameplay); today the one requester is `CombatAI`'s blocked chase, capped at `deAggro` (~7 cells), so no plan is far. What that will cost: an A* expansion is ~6 us, and over the weighted 128² overworld the unit heuristic is weak enough that a corner-to-corner plan expands ~90% of the cells (~80–100 ms) while `PathfindingSystem`'s `budget` bounds count, not time. In order of cost: a time budget or a lower `maxIter` (no path-quality change), then `MotionPlanner.plan`'s `heuristicWeight` (bounded suboptimality — it cuts through weighted ground), and a coarse region planner refined within the corridor only if those fail.
 
 ## Performance
 

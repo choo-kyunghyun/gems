@@ -38,8 +38,8 @@ globalThis.NavGrid = class NavGrid {
 
   /**
    * Mirror the tile layers' cost into the base when they have been edited since the last sample,
-   * then recompose. Only the cells the layers report dirty are resampled (a paint is one cell; a
-   * whole-level costAt pass is ~50 ms) — everything on the first sync or after a bulk paint. Once
+   * then recompose. Only the cells the layers report dirty are resampled (a paint is one cell,
+   * the level is thousands) — everything on the first sync or after a bulk paint. Once
    * per frame, outside the tick loop (SimClock). Returns whether it resampled.
    */
   sync() {

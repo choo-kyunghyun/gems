@@ -1,13 +1,9 @@
 /**
- * @typedef {{ cost: number | undefined }} NavData
- */
-
-/**
  * A layer's cell value is a `TileType` instance — id/name and the nav-cost rules live on the class.
  * @typedef {Object} LevelLayer
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
- * @property {function(number, number): NavData} getNavData
+ * @property {function(number, number): number | undefined} costAt  the cell's nav cost; undefined passes through to the layer below
  * @property {number} edits  count of cell writes so far (a consumer mirroring the layer diffs it)
  * @property {number[]} dirty  cell indexes written since the mirror last drained them
  * @property {boolean} dirtyAll  the writes outran `dirty` — the mirror resamples every cell
@@ -50,8 +46,8 @@ globalThis.LevelGrid = class LevelGrid {
    */
   costAt(x, y) {
     for (let i = this.layers.length - 1; i >= 0; i--) {
-      const nav = this.layers[i].getNavData(x, y);
-      if (nav.cost !== undefined) return nav.cost;
+      const cost = this.layers[i].costAt(x, y);
+      if (cost !== undefined) return cost;
     }
     return Infinity;
   }

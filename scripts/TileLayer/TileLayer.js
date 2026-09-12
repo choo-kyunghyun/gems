@@ -58,8 +58,8 @@ globalThis.TileLayer = class TileLayer {
     return this.grid.get(x, y);
   }
 
-  getNavData(x, y) {
+  costAt(x, y) {
     const type = this.grid.get(x, y);
-    return { cost: type ? type.pathCost : this.emptyCost };
+    return type ? type.pathCost : this.emptyCost;
   }
 };
