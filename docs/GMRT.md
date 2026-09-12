@@ -24,6 +24,7 @@ What fails loudly, by phase: at runtime, a built-in diverging from its manual co
 
 - [#15546] `merge_colour` FLOORS its channel math where GMS2 rounds — re-merging a packed color into itself every frame drifts it to black, and a packed-int lerp freezes on sub-1 steps. One-shot merges are fine; animate a color as float r/g/b channels, rounding only the final `make_colour_rgb`.
 - [#14737] the fixed-function alpha test (`gpu_set_alphatestenable`/`_ref`) is INERT — a transparent fragment still writes depth, so a sprite's empty pixels occlude what's behind. `discard` in the fragment shader instead (`shMeshlit`'s `u_alphaRef`, cutting on the TEXEL alpha so a dimmed entity stays visible).
+- [#6553] a `draw_primitive_begin` batch draws at most 1000 vertices — every vertex past the 1000th is dropped silently, so a long run ends mid-list with no error (the manual documents no limit). Re-open the batch on that boundary, keeping one shape whole (`RenderDebugEntity`'s box walk), or bake a `VertexBuffer` where the geometry outlives the frame.
 - `gpu_set_scissor` quirk cluster — it is the UI clip mechanism (`UIElement._drawClipped`). The rules:
   1. Coords are render-target PIXELS, not GUI units — convert by `k = target/gui`. ([#11377] — intended behaviour.)
   2. [#15476] `window_get_width/height()` and the application surface lag the back buffer on a resize — a scissor sized from a raw query can overflow the target (fatal error). Size clips from `Display.clipW/clipH`.
