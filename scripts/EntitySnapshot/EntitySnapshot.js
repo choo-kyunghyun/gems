@@ -24,7 +24,7 @@ globalThis.EntitySnapshot = {
   /** Onto an EXISTING entity (the caller already created it — can't go through restore). */
   apply(entities, id, snapshot) {
     const comps = snapshot.components;
-    // for...in over a plain object is GMRT-safe; Map/Set iteration is not.
+    // for...in over a plain object is GMRT-safe; Map iteration is not (docs/GMRT.md).
     for (const token in comps) entities.add(id, token, comps[token]);
     return id;
   },

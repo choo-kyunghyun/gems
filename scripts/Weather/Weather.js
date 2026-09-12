@@ -177,7 +177,7 @@ globalThis.Weather = {
 
   /**
    * season-weighted pick excluding the current ambient (so it changes); for...in over a plain
-   * object is GMRT-safe (Map/Set iteration is not)
+   * object is GMRT-safe (Map iteration is not — docs/GMRT.md)
    */
   _rollAmbient() {
     const w = Weather._WEIGHTS[WorldClock.season().id];

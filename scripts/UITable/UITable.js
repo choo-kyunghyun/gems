@@ -21,7 +21,7 @@
  * lapses and nav resumes. Edge reads come from the shared `UINav.readEdge()`.
  *
  * GMRT: hit-test/hover live in instance fields (cached primitive bool gets clobbered — see
- * CLAUDE.md); no Map/Set iteration; pointer edges via Input.pointer (frame-latched), never a
+ * CLAUDE.md); no Map iteration; pointer edges via Input.pointer (frame-latched), never a
  * re-read of mouse_check_button*.
  */
 globalThis.UITable = class UITable {

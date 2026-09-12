@@ -1,7 +1,7 @@
 // UINav — keyboard/gamepad menu navigation. Singleton, not a UIComponent. An element is focusable via
 // navActivate(el) (confirm) and/or navAxis(el, dir) (adjust). GMRT idioms on the declaration below.
 /**
- * GMRT: edge queries read once per frame; ring pulse uses Time.raw; no Map/Set iteration, no cached
+ * GMRT: edge queries read once per frame; ring pulse uses Time.raw; no Map iteration, no cached
  * primitive bool.
  */
 globalThis.UINav = {

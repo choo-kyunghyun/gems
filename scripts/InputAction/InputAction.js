@@ -13,7 +13,7 @@ globalThis.InputAction = class InputAction {
   }
 
   /**
-   * Restrict to given context names (indexOf-tested array, never a Set — GMRT Set iteration crashes).
+   * Restrict to given context names (indexOf-tested array).
    */
   inContext(list) {
     this.contexts = list;
