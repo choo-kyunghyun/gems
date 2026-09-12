@@ -384,6 +384,7 @@
     {"id":{"name":"Settlement","path":"scripts/Settlement/Settlement.yy",},},
     {"id":{"name":"SettlementComponent","path":"scripts/SettlementComponent/SettlementComponent.yy",},},
     {"id":{"name":"SettlementSystem","path":"scripts/SettlementSystem/SettlementSystem.yy",},},
+    {"id":{"name":"Silhouette","path":"scripts/Silhouette/Silhouette.yy",},},
     {"id":{"name":"SimClock","path":"scripts/SimClock/SimClock.yy",},},
     {"id":{"name":"Skeleton","path":"scripts/Skeleton/Skeleton.yy",},},
     {"id":{"name":"SkeletonSystem","path":"scripts/SkeletonSystem/SkeletonSystem.yy",},},

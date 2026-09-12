@@ -222,9 +222,9 @@ globalThis.PlayerSystem = {
         Math.abs(rx) <= STICK_DEADZONE &&
         Math.abs(ry) <= STICK_DEADZONE
       ) {
-        // scene-latched AIM cursor — the body plane, not the floor, and NOT mouse_x/mouse_y,
-        // which are wrong under the pitched matrix camera (see Camera.cursorWorld;
-        // sceneColony.update latches Playable.cursorX/Y)
+        // scene-latched AIM point — the body the cursor covers, else the aim plane, and NOT
+        // mouse_x/mouse_y, which are wrong under the pitched matrix camera (see
+        // ColonyPlayer.aim; sceneColony.update latches Playable.cursorX/Y)
         const adx = pl.cursorX - pos.x;
         const ady = pl.cursorY - pos.y;
         const adist = Math.sqrt(adx * adx + ady * ady) || 1;
@@ -340,7 +340,7 @@ globalThis.PlayerSystem = {
       tx = pos.x + dir.x * THROW_RANGE;
       ty = pos.y + dir.y * THROW_RANGE;
     } else {
-      // scene-latched AIM cursor, as the gun aims (Camera.cursorWorld)
+      // scene-latched AIM point, as the gun aims (ColonyPlayer.aim)
       const dx = pl.cursorX - pos.x;
       const dy = pl.cursorY - pos.y;
       const d = Math.sqrt(dx * dx + dy * dy);

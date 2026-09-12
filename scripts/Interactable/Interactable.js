@@ -136,11 +136,12 @@ globalThis.Interactable = {
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
+    const pitch = scene.map.camera.pitch; // the cursor test reads the view, not the sim (Silhouette)
     let nearest = -1;
     let nearestSq = rSq;
     let nearestPri = -Infinity;
     let mousePick = -1;
-    let mouseSq = Infinity;
+    let mouseFront = -Infinity;
 
     entities.forEach([Interaction, Position], (id, it, pos) => {
       const dPlayer = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
@@ -156,15 +157,15 @@ globalThis.Interactable = {
         nearestSq = dPlayer;
         nearest = id;
       }
+      // the cursor names the SHAPE THE PLAYER SEES — a standing body's silhouette, a flat
+      // prop's footprint (Silhouette) — and among overlapping shapes the frontmost, which is
+      // the one whose pixels the player actually clicked
       if (
-        Interactable._mouseInside(pos, entities.get(id, BBox), scene.mouseWorld)
+        pos.y > mouseFront &&
+        Silhouette.hit(entities, id, pos, scene.mouseWorld, pitch)
       ) {
-        const dMouse =
-          (pos.x - scene.mouseWorld.x) ** 2 + (pos.y - scene.mouseWorld.y) ** 2;
-        if (dMouse < mouseSq) {
-          mouseSq = dMouse;
-          mousePick = id;
-        }
+        mouseFront = pos.y;
+        mousePick = id;
       }
     });
 
@@ -176,20 +177,6 @@ globalThis.Interactable = {
     } else {
       scene._interKind = "";
     }
-  },
-
-  /**
-   * true when the world cursor `m` ({x,y} — the scene's per-frame pitch-aware latch) is inside
-   * the entity's world BBox (offset from Position)
-   */
-  _mouseInside(pos, bbox, m) {
-    if (bbox === undefined) return false;
-    const w = bbox.width;
-    const h = bbox.height;
-    if (!(w > 0) || !(h > 0)) return false;
-    const left = pos.x + bbox.x;
-    const top = pos.y + bbox.y;
-    return m.x >= left && m.x <= left + w && m.y >= top && m.y <= top + h;
   },
 
   _inRange(scene, id) {
@@ -217,22 +204,53 @@ globalThis.Interactable = {
   },
 
   /**
-   * world-space highlight outline around the target's BBox; called from scene.draw() after the world
+   * world-space highlight outline around the target, called from scene.draw() after the world:
+   * around the SILHOUETTE the pick named, in the very plane RenderBillboard stood the body up in
+   * (so the box lands on the body, not at its feet), and around the footprint for a flat prop
+   * that has no silhouette.
    */
   drawTarget(scene) {
     const id = scene._interTarget;
     if (id === -1) return;
     const entities = scene.level.entities;
     const pos = entities.get(id, Position);
-    const bbox = entities.get(id, BBox);
-    if (pos === undefined || bbox === undefined) return;
-    const w = bbox.width;
-    const h = bbox.height;
-    if (!(w > 0) || !(h > 0)) return; // unlaid / NaN bbox guard
-    const left = pos.x + bbox.x;
-    const top = pos.y + bbox.y;
+    if (pos === undefined) return;
+    const box = Silhouette.of(entities, id);
     draw_set_color(c_yellow);
-    draw_rectangle(left - 4, top - 4, left + w + 4, top + h + 4, true);
+    if (box !== undefined) {
+      // an outline is an affordance, not geometry: the depth the standing passes wrote would
+      // clip the far edges behind the very bodies it marks, so it draws over them (restore the
+      // Game-wide default after — Game Create_0)
+      gpu_set_ztestenable(false);
+      const tall = RenderBillboard.tall(scene.map.camera.pitch);
+      matrix_set(
+        matrix_world,
+        matrix_build(pos.x, pos.y, 0, -90, 0, 0, 1, 1, tall),
+      );
+      // silhouette height runs UP, the sprite's local y down — the box flips into the plane
+      draw_rectangle(
+        box.left - 4,
+        -box.top - 4,
+        box.right + 4,
+        -box.bottom + 4,
+        true,
+      );
+      matrix_set(matrix_world, matrix_build_identity());
+      gpu_set_ztestenable(true);
+    } else {
+      const bbox = entities.get(id, BBox);
+      if (bbox !== undefined && bbox.width > 0 && bbox.height > 0) {
+        const left = pos.x + bbox.x;
+        const top = pos.y + bbox.y;
+        draw_rectangle(
+          left - 4,
+          top - 4,
+          left + bbox.width + 4,
+          top + bbox.height + 4,
+          true,
+        );
+      }
+    }
     draw_set_color(c_white);
   },
 };

@@ -1,5 +1,12 @@
 // Player setup for the colony scene. Builds the player entity and owns the cursor-aimed HITSCAN
-// firing (fireBullet — an instant Combat.hitscan shot, reused by CombatAI for turrets).
+// firing (fireBullet — an instant Combat.hitscan shot, reused by CombatAI for turrets) plus the
+// cursor→world AIM the shot resolves against (aim).
+// Silhouette px up a body the aim cursor means where it is over no body at all — a wall's drawn
+// face, open ground. The bodies are drawn standing (RenderBillboard), so the cursor's ground
+// point sits behind whatever it visibly covers; reading the plane AIM_H up the silhouette
+// cancels that for anything the pick can't name.
+const AIM_H = 16;
+
 globalThis.ColonyPlayer = {
   // default skin tint for the white spineHuman body art — "#e8b890" as a GM BGR color int
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT). One blend
@@ -238,6 +245,32 @@ globalThis.ColonyPlayer = {
     const d = dead ?? 1;
     if (vx < -d) sk.xscale = -Math.abs(sk.xscale);
     else if (vx > d) sk.xscale = Math.abs(sk.xscale);
+  },
+
+  /**
+   * THE world point the player is pointing at — what a shot, swing, or throw aims through. Under
+   * the pitched camera the cursor covers a body's STANDING silhouette while the sim tests its
+   * footprint on the ground, so the two disagree about what was clicked; here the silhouette
+   * decides WHICH body and the footprint decides WHERE, which puts the hitscan through the
+   * collider the player saw. Over no body it answers the aim plane (AIM_H).
+   * Both halves read the cursor off `camera` rather than taking one, so the pick and the plane
+   * cannot be handed cursors that disagree; the two reads are pure math over the frame's latched
+   * pointer (Input.poll), so they are one answer.
+   */
+  aim(entities, shooterId, camera) {
+    const pitch = camera.pitch;
+    const cursor = camera.cursorWorld(); // the GROUND cursor — silhouette height is measured off it
+    // Health is the shootable set: a corpse has none (ColonyCombat._toCorpse detaches it), so a
+    // body on the ground never swallows the aim off the live one standing over it
+    const target = Silhouette.pick(entities, cursor, pitch, {
+      has: Health,
+      ignore: shooterId,
+    });
+    if (target !== -1 && entities.get(target, BBox) !== undefined) {
+      const e = AABB.of(entities, target);
+      return { x: e.cx, y: e.cy };
+    }
+    return camera.cursorWorld(-AIM_H * RenderBillboard.tall(pitch));
   },
 
   /**

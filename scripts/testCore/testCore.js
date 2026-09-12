@@ -655,6 +655,101 @@ globalThis.testCore = {
       },
     },
     {
+      // SILHOUETTE SPACE, both sources: a drawn body's box stands up, so the world cursor that
+      // reaches a given height on it moves with the pitch, while a flat collider's box is the
+      // footprint and answers the same under any view. Plus the frontmost rule a pick arbitrates
+      // overlapping shapes by. pixMissing is the placeholder Core's own render passes bind, so no
+      // Game art is assumed — the case reads the box back and tests the space, not the art.
+      id: "render.silhouette",
+      setup(ctx) {
+        const s = new EntityStore(8);
+        ctx.entities = s;
+        ctx.body = s.create();
+        s.add(ctx.body, Position, { x: 100, y: 100, z: 0 });
+        // only the three fields ofInto reads — the draw scale and the sheet
+        s.add(ctx.body, Visual, { sprite: pixMissing, xscale: 2, yscale: 2 });
+        // two flat colliders whose footprints OVERLAP, so one cursor sits on both
+        ctx.near = s.create();
+        s.add(ctx.near, Position, { x: 300, y: 310 });
+        s.add(ctx.near, BBox, { x: -8, y: -8, width: 16, height: 16 });
+        ctx.far = s.create();
+        s.add(ctx.far, Position, { x: 300, y: 300 });
+        s.add(ctx.far, BBox, { x: -8, y: -8, width: 16, height: 16 });
+        ctx.bare = s.create(); // neither sprite nor collider — no shape to see
+        s.add(ctx.bare, Position, { x: 500, y: 500 });
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const pos = s.get(ctx.body, Position);
+        const box = Silhouette.of(s, ctx.body);
+        t.ok(box !== undefined, "a drawn body has a standing box");
+        t.ok(box.top > box.bottom && box.right > box.left, "the box is a rect");
+        // the ground cursor that lands at (dx, a) on the silhouette — hit()'s own mapping, run
+        // backwards, which is what pins the two to one space
+        const at = (dx, a, pitch) => ({
+          x: pos.x + dx,
+          y: pos.y - a / Math.cos(pitch),
+        });
+        const p = Math.PI / 4;
+        const midA = (box.top + box.bottom) / 2;
+        const midX = (box.left + box.right) / 2;
+        const hit = (c, pitch) =>
+          Silhouette.hit(s, ctx.body, pos, c, pitch ?? p);
+        t.ok(hit(at(midX, midA, p)), "the box centre hits");
+        t.ok(!hit(at(midX, box.top + 1, p)), "a px over the top misses");
+        t.ok(!hit(at(midX, box.bottom - 1, p)), "a px under the bottom misses");
+        t.ok(!hit(at(box.left - 1, midA, p)), "a px left of the box misses");
+        t.ok(!hit(at(box.right + 1, midA, p)), "a px right of the box misses");
+        t.ok(hit(at(midX, midA, 0), 0), "the mapping inverts at pitch 0 too");
+        // a standing box reaches FURTHER across the ground the steeper the view foreshortens it,
+        // so the cursor one px past its flat reach is inside it under the pitched camera
+        const past = { x: pos.x + midX, y: pos.y - box.bottom + 1 };
+        t.ok(!hit(past, 0), "a px past the flat reach misses at pitch 0");
+        t.ok(hit(past, p), "the same cursor is inside the box under the pitch");
+        // a flat collider IS its footprint: the same world cursor, any pitch
+        const onBox = { x: 300, y: 305 };
+        const fpos = s.get(ctx.far, Position);
+        t.ok(
+          Silhouette.hit(s, ctx.far, fpos, onBox, 0) &&
+            Silhouette.hit(s, ctx.far, fpos, onBox, p),
+          "a footprint answers the same under any pitch",
+        );
+        t.ok(
+          !Silhouette.hit(s, ctx.far, fpos, { x: 300, y: 291 }, p),
+          "a cursor off the footprint misses",
+        );
+        t.eq(
+          Silhouette.hit(s, ctx.bare, s.get(ctx.bare, Position), onBox, p),
+          false,
+          "an entity with no shape is never hit",
+        );
+        // both footprints hold the cursor; the pick answers the nearer body (larger world y)
+        t.eq(
+          Silhouette.pick(s, onBox, p),
+          ctx.near,
+          "the pick is the frontmost hit",
+        );
+        t.eq(
+          Silhouette.pick(s, onBox, p, { ignore: ctx.near }),
+          ctx.far,
+          "ignore drops it to the one behind",
+        );
+        t.eq(
+          Silhouette.pick(s, onBox, p, { has: Visual }),
+          -1,
+          "has joins the query — no drawn body under this cursor",
+        );
+        t.eq(
+          Silhouette.pick(s, { x: 0, y: 0 }, p),
+          -1,
+          "a cursor on nothing picks nothing",
+        );
+      },
+      teardown(ctx) {
+        ctx.entities.destroy();
+      },
+    },
+    {
       id: "id.pack",
       setup() {},
       verify(ctx, t) {

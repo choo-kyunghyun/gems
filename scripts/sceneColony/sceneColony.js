@@ -6,13 +6,6 @@ const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rat
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
 const HOTBAR_SLIDE_SPD = 16; // approach speed for the slide (higher = snappier pop)
-// Silhouette px up a body the AIM cursor means (the ground cursor means 0 — the floor). The
-// bodies are drawn standing (RenderBillboard), so the cursor's ground point sits behind whatever
-// it visibly covers; aiming on the plane AIM_H up the silhouette cancels that. One plane serves
-// every target, so the value is a compromise: 16 covers the rat's body (~12 px up a 27 px
-// silhouette) and a doll's hip-to-chest (~45 px silhouette, 24 px footprint), while the exact
-// per-target answer needs the silhouette pick (docs/TODO.md → Gameplay).
-const AIM_H = 16;
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -387,10 +380,10 @@ class _SceneColonyClass {
     // or a footprint, which is what the ground plane holds.
     const cam = this.map.camera;
     this.mouseWorld = cam.cursorWorld();
-    // the AIM cursor: the same screen point on the plane the bodies stand on rather than the
-    // floor, so a shot at a visible torso doesn't land on the ground behind it. Read by
-    // PlayerSystem through Playable.
-    const aim = cam.cursorWorld(-AIM_H * RenderBillboard.tall(cam.pitch));
+    // the AIM point: the same cursor resolved against what it visibly covers, so a shot at a
+    // body reaches the footprint the sim tests (ColonyPlayer.aim). Read by PlayerSystem through
+    // Playable.
+    const aim = ColonyPlayer.aim(this.level.entities, this.playerId, cam);
     const pl = this.level.entities.get(this.playerId, Playable);
     pl.cursorX = aim.x;
     pl.cursorY = aim.y;
