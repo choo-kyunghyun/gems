@@ -33,7 +33,12 @@ Project guidelines for Claude Code.
 
 ## Architecture
 
-Read `docs/ARCHITECTURE.md` before modifying code.
+Read `docs/ARCHITECTURE.md` (the placement rule + the cross-cutting invariants) before modifying code. There is no area index: locate an area through the project folder tree and the owning script's header JSDoc.
+
+```sh
+grep -o '"folderPath":"folders/[^"]*"' gems.yyp | sort -u   # the layer map (Core/* vs Game/*)
+head -40 scripts/<Name>/<Name>.js                             # the area's contract; `globalThis.X =` marks the owner of a name
+```
 
 ## Debugging
 
