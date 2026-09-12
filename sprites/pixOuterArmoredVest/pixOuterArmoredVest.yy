@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":9,
   "parent":{
-    "name":"Shirts",
-    "path":"folders/Game/Media/Sprites/Entities/Human/Shirts.yy",
+    "name":"Outers",
+    "path":"folders/Game/Media/Sprites/Entities/Human/Outers.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

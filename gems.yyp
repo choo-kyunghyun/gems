@@ -46,6 +46,7 @@
     {"$GMFolder":"","%Name":"Entities","folderPath":"folders/Game/Media/Sprites/Entities.yy","name":"Entities","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Animals","folderPath":"folders/Game/Media/Sprites/Entities/Animals.yy","name":"Animals","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Human","folderPath":"folders/Game/Media/Sprites/Entities/Human.yy","name":"Human","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Outers","folderPath":"folders/Game/Media/Sprites/Entities/Human/Outers.yy","name":"Outers","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Hats","folderPath":"folders/Game/Media/Sprites/Entities/Human/Hats.yy","name":"Hats","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Shirts","folderPath":"folders/Game/Media/Sprites/Entities/Human/Shirts.yy","name":"Shirts","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Shoes","folderPath":"folders/Game/Media/Sprites/Entities/Human/Shoes.yy","name":"Shoes","resourceType":"GMFolder","resourceVersion":"2.0",},
