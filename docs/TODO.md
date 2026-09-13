@@ -15,6 +15,7 @@ Intent only — contracts live in the code. A sweep applies one mechanical rule 
 - Gacha capsule with new UI
 - Gamepad reloading
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
+- Pathfinding on its own thread, once the runtime gains C# — no threading reaches the scripting layer today
 
 ## Doll
 
@@ -23,10 +24,6 @@ Gaps left by the rubber-hose rig adoption (spineHuman/spineRat reimports).
 - Foot tilt — the foot-follows-chain transform constraints are inert on GMRT (docs/SPINE.md), so feet stay flat through every set on both rigs; bake the tilt into each set's foot keys if the flat feet start to read wrong.
 - `hair` slot art — the dress slot is live on spineHuman with no sprites to wear in it.
 - `down` is a single-key pose on both rigs, so a doll snaps into the fallen pose; author the fall as a second key in `art/human/human.spine` / `art/rat/rat.spine` if the snap reads wrong — a `skeleton_animation_mix` crossfade is no shortcut, it is inert on GMRT (docs/GMRT.md).
-
-## Pathfinding
-
-- Bound a far plan — waits on a mover that crosses the map (the settlement's workers, under Gameplay); today the one requester is `CombatAI`'s blocked chase, capped at `deAggro` (~7 cells), so no plan is far. What that will cost: an A* expansion is ~6 us, and over the weighted 128² overworld the unit heuristic is weak enough that a corner-to-corner plan expands ~90% of the cells (~80–100 ms) while `PathfindingSystem`'s `budget` bounds count, not time. In order of cost: a time budget or a lower `maxIter` (no path-quality change), then `MotionPlanner.plan`'s `heuristicWeight` (bounded suboptimality — it cuts through weighted ground), and a coarse region planner refined within the corridor only if those fail.
 
 ## Performance
 
