@@ -143,8 +143,9 @@ globalThis.EntityPreset = {
 
   /**
    * Normalize an authored Skeleton (sprite + anim + optional overrides) and bake the same size
-   * split a Visual gets. No strip fields — SkeletonSystem owns `frame`, and its FPS is authored
-   * time. `anim` has no default — Core knows no rig's set names — so the preset authors it per rig.
+   * split a Visual gets. No strip fields — the puppet keeps the clock (SkeletonSystem), and
+   * `speed` 1 is authored time. `anim` has no default — Core knows no rig's set names — so the
+   * preset authors it per rig.
    */
   _bakeSkeleton(sk, k) {
     if (sk.anim === undefined)
@@ -152,8 +153,7 @@ globalThis.EntityPreset = {
         `EntityPreset: Skeleton ${sprite_get_name(sk.sprite)} authors no anim`,
       );
     sk.loop = sk.loop ?? true;
-    sk.fps = sk.fps ?? SkeletonSystem.FPS;
-    sk.frame = sk.frame ?? 0;
+    sk.speed = sk.speed ?? 1;
     sk.color = sk.color ?? c_white;
     sk.tints = sk.tints ?? {};
     sk.alpha = sk.alpha ?? 1;

@@ -106,15 +106,14 @@ globalThis.ColonyPlayer = {
     for (let i = 0; i < HOTBAR_SIZE; i++) hotbarSlots.push("");
     entities.add(id, Hotbar, { slots: hotbarSlots, size: HOTBAR_SIZE });
     entities.add(id, Favorites, { ids: [] });
-    // skeletal body (SkeletonSystem mints the puppet and owns playback); xscale/yscale persist
+    // skeletal body (SkeletonSystem mints the puppet, which plays it); xscale/yscale persist
     // as facing flip + baked size, so a flip must preserve |xscale| — see ColonyPlayer.face.
     // The body art is a WHITE template, so the skin is a tint over its body slots.
     entities.add(id, Skeleton, {
       sprite: spineHuman,
       anim: ColonyPlayer.rest(spineHuman),
       loop: true,
-      fps: SkeletonSystem.FPS, // authored time — the runtime's frame is 1/120 s (SkeletonSystem)
-      frame: 0,
+      speed: 1, // authored time
       xscale: SpriteMeta.fit(spineHuman, k),
       yscale: SpriteMeta.fit(spineHuman, k),
       color: c_white,
@@ -209,10 +208,10 @@ globalThis.ColonyPlayer = {
   PACE_MAX: 2.5,
 
   /**
-   * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame before
-   * SkeletonSystem.update: fps = authored rate x |velocity| / the set's RIGS `pace`. Any other
-   * set plays authored time. A corpse sheds Velocity (ColonyCombat._toCorpse), so its held
-   * `down` frame is never touched.
+   * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame: rate =
+   * |velocity| / the set's RIGS `pace`, written to the puppet only when it changes
+   * (SkeletonSystem.rate). Any other set plays authored time. A corpse sheds Velocity
+   * (ColonyCombat._toCorpse), so its held `down` pose is never touched.
    */
   pace(entities) {
     entities.forEach([Skeleton, Velocity], (id, sk, vel) => {
@@ -225,13 +224,12 @@ globalThis.ColonyPlayer = {
           if (st.pace !== undefined) pace = st.pace;
         }
       }
+      let r = 1;
       if (pace > 0) {
         const v = Math.sqrt(vel.x * vel.x + vel.y * vel.y) / pace;
-        const r = Math.min(Math.max(v, ColonyPlayer.PACE_MIN), ColonyPlayer.PACE_MAX);
-        sk.fps = SkeletonSystem.FPS * r;
-      } else {
-        sk.fps = SkeletonSystem.FPS;
+        r = Math.min(Math.max(v, ColonyPlayer.PACE_MIN), ColonyPlayer.PACE_MAX);
       }
+      SkeletonSystem.rate(entities, id, r);
     });
   },
 
@@ -243,8 +241,10 @@ globalThis.ColonyPlayer = {
     const sk = entities.get(id, Skeleton);
     if (sk === undefined) return;
     const d = dead ?? 1;
+    const xscale = sk.xscale;
     if (vx < -d) sk.xscale = -Math.abs(sk.xscale);
     else if (vx > d) sk.xscale = Math.abs(sk.xscale);
+    if (sk.xscale !== xscale) SkeletonSystem.apply(entities, id);
   },
 
   /**

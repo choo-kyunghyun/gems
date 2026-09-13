@@ -512,7 +512,7 @@ class _SceneColonyClass {
     }
 
     ColonyPlayer.pace(this.level.entities); // stride-match locomotion playback to actual speed
-    SkeletonSystem.update(this.level.entities); // pose skeletal bodies into their puppets (per frame)
+    SkeletonSystem.update(this.level.entities); // mint the puppets new skeletal bodies lack; retime them on a clock change
     AppearanceSystem.update(this.level.entities); // dress the puppets SkeletonSystem just minted
     InstanceSystem.update(); // reap the puppets of entities that died this frame
     Interactable.update(this); // THE pick (stations + NPCs) + window range-close/refresh (no E here)

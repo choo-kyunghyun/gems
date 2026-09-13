@@ -209,8 +209,8 @@ globalThis.ColonyCombat = {
       vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
     }
     // a doll with an authored `down` set dies through it: the one-shot plays and holds its
-    // last frame (SkeletonSystem), leaving a full-colour lootable body — no crumple, no ghost
-    // alpha. A rig without one falls back to the crumple, like a plain Visual above.
+    // last pose (Puppet's Animation End), leaving a full-colour lootable body — no crumple, no
+    // ghost alpha. A rig without one falls back to the crumple, like a plain Visual above.
     const sk = entities.get(id, Skeleton);
     if (sk !== undefined) {
       const rig = ColonyPlayer.RIGS[sprite_get_name(sk.sprite)];
@@ -218,8 +218,9 @@ globalThis.ColonyCombat = {
         ColonyPlayer.setState(entities, id, "down");
       } else {
         sk.alpha = 0.4;
-        sk.fps = 0;
         sk.yscale = Math.abs(sk.yscale) * 0.45;
+        SkeletonSystem.apply(entities, id);
+        SkeletonSystem.rate(entities, id, 0);
       }
     }
     entities.add(id, Interaction, { kind: "corpse" });

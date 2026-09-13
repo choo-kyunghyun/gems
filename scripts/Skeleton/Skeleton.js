@@ -1,22 +1,23 @@
 /**
- * SKELETAL category of the art projection contract (RenderBillboard): a Spine sprite posed by
- * the runtime and drawn through its Puppet's `draw_self`, the one path that both poses and
- * honours matrix_world (docs/SPINE.md) — and ~4x cheaper than `draw_skeleton` on the pinned
- * runtime. The counterpart of Visual: an entity carries one or the other, never
- * both, since RenderBillboard scans the two separately and would draw the body twice.
+ * SKELETAL category of the art projection contract (RenderBillboard): a Spine sprite bound to
+ * the entity's Puppet, played by the runtime off the puppet's own `image_index` clock, and drawn
+ * through `draw_self` — the one path that poses, advances and honours matrix_world
+ * (docs/SPINE.md), ~4x cheaper than `draw_skeleton` on the pinned runtime. The counterpart of
+ * Visual: an entity carries one or the other, never both, since RenderBillboard scans the two
+ * separately and would draw the body twice.
  *
- * Playback is SkeletonSystem's: it mints the puppet, binds `sprite`, and advances `frame`
- * itself. Change animation through SkeletonSystem.set — writing `anim` here leaves the puppet
- * playing the old set — and a slot tint through SkeletonSystem.tint, for the same reason.
+ * The puppet is SkeletonSystem's: it mints one, binds `sprite`, and mirrors every field here
+ * onto it WHEN THE FIELD CHANGES — through SkeletonSystem.set (`anim`, `loop`), .rate (`speed`),
+ * .tint (`tints`) and .apply (the transform). Writing a field here directly leaves the puppet
+ * on the old value.
  *
  * @typedef {Object} Skeleton
  * @property {Asset.GMSprite} sprite  skeletal (Spine) sheet, bound to the puppet when it is minted
  * @property {string} anim            animation set playing now (SkeletonSystem.set to change);
  *                                   authored at spawn with a set the sheet carries — no default
  * @property {boolean} loop           wrap past the last frame, else hold it
- * @property {number} fps             playback rate in skeleton frames/sec (0 = hold `frame`); a frame
- *                                   is 1/120 s, so SkeletonSystem.FPS plays authored time
- * @property {number} frame           playback position in frames, fractional
+ * @property {number} speed           playback rate over authored time (1 = as authored in Spine,
+ *                                   0 = hold the pose); SkeletonSystem.rate to change
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale
  * @property {number} color           tint (image_blend) over the WHOLE rig, worn gear included
