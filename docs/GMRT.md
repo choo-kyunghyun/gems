@@ -107,5 +107,6 @@ Part of what the code works around is GMRT's youth rather than physics, and a wo
 | the boundary falls below ~10 ns (`native.clamp` vs `js.clamp`) | re-test natives at scalar sites, and `tilemap_*` against `RenderTileMap`'s vertex buffers |
 | GMRT gains a JIT (~40–110x V8 today) | the hot-path idioms (ARCHITECTURE.md) become advisory — re-rank them by clarity, since the constant would no longer decide the frame |
 | a Spine transform constraint moves its bone ([#15998], `SPINE.md` → Bones and Constraints) | the foot rotation baked into every spineHuman set's keys comes back out, so the constraint owns it again (TODO.md → Foot tilt) |
+| a Spine path constraint with proportional spacing ends on the path's end ([#16001], `SPINE.md` → Bones and Constraints) | the rigs' percent spacing (6.67% on the 16-bone limbs, 14.29% on the neck) may go back to proportional, which needs no re-tuning when a chain gains or loses a bone |
 
 Two results are NOT on this list and will not move: the instance-scoped built-ins are an API contract, not a gap, and the selectivity argument for a walk over the lead token's carriers (`perf.layout`) is a property of the data layout.
