@@ -21,6 +21,7 @@
 const N = 4000; // the Measured Costs / Member Access loop length
 const N_NATIVE = 20000; // the Native vs JS loop length — a ~40 ns boundary wants the resolution
 const ENTITIES = 500; // the Data Layout store (the colony's size)
+const PLAN_COLS = 128; // the overworld's side, the size perf.plan's figure is about
 
 /** A 32 px-cell level with one empty-cost-1 tile layer, its own store. */
 function _testLevel(cols, rows) {
@@ -219,8 +220,16 @@ globalThis.testCore = {
           visits += 1;
           seen |= 1 << w.k;
           s.detach(id, "TestWalk");
-          t.eq(s.has(id, "TestWalk"), false, "a detach reads absent inside the walk");
-          t.eq(set.dense.length, 6, "the swap-remove waits for the walk to end");
+          t.eq(
+            s.has(id, "TestWalk"),
+            false,
+            "a detach reads absent inside the walk",
+          );
+          t.eq(
+            set.dense.length,
+            6,
+            "the swap-remove waits for the walk to end",
+          );
         });
         t.eq(visits, 6, "self-detach visits every carrier once");
         t.eq(seen, 63, "self-detach visits each carrier");
@@ -243,14 +252,30 @@ globalThis.testCore = {
           }
         });
         t.eq(visits, 4, "a carrier detached ahead of the walk is skipped");
-        t.eq(seen, 1 | 2 | 8 | 16, "the skipped carriers are the detached ones");
-        t.eq(s.has(ids[0], "TestWalk"), true, "a re-add during the walk keeps its carrier");
-        t.eq(s.query("TestWalk").length, 5, "the survivors plus the mid-walk add remain");
+        t.eq(
+          seen,
+          1 | 2 | 8 | 16,
+          "the skipped carriers are the detached ones",
+        );
+        t.eq(
+          s.has(ids[0], "TestWalk"),
+          true,
+          "a re-add during the walk keeps its carrier",
+        );
+        t.eq(
+          s.query("TestWalk").length,
+          5,
+          "the survivors plus the mid-walk add remain",
+        );
         visits = 0;
         s.forEach(["TestWalk"], () => {
           visits += 1;
         });
-        t.eq(visits, 5, "a carrier added mid-walk is visited from the next walk");
+        t.eq(
+          visits,
+          5,
+          "a carrier added mid-walk is visited from the next walk",
+        );
         t.eq(set.dense.length, 5, "the dense list matches the query");
         // nested walks on one lead: the inner detach compacts when the OUTER walk ends
         visits = 0;
@@ -259,7 +284,11 @@ globalThis.testCore = {
             if (oid === id) s.detach(oid, "TestWalk");
           });
           visits += 1;
-          t.eq(set.dense.length, 5, "an inner detach compacts at the outer walk's end");
+          t.eq(
+            set.dense.length,
+            5,
+            "an inner detach compacts at the outer walk's end",
+          );
         });
         t.eq(visits, 5, "the outer walk visits every carrier");
         t.eq(set.dense.length, 0, "the outer walk's end compacts");
@@ -946,6 +975,91 @@ globalThis.testCore = {
         ctx.entities.destroy();
       },
     },
+    // ── perf.plan: what one A* expansion costs ──────────────────────────────
+    // THE record for what an expansion costs, measured on the shape a far plan has: a weighted
+    // 128² field, corner to corner, where the unit heuristic is weak enough that most of the level
+    // expands. `n` is MotionPlanner.iters, so the row is ns per expansion and not per plan —
+    // multiply by the iters in the log line for what one plan costs a frame.
+    {
+      id: "perf.plan",
+      setup(ctx) {
+        Object.assign(ctx, _testLevel(PLAN_COLS, PLAN_COLS));
+        _testTypes(ctx);
+        // a weighted field, not a maze: mud in a coarse checker so most cells stay reachable and
+        // the cost spread is what defeats the heuristic
+        for (let y = 0; y < PLAN_COLS; y++)
+          for (let x = 0; x < PLAN_COLS; x++)
+            if (((x >> 3) + (y >> 3)) % 2 === 0) ctx.layer.set(x, y, ctx.mud);
+        ctx.nav = new NavGrid(ctx.grid);
+        ctx.nav.sync();
+        MotionPlanner.setGrid(ctx.nav.grid);
+      },
+      verify(ctx, t) {
+        const a = { x: 0, y: 0 };
+        const b = { x: PLAN_COLS - 1, y: PLAN_COLS - 1 };
+        const opt = { allowDiag: true };
+        const path = MotionPlanner.plan(a, b, opt);
+        const iters = MotionPlanner.iters;
+        t.ok(path.length > 0, "the corner-to-corner plan resolves");
+        t.ok(
+          iters > PLAN_COLS,
+          "the plan expands more than a straight run of cells",
+        );
+        // the octile plan must be ADMISSIBLE: with diagonals costing only sqrt(2) it can never
+        // come out dearer than the cardinal one over the same field. An octile search run on the
+        // Manhattan heuristic overestimates and fails this while still returning a path, so the
+        // row is what catches the heuristic losing its `allowDiag` (GMRT.md #15549).
+        const walk = (pth) => {
+          let cost = 0;
+          let broken = 0;
+          for (let i = 1; i < pth.length; i++) {
+            const dx = pth[i].x - pth[i - 1].x;
+            const dy = pth[i].y - pth[i - 1].y;
+            const adx = dx > 0 ? dx : -dx;
+            const ady = dy > 0 ? dy : -dy;
+            if (adx > 1) broken += 1;
+            if (ady > 1) broken += 1;
+            const step = adx + ady === 2 ? MotionPlanner.SQRT_2 : 1;
+            cost += ctx.nav.grid.get(pth[i].x, pth[i].y) * step;
+          }
+          return { cost, broken };
+        };
+        const diag = walk(path);
+        const straight = walk(MotionPlanner.plan(a, b, { allowDiag: false }));
+        t.eq(diag.broken, 0, "every octile step lands on a neighbour cell");
+        t.ok(
+          path[0].x === 0 && path[path.length - 1].x === PLAN_COLS - 1,
+          "the path spans corner to corner",
+        );
+        t.ok(
+          diag.cost <= straight.cost + 1e-6,
+          "the octile path costs no more than the cardinal one : " +
+            diag.cost +
+            " vs " +
+            straight.cost,
+        );
+        t.measure(
+          "plan.expansion",
+          iters,
+          () => 0,
+          () => MotionPlanner.plan(a, b, opt).length,
+        );
+        // the same plan with the heap and the grid reads left in but the neighbour scan cut to
+        // cardinals: the row pairs with the one above to say how much of an expansion is the scan
+        const cardinal = { allowDiag: false };
+        MotionPlanner.plan(a, b, cardinal);
+        t.measure(
+          "plan.expansion.cardinal",
+          MotionPlanner.iters,
+          () => 0,
+          () => MotionPlanner.plan(a, b, cardinal).length,
+        );
+      },
+      teardown(ctx) {
+        ctx.nav.destroy();
+        ctx.level.destroy();
+      },
+    },
     // ── perf.native: a GML built-in against its inline JS twin ──────────────────
     // The JS↔GML boundary costs ~35-57 ns whatever the call does, so a native pays only when it
     // replaces more JS than that: bulk work inside ONE call (draw_*, vertex_*, buffer_*, an
@@ -1164,20 +1278,30 @@ globalThis.testCore = {
           });
           return s;
         });
-        t.measure("forEach.sparse", n, () => 0, () => {
-          let s = 0;
-          store.forEach(["TestRare", Position], (id, r, p) => {
-            s += p.x;
-          });
-          return s;
-        });
-        t.measure("forEach.trail", n, () => 0, () => {
-          let s = 0;
-          store.forEach([Position, "TestRare"], (id, p) => {
-            s += p.x;
-          });
-          return s;
-        });
+        t.measure(
+          "forEach.sparse",
+          n,
+          () => 0,
+          () => {
+            let s = 0;
+            store.forEach(["TestRare", Position], (id, r, p) => {
+              s += p.x;
+            });
+            return s;
+          },
+        );
+        t.measure(
+          "forEach.trail",
+          n,
+          () => 0,
+          () => {
+            let s = 0;
+            store.forEach([Position, "TestRare"], (id, p) => {
+              s += p.x;
+            });
+            return s;
+          },
+        );
         t.measure("query.get", n, empty, () => {
           const ids = store.query(Position);
           let s = 0;

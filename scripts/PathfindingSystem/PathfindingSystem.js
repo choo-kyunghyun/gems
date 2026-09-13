@@ -6,7 +6,8 @@
  * refilled from the walk's tail (ComponentStore's order contract), so a pending request only ever
  * moves toward the front and the forward sweep reaches it within two passes. A pending request its
  * walker refreshes first (`PathFollow.target`'s throttle) is replaced in place. A count bound is
- * not a time bound: one far plan still costs what docs/TODO.md → Pathfinding says.
+ * not a time bound: a map-crossing plan runs tens of milliseconds on its own, so serving one is
+ * over a frame whatever the budget — testCore `perf.plan` is what that costs.
  */
 globalThis.PathfindingSystem = {
   budget: 4, // requests served per tick; the overflow carries over

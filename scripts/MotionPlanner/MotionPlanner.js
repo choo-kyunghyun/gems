@@ -43,28 +43,39 @@ globalThis.MotionPlanner = {
   // even on a typed array, ~10 ms per plan on a 128² level (testCore perf.measured, array.fill).
   _stamp: undefined,
   _gen: 0,
-  // the open set: a binary min-heap as parallel node/f arrays, reset per plan. In JS rather than
-  // ds_priority so a plan holds no GML resource and pays no boundary crossing per op — worth ~5%
-  // of a long plan; the expansions themselves are the cost (docs/TODO.md → Pathfinding).
+  iters: 0, // expansions the last plan spent — what a time budget and `perf.plan` divide by
+  // the open set: a binary min-heap as parallel node/f arrays, its live length a local in `plan`
+  // (these only carry it between plans). In JS rather than ds_priority so a plan holds no GML
+  // resource and pays no boundary crossing per op, and sifted INLINE in the loop — a push per
+  // neighbour is too hot for a call (testCore perf.measured).
   _hn: [],
   _hf: [],
 
   setGrid(grid) {
     MotionPlanner.grid = grid;
     const count = grid.size();
-    MotionPlanner._g = new Float64Array(count);
-    MotionPlanner._from = new Int32Array(count);
-    MotionPlanner._closed = new Uint8Array(count);
-    MotionPlanner._scratch = new Int32Array(count);
-    MotionPlanner._stamp = new Int32Array(count); // zeroed; `_gen` starts above 0 so nothing reads live
+    // PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
+    // (docs/GMRT.md → perf table, `read.typed` vs `read.array`), and the expansion loop is all
+    // scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
+    MotionPlanner._g = new Array(count).fill(0);
+    MotionPlanner._from = new Array(count).fill(0);
+    MotionPlanner._closed = new Array(count).fill(0);
+    MotionPlanner._scratch = new Array(count).fill(0);
+    MotionPlanner._stamp = new Array(count).fill(0); // `_gen` starts above 0 so nothing reads live
   },
 
   /**
    * The cells from `start` to `goal` inclusive (grid coords), or `[]` when either end is out of
    * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
    * `allowDiag` (octile moves; with `cornerCutting` a diagonal may pass between two blocked
-   * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan —
-   * docs/TODO.md → Pathfinding), `maxIter`. Planning before `setGrid` is a wiring error.
+   * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan),
+   * `maxIter`. Planning before `setGrid` is a wiring error.
+   *
+   * The expansion loop is written FLAT on purpose — the grid accessors, the heuristic and the
+   * heap are inlined and the neighbour scan indexes `grid.data` directly. A static-method call
+   * and an object literal each cost about a hundred plain reads here (testCore perf.measured), so
+   * the call-per-neighbour form this replaced spent most of an expansion on the boundary rather
+   * than on the search. Keep it flat; `perf.plan` is the row that says what it costs.
    */
   plan(start, goal, opt = {}) {
     const grid = MotionPlanner.grid;
@@ -77,17 +88,28 @@ globalThis.MotionPlanner = {
     const heuristicWeight = opt.heuristicWeight ?? 1;
     const maxIter = opt.maxIter ?? 100000;
 
+    const cols = grid.cols;
+    const rows = grid.rows;
+    const data = grid.data;
+
     const sx = start.x;
     const sy = start.y;
     const gx = goal.x;
     const gy = goal.y;
 
-    if (!grid.inBounds(sx, sy) || !grid.inBounds(gx, gy)) return [];
-    if (grid.get(sx, sy) === Infinity || grid.get(gx, gy) === Infinity)
-      return [];
+    if (sx < 0) return [];
+    if (sx >= cols) return [];
+    if (sy < 0) return [];
+    if (sy >= rows) return [];
+    if (gx < 0) return [];
+    if (gx >= cols) return [];
+    if (gy < 0) return [];
+    if (gy >= rows) return [];
 
-    const startIdx = grid.toIndex(sx, sy);
-    const goalIdx = grid.toIndex(gx, gy);
+    const startIdx = sy * cols + sx;
+    const goalIdx = gy * cols + gx;
+    if (data[startIdx] === Infinity) return [];
+    if (data[goalIdx] === Infinity) return [];
     if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
     const g = MotionPlanner._g;
@@ -95,65 +117,99 @@ globalThis.MotionPlanner = {
     const closed = MotionPlanner._closed;
     const stamp = MotionPlanner._stamp;
     const gen = ++MotionPlanner._gen;
-    MotionPlanner._hn.length = 0;
-    MotionPlanner._hf.length = 0;
+    const hn = MotionPlanner._hn;
+    const hf = MotionPlanner._hf;
+    let hlen = 0; // the heap's live length, owned here so a push is not an array-length call
+
+    // octile's diagonal discount folds to 0 for cardinal, so one heuristic serves both with no
+    // branch per push; `?:` only — a bare variable must never be a `&&` left operand (GMRT.md #15549)
+    const diagK = allowDiag ? MotionPlanner.SQRT_2 - 2 : 0;
+    const checkCorner = allowDiag ? (cornerCutting ? 0 : 1) : 0;
 
     stamp[startIdx] = gen;
     g[startIdx] = 0;
     from[startIdx] = -1;
     closed[startIdx] = 0;
-    MotionPlanner._push(
-      startIdx,
-      MotionPlanner._heuristic(sx, sy, gx, gy, allowDiag) * heuristicWeight,
-    );
+    {
+      const adx = gx > sx ? gx - sx : sx - gx;
+      const ady = gy > sy ? gy - sy : sy - gy;
+      hn[0] = startIdx;
+      hf[0] = (adx + ady + diagK * (adx < ady ? adx : ady)) * heuristicWeight;
+      hlen = 1;
+    }
 
     const dirs = allowDiag
       ? MotionPlanner.DIRS_OCTILE
       : MotionPlanner.DIRS_CARDINAL;
+    const dlen = dirs.length;
     let iter = 0;
 
-    while (MotionPlanner._hn.length > 0) {
+    while (hlen > 0) {
       if (++iter > maxIter) break;
 
-      const node = MotionPlanner._pop();
-      if (closed[node]) continue; // pushed ⇒ stamped this plan, so closed is live
+      // pop the min-f node: take the root, sift the tail down into it
+      const node = hn[0];
+      const last = --hlen;
+      if (last > 0) {
+        const ln = hn[last];
+        const lf = hf[last];
+        let i = 0;
+        while (true) {
+          const l = 2 * i + 1;
+          if (l >= last) break;
+          let c = l;
+          const r = l + 1;
+          if (r < last) if (hf[r] < hf[l]) c = r;
+          if (hf[c] >= lf) break;
+          hn[i] = hn[c];
+          hf[i] = hf[c];
+          i = c;
+        }
+        hn[i] = ln;
+        hf[i] = lf;
+      }
+
+      if (closed[node] === 1) continue; // pushed ⇒ stamped this plan, so closed is live
       closed[node] = 1;
 
-      if (node === goalIdx) return MotionPlanner._reconstructPath(startIdx, goalIdx);
+      if (node === goalIdx) {
+        MotionPlanner.iters = iter;
+        return MotionPlanner._reconstructPath(startIdx, goalIdx);
+      }
 
-      const xy = grid.toPosition(node);
-      const node_x = xy.x;
-      const node_y = xy.y;
+      const node_x = node % cols;
+      const node_y = (node - node_x) / cols;
+      const gnode = g[node];
+      const rowBase = node_y * cols;
 
-      for (let i = 0; i < dirs.length; i += 3) {
+      for (let i = 0; i < dlen; i += 3) {
         const dx = dirs[i];
         const dy = dirs[i + 1];
-        const step_dist = dirs[i + 2];
 
         const nx = node_x + dx;
+        if (nx < 0) continue;
+        if (nx >= cols) continue;
         const ny = node_y + dy;
-        if (!grid.inBounds(nx, ny)) continue;
+        if (ny < 0) continue;
+        if (ny >= rows) continue;
 
-        const cellCost = grid.get(nx, ny);
+        const ni = ny * cols + nx;
+        const cellCost = data[ni];
         if (cellCost === Infinity) continue;
 
-        if (
-          allowDiag &&
-          !cornerCutting &&
-          dx !== 0 &&
-          dy !== 0 &&
-          (grid.get(node_x + dx, node_y) === Infinity ||
-            grid.get(node_x, node_y + dy) === Infinity)
-        ) {
-          continue;
-        }
+        // a diagonal may not pass between two blocked cells unless cornerCutting says it may
+        if (checkCorner === 1)
+          if (dx !== 0)
+            if (dy !== 0) {
+              if (data[rowBase + nx] === Infinity) continue;
+              if (data[ni - dx] === Infinity) continue;
+            }
 
-        const ni = grid.toIndex(nx, ny);
         // nested, not `touched && …`: the short-circuit corrupts its left operand (GMRT.md #15549)
         const touched = stamp[ni] === gen;
-        if (touched) if (closed[ni]) continue;
+        if (touched) if (closed[ni] === 1) continue;
 
-        const tg = g[node] + cellCost * step_dist;
+        const tg = gnode + cellCost * dirs[i + 2];
         if (touched) if (tg >= g[ni]) continue;
 
         if (!touched) {
@@ -162,60 +218,27 @@ globalThis.MotionPlanner = {
         }
         from[ni] = node;
         g[ni] = tg;
-        MotionPlanner._push(
-          ni,
-          tg + MotionPlanner._heuristic(nx, ny, gx, gy, allowDiag) * heuristicWeight,
-        );
+
+        // push (ni, f): sift the hole up to where f belongs
+        const adx = gx > nx ? gx - nx : nx - gx;
+        const ady = gy > ny ? gy - ny : ny - gy;
+        const f =
+          tg + (adx + ady + diagK * (adx < ady ? adx : ady)) * heuristicWeight;
+        let h = hlen++;
+        while (h > 0) {
+          const par = (h - 1) >> 1;
+          if (hf[par] <= f) break;
+          hn[h] = hn[par];
+          hf[h] = hf[par];
+          h = par;
+        }
+        hn[h] = ni;
+        hf[h] = f;
       }
     }
 
+    MotionPlanner.iters = iter;
     return [];
-  },
-
-  _push(n, f) {
-    const hn = MotionPlanner._hn;
-    const hf = MotionPlanner._hf;
-    let i = hn.length;
-    hn.push(n);
-    hf.push(f);
-    while (i > 0) {
-      const p = (i - 1) >> 1;
-      if (hf[p] <= f) break;
-      hn[i] = hn[p];
-      hf[i] = hf[p];
-      i = p;
-    }
-    hn[i] = n;
-    hf[i] = f;
-  },
-
-  /** min-f node; the caller checks the heap is non-empty */
-  _pop() {
-    const hn = MotionPlanner._hn;
-    const hf = MotionPlanner._hf;
-    const top = hn[0];
-    const last = hn.length - 1;
-    const n = hn[last];
-    const f = hf[last];
-    hn.length = last;
-    hf.length = last;
-    if (last > 0) {
-      let i = 0;
-      while (true) {
-        const l = 2 * i + 1;
-        if (l >= last) break;
-        const r = l + 1;
-        let c = l;
-        if (r < last) if (hf[r] < hf[l]) c = r;
-        if (hf[c] >= f) break;
-        hn[i] = hn[c];
-        hf[i] = hf[c];
-        i = c;
-      }
-      hn[i] = n;
-      hf[i] = f;
-    }
-    return top;
   },
 
   _reconstructPath(startIdx, goalIdx) {
@@ -229,19 +252,14 @@ globalThis.MotionPlanner = {
 
     if (len === 0 || MotionPlanner._scratch[len - 1] !== startIdx) return [];
 
+    const cols = MotionPlanner.grid.cols;
+    const scratch = MotionPlanner._scratch;
     const path = [];
     for (let i = len - 1; i >= 0; i--) {
-      path.push(MotionPlanner.grid.toPosition(MotionPlanner._scratch[i]));
+      const idx = scratch[i];
+      const px = idx % cols;
+      path.push({ x: px, y: (idx - px) / cols });
     }
     return path;
-  },
-
-  _heuristic(x0, y0, x1, y1, allowDiag) {
-    const dx = Math.abs(x1 - x0);
-    const dy = Math.abs(y1 - y0);
-    if (allowDiag) {
-      return dx + dy + (MotionPlanner.SQRT_2 - 2) * Math.min(dx, dy);
-    }
-    return dx + dy;
   },
 };
