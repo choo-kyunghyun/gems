@@ -3,9 +3,6 @@ const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
 const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
 const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rate then reads as the BPM (120 BPM = 2x)
-const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
-const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
-const HOTBAR_SLIDE_SPD = 16; // approach speed for the slide (higher = snappier pop)
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -78,9 +75,7 @@ class _SceneColonyClass {
       contentQuests.QUEST_REACH,
     ];
 
-    this._hotbarTimer = HOTBAR_HUD_SECS; // counts down on Time.raw; hotbar HUD shows while > 0
-    this._hotbarSlide = 0; // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
-    this._sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see sleep)
+    this.sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see sleep); read by Hud
     this._sleepPeaked = false; // this sleep session already hit the Time.scale ceiling (td_time_skip)
     this.nearNpc = false;
     this.dialogueName = "";
@@ -105,6 +100,22 @@ class _SceneColonyClass {
       },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
+    // THE colony's death rules, minted ONCE here rather than written into the call: resolveHealth
+    // runs every tick, and update() is a schedule — it names WHEN a rule fires, these name what it
+    // does. Which one fires per entity is the entity's own `Mortal` kind (see ColonyCombat).
+    this._mortalRules = {
+      spill: { yBase: 0, ySpread: 28 }, // loot scatter for a "despawn" kill
+      onKill: (id) => this._onKill(id),
+      onRespawn: (id) => this._onRespawn(id),
+      onDown: (id) => this._onDown(id),
+    };
+    this._downedRules = {
+      // revive at the map's spawn (inside the settlement when the map is one) — read live, so the
+      // one rule set serves every map the scene activates
+      downSpot: () => ({ x: this.map.spawn.x, y: this.map.spawn.y }),
+      onRecover: (id) => this._onRecover(id),
+    };
+
     // persistent UI (key-hints bar + HUD, the window shell with its pages, the pick prompt, the
     // build HUD) — extracted to _buildUI() so retheme() can rebuild it in place on a live theme
     // swap, no world regen.
@@ -260,7 +271,7 @@ class _SceneColonyClass {
         { color: "#888888" },
       ),
     );
-    Hud.build(this); // top-right HP/quest card + bottom-center dialogue box
+    this.hud = Hud.build(this); // HP/quest card + hotbar + dialogue box + sleep veil (its handle)
     // the gameplay window: ONE shell after the HUD (its veil covers it) holding every page the
     // scene can show, each under the id that opens it — the bag's key toggle (update), a
     // station's InteractAction (contentInteractions). See Window.
@@ -315,8 +326,8 @@ class _SceneColonyClass {
    * then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
    */
   retheme() {
-    if (this._sleeping) {
-      this._sleeping = false;
+    if (this.sleeping) {
+      this.sleeping = false;
       Time.scale = 1;
     }
     this.window.close();
@@ -333,6 +344,8 @@ class _SceneColonyClass {
    *   per tick         snapshot -> the physics sequence (headed by the player brain) -> damage,
    *                    death, drops, quest/achievement checks -> flush
    *   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
+   * Nothing here is a rule: a gameplay reaction is a named member (`_on*`, passed in as a rule set
+   * minted at create) and the panels' own timing is Hud.update's, so this body states ORDER alone.
    * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule). A
    * map swap (a world-map trip) never runs in here — it fires at SceneTransition's cover, between
    * frames, so nothing in this frame touches a swapped-out map.
@@ -344,32 +357,9 @@ class _SceneColonyClass {
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
     this.playerId = PlayerSystem.id(this.level.entities);
 
-    // sleeping (bed): fast-forward Time.scale while Drowsiness drains; any input wakes. Checked
-    // BEFORE the tick loop so the waking press wakes instead of moving this frame.
-    // WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per
-    // frame off Time.delta) consume the whole scaled delta, while the fixed-step sim behind them
-    // is capped at SimClock.maxTicks per frame. Hours pass; the tick loop does not run 50x.
-    if (this._sleeping) {
-      if (this._wakeInput()) {
-        this._sleeping = false;
-        Time.scale = 1;
-      } else {
-        // ramp on Time.raw (wall clock — Time.delta is itself scaled): the fast-forward eases in
-        // instead of snapping, peaking at the ceiling in a few seconds
-        const s = Math.max(1, Time.scale) * (1 + SLEEP_ACCEL * Time.raw);
-        if (s >= SLEEP_SCALE_MAX) {
-          Time.scale = SLEEP_SCALE_MAX;
-          // hitting the ceiling IS the td_time_skip trigger — once per sleep session
-          if (!this._sleepPeaked) {
-            this._sleepPeaked = true;
-            this.track("sleepSkip", "", 1);
-          }
-        } else {
-          Time.scale = s;
-        }
-      }
-    }
-    this._sleepOverlay.enabled = this._sleeping;
+    // sleeping (bed): checked BEFORE the tick loop so the waking press wakes instead of moving
+    // this frame
+    this._updateSleep();
 
     // the sim tempo: a timed BGM runs the whole world at its beat (the player's Radio is the
     // dial). Lands on the next frame's Time.update (which precedes this update).
@@ -402,18 +392,6 @@ class _SceneColonyClass {
     // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
     this._useHotbar();
 
-    // auto-hide hotbar HUD: slides up on a keypress, back down after HOTBAR_HUD_SECS. Timer +
-    // ease on Time.raw (UI timing); dragY is offset-not-mutation (see UIElement.getLayoutPosition).
-    if (this._hotbarTimer > 0) this._hotbarTimer -= Time.raw;
-    const show = !this.build.armed && this._hotbarTimer > 0;
-    this._hotbarSlide = approach(
-      this._hotbarSlide,
-      show ? 1 : 0,
-      HOTBAR_SLIDE_SPD,
-    );
-    this._hotbarBar.dragY = (1 - this._hotbarSlide) * HOTBAR_SLIDE;
-    this._hotbarBar.enabled = this._hotbarSlide > 0.001; // skip drawing once fully tucked away
-
     // mirror any tile-cost edits into the nav grid BEFORE the tick loop (PathfindingSystem plans
     // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
     // SolidSystem.onStatics instead (create).
@@ -430,7 +408,7 @@ class _SceneColonyClass {
       HungerSystem.update(this.level.entities);
       ExposureSystem.update(this); // the thin air: by shelter + the worn seal
       ColdSystem.update(this); // by the temperature where each body stands
-      if (this._sleeping)
+      if (this.sleeping)
         DrowsinessSystem.restore(
           this.level.entities,
           this.playerId,
@@ -451,57 +429,8 @@ class _SceneColonyClass {
 
       ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
-      ColonyCombat.resolveHealth(this, {
-        spill: { yBase: 0, ySpread: 28 },
-        onKill: (id) => {
-          const dp = this.level.entities.get(id, Position);
-          // death pop (spatial)
-          if (dp !== undefined)
-            Audio.play({
-              sound: sndExplosionSmall,
-              position: { x: dp.x, y: dp.y },
-            });
-          // by species so only raiders advance the "Raider Cull" quest (rats have no target); the
-          // kill counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
-          const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
-          this.track("kill", kind, 1);
-          // the "corpse" kind leaves the body in the world — drop its species marker so the
-          // radar stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
-          this.level.entities.detach(id, Raider);
-          this.level.entities.detach(id, Rat);
-          Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
-        },
-        onRespawn: (id) => {
-          const pos = this.level.entities.get(id, Position);
-          const vel = this.level.entities.get(id, Velocity);
-          pos.x = this.map.spawn.x;
-          pos.y = this.map.spawn.y;
-          vel.x = 0;
-          vel.y = 0;
-          // respawn with each need at mid-meter, refreshed so a critical debuff clears at once
-          for (const token of [Thirst, Hunger, Drowsiness, Exposure, Cold]) {
-            const need = this.level.entities.get(id, token);
-            if (need === undefined) continue; // a save from before the need
-            need.value = need.max * 0.5;
-            Survival.refresh(this.level.entities, id, need);
-          }
-          Log.info("player died — respawned at spawn");
-        },
-        onDown: (id) => {
-          Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(id)), {
-            type: "warn",
-          });
-        },
-      });
-      // revive a downed companion at the map's spawn (inside the settlement when the map is one)
-      ColonyCombat.updateDowned(this, {
-        downSpot: () => ({ x: this.map.spawn.x, y: this.map.spawn.y }),
-        onRecover: (id) => {
-          Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
-            type: "success",
-          });
-        },
-      });
+      ColonyCombat.resolveHealth(this, this._mortalRules);
+      ColonyCombat.updateDowned(this, this._downedRules); // a downed companion's revive timer
       ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
       ColonyCombat.collectDrops(this, (itemId, got) =>
         this.onCollect(itemId, got),
@@ -517,10 +446,10 @@ class _SceneColonyClass {
     InstanceSystem.update(); // reap the puppets of entities that died this frame
     Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
-    this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
     BuildMode.update(this, this.build); // build-mode toggle + place/deconstruct (outside tick loop)
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
+    Hud.update(this, this.hud); // the panels' own timing — after the pick + build mode they report
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
@@ -565,9 +494,9 @@ class _SceneColonyClass {
     }
   }
 
-  /** reveal the hotbar HUD and refresh its auto-hide countdown */
+  /** reveal the hotbar HUD and refresh its auto-hide countdown (InventoryUI calls it on a rebind) */
   showHotbar() {
-    this._hotbarTimer = HOTBAR_HUD_SECS;
+    Hud.showHotbar(this.hud);
   }
 
   /**
@@ -614,12 +543,39 @@ class _SceneColonyClass {
   }
 
   /**
-   * start sleeping (the "bed" InteractAction's E routes here); step() ramps the fast-forward until
-   * _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
+   * start sleeping (the "bed" InteractAction's E routes here); _updateSleep ramps the fast-forward
+   * until _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
    */
   sleep() {
-    this._sleeping = true;
+    this.sleeping = true;
     this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
+  }
+
+  /**
+   * The bed's fast-forward: ramp Time.scale while Drowsiness drains, until any input wakes.
+   * WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per frame
+   * off Time.delta) consume the whole scaled delta, while the fixed-step sim behind them is capped
+   * at SimClock.maxTicks per frame. Hours pass; the tick loop does not run 50x.
+   */
+  _updateSleep() {
+    if (!this.sleeping) return;
+    if (this._wakeInput()) {
+      this.sleeping = false;
+      Time.scale = 1;
+      return;
+    }
+    // ramp on Time.raw (wall clock — Time.delta is itself scaled): the fast-forward eases in
+    // instead of snapping, peaking at the ceiling in a few seconds
+    const s = Math.max(1, Time.scale) * (1 + SLEEP_ACCEL * Time.raw);
+    if (s < SLEEP_SCALE_MAX) {
+      Time.scale = s;
+      return;
+    }
+    Time.scale = SLEEP_SCALE_MAX;
+    // hitting the ceiling IS the td_time_skip trigger — once per sleep session
+    if (this._sleepPeaked) return;
+    this._sleepPeaked = true;
+    this.track("sleepSkip", "", 1);
   }
 
   /** any input wakes the sleeper — the claim-blind "press anything" read, not an action (Input.anyPressed) */
@@ -633,6 +589,60 @@ class _SceneColonyClass {
   _followerName(id) {
     const nm = this.level.entities.get(id, Name);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
+  }
+
+  /**
+   * A kill (a "despawn" or a "corpse", fired while the body's components are still readable): the
+   * death pop, the species-scoped quest credit, and the radar markers off whatever stays behind.
+   */
+  _onKill(id) {
+    const dp = this.level.entities.get(id, Position);
+    // death pop (spatial)
+    if (dp !== undefined)
+      Audio.play({ sound: sndExplosionSmall, position: { x: dp.x, y: dp.y } });
+    // by species so only raiders advance the "Raider Cull" quest (rats have no target); the kill
+    // counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
+    const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
+    this.track("kill", kind, 1);
+    // the "corpse" kind leaves the body in the world — drop its species marker so the radar
+    // stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
+    this.level.entities.detach(id, Raider);
+    this.level.entities.detach(id, Rat);
+    Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
+  }
+
+  /**
+   * A "respawn" mortal (the player) once ColonyCombat has refilled its hp: back to the map's
+   * spawn, stopped, every need at mid-meter so the death clears the critical debuff that caused it.
+   */
+  _onRespawn(id) {
+    const pos = this.level.entities.get(id, Position);
+    const vel = this.level.entities.get(id, Velocity);
+    pos.x = this.map.spawn.x;
+    pos.y = this.map.spawn.y;
+    vel.x = 0;
+    vel.y = 0;
+    for (const token of [Thirst, Hunger, Drowsiness, Exposure, Cold]) {
+      const need = this.level.entities.get(id, token);
+      if (need === undefined) continue; // a save from before the need
+      need.value = need.max * 0.5;
+      Survival.refresh(this.level.entities, id, need); // so the debuff lifts with the refill
+    }
+    Log.info("player died — respawned at spawn");
+  }
+
+  /** a companion goes down (it revives itself on _downedRules.downSpot — see ColonyCombat) */
+  _onDown(id) {
+    Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(id)), {
+      type: "warn",
+    });
+  }
+
+  /** a downed companion is back on its feet */
+  _onRecover(id) {
+    Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
+      type: "success",
+    });
   }
 
   _checkReach() {
@@ -756,8 +766,8 @@ class _SceneColonyClass {
    * through to the pause menu. window > build priority.
    */
   handleEscape() {
-    if (this._sleeping) {
-      this._sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
+    if (this.sleeping) {
+      this.sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
       Time.scale = 1;
       return true;
     }

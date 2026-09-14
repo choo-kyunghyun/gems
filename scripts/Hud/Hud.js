@@ -1,20 +1,60 @@
 // HUD + overlay panels for the colony scene — free functions taking the scene (mirrors ColonyCombat/ColonyMap).
 // Panels read scene.level.entities/playerId LIVE via facetLabel callbacks, surviving the map-change store swap.
+/**
+ * build() returns the HUD HANDLE — the three panels this module keeps TOGGLING (`bar` the hotbar,
+ * `dialogue` the NPC card, `sleep` the veil) beside the hotbar's own timing (`timer`/`slide`) — and
+ * the scene keeps that one field, handing it back to update(), the shape a `*UI` page already
+ * takes (see Window). The top-right card isn't in it: nothing touches it after it is built.
+ * update() is the panels' whole frame job, so no scene field mirrors what a panel shows.
+ */
+const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
+const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
+const HOTBAR_SLIDE_SPD = 16; // approach speed for the slide (higher = snappier pop)
+
 globalThis.Hud = {
   /**
-   * build the persistent panels once (scene create)
+   * build the persistent panels once (scene create) and hand back the handle
    */
   build(scene) {
+    const hud = {
+      bar: null, // the hotbar row
+      dialogue: null, // the bottom-center NPC card
+      sleep: null, // the "Sleeping..." veil
+      timer: HOTBAR_HUD_SECS, // counts down on Time.raw; the bar shows while > 0
+      slide: 0, // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
+    };
     Hud._hud(scene);
-    Hud._hotbar(scene);
-    Hud._dialogue(scene);
-    Hud._sleepOverlay(scene);
+    hud.bar = Hud._hotbar(scene);
+    hud.dialogue = Hud._dialogue(scene);
+    hud.sleep = Hud._sleepOverlay(scene);
+    return hud;
+  },
+
+  /**
+   * Once per frame, AFTER the scene has resolved what the panels report (the frame's pick, build
+   * mode): the hotbar's auto-hide ease and the two veils' visibility. UI timing runs on Time.raw
+   * (wall clock), so the ease is unaffected by a paused or fast-forwarded sim.
+   */
+  update(scene, hud) {
+    if (hud.timer > 0) hud.timer -= Time.raw;
+    // build mode owns the bottom-center HUD, so the bar tucks away for it whatever the timer says
+    const show = !scene.build.armed && hud.timer > 0;
+    hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
+    hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // offset, not mutation (see UIElement.getLayoutPosition)
+    hud.bar.enabled = hud.slide > 0.001; // skip drawing once fully tucked away
+    hud.dialogue.enabled = scene.nearNpc;
+    hud.sleep.enabled = scene.sleeping;
+  },
+
+  /** reveal the hotbar HUD and refresh its auto-hide countdown (a hotbar press, a slot rebind) */
+  showHotbar(hud) {
+    hud.timer = HOTBAR_HUD_SECS;
   },
 
   /**
    * Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
-   * the player each frame. Display-only (binding is in InventoryUI, using is sceneColony._useHotbar).
-   * sceneColony hides the whole bar while build mode owns the bottom-center HUD.
+   * the player each frame. Display-only (binding is in InventoryUI, using is sceneColony._useHotbar);
+   * update() slides it away while build mode owns the bottom-center HUD.
    */
   _hotbar(scene) {
     const wrap = new UIElement({
@@ -28,8 +68,8 @@ globalThis.Hud = {
     });
     for (let i = 0; i < HOTBAR_SIZE; i++)
       wrap.insertChild(Hud._hotbarSlot(scene, i));
-    scene._hotbarBar = wrap;
     scene.ui.insertChild(wrap);
+    return wrap;
   },
 
   _hotbarSlot(scene, i) {
@@ -92,7 +132,7 @@ globalThis.Hud = {
   },
 
   /**
-   * centered "Sleeping…" overlay, toggled by scene._sleeping while a bed fast-forwards time
+   * centered "Sleeping…" overlay, shown by update() while a bed fast-forwards time (scene.sleeping)
    */
   _sleepOverlay(scene) {
     const wrap = new UIElement({
@@ -114,8 +154,8 @@ globalThis.Hud = {
     );
     wrap.insertChild(card);
     wrap.enabled = false;
-    scene._sleepOverlay = wrap;
     scene.ui.insertChild(wrap);
+    return wrap;
   },
 
   /**
@@ -262,7 +302,7 @@ globalThis.Hud = {
   },
 
   /**
-   * Bottom-center dialogue card, toggled via scene._dlg.enabled from step().
+   * Bottom-center dialogue card, shown by update() while the frame's pick is an NPC (scene.nearNpc).
    */
   _dialogue(scene) {
     const wrap = new UIElement({
@@ -299,7 +339,7 @@ globalThis.Hud = {
     card.insertChild(action);
     wrap.insertChild(card);
     wrap.enabled = false;
-    scene._dlg = wrap;
     scene.ui.insertChild(wrap);
+    return wrap;
   },
 };
