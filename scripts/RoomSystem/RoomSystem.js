@@ -2,7 +2,7 @@
  * The rooms of a level — enclosure and warmth over the Core `Rooms` mirror. Feeds the mirror its
  * doors (the built door props, Interaction kind "door", stamped by footprint so a doorway closes a
  * room whether the leaf is open or shut) and holds one TEMPERATURE per room in Kelvin, off one
- * whole-map record (LevelMeta KEY → { lastHour, temps }). A lumped model — one heat capacity per
+ * whole-map record (Records KEY → { lastHour, temps }). A lumped model — one heat capacity per
  * room, no cell field: the outside is Temperature.now() (the sky, the season, the map's climate);
  * a room converges to it at LEAK per in-game hour plus DOOR_LEAK per open door, raised by the
  * Heat sources standing in it (equilibrium = outside + Σpower / (leak × cells), so a source warms a
@@ -12,10 +12,11 @@
  * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
  * that vanishes drops off the record on the next step.
  *
- * Takes the scene (`map.rooms` — the map's runtime, ColonyMap — and the level), like FloraSystem.
+ * Takes the level: the mirror is its cache (`level.cache[KEY]`, a Rooms the level's builder mounts
+ * — ColonyMap), the temperatures its record (`level.meta`, under the same KEY).
  */
 globalThis.RoomSystem = {
-  KEY: "rooms", // its LevelMeta key — a data key (a save holds it)
+  KEY: "rooms", // its key in both bags — the Rooms mirror in Level.cache, the temperature record in Level.meta
   LEAK: 0.6, // 1/h — a sealed room closes 1 − e^-0.6 ≈ 45% of its gap to the outside each in-game hour
   DOOR_LEAK: 1.5, // 1/h more per open door
   _rects: [], // scratch: the doors' footprints handed to Rooms.stamp (the rect objects are reused)
@@ -26,8 +27,9 @@ globalThis.RoomSystem = {
    * Mirror maintenance, once per frame outside the tick loop (beside NavGrid.sync): the doors
    * standing in the store are the stamped footprints, then the walls are resampled if edited.
    */
-  sync(scene) {
-    const entities = scene.level.entities;
+  sync(level) {
+    const entities = level.entities;
+    const rooms = level.cache[RoomSystem.KEY];
     const rects = RoomSystem._rects;
     let n = 0;
     entities.forEach([Interaction, Position, BBox], (id, it) => {
@@ -37,16 +39,16 @@ globalThis.RoomSystem = {
       n++;
     });
     rects.length = n;
-    scene.map.rooms.stamp(rects);
-    scene.map.rooms.sync();
+    rooms.stamp(rects);
+    rooms.sync();
   },
 
   /**
-   * Step every room's temperature up to `now` (WorldClock.absHours); a first call on a map without
+   * Step every room's temperature up to now (WorldClock.absHours); a first call on a map without
    * the record starts its clock, every room at the outside temperature.
    */
-  update(scene, now) {
-    const level = scene.level;
+  update(level) {
+    const now = WorldClock.absHours();
     let rec = level.meta.get(RoomSystem.KEY);
     if (rec === undefined) {
       rec = { lastHour: now, temps: {} };
@@ -57,7 +59,7 @@ globalThis.RoomSystem = {
     if (dh <= 0) return;
     rec.lastHour = now;
 
-    const rooms = scene.map.rooms;
+    const rooms = level.cache[RoomSystem.KEY];
     const list = rooms.rooms;
     const n = list.length;
     const power = RoomSystem._power;
@@ -104,17 +106,17 @@ globalThis.RoomSystem = {
   },
 
   /** Whether a world point is under a roof: inside a room, or anywhere on an indoor map. */
-  sheltered(scene, wx, wy) {
-    if (scene.level.meta.get(ColonyMap.INDOOR) === true) return true;
-    return scene.map.rooms.atWorld(wx, wy) > 0;
+  sheltered(level, wx, wy) {
+    if (level.meta.get(ColonyMap.INDOOR) === true) return true;
+    return level.cache[RoomSystem.KEY].atWorld(wx, wy) > 0;
   },
 
   /** The temperature at a world point in Kelvin: its room's, or the outside's. */
-  tempAt(scene, wx, wy) {
-    const rooms = scene.map.rooms;
+  tempAt(level, wx, wy) {
+    const rooms = level.cache[RoomSystem.KEY];
     const r = rooms.atWorld(wx, wy);
     if (r <= 0) return Temperature.now();
-    const rec = scene.level.meta.get(RoomSystem.KEY);
+    const rec = level.meta.get(RoomSystem.KEY);
     if (rec === undefined) return Temperature.now();
     const t = rec.temps[String(rooms.rooms[r].first)];
     return t !== undefined ? t : Temperature.now();

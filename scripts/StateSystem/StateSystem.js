@@ -1,9 +1,9 @@
 /**
  * @typedef {Object} StateSchema
  * @property {string} id                             registry name (e.g. "combat.idle")
- * @property {function(EntityStore, number): void} [enter]   called once on transition in
- * @property {function(EntityStore, number): void} [update]  called every tick while active
- * @property {function(EntityStore, number): void} [finish]  called once on transition out
+ * @property {function(Level, number): void} [enter]   called once on transition in
+ * @property {function(Level, number): void} [update]  called every tick while active
+ * @property {function(Level, number): void} [finish]  called once on transition out
  */
 
 /**
@@ -11,9 +11,9 @@
  * Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
  * through the pool each use — so a captured/parked actor (EntitySnapshot, a save restore,
  * entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
- * (entities, id): the store needs no module statics (a per-map context like the Level still
- * lives with the states' owner — see CombatAI._grid/bind). `change` queues, `update`
- * applies (finish→enter) then ticks.
+ * (level, id): the level in hand is the whole context — its store, its grid, its caches — so a
+ * state's owner holds no module statics. `change` queues, `update` applies (finish→enter) then
+ * ticks.
  */
 globalThis.StateSystem = {
   _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)
@@ -37,22 +37,23 @@ globalThis.StateSystem = {
     state.next = name;
   },
 
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([State], (id, state) => {
       if (state.next !== "") {
         if (state.current !== "") {
           const prev = StateSystem.get(state.current);
-          if (prev.finish) prev.finish(entities, id);
+          if (prev.finish) prev.finish(level, id);
         }
         state.current = state.next;
         state.next = "";
         const cur = StateSystem.get(state.current);
-        if (cur.enter) cur.enter(entities, id);
+        if (cur.enter) cur.enter(level, id);
       }
 
       if (state.current !== "") {
         const cur = StateSystem.get(state.current);
-        if (cur.update) cur.update(entities, id);
+        if (cur.update) cur.update(level, id);
       }
     });
   },

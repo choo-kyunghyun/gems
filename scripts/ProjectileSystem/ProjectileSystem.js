@@ -5,7 +5,8 @@
 const LAND_GAP = 1; // px a lob rests off the surface it struck, along the surface normal
 
 globalThis.ProjectileSystem = {
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     const dt = SimClock.tickDuration;
     entities.forEach([Projectile, Position, Velocity], (id, proj, pos, vel) => {
       if (vel.x === 0 && vel.y === 0) return; // a landed lob
@@ -26,8 +27,8 @@ globalThis.ProjectileSystem = {
 
       const hit =
         proj.lob === true
-          ? ProjectileSystem._structure(entities, pos.x, pos.y, x1, y1, proj.owner)
-          : Raycast.cast(entities, pos.x, pos.y, x1, y1, { ignore: proj.owner });
+          ? ProjectileSystem._structure(level, pos.x, pos.y, x1, y1, proj.owner)
+          : Raycast.cast(level, pos.x, pos.y, x1, y1, { ignore: proj.owner });
 
       if (hit === null) {
         pos.x = x1;
@@ -76,10 +77,10 @@ globalThis.ProjectileSystem = {
    * a lob's impact: the nearest structure (Combat.isStructure) on the step, or null — bodies are
    * flown over. castAll allocates per step; only a lob in flight pays it.
    */
-  _structure(entities, x0, y0, x1, y1, owner) {
-    const all = Raycast.castAll(entities, x0, y0, x1, y1, { ignore: owner });
+  _structure(level, x0, y0, x1, y1, owner) {
+    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
-      if (Combat.isStructure(entities, all[i].id)) return all[i];
+      if (Combat.isStructure(level.entities, all[i].id)) return all[i];
     }
     return null;
   },

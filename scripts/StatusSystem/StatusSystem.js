@@ -113,7 +113,8 @@ globalThis.StatusSystem = {
    * Per-tick: advance dot/hot + durations, expire finished. Iterate BACKWARDS — in-place splice on expiry.
    * Re-derive once per entity if any expiring status carried `mods`.
    */
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([StatusEffects], (id, eff) => {
       const dt = SimClock.tickDuration;
       let modsExpired = false;

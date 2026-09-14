@@ -1,6 +1,6 @@
 /**
- * One world, one queue; kept off WorldClock so the clock stays the pure temporal authority (same
- * split as Temperature).
+ * One world, one queue — logic over ONE world record (World.meta under KEY — { q }); kept off
+ * WorldClock so the clock stays the pure temporal authority (same split as Temperature).
  *
  * The point: off-focus world state (a wandering trader crossing maps, a scheduled raid, a timed
  * respawn) advances by DISCRETE scheduled events, not by simulating a scene every frame. `update(now)`
@@ -10,10 +10,19 @@
  * Time is an absolute in-game hour count (WorldClock.absHours() = (day-1)*24 + hour), so sleeping
  * (Time.scale) fast-forwards schedules for free and the queue freezes in the lobby (WorldClock only
  * advances while the colony scene steps). Generic on `now` — it never reads WorldClock itself.
+ *
+ * The queue is data (it rides the save with the world's records); the handlers are wiring — a
+ * scene registers them at create (after World.reset, which drops them with the rest of the
+ * world), and a kind with no handler is dropped when due.
  */
 globalThis.WorldEvents = {
-  _q: [], // [{ at, kind, data }] — kept sorted ascending by `at` (soonest first)
-  _handlers: {}, // kind -> fn(data) ; a kind with no handler is dropped when due
+  KEY: "events", // its World.meta key — a data key (a save holds it)
+  _handlers: {}, // kind -> fn(data) ; wiring, not data
+
+  /** The queue record — `{ q: [{ at, kind, data }] }`, kept sorted ascending by `at` (soonest first). */
+  state() {
+    return World.record(WorldEvents.KEY, () => ({ q: [] }));
+  },
 
   /**
    * Register the handler for an event kind (last registration wins). Do this once at scene setup.
@@ -28,7 +37,7 @@ globalThis.WorldEvents = {
    * can stop at the first not-yet-due event.
    */
   schedule(at, kind, data) {
-    const q = WorldEvents._q;
+    const q = WorldEvents.state().q;
     const e = { at: at, kind: kind, data: data };
     // find the insertion point (ascending `at`); linear is fine — the queue holds a handful of events
     let i = q.length;
@@ -43,7 +52,7 @@ globalThis.WorldEvents = {
    * re-enter a same-frame follow-up and a repeat scheduler could hang the game).
    */
   update(now) {
-    const q = WorldEvents._q;
+    const q = WorldEvents.state().q;
     let due = 0;
     while (due < q.length && q[due].at <= now) due++;
     if (due === 0) return;
@@ -56,7 +65,7 @@ globalThis.WorldEvents = {
   },
 
   clearKind(kind) {
-    const q = WorldEvents._q;
+    const q = WorldEvents.state().q;
     let n = 0;
     for (let i = q.length - 1; i >= 0; i--)
       if (q[i].kind === kind) {
@@ -66,19 +75,8 @@ globalThis.WorldEvents = {
     return n;
   },
 
-  /** The queue as save data (flat scalar payloads — see schedule). */
-  export() {
-    return { q: WorldEvents._q.slice() };
-  },
-
-  /** Replace the queue with a saved one (already in `at` order). Handlers are untouched. */
-  import(data) {
-    WorldEvents._q =
-      data !== undefined && data.q !== undefined ? data.q.slice() : [];
-  },
-
-  /** Handlers are kept — re-register per scene. */
+  /** Drop the handlers (World.reset) — the queue goes with the world's records. */
   reset() {
-    WorldEvents._q = [];
+    WorldEvents._handlers = {};
   },
 };

@@ -2,11 +2,12 @@
 // Position, the blast cues (psExplosion, sndExplosionLarge), then the entity is removed. Runs after
 // ProjectileSystem in the tick loop, so a charge landing this tick detonates where it stopped.
 globalThis.FuseSystem = {
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([Fuse, Position], (id, fuse, pos) => {
       fuse.ticks -= 1;
       if (fuse.ticks > 0) return;
-      Combat.explode(entities, pos.x, pos.y, fuse.radius, {
+      Combat.explode(level, pos.x, pos.y, fuse.radius, {
         owner: fuse.owner,
         damage: fuse.damage,
         penetration: fuse.penetration ?? 0,

@@ -3,7 +3,7 @@
  * soil and is consumed back to soil, all as terrain cell EDITS. No entity per cell: the state
  * IS the terrain layer (already in every save), and RenderGrass redraws whatever the layer
  * says, so the whole system is cell writes + one batched rebuild. FloraSystem's clock pattern:
- * in-game hours off a LevelMeta record — a parked map's clock stops, and the first tick after
+ * in-game hours off a Records record — a parked map's clock stops, and the first tick after
  * a long absence spans it whole (bounded below, so a season away can't buy a runaway sweep).
  *
  * Creep: SPREAD_RATE rolls per in-game hour. A roll picks a random cell and turns it grass
@@ -18,51 +18,51 @@
  * front, so a field cut to the root stays bald: depletion is real (the fauna carrying-capacity
  * groundwork — WORLD's "남획은 고갈로 돌아온다").
  *
- * Renders batch: every edit raises one dirty flag; update() flushes it as a single markDirty
- * of the terrain passes + the grass pass — at most one rebuild per frame, however many edits.
+ * Renders: every edit marks the level's terrain passes + grass pass dirty (a flag on the pass —
+ * RenderTileMap.markDirty), so however many edits a frame makes, each pass rebuilds once.
+ * Takes the level (its runtime's layers and passes — ColonyMap — and its clock record).
  */
 globalThis.GrassSystem = {
-  KEY: "grassland", // its LevelMeta clock key — a data key (a save holds it)
+  KEY: "grassland", // its Records clock key — a data key (a save holds it)
   SPREAD_RATE: 6, // expected creep rolls per in-game hour
   MAX_ROLLS: 2000, // one update's roll bound — a long-parked map creeps, not floods
   CAP_SHARE: 0.5, // the creep stops at this share of the map's cells
   HOST: "soil", // the material grass creeps into — and what a cut cell reverts to
-  _dirty: false, // an edit happened since the last flush (active map only, like every system)
 
   /**
-   * Creep the active map up to `now` (WorldClock.absHours) and flush any batched edits.
-   * Cheap when under an hour has passed; a first call starts the map's clock.
+   * Creep the level up to now (WorldClock.absHours). Cheap when under an hour has passed; a
+   * first call starts the map's clock.
    */
-  update(scene, now) {
-    const rec = scene.level.meta.get(GrassSystem.KEY);
+  update(level) {
+    const now = WorldClock.absHours();
+    const rec = level.meta.get(GrassSystem.KEY);
     if (rec === undefined) {
-      scene.level.meta.set(GrassSystem.KEY, { lastHour: now });
+      level.meta.set(GrassSystem.KEY, { lastHour: now });
     } else if (now - rec.lastHour >= 1) {
       const hours = now - rec.lastHour;
       rec.lastHour = now;
-      GrassSystem._creep(scene, hours);
+      GrassSystem._creep(level, hours);
     }
-    GrassSystem._flush(scene);
   },
 
   /**
    * Consume one grass cell back to HOST. True when a grass cell reverted — the caller owns
    * the yield; false on any other ground (a double cut is a miss, not an error).
    */
-  cut(scene, gx, gy) {
-    const grass = GrassSystem._type(scene, "grass");
-    const host = GrassSystem._type(scene, GrassSystem.HOST);
+  cut(level, gx, gy) {
+    const grass = GrassSystem._type(level, "grass");
+    const host = GrassSystem._type(level, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return false;
-    const layer = scene.map.terrainLayer;
+    const layer = ColonyMap.runtime(level).terrainLayer;
     if (layer.get(gx, gy) !== grass) return false;
     layer.set(gx, gy, host);
-    GrassSystem._dirty = true;
+    GrassSystem._mark(level);
     return true;
   },
 
-  /** The map's TileType for a contentBiomes material id, off map.terrainMats; undefined off-palette. */
-  _type(scene, material) {
-    const mats = scene.map.terrainMats;
+  /** The map's TileType for a contentBiomes material id, off the runtime's terrainMats; undefined off-palette. */
+  _type(level, material) {
+    const mats = ColonyMap.runtime(level).terrainMats;
     if (mats === undefined) return undefined;
     for (let i = 0; i < mats.length; i++)
       if (mats[i].material === material) return mats[i].type;
@@ -70,13 +70,14 @@ globalThis.GrassSystem = {
   },
 
   /** the hours' creep rolls — see the header; a map whose palette lacks grass or HOST no-ops */
-  _creep(scene, hours) {
-    const grass = GrassSystem._type(scene, "grass");
-    const host = GrassSystem._type(scene, GrassSystem.HOST);
+  _creep(level, hours) {
+    const grass = GrassSystem._type(level, "grass");
+    const host = GrassSystem._type(level, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return;
-    const grid = scene.level.grid;
-    const map = scene.map;
-    const layer = map.terrainLayer;
+    const grid = level.grid;
+    const rt = ColonyMap.runtime(level);
+    const builtEnts = BuildMode.of(level).builtEnts;
+    const layer = rt.terrainLayer;
     const cap = Math.floor(grid.cols * grid.rows * GrassSystem.CAP_SHARE);
     let count = 0;
     for (let gy = 0; gy < grid.rows; gy++)
@@ -88,6 +89,7 @@ globalThis.GrassSystem = {
     if (rolls < GrassSystem.MAX_ROLLS && random(1) < want - Math.floor(want))
       rolls++;
     const lkeys = BuildMode.tileLayerKeys();
+    let grew = false;
     for (let i = 0; i < rolls; i++) {
       if (count >= cap) break;
       const gx = irandom(grid.cols - 1);
@@ -99,49 +101,47 @@ globalThis.GrassSystem = {
         layer.get(gx, gy - 1) === grass ||
         layer.get(gx, gy + 1) === grass;
       if (!front) continue;
-      let covered = map.builtEnts[gx + "," + gy] !== undefined;
+      let covered = builtEnts[gx + "," + gy] !== undefined;
       for (let k = 0; k < lkeys.length; k++)
-        if (TileEdit.occupied(map[lkeys[k] + "Layer"], gx, gy)) covered = true;
+        if (TileEdit.occupied(rt[lkeys[k] + "Layer"], gx, gy)) covered = true;
       if (covered) continue;
       layer.set(gx, gy, grass);
       count++;
-      GrassSystem._dirty = true;
+      grew = true;
     }
+    if (grew) GrassSystem._mark(level);
   },
 
   /**
    * One build-time sweep: every cell a build layer occupies loses its grass (a generated
    * prefab's walls and floors — the runtime side is BuildMode's cut on placement). Called by
    * ColonyMap._buildRenderer BEFORE the passes exist, so the initial VBOs already see the
-   * result — the dirty flag is cleared, no extra rebuild.
+   * result — there is nothing to mark yet.
    */
-  clearBuilt(scene) {
-    const grass = GrassSystem._type(scene, "grass");
-    const host = GrassSystem._type(scene, GrassSystem.HOST);
+  clearBuilt(level) {
+    const grass = GrassSystem._type(level, "grass");
+    const host = GrassSystem._type(level, GrassSystem.HOST);
     if (grass === undefined || host === undefined) return;
-    const grid = scene.level.grid;
-    const map = scene.map;
-    const layer = map.terrainLayer;
+    const grid = level.grid;
+    const rt = ColonyMap.runtime(level);
+    const layer = rt.terrainLayer;
     const lkeys = BuildMode.tileLayerKeys();
     for (let gy = 0; gy < grid.rows; gy++)
       for (let gx = 0; gx < grid.cols; gx++) {
         if (layer.get(gx, gy) !== grass) continue;
         for (let k = 0; k < lkeys.length; k++)
-          if (TileEdit.occupied(map[lkeys[k] + "Layer"], gx, gy)) {
+          if (TileEdit.occupied(rt[lkeys[k] + "Layer"], gx, gy)) {
             layer.set(gx, gy, host);
             break;
           }
       }
-    GrassSystem._dirty = false;
   },
 
-  /** one batched rebuild for however many edits — the terrain stack + the grass pass */
-  _flush(scene) {
-    if (!GrassSystem._dirty) return;
-    GrassSystem._dirty = false;
-    const map = scene.map;
-    for (let i = 0; i < map.terrainPasses.length; i++)
-      map.terrainPasses[i].markDirty();
-    if (map.grassPass !== undefined) map.grassPass.markDirty();
+  /** the ground changed: the terrain stack + the grass pass rebuild on their next draw */
+  _mark(level) {
+    const rt = ColonyMap.runtime(level);
+    for (let i = 0; i < rt.terrainPasses.length; i++)
+      rt.terrainPasses[i].markDirty();
+    if (rt.grassPass !== undefined) rt.grassPass.markDirty();
   },
 };

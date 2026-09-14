@@ -1,38 +1,46 @@
 // Wandering traders — merchants that cross the map graph off-focus, driven entirely by WorldEvents.
-// A static singleton (Game); the reference consumer of WorldEvents + the World level pool.
+// A singleton (Game); the reference consumer of WorldEvents + the World level pool.
 /**
  * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
  * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
  * its map is the ACTIVE one the record is HYDRATED into a real Merchant NPC entity (via ColonySpawn — so
  * TradeUI / TradeSystem / _npcActivate treat it like any vendor); on leave/depart it DEHYDRATES back
- * to the record (living state captured as a whole-entity snapshot through Universe). So a trader is an
+ * to the record (living state captured as a whole-entity snapshot through World). So a trader is an
  * entity in exactly one place — the map you're standing in.
+ *
+ * Logic over ONE world record (World.meta under KEY — { recs }), so the traders start blank with
+ * the world and ride the save with its records; the handlers reach the active level through
+ * World.active(), never a held scene. install() wires the handlers — once per scene create, after
+ * World.reset drops the previous wiring.
  *
  * A record: { id, name, route:[{map,dwellH}], travelH, merchant, idx, map, inTransit, entId, snap }
  *   route     ordered stops (map id + hours to dwell there); travelH = hours in transit between stops
  *   merchant  the descriptor ColonySpawn builds the vendor from on the FIRST hydrate (stock/margins/mode)
  *   map       current map when settled; inTransit true while travelling between stops
- *   entId     live entity id while embodied in the active map, else -1
+ *   entId     live entity id while embodied in the active map, else -1. Stays meaningful across a
+ *             save: the active map's store restores whole (ids included), so the entity comes
+ *             back under the same id and the record re-links to it instead of hydrating a copy.
  *   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
  */
 globalThis.Trader = {
-  _recs: {}, // id -> record
-  _scene: null, // the active colony scene — handlers reach the active store/map through it
-  _installed: false, // WorldEvents handlers registered once
+  KEY: "traders", // its World.meta key — a data key (a save holds it)
 
-  /** Register the arrive/depart handlers on WorldEvents (once; survives scene resets). */
-  _install() {
-    if (Trader._installed) return;
+  /** The traders record — `{ recs: id -> record }`. */
+  state() {
+    return World.record(Trader.KEY, () => ({ recs: {} }));
+  },
+
+  /** Wire the arrive/depart handlers on WorldEvents (scene create, after World.reset). */
+  install() {
     WorldEvents.on("trader_arrive", (d) => Trader._arrive(d));
     WorldEvents.on("trader_depart", (d) => Trader._depart(d));
-    Trader._installed = true;
   },
 
   /**
-   * Define a wandering trader + start its schedule. `scene` is the active scene (hydrate now if its
+   * Define a wandering trader + start its schedule. `level` is the active level (hydrate now if its
    * first stop is the map you're in). def: { id, name, route:[{map,dwellH}], travelH, merchant }.
    */
-  register(scene, def) {
+  register(level, def) {
     const rec = {
       id: def.id,
       name: def.name,
@@ -45,54 +53,40 @@ globalThis.Trader = {
       entId: -1,
       snap: undefined,
     };
-    Trader._recs[def.id] = rec;
+    Trader.state().recs[def.id] = rec;
     WorldEvents.schedule(
       WorldClock.absHours() + (rec.route[0].dwellH ?? 6),
       "trader_depart",
       { id: rec.id },
     );
-    Trader._tryHydrate(scene, rec);
+    Trader._tryHydrate(level, rec);
     Log.info(`trader ${rec.id}: home ${rec.map}, ${rec.route.length} stops`);
   },
 
   /**
-   * The records as save data. An embodied trader's `entId` stays meaningful: a save restores the
-   * active map's store whole (ids included), so the entity comes back under the same id and the
-   * record re-links to it instead of hydrating a second copy. A loaded game imports this in place
-   * of register() — the schedule is in the saved WorldEvents queue.
+   * Map (re)activated: embody every settled trader whose current map is this one.
    */
-  export() {
-    return { recs: Trader._recs };
-  },
-
-  import(data) {
-    Trader._recs =
-      data !== undefined && data.recs !== undefined ? data.recs : {};
-  },
-
-  /**
-   * Map (re)activated: remember the live scene + embody every settled trader whose current map is this one.
-   */
-  onActivate(scene) {
-    Trader._scene = scene;
-    for (const id in Trader._recs) Trader._tryHydrate(scene, Trader._recs[id]);
+  onActivate(level) {
+    const recs = Trader.state().recs;
+    for (const id in recs) Trader._tryHydrate(level, recs[id]);
   },
   /**
    * Map about to suspend: dehydrate every trader embodied in it (living state → its record).
    */
-  onSuspend(scene) {
-    for (const id in Trader._recs) {
-      const rec = Trader._recs[id];
-      if (rec.entId !== -1) Trader._dehydrate(scene, rec);
+  onSuspend(level) {
+    const recs = Trader.state().recs;
+    for (const id in recs) {
+      const rec = recs[id];
+      if (rec.entId !== -1) Trader._dehydrate(level, rec);
     }
   },
 
   // ── event handlers (fire from WorldEvents.update, whatever map is active) ──
   _depart(d) {
-    const rec = Trader._recs[d.id];
+    const rec = Trader.state().recs[d.id];
     if (rec === undefined) return;
-    if (rec.entId !== -1 && Trader._scene !== null)
-      Trader._dehydrate(Trader._scene, rec); // embodied here → pull it out first
+    const level = World.active();
+    if (rec.entId !== -1 && level !== null) Trader._dehydrate(level, rec); // embodied here → pull it out first
     rec.inTransit = true;
     rec.idx = (rec.idx + 1) % rec.route.length;
     WorldEvents.schedule(WorldClock.absHours() + rec.travelH, "trader_arrive", {
@@ -101,11 +95,12 @@ globalThis.Trader = {
     Log.info(`trader ${rec.id} departed → ${rec.route[rec.idx].map} (transit)`);
   },
   _arrive(d) {
-    const rec = Trader._recs[d.id];
+    const rec = Trader.state().recs[d.id];
     if (rec === undefined) return;
     rec.inTransit = false;
     rec.map = rec.route[rec.idx].map;
-    if (Trader._scene !== null) Trader._tryHydrate(Trader._scene, rec); // arrived where the player is?
+    const level = World.active();
+    if (level !== null) Trader._tryHydrate(level, rec); // arrived where the player is?
     WorldEvents.schedule(
       WorldClock.absHours() + (rec.route[rec.idx].dwellH ?? 6),
       "trader_depart",
@@ -115,26 +110,27 @@ globalThis.Trader = {
   },
 
   // ── hydrate / dehydrate at the active-map boundary ──
-  // Embody a settled trader IF its map is the active one and it isn't already embodied.
-  _tryHydrate(scene, rec) {
+  // Embody a settled trader IF its map is the given (active) one and it isn't already embodied.
+  _tryHydrate(level, rec) {
     if (rec.inTransit || rec.entId !== -1) return;
-    if (scene === null || scene.level.id !== rec.map) return;
-    Trader._hydrate(scene, rec);
+    if (level.id !== rec.map) return;
+    Trader._hydrate(level, rec);
   },
-  _hydrate(scene, rec) {
+  _hydrate(level, rec) {
     // near the map's player spawn (each map's own "market point" — avoids per-map authored coords)
-    const sg = scene.level.grid.worldToGrid(scene.map.spawn.x, scene.map.spawn.y);
+    const spawn = ColonyMap.of(level).spawn;
+    const sg = level.grid.worldToGrid(spawn.x, spawn.y);
     const gx = sg.x + 3;
     const gy = sg.y;
     if (rec.snap !== undefined) {
-      // re-embody living state via the scene manager (whole-entity restore into the active scene)
-      const w = scene.level.grid.gridToWorld(gx, gy);
-      rec.entId = World.put(scene.level.id, rec.snap, {
+      // re-embody living state (whole-entity restore into the active level)
+      const w = level.grid.gridToWorld(gx, gy);
+      rec.entId = World.put(level.id, rec.snap, {
         [Position]: { x: w.x, y: w.y, z: 0 },
       });
     } else {
       // first time: build the vendor fresh from the descriptor (single entity path, ColonySpawn)
-      rec.entId = ColonySpawn.spawnEntity(scene.level.entities, scene.level.grid, {
+      rec.entId = ColonySpawn.spawnEntity(level.entities, level.grid, {
         preset: "npc",
         gx: gx,
         gy: gy,
@@ -143,22 +139,13 @@ globalThis.Trader = {
         merchant: rec.merchant,
       });
     }
-    Log.info(`trader ${rec.id} hydrated in ${scene.level.id} as ent ${rec.entId}`);
+    Log.info(`trader ${rec.id} hydrated in ${level.id} as ent ${rec.entId}`);
   },
-  _dehydrate(scene, rec) {
-    if (scene.window.target === rec.entId)
-      scene.window.close(); // its entity is leaving — close the page open on it
-    rec.snap = World.take(scene.level.id, rec.entId); // whole entity → held snapshot
+  // the whole entity → the held snapshot; a page open on it closes on its own once the id is
+  // gone (Interactable's range-close)
+  _dehydrate(level, rec) {
+    rec.snap = World.take(level.id, rec.entId);
     rec.entId = -1;
-    Log.info(`trader ${rec.id} dehydrated from ${scene.level.id}`);
-  },
-
-  /** New game / scene teardown: drop records + queued trader events; keep the handlers. */
-  reset() {
-    Trader._recs = {};
-    Trader._scene = null;
-    WorldEvents.clearKind("trader_arrive");
-    WorldEvents.clearKind("trader_depart");
-    Trader._install();
+    Log.info(`trader ${rec.id} dehydrated from ${level.id}`);
   },
 };

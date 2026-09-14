@@ -1,5 +1,9 @@
-// Grid wired via MotionPlanner.setGrid (ColonyMap points it at the per-map NavGrid's grid).
 /**
+ * Plans over the level's NavGrid — `level.cache[KEY]`, mounted by the level's builder (ColonyMap)
+ * — pointing MotionPlanner at its grid whenever the level in hand differs from the one it planned
+ * last (the planner's level-sized scratch follows the grid). A request on a level with no nav grid
+ * is a wiring error and throws.
+ *
  * Serves `PathRequest`s into `PathResponse`s over `MotionPlanner`, at most `budget` per tick — the
  * rest stay pending for later ticks, taken round-robin by POSITION in the request walk from where
  * the last tick stopped, so a sustained overload starves no requester: a served request's slot is
@@ -10,8 +14,16 @@
  * over a frame whatever the budget — testCore `perf.plan` is what that costs.
  */
 globalThis.PathfindingSystem = {
+  KEY: "nav", // its Level.cache key — the level's NavGrid
   budget: 4, // requests served per tick; the overflow carries over
-  _cursor: 0, // walk position the next tick's sweep resumes from
+  // walk position the next tick's sweep resumes from — a fairness cursor over whichever level
+  // update() is stepping, meaningless across a level switch and harmless there (the sweep wraps)
+  _cursor: 0,
+
+  /** The level's NavGrid, or undefined when its builder mounted none. */
+  nav(level) {
+    return level.cache[PathfindingSystem.KEY];
+  },
 
   /** Drop all responses so stale paths re-plan after a grid change. */
   invalidate(entities) {
@@ -20,7 +32,8 @@ globalThis.PathfindingSystem = {
     });
   },
 
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     const budget = PathfindingSystem.budget;
     const cursor = PathfindingSystem._cursor;
     let served = 0;
@@ -34,7 +47,7 @@ globalThis.PathfindingSystem = {
         skipped++;
         return;
       }
-      PathfindingSystem._serve(entities, id, req);
+      PathfindingSystem._serve(level, id, req);
       served++;
       next = at + 1;
     });
@@ -46,7 +59,7 @@ globalThis.PathfindingSystem = {
         entities.forEach([PathRequest], (id, req) => {
           const at = pos++;
           if (served >= budget) return;
-          PathfindingSystem._serve(entities, id, req);
+          PathfindingSystem._serve(level, id, req);
           served++;
           next = at + 1;
         });
@@ -54,7 +67,12 @@ globalThis.PathfindingSystem = {
     PathfindingSystem._cursor = next;
   },
 
-  _serve(entities, id, req) {
+  _serve(level, id, req) {
+    const nav = level.cache[PathfindingSystem.KEY];
+    if (nav === undefined)
+      throw new Error(`PathfindingSystem: level "${level.id}" mounts no NavGrid`);
+    if (MotionPlanner.grid !== nav.grid) MotionPlanner.setGrid(nav.grid);
+    const entities = level.entities;
     const path = MotionPlanner.plan(
       { x: req.startX, y: req.startY },
       { x: req.goalX, y: req.goalY },

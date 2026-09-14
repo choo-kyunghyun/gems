@@ -145,7 +145,9 @@ globalThis.TradeSystem = {
    * Restock heartbeat: every `restockSecs` top each finite merchant's stock UP to `template` (never
    * removes — sold extras stay for buyback). Called per frame with sim dt (pauses with the game).
    */
-  update(entities, dt) {
+  update(level) {
+    const entities = level.entities;
+    const dt = Time.delta;
     entities.forEach([Merchant, Inventory], (id, m, inv) => {
       if (m.infinite) return;
       if (m.restockSecs <= 0 || m.template === undefined) return;

@@ -1,7 +1,8 @@
 // Thirst need driver — thin wrapper over the shared Survival core (own object so a thirst-specific rule
 // has a home). update() in the tick loop; restore() is the drink action (ConsumableSystem routes here).
 globalThis.ThirstSystem = {
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     Survival.tick(entities, Thirst);
   },
 

@@ -151,7 +151,6 @@ class _SceneTestClass {
     if (c.teardown !== undefined)
       this._guard("teardown", () => c.teardown(this._ctx)); // a level left alive would leak
     this._ctx = null;
-    SolidSystem.invalidate(); // the case's store is gone; the next one must not read its cache
     this._t.report();
     const fails = this._t.fails;
     if (fails.length === 0) {

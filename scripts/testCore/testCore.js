@@ -3,8 +3,8 @@
 // setup fills ctx (a Level, a store, the ids); verify asserts through t.ok/eq/near — every miss
 // is one `[CHECK] FAIL <id>` line — and times through t.measure, one `[BENCH]` line per measure;
 // teardown frees what setup made. `frames` (default 1) spans a case over real
-// frames for what only a frame boundary can catch. A case touches nothing but its own ctx: a
-// singleton it needs (SolidSystem's cache) is reset by the runner between cases. Every case here
+// frames for what only a frame boundary can catch. A case touches nothing but its own ctx — a
+// system's per-level cache lives on the case's Level and goes with it. Every case here
 // references Core only — it must keep running with Game deleted.
 //
 // A `perf.*` case is one family of per-op costs — THE record of what an operation costs on the
@@ -351,14 +351,15 @@ globalThis.testCore = {
     {
       id: "system.movement",
       setup(ctx) {
-        const s = new EntityStore(8);
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
         ctx.entities = s;
         ctx.id = s.create();
         s.add(ctx.id, Position, { x: 0, y: 0, z: 0 });
         s.add(ctx.id, Velocity, { x: 60, y: -30, z: 6 });
       },
       verify(ctx, t) {
-        for (let k = 0; k < 10; k++) MovementSystem.update(ctx.entities);
+        for (let k = 0; k < 10; k++) MovementSystem.update(ctx.level);
         const pos = ctx.entities.get(ctx.id, Position);
         const d = SimClock.tickDuration * 10;
         t.near(pos.x, 60 * d, 1e-6, "x integrates velocity per tick");
@@ -366,37 +367,39 @@ globalThis.testCore = {
         t.near(pos.z, 6 * d, 1e-6, "z integrates velocity per tick");
       },
       teardown(ctx) {
-        ctx.entities.destroy();
+        ctx.level.destroy();
       },
     },
     {
       id: "system.lifetime",
       setup(ctx) {
-        const s = new EntityStore(8);
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
         ctx.entities = s;
         ctx.id = s.create();
         s.add(ctx.id, Lifetime, { ticks: 3 });
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        LifetimeSystem.update(s);
+        LifetimeSystem.update(ctx.level);
         s.flush();
-        LifetimeSystem.update(s);
+        LifetimeSystem.update(ctx.level);
         s.flush();
         t.ok(s.isValid(ctx.id), "alive before the last tick");
-        LifetimeSystem.update(s);
+        LifetimeSystem.update(ctx.level);
         t.ok(s.isValid(ctx.id), "expiry is deferred to flush");
         s.flush();
         t.ok(!s.isValid(ctx.id), "expired at flush");
       },
       teardown(ctx) {
-        ctx.entities.destroy();
+        ctx.level.destroy();
       },
     },
     {
       id: "system.solid",
       setup(ctx) {
-        const s = new EntityStore(8);
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
         ctx.entities = s;
         ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
         ctx.body = s.create();
@@ -407,7 +410,7 @@ globalThis.testCore = {
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        for (let k = 0; k < 20; k++) SolidSystem.update(s);
+        for (let k = 0; k < 20; k++) SolidSystem.update(ctx.level);
         const pos = s.get(ctx.body, Position);
         const vel = s.get(ctx.body, Velocity);
         t.ok(pos.x + 16 <= 100 + 1e-6, "body never enters the wall");
@@ -416,13 +419,13 @@ globalThis.testCore = {
         const wallPos = s.get(ctx.wall, Position);
         t.eq(wallPos.x, 100, "kinematic solid never moves");
         t.eq(
-          SolidSystem.statics(s).length,
+          SolidSystem.statics(ctx.level).length,
           1,
           "static snapshot holds the wall",
         );
       },
       teardown(ctx) {
-        ctx.entities.destroy();
+        ctx.level.destroy();
       },
     },
     {
@@ -431,7 +434,8 @@ globalThis.testCore = {
       // listed but never moved, a solid-off body is listed but not separated
       id: "system.solid.bodies",
       setup(ctx) {
-        const s = new EntityStore(8);
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
         ctx.entities = s;
         ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
         ctx.still = s.create(); // no Velocity: a cast target, not a mover
@@ -456,10 +460,10 @@ globalThis.testCore = {
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        SolidSystem.update(s);
+        SolidSystem.update(ctx.level);
         let listed = 0;
         let sawStill = false;
-        SolidSystem.eachBody(s, (id) => {
+        SolidSystem.eachBody(ctx.level, (id) => {
           listed++;
           if (id === ctx.still) sawStill = true;
         });
@@ -467,7 +471,7 @@ globalThis.testCore = {
         t.ok(sawStill, "a body without Velocity is listed");
         t.eq(s.get(ctx.still, Position).x, 10, "a body without Velocity is not integrated");
 
-        SeparationSystem.update(s);
+        SeparationSystem.update(ctx.level);
         const pa = s.get(ctx.a, Position);
         const pb = s.get(ctx.b, Position);
         t.near(pa.x, 36, 1e-6, "separation pushes a back half the overlap");
@@ -475,7 +479,7 @@ globalThis.testCore = {
         t.eq(s.get(ctx.corpse, Position).x, 40, "a solid-off body is not separated");
       },
       teardown(ctx) {
-        ctx.entities.destroy();
+        ctx.level.destroy();
       },
     },
     {
@@ -548,14 +552,15 @@ globalThis.testCore = {
     {
       id: "collision.raycast",
       setup(ctx) {
-        const s = new EntityStore(8);
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
         ctx.entities = s;
         ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
-        SolidSystem.update(s); // takes the static snapshot the cast walks
+        SolidSystem.update(ctx.level); // takes the static snapshot the cast walks
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        const hit = Raycast.cast(s, 0, 16, 200, 16);
+        const hit = Raycast.cast(ctx.level, 0, 16, 200, 16);
         t.ok(hit !== null, "a segment through the wall hits");
         if (hit !== null) {
           t.eq(hit.id, ctx.wall, "hit id is the wall");
@@ -564,18 +569,18 @@ globalThis.testCore = {
           t.eq(hit.nx, -1, "normal points back along the ray");
         }
         t.eq(
-          Raycast.cast(s, 0, 16, 90, 16),
+          Raycast.cast(ctx.level, 0, 16, 90, 16),
           null,
           "a segment short of the wall misses",
         );
         t.eq(
-          Raycast.cast(s, 0, 80, 200, 80),
+          Raycast.cast(ctx.level, 0, 80, 200, 80),
           null,
           "a segment beside the wall misses",
         );
       },
       teardown(ctx) {
-        ctx.entities.destroy();
+        ctx.level.destroy();
       },
     },
     {

@@ -259,7 +259,7 @@ globalThis.Hud = {
           const k =
             pos === undefined
               ? Temperature.now()
-              : RoomSystem.tempAt(scene, pos.x, pos.y);
+              : RoomSystem.tempAt(scene.level, pos.x, pos.y);
           return I18n.text(
             "HUD_CONDITION",
             I18n.text(Weather.current().name),

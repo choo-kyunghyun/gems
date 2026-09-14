@@ -6,7 +6,8 @@ globalThis.SoundEmitterSystem = {
    * fast-forward caps at one cue per frame. An unknown sound name warns once and detaches
    * the component (fail fast, no per-interval spam).
    */
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([SoundEmitter, Position], (id, se, pos) => {
       se.timer = (se.timer ?? se.every) - Time.delta;
       if (se.timer > 0) return;

@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 8; // bump when the manifest/blob layout changes incompatibly (8: Mesh.model keys are camelCase)
+  static VERSION = 9; // bump when the manifest/blob layout changes incompatibly (9: the world's and each map's records export whole)
 
   constructor() {
     this.passes = [];

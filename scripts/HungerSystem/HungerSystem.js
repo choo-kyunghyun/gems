@@ -1,7 +1,8 @@
 // Hunger need driver — thin wrapper over the shared Survival core (own object so a hunger-specific rule
 // has a home). update() in the tick loop; restore() is the eat action (ConsumableSystem routes here).
 globalThis.HungerSystem = {
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     Survival.tick(entities, Hunger);
   },
 

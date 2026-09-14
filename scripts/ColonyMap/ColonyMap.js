@@ -1,76 +1,92 @@
-// Map engine for the colony scene — world-map travel, map pool, and persistence.
+// Map engine for the colony scene — world-map travel, the map pool, and the runtime over a Level.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
- * The RUNTIME the colony builds over one Level — everything per-map that is not the Level's own
- * data — as ONE record: the scene's `map` while the map is active, a `_parked` entry once it is
- * not, so a park or a resume is a pointer swap. _map() makes it with every field declared;
- * build()/restore() fill the data half, _activate the runtime half. Besides the fields below it
- * carries the tilemap handles, one set per contentTiles.LAYERS entry: `<key>Layer` (the
- * TileLayer) and `<key>Type` (its default TileType), plus `<key>Types` (material key → TileType)
- * on a materials-bearing layer and `<key>Colliders` (its greedy-meshed collider ids, remeshed
- * whole on an edit) on a solid one.
- * @typedef {Object} MapRuntime
+ * A map IS a Level in the World pool, and everything the colony holds of it lives in that Level's
+ * two bags under KEY: the DATA record in `level.meta` — a save holds it — and the RUNTIME in
+ * `level.cache`, built on the map's first activation and freed with the level. Nothing of a map
+ * lives here or on the scene, so a park is a camera unassign and a resume a pointer swap.
+ *
+ * The data record (`ColonyMap.of(level)`):
+ * @typedef {Object} ColonyMapData
  * @property {{x:number,y:number}} spawn  the point the map was entered at (world) — the respawn point, the trader's market point
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world) — a later arrival lands at one
  * @property {number[]} statics  the collider ids no tile layer owns (impassable terrain, the level edge) — a remesh never frees them
- * @property {Array|undefined} terrainMats  a generated map's terrain material table (ColonyLevel._terrainTypes); undefined with one fill type
- * @property {Object<string,string>} built  "gx,gy" → tile item id: the player's deconstructable tiles (BuildMode)
- * @property {Object<string,{ent:number,itemId:string}>} builtEnts  "gx,gy" → the player's deconstructable built entities (BuildMode)
+ * @property {Object<string,number[]>} colliders  per solid LAYERS key, its greedy-meshed collider ids (remeshed whole on an edit — BuildMode)
+ * @property {Array|undefined} terrainMats  a generated map's terrain material table as rows (ColonyLevel.terrainRows); undefined with one fill type
  * @property {AABBRect|undefined} reachZone  the reach quest's region; undefined on a map without the marker
  * @property {boolean} reachDone
- * @property {NavGrid} nav  the level-sized pathfinding grid
- * @property {Rooms} rooms  the enclosure mirror
- * @property {Renderer} renderer  the pass stack
+ *
+ * The runtime (`ColonyMap.runtime(level)`) — the tilemap handles, one set per contentTiles.LAYERS
+ * entry: `<key>Layer` (the TileLayer) and `<key>Type` (its default TileType), plus `<key>Types`
+ * (material key → TileType) on a materials-bearing layer — mounted with the level, and the
+ * presentation, built once by _activate:
+ * @typedef {Object} ColonyMapRuntime
+ * @property {Array|undefined} terrainMats  the material table as live rows ({ type, sprite, material } — ColonyLevel._terrainTypes)
+ * @property {Renderer|undefined} renderer  the pass stack; undefined until the first activation
  * @property {Camera} camera
  * @property {CameraFollow} cameraFollow  the camera's normal control, kept so a debug control (CameraFly) can hand back to it
  * @property {Object<string,RenderPass>} tilePasses  the tile pass per layer key — a BuildMode edit marks its layer's dirty
- * @property {RenderTileMap[]} terrainPasses  a generated map's ground stack, lowest material first — GrassSystem's flush marks them
+ * @property {RenderTileMap[]} terrainPasses  a generated map's ground stack, lowest material first — GrassSystem marks them
  * @property {RenderGrass|undefined} grassPass  the grass volume layer — likewise
  * @property {RenderDebugEntity} bboxPass  the lime BBox outlines — the `debugBBox` setting drives its `enabled`
+ * The spatial mirrors sit in the same cache under their readers' keys: the NavGrid under
+ * PathfindingSystem.KEY, the Rooms under RoomSystem.KEY, the Broadphase under SeparationSystem.KEY.
  */
 /**
- * Visited maps stay ALIVE: the World level pool holds each map's DATA (its Level — grid,
- * entities, whole-map records) and `_parked` below holds the per-map RUNTIME the colony builds
- * over it (one MapRuntime — the scene's `map` while the map is active), so a trip never
- * destroys/rebuilds. Only the SQUAD migrates: every entity sharing the player's Squad id (player included) moves as a WHOLE entity
- * through World.take/put — a trip forces a "wait" member back to "follow" first, so the squad
- * always travels together. Travel is by WORLD MAP (travel(), below): the squad deploys from a
- * site's beacon to any other site (contentSites), the crossing costing in-game hours. There is
- * no per-map player and no carried component subset; kicked/unhired companions are plain map
- * residents. Everything is persistent for the session: a map builds from its data exactly ONCE
- * (first visit), then only freezes/thaws — no eviction, cold serialize, or respawn-from-file
- * reconcile.
+ * Visited maps stay ALIVE in the World level pool — data and runtime both on the Level — so a
+ * trip never destroys/rebuilds. Only the SQUAD migrates: every entity sharing the player's Squad
+ * id (player included) moves as a WHOLE entity through World.take/put — a trip forces a "wait"
+ * member back to "follow" first, so the squad always travels together. Travel is by WORLD MAP
+ * (travel(), below): the squad deploys from a site's beacon to any other site (contentSites), the
+ * crossing costing in-game hours. There is no per-map player and no carried component subset;
+ * kicked/unhired companions are plain map residents. Everything is persistent for the session: a
+ * map builds from its data exactly ONCE (first visit), then only freezes/thaws — no eviction, cold
+ * serialize, or respawn-from-file reconcile.
  *
- * Three ways into a map, one runtime after: build() is the FIRST visit — the site's seed, the
- * generator, the painter, the spawn pass (the only place procedural content is ever made); restore()
- * is a SAVED map's first visit since the load — its grid and store come back exactly as captured
- * and nothing is made; resume() is a parked runtime. go() picks between them.
+ * Two ways into a map: build() is the FIRST visit — the site's seed, the generator, the painter,
+ * the spawn pass (the only place procedural content is ever made); resume() is a pooled level —
+ * parked earlier, or restored from a save (restoreLevel pools a saved map's data at load, its
+ * runtime built on its first visit). go() picks between them.
  */
 globalThis.ColonyMap = {
-  _parked: {}, // mapId -> its MapRuntime while it is not the active map. The map's DATA is its pooled Level, not this.
-  // the LevelMeta keys of the whole-map records this engine writes (data keys — a save holds
+  KEY: "map", // its key in both bags — the data record in Level.meta, the runtime in Level.cache
+  // the Records keys of the whole-map records this engine writes (data keys — a save holds
   // them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate` the pinned sky
   // (Weather.setClimate's record), `biome` the profile id (contentBiomes — FloraSystem's spread
   // pool). A Settlement record sits under Settlement.KEY, the flora clock under FloraSystem.KEY,
-  // the room temperatures under RoomSystem.KEY.
+  // the room temperatures under RoomSystem.KEY, the player's builds under BuildMode.KEY.
   INDOOR: "indoor",
   CLIMATE: "climate",
   BIOME: "biome",
   WIND: "wind", // the level's constant wind strength (biome profile `wind`) — grass sway
 
-  /** A MapRuntime with every field declared and nothing built (the typedef above). */
-  _map() {
+  /** The level's data record (the typedef above). */
+  of(level) {
+    return level.meta.get(ColonyMap.KEY);
+  },
+
+  /** The level's runtime (the typedef above), or undefined before the level is mounted. */
+  runtime(level) {
+    return level.cache[ColonyMap.KEY];
+  },
+
+  /** A data record with every field declared and nothing built. */
+  _data() {
     return {
       spawn: undefined,
       entries: undefined,
       statics: undefined,
+      colliders: {},
       terrainMats: undefined,
-      built: {},
-      builtEnts: {},
       reachZone: undefined,
       reachDone: false,
-      nav: undefined,
-      rooms: undefined,
+    };
+  },
+
+  /** A runtime with every field declared and nothing built; Level.destroy frees it through `destroy`. */
+  _runtime() {
+    return {
+      terrainMats: undefined,
       renderer: undefined,
       camera: undefined,
       cameraFollow: undefined,
@@ -78,6 +94,10 @@ globalThis.ColonyMap = {
       terrainPasses: [],
       grassPass: undefined,
       bboxPass: undefined,
+      destroy() {
+        if (this.camera !== undefined) this.camera.destroy();
+        if (this.renderer !== undefined) this.renderer.destroy(); // frees the tile/terrain VBOs
+      },
     };
   },
 
@@ -90,7 +110,7 @@ globalThis.ColonyMap = {
    */
   go(scene, mapId, entryId) {
     let squad = null; // whole-entity snapshots, player first; null = boot (spawn a fresh player)
-    // ── PHASE A: pull the squad out, then park the current map (its store stays alive) ──
+    // ── PHASE A: pull the squad out, then park the current map (its level stays pooled) ──
     if (scene.playerId !== undefined) {
       const sid = scene.level.entities.get(scene.playerId, Squad).id;
       const members = FollowerSystem.members(
@@ -109,27 +129,15 @@ globalThis.ColonyMap = {
         );
         squad.push(World.take(scene.level.id, members[i]));
       }
-      Trader.onSuspend(scene); // dehydrate any embodied wandering trader → its record (before park)
+      Trader.onSuspend(scene.level); // dehydrate any embodied wandering trader → its record (before park)
       scene.level.entities.flush(); // commit the taken members' removals before parking
       ColonyMap.suspend(scene);
     }
-    // ── PHASE B: enter the target — resume its parked runtime, restore its saved entry, else
-    // build from file ── every resident map is parked at this point (Phase A parked the current
-    // one), so a _parked hit is always a whole runtime
-    if (ColonyMap._parked[mapId] !== undefined)
-      ColonyMap.resume(scene, mapId, entryId, squad);
-    else {
-      const pending = SaveGame.takePendingMap(mapId);
-      let restored = false;
-      if (pending !== null)
-        restored = ColonyMap.restore(scene, mapId, entryId, squad, pending);
-      if (!restored) {
-        if (pending !== null)
-          Log.error(`map "${mapId}": save entry unusable — building it fresh`);
-        ColonyMap.build(scene, mapId, entryId, squad);
-      }
-    }
-    Trader.onActivate(scene); // embody any trader currently in this map
+    // ── PHASE B: enter the target — a pooled level resumes (parked, or restored from a save
+    // and never visited), anything else builds from its site ──
+    if (World.get(mapId) !== null) ColonyMap.resume(scene, mapId, entryId, squad);
+    else ColonyMap.build(scene, mapId, entryId, squad);
+    Trader.onActivate(scene.level); // embody any trader currently in this map
   },
 
   /**
@@ -151,65 +159,64 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Park the live map: its runtime (scene.map) moves to _parked; its Level is already pooled and
-   * stays there untouched. Unassign (not destroy) the camera — the parked map keeps it for resume;
-   * without the unassign its later destroy() would tear down the live view.
+   * Park the live map: its Level stays in the pool untouched, runtime and all. Unassign (not
+   * destroy) the camera — the parked map keeps it for resume; without the unassign its later
+   * destroy() would tear down the live view.
    */
   suspend(scene) {
-    const map = scene.map;
-    if (map.camera) map.camera.unassign();
-    ColonyMap._parked[scene.level.id] = map;
+    const rt = ColonyMap.runtime(scene.level);
+    if (rt.camera !== undefined) rt.camera.unassign();
   },
 
   /**
-   * Resume a parked map: point the scene at its pooled Level and its parked runtime, re-claim the
-   * viewport, and land the traveling squad at the entry (the parked store has no player — the
-   * squad left on a trip).
+   * Resume a pooled level: point the scene at it, land the traveling squad at the entry (a
+   * parked store has no player — the squad left on a trip; a restored one holds its saved
+   * player), then re-claim the viewport — or, on a saved map's first visit since the load, build
+   * its runtime here, exactly as build() does after the spawn pass.
    */
   resume(scene, mapId, entryId, squad) {
-    scene.level = World.get(mapId); // the pooled data, exactly as it parked
-    const map = ColonyMap._parked[mapId];
-    delete ColonyMap._parked[mapId]; // a resident map is live on the scene or parked, never both
-    scene.map = map;
+    const level = World.get(mapId); // the pooled data, exactly as it parked (or loaded)
+    scene.level = level;
     World.activeId = mapId;
-    MotionPlanner.setGrid(map.nav.grid);
-    if (map.camera) map.camera.assign(0);
+    const data = ColonyMap.of(level);
+    const rt = ColonyMap.runtime(level);
 
-    const sp = map.entries[entryId] ?? map.spawn;
+    const sp = data.entries[entryId] ?? data.spawn;
     ColonyMap._arriveSquad(scene, squad, sp);
-    // snap the follow camera to the entry so it doesn't pan from the parked position (the
-    // TARGET needs no re-aim: the arrived player carries CameraFocus — take/put re-mints its
-    // id, but CameraFollow resolves the marker by live query each update)
-    if (map.camera) {
-      map.camera.toX = sp.x;
-      map.camera.toY = sp.y;
-    }
+    // the player is whoever the store holds — restored with it on the load boot, just landed on
+    // a trip (re-latched per frame from the same query thereafter)
+    const pid = level.entities.first(Playable);
+    scene.playerId = pid !== -1 ? pid : undefined;
 
-    ColonyMap._activateReset(scene);
-    ColonyMap._applyBgm(scene); // crossfade to the resumed map's ambient (indoor ⇄ overworld)
-    ColonyMap._applyClimate(scene);
-    FloatingText.clear(); // drop the previous map's combat numbers (world coords are map-local)
-    ParticleFx.clear();
-    ParticleEmitterSystem.clear();
+    if (rt.renderer === undefined) ColonyMap._activate(scene);
+    else {
+      rt.camera.assign(0);
+      // snap the follow camera to the entry so it doesn't pan from the parked position (the
+      // TARGET needs no re-aim: the arrived player carries CameraFocus — take/put re-mints its
+      // id, but CameraFollow resolves the marker by live query each update)
+      rt.camera.toX = sp.x;
+      rt.camera.toY = sp.y;
+    }
+    ColonyMap._arrive(scene);
   },
 
   /**
    * The map's ambient bed: interiors (meta.indoor) the cozy loop, the open world the tense one —
    * what plays whenever the player's Radio is off (its `ambient` hook is wired to this).
    */
-  bed(scene) {
-    const indoor = scene.level.meta.get(ColonyMap.INDOOR) === true;
+  bed(level) {
+    const indoor = level.meta.get(ColonyMap.INDOOR) === true;
     return indoor ? musAmbientCozy : musAmbientTense;
   },
 
   /**
-   * Cross-fade to the map's bed on every arrival (build + resume) — unless the Radio is tuned:
-   * its station plays through arrivals, the bed returning when the dial goes off (Radio.off).
-   * Music.play treats a same-track re-request as a no-op, so this is safe to call unconditionally.
+   * Cross-fade to the map's bed on every arrival — unless the Radio is tuned: its station plays
+   * through arrivals, the bed returning when the dial goes off (Radio.off). Music.play treats a
+   * same-track re-request as a no-op, so this is safe to call unconditionally.
    */
   _applyBgm(scene) {
     if (Radio.on()) return;
-    Music.play(ColonyMap.bed(scene));
+    Music.play(ColonyMap.bed(scene.level));
   },
 
   /**
@@ -221,33 +228,21 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Per-activate transient reset (build + resume). Kept off the MapRuntime so a resume can't
-   * restore a stale transient.
+   * Every arrival (build + resume): the scene's per-map transients reset — kept off the level so a
+   * resume can't restore a stale one — the map's bed and sky, and the world-space effects of the
+   * previous map dropped (their coordinates are map-local).
    */
-  _activateReset(scene) {
+  _arrive(scene) {
     scene.build.armed = false;
     scene.build.active = false;
     scene.nearNpc = false;
     scene.window.dirty = true; // the bag, if it shows, re-reads this map's squad + store
-    // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,
-    // so bind explicitly — else enemies step against the previously-built store and fault.
-    CombatAI.bind(scene.level.entities, scene.level.grid);
-    // Re-point the terrain movement pricing (mover speed × 1/cost) at the active map, same reason.
-    PathFollow.bind(ColonyMap._terrainCost(scene));
-  },
-
-  /**
-   * Per-map terrain movement-cost provider ((wx, wy) → cost ≥ 1, Infinity = impassable) feeding
-   * PathFollow's speed pricing (NavGrid reads the same LevelGrid.costAt itself, in cells). The
-   * ground is tile data on every map — generated biome materials or the authored fill — so this
-   * is one grid lookup: the topmost layer's TileType cost, which TileType already normalizes
-   * (`pathCost: null` → Infinity).
-   */
-  _terrainCost(scene) {
-    const grid = scene.level.grid;
-    const cw = grid.cellWidth;
-    const ch = grid.cellHeight;
-    return (wx, wy) => grid.costAt(Math.floor(wx / cw), Math.floor(wy / ch));
+    ColonyMap._applyBgm(scene);
+    ColonyMap._applyClimate(scene);
+    FloatingText.clear();
+    ParticleFx.clear();
+    ParticleEmitterSystem.clear();
+    WorldOverlay.clearTracers();
   },
 
   /**
@@ -261,10 +256,10 @@ globalThis.ColonyMap = {
     return out;
   },
 
-  // Build a map fresh from its data — the FIRST visit ONLY (a revisit resumes its parked
-  // runtime, a saved map restores; nothing is ever rebuilt). The one place the site's seed, the
-  // generator and the spawn pass are read. `squad` is handed in by go() (null on boot → spawn a fresh
-  // player). Orchestrates the helpers below.
+  // Build a map fresh from its data — the FIRST visit ONLY (a revisit resumes the pooled level;
+  // nothing is ever rebuilt). The one place the site's seed, the generator and the spawn pass are
+  // read. `squad` is handed in by go() (null on boot → spawn a fresh player). Orchestrates the
+  // helpers below.
   build(scene, mapId, entryId, squad = null) {
     const loaded = ColonyMap._loadData(mapId, entryId);
     const data = loaded.data;
@@ -276,84 +271,69 @@ globalThis.ColonyMap = {
     // pool it BEFORE the squad lands — World.put resolves the destination through the pool
     World.add(mapId, scene.level);
     World.activeId = mapId; // building a map activates it
-    ColonyMap._arriveSquad(scene, squad, scene.map.spawn); // already entry-resolved
-    ColonyMap._spawnWorld(scene, data, built); // the residents, from the build's descriptors
-    ColonyMap._activate(scene); // the runtime over the level, shared with restore()
+    ColonyMap._arriveSquad(scene, squad, ColonyMap.of(scene.level).spawn); // already entry-resolved
+    ColonyMap._spawnWorld(scene, built); // the residents, from the build's descriptors
+    ColonyMap._activate(scene); // the runtime over the level, shared with resume()
+    ColonyMap._arrive(scene);
   },
 
   /**
-   * Bring a SAVED map back — a load's first visit to it. The Level comes up from its save entry
-   * exactly as captured (ColonyLevel.restore: the grid cell for cell, the store whole with every
-   * entity under its saved id, colliders and statics included), the runtime's data half comes
-   * straight off the entry, and only its runtime half is re-made around it
-   * (_activate — the same steps build runs after its spawn pass). Nothing is painted, spawned or
-   * re-meshed, so the entity set is the saved one. `squad` lands like on a build (null on the
-   * load boot — the player is already in the store). `pending` is SaveGame.takePendingMap's
-   * { map, buf }; the buffer is freed here. Returns false when the entry can't be applied
-   * (Log.error'd) — the scene then holds no level, and the caller builds instead.
+   * Pool a SAVED map's data — its records as captured, its grid cell for cell and its store whole
+   * — with no seed, spawn or remesh (a load makes nothing): the Level, mounted (layer handles) but
+   * not activated, so its first visit builds the presentation like any resume. `m` is a SaveGame
+   * map entry, `buf` its grid blob (freed here). Returns the level, or null when the entry is
+   * unusable (Log.error'd, nothing pooled) — the map's first visit then builds it fresh, loudly.
    */
-  restore(scene, mapId, entryId, squad, pending) {
-    const m = pending.map;
-    Log.info(`colony map: ${mapId} (entry ${entryId}) [restored]`);
-    scene.level = new Level({ id: mapId, capacity: m.capacity });
-    scene.level.meta.import(m.meta); // the whole-map records, as captured
-    const h = ColonyLevel.restore(scene.level.entities, m, pending.buf);
-    buffer_delete(pending.buf);
-    if (h === null) {
-      scene.level.destroy();
-      return false;
+  restoreLevel(m, buf) {
+    const level = new Level({ id: m.id, capacity: m.capacity });
+    level.meta.import(m.meta);
+    const rec = ColonyMap.of(level);
+    if (rec === undefined) {
+      Log.error(`map "${m.id}": save entry carries no map record`);
+      buffer_delete(buf);
+      level.destroy();
+      return null;
     }
-    scene.level.grid = h.grid;
-    const map = ColonyMap._map();
-    scene.map = map;
-    map.spawn = m.spawn;
-    map.entries = m.entries;
+    const h = ColonyLevel.restore(
+      level.entities,
+      { ...m, terrainMats: rec.terrainMats },
+      buf,
+    );
+    buffer_delete(buf);
+    if (h === null) {
+      level.destroy();
+      return null;
+    }
+    level.grid = h.grid;
+    ColonyMap._mount(level, h);
+    World.add(m.id, level);
+    Log.info(`colony map: ${m.id} [restored]`);
+    return level;
+  },
+
+  /**
+   * Mount the level's runtime with the builder's handles — the material table as live rows and
+   * one Layer/Type pair per LAYERS entry, plus <key>Types for a materials-bearing layer (wall).
+   */
+  _mount(level, h) {
+    const rt = ColonyMap._runtime();
+    level.cache[ColonyMap.KEY] = rt;
+    rt.terrainMats = h.terrainMats;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const key = contentTiles.LAYERS[i].key;
-      map[key + "Layer"] = h[key + "Layer"];
-      map[key + "Type"] = h[key + "Type"];
-      if (h[key + "Types"] !== undefined) map[key + "Types"] = h[key + "Types"];
-      if (m.colliders[key] !== undefined)
-        map[key + "Colliders"] = m.colliders[key];
+      rt[key + "Layer"] = h[key + "Layer"];
+      rt[key + "Type"] = h[key + "Type"];
+      if (h[key + "Types"] !== undefined) rt[key + "Types"] = h[key + "Types"];
     }
-    map.statics = m.statics;
-    map.terrainMats = h.terrainMats;
-    World.add(mapId, scene.level);
-    World.activeId = mapId;
-    ColonyMap._arriveSquad(scene, squad, map.entries[entryId] ?? map.spawn);
-    // the player is whoever the store holds — restored with it on the load boot, just landed on
-    // a trip (re-latched per frame from the same query thereafter)
-    const pid = scene.level.entities.first(Playable);
-    scene.playerId = pid !== -1 ? pid : undefined;
-    map.built = m.built;
-    map.builtEnts = m.builtEnts;
-    map.reachZone = m.reachZone;
-    map.reachDone = m.reachDone === true;
-    ColonyMap._activate(scene);
-    return true;
   },
 
-  /**
-   * The map's runtime half over a level that already holds its grid and its entities — the tail
-   * build() and restore() share: per-activate transients, the spatial indexes, the follow
-   * camera, the render pass stack, the map's ambient, and a clean effects slate.
-   */
+  /** The presentation over a mounted level — once per level, on its first activation. */
   _activate(scene) {
-    ColonyMap._activateReset(scene); // per-activate transients (hp track, build mode, inv)
     ColonyMap._buildSpatial(scene); // broadphase + nav grid + room mirror
     ColonyMap._buildCamera(scene); // follow camera — before the passes, which take it at construction
     ColonyMap._buildRenderer(scene); // render pass stack
-    ColonyMap._applyBgm(scene); // map-appropriate ambient (re-requesting the same track is a no-op)
-    ColonyMap._applyClimate(scene); // the map's sky (meta.climate) or the open one
-    FloatingText.clear(); // drop combat numbers + particles from the previous map (map-local coords)
-    ParticleFx.clear();
-    ParticleEmitterSystem.clear();
   },
 
-  /**
-   * A map's level data (ColonyLevel.load — its file, or its synthesized site), falling back to
-   * the home site if it's bad. Returns resolved ids + data.
-   */
   _loadData(mapId, entryId) {
     let data = ColonyLevel.load(mapId);
     if (data === null) {
@@ -366,8 +346,8 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The Level (store + LevelGrid + its whole-map records) and the map's data half — a fresh
-   * MapRuntime on scene.map. The player spawns here ONLY on boot (squad === null) — trip arrivals
+   * The Level (store + LevelGrid + its whole-map records) with the map's data record filled and
+   * its runtime mounted. The player spawns here ONLY on boot (squad === null) — trip arrivals
    * transfer the whole player entity in via _arriveSquad, which re-latches scene.playerId. Returns
    * ColonyLevel's built handles, which the caller threads on to _spawnWorld. A map is fully
    * resident (scatter entities + terrain/wall colliders all live at once), so its cap scales with
@@ -378,39 +358,35 @@ globalThis.ColonyMap = {
       id: mapId,
       capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),
     });
-    const built = ColonyLevel.build(scene.level.entities, data, entryId);
-    scene.level.grid = built.grid;
-    const map = ColonyMap._map();
-    scene.map = map;
-    map.spawn = built.spawn;
-    map.entries = ColonyMap._entryTable(scene.level.grid, built.entries); // named entries → world coords
-    // the tilemap handles — one Layer/Type pair per LAYERS entry, plus <key>Types for a
-    // materials-bearing layer (wall) and <key>Colliders for a solid one (wall, fence — BuildMode
-    // remeshes exactly these)
+    const level = scene.level;
+    const built = ColonyLevel.build(level.entities, data, entryId);
+    level.grid = built.grid;
+    const rec = ColonyMap._data();
+    level.meta.set(ColonyMap.KEY, rec);
+    rec.spawn = built.spawn;
+    rec.entries = ColonyMap._entryTable(level.grid, built.entries); // named entries → world coords
+    rec.statics = built.statics;
+    rec.terrainMats = ColonyLevel.terrainRows(built.terrainMats);
+    // <key>Colliders for a solid layer (wall, fence — BuildMode remeshes exactly these)
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const key = contentTiles.LAYERS[i].key;
-      map[key + "Layer"] = built[key + "Layer"];
-      map[key + "Type"] = built[key + "Type"];
-      if (built[key + "Types"] !== undefined)
-        map[key + "Types"] = built[key + "Types"];
       if (built[key + "Colliders"] !== undefined)
-        map[key + "Colliders"] = built[key + "Colliders"];
+        rec.colliders[key] = built[key + "Colliders"];
     }
-    map.statics = built.statics;
-    map.terrainMats = built.terrainMats;
+    ColonyMap._mount(level, built);
     // boot only: spawn the player (mints the Squad id). A trip arrival
     // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
-      scene.playerId = PlayerSystem.spawn(scene.level.entities, built.spawn);
+      scene.playerId = PlayerSystem.spawn(level.entities, built.spawn);
     }
 
-    // The level's whole-map records (LevelMeta), off the data's meta: the indoor flag (no sky
+    // The level's whole-map records (Records), off the data's meta: the indoor flag (no sky
     // passes, the cozy interior BGM), the climate (pinned over the map by _applyClimate on every
     // arrival), and the settlement (optional meta.settlement — an authored faction hub / raider
     // camp; the overworld is the colony's "hub", whose NPCs and stockpile chest are its
     // Residents, their settlementId this map's id). A level without one stays unsettled until a
     // Survey Post founds it (BuildMode.claim).
-    const meta = scene.level.meta;
+    const meta = level.meta;
     meta.set(ColonyMap.BIOME, data.meta.biome);
     const prof = contentBiomes.BIOMES[data.meta.biome];
     if (prof !== undefined && prof.wind !== undefined)
@@ -420,7 +396,7 @@ globalThis.ColonyMap = {
       meta.set(ColonyMap.CLIMATE, data.meta.climate);
     const s = data.meta.settlement;
     if (s !== undefined)
-      Settlement.found(scene.level, {
+      Settlement.found(level, {
         name: s.name !== undefined ? I18n.text(s.name) : "", // an i18n key
         factionId: s.faction,
         color: s.color,
@@ -435,54 +411,52 @@ globalThis.ColonyMap = {
    * generator's, or both merged, since the builder resolves that. The scene reads NPC/portal/enemy/
    * companion handles LIVE by component query — stored id lists would dangle across a map swap.
    */
-  _spawnWorld(scene, data, built) {
+  _spawnWorld(scene, built) {
     const entities = scene.level.entities;
     const grid = scene.level.grid;
     for (let i = 0; i < built.spawns.length; i++)
       ColonySpawn.spawnEntity(entities, grid, built.spawns[i]);
     // A region, not an entity, so it is read off the descriptors here (and saved as a rect thereafter).
-    scene.map.reachZone = ColonyMap._reach(scene, built.spawns);
-    scene.map.reachDone = scene.map.reachZone === undefined; // nothing to reach on this map
+    const rec = ColonyMap.of(scene.level);
+    rec.reachZone = ColonyMap._reach(grid, built.spawns);
+    rec.reachDone = rec.reachZone === undefined; // nothing to reach on this map
   },
 
   /**
-   * The map's two spatial indexes: the store's broadphase + the level-sized pathfinding grid.
-   * The nav grid's size is the level's, so MotionPlanner.setGrid runs once here per map; its
-   * contents refresh on their own signals (sceneColony.step syncs tile costs, SolidSystem.onStatics
-   * re-stamps colliders).
+   * The map's spatial mirrors, each in the level's cache under its reader's key: the broadphase
+   * (SeparationSystem), the level-sized pathfinding grid (PathfindingSystem — its size is the
+   * level's, so it is built once here per map; its contents refresh on their own signals:
+   * sceneColony.update syncs tile costs, SolidSystem.onStatics re-stamps colliders) and the
+   * enclosure mirror (RoomSystem).
    */
   _buildSpatial(scene) {
+    const level = scene.level;
+    const grid = level.grid;
     // O(n) broadphase for SeparationSystem, the one symmetric-pair sweep left (it rebuilds the grid
     // per tick). cellSize (96px) exceeds max dynamic-body diameter (~27px at 16px cells), which is
     // the center-bucket contract; huge SOLID colliders (level border, water rects) never enter it —
-    // SeparationSystem buckets dynamic bodies only. Rides with the store, so a parked map keeps it
-    // across a resume; rebuilt per cold build.
+    // SeparationSystem buckets dynamic bodies only.
     // NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob).
     // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
     // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
-    scene.level.entities.broadphase = new Broadphase(
-      scene.level.grid.cols * scene.level.grid.cellWidth,
-      scene.level.grid.rows * scene.level.grid.cellHeight,
+    level.cache[SeparationSystem.KEY] = new Broadphase(
+      grid.cols * grid.cellWidth,
+      grid.rows * grid.cellHeight,
       96,
     );
-
-    const map = scene.map;
-    map.nav = new NavGrid(scene.level.grid);
-    MotionPlanner.setGrid(map.nav.grid);
-
+    level.cache[PathfindingSystem.KEY] = new NavGrid(grid);
     // the enclosure mirror: the wall layer bounds a room (a fence has no roof). RoomSystem feeds it
-    // the doors and reads it for the environmental needs; parks with the map like the nav grid.
-    map.rooms = new Rooms(scene.level.grid, [map.wallLayer]);
+    // the doors and reads it for the environmental needs.
+    level.cache[RoomSystem.KEY] = new Rooms(grid, [
+      ColonyMap.runtime(level).wallLayer,
+    ]);
   },
 
   /**
-   * The RenderGrass defs of a material table — the grass layer: every material's `clump`
-   * entry (the field's coverage) plus its `clutter` entries (sparse chance-gated accents),
-   * then the biome `profile`'s own `clutter` rows for that material (an accent one biome
-   * grows and the others don't — the marsh's lotus pads on its shallows), keyed by the
-   * row's TileType id. The profile's `clumpTint` overrides the `clump.tint` only (the sheet
-   * is a white mask, so the resolved color IS the field's color); a clutter entry keeps its
-   * own `tint`, and none at all lets a colored sheet pass through white.
+   * RenderGrass clump defs for a material table: per material, its MATERIALS clump (one row,
+   * the profile's `clumpTint` overriding its own) plus its clutter rows, plus the profile's
+   * `clutter` extras for that material — each a { id (the TileType threshold), sprite, min, max,
+   * chance, scaleMin, scaleMax, tint, edge, flat } row the pass scatters.
    */
   _clumpDefs(mats, profile) {
     const tintHex = profile !== undefined ? profile.clumpTint : undefined;
@@ -555,47 +529,48 @@ globalThis.ColonyMap = {
    */
   _buildRenderer(scene) {
     const pitch = ColonyMap.BB_PITCH;
-    const map = scene.map;
-    const camera = map.camera; // built first (_activate): every view-dependent pass takes it here
-    GrassSystem.clearBuilt(scene); // prefab-built ground sheds its grass before the VBOs bake
+    const level = scene.level;
+    const rt = ColonyMap.runtime(level);
+    const camera = rt.camera; // built first (_activate): every view-dependent pass takes it here
+    GrassSystem.clearBuilt(level); // prefab-built ground sheds its grass before the VBOs bake
     const renderer = new Renderer();
-    map.renderer = renderer;
+    rt.renderer = renderer;
     // Generated ground UNDER everything (the LAYERS loop below skips `terrain` when this ran).
-    const mats = map.terrainMats;
+    const mats = rt.terrainMats;
     if (mats !== undefined)
       for (let i = 0; i < mats.length; i++) {
         const spr = mats[i].sprite;
         if (!sprite_exists(spr)) {
-          // a saved row's revived ref whose art is gone since (Json._revive)
+          // a saved row whose art is gone since (ColonyLevel._terrainTypes)
           Log.warn(`terrain sprite missing: ${mats[i].material}`);
           continue;
         }
-        const pass = new RenderTileMap(map.terrainLayer, scene.level.grid, spr, {
+        const pass = new RenderTileMap(rt.terrainLayer, level.grid, spr, {
           autotile: "dual",
           minId: mats[i].type.id,
           skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
           wave: ColonyMap._wave(mats[i].material),
         });
-        map.terrainPasses.push(pass);
+        rt.terrainPasses.push(pass);
         renderer.insert(pass);
       }
     // the grass materials' volume layer (RenderGrass) — upright clumps entering the depth
     // pool over the finished ground, before the entities; the camera's live pitch drives its
     // height compensation like the billboards'
     if (mats !== undefined) {
-      const profile = contentBiomes.BIOMES[scene.level.meta.get(ColonyMap.BIOME)];
+      const profile = contentBiomes.BIOMES[level.meta.get(ColonyMap.BIOME)];
       const cdefs = ColonyMap._clumpDefs(mats, profile);
       if (cdefs.length > 0) {
         // wind: the meta constant; a save predating it falls back to the biome profile
-        let wind = scene.level.meta.get(ColonyMap.WIND);
+        let wind = level.meta.get(ColonyMap.WIND);
         if (wind === undefined)
           wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
-        map.grassPass = new RenderGrass(map.terrainLayer, scene.level.grid, cdefs, {
+        rt.grassPass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
           wind: wind,
           time: () => Weather.time(),
           camera: camera,
         });
-        renderer.insert(map.grassPass);
+        renderer.insert(rt.grassPass);
       }
     }
     // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
@@ -604,15 +579,15 @@ globalThis.ColonyMap = {
     // keeps the autotile RenderTileMap). VBO-cached + keyed by layer
     // so a BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence
     // layers EMPTY until the player builds — an empty layer emits no quads, so they are free there.
-    const tilePasses = map.tilePasses;
+    const tilePasses = rt.tilePasses;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       if (cfg.key === "wall") continue; // RenderWalls (lit boxes) below — no flat fallback
       if (cfg.key === "fence" && pitch > 0) continue; // RenderFence (post-and-rail boxes) below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
       const pass = new RenderTileMap(
-        map[cfg.key + "Layer"],
-        scene.level.grid,
+        rt[cfg.key + "Layer"],
+        level.grid,
         cfg.sprite,
         {
           autotile: cfg.type,
@@ -624,7 +599,7 @@ globalThis.ColonyMap = {
     }
     // the sprite-free cost fill stays as an inspection overlay, inserted off; culled to the
     // camera view like the grid lines (essential on a large generated map)
-    const costPass = new RenderDebugTileMap(scene.level.grid, {
+    const costPass = new RenderDebugTileMap(level.grid, {
       cost: true,
       tiles: false,
       alpha: 0.5,
@@ -632,7 +607,7 @@ globalThis.ColonyMap = {
     });
     costPass.enabled = false;
     renderer.insert(costPass);
-    const gridPass = new RenderGrid(scene.level.grid, { camera: camera }); // cell boundary lines
+    const gridPass = new RenderGrid(level.grid, { camera: camera }); // cell boundary lines
     gridPass.enabled = false; // off in normal play
     renderer.insert(gridPass);
     // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
@@ -680,9 +655,9 @@ globalThis.ColonyMap = {
       // read this pass's light gather (up normal — flat ground). Assigned post-construction
       // because the ground passes are built above, before the mesh pass exists; the wall
       // passes below take it at construction. Flat maps (pitch 0) stay unlit.
-      for (let i = 0; i < map.terrainPasses.length; i++)
-        map.terrainPasses[i].lights = meshPass;
-      if (map.grassPass !== undefined) map.grassPass.lights = meshPass;
+      for (let i = 0; i < rt.terrainPasses.length; i++)
+        rt.terrainPasses[i].lights = meshPass;
+      if (rt.grassPass !== undefined) rt.grassPass.lights = meshPass;
       const tileKeys = Object.keys(tilePasses);
       for (let i = 0; i < tileKeys.length; i++)
         tilePasses[tileKeys[i]].lights = meshPass;
@@ -705,7 +680,7 @@ globalThis.ColonyMap = {
           color: Color.parse(m.color),
         });
       }
-      tilePasses.wall = new RenderWalls(scene.level.grid, map.wallLayer, {
+      tilePasses.wall = new RenderWalls(level.grid, rt.wallLayer, {
         color: wallMats[0].color,
         sprite: wallMats[0].sprite,
         frame: 0,
@@ -715,7 +690,7 @@ globalThis.ColonyMap = {
       renderer.insert(tilePasses.wall);
       // the fence layer as lit post-and-rail boxes in the same depth pool — its occupancy read
       // is the autotiling (RenderFence); the flat blob4 config stays for the editor
-      tilePasses.fence = new RenderFence(scene.level.grid, map.fenceLayer, {
+      tilePasses.fence = new RenderFence(level.grid, rt.fenceLayer, {
         color: Color.parse(contentTiles.get("fence").color),
         lights: meshPass,
       });
@@ -732,10 +707,10 @@ globalThis.ColonyMap = {
         : new RenderEntity(),
     );
     // lime bbox outlines — the debugBBox setting is the toggle (sceneColony.draw syncs it live)
-    map.bboxPass = new RenderDebugEntity();
-    map.bboxPass.enabled = Settings.get("debugBBox");
-    renderer.insert(map.bboxPass);
-    const paths = new RenderDebugPath(scene.level.grid); // enemy A* paths, off until toggled
+    rt.bboxPass = new RenderDebugEntity();
+    rt.bboxPass.enabled = Settings.get("debugBBox");
+    renderer.insert(rt.bboxPass);
+    const paths = new RenderDebugPath(level.grid); // enemy A* paths, off until toggled
     paths.enabled = false;
     renderer.insert(paths);
     // entity "active range" rings (turret fire / enemy aggro/give-up/attack), off until toggled
@@ -764,17 +739,18 @@ globalThis.ColonyMap = {
     // under the weather (tint + rain/snow), both layers of one RenderOverlay that is cut out over
     // every room (Rooms.rects, the boxes a wall tall) — no rain, tint or cloud on a floor under a
     // roof. Skipped indoors (meta.indoor) — no open sky inside a cave.
-    if (scene.level.meta.get(ColonyMap.INDOOR) !== true) {
+    if (level.meta.get(ColonyMap.INDOOR) !== true) {
       const clouds = new RenderCloudShadow({ camera: camera });
       clouds.enabled = false; // the flat look: no noise field drifting over the ground
       const weather = new RenderWeather({ camera: camera });
       const wall = tilePasses.wall; // RenderWalls on a pitched map (its height); flat: absent
       const roofH =
         wall !== undefined && wall.height !== undefined ? wall.height : 0;
+      const rooms = level.cache[RoomSystem.KEY];
       renderer.insert(
         new RenderOverlay({
           layers: [clouds, weather],
-          cutout: () => map.rooms.rects(),
+          cutout: () => rooms.rects(),
           height: roofH,
           camera: camera,
         }),
@@ -801,14 +777,15 @@ globalThis.ColonyMap = {
   _buildCamera(scene) {
     const pitch = ColonyMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 2 : 1;
+    const level = scene.level;
     // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the control derives its live
     // zoom floor from it + the current surface each frame. Horizontal is the binding axis on a
     // landscape surface.
-    const viewCap = scene.level.grid.cols * scene.level.grid.cellWidth;
-    const map = scene.map;
+    const viewCap = level.grid.cols * level.grid.cellWidth;
+    const rt = ColonyMap.runtime(level);
     // no width/height seed — CameraFollow re-derives the extent from the surface every update
-    map.cameraFollow = new CameraFollow({
-      entities: scene.level.entities,
+    rt.cameraFollow = new CameraFollow({
+      entities: level.entities,
       target: scene.playerId, // fallback seed — the live CameraFocus query wins (ColonyPlayer)
       lerp: 0.15,
       pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
@@ -826,30 +803,12 @@ globalThis.ColonyMap = {
       bounds: {
         x1: 0,
         y1: 0,
-        x2: scene.level.grid.cols * scene.level.grid.cellWidth,
-        y2: scene.level.grid.rows * scene.level.grid.cellHeight,
+        x2: level.grid.cols * level.grid.cellWidth,
+        y2: level.grid.rows * level.grid.cellHeight,
       },
     });
-    map.camera = new Camera().setControl(map.cameraFollow);
-    map.camera.assign(0);
-  },
-
-  /**
-   * Scene teardown: reclaim every parked map — its runtime here, its Level from the pool — then
-   * drop the park index (the caller drops the pool itself). Park the live map FIRST, so no map is
-   * missed. No global input/weather teardown — those are scene-scoped. renderer.destroy() frees
-   * the tile/terrain VBOs.
-   */
-  reset() {
-    const ids = Object.keys(ColonyMap._parked);
-    for (let i = 0; i < ids.length; i++) {
-      const m = ColonyMap._parked[ids[i]];
-      if (m.camera) m.camera.destroy();
-      if (m.renderer) m.renderer.destroy();
-      const level = World.get(ids[i]);
-      if (level !== null) level.destroy();
-    }
-    ColonyMap._parked = {};
+    rt.camera = new Camera().setControl(rt.cameraFollow);
+    rt.camera.assign(0);
   },
 
   /**
@@ -889,10 +848,10 @@ globalThis.ColonyMap = {
    * marker). A region, not an entity — so it is resolved from the descriptor rather than spawned,
    * and kept as a rect from there on.
    */
-  _reach(scene, spawns) {
+  _reach(grid, spawns) {
     for (let i = 0; i < spawns.length; i++)
       if (spawns[i].preset === "reach")
-        return ColonySpawn.reachZone(scene.level.grid, spawns[i]);
+        return ColonySpawn.reachZone(grid, spawns[i]);
     return undefined;
   },
 };

@@ -143,7 +143,7 @@ globalThis.Interactable = {
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
-    const pitch = scene.map.camera.pitch; // the cursor test reads the view, not the sim (Silhouette)
+    const pitch = ColonyMap.runtime(scene.level).camera.pitch; // the cursor test reads the view, not the sim (Silhouette)
     let nearest = -1;
     let nearestSq = rSq;
     let nearestPri = -Infinity;
@@ -229,7 +229,7 @@ globalThis.Interactable = {
       // clip the far edges behind the very bodies it marks, so it draws over them (restore the
       // Game-wide default after — Game Create_0)
       gpu_set_ztestenable(false);
-      const tall = RenderBillboard.tall(scene.map.camera.pitch);
+      const tall = RenderBillboard.tall(ColonyMap.runtime(scene.level).camera.pitch);
       matrix_set(
         matrix_world,
         matrix_build(pos.x, pos.y, 0, -90, 0, 0, 1, 1, tall),

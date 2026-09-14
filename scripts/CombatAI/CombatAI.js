@@ -42,17 +42,17 @@ globalThis.Brain = "Brain";
  * fight it with no change here.
  */
 globalThis.CombatAI = {
-  // State callbacks receive (entities, id) from StateSystem, so no store static — only the Level
-  // (grid<->world conversion for pathfinding around walls) is per-map context, re-pointed by
-  // bind() on each map activate (a resumed map keeps its actors' Brain/State without re-attach).
-  _grid: undefined,
+  // State callbacks receive (level, id) from StateSystem: the level in hand is the store AND the
+  // grid (grid<->world conversion for pathfinding around walls), so there is no per-map static to
+  // re-point on a map activate — a resumed map's actors keep their Brain/State and run as they are.
 
   /** Register the combat states into the StateSystem pool (idempotent; called by content). */
   register() {
     StateSystem.register([
       {
         id: "combat.idle",
-        update(entities, id) {
+        update(level, id) {
+          const entities = level.entities;
           const brain = entities.get(id, Brain);
           const pos = entities.get(id, Position);
           // a mobile actor drifts back home if knocked away; a turret just watches
@@ -61,7 +61,7 @@ globalThis.CombatAI = {
             const dy = brain.home.y - pos.y;
             if (dx * dx + dy * dy > 256)
               CombatAI._seek(
-                entities,
+                level,
                 id,
                 brain.home.x,
                 brain.home.y,
@@ -102,10 +102,11 @@ globalThis.CombatAI = {
       // entered only by mobile actors (a turret goes idle → attack directly)
       {
         id: "combat.chase",
-        enter(entities, id) {
-          entities.get(id, Brain).losCd = 0; // raycast LOS immediately on entering the chase
+        enter(level, id) {
+          level.entities.get(id, Brain).losCd = 0; // raycast LOS immediately on entering the chase
         },
-        update(entities, id) {
+        update(level, id) {
+          const entities = level.entities;
           const brain = entities.get(id, Brain);
           // target killed or streamed out — re-acquire from idle
           if (!entities.isValid(brain.target)) {
@@ -135,17 +136,17 @@ globalThis.CombatAI = {
             brain.losCd--;
           } else {
             brain.losCd = brain.losRate;
-            const hit = Raycast.cast(entities, sp.x, sp.y, tp.x, tp.y, {
+            const hit = Raycast.cast(level, sp.x, sp.y, tp.x, tp.y, {
               ignore: id,
             });
             brain.losBlocked =
               hit !== null && entities.get(hit.id, Collision).kinematic;
           }
           const blocked = brain.losBlocked;
-          if (!blocked || CombatAI._grid === undefined) {
+          if (!blocked || level.grid === null) {
             PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
-            CombatAI._seek(entities, id, tp.x, tp.y, brain.speed);
+            CombatAI._seek(level, id, tp.x, tp.y, brain.speed);
             CombatAI._animate(entities, id, false, true);
             return;
           }
@@ -153,27 +154,28 @@ globalThis.CombatAI = {
           // while the throttled replan is still resolving)
           const mp = PathFollow.target(
             entities,
-            CombatAI._grid,
+            level.grid,
             id,
             brain,
             sp,
             tp.x,
             tp.y,
           );
-          CombatAI._seek(entities, id, mp.x, mp.y, brain.speed);
+          CombatAI._seek(level, id, mp.x, mp.y, brain.speed);
           CombatAI._animate(entities, id, false, true);
         },
-        finish(entities, id) {
-          PathFollow.clear(entities, id);
+        finish(level, id) {
+          PathFollow.clear(level.entities, id);
         },
       },
 
       {
         id: "combat.attack",
-        enter(entities, id) {
-          CombatAI._stop(entities, id);
+        enter(level, id) {
+          CombatAI._stop(level.entities, id);
         },
-        update(entities, id) {
+        update(level, id) {
+          const entities = level.entities;
           const brain = entities.get(id, Brain);
           if (!entities.isValid(brain.target)) {
             brain.target = -1;
@@ -185,7 +187,7 @@ globalThis.CombatAI = {
           // cooldown read/written live off the component (no cached primitive — GMRT bool-local clobber)
           if (brain.cd > 0) brain.cd--;
           if (brain.cd <= 0) {
-            if (brain.ranged) CombatAI._fireAt(entities, id, brain);
+            if (brain.ranged) CombatAI._fireAt(level, id, brain);
             else CombatAI._hitTarget(entities, id);
             brain.cd = brain.cdMax;
           }
@@ -212,8 +214,7 @@ globalThis.CombatAI = {
 
   // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
   // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
-  attach(entities, id, grid, opt = {}) {
-    CombatAI._grid = grid;
+  attach(entities, id, opt = {}) {
     const pos = entities.get(id, Position);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
     entities.add(id, Brain, {
@@ -243,16 +244,6 @@ globalThis.CombatAI = {
   },
 
   /**
-   * Re-point the Level static at the active map without re-attaching actors (a resumed map —
-   * ColonyMap.resume — keeps its actors' Brain/State without calling attach). Called per map
-   * activate. Takes (entities, grid) for call-site symmetry with PathFollow.bind; only the grid
-   * is stored — the store reaches states through the StateSystem callbacks.
-   */
-  bind(entities, grid) {
-    CombatAI._grid = grid;
-  },
-
-  /**
    * distance to Brain.target; Infinity if none / gone
    */
   _distTo(entities, id) {
@@ -269,13 +260,14 @@ globalThis.CombatAI = {
    * aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
    * (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
    */
-  _seek(entities, id, tx, ty, speed) {
+  _seek(level, id, tx, ty, speed) {
+    const entities = level.entities;
     const pos = entities.get(id, Position);
     const vel = entities.get(id, Velocity);
     const dx = tx - pos.x;
     const dy = ty - pos.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const s = speed * PathFollow.speedScale(pos.x, pos.y);
+    const s = speed * PathFollow.speedScale(level.grid, pos.x, pos.y);
     vel.x = (dx / d) * s;
     vel.y = (dy / d) * s;
   },
@@ -323,7 +315,8 @@ globalThis.CombatAI = {
    * gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
    * tracer shows the shot.
    */
-  _fireAt(entities, id, brain) {
+  _fireAt(level, id, brain) {
+    const entities = level.entities;
     const t = brain.target;
     if (!entities.isValid(t)) return;
     const sp = entities.get(id, Position);
@@ -336,7 +329,7 @@ globalThis.CombatAI = {
     // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
     const range = brain.bulletSpeed * SHOT_RANGE_SECS;
     const shot = Combat.hitscan(
-      entities,
+      level,
       sp.x,
       sp.y,
       sp.x + nx * range,

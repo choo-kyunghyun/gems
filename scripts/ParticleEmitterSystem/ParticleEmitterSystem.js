@@ -25,7 +25,8 @@ globalThis.ParticleEmitterSystem = {
    * clock split). An `asset` naming no particle system warns once and detaches the component
    * (fail fast, no per-frame spam).
    */
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     const ids = ParticleEmitterSystem._ids;
     const sys = ParticleEmitterSystem._sys;
     entities.forEach([ParticleEmitter, Position], (id, em) => {

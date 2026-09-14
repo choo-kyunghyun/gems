@@ -6,6 +6,7 @@
  * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
  * parameter (0 = start, clamped to 0 when the start is inside). Both lists can lag a removal by a
  * tick, so a hit's id is validated against the store.
+ * Every cast takes the LEVEL (its collider cache).
  *   opts: { ignore? (id) }
  */
 globalThis.Raycast = {
@@ -17,17 +18,17 @@ globalThis.Raycast = {
   _gen: 0,
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
-  cast(entities, x0, y0, x1, y1, opts = {}) {
+  cast(level, x0, y0, x1, y1, opts = {}) {
     const hits = Raycast._hits;
     hits.length = 0;
-    Raycast._collect(entities, x0, y0, x1, y1, opts.ignore, hits, true);
+    Raycast._collect(level, x0, y0, x1, y1, opts.ignore, hits, true);
     return hits.length === 0 ? null : hits[0];
   },
 
   /** Every hit the segment crosses, ASCENDING by entry distance `t` — multi-hit counterpart to cast(). */
-  castAll(entities, x0, y0, x1, y1, opts = {}) {
+  castAll(level, x0, y0, x1, y1, opts = {}) {
     const hits = [];
-    Raycast._collect(entities, x0, y0, x1, y1, opts.ignore, hits, false);
+    Raycast._collect(level, x0, y0, x1, y1, opts.ignore, hits, false);
     // BUG: [#15593] sort by t with a SIGN comparator, NOT `a.t - b.t`.
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
@@ -37,13 +38,14 @@ globalThis.Raycast = {
    * Both halves into `hits`. `nearest` keeps only the closest (the bodies go first, so their best t
    * bounds the static walk, which then stops at the first cell entered past it).
    */
-  _collect(entities, x0, y0, x1, y1, ignore, hits, nearest) {
+  _collect(level, x0, y0, x1, y1, ignore, hits, nearest) {
+    const entities = level.entities;
     const dx = x1 - x0;
     const dy = y1 - y0;
     const rect = Raycast._rect;
     let bestT = Infinity;
 
-    SolidSystem.eachBody(entities, (id, col, pos, box) => {
+    SolidSystem.eachBody(level, (id, col, pos, box) => {
       if (id === ignore) return;
       if (!col.solid) return;
       const e = AABB.edgesInto(pos, box, rect);
@@ -57,11 +59,11 @@ globalThis.Raycast = {
       Raycast._add(hits, nearest, id, r, x0, y0, dx, dy);
     });
 
-    const statics = SolidSystem.statics(entities);
+    const statics = SolidSystem.statics(level);
     const seen = Raycast._seen;
     while (seen.length < statics.length) seen.push(0);
     const gen = ++Raycast._gen;
-    SolidSystem.walk(x0, y0, x1, y1, (bucket, tEntry) => {
+    SolidSystem.walk(level, x0, y0, x1, y1, (bucket, tEntry) => {
       if (nearest) {
         if (tEntry > bestT) return false;
       }

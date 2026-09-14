@@ -1,8 +1,10 @@
 // equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
 // the SAME tick: the bodies come from SolidSystem.eachBody (that update's collider walk, so no
 // second walk here), and a scene that drops this system costs SolidSystem nothing.
-// O(n) via entities.broadphase (cellSize > max entity diameter), else O(n²).
+// O(n) via the level's Broadphase (`level.cache[KEY]`, cellSize > max entity diameter — the
+// level's builder mounts one), else O(n²).
 globalThis.SeparationSystem = {
+  KEY: "separation", // its Level.cache key — the Broadphase, when the level mounts one
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
 
   // Scratch reused every tick — the body list and the two pair rects (docs/ARCHITECTURE.md → Hot-path idioms).
@@ -10,17 +12,18 @@ globalThis.SeparationSystem = {
   _a: AABB.rect(),
   _b: AABB.rect(),
 
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     // collect once; positions shift per pass but the body list is stable. eachBody lists the
     // non-kinematic colliders, `col` live — a corpse (solid flipped off) drops out this tick.
     const bodies = SeparationSystem._bodies;
     let w = 0;
-    SolidSystem.eachBody(entities, (id, col) => {
+    SolidSystem.eachBody(level, (id, col) => {
       if (col.solid) bodies[w++] = id;
     });
     bodies.length = w;
 
-    const bp = entities.broadphase;
+    const bp = level.cache[SeparationSystem.KEY];
     const sep = (a, b) => SeparationSystem._separate(entities, a, b);
     for (let it = 0; it < SeparationSystem.iterations; it++) {
       if (bp !== undefined) {

@@ -216,10 +216,30 @@ globalThis.ColonyLevel = {
   },
 
   /**
+   * A material table as save rows — what a generated map's packed terrain ids mean, kept in the
+   * map's data record (ColonyMap) and rebuilt by _terrainTypes in the same order, so id = index +
+   * 1 holds. A row is plain data: the sprite by NAME (a record holds no handles — Records), a
+   * blocking cost as Infinity (null once through JSON, which TileType reads back as blocking).
+   * undefined on an authored map (its terrain is the one fill type).
+   */
+  terrainRows(mats) {
+    if (mats === undefined) return undefined;
+    const rows = [];
+    for (let i = 0; i < mats.length; i++)
+      rows.push({
+        name: mats[i].type.name,
+        pathCost: mats[i].type.pathCost,
+        sprite: sprite_get_name(mats[i].sprite),
+        material: mats[i].material,
+      });
+    return rows;
+  },
+
+  /**
    * The terrain layer's TileTypes for a material table — one per entry, id = index + 1 (a 0 id
    * reads as an empty cell). The order IS the painter order, which is what lets the stacked render
-   * passes threshold on the id. `defs` is a generator palette, or the same rows read back from a
-   * save (name / pathCost / sprite / material — a null pathCost is blocking, TileType's
+   * passes threshold on the id. `defs` is a generator palette (sprite refs), or the same rows read
+   * back from the map's record (terrainRows — sprite names; a null pathCost is blocking, TileType's
    * convention). Returns { types, mats }: the types in order, and the { type, sprite, material }
    * table the render passes stack — `material` the contentBiomes id (a palette row's `id`, a
    * saved row's `material`; absent on a save predating it), the cell's ground for FloraSystem.
@@ -235,7 +255,6 @@ globalThis.ColonyLevel = {
         pathCost: d.pathCost,
       });
       types.push(type);
-      // TODO: a row from a save predating bare refs holds the sprite NAME
       const sprite =
         typeof d.sprite === "string" ? asset_get_index(d.sprite) : d.sprite;
       mats.push({ type: type, sprite: sprite, material: d.material ?? d.id });

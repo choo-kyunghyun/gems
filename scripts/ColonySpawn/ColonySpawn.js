@@ -110,7 +110,7 @@ globalThis.ColonySpawn = {
           ),
         },
         post(entities, id, ctx) {
-          CombatAI.attach(entities, id, ctx.opts.grid); // Velocity + Brain + State (mobile melee)
+          CombatAI.attach(entities, id); // Velocity + Brain + State (mobile melee)
         },
       },
       {
@@ -132,7 +132,7 @@ globalThis.ColonySpawn = {
           Skeleton: { sprite: spineRat, anim: ColonyPlayer.rest(spineRat) },
         },
         post(entities, id, ctx) {
-          CombatAI.attach(entities, id, ctx.opts.grid); // mobile melee, acquires target by faction
+          CombatAI.attach(entities, id); // mobile melee, acquires target by faction
         },
       },
       {
@@ -240,7 +240,7 @@ globalThis.ColonySpawn = {
         },
         post(entities, id, ctx) {
           // stationary ranged brain: aggro == fire range; fires an instant hitscan at the nearest hostile
-          CombatAI.attach(entities, id, ctx.opts.grid, {
+          CombatAI.attach(entities, id, {
             mobile: false,
             ranged: true,
             aggro: 220,

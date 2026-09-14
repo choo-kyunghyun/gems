@@ -1,7 +1,7 @@
 /**
  * The flora of a level — growth, spread and harvest of every plant, over the Growth component and
  * the contentFlora species table. Runs on the ACTIVE map only, like every system, but in IN-GAME
- * HOURS off one whole-map record: the level's flora clock (LevelMeta KEY → { lastHour }, the hour
+ * HOURS off one whole-map record: the level's flora clock (Records KEY → { lastHour }, the hour
  * the level was last grown to). A parked map's clock simply stops, so its first tick after a
  * resume or a load spans the whole absence and the forest grows while the squad is away — no
  * off-focus simulation, no scheduling. A span is cut at DAY boundaries, so a long absence still
@@ -22,11 +22,12 @@
  * and nothing stands on it (canRoot — the test a built crop passes too). A level without a biome
  * record (a pre-flora save) grows but never spreads.
  *
- * Takes the scene (`map` — the map's runtime, ColonyMap: terrainMats and the layer handles), like BuildMode.
+ * Takes the level (its runtime — ColonyMap: terrainMats and the layer handles — its records and
+ * its store); harvest() alone takes the scene, whose bag and report seam it feeds.
  * GMRT-safe: index loops, structural changes buffered past the scan (ComponentStore.forEach).
  */
 globalThis.FloraSystem = {
-  KEY: "flora", // its LevelMeta key — a data key (a save holds it)
+  KEY: "flora", // its Records key — a data key (a save holds it)
   CAP: 1.5, // the flora cap, as a multiple of the biome's generation density
   SPREAD_RATE: 0.4, // expected seedings per in-game hour off mature wild plants (season weight 1)
   POOL_RATE: 0.05, // expected biome-pool rolls per in-game hour
@@ -34,7 +35,6 @@ globalThis.FloraSystem = {
   _mature: [], // scratch: the tick's mature wild ids
   _ripe: [], // scratch: the ids that ripened this tick (their Interaction lands past the scan)
   _dead: [], // scratch: the ids the frost took
-  _solidDirty: false, // a trunk flipped solid in place this pass (SolidSystem.invalidate)
 
   /** Species def by id; an unknown id throws (content is code — a retired id is a migration). */
   species(id) {
@@ -45,11 +45,11 @@ globalThis.FloraSystem = {
   },
 
   /**
-   * Grow the active map up to `now` (WorldClock.absHours). Cheap when under an hour has passed;
+   * Grow the level up to now (WorldClock.absHours). Cheap when under an hour has passed;
    * a first call on a map without the record starts its clock (the stand is the generator's).
    */
-  update(scene, now) {
-    const level = scene.level;
+  update(level) {
+    const now = WorldClock.absHours();
     const rec = level.meta.get(FloraSystem.KEY);
     if (rec === undefined) {
       level.meta.set(FloraSystem.KEY, { lastHour: now });
@@ -60,15 +60,15 @@ globalThis.FloraSystem = {
     while (t < now) {
       const dayEnd = (Math.floor(t / 24) + 1) * 24;
       const end = dayEnd < now ? dayEnd : now;
-      FloraSystem._tick(scene, t, end - t);
+      FloraSystem._tick(level, t, end - t);
       t = end;
     }
     rec.lastHour = now;
   },
 
   /** One span of `dh` hours starting at hour `t`, all under t's season. */
-  _tick(scene, t, dh) {
-    const entities = scene.level.entities;
+  _tick(level, t, dh) {
+    const entities = level.entities;
     const season = WorldClock.seasonAt(t).id;
     const mature = FloraSystem._mature;
     const ripe = FloraSystem._ripe;
@@ -77,7 +77,7 @@ globalThis.FloraSystem = {
     let r = 0;
     let d = 0;
     let wild = 0;
-    FloraSystem._solidDirty = false;
+    let flipped = false; // a trunk turned solid in place this pass
     entities.forEach([Growth, Visual], (id, g, vis) => {
       const def = FloraSystem.species(g.species);
       const mul = def.season[season] ?? 1;
@@ -96,7 +96,7 @@ globalThis.FloraSystem = {
         if (was < 1) ripe[r++] = id;
         if (g.wild) mature[m++] = id;
       }
-      FloraSystem._stage(entities, id, g, vis, def);
+      if (FloraSystem._stage(entities, id, g, vis, def)) flipped = true;
     });
     for (let i = 0; i < r; i++) FloraSystem._ripen(entities, ripe[i]);
     ripe.length = 0;
@@ -105,27 +105,31 @@ globalThis.FloraSystem = {
       dead.length = 0;
       entities.flush(); // committed now, or the next day's span would queue them again
     }
-    if (FloraSystem._solidDirty) SolidSystem.invalidate();
-    FloraSystem._spread(scene, season, dh, wild, m);
+    if (flipped) SolidSystem.invalidate(level);
+    FloraSystem._spread(level, season, dh, wild, m);
     mature.length = 0;
   },
 
-  /** Apply the stage progress implies: the sheet's frame, and a trunk turning solid. */
+  /**
+   * Apply the stage progress implies: the sheet's frame, and a trunk turning solid. Returns
+   * whether a collider's `solid` flipped IN PLACE — the id-set fingerprint can't see that (the
+   * door's case), so the caller invalidates the level's collider cache (a spawn needs no such
+   * call: it is a new collider).
+   */
   _stage(entities, id, g, vis, def) {
     const last = def.stages - 1;
     let stage = Math.floor(g.progress * last);
     if (stage > last) stage = last;
-    if (stage === g.stage) return;
+    if (stage === g.stage) return false;
     g.stage = stage;
     vis.subimg = stage;
-    if (def.solidFrom === undefined) return;
+    if (def.solidFrom === undefined) return false;
     const col = entities.get(id, Collision);
-    if (col === undefined) return;
+    if (col === undefined) return false;
     const solid = stage >= def.solidFrom;
-    if (col.solid !== solid) {
-      col.solid = solid; // flipped in place on a kinematic collider — the id-set fingerprint can't see it (the door's case)
-      FloraSystem._solidDirty = true;
-    }
+    if (col.solid === solid) return false;
+    col.solid = solid;
+    return true;
   },
 
   _ripen(entities, id) {
@@ -154,14 +158,14 @@ globalThis.FloraSystem = {
     return biome === undefined ? undefined : biome.flora;
   },
 
-  _spread(scene, season, dh, wild, m) {
-    const flora = FloraSystem._pool(scene.level);
+  _spread(level, season, dh, wild, m) {
+    const flora = FloraSystem._pool(level);
     if (flora === undefined) return;
-    const grid = scene.level.grid;
+    const grid = level.grid;
     const cap =
       (flora.density * FloraSystem.CAP * grid.cols * grid.rows) / 1000;
     if (wild >= cap) return;
-    const entities = scene.level.entities;
+    const entities = level.entities;
     const mature = FloraSystem._mature;
     const reach = FloraSystem.SPREAD_REACH;
     // seedlings off mature wild plants, each on its species' season weight
@@ -176,8 +180,8 @@ globalThis.FloraSystem = {
       const c = grid.worldToGrid(pos.x, pos.y);
       const gx = c.x + FloraSystem._offset(reach);
       const gy = c.y + FloraSystem._offset(reach);
-      if (FloraSystem.canRoot(scene, def, gx, gy))
-        FloraSystem.plant(scene, species, gx, gy);
+      if (FloraSystem.canRoot(level, def, gx, gy))
+        FloraSystem.plant(level, species, gx, gy);
     }
     // the biome pool at a random cell — how a species reaches a map it is absent from
     n = FloraSystem._draws(FloraSystem.POOL_RATE * dh);
@@ -187,8 +191,8 @@ globalThis.FloraSystem = {
       if (species === undefined) continue;
       const gx = 1 + Math.floor(Math.random() * (grid.cols - 2));
       const gy = 1 + Math.floor(Math.random() * (grid.rows - 2));
-      if (FloraSystem.canRoot(scene, FloraSystem.species(species), gx, gy))
-        FloraSystem.plant(scene, species, gx, gy);
+      if (FloraSystem.canRoot(level, FloraSystem.species(species), gx, gy))
+        FloraSystem.plant(level, species, gx, gy);
     }
   },
 
@@ -224,13 +228,14 @@ globalThis.FloraSystem = {
 
   /**
    * The terrain material id under a cell (contentBiomes.MATERIALS), read off the map's material
-   * table (map.terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a map whose
-   * saved rows predate the material column.
+   * table (the runtime's terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a
+   * map whose saved rows predate the material column.
    */
-  materialAt(scene, gx, gy) {
-    const mats = scene.map.terrainMats;
+  materialAt(level, gx, gy) {
+    const rt = ColonyMap.runtime(level);
+    const mats = rt.terrainMats;
     if (mats === undefined) return undefined;
-    const t = scene.map.terrainLayer.get(gx, gy);
+    const t = rt.terrainLayer.get(gx, gy);
     for (let i = 0; i < mats.length; i++)
       if (mats[i].type === t) return mats[i].material;
     return undefined;
@@ -240,24 +245,25 @@ globalThis.FloraSystem = {
    * Can `def` take root at a cell: inside the border margin, on its ground, under no build layer
    * or built entity, and with nothing standing on the cell — a body, a prop, another plant.
    */
-  canRoot(scene, def, gx, gy) {
-    const grid = scene.level.grid;
+  canRoot(level, def, gx, gy) {
+    const grid = level.grid;
     if (gx < 1) return false;
     if (gy < 1) return false;
     if (gx >= grid.cols - 1) return false;
     if (gy >= grid.rows - 1) return false;
-    const mat = FloraSystem.materialAt(scene, gx, gy);
+    const mat = FloraSystem.materialAt(level, gx, gy);
     if (mat === undefined) return false;
     if (def.ground.indexOf(mat) < 0) return false;
+    const rt = ColonyMap.runtime(level);
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(scene.map[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (scene.map.builtEnts[gx + "," + gy] !== undefined) return false;
+      if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
+    if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined) return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;
     const hh = grid.cellHeight / 2;
     const stand = Query.inRect(
-      scene.level.entities,
+      level.entities,
       w.x - hw,
       w.y - hh,
       w.x + hw,
@@ -267,9 +273,9 @@ globalThis.FloraSystem = {
   },
 
   /** Put a wild seedling of `species` down at a cell (no root test — that is the caller's). */
-  plant(scene, species, gx, gy) {
+  plant(level, species, gx, gy) {
     const def = FloraSystem.species(species);
-    return ColonySpawn.spawnEntity(scene.level.entities, scene.level.grid, {
+    return ColonySpawn.spawnEntity(level.entities, level.grid, {
       preset: def.preset,
       species: species,
       gx: gx,
@@ -314,9 +320,8 @@ globalThis.FloraSystem = {
     if (def.regrow !== undefined) {
       g.progress = def.regrow;
       entities.detach(id, Interaction);
-      FloraSystem._solidDirty = false;
-      FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
-      if (FloraSystem._solidDirty) SolidSystem.invalidate();
+      if (FloraSystem._stage(entities, id, g, entities.get(id, Visual), def))
+        SolidSystem.invalidate(scene.level);
     } else entities.remove(id);
     return true;
   },

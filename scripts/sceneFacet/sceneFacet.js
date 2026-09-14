@@ -322,7 +322,7 @@ class _SceneFacetClass {
     // static hook, like Combat.mitigate) so report() runs its quest stage alone — the hook is
     // optional by design, whatever order the scenes were visited in.
     Tracker.rules = null;
-    Tracker.reset();
+    World.reset(); // the demo progression starts blank (Tracker is a world record)
     Tracker.accept("uikit_q1");
     Tracker.accept("uikit_q2");
     Tracker.accept("uikit_q3");

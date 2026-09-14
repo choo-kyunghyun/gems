@@ -24,13 +24,14 @@ globalThis.Blueprint = {
     const cols = x2 - x1 + 1;
     const rows = y2 - y1 + 1;
     const tiles = [];
+    const rt = ColonyMap.runtime(scene.level);
     for (let l = 0; l < contentTiles.LAYERS.length; l++) {
       const cfg = contentTiles.LAYERS[l];
       if (cfg.key === "terrain") continue; // the biome ground is the generator's, never content
-      const layer = scene.map[cfg.key + "Layer"];
+      const layer = rt[cfg.key + "Layer"];
       if (cfg.materials !== undefined) {
         // one entry per material present, so the rects carry the material key
-        const types = scene.map[cfg.key + "Types"];
+        const types = rt[cfg.key + "Types"];
         for (let m = 0; m < cfg.materials.length; m++) {
           const key = cfg.materials[m].key;
           const type = types[key];
@@ -52,7 +53,7 @@ globalThis.Blueprint = {
       }
     }
     const spawns = [];
-    const builtEnts = scene.map.builtEnts;
+    const builtEnts = BuildMode.of(scene.level).builtEnts;
     const ek = Object.keys(builtEnts);
     for (let i = 0; i < ek.length; i++) {
       const c = ek[i].split(",");

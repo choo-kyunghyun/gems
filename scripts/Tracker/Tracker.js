@@ -1,5 +1,5 @@
-// THE progression state of one save — lifetime counters, achievement unlocks, and active quest
-// progress in one struct, behind one report seam. Gameplay reports a fact ONCE (report) and the
+// THE progression state of one world — lifetime counters, achievement unlocks, and active quest
+// progress in one record, behind one report seam. Gameplay reports a fact ONCE (report) and the
 // fan-out happens here, so a chokepoint can no longer bump a counter and forget the consumers.
 /**
  * Names NO key and states NO rule: the counter names, the unlock thresholds, and the objective
@@ -10,26 +10,30 @@
  * `rules` is OPTIONAL: with none wired the counter and achievement stages simply don't run and
  * quests still advance (sceneFacet demos the tracker widget with no achievement content at all).
  *
- * The whole struct is SESSION state whose only home is the save slot's bundle (SaveGame's sim
- * pass) — nothing here touches disk.
+ * Logic over ONE world record (World.meta under KEY — { counters, unlocked, quests }), so the
+ * progression starts blank with the world (World.reset) and rides the save with its records —
+ * nothing here touches disk.
  */
 globalThis.Tracker = {
+  KEY: "tracker", // its World.meta key — a data key (a save holds it)
+
   /**
    * injected by the scene that owns the rules — { counterOf(kind), report(key, total) → ids }.
    * null leaves the counter/achievement stages inert.
    */
   rules: null,
 
-  _counters: {}, // key -> number (lifetime tallies; every key is the caller's)
-  _unlocked: {}, // achievement id -> true
-  _quests: {}, // quest id -> { progress: number[], ready: bool, done: bool }
-
-  /** start blank — a new game inherits no prior session's progression (scene create() once) */
-  reset() {
-    Tracker._counters = {};
-    Tracker._unlocked = {};
-    Tracker._quests = {};
-    return Tracker;
+  /**
+   * The progression record: `counters` key -> number (lifetime tallies; every key is the
+   * caller's), `unlocked` achievement id -> true, `quests` quest id -> { progress: number[],
+   * ready, done }.
+   */
+  state() {
+    return World.record(Tracker.KEY, () => ({
+      counters: {},
+      unlocked: {},
+      quests: {},
+    }));
   },
 
   // ── THE seam ──
@@ -50,8 +54,9 @@ globalThis.Tracker = {
     if (rules !== null) {
       const key = rules.counterOf(kind);
       if (key !== undefined) {
-        Tracker._counters[key] = (Tracker._counters[key] ?? 0) + n;
-        unlocked = rules.report(key, Tracker._counters[key]);
+        const counters = Tracker.state().counters;
+        counters[key] = (counters[key] ?? 0) + n;
+        unlocked = rules.report(key, counters[key]);
       }
     }
     return { unlocked: unlocked, ready: Tracker._advance(kind, target, n) };
@@ -60,13 +65,13 @@ globalThis.Tracker = {
   // ── counters ──
 
   count(key) {
-    return Tracker._counters[key] ?? 0;
+    return Tracker.state().counters[key] ?? 0;
   },
 
   // ── achievements (defs live in the Achievement registry) ──
 
   isUnlocked(id) {
-    return Tracker._unlocked[id] === true;
+    return Tracker.state().unlocked[id] === true;
   },
 
   /**
@@ -74,9 +79,9 @@ globalThis.Tracker = {
    * newly unlocked (dedup — safe to request repeatedly).
    */
   unlock(id) {
-    if (!Registry.has(Achievement, id) || Tracker._unlocked[id] === true)
-      return false;
-    Tracker._unlocked[id] = true;
+    const unlocked = Tracker.state().unlocked;
+    if (!Registry.has(Achievement, id) || unlocked[id] === true) return false;
+    unlocked[id] = true;
     return true;
   },
 
@@ -84,10 +89,11 @@ globalThis.Tracker = {
 
   accept(id) {
     const def = QuestLog.def(id);
-    if (def === undefined || Tracker._quests[id] !== undefined) return false;
+    const quests = Tracker.state().quests;
+    if (def === undefined || quests[id] !== undefined) return false;
     const progress = [];
     for (let i = 0; i < def.objectives.length; i++) progress.push(0);
-    Tracker._quests[id] = { progress: progress, ready: false, done: false };
+    quests[id] = { progress: progress, ready: false, done: false };
     return true;
   },
 
@@ -96,31 +102,31 @@ globalThis.Tracker = {
    * BEFORE the rewards go out, so applying them can re-enter report() without the quest re-firing.
    */
   complete(id) {
-    const st = Tracker._quests[id];
+    const st = Tracker.state().quests[id];
     if (st === undefined || !st.ready || st.done) return undefined;
     st.done = true;
     return QuestLog.def(id).rewards ?? {};
   },
 
   isActive(id) {
-    const st = Tracker._quests[id];
+    const st = Tracker.state().quests[id];
     return st !== undefined && !st.done;
   },
 
   isReady(id) {
-    const st = Tracker._quests[id];
+    const st = Tracker.state().quests[id];
     return st !== undefined && st.ready && !st.done;
   },
 
   isDone(id) {
-    const st = Tracker._quests[id];
+    const st = Tracker.state().quests[id];
     return st !== undefined && st.done;
   },
 
   // ── the UIQuestTracker source contract (status/def/activeIds — see UIQuestTracker) ──
 
   status(id) {
-    return Tracker._quests[id];
+    return Tracker.state().quests[id];
   },
 
   def(id) {
@@ -129,63 +135,29 @@ globalThis.Tracker = {
 
   /** in registration order — for UI. */
   activeIds() {
+    const quests = Tracker.state().quests;
     const order = QuestLog.ids();
     const out = [];
     for (let i = 0; i < order.length; i++) {
-      const st = Tracker._quests[order[i]];
+      const st = quests[order[i]];
       if (st !== undefined && !st.done) out.push(order[i]);
     }
     return out;
-  },
-
-  // ── save bundle ──
-
-  /**
-   * the whole progression as one blob, for the bundle's sim pass
-   */
-  export() {
-    const unlocked = [];
-    const order = Achievement.all();
-    for (let i = 0; i < order.length; i++)
-      if (Tracker._unlocked[order[i].id]) unlocked.push(order[i].id);
-    return {
-      counters: Tracker._counters,
-      unlocked: unlocked,
-      quests: Tracker._quests,
-    };
-  },
-
-  /**
-   * REPLACE the whole progression from a bundle blob — a load is not a merge. Anything but a plain
-   * object (a legacy blob, a missing key) restores blank.
-   */
-  import(d) {
-    Tracker.reset();
-    if (d === null || typeof d !== "object" || Array.isArray(d)) return Tracker;
-    const c = d.counters;
-    if (c !== null && typeof c === "object" && !Array.isArray(c))
-      for (const k in c) Tracker._counters[k] = c[k];
-    if (Array.isArray(d.unlocked))
-      for (let i = 0; i < d.unlocked.length; i++)
-        Tracker._unlocked[d.unlocked[i]] = true;
-    const q = d.quests;
-    if (q !== null && typeof q === "object" && !Array.isArray(q))
-      for (const k in q) Tracker._quests[k] = q[k];
-    return Tracker;
   },
 
   // ── internals ──
 
   /**
    * Advance every active objective matching {kind, target} by `n` (clamped to its count); returns
-   * the ids of quests that became READY on this call. Moved verbatim from QuestLog.report.
+   * the ids of quests that became READY on this call.
    */
   _advance(kind, target, n) {
+    const quests = Tracker.state().quests;
     const order = QuestLog.ids();
     const became = [];
     for (let i = 0; i < order.length; i++) {
       const id = order[i];
-      const st = Tracker._quests[id];
+      const st = quests[id];
       if (st === undefined || st.ready || st.done) continue;
       const def = QuestLog.def(id);
       let advanced = false;

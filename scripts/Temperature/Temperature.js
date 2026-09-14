@@ -34,7 +34,7 @@ globalThis.Temperature = {
   },
 
   diurnal() {
-    const h = WorldClock.hour;
+    const h = WorldClock.state().hour;
     const phase = (2 * Math.PI * (h - Temperature.DIURNAL_PEAK)) / 24;
     return Temperature.DIURNAL_MEAN + Temperature.DIURNAL_AMP * Math.cos(phase);
   },

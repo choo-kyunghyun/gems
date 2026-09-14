@@ -1,8 +1,21 @@
 /**
- * ONE map's data, and nothing else: the grid it is laid out on, the entities standing on it
- * (CONCEPT.md — a Level is grid-based and owns its entities), and its whole-map records (LevelMeta
- * — what is the map's as a whole, keyed by the consumer that owns each). PURE DATA — a Level never
- * updates or draws; the Scene does that, and the World pools Levels by map id.
+ * ONE map, and everything of it: its DATA and the runtime DERIVED from that data, in two bags a
+ * consumer reaches by its own KEY. PURE DATA — a Level never updates or draws; the Scene does
+ * that, and the World pools Levels by map id.
+ *
+ * The data is three members — the grid it is laid out on, the entities standing on it
+ * (CONCEPT.md — a Level is grid-based and owns its entities), and `meta`, its whole-map records
+ * (Records — what is the map's as a whole, keyed by the consumer that owns each) — and a save
+ * holds exactly these three.
+ *
+ * `cache` is the one place for what a consumer DERIVES from that data and keeps between frames —
+ * a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera — keyed the same
+ * way (`SolidSystem.KEY`, `ColonyMap.KEY`). Never serialized, never a source of truth: a
+ * consumer that finds no entry under its key rebuilds one from the data (a miss is never an
+ * error), and an entry with a `destroy()` is freed with the level. A per-tick scratch buffer that
+ * holds no data between ticks stays module-scope (ARCHITECTURE → Hot-path idioms); anything a
+ * level's frame reads back the next frame lives here, so a map switch is a pointer swap and
+ * nothing of one level survives in a singleton.
  *
  * The grid and the store are optional in practice: a side-scroller has entities and no grid,
  * the level editor a grid it edits and no entities. `grid` is assigned after construction when
@@ -20,11 +33,18 @@ globalThis.Level = class Level {
     this.id = opt.id ?? "";
     this.grid = opt.grid ?? null;
     this.entities = new EntityStore(opt.capacity ?? 256);
-    this.meta = new LevelMeta();
+    this.meta = new Records();
+    this.cache = {}; // key -> derived runtime. plain object — for...in is GMRT-safe
   }
 
-  /** Frees the store and the grid (which destroys its inserted layers). */
+  /** Frees the cache (each entry's `destroy`, when it has one), the store and the grid. */
   destroy() {
+    for (const k in this.cache) {
+      const c = this.cache[k];
+      if (c !== null && typeof c === "object" && typeof c.destroy === "function")
+        c.destroy();
+    }
+    this.cache = {};
     this.entities.destroy();
     if (this.grid !== null) this.grid.destroy();
     this.grid = null;

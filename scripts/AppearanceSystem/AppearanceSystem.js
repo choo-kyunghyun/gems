@@ -49,7 +49,8 @@ globalThis.AppearanceSystem = {
   },
 
   /** Dress every puppet whose map changed — or whose puppet was re-minted under it. */
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([Appearance, Instance], (id, ap, held) => {
       if (!ap.dirty) return;
       AppearanceSystem.apply(entities, id, held.inst);

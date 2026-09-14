@@ -3,7 +3,7 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
 /**
  * A "follow" member steers toward the player, easing to a stop near `range` so it settles instead of
  * jittering; "wait" (and any non-member) holds still; a Downed one lies where it fell. Only sets
- * Velocity (SolidSystem integrates/collides). Player id passed in, not stored — no re-link on transfer.
+ * Velocity (SolidSystem integrates/collides). The player id is the live Playable query, never stored.
  *
  * Membership (the Squad component) is owned here too: hire() joins the player's squad (+carry bonus,
  * swaps the "rehire" Interaction for "companion" — E then flips it wait/follow), kick() leaves it
@@ -12,7 +12,9 @@ const FOLLOWER_EASE_BAND = 48; // px over `range` across which approach speed ra
  * transition + its carry-bonus pairing.
  */
 globalThis.FollowerSystem = {
-  update(entities, playerId) {
+  update(level) {
+    const entities = level.entities;
+    const playerId = PlayerSystem.id(entities);
     const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
     entities.forEach([Follower, Velocity], (id, f, vel) => {
@@ -36,7 +38,8 @@ globalThis.FollowerSystem = {
         if (dist > f.range) {
           const ramp = Math.min(1, (dist - f.range) / FOLLOWER_EASE_BAND);
           // terrain movement cost (PathFollow.speedScale) — a companion wades/slogs like everyone
-          const speed = f.speed * ramp * PathFollow.speedScale(pos.x, pos.y);
+          const speed =
+            f.speed * ramp * PathFollow.speedScale(level.grid, pos.x, pos.y);
           vel.x = (dx / dist) * speed;
           vel.y = (dy / dist) * speed;
         } else {

@@ -4,16 +4,26 @@
 // Time.tempo), so tuning Raid (120 BPM) is choosing 120 ticks a second.
 /**
  * Singleton (Game/System). The dial is every SoundMeta def carrying a `name` — declared in
- * contentSounds, so a new station is one data line there. Holds only the tuned track: what plays
- * is Music's, the tempo the scene's, the bed to fall back to the injected `ambient` hook's.
+ * contentSounds, so a new station is one data line there. Logic over ONE world record (World.meta
+ * under KEY — { station }, the tuned track's ASSET NAME, "" = off), so the dial starts off with
+ * the world and rides the save: what plays is Music's, the tempo the scene's, the bed to fall
+ * back to the injected `ambient` hook's. The record holds the name, never the asset (a record is
+ * plain data — Records); `station()` resolves it back through the dial, so the ref every consumer
+ * compares is the declared one (SoundMeta scans refs by identity).
  */
 globalThis.Radio = {
-  _sound: -1, // the tuned track asset (-1 = off: the map's bed plays)
+  KEY: "radio", // its World.meta key — a data key (a save holds it)
+
   /**
    * Injected: () => the bed to resume when the dial goes off — sceneColony.create wires
    * ColonyMap.bed over the live level. null until wired; off() then just stops the music.
    */
   ambient: null,
+
+  /** The dial record — `{ station }`, the tuned track's asset name or "" for off. */
+  state() {
+    return World.record(Radio.KEY, () => ({ station: "" }));
+  },
 
   /**
    * The dial: every declared track with a name, in declaration order (SoundMeta defs).
@@ -31,14 +41,20 @@ globalThis.Radio = {
    * defers to it).
    */
   on() {
-    return Radio._sound !== -1;
+    return Radio.state().station !== "";
   },
 
   /**
-   * The tuned track asset, or -1 when off.
+   * The tuned track asset — the dial's own ref for the record's name — or -1 when off (or when
+   * the named track left the dial).
    */
   station() {
-    return Radio._sound;
+    const name = Radio.state().station;
+    if (name === "") return -1;
+    const list = Radio.stations();
+    for (let i = 0; i < list.length; i++)
+      if (audio_get_name(list[i].sound) === name) return list[i].sound;
+    return -1;
   },
 
   /**
@@ -47,8 +63,10 @@ globalThis.Radio = {
    */
   tune(sound) {
     if (!audio_exists(sound)) return false;
-    if (sound === Radio._sound) return true;
-    Radio._sound = sound;
+    const w = Radio.state();
+    const name = audio_get_name(sound);
+    if (name === w.station) return true;
+    w.station = name;
     Music.play(sound);
     Audio.play({ sound: sndRadioOpen });
     return true;
@@ -59,19 +77,19 @@ globalThis.Radio = {
    * A no-op when already off.
    */
   off() {
-    if (Radio._sound === -1) return;
-    Radio._sound = -1;
+    const w = Radio.state();
+    if (w.station === "") return;
+    w.station = "";
     if (Radio.ambient !== null) Music.play(Radio.ambient());
     else Music.stop();
     Audio.play({ sound: sndRadioClose });
   },
 
   /**
-   * Forget the tuned station and the bed hook (scene create + destroy) — the track itself
-   * stops with the scene (Audio.restart), so no fade runs here.
+   * Drop the bed hook (scene create + destroy) — the dial itself goes with the world's records
+   * (World.reset), and the track stops with the scene (Audio.restart), so no fade runs here.
    */
   reset() {
-    Radio._sound = -1;
     Radio.ambient = null;
   },
 };

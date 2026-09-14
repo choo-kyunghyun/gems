@@ -22,7 +22,8 @@ globalThis.SkeletonSystem = {
   /** the sim rate (`Time.scale * Time.tempo`) the puppets' `image_speed` was last written under */
   _clock: 1,
 
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     const clock = Time.scale * Time.tempo;
     const retime = clock !== SkeletonSystem._clock;
     SkeletonSystem._clock = clock;

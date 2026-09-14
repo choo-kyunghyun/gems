@@ -133,12 +133,14 @@ globalThis.PlayerSystem = {
   },
 
   /** once per tick, from the scene's physics sequence: drive every Playable entity */
-  update(entities) {
-    entities.forEach([Playable], (id) => PlayerSystem._drive(entities, id));
+  update(level) {
+    const entities = level.entities;
+    entities.forEach([Playable], (id) => PlayerSystem._drive(level, id));
   },
 
   /** the per-entity brain: read input → write Velocity/Direction, fire, pick the animation state */
-  _drive(entities, id) {
+  _drive(level, id) {
+    const entities = level.entities;
     const pl = entities.get(id, Playable);
     let dx =
       (Input.get("moveRight").down() ? 1 : 0) -
@@ -166,7 +168,7 @@ globalThis.PlayerSystem = {
     const speed =
       (stats !== undefined ? stats.speed : MOVE_SPEED) *
       StatusSystem.scale(entities, id, "speed") *
-      PathFollow.speedScale(pp.x, pp.y);
+      PathFollow.speedScale(level.grid, pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
     // BUG: [#15549] do NOT cache `len > 0` in a `moving` boolean local — recompute live.
@@ -236,7 +238,7 @@ globalThis.PlayerSystem = {
       if (wpn === null) {
         // equipped a weapon item with no Weapon component — nothing to do
       } else if (wpn.kind === "gun") {
-        PlayerSystem._fireGun(entities, id, pl, slot, wpn, dir, attack);
+        PlayerSystem._fireGun(level, id, pl, slot, wpn, dir, attack);
       } else {
         const reach = wpn.reach !== undefined ? wpn.reach : MELEE_REACH;
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
@@ -280,7 +282,8 @@ globalThis.PlayerSystem = {
    * gun profile; `slot.rounds` is decremented. An empty clip (or a fresh gun with no ammo type
    * chosen) auto-reloads from the bag; a dry gun doesn't fire (no cooldown).
    */
-  _fireGun(entities, id, pl, slot, wpn, dir, attack) {
+  _fireGun(level, id, pl, slot, wpn, dir, attack) {
+    const entities = level.entities;
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
       // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
@@ -299,7 +302,7 @@ globalThis.PlayerSystem = {
     // damage = round's kinetic power + attack. penetration lowers target defense; velocity
     // scales reach (the shot is instant, not travel-based).
     const damage = Math.round(wpn.power) + attack;
-    const aim = ColonyPlayer.fireBullet(entities, id, {
+    const aim = ColonyPlayer.fireBullet(level, id, {
       damage,
       penetration: wpn.penetration,
       range: speed * SHOT_RANGE_SECS,

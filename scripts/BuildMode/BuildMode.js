@@ -23,11 +23,26 @@
  * `capture` — drag a rect and Blueprint.capture writes what stands there out as the prefab literal
  * contentPrefabs takes (the scratch site is the canvas for it — contentSites).
  *
- * scene contract: level, playerId, ui, window, mouseWorld, and `map` — the MapRuntime
- * (ColonyMap) whose layer handles and colliders this edits, whose built/builtEnts tables track
- * the player's builds, and whose tilePasses it marks dirty.
+ * scene contract: level, playerId, ui, window, mouseWorld. Off the level: the map runtime
+ * (ColonyMap.runtime — the layer handles this edits and the tilePasses it marks dirty), the map
+ * record (ColonyMap.of — the collider lists a remesh refills) and this module's own record under
+ * KEY, the player's builds: `built` "gx,gy" → tile item id (the deconstructable tiles) and
+ * `builtEnts` "gx,gy" → { ent, itemId } (the deconstructable built entities), seeded blank on a
+ * level's first use and saved with it.
  */
 globalThis.BuildMode = {
+  KEY: "build", // its Records key — a data key (a save holds it)
+
+  /** The level's build record — { built, builtEnts } — seeded blank. */
+  of(level) {
+    let rec = level.meta.get(BuildMode.KEY);
+    if (rec === undefined) {
+      rec = { built: {}, builtEnts: {} };
+      level.meta.set(BuildMode.KEY, rec);
+    }
+    return rec;
+  },
+
   // DEV free build (F6): no settlement gate, no wood, no refund — the authoring mode, where a
   // structure is built to be captured (Blueprint), not paid for. Never reachable in release.
   // Module-scope, not on the panel: a session-wide authoring toggle a HUD rebuild must not clear.
@@ -172,8 +187,8 @@ globalThis.BuildMode = {
             kind: "door",
             vertical:
               scene !== undefined &&
-              TileEdit.occupied(scene.map.wallLayer, gx, gy - 1) &&
-              TileEdit.occupied(scene.map.wallLayer, gx, gy + 1),
+              TileEdit.occupied(ColonyMap.runtime(scene.level).wallLayer, gx, gy - 1) &&
+              TileEdit.occupied(ColonyMap.runtime(scene.level).wallLayer, gx, gy + 1),
           }),
         },
         {
@@ -781,12 +796,14 @@ globalThis.BuildMode = {
   /** remesh the colliders of every solid layer keyed true in `remesh` — a batch's one remesh */
   remeshLayers(scene, remesh) {
     const keys = Object.keys(remesh);
+    const rt = ColonyMap.runtime(scene.level);
+    const colliders = ColonyMap.of(scene.level).colliders;
     for (let i = 0; i < keys.length; i++)
       TileEdit.remesh(
         scene.level.entities,
         scene.level.grid,
-        scene.map[keys[i] + "Layer"],
-        scene.map[keys[i] + "Colliders"],
+        rt[keys[i] + "Layer"],
+        colliders[keys[i]],
       );
   },
 
@@ -840,14 +857,15 @@ globalThis.BuildMode = {
   _cellFree(scene, panel, gx, gy) {
     const grid = scene.level.grid;
     if (!BuildMode.free && !BuildMode._allied(scene)) return false;
+    const rt = ColonyMap.runtime(scene.level);
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(scene.map[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (scene.map.builtEnts[gx + "," + gy] !== undefined) return false;
+      if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
+    if (BuildMode.of(scene.level).builtEnts[gx + "," + gy] !== undefined) return false;
     const item = panel.item;
     // a crop roots only on its species' ground, and never over a standing body or prop
     if (item.species !== undefined) {
-      if (!FloraSystem.canRoot(scene, contentFlora.get(item.species), gx, gy))
+      if (!FloraSystem.canRoot(scene.level, contentFlora.get(item.species), gx, gy))
         return false;
     }
     const solid = !(
@@ -890,36 +908,39 @@ globalThis.BuildMode = {
   //   opts.snapshot    restore an EXACT entity from an EntitySnapshot (chest contents, turret
   //                    damage) instead of a fresh make(); Position is overridden to this cell.
   //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
-  // Updates map.built / map.builtEnts. Returns the entity id (entity) or whether a solid tile was placed
-  // (so a deferred caller knows that layer's remesh is pending).
+  // Updates the level's build record (built / builtEnts). Returns the entity id (entity) or
+  // whether a solid tile was placed (so a deferred caller knows that layer's remesh is pending).
   applyItem(scene, gx, gy, item, opts = {}) {
-    const grid = scene.level.grid;
+    const level = scene.level;
+    const grid = level.grid;
     const key = gx + "," + gy;
+    const rec = BuildMode.of(level);
     if (item.kind === "tile") {
       // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
-      // wall materials). A solid layer (wall/fence) has its own colliders to remesh (<key>Colliders).
-      const map = scene.map;
-      const layer = map[item.layer + "Layer"];
+      // wall materials). A solid layer (wall/fence) has its own colliders to remesh (the map
+      // record's `colliders`).
+      const rt = ColonyMap.runtime(level);
+      const layer = rt[item.layer + "Layer"];
       const type =
         item.mat !== undefined
-          ? map[item.layer + "Types"][item.mat]
-          : map[item.layer + "Type"];
+          ? rt[item.layer + "Types"][item.mat]
+          : rt[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      GrassSystem.cut(scene, gx, gy); // built ground kills the grass under it
+      GrassSystem.cut(level, gx, gy); // built ground kills the grass under it
       const solid = contentTiles.get(item.layer).solid === true;
       // nested, not `solid && …`: the short-circuit corrupts its left operand (docs/GMRT.md
       // #15549) and the return below would read false for a deferred solid tile
       if (opts.deferRemesh !== true) {
         if (solid)
           TileEdit.remesh(
-            scene.level.entities,
+            level.entities,
             grid,
             layer,
-            map[item.layer + "Colliders"],
+            ColonyMap.of(level).colliders[item.layer],
           );
       }
       BuildMode._markTileDirty(scene, item.layer);
-      map.built[key] = item.id;
+      rec.built[key] = item.id;
       return solid;
     }
     // entity: an exact snapshot restore (state preserved) or a fresh make() (a new instance).
@@ -934,8 +955,8 @@ globalThis.BuildMode = {
     } else {
       id = ColonySpawn.spawnEntity(scene.level.entities, grid, item.make(gx, gy, scene));
     }
-    scene.map.builtEnts[key] = { ent: id, itemId: item.id };
-    GrassSystem.cut(scene, gx, gy); // a built prop's pad kills the grass under it too
+    rec.builtEnts[key] = { ent: id, itemId: item.id };
+    GrassSystem.cut(level, gx, gy); // a built prop's pad kills the grass under it too
     return id;
   },
 
@@ -946,10 +967,12 @@ globalThis.BuildMode = {
    */
   _tryRemove(scene, gx, gy, remesh) {
     const key = gx + "," + gy;
-    const grid = scene.level.grid;
-    const map = scene.map;
+    const level = scene.level;
+    const grid = level.grid;
+    const rec = BuildMode.of(level);
+    const rt = ColonyMap.runtime(level);
     // built entities sit on top of tiles — remove one first if present.
-    const ent = map.builtEnts[key];
+    const ent = rec.builtEnts[key];
     if (ent !== undefined) {
       // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
       if (scene.level.entities.isValid(ent.ent)) {
@@ -964,29 +987,29 @@ globalThis.BuildMode = {
         scene.level.entities.remove(ent.ent);
       }
       BuildMode._refund(scene, ent.itemId);
-      delete map.builtEnts[key];
+      delete rec.builtEnts[key];
       scene.window.dirty = true;
       Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
       return true;
     }
-    const tileId = map.built[key];
+    const tileId = rec.built[key];
     if (tileId === undefined) return false; // only player-built cells are deconstructable
     const item = BuildMode.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
-    TileEdit.clear(map[lkey + "Layer"], gx, gy);
+    TileEdit.clear(rt[lkey + "Layer"], gx, gy);
     if (contentTiles.get(lkey).solid === true) {
       if (remesh !== undefined) remesh[lkey] = true;
       else
         TileEdit.remesh(
-          scene.level.entities,
+          level.entities,
           grid,
-          map[lkey + "Layer"],
-          map[lkey + "Colliders"],
+          rt[lkey + "Layer"],
+          ColonyMap.of(level).colliders[lkey],
         );
     }
     BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
-    delete map.built[key];
+    delete rec.built[key];
     scene.window.dirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
     return true;
@@ -997,7 +1020,7 @@ globalThis.BuildMode = {
    * (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
    */
   _markTileDirty(scene, layerKey) {
-    const pass = scene.map.tilePasses[layerKey];
+    const pass = ColonyMap.runtime(scene.level).tilePasses[layerKey];
     if (pass !== undefined) pass.markDirty();
   },
 
@@ -1016,7 +1039,7 @@ globalThis.BuildMode = {
    */
   reapDestroyed(scene) {
     const entities = scene.level.entities;
-    const builtEnts = scene.map.builtEnts;
+    const builtEnts = BuildMode.of(scene.level).builtEnts;
     const keys = Object.keys(builtEnts);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
@@ -1040,7 +1063,7 @@ globalThis.BuildMode = {
   /**
    * Found the player's settlement at a Survey Post: the whole level, owned by the player's faction,
    * then *spend* the post (detach its Interaction). The founded settlement is the stored state
-   * (the level's LevelMeta record, pooled and saved with it), so a post on an already-settled
+   * (the level's Records record, pooled and saved with it), so a post on an already-settled
    * level is still spent — no re-founding.
    */
   claim(scene, postId) {
@@ -1102,7 +1125,8 @@ globalThis.BuildMode = {
     const wx = cell.x * grid.cellWidth;
     const wy = cell.y * grid.cellHeight;
     let col;
-    if (scene.map.built[key] !== undefined || scene.map.builtEnts[key] !== undefined)
+    const rec = BuildMode.of(scene.level);
+    if (rec.built[key] !== undefined || rec.builtEnts[key] !== undefined)
       col = c_yellow;
     else col = BuildMode._canBuild(scene, panel, cell.x, cell.y) ? c_lime : c_red;
 

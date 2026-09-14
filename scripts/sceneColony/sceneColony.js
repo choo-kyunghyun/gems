@@ -22,8 +22,6 @@ class _SceneColonyClass {
   create(openScene) {
     contentQuests.register();
     contentAchievements.register(); // achievement defs + trigger rules (separate from quest data)
-    // the whole progression starts blank; a LOAD's sim pass replaces it wholesale further down
-    Tracker.reset();
     // inject the colony's rules into the rule-free Tracker: which counter an event kind feeds, and
     // which thresholds that counter's new total meets (the same seam as Combat.mitigate below)
     Tracker.rules = contentAchievements;
@@ -49,24 +47,25 @@ class _SceneColonyClass {
     StatusSystem.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
     };
-    // the static-collider change signal → re-stamp the active map's nav grid and drop every
-    // planned path (a new wall may cut one; the walkers re-request on their own throttle).
-    // `this.map` is read live, so the one hook serves every map the scene activates.
-    SolidSystem.onStatics = (entities, statics) => {
-      this.map.nav.stamp(statics);
-      PathfindingSystem.invalidate(entities);
+    // the static-collider change signal → re-stamp that level's nav grid and drop every planned
+    // path (a new wall may cut one; the walkers re-request on their own throttle). The level in
+    // hand is the one whose statics moved, so the one hook serves every map the scene activates.
+    SolidSystem.onStatics = (level, statics) => {
+      PathfindingSystem.nav(level).stamp(statics);
+      PathfindingSystem.invalidate(level.entities);
     };
 
-    // the world (its level pool is the map pool — every visited map stays alive/suspended there
-    // for the whole session, see ColonyMap.go) + wandering traders — reset per scene create so a
-    // fresh colony session can't inherit the previous one's maps/schedule/records (Trader.reset
-    // re-installs handlers).
+    // the world — its level pool is the map pool (every visited map stays alive there for the
+    // whole session, see ColonyMap.go) and its records the world's data (the clock, the sky, the
+    // progression, the events, the traders, the radio dial) — starts blank per scene create, so a
+    // fresh colony session can't inherit the previous one's; a LOAD imports the saved records
+    // wholesale further down. The wandering traders' event handlers re-wire after the reset.
     World.reset();
-    Trader.reset();
-    // the player's BGM dial starts off, its fall-back bed the ACTIVE map's own (indoor ⇄
-    // overworld) — read live through `this`, so the one hook serves every map the scene activates
+    Trader.install();
+    // the player's BGM dial's fall-back bed is the ACTIVE map's own (indoor ⇄ overworld) — read
+    // live through `this`, so the one hook serves every map the scene activates
     Radio.reset();
-    Radio.ambient = () => ColonyMap.bed(this);
+    Radio.ambient = () => ColonyMap.bed(this.level);
 
     // quests that close themselves the instant their objectives are met — what the report seam's
     // `ready` is filtered through. td_humans is absent: its giver turns it in (see _interactNpc).
@@ -112,7 +111,10 @@ class _SceneColonyClass {
     this._downedRules = {
       // revive at the map's spawn (inside the settlement when the map is one) — read live, so the
       // one rule set serves every map the scene activates
-      downSpot: () => ({ x: this.map.spawn.x, y: this.map.spawn.y }),
+      downSpot: () => {
+        const sp = ColonyMap.of(this.level).spawn;
+        return { x: sp.x, y: sp.y };
+      },
       onRecover: (id) => this._onRecover(id),
     };
 
@@ -122,21 +124,21 @@ class _SceneColonyClass {
     this._buildUI();
 
     const bootMap = ColonyLevel.START; // the colony's home site
-    WorldClock.reset(); // once — survives map changes below
-    Weather.reset(); // once — survives map changes, like the clock
     // LOAD vs NEW GAME: a parked SaveGame bundle rebuilds the saved active map + character +
     // world-sim in place of the fresh map + starting-loadout + companion seeding below.
     const loaded = SaveGame.pending();
     if (loaded)
       SaveGame.restore(this); // restore() drives the map build + squad arrival itself
     else {
-      SaveGame.clearPending(); // a NEW game must not inherit a prior load's stashed map state
       // the starting quests — NEW GAME only; a load brings back its own accepted set + progress
       Tracker.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
       Tracker.accept(contentQuests.QUEST_REACH); // reach — tracked passively
       ColonyMap.go(this, bootMap, "default");
     }
-    Music.play(musAmbientTense); // carries across map changes (only _apply's reset stops it)
+    // the restored dial's station, else the map's bed — carries across map changes (only
+    // _apply's reset stops it)
+    const station = Radio.station();
+    Music.play(station !== -1 ? station : ColonyMap.bed(this.level));
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
@@ -179,7 +181,7 @@ class _SceneColonyClass {
     // NEW GAME only — a load brings back its records + schedule (and its embodied entity with the
     // active map's store), so registering again would land a second peddler.
     if (!loaded)
-      Trader.register(this, {
+      Trader.register(this.level, {
         id: "peddler",
         name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
         travelH: 2, // in-game hours in transit between stops
@@ -368,7 +370,7 @@ class _SceneColonyClass {
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
     // unprojection (see Camera.unproject). Read by BuildMode and Interactable — both name a CELL
     // or a footprint, which is what the ground plane holds.
-    const cam = this.map.camera;
+    const cam = ColonyMap.runtime(this.level).camera;
     this.mouseWorld = cam.cursorWorld();
     // the AIM point: the same cursor resolved against what it visibly covers, so a shot at a
     // body reaches the footprint the sim tests (ColonyPlayer.aim). Read by PlayerSystem through
@@ -395,37 +397,37 @@ class _SceneColonyClass {
     // mirror any tile-cost edits into the nav grid BEFORE the tick loop (PathfindingSystem plans
     // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
     // SolidSystem.onStatics instead (create).
-    this.map.nav.sync();
-    RoomSystem.sync(this); // the doors + any wall edit into the room mirror (shelter for the needs below)
+    PathfindingSystem.nav(this.level).sync();
+    RoomSystem.sync(this.level); // the doors + any wall edit into the room mirror (shelter for the needs below)
 
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
       InterpolationSystem.snapshot(this.level.entities); // pre-move positions for render lerp
-      StatusSystem.update(this.level.entities); // tick buffs/debuffs (dot/hot + duration), then ↓
-      EncumbranceSystem.update(this.level.entities); // refresh the "encumbered" status from carried weight
+      StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
+      EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
       // survival needs rise; drowsiness DRAINS while sleeping (else rises)
-      ThirstSystem.update(this.level.entities);
-      HungerSystem.update(this.level.entities);
-      ExposureSystem.update(this); // the thin air: by shelter + the worn seal
-      ColdSystem.update(this); // by the temperature where each body stands
+      ThirstSystem.update(this.level);
+      HungerSystem.update(this.level);
+      ExposureSystem.update(this.level); // the thin air: by shelter + the worn seal
+      ColdSystem.update(this.level); // by the temperature where each body stands
       if (this.sleeping)
         DrowsinessSystem.restore(
           this.level.entities,
           this.playerId,
           SLEEP_RECOVER * SimClock.tickDuration,
         );
-      else DrowsinessSystem.update(this.level.entities);
-      FollowerSystem.update(this.level.entities, this.playerId); // seek, by live Follower query (before physics)
+      else DrowsinessSystem.update(this.level);
+      FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
       // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
       // crowders apart → projectiles → fuses → expire.
-      PlayerSystem.update(this.level.entities); // the player brain: input → Velocity/fire
-      StateSystem.update(this.level.entities); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
-      PathfindingSystem.update(this.level.entities); // enemy PathRequest → PathResponse over this.map.nav
-      SolidSystem.update(this.level.entities);
-      SeparationSystem.update(this.level.entities); // unstack dynamic bodies (crowding), after SolidSystem
-      ProjectileSystem.update(this.level.entities);
-      FuseSystem.update(this.level.entities); // fused charges count down and detonate where they lie
-      LifetimeSystem.update(this.level.entities);
+      PlayerSystem.update(this.level); // the player brain: input → Velocity/fire
+      StateSystem.update(this.level); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
+      PathfindingSystem.update(this.level); // enemy PathRequest → PathResponse over the level's nav grid
+      SolidSystem.update(this.level);
+      SeparationSystem.update(this.level); // unstack dynamic bodies (crowding), after SolidSystem
+      ProjectileSystem.update(this.level);
+      FuseSystem.update(this.level); // fused charges count down and detonate where they lie
+      LifetimeSystem.update(this.level);
 
       ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
       // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
@@ -441,8 +443,8 @@ class _SceneColonyClass {
     }
 
     ColonyPlayer.pace(this.level.entities); // stride-match locomotion playback to actual speed
-    SkeletonSystem.update(this.level.entities); // mint the puppets new skeletal bodies lack; retime them on a clock change
-    AppearanceSystem.update(this.level.entities); // dress the puppets SkeletonSystem just minted
+    SkeletonSystem.update(this.level); // mint the puppets new skeletal bodies lack; retime them on a clock change
+    AppearanceSystem.update(this.level); // dress the puppets SkeletonSystem just minted
     InstanceSystem.update(); // reap the puppets of entities that died this frame
     Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
@@ -453,14 +455,14 @@ class _SceneColonyClass {
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
-    FloraSystem.update(this, WorldClock.absHours()); // grow + spread the map's plants over the in-game hours since its last tick
-    GrassSystem.update(this, WorldClock.absHours()); // creep + consumption flush of the grass ground itself (tile-state, no entities)
-    RoomSystem.update(this, WorldClock.absHours()); // step every room's temperature over the same span
-    TradeSystem.update(this.level.entities, Time.delta); // finite merchants restock toward their template (sim time)
+    FloraSystem.update(this.level); // grow + spread the map's plants over the in-game hours since its last tick
+    GrassSystem.update(this.level); // creep of the grass ground itself (tile-state, no entities)
+    RoomSystem.update(this.level); // step every room's temperature over the same span
+    TradeSystem.update(this.level); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance the live bursts (once per frame; freezes when paused)
     // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
     // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
-    if (!this.map.camera.control.raw) this.map.camera.update();
+    if (!cam.control.raw) cam.update();
     // ears on the body of the entity the camera TRACKS (the CameraFocus marker, live-queried),
     // not the view: CameraFollow clamps its look-at at map edges (and debug free-cam flies away
     // entirely), parking the view center off the tracked body — spatial SFX pan/attenuate from
@@ -470,9 +472,9 @@ class _SceneColonyClass {
       Position,
     );
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
-    else AudioListener.position(this.map.camera.toX, this.map.camera.toY);
-    SoundEmitterSystem.update(this.level.entities); // timed world cues (the radio prop) re-fire their spatial SFX
-    ParticleEmitterSystem.update(this.level.entities); // mint/step/reap the attached particle streams (drops, beacons)
+    else AudioListener.position(cam.toX, cam.toY);
+    SoundEmitterSystem.update(this.level); // timed world cues (the radio prop) re-fire their spatial SFX
+    ParticleEmitterSystem.update(this.level); // mint/step/reap the attached particle streams (drops, beacons)
 
     // refresh the open window page when dirty — last, so every write above lands this frame
     // (UI.update already ran, so a rebuild never lands inside the click that requested it)
@@ -618,8 +620,9 @@ class _SceneColonyClass {
   _onRespawn(id) {
     const pos = this.level.entities.get(id, Position);
     const vel = this.level.entities.get(id, Velocity);
-    pos.x = this.map.spawn.x;
-    pos.y = this.map.spawn.y;
+    const sp = ColonyMap.of(this.level).spawn;
+    pos.x = sp.x;
+    pos.y = sp.y;
     vel.x = 0;
     vel.y = 0;
     for (const token of [Thirst, Hunger, Drowsiness, Exposure, Cold]) {
@@ -646,7 +649,7 @@ class _SceneColonyClass {
   }
 
   _checkReach() {
-    const map = this.map;
+    const map = ColonyMap.of(this.level);
     if (map.reachDone || map.reachZone === undefined) return;
     const p = AABB.of(this.level.entities, this.playerId);
     const z = map.reachZone;
@@ -782,11 +785,12 @@ class _SceneColonyClass {
   draw() {
     // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
     // is skipped then); apply before the renderer reads it
-    const camera = this.map.camera;
+    const rt = ColonyMap.runtime(this.level);
+    const camera = rt.camera;
     if (camera.control.raw) camera.update();
     // dev BBox outlines (Settings toggle, default off) — read each frame like hudRadar below
-    this.map.bboxPass.enabled = Settings.get("debugBBox");
-    this.map.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
+    rt.bboxPass.enabled = Settings.get("debugBBox");
+    rt.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
     // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
     WorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
     if (Settings.get("hudRadar"))
@@ -812,15 +816,9 @@ class _SceneColonyClass {
     Time.tempo = 1; // the BGM stops with the scene (Audio.restart), so its tempo goes too
     Radio.reset(); // and the dial with it — the next colony session starts on its map's bed
     WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
-    PathFollow.bind(null); // drop the terrain pricing (the next scene binds its own or none)
     SolidSystem.onStatics = null; // the nav grids go with the maps below
-    // park the active map first (`this.map`), so ColonyMap.reset can reclaim every map's
-    // runtime + pooled Level in one pass
-    ColonyMap.suspend(this);
-    ColonyMap.reset();
-    World.reset(); // drop the level pool + world timeline (every Level freed above)
-    Trader.reset(); // drop trader records + queued trader events
-    SaveGame.clearPending(); // free the grid blobs of loaded maps never visited
+    ColonyMap.suspend(this); // release the view before its camera is freed with the level
+    World.reset(); // free every pooled level (its runtime with it), the world's records and the event wiring
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();

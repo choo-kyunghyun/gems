@@ -4,11 +4,6 @@ globalThis.EntityStore = class EntityStore {
     this.ids = new EntityID(maxEntities);
     this.components = new ComponentStore(maxEntities, this.ids);
     this._pending = [];
-    /**
-     * Opt-in pair grid, assigned post-construction once world dims are known
-     * (contract at Broadphase). NEVER null: consumers gate on `!== undefined`.
-     */
-    this.broadphase = undefined;
   }
 
   destroy() {

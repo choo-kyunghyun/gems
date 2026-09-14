@@ -6,6 +6,7 @@
  * (setClimate); the displayed condition is the effective one (climate ?? ambient).
  */
 globalThis.Weather = {
+  KEY: "weather", // its World.meta key — a data key (a save holds it)
   // built-in conditions by id: { c, a } screen tint, particle/density for RenderWeather, cloud the
   // cloud-shadow coverage for RenderCloudShadow, temp a scale-agnostic Kelvin delta, chroma the
   // sky's factor on the world's colour (chromaMod). A literal — no class self-reference.
@@ -79,70 +80,41 @@ globalThis.Weather = {
   _maxHold: 70,
   _fadeTime: 2.5, // cross-fade seconds when the condition changes
 
-  // ambient (season-rolled) sky vs. the active map's optional climate; the displayed condition is
-  // the effective one (climate ?? ambient), cross-faded into _cur/_prev/_blend by _sync()
-  _ambient: "clear", // season-rolled open-sky condition
-  _climate: null, // condition id the active map's climate forces (or null)
-  _climateTemp: 0, // additive Kelvin offset from the active map's climate
-
-  _cur: "clear", // displayed effective condition
-  _prev: "clear",
-  _blend: 1, // 1 = settled on _cur; eases 0..1 after each change
-  _timer: 0, // real seconds until the next re-roll
-  _time: 0, // cumulative SIM seconds — the clock the weather VISUALS scroll on (see time())
-
   /**
-   * Flat save state: the whole sky is these eight scalars (see fields above). No _sync() on import —
-   * the fields fully define the sky, and the next update() re-syncs from them.
+   * The sky record — ambient (season-rolled) sky vs. the active map's optional climate; the
+   * displayed condition is the effective one (climate ?? ambient), cross-faded into cur/prev/blend
+   * by _sync(): `ambient` the season-rolled open-sky condition, `climate` the condition id the
+   * active map forces (or null) and `climateTemp` its additive Kelvin offset, `cur`/`prev` the
+   * displayed and outgoing conditions, `blend` 1 = settled on cur (eases 0..1 after a change),
+   * `timer` real seconds until the next re-roll, `time` cumulative SIM seconds — the clock the
+   * weather VISUALS scroll on (see time()). Seeded a settled clear sky; a loaded record needs no
+   * _sync(), the next update() re-syncs from it.
    */
-  export() {
-    return {
-      ambient: Weather._ambient,
-      climate: Weather._climate,
-      climateTemp: Weather._climateTemp,
-      cur: Weather._cur,
-      prev: Weather._prev,
-      blend: Weather._blend,
-      timer: Weather._timer,
-      time: Weather._time,
-    };
-  },
-
-  import(d) {
-    if (d === undefined) return;
-    Weather._ambient = d.ambient;
-    Weather._climate = d.climate;
-    Weather._climateTemp = d.climateTemp;
-    Weather._cur = d.cur;
-    Weather._prev = d.prev;
-    Weather._blend = d.blend;
-    Weather._timer = d.timer;
-    Weather._time = d.time;
-  },
-
-  /** reset to a settled clear sky, no map climate (scene create() once) */
-  reset() {
-    Weather._ambient = "clear";
-    Weather._climate = null;
-    Weather._climateTemp = 0;
-    Weather._cur = "clear";
-    Weather._prev = "clear";
-    Weather._blend = 1;
-    Weather._timer = Weather._rollHold();
-    Weather._time = 0;
+  state() {
+    return World.record(Weather.KEY, () => ({
+      ambient: "clear",
+      climate: null,
+      climateTemp: 0,
+      cur: "clear",
+      prev: "clear",
+      blend: 1,
+      timer: Weather._rollHold(),
+      time: 0,
+    }));
   },
 
   update(dt) {
-    Weather._time += dt;
-    Weather._timer -= dt;
-    if (Weather._timer <= 0) {
-      Weather._ambient = Weather._rollAmbient();
-      Weather._timer = Weather._rollHold();
+    const w = Weather.state();
+    w.time += dt;
+    w.timer -= dt;
+    if (w.timer <= 0) {
+      w.ambient = Weather._rollAmbient(w);
+      w.timer = Weather._rollHold();
     }
-    Weather._sync();
-    if (Weather._blend < 1) {
-      Weather._blend += dt / Weather._fadeTime;
-      if (Weather._blend > 1) Weather._blend = 1;
+    Weather._sync(w);
+    if (w.blend < 1) {
+      w.blend += dt / Weather._fadeTime;
+      if (w.blend > 1) w.blend = 1;
     }
   },
 
@@ -152,20 +124,20 @@ globalThis.Weather = {
    * an open sky. Either way the change cross-fades like a re-roll.
    */
   setClimate(c) {
+    const w = Weather.state();
     const has = c !== undefined && c !== null;
-    const w = has ? c.weather : undefined;
-    Weather._climate = w !== undefined && w !== null ? w : null;
-    Weather._climateTemp = has ? (c.tempMod !== undefined ? c.tempMod : 0) : 0;
-    Weather._sync();
+    const id = has ? c.weather : undefined;
+    w.climate = id !== undefined && id !== null ? id : null;
+    w.climateTemp = has ? (c.tempMod !== undefined ? c.tempMod : 0) : 0;
+    Weather._sync(w);
   },
 
-  _sync() {
-    const eff =
-      Weather._climate !== null ? Weather._climate : Weather._ambient;
-    if (eff !== Weather._cur) {
-      Weather._prev = Weather._cur;
-      Weather._cur = eff;
-      Weather._blend = 0;
+  _sync(w) {
+    const eff = w.climate !== null ? w.climate : w.ambient;
+    if (eff !== w.cur) {
+      w.prev = w.cur;
+      w.cur = eff;
+      w.blend = 0;
     }
   },
 
@@ -179,18 +151,18 @@ globalThis.Weather = {
    * season-weighted pick excluding the current ambient (so it changes); for...in over a plain
    * object is GMRT-safe (Map iteration is not — docs/GMRT.md)
    */
-  _rollAmbient() {
-    const w = Weather._WEIGHTS[WorldClock.season().id];
+  _rollAmbient(w) {
+    const weights = Weather._WEIGHTS[WorldClock.season().id];
     let total = 0;
     const ids = [];
     const cum = [];
-    for (const id in w) {
-      if (id === Weather._ambient || w[id] <= 0) continue;
-      total += w[id];
+    for (const id in weights) {
+      if (id === w.ambient || weights[id] <= 0) continue;
+      total += weights[id];
       ids.push(id);
       cum.push(total);
     }
-    if (total <= 0) return Weather._ambient; // nothing else available — stay
+    if (total <= 0) return w.ambient; // nothing else available — stay
     const r = Math.random() * total;
     let i = 0;
     while (i < ids.length) {
@@ -207,30 +179,32 @@ globalThis.Weather = {
    * house style, not a runtime dodge.
    */
   time() {
-    return Weather._time;
+    return Weather.state().time;
   },
 
   current() {
-    return Weather._COND[Weather._cur];
+    return Weather._COND[Weather.state().cur];
   }, // target condition (HUD name)
   previous() {
-    return Weather._COND[Weather._prev];
+    return Weather._COND[Weather.state().prev];
   }, // outgoing condition (cross-fade)
   blend() {
-    return Weather._blend;
+    return Weather.state().blend;
   }, // 0..1 incoming weight
 
   /** Blended chroma factor (outgoing → incoming) of the sky — an overcast or snowing sky drains the world's colour a little further (ColonyMap.chroma multiplies it in). */
   chromaMod() {
-    const p = Weather._COND[Weather._prev].chroma;
-    const c = Weather._COND[Weather._cur].chroma;
-    return p + (c - p) * Weather._blend;
+    const w = Weather.state();
+    const p = Weather._COND[w.prev].chroma;
+    const c = Weather._COND[w.cur].chroma;
+    return p + (c - p) * w.blend;
   },
 
   /** Blended Kelvin temp delta (outgoing → incoming) + the map's climate offset; folded into Temperature.now(). */
   tempMod() {
-    const p = Weather._COND[Weather._prev].temp;
-    const c = Weather._COND[Weather._cur].temp;
-    return p + (c - p) * Weather._blend + Weather._climateTemp;
+    const w = Weather.state();
+    const p = Weather._COND[w.prev].temp;
+    const c = Weather._COND[w.cur].temp;
+    return p + (c - p) * w.blend + w.climateTemp;
   },
 };

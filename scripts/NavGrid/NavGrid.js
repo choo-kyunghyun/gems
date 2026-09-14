@@ -2,7 +2,7 @@
  * The level-sized cost grid every planner query shares, one cell per LevelGrid cell: ≥ 1 =
  * walkable (terrain-weighted — MotionPlanner multiplies step distance by cell cost, so a wade is
  * chosen only when shorter than walking around), Infinity = blocked. `grid` is the plain Grid
- * MotionPlanner.setGrid points at; its size is the level's, so setGrid runs once per map.
+ * PathfindingSystem points MotionPlanner at (level.cache under its KEY); its size is the level's.
  *
  * Two sources, each with its own refresh signal, composed base-then-stamp so neither re-reads the
  * other's input:

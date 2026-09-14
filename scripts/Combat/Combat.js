@@ -2,7 +2,8 @@
 // the injected `mitigate` hook. Only subtracts hp; the reaction at <=0 hp is the Mortal death pass.
 /**
  * The colony wires its defense formula in sceneColony.create, so the applier itself never reads a stat
- * sheet — hitscan needs only Health + Faction.
+ * sheet — hitscan needs only Health + Faction. A cast (hitscan, explode) takes the LEVEL — Raycast
+ * reads its collider cache; the appliers take the store.
  */
 globalThis.Combat = {
   // injected defense formula — default identity; colony overrides with max(1, amount-max(0,defense-pen))
@@ -24,11 +25,12 @@ globalThis.Combat = {
    * damage. `pierce` = max targets hit (default 1). returns { x, y, hits } (endpoint + struck ids).
    *   opts: { owner, damage, penetration? (default 0), pierce? (default 1) }
    */
-  hitscan(entities, x0, y0, x1, y1, opts) {
+  hitscan(level, x0, y0, x1, y1, opts) {
+    const entities = level.entities;
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;
     let remaining = opts.pierce ?? 1;
-    const all = Raycast.castAll(entities, x0, y0, x1, y1, { ignore: owner });
+    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
     const hits = [];
     let endX = x1;
     let endY = y1;
@@ -60,7 +62,8 @@ globalThis.Combat = {
    * other. returns the struck ids.
    *   opts: { owner, damage, penetration? (default 0) }
    */
-  explode(entities, x, y, radius, opts) {
+  explode(level, x, y, radius, opts) {
+    const entities = level.entities;
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;
     const hits = [];
@@ -70,7 +73,7 @@ globalThis.Combat = {
       if (id === owner) continue;
       if (FactionSystem.allied(entities, owner, id)) continue;
       const pos = entities.get(id, Position);
-      if (Combat._shadowed(entities, x, y, pos.x, pos.y, owner)) continue;
+      if (Combat._shadowed(level, x, y, pos.x, pos.y, owner)) continue;
       const d = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
       const amount = Math.max(
         1,
@@ -94,10 +97,10 @@ globalThis.Combat = {
   },
 
   /** true when a structure lies on the segment; bodies are looked through */
-  _shadowed(entities, x0, y0, x1, y1, owner) {
-    const all = Raycast.castAll(entities, x0, y0, x1, y1, { ignore: owner });
+  _shadowed(level, x0, y0, x1, y1, owner) {
+    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
-      if (Combat.isStructure(entities, all[i].id)) return true;
+      if (Combat.isStructure(level.entities, all[i].id)) return true;
     }
     return false;
   },

@@ -279,7 +279,8 @@ globalThis.ColonyPlayer = {
    * hostiles passed through; penetration (default 0) lowers target defense; nx/ny is a caller-resolved
    * aim, else the mouse cursor. Returns the normalized aim { nx, ny } for the muzzle flash.
    */
-  fireBullet(entities, shooterId, opts) {
+  fireBullet(level, shooterId, opts) {
+    const entities = level.entities;
     const pos = entities.get(shooterId, Position);
     const muzzleY = pos.y + (opts.muzzleY ?? 0);
     let nx;
@@ -300,7 +301,7 @@ globalThis.ColonyPlayer = {
     }
     const range = opts.range ?? 920; // px (defensive default; callers pass a velocity-scaled reach)
     const shot = Combat.hitscan(
-      entities,
+      level,
       pos.x,
       muzzleY,
       pos.x + nx * range,

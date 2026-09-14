@@ -6,7 +6,8 @@ globalThis.EncumbranceSystem = {
    * live { speed }; else clear. maintain() carries no `mods`, so no Stats re-derive. Run before the
    * mover reads scale.
    */
-  update(entities) {
+  update(level) {
+    const entities = level.entities;
     entities.forEach([Encumbrance, Inventory], (id) => {
       const s = EncumbranceSystem.scale(entities, id);
       StatusSystem.maintain(

@@ -23,11 +23,11 @@ const OVERLAP_EVERY = 60; // frames between the body-vs-wall sweeps (500 × ~80 
  * Bodies overlapping a static, past a sub-pixel tolerance (the resolver parks a body ON a face).
  * Read after the solid pass and before the separation push — the one point where zero must hold.
  */
-function _stressOverlaps(s) {
-  const statics = SolidSystem.statics(s);
+function _stressOverlaps(level) {
+  const statics = SolidSystem.statics(level);
   const rect = AABB.rect();
   let overlaps = 0;
-  s.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
+  level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
     AABB.edgesInto(pos, box, rect);
     for (let k = 0; k < statics.length; k++) {
       const st = statics[k];
@@ -85,12 +85,12 @@ globalThis.testStress = {
         }
         ctx.colliders = [];
         TileEdit.remesh(s, grid, layer, ctx.colliders);
+        // the level's caches, mounted where the systems read them (the scene's shape)
         ctx.nav = new NavGrid(grid);
+        level.cache[PathfindingSystem.KEY] = ctx.nav;
         ctx.nav.sync();
-        ctx.nav.stamp(SolidSystem.statics(s)); // once: the walls never change
-        MotionPlanner.setGrid(ctx.nav.grid);
-        PathFollow.bind(null); // every cell costs 1
-        s.broadphase = new Broadphase(COLS * CELL, ROWS * CELL, 64);
+        ctx.nav.stamp(SolidSystem.statics(level)); // once: the walls never change
+        level.cache[SeparationSystem.KEY] = new Broadphase(COLS * CELL, ROWS * CELL, 64);
 
         // the agents, each on a free cell with a free-cell goal
         const free = [];
@@ -185,7 +185,7 @@ globalThis.testStress = {
             const mx = mp.x - pos.x;
             const my = mp.y - pos.y;
             const d = Math.sqrt(mx * mx + my * my);
-            const sp = SPEED * PathFollow.speedScale(pos.x, pos.y);
+            const sp = SPEED * PathFollow.speedScale(grid, pos.x, pos.y); // every cell costs 1
             if (d > 1e-6) {
               vel.x = (mx / d) * sp;
               vel.y = (my / d) * sp;
@@ -196,17 +196,17 @@ globalThis.testStress = {
           });
           let t2 = get_timer();
           steerUs += t2 - t1;
-          PathfindingSystem.update(s);
+          PathfindingSystem.update(ctx.level);
           t1 = get_timer();
           pathUs += t1 - t2;
-          SolidSystem.update(s);
+          SolidSystem.update(ctx.level);
           t2 = get_timer();
           solidUs += t2 - t1;
           // THE invariant under load, read where it must hold: after the solid pass and before
           // the separation push (which the next solid pass undoes), no body is inside a wall
           if (k === 0)
-            if (i % OVERLAP_EVERY === 0) ctx.overlaps += _stressOverlaps(s);
-          SeparationSystem.update(s);
+            if (i % OVERLAP_EVERY === 0) ctx.overlaps += _stressOverlaps(ctx.level);
+          SeparationSystem.update(ctx.level);
           sepUs += get_timer() - t2;
           s.flush();
         }
@@ -255,8 +255,7 @@ globalThis.testStress = {
       teardown(ctx) {
         ctx.renderer.destroy();
         ctx.camera.destroy(); // unassigns the view, restoring default room rendering
-        ctx.nav.destroy();
-        ctx.level.destroy();
+        ctx.level.destroy(); // frees the nav grid with the rest of its cache
       },
     },
   ],

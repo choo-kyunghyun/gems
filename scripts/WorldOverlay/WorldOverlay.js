@@ -39,7 +39,7 @@ globalThis.WorldOverlay = {
 
     // Drops: the icon flat at its declared density, the rarity color standing in where the item
     // has none. The sparkle that makes one visible is the drop's own ParticleEmitter.
-    const pitch = scene.map.camera.pitch;
+    const pitch = ColonyMap.runtime(scene.level).camera.pitch;
     entities.forEach([ItemDrop, Position], (_id, d, p) => {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;
@@ -90,9 +90,10 @@ globalThis.WorldOverlay = {
       gpu_set_ztestenable(true);
     }
 
-    // reach-quest zone, only when the scene defines one and it's unmet
-    if (scene.map.reachZone !== undefined && !scene.map.reachDone) {
-      const z = scene.map.reachZone;
+    // reach-quest zone, only when the map defines one and it's unmet
+    const map = ColonyMap.of(scene.level);
+    if (map.reachZone !== undefined && !map.reachDone) {
+      const z = map.reachZone;
       draw_set_alpha(0.35);
       draw_set_color(make_colour_rgb(120, 200, 255));
       draw_rectangle(z.x1, z.y1, z.x2, z.y2, false);

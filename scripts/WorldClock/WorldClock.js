@@ -1,12 +1,11 @@
-// In-game world clock — a global time-of-day + day counter every time-aware feature reads. A singleton
-// (advanced once per frame by Time.delta, sim time); persists across map changes (reset once in create()).
+// In-game world clock — a global time-of-day + day counter every time-aware feature reads. Logic
+// over ONE world record (World.meta under KEY — { hour, day }), advanced once per frame by
+// Time.delta (sim time); persists across map changes and rides the save with the world's records.
 globalThis.WorldClock = {
+  KEY: "clock", // its World.meta key — a data key (a save holds it)
   dayLength: 240, // real seconds for one full in-game day (at Time.scale 1)
-  startHour: 8, // morning when a fresh level starts
-  hour: 8, // current time of day in [0, 24)
-  day: 1, // day counter, 1-based
+  startHour: 8, // morning when a fresh world starts
   daysPerSeason: 7, // in-game days per season; the four-season "year" is 4× this
-
   // four seasons in cycle order; a literal (an initializer can't self-reference). Season is
   // a pure derivation of `day`, like phase() of hour.
   _SEASONS: [
@@ -15,7 +14,6 @@ globalThis.WorldClock = {
     { id: "autumn", name: "SEASON_AUTUMN" },
     { id: "winter", name: "SEASON_WINTER" },
   ],
-
   // Hand-authored day/night overlay keyframes { h, c tint, a alpha }, sorted by hour and wrapping
   // (h:0 == h:24). alpha 0 in full daylight (08:00–17:00) so the pass draws nothing then. A literal
   // (an initializer can't self-reference).
@@ -30,10 +28,12 @@ globalThis.WorldClock = {
     { h: 24, c: "#0b1133", a: 0.6 }, // wraps to midnight
   ],
 
-  /** reset to the starting morning of day 1 (level create()) */
-  reset() {
-    WorldClock.hour = WorldClock.startHour;
-    WorldClock.day = 1;
+  /** The clock record — `{ hour in [0, 24), day 1-based }` — seeded at the starting morning of day 1. */
+  state() {
+    return World.record(WorldClock.KEY, () => ({
+      hour: WorldClock.startHour,
+      day: 1,
+    }));
   },
 
   /**
@@ -41,10 +41,11 @@ globalThis.WorldClock = {
    * empty for-init crashes the GMRT compiler, and a big hitch could cross more than one midnight.
    */
   update(dt) {
-    WorldClock.hour += (24 / WorldClock.dayLength) * dt;
-    while (WorldClock.hour >= 24) {
-      WorldClock.hour -= 24;
-      WorldClock.day += 1;
+    const c = WorldClock.state();
+    c.hour += (24 / WorldClock.dayLength) * dt;
+    while (c.hour >= 24) {
+      c.hour -= 24;
+      c.day += 1;
     }
   },
 
@@ -52,17 +53,19 @@ globalThis.WorldClock = {
    * absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling (WorldEvents).
    */
   absHours() {
-    return (WorldClock.day - 1) * 24 + WorldClock.hour;
+    const c = WorldClock.state();
+    return (c.day - 1) * 24 + c.hour;
   },
 
   clockText() {
-    const h = Math.floor(WorldClock.hour);
-    const m = Math.floor((WorldClock.hour - h) * 60);
+    const hour = WorldClock.state().hour;
+    const h = Math.floor(hour);
+    const m = Math.floor((hour - h) * 60);
     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   },
 
   phase() {
-    const h = WorldClock.hour;
+    const h = WorldClock.state().hour;
     if (h < 5 || h >= 20) return "night";
     if (h < 8) return "dawn";
     if (h < 17) return "day";
@@ -81,7 +84,7 @@ globalThis.WorldClock = {
   },
 
   seasonDay() {
-    return ((WorldClock.day - 1) % WorldClock.daysPerSeason) + 1;
+    return ((WorldClock.state().day - 1) % WorldClock.daysPerSeason) + 1;
   },
 
   /**
@@ -92,7 +95,7 @@ globalThis.WorldClock = {
    * faces still catch light at midday.
    */
   sunDir() {
-    const h = WorldClock.hour;
+    const h = WorldClock.state().hour;
     if (h < 6 || h > 18)
       return { x: 0, y: 0.33, z: -0.94, strength: 0, r: 1, g: 1, b: 1 };
     const t = (h - 6) / 12;
@@ -139,7 +142,7 @@ globalThis.WorldClock = {
    */
   chroma() {
     const kf = WorldClock._CHROMA;
-    const h = WorldClock.hour;
+    const h = WorldClock.state().hour;
     let i = 0;
     while (i < kf.length - 2 && h >= kf[i + 1].h) i++;
     const a = kf[i];
@@ -155,7 +158,7 @@ globalThis.WorldClock = {
    */
   tint() {
     const kf = WorldClock._KF;
-    const h = WorldClock.hour;
+    const h = WorldClock.state().hour;
     let i = 0;
     while (i < kf.length - 2 && h >= kf[i + 1].h) i++;
     const a = kf[i];

@@ -3,32 +3,31 @@
  * cursor) and returns the proper movement point each tick, and prices the ground so terrain path cost
  * drains movement: speed × 1/cost (easy ground full speed, rough slower, wading slowest; Infinity
  * never reaches a mover — see speedScale's clamp). Shared by any steering system (AI, followers, the
- * player controller) so there's one path walker and one cost rule. Core: the terrain pricing arrives
- * via an injected provider (bind), so this module knows no map/biome specifics.
+ * player controller) so there's one path walker and one cost rule. Core: the terrain pricing is
+ * the level grid's own cost (LevelGrid.costAt — the topmost layer's TileType, `pathCost: null`
+ * read as Infinity), handed in by the caller, so this module knows no map/biome specifics.
  */
 globalThis.PathFollow = {
-  // Injected per-map terrain-cost provider: (wx, wy) → cost (1 = easy, >1 = rough, Infinity =
-  // impassable), or null when the map prices no terrain (interiors — every cell costs 1).
-  // Rebound on each map activate (ColonyMap._activateReset), like CombatAI.bind.
-  costProvider: null,
   // Speed clamp: cost at/above this moves at 1/maxCost instead of freezing — a mover whose feet
   // land on a blocked/Infinity sliver (deep-water edge cell) crawls out instead of stranding.
   maxCost: 4,
 
-  bind(provider) {
-    PathFollow.costProvider = provider ?? null;
-  },
-
-  /** Terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it). */
-  costAt(wx, wy) {
-    if (PathFollow.costProvider === null) return 1;
-    const c = PathFollow.costProvider(wx, wy);
+  /**
+   * Terrain cost under a world point (≥ 1; Infinity allowed — speedScale clamps it): the grid's
+   * cell cost, or 1 on a level with no grid (every cell costs 1).
+   */
+  costAt(grid, wx, wy) {
+    if (grid === null || grid === undefined) return 1;
+    const c = grid.costAt(
+      Math.floor(wx / grid.cellWidth),
+      Math.floor(wy / grid.cellHeight),
+    );
     return c >= 1 ? c : 1;
   },
 
   /** Crossing a cost-c cell takes c× longer, so a mover multiplies its speed by 1/c. */
-  speedScale(wx, wy) {
-    const c = PathFollow.costAt(wx, wy);
+  speedScale(grid, wx, wy) {
+    const c = PathFollow.costAt(grid, wx, wy);
     return 1 / (c < PathFollow.maxCost ? c : PathFollow.maxCost);
   },
 
