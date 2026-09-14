@@ -304,7 +304,8 @@ class _SceneColonyClass {
     this.window.add("workbench", CraftingUI.build(this)); // also hosts the weapon-mod panel (Toolkit module)
     this.window.add("travel", WorldMapUI.build(this)); // the travel beacon's site picker
     this.window.add("trade", TradeUI.build(this)); // a merchant NPC's shop
-    Interactable.build(this); // the pick's prompt (its update range-closes the station pages)
+    // the pick's prompt + this frame's pick (its update range-closes the station pages)
+    this.interact = Interactable.build(this);
     BuildMode.build(this); // grid build mode (HUD + per-scene state)
   }
 
@@ -515,7 +516,7 @@ class _SceneColonyClass {
     SkeletonSystem.update(this.level.entities); // mint the puppets new skeletal bodies lack; retime them on a clock change
     AppearanceSystem.update(this.level.entities); // dress the puppets SkeletonSystem just minted
     InstanceSystem.update(); // reap the puppets of entities that died this frame
-    Interactable.update(this); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
+    Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
@@ -692,7 +693,7 @@ class _SceneColonyClass {
    */
   _updateNpc() {
     this.nearNpc = false;
-    const id = this._interTarget;
+    const id = this.interact.target;
     const npc = id !== -1 ? this.level.entities.get(id, NPC) : undefined;
     if (npc === undefined) return;
     this.nearNpc = true;
@@ -747,7 +748,7 @@ class _SceneColonyClass {
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
     if (this.window.target !== -1) this.window.close();
-    else Interactable.activate(this);
+    else Interactable.activate(this, this.interact);
   }
 
   /**
@@ -784,7 +785,7 @@ class _SceneColonyClass {
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
         lift: camera.pitch !== 0 ? 32 : 0,
       });
-    Interactable.drawTarget(this); // highlight the pick (world space)
+    Interactable.drawTarget(this, this.interact); // highlight the pick (world space)
     BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
     // attached streams then bursts (world space, additive — bright over the day/night tint)
     ParticleEmitterSystem.draw(

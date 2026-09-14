@@ -3,7 +3,7 @@
 /**
  * THE ONE-PICK INVARIANT: everything E can act on — a station, a ripe plant, a quest NPC, a
  * merchant, a companion hired or not — carries `Interaction`, so there is exactly one candidate set
- * and one pick per frame (scene._interTarget), and the highlight, the prompt (the pill, or an
+ * and one pick per frame (the handle's `target`), and the highlight, the prompt (the pill, or an
  * NPC's dialogue panel) and the E activation all derive from it. Never add a second picker over
  * another channel (an NPC query beside this one, say): the moment a press arbitrates between two
  * picks, what is highlighted and what E does can disagree.
@@ -11,9 +11,12 @@
  * The action itself is data (InteractAction registry, colony set in contentInteractions), so this engine is
  * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
  * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
- * cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch, see Camera). Per-frame/open
- * state on the scene (_inter*). Build once in create() after player + ui; update() each step,
- * drawTarget() in draw() (world).
+ * cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch, see Camera).
+ *
+ * build() returns the PICK HANDLE holding this engine's whole per-frame state (`el` the pill,
+ * `target`/`kind` the frame's pick, `text` its resolved pill text) — the scene keeps that one
+ * field and hands it back to every member, the shape a `*UI` page already takes (see Window).
+ * Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
  *
  * THE STATION PAGES: a window action's run() opens its page through the scene's Window with the
  * target entity (`scene.window.open("storage", { target: ctx.id })`); update() range-closes the
@@ -24,9 +27,12 @@ globalThis.Interactable = {
   RADIUS: 72, // interact range (px); 32px-cell scale
 
   build(scene) {
-    scene._interTarget = -1;
-    scene._interKind = "";
-    scene._interPromptText = ""; // the pick's resolved pill text this frame ("" = no pill)
+    const pick = {
+      el: null, // the proximity pill
+      target: -1,
+      kind: "",
+      text: "", // the pick's resolved pill text this frame ("" = no pill)
+    };
 
     // proximity prompt — shown only while a station is in range and no window is open;
     // label re-resolves each draw to track the target's kind
@@ -53,40 +59,41 @@ globalThis.Interactable = {
       }),
     );
     pill.insertChild(
-      facetLabel(() => scene._interPromptText, {
+      facetLabel(() => pick.text, {
         halign: fa_center,
         color: FacetTheme.text,
       }),
     );
     prompt.insertChild(pill);
     prompt.enabled = false;
-    scene._interPrompt = prompt;
+    pick.el = prompt;
     scene.ui.insertChild(prompt);
+    return pick;
   },
 
   /**
    * the pill's text for the pick: the def's prompt — an I18n key, or a function of the run()
    * ctx returning one, resolved now — "" for none (no pick, or a def that prompts through its
-   * own UI). update() resolves it once per frame into scene._interPromptText.
+   * own UI). update() resolves it once per frame into the handle's `text`.
    */
-  _promptText(scene) {
-    const def = InteractAction.get(scene._interKind);
+  _promptText(scene, pick) {
+    const def = InteractAction.get(pick.kind);
     if (def === undefined) return "";
     const key =
       typeof def.prompt === "function"
-        ? def.prompt(Interactable._ctx(scene))
+        ? def.prompt(Interactable._ctx(scene, pick))
         : def.prompt;
     return key === "" ? "" : I18n.text(key);
   },
 
   /** the ctx a def's prompt()/run() receives, over the frame's pick */
-  _ctx(scene) {
+  _ctx(scene, pick) {
     const entities = scene.level.entities;
     return {
       scene,
       entities,
-      id: scene._interTarget,
-      comp: entities.get(scene._interTarget, Interaction),
+      id: pick.target,
+      comp: entities.get(pick.target, Interaction),
       playerId: scene.playerId,
     };
   },
@@ -96,8 +103,8 @@ globalThis.Interactable = {
    * read here — the scene reads it after this and closes the page or calls activate(), so the
    * press always lands on the pick this frame made.
    */
-  update(scene) {
-    Interactable._pick(scene);
+  update(scene, pick) {
+    Interactable._choose(scene, pick);
 
     // the open page's target left range (or is gone) → close
     const target = scene.window.target;
@@ -108,17 +115,17 @@ globalThis.Interactable = {
     // hidden under build mode too: E is not bound in the build context, and the build HUD
     // stands where the prompt does. A def without a prompt draws no pill — its target prompts
     // through its own UI (an NPC's dialogue panel).
-    scene._interPromptText = Interactable._promptText(scene);
-    scene._interPrompt.enabled =
-      scene._interPromptText !== "" &&
+    pick.text = Interactable._promptText(scene, pick);
+    pick.el.enabled =
+      pick.text !== "" &&
       !scene.window.isOpen() &&
       !BuildMode.active;
   },
 
   // ── Scene hook (the scene's E dispatch: a station page open → close it, else activate)
   /** run the pick's action — THE E press; a no-op with nothing picked */
-  activate(scene) {
-    Interactable._open(scene);
+  activate(scene, pick) {
+    Interactable._open(scene, pick);
   },
 
   /**
@@ -127,12 +134,12 @@ globalThis.Interactable = {
    * -1, never shadows the station you stopped at). NPCs are candidates like any station (their
    * Interaction is ColonySpawn's).
    */
-  _pick(scene) {
+  _choose(scene, pick) {
     const entities = scene.level.entities;
     const p = entities.get(scene.playerId, Position);
     if (p === undefined) {
-      scene._interTarget = -1;
-      scene._interKind = "";
+      pick.target = -1;
+      pick.kind = "";
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
@@ -170,12 +177,12 @@ globalThis.Interactable = {
     });
 
     const target = mousePick !== -1 ? mousePick : nearest;
-    scene._interTarget = target;
+    pick.target = target;
     if (target !== -1) {
       const comp = entities.get(target, Interaction);
-      scene._interKind = comp !== undefined ? comp.kind : "";
+      pick.kind = comp !== undefined ? comp.kind : "";
     } else {
-      scene._interKind = "";
+      pick.kind = "";
     }
   },
 
@@ -195,8 +202,8 @@ globalThis.Interactable = {
    * generic — instant vs window is the def's concern, not the engine's). New interactions are a
    * data entry in InteractAction, not here.
    */
-  _open(scene) {
-    const ctx = Interactable._ctx(scene);
+  _open(scene, pick) {
+    const ctx = Interactable._ctx(scene, pick);
     if (ctx.comp === undefined) return;
     const def = InteractAction.get(ctx.comp.kind);
     if (def === undefined) return;
@@ -209,8 +216,8 @@ globalThis.Interactable = {
    * (so the box lands on the body, not at its feet), and around the footprint for a flat prop
    * that has no silhouette.
    */
-  drawTarget(scene) {
-    const id = scene._interTarget;
+  drawTarget(scene, pick) {
+    const id = pick.target;
     if (id === -1) return;
     const entities = scene.level.entities;
     const pos = entities.get(id, Position);
