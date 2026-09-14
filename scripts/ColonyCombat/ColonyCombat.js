@@ -23,7 +23,7 @@ globalThis.ColonyCombat = {
     // Faction JOINS the query: hostile() is false without one on both sides, so the same set
     // for one fewer scan of the factionless majority (docs/ARCHITECTURE.md → Hot-path idioms).
     entities.forEach([Health, Faction], (id) => {
-      if (FactionSystem.hostile(entities, playerId, id)) out.push(id);
+      if (Diplomacy.hostile(entities, playerId, id)) out.push(id);
     });
     return out;
   },
@@ -321,7 +321,7 @@ globalThis.ColonyCombat = {
         };
         if (d.ammo !== undefined) slot.ammo = d.ammo;
         if (d.rounds !== undefined) slot.rounds = d.rounds;
-        const ok = InventorySystem.addSlot(inv, slot) === 0;
+        const ok = Bag.addSlot(inv, slot) === 0;
         if (ok) {
           scene.window.dirty = true;
           if (onCollect !== undefined) onCollect(d.itemId, 1);
@@ -329,7 +329,7 @@ globalThis.ColonyCombat = {
         }
         return; // bag full → leave the instance on the ground
       }
-      const left = InventorySystem.add(inv, d.itemId, d.qty);
+      const left = Bag.add(inv, d.itemId, d.qty);
       const got = d.qty - left;
       if (got > 0) {
         scene.window.dirty = true; // bag changed — refresh the open page

@@ -1,7 +1,7 @@
 /**
  * Binds every Skeleton to its puppet: mints one on demand (InstanceSystem owns the lifetime),
  * sets the sheet and animation, and mirrors a component field onto the puppet when it changes —
- * the AnimationSystem of the SKELETAL category, minus the clock. Playback is the runtime's: a
+ * the Animation of the SKELETAL category, minus the clock. Playback is the runtime's: a
  * skeletal sprite runs on the puppet's `image_index` under `image_speed` and is posed off it
  * when the puppet draws (docs/SPINE.md), so nothing here runs per entity per frame.
  *

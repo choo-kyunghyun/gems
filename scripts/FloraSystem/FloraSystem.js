@@ -302,9 +302,9 @@ globalThis.FloraSystem = {
     const inv = entities.get(scene.playerId, Inventory);
     if (inv === undefined) return false;
     const qty = def.yield.qty;
-    const left = InventorySystem.add(inv, def.yield.itemId, qty);
+    const left = Bag.add(inv, def.yield.itemId, qty);
     if (left > 0) {
-      if (left < qty) InventorySystem.remove(inv, def.yield.itemId, qty - left);
+      if (left < qty) Bag.remove(inv, def.yield.itemId, qty - left);
       Toast.push(I18n.text("INV_FULL"), { type: "info" });
       return false;
     }

@@ -129,7 +129,7 @@ globalThis.WeaponModUI = {
     const wpn = it !== undefined ? it.getComponent(Weapon) : undefined;
     const gun = it !== undefined ? it.getComponent(Gun) : undefined;
     if (wpn === undefined) return;
-    const prof = EquipmentSystem.composeWeapon(slot);
+    const prof = Loadout.composeWeapon(slot);
 
     host.insertChild(
       facetRichText(
@@ -249,7 +249,7 @@ globalThis.WeaponModUI = {
       facetButton(
         I18n.textRef("MOD_RELOAD"),
         () => {
-          EquipmentSystem.reloadSlot(inv, slot);
+          Loadout.reloadSlot(inv, slot);
           scene.window.dirty = true;
         },
         {
@@ -258,7 +258,7 @@ globalThis.WeaponModUI = {
           disabled: () =>
             prof.noAmmo ||
             slot.rounds >= prof.magazine ||
-            !InventorySystem.has(inv, slot.ammo, 1),
+            !Bag.has(inv, slot.ammo, 1),
         },
       ),
     );
@@ -280,7 +280,7 @@ globalThis.WeaponModUI = {
   _ammoRow(scene, inv, slot, ammoId) {
     const it = Item.get(ammoId);
     const nm = it !== undefined ? I18n.text(it.name) : ammoId;
-    const count = InventorySystem.count(inv, ammoId);
+    const count = Bag.count(inv, ammoId);
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
@@ -293,7 +293,7 @@ globalThis.WeaponModUI = {
       facetButton(
         I18n.textRef("MOD_LOAD"),
         () => {
-          EquipmentSystem.loadAmmoSlot(inv, slot, ammoId);
+          Loadout.loadAmmoSlot(inv, slot, ammoId);
           scene.window.dirty = true;
         },
         {
@@ -305,7 +305,7 @@ globalThis.WeaponModUI = {
            * can't load a type you no longer own (but a top-up of the current type is always allowed)
            */
           disabled: () =>
-            slot.ammo !== ammoId && !InventorySystem.has(inv, ammoId, 1),
+            slot.ammo !== ammoId && !Bag.has(inv, ammoId, 1),
         },
       ),
     );
@@ -353,7 +353,7 @@ globalThis.WeaponModUI = {
   _availableRow(scene, inv, slot, wpn, modId) {
     const it = Item.get(modId);
     const nm = it !== undefined ? I18n.text(it.name) : modId;
-    const count = InventorySystem.count(inv, modId);
+    const count = Bag.count(inv, modId);
     const row = WeaponModUI._row(28);
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(
@@ -373,7 +373,7 @@ globalThis.WeaponModUI = {
           /** live: no matching empty slot left, or the player no longer owns one to install */
           disabled: () =>
             WeaponModUI._targetSlot(wpn, slot, modId) === undefined ||
-            !InventorySystem.has(inv, modId, 1),
+            !Bag.has(inv, modId, 1),
         },
       ),
     );
@@ -402,7 +402,7 @@ globalThis.WeaponModUI = {
     const slotId = WeaponModUI._targetSlot(wpn, slot, modId);
     if (slotId === undefined) return; // no matching empty slot
     const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (InventorySystem.remove(inv, modId, 1) < 1) return; // not owned
+    if (Bag.remove(inv, modId, 1) < 1) return; // not owned
     slot.mods[slotId] = modId;
     StatModel.recompute(scene.level.entities, scene.playerId); // an attachment may grant Stats
     scene.window.dirty = true;
@@ -417,7 +417,7 @@ globalThis.WeaponModUI = {
     if (modId === undefined) return;
     delete slot.mods[slotId];
     const inv = scene.level.entities.get(scene.playerId, Inventory);
-    InventorySystem.add(inv, modId, 1); // refund
+    Bag.add(inv, modId, 1); // refund
     StatModel.recompute(scene.level.entities, scene.playerId);
     scene.window.dirty = true;
     Log.info(`removed ${modId} from ${slotId} on ${slot.itemId}`);

@@ -23,13 +23,13 @@ globalThis.content = {
     // just one register + setRelation here. "colony" is the settler faction that owns the hub
     // settlement — allied with the player, whose commander builds there (BuildMode gates on the ally
     // relation); a raider camp's owner stays hostile, so its level is not player-buildable.
-    FactionSystem.register([
+    Diplomacy.register([
       { id: "player", name: "Player", color: "#5aa0ff" },
       { id: "monster", name: "Hostiles", color: "#e65a5a" },
       { id: "colony", name: "Colony", color: "#5a86d0" },
     ]);
-    FactionSystem.setRelation("player", "monster", "hostile");
-    FactionSystem.setRelation("player", "colony", "ally");
+    Diplomacy.setRelation("player", "monster", "hostile");
+    Diplomacy.setRelation("player", "colony", "ally");
 
     // Settlement capability defs (the faction-style component layer): a settlement carries a
     // SettlementComponent id array; a system acting on "settlements that have X" layers on later.

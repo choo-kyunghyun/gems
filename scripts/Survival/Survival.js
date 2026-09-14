@@ -15,7 +15,7 @@ globalThis.Survival = {
 
   /**
    * Lower a need by `amount` (drink/eat/sleep), clamped at 0. Returns true if it changed, so a no-op
-   * consumable can be refused (see ConsumableSystem). The SYSTEM wrappers refresh() after a true result.
+   * consumable can be refused (see Consumption). The SYSTEM wrappers refresh() after a true result.
    */
   restore(comp, amount) {
     if (comp === undefined || comp.value <= 0) return false;

@@ -1,5 +1,5 @@
 // Resident MEMBERSHIP — an entity belonging to a Settlement (NPCs, merchants, stockpile chest). Flat
-// `{ settlementId }` matched by the settlement's level id, resolved live (SettlementSystem.residents);
+// `{ settlementId }` matched by the settlement's level id, resolved live (Residency.residents);
 // assigned EXPLICITLY.
 /**
  * @typedef {Object} Resident

@@ -39,7 +39,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
 
   /** one foot ellipse at the entity's render-lerped position, sized from its BBox */
   _ellipse(entities, entity) {
-    const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+    const rp = Interpolation.lerp(entities, entity, this._rp);
     let rx = this.defaultRx;
     const box = entities.get(entity, BBox);
     if (box !== undefined) rx = box.width * this.scaleX;

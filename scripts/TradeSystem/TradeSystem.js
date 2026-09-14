@@ -44,7 +44,7 @@ globalThis.TradeSystem = {
 
     let want = instanced ? 1 : Math.max(1, qty);
     if (!m.infinite && !instanced) want = Math.min(want, slot.qty); // finite stock cap
-    const coins = InventorySystem.count(bInv, m.currencyId);
+    const coins = Bag.count(bInv, m.currencyId);
     const affordable = price > 0 ? Math.floor(coins / price) : want;
     want = Math.min(want, affordable);
     if (want <= 0) return { amount: 0, reason: "TRADE_NO_FUNDS" };
@@ -53,17 +53,17 @@ globalThis.TradeSystem = {
     if (instanced) {
       if (m.infinite) {
         // bottomless catalog: mint a fresh copy (new uid, no mods).
-        if (InventorySystem.add(bInv, itemId, 1) !== 0)
+        if (Bag.add(bInv, itemId, 1) !== 0)
           return { amount: 0, reason: "TRADE_NO_ROOM" };
       } else {
         // move the stock slot by reference so its uid + mods survive.
-        if (InventorySystem.addSlot(bInv, slot) !== 0)
+        if (Bag.addSlot(bInv, slot) !== 0)
           return { amount: 0, reason: "TRADE_NO_ROOM" };
         mInv.slots.splice(idx, 1);
       }
       bought = 1;
     } else {
-      const leftover = InventorySystem.add(bInv, itemId, want);
+      const leftover = Bag.add(bInv, itemId, want);
       bought = want - leftover;
       if (bought <= 0) return { amount: 0, reason: "TRADE_NO_ROOM" };
       if (!m.infinite) {
@@ -72,7 +72,7 @@ globalThis.TradeSystem = {
       }
     }
 
-    InventorySystem.remove(bInv, m.currencyId, bought * price); // pay
+    Bag.remove(bInv, m.currencyId, bought * price); // pay
     if (!m.infinite) m.credits += bought * price; // merchant's till
     return { amount: bought, reason: "" };
   },
@@ -105,14 +105,14 @@ globalThis.TradeSystem = {
 
     let sold = 0;
     if (instanced) {
-      if (!m.infinite && InventorySystem.addSlot(mInv, slot) !== 0)
+      if (!m.infinite && Bag.addSlot(mInv, slot) !== 0)
         // buyback into stock
         return { amount: 0, reason: "TRADE_MERCHANT_FULL" };
       sInv.slots.splice(idx, 1); // the instance left the bag (moved by ref / discarded)
       sold = 1;
     } else {
       if (!m.infinite) {
-        const leftover = InventorySystem.add(mInv, itemId, want);
+        const leftover = Bag.add(mInv, itemId, want);
         sold = want - leftover;
         if (sold <= 0) return { amount: 0, reason: "TRADE_MERCHANT_FULL" };
       } else {
@@ -125,15 +125,15 @@ globalThis.TradeSystem = {
     // pay the seller — all-or-nothing: an unfit payout reverts the whole sale instead of
     // silently discarding the coins (a slot-starved bag must never lose value to a sale).
     const payout = sold * price;
-    const unpaid = InventorySystem.add(sInv, m.currencyId, payout);
+    const unpaid = Bag.add(sInv, m.currencyId, payout);
     if (unpaid > 0) {
-      InventorySystem.remove(sInv, m.currencyId, payout - unpaid); // take back the partial payment
+      Bag.remove(sInv, m.currencyId, payout - unpaid); // take back the partial payment
       if (instanced) {
         sInv.slots.splice(idx, 0, slot); // the instance returns to its bag position
         if (!m.infinite) mInv.slots.pop(); // undo the buyback (addSlot pushes to the end)
       } else {
-        if (!m.infinite) InventorySystem.remove(mInv, itemId, sold);
-        InventorySystem.add(sInv, itemId, sold); // always fits — the bag held these units at entry
+        if (!m.infinite) Bag.remove(mInv, itemId, sold);
+        Bag.add(sInv, itemId, sold); // always fits — the bag held these units at entry
       }
       return { amount: 0, reason: "TRADE_NO_ROOM" };
     }
@@ -156,8 +156,8 @@ globalThis.TradeSystem = {
       m.restockTimer = m.restockSecs;
       for (let k = 0; k < m.template.length; k++) {
         const t = m.template[k];
-        const have = InventorySystem.count(inv, t.itemId);
-        if (have < t.qty) InventorySystem.add(inv, t.itemId, t.qty - have);
+        const have = Bag.count(inv, t.itemId);
+        if (have < t.qty) Bag.add(inv, t.itemId, t.qty - have);
       }
     });
   },

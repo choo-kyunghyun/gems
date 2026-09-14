@@ -37,7 +37,7 @@ globalThis.Combat = {
     for (let i = 0; i < all.length; i++) {
       const h = all[i];
       const hp = entities.get(h.id, Health);
-      if (hp === undefined || FactionSystem.allied(entities, owner, h.id)) {
+      if (hp === undefined || Diplomacy.allied(entities, owner, h.id)) {
         // wall/prop or ally blocks — stop here, no damage
         endX = h.x;
         endY = h.y;
@@ -71,7 +71,7 @@ globalThis.Combat = {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === owner) continue;
-      if (FactionSystem.allied(entities, owner, id)) continue;
+      if (Diplomacy.allied(entities, owner, id)) continue;
       const pos = entities.get(id, Position);
       if (Combat._shadowed(level, x, y, pos.x, pos.y, owner)) continue;
       const d = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);

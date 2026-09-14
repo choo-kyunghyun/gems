@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Endurance",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Endurance",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Endurance.js",
+}

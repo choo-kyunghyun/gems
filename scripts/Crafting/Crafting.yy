@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Crafting",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Crafting",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Crafting.js",
+}

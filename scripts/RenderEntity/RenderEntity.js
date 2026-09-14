@@ -9,7 +9,7 @@ globalThis.RenderEntity = class RenderEntity {
 
   draw(entities) {
     entities.forEach([Visual, Position], (entity, visual) => {
-      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      const rp = Interpolation.lerp(entities, entity, this._rp);
       const rx = rp.x;
       const ry = rp.y;
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws
@@ -48,7 +48,7 @@ globalThis.RenderEntity = class RenderEntity {
       }
       draw_sprite_ext(
         visual.sprite,
-        AnimationSystem.advance(visual, visual.sprite),
+        Animation.advance(visual, visual.sprite),
         rx,
         ry,
         visual.xscale,

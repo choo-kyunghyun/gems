@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Bag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Bag",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Bag.js",
+}

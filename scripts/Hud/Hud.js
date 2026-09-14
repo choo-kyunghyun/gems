@@ -102,7 +102,7 @@ globalThis.Hud = {
           const it = Item.get(itemId);
           const name = it !== undefined ? I18n.text(it.name) : itemId;
           const inv = scene.level.entities.get(scene.playerId, Inventory);
-          const n = inv !== undefined ? InventorySystem.count(inv, itemId) : 0;
+          const n = inv !== undefined ? Bag.count(inv, itemId) : 0;
           return "[" + key + "]  " + name + " (" + n + ")";
         },
         { color: FacetTheme.text, font: "description" },
@@ -189,7 +189,7 @@ globalThis.Hud = {
       facetLabel(
         () => {
           if (scene.playerId === undefined) return "";
-          const prof = EquipmentSystem.weaponProfile(
+          const prof = Loadout.weaponProfile(
             scene.level.entities,
             scene.playerId,
           );

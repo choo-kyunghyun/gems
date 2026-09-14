@@ -29,7 +29,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
         const id = ids[i];
         const radius = entities.get(id, spec.component)[spec.field];
         if (!(radius > 0)) continue; // skip 0/NaN radii
-        const rp = InterpolationSystem.lerp(entities, id, this._rp);
+        const rp = Interpolation.lerp(entities, id, this._rp);
         const x = rp.x;
         const y = rp.y;
         draw_set_alpha(a);

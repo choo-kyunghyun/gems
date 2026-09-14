@@ -9,8 +9,8 @@
  *
  * Free functions over the level (composition; GMRT has no usable class inheritance) holding NO
  * policy about which faction is "the player" — the consumer decides (BuildMode gates on
- * FactionSystem.isAlly). The RECORD lives here; a settlement's INHABITANTS live in the level's
- * store as entities carrying Resident{ settlementId: <level id> } — resolved by SettlementSystem.
+ * Diplomacy.isAlly). The RECORD lives here; a settlement's INHABITANTS live in the level's
+ * store as entities carrying Resident{ settlementId: <level id> } — resolved by Residency.
  * The seed for the planned Farming + "Defend the settlement" raids.
  */
 globalThis.Settlement = {

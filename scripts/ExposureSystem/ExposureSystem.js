@@ -22,7 +22,7 @@ globalThis.ExposureSystem = {
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
       if (uid === "") continue;
-      const s = InventorySystem.findByUid(inv, uid);
+      const s = Bag.findByUid(inv, uid);
       if (s === undefined) continue;
       const item = Item.get(s.itemId);
       if (item === undefined) continue;

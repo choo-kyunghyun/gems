@@ -1,5 +1,5 @@
 /**
- * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); EquipmentSystem
+ * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); Loadout
  * folds it into every weapon the company makes, so brand identity is mechanical, not just cosmetic.
  */
 globalThis.Manufacturer = class Manufacturer {

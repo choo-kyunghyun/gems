@@ -78,7 +78,7 @@ globalThis.CombatAI = {
             brain.aggroCd--;
           } else {
             brain.aggroCd = brain.aggroRate;
-            const t = FactionSystem.nearestHostile(
+            const t = Diplomacy.nearestHostile(
               entities,
               id,
               pos.x,

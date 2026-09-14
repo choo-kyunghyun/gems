@@ -1,6 +1,6 @@
 /**
  * Gated to an ALLIED Settlement — the level's (a settlement is a whole map), owned by the player's
- * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
+ * faction or an ally of it (Diplomacy.isAlly). An unsettled level is founded by pressing E at a
  * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
  * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) is
  * contentBuild's catalog: an item is a TILE (TileLayer via TileEdit) or an ENTITY (its `spawn`
@@ -153,7 +153,7 @@ globalThis.BuildMode = {
   _statusText(scene, panel) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const wood =
-      inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
+      inv !== undefined ? Bag.count(inv, BuildMode.RESOURCE) : 0;
     const it = panel.item;
     const text = I18n.text(
       "BUILD_STATUS",
@@ -327,12 +327,12 @@ globalThis.BuildMode = {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
       if (
         inv === undefined ||
-        !InventorySystem.has(inv, BuildMode.RESOURCE, cost)
+        !Bag.has(inv, BuildMode.RESOURCE, cost)
       ) {
         Toast.push(I18n.text("BUILD_NO_WOOD", cost), { type: "warn" });
         return;
       }
-      InventorySystem.remove(inv, BuildMode.RESOURCE, cost);
+      Bag.remove(inv, BuildMode.RESOURCE, cost);
     }
     const remesh = {};
     for (let i = 0; i < todo.length; i++) {
@@ -399,7 +399,7 @@ globalThis.BuildMode = {
   _allied(scene) {
     const owner = Settlement.owner(scene.level);
     return (
-      owner !== undefined && FactionSystem.isAlly(owner, BuildMode.FACTION)
+      owner !== undefined && Diplomacy.isAlly(owner, BuildMode.FACTION)
     );
   },
 
@@ -450,7 +450,7 @@ globalThis.BuildMode = {
     if (BuildMode.free) return true;
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (inv === undefined) return false;
-    return InventorySystem.has(inv, BuildMode.RESOURCE, panel.item.cost);
+    return Bag.has(inv, BuildMode.RESOURCE, panel.item.cost);
   },
 
   _tryPlace(scene, panel, gx, gy) {
@@ -458,7 +458,7 @@ globalThis.BuildMode = {
     const item = panel.item;
     if (!BuildMode.free) {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
-      InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
+      Bag.remove(inv, BuildMode.RESOURCE, item.cost);
     }
     BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
     scene.window.dirty = true;
@@ -564,7 +564,7 @@ globalThis.BuildMode = {
         const st = scene.level.entities.get(ent.ent, Interaction);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
           const inv = scene.level.entities.get(scene.playerId, Inventory);
-          if (inv !== undefined) InventorySystem.add(inv, st.module, 1);
+          if (inv !== undefined) Bag.add(inv, st.module, 1);
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
@@ -614,7 +614,7 @@ globalThis.BuildMode = {
     const item = contentBuild.item(itemId);
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (item !== undefined && inv !== undefined)
-      InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
+      Bag.add(inv, BuildMode.RESOURCE, item.cost);
   },
 
   /**

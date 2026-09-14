@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Consumption",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Consumption",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Consumption.js",
+}

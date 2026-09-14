@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Animation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Animation",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Animation.js",
+}

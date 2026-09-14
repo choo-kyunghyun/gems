@@ -163,7 +163,7 @@ globalThis.testStress = {
         ctx.nav.sync(); // a no-op here, kept so the loop has a real scene's shape
         const ticks = SimClock.advance();
         for (let k = 0; k < ticks; k++) {
-          InterpolationSystem.snapshot(s);
+          Interpolation.snapshot(s);
           let t1 = get_timer();
           // the walkers: arrive → new goal; else steer at PathFollow's movement point
           s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {

@@ -170,9 +170,9 @@ globalThis.PlayerSystem = {
       StatusSystem.scale(entities, id, "speed") *
       PathFollow.speedScale(level.grid, pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
-    // sprint (Shift while moving, drains Stamina); StaminaSystem returns whether the boost applies.
+    // sprint (Shift while moving, drains Stamina); Endurance returns whether the boost applies.
     // BUG: [#15549] do NOT cache `len > 0` in a `moving` boolean local — recompute live.
-    const sprinting = StaminaSystem.sprint(
+    const sprinting = Endurance.sprint(
       entities,
       id,
       len > 0 && Input.get("sprint").down(),
@@ -207,15 +207,15 @@ globalThis.PlayerSystem = {
     if (pl.attackCd > 0) pl.attackCd--;
 
     // manual reload (R), "play"-only; no-op on a melee weapon
-    if (Input.get("reload").pressed()) EquipmentSystem.reload(entities, id);
+    if (Input.get("reload").pressed()) Loadout.reload(entities, id);
 
     // fire is "play"-only, so it already returns false while building / window open — no guard needed
     if (Input.get("fire").down() && pl.fireCd === 0) {
       // item-driven attack: the equipped weapon's composed profile (or the fist fallback) drives it.
       // Read the live slot (a gun mutates `rounds`) then compose; `wpn.kind` picks melee/gun.
-      const slot = EquipmentSystem.weaponSlot(entities, id);
+      const slot = Loadout.weaponSlot(entities, id);
       const wpn =
-        slot !== null ? EquipmentSystem.composeWeapon(slot) : PLAYER_FIST;
+        slot !== null ? Loadout.composeWeapon(slot) : PLAYER_FIST;
       // aim: right stick already set `dir` above; for KBM (stick centered) aim at the cursor instead
       const pos = entities.get(id, Position);
       const rx = Input.get("aimX").value();
@@ -243,7 +243,7 @@ globalThis.PlayerSystem = {
         const reach = wpn.reach !== undefined ? wpn.reach : MELEE_REACH;
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
-        MeleeSystem.swing(entities, id, dir.x, dir.y, reach, damage);
+        Melee.swing(entities, id, dir.x, dir.y, reach, damage);
         pl.fireCd =
           wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : FIRE_CD;
         // the unarmed fist fallback alternates punch/kick; an armed swing stays the punch
@@ -287,13 +287,13 @@ globalThis.PlayerSystem = {
     if (wpn.noAmmo) {
       // no ammo TYPE loaded: reload auto-picks the first compatible round from the bag
       // (reloadSlot); dry-click if none owned. Recompose so this shot uses the round's stats.
-      if (EquipmentSystem.reload(entities, id) <= 0)
+      if (Loadout.reload(entities, id) <= 0)
         return PlayerSystem._dryClick();
-      wpn = EquipmentSystem.composeWeapon(slot);
+      wpn = Loadout.composeWeapon(slot);
     }
     if (slot.rounds <= 0) {
       // empty clip: auto-reload from reserves; if none, dry-click (no shot, no cooldown)
-      if (EquipmentSystem.reload(entities, id) <= 0)
+      if (Loadout.reload(entities, id) <= 0)
         return PlayerSystem._dryClick();
     }
     if (slot.rounds <= 0) return PlayerSystem._dryClick(); // still empty after the reload attempt

@@ -1,7 +1,7 @@
 /**
  * A content registry is a def table keyed by string id plus the ids in registration order, and
  * the members over them (`register`/`get`/`has`/`rank`/`all`). Every registry in the project is
- * one — `Item`/`Rarity`/`Manufacturer`/`Recipe` (class statics), `Status`/`FactionSystem`/
+ * one — `Item`/`Rarity`/`Manufacturer`/`Recipe` (class statics), `Status`/`Diplomacy`/
  * `QuestLog`/`SettlementComponent`/`InteractAction`/`Achievement` (singletons) — so their member
  * sets and their storage can't drift apart.
  *

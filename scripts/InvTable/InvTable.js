@@ -162,7 +162,7 @@ globalThis.InvTable = {
       rows.push({
         ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
         idx: i,
-        fav: fav !== undefined && FavoritesSystem.has(fav, s.itemId),
+        fav: fav !== undefined && Star.has(fav, s.itemId),
       });
     }
     return rows;

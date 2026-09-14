@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Melee",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Melee",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Melee.js",
+}

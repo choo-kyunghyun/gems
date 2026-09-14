@@ -37,7 +37,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         verts = 0;
       }
       const e = AABB.edges(
-        InterpolationSystem.lerp(entities, id, this._rp),
+        Interpolation.lerp(entities, id, this._rp),
         bbox,
       );
       draw_vertex(e.x1, e.y1);

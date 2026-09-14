@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Loadout",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Loadout",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Loadout.js",
+}

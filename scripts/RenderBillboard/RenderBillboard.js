@@ -126,7 +126,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
     entities.forEach([Visual, Position], (entity, visual) => {
-      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      const rp = Interpolation.lerp(entities, entity, this._rp);
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws as
       // the pixMissing placeholder; re-wrap subimg into the placeholder's frame range.
       let sprite = visual.sprite;
@@ -135,7 +135,7 @@ globalThis.RenderBillboard = class RenderBillboard {
         sprite = pixMissing;
         subimg = subimg % sprite_get_number(sprite);
       }
-      if (visual.speed !== 0) subimg = AnimationSystem.advance(visual, sprite);
+      if (visual.speed !== 0) subimg = Animation.advance(visual, sprite);
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
@@ -166,7 +166,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     // the silhouette. Depth first would keep the lower of the two coplanar depths, and the
     // colour pass would lose the same lottery against it.
     entities.forEach([Skeleton, Instance, Position], (entity, sk, held) => {
-      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      const rp = Interpolation.lerp(entities, entity, this._rp);
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),

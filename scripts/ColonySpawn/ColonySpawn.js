@@ -480,7 +480,7 @@ globalThis.ColonySpawn = {
     // Settlement membership (any preset): `settlement: <map id>` makes the entity a Resident of that
     // level's settlement through the inhabitant seam. Explicit — no auto-by-location.
     if (s.settlement !== undefined)
-      SettlementSystem.assign(entities, id, s.settlement);
+      Residency.assign(entities, id, s.settlement);
 
     // a plant's stage frame and (if ripe) Interaction, off the spawned components
     if (s.species !== undefined) FloraSystem.attach(entities, id);
@@ -495,14 +495,14 @@ globalThis.ColonySpawn = {
     }
 
     // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
-    // Inventory (its OWN goods); its `trade` Interaction opens TradeUI on E. Stock built via InventorySystem.add
+    // Inventory (its OWN goods); its `trade` Interaction opens TradeUI on E. Stock built via Bag.add
     // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
     if (s.preset === "npc" && s.merchant !== undefined) {
       const mc = s.merchant;
       const mInv = { slots: [], capacity: mc.capacity ?? 32 };
       const stock = mc.stock ?? [];
       for (let i = 0; i < stock.length; i++)
-        InventorySystem.add(mInv, stock[i].itemId, stock[i].qty);
+        Bag.add(mInv, stock[i].itemId, stock[i].qty);
       entities.add(id, Inventory, mInv);
       entities.add(id, Merchant, {
         currencyId: mc.currencyId ?? "coin",

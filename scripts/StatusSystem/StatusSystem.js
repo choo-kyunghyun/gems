@@ -7,7 +7,7 @@
  * live.
  */
 globalThis.StatusSystem = {
-  // Injected re-derive hook (mirrors Combat.mitigate / ConsumableSystem.grantAttr). Default no-op; read
+  // Injected re-derive hook (mirrors Combat.mitigate / Consumption.grantAttr). Default no-op; read
   // off the global so the game's override is always seen.
   onStatsChanged(entities, id) {},
 

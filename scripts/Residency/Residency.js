@@ -1,0 +1,41 @@
+// Residency — the entity↔settlement glue: resolves a settlement's residents (Resident with a
+// matching level id) by LIVE query, never a stored roster. Settlement owns the record; this owns the inhabitants.
+globalThis.Residency = {
+  residents(entities, sid) {
+    const out = [];
+    entities.forEach([Resident], (id, r) => {
+      if (r.settlementId === sid) out.push(id);
+    });
+    return out;
+  },
+
+  /** Counts only residents loaded in the store. */
+  count(entities, sid) {
+    return Residency.residents(entities, sid).length;
+  },
+
+  /**
+   * The settlement's stockpile: its first resident carrying a storage Interaction (a chest) — the
+   * deposit target for the future worker→resource loop. Reuses the chest's own Inventory; no
+   * dedicated marker. Returns the entity id, or -1 if the settlement has no stockpile.
+   */
+  storageOf(entities, sid) {
+    let found = -1;
+    entities.forEach([Resident, Interaction], (id, r, it) => {
+      if (found !== -1) return; // first match wins (forEach has no break)
+      if (r.settlementId !== sid) return;
+      if (it.kind === "storage") found = id;
+    });
+    return found;
+  },
+
+  /** Make `id` a resident of settlement `sid` (idempotent — overwrites any prior membership). */
+  assign(entities, id, sid) {
+    entities.add(id, Resident, { settlementId: sid });
+  },
+
+  /** Drop `id`'s settlement membership. */
+  unassign(entities, id) {
+    entities.detach(id, Resident);
+  },
+};

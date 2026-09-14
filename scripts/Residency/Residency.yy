@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Residency",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Residency",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Residency.js",
+}

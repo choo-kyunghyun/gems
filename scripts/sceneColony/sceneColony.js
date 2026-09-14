@@ -35,7 +35,7 @@ class _SceneColonyClass {
       return Math.max(1, amount - effDef);
     };
     // inject how a *_serum consumable raises an attribute; false → use() refuses (no waste)
-    ConsumableSystem.grantAttr = function (entities, id, attr, amount) {
+    Consumption.grantAttr = function (entities, id, attr, amount) {
       const a = entities.get(id, Attributes);
       if (a === undefined || a[attr] === undefined) return false;
       a[attr] += amount;
@@ -144,20 +144,20 @@ class _SceneColonyClass {
     if (!loaded) {
       // equipped so the attack is item-driven from frame one; travels with the carried inventory
       const startInv = this.level.entities.get(this.playerId, Inventory);
-      InventorySystem.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
-      EquipmentSystem.equipFirst(
+      Bag.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
+      Loadout.equipFirst(
         this.level.entities,
         this.playerId,
         "lead_pipe",
       ); // equip that instance by uid
       // the thin air's filter, worn from frame one (its seal slows Exposure under the open sky)
-      InventorySystem.add(startInv, "filter_mask", 1);
-      EquipmentSystem.equipFirst(
+      Bag.add(startInv, "filter_mask", 1);
+      Loadout.equipFirst(
         this.level.entities,
         this.playerId,
         "filter_mask",
       );
-      InventorySystem.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
+      Bag.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
       // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
@@ -402,7 +402,7 @@ class _SceneColonyClass {
 
     const ticks = SimClock.advance();
     for (let t = 0; t < ticks; t++) {
-      InterpolationSystem.snapshot(this.level.entities); // pre-move positions for render lerp
+      Interpolation.snapshot(this.level.entities); // pre-move positions for render lerp
       StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
       EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
       // survival needs rise; drowsiness DRAINS while sleeping (else rises)
@@ -513,7 +513,7 @@ class _SceneColonyClass {
     if (uid === undefined || uid === "") return false;
     const inv = this.level.entities.get(this.playerId, Inventory);
     const inst =
-      inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
+      inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
     return inst !== undefined && inst.itemId === itemId;
   }
 

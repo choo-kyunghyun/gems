@@ -60,7 +60,7 @@ globalThis.ProjectileSystem = {
       // damage a hit Health unless allied (ally blocks like a wall); death reaction is central
       if (
         hp !== undefined &&
-        !FactionSystem.allied(entities, proj.owner, hit.id)
+        !Diplomacy.allied(entities, proj.owner, hit.id)
       ) {
         Combat.applyDamage(
           entities,

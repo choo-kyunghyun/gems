@@ -96,7 +96,7 @@ globalThis.TradeUI = {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const m = scene.level.entities.get(scene.window.target, Merchant);
     const cur = m !== undefined ? m.currencyId : "coin";
-    return inv !== undefined ? InventorySystem.count(inv, cur) : 0;
+    return inv !== undefined ? Bag.count(inv, cur) : 0;
   },
 
   /**

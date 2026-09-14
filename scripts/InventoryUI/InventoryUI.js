@@ -130,7 +130,7 @@ globalThis.InventoryUI = {
               "   " +
               I18n.text("INV_WEIGHT") +
               " " +
-              InventorySystem.weight(v) +
+              Bag.weight(v) +
               "/" +
               v.maxWeight;
           return s;
@@ -164,7 +164,7 @@ globalThis.InventoryUI = {
       facetButton(
         I18n.textRef("COMMON_SORT"),
         () => {
-          InventorySystem.sort(
+          Bag.sort(
             scene.level.entities.get(scene.playerId, Inventory),
           );
           scene.window.dirty = true;
@@ -314,7 +314,7 @@ globalThis.InventoryUI = {
   _favLabel(scene, page) {
     if (page.sel === null) return I18n.text("INV_NOACTION");
     const fav = scene.level.entities.get(scene.playerId, Favorites);
-    return fav !== undefined && FavoritesSystem.has(fav, page.sel.itemId)
+    return fav !== undefined && Star.has(fav, page.sel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
   },
@@ -323,7 +323,7 @@ globalThis.InventoryUI = {
     if (page.sel === null) return;
     const fav = scene.level.entities.get(scene.playerId, Favorites);
     if (fav === undefined) return;
-    FavoritesSystem.toggle(fav, page.sel.itemId);
+    Star.toggle(fav, page.sel.itemId);
     scene.window.dirty = true;
   },
 
@@ -706,7 +706,7 @@ globalThis.InventoryUI = {
         if (slot.uid !== undefined && eq.slots[eqp.slot] === slot.uid)
           worn = true;
       }
-      const favd = fav !== undefined && FavoritesSystem.has(fav, slot.itemId);
+      const favd = fav !== undefined && Star.has(fav, slot.itemId);
       rows.push({
         ...InvTable.rowModel(slot.itemId, slot.qty, slot.uid, slot.mods),
         worn,
@@ -819,7 +819,7 @@ globalThis.InventoryUI = {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const inst =
       row.uid !== undefined
-        ? InventorySystem.findByUid(inv, row.uid)
+        ? Bag.findByUid(inv, row.uid)
         : undefined;
 
     // head: icon + name over rarity
@@ -880,7 +880,7 @@ globalThis.InventoryUI = {
     // weapon: this INSTANCE's composed profile (maker ops + installed attachments applied)
     const prof =
       inst !== undefined && it !== undefined && it.hasComponent(Weapon)
-        ? EquipmentSystem.composeWeapon(inst)
+        ? Loadout.composeWeapon(inst)
         : null;
     if (prof !== null) {
       if (prof.kind === "gun") {
@@ -1006,7 +1006,7 @@ globalThis.InventoryUI = {
     if (uid !== undefined && uid !== "") {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
       const inst =
-        inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
+        inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
       const itemId = inst !== undefined ? inst.itemId : "";
       const it = Item.get(itemId);
       const base = it !== undefined ? I18n.text(it.name) : itemId;
@@ -1018,7 +1018,7 @@ globalThis.InventoryUI = {
       return facetButton(
         I18n.text(labelKey) + ": " + nm,
         () => {
-          EquipmentSystem.unequip(scene.level.entities, scene.playerId, slot);
+          Loadout.unequip(scene.level.entities, scene.playerId, slot);
           scene.window.dirty = true;
           Log.info(`unequipped ${itemId}`);
         },
@@ -1049,13 +1049,13 @@ globalThis.InventoryUI = {
     if (item.hasComponent(Equippable)) {
       const eqp = item.getComponent(Equippable);
       if (wasWorn) {
-        EquipmentSystem.unequip(scene.level.entities, scene.playerId, eqp.slot);
+        Loadout.unequip(scene.level.entities, scene.playerId, eqp.slot);
         Log.info(`unequipped ${itemId}`);
       } else {
         const ok =
           uid !== undefined
-            ? EquipmentSystem.equip(scene.level.entities, scene.playerId, uid)
-            : EquipmentSystem.equipFirst(
+            ? Loadout.equip(scene.level.entities, scene.playerId, uid)
+            : Loadout.equipFirst(
                 scene.level.entities,
                 scene.playerId,
                 itemId,
@@ -1063,7 +1063,7 @@ globalThis.InventoryUI = {
         if (ok) Log.info(`equipped ${itemId}`);
       }
     } else if (item.hasComponent(Consumable)) {
-      if (ConsumableSystem.use(scene.level.entities, scene.playerId, itemId)) {
+      if (Consumption.use(scene.level.entities, scene.playerId, itemId)) {
         // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
         const c = item.getComponent(Consumable);
         if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)

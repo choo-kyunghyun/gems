@@ -114,7 +114,7 @@ globalThis.FollowerSystem = {
 
   /**
    * Add (sign +1) / remove (-1) a companion's carry bonus (slots + weight cap) on the player's Inventory.
-   * balanced delta (like EquipmentSystem._applyContainer) so it never needs a recompute-from-base pass.
+   * balanced delta (like Loadout._applyContainer) so it never needs a recompute-from-base pass.
    */
   applyBenefit(entities, playerId, f, sign) {
     if (f === undefined) return;

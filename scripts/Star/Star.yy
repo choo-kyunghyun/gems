@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Star",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Star",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Star.js",
+}

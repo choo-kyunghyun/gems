@@ -22,7 +22,7 @@ globalThis.SimClock = {
    * by maxTicks (under overload the sim slows instead of freezing). Sets `alpha` from the remainder.
    *
    * THE TICK LOOP a scene's step() builds around this call — two ordering contracts:
-   *   for (t < advance()) { InterpolationSystem.snapshot(entities)  FIRST — records pre-move
+   *   for (t < advance()) { Interpolation.snapshot(entities)  FIRST — records pre-move
    *                         <the genre's system sequence>                   positions
    *                         entities.flush() }                        LAST — commits the tick's
    *                                                                          queued removals

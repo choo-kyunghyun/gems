@@ -1,6 +1,6 @@
 /**
  * Quick-use bar: flat string[] of bound itemIds (or "" empty), carried in the player-sheet snapshot.
- * A slot need not hold an owned item — useItem/ConsumableSystem no-ops if the item isn't in the bag.
+ * A slot need not hold an owned item — useItem/Consumption no-ops if the item isn't in the bag.
  *
  * @typedef {Object} Hotbar
  * @property {string[]} slots  itemId per slot, "" = empty

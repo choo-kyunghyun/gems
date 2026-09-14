@@ -35,7 +35,7 @@ globalThis.EncumbranceSystem = {
       return 1;
     }
 
-    const frac = InventorySystem.weight(inv) / inv.maxWeight;
+    const frac = Bag.weight(inv) / inv.maxWeight;
     if (frac <= enc.threshold) return 1;
     if (frac >= 1) return enc.minScale;
 

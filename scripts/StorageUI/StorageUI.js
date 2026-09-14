@@ -7,7 +7,7 @@
  * the refresh are the shell's (Window). Tables swap rows via setRows (not rebuilt) so column sort
  * survives every transfer. Caller contract: set scene.window.dirty whenever the bag changes from
  * outside this file (a craft, a pickup, an equip) — the refresh is flag-driven and would otherwise
- * show stale rows. The move itself is InventorySystem.transfer / transferAll; this file holds the
+ * show stale rows. The move itself is Bag.transfer / transferAll; this file holds the
  * rows, the gesture and the colony's guards — what the bag keeps back (_kept) and what a store
  * drags along (_afterStore). State on the page: bagTable / boxTable (UITable), click (the
  * InvTable.reclick latch), onTake.
@@ -110,7 +110,7 @@ globalThis.StorageUI = {
     if (inv === undefined) return "";
     let s =
       I18n.text("INV_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
-    s += "   " + I18n.text("INV_WEIGHT") + " " + InventorySystem.weight(inv);
+    s += "   " + I18n.text("INV_WEIGHT") + " " + Bag.weight(inv);
     if (inv.maxWeight !== undefined) s += "/" + inv.maxWeight;
     return s;
   },
@@ -210,10 +210,10 @@ globalThis.StorageUI = {
     if (bag === undefined || box === undefined) return;
     let moved;
     if (side === "bag") {
-      moved = InventorySystem.transfer(bag, box, row.idx, amount);
+      moved = Bag.transfer(bag, box, row.idx, amount);
       if (moved > 0) StorageUI._afterStore(scene, bag, row.itemId);
     } else {
-      moved = InventorySystem.transfer(box, bag, row.idx, amount);
+      moved = Bag.transfer(box, bag, row.idx, amount);
       // the per-open take hook (corpse looting reports pickup credit)
       if (moved > 0 && page.onTake !== undefined)
         page.onTake(row.itemId, moved);
@@ -235,10 +235,10 @@ globalThis.StorageUI = {
     if (bag === undefined || box === undefined) return;
     const total =
       side === "bag"
-        ? InventorySystem.transferAll(bag, box, {
+        ? Bag.transferAll(bag, box, {
             skip: StorageUI._kept(scene, true),
           })
-        : InventorySystem.transferAll(box, bag, { onMoved: page.onTake });
+        : Bag.transferAll(box, bag, { onMoved: page.onTake });
     if (total <= 0) return;
     scene.window.dirty = true;
     Log.info(`transferred all (${total} items)`);
@@ -255,7 +255,7 @@ globalThis.StorageUI = {
     const hb = bulk ? entities.get(scene.playerId, Hotbar) : undefined;
     const eq = bulk ? entities.get(scene.playerId, Equipment) : undefined;
     return (s) => {
-      if (fav !== undefined && FavoritesSystem.has(fav, s.itemId)) return true;
+      if (fav !== undefined && Star.has(fav, s.itemId)) return true;
       if (hb !== undefined && hb.slots.indexOf(s.itemId) !== -1) return true;
       if (eq !== undefined && s.uid !== undefined) {
         for (const slot in eq.slots) if (eq.slots[slot] === s.uid) return true;
@@ -270,10 +270,10 @@ globalThis.StorageUI = {
    */
   _afterStore(scene, bag, itemId) {
     const entities = scene.level.entities;
-    if (!InventorySystem.has(bag, itemId, 1)) {
+    if (!Bag.has(bag, itemId, 1)) {
       const hb = entities.get(scene.playerId, Hotbar);
       if (hb !== undefined) HotbarSystem.clearItem(hb, itemId);
     }
-    EquipmentSystem.reconcile(entities, scene.playerId);
+    Loadout.reconcile(entities, scene.playerId);
   },
 };

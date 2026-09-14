@@ -7,7 +7,7 @@ globalThis.Progression = {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     for (let i = 0; i < reward.items.length; i++) {
       const it = reward.items[i];
-      InventorySystem.add(inv, it.itemId, it.qty);
+      Bag.add(inv, it.itemId, it.qty);
       // through the seam, so reward items count toward the collect rules like any other pickup
       scene.track("collect", it.itemId, it.qty);
     }

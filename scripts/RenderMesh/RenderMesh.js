@@ -269,7 +269,7 @@ globalThis.RenderMesh = class RenderMesh {
       if (mesh.model === undefined || mesh.model === "") return;
       const m = this._model(mesh.model);
       if (m.vb === -1) return;
-      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      const rp = Interpolation.lerp(entities, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
       // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
       // footprint center (vox meshes carry all four side faces, so any facing is solid); the shader
@@ -295,7 +295,7 @@ globalThis.RenderMesh = class RenderMesh {
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
     entities.forEach([Mesh, Position], (entity, mesh) => {
       if (mesh.model !== undefined && mesh.model !== "") return;
-      const rp = InterpolationSystem.lerp(entities, entity, this._rp);
+      const rp = Interpolation.lerp(entities, entity, this._rp);
       const alpha = mesh.alpha ?? 1;
       // Face matrices are CENTER-relative and composed with an entity world matrix, so the
       // optional rotation pivots on the footprint center (matrix_multiply applies the left

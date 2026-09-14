@@ -74,7 +74,7 @@ globalThis.StatModel = {
     for (const slot in slots) {
       const uid = slots[slot]; // instance uid, not an itemId
       if (uid === undefined || uid === "") continue;
-      const inst = InventorySystem.findByUid(inv, uid);
+      const inst = Bag.findByUid(inv, uid);
       if (inst === undefined) continue;
       const item = Item.get(inst.itemId);
       if (item === undefined) continue;

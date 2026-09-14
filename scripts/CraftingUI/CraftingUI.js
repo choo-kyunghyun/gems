@@ -233,11 +233,11 @@ globalThis.CraftingUI = {
     const st = scene.level.entities.get(scene.window.target, Interaction);
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (st === undefined || inv === undefined) return;
-    if (InventorySystem.remove(inv, id, 1) < 1) return; // didn't own it
+    if (Bag.remove(inv, id, 1) < 1) return; // didn't own it
     const prev = st.module;
     if (prev !== undefined && prev !== "") {
-      if (InventorySystem.add(inv, prev, 1) !== 0) {
-        InventorySystem.add(inv, id, 1); // bag full — undo the consume, keep the slot as-is
+      if (Bag.add(inv, prev, 1) !== 0) {
+        Bag.add(inv, id, 1); // bag full — undo the consume, keep the slot as-is
         Toast.push(I18n.text("INV_FULL"), { type: "warn" });
         return;
       }
@@ -253,7 +253,7 @@ globalThis.CraftingUI = {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (st === undefined || inv === undefined) return;
     if (st.module === undefined || st.module === "") return;
-    if (InventorySystem.add(inv, st.module, 1) !== 0) {
+    if (Bag.add(inv, st.module, 1) !== 0) {
       Toast.push(I18n.text("INV_FULL"), { type: "warn" });
       return;
     }
@@ -276,7 +276,7 @@ globalThis.CraftingUI = {
         const def = Item.get(out.itemId);
         // list is pre-filtered so the gate always holds — pass the recipe's own `requires`
         // so canCraft only checks ingredients.
-        const can = CraftSystem.canCraft(inv, recipe, recipe.requires);
+        const can = Crafting.canCraft(inv, recipe, recipe.requires);
         entries.push({
           label: def !== undefined ? I18n.text(def.name) : out.itemId,
           onPick: () => {
@@ -347,7 +347,7 @@ globalThis.CraftingUI = {
         I18n.textRef("CRAFT_DO"),
         () => {
           if (
-            CraftSystem.craft(
+            Crafting.craft(
               scene.level.entities,
               scene.playerId,
               recipe.id,
@@ -359,7 +359,7 @@ globalThis.CraftingUI = {
         {
           primary: true,
           /** live gate: disabled while ingredients aren't met (re-evaluated each frame). */
-          disabled: () => !CraftSystem.canCraft(inv, recipe, module),
+          disabled: () => !Crafting.canCraft(inv, recipe, module),
         },
       ),
     );
@@ -367,7 +367,7 @@ globalThis.CraftingUI = {
 
   /** ingredient line: "Name   have/need", reddened when short. */
   _ingredientRow(inv, inp) {
-    const have = InventorySystem.count(inv, inp.itemId);
+    const have = Bag.count(inv, inp.itemId);
     const def = Item.get(inp.itemId);
     const name = def !== undefined ? I18n.text(def.name) : inp.itemId;
     const ok = have >= inp.qty;
