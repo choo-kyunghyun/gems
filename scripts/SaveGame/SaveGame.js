@@ -30,10 +30,16 @@ globalThis.SaveGame = {
   // map comes back fresh from file. mapId -> { map: the manifest entry, buf: its grid blob }.
   // The buffer is owned here until taken (clearPending frees the rest).
   _pendingMaps: {},
-  // runtime-rebuilt components dropped from every serialized entity (interpolation + pathfinding
-  // are re-derived each tick, a puppet Instance is re-minted by SkeletonSystem — a restored handle
-  // would be dead; dropping them shrinks the save and avoids a cyclic runtime ref).
-  _TRANSIENT: ["PrevPosition", "PathRequest", "PathResponse", "Instance"],
+  // runtime-rebuilt components dropped from every serialized entity (the diff baselines and
+  // pathfinding are re-derived each tick, a puppet Instance is re-minted by SkeletonSystem — a
+  // restored handle would be dead; dropping them shrinks the save and avoids a cyclic runtime ref).
+  _TRANSIENT: [
+    "PrevPosition",
+    "PrevHealth",
+    "PathRequest",
+    "PathResponse",
+    "Instance",
+  ],
 
   /**
    * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads

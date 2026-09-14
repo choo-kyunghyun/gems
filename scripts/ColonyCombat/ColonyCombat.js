@@ -1,8 +1,8 @@
 // Combat/loot plumbing for the colony scene — free functions taking the scene (composition; GMRT has
 // no usable class inheritance). Scene side effects come in as callbacks/options.
 /**
- * Contract: the scene owns `entities`, `playerId`, `_hpTrack` (id → last hp), `window` (its `dirty`
- * is set on a bag change). The enemy
+ * Contract: the scene owns `entities`, `playerId` and `window` (its `dirty` is set on a bag
+ * change); the damage-number baseline is the entity's own (PrevHealth). The enemy
  * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower
  * component, so a save restore or squad transfer needs no bookkeeping — allegiance and membership
  * are component queries, not stored lists.
@@ -43,7 +43,7 @@ globalThis.ColonyCombat = {
       ColonyCombat._diffHp(scene, id, true, yOffset);
     });
     // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
-    // Follower); a double-diffed id is harmless (the first call settles _hpTrack).
+    // Follower); a double-diffed id is harmless (the first call seeds PrevHealth).
     scene.level.entities.forEach([Health, Mesh], (id) => {
       ColonyCombat._diffHp(scene, id, true, yOffset);
     });
@@ -54,8 +54,13 @@ globalThis.ColonyCombat = {
     if (!entities.isValid(id)) return;
     const hp = entities.get(id, Health);
     if (hp === undefined) return;
-    const prev = scene._hpTrack[id];
-    if (prev !== undefined && hp.hp !== prev) {
+    const base = entities.get(id, PrevHealth);
+    if (base === undefined) {
+      entities.add(id, PrevHealth, { hp: hp.hp }); // first sight seeds, pops nothing
+      return;
+    }
+    const prev = base.hp;
+    if (hp.hp !== prev) {
       const pos = entities.get(id, Position);
       if (pos !== undefined) {
         const d = hp.hp - prev; // <0 = damage, >0 = heal
@@ -78,7 +83,7 @@ globalThis.ColonyCombat = {
         }
       }
     }
-    scene._hpTrack[id] = hp.hp;
+    base.hp = hp.hp;
   },
 
   /**
@@ -114,7 +119,8 @@ globalThis.ColonyCombat = {
         const st = entities.get(id, Stats);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
         if (h.onRespawn !== undefined) h.onRespawn(id);
-        scene._hpTrack[id] = hp.hp; // don't pop a "+heal" for the refill
+        const base = entities.get(id, PrevHealth);
+        if (base !== undefined) base.hp = hp.hp; // don't pop a "+heal" for the refill
       } else if (m.kind === "down") {
         ColonyCombat._goDown(scene, id, m, h);
       }
@@ -142,7 +148,7 @@ globalThis.ColonyCombat = {
     if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
     ColonyPlayer.setState(entities, id, "down"); // the doll's fall (no-op without a Skeleton)
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
-    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+    entities.detach(id, PrevHealth); // no Health now — drop the stale diff baseline
     if (h.onDown !== undefined) h.onDown(id);
   },
 
@@ -176,7 +182,6 @@ globalThis.ColonyCombat = {
         }
       }
       entities.detach(id, Downed);
-      scene._hpTrack[id] = reviveHp; // baseline so recovery doesn't pop a "+heal"
       if (h.onRecover !== undefined) h.onRecover(id);
     });
   },
@@ -224,7 +229,7 @@ globalThis.ColonyCombat = {
       }
     }
     entities.add(id, Interaction, { kind: "corpse" });
-    delete scene._hpTrack[id]; // no Health now — clear the stale diff baseline
+    entities.detach(id, PrevHealth); // no Health now — drop the stale diff baseline
   },
 
   /**

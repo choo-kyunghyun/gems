@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PrevHealth",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PrevHealth",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PrevHealth.js",
+}

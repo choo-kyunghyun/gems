@@ -225,7 +225,6 @@ globalThis.ColonyMap = {
    * restore a stale transient.
    */
   _activateReset(scene) {
-    scene._hpTrack = {};
     scene._buildActive = false;
     BuildMode.active = false;
     scene.nearNpc = false;

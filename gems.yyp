@@ -336,6 +336,7 @@
     {"id":{"name":"Position","path":"scripts/Position/Position.yy",},},
     {"id":{"name":"Prefab","path":"scripts/Prefab/Prefab.yy",},},
     {"id":{"name":"PrefabStamp","path":"scripts/PrefabStamp/PrefabStamp.yy",},},
+    {"id":{"name":"PrevHealth","path":"scripts/PrevHealth/PrevHealth.yy",},},
     {"id":{"name":"PrevPosition","path":"scripts/PrevPosition/PrevPosition.yy",},},
     {"id":{"name":"Progression","path":"scripts/Progression/Progression.yy",},},
     {"id":{"name":"Projectile","path":"scripts/Projectile/Projectile.yy",},},
