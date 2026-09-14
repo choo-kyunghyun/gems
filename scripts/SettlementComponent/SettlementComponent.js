@@ -4,20 +4,19 @@
  * system acting on "settlements that have X") layers on later.
  */
 globalThis.SettlementComponent = {
-  // ── Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(), // id -> { id, name, color }
-  _order: [],
-
   register(defs) {
-    Registry.register(SettlementComponent, defs, (d) => ({
+    Registry.register(SettlementComponent, defs, SettlementComponent.make);
+  },
+
+  /** { id, name, color } — color a colour int or "#rrggbb" hex. */
+  make(d) {
+    return {
       id: d.id,
       name: d.name ?? "",
       color:
         typeof d.color === "string"
           ? Color.parse(d.color)
           : (d.color ?? c_white),
-    }));
-    return SettlementComponent;
+    };
   },
-
 };

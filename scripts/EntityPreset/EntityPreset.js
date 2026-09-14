@@ -15,18 +15,15 @@
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  */
 globalThis.EntityPreset = {
-  _defs: new Map(), // id → FLATTENED def (string keys — never key a Map by a ref)
-  _order: [],
-
   /** Register defs in order; `extends` flattens against the already-registered base, so a
    *  chain works top-down. Re-registering an id replaces it. */
   register(presets) {
-    Registry.register(EntityPreset, presets, EntityPreset._flatten);
+    Registry.register(EntityPreset, presets, EntityPreset.make);
   },
 
-  /** Registry `make` hook: resolve `extends` against what is already stored (defs land in list
-   *  order, so a base registered earlier in the same call is visible here). */
-  _flatten(def) {
+  /** The stored def is FLATTENED: `extends` resolves against what is already stored (defs land
+   *  in list order, so a base registered earlier in the same call is visible here). */
+  make(def) {
     if (def.extends === undefined) return def;
     const base = EntityPreset.get(def.extends);
     if (base === undefined)

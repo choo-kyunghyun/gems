@@ -45,13 +45,13 @@ globalThis.Item = class Item {
     return this.hasComponent(Equippable);
   }
 
-  // ── Registry facade (Registry owns the store's contract) ──
-  static _defs = new Map();
-  static _order = [];
-
+  // ── Registry facade — statics, since a def is an Item instance (Registry owns the store)
   static register(defs) {
-    Registry.register(Item, defs, (def) => new Item(def));
-    return Item;
+    Registry.register(Item, defs, Item.make);
+  }
+
+  static make(def) {
+    return new Item(def);
   }
 
   static get(id) {

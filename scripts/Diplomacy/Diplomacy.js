@@ -5,21 +5,23 @@
  * also avoids the 50-method class ceiling (see CLAUDE.md).
  */
 globalThis.Diplomacy = {
-  // ── Roster — a Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(), // id → { id, name, color }
-  _order: [], // insertion order of ids
   _rel: new Map(), // canonical pair key → "ally" | "neutral" | "hostile"
 
+  // ── Roster — a Registry facade
   register(defs) {
-    Registry.register(Diplomacy, defs, (def) => ({
+    Registry.register(Diplomacy, defs, Diplomacy.make);
+  },
+
+  /** { id, name, color } — color a colour int or "#rrggbb" hex. */
+  make(def) {
+    return {
       id: def.id,
       name: def.name ?? "",
       color:
         typeof def.color === "string"
           ? Color.parse(def.color)
           : (def.color ?? c_white),
-    }));
-    return Diplomacy;
+    };
   },
 
   // ── Relations (faction-id level)

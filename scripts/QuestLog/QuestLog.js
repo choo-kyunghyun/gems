@@ -14,13 +14,8 @@
  *   wrapper object is what `Tracker.complete`'s `?? {}` fallback stands in for.
  */
 globalThis.QuestLog = {
-  // ── Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(),
-  _order: [],
-
   register(defs) {
     Registry.register(QuestLog, defs);
-    return QuestLog;
   },
 
   def(id) {
@@ -38,6 +33,6 @@ globalThis.QuestLog = {
    * the registered ids in order — Tracker walks these to match objectives and list active quests.
    */
   ids() {
-    return QuestLog._order;
+    return Registry.ids(QuestLog);
   },
 };

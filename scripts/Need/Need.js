@@ -8,17 +8,12 @@
  * clock rise) }. Registration order is the HUD order and the tick order.
  */
 globalThis.Need = {
-  // ── Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(),
-  _order: [],
-
   register(defs) {
-    Registry.register(Need, defs, (d) => ({
-      id: d.id,
-      name: d.name,
-      seed: d.seed,
-      system: d.system, // may be undefined
-    }));
+    Registry.register(Need, defs, Need.make);
+  },
+
+  make(d) {
+    return { id: d.id, name: d.name, seed: d.seed, system: d.system };
   },
 
   all() {

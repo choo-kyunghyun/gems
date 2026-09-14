@@ -1,41 +1,36 @@
+// Manufacturer registry — each genre registers its own companies (the colony's via content.register).
 /**
  * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); Loadout
  * folds it into every weapon the company makes, so brand identity is mechanical, not just cosmetic.
  */
-globalThis.Manufacturer = class Manufacturer {
+globalThis.Manufacturer = {
+  register(defs) {
+    Registry.register(Manufacturer, defs, Manufacturer.make);
+  },
+
   /**
    * Manufacturer def, keyed by `id`: name/lore (i18n keys), color (colour int or "#rrggbb" hex), ops
-   * (signature weapon ops layer — see the class contract above).
+   * (signature weapon ops layer — see the contract above).
    */
-  constructor(def) {
-    this.id = def.id;
-    this.name = def.name ?? ""; // i18n key
-    this.lore = def.lore ?? ""; // i18n key
-    this.color =
-      typeof def.color === "string"
-        ? Color.parse(def.color)
-        : (def.color ?? c_white);
-    this.ops = def.ops;
-  }
+  make(def) {
+    return {
+      id: def.id,
+      name: def.name ?? "",
+      lore: def.lore ?? "",
+      color:
+        typeof def.color === "string"
+          ? Color.parse(def.color)
+          : (def.color ?? c_white),
+      ops: def.ops,
+    };
+  },
 
-  // ── Registry facade (Registry owns the store's contract) ──
-  // each genre registers its own companies (the colony's via content.register).
-  static _defs = new Map();
-  static _order = [];
-
-  static register(defs) {
-    Registry.register(Manufacturer, defs, (def) => new Manufacturer(def));
-    return Manufacturer;
-  }
-
-  static get(id) {
+  get(id) {
     return Registry.get(Manufacturer, id);
-  }
+  },
 
-  /**
-   * registration index, -1 when unknown — the inventory sort key.
-   */
-  static rank(id) {
+  /** registration index, -1 when unknown — the inventory sort key. */
+  rank(id) {
     return Registry.rank(Manufacturer, id);
-  }
+  },
 };

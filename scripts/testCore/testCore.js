@@ -921,6 +921,41 @@ globalThis.testCore = {
         t.eq(Time.frame - ctx.frame0, 2, "one real frame per step");
       },
     },
+    {
+      // a facade is a plain object with no storage of its own: Registry seeds it on first use,
+      // `make` normalizes each def, and a re-registered id keeps its position (docs/ARCHITECTURE.md
+      // → Registry pattern)
+      id: "registry.facade",
+      setup(ctx) {
+        const Tier = {
+          register(defs) {
+            Registry.register(Tier, defs, Tier.make);
+          },
+          make(d) {
+            return { id: d.id, weight: d.weight ?? 1 };
+          },
+        };
+        ctx.facade = Tier;
+        ctx.before = Registry.all(Tier).length;
+        Tier.register([{ id: "low" }, { id: "mid", weight: 2 }]);
+        Tier.register([{ id: "high" }, { id: "low", weight: 5 }]);
+      },
+      verify(ctx, t) {
+        const Tier = ctx.facade;
+        t.eq(ctx.before, 0, "an unregistered facade reads empty, not undefined");
+        t.eq(Registry.get(Tier, "mid").weight, 2, "make normalizes a def");
+        t.eq(Registry.get(Tier, "high").weight, 1, "make applies a default");
+        t.eq(Registry.get(Tier, "low").weight, 5, "a re-registered id overwrites its def");
+        t.eq(Registry.rank(Tier, "low"), 0, "a re-registered id keeps its position");
+        t.eq(Registry.rank(Tier, "none"), -1, "an unknown id ranks -1");
+        t.ok(Registry.has(Tier, "high"), "has finds a registered id");
+        t.ok(!Registry.has(Tier, "none"), "has misses an unknown id");
+        const all = Registry.all(Tier);
+        t.eq(all.length, 3, "all lists every def once");
+        t.eq(all[2].id, "high", "all runs in registration order");
+        t.eq(Registry.ids(Tier).join(","), "low,mid,high", "ids is the order itself");
+      },
+    },
     // ── perf.measured: the costs that decide the frame ─────────────────────────
     // A static-method call and an object literal each cost about a hundred plain reads, a hash
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the

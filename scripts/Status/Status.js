@@ -8,32 +8,30 @@
  * Status stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
  */
 globalThis.Status = {
-  // ── Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(),
-  _order: [],
+  register(defs) {
+    Registry.register(Status, defs, Status.make);
+  },
 
   /**
-   * Register status defs. Each:
-   * { id, name, color?, beneficial? (default buff), duration? (0 = no auto-expire), dot?, hot?,
-   *   interval? (default 1, seconds between dot/hot), mods?, mult? }
+   * A status def: { id, name, color?, beneficial? (default buff), duration? (0 = no auto-expire),
+   * dot?, hot?, interval? (default 1, seconds between dot/hot), mods?, mult? }
    */
-  register(defs) {
-    Registry.register(Status, defs, (d) => ({
+  make(d) {
+    return {
       id: d.id,
       name: d.name,
       color: d.color ?? "#cccccc",
-      beneficial: d.beneficial !== false, // default true
+      beneficial: d.beneficial !== false,
       duration: d.duration ?? 0,
       dot: d.dot ?? 0,
       hot: d.hot ?? 0,
       interval: d.interval ?? 1,
-      mods: d.mods, // may be undefined
-      mult: d.mult, // may be undefined
-    }));
+      mods: d.mods,
+      mult: d.mult,
+    };
   },
 
   get(id) {
     return Registry.get(Status, id);
   },
-
 };

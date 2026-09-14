@@ -14,41 +14,32 @@
  * `LevelData.translate(prefab, ox, oy)` stamps it into a generator's output and `LevelData.paint`
  * writes it into a level, the same two calls a generator's whole output goes through.
  *
- * register() fail-fast validates every channel against the footprint — an out-of-footprint rect
+ * `make` fail-fast validates every channel against the footprint — an out-of-footprint rect
  * would silently break a generator's seam-margin guarantee. The def store is a `Registry` facade.
  */
-globalThis.Prefab = class Prefab {
-  constructor(def) {
-    this.id = def.id;
-    this.tags = def.tags ?? [];
-    this.weight = def.weight ?? 1;
-    this.cols = def.cols;
-    this.rows = def.rows;
-    this.tiles = def.tiles ?? [];
-    this.spawns = def.spawns ?? [];
-  }
-
-  hasTag(t) {
-    return this.tags.indexOf(t) !== -1;
-  }
-
-  // Registry facade — Registry owns the store's contract.
-  static _defs = new Map();
-  static _order = [];
-
+globalThis.Prefab = {
   /** Validated — throws on out-of-footprint content. */
-  static register(defs) {
-    Registry.register(Prefab, defs, (def) => {
-      const p = new Prefab(def);
-      Prefab._validate(p);
-      return p;
-    });
-    return Prefab;
-  }
+  register(defs) {
+    Registry.register(Prefab, defs, Prefab.make);
+  },
+
+  make(def) {
+    const p = {
+      id: def.id,
+      tags: def.tags ?? [],
+      weight: def.weight ?? 1,
+      cols: def.cols,
+      rows: def.rows,
+      tiles: def.tiles ?? [],
+      spawns: def.spawns ?? [],
+    };
+    Prefab._validate(p);
+    return p;
+  },
 
   // fail fast at register time — an overflowing rect/spawn would silently break the seam
   // margin a generator's interior placement guarantees
-  static _validate(p) {
+  _validate(p) {
     if (typeof p.id !== "string" || p.id === "")
       throw new Error(`Prefab def needs a string id`);
     if (!(p.cols >= 1) || !(p.rows >= 1))
@@ -67,9 +58,9 @@ globalThis.Prefab = class Prefab {
           `Prefab '${p.id}': spawn ${i} (${s.gx},${s.gy}) outside ${p.cols}x${p.rows}`,
         );
     }
-  }
+  },
 
-  static _checkRect(p, channel, r) {
+  _checkRect(p, channel, r) {
     const ok =
       r[0] >= 0 &&
       r[1] >= 0 &&
@@ -81,23 +72,23 @@ globalThis.Prefab = class Prefab {
       throw new Error(
         `Prefab '${p.id}': ${channel} rect (${r[0]},${r[1]},${r[2]},${r[3]}) outside ${p.cols}x${p.rows}`,
       );
-  }
+  },
 
-  static get(id) {
+  get(id) {
     return Registry.get(Prefab, id);
-  }
+  },
 
-  static all() {
+  all() {
     return Registry.all(Prefab);
-  }
+  },
 
   /** In registration order — a weighted pick over the set relies on it being stable. */
-  static byTag(tag) {
+  byTag(tag) {
     const all = Prefab.all();
     const out = [];
     for (let i = 0; i < all.length; i++) {
-      if (all[i].hasTag(tag)) out.push(all[i]);
+      if (all[i].tags.indexOf(tag) !== -1) out.push(all[i]);
     }
     return out;
-  }
+  },
 };

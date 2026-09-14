@@ -18,10 +18,6 @@
  *           (`scene.window.open(id, { target: ctx.id })`) so the engine range-closes it.
  */
 globalThis.InteractAction = {
-  // ── Registry facade (Registry owns the store's contract) ──
-  _defs: new Map(),
-  _order: [],
-
   register(list) {
     Registry.register(InteractAction, list);
   },
@@ -29,5 +25,4 @@ globalThis.InteractAction = {
   get(id) {
     return Registry.get(InteractAction, id);
   },
-
 };

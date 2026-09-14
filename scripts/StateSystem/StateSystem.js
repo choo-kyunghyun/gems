@@ -16,16 +16,14 @@
  * ticks.
  */
 globalThis.StateSystem = {
-  _defs: new Map(), // id → StateSchema (STRING keys — never key a Map by an asset/object ref)
-
   /** Re-registering an id replaces it (content registration is idempotent). */
   register(defs) {
-    for (const def of defs) StateSystem._defs.set(def.id, def);
+    Registry.register(StateSystem, defs);
   },
 
   /** Throws on an unknown name (fail fast: a typo'd transition/preset). */
   get(id) {
-    const def = StateSystem._defs.get(id);
+    const def = Registry.get(StateSystem, id);
     if (def === undefined) throw new Error(`Unknown state: ${id}`);
     return def;
   },
