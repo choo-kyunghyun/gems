@@ -4,6 +4,15 @@
 
 - [#15998] Foot rotation for Spine sprites is broken
 - [#15999] Mix is ​​not applied to single-key Spine animations like down
+- Scene-owned module state — `BuildMode`, `Interactable` and `ColonyCombat` keep their state as `scene._build*` / `scene._inter*` / `scene._hpTrack` fields the scene never declares, and `BuildMode.active` mirrors `scene._buildActive`; each owns a lifecycle, so each is an instance class the scene constructs and drives (docs/ARCHITECTURE.md → Singleton shape), not a singleton writing into its caller
+- `sceneColony.update` runs three jobs in one 211-line body — the system order, gameplay rules (the `onKill` / `onRespawn` / `onDown` / `onRecover` closures) and UI timing (the hotbar slide); the rules belong to the systems that own the components they touch, and what is left is the schedule
+- `update` signature drift — 26 of the 37 `*System` objects define `update` in six shapes (`(entities)`, `(scene)`, `(scene, now)`, `()`, `(entities, playerId)`, `(entities, dt)`) against the one shape docs/ARCHITECTURE.md states, and 11 define none at all (`Consumable` / `Craft` / `Equipment` / `Faction` / `Favorites` / `Inventory` / `Melee` / `Settlement` / `Stamina` / `Animation` / `Interpolation` are service namespaces); one signature for the tickers, and the `*System` suffix off the rest (docs/NAMING.md)
+- Registry facade boilerplate — nine facades each re-declare `_defs` / `_order` and hand-write one-line delegations over `Registry`'s five ops, half as static-only classes (`Item` / `Rarity` / `Manufacturer` / `Recipe`) and half as singletons (`Status` / `InteractAction`); one factory minting the store and its members retires both the duplication and the static-only classes docs/ARCHITECTURE.md already bans for new code
+- Per-need wrapper assets — `HungerSystem`, `ThirstSystem` and `DrowsinessSystem` are one token apart over `Survival.tick` / `Survival.restore`, so a need costs a script asset, a folder, a `.yy` and a `gems.yyp` entry for two lines; a need is a data entry against the shared core
+- Every consumer guards `entities.get` — 926 `!== undefined` checks, 52 in `EquipmentSystem` alone, because the store has no required-component accessor; and `EquipmentSystem.equip` folding five distinct refusals into one `false` is the same gap on the return side (CLAUDE.md → don't hide errors)
+- List+detail screen duplication — `_column` / `_table` / `_rows` / `_fillList` / `_fillDetail` are re-implemented per screen across `StorageUI`, `TradeUI`, `CraftingUI`, `WeaponModUI` and `InventoryUI`; the shape is one Facet widget, not five
+- ARCHITECTURE.md and SPINE.md are unscannable — 1,777 words over 41 lines with a 2,142-character line, and 1,880 over 33; the rules they carry cannot be re-read before an edit the way CLAUDE.md requires, so they want rewrapping, not further compression
+- Comment mass stands in for structure — 0.32 comment:code overall, `UIElement` at 1.31 and `ColonyMap` at 0.58, carrying ordering constraints (`BEFORE the tick loop`, `after SolidSystem`) that the code cannot state; it is the measure the items above move, not a task of its own
 
 ## Planned
 
